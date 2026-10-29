@@ -884,6 +884,43 @@ void add_recipe_em(RecipeDeclaration& declaration, double em) noexcept;
 // `:is()` takes its most specific argument's. A class or stable-ID rule
 // with a given specificity then needs a class or an ID in it rather than
 // in its selector; an inline style still needs its selector's stable ID.
+// Custom properties defined in more than one place (T3 P12, EC7; owner
+// decision of 2026-10-29), resolved per part when the theme loads: each
+// definition of such a name is a scoped definition of the rule that
+// declares it, at the rule's level, selector and media; and a rule that
+// reads such names is lowered once per combination of their candidate
+// definitions, each copy holding the combination as its conditions. A
+// part's winning definition of a name is the last matching one in
+// ascending precedence, or none; a copy applies to a part only where every
+// condition names the part's winner. A name defined once is substituted
+// when the theme loads, and is not scoped. Names are written with their
+// `--`; a definition is identified by a number unique in the sheet.
+inline constexpr std::uint32_t custom_property_undefined = 0xFFFF'FFFFU;
+
+// The most scoped names one compilation's conditions may read (E515): eight
+// times the token-heavy test theme's 8 (theme_custom_property_css_tests).
+inline constexpr std::size_t maximum_scoped_custom_properties = 64U;
+
+struct ScopedDefinition final {
+    std::string name{};
+    std::uint32_t definition{};
+
+    friend bool operator==(const ScopedDefinition& left, const ScopedDefinition& right) noexcept {
+        return left.name == right.name && left.definition == right.definition;
+    }
+};
+
+// A copy's condition: the part's winning definition of `name` is
+// `definition`, or, for custom_property_undefined, no definition matches.
+struct ScopedCondition final {
+    std::string name{};
+    std::uint32_t definition{custom_property_undefined};
+
+    friend bool operator==(const ScopedCondition& left, const ScopedCondition& right) noexcept {
+        return left.name == right.name && left.definition == right.definition;
+    }
+};
+
 struct ThemeRule final {
     std::string label{};
     CascadeLevel level{CascadeLevel::theme_sheet};
@@ -897,13 +934,19 @@ struct ThemeRule final {
     std::vector<RecipeDeclaration> recipe_fields{};
     // The windows the rule holds in (EC3); by default, all.
     MediaCondition media{};
+    // Scoped custom properties (P12): the definitions the rule declares,
+    // and the conditions under which the rule, a copy, applies.
+    std::vector<ScopedDefinition> scoped_definitions{};
+    std::vector<ScopedCondition> scoped_conditions{};
 
     friend bool operator==(const ThemeRule& left, const ThemeRule& right) noexcept {
         return left.label == right.label && left.level == right.level && left.selector == right.selector &&
                left.specificity == right.specificity && left.declarations == right.declarations &&
                left.requires_engine == right.requires_engine && left.transitions == right.transitions &&
                left.ambient == right.ambient && left.materials == right.materials &&
-               left.recipe_fields == right.recipe_fields && left.media == right.media;
+               left.recipe_fields == right.recipe_fields && left.media == right.media &&
+               left.scoped_definitions == right.scoped_definitions &&
+               left.scoped_conditions == right.scoped_conditions;
     }
 };
 
@@ -1013,6 +1056,10 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // The rule's media condition has a resolution bound that is not finite
     // or not above zero (media_condition_valid); the rule is dropped.
     media_invalid,
+    // The rule's conditions read a scoped name past
+    // maximum_scoped_custom_properties, or a scoped definition or
+    // condition names no custom property; the rule is dropped.
+    scoped_property_invalid,
 };
 
 [[nodiscard]] std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept;
@@ -1068,6 +1115,9 @@ public:
 
     [[nodiscard]] bool empty() const noexcept { return rules_.empty(); }
     [[nodiscard]] std::size_t rule_count() const noexcept { return rules_.size(); }
+    // How many scoped custom property names the rules' conditions read
+    // (P12).
+    [[nodiscard]] std::size_t scoped_name_count() const noexcept { return scoped_names_.size(); }
     [[nodiscard]] const std::vector<RuleDiagnostic>& diagnostics() const noexcept { return diagnostics_; }
 
     // The published values the sheet's expressions read, in position order
@@ -1237,6 +1287,16 @@ private:
         ColourOrigin origin{};
     };
 
+    struct CompiledScoped final {
+        std::uint32_t name{};
+        std::uint32_t definition{custom_property_undefined};
+    };
+
+    // A part's winning definition of each scoped name, by its position.
+    struct ScopedWinners final {
+        std::array<std::uint32_t, maximum_scoped_custom_properties> definitions{};
+    };
+
     struct CompiledRule final {
         CascadeLevel level{CascadeLevel::theme_sheet};
         RuleSpecificity specificity{};
@@ -1258,6 +1318,9 @@ private:
         std::vector<MaterialDeclaration> materials{};
         // Checked recipe fields, at most one per field.
         std::vector<RecipeDeclaration> recipe_fields{};
+        // Scoped custom properties (P12), by position in scoped_names_.
+        std::vector<CompiledScoped> scoped_definitions{};
+        std::vector<CompiledScoped> scoped_conditions{};
     };
 
     // Compiles `sheet`'s rules into `result` at their authored levels, or,
@@ -1268,10 +1331,21 @@ private:
     // order, once the rules are final.
     void number_machines() noexcept;
     // The winning rule's primitive and parameters into `result`.
-    void resolve_primitive(const PartFacts& facts, const CompiledRule& chosen, Resolution& result) const noexcept;
+    void resolve_primitive(const PartFacts& facts, const ScopedWinners& winners, const CompiledRule& chosen,
+                           Resolution& result) const noexcept;
     // The resolved transitions, ambient effect and blend of the matching
     // rules into `result`.
-    void resolve_transitions(const PartFacts& facts, Resolution& result) const noexcept;
+    void resolve_transitions(const PartFacts& facts, const ScopedWinners& winners, Resolution& result) const noexcept;
+    // The part's winning definition of each scoped name.
+    void resolve_scoped(const PartFacts& facts, ScopedWinners& winners) const noexcept;
+    // A rule's scoped definitions and conditions, mapped to scoped_names_;
+    // false, with a diagnostic, for a rule to drop.
+    static bool add_scoped(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                           CompiledThemeRules& result, CompiledRule& compiled);
+    // The position of `name` in scoped_names_, if it is there.
+    [[nodiscard]] std::optional<std::size_t> scoped_name_position(std::string_view name) const noexcept;
+    // Adds the names `sheet`'s conditions read to scoped_names_.
+    void collect_scoped_names(const ThemeRuleSheet& sheet);
     // A rule's transitions and ambient effect, checked; a defect drops the
     // one transition or the effect with a diagnostic.
     static void add_transitions(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
@@ -1290,7 +1364,7 @@ private:
     static void add_materials(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                               CompiledRule& compiled);
     // The winning material fields of the matching rules into `result`.
-    void resolve_materials(const PartFacts& facts, Resolution& result) const noexcept;
+    void resolve_materials(const PartFacts& facts, const ScopedWinners& winners, Resolution& result) const noexcept;
     // A rule's recipe fields, checked; a defect, a second declaration of
     // one field, or a selector naming a part or a role drops it with a
     // diagnostic.
@@ -1313,6 +1387,9 @@ private:
     bool recipe_fields_set_{};
     // Whether the rules are a control's inline style.
     bool inline_style_{};
+    // The scoped custom property names the rules' conditions read (P12),
+    // at most maximum_scoped_custom_properties.
+    std::vector<std::string> scoped_names_{};
 };
 
 // The engine's built-in rules (E7), compiled below every theme's: the

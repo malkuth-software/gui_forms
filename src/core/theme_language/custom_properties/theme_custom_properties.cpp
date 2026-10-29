@@ -39,6 +39,16 @@ struct DefinitionBeforeName final {
     }
 };
 
+// Orders a definition against a name's position, likewise.
+struct DefinitionBeforeIndex final {
+    bool operator()(const CustomPropertyDefinition& definition, std::uint32_t name_index) const noexcept {
+        return definition.name_index < name_index;
+    }
+    bool operator()(std::uint32_t name_index, const CustomPropertyDefinition& definition) const noexcept {
+        return name_index < definition.name_index;
+    }
+};
+
 [[nodiscard]] bool is_custom_property_name(std::string_view name) noexcept {
     return name.size() > 2U && name[0] == '-' && name[1] == '-';
 }
@@ -144,11 +154,20 @@ bool CustomPropertyTable::collect(const ThemeSource& source, const ThemeTokenBuf
     // before it whose subtree holds it; only style rules' declarations
     // define custom properties.
     std::uint32_t rule_end = 0U;
+    std::uint32_t rule = 0U;
     bool in_style_rule = false;
+    std::uint32_t media_end = 0U;
+    std::uint32_t media = 0U;
     for (std::uint32_t index = 0U; index < nodes.size(); ++index) {
         const SyntaxNode& node = nodes[index];
+        if (node.kind == SyntaxNodeKind::media_rule) {
+            media = index;
+            media_end = node.subtree_end.value;
+            continue;
+        }
         if (node.kind == SyntaxNodeKind::style_rule || node.kind == SyntaxNodeKind::keyframe_block) {
             in_style_rule = node.kind == SyntaxNodeKind::style_rule;
+            rule = index;
             rule_end = node.subtree_end.value;
             continue;
         }
@@ -166,6 +185,9 @@ bool CustomPropertyTable::collect(const ThemeSource& source, const ThemeTokenBuf
         definition.name = name;
         definition.value = node.content;
         definition.declaration = NodeIndex{index};
+        definition.rule = NodeIndex{rule};
+        definition.media = NodeIndex{index < media_end ? media : 0U};
+        definition.important = (node.flags & syntax_flag_important) != 0U;
         definitions_.push_back(definition);
     }
     std::stable_sort(definitions_.begin(), definitions_.end(), DefinitionNameLess{});
@@ -200,6 +222,34 @@ std::span<const CustomPropertyDefinition> CustomPropertyTable::definitions_of(st
         std::upper_bound(first, definitions_.end(), name, DefinitionBeforeName{});
     const std::span<const CustomPropertyDefinition> found(first, last);
     return found;
+}
+
+std::span<const CustomPropertyDefinition> CustomPropertyTable::definitions_named(std::uint32_t name_index) const& noexcept {
+    const std::vector<CustomPropertyDefinition>::const_iterator first =
+        std::lower_bound(definitions_.begin(), definitions_.end(), name_index, DefinitionBeforeIndex{});
+    const std::vector<CustomPropertyDefinition>::const_iterator last =
+        std::upper_bound(first, definitions_.end(), name_index, DefinitionBeforeIndex{});
+    const std::span<const CustomPropertyDefinition> found(first, last);
+    return found;
+}
+
+std::span<const CustomPropertyDefinition> CustomPropertyTable::definitions() const& noexcept {
+    const std::span<const CustomPropertyDefinition> all(definitions_);
+    return all;
+}
+
+void append_variable_names(const ThemeSource& source, const std::vector<Token>& tokens, TokenRange range,
+                           const CustomPropertyTable& table, std::vector<std::uint32_t>& names) {
+    // A fallback's var()s are inside the range, so one scan finds them.
+    for (std::uint32_t index = range.first.value; index < range.end.value; ++index) {
+        const Token& token = tokens[index];
+        if (token.kind != TokenKind::function || !equals_ascii_folded(token_text(source, token), "var(")) continue;
+        const VariableReference reference = read_variable(source, tokens, index, range.end.value);
+        if (!reference.valid) continue;
+        const std::span<const CustomPropertyDefinition> found =
+            table.definitions_of(token_text(source, tokens[reference.name]));
+        if (!found.empty()) names.push_back(found[0].name_index);
+    }
 }
 
 std::size_t CustomPropertyTable::name_count() const noexcept {
@@ -263,7 +313,16 @@ SubstitutionOutcome VariableSubstitution::substitute(const SubstitutionInput& in
         const std::string_view name = token_text(input.source, tokens[reference.name]);
         const ReservedInput reserved = find_reserved_input(name, input.reserved);
         const std::span<const CustomPropertyDefinition> definitions = input.table.definitions_of(name);
-        const bool reads_fallback = reserved.kind == ReservedInputKind::none && definitions.empty();
+        std::uint32_t choice = variable_undefined;
+        if (!definitions.empty()) {
+            const std::uint32_t name_index = definitions[0].name_index;
+            if (!input.choices.empty()) {
+                choice = input.choices[name_index];
+            } else {
+                choice = definitions.size() == 1U ? 0U : variable_unassigned;
+            }
+        }
+        const bool reads_fallback = reserved.kind == ReservedInputKind::none && choice == variable_undefined;
         const std::size_t passed = reads_fallback ? inside - fallback_tokens : inside;
         if (!visit(input, passed, index, diagnostics)) {
             output.clear();
@@ -278,26 +337,31 @@ SubstitutionOutcome VariableSubstitution::substitute(const SubstitutionInput& in
             output.push_back(read);
             continue;
         }
-        if (definitions.empty()) {
-            if (!reference.has_fallback) {
-                report(input.source, tokens[reference.name], input.cursor, DiagnosticCode::variable_undefined,
-                       clipped_theme_detail(name), diagnostics);
-                output.clear();
-                return SubstitutionOutcome::refused;
+        if (choice == variable_undefined) {
+            if (reference.has_fallback) {
+                Frame fallback{};
+                fallback.cursor = reference.fallback.first.value;
+                fallback.end = reference.fallback.end.value;
+                frames_.push_back(fallback);
+                continue;
             }
-            Frame fallback{};
-            fallback.cursor = reference.fallback.first.value;
-            fallback.end = reference.fallback.end.value;
-            frames_.push_back(fallback);
-            continue;
+            output.clear();
+            // A name some rule defines, though none holds here: the
+            // declaration is not declared, as CSS's invalid at computed
+            // value time.
+            if (!definitions.empty()) return SubstitutionOutcome::undefined;
+            report(input.source, tokens[reference.name], input.cursor, DiagnosticCode::variable_undefined,
+                   clipped_theme_detail(name), diagnostics);
+            return SubstitutionOutcome::refused;
         }
-        if (definitions.size() > 1U) {
-            report(input.source, tokens[reference.name], input.cursor, DiagnosticCode::not_yet_built,
-                   "a custom property defined more than once (P12)", diagnostics);
+        if (choice == variable_unassigned || choice >= definitions.size()) {
+            report(input.source, tokens[reference.name], input.cursor, DiagnosticCode::variable_cannot_vary,
+                   clipped_theme_detail(name), diagnostics);
             output.clear();
             return SubstitutionOutcome::refused;
         }
-        const std::uint32_t name_index = definitions[0].name_index;
+        const CustomPropertyDefinition& definition = definitions[choice];
+        const std::uint32_t name_index = definition.name_index;
         if (active_[name_index] != 0U) {
             report(input.source, tokens[reference.name], input.cursor, DiagnosticCode::variable_cycle,
                    clipped_theme_detail(name), diagnostics);
@@ -305,8 +369,8 @@ SubstitutionOutcome VariableSubstitution::substitute(const SubstitutionInput& in
             return SubstitutionOutcome::refused;
         }
         Frame substituted{};
-        substituted.cursor = definitions[0].value.first.value;
-        substituted.end = definitions[0].value.end.value;
+        substituted.cursor = definition.value.first.value;
+        substituted.end = definition.value.end.value;
         substituted.defines = true;
         substituted.name_index = name_index;
         active_[name_index] = 1U;
