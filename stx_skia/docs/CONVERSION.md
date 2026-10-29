@@ -2077,6 +2077,41 @@ luminance gives a factor of 0, and a negative luminance raises its magnitude and
   stays exactly black. It also checks that a negative colour gives a finite result.
 - The arm64 and x86-64 scalar builds now agree on these plans.
 
+## Clip-row invariant analytic fills
+
+Owner decision D2 (2026-10-28), for GUI.Forms damage repaint and banded paint. A clip whose top
+or bottom cut a non-inverse anti-aliased fill changed the fill's coverage inside the clip: the
+edges were built against the clip, so a curve was chopped at the clip row, and the walk started
+at the clip's top. A chopped edge starts from a directly evaluated position, where the whole
+edge would have stepped there, so the coverage of later rows moved by a level or two. GUI.Forms
+showed it as a seam along every damage edge through a rounded stroke or fill.
+- **Walk (`SkScan_AAAPath.cpp`):** `walk_bounds` gives a non-inverse fill the path's own rows
+  (limited to ±32767, where SkFixed ends) with the clip's columns. Edges are built against that
+  rectangle and the walk runs from the path's top to its bottom, so every row is computed as in
+  an unclipped fill. An inverse fill keeps the clip's rows, since it covers the clip above and
+  below the path. When the clip's rows contain the path's, the edges, the walk and the blitters
+  are those of the previous code, so only fills whose rows the clip cuts move.
+- **Rows outside the clip:** the run-based and clamped run-based accumulators drop them
+  (`inRows`); the mask accumulator already blits through ir∩clip. The walkers also blit whole
+  rows to the real blitter directly; `RowClipBlitter` cuts those rows and passes every other
+  call on in the same kind. A rectangle clip blitter is not enough: it turns `blitAntiH2` into
+  `blitAntiH`, and the raster-pipeline and 32-bit blitters blend the two with different rounding
+  (`blitAntiH2` goes through `blitMask`), which left a pixel inside the clip one level off.
+  SkScanClipper still cuts columns; horizontal clipping is unchanged.
+- **Cost:** rows above and below the clip are walked and discarded. A fill the clip cuts walks
+  at most its own height; a fill inside the clip walks as before.
+- **Evidence:** `aa_scan_converters.cpp` writes a second artifact, `aa-scan-clip-rows.raw`, an
+  intentional difference: the clip-row-cut cases of its fill and anti-aliased clip corpora; the
+  coverage of fills split into row bands, compared with the whole fill (the seam GUI.Forms
+  found, a small rounded fill and 1500 random paths, 1-3 cuts each); and four rounded shapes
+  drawn through a canvas, cut at every row, compared in pixels. The candidate fails on any
+  difference; with the previous `SkScan_AAAPath.cpp` 1265 cases fail. GUI.Forms covers the same
+  in `skia_damage_edge_tests.cpp` (a scene repainted above and below every device row at scales
+  1-3, no byte may change).
+- **Corpora that move:** every corpus that draws an anti-aliased path through a clip cutting its
+  rows: `region-clips.raw`, `canvas-device.raw`, `android-clip.raw`, `layers.raw`, `render.raw`
+  and `mask-filter.raw`. They are listed as intentional differences.
+
 ## Still required
 
 Refreshed 2026-10-27 after the support leftovers. The whole-library AST inventory counts 249

@@ -347,6 +347,7 @@ protected:
     int fWidth = 0;  // Widest row of region to be blitted
     int fLeft = 0;   // Leftmost x coordinate in any row
     int fTop = 0;    // Initial y coordinate (top of bounds)
+    int fBottom = 0; // One past the last row of bounds
 
     // The next three variables are used to track a circular buffer that
     // contains the values used in SkAlphaRuns. These variables should only
@@ -358,6 +359,14 @@ protected:
     SkAlphaRuns fRuns;
 
     int fOffsetX = 0;
+
+    // True for a row inside the bounds. A non-inverse fill walks all of the path's own rows
+    // whatever the clip (SkScan::AAAFillPath), so rows outside the clip arrive here and are
+    // dropped.
+    bool inRows(int y) const {
+        const bool inside = y >= fTop && y < fBottom;
+        return inside;
+    }
 
     bool check(int x, int width) const {
         const bool inside = x >= 0 && x + width <= fWidth;
@@ -461,6 +470,7 @@ RunBasedAdditiveBlitter::RunBasedAdditiveBlitter(SkBlitter*     realBlitter,
     fLeft  = left;
     fWidth = right - left;
     fTop   = sectBounds.top();
+    fBottom = sectBounds.bottom();
     fCurrY = fTop - 1;
 
     fRunsToBuffer = (*realBlitter).requestRowsPreserved();
@@ -474,6 +484,9 @@ RunBasedAdditiveBlitter::RunBasedAdditiveBlitter(SkBlitter*     realBlitter,
 }
 
 void RunBasedAdditiveBlitter::blitAntiH(int x, int y, const SkAlpha antialias[], int len) {
+    if (!inRows(y)) {
+        return;
+    }
     checkY(y);
     x -= fLeft;
 
@@ -491,6 +504,9 @@ void RunBasedAdditiveBlitter::blitAntiH(int x, int y, const SkAlpha antialias[],
 }
 
 void RunBasedAdditiveBlitter::blitAntiH(int x, int y, SkAlpha alpha) {
+    if (!inRows(y)) {
+        return;
+    }
     checkY(y);
     x -= fLeft;
 
@@ -504,6 +520,9 @@ void RunBasedAdditiveBlitter::blitAntiH(int x, int y, SkAlpha alpha) {
 }
 
 void RunBasedAdditiveBlitter::blitAntiH(int x, int y, int width, SkAlpha alpha) {
+    if (!inRows(y)) {
+        return;
+    }
     checkY(y);
     x -= fLeft;
 
@@ -532,6 +551,9 @@ public:
 };
 
 void SafeRLEAdditiveBlitter::blitAntiH(int x, int y, const SkAlpha antialias[], int len) {
+    if (!inRows(y)) {
+        return;
+    }
     checkY(y);
     x -= fLeft;
 
@@ -549,6 +571,9 @@ void SafeRLEAdditiveBlitter::blitAntiH(int x, int y, const SkAlpha antialias[], 
 }
 
 void SafeRLEAdditiveBlitter::blitAntiH(int x, int y, SkAlpha alpha) {
+    if (!inRows(y)) {
+        return;
+    }
     checkY(y);
     x -= fLeft;
 
@@ -564,6 +589,9 @@ void SafeRLEAdditiveBlitter::blitAntiH(int x, int y, SkAlpha alpha) {
 }
 
 void SafeRLEAdditiveBlitter::blitAntiH(int x, int y, int width, SkAlpha alpha) {
+    if (!inRows(y)) {
+        return;
+    }
     checkY(y);
     x -= fLeft;
 
@@ -1798,13 +1826,131 @@ static inline bool try_blit_fat_anti_rect(SkBlitter* blitter,
     return true;
 }
 
+// Cuts the rows a walk reaches outside the clip and passes every other call on in the same
+// kind. A rectangle clip blitter would also do, but it turns blitAntiH2 into blitAntiH, and the
+// raster pipeline and 32-bit blitters blend those two calls with different rounding: a pixel
+// inside the clip would then come out a level off from the unclipped fill.
+class RowClipBlitter final : public SkBlitter {
+public:
+    RowClipBlitter(SkBlitter* blitter, int top, int bottom)
+            : fBlitter(blitter), fTop(top), fBottom(bottom) {}
+
+    void blitH(int x, int y, int width) override {
+        if ((*this).inRows(y)) {
+            (*fBlitter).blitH(x, y, width);
+        }
+    }
+    void blitAntiH(int x, int y, const SkAlpha antialias[], const int16_t runs[]) override {
+        if ((*this).inRows(y)) {
+            (*fBlitter).blitAntiH(x, y, antialias, runs);
+        }
+    }
+    void blitAntiH2(int x, int y, U8CPU a0, U8CPU a1) override {
+        if ((*this).inRows(y)) {
+            (*fBlitter).blitAntiH2(x, y, a0, a1);
+        }
+    }
+    void blitAntiV2(int x, int y, U8CPU a0, U8CPU a1) override {
+        const bool top = (*this).inRows(y);
+        const bool bottom = (*this).inRows(y + 1);
+        if (top && bottom) {
+            (*fBlitter).blitAntiV2(x, y, a0, a1);
+            return;
+        }
+        // The analytic walk never blits two rows this way; one row falls back to blitAntiH.
+        if (top || bottom) {
+            int16_t runs[2] = {1, 0};
+            uint8_t alpha[1] = {SkToU8(top ? a0 : a1)};
+            (*fBlitter).blitAntiH(x, top ? y : y + 1, alpha, runs);
+        }
+    }
+    void blitV(int x, int y, int height, SkAlpha alpha) override {
+        const int top = std::max(y, fTop);
+        const int bottom = std::min(y + height, fBottom);
+        if (top < bottom) {
+            (*fBlitter).blitV(x, top, bottom - top, alpha);
+        }
+    }
+    void blitRect(int x, int y, int width, int height) override {
+        const int top = std::max(y, fTop);
+        const int bottom = std::min(y + height, fBottom);
+        if (top < bottom) {
+            (*fBlitter).blitRect(x, top, width, bottom - top);
+        }
+    }
+    void blitAntiRect(int x, int y, int width, int height,
+                      SkAlpha leftAlpha, SkAlpha rightAlpha) override {
+        const int top = std::max(y, fTop);
+        const int bottom = std::min(y + height, fBottom);
+        if (top < bottom) {
+            (*fBlitter).blitAntiRect(x, top, width, bottom - top, leftAlpha, rightAlpha);
+        }
+    }
+    void blitMask(const SkMask& mask, const SkIRect& clip) override {
+        SkIRect rows = clip;
+        rows.fTop = std::max(rows.fTop, fTop);
+        rows.fBottom = std::min(rows.fBottom, fBottom);
+        if (rows.fTop < rows.fBottom) {
+            (*fBlitter).blitMask(mask, rows);
+        }
+    }
+    int requestRowsPreserved() const override {
+        const int rows = (*fBlitter).requestRowsPreserved();
+        return rows;
+    }
+    void* allocBlitMemory(size_t sz) override {
+        void* memory = (*fBlitter).allocBlitMemory(sz);
+        return memory;
+    }
+
+private:
+    bool inRows(int y) const {
+        const bool inside = y >= fTop && y < fBottom;
+        return inside;
+    }
+
+    SkBlitter* fBlitter;
+    int fTop;
+    int fBottom;
+};
+
+// The rows a fill walks, with the clip's columns. A non-inverse fill walks the path's own rows,
+// limited only to the fixed-point range, so that a clip's top and bottom never chop an edge
+// or start the walk: the coverage of every row inside the clip is then the coverage of an
+// unclipped fill (GUI.Forms banded paint and damage repaint, owner decision 2026-10-28). The
+// additive blitters drop the rows outside the clip. An inverse fill keeps the clip's rows: it
+// covers the clip above and below the path.
+static SkIRect walk_bounds(const SkIRect& ir, const SkIRect& clipBounds, bool isInverse) {
+    if (isInverse) {
+        return clipBounds;
+    }
+    // Rows past this limit do not fit SkFixed; edges are cut there, at the same rows whatever
+    // the clip.
+    static constexpr int kRowLimit = 32767;
+    const int top = std::max(ir.fTop, -kRowLimit);
+    const int bottom = std::min(ir.fBottom, kRowLimit);
+    const SkIRect bounds = SkIRect::MakeLTRB(clipBounds.fLeft, top, clipBounds.fRight, bottom);
+    return bounds;
+}
+
 void SkScan::AAAFillPath(const SkPathRaw&  path,
                          SkBlitter*     blitter,
                          const SkIRect& ir,
                          const SkIRect& clipBounds,
                          bool           forceRLE) {
-    bool containedInClip = clipBounds.contains(ir);
-    bool isInverse       = path.isInverseFillType();
+    const bool isInverse = path.isInverseFillType();
+    const SkIRect walkBounds = walk_bounds(ir, clipBounds, isInverse);
+    const bool containedInWalk = walkBounds.contains(ir);
+    const int startY = isInverse ? ir.fTop : walkBounds.fTop;
+    const int stopY = isInverse ? ir.fBottom : walkBounds.fBottom;
+    // SkScanClipper wraps the blitter only for a horizontal cut and leaves the rows to the scan
+    // converter. The walk now reaches rows outside the clip, and the walkers blit whole rows to
+    // the real blitter directly, so those rows are cut here.
+    RowClipBlitter rowClipper(blitter, clipBounds.fTop, clipBounds.fBottom);
+    SkBlitter* target = blitter;
+    if (!isInverse && (startY < clipBounds.fTop || stopY > clipBounds.fBottom)) {
+        target = &rowClipper;
+    }
 
     // The mask blitter (where we store intermediate alpha values directly in a mask, and then call
     // the real blitter once in the end to blit the whole mask) is faster than the RLE blitter when
@@ -1816,14 +1962,14 @@ void SkScan::AAAFillPath(const SkPathRaw&  path,
     if (MaskAdditiveBlitter::CanHandleRect(ir) && !isInverse && !forceRLE) {
         // blitFatAntiRect is slower than the normal AAA flow without MaskAdditiveBlitter.
         // Hence only tryBlitFatAntiRect when MaskAdditiveBlitter would have been used.
-        if (!try_blit_fat_anti_rect(blitter, path, clipBounds)) {
-            MaskAdditiveBlitter additiveBlitter(blitter, ir, clipBounds, isInverse);
+        if (!try_blit_fat_anti_rect(target, path, clipBounds)) {
+            MaskAdditiveBlitter additiveBlitter(target, ir, clipBounds, isInverse);
             aaa_fill_path(path,
-                          clipBounds,
+                          walkBounds,
                           &additiveBlitter,
-                          ir.fTop,
-                          ir.fBottom,
-                          containedInClip,
+                          startY,
+                          stopY,
+                          containedInWalk,
                           true,
                           forceRLE);
         }
@@ -1832,26 +1978,26 @@ void SkScan::AAAFillPath(const SkPathRaw&  path,
         // aaa_walk_convex_edges won't generate alphas above 255. Hence we don't need
         // SafeRLEAdditiveBlitter (which is slow due to clamping). The basic RLE blitter
         // RunBasedAdditiveBlitter would suffice.
-        RunBasedAdditiveBlitter additiveBlitter(blitter, ir, clipBounds, isInverse);
+        RunBasedAdditiveBlitter additiveBlitter(target, ir, clipBounds, isInverse);
         aaa_fill_path(path,
-                      clipBounds,
+                      walkBounds,
                       &additiveBlitter,
-                      ir.fTop,
-                      ir.fBottom,
-                      containedInClip,
+                      startY,
+                      stopY,
+                      containedInWalk,
                       false,
                       forceRLE);
     } else {
         // If the filling area might not be convex, the more involved aaa_walk_edges would
         // be called and we have to clamp the alpha downto 255. The SafeRLEAdditiveBlitter
         // does that at a cost of performance.
-        SafeRLEAdditiveBlitter additiveBlitter(blitter, ir, clipBounds, isInverse);
+        SafeRLEAdditiveBlitter additiveBlitter(target, ir, clipBounds, isInverse);
         aaa_fill_path(path,
-                      clipBounds,
+                      walkBounds,
                       &additiveBlitter,
-                      ir.fTop,
-                      ir.fBottom,
-                      containedInClip,
+                      startY,
+                      stopY,
+                      containedInWalk,
                       false,
                       forceRLE);
     }
