@@ -2110,7 +2110,11 @@ showed it as a seam along every damage edge through a rounded stroke or fill.
   1-3, no byte may change).
 - **Corpora that move:** every corpus that draws an anti-aliased path through a clip cutting its
   rows: `region-clips.raw`, `canvas-device.raw`, `android-clip.raw`, `layers.raw`, `render.raw`
-  and `mask-filter.raw`. They are listed as intentional differences.
+  and `mask-filter.raw`; and `isa-workload.raw` and `isa-workload-highp.raw`, whose `paths` case
+  has curves whose control points reach past the surface (the surface's own rows cut them). They
+  are listed as intentional differences. For that case, drawing the same paths into a larger
+  surface translated so that nothing meets its edge gives the same interior pixels with this
+  change and 432 (443 through the raster pipeline) different ones without it.
 
 ## Still required
 

@@ -19,3 +19,5 @@ android-clip.raw                Anti-aliased fills cut by clip rows keep their u
 layers.raw                      Anti-aliased fills cut by clip rows keep their unclipped coverage
 render.raw                      Anti-aliased fills cut by clip rows keep their unclipped coverage
 mask-filter.raw                 Anti-aliased fills cut by clip rows keep their unclipped coverage
+isa-workload.raw                Anti-aliased fills cut by clip rows keep their unclipped coverage
+isa-workload-highp.raw          Anti-aliased fills cut by clip rows keep their unclipped coverage
