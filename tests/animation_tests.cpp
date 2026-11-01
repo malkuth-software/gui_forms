@@ -149,6 +149,65 @@ void test_reduced_motion_remains_active_and_calm() {
             "reduced motion must remain active; only pause and disable may quiesce it");
 }
 
+class StripePainter final : public Painter {
+public:
+    void save() override { ++saves; }
+    void restore() override { ++restores; }
+    void translate(Point) override {}
+    void clip_rect(Rect bounds) override { clip = bounds; }
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point from, Point to, Color, double width) override {
+        ++lines;
+        if (close_to(width, 6.0)) {
+            ++stripe_lines;
+            line_width = width;
+            if (from.y <= to.y) slopes_down = false;
+        }
+    }
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+
+    int saves{};
+    int restores{};
+    int lines{};
+    int stripe_lines{};
+    Rect clip{};
+    double line_width{};
+    bool slopes_down{true};
+};
+
+// ADR-016: each tick damages only what the phase moved, and a bar that is
+// painted keeps its timer.
+void test_progress_animation_damages_what_moves() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("animation.damage.root"));
+    std::shared_ptr<gui_forms::ProgressBar> progress =
+        make_control<ProgressBar>(StableId("animation.damage.progress"));
+    (*progress).set_requested_bounds({0.0, 0.0, 240.0, 20.0});
+    (*progress).set_value(50.0);
+    (*progress).set_visual_style(ProgressBarVisualStyle::marching_stripes);
+    (*progress).set_animation_period(1000ms);
+    (*root).add_child(progress);
+    Window window(root, {240.0, 40.0});
+    window.perform_layout();
+    for (std::size_t tick = 0U; tick < 3U; ++tick) {
+        StripePainter painter;
+        (*progress).on_paint(painter, {0.0, 0.0, 240.0, 20.0});
+        static_cast<void>(window.take_damage());
+        const double before = (*progress).animation_phase();
+        const FramePollResult frame = window.poll_frame_schedule(*window.next_wake());
+        const DamageRegion damage = window.take_damage();
+        const Rect bounds = damage.bounds();
+        // The fill is the left half of the 236-pixel interior, inset 2.
+        require(frame.ui_timer_ticks == 1U && frame.active_surface_ticks == 0U &&
+                    (*progress).animation_phase() > before && !bounds.empty() &&
+                    bounds.x >= 1.0 && bounds.x + bounds.width <= 121.0 &&
+                    bounds.y >= 1.0 && bounds.y + bounds.height <= 19.0 &&
+                    window.next_wake().has_value(),
+                "a painted marching-stripe bar must damage only its fill on each tick");
+    }
+}
+
 void test_progress_animation_and_hidden_suspension() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("animation.root"));
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("animation.progress"));
@@ -167,12 +226,20 @@ void test_progress_animation_and_hidden_suspension() {
                 (*progress).animation_phase() < 0.26,
             "progress animation phase must follow its declared period");
 
+    // The animation runs on a UI timer (ADR-016). A tick that finds the bar
+    // unpainted since the last one stops the timer; the bar's next paint
+    // starts it again.
     (*progress).set_visible(false);
-    require(!window.next_wake().has_value(),
-            "hidden active surfaces must not keep the host wake loop alive");
+    const double hidden_phase = (*progress).animation_phase();
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require(!window.next_wake().has_value() &&
+                close_to((*progress).animation_phase(), hidden_phase),
+            "a hidden progress bar must stop its timer at its next tick, without advancing");
     (*progress).set_visible(true);
+    StripePainter shown_painter;
+    (*progress).on_paint(shown_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(),
-            "reshown active surface must become schedulable without reconstruction");
+            "a reshown progress bar must start its timer again when painted");
     (*progress).set_visual_style(ProgressBarVisualStyle::continuous);
     require(!window.next_wake().has_value(),
             "static progress style must revoke its retained frame source");
@@ -281,34 +348,6 @@ void test_progress_animation_and_hidden_suspension() {
     require(!window.next_wake().has_value(),
             "removing the last animated progress feature must revoke its frame source");
 }
-
-class StripePainter final : public Painter {
-public:
-    void save() override { ++saves; }
-    void restore() override { ++restores; }
-    void translate(Point) override {}
-    void clip_rect(Rect bounds) override { clip = bounds; }
-    void fill_rect(Rect, Color) override {}
-    void stroke_rect(Rect, Color, double) override {}
-    void draw_line(Point from, Point to, Color, double width) override {
-        ++lines;
-        if (close_to(width, 6.0)) {
-            ++stripe_lines;
-            line_width = width;
-            if (from.y <= to.y) slopes_down = false;
-        }
-    }
-    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
-    void draw_image(ImageId, Rect, double) override {}
-
-    int saves{};
-    int restores{};
-    int lines{};
-    int stripe_lines{};
-    Rect clip{};
-    double line_width{};
-    bool slopes_down{true};
-};
 
 void test_progress_stripes_are_clipped_and_configurable() {
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("animation.stripes"));
@@ -559,6 +598,7 @@ int main() {
         test_invalid_timeline_contract();
         test_reduced_motion_remains_active_and_calm();
         test_progress_animation_and_hidden_suspension();
+        test_progress_animation_damages_what_moves();
         test_progress_stripes_are_clipped_and_configurable();
         test_progress_animation_style_family();
         test_visual_style_round_trips();

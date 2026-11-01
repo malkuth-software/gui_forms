@@ -24,8 +24,10 @@ void test_animation_laboratory(gui_forms::Window& window) {
     const double retained_progress_phase = (*animated_progress).animation_phase();
     const std::uint64_t full_motion_surfaces =
         poll_active_surface_count(window);
-    require(retained_progress_phase > 0.0 && full_motion_surfaces >= 4U,
-            "gallery motion must begin with independently retained easing and progress surfaces");
+    // Progress bars animate on UI timers (ADR-016); the easing previews are
+    // still active surfaces.
+    require(retained_progress_phase > 0.0 && full_motion_surfaces >= 1U,
+            "gallery motion must begin with independently retained easing surfaces");
     require(window.next_wake().has_value(),
             "visible animation page must publish a retained frame deadline");
     click(window, window.find("gallery.animation.reduced"));

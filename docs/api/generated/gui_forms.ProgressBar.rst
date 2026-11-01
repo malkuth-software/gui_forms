@@ -110,9 +110,12 @@ gui_forms::ProgressBar
    requested size the bar prefers 160 by 20 horizontally and 20 by 160
    vertically.
 
-   An animated style registers with the window for about 60 frames a second,
-   only while it is in a window, visible, enabled for animation and not paused;
-   a static style schedules nothing. The bar paints from the theme's progress
+   An animated style runs a UI timer at about 60 frames a second, only while it
+   is in a window, shown, enabled for animation and not paused; a static style
+   schedules nothing. Each tick repaints only what moved: the activity band, the
+   pulse band or the fill. A bar that is hidden, or not painted since the last
+   tick, stops its timer at that tick and starts it again when it is next
+   painted. The bar paints from the theme's progress
    colours; the inherited :cpp:class:`RangeControl <gui_forms::RangeControl>` ``style`` does not change its look.
 
    The control publishes the accessibility role ``progress_bar``, with the value

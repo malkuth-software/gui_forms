@@ -122,7 +122,22 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The animation timer's named target (ADR-016: a UI timer the bar stops,
+    // not an active surface). Observes the bar; a destroyed bar is skipped.
+    struct AnimationTick final {
+        std::weak_ptr<ProgressBar> bar;
+        void operator()(FrameTime now) const;
+    };
+
     void update_animation_registration();
+    // One animation timer tick: advances the phase and damages what moved,
+    // or, when the bar is not shown (hidden, or not painted since the last
+    // tick: off screen, or its window not painting), stops the timer until
+    // the bar's next paint.
+    void on_animation_tick(FrameTime now);
+    // The part of the bar that the animation phase changes: the activity
+    // band (marquee), the pulse band (luminance pulse), or the fill.
+    [[nodiscard]] Rect animated_extent() const noexcept;
     void on_presentation_changed(const PresentationSettings& settings);
     [[nodiscard]] bool animated_style() const noexcept;
     // The fill (determinate styles) or the moving activity band (marquee).
@@ -137,6 +152,12 @@ private:
     FrameInterval animation_period_{std::chrono::milliseconds(1400)};
     FrameTime last_animation_frame_{};
     double animation_phase_{};
+    // Set by on_paint (and by starting the timer), cleared by each tick: a
+    // tick that finds it clear stops the timer and sets
+    // animation_waiting_for_paint_, and the next paint starts it again. So a
+    // bar that is not shown holds no wake past one tick.
+    bool painted_since_tick_{};
+    bool animation_waiting_for_paint_{};
     bool animation_enabled_{true};
     MotionPolicy motion_policy_{};
 };
