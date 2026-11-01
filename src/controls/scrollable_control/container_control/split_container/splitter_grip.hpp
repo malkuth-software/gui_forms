@@ -45,6 +45,15 @@ protected:
     void on_detached_from_window() noexcept override;
 
 private:
+    // The actuator transition timer's target. Observes the grip.
+    struct TransitionTick final {
+        std::weak_ptr<SplitterGrip> grip;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+
+    // One transition tick: advances the actuator and damages its old and new
+    // place.
+    AnimationTickResult on_transition_tick(FrameTime now);
     [[nodiscard]] bool engaged() const noexcept;
     [[nodiscard]] Rect actuator_bounds(double cross_extent,
                                        double axis_extent) const noexcept;
@@ -66,7 +75,9 @@ private:
     bool focused_{};
     FrameInterval transition_duration_{std::chrono::milliseconds(90)};
     AnimationTimeline transition_timeline_;
-    FrameRequestToken transition_frames_;
+    // ADR-016: a paint-gated UI timer at the display rate, not an active
+    // surface.
+    AnimationTimer transition_frames_;
     Size transition_from_{7.0, 28.0};
     Size transition_to_{7.0, 28.0};
     Size presented_actuator_{7.0, 28.0};
