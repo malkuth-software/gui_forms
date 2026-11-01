@@ -330,6 +330,8 @@ void EasingPreview::on_frame_tick(FrameTime now) {
     // A tick that changes nothing damages nothing and expects no paint.
     if (after == before) return;
     painted_since_tick_ = false;
+    // The preview publishes its phase as its accessible value.
+    invalidate(Dirty::semantics);
     invalidate(readout_bounds());
     for (std::size_t index = 0U; index < tracks_.size(); ++index) {
         const Rect moved = Rect::united(marker_bounds(index, before), marker_bounds(index, after));
