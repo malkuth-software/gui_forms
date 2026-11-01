@@ -10,6 +10,7 @@
 #include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -81,7 +82,7 @@ enum class DataGridViewRowSource : std::uint8_t { unbound, virtual_rows, binding
 // `data_property_name` names the BindingSource field a bound column shows.
 struct DataGridViewColumn final {
     std::string name{};
-    std::string header_text{};
+    GUI_FORMS_LOCALIZABLE(header) std::string header_text{};
     DataGridViewColumnKind kind{DataGridViewColumnKind::text};
     double width{100.0};
     double minimum_width{20.0};

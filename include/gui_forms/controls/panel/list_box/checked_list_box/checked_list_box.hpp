@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/button_base/check_box/check_box.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <span>
@@ -24,7 +25,7 @@ public:
 
     void set_items(std::vector<std::string> items) override;
     void add_item(std::string item) override;
-    void add_item(std::string item, CheckState state);
+    void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item, CheckState state);
     void remove_item(std::size_t index) override;
     void clear_items() override;
     [[nodiscard]] CheckState item_check_state(std::size_t index) const;

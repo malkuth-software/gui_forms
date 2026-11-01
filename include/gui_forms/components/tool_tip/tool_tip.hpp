@@ -4,6 +4,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <chrono>
 #include <memory>
@@ -32,7 +33,7 @@ public:
     explicit ToolTip(Window& window);
     ~ToolTip() override;
 
-    void set_tool_tip(const std::shared_ptr<Control>& target, std::string text);
+    void set_tool_tip(const std::shared_ptr<Control>& target, GUI_FORMS_LOCALIZABLE(tool_tip) std::string text);
     [[nodiscard]] std::string tool_tip(const Control& target) const;
     bool remove_tool_tip(const Control& target);
     void clear();

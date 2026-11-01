@@ -73,6 +73,8 @@ Related types
      -  
    * - :cpp:class:`LineBoxMetrics <gui_forms::LineBoxMetrics>`
      - One line box of CSS text in a primary face (CSS 2.1 section 10.8 with ``line-height: normal`` as browsers compute it): its height, its baseline from its top, and the face's x-height.
+   * - :cpp:class:`LocalizableLiteral <gui_forms::LocalizableLiteral>`
+     - One string literal the GUI.Forms Clang plugin found passed to a localizable property (a parameter or field marked GUI_FORMS_LOCALIZABLE).
    * - :cpp:class:`MarkdownBlock <gui_forms::MarkdownBlock>`
      - A block and the spans it holds.
    * - :cpp:class:`MarkdownLimits <gui_forms::MarkdownLimits>`
@@ -605,6 +607,42 @@ Related types
    .. cpp:member:: double baseline
 
    .. cpp:member:: double x_height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LocalizableLiteral final
+
+   ``#include <gui_forms/text/localizable/localizable.hpp>``
+
+   One string literal the GUI.Forms Clang plugin found passed to a localizable property (a parameter or field marked GUI_FORMS_LOCALIZABLE). Each literal is recorded once for each property and function it reaches.
+
+   .. cpp:member:: std::string property
+
+      The property the mark names: "text", "tool_tip", "title", "placeholder", "accessible_name", "accessible_description", "header" or "items".
+
+   .. cpp:member:: std::string name
+
+      The variant name derived from the literal's bytes ("v-" and 12 lowercase hexadecimal digits of their 64-bit FNV-1a hash), the same at every site that passes the same text.
+
+   .. cpp:member:: std::string file
+
+      The file holding the literal, with forward slashes: relative to the plugin's root= argument (the consuming project's source directory), absolute outside it. For a named constant it is the constant's definition.
+
+   .. cpp:member:: std::uint32_t line
+
+      The 1-based line of the literal's first token.
+
+   .. cpp:member:: std::uint32_t column
+
+      The 1-based column, in bytes, of the literal's first token.
+
+   .. cpp:member:: std::string function
+
+      The qualified name of the function passing the literal on: its template's name for an instantiation, "f::<lambda>" inside a lambda in f, "<global>" at namespace scope.
+
+   .. cpp:member:: std::string text
+
+      The literal's bytes after escapes and adjacent-literal concatenation, without the terminating NUL.
 
 .. cpp:namespace:: gui_forms
 
@@ -2552,6 +2590,18 @@ Functions, constants and aliases
 .. cpp:function:: bool same_prepared_text_key(const PreparedTextKey& left, const PreparedTextKey& right) noexcept
 
 .. cpp:function:: bool same_layout_authority(const LayoutAuthority left, const LayoutAuthority right) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/text/localizable/localizable.hpp>``
+
+.. cpp:function:: std::vector<LocalizableLiteral> localizable_literals()
+
+   The literals recorded in every image loaded into this process (the program and each shared library; on Windows the program's own image only), in image order and, within an image, in link order. Images or translation units compiled without the plugin contribute nothing; an image whose tables are malformed contributes nothing.
+
+.. cpp:function:: bool parse_localizable_tables(std::span<const std::byte> section, std::vector<LocalizableLiteral>& out)
+
+   Decodes the tables in one section's bytes, appending to ``out``. Returns false, leaving ``out`` as it was, when the bytes are not a sequence of well-formed version 1 tables (zero padding between tables is allowed).
 
 .. cpp:namespace:: gui_forms
 

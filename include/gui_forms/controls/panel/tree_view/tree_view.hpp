@@ -2,6 +2,7 @@
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -16,7 +17,7 @@ namespace gui_forms {
 
 struct TreeViewItem final {
     std::string stable_id;
-    std::string text;
+    GUI_FORMS_LOCALIZABLE(text) std::string text;
     std::size_t depth{};
     bool expandable{};
     bool expanded{};

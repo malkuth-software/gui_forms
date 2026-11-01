@@ -3,6 +3,7 @@
 #include "gui_forms/commands/types/command_types.hpp"
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <string>
 #include <string_view>
@@ -25,7 +26,7 @@ public:
         return stable_id_;
     }
     [[nodiscard]] const CommandState& state() const noexcept { return state_; }
-    void set_text(std::string text);
+    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     void set_description(std::string description);
     void set_icon_id(std::string icon_id);
     void set_shortcut(std::string shortcut);
