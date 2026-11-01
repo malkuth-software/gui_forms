@@ -3,6 +3,7 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/detail/scalar_binding.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <span>
 #include <vector>
@@ -11,10 +12,10 @@ namespace gui_forms {
 
 struct ChoiceItem final {
     int id{};
-    std::string label{};
+    GUI_FORMS_LOCALIZABLE(text) std::string label{};
     std::string glyph{};
     ImageId image{};
-    std::string accessible_name{};
+    GUI_FORMS_LOCALIZABLE(accessible_name) std::string accessible_name{};
 };
 
 class ChoiceGroup final : public Panel {

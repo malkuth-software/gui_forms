@@ -5,6 +5,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -47,7 +48,7 @@ public:
     // The tooltip, at most 127 bytes of UTF-8 (std::invalid_argument
     // otherwise). A shown icon is updated.
     [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(std::string text);
+    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
 
     // Whether the application wants the icon shown.
     [[nodiscard]] bool visible() const noexcept { return visible_; }

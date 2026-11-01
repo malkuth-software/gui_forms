@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/layout/style/layout_style.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <optional>
@@ -29,7 +30,7 @@ public:
     explicit TextBlock(StableId stable_id, std::string text = {});
 
     [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(std::string text);
+    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     // The authored font, or the theme's field typography when none is set.
     // Layout and paint use it at the effective text scale. set_font throws
     // std::invalid_argument for an invalid FontSpec.

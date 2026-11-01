@@ -4,6 +4,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/theme.hpp"
 
 #include <cstdint>
@@ -52,7 +53,7 @@ public:
     [[nodiscard]] bool command_connected() const noexcept;
 
     [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    virtual void set_text(std::string text);
+    virtual void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     [[nodiscard]] FontSpec font() const noexcept { return font_; }
     void set_font(FontSpec font);
     [[nodiscard]] double text_line_spacing() const noexcept {
