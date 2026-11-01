@@ -723,10 +723,6 @@
       "reviewed": false,
       "summary": "Override: handles a mnemonic character under the portable ampersand contract."
     },
-    "gui_forms::Control::on_frame|void (FrameTime)": {
-      "reviewed": false,
-      "summary": "Override: advances retained animation state for a scheduled frame."
-    },
     "gui_forms::Control::semantic_descriptor|SemanticDescriptor () const": {
       "reviewed": false,
       "summary": "Override: projects retained state into the semantic/accessibility graph."

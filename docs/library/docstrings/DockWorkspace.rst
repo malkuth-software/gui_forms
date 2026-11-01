@@ -53,6 +53,16 @@ closable_documents
     The placed documents that may close, the main site's in tree and tab
     order, then each floating site's: the documents Close All Documents
     asks about.
+named_layouts : default empty
+    The layouts saved by name (`DockNamedLayout`: a name and the layout's
+    XML), in the order they were first saved. The program keeps the list
+    and saves it with its settings; `set_named_layouts` puts it back,
+    throwing `std::invalid_argument` and changing nothing for an empty,
+    invalid or repeated name (the XML is read only when a layout is
+    applied).
+save_layout
+    The layout as XML (`DockLayout::write_xml`), on the program's request;
+    the workspace never saves on its own (owner decision DK-33).
 close_pending : default ``false``
     Whether a close request waits for `answer_close`.
 pending_close : default empty
@@ -75,6 +85,26 @@ document_closing
 
 Methods
 -------
+load_layout
+    Replaces the layout with a saved one on the live windows, as one
+    layout change: the floating windows the saved layout holds open and
+    those it drops close in one window transaction, and only the panels
+    then shown selected are created. A saved panel not registered yet is
+    kept as a placeholder, and appears there once it registers and is
+    shown. Without monitors in the options, the attached run's are used.
+    A close request waiting for `answer_close` ends, closing nothing. An
+    unreadable or rejected layout changes nothing (``kept_current``).
+find_named_layout
+    The named layout, or null.
+save_named_layout
+    Saves the current layout under a name, replacing a layout of that name
+    in its place; false when the layout cannot be written. An empty name,
+    or one that is not valid UTF-8, throws `std::invalid_argument`.
+apply_named_layout
+    Loads a named layout as `load_layout` does; ``kept_current`` with a
+    ``not_a_layout`` diagnostic for a name not saved.
+remove_named_layout
+    Removes a named layout; false when there is none.
 register_panel
     Registers a panel's descriptor with the layout and keeps its title and
     factory; registering places nothing. False, changing nothing, for an

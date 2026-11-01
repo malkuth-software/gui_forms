@@ -48,7 +48,6 @@ std::string MetricsView::metrics_text() const {
          << metrics.paint_passes << " paints · "
          << metrics.display_chunks_reused << " chunks reused · "
          << metrics.input_events << " inputs · "
-         << metrics.active_surface_count << " active surfaces · "
          << metrics.focus_scope_depth << " focus scopes · damage "
          << static_cast<unsigned long long>(std::round(metrics.painted_damage_area))
          << " px";

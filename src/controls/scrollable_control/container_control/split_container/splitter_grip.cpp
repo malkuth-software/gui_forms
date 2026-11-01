@@ -103,7 +103,7 @@ void SplitterGrip::reset_interaction() noexcept {
     dragging_ = false;
     actuator_pressed_ = false;
     focused_ = false;
-    transition_frames_.disconnect();
+    transition_frames_.stop();
     transition_active_ = false;
     transition_progress_ = 1.0;
     transition_to_ = target_actuator_size();
@@ -189,7 +189,7 @@ Size SplitterGrip::target_actuator_size() const noexcept {
 }
 
 void SplitterGrip::complete_transition() noexcept {
-    transition_frames_.disconnect();
+    transition_frames_.stop();
     transition_active_ = false;
     transition_progress_ = 1.0;
     presented_actuator_ = transition_to_;
@@ -197,12 +197,28 @@ void SplitterGrip::complete_transition() noexcept {
 }
 
 void SplitterGrip::update_transition_registration() {
-    transition_frames_.disconnect();
+    transition_frames_.stop();
     if (!transition_active_ || window() == nullptr) return;
-    const FrameTime now = FrameClock::now();
-    transition_frames_ = (*window()).activate_surface(
-        shared_from_this(), std::chrono::milliseconds(16),
-        now + std::chrono::milliseconds(16));
+    const std::shared_ptr<SplitterGrip> self =
+        std::static_pointer_cast<SplitterGrip>(shared_from_this());
+    transition_frames_.start(*this, display_frame_interval, TransitionTick{self});
+}
+
+AnimationTickResult SplitterGrip::TransitionTick::operator()(FrameTime now) const {
+    const std::shared_ptr<SplitterGrip> live = grip.lock();
+    const AnimationTickResult result = live
+        ? (*live).on_transition_tick(now) : AnimationTickResult::unchanged;
+    return result;
+}
+
+AnimationTickResult SplitterGrip::on_transition_tick(FrameTime now) {
+    // The actuator's stroke reaches half a pixel outside its bounds.
+    const Rect before = actuator_bounds();
+    advance_animation(now);
+    const Rect after = actuator_bounds();
+    const Rect moved = Rect::united(before, after);
+    invalidate({moved.x - 1.0, moved.y - 1.0, moved.width + 2.0, moved.height + 2.0});
+    return AnimationTickResult::damaged;
 }
 
 void SplitterGrip::retarget_transition() {
@@ -233,12 +249,12 @@ void SplitterGrip::on_attached_to_window() {
 }
 
 void SplitterGrip::on_detached_from_window() noexcept {
-    transition_frames_.disconnect();
+    transition_frames_.stop();
     transition_active_ = false;
     Control::on_detached_from_window();
 }
 
-void SplitterGrip::on_frame(FrameTime now) {
+void SplitterGrip::advance_animation(FrameTime now) {
     if (!transition_active_) return;
     if (window() != nullptr &&
         (*window()).presentation_settings().reduced_motion) {
@@ -254,7 +270,7 @@ void SplitterGrip::on_frame(FrameTime now) {
         transition_from_.height +
             (transition_to_.height - transition_from_.height) * transition_progress_};
     if (sample.finished) complete_transition();
-    invalidate(Dirty::paint);
+    // The transition timer's tick damages the actuator's old and new place.
 }
 
 bool SplitterGrip::engaged() const noexcept {
@@ -286,6 +302,7 @@ bool SplitterGrip::point_in_proximity(const Point window_point) const noexcept {
 }
 
 void SplitterGrip::on_paint(Painter& painter, Rect) {
+    transition_frames_.note_painted();
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
     const BasicControlStyle style;

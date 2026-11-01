@@ -88,6 +88,15 @@ gui_forms::ProgressBar
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`advance_animation <gui_forms::ProgressBar::advance_animation>`
+        - Advances the indeterminate or marquee phase to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
+
    .. seealso::
 
       :cpp:class:`RangeControl <gui_forms::RangeControl>`
@@ -110,9 +119,14 @@ gui_forms::ProgressBar
    requested size the bar prefers 160 by 20 horizontally and 20 by 160
    vertically.
 
-   An animated style registers with the window for about 60 frames a second,
-   only while it is in a window, visible, enabled for animation and not paused;
-   a static style schedules nothing. The bar paints from the theme's progress
+   An animated style runs an :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>`, only while it is in a window,
+   shown, enabled for animation and not paused; a static style schedules nothing.
+   The timer is paced to the motion: about one device pixel of travel of the
+   fastest moving part a tick, at most one tick a display frame (a sweeping band
+   ticks every frame; marching stripes about 20 times a second at the default
+   period). Each tick repaints only what moved: the activity band, the pulse band
+   or the fill. A bar that is hidden, or not painted since the last tick, stops
+   its timer at that tick and starts it again when it is next painted. The bar paints from the theme's progress
    colours; the inherited :cpp:class:`RangeControl <gui_forms::RangeControl>` ``style`` does not change its look.
 
    The control publishes the accessibility role ``progress_bar``, with the value
@@ -257,13 +271,18 @@ gui_forms::ProgressBar
    .. cpp:function:: States states() const
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: void advance_animation(FrameTime now)
+
+      Advances the indeterminate or marquee phase to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
+
+
    .. rubric:: Extension points
 
    .. cpp:function:: Size measure(Size available) override
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
-
-   .. cpp:function:: void on_frame(FrameTime now) override
 
    .. cpp:function:: bool hit_test_local(Point local_point) const override
 

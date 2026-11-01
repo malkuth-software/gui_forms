@@ -364,8 +364,6 @@ gui_forms::Window
         - Runs pending layout, then returns and clears the accumulated damage of every paint plane.
       * - :cpp:func:`schedule_paint <gui_forms::Window::schedule_paint>`
         -  
-      * - :cpp:func:`activate_surface <gui_forms::Window::activate_surface>`
-        -  
       * - :cpp:func:`schedule_ui_timer <gui_forms::Window::schedule_ui_timer>`
         - Calls an owned callback on the UI thread at a frame-time interval, until the returned token or its owner is disposed.
       * - :cpp:func:`poll_frame_schedule <gui_forms::Window::poll_frame_schedule>`
@@ -1124,8 +1122,6 @@ gui_forms::Window
       every paint plane.
 
    .. cpp:function:: FrameRequestToken schedule_paint(const Control::Ptr& control, FrameTime deadline)
-
-   .. cpp:function:: FrameRequestToken activate_surface(const Control::Ptr& control, FrameInterval interval, FrameTime first_deadline)
 
    .. cpp:function:: FrameRequestToken schedule_ui_timer(Component& owner, FrameInterval interval, FrameTime first_deadline, std::function<void(FrameTime)> callback)
 

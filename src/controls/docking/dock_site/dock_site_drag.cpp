@@ -5,6 +5,7 @@
 
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
 #include "dock_site_children.hpp"
+#include "../../drag_gesture/drag_gesture.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -19,10 +20,6 @@
 namespace gui_forms {
 namespace {
 
-// The stamp's longer side in logical units (about 100 units, D1 as
-// corrected). Its motion and the tiles' fade are the site's motion values
-// (dock_site.cpp), run by the window's motion clock.
-constexpr double stamp_side = 100.0;
 // A document tab sliding on its strip tears off this far outside the
 // strip's band.
 constexpr double tear_off_distance = 16.0;
@@ -30,17 +27,6 @@ constexpr double tear_off_distance = 16.0;
 constexpr double cue_side = 14.0;
 constexpr double cue_offset_x = 14.0;
 constexpr double cue_offset_y = 16.0;
-
-double interpolate(double from, double to, double progress) noexcept {
-    const double value = from + (to - from) * progress;
-    return value;
-}
-
-Rect interpolate_rect(Rect from, Rect to, double progress) noexcept {
-    const Rect value{interpolate(from.x, to.x, progress), interpolate(from.y, to.y, progress),
-                     interpolate(from.width, to.width, progress), interpolate(from.height, to.height, progress)};
-    return value;
-}
 
 DockShapeRegion region_of(DockDropZone zone) noexcept {
     switch (zone) {
@@ -143,7 +129,7 @@ Rect DockSite::drag_stamp() const noexcept {
 
 void DockSite::set_drag_threshold(double threshold) {
     require_mutable();
-    if (!std::isfinite(threshold) || threshold < 1.0 || threshold > 64.0) {
+    if (!drag_gesture::valid_threshold(threshold)) {
         throw std::out_of_range("DockSite drag threshold must lie in 1 to 64");
     }
     drag_threshold_ = threshold;
@@ -277,10 +263,7 @@ bool DockSite::begin_drag(const DockSubject& subject, DockNodeId source_stack, b
     session.press = press;
     session.pointer = pointer;
     session.source = (*slot).bounds;
-    const double width = std::max(1.0, session.source.width);
-    const double height = std::max(1.0, session.source.height);
-    session.grab = {std::clamp((press.x - session.source.x) / width, 0.0, 1.0),
-                    std::clamp((press.y - session.source.y) / height, 0.0, 1.0)};
+    session.grab = drag_gesture::grab_of(session.source, press);
     if (keyboard) session.grab = {0.5, 0.5};
     const DockPanelId shown = subject.kind == DockSubjectKind::panel ? subject.panel : (*node).panels[(*node).selected];
     session.title = (*workspace_).panel_title(shown);
@@ -383,9 +366,7 @@ void DockSite::plan_drag_targets() {
 void DockSite::update_drag_pointer(Point local, Modifier modifiers) {
     if (drag_.phase == DockDragPhase::armed) {
         drag_.pointer = local;
-        const bool moved = std::fabs(local.x - drag_.press.x) >= drag_threshold_ ||
-                           std::fabs(local.y - drag_.press.y) >= drag_threshold_;
-        if (!moved) return;
+        if (!drag_gesture::past_threshold(drag_.press, local, drag_threshold_)) return;
         const DockSubject subject = drag_.subject;
         const DockNodeId stack = drag_.source_stack;
         const Point press = drag_.press;
@@ -402,7 +383,7 @@ void DockSite::update_drag_pointer(Point local, Modifier modifiers) {
     if (drag_.phase != DockDragPhase::dragging || drag_.keyboard) return;
     const Rect before = drag_paint_extent();
     drag_.pointer = local;
-    drag_.suppressed = has_modifier(modifiers, Modifier::control);
+    drag_.suppressed = drag_gesture::suppresses_targets(modifiers);
     drag_.stamp = stamp_at();
     const DockDropEdges edges = floating() ? DockDropEdges::none : DockDropEdges::global;
     const DockDropHit hit = hit_dock_drop(local, site_surface(*this), drag_.panes, effective_text_scale(), edges);
@@ -462,19 +443,11 @@ void DockSite::select_drag_target(std::optional<std::size_t> target, std::option
     }
 }
 
-// The stamp: the source's rectangle at the start, shrinking over 220 ms to a
-// miniature whose longer side is about 100 units, held where the pointer
-// grabbed the source. stamp_motion_ holds the shrink's progress (1 at once
-// under reduced motion, where it jumps to its end).
+// The stamp (drag_gesture.hpp) where stamp_motion_'s shrink stands now (1
+// at once under reduced motion, where it jumps to its end).
 Rect DockSite::stamp_at() const {
-    const Rect from = drag_.source;
-    const double longer = std::max(1.0, std::max(from.width, from.height));
-    const double ratio = std::min(1.0, stamp_side * effective_text_scale() / longer);
-    const double width = from.width * ratio;
-    const double height = from.height * ratio;
-    const Rect small{drag_.pointer.x - drag_.grab.x * width, drag_.pointer.y - drag_.grab.y * height, width, height};
-    const double progress = stamp_motion_.current();
-    const Rect stamp = interpolate_rect(from, small, progress);
+    const Rect stamp = drag_gesture::stamp_at(drag_.source, drag_.pointer, drag_.grab, stamp_motion_.current(),
+                                              effective_text_scale());
     return stamp;
 }
 
@@ -695,7 +668,7 @@ void DockSite::on_drag_motion(const MotionStep& step) {
     }
     if (drag_.phase != DockDragPhase::settling || !drag_.settle_found || step.value != &stamp_motion_) return;
     const Rect before = drag_.stamp;
-    drag_.stamp = interpolate_rect(drag_.settle_from, drag_.settle_to, step.current);
+    drag_.stamp = drag_gesture::interpolate(drag_.settle_from, drag_.settle_to, step.current);
     if (drag_layer_) {
         (*drag_layer_).invalidate(before);
         (*drag_layer_).invalidate(drag_.stamp);
@@ -930,14 +903,13 @@ void DockSite::announce_drag() {
 // arrows step within the current pane, Tab and Shift+Tab between panes and
 // edges, Enter commits.
 bool DockSite::handle_drag_key(KeyEvent& event) {
-    if (window_move_.active && event.action == KeyAction::down && event.physical_key == PhysicalKey::escape) {
+    if (window_move_.active && drag_gesture::cancels(event)) {
         end_window_move(true);
         event.handled = true;
         return true;
     }
     if (drag_.guest) return false;
-    if (drag_.phase == DockDragPhase::armed && event.action == KeyAction::down &&
-        event.physical_key == PhysicalKey::escape) {
+    if (drag_.phase == DockDragPhase::armed && drag_gesture::cancels(event)) {
         reset_drag();
         event.handled = true;
         return true;
@@ -945,11 +917,11 @@ bool DockSite::handle_drag_key(KeyEvent& event) {
     if (drag_.phase != DockDragPhase::dragging) return false;
     const Control::Ptr keep = shared_from_this();
     if (!drag_.keyboard) {
-        const bool suppressed = has_modifier(event.modifiers, Modifier::control);
+        const bool suppressed = drag_gesture::suppresses_targets(event.modifiers);
         if (suppressed != drag_.suppressed) {
             update_drag_pointer(drag_.pointer, event.modifiers);
         }
-        if (event.action == KeyAction::down && event.physical_key == PhysicalKey::escape) {
+        if (drag_gesture::cancels(event)) {
             end_drag(DockDragEnd::escaped);
             event.handled = true;
             return true;

@@ -61,31 +61,6 @@ FrameRequestToken Window::schedule_paint(const Control::Ptr& control,
     frame_requests_.push_back(request);
     (*control).own_revocable(request);
     metrics_.record_frame_request();
-    update_frame_schedule_metrics();
-    return FrameRequestToken(request);
-}
-
-FrameRequestToken Window::activate_surface(const Control::Ptr& control,
-                                           FrameInterval interval,
-                                           FrameTime first_deadline) {
-    require_ui_thread("active surface scheduling");
-    if (!control || !(*control).is_alive() || (*control).window_ != this) {
-        throw std::logic_error("GUI.Forms active surface requires an attached control");
-    }
-    if (interval < minimum_active_surface_interval) {
-        throw std::invalid_argument("GUI.Forms active surface interval is below the bound");
-    }
-    compact_frame_requests();
-    if (frame_requests_.size() >= maximum_scheduled_frame_requests ||
-        active_surface_count() >= maximum_active_surfaces) {
-        throw std::length_error("GUI.Forms active surface limit reached");
-    }
-    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = std::make_shared<detail::ScheduledFrameRequest>(
-        detail::FrameRequestKind::active_surface, control, first_deadline, interval);
-    frame_requests_.push_back(request);
-    (*control).own_revocable(request);
-    metrics_.record_frame_request();
-    update_frame_schedule_metrics();
     return FrameRequestToken(request);
 }
 
@@ -99,7 +74,6 @@ FrameRequestToken Window::request_motion_frames(FrameTime first_deadline) {
         detail::FrameRequestKind::motion_clock, Control::WeakPtr{}, first_deadline, motion_frame_interval);
     frame_requests_.push_back(request);
     metrics_.record_frame_request();
-    update_frame_schedule_metrics();
     return FrameRequestToken(request);
 }
 
@@ -133,7 +107,6 @@ FrameRequestToken Window::schedule_ui_timer(
     frame_requests_.push_back(request);
     owner.own_revocable(request);
     metrics_.record_frame_request();
-    update_frame_schedule_metrics();
     return FrameRequestToken(request);
 }
 
@@ -159,8 +132,6 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
     result.suppressed_by_occlusion = occluded_;
     if (occluded_) metrics_.record_occluded_frame_poll();
     std::unordered_set<std::uint64_t> invalidated_controls;
-    std::unordered_set<std::uint64_t> frame_callbacks;
-    std::unordered_set<std::uint64_t> faulted_controls;
     const std::vector<std::shared_ptr<detail::ScheduledFrameRequest>> requests = frame_requests_;
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : requests) {
         if (!(*request).connected() || (*request).deadline > now) {
@@ -192,12 +163,15 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
         }
         if ((*request).kind == detail::FrameRequestKind::motion_clock) {
             // The motion clock's one request: one frame advances every value
-            // it holds. Like an active surface, a late frame is one frame.
+            // it holds. It keeps its phase, like a UI timer: the next frame is
+            // the first deadline of its cadence after now, so a late frame is
+            // one frame and never a burst (re-arming at now + interval would
+            // add each poll's lateness to every interval).
             ++result.motion_clock_ticks;
             const FrameInterval lateness = now - (*request).deadline;
             const FrameInterval::rep skipped = lateness / (*request).interval;
             result.coalesced_requests += static_cast<std::uint64_t>(skipped);
-            (*request).deadline = now + (*request).interval;
+            (*request).deadline += (*request).interval * (skipped + 1);
             metrics_.record_callback_emitted();
             motion_clock_.advance(now);
             continue;
@@ -223,47 +197,10 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
             (*request).disconnect();
             continue;
         }
-        if (!(*target).effectively_visible()) {
-            if ((*request).kind == detail::FrameRequestKind::active_surface) {
-                (*request).deadline = now + (*request).interval;
-            }
-            continue;
-        }
-        if (faulted_controls.contains((*target).runtime_id().value)) {
-            (*request).disconnect();
-            continue;
-        }
-
-        if ((*request).kind == detail::FrameRequestKind::deadline) {
-            ++result.deadlines_fired;
-            (*request).disconnect();
-        } else {
-            ++result.active_surface_ticks;
-            const FrameInterval lateness = now - (*request).deadline;
-            const FrameInterval::rep skipped =
-                lateness / (*request).interval;
-            result.coalesced_requests += static_cast<std::uint64_t>(skipped);
-            // Never issue a burst of catch-up frames. A late active surface
-            // emits one invalidation and starts its next interval from now.
-            (*request).deadline = now + (*request).interval;
-        }
-
-        if (frame_callbacks.insert((*target).runtime_id().value).second) {
-            metrics_.record_callback_emitted();
-            try {
-                (*target).on_frame(now);
-            } catch (...) {
-                (*request).disconnect();
-                faulted_controls.insert((*target).runtime_id().value);
-                ++result.callback_faults;
-                metrics_.record_frame_callback_fault();
-                continue;
-            }
-            if (!(*target).is_alive() || (*target).window_ != this) {
-                continue;
-            }
-        }
-
+        // A deadline for a hidden control waits until it is shown.
+        if (!(*target).effectively_visible()) continue;
+        ++result.deadlines_fired;
+        (*request).disconnect();
         const bool already_requested = has_dirty((*target).dirty_, Dirty::paint) ||
             !invalidated_controls.insert((*target).runtime_id().value).second;
         if (already_requested) {
@@ -274,9 +211,8 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
     }
 
     compact_frame_requests();
-    metrics_.record_frame_poll(result.deadlines_fired, result.active_surface_ticks,
-                               result.motion_clock_ticks, result.coalesced_requests);
-    update_frame_schedule_metrics();
+    metrics_.record_frame_poll(result.deadlines_fired, result.motion_clock_ticks,
+                               result.coalesced_requests);
     result.damage_pending = needs_frame();
     result.next_wake = next_wake();
     return result;
@@ -290,7 +226,6 @@ void Window::cancel_frame_requests() {
         (*request).disconnect();
     }
     frame_requests_.clear();
-    update_frame_schedule_metrics();
 }
 
 void Window::set_occluded(bool occluded, FrameTime transition_time) {
@@ -304,19 +239,11 @@ void Window::set_occluded(bool occluded, FrameTime transition_time) {
     // value jumps to its end now, and none is scheduled while it stays so.
     if (occluded) motion_clock_.finish_all(MotionStepCause::occluded);
     if (!occluded) {
-        for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
-            if ((*request).connected() &&
-                (*request).kind == detail::FrameRequestKind::active_surface &&
-                (*request).deadline < transition_time) {
-                (*request).deadline = transition_time;
-            }
-        }
         // Ambient effects stopped while hidden resume with their parts'
         // next paint (E7).
         resume_engine_ambient();
         if (paint_pending()) request_paint_wake();
     }
-    update_frame_schedule_metrics();
 }
 
 } // namespace gui_forms

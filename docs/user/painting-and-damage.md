@@ -118,11 +118,14 @@ without discarding dirtiness, and exposure requests one wake. This is why a
 second window controlled by the first can mutate it and have it present
 without any input passing through the changed window.
 
-Animations and live surfaces request frames explicitly through
-`schedule_paint` and `FrameRequestToken`; deadlines coalesce, callback faults
-are isolated per request, and nothing repaints while the window is idle.
-`active_surface_count` tells you how many surfaces currently keep the
-scheduler awake, and it should be zero in a resting window.
+Animations request frames explicitly (ADR-016). A control that animates owns
+an `AnimationTimer`: each tick damages what it changed, and the timer waits
+for the next paint before it ticks again, so a hidden control or a covered
+window holds no wake. Work that is not drawing, such as a press-and-hold
+repeat, runs on `Window::schedule_ui_timer`, which the control stops itself.
+`schedule_paint` requests one later repaint. Deadlines coalesce, callback
+faults are isolated per request, and nothing repaints while the window is
+idle: `Window::next_wake` is empty in a resting window.
 
 ## Live surfaces
 

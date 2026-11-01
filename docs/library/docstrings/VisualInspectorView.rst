@@ -27,13 +27,18 @@ target_stable_id
 
 Methods
 -------
+start_polling
+    `start_polling(FrameInterval interval)` polls the inspected target every
+    `interval` on a paint-gated `AnimationTimer` while the view is shown, and
+    repaints only when what it shows has changed, so a settled view costs
+    one inspection snapshot a poll and no paint. A hidden view or covered
+    window holds no wake. An interval below 1 ms throws
+    `std::invalid_argument`.
+stop_polling
+    Stops polling.
 refresh
     Repaints the view and updates its semantics from a new snapshot. Call it
     after the target changes.
-on_frame
-    Calls `refresh`. The window's frame scheduler calls it for frames
-    requested with `Window::schedule_paint` or `Window::activate_surface`, so
-    an active surface refreshes the view on every interval.
 
 See Also
 --------
@@ -46,7 +51,7 @@ Notes
 The view does not observe its target. It reads a snapshot when it paints and
 when its semantics are queried, so what it draws is stale until it is
 repainted: call `refresh` after changing the target, or keep it live with
-`Window::activate_surface`. Each paint and each semantic query takes a
+`start_polling`. Each paint and each semantic query takes a
 snapshot of the whole window, with up to 512 paint commands per control, so
 a live inspector costs a full-window snapshot on every refresh.
 

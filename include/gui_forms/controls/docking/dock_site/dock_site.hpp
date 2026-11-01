@@ -1137,6 +1137,8 @@ private:
     DispatchOperation capture_check_{};
     SubscriptionToken capture_token_{};
     SubscriptionToken active_token_{};
+    // drag_gesture::default_threshold, kept here so the public header needs
+    // no private one.
     double drag_threshold_{4.0};
     // A run of Ctrl+F6 steps: the order taken at its first press, the
     // position reached and the modifier whose release ends it.

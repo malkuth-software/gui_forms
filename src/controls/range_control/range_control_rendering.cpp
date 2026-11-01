@@ -72,12 +72,17 @@ void paint_progress_stripes(Painter& painter, Rect fill, Color color,
     painter.restore();
 }
 
-void paint_progress_luminance(Painter& painter, Rect fill, Color color,
-                              double extent, double phase) {
-    if (fill.empty()) return;
+Rect progress_luminance_band(Rect fill, double extent, double phase) noexcept {
     const double band = std::max(8.0, fill.width * extent);
     const double x = fill.x - band + (fill.width + band) * phase;
     const Rect pulse{x, fill.y, band, fill.height};
+    return pulse;
+}
+
+void paint_progress_luminance(Painter& painter, Rect fill, Color color,
+                              double extent, double phase) {
+    if (fill.empty()) return;
+    const Rect pulse = progress_luminance_band(fill, extent, phase);
     const std::array<GradientStop, 5> stops{{
         {0.0, Color::rgba(color.red, color.green, color.blue, 0)},
         {0.22, Color::rgba(color.red, color.green, color.blue,

@@ -217,8 +217,10 @@ void moves_through_stops() {
 }
 
 // The bits of a fixed table of samples of the new curves, the same on every
-// host. The expected value was produced on Windows x64.
-constexpr std::uint64_t expected_curve_hash = 0x6c78dc4512518107ULL;
+// host. The expected value was produced on macOS arm64 when the motion clock
+// began keeping its phase (2026-11-01; Windows x64 produced the one before)
+// and is checked by every CI platform.
+constexpr std::uint64_t expected_curve_hash = 0xf650b68d91b837f6ULL;
 
 struct BitHash final {
     std::uint64_t value{14695981039346656037ULL};

@@ -80,8 +80,9 @@ gui_forms::DrawingSurface
    The callback is not called on every frame. What it draws is recorded and
    replayed until the surface is invalidated or resized, so it must draw the complete
    picture each time, not only the damaged part. When the data it draws changes,
-   call ``invalidate`` with :cpp:enumerator:`Dirty::paint <gui_forms::Dirty::paint>`; for animation, request frames with
-   ``Window::schedule_paint`` or ``Window::activate_surface``.
+   call ``invalidate`` with :cpp:enumerator:`Dirty::paint <gui_forms::Dirty::paint>`; for animation, own an :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>`
+   whose ticks invalidate the surface, or request one later repaint with
+   ``Window::schedule_paint``.
 
    The callback runs on the UI thread during a paint pass. Do not change controls
    from it: a change made during paint is applied in a later pass, not the

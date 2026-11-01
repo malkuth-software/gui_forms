@@ -72,7 +72,7 @@ StatesPage::StatesPage(const std::shared_ptr<Surface>& body,
     (*body).add_at(label("gallery.states.heading", "STATES AND DIAGNOSTICS", 22.0, 700,
                          shell_blue_dark), {24.0, 18.0, 560.0, 34.0});
     (*body).add_at(label("gallery.states.lead",
-                         "Focus, disabled, checked, indeterminate, visited, border, active-surface, and runtime accounting.",
+                         "Focus, disabled, checked, indeterminate, visited, border, and runtime accounting.",
                          12.0, 400, muted), {26.0, 52.0, 900.0, 24.0});
     build_specimens(body);
     build_dispatcher(body);

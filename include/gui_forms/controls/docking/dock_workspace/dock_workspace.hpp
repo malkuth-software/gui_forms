@@ -33,6 +33,15 @@ struct DockPanelCreation final {
 // title its caption and tab show, and the factory that builds its content.
 // The factory is a named delegate: its object must outlive the workspace's
 // use of it (remove the panel or destroy the workspace first).
+// A layout saved under a name (stage DK phase D7, owner decision DK-34,
+// I6-1: Visual Studio's Window Layouts): the name the program shows and the
+// layout's XML as DockLayout::write_xml wrote it. The program keeps and
+// saves the list itself (decision DK-33: the framework never saves).
+struct DockNamedLayout final {
+    std::string name{};
+    std::string xml{};
+};
+
 struct DockPanelRegistration final {
     DockPanelDescriptor descriptor{};
     std::string title{};
@@ -229,6 +238,38 @@ public:
     // thread. A handler may change the layout or close panels itself; a
     // request made from inside it is busy.
     [[nodiscard]] Event<DockDocumentClosing&>& document_closing() noexcept { return document_closing_; }
+
+    // -- saving and restoring layouts (phase D7) --
+    // The layout as XML, on the program's request (decision DK-33); the
+    // workspace never saves on its own.
+    [[nodiscard]] DockLayoutWriteResult save_layout() const;
+    // Replaces the layout with a saved one, on live windows: floating sites
+    // the saved layout holds open their windows and those it drops close,
+    // in one window transaction; only the panels then shown selected are
+    // created (decision DK-34, I7-1); a saved panel not registered yet
+    // stays a placeholder until it registers and is shown. With no monitors
+    // in `options`, the attached run's monitors are used. A close request
+    // waiting for answer_close ends, closing nothing. An unreadable or
+    // rejected layout changes nothing (DockRestoreStatus::kept_current).
+    DockRestoreResult load_layout(std::string_view xml, const DockRestoreOptions& options = {});
+    // The named layouts, in the order they were first saved.
+    [[nodiscard]] std::span<const DockNamedLayout> named_layouts() const noexcept { return named_layouts_; }
+    // The named layout, or null.
+    [[nodiscard]] const DockNamedLayout* find_named_layout(std::string_view name) const noexcept;
+    // Saves the current layout under `name`, replacing a layout of that
+    // name in its place. False, changing nothing, when the layout cannot be
+    // written. Throws std::invalid_argument for an empty name or one that
+    // is not valid UTF-8.
+    bool save_named_layout(std::string name);
+    // Loads the named layout as load_layout does; kept_current, with a
+    // not_a_layout diagnostic, for a name not saved.
+    DockRestoreResult apply_named_layout(std::string_view name, const DockRestoreOptions& options = {});
+    // Removes the named layout; false when there is none.
+    bool remove_named_layout(std::string_view name);
+    // Replaces the list, as the program read it back. Throws
+    // std::invalid_argument, changing nothing, for an empty, invalid or
+    // repeated name; the XML is read only when a layout is applied.
+    void set_named_layouts(std::vector<DockNamedLayout> layouts);
 
     // The panel's content, or null before its factory ran (or after it was
     // released).
@@ -465,6 +506,7 @@ private:
     DockFlyoutOpening flyout_opening_{DockFlyoutOpening::hover_or_click};
     DockClosePrompt close_prompt_{DockClosePrompt::each};
     std::optional<CloseRequest> close_request_{};
+    std::vector<DockNamedLayout> named_layouts_{};
     Event<const DockActivationChange&> activation_changed_{};
     Event<DockDocumentClosing&> document_closing_{};
 };

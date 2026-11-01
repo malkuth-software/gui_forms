@@ -91,7 +91,6 @@ Window::~Window() {
         (*request).disconnect();
     }
     frame_requests_.clear();
-    update_frame_schedule_metrics();
     if (root_) {
         detach_subtree(root_);
     }

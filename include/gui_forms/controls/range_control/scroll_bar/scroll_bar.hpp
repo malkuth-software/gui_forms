@@ -71,7 +71,6 @@ public:
     void on_pointer(PointerEvent& event) override;
     void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
-    void on_frame(FrameTime now) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
                             std::string_view value) override;
@@ -81,6 +80,17 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The press-and-hold repeat timer's target (ADR-016: a UI timer the bar
+    // stops on release). Observes the bar.
+    struct RepeatTick final {
+        std::weak_ptr<ScrollBar> bar;
+        void operator()(FrameTime now) const;
+    };
+
+    // One repeat tick: steps the pressed part again, and stops the repeat
+    // when the track no longer lies under the pointer or the step is refused.
+    void repeat_step();
+
     void paint_button(Painter& painter, Rect button, ScrollBarPart part,
                       bool incrementing, const BasicControlStyle& colors);
     [[nodiscard]] double axis_coordinate(Point local_point) const noexcept;
@@ -96,6 +106,9 @@ private:
     double minimum_thumb_extent_{18.0};
     FrameInterval initial_repeat_delay_{std::chrono::milliseconds(400)};
     FrameInterval repeat_interval_{std::chrono::milliseconds(60)};
+    // Repeats the pressed part: first after initial_repeat_delay_, then
+    // every repeat_interval_, until release. Each repeat's value change
+    // damages the bar.
     FrameRequestToken repeat_frames_;
     bool focused_{};
     bool tracking_thumb_{};

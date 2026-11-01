@@ -786,14 +786,12 @@ int main() {
     const gui_forms::DamageRegion idle_damage = (*product).take_damage();
     const gui_forms::MetricsSnapshot idle = (*product).metrics_snapshot();
     if (!idle_damage.empty() || (*product).needs_frame() || idle.measure_passes != 0 ||
-        idle.arrange_passes != 0 || idle.paint_passes != 0 ||
-        idle.active_surface_count != 0) {
+        idle.arrange_passes != 0 || idle.paint_passes != 0) {
         std::cerr << "idle damage=" << idle_damage.area()
                   << " frame=" << (*product).needs_frame()
                   << " measure=" << idle.measure_passes
                   << " arrange=" << idle.arrange_passes
-                  << " paint=" << idle.paint_passes
-                  << " active=" << idle.active_surface_count << '\n';
+                  << " paint=" << idle.paint_passes << '\n';
         print_paint_dirty((*product).root());
         const gui_forms::Rect caption_bounds =
             (*(*product).find("fm.tree.caption")).absolute_bounds();

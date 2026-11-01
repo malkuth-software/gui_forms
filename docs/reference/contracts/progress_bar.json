@@ -112,9 +112,9 @@
       "reviewed": false,
       "summary": "Records the selected track/fill/segment/marquee/overlay presentation from current range and phase."
     },
-    "gui_forms::ProgressBar::on_frame|void (FrameTime)": {
+    "gui_forms::ProgressBar::advance_animation|void (FrameTime)": {
       "reviewed": false,
-      "summary": "Advances phase from frame time under effective motion policy and invalidates only when pixels change."
+      "summary": "Advances the indeterminate or marquee phase to a frame time; its animation timer calls it, and tests step the bar with it."
     },
     "gui_forms::ProgressBar::hit_test_local|bool (Point) const": {
       "reviewed": false,

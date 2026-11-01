@@ -53,7 +53,31 @@ struct Fixture final {
     Window window;
 };
 
+// Records nothing: stands in for a host's renderer.
+class NullPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+};
+
+// Paints the window's pending damage, as a host does before its next wake:
+// the provider's blink runs on a paint-gated timer (ADR-016).
+void paint_damage(Window& window) {
+    const DamageRegion damage = window.take_damage();
+    if (damage.empty()) return;
+    NullPainter painter;
+    static_cast<void>(window.paint(painter, damage.bounds()));
+}
+
 void poll_next(Window& window) {
+    paint_damage(window);
     const std::optional<FrameTime> wake = window.next_wake();
     require(wake.has_value(), "expected a scheduled provider frame");
     static_cast<void>(window.poll_frame_schedule(*wake));
@@ -224,12 +248,19 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
     errors.set_blink_rate(50ms);
     errors.set_error(fixture.target, "Transient validation failure");
     require(errors.snapshot().icons.front().blink_active && fixture.window.next_wake(),
-            "changed-error blinking must use a scheduled active surface");
+            "changed-error blinking must use a scheduled blink timer");
 
+    // An occluded window paints nothing, so the blink stops at the tick after
+    // its last painted one; the damage it leaves resumes it with the exposed
+    // window's next paint.
     fixture.window.set_occluded(true, FrameClock::now());
+    for (std::size_t tick = 0U; tick < 2U && fixture.window.next_wake(); ++tick) {
+        static_cast<void>(fixture.window.poll_frame_schedule(*fixture.window.next_wake()));
+    }
     require(!fixture.window.next_wake(),
             "occlusion must suppress provider animation wakeups");
     fixture.window.set_occluded(false, FrameClock::now());
+    paint_damage(fixture.window);
     require(fixture.window.next_wake().has_value(),
             "exposure must resume the retained blink deadline");
 
@@ -244,7 +275,13 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
 
     settings.reduced_motion = false;
     fixture.window.set_presentation_settings(settings);
-    for (std::size_t index = 0; index < 6U; ++index) poll_next(fixture.window);
+    // At most six transitions (one may have run while occluded).
+    for (std::size_t index = 0; index < 6U; ++index) {
+        paint_damage(fixture.window);
+        if (!fixture.window.next_wake()) break;
+        poll_next(fixture.window);
+    }
+    paint_damage(fixture.window);
     ErrorProviderSnapshot settled = errors.snapshot();
     require(!settled.icons.front().blink_active &&
                 settled.icons.front().blink_phase_visible &&
@@ -253,7 +290,7 @@ void test_error_blink_is_bounded_occlusion_aware_and_reduced_motion_safe() {
 
     errors.set_blink_style(ErrorBlinkStyle::always_blink);
     require(errors.snapshot().icons.front().blink_active,
-            "AlwaysBlink must retain an active surface while visible");
+            "AlwaysBlink must retain its blink timer while visible");
     errors.set_blink_style(ErrorBlinkStyle::never_blink);
     require(!errors.snapshot().icons.front().blink_active &&
                 !fixture.window.next_wake(),

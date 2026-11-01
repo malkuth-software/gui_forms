@@ -253,9 +253,25 @@ bool VisualInspectorView::refresh_if_changed() {
     return changed;
 }
 
-void VisualInspectorView::on_frame(FrameTime) { static_cast<void>(refresh_if_changed()); }
+void VisualInspectorView::start_polling(FrameInterval interval) {
+    const std::shared_ptr<VisualInspectorView> self =
+        std::static_pointer_cast<VisualInspectorView>(shared_from_this());
+    poll_timer_.start(*this, interval, PollTick{self});
+}
+
+void VisualInspectorView::stop_polling() noexcept { poll_timer_.stop(); }
+
+AnimationTickResult VisualInspectorView::PollTick::operator()(FrameTime) const {
+    const std::shared_ptr<VisualInspectorView> live = control.lock();
+    const bool changed = live && (*live).refresh_if_changed();
+    const AnimationTickResult result =
+        changed ? AnimationTickResult::damaged : AnimationTickResult::unchanged;
+    return result;
+}
+
 
 void VisualInspectorView::on_paint(Painter& painter, Rect) {
+    poll_timer_.note_painted();
     const Rect bounds = client_rectangle();
     painter.fill_rect(bounds, inspector_panel);
     painter.fill_rect({0.0, 0.0, bounds.width, 44.0}, inspector_panel_light);
@@ -350,9 +366,25 @@ bool VisualInspectorOverlay::refresh_if_changed() {
     return changed;
 }
 
-void VisualInspectorOverlay::on_frame(FrameTime) { static_cast<void>(refresh_if_changed()); }
+void VisualInspectorOverlay::start_polling(FrameInterval interval) {
+    const std::shared_ptr<VisualInspectorOverlay> self =
+        std::static_pointer_cast<VisualInspectorOverlay>(shared_from_this());
+    poll_timer_.start(*this, interval, PollTick{self});
+}
+
+void VisualInspectorOverlay::stop_polling() noexcept { poll_timer_.stop(); }
+
+AnimationTickResult VisualInspectorOverlay::PollTick::operator()(FrameTime) const {
+    const std::shared_ptr<VisualInspectorOverlay> live = control.lock();
+    const bool changed = live && (*live).refresh_if_changed();
+    const AnimationTickResult result =
+        changed ? AnimationTickResult::damaged : AnimationTickResult::unchanged;
+    return result;
+}
+
 
 void VisualInspectorOverlay::on_paint(Painter& painter, Rect) {
+    poll_timer_.note_painted();
     const Outlines outlines = current_outlines();
     painted_ = outlines;
     if (!outlines.shown) return;

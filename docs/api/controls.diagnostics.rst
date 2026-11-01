@@ -145,7 +145,7 @@ Related types
 
    .. cpp:function:: void reset_activity() noexcept
 
-      Clears transient activity while preserving population, nesting depths, renderer, display cache, and active-surface baselines.
+      Clears transient activity while preserving population, nesting depths, renderer, and display cache baselines.
 
    .. cpp:function:: void record_mutation() noexcept
 
@@ -277,9 +277,9 @@ Related types
 
       Counts a scheduled frame request.
 
-   .. cpp:function:: void record_frame_poll(std::uint64_t deadlines_fired, std::uint64_t active_surface_ticks, std::uint64_t motion_clock_ticks, std::uint64_t coalesced_requests) noexcept
+   .. cpp:function:: void record_frame_poll(std::uint64_t deadlines_fired, std::uint64_t motion_clock_ticks, std::uint64_t coalesced_requests) noexcept
 
-      Accumulates deadlines, active ticks, coalescing, and nonempty scheduler wakes.
+      Accumulates deadlines, motion-clock frames, coalescing, and nonempty scheduler wakes.
 
    .. cpp:function:: void record_motion_started() noexcept
 
@@ -350,10 +350,6 @@ Related types
       Sets current cache entries and generation.
 
    .. cpp:function:: void set_motion_values_moving(std::uint64_t moving) noexcept
-
-   .. cpp:function:: void set_active_surface_count(std::size_t count) noexcept
-
-      Sets active surfaces and raises the maximum.
 
    .. cpp:function:: void set_renderer(std::string_view name, bool cpu_only)
 
@@ -508,8 +504,6 @@ Related types
 
    .. cpp:member:: std::uint64_t frame_deadlines_fired
 
-   .. cpp:member:: std::uint64_t active_surface_ticks
-
    .. cpp:member:: std::uint64_t motion_clock_ticks
 
       Frames of the window's motion clock (T2 plan, phase E3): at most one per frame poll, however many motion values move.
@@ -519,10 +513,6 @@ Related types
    .. cpp:member:: std::uint64_t frame_callback_faults
 
    .. cpp:member:: std::uint64_t reentrant_frame_polls_deferred
-
-   .. cpp:member:: std::uint64_t active_surface_count
-
-   .. cpp:member:: std::uint64_t maximum_active_surface_count
 
    .. cpp:member:: std::uint64_t occlusion_suspensions
 

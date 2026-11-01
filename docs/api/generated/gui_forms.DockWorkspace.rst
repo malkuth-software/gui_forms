@@ -55,6 +55,18 @@ gui_forms::DockWorkspace
          (owner decision DK-31): one ``document_closing`` event per document, in
          order, or (``combined``) one event for all of them.
 
+      **save_layout** : ``DockLayoutWriteResult``, read-only
+         The layout as XML (``DockLayout::write_xml``), on the program's request;
+         the workspace never saves on its own (owner decision DK-33).
+
+      **named_layouts** : ``std::span<const DockNamedLayout>``, default empty
+         The layouts saved by name (:cpp:class:`DockNamedLayout <gui_forms::DockNamedLayout>`: a name and the layout's
+         XML), in the order they were first saved. The program keeps the list
+         and saves it with its settings; :cpp:func:`set_named_layouts <gui_forms::DockWorkspace::set_named_layouts>` puts it back,
+         throwing ``std::invalid_argument`` and changing nothing for an empty,
+         invalid or repeated name (the XML is read only when a layout is
+         applied).
+
       **created_panel_count** : ``std::size_t``, read-only
          The number of factory runs that produced content.
 
@@ -140,6 +152,16 @@ gui_forms::DockWorkspace
         - Close Other Documents: as :cpp:func:`close_all_documents <gui_forms::DockWorkspace::close_all_documents>`, keeping the given one.
       * - :cpp:func:`answer_close <gui_forms::DockWorkspace::answer_close>`
         - Answers the waiting prompt: ``true`` goes on with the request (the next document is asked about, or the documents close), ``false`` cancels it.
+      * - :cpp:func:`load_layout <gui_forms::DockWorkspace::load_layout>`
+        - Replaces the layout with a saved one on the live windows, as one layout change: the floating windows the saved layout holds open and those it drops close in one window transaction, and only the panels then shown selected are created.
+      * - :cpp:func:`find_named_layout <gui_forms::DockWorkspace::find_named_layout>`
+        - The named layout, or null.
+      * - :cpp:func:`save_named_layout <gui_forms::DockWorkspace::save_named_layout>`
+        - Saves the current layout under a name, replacing a layout of that name in its place; false when the layout cannot be written.
+      * - :cpp:func:`apply_named_layout <gui_forms::DockWorkspace::apply_named_layout>`
+        - Loads a named layout as :cpp:func:`load_layout <gui_forms::DockWorkspace::load_layout>` does; ``kept_current`` with a ``not_a_layout`` diagnostic for a name not saved.
+      * - :cpp:func:`remove_named_layout <gui_forms::DockWorkspace::remove_named_layout>`
+        - Removes a named layout; false when there is none.
       * - :cpp:func:`panel_content <gui_forms::DockWorkspace::panel_content>`
         - The panel's content, or null before its factory ran.
       * - :cpp:func:`create_panel_content <gui_forms::DockWorkspace::create_panel_content>`
@@ -311,6 +333,24 @@ gui_forms::DockWorkspace
 
       Sets :cpp:func:`close_prompt <gui_forms::DockWorkspace::close_prompt>`; see the property's description above.
 
+   .. cpp:function:: DockLayoutWriteResult save_layout() const
+
+      The layout as XML (``DockLayout::write_xml``), on the program's request;
+      the workspace never saves on its own (owner decision DK-33).
+
+   .. cpp:function:: std::span<const DockNamedLayout> named_layouts() const noexcept
+
+      The layouts saved by name (:cpp:class:`DockNamedLayout <gui_forms::DockNamedLayout>`: a name and the layout's
+      XML), in the order they were first saved. The program keeps the list
+      and saves it with its settings; :cpp:func:`set_named_layouts <gui_forms::DockWorkspace::set_named_layouts>` puts it back,
+      throwing ``std::invalid_argument`` and changing nothing for an empty,
+      invalid or repeated name (the XML is read only when a layout is
+      applied).
+
+   .. cpp:function:: void set_named_layouts(std::vector<DockNamedLayout> layouts)
+
+      Sets :cpp:func:`named_layouts <gui_forms::DockWorkspace::named_layouts>`; see the property's description above.
+
    .. cpp:function:: std::size_t created_panel_count() const noexcept
 
       The number of factory runs that produced content.
@@ -444,6 +484,36 @@ gui_forms::DockWorkspace
       Answers the waiting prompt: ``true`` goes on with the request (the next
       document is asked about, or the documents close), ``false`` cancels it.
       Refused when no request waits.
+
+   .. cpp:function:: DockRestoreResult load_layout(std::string_view xml, const DockRestoreOptions& options = {})
+
+      Replaces the layout with a saved one on the live windows, as one
+      layout change: the floating windows the saved layout holds open and
+      those it drops close in one window transaction, and only the panels
+      then shown selected are created. A saved panel not registered yet is
+      kept as a placeholder, and appears there once it registers and is
+      shown. Without monitors in the options, the attached run's are used.
+      A close request waiting for :cpp:func:`answer_close <gui_forms::DockWorkspace::answer_close>` ends, closing nothing. An
+      unreadable or rejected layout changes nothing (``kept_current``).
+
+   .. cpp:function:: const DockNamedLayout* find_named_layout(std::string_view name) const noexcept
+
+      The named layout, or null.
+
+   .. cpp:function:: bool save_named_layout(std::string name)
+
+      Saves the current layout under a name, replacing a layout of that name
+      in its place; false when the layout cannot be written. An empty name,
+      or one that is not valid UTF-8, throws ``std::invalid_argument``.
+
+   .. cpp:function:: DockRestoreResult apply_named_layout(std::string_view name, const DockRestoreOptions& options = {})
+
+      Loads a named layout as :cpp:func:`load_layout <gui_forms::DockWorkspace::load_layout>` does; ``kept_current`` with a
+      ``not_a_layout`` diagnostic for a name not saved.
+
+   .. cpp:function:: bool remove_named_layout(std::string_view name)
+
+      Removes a named layout; false when there is none.
 
    .. cpp:function:: Control::Ptr panel_content(const DockPanelId& panel) const
 

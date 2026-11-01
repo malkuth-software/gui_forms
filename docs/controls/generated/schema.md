@@ -2597,12 +2597,17 @@ Interactions beyond every control's: none.
 | `left_panel` | face | `tool_strip_panel` |  |
 | `right_panel` | face | `tool_strip_panel` |  |
 | `content_panel` | region | `panel` |  |
+| `drag_stamp` | face |  |  |
+| `drag_stamp_image` | image |  |  |
+| `drop_marker` | drop |  | drop_accepted |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: none.
 
-Interactions beyond every control's: none.
+| Interaction | Payload |
+|---|---|
+| `strip_moved` | `ToolStripMove` |
 
 ## `binding_navigator` (BindingNavigator, control)
 

@@ -149,6 +149,166 @@ void test_reduced_motion_remains_active_and_calm() {
             "reduced motion must remain active; only pause and disable may quiesce it");
 }
 
+class StripePainter final : public Painter {
+public:
+    void save() override { ++saves; }
+    void restore() override { ++restores; }
+    void translate(Point) override {}
+    void clip_rect(Rect bounds) override { clip = bounds; }
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point from, Point to, Color, double width) override {
+        ++lines;
+        if (close_to(width, 6.0)) {
+            ++stripe_lines;
+            line_width = width;
+            if (from.y <= to.y) slopes_down = false;
+        }
+    }
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+
+    int saves{};
+    int restores{};
+    int lines{};
+    int stripe_lines{};
+    Rect clip{};
+    double line_width{};
+    bool slopes_down{true};
+};
+
+// ADR-016: each tick damages only what the phase moved, and a bar that is
+// painted keeps its timer.
+void test_progress_animation_damages_what_moves() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("animation.damage.root"));
+    std::shared_ptr<gui_forms::ProgressBar> progress =
+        make_control<ProgressBar>(StableId("animation.damage.progress"));
+    (*progress).set_requested_bounds({0.0, 0.0, 240.0, 20.0});
+    (*progress).set_value(50.0);
+    (*progress).set_visual_style(ProgressBarVisualStyle::marching_stripes);
+    (*progress).set_animation_period(1000ms);
+    (*root).add_child(progress);
+    Window window(root, {240.0, 40.0});
+    window.perform_layout();
+    for (std::size_t tick = 0U; tick < 3U; ++tick) {
+        StripePainter painter;
+        (*progress).on_paint(painter, {0.0, 0.0, 240.0, 20.0});
+        static_cast<void>(window.take_damage());
+        const double before = (*progress).animation_phase();
+        const FramePollResult frame = window.poll_frame_schedule(*window.next_wake());
+        const DamageRegion damage = window.take_damage();
+        const Rect bounds = damage.bounds();
+        // The fill is the left half of the 236-pixel interior, inset 2.
+        require(frame.ui_timer_ticks == 1U &&
+                    (*progress).animation_phase() > before && !bounds.empty() &&
+                    bounds.x >= 1.0 && bounds.x + bounds.width <= 121.0 &&
+                    bounds.y >= 1.0 && bounds.y + bounds.height <= 19.0 &&
+                    window.next_wake().has_value(),
+                "a painted marching-stripe bar must damage only its fill on each tick");
+    }
+}
+
+// A control animated by an AnimationTimer: counts ticks, reports them as
+// damaging or not, and can stop its own timer from a tick.
+class TimerProbe final : public Control {
+public:
+    explicit TimerProbe(StableId id) : Control(std::move(id)) {}
+
+    struct Tick final {
+        TimerProbe* probe;
+        AnimationTickResult operator()(FrameTime) const {
+            ++(*probe).ticks;
+            if ((*probe).stop_in_tick) (*probe).timer.stop();
+            const AnimationTickResult result = (*probe).damaging
+                ? AnimationTickResult::damaged : AnimationTickResult::unchanged;
+            return result;
+        }
+    };
+
+    void on_paint(Painter&, Rect) override { timer.note_painted(); }
+
+    AnimationTimer timer;
+    int ticks{};
+    bool damaging{true};
+    bool stop_in_tick{};
+};
+
+void test_animation_timer_is_paint_gated() {
+    require(animation_interval_for_travel(20.0) == 50ms &&
+                animation_interval_for_travel(1000.0) == display_frame_interval &&
+                animation_interval_for_travel(0.0) == display_frame_interval &&
+                animation_interval_for_travel(std::nan("")) == display_frame_interval &&
+                animation_interval_for_travel(1.0e-300) == std::chrono::seconds(3600),
+            "travel pacing must give one device pixel a tick, between the display and one hour");
+
+    std::shared_ptr<TimerProbe> probe = make_control<TimerProbe>(StableId("animation.timer.probe"));
+    (*probe).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
+    Window window(probe, {40.0, 20.0});
+    StripePainter painter;
+    bool rejected = false;
+    try {
+        (*probe).timer.start(*probe, 500us, TimerProbe::Tick{probe.get()});
+    } catch (const std::invalid_argument&) {
+        rejected = true;
+    }
+    require(rejected && !(*probe).timer.started(),
+            "an interval below one millisecond must be rejected without starting");
+
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    require((*probe).timer.ticking() && window.next_wake().has_value() &&
+                (*window.next_wake()).time_since_epoch() % 20ms == FrameInterval{},
+            "a started timer's first tick must fall on a multiple of its interval");
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 1 && (*probe).timer.ticking(),
+            "the first tick counts the paint its start requested");
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 1 && !(*probe).timer.ticking() &&
+                (*probe).timer.started() && !window.next_wake().has_value(),
+            "a tick after an unpainted damaging tick must stop the timer and hold no wake");
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require((*probe).timer.ticking() && window.next_wake().has_value(),
+            "the owner's next paint must start a waiting timer");
+
+    // A late poll is one tick, and the cadence keeps its phase.
+    const FrameTime due = *window.next_wake();
+    const FramePollResult late = window.poll_frame_schedule(due + 105ms);
+    require(late.ui_timer_ticks == 1U && (*probe).ticks == 2 &&
+                *window.next_wake() == due + 120ms,
+            "a late tick must be one tick, the next one the first deadline of its cadence");
+
+    // A tick that changes nothing expects no paint and stays scheduled.
+    (*probe).damaging = false;
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 4 && (*probe).timer.ticking(),
+            "unchanged ticks must keep the timer running without paints");
+
+    // Hidden: the timer waits for a paint instead of holding a wake.
+    (*probe).set_visible(false);
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 4 && !window.next_wake().has_value() &&
+                (*probe).timer.started(),
+            "a hidden owner's timer must stop at its next tick without ticking");
+    (*probe).set_visible(true);
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    (*probe).set_visible(false);
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    require(!(*probe).timer.ticking() && !window.next_wake().has_value(),
+            "starting for a hidden owner must wait for its paint");
+    (*probe).set_visible(true);
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require((*probe).timer.ticking(), "a paint must start a timer started while hidden");
+
+    // A tick may stop its own timer; a stopped timer is not restarted by paint.
+    (*probe).stop_in_tick = true;
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require((*probe).ticks == 5 && !(*probe).timer.started() &&
+                !window.next_wake().has_value(),
+            "a timer stopped by its tick must stay stopped through paints");
+}
+
 void test_progress_animation_and_hidden_suspension() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("animation.root"));
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("animation.progress"));
@@ -161,18 +321,26 @@ void test_progress_animation_and_hidden_suspension() {
             "animated progress style must register a retained frame source");
 
     const FrameTime origin = FrameClock::now();
-    (*progress).on_frame(origin);
-    (*progress).on_frame(origin + 250ms);
+    (*progress).advance_animation(origin);
+    (*progress).advance_animation(origin + 250ms);
     require((*progress).animation_phase() > 0.24 &&
                 (*progress).animation_phase() < 0.26,
             "progress animation phase must follow its declared period");
 
+    // The animation runs on a UI timer (ADR-016). A tick that finds the bar
+    // unpainted since the last one stops the timer; the bar's next paint
+    // starts it again.
     (*progress).set_visible(false);
-    require(!window.next_wake().has_value(),
-            "hidden active surfaces must not keep the host wake loop alive");
+    const double hidden_phase = (*progress).animation_phase();
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require(!window.next_wake().has_value() &&
+                close_to((*progress).animation_phase(), hidden_phase),
+            "a hidden progress bar must stop its timer at its next tick, without advancing");
     (*progress).set_visible(true);
+    StripePainter shown_painter;
+    (*progress).on_paint(shown_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(),
-            "reshown active surface must become schedulable without reconstruction");
+            "a reshown progress bar must start its timer again when painted");
     (*progress).set_visual_style(ProgressBarVisualStyle::continuous);
     require(!window.next_wake().has_value(),
             "static progress style must revoke its retained frame source");
@@ -184,7 +352,7 @@ void test_progress_animation_and_hidden_suspension() {
     require(!window.next_wake().has_value() && (*progress).animation_phase() == 0.0,
             "disabled stripe motion must paint statically without an idle wake");
     (*progress).set_animation_enabled(true);
-    (*progress).on_frame(FrameClock::now() + 325ms);
+    (*progress).advance_animation(FrameClock::now() + 325ms);
     const double retained_phase = (*progress).animation_phase();
     (*progress).set_animation_paused(true);
     require(!window.next_wake().has_value() &&
@@ -194,7 +362,7 @@ void test_progress_animation_and_hidden_suspension() {
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "resumed progress motion must retain phase before its next frame");
-    (*progress).on_frame(*window.next_wake());
+    (*progress).advance_animation(*window.next_wake());
     require((*progress).animation_phase() > retained_phase,
             "the first resumed frame must advance from the retained phase");
     const double pre_reduced_phase = (*progress).animation_phase();
@@ -206,10 +374,13 @@ void test_progress_animation_and_hidden_suspension() {
                 has_semantic_state((*progress).semantic_descriptor().states,
                                    SemanticState::busy),
             "reduced motion must retain animation and state updates without resetting phase");
-    (*progress).on_frame(*window.next_wake());
+    (*progress).advance_animation(*window.next_wake());
     const double reduced_phase = (*progress).animation_phase();
-    require(reduced_phase > pre_reduced_phase &&
-                reduced_phase - pre_reduced_phase < 0.05,
+    // The timer is paced to about one device pixel of stripe travel a tick
+    // (the window's scale is 1): reduced motion presents half the 14-pixel
+    // pitch per period.
+    const double reduced_travel = (reduced_phase - pre_reduced_phase) * 14.0 * 0.5;
+    require(reduced_phase > pre_reduced_phase && reduced_travel <= 1.05,
             "reduced progress motion must advance visibly at its calmer speed");
     (*progress).set_reduced_motion(false);
     require(window.next_wake().has_value() &&
@@ -281,34 +452,6 @@ void test_progress_animation_and_hidden_suspension() {
     require(!window.next_wake().has_value(),
             "removing the last animated progress feature must revoke its frame source");
 }
-
-class StripePainter final : public Painter {
-public:
-    void save() override { ++saves; }
-    void restore() override { ++restores; }
-    void translate(Point) override {}
-    void clip_rect(Rect bounds) override { clip = bounds; }
-    void fill_rect(Rect, Color) override {}
-    void stroke_rect(Rect, Color, double) override {}
-    void draw_line(Point from, Point to, Color, double width) override {
-        ++lines;
-        if (close_to(width, 6.0)) {
-            ++stripe_lines;
-            line_width = width;
-            if (from.y <= to.y) slopes_down = false;
-        }
-    }
-    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
-    void draw_image(ImageId, Rect, double) override {}
-
-    int saves{};
-    int restores{};
-    int lines{};
-    int stripe_lines{};
-    Rect clip{};
-    double line_width{};
-    bool slopes_down{true};
-};
 
 void test_progress_stripes_are_clipped_and_configurable() {
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("animation.stripes"));
@@ -416,8 +559,8 @@ void test_progress_animation_style_family() {
 
     (*progress).set_visual_style(ProgressBarVisualStyle::luminance_pulse);
     const FrameTime origin = FrameClock::now();
-    (*progress).on_frame(origin);
-    (*progress).on_frame(origin + 250ms);
+    (*progress).advance_animation(origin);
+    (*progress).advance_animation(origin + 250ms);
     ProgressEffectsPainter pulse;
     (*progress).on_paint(pulse, {0.0, 0.0, 240.0, 24.0});
     require(window.next_wake().has_value() &&
@@ -430,7 +573,7 @@ void test_progress_animation_style_family() {
             "luminance progress must own one clipped, forward-moving soft pulse");
 
     (*progress).set_visual_style(ProgressBarVisualStyle::marching_stripes);
-    (*progress).on_frame(origin + 500ms);
+    (*progress).advance_animation(origin + 500ms);
     ProgressEffectsPainter stripes;
     (*progress).on_paint(stripes, {0.0, 0.0, 240.0, 24.0});
     require(stripes.bands > 2 && stripes.saves >= 1 &&
@@ -440,7 +583,7 @@ void test_progress_animation_style_family() {
             "marching-stripe progress must remain clipped to determinate fill");
 
     (*progress).set_visual_style(ProgressBarVisualStyle::laser_etch);
-    (*progress).on_frame(origin + 750ms);
+    (*progress).advance_animation(origin + 750ms);
     ProgressEffectsPainter laser;
     (*progress).on_paint(laser, {0.0, 0.0, 240.0, 24.0});
     require(laser.five_stop_spread_gradients == 1 &&
@@ -523,7 +666,7 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
     (*preview).set_motion_policy({true, false, true});
     require(window.next_wake().has_value() && (*preview).phase() == before,
             "reduced EasingPreview motion must retain phase and remain scheduled");
-    (*preview).on_frame(FrameClock::now() + 300ms);
+    (*preview).advance_animation(FrameClock::now() + 300ms);
     require((*preview).phase() > before &&
                 (*preview).semantic_descriptor().numeric_value.has_value(),
             "public EasingPreview frames must advance reusable timeline state");
@@ -558,7 +701,9 @@ int main() {
         test_timeline_pause_resume_retains_phase_without_catch_up();
         test_invalid_timeline_contract();
         test_reduced_motion_remains_active_and_calm();
+        test_animation_timer_is_paint_gated();
         test_progress_animation_and_hidden_suspension();
+        test_progress_animation_damages_what_moves();
         test_progress_stripes_are_clipped_and_configurable();
         test_progress_animation_style_family();
         test_visual_style_round_trips();

@@ -98,9 +98,9 @@ void test_ranges_and_progress(gui_forms::Window& window) {
                 "slider-to-animation stress must release capture before navigation");
 
         select_page(window, "animation-laboratory");
-        require(window.next_wake().has_value(),
-                "opening Animation after a slider drag must retain a live deadline");
-        static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+        // The page's animations run on paint-gated timers (ADR-016): a
+        // control hidden on the other page waits for its next paint, so the
+        // deadline follows the transition's paint.
         CountingPainter transition_painter;
         const DamageRegion transition_damage = window.take_damage();
         static_cast<void>(window.paint(
@@ -110,10 +110,13 @@ void test_ranges_and_progress(gui_forms::Window& window) {
                 : transition_damage.bounds()));
         require(transition_painter.commands > 0U,
                 "slider-to-animation transition must complete a retained paint");
+        require(window.next_wake().has_value(),
+                "opening Animation after a slider drag must retain a live deadline");
+        static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
     }
     require(window.metrics_snapshot().frame_callback_faults ==
                 frame_faults_before,
-            "slider-to-animation stress must not fault an active surface callback");
+            "slider-to-animation stress must not fault an animation timer callback");
 }
 
 } // namespace gallery_pages_tests

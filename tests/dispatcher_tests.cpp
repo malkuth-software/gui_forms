@@ -65,8 +65,11 @@ public:
         event.handled = true;
     }
 
-    void on_frame(FrameTime) override {
+    // An animation tick: records itself and damages the probe, as a
+    // control's own UI timer does (ADR-016).
+    void advance_frame() {
         if (recording) trace_.push_back("frame");
+        invalidate(Dirty::paint);
     }
 
     bool recording{};
@@ -370,6 +373,20 @@ public:
                     const DispatchRecord& right) const noexcept {
         return left.sequence < right.sequence;
     }
+};
+
+// The probe's animation timer target. Observes the probe.
+class ProbeFrameTick final {
+public:
+    explicit ProbeFrameTick(const std::shared_ptr<DispatchPhaseProbe>& probe) : probe_(probe) {}
+
+    void operator()(FrameTime) const {
+        const std::shared_ptr<DispatchPhaseProbe> live = probe_.lock();
+        if (live) (*live).advance_frame();
+    }
+
+private:
+    std::weak_ptr<DispatchPhaseProbe> probe_;
 };
 
 class TimerPostsDispatch final {
@@ -747,13 +764,13 @@ void test_dispatch_order_against_input_timer_layout_and_paint() {
     tick.disconnect();
 
     trace.clear();
-    FrameRequestToken animation = window.activate_surface(
-        root, std::chrono::milliseconds(16), due + std::chrono::milliseconds(16));
     const FrameTime frame_due = due + std::chrono::milliseconds(16);
+    FrameRequestToken animation = window.schedule_ui_timer(
+        *root, std::chrono::milliseconds(16), frame_due, ProbeFrameTick{root});
     const FramePollResult frame_turn = window.poll_frame_schedule(frame_due);
-    require(frame_turn.active_surface_ticks == 1U &&
+    require(frame_turn.ui_timer_ticks == 1U &&
                 trace == std::vector<std::string>{"frame"},
-            "active-surface state must advance before its paint is presented");
+            "animation state must advance before its paint is presented");
     window.paint(painter);
     require(trace == std::vector<std::string>({"frame", "paint"}),
             "the retained frame callback must precede its visible paint");

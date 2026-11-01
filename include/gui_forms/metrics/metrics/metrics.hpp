@@ -71,7 +71,6 @@ public:
     void record_callback_arbitration_retry(bool limit_hit) noexcept;
     void record_frame_request() noexcept;
     void record_frame_poll(std::uint64_t deadlines_fired,
-                           std::uint64_t active_surface_ticks,
                            std::uint64_t motion_clock_ticks,
                            std::uint64_t coalesced_requests) noexcept;
     // The motion clock: a move started, a value settled on a frame, a value
@@ -94,7 +93,6 @@ public:
     void record_paint_group_refusals(std::uint64_t refusals) noexcept;
     void record_frame_callback_fault() noexcept;
     void record_reentrant_frame_poll() noexcept;
-    void set_active_surface_count(std::size_t count) noexcept;
     void record_occlusion_transition(bool occluded) noexcept;
     void record_occluded_frame_poll() noexcept;
     void record_present(std::uint64_t duration_nanoseconds) noexcept;

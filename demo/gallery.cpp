@@ -291,12 +291,6 @@ std::unique_ptr<Window> make_gallery()
     }
     (*tree.context).status_badge = status_badge.image;
     (*window).perform_layout();
-    if (const Control::Ptr instrument = (*window).find("gallery.instrument")) {
-        constexpr FrameInterval instrument_interval =
-            std::chrono::nanoseconds(33'333'333);
-        (*tree.context).instrument_frames = (*window).activate_surface(
-            instrument, instrument_interval, FrameClock::now() + instrument_interval);
-    }
     initialize_gallery_runtime(*window);
     install_page_fixtures(*window);
     (*window).perform_layout();

@@ -93,12 +93,10 @@ rg -q '"automation":"activate","id":"gallery.page.animation-laboratory"' "$log"
 rg -q '"automation":"activate","id":"gallery.page.images-and-drawing"' "$log"
 rg -q '"automation":"activate","id":"gallery.animation.reduced"' "$log"
 rg -q '"automation":"activate","id":"gallery.animation.pause"' "$log"
-# The compiled-DML instrument page keeps one active-surface lease even while
-# hidden, so "motion off" reads 1 and the four migrated animation surfaces 5.
-zero_motion_snapshots=$(rg -c '"automation":"snapshot".*"active_surface_count":1' "$log")
-live_motion_snapshots=$(rg -c '"automation":"snapshot".*"active_surface_count":5' "$log")
-test "$zero_motion_snapshots" -ge 1
-test "$live_motion_snapshots" -ge 3
+# Animation runs on control-owned UI timers (ADR-016); the snapshots carry
+# no lease count, so the run only has to have taken them.
+motion_snapshots=$(rg -c '"automation":"snapshot"' "$log")
+test "$motion_snapshots" -ge 3
 rg -q '"automation":"activate","id":"gallery.dispatcher.post"' "$log"
 rg -q '"automation":"activate","id":"gallery.dispatcher.cancel"' "$log"
 rg -q '"automation":"activate","id":"gallery.dispatcher.invoke"' "$log"

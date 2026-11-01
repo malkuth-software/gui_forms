@@ -273,8 +273,6 @@ gui_forms::ScrollBar
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
-   .. cpp:function:: void on_frame(FrameTime now) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: bool on_semantic_action(SemanticAction action, std::string_view value) override

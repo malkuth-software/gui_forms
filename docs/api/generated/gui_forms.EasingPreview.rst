@@ -51,7 +51,7 @@ gui_forms::EasingPreview
 
       **motion_policy** : ``MotionPolicy``, default ``MotionPolicy{}``
          The authored policy. While it is ``active()``, that is enabled and not
-         paused, the preview requests frames; otherwise it freezes at its current
+         paused, the preview runs its animation timer; otherwise it freezes at its current
          phase. With ``reduced``, frames come every 100 ms instead of every 16 ms
          and the markers travel half as far.
 
@@ -75,6 +75,15 @@ gui_forms::EasingPreview
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`advance_animation <gui_forms::EasingPreview::advance_animation>`
+        - Samples the timeline at a frame time into :cpp:func:`phase <gui_forms::EasingPreview::phase>`.
+
    .. seealso::
 
       :cpp:class:`AnimationTimeline <gui_forms::AnimationTimeline>`
@@ -90,11 +99,13 @@ gui_forms::EasingPreview
 
    The timeline starts when the preview is first attached to a window. While
    detached it pauses at its phase and resumes on reattachment. While the
-   policy is active, the preview holds one frame request on the window, so it
-   keeps a resting window awake; pause it with :cpp:func:`motion_policy <gui_forms::EasingPreview::motion_policy>` when it is not
-   being watched. Like every frame request, it receives no frames while the
-   window is occluded or the preview is hidden. With a finite :cpp:func:`specification <gui_forms::EasingPreview::specification>`,
-   it stops requesting frames when the timeline finishes.
+   policy is active and the preview is shown, it runs an :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` at
+   the display rate, so it keeps a resting window awake; pause it with :cpp:func:`motion_policy <gui_forms::EasingPreview::motion_policy>` when
+   it is not being watched. Each tick repaints only what moved: each marker's old
+   and new place and the readout. A preview that is hidden, or not painted since
+   the last tick, stops its timer at that tick and starts it again when it is
+   next painted. With a finite :cpp:func:`specification <gui_forms::EasingPreview::specification>`, it stops its timer when the
+   timeline finishes.
 
    A readout at the top right shows the policy, ``LIVE``, ``PAUSED``, ``REDUCED``,
    ``REDUCED + PAUSED`` or ``DISABLED``, and the presented phase as a percentage.
@@ -125,7 +136,7 @@ gui_forms::EasingPreview
 
       gf::MotionPolicy paused;
       paused.paused = true;
-      (*preview).set_motion_policy(paused);   // releases its frame request
+      (*preview).set_motion_policy(paused);   // stops its animation timer
 
 
    .. rubric:: Construction
@@ -177,7 +188,7 @@ gui_forms::EasingPreview
    .. cpp:function:: MotionPolicy motion_policy() const noexcept
 
       The authored policy. While it is ``active()``, that is enabled and not
-      paused, the preview requests frames; otherwise it freezes at its current
+      paused, the preview runs its animation timer; otherwise it freezes at its current
       phase. With ``reduced``, frames come every 100 ms instead of every 16 ms
       and the markers travel half as far.
 
@@ -209,12 +220,16 @@ gui_forms::EasingPreview
    .. cpp:function:: States states() const
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: void advance_animation(FrameTime now)
+
+      Samples the timeline at a frame time into :cpp:func:`phase <gui_forms::EasingPreview::phase>`. The preview's
+      animation timer calls it on each tick; tests call it to step the preview
+      without a clock.
+
+
    .. rubric:: Extension points
-
-   .. cpp:function:: void on_frame(FrameTime now) override
-
-      Called by the window's frame scheduler on each frame the preview
-      requested; it samples the timeline into :cpp:func:`phase <gui_forms::EasingPreview::phase>`.
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 

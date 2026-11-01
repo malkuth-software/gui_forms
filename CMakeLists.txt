@@ -164,6 +164,7 @@ add_library(gui_forms_core STATIC
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
+    src/core/animation/animation_timer/animation_timer.cpp
     src/core/binding/value/binding_value.cpp
     src/core/binding/value/property_collection_value/property_collection_value.cpp
     src/core/binding/value/property_object_value/property_object_value.cpp
@@ -691,6 +692,7 @@ add_library(gui_forms_controls STATIC
     src/controls/docking/dock_workspace/dock_workspace.cpp
     src/controls/docking/dock_site/dock_site.cpp
     src/controls/docking/dock_site/dock_site_drag.cpp
+    src/controls/drag_gesture/drag_gesture.cpp
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
@@ -1432,6 +1434,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/retained-layout-panels.cpp
         src/controls/gallery/pages/css-layout-panels.cpp
         src/controls/gallery/pages/dock-and-anchor.cpp
+        src/controls/gallery/pages/docking-workspace.cpp
         src/controls/gallery/pages/commands-and-menus.cpp
         src/controls/gallery/pages/tree-and-object-views.cpp
         src/controls/gallery/pages/choices-and-sections.cpp
@@ -3567,6 +3570,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/dialogs-and-host-services_tests.cpp
             tests/gallery_pages/states-and-diagnostics_tests.cpp
             tests/gallery_pages/dock-and-anchor_tests.cpp
+            tests/gallery_pages/docking-workspace_tests.cpp
             tests/gallery_pages/retained-layout-panels_tests.cpp
             tests/gallery_pages/css-layout-panels_tests.cpp
             tests/gallery_pages/control-spectrum_tests.cpp

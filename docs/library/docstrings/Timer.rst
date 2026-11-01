@@ -4,8 +4,8 @@ A timer drives periodic UI work, such as refreshing a clock, polling a model or
 stepping a simple animation, without a thread of its own. It belongs to one
 `Window`, and its ticks run on that window's UI thread between input, layout
 and painting, so a tick handler may change controls directly. Use a `Worker`
-for computation that would block the UI, and `Window::activate_surface` for
-animation that should stop while the window is covered.
+for computation that would block the UI, and an `AnimationTimer` for a control's
+animation, which should stop while the control is not shown.
 
 Parameters
 ----------

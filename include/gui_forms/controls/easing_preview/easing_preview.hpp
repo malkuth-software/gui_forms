@@ -1,8 +1,10 @@
 #pragma once
 
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/animation.hpp"
 #include "gui_forms/basic_controls.hpp"
 
+#include <memory>
 #include <span>
 #include <string>
 #include <vector>
@@ -53,7 +55,9 @@ public:
     void set_marker_size(double size);
     [[nodiscard]] double phase() const noexcept { return phase_; }
 
-    void on_frame(FrameTime now) override;
+    // Samples the timeline at `now` into the phase; the frame timer calls it
+    // on each tick, and tests call it to step the preview without a clock.
+    void advance_animation(FrameTime now);
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -81,11 +85,30 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The animation timer's named target. Observes the preview; a destroyed
+    // one is skipped.
+    struct FrameTick final {
+        std::weak_ptr<EasingPreview> preview;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+
     void register_frames();
+    // One timer tick: samples the timeline and damages each marker's old and
+    // new place and the readout.
+    AnimationTickResult on_frame_tick(FrameTime now);
+    // The places that move with the phase, used by on_paint and the tick's
+    // damage: track `index`'s marker at `presented_phase`, and the readout.
+    [[nodiscard]] Rect marker_bounds(std::size_t index, double presented_phase) const noexcept;
+    [[nodiscard]] Rect readout_bounds() const noexcept;
+    // The vertical origin of track `index`'s row.
+    [[nodiscard]] double track_row_top(std::size_t index) const noexcept;
+    [[nodiscard]] double track_left() const noexcept;
+    [[nodiscard]] double track_width() const noexcept;
     void on_presentation_changed(const PresentationSettings& settings);
     [[nodiscard]] std::string motion_readout(double presented_phase) const;
 
-    FrameRequestToken frames_;
+    // ADR-016: a paint-gated UI timer the preview stops.
+    AnimationTimer frames_;
     SubscriptionToken presentation_subscription_;
     AnimationTimeline timeline_;
     std::vector<EasingPreviewTrack> tracks_;

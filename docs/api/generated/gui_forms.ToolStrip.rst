@@ -64,6 +64,13 @@ gui_forms::ToolStrip
       **focused_item_id** : ``std::string``, read-only
          The ID of the item the keyboard is on while the strip has focus; empty otherwise.
 
+      **content_length** : ``double``, read-only
+         The length along the strip's axis (its width, or its height when
+         vertical) that its visible items need with none overflowed: the edge
+         insets, the grip, the end reserve or sizing grip and every visible item
+         at its own size. A :cpp:class:`ToolStripPanel <gui_forms::ToolStripPanel>` gives each strip but the last of a
+         shared row this much.
+
       **parts** : ``Parts``, read-only
 
       **realized_items** : ``std::vector<Item>``, read-only
@@ -255,6 +262,14 @@ gui_forms::ToolStrip
    .. cpp:function:: std::string focused_item_id() const
 
       The ID of the item the keyboard is on while the strip has focus; empty otherwise.
+
+   .. cpp:function:: double content_length() const
+
+      The length along the strip's axis (its width, or its height when
+      vertical) that its visible items need with none overflowed: the edge
+      insets, the grip, the end reserve or sizing grip and every visible item
+      at its own size. A :cpp:class:`ToolStripPanel <gui_forms::ToolStripPanel>` gives each strip but the last of a
+      shared row this much.
 
    .. cpp:function:: Parts parts() const
 
