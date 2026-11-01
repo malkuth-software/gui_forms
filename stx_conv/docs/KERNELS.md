@@ -141,8 +141,9 @@ build/stx-conv-release/stx_conv_stream_regression --write-bubble-record \
     stx_conv/tests/stream/base_oracle.sha256 stx_conv/tests/stream/bubble_record.sha256
 ```
 
-The bubble oracle needs Python with NumPy (`-DSTX_CONV_ORACLE_PYTHON=...`
-selects the interpreter); without it the test reports skipped. Its first run
+The bubble oracle needs Python with NumPy (`-DSTX_CONV_ORACLE_PYTHON=...`, or an
+environment variable of that name at configure time, selects the interpreter);
+without it the test reports skipped. Its first run
 generates the fixture into the build tree (about 90 s on an M4) and reuses it
 while the oracle sources are unchanged.
 

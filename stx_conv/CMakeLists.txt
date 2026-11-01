@@ -118,9 +118,15 @@ if(STX_CONV_TESTS)
     add_executable(stx_conv_stream_bubble_oracle tests/stream/bubble_oracle.cpp)
     target_link_libraries(stx_conv_stream_bubble_oracle PRIVATE stx_conv_stream_cases stx_conv::stream)
     # The bubble model needs NumPy; without it the test reports skipped (77).
-    # STX_CONV_ORACLE_PYTHON selects an interpreter that has it.
+    # The interpreter is the cache variable STX_CONV_ORACLE_PYTHON, else the
+    # environment variable of the same name at configure time (for builds
+    # driven by tools/ci_build.py, which passes no extra cache variables),
+    # else the found Python3.
     set(STX_CONV_ORACLE_PYTHON "" CACHE FILEPATH "Python with NumPy for the stream bubble oracle")
     set(stx_conv_oracle_python "${STX_CONV_ORACLE_PYTHON}")
+    if(NOT stx_conv_oracle_python AND DEFINED ENV{STX_CONV_ORACLE_PYTHON})
+        set(stx_conv_oracle_python "$ENV{STX_CONV_ORACLE_PYTHON}")
+    endif()
     if(NOT stx_conv_oracle_python)
         find_package(Python3 COMPONENTS Interpreter)
         if(Python3_Interpreter_FOUND)
@@ -132,6 +138,7 @@ if(STX_CONV_TESTS)
             ${CMAKE_CURRENT_SOURCE_DIR}/tests/stream/oracle/run_bubble_oracle.py
             $<TARGET_FILE:stx_conv_stream_bubble_oracle> ${CMAKE_CURRENT_BINARY_DIR}/stream-bubble-oracle.bin)
         set_tests_properties(stx_conv_stream_bubble_oracle PROPERTIES SKIP_RETURN_CODE 77)
+        message(STATUS "stx_conv: stream bubble oracle interpreter ${stx_conv_oracle_python}")
     else()
         message(STATUS "stx_conv: no Python interpreter; stx_conv_stream_bubble_oracle is not registered")
     endif()
