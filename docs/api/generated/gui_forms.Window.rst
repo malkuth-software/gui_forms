@@ -206,12 +206,24 @@ gui_forms::Window
       **tool_tips_shown_setting** : ``std::optional<bool>``, read-only
          Tooltips (owner, 2026-10-28). The window has one presenter, which shows the plain tooltip text of its controls and of their authored parts (see ToolTipSettings) in a retained, input-transparent overlay. The window's switch, when set, decides whether its tooltips show; unset, the default, the program's switch decides (Application::tool_tips_shown). Turning tooltips off closes one that shows. UI thread.
 
-      **tool_tips_shown** : ``bool``
-         Whether this window's tooltips show now: its own switch, or the program's while it has none.
+      **tool_tips_shown** : ``bool``, default follows ``Application::tool_tips_shown()``
+         Whether the window's tooltip presenter shows tooltips when the pointer
+         rests or keyboard focus arrives. :cpp:func:`set_tool_tips_shown <gui_forms::Window::set_tool_tips_shown>` takes an
+         optional: unset, the window follows the program switch,
+         ``Application::set_tool_tips_shown``. Turning it off closes a tooltip that
+         shows. :cpp:func:`show_tool_tip <gui_forms::Window::show_tool_tip>` shows one regardless.
 
       **tool_tip_settings** : ``ToolTipSettings``
+         The window's :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`: the initial, reshow and auto-pop delays,
+         the maximum width, and whether hover, focus and disabled controls show
+         tooltips. Every :cpp:class:`ToolTip <gui_forms::ToolTip>` of the window reads and writes them. A
+         negative delay, or a width that is not finite and between 80 and 2048,
+         throws ``std::invalid_argument``, changing nothing.
 
       **tool_tip_visible** : ``bool``, read-only
+         Whether a tooltip shows; :cpp:func:`tool_tip_target <gui_forms::Window::tool_tip_target>`, :cpp:func:`tool_tip_item_id <gui_forms::Window::tool_tip_item_id>` and
+         :cpp:func:`tool_tip_text <gui_forms::Window::tool_tip_text>` name what it describes (the item ID is empty for a whole
+         control).
 
       **tool_tip_target** : ``Control::Ptr``, read-only
          The control whose tooltip shows, the authored part's ID (empty for the control itself) and the shown text; none and empty while none shows.
@@ -294,7 +306,9 @@ gui_forms::Window
          control's identity and its effective visibility and enablement.
 
       **tool_tip_visibility_changed** : ``Event<const ToolTipEvent&>``
-         Raised after a tooltip opened, and after it closed.
+         Raised when a tooltip opens and when it closes, with a :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`:
+         the target's stable ID, the item ID, the text, whether it now shows and
+         whether keyboard focus showed it.
 
    .. rubric:: Methods
 
@@ -409,9 +423,9 @@ gui_forms::Window
       * - :cpp:func:`open_popup <gui_forms::Window::open_popup>`
         - Shows a detached control as an overlay owned by another control, such as a menu or a drop-down, and returns a :cpp:class:`PopupToken <gui_forms::PopupToken>` that closes it.
       * - :cpp:func:`show_tool_tip <gui_forms::Window::show_tool_tip>`
-        - Shows ``target``'s own tooltip at once, below it, whatever the switches, for ``duration`` (none: the settings' auto_pop_delay; zero: until hidden).
+        - ``show_tool_tip(control)`` shows the control's tooltip at once, below it, for the auto-pop delay; ``show_tool_tip(control, duration)`` for ``duration``, where zero means until hidden.
       * - :cpp:func:`hide_tool_tip <gui_forms::Window::hide_tool_tip>`
-        - Closes the tooltip that shows, and cancels one waiting to show.
+        - Closes the tooltip that shows and cancels one waiting to show.
       * - :cpp:func:`register_accelerator <gui_forms::Window::register_accelerator>`
         - Installs a window-wide keyboard shortcut owned by a :cpp:class:`Component <gui_forms::Component>`.
       * - :cpp:func:`offer_accelerators <gui_forms::Window::offer_accelerators>`
@@ -851,17 +865,33 @@ gui_forms::Window
 
    .. cpp:function:: bool tool_tips_shown() const noexcept
 
-      Whether this window's tooltips show now: its own switch, or the program's while it has none.
+      Whether the window's tooltip presenter shows tooltips when the pointer
+      rests or keyboard focus arrives. :cpp:func:`set_tool_tips_shown <gui_forms::Window::set_tool_tips_shown>` takes an
+      optional: unset, the window follows the program switch,
+      ``Application::set_tool_tips_shown``. Turning it off closes a tooltip that
+      shows. :cpp:func:`show_tool_tip <gui_forms::Window::show_tool_tip>` shows one regardless.
 
    .. cpp:function:: void set_tool_tips_shown(std::optional<bool> shown)
 
+      Sets :cpp:func:`tool_tips_shown <gui_forms::Window::tool_tips_shown>`; see the property's description above.
+
    .. cpp:function:: const ToolTipSettings& tool_tip_settings() const noexcept
+
+      The window's :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`: the initial, reshow and auto-pop delays,
+      the maximum width, and whether hover, focus and disabled controls show
+      tooltips. Every :cpp:class:`ToolTip <gui_forms::ToolTip>` of the window reads and writes them. A
+      negative delay, or a width that is not finite and between 80 and 2048,
+      throws ``std::invalid_argument``, changing nothing.
 
    .. cpp:function:: void set_tool_tip_settings(ToolTipSettings settings)
 
-      Throws std::invalid_argument for a negative delay or a maximum width outside 80 to 2048 (or not finite), changing nothing. A tooltip that shows is laid out again at a new width.
+      Sets :cpp:func:`tool_tip_settings <gui_forms::Window::tool_tip_settings>`; see the property's description above.
 
    .. cpp:function:: bool tool_tip_visible() const noexcept
+
+      Whether a tooltip shows; :cpp:func:`tool_tip_target <gui_forms::Window::tool_tip_target>`, :cpp:func:`tool_tip_item_id <gui_forms::Window::tool_tip_item_id>` and
+      :cpp:func:`tool_tip_text <gui_forms::Window::tool_tip_text>` name what it describes (the item ID is empty for a whole
+      control).
 
    .. cpp:function:: Control::Ptr tool_tip_target() const noexcept
 
@@ -961,7 +991,9 @@ gui_forms::Window
 
    .. cpp:function:: Event<const ToolTipEvent&>& tool_tip_visibility_changed() noexcept
 
-      Raised after a tooltip opened, and after it closed.
+      Raised when a tooltip opens and when it closes, with a :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`:
+      the target's stable ID, the item ID, the text, whether it now shows and
+      whether keyboard focus showed it.
 
 
    .. rubric:: Methods
@@ -1238,11 +1270,15 @@ gui_forms::Window
 
    .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration = std::nullopt)
 
-      Shows ``target``'s own tooltip at once, below it, whatever the switches, for ``duration`` (none: the settings' auto_pop_delay; zero: until hidden). Throws std::invalid_argument for a target that is not a live control attached to this window or whose tooltip text is empty, and for a negative duration.
+      ``show_tool_tip(control)`` shows the control's tooltip at once, below it,
+      for the auto-pop delay; ``show_tool_tip(control, duration)`` for
+      ``duration``, where zero means until hidden. It shows even with the
+      switches off. A control without tooltip text throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: void hide_tool_tip()
 
-      Closes the tooltip that shows, and cancels one waiting to show.
+      Closes the tooltip that shows and cancels one waiting to show.
 
    .. cpp:function:: AcceleratorToken register_accelerator(Component& owner, KeyGesture gesture, std::function<bool()> callback, AcceleratorOptions options = {})
 

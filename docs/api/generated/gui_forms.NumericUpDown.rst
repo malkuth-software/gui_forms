@@ -107,6 +107,9 @@ gui_forms::NumericUpDown
 
    .. rubric:: Notes
 
+   Its ``tool_tip_text`` shows as grey hint text in the edit field when the
+   field is empty and has focus, in place of a tooltip bubble.
+
    Typing commits as the user goes: each edit that leaves the editor holding a
    complete number within the range becomes the new value at once and raises
    :cpp:func:`value_changed <gui_forms::NumericUpDown::value_changed>`. Text that is incomplete, unparseable or out of range leaves

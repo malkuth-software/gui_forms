@@ -66,6 +66,9 @@ ComboBox : A field with a drop-down list of choices.
 
 Notes
 -----
+Its `tool_tip_text` shows as grey hint text in the edit field when the
+field is empty and has focus, in place of a tooltip bubble.
+
 The selection follows the text. Text typed into the editor selects the item
 it equals, ignoring ASCII case, and clears the selection when it equals no
 item; the text the user typed stays as typed. Removing the selected item

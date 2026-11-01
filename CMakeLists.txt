@@ -654,6 +654,7 @@ add_library(gui_forms_controls STATIC
     src/controls/button_base/link_label/link_label.cpp
     src/controls/raster_canvas/raster_canvas.cpp
     src/controls/panel/breadcrumb_trail/breadcrumb_trail.cpp
+    src/controls/panel/cut_off_text/cut_off_text_reveal.cpp
     src/controls/panel/tree_view/tree_view.cpp
     src/controls/panel/object_view/object_view.cpp
     src/controls/panel/list_view/list_view.cpp
@@ -3395,6 +3396,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_tooltip_tests tests/tooltip_tests.cpp)
     target_link_libraries(gui_forms_tooltip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_tooltip_tests COMMAND gui_forms_tooltip_tests)
+
+    add_executable(gui_forms_cut_off_text_tests tests/cut_off_text_tests.cpp)
+    target_link_libraries(gui_forms_cut_off_text_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_cut_off_text_tests COMMAND gui_forms_cut_off_text_tests)
 
     add_executable(gui_forms_binding_tests tests/binding_tests.cpp)
     target_link_libraries(gui_forms_binding_tests PRIVATE gui_forms_controls)

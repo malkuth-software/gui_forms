@@ -262,7 +262,14 @@ gui_forms::Control
          A longer description for assistive technology. Empty by default.
 
       **tool_tip_text** : ``std::string``
-         The control's plain tooltip (owner, 2026-10-28): text, never markup, that its window's tooltip presenter shows as tool_tip_presentation() says, when the window's and the program's switches allow. Empty, the default, never shows. The text also reaches the control's semantic node (SemanticNode::tool_tip). Throws std::invalid_argument for text that is not valid UTF-8, changing nothing. Raises tool_tip_text_changed when the text changes. Bindable as "tool_tip_text".
+         Short help text about the control, shown by its window's one tooltip
+         presenter when the pointer rests on the control, or below the control
+         when keyboard focus reaches it with the focus cue showing. Controls you
+         type into show it as grey hint text in their empty field while they
+         have focus instead, unless a placeholder is set. Empty by default, and
+         empty text never shows. It must be valid UTF-8, or
+         ``std::invalid_argument`` is thrown. It is bindable and published as the
+         semantic field ``tool_tip``. Data items such as list rows have none.
 
       **tool_tip_presentation** : ``ToolTipPresentation``, read-only
 
@@ -365,6 +372,7 @@ gui_forms::Control
          Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
 
       **tool_tip_text_changed** : ``Event<const std::string&>``
+         Raised after :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
 
       **initialization_completed** : ``Event<Dirty, bool>``
          Raised at the end of the outermost :cpp:func:`end_init <gui_forms::Control::end_init>`, after the coalesced
@@ -1026,9 +1034,18 @@ gui_forms::Control
 
    .. cpp:function:: const std::string& tool_tip_text() const noexcept
 
-      The control's plain tooltip (owner, 2026-10-28): text, never markup, that its window's tooltip presenter shows as tool_tip_presentation() says, when the window's and the program's switches allow. Empty, the default, never shows. The text also reaches the control's semantic node (SemanticNode::tool_tip). Throws std::invalid_argument for text that is not valid UTF-8, changing nothing. Raises tool_tip_text_changed when the text changes. Bindable as "tool_tip_text".
+      Short help text about the control, shown by its window's one tooltip
+      presenter when the pointer rests on the control, or below the control
+      when keyboard focus reaches it with the focus cue showing. Controls you
+      type into show it as grey hint text in their empty field while they
+      have focus instead, unless a placeholder is set. Empty by default, and
+      empty text never shows. It must be valid UTF-8, or
+      ``std::invalid_argument`` is thrown. It is bindable and published as the
+      semantic field ``tool_tip``. Data items such as list rows have none.
 
    .. cpp:function:: void set_tool_tip_text(std::string text)
+
+      Sets :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>`; see the property's description above.
 
    .. cpp:function:: ToolTipPresentation tool_tip_presentation() const noexcept
 
@@ -1166,6 +1183,8 @@ gui_forms::Control
       Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
 
    .. cpp:function:: Event<const std::string&>& tool_tip_text_changed() noexcept
+
+      Raised after :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
 
    .. cpp:function:: Event<Dirty, bool>& initialization_completed() noexcept
 
@@ -1651,7 +1670,13 @@ gui_forms::Control
 
       *Protected.*
 
-      Chooses where this type's tooltip shows (ToolTipPresentation); bubble by default. Call it from the constructor.
+      Chooses where this type's tooltip shows (ToolTipPresentation); bubble by default. Call it from the constructor, or when the control changes what it is (a ComboBox gaining or losing its edit field).
+
+   .. cpp:function:: std::string field_hint_text() const
+
+      *Protected.*
+
+      The hint a typed-text field paints in light grey while it has focus, is empty and has no placeholder: its own tooltip text, else that of the nearest enclosing field_hint control it edits for (a NumericUpDown's or an editable ComboBox's TextBox). Empty when this control is not a field_hint, or no such text is set.
 
    .. cpp:function:: void set_publishes_item_tool_tips(bool publishes) noexcept
 

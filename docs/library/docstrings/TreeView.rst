@@ -124,6 +124,12 @@ ImageList : Shared images looked up by key.
 
 Notes
 -----
+When the pointer is over a node whose text runs past the tree's edge, the
+whole text shows in place over the row, as wide as it needs and painted as
+the row is. Nodes have no tooltips; the reveal is not a tooltip and needs
+nothing set. It ignores the pointer, and a press, scroll, selection or item
+change hides it until the pointer moves again.
+
 A primary press focuses the tree. On an expander arrow it toggles the row;
 elsewhere on an enabled row it selects the row. Releasing a double-click on
 the same row raises `item_activated`; a single click never activates.

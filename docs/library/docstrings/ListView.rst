@@ -235,6 +235,14 @@ TreeView : A hierarchical list.
 
 Notes
 -----
+When the pointer is over an item whose text its cell cuts off, in the
+details view (any column) or the list view, the whole text shows in place
+over the row, as wide as it needs and in the row's own states. Nothing needs
+to be set: items have no tooltips, and the reveal is not a tooltip, so the
+tooltip switches do not affect it. It ignores the pointer, and a press,
+scroll, selection or item change hides it until the pointer moves again.
+Owner-drawn content is never revealed.
+
 Items are records, not child controls, and every part is painted through the
 by-role paint path (`paint_part`). The view publishes ``region``, ``well``,
 ``header``, ``vertical_scroll_bar``, ``horizontal_scroll_bar``,

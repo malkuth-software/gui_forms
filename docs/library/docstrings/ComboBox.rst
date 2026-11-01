@@ -145,6 +145,10 @@ ChoiceGroup : A row of exclusive choices bound to a `Value`.
 
 Notes
 -----
+In the `drop_down` style, the combo box's `tool_tip_text` shows as grey
+hint text in the empty edit field while it has focus, in place of a
+tooltip bubble. Resting the pointer on it still shows the bubble.
+
 A primary press on the field opens the list. With the field focused, F4,
 Alt+Down and Space open the list, and Up, Down, Home and End select the
 previous, next, first or last item directly without opening it. When

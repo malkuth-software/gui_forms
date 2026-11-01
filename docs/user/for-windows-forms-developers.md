@@ -36,7 +36,8 @@ every Forms type to its GUI.Forms counterpart.
 | `CausesValidation`, `Validating`, `Validated`, `AutoValidate` | `causes_validation`, `validating()`, `validated()`, `AutoValidate` | Under the default `AutoValidate` policy, cancelling `validating` keeps focus where it is. See [Input and focus](input-and-focus). |
 | `TabIndex`, `TabStop`, `Focus()` | `set_tab_index`, `set_tab_stop`, `Window::request_focus(control)` | Mnemonics use the same `&File` convention; `&&` shows one ampersand. |
 | `Tag` | `set_tag(std::any)` | The value is released when the control is disposed. |
-| `ToolTip.SetToolTip`, `ErrorProvider.SetError` | `ToolTip::set_tool_tip(control, text)`, `ErrorProvider::set_error(control, text)` | Providers are components bound to one window. |
+| `ToolTip.SetToolTip`, `ErrorProvider.SetError` | `Control::set_tool_tip_text(text)` or `ToolTip::set_tool_tip(control, text)`; `ErrorProvider::set_error(control, text)` | Tooltip text belongs to the control, and `ToolTip` writes it there. Each window shows tooltips through one presenter, with the timing every `ToolTip` of the window shares; `Window::set_tool_tips_shown` and `Application::set_tool_tips_shown` turn them off. A text box, or another control you type into, shows its tooltip as grey hint text in its empty field when it has focus; a placeholder takes precedence. Providers are components bound to one window. |
+| `ListViewItem.ToolTipText`, `ListView.ShowItemToolTips`, `TreeNode.ToolTipText`, `TreeView.ShowNodeToolTips`, `TabControl.ShowToolTips` | None | GUI.Forms does not provide these members. Data items, such as list rows and tree nodes, have no tooltips. When an item's text is cut off, `ListView` (in the details and list views) and `TreeView` show the whole text in place while the pointer is over it. A tab header shows its `TabPage`'s own tooltip text, and empty text shows nothing. |
 | `AccessibleName`, `AccessibleDescription` | `set_accessible_name`, `set_accessible_description` | Optional. Every stock control already publishes a role, name and state. |
 | System fonts, visual styles, `SystemColors` | Bundled fonts and a `Theme` set on the window | GUI.Forms draws every control itself and never uses host fonts for control text. |
 | Designer, `InitializeComponent`, `.resx` | Code | Trees are built in C++. |
@@ -133,7 +134,7 @@ controls but play the role of the Forms type.
 | `Timer` | [`Timer`](../api/generated/gui_forms.Timer.rst) | stable | |
 | `ToolStrip` | [`CommandBar`](../api/generated/gui_forms.CommandBar.rst) | provisional | A row of command buttons built from a replaceable item list. |
 | `ToolStripSplitButton` | [`DropDownButton`](../api/generated/gui_forms.DropDownButton.rst) | provisional | Whole-button or split drop-down. |
-| `ToolTip` | [`ToolTip`](../api/generated/gui_forms.ToolTip.rst) | stable | |
+| `ToolTip` | [`ToolTip`](../api/generated/gui_forms.ToolTip.rst) | stable | Sets the controls' own tooltip text and the window's timing. |
 | `TrackBar` | [`TrackBar`](../api/generated/gui_forms.TrackBar.rst) | stable | |
 | `TreeView` | [`TreeView`](../api/generated/gui_forms.TreeView.rst) | stable | |
 | `UserControl` | [`UserControl`](../api/generated/gui_forms.UserControl.rst) | stable | `loaded()` fires once, on first attachment. |
