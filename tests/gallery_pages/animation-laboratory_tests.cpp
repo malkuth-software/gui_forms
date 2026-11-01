@@ -25,9 +25,8 @@ void test_animation_laboratory(gui_forms::Window& window) {
     const std::uint64_t full_motion_surfaces =
         poll_active_surface_count(window);
     // The easing previews and progress bars animate on UI timers they stop
-    // themselves (ADR-016), not on active surfaces; the one surface left is
-    // the gallery's instrument sweep, until its own migration.
-    require(retained_progress_phase > 0.0 && full_motion_surfaces <= 1U,
+    // themselves (ADR-016), not on active surfaces.
+    require(retained_progress_phase > 0.0 && full_motion_surfaces == 0U,
             "gallery motion must run on control-owned UI timers, not active surfaces");
     require(window.next_wake().has_value(),
             "visible animation page must publish a retained frame deadline");

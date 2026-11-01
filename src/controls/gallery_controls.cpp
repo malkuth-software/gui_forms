@@ -836,7 +836,7 @@ void GalleryControl::on_paint(Painter& painter, Rect)
         }
         return;
     case NodeKind::instrument: {
-        ++paint_sequence_;
+        sweep_timer_.note_painted();
         painter.fill_rect(bounds, instrument_face);
         painter.stroke_rect({0.5, 0.5, bounds.width - 1.0, bounds.height - 1.0}, deep_shadow, 1.0);
         for (int line = 1; line < 5; ++line) {
@@ -847,9 +847,8 @@ void GalleryControl::on_paint(Painter& painter, Rect)
         const double marker_x = 10.0 + level * std::max(0.0, bounds.width - 20.0);
         painter.draw_line({10.0, bounds.height - 14.0}, {marker_x, 18.0}, cyan, 2.0);
         painter.draw_line({marker_x, 18.0}, {bounds.width - 10.0, bounds.height - 25.0}, amber, 2.0);
-        const double sweep_x = 10.0 +
-            std::fmod(static_cast<double>(paint_sequence_) * 0.027,
-                      1.0) * std::max(0.0, bounds.width - 20.0);
+        const Rect sweep = sweep_bounds(sweep_phase_);
+        const double sweep_x = sweep.x + 1.0;
         painter.draw_line({sweep_x, 25.0}, {sweep_x, bounds.height - 8.0},
                           Color::rgba(128, 223, 239, 150), 1.0);
         char percent[32]{};
@@ -860,6 +859,64 @@ void GalleryControl::on_paint(Painter& painter, Rect)
     }
     // A kind outside the enumeration paints nothing.
     return;
+}
+
+namespace {
+
+// The instrument sweep crosses the trace once in this period (it moved 0.027
+// of the trace per 30 Hz frame before it followed time).
+constexpr FrameInterval instrument_sweep_period = std::chrono::microseconds(1'234'568);
+// The instrument's authored tick rate, 30 Hz.
+constexpr FrameInterval instrument_sweep_interval = std::chrono::nanoseconds(33'333'333);
+
+} // namespace
+
+void GalleryControl::on_attached_to_window()
+{
+    Control::on_attached_to_window();
+    if ((*specification_).kind != NodeKind::instrument) return;
+    sweep_last_tick_ = FrameClock::now();
+    const std::shared_ptr<GalleryControl> self =
+        std::static_pointer_cast<GalleryControl>(shared_from_this());
+    sweep_timer_.start(*this, instrument_sweep_interval, SweepTick{self});
+}
+
+void GalleryControl::on_detached_from_window() noexcept
+{
+    sweep_timer_.stop();
+    Control::on_detached_from_window();
+}
+
+AnimationTickResult GalleryControl::SweepTick::operator()(FrameTime now) const
+{
+    const std::shared_ptr<GalleryControl> live = control.lock();
+    const AnimationTickResult result = live
+        ? (*live).on_sweep_tick(now) : AnimationTickResult::unchanged;
+    return result;
+}
+
+AnimationTickResult GalleryControl::on_sweep_tick(FrameTime now)
+{
+    // A timer that waited for a paint resumes from where it stopped.
+    const FrameInterval elapsed = std::min(now - sweep_last_tick_, instrument_sweep_interval);
+    sweep_last_tick_ = now;
+    const double advance = std::chrono::duration<double>(std::max(elapsed, FrameInterval{})).count() /
+        std::chrono::duration<double>(instrument_sweep_period).count();
+    const Rect before = sweep_bounds(sweep_phase_);
+    sweep_phase_ = std::fmod(sweep_phase_ + advance, 1.0);
+    const Rect after = sweep_bounds(sweep_phase_);
+    invalidate(Rect::united(before, after));
+    return AnimationTickResult::damaged;
+}
+
+Rect GalleryControl::sweep_bounds(double phase) const noexcept
+{
+    // The sweep is a 1-pixel line from y 25 to 8 above the bottom; its
+    // bounds take one pixel either side of its centre.
+    const Rect bounds = committed_arranged_bounds();
+    const double x = 10.0 + phase * std::max(0.0, bounds.width - 20.0);
+    const Rect sweep{x - 1.0, 24.0, 2.0, std::max(0.0, bounds.height - 31.0)};
+    return sweep;
 }
 
 bool GalleryControl::hit_test_local(Point local_point) const

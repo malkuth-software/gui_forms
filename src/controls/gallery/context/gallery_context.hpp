@@ -12,7 +12,6 @@ class GalleryContext final {
 public:
     GalleryModel model;
     Window* window{};
-    FrameRequestToken instrument_frames;
     ImageId status_badge;
     std::string drop_status;
 
