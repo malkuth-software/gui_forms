@@ -15,9 +15,11 @@
 // min and max are specified for finite, non-NaN operands only; the backends
 // differ on NaN (std::fmin ignores it, vminq propagates it, _mm_min_ps
 // returns its second operand) and may differ on the sign of a zero result.
+// keep_or_zero yields the value or +0 in every lane, bit for bit.
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #if defined(__aarch64__)
 #include <arm_neon.h>
 #define STX_CONV_NEON 1
@@ -42,6 +44,11 @@ struct ScalarOps {
     // negative where sign < 0, otherwise positive.
     static Value choose_negative(Value sign, Value negative, Value positive) noexcept {
         const Value result = sign < Scalar(0) ? negative : positive;
+        return result;
+    }
+    // value in every lane when keep, otherwise +0.
+    static Value keep_or_zero(bool keep, Value value) noexcept {
+        const Value result = keep ? value : Scalar(0);
         return result;
     }
     static Value load(const Scalar* source) noexcept { return *source; }
@@ -88,6 +95,12 @@ struct HardwareOps<float> {
         const Value result = vbslq_f32(mask, negative, positive);
         return result;
     }
+    static Value keep_or_zero(bool keep, Value value) noexcept {
+        const uint32x4_t mask = vdupq_n_u32(std::uint32_t(0) - static_cast<std::uint32_t>(keep));
+        const uint32x4_t kept = vandq_u32(mask, vreinterpretq_u32_f32(value));
+        const Value result = vreinterpretq_f32_u32(kept);
+        return result;
+    }
     static Value load(const float* source) noexcept {
         const Value result = vld1q_f32(source);
         return result;
@@ -131,6 +144,12 @@ struct HardwareOps<double> {
     static Value choose_negative(Value sign, Value negative, Value positive) noexcept {
         const uint64x2_t mask = vcltq_f64(sign, vdupq_n_f64(0.0));
         const Value result = vbslq_f64(mask, negative, positive);
+        return result;
+    }
+    static Value keep_or_zero(bool keep, Value value) noexcept {
+        const uint64x2_t mask = vdupq_n_u64(std::uint64_t(0) - static_cast<std::uint64_t>(keep));
+        const uint64x2_t kept = vandq_u64(mask, vreinterpretq_u64_f64(value));
+        const Value result = vreinterpretq_f64_u64(kept);
         return result;
     }
     static Value load(const double* source) noexcept {
@@ -180,6 +199,11 @@ struct HardwareOps<float> {
         const Value result = _mm_or_ps(taken, kept);
         return result;
     }
+    static Value keep_or_zero(bool keep, Value value) noexcept {
+        const Value mask = _mm_castsi128_ps(_mm_set1_epi32(-static_cast<int>(keep)));
+        const Value result = _mm_and_ps(mask, value);
+        return result;
+    }
     static Value load(const float* source) noexcept {
         const Value result = _mm_loadu_ps(source);
         return result;
@@ -225,6 +249,11 @@ struct HardwareOps<double> {
         const Value taken = _mm_and_pd(mask, negative);
         const Value kept = _mm_andnot_pd(mask, positive);
         const Value result = _mm_or_pd(taken, kept);
+        return result;
+    }
+    static Value keep_or_zero(bool keep, Value value) noexcept {
+        const Value mask = _mm_castsi128_pd(_mm_set1_epi64x(-static_cast<long long>(keep)));
+        const Value result = _mm_and_pd(mask, value);
         return result;
     }
     static Value load(const double* source) noexcept {

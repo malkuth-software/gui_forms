@@ -73,6 +73,37 @@ void curve_rgba(const Scalar* origin, std::size_t control_stride, Scalar t, Scal
     }
 }
 
+// The 36-control contraction with prepared weights: basis_x[k * stride] and
+// basis_y[k * stride] are the six quintic weights in u and v. Each row of six
+// controls is summed first, then the rows, in index order from +0.
+template<class Scalar>
+STX_CONV_INLINE std::array<typename NativeOps<Scalar>::Value, rgba_groups<Scalar>>
+weighted_patch_rgba(const Scalar* origin, std::size_t row_stride, const Scalar* basis_x, const Scalar* basis_y,
+                    std::size_t basis_stride) noexcept {
+    using Ops = NativeOps<Scalar>;
+    using Vector = typename Ops::Value;
+    constexpr std::size_t groups = rgba_groups<Scalar>;
+    std::array<Vector, groups> sums{};
+    for (std::size_t group = 0; group < groups; ++group) { sums[group] = Ops::set(0); }
+    for (std::size_t y = 0; y < 6; ++y) {
+        std::array<Vector, groups> rows{};
+        for (std::size_t group = 0; group < groups; ++group) { rows[group] = Ops::set(0); }
+        for (std::size_t x = 0; x < 6; ++x) {
+            const Vector weight = Ops::set(basis_x[x * basis_stride]);
+            const Scalar* control = origin + y * row_stride + x * 4;
+            for (std::size_t group = 0; group < groups; ++group) {
+                const Vector value = Ops::load(control + group * Ops::width);
+                rows[group] = Ops::add(rows[group], Ops::mul(weight, value));
+            }
+        }
+        const Vector weight = Ops::set(basis_y[y * basis_stride]);
+        for (std::size_t group = 0; group < groups; ++group) {
+            sums[group] = Ops::add(sums[group], Ops::mul(weight, rows[group]));
+        }
+    }
+    return sums;
+}
+
 // The full 36-control patch at an interior (u, v); rows of six RGBA controls
 // `row_stride` Scalars apart.
 template<class Scalar>
@@ -85,24 +116,7 @@ STX_CONV_INLINE void patch_full_rgba(const Scalar* origin, std::size_t row_strid
     std::array<Scalar, 6> basis_y{};
     quintic_basis<ScalarOps<Scalar>>(u, basis_x);
     quintic_basis<ScalarOps<Scalar>>(v, basis_y);
-    std::array<Vector, groups> sums{};
-    for (std::size_t group = 0; group < groups; ++group) { sums[group] = Ops::set(0); }
-    for (std::size_t y = 0; y < 6; ++y) {
-        std::array<Vector, groups> rows{};
-        for (std::size_t group = 0; group < groups; ++group) { rows[group] = Ops::set(0); }
-        for (std::size_t x = 0; x < 6; ++x) {
-            const Vector weight = Ops::set(basis_x[x]);
-            const Scalar* control = origin + y * row_stride + x * 4;
-            for (std::size_t group = 0; group < groups; ++group) {
-                const Vector value = Ops::load(control + group * Ops::width);
-                rows[group] = Ops::add(rows[group], Ops::mul(weight, value));
-            }
-        }
-        const Vector weight = Ops::set(basis_y[y]);
-        for (std::size_t group = 0; group < groups; ++group) {
-            sums[group] = Ops::add(sums[group], Ops::mul(weight, rows[group]));
-        }
-    }
+    const std::array<Vector, groups> sums = weighted_patch_rgba(origin, row_stride, basis_x.data(), basis_y.data(), 1);
     for (std::size_t group = 0; group < groups; ++group) { Ops::store(output + group * Ops::width, sums[group]); }
 }
 
