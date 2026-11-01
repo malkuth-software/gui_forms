@@ -6,16 +6,18 @@
 // activation tracks and command routing (Ctrl+S from a focused tool control
 // reaches the active document); the navigator's order and keys; F6 order;
 // Escape and Shift+Escape; Ctrl+F6; the position menu; semantic snapshots;
-// refusals.
+// refusals; closing documents at the user's request (phase D6).
 
 #include "gui_forms/gui_forms.hpp"
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -961,6 +963,229 @@ void position_command_from_another_site() {
             "the refused command leaves the layout unchanged");
 }
 
+// -- closing documents at the user's request (phase D6) -------------------------
+
+// What the closing handler saw, and how it answers: it cancels when it is
+// asked about `cancel_at`, defers every prompt while `defer` is set, and,
+// once, closes the fixture's other document itself (the one it was not
+// asked about) when `close_other` is set.
+struct ClosingJournal final {
+    std::vector<std::vector<std::string>> asked{};
+    std::vector<DockCloseCause> causes{};
+    std::string cancel_at{};
+    bool close_other{};
+    bool defer{};
+    DockWorkspace* workspace{};
+};
+
+struct RecordClosing final {
+    ClosingJournal* journal{};
+    void operator()(DockDocumentClosing& closing) const {
+        std::vector<std::string> names{};
+        bool cancel = false;
+        for (const DockPanelId& document : closing.documents) {
+            names.push_back(document.value);
+            if (document.value == (*journal).cancel_at) cancel = true;
+        }
+        (*journal).asked.push_back(std::move(names));
+        (*journal).causes.push_back(closing.cause);
+        if ((*journal).close_other && closing.documents.size() == 1U) {
+            (*journal).close_other = false;
+            const bool first = closing.documents[0].value == "doc.first";
+            const DockPanelId other(first ? "doc.second" : "doc.first");
+            require((*(*journal).workspace).close_panel(other).applied, "a handler closes a document itself");
+        }
+        closing.cancel = cancel;
+        closing.defer = (*journal).defer;
+    }
+};
+
+bool asked_is(const ClosingJournal& journal, std::size_t index, const std::vector<std::string>& documents) {
+    const bool matches = index < journal.asked.size() && journal.asked[index] == documents;
+    return matches;
+}
+
+bool docked(const DockWorkspace& workspace, std::string_view panel) {
+    const bool result =
+        workspace.layout().locate(DockPanelId(std::string(panel))).placement == DockPlacementKind::docked;
+    return result;
+}
+
+bool absent(const DockWorkspace& workspace, std::string_view panel) {
+    const bool result =
+        workspace.layout().locate(DockPanelId(std::string(panel))).placement == DockPlacementKind::absent;
+    return result;
+}
+
+void close_each_and_combined() {
+    {
+        std::unique_ptr<Fixture> fixture = make_fixture();
+        DockWorkspace& workspace = *(*fixture).workspace;
+        ClosingJournal journal{};
+        journal.workspace = &workspace;
+        const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
+        require(workspace.close_prompt() == DockClosePrompt::each, "documents are asked about one by one by default");
+        require(workspace.close_all_documents() == DockCloseOutcome::closed, "Close All Documents closes");
+        require(journal.asked.size() == 2U && asked_is(journal, 0U, {"doc.first"}) &&
+                    asked_is(journal, 1U, {"doc.second"}) && journal.causes[0] == DockCloseCause::all_documents,
+                "each document is asked about in tree and tab order");
+        require(absent(workspace, "doc.first") && absent(workspace, "doc.second") && docked(workspace, "output") &&
+                    !workspace.active_document(),
+                "the documents left and the tool panels stayed");
+        require(workspace.close_all_documents() == DockCloseOutcome::refused,
+                "with no documents left there is nothing to close");
+    }
+    {
+        std::unique_ptr<Fixture> fixture = make_fixture();
+        DockWorkspace& workspace = *(*fixture).workspace;
+        ClosingJournal journal{};
+        journal.workspace = &workspace;
+        const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
+        workspace.set_close_prompt(DockClosePrompt::combined);
+        require(workspace.close_all_documents() == DockCloseOutcome::closed && journal.asked.size() == 1U &&
+                    asked_is(journal, 0U, {"doc.first", "doc.second"}),
+                "a combined prompt asks about every document at once");
+        require(absent(workspace, "doc.first") && absent(workspace, "doc.second"), "and they close");
+    }
+}
+
+void cancel_closes_nothing() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    DockSite& site = *(*fixture).site;
+    ClosingJournal journal{};
+    journal.workspace = &workspace;
+    journal.cancel_at = "doc.second";
+    const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
+    const std::uint64_t before = workspace.layout().generation();
+    require(workspace.close_all_documents() == DockCloseOutcome::cancelled && journal.asked.size() == 2U,
+            "a cancel at the second prompt ends the request");
+    require(workspace.layout().generation() == before && docked(workspace, "doc.first") &&
+                docked(workspace, "doc.second") && !workspace.close_pending(),
+            "nothing closed: the first document, already allowed, stays too");
+    workspace.set_close_prompt(DockClosePrompt::combined);
+    require(workspace.close_all_documents() == DockCloseOutcome::cancelled &&
+                workspace.layout().generation() == before,
+            "a cancelled combined prompt leaves the layout unchanged");
+    // The position menu's Close asks too, and a cancel counts as not run.
+    workspace.set_close_prompt(DockClosePrompt::each);
+    require(!site.run_position_command(DockPanelId("doc.second"), DockPositionCommand::close) &&
+                docked(workspace, "doc.second") && journal.causes.back() == DockCloseCause::document,
+            "Close on a document asks first and a cancel keeps it");
+    // A tool panel closes at once, unasked.
+    const std::size_t prompts = journal.asked.size();
+    require(workspace.request_close(DockPanelId("output")) == DockCloseOutcome::closed &&
+                journal.asked.size() == prompts &&
+                workspace.layout().locate(DockPanelId("output")).placement == DockPlacementKind::hidden &&
+                !workspace.panel_content(DockPanelId("output")),
+            "a tool panel closes without a closing event, keeping its placeholder");
+    require(workspace.request_close(DockPanelId("missing")) == DockCloseOutcome::refused &&
+                workspace.request_close(DockPanelId("output")) == DockCloseOutcome::refused &&
+                workspace.answer_close(true) == DockCloseOutcome::refused,
+            "an unknown or unplaced panel, and an answer nobody waits for, are refused");
+}
+
+void deferred_answers() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    ClosingJournal journal{};
+    journal.workspace = &workspace;
+    journal.defer = true;
+    const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
+    require(workspace.request_close(DockPanelId("doc.first")) == DockCloseOutcome::pending &&
+                workspace.close_pending(),
+            "a deferring handler leaves the request waiting");
+    const std::span<const DockPanelId> pending = workspace.pending_close();
+    require(pending.size() == 1U && pending[0].value == "doc.first" && docked(workspace, "doc.first"),
+            "the waiting prompt names its document, which is still open");
+    require(workspace.request_close(DockPanelId("doc.second")) == DockCloseOutcome::busy &&
+                workspace.close_all_documents() == DockCloseOutcome::busy &&
+                workspace.close_other_documents(DockPanelId("doc.first")) == DockCloseOutcome::busy &&
+                journal.asked.size() == 1U,
+            "another request while one waits is busy and asks nothing");
+    require(workspace.answer_close(true) == DockCloseOutcome::closed && absent(workspace, "doc.first") &&
+                !workspace.close_pending() && workspace.pending_close().empty(),
+            "a yes answer closes the document");
+    require(workspace.show_panel(DockPanelId("doc.first")).applied, "the first document opens again");
+    journal.asked.clear();
+    require(workspace.close_all_documents() == DockCloseOutcome::pending &&
+                workspace.answer_close(true) == DockCloseOutcome::pending && journal.asked.size() == 2U &&
+                journal.asked[0].size() == 1U && journal.asked[1].size() == 1U &&
+                !(journal.asked[0] == journal.asked[1]),
+            "a yes answer goes on to ask about the next document");
+    const std::uint64_t before = workspace.layout().generation();
+    require(workspace.answer_close(false) == DockCloseOutcome::cancelled && workspace.layout().generation() == before &&
+                docked(workspace, "doc.first") && docked(workspace, "doc.second") && !workspace.close_pending(),
+            "a no answer cancels the request and nothing closed");
+}
+
+void close_others_and_activation() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    ClosingJournal journal{};
+    journal.workspace = &workspace;
+    const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
+    require(workspace.close_other_documents(DockPanelId("doc.second")) == DockCloseOutcome::closed &&
+                journal.asked.size() == 1U && asked_is(journal, 0U, {"doc.first"}) &&
+                journal.causes[0] == DockCloseCause::other_documents,
+            "Close Other Documents asks only about the others");
+    require(absent(workspace, "doc.first") && docked(workspace, "doc.second"), "the kept document stays");
+    // Activation after a close follows the document history.
+    require(workspace.show_panel(DockPanelId("doc.first")).applied &&
+                workspace.activate_panel(DockPanelId("doc.second"), DockActivationCause::keyboard) &&
+                workspace.activate_panel(DockPanelId("doc.first"), DockActivationCause::keyboard),
+            "both documents open, the first most recent");
+    require(workspace.request_close(DockPanelId("doc.first")) == DockCloseOutcome::closed &&
+                workspace.active_document() && (*workspace.active_document()).value == "doc.second",
+            "closing the active document activates the next most recent");
+    // A handler that closes a document itself: the request skips it.
+    require(workspace.show_panel(DockPanelId("doc.first")).applied, "the first document opens again");
+    journal.asked.clear();
+    journal.close_other = true;
+    require(workspace.close_all_documents() == DockCloseOutcome::closed && journal.asked.size() == 1U &&
+                absent(workspace, "doc.first") && absent(workspace, "doc.second"),
+            "a document the handler closed itself is not asked about and the request still closes");
+}
+
+// The document position menu's Close All Documents and Close Other
+// Documents ask as the workspace's requests do.
+void document_menu_close_commands() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    DockSite& site = *(*fixture).site;
+    Window& window = *(*fixture).window;
+    ClosingJournal journal{};
+    journal.workspace = &workspace;
+    const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
+    const DockPanelId second("doc.second");
+    require(site.position_command_enabled(second, DockPositionCommand::close_all_documents) &&
+                site.position_command_enabled(second, DockPositionCommand::close_other_documents) &&
+                !site.position_command_enabled(DockPanelId("output"), DockPositionCommand::close_all_documents),
+            "a document's menu may close all or the other documents; a tool panel's may not");
+    require(site.show_position_menu(second), "the document's position menu opens");
+    SemanticSnapshot snapshot = window.semantic_snapshot();
+    const SemanticNode* const others = find_named(snapshot.roots, SemanticRole::menu_item, "Close Other Documents");
+    require(find_named(snapshot.roots, SemanticRole::menu_item, "Close All Documents") != nullptr &&
+                others != nullptr && has_semantic_state((*others).states, SemanticState::enabled),
+            "the menu lists both document commands");
+    require(window.perform_semantic_action((*others).stable_id, SemanticAction::press), "Close Other Documents runs");
+    require(journal.asked.size() == 1U && asked_is(journal, 0U, {"doc.first"}) &&
+                journal.causes[0] == DockCloseCause::other_documents && absent(workspace, "doc.first") &&
+                docked(workspace, "doc.second"),
+            "the other document is asked about and closes");
+    require(!site.position_command_enabled(second, DockPositionCommand::close_other_documents) &&
+                site.position_command_enabled(second, DockPositionCommand::close_all_documents),
+            "with one document left only Close All Documents is available");
+    journal.cancel_at = "doc.second";
+    require(!site.run_position_command(second, DockPositionCommand::close_all_documents) &&
+                docked(workspace, "doc.second"),
+            "a cancelled Close All Documents counts as not run and keeps the document");
+    journal.cancel_at.clear();
+    require(site.run_position_command(second, DockPositionCommand::close_all_documents) &&
+                absent(workspace, "doc.second") && workspace.closable_documents().empty(),
+            "Close All Documents closes the last document");
+}
+
 } // namespace
 
 int main() {
@@ -976,7 +1201,12 @@ int main() {
     semantic_snapshot();
     lifetime_and_refusals();
     position_command_from_another_site();
+    close_each_and_combined();
+    cancel_closes_nothing();
+    deferred_answers();
+    close_others_and_activation();
+    document_menu_close_commands();
     std::cout << "DockSite, DockWorkspace and DockNavigator: parts, seams, collapse, lazy creation, activation, "
-                 "navigator, keys, menu and semantics passed\n";
+                 "navigator, keys, menu, semantics and closing documents passed\n";
     return EXIT_SUCCESS;
 }

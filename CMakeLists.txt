@@ -314,6 +314,9 @@ add_library(gui_forms_core STATIC
     src/core/window/engine_inputs/window_engine_inputs.cpp
     src/core/window/engine_motion/window_engine_motion.cpp
     src/core/window/popup/popup_token.cpp
+    src/core/window/tool_tips/tool_tip_bubble.cpp
+    src/core/window/tool_tips/tool_tip_presenter.cpp
+    src/core/window/tool_tips/window_tool_tips.cpp
     src/core/window/accelerator/accelerator_token.cpp
     src/core/control/dispatcher/control_dispatcher.cpp
     src/core/component/component/component.cpp
@@ -651,6 +654,7 @@ add_library(gui_forms_controls STATIC
     src/controls/button_base/link_label/link_label.cpp
     src/controls/raster_canvas/raster_canvas.cpp
     src/controls/panel/breadcrumb_trail/breadcrumb_trail.cpp
+    src/controls/panel/cut_off_text/cut_off_text_reveal.cpp
     src/controls/panel/tree_view/tree_view.cpp
     src/controls/panel/object_view/object_view.cpp
     src/controls/panel/list_view/list_view.cpp
@@ -786,8 +790,7 @@ add_library(gui_forms_controls STATIC
     src/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.cpp
     src/controls/scrollable_control/scroll_properties/scroll_properties.cpp
     src/controls/scrollable_control/scrollable_control.cpp
-    src/controls/tool_tip/tool_tip_layer/tool_tip_layer.cpp
-    src/controls/tool_tip/tool_tip_bubble/tool_tip_bubble.cpp
+    src/controls/ribbon_tool_tip/ribbon_tool_tip_layer/ribbon_tool_tip_layer.cpp
     src/controls/tool_tip/tool_tip.cpp
     src/controls/ribbon_tool_tip/ribbon_tool_tip_bubble.cpp
     src/controls/ribbon_tool_tip/ribbon_tool_tip.cpp
@@ -3396,6 +3399,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_tooltip_tests tests/tooltip_tests.cpp)
     target_link_libraries(gui_forms_tooltip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_tooltip_tests COMMAND gui_forms_tooltip_tests)
+
+    add_executable(gui_forms_cut_off_text_tests tests/cut_off_text_tests.cpp)
+    target_link_libraries(gui_forms_cut_off_text_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_cut_off_text_tests COMMAND gui_forms_cut_off_text_tests)
 
     add_executable(gui_forms_binding_tests tests/binding_tests.cpp)
     target_link_libraries(gui_forms_binding_tests PRIVATE gui_forms_controls)

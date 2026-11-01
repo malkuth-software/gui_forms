@@ -17,6 +17,7 @@
 #include <cstdio>
 #include <exception>
 #include <memory>
+#include <optional>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -87,6 +88,28 @@ using gui_forms::TextInputEvent;
 using gui_forms::Window;
 using gui_forms::CursorKind;
 using gui_forms::render::SkiaRaster;
+
+// The target of a file panel's filter popup (the accessory view
+// file_filter_popup adds): choosing a filter makes its types the panel's
+// allowed types, an empty list allowing any file. The panel owns the popup
+// through its accessory view and the popup only observes this switch, so
+// the caller keeps the switch alive until the panel's modal run returns;
+// the switch only observes the panel.
+@interface GuiFormsFileFilterSwitch : NSObject
+@property(nonatomic, weak) NSSavePanel* panel;
+@property(nonatomic, copy) NSArray<NSArray<UTType*>*>* filterTypes;
+- (void)filterChanged:(NSPopUpButton*)sender;
+@end
+
+@implementation GuiFormsFileFilterSwitch
+- (void)filterChanged:(NSPopUpButton*)sender {
+    const NSInteger index = sender.indexOfSelectedItem;
+    if (index < 0 || static_cast<NSUInteger>(index) >= self.filterTypes.count) {
+        return;
+    }
+    self.panel.allowedContentTypes = self.filterTypes[static_cast<NSUInteger>(index)];
+}
+@end
 
 namespace {
 
@@ -166,6 +189,62 @@ NSArray<UTType*>* native_allowed_types(
         }
     }
     return types;
+}
+
+// A file panel's filter chooser: with more than one filter, a labelled
+// popup of the request's filters as the panel's accessory view, starting
+// on `initial_filter`, and the panel's allowed types set to that filter's.
+// With one filter its types are allowed and no popup is shown; with none,
+// any file. The returned popup (nil without one) tells the chosen filter
+// after the run; `filter_switch` receives the popup's target, which the
+// caller keeps until then.
+NSPopUpButton* file_filter_popup(NSSavePanel* panel,
+                                 const std::vector<gui_forms::HostFileDialogFilter>& filters,
+                                 std::size_t initial_filter,
+                                 GuiFormsFileFilterSwitch* __strong* filter_switch) {
+    *filter_switch = nil;
+    if (filters.size() < 2U) {
+        NSArray<UTType*>* types = native_allowed_types(filters);
+        if (types.count != 0) {
+            panel.allowedContentTypes = types;
+        }
+        return nil;
+    }
+    NSMutableArray<NSArray<UTType*>*>* per_filter = [[NSMutableArray alloc] init];
+    NSPopUpButton* popup = [[NSPopUpButton alloc] initWithFrame:NSMakeRect(0, 0, 240, 26) pullsDown:NO];
+    for (const gui_forms::HostFileDialogFilter& filter : filters) {
+        const std::vector<gui_forms::HostFileDialogFilter> one{filter};
+        [per_filter addObject:native_allowed_types(one)];
+        NSString* label = native_string(filter.label);
+        [popup addItemWithTitle:label.length == 0 ? @"Files" : label];
+    }
+    const std::size_t start = initial_filter < filters.size() ? initial_filter : 0U;
+    [popup selectItemAtIndex:static_cast<NSInteger>(start)];
+    GuiFormsFileFilterSwitch* target = [[GuiFormsFileFilterSwitch alloc] init];
+    target.panel = panel;
+    target.filterTypes = per_filter;
+    popup.target = target;
+    popup.action = @selector(filterChanged:);
+    NSTextField* caption = [NSTextField labelWithString:@"Format:"];
+    NSStackView* row = [NSStackView stackViewWithViews:@[caption, popup]];
+    row.orientation = NSUserInterfaceLayoutOrientationHorizontal;
+    row.edgeInsets = NSEdgeInsetsMake(8, 12, 8, 12);
+    panel.accessoryView = row;
+    panel.allowedContentTypes = per_filter[start];
+    *filter_switch = target;
+    return popup;
+}
+
+// The request's filter a popup ended on, or none without a popup.
+std::optional<std::size_t> chosen_file_filter(NSPopUpButton* popup, std::size_t filter_count) {
+    if (popup == nil) {
+        if (filter_count == 1U) return std::size_t{0};
+        return std::nullopt;
+    }
+    const NSInteger index = popup.indexOfSelectedItem;
+    if (index < 0 || static_cast<std::size_t>(index) >= filter_count) return std::nullopt;
+    const std::size_t chosen = static_cast<std::size_t>(index);
+    return chosen;
 }
 
 HostPathDialogResult native_path_result(NSModalResponse response,
@@ -516,13 +595,21 @@ protected:
                 panel.canChooseFiles = YES;
                 panel.canChooseDirectories = NO;
                 panel.allowsMultipleSelection = payload.allow_multiple;
-                NSArray<UTType*>* types = native_allowed_types(payload.filters);
-                if (types.count != 0) {
-                    panel.allowedContentTypes = types;
+                GuiFormsFileFilterSwitch* filter_switch = nil;
+                NSPopUpButton* popup = file_filter_popup(
+                    panel, payload.filters, payload.initial_filter, &filter_switch);
+                if (popup != nil) {
+                    panel.accessoryViewDisclosed = YES;
                 }
                 schedule_test_panel_cancel(panel, cancel_dialogs_for_testing_);
-                return {{}, request.request_id,
-                        native_path_result([panel runModal], panel.URLs)};
+                const NSModalResponse response = [panel runModal];
+                // The switch was kept for the run; it stops observing now.
+                filter_switch.panel = nil;
+                HostPathDialogResult value = native_path_result(response, panel.URLs);
+                if (value.outcome == HostDialogOutcome::accepted) {
+                    value.chosen_filter = chosen_file_filter(popup, payload.filters.size());
+                }
+                return {{}, request.request_id, std::move(value)};
         }
         if (const HostSaveFileDialogRequest* payload_pointer =
                 std::get_if<HostSaveFileDialogRequest>(&request.payload)) {
@@ -531,19 +618,28 @@ protected:
                 panel.title = native_string(payload.title);
                 panel.directoryURL = native_directory_url(payload.initial_directory);
                 panel.nameFieldStringValue = native_string(payload.suggested_name);
-                NSArray<UTType*>* types = native_allowed_types(payload.filters);
-                if (types.count == 0 && !payload.default_extension.empty()) {
+                GuiFormsFileFilterSwitch* filter_switch = nil;
+                NSPopUpButton* popup = nil;
+                if (payload.filters.empty() && !payload.default_extension.empty()) {
                     gui_forms::HostFileDialogFilter fallback;
                     fallback.extensions.push_back(payload.default_extension);
-                    types = native_allowed_types({fallback});
-                }
-                if (types.count != 0) {
-                    panel.allowedContentTypes = types;
+                    NSArray<UTType*>* types = native_allowed_types({fallback});
+                    if (types.count != 0) {
+                        panel.allowedContentTypes = types;
+                    }
+                } else {
+                    popup = file_filter_popup(panel, payload.filters, payload.initial_filter, &filter_switch);
                 }
                 schedule_test_panel_cancel(panel, cancel_dialogs_for_testing_);
                 const NSModalResponse response = [panel runModal];
+                // The switch was kept for the run; it stops observing now.
+                filter_switch.panel = nil;
                 NSArray<NSURL*>* urls = panel.URL == nil ? @[] : @[panel.URL];
-                return {{}, request.request_id, native_path_result(response, urls)};
+                HostPathDialogResult value = native_path_result(response, urls);
+                if (value.outcome == HostDialogOutcome::accepted) {
+                    value.chosen_filter = chosen_file_filter(popup, payload.filters.size());
+                }
+                return {{}, request.request_id, std::move(value)};
         }
         if (const HostFolderDialogRequest* payload_pointer =
                 std::get_if<HostFolderDialogRequest>(&request.payload)) {

@@ -23,6 +23,10 @@ class HScrollBar;
 class TextBox;
 class VScrollBar;
 
+namespace detail {
+class CutOffTextRevealer;
+} // namespace detail
+
 // How a ListView arranges its items (Windows Forms' View).
 //
 // - details: one row per item, with the columns' headers above and each
@@ -656,6 +660,11 @@ private:
     // or the model changes.
     [[nodiscard]] const ListViewItem& item_at(std::size_t index, ListViewItem& scratch) const;
     [[nodiscard]] Hit hit_test(const Layout& placed, Point local) const;
+    // Reveals the item text under `local` in place when its cell cuts it
+    // off (the details and list views, default drawing only), else
+    // conceals any reveal (detail::CutOffTextRevealer).
+    void reveal_cut_off_text(const Layout& placed, const Hit& hit, Point local);
+    void conceal_cut_off_text() noexcept;
     // What one realized-item position names. The realized items are the
     // visible rows (item system "item"), then each row's visible sub-item
     // cells, row by row (item system "sub_item"), then the visible column
@@ -750,6 +759,9 @@ private:
     std::optional<std::size_t> anchor_index_{};
     std::optional<std::size_t> hot_index_{};
     std::optional<std::size_t> hot_column_{};
+    // The in-place reveal of the hot item's cut-off text; owned, created
+    // with the view.
+    std::unique_ptr<detail::CutOffTextRevealer> reveal_;
     std::optional<ListViewInsertionMark> insertion_mark_{};
     bool label_edit_{};
     // Set while close_label_editor moves focus, so that the editor's focus

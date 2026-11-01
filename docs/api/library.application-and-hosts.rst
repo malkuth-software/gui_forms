@@ -979,6 +979,10 @@ Related types
 
    .. cpp:member:: bool allow_multiple
 
+   .. cpp:member:: std::size_t initial_filter
+
+      The filter the dialog starts with, an index into ``filters``; zero when there are none.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HostPathDialogResult final
@@ -992,6 +996,10 @@ Related types
       Default: ``{HostDialogOutcome::cancelled}``.
 
    .. cpp:member:: std::vector<std::string> paths
+
+   .. cpp:member:: std::optional<std::size_t> chosen_filter
+
+      For an accepted file dialog, the request's filter selected when the user accepted, an index into its ``filters``; none when the request had no filters, the user chose a filter the host added (such as "All files"), or the host cannot tell.
 
 .. cpp:namespace:: gui_forms
 
@@ -1036,6 +1044,10 @@ Related types
    .. cpp:member:: bool confirm_overwrite
 
       Default: ``{true}``.
+
+   .. cpp:member:: std::size_t initial_filter
+
+      The filter the dialog starts with, an index into ``filters``; zero when there are none.
 
 .. cpp:namespace:: gui_forms
 

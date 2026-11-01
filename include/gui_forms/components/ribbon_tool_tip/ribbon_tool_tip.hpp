@@ -66,6 +66,12 @@ struct RibbonToolTipHelpRequest final {
 // target, in a retained, input-transparent overlay owned by the target.
 // A Ribbon can be mapped as a whole control; its commands cannot be mapped
 // one by one yet.
+//
+// Content without a title takes the thing's plain tooltip
+// (Control::tool_tip_text, or a strip item's tool_tip_text) as its title.
+// While a mapping exists, its window's plain presenter shows no tooltip for
+// what it describes: the control (with every part, for a control mapping)
+// or the item.
 class RibbonToolTip final : public Component {
 public:
     explicit RibbonToolTip(Window& window);
@@ -73,10 +79,11 @@ public:
 
     // Maps a whole control. Throws std::invalid_argument for a target that
     // is not a live control attached to this provider's Window, or content
-    // that is not valid UTF-8 or has neither a title nor a command.
+    // that is not valid UTF-8 or has no title, no command and a target
+    // without a plain tooltip.
     void set_tool_tip(const std::shared_ptr<Control>& target, RibbonToolTipContent content);
-    // Maps one item of a strip; the item's command or text may supply the
-    // title. Throws as set_tool_tip does, and std::out_of_range for an ID
+    // Maps one item of a strip; the item's command, text or plain tooltip
+    // may supply the title. Throws as set_tool_tip does, and std::out_of_range for an ID
     // that names no item of the strip.
     void set_item_tool_tip(const std::shared_ptr<ToolStrip>& strip, std::string_view item_id,
                            RibbonToolTipContent content);
@@ -147,6 +154,13 @@ private:
     [[nodiscard]] RibbonToolTipContent resolve(const Control& target, std::string_view item_id,
                                                const RibbonToolTipContent& authored) const;
     [[nodiscard]] Rect anchor_bounds(const Control& target, std::string_view item_id) const;
+    // The plain tooltip of `target` or of its part `item_id`, from the
+    // control or its semantic node.
+    [[nodiscard]] std::string plain_tool_tip(const Control& target, std::string_view item_id) const;
+    // While a mapping exists, the window's plain presenter shows nothing for
+    // what it covers (Window::cover_tool_tip).
+    void set_cover(const Control& target, std::string_view item_id, bool covered);
+    void uncover_all() noexcept;
     void target_pointer(const std::shared_ptr<Control>& target, const PointerEvent& event);
     void target_focus(const std::shared_ptr<Control>& target, bool focused);
     void strip_focus(const std::shared_ptr<Control>& target, const std::string& item_id);

@@ -45,6 +45,19 @@ flyout_opening : default ``DockFlyoutOpening::hover_or_click``
     What opens an auto-hidden panel's flyout from its side tab (owner
     decision DK-27, E1-1): resting the pointer on the tab or clicking it, or
     (``click``) only clicking it.
+close_prompt : default ``DockClosePrompt::each``
+    How the program is asked before documents close at the user's request
+    (owner decision DK-31): one ``document_closing`` event per document, in
+    order, or (``combined``) one event for all of them.
+closable_documents
+    The placed documents that may close, the main site's in tree and tab
+    order, then each floating site's: the documents Close All Documents
+    asks about.
+close_pending : default ``false``
+    Whether a close request waits for `answer_close`.
+pending_close : default empty
+    The documents the waiting prompt asked about; valid until the next
+    request, answer or layout change.
 
 Events
 ------
@@ -52,6 +65,13 @@ activation_changed
     Raised after a track changed, with the track, the old and new panel and
     the cause; when one activation changes both, the panel track is raised
     first.
+document_closing
+    Raised before documents close at the user's request, with the documents
+    asked about and the cause (one document, Close All, Close Others, or a
+    floating window's close button). A handler sets ``cancel`` to keep
+    them, which ends the request with nothing closed, or ``defer`` to answer
+    later with `answer_close`. A handler may change the layout itself; a
+    request made from inside it is ``busy``.
 
 Methods
 -------
@@ -75,7 +95,23 @@ hide_panel
     Hides a panel, keeping its placeholder and its content.
 close_panel
     Closes a panel and releases its content. A closed tool panel keeps its
-    placeholder and reopens where it was; a closed document leaves.
+    placeholder and reopens where it was; a closed document leaves. It
+    asks nobody: the program's own close.
+request_close
+    The user's close of one panel: a document is asked about first
+    (``document_closing``) and closes once allowed; a tool panel closes at
+    once. Returns a `DockCloseOutcome`: ``closed``, ``cancelled``,
+    ``pending`` (a handler deferred), ``busy`` (another request waits) or
+    ``refused`` (not placed, may not close, or the layout refused).
+close_all_documents
+    Close All Documents: every placed document that may close, the main
+    site's in tree and tab order, then each floating site's.
+close_other_documents
+    Close Other Documents: as `close_all_documents`, keeping the given one.
+answer_close
+    Answers the waiting prompt: ``true`` goes on with the request (the next
+    document is asked about, or the documents close), ``false`` cancels it.
+    Refused when no request waits.
 panel_content
     The panel's content, or null before its factory ran.
 create_panel_content
@@ -155,8 +191,20 @@ hides then. Its client area is the site's frame, placed on a monitor
 (`place_on_monitor`), wholly inside the work area when the fallback moved
 it and it fits. A move or resize is written back as ``set_floating_frame``
 with the monitor it is on (a change that realizes nothing); a frame the
-program sets moves the window. The close button hides the window's tool
-panels and closes its documents, which closes it.
+program sets moves the window. The close button asks about the window's
+documents (cause ``floating_window``); once they are allowed it hides the
+window's tool panels and closes its documents, which closes it. A
+cancelled or deferred prompt keeps the window open.
+
+Closing documents (phase D6; owner decision DK-31): a close at the user's
+request (a document tab's close, the position menu's Close, a floating
+window's close button, or the program's `request_close`,
+`close_all_documents` and `close_other_documents`) asks before anything
+closes. The prompts run in the request's order; a document that left the
+layout before its turn is not asked about. A cancel at any prompt, or a
+``false`` answer, ends the request and closes nothing, including the
+documents already allowed: the documents close together, in one user
+transaction, only after the last prompt allowed them.
 
 After every layout change the workspace drops panels that left the layout
 from its histories, releases the content of a document that left, and

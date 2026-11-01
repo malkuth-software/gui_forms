@@ -31,6 +31,12 @@ gui_forms::RibbonToolTip
    command supplies it when the content names none. The disabled reason shows
    only while the target is disabled.
 
+   Content without a title takes the thing's plain tooltip as its title: the
+   control's ``tool_tip_text``, or the strip item's ``tool_tip_text``. While a
+   mapping exists, the window's plain tooltip presenter shows nothing for what
+   it describes (a control mapping covers every part of the control), so the
+   two never show at once; removing the mapping hands the thing back.
+
    *Status:* provisional.
 
    :Parameters:
@@ -106,12 +112,12 @@ gui_forms::RibbonToolTip
       * - :cpp:func:`set_tool_tip <gui_forms::RibbonToolTip::set_tool_tip>`
         - ``set_tool_tip(control, content)`` maps a whole control.
       * - :cpp:func:`set_item_tool_tip <gui_forms::RibbonToolTip::set_item_tool_tip>`
-        - ``set_item_tool_tip(strip, item_id, content)`` maps one item of a strip; the item's command or text may supply the title.
+        - ``set_item_tool_tip(strip, item_id, content)`` maps one item of a strip; the item's command, plain tooltip or text may supply the title.
 
    .. seealso::
 
       :cpp:class:`ToolTip <gui_forms::ToolTip>`
-         Plain one-line tooltips.
+         Plain tooltip text and the window's tooltip timing.
 
       :cpp:class:`HelpProvider <gui_forms::HelpProvider>`
          Help the user asks for with F1 on a focused control.
@@ -258,12 +264,13 @@ gui_forms::RibbonToolTip
 
       ``set_tool_tip(control, content)`` maps a whole control. The control must
       be live and attached to the provider's window, and the content valid
-      UTF-8 with a title or a command, or ``std::invalid_argument`` is thrown.
+      UTF-8 with a title, a command or a plain tooltip on the control, or
+      ``std::invalid_argument`` is thrown.
 
    .. cpp:function:: void set_item_tool_tip(const std::shared_ptr<ToolStrip>& strip, std::string_view item_id, RibbonToolTipContent content)
 
       ``set_item_tool_tip(strip, item_id, content)`` maps one item of a strip;
-      the item's command or text may supply the title. Throws as
+      the item's command, plain tooltip or text may supply the title. Throws as
       :cpp:func:`set_tool_tip <gui_forms::RibbonToolTip::set_tool_tip>` does, and ``std::out_of_range`` for an ID that names no
       item of the strip.
 

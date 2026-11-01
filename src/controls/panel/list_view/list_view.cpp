@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
 
 #include "../collection_control_utilities.hpp"
+#include "../cut_off_text/cut_off_text_reveal.hpp"
 #include "../details_columns.hpp"
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
@@ -28,6 +29,8 @@ namespace {
 // not scaled: it matches ScrollBar's own arrow extent.
 constexpr double edge_inset = 2.0;
 constexpr double cell_padding = 4.0;
+// How far before its text a cut-off text's reveal starts.
+constexpr double reveal_lead = 2.0;
 constexpr double check_size = 13.0;
 constexpr double check_mark_inset = 3.0;
 constexpr double minimum_row_height = 18.0;
@@ -174,7 +177,8 @@ std::string sub_item_identity(std::string_view item_id, std::string_view column_
 
 ListViewItemSource::~ListViewItemSource() {}
 
-ListView::ListView(StableId stable_id) : Control(std::move(stable_id)) {
+ListView::ListView(StableId stable_id)
+    : Control(std::move(stable_id)), reveal_(std::make_unique<detail::CutOffTextRevealer>()) {
     set_focusable(true);
     set_paint_plane(PaintPlane::control);
 }
@@ -206,6 +210,7 @@ void ListView::set_view(ListViewView view) {
     if (view_ == view) return;
     view_ = view;
     hot_index_.reset();
+    conceal_cut_off_text();
     ++model_revision_;
     hot_column_.reset();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -311,6 +316,7 @@ void ListView::set_items(std::vector<ListViewItem> items) {
     focused_index_ = next_focus;
     anchor_index_ = next_anchor;
     hot_index_.reset();
+    conceal_cut_off_text();
     ++model_revision_;
     insertion_mark_.reset();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -333,6 +339,7 @@ void ListView::reset_after_model_change(std::size_t count) {
     if (focused_index_ && *focused_index_ >= count) focused_index_.reset();
     if (anchor_index_ && *anchor_index_ >= count) anchor_index_.reset();
     hot_index_.reset();
+    conceal_cut_off_text();
     ++model_revision_;
     insertion_mark_.reset();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -561,6 +568,9 @@ bool ListView::select_range(std::size_t anchor, std::size_t index, bool keep_exi
 }
 
 void ListView::publish_selection() {
+    // A reveal shows the row as it was; the next pointer move reveals the
+    // row as it is.
+    conceal_cut_off_text();
     invalidate(Dirty::paint | Dirty::semantics);
     const ListViewSelectionChange change{std::string(stable_id().value()), selected_count_, focused_index_};
     publish_change(selection_changed_, change);
@@ -701,6 +711,7 @@ void ListView::set_top_line(std::size_t line) {
         top_header_ = false;
     }
     hot_index_.reset();
+    conceal_cut_off_text();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     const Layout scrolled = layout();
     place_label_editor(scrolled);
@@ -721,6 +732,7 @@ void ListView::set_horizontal_offset(double offset) {
     horizontal_offset_ = offset;
     const Layout placed = layout();
     horizontal_offset_ = placed.horizontal_offset;
+    conceal_cut_off_text();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     place_label_editor(placed);
     sync_scroll_bars(placed);
@@ -830,6 +842,7 @@ void ListView::sort_items(std::size_t column, ListViewSortOrder order) {
     if (focused_index_) focused_index_ = position_of[*focused_index_];
     if (anchor_index_) anchor_index_ = position_of[*anchor_index_];
     hot_index_.reset();
+    conceal_cut_off_text();
     ++model_revision_;
     insertion_mark_.reset();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -929,6 +942,7 @@ void ListView::set_groups(std::vector<ListViewGroup> groups) {
     groups_ = std::move(groups);
     ++model_revision_;
     hot_index_.reset();
+    conceal_cut_off_text();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -938,6 +952,7 @@ void ListView::set_show_groups(bool shown) {
     show_groups_ = shown;
     ++model_revision_;
     hot_index_.reset();
+    conceal_cut_off_text();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -1964,6 +1979,71 @@ ListView::Hit ListView::hit_test(const Layout& placed, Point local) const {
     return hit;
 }
 
+// The cut-off text under the pointer, revealed in place (owner decision,
+// 2026-10-28): the details view's cell under the pointer, or the list
+// view's item text. The reveal starts just before the text, so the icon and
+// the check box stay in view, and keeps the row's states. Owner-drawn
+// content is the application's, so its text is never revealed.
+void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point local) {
+    const bool revealing_view = view_ == ListViewView::details || view_ == ListViewView::list;
+    if (hit.zone != HitZone::item || !revealing_view || draw_mode_ == ItemDrawMode::owner_draw ||
+        label_edit_index_) {
+        conceal_cut_off_text();
+        return;
+    }
+    ListViewItem scratch;
+    const ListViewItem& item = item_at(hit.index, scratch);
+    const Rect cell = item_bounds(placed, hit.index);
+    const ItemParts parts = item_parts(placed, hit.index, cell);
+    AnatomyStateSet states = item_states(hit.index, item.checked);
+    std::size_t column = 0U;
+    Rect text_cell = parts.text.bounds;
+    double row_right = parts.item_face.bounds.x + parts.item_face.bounds.width;
+    if (view_ == ListViewView::details) {
+        std::optional<std::size_t> under{};
+        for (std::size_t candidate = 0; candidate < columns_.size() && !under; ++candidate) {
+            if (!column_visible(placed, candidate)) continue;
+            const Rect header = column_cell(placed, candidate);
+            if (local.x >= header.x && local.x < header.x + header.width) under = candidate;
+        }
+        if (!under) {
+            conceal_cut_off_text();
+            return;
+        }
+        column = *under;
+        const Rect header = column_cell(placed, column);
+        row_right = header.x + header.width;
+        if (column > 0U) {
+            const Rect sub_cell{header.x, cell.y, header.width, cell.height};
+            text_cell = sub_item_parts(placed, hit.index, column, sub_cell).sub_item_text.bounds;
+            // A sub-item is painted selected or disabled, never hot (paint_item).
+            AnatomyStateSet sub_states;
+            if (states.contains(AnatomyState::selected)) sub_states.insert(AnatomyState::selected);
+            if (states.contains(AnatomyState::disabled)) sub_states.insert(AnatomyState::disabled);
+            states = sub_states;
+        }
+    }
+    const std::string_view text = column_text(item, column);
+    if (text.empty() || text_cell.width <= 0.0) {
+        conceal_cut_off_text();
+        return;
+    }
+    const Rect absolute = absolute_bounds();
+    const double row_left = text_cell.x - reveal_lead;
+    detail::CutOffText revealed{};
+    revealed.key = std::to_string(hit.index) + "#" + std::to_string(column);
+    revealed.row = {absolute.x + row_left, absolute.y + cell.y, std::max(0.0, row_right - row_left), cell.height};
+    revealed.cell = {absolute.x + text_cell.x, absolute.y + text_cell.y, text_cell.width, text_cell.height};
+    revealed.text = std::string(text);
+    revealed.font = effective_font(font_);
+    revealed.paint = detail::ThemedRevealPaint{.family = ControlVisualRole::selection, .states = states};
+    static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
+}
+
+void ListView::conceal_cut_off_text() noexcept {
+    if (reveal_) (*reveal_).conceal();
+}
+
 // -- the insertion mark --------------------------------------------------------
 
 // The mark lies along the gap beside its item: across the top or bottom of
@@ -2081,6 +2161,7 @@ void ListView::on_pointer(PointerEvent& event) {
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
     const Control::Ptr lifetime = shared_from_this();
     if (resizing_column_) {
+        conceal_cut_off_text();
         // The window may end capture before it delivers the release, and a
         // host or another control may take it away: either ends the drag.
         if (event.action == PointerAction::up || !has_pointer_capture()) {
@@ -2113,6 +2194,7 @@ void ListView::on_pointer(PointerEvent& event) {
     if (event.action == PointerAction::leave) {
         if (hot_index_ || hot_column_) {
             hot_index_.reset();
+            conceal_cut_off_text();
             hot_column_.reset();
             invalidate(Dirty::paint);
         }
@@ -2131,8 +2213,12 @@ void ListView::on_pointer(PointerEvent& event) {
             hot_column_ = next_column;
             invalidate(Dirty::paint);
         }
+        reveal_cut_off_text(placed, hit, local);
         return;
     }
+    // A press goes to the row under the reveal, which then shows the row as
+    // the press leaves it.
+    if (event.action == PointerAction::down) conceal_cut_off_text();
     if (event.action == PointerAction::wheel) {
         if (event.wheel_delta.y == 0.0 && event.wheel_delta.x == 0.0) return;
         cancel_label_click();

@@ -719,6 +719,10 @@ Types
 
    .. cpp:member:: bool multiline
 
+   .. cpp:member:: std::string tool_tip
+
+      The thing's plain tooltip text (owner, 2026-10-28): a control's Control::tool_tip_text, or an authored part's, such as a strip item's or a tab header's. Data items never carry one. Empty for none.
+
    .. cpp:member:: Rect bounds
 
    .. cpp:member:: SemanticState states

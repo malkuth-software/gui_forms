@@ -39,6 +39,42 @@ struct DockPanelRegistration final {
     Delegate<DockPanelCreation&> factory{};
 };
 
+// Why documents are asked to close (stage DK phase D6, owner decision
+// DK-31): one document's own close (its tab, its caption or its position
+// menu), Close All Documents, Close Other Documents, or the close button of
+// the floating window holding them.
+enum class DockCloseCause : std::uint8_t { document, all_documents, other_documents, floating_window };
+
+// How the program is asked before documents close at the user's request
+// (owner decision DK-31, H1): one closing event per document, in order, or
+// one event for all of them (a combined prompt, such as a save-changes
+// list).
+enum class DockClosePrompt : std::uint8_t { each, combined };
+
+// Documents about to close at the user's request (DockWorkspace::
+// document_closing). `documents` is the one document asked about (each) or
+// every document of the request (combined), in the request's order; it is
+// valid only while the event is raised. A handler sets `cancel` to keep
+// them, which ends the request with nothing closed, or `defer` to answer
+// later with DockWorkspace::answer_close (an asynchronous prompt). With
+// neither set, the request goes on.
+struct DockDocumentClosing final {
+    std::span<const DockPanelId> documents{};
+    DockCloseCause cause{DockCloseCause::document};
+    bool cancel{};
+    bool defer{};
+};
+
+// What a close request did.
+// - closed: every document was allowed, and they closed in one user
+//   transaction (a document that left the layout meanwhile is skipped);
+// - cancelled: a handler (or answer_close) kept a document; nothing closed
+//   and the layout is unchanged;
+// - pending: a handler deferred; answer_close goes on with the request;
+// - busy: another request waits for its answer; nothing changed;
+// - refused: nothing to close, or the layout refused the transaction.
+enum class DockCloseOutcome : std::uint8_t { closed, cancelled, pending, busy, refused };
+
 // Why a panel became active.
 enum class DockActivationCause : std::uint8_t {
     programmatic,
@@ -162,6 +198,37 @@ public:
     // Closes a panel (DockEdit::close) and releases its content; a closed
     // tool panel keeps its placeholder, a closed document leaves.
     DockTransactionResult close_panel(const DockPanelId& panel, DockEditOrigin origin = DockEditOrigin::user);
+
+    // -- closing documents at the user's request (phase D6) --
+    // The user's close of one panel. A document is asked about first
+    // (document_closing) and closes once allowed; a tool panel closes at
+    // once (close_panel), with no event. Refused for a panel that is not
+    // placed or may not close.
+    DockCloseOutcome request_close(const DockPanelId& panel);
+    // Close All Documents: every placed document that may close, the main
+    // site's in tree and tab order, then each floating site's.
+    DockCloseOutcome close_all_documents();
+    // Close Other Documents: as close_all_documents, keeping `kept`.
+    DockCloseOutcome close_other_documents(const DockPanelId& kept);
+    // The placed documents that may close, main site first, in tree and
+    // tab order: the documents Close All Documents asks about.
+    [[nodiscard]] std::vector<DockPanelId> closable_documents() const;
+    // Answers the deferred prompt of the waiting request: `close` goes on
+    // with it (the next document is asked about, or the documents close),
+    // false cancels it. Refused when no request waits for an answer.
+    DockCloseOutcome answer_close(bool close);
+    // Whether a request waits for answer_close, and the documents its
+    // prompt asked about (empty when none). Valid until the next request,
+    // answer or layout change.
+    [[nodiscard]] bool close_pending() const noexcept;
+    [[nodiscard]] std::span<const DockPanelId> pending_close() const noexcept;
+    // One closing event per document (each, the default) or one for all.
+    [[nodiscard]] DockClosePrompt close_prompt() const noexcept { return close_prompt_; }
+    void set_close_prompt(DockClosePrompt prompt) noexcept { close_prompt_ = prompt; }
+    // Raised before documents close at the user's request, on the UI
+    // thread. A handler may change the layout or close panels itself; a
+    // request made from inside it is busy.
+    [[nodiscard]] Event<DockDocumentClosing&>& document_closing() noexcept { return document_closing_; }
 
     // The panel's content, or null before its factory ran (or after it was
     // released).
@@ -289,6 +356,20 @@ private:
     struct FloatingClosed;
     struct FloatingFrame;
     struct CloseFloatingSite;
+    // A user request to close documents, while its prompts run or one
+    // waits for answer_close. `asked` is the number of documents, from
+    // `next`, the waiting prompt asked about (zero while none waits).
+    // `companions` are the edits that close with the documents (a floating
+    // window's tool panels), and `closed_tools` the tool panels among them
+    // whose content goes when they close.
+    struct CloseRequest final {
+        DockCloseCause cause{DockCloseCause::document};
+        std::vector<DockPanelId> documents{};
+        std::size_t next{};
+        std::size_t asked{};
+        std::vector<DockEdit> companions{};
+        std::vector<DockPanelId> closed_tools{};
+    };
     // A frame reported while a transaction was open, written after it.
     struct PendingFrame final {
         DockSiteId site{};
@@ -328,7 +409,7 @@ private:
     void on_window_closing(DockSiteId site, HostCloseRequest& request);
     void on_window_closed(DockSiteId site) noexcept;
     void on_window_frame(DockSiteId site, const HostWindowFrameEvent& event);
-    void close_floating_site(DockSiteId site);
+    DockCloseOutcome close_floating_site(DockSiteId site);
     void forget_window(DockSiteId site) noexcept;
     void realize_on_sites(const DockLayoutChange& change);
     void release_sites() noexcept;
@@ -350,6 +431,13 @@ private:
     // main_window target.
     void publish_command_targets();
     void on_layout_changed(const DockLayoutChange& change);
+    // Starts a request (busy while another runs) and runs its prompts.
+    DockCloseOutcome begin_close(CloseRequest request);
+    // Asks about the documents from `next` until one is cancelled or
+    // deferred, then closes them all.
+    DockCloseOutcome run_close();
+    void drop_unplaced_close_documents();
+    DockCloseOutcome finish_close();
 
     std::string stable_id_;
     DockLayout layout_{};
@@ -375,7 +463,10 @@ private:
     WorkspaceTransaction* transaction_{};
     std::vector<PendingFrame> pending_frames_{};
     DockFlyoutOpening flyout_opening_{DockFlyoutOpening::hover_or_click};
+    DockClosePrompt close_prompt_{DockClosePrompt::each};
+    std::optional<CloseRequest> close_request_{};
     Event<const DockActivationChange&> activation_changed_{};
+    Event<DockDocumentClosing&> document_closing_{};
 };
 
 } // namespace gui_forms

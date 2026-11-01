@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <span>
 #include <string>
@@ -13,6 +14,10 @@
 #include <vector>
 
 namespace gui_forms {
+
+namespace detail {
+class CutOffTextRevealer;
+} // namespace detail
 
 struct TreeViewItem final {
     std::string stable_id;
@@ -40,6 +45,7 @@ struct TreeExpansionChange final {
 class TreeView final : public Panel {
 public:
     explicit TreeView(StableId stable_id);
+    ~TreeView() override;
 
     [[nodiscard]] std::span<const TreeViewItem> items() const noexcept {
         return items_;
@@ -145,12 +151,22 @@ private:
     void ensure_visible(std::size_t visible_row);
     void select_visible_row(std::size_t visible_row, bool activate);
     void type_select(std::string_view text);
+    // Where a row's text starts, in local x: after its indent, its
+    // expander and its image slot.
+    [[nodiscard]] double text_left(const TreeViewItem& item, double row_height) const;
+    // Reveals the node text of `visible_row` in place when the view's edge
+    // cuts it off, else conceals any reveal (detail::CutOffTextRevealer).
+    void reveal_cut_off_text(std::size_t visible_row);
+    void conceal_cut_off_text() noexcept;
 
     std::vector<TreeViewItem> items_;
     std::vector<std::size_t> visible_;
     std::string selected_id_;
     std::string active_id_;
     std::optional<std::size_t> hovered_row_;
+    // The in-place reveal of the hovered node's cut-off text; owned,
+    // created with the view.
+    std::unique_ptr<detail::CutOffTextRevealer> reveal_;
     std::optional<std::size_t> pressed_row_;
     std::uint32_t pressed_click_count_{1U};
     bool pressed_expander_{};

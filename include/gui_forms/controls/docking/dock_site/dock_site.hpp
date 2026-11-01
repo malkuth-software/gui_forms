@@ -33,7 +33,9 @@ namespace gui_forms {
 // auto-hidden panel Dock returns its stack to where it stood, for a floating
 // panel it docks the panel back where it was docked last
 // (DockWorkspace::dock_back). Move starts the keyboard move mode (phase D3,
-// G3-1).
+// G3-1). A document's menu also offers Close All Documents and Close Other
+// Documents (phase D6, owner 2026-10-31), which ask as
+// DockWorkspace::close_all_documents and close_other_documents do.
 enum class DockPositionCommand : std::uint8_t {
     float_panel,
     dock,
@@ -42,6 +44,8 @@ enum class DockPositionCommand : std::uint8_t {
     hide,
     close,
     move,
+    close_all_documents,
+    close_other_documents,
 };
 
 // The phases of a drag (docking study 5.1, phase D3): `armed` from a press
@@ -1105,7 +1109,7 @@ private:
     SubscriptionToken menu_invoked_{};
     SubscriptionToken menu_changed_{};
     // One command per position row, in DockPositionCommand order.
-    std::array<std::shared_ptr<Command>, 7> menu_commands_{};
+    std::array<std::shared_ptr<Command>, 9> menu_commands_{};
     DockPanelId menu_panel_{};
     std::size_t menu_stack_{};
     bool menu_open_{};

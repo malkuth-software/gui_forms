@@ -1,6 +1,7 @@
 #include "application_state.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <atomic>
 #include <cmath>
 #include <utility>
 
@@ -220,6 +221,21 @@ HostServiceStatus ApplicationWindowHandle::toggle_full_screen() const {
 const std::shared_ptr<KeyBindings>& Application::key_bindings() {
     static const std::shared_ptr<KeyBindings> shared = std::make_shared<KeyBindings>();
     return shared;
+}
+
+namespace {
+// The program's tooltip switch. Windows on any UI thread read it, so it is
+// atomic; it orders nothing else.
+std::atomic<bool> program_tool_tips_shown{true};
+} // namespace
+
+void Application::set_tool_tips_shown(bool shown) noexcept {
+    program_tool_tips_shown.store(shown, std::memory_order_relaxed);
+}
+
+bool Application::tool_tips_shown() noexcept {
+    const bool shown = program_tool_tips_shown.load(std::memory_order_relaxed);
+    return shown;
 }
 
 ApplicationResult Application::validate(const std::vector<ApplicationWindow>& windows) {

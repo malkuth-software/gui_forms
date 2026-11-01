@@ -1,6 +1,6 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 
-#include "../tool_tip/tool_tip_layer/tool_tip_layer.hpp"
+#include "ribbon_tool_tip_layer/ribbon_tool_tip_layer.hpp"
 #include "ribbon_tool_tip_bubble.hpp"
 
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
@@ -178,10 +178,14 @@ void RibbonToolTip::set_tool_tip(const std::shared_ptr<Control>& target, RibbonT
         (*owner).find((*target).stable_id().value()).get() != target.get()) {
         throw std::invalid_argument("GUI.Forms RibbonToolTip target must be a live attached control in its Window");
     }
-    if (!valid_content(content) || (content.title.empty() && !content.command)) {
-        throw std::invalid_argument("GUI.Forms RibbonToolTip content needs valid UTF-8 and a title or command");
+    // The target's plain tooltip can supply the title.
+    if (!valid_content(content) ||
+        (content.title.empty() && !content.command && (*target).tool_tip_text().empty())) {
+        throw std::invalid_argument(
+            "GUI.Forms RibbonToolTip content needs valid UTF-8 and a title, a command or a plain tooltip");
     }
     Entry& entry = require_entry(target);
+    if (!entry.control_content.has_value()) set_cover(*target, {}, true);
     entry.control_content = std::move(content);
     if (visible_target_.lock() == target && visible_item_.empty()) show_now(target, {}, keyboard_initiated_);
 }
@@ -195,13 +199,13 @@ void RibbonToolTip::set_item_tool_tip(const std::shared_ptr<ToolStrip>& strip, s
         throw std::invalid_argument("GUI.Forms RibbonToolTip target must be a live attached control in its Window");
     }
     if (!valid_content(content)) throw std::invalid_argument("GUI.Forms RibbonToolTip content must be valid UTF-8");
-    // An item's own command or text can supply the title.
+    // An item's own command, text or plain tooltip can supply the title.
     bool known = false;
     bool titled = !content.title.empty() || content.command;
     for (const ToolStripItemSpec& item : (*strip).items()) {
         if (item.stable_id != item_id) continue;
         known = true;
-        if (item.command || !item.text.empty()) titled = true;
+        if (item.command || !item.text.empty() || !item.tool_tip_text.empty()) titled = true;
     }
     if (item_id.empty() || !known) throw std::out_of_range("GUI.Forms RibbonToolTip item is not on the strip");
     if (!titled) throw std::invalid_argument("GUI.Forms RibbonToolTip content needs a title or command");
@@ -215,6 +219,27 @@ void RibbonToolTip::set_item_tool_tip(const std::shared_ptr<ToolStrip>& strip, s
         return;
     }
     entry.items.push_back({std::string(item_id), std::move(content)});
+    set_cover(*strip, item_id, true);
+}
+
+void RibbonToolTip::set_cover(const Control& target, std::string_view item_id, bool covered) {
+    if (Window* owner = bound_window()) (*owner).cover_tool_tip(target.runtime_id(), item_id, covered);
+}
+
+void RibbonToolTip::uncover_all() noexcept {
+    Window* owner = bound_window();
+    if (owner == nullptr) return;
+    for (const std::pair<const std::uint64_t, std::unique_ptr<Entry>>& mapped : entries_) {
+        const Entry& entry = *mapped.second;
+        const RuntimeId target{mapped.first};
+        try {
+            if (entry.control_content.has_value()) (*owner).cover_tool_tip(target, {}, false);
+            for (const ItemMapping& mapping : entry.items) (*owner).cover_tool_tip(target, mapping.item_id, false);
+        } catch (...) {
+            // Uncovering only erases map entries; a failed allocation of the
+            // key leaves a cover of a mapping that no longer shows anything.
+        }
+    }
 }
 
 const RibbonToolTipContent* RibbonToolTip::find_content(const Entry& entry, std::string_view item_id) const {
@@ -238,6 +263,7 @@ bool RibbonToolTip::remove_tool_tip(const Control& target, std::string_view item
     const bool affects_pending = pending_target_.lock().get() == &target && pending_item_ == item_id;
     const bool affects_visible = visible_target_.lock().get() == &target && visible_item_ == item_id;
     if (affects_pending || affects_visible) hide();
+    set_cover(target, item_id, false);
     if (item_id.empty()) {
         (*entry).control_content.reset();
     } else {
@@ -252,6 +278,7 @@ bool RibbonToolTip::remove_tool_tip(const Control& target, std::string_view item
 void RibbonToolTip::clear() {
     require_access("RibbonToolTip mapping clear");
     hide();
+    uncover_all();
     entries_.clear();
 }
 
@@ -278,6 +305,8 @@ void RibbonToolTip::set_help_line_text(std::string text) {
 RibbonToolTipContent RibbonToolTip::resolve(const Control& target, std::string_view item_id,
                                             const RibbonToolTipContent& authored) const {
     RibbonToolTipContent result = authored;
+    // Without a title of its own, the thing's plain tooltip names it.
+    if (result.title.empty()) result.title = plain_tool_tip(target, item_id);
     bool enabled = target.effectively_enabled();
     const ToolStrip* strip = dynamic_cast<const ToolStrip*>(&target);
     if (strip && !item_id.empty()) {
@@ -298,6 +327,15 @@ RibbonToolTipContent RibbonToolTip::resolve(const Control& target, std::string_v
     }
     if (enabled) result.disabled_reason.clear();
     return result;
+}
+
+std::string RibbonToolTip::plain_tool_tip(const Control& target, std::string_view item_id) const {
+    if (item_id.empty()) return target.tool_tip_text();
+    const std::vector<SemanticNode> nodes = target.semantic_virtual_children();
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id == item_id) return node.tool_tip;
+    }
+    return {};
 }
 
 Rect RibbonToolTip::anchor_bounds(const Control& target, std::string_view item_id) const {
@@ -443,7 +481,7 @@ void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::
 
     const std::string prefix = "ribbon-tooltip." + std::to_string(provider_id_) + "." +
                          std::to_string((*target).runtime_id().value);
-    std::shared_ptr<ToolTipLayer> layer = make_control<ToolTipLayer>(StableId(prefix + ".layer"));
+    std::shared_ptr<RibbonToolTipLayer> layer = make_control<RibbonToolTipLayer>(StableId(prefix + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, (*owner).client_size().width, (*owner).client_size().height});
     std::shared_ptr<RibbonToolTipBubble> bubble =
         make_control<RibbonToolTipBubble>(StableId(prefix + ".bubble"), std::move(shown), layout);
@@ -564,6 +602,7 @@ void RibbonToolTip::on_dispose() noexcept {
         pending_action_ = PendingAction::none;
         if (timer_ && (*timer_).is_alive()) (*timer_).dispose();
         close_overlay(false);
+        uncover_all();
         entries_.clear();
     } catch (...) {
     }

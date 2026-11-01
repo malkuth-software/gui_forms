@@ -188,6 +188,9 @@ gui_forms::RichTextBox
 
    .. rubric:: Notes
 
+   Its ``tool_tip_text`` shows as grey hint text in the empty document while
+   it has focus, in place of a tooltip bubble.
+
    Keyboard, while the box has focus: the keys of a multiline :cpp:class:`TextBox <gui_forms::TextBox>`.
    Ctrl or Cmd with B, I and K makes the selection bold, italic or a link.
    Enter in a list item or a quote starts the next item with the same marker

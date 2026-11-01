@@ -1,13 +1,17 @@
-A provider of short help text that pops up when the pointer rests on a control or the control receives keyboard focus.
+The Windows Forms way to give controls short help text and to set when it shows.
 
-A tool tip belongs to one window and holds a text for each control you
-register with `set_tool_tip`. When the pointer enters a registered control,
-or the control receives focus, the tip appears after `initial_delay` and
-disappears after `auto_pop_delay`, or as soon as the pointer leaves or focus
-moves on. The tip is drawn over the window but never intercepts the pointer.
-One tool tip can serve every control in a window; several tool tips in one
-window are independent of each other. Use a `HelpProvider` for help that the
-user asks for, and an `ErrorProvider` to flag invalid input.
+Tooltips belong to the things they describe: every control has a
+`tool_tip_text`, and each window has one presenter that shows it when the
+pointer rests on the control, or when the control receives keyboard focus
+while the focus cue is showing. A tool tip shows nothing itself.
+`set_tool_tip` writes the control's text, and the timing and policy
+properties read and change the window's `ToolTipSettings`, which every tool
+tip of the window shares: the last value set holds. Text controls (a text
+box, a combo box's edit field) show their text as light grey hint text in the
+empty field instead of a bubble when they receive focus. Data items (list
+rows, tree nodes) have no tooltips; a list reveals cut-off text in place. Use
+a `HelpProvider` for help that the user asks for, and an `ErrorProvider` to
+flag invalid input.
 
 Parameters
 ----------
@@ -19,91 +23,97 @@ Properties
 ----------
 initial_delay : default ``500 ms``
     How long the pointer must rest on a control, or the control must have
-    focus, before the tip appears. A negative delay throws
-    `std::invalid_argument`.
+    keyboard focus, before its tooltip appears. Moving the pointer starts
+    the rest again. A negative delay throws `std::invalid_argument`.
 reshow_delay : default ``100 ms``
-    The shorter delay used instead when this tool tip hid a tip no more than
+    The shorter delay used instead when a tooltip closed no more than
     `initial_delay` ago, so that moving from one control to the next shows
-    each tip quickly. A negative delay throws `std::invalid_argument`.
+    each tooltip quickly. A negative delay throws `std::invalid_argument`.
 auto_pop_delay : default ``5000 ms``
-    How long a tip stays up. Zero keeps it up until the pointer leaves, focus
-    moves or `hide` is called. A negative delay throws
+    How long a tooltip stays up. Zero keeps it up until the pointer leaves,
+    focus moves or `hide` is called. A negative delay throws
     `std::invalid_argument`.
 show_on_hover : default ``true``
-    Whether the pointer entering a control shows its tip.
+    Whether the pointer resting on a control shows its tooltip.
 show_on_focus : default ``true``
-    Whether a control receiving focus shows its tip, placed below the
-    control.
+    Whether keyboard focus reaching a control shows its tooltip, placed
+    below the control.
 show_always : default ``false``
-    Whether tips also appear for disabled controls, for example to explain
-    why a command is unavailable. Hidden controls never show tips.
+    Whether tooltips also appear for disabled controls, for example to
+    explain why a command is unavailable. Hidden controls never show them.
 maximum_width : default ``336.0``
-    The widest the tip's text may be before it wraps onto further lines. It
-    must be finite and between 80 and 2048, or `std::invalid_argument` is
-    thrown. Changing it reshapes a tip that is showing.
+    The widest a tooltip's text may be before it wraps onto further lines.
+    It must be finite and between 80 and 2048, or `std::invalid_argument` is
+    thrown. Changing it reshapes a tooltip that is showing.
 visible : default ``false``
-    Whether a tip is showing.
+    Whether a tooltip of a control this tool tip set text on is showing.
 active_control
-    The control whose tip is showing, or null.
+    That control, or null.
 
 Events
 ------
 visibility_changed
-    Raised when a tip appears and when it disappears, with the control's
-    stable ID, the text, whether it is now shown, and whether keyboard focus
-    showed it. Showing a tip while another is up raises the hiding of the
-    old one first.
+    Raised when the tooltip of a control this tool tip set text on appears
+    and when it disappears, with the control's stable ID, the text, whether
+    it is now shown, and whether keyboard focus showed it.
 
 Methods
 -------
 set_tool_tip
-    `set_tool_tip(control, text)` registers or changes the text of a
-    control; empty text removes it. The control must be live and attached
-    to the tool tip's window, and the text valid UTF-8, or
-    `std::invalid_argument` is thrown. Changing the text of the tip that is
-    showing updates it at once.
+    `set_tool_tip(control, text)` sets a control's `tool_tip_text`; empty
+    text removes it. The control must be live and attached to the tool
+    tip's window, and the text valid UTF-8, or `std::invalid_argument` is
+    thrown. Changing the text of a tooltip that is showing updates it at
+    once.
 tool_tip
-    The text registered for a control, or an empty string.
+    A control's tooltip text, whoever set it, or an empty string.
 remove_tool_tip
-    Removes a control's text, hiding its tip and cancelling a pending one.
-    Returns false when the control has none.
+    Clears the text this tool tip set on a control, closing its tooltip and
+    cancelling a pending one. Returns false, changing nothing, when this
+    tool tip set none there.
 clear
-    Hides any tip and removes every registered text.
+    Clears the text this tool tip set on every control.
 show
-    `show(control)` shows a registered control's tip at once, placed below
-    the control, for `auto_pop_delay`; `show(control, duration)` shows it
-    for `duration`, where zero means until it is hidden. A control without
-    text throws `std::invalid_argument`, as does a negative duration. A
-    hidden control shows nothing, and so does a disabled one unless
-    `show_always` is true.
+    `show(control)` shows the control's tooltip at once, placed below the
+    control, for `auto_pop_delay`; `show(control, duration)` shows it for
+    `duration`, where zero means until it is hidden. It shows even when the
+    window's or the program's tooltips are switched off. A control this
+    tool tip set no text on throws `std::invalid_argument`, as does a
+    negative duration. A hidden control shows nothing, and so does a
+    disabled one unless `show_always` is true.
 hide
-    Hides the tip that is showing and cancels one that is waiting for its
-    delay.
+    Closes the window's tooltip when it shows one of this tool tip's
+    controls.
 
 See Also
 --------
+Window : The presenter, its `ToolTipSettings`, and the window switch `set_tool_tips_shown`.
+Application : The program switch `set_tool_tips_shown`.
+RibbonToolTip : Enhanced tooltips with a title, description and shortcut.
 HelpProvider : Help text that the user requests.
 ErrorProvider : An error icon and message beside a control.
-AnchoredPopupLayer : An interactive popup placed against a control.
 
 Notes
 -----
-A tip shown by the pointer appears just below and to the right of the pointer;
-a tip shown by focus or by `show` appears just below the control's left edge.
-Either way it moves above when there is no room below and stays at least 4
-pixels inside the window. A tip that is showing follows its control when the
-control is laid out somewhere else.
+A tooltip shown by the pointer appears just below and to the right of the
+pointer; one shown by focus or by `show` appears just below the control's
+left edge. Either way it moves above when there is no room below and stays
+at least 4 pixels inside the window. A tooltip that is showing follows its
+control when the control is laid out somewhere else. Pressing a pointer
+button closes the tooltip, and nothing shows again until the pointer leaves
+the control.
 
-The tip ignores the pointer, so the control underneath keeps receiving
-clicks and hover. Disposing or hiding the control closes its tip, and
-disposing the tool tip closes its tip and cancels any pending one.
+The tooltip ignores the pointer, so the control underneath keeps receiving
+clicks and hover. Disposing or hiding the control closes its tooltip.
+Disposing the tool tip clears the text it set.
 
 Changing, showing or hiding a tool tip must happen on the window's UI
 thread. Doing so after the tool tip is disposed, or after its window has
 shut down, throws `std::logic_error`.
 
-The tip publishes the accessibility role `tool_tip`, named by its text,
-while it is showing.
+The tooltip publishes the accessibility role `tool_tip`, named by its text,
+while it is showing, and every control publishes its text as the semantic
+field `tool_tip`.
 
 Examples
 --------
@@ -121,7 +131,8 @@ Register help for a toolbar button, then show it immediately:
 
    gf::ToolTip tips(window);
    tips.set_tool_tip(save, "Save the document (Ctrl+S)");
-   // Hovering over or focusing the button now shows the tip after 500 ms.
+   // (*save).tool_tip_text() is now that text; resting the pointer on the
+   // button, or tabbing to it, shows it after 500 ms.
 
    tips.show(save, std::chrono::milliseconds(0));   // until hide()
    // tips.visible() is true and tips.active_control() is save.

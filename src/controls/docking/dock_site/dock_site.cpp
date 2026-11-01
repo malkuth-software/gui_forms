@@ -43,11 +43,14 @@ constexpr std::chrono::milliseconds stamp_motion_duration{220};
 constexpr std::chrono::milliseconds tile_fade_duration{100};
 
 
-constexpr std::array<std::string_view, 7> position_names{
-    "float", "dock", "dock-as-document", "auto-hide", "hide", "close", "move",
+// In DockPositionCommand's order.
+constexpr std::array<std::string_view, 9> position_names{
+    "float", "dock", "dock-as-document", "auto-hide", "hide", "close", "move", "close-all-documents",
+    "close-other-documents",
 };
-constexpr std::array<std::string_view, 7> position_texts{
-    "Float", "Dock", "Dock as Tabbed Document", "Auto Hide", "Hide", "Close", "Move",
+constexpr std::array<std::string_view, 9> position_texts{
+    "Float", "Dock",  "Dock as Tabbed Document", "Auto Hide", "Hide", "Close", "Move", "Close All Documents",
+    "Close Other Documents",
 };
 
 using dock_site_detail::centred;
@@ -1927,6 +1930,20 @@ bool DockSite::position_command_enabled(const DockPanelId& panel, DockPositionCo
         const bool idle = drag_.phase == DockDragPhase::idle;
         return idle;
     }
+    case DockPositionCommand::close_all_documents:
+    case DockPositionCommand::close_other_documents: {
+        // From a document's menu, while some document (for Close Other
+        // Documents, one other than this) may close.
+        if (tool || (*workspace_).close_pending()) return false;
+        const std::vector<DockPanelId> documents = (*workspace_).closable_documents();
+        std::size_t others = 0U;
+        for (const DockPanelId& document : documents) {
+            if (!(document == panel)) ++others;
+        }
+        const bool all = command == DockPositionCommand::close_all_documents;
+        const bool available = all ? !documents.empty() : others != 0U;
+        return available;
+    }
     }
     // A command outside the enumeration is never available.
     return false;
@@ -1940,6 +1957,15 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
     if (command == DockPositionCommand::move) {
         const bool started = begin_keyboard_move(panel);
         return started;
+    }
+    if (command == DockPositionCommand::close_all_documents || command == DockPositionCommand::close_other_documents) {
+        // The documents are asked about first (phase D6); a prompt that
+        // waits for its answer counts as run.
+        const DockCloseOutcome outcome = command == DockPositionCommand::close_all_documents
+                                             ? (*workspace_).close_all_documents()
+                                             : (*workspace_).close_other_documents(panel);
+        const bool ran = outcome == DockCloseOutcome::closed || outcome == DockCloseOutcome::pending;
+        return ran;
     }
     if (command == DockPositionCommand::float_panel) {
         // Where it floated last, else where it stands now (phase D4).
@@ -1999,7 +2025,11 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
     if (command == DockPositionCommand::hide) {
         result = (*workspace_).hide_panel(panel, DockEditOrigin::user);
     } else if (command == DockPositionCommand::close) {
-        result = (*workspace_).close_panel(panel, DockEditOrigin::user);
+        // A document is asked about first (DockWorkspace::request_close,
+        // phase D6); a prompt that waits for its answer counts as run.
+        const DockCloseOutcome outcome = (*workspace_).request_close(panel);
+        const bool ran = outcome == DockCloseOutcome::closed || outcome == DockCloseOutcome::pending;
+        return ran;
     } else {
         DockTransaction transaction{};
         transaction.origin = DockEditOrigin::user;
@@ -2070,6 +2100,15 @@ bool DockSite::show_position_menu(const DockPanelId& panel, MenuOpenMode mode) {
     const std::size_t close = command_index(DockPositionCommand::close);
     items.emplace_back(prefix + ".position.close", MenuItemKind::command, menu_commands_[close],
                        std::string(position_texts[close]));
+    if (!tool_panel) {
+        const std::array<DockPositionCommand, 2> closing{DockPositionCommand::close_all_documents,
+                                                         DockPositionCommand::close_other_documents};
+        for (const DockPositionCommand command : closing) {
+            const std::size_t at = command_index(command);
+            items.emplace_back(prefix + ".position." + std::string(position_names[at]), MenuItemKind::command,
+                               menu_commands_[at], std::string(position_texts[at]));
+        }
+    }
     const std::size_t move = command_index(DockPositionCommand::move);
     items.emplace_back(prefix + ".position.move", MenuItemKind::command, menu_commands_[move],
                        std::string(position_texts[move]));

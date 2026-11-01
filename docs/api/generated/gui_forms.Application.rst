@@ -33,10 +33,14 @@ gui_forms::Application
         - The capability record of the linked native host: its name and the services it offers, such as dialogs, clipboard and cursors.
       * - :cpp:func:`key_bindings <gui_forms::Application::key_bindings>`
         - The application's one set of keyboard-command keys (owner decision DK-44): :cpp:func:`run <gui_forms::Application::run>` gives it to every window it runs, before the host attaches, so the host seeds it once and a rebinding in any window holds in all.
+      * - :cpp:func:`tool_tips_shown <gui_forms::Application::tool_tips_shown>`
+        -  
       * - :cpp:func:`run <gui_forms::Application::run>`
         - ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one window, with the stable ID ``"main"``.
       * - :cpp:func:`shutdown <gui_forms::Application::shutdown>`
         - Ends the rendering library once per process: it frees stx_skia's caches and singletons.
+      * - :cpp:func:`set_tool_tips_shown <gui_forms::Application::set_tool_tips_shown>`
+        - The program's tooltip switch (owner, 2026-10-28): whether tooltips show in every window whose own switch is unset (Window::set_tool_tips_shown).
 
    .. seealso::
 
@@ -151,6 +155,8 @@ gui_forms::Application
 
       The application's one set of keyboard-command keys (owner decision DK-44): :cpp:func:`run <gui_forms::Application::run>` gives it to every window it runs, before the host attaches, so the host seeds it once and a rebinding in any window holds in all. Made on first use; lives as long as the process. UI thread only.
 
+   .. cpp:function:: static bool tool_tips_shown() noexcept
+
    .. cpp:function:: static ApplicationResult run(std::unique_ptr<Window> window, ApplicationWindowOptions options = {})
 
       ``run(std::unique_ptr<Window>, ApplicationWindowOptions)`` presents one
@@ -180,6 +186,10 @@ gui_forms::Application
       :cpp:func:`run <gui_forms::Application::run>` and :cpp:func:`shutdown <gui_forms::Application::shutdown>` return ``after_shutdown``. A process may end without
       it, a crash included, and lose nothing: the library holds only process
       memory, which the operating system reclaims.
+
+   .. cpp:function:: static void set_tool_tips_shown(bool shown) noexcept
+
+      The program's tooltip switch (owner, 2026-10-28): whether tooltips show in every window whose own switch is unset (Window::set_tool_tips_shown). On by default. A window reads it when a tooltip would show, so a tooltip that already shows stays until it closes. Any thread.
 
    .. cpp:member:: constexpr std::size_t maximum_windows
 

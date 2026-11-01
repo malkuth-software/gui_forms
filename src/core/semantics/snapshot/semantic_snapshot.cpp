@@ -92,6 +92,8 @@ void append_node(std::ostringstream& stream, const SemanticNode& node) {
         stream << "null";
     }
     stream << ",\"multiline\":" << (node.multiline ? "true" : "false");
+    stream << ",\"tool_tip\":";
+    append_json_string(stream, node.tool_tip);
     stream << ",\"bounds\":[" << node.bounds.x << ',' << node.bounds.y << ','
            << node.bounds.width << ',' << node.bounds.height << "],\"states\":"
            << static_cast<std::uint32_t>(node.states) << ",\"actions\":[";
@@ -288,11 +290,12 @@ const char* semantic_state_name(SemanticState state) noexcept {
 
 namespace {
 // The admitted node fields beyond the basic ones every node has: RB-22,
-// DK-40 and the stage A vocabulary (12.13), in that order.
+// DK-40, the stage A vocabulary (12.13) and the plain tooltip (owner,
+// 2026-10-28), in that order.
 constexpr const char* semantic_field_table[] = {
     "position_in_set", "set_size", "has_popup", "controlled_panel", "orientation",
     "level", "modal", "row_index", "column_index", "row_count", "column_count", "access_key",
-    "small_step", "large_step", "text_selection", "multiline",
+    "small_step", "large_step", "text_selection", "multiline", "tool_tip",
 };
 } // namespace
 

@@ -68,6 +68,7 @@ struct DialogState final {
   std::vector<SubscriptionToken> tokens;
   std::vector<Entry> entries;
   std::vector<HostFileDialogFilter> filters;
+  std::size_t initial_filter{};
   std::filesystem::path directory;
   HostDialogResult result;
   bool done{};
@@ -253,8 +254,13 @@ struct DialogState final {
         return;
       }
     }
-    result.payload =
-        HostPathDialogResult{HostDialogOutcome::accepted, std::move(paths)};
+    HostPathDialogResult accepted{HostDialogOutcome::accepted,
+                                  std::move(paths)};
+    // The added "All files" is no filter of the request.
+    if (!folder && filter && (*filter).selected_index() &&
+        *(*filter).selected_index() < filters.size())
+      accepted.chosen_filter = *(*filter).selected_index();
+    result.payload = std::move(accepted);
     done = true;
   }
 };
@@ -399,6 +405,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
       initial = (*open).initial_directory;
       suggested = (*open).suggested_name;
       state.filters = (*open).filters;
+      state.initial_filter = (*open).initial_filter;
       state.multiple = (*open).allow_multiple;
     } else if (const HostSaveFileDialogRequest *save =
                    std::get_if<HostSaveFileDialogRequest>(&request.payload)) {
@@ -407,6 +414,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
       initial = (*save).initial_directory;
       suggested = (*save).suggested_name;
       state.filters = (*save).filters;
+      state.initial_filter = (*save).initial_filter;
       state.default_extension = (*save).default_extension;
       state.confirm_overwrite = (*save).confirm_overwrite;
     } else if (const HostFolderDialogRequest *folder =
@@ -443,7 +451,12 @@ HostDialogResult retained_dialog(NativeWindow &owner,
       names.push_back(state.filters[i].label);
     names.push_back("All files");
     (*state.filter).set_items(std::move(names));
-    (*state.filter).set_selected_index(0);
+    // The request's starting filter; the added "All files" follows the
+    // request's own.
+    (*state.filter)
+        .set_selected_index(state.initial_filter < state.filters.size()
+                                ? state.initial_filter
+                                : 0U);
     (*state.root).add_child(state.filter);
     state.status = label(state, "host.dialog.status", "", {16, 492, 450, 40});
     state.accept_button = state.button("host.dialog.accept",

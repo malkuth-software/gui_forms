@@ -1379,17 +1379,17 @@
       }
     },
     "ToolTipBubble": {
-      "status": "OBSERVED: bundle 005 source-private visual split; M4 build, focused tests, and Screen Sharing pass",
+      "status": "OBSERVED: the window's one tooltip presenter (W tooltip build, 2026-10-31); M4 build and focused tests",
       "capture": "captures/tool_tip_error_provider.png",
-      "capture_note": "M4 Complete Showcase crop showing ToolTipBubble's themed frame, wrapped explanatory text, focus-origin placement, and compact padding.",
-      "summary": "ToolTipBubble is ToolTip's source-private retained visual. It owns a label child, theme-derived frame and padding, exact measured content size, input transparency, and tooltip semantics; scheduling and popup lifetime remain in ToolTip.",
+      "capture_note": "Crop showing a plain tooltip's themed face, overlay shadow and wrapped text.",
+      "summary": "ToolTipBubble is the window tooltip presenter's source-private retained visual. It holds the text already broken into measured lines, paints the tool_tip family's face and shadow and each line as a label part, rejects hit testing, and publishes the tool_tip role named by its text; waiting, placement and popup lifetime remain in the presenter.",
       "methods": {
-        "ToolTipBubble": "Constructs an input-transparent bubble with retained text, wrapping width, and keyboard-origin metadata.",
-        "initialize_control_tree": "Idempotently creates and attaches the internal label role after shared ownership exists.",
-        "set_content_size": "Commits measured bubble geometry and arranges the label inside theme-scaled padding.",
-        "on_paint": "Records the theme-derived tooltip background and border behind the label child.",
+        "ToolTipBubble": "Constructs an input-transparent bubble from its text and the lines measured for the window's maximum width.",
+        "face_size": "Reports the face's size: the widest line and the lines' height inside the bubble's margins.",
+        "on_paint": "Paints the tool_tip family's shadow and face, then each line as a label part.",
+        "visual_outsets": "Reports the overlay shadow's reach beyond the face.",
         "hit_test_local": "Rejects hit testing so the bubble never becomes an input target.",
-        "semantic_descriptor": "Projects tooltip role, text, and keyboard/pointer origin."
+        "semantic_descriptor": "Projects the tool_tip role named by the text."
       }
     },
     "ErrorProviderChange": {

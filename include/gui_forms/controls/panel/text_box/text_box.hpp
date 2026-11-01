@@ -103,6 +103,9 @@ public:
     [[nodiscard]] std::string_view placeholder_text() const noexcept {
         return placeholder_;
     }
+    // The placeholder shows in the empty field. Without one, the field's
+    // tooltip (Control::field_hint_text) shows there in the same light grey
+    // while the field has focus.
     void set_placeholder_text(std::string text);
     [[nodiscard]] bool read_only() const noexcept;
     void set_read_only(bool read_only);
@@ -323,6 +326,10 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // What the empty field shows in light grey: the placeholder, else the
+    // field hint while focused, else nothing.
+    [[nodiscard]] std::string empty_field_text() const;
+
     struct VisualRun final {
         std::size_t start{};
         std::size_t end{};

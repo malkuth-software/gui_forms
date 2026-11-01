@@ -1170,6 +1170,10 @@ Enumerations
 
    .. cpp:enumerator:: move
 
+   .. cpp:enumerator:: close_all_documents
+
+   .. cpp:enumerator:: close_other_documents
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: FlowCrossAlignment

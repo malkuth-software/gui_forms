@@ -28,9 +28,16 @@ filter : default empty
     (any file) or ``*.extension``; the hosts filter by extension only, so
     other patterns are refused. `set_filter` throws `std::invalid_argument`
     for a string `parse_file_dialog_filter` refuses, and keeps the old
-    filter. The first filter is the one the dialog starts with.
+    filter.
 filters
     The host filters the filter parsed into, in order.
+filter_index : default ``0``
+    The filter the dialog starts with, an index into `filters` counting from
+    zero (Windows Forms' ``FilterIndex`` counts from one). After the user
+    accepts it is the filter they had selected, where the host tells: every
+    host does, except that the host's own "All files" entry (X11's dialog
+    adds one) is no filter of the program's and leaves the index as it was.
+    An index past the filters starts the dialog on the first.
 multiselect : default ``false``
     Whether the user may choose more than one file.
 file_name

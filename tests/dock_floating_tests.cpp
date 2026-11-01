@@ -15,6 +15,7 @@
 #include "application/headless_application.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <iostream>
 #include <memory>
@@ -604,6 +605,48 @@ void close_button_without_a_main_site() {
             "without a main site the close button hides the panel and the window closes");
 }
 
+// A floating window holding a document asks before it closes (phase D6): a
+// cancelled prompt keeps the window and its panels as they were.
+struct CancelClosing final {
+    std::size_t* asked{};
+    bool* cancel{};
+    void operator()(DockDocumentClosing& closing) const {
+        *asked = *asked + 1U;
+        closing.cancel = *cancel && closing.cause == DockCloseCause::floating_window;
+    }
+};
+
+void close_button_asks_about_documents() {
+    std::unique_ptr<App> app = make_app();
+    DockWorkspace& workspace = *(*app).workspace;
+    DockTransaction transaction{};
+    transaction.edits.push_back(DockEdit::float_subject(DockSubject::of_panel(DockPanelId("doc.first")),
+                                                        Rect{300.0, 300.0, 320.0, 220.0}, "headless.monitor.0"));
+    require(workspace.apply(transaction).applied, "the document floats");
+    (*(*app).application).reclaim();
+    lay_out_all(*app);
+    const DockSiteId floating = floating_site_of(workspace, "doc.first");
+    require(!(floating == DockSiteId{}) && workspace.floating_window_count() == 1U,
+            "the document stands in a floating window");
+    std::size_t asked = 0U;
+    bool cancel = true;
+    const SubscriptionToken token = workspace.document_closing().subscribe(CancelClosing{&asked, &cancel});
+    const std::uint64_t before = workspace.layout().generation();
+    (*(*app).application).simulate_user_close(workspace.floating_window(floating).id());
+    static_cast<void>((*(*app).main_model).drain_posted_work());
+    (*(*app).application).reclaim();
+    require(asked == 1U && workspace.floating_window_count() == 1U && workspace.layout().generation() == before &&
+                workspace.layout().locate(DockPanelId("doc.first")).placement == DockPlacementKind::floating,
+            "a cancelled prompt keeps the window and its document");
+    cancel = false;
+    (*(*app).application).simulate_user_close(workspace.floating_window(floating).id());
+    static_cast<void>((*(*app).main_model).drain_posted_work());
+    (*(*app).application).reclaim();
+    require(asked == 2U && workspace.floating_window_count() == 0U &&
+                workspace.layout().locate(DockPanelId("doc.first")).placement == DockPlacementKind::absent,
+            "an allowed prompt closes the document and the window");
+}
+
 } // namespace
 
 int main() {
@@ -617,6 +660,7 @@ int main() {
     restored_window_lands_in_a_work_area();
     close_button_hides_panels();
     close_button_without_a_main_site();
+    close_button_asks_about_documents();
     std::cout << "Floating windows: the Float trace, floating on release and at the limit, docking back, drags "
                  "across windows, moving by the caption, frames saved, Ctrl+S, restore and closing passed\n";
     return EXIT_SUCCESS;

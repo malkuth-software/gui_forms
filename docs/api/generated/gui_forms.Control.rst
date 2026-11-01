@@ -261,6 +261,21 @@ gui_forms::Control
       **accessible_description** : ``std::string``
          A longer description for assistive technology. Empty by default.
 
+      **tool_tip_text** : ``std::string``
+         Short help text about the control, shown by its window's one tooltip
+         presenter when the pointer rests on the control, or below the control
+         when keyboard focus reaches it with the focus cue showing. Controls you
+         type into show it as grey hint text in their empty field while they
+         have focus instead, unless a placeholder is set. Empty by default, and
+         empty text never shows. It must be valid UTF-8, or
+         ``std::invalid_argument`` is thrown. It is bindable and published as the
+         semantic field ``tool_tip``. Data items such as list rows have none.
+
+      **tool_tip_presentation** : ``ToolTipPresentation``, read-only
+
+      **publishes_item_tool_tips** : ``bool``, read-only
+         Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it.
+
       **command_target** : ``std::shared_ptr<CommandTarget>``
          The command target this control offers its window's command routing chain while focus is on it or inside it (the focused route, owner decision DK-29; see gui_forms/commands/command_route). The control shares ownership, so a docking workspace may also name the same target as an active panel's or document's. None by default.
 
@@ -355,6 +370,9 @@ gui_forms::Control
 
       **validated** : ``Event<>``
          Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+      **tool_tip_text_changed** : ``Event<const std::string&>``
+         Raised after :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
 
       **initialization_completed** : ``Event<Dirty, bool>``
          Raised at the end of the outermost :cpp:func:`end_init <gui_forms::Control::end_init>`, after the coalesced
@@ -1014,6 +1032,27 @@ gui_forms::Control
 
       Sets :cpp:func:`accessible_description <gui_forms::Control::accessible_description>`; see the property's description above.
 
+   .. cpp:function:: const std::string& tool_tip_text() const noexcept
+
+      Short help text about the control, shown by its window's one tooltip
+      presenter when the pointer rests on the control, or below the control
+      when keyboard focus reaches it with the focus cue showing. Controls you
+      type into show it as grey hint text in their empty field while they
+      have focus instead, unless a placeholder is set. Empty by default, and
+      empty text never shows. It must be valid UTF-8, or
+      ``std::invalid_argument`` is thrown. It is bindable and published as the
+      semantic field ``tool_tip``. Data items such as list rows have none.
+
+   .. cpp:function:: void set_tool_tip_text(std::string text)
+
+      Sets :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>`; see the property's description above.
+
+   .. cpp:function:: ToolTipPresentation tool_tip_presentation() const noexcept
+
+   .. cpp:function:: bool publishes_item_tool_tips() const noexcept
+
+      Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it.
+
    .. cpp:function:: const std::shared_ptr<CommandTarget>& command_target() const noexcept
 
       The command target this control offers its window's command routing chain while focus is on it or inside it (the focused route, owner decision DK-29; see gui_forms/commands/command_route). The control shares ownership, so a docking workspace may also name the same target as an active panel's or document's. None by default.
@@ -1142,6 +1181,10 @@ gui_forms::Control
    .. cpp:function:: Event<>& validated() noexcept
 
       Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+   .. cpp:function:: Event<const std::string&>& tool_tip_text_changed() noexcept
+
+      Raised after :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
 
    .. cpp:function:: Event<Dirty, bool>& initialization_completed() noexcept
 
@@ -1622,6 +1665,24 @@ gui_forms::Control
    .. cpp:function:: Window* window() const noexcept
 
       *Protected.*
+
+   .. cpp:function:: void set_tool_tip_presentation(ToolTipPresentation presentation) noexcept
+
+      *Protected.*
+
+      Chooses where this type's tooltip shows (ToolTipPresentation); bubble by default. Call it from the constructor, or when the control changes what it is (a ComboBox gaining or losing its edit field).
+
+   .. cpp:function:: std::string field_hint_text() const
+
+      *Protected.*
+
+      The hint a typed-text field paints in light grey while it has focus, is empty and has no placeholder: its own tooltip text, else that of the nearest enclosing field_hint control it edits for (a NumericUpDown's or an editable ComboBox's TextBox). Empty when this control is not a field_hint, or no such text is set.
+
+   .. cpp:function:: void set_publishes_item_tool_tips(bool publishes) noexcept
+
+      *Protected.*
+
+      Declares that this type's semantic virtual children may carry part tooltips (publishes_item_tool_tips). Call it from the constructor.
 
    .. cpp:function:: void require_mutable() const
 

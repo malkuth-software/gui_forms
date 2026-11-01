@@ -44,6 +44,7 @@ bool valid_format(MaskTextFormat format) noexcept {
 
 MaskedTextBox::MaskedTextBox(StableId stable_id, std::string mask)
     : Panel(std::move(stable_id)), provider_(std::move(mask)) {
+    set_tool_tip_presentation(ToolTipPresentation::field_hint);
     set_border_style(BorderStyle::none);
     published_text_ = text();
 }

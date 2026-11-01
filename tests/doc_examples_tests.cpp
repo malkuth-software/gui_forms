@@ -3777,7 +3777,8 @@ void example() {
 
     gf::ToolTip tips(window);
     tips.set_tool_tip(save, "Save the document (Ctrl+S)");
-    // Hovering over or focusing the button now shows the tip after 500 ms.
+    // (*save).tool_tip_text() is now that text; resting the pointer on the
+    // button, or tabbing to it, shows it after 500 ms.
 
     tips.show(save, std::chrono::milliseconds(0));   // until hide()
     // tips.visible() is true and tips.active_control() is save.

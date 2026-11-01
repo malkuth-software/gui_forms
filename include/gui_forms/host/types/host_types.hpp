@@ -300,6 +300,9 @@ struct HostOpenFileDialogRequest final {
     std::string suggested_name;
     std::vector<HostFileDialogFilter> filters;
     bool allow_multiple{};
+    // The filter the dialog starts with, an index into `filters`; zero when
+    // there are none.
+    std::size_t initial_filter{};
 };
 
 struct HostSaveFileDialogRequest final {
@@ -309,6 +312,9 @@ struct HostSaveFileDialogRequest final {
     std::string default_extension;
     std::vector<HostFileDialogFilter> filters;
     bool confirm_overwrite{true};
+    // The filter the dialog starts with, an index into `filters`; zero when
+    // there are none.
+    std::size_t initial_filter{};
 };
 
 struct HostFolderDialogRequest final {
@@ -345,6 +351,11 @@ struct HostMessageDialogResult final {
 struct HostPathDialogResult final {
     HostDialogOutcome outcome{HostDialogOutcome::cancelled};
     std::vector<std::string> paths;
+    // For an accepted file dialog, the request's filter selected when the
+    // user accepted, an index into its `filters`; none when the request had
+    // no filters, the user chose a filter the host added (such as "All
+    // files"), or the host cannot tell.
+    std::optional<std::size_t> chosen_filter{};
 };
 
 struct HostColorDialogResult final {

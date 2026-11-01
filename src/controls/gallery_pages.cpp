@@ -468,8 +468,9 @@ void initialize_gallery_runtime(Window& window) {
         window.find("gallery.timing.tooltip.persistent"));
     (*(*context).tooltips).set_tool_tip(
         hover, "Retained hover help is delayed, cancellable, clipped to the client, and input-transparent.");
-    (*(*context).tooltips).set_tool_tip(
-        keyboard, "Keyboard focus exposes the same factual help without changing accessible names.");
+    // Tooltip text belongs to the control; the ToolTip provider is only the
+    // Windows Forms way to set it.
+    (*keyboard).set_tool_tip_text("Keyboard focus shows the same text, below the control, without changing its accessible name.");
     (*(*context).tooltips).set_tool_tip(
         persistent, "Click to hold this tooltip open until another interaction dismisses it.");
     (*(*context).tooltips).set_tool_tip(

@@ -6,9 +6,12 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <span>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace gui_forms {
@@ -40,10 +43,16 @@ public:
     void set_initial_directory(std::string directory);
 
     // The filter in Windows Forms' syntax, as set, and the host filters it
-    // parsed into. The first filter is the one the dialog starts with.
+    // parsed into.
     [[nodiscard]] const std::string& filter() const noexcept { return filter_; }
     void set_filter(std::string filter);
     [[nodiscard]] std::span<const HostFileDialogFilter> filters() const noexcept { return filters_; }
+    // The filter the dialog starts with, an index into filters() (Windows
+    // Forms' FilterIndex, which counts from one; this counts from zero).
+    // After the user accepts it is the filter they had selected, where the
+    // host tells; an index past the filters starts the dialog on the first.
+    [[nodiscard]] std::size_t filter_index() const noexcept { return filter_index_; }
+    void set_filter_index(std::size_t index) noexcept { filter_index_ = index; }
 
     // The extension a chosen name without one is given, without its dot
     // (Windows Forms' DefaultExt; a leading dot is removed when set). An
@@ -51,8 +60,9 @@ public:
     // forbids in a name throws std::invalid_argument.
     [[nodiscard]] const std::string& default_ext() const noexcept { return default_ext_; }
     void set_default_ext(std::string extension);
-    // Whether a chosen name without an extension is given default_ext
-    // (Windows Forms' AddExtension; on by default).
+    // Whether a chosen name without an extension is given one (Windows
+    // Forms' AddExtension; on by default): the chosen filter's first
+    // extension, unless that filter is any file, else default_ext.
     [[nodiscard]] bool add_extension() const noexcept { return add_extension_; }
     void set_add_extension(bool add) noexcept { add_extension_ = add; }
     // Whether the host asks before the user chooses a file that exists
@@ -98,11 +108,13 @@ private:
     struct Presence final {};
 
     [[nodiscard]] HostSaveFileDialogRequest request() const;
+    [[nodiscard]] std::string_view added_extension(std::optional<std::size_t> chosen_filter) const noexcept;
 
     std::string title_{};
     std::string initial_directory_{};
     std::string filter_{};
     std::vector<HostFileDialogFilter> filters_{};
+    std::size_t filter_index_{};
     std::string default_ext_{};
     bool add_extension_{true};
     bool overwrite_prompt_{true};

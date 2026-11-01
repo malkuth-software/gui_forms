@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 
 #include "../collection_control_utilities.hpp"
+#include "../cut_off_text/cut_off_text_reveal.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 
@@ -18,12 +19,15 @@
 namespace gui_forms {
 
 using namespace collection_detail;
-TreeView::TreeView(StableId stable_id) : Panel(std::move(stable_id)) {
+TreeView::TreeView(StableId stable_id)
+    : Panel(std::move(stable_id)), reveal_(std::make_unique<detail::CutOffTextRevealer>()) {
     set_paint_plane(PaintPlane::control);
     set_background(style().paper);
     set_border_style(BorderStyle::sunken);
     set_focusable(true);
 }
+
+TreeView::~TreeView() {}
 
 void TreeView::set_items(std::vector<TreeViewItem> items) {
     require_mutable();
@@ -140,6 +144,7 @@ void TreeView::set_top_row(std::size_t row) {
     }
     if (top_row_ == row) return;
     top_row_ = row;
+    conceal_cut_off_text();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -193,8 +198,60 @@ void TreeView::rebuild_visible() {
     }
     top_row_ = visible_.empty() ? 0U : std::min(top_row_, visible_.size() - 1U);
     hovered_row_.reset();
+    conceal_cut_off_text();
     pressed_row_.reset();
     pressed_expander_ = false;
+}
+
+double TreeView::text_left(const TreeViewItem& item, double row_height) const {
+    const double indent = 7.0 + static_cast<double>(item.depth) * indentation_ * effective_text_scale();
+    double left = indent + 14.0;
+    if (image_list_ && (*image_list_).is_alive() && !item.image_key.empty()) {
+        const Size logical = (*image_list_).image_size();
+        const double slot_height = std::min(logical.height, std::max(0.0, row_height - 4.0));
+        const double slot_width = logical.height > 0.0 ? logical.width * slot_height / logical.height : 0.0;
+        left += slot_width + 5.0;
+    }
+    return left;
+}
+
+// The hovered node's text, revealed in place when the view's right edge
+// (its paint clip) cuts it off (owner decision, 2026-10-28), painted as the
+// row paints: the selection fill, else the hover fill.
+void TreeView::reveal_cut_off_text(std::size_t visible_row) {
+    if (visible_row >= visible_.size() || visible_row < top_row_) {
+        conceal_cut_off_text();
+        return;
+    }
+    const TreeViewItem& item = items_[visible_[visible_row]];
+    const Rect bounds = absolute_bounds();
+    const double row_height = item_height_ * effective_text_scale();
+    const double y = 2.0 + static_cast<double>(visible_row - top_row_) * row_height;
+    const double left = text_left(item, row_height);
+    const double clip_right = std::max(0.0, bounds.width - 2.0);
+    if (item.text.empty() || left >= clip_right) {
+        conceal_cut_off_text();
+        return;
+    }
+    const FontSpec font = effective_font(font_);
+    const bool selected = item.stable_id == selected_id_;
+    detail::PlainRevealPaint paint{};
+    paint.face = selected ? (focused_ ? style().accent : style().accent_light) : style().face_light;
+    paint.border = style().dark_border;
+    paint.text = !item.enabled ? style().disabled_text : selected && focused_ ? style().highlight : style().text;
+    detail::CutOffText revealed{};
+    revealed.key = item.stable_id;
+    revealed.row = {bounds.x + left - 2.0, bounds.y + y, clip_right - left + 2.0, row_height};
+    revealed.cell = {bounds.x + left, bounds.y + y, clip_right - left, row_height};
+    revealed.text = item.text;
+    revealed.font = font;
+    revealed.baseline = std::max(font.size, row_height * 0.5 + 4.0);
+    revealed.paint = paint;
+    static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
+}
+
+void TreeView::conceal_cut_off_text() noexcept {
+    if (reveal_) (*reveal_).conceal();
 }
 
 std::size_t TreeView::visible_row_count() const noexcept {
@@ -224,6 +281,9 @@ void TreeView::ensure_visible(std::size_t row) {
 void TreeView::select_visible_row(std::size_t row, bool activate) {
     if (row >= visible_.size()) return;
     if (!items_[visible_[row]].enabled) return;
+    // A reveal shows the row as it was; the next pointer move reveals the
+    // row as it is.
+    conceal_cut_off_text();
     // A copy: a selection handler may replace the items, which ends the
     // item's lifetime, so nothing here reads the item after it runs.
     const std::string item_id = items_[visible_[row]].stable_id;
@@ -279,7 +339,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
         }
         const Color text = !item.enabled ? style().disabled_text
             : selected && focused_ ? style().highlight : style().text;
-        double content_x = indent + 14.0;
+        const double image_x = indent + 14.0;
         if (image_list_ && (*image_list_).is_alive() && !item.image_key.empty()) {
             const ImageVisualState state = !item.enabled
                 ? ImageVisualState::disabled
@@ -296,7 +356,7 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
                 ? logical.width * slot_height / logical.height : 0.0;
             if (resolved && slot_width > 0.0 && slot_height > 0.0) {
                 const Rect destination = fit_image_rect(
-                    {content_x, y + (row_height - slot_height) * 0.5,
+                    {image_x, y + (row_height - slot_height) * 0.5,
                      slot_width, slot_height},
                     resolved.source_size);
                 painter.draw_image(
@@ -305,8 +365,8 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
                             resolved.resolved_state != ImageVisualState::disabled
                         ? 0.45 : 1.0);
             }
-            content_x += slot_width + 5.0;
         }
+        const double content_x = text_left(item, row_height);
         painter.draw_text_utf8({content_x,
                                 y + std::max(font.size, row_height * 0.5 + 4.0)},
                                item.text, font, text);
@@ -324,13 +384,22 @@ void TreeView::on_pointer(PointerEvent& event) {
     if (event.action == PointerAction::move) {
         const std::optional<std::size_t> row = visible_row_at(event.position);
         if (row != hovered_row_) { hovered_row_ = row; invalidate(Dirty::paint); }
+        if (row) {
+            reveal_cut_off_text(*row);
+        } else {
+            conceal_cut_off_text();
+        }
         return;
     }
     if (event.action == PointerAction::leave) {
         hovered_row_.reset();
+        conceal_cut_off_text();
         invalidate(Dirty::paint);
         return;
     }
+    // A press goes to the row under the reveal, which then shows the row as
+    // the press leaves it.
+    if (event.action == PointerAction::down) conceal_cut_off_text();
     if (event.action == PointerAction::wheel && !visible_.empty() &&
         event.wheel_delta.y != 0.0) {
         const std::ptrdiff_t next = std::clamp<std::ptrdiff_t>(

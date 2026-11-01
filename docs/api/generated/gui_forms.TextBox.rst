@@ -262,6 +262,10 @@ gui_forms::TextBox
 
    .. rubric:: Notes
 
+   Its ``tool_tip_text`` shows as grey hint text in the empty box while it has
+   focus, in place of a tooltip bubble; a placeholder takes precedence.
+   Resting the pointer on the box still shows the bubble.
+
    Keyboard, while the box has focus: Left and Right move by grapheme, with Ctrl
    or Alt by word, and with Cmd (Meta) to the start or end of the text; Home and
    End go to the start and end of a single-line box; Shift with any of these

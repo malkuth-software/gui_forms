@@ -68,6 +68,7 @@ void SaveFileDialog::reset() {
     initial_directory_.clear();
     filter_.clear();
     filters_.clear();
+    filter_index_ = 0U;
     default_ext_.clear();
     add_extension_ = true;
     overwrite_prompt_ = true;
@@ -85,7 +86,22 @@ HostSaveFileDialogRequest SaveFileDialog::request() const {
     if (add_extension_) built.default_extension = default_ext_;
     built.filters = filters_;
     built.confirm_overwrite = overwrite_prompt_;
+    built.initial_filter = filter_index_ < filters_.size() ? filter_index_ : 0U;
     return built;
+}
+
+// The extension a chosen name without one is given: the chosen filter's
+// first extension, as Windows Forms takes it, unless that filter is any file
+// or the host did not tell which was chosen; then default_ext. The view
+// borrows the dialog's own settings.
+std::string_view SaveFileDialog::added_extension(std::optional<std::size_t> chosen_filter) const noexcept {
+    if (chosen_filter && *chosen_filter < filters_.size()) {
+        const HostFileDialogFilter& filter = filters_[*chosen_filter];
+        const bool concrete = !filter.extensions.empty() && filter.extensions.front() != "*" &&
+                              detail::file_dialog_extension_valid(filter.extensions.front());
+        if (concrete) return filter.extensions.front();
+    }
+    return default_ext_;
 }
 
 DialogResult SaveFileDialog::show_dialog(Window& owner) {
@@ -126,10 +142,11 @@ DialogResult SaveFileDialog::show_dialog(Window& owner) {
         // A host that has not added the extension (macOS adds it only as an
         // allowed type) leaves it to the dialog; a path the addition would
         // make too long for the dialog contract is kept as chosen.
-        if (add_extension_ && !default_ext_.empty() && !detail::file_dialog_has_extension(path)) {
+        const std::string_view extension = added_extension((*paths).chosen_filter);
+        if (add_extension_ && !extension.empty() && !detail::file_dialog_has_extension(path)) {
             std::string extended = path;
             extended.push_back('.');
-            extended.append(default_ext_);
+            extended.append(extension);
             if (file_dialog_text_valid(extended)) path = std::move(extended);
         }
         FileDialogOk ok{chosen, false};
@@ -137,6 +154,7 @@ DialogResult SaveFileDialog::show_dialog(Window& owner) {
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {
             file_names_ = std::move(chosen);
+            if ((*paths).chosen_filter) filter_index_ = *(*paths).chosen_filter;
             return DialogResult::ok;
         }
         // A cancelled file_ok shows the dialog again, while its window lives.

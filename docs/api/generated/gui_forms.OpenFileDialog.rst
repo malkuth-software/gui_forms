@@ -45,10 +45,18 @@ gui_forms::OpenFileDialog
          (any file) or ``*.extension``; the hosts filter by extension only, so
          other patterns are refused. :cpp:func:`set_filter <gui_forms::OpenFileDialog::set_filter>` throws ``std::invalid_argument``
          for a string ``parse_file_dialog_filter`` refuses, and keeps the old
-         filter. The first filter is the one the dialog starts with.
+         filter.
 
       **filters** : ``std::span<const HostFileDialogFilter>``, read-only
          The host filters the filter parsed into, in order.
+
+      **filter_index** : ``std::size_t``, default ``0``
+         The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::OpenFileDialog::filters>` counting from
+         zero (Windows Forms' ``FilterIndex`` counts from one). After the user
+         accepts it is the filter they had selected, where the host tells: every
+         host does, except that the host's own "All files" entry (X11's dialog
+         adds one) is no filter of the program's and leaves the index as it was.
+         An index past the filters starts the dialog on the first.
 
       **multiselect** : ``bool``, default ``false``
          Whether the user may choose more than one file.
@@ -175,7 +183,7 @@ gui_forms::OpenFileDialog
       (any file) or ``*.extension``; the hosts filter by extension only, so
       other patterns are refused. :cpp:func:`set_filter <gui_forms::OpenFileDialog::set_filter>` throws ``std::invalid_argument``
       for a string ``parse_file_dialog_filter`` refuses, and keeps the old
-      filter. The first filter is the one the dialog starts with.
+      filter.
 
    .. cpp:function:: void set_filter(std::string filter)
 
@@ -184,6 +192,19 @@ gui_forms::OpenFileDialog
    .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
 
       The host filters the filter parsed into, in order.
+
+   .. cpp:function:: std::size_t filter_index() const noexcept
+
+      The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::OpenFileDialog::filters>` counting from
+      zero (Windows Forms' ``FilterIndex`` counts from one). After the user
+      accepts it is the filter they had selected, where the host tells: every
+      host does, except that the host's own "All files" entry (X11's dialog
+      adds one) is no filter of the program's and leaves the index as it was.
+      An index past the filters starts the dialog on the first.
+
+   .. cpp:function:: void set_filter_index(std::size_t index) noexcept
+
+      Sets :cpp:func:`filter_index <gui_forms::OpenFileDialog::filter_index>`; see the property's description above.
 
    .. cpp:function:: bool multiselect() const noexcept
 

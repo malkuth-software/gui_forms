@@ -24,7 +24,6 @@ struct BindingCompleteEvent;
 struct BindingListChange;
 struct ControlAvailabilityChange;
 struct PresentationSettings;
-class ToolTip;
 class Window;
 
 namespace detail {
@@ -172,7 +171,6 @@ private:
 
     std::weak_ptr<detail::WindowLifetime> window_lifetime_;
     EntryMap entries_;
-    std::unique_ptr<ToolTip> tool_tip_;
     SubscriptionToken availability_subscription_;
     SubscriptionToken presentation_subscription_;
     SubscriptionToken root_bounds_subscription_;

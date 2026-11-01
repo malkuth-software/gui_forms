@@ -175,10 +175,9 @@ void plain_tool_tip() {
     require(bubble != nullptr, "the plain tooltip shows its bubble");
     require_cast_shadow(*bubble, *fixture.theme, "the plain tooltip's bubble casts the overlay shadow");
     require(painted_colour(*bubble, marker_face), "the plain tooltip's face comes from the tooltip family");
-    const VisualControlInspection* text = find_overlay(snapshot, ".bubble.text");
+    // The bubble paints its lines itself, as label parts.
     const ControlVisualContext ordinary{};
-    require(text != nullptr &&
-                painted_colour(*text, (*fixture.theme).resolve(ControlVisualRole::tool_tip, ordinary).text),
+    require(painted_colour(*bubble, (*fixture.theme).resolve(ControlVisualRole::tool_tip, ordinary).text),
             "the plain tooltip's text takes the tooltip family's colour");
 
     // Hiding damages the whole shadow, not only the bubble's rect.
@@ -195,11 +194,9 @@ void plain_tool_tip() {
     const VisualControlInspection* plain = find_overlay(contrast, ".bubble");
     require(plain != nullptr, "the plain tooltip shows in high contrast");
     require_no_shadow(*plain, "the plain tooltip casts no shadow in high contrast");
-    const VisualControlInspection* contrast_text = find_overlay(contrast, ".bubble.text");
     ControlVisualContext high{};
     high.high_contrast = true;
-    require(contrast_text != nullptr &&
-                painted_colour(*contrast_text, (*fixture.theme).resolve(ControlVisualRole::tool_tip, high).text),
+    require(painted_colour(*plain, (*fixture.theme).resolve(ControlVisualRole::tool_tip, high).text),
             "the plain tooltip's text follows the tooltip family into high contrast");
 }
 

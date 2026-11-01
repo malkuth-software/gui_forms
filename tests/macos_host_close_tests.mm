@@ -478,13 +478,17 @@ bool test_isolated_macos_services() {
         {101, "test.window", std::move(message_request)});
     gui_forms::HostOpenFileDialogRequest open_request;
     open_request.title = "M3d open";
-    open_request.filters = {{"Text", {"txt"}}};
+    // Two filters put the filter popup in the panel, starting on the second.
+    open_request.filters = {{"Text", {"txt"}}, {"Logs", {"log"}}};
+    open_request.initial_filter = 1U;
     const gui_forms::HostDialogResult open = (*services).show_dialog(
         {102, "test.window", std::move(open_request)});
     gui_forms::HostSaveFileDialogRequest save_request;
     save_request.title = "M3d save";
     save_request.suggested_name = "evidence";
     save_request.default_extension = "txt";
+    save_request.filters = {{"Text", {"txt"}}, {"Any file", {"*"}}};
+    save_request.initial_filter = 1U;
     const gui_forms::HostDialogResult save = (*services).show_dialog(
         {103, "test.window", std::move(save_request)});
     const gui_forms::HostDialogResult folder = (*services).show_dialog(
