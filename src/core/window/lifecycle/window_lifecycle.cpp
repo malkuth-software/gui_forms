@@ -4,6 +4,7 @@
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "../accelerator/accelerator_attachment.hpp"
 #include "../popup/popup_attachment.hpp"
+#include "../tool_tips/tool_tip_presenter.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -33,6 +34,7 @@ Window::Window(Control::Ptr root, Size client_size,
       lifetime_(std::make_shared<detail::WindowLifetime>()),
       ui_thread_(std::this_thread::get_id()),
       dispatcher_state_(std::make_shared<detail::DispatcherState>(ui_thread_)) {
+    tool_tip_presenter_ = std::make_unique<detail::ToolTipPresenter>(*this);
     initialize_cursor_identity();
     (*lifetime_).window = this;
     if (!resources_) {
@@ -62,6 +64,9 @@ Window::Window(Control::Ptr root, Size client_size,
     (*resources_).attach(*this);
 }
 Window::~Window() {
+    // The tooltip presenter goes first: it holds a popup and a wake, and
+    // raises nothing while it shuts down.
+    if (tool_tip_presenter_) (*tool_tip_presenter_).shutdown();
     invalidate_cursor_interaction(CursorError::closing);
     paint_wake_handler_ = {};
     paint_wake_pending_ = false;

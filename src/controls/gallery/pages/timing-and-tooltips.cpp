@@ -135,7 +135,7 @@ void TimingPage::build_timer(const std::shared_ptr<Surface>& body, PageContext& 
 void TimingPage::build_tooltips(const std::shared_ptr<Surface>& body,
                                 PageContext& context) {
     std::shared_ptr<LayoutGroup> tips_group = group(
-        "gallery.timing.tooltip.group", "ToolTip · attached provider and retained overlay",
+        "gallery.timing.tooltip.group", "ToolTip · text on each control, one presenter per window",
         {930.0, 264.0});
     (*body).add_at(tips_group, {24.0, 362.0, 930.0, 264.0});
     std::shared_ptr<Button> hover =
@@ -161,7 +161,7 @@ void TimingPage::build_tooltips(const std::shared_ptr<Surface>& body,
 
     std::shared_ptr<Label> policy = label(
         "gallery.timing.tooltip.policy",
-        "Hover: 420 ms · Reshow: 90 ms · Auto-pop: 4 s\nKeyboard focus uses the same provider. Popups follow moving targets and disappear with their owner.",
+        "Hover: 420 ms · Reshow: 90 ms · Auto-pop: 4 s\nEach control carries its own tooltip text; the window's one presenter shows it on rest and on keyboard focus, follows moving targets and closes with its owner.",
         10.0, 400, muted);
     (*policy).set_text_wrapping(TextWrapping::word);
     (*policy).set_vertical_alignment(VerticalAlignment::near);

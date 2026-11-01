@@ -4,68 +4,77 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/window/tool_tips/tool_tips.hpp"
 
 #include <chrono>
+#include <functional>
+#include <map>
 #include <memory>
-#include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 namespace gui_forms {
 
 class Control;
-class Timer;
 class Window;
 
-struct ToolTipEvent final {
-    std::string target_stable_id;
-    std::string text;
-    bool shown{};
-    bool keyboard_initiated{};
-};
-
-// A nonvisual provider. Each mapping is tokenized to the target Control and
-// presents a retained, input-transparent overlay owned by that target.
+// The Windows Forms way to set tooltip text and timing (owner, 2026-10-28).
+// A ToolTip shows nothing itself: tooltips belong to the things they
+// describe, and each window has one presenter (see ToolTipSettings).
+// set_tool_tip writes the target's Control::tool_tip_text; the delays, the
+// width and the policies are the window's ToolTipSettings, which every
+// ToolTip of the window shares, so the last one set holds.
+// visibility_changed reports the window's tooltips for the targets this
+// ToolTip set. Disposing a ToolTip clears the text it set. UI thread only;
+// every operation throws std::logic_error once the ToolTip is disposed or
+// its window is gone.
 class ToolTip final : public Component {
 public:
     explicit ToolTip(Window& window);
     ~ToolTip() override;
 
+    // Sets `target`'s tooltip text; empty text removes it. Throws
+    // std::invalid_argument for a target that is not a live control attached
+    // to this ToolTip's window, or text that is not valid UTF-8.
     void set_tool_tip(const std::shared_ptr<Control>& target, std::string text);
+    // `target`'s tooltip text, whoever set it.
     [[nodiscard]] std::string tool_tip(const Control& target) const;
-    bool remove_tool_tip(const Control& target);
+    // Clears the text this ToolTip set on `target`: false, changing nothing,
+    // when it set none there.
+    bool remove_tool_tip(Control& target);
+    // Clears the text this ToolTip set on every target.
     void clear();
 
-    [[nodiscard]] std::chrono::milliseconds initial_delay() const noexcept {
-        return initial_delay_;
-    }
+    // The window's ToolTipSettings, read and written field by field. The
+    // setters throw std::invalid_argument for a negative delay and for a
+    // width outside 80 to 2048, changing nothing.
+    [[nodiscard]] std::chrono::milliseconds initial_delay() const;
     void set_initial_delay(std::chrono::milliseconds delay);
-    [[nodiscard]] std::chrono::milliseconds reshow_delay() const noexcept {
-        return reshow_delay_;
-    }
+    [[nodiscard]] std::chrono::milliseconds reshow_delay() const;
     void set_reshow_delay(std::chrono::milliseconds delay);
-    [[nodiscard]] std::chrono::milliseconds auto_pop_delay() const noexcept {
-        return auto_pop_delay_;
-    }
+    [[nodiscard]] std::chrono::milliseconds auto_pop_delay() const;
     void set_auto_pop_delay(std::chrono::milliseconds delay);
-    [[nodiscard]] bool show_on_hover() const noexcept { return show_on_hover_; }
+    [[nodiscard]] bool show_on_hover() const;
     void set_show_on_hover(bool value);
-    [[nodiscard]] bool show_on_focus() const noexcept { return show_on_focus_; }
+    [[nodiscard]] bool show_on_focus() const;
     void set_show_on_focus(bool value);
-    [[nodiscard]] bool show_always() const noexcept { return show_always_; }
+    // Whether a disabled control's tooltip shows
+    // (ToolTipSettings::show_when_disabled).
+    [[nodiscard]] bool show_always() const;
     void set_show_always(bool value);
-    [[nodiscard]] double maximum_width() const noexcept {
-        return maximum_width_;
-    }
+    [[nodiscard]] double maximum_width() const;
     void set_maximum_width(double width);
 
+    // Shows `target`'s tooltip at once, below it (Window::show_tool_tip),
+    // for the auto-pop delay or for `duration` (zero: until hidden). Throws
+    // std::invalid_argument for a target this ToolTip set no text on.
     void show(const std::shared_ptr<Control>& target);
-    void show(const std::shared_ptr<Control>& target,
-              std::chrono::milliseconds duration);
+    void show(const std::shared_ptr<Control>& target, std::chrono::milliseconds duration);
+    // Closes the window's tooltip when it shows one of this ToolTip's
+    // targets.
     void hide();
-    [[nodiscard]] bool visible() const noexcept;
-    [[nodiscard]] std::shared_ptr<Control> active_control() const noexcept;
+    [[nodiscard]] bool visible() const;
+    [[nodiscard]] std::shared_ptr<Control> active_control() const;
 
     [[nodiscard]] Event<const ToolTipEvent&>& visibility_changed() noexcept {
         return visibility_changed_;
@@ -77,59 +86,19 @@ protected:
     void on_dispose() noexcept override;
 
 private:
-    struct Entry;
-    struct TargetPointerObserver;
-    struct TargetFocusObserver;
-    struct TargetBoundsObserver;
-    struct PopupRevocationObserver;
-    using EntryMap =
-        std::unordered_map<std::uint64_t, std::unique_ptr<Entry>>;
-    enum class PendingAction : std::uint8_t { none, show, auto_hide };
+    // The targets this ToolTip set text on, by stable ID (the window's
+    // visibility event names targets by stable ID). Observed, never owned.
+    using TargetMap = std::map<std::string, std::weak_ptr<Control>, std::less<>>;
 
     [[nodiscard]] Window* bound_window() const noexcept;
-    void require_access(std::string_view operation) const;
-    [[nodiscard]] Entry* find_entry(const Control& target);
-    [[nodiscard]] const Entry* find_entry(const Control& target) const;
-    void target_pointer(const std::shared_ptr<Control>& target,
-                        const PointerEvent& event);
-    void target_focus(const std::shared_ptr<Control>& target, bool focused);
-    void target_moved(const std::shared_ptr<Control>& target);
-    void schedule_show(const std::shared_ptr<Control>& target,
-                       bool keyboard_initiated, Point pointer_position);
-    void arm(std::chrono::milliseconds delay, PendingAction action);
-    void timer_tick();
-    void show_now(const std::shared_ptr<Control>& target,
-                  bool keyboard_initiated,
-                  std::optional<std::chrono::milliseconds> duration);
-    void position_overlay();
-    void close_overlay(bool emit_change);
-    void popup_revoked();
+    [[nodiscard]] Window& require_access(std::string_view operation) const;
+    [[nodiscard]] bool owns(const Control& target) const;
+    void window_tool_tip_changed(const ToolTipEvent& change);
 
     std::weak_ptr<detail::WindowLifetime> window_lifetime_;
-    std::unique_ptr<Timer> timer_;
-    EntryMap entries_;
-    std::weak_ptr<Control> pending_target_;
-    std::weak_ptr<Control> visible_target_;
-    std::shared_ptr<Control> overlay_layer_;
-    std::shared_ptr<Control> overlay_bubble_;
-    class PopupHolder;
-    std::unique_ptr<PopupHolder> popup_;
-    SubscriptionToken timer_subscription_;
-    SubscriptionToken popup_subscription_;
+    TargetMap targets_;
+    SubscriptionToken window_subscription_;
     Event<const ToolTipEvent&> visibility_changed_;
-    std::chrono::milliseconds initial_delay_{500};
-    std::chrono::milliseconds reshow_delay_{100};
-    std::chrono::milliseconds auto_pop_delay_{5000};
-    FrameTime last_hidden_{};
-    Point pointer_position_{};
-    PendingAction pending_action_{PendingAction::none};
-    bool keyboard_initiated_{};
-    bool anchor_to_target_{};
-    bool show_on_hover_{true};
-    bool show_on_focus_{true};
-    bool show_always_{};
-    double maximum_width_{336.0};
-    std::uint64_t provider_id_{};
 };
 
 } // namespace gui_forms

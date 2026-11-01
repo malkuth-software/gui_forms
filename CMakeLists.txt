@@ -314,6 +314,9 @@ add_library(gui_forms_core STATIC
     src/core/window/engine_inputs/window_engine_inputs.cpp
     src/core/window/engine_motion/window_engine_motion.cpp
     src/core/window/popup/popup_token.cpp
+    src/core/window/tool_tips/tool_tip_bubble.cpp
+    src/core/window/tool_tips/tool_tip_presenter.cpp
+    src/core/window/tool_tips/window_tool_tips.cpp
     src/core/window/accelerator/accelerator_token.cpp
     src/core/control/dispatcher/control_dispatcher.cpp
     src/core/component/component/component.cpp
@@ -786,8 +789,7 @@ add_library(gui_forms_controls STATIC
     src/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.cpp
     src/controls/scrollable_control/scroll_properties/scroll_properties.cpp
     src/controls/scrollable_control/scrollable_control.cpp
-    src/controls/tool_tip/tool_tip_layer/tool_tip_layer.cpp
-    src/controls/tool_tip/tool_tip_bubble/tool_tip_bubble.cpp
+    src/controls/ribbon_tool_tip/ribbon_tool_tip_layer/ribbon_tool_tip_layer.cpp
     src/controls/tool_tip/tool_tip.cpp
     src/controls/ribbon_tool_tip/ribbon_tool_tip_bubble.cpp
     src/controls/ribbon_tool_tip/ribbon_tool_tip.cpp

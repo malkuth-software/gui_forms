@@ -210,6 +210,13 @@ public:
     // holds in all. Made on first use; lives as long as the process. UI
     // thread only.
     [[nodiscard]] static const std::shared_ptr<KeyBindings>& key_bindings();
+    // The program's tooltip switch (owner, 2026-10-28): whether tooltips
+    // show in every window whose own switch is unset
+    // (Window::set_tool_tips_shown). On by default. A window reads it when
+    // a tooltip would show, so a tooltip that already shows stays until it
+    // closes. Any thread.
+    static void set_tool_tips_shown(bool shown) noexcept;
+    [[nodiscard]] static bool tool_tips_shown() noexcept;
     [[nodiscard]] static ApplicationResult run(
         std::unique_ptr<Window> window, ApplicationWindowOptions options = {});
     [[nodiscard]] static ApplicationResult run(

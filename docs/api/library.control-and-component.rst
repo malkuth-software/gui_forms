@@ -2562,6 +2562,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ToolTipPresentation
+
+   ``#include <gui_forms/control/control/control.hpp>``
+
+   .. cpp:enumerator:: bubble
+
+   .. cpp:enumerator:: field_hint
+
+   .. cpp:enumerator:: owner_item
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: TrackBreadthKind
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``

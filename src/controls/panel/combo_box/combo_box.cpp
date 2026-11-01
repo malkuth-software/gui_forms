@@ -235,6 +235,9 @@ void ComboBox::create_editor() {
         Delegate<bool>::bind<ComboBox, &ComboBox::editor_focus_changed>(*this));
     add_child(editor_);
     configure_editor_auto_complete();
+    // With an edit field the combo box is a typed-text field: its tooltip
+    // shows as the field's hint on focus.
+    set_tool_tip_presentation(ToolTipPresentation::field_hint);
     // The editor takes the focus for the field.
     set_focusable(false);
     Window* const host = window();
@@ -251,6 +254,7 @@ void ComboBox::remove_editor() {
     editor_.reset();
     focused_ = false;
     set_focusable(true);
+    set_tool_tip_presentation(ToolTipPresentation::bubble);
     Window* const host = window();
     if (had_focus && host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
 }

@@ -4,9 +4,9 @@
 
 namespace gui_forms {
 
-class ToolTipLayer final : public Control {
+class RibbonToolTipLayer final : public Control {
 public:
-    explicit ToolTipLayer(StableId stable_id);
+    explicit RibbonToolTipLayer(StableId stable_id);
     [[nodiscard]] bool hit_test_local(Point point) const override;
 };
 

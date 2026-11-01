@@ -12,9 +12,9 @@ typed records (`(*bar).parts().thumb`) and registers handlers through each type'
 (`(*button).clicked()`). An interaction's payload is the handler's argument types; *by
 reference* marks a payload the handler receives by mutable reference.
 
-Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `bounds`, `causes_validation`, `dock`, `enabled`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `visible`.
+Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `bounds`, `causes_validation`, `dock`, `enabled`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
-Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
+Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
 
 ## Vocabulary
 
@@ -40,7 +40,7 @@ Semantic actions: `focus`, `press`, `select`, `increment`, `decrement`, `expand`
 
 Semantic states: `enabled`, `visible`, `focusable`, `focused`, `selected`, `checked`, `mixed`, `read_only`, `expanded`, `busy`, `protected_content`, `invalid`, `checkable`, `multiselectable`.
 
-Semantic node fields: `position_in_set`, `set_size`, `has_popup`, `controlled_panel`, `orientation`, `level`, `modal`, `row_index`, `column_index`, `row_count`, `column_count`, `access_key`, `small_step`, `large_step`, `text_selection`, `multiline`.
+Semantic node fields: `position_in_set`, `set_size`, `has_popup`, `controlled_panel`, `orientation`, `level`, `modal`, `row_index`, `column_index`, `row_count`, `column_count`, `access_key`, `small_step`, `large_step`, `text_selection`, `multiline`, `tool_tip`.
 
 ## Engine
 

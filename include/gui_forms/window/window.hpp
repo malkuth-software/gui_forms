@@ -19,6 +19,7 @@
 #include "gui_forms/resources.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
+#include "gui_forms/window/tool_tips/tool_tips.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 
 #include <chrono>
@@ -59,6 +60,7 @@ struct LiveSurfaceIdleWake;
 class PopupAttachment;
 class AcceleratorAttachment;
 class RecordingPainter;
+class ToolTipPresenter;
 }
 
 class PopupToken final {
@@ -675,6 +677,47 @@ public:
     [[nodiscard]] PopupToken open_popup(const Control::Ptr& owner,
                                         const Control::Ptr& popup,
                                         PopupOptions options = {});
+
+    // Tooltips (owner, 2026-10-28). The window has one presenter, which
+    // shows the plain tooltip text of its controls and of their authored
+    // parts (see ToolTipSettings) in a retained, input-transparent overlay.
+    // The window's switch, when set, decides whether its tooltips show;
+    // unset, the default, the program's switch decides
+    // (Application::tool_tips_shown). Turning tooltips off closes one that
+    // shows. UI thread.
+    [[nodiscard]] std::optional<bool> tool_tips_shown_setting() const noexcept {
+        return tool_tips_shown_;
+    }
+    void set_tool_tips_shown(std::optional<bool> shown);
+    // Whether this window's tooltips show now: its own switch, or the
+    // program's while it has none.
+    [[nodiscard]] bool tool_tips_shown() const noexcept;
+    [[nodiscard]] const ToolTipSettings& tool_tip_settings() const noexcept {
+        return tool_tip_settings_;
+    }
+    // Throws std::invalid_argument for a negative delay or a maximum width
+    // outside 80 to 2048 (or not finite), changing nothing. A tooltip that
+    // shows is laid out again at a new width.
+    void set_tool_tip_settings(ToolTipSettings settings);
+    // Shows `target`'s own tooltip at once, below it, whatever the switches,
+    // for `duration` (none: the settings' auto_pop_delay; zero: until
+    // hidden). Throws std::invalid_argument for a target that is not a live
+    // control attached to this window or whose tooltip text is empty, and
+    // for a negative duration.
+    void show_tool_tip(const Control::Ptr& target,
+                       std::optional<std::chrono::milliseconds> duration = std::nullopt);
+    // Closes the tooltip that shows, and cancels one waiting to show.
+    void hide_tool_tip();
+    [[nodiscard]] bool tool_tip_visible() const noexcept;
+    // The control whose tooltip shows, the authored part's ID (empty for the
+    // control itself) and the shown text; none and empty while none shows.
+    [[nodiscard]] Control::Ptr tool_tip_target() const noexcept;
+    [[nodiscard]] std::string tool_tip_item_id() const;
+    [[nodiscard]] std::string tool_tip_text() const;
+    // Raised after a tooltip opened, and after it closed.
+    [[nodiscard]] Event<const ToolTipEvent&>& tool_tip_visibility_changed() noexcept {
+        return tool_tip_visibility_changed_;
+    }
     // Window accelerators are tried only after the focused retained route
     // declines a key, preserving editor/menu ownership of their native keys.
     // Registrations are revoked by either the token or owner disposal.
@@ -848,6 +891,21 @@ private:
     friend class Control;
     friend class UpdateScope;
     friend class Timer;
+    friend class detail::ToolTipPresenter;
+    // Called by Control::set_tool_tip_text: a tooltip that shows the
+    // control's text shows the new text, or closes when it is empty.
+    void tool_tip_text_changed(Control& control);
+    // Called by RibbonToolTip: while covered, the plain presenter shows no
+    // tooltip for `control`'s part `item_id` (empty: the control itself),
+    // because the enhanced one describes it. Covers count, so two providers
+    // covering one thing both uncover it before it shows again.
+    void cover_tool_tip(RuntimeId control, std::string_view item_id, bool covered);
+    // dispatch_key's routing, after the paint-lease check.
+    bool route_key(KeyEvent event);
+    // Called by the tooltip presenter: a one-shot wake at `deadline` on the
+    // UI thread, revoked by the token.
+    [[nodiscard]] FrameRequestToken request_tool_tip_wake(
+        FrameTime deadline, std::function<void(FrameTime)> callback);
     friend class BackgroundWorker;
     friend class ToolTip;
     friend class RibbonToolTip;
@@ -1338,6 +1396,12 @@ private:
     Event<const ControlAvailabilityChange&> control_availability_changed_;
     PopupList popups_;
     AcceleratorList accelerators_;
+    // The window's one tooltip presenter; made with the window, shut down
+    // first in its destructor (it holds a popup).
+    std::unique_ptr<detail::ToolTipPresenter> tool_tip_presenter_;
+    ToolTipSettings tool_tip_settings_{};
+    std::optional<bool> tool_tips_shown_{};
+    Event<const ToolTipEvent&> tool_tip_visibility_changed_;
     // The active panel's, active document's and main window's command
     // targets, in that order; observed, never owned.
     std::array<std::weak_ptr<CommandTarget>, 3> command_targets_{};

@@ -569,8 +569,8 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
                 std::string_view(semantic_state_name(SemanticState::multiselectable)) == "multiselectable",
             "the new roles and states have their names");
     const std::span<const char* const> fields = semantic_field_names();
-    require(fields.size() == 16U && std::string_view(fields[5]) == "level" &&
-                std::string_view(fields[15]) == "multiline",
+    require(fields.size() == 17U && std::string_view(fields[5]) == "level" &&
+                std::string_view(fields[15]) == "multiline" && std::string_view(fields[16]) == "tool_tip",
             "the field list names the admitted fields in order");
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("stage-a.root"));
     std::shared_ptr<StageAFields> item = make_control<StageAFields>(StableId("stage-a.item"));

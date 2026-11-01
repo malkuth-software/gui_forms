@@ -425,6 +425,14 @@ Control::Control(StableId stable_id)
         RegisteredPropertyConnector<RegisteredProperty::causes_validation>{
             this},
         {}, {}});
+    define_bindable_property({
+        {"tool_tip_text", BindingValueKind::text, "Behavior",
+         "Plain tooltip text the window's presenter shows; empty never shows.",
+         BindingValue{std::string{}}, Dirty::semantics},
+        RegisteredPropertyGetter<RegisteredProperty::tool_tip_text>{this},
+        RegisteredPropertySetter<RegisteredProperty::tool_tip_text>{this},
+        RegisteredPropertyConnector<RegisteredProperty::tool_tip_text>{this},
+        {}, {}});
 
     PropertyDescriptor bounds;
     bounds.name = "bounds";
@@ -2079,6 +2087,39 @@ void Control::set_accessible_description(std::string description) {
     invalidate(Dirty::semantics);
 }
 
+void Control::set_tool_tip_text(std::string text) {
+    require_mutable();
+    if (!validate_utf8(text).valid()) {
+        throw std::invalid_argument("GUI.Forms tooltip text must be valid UTF-8");
+    }
+    if (tool_tip_text_ == text) return;
+    tool_tip_text_ = std::move(text);
+    // A field hint is painted by the field itself: this control, or the
+    // field_hint editors it encloses, which paint its text when they have
+    // none of their own.
+    const bool hinted = tool_tip_presentation_ == ToolTipPresentation::field_hint;
+    const Dirty effects = hinted ? Dirty::semantics | Dirty::paint : Dirty::semantics;
+    invalidate(effects);
+    if (hinted) {
+        for (const Ptr& child : children_) {
+            if ((*child).tool_tip_presentation_ == ToolTipPresentation::field_hint) (*child).invalidate(Dirty::paint);
+        }
+    }
+    publish_change(tool_tip_text_changed_, tool_tip_text_);
+    if (window_ != nullptr) (*window_).tool_tip_text_changed(*this);
+}
+
+std::string Control::field_hint_text() const {
+    const Control* current = this;
+    Ptr owner;
+    while (current != nullptr && (*current).tool_tip_presentation_ == ToolTipPresentation::field_hint) {
+        if (!(*current).tool_tip_text_.empty()) return (*current).tool_tip_text_;
+        owner = (*current).parent_.lock();
+        current = owner.get();
+    }
+    return {};
+}
+
 CursorKind Control::effective_cursor() const noexcept {
     const Control* current = this;
     Ptr owner;
@@ -3123,7 +3164,7 @@ void Control::on_dispose() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 13> control_interactions{{
+constexpr std::array<InteractionDeclaration, 14> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -3131,6 +3172,7 @@ constexpr std::array<InteractionDeclaration, 13> control_interactions{{
     {.name = "causes_validation_changed", .payload = "bool", .mutable_payload = false},
     {.name = "validating", .payload = "ControlValidationEvent", .mutable_payload = true},
     {.name = "validated", .payload = "", .mutable_payload = false},
+    {.name = "tool_tip_text_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "initialization_completed", .payload = "Dirty, bool", .mutable_payload = false},
     {.name = "pointer_observed", .payload = "PointerEvent", .mutable_payload = false},
     {.name = "pointer_preview_observed", .payload = "PointerEvent", .mutable_payload = false},

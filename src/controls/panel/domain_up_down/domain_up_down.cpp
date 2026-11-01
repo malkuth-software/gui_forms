@@ -60,6 +60,7 @@ struct SortedItemOrder final {
 } // namespace
 
 DomainUpDown::DomainUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
+    set_tool_tip_presentation(ToolTipPresentation::field_hint);
     set_border_style(BorderStyle::line);
     set_background(style().paper);
 }

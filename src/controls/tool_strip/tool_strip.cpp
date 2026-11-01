@@ -107,6 +107,8 @@ ToolStrip::ToolStrip(StableId stable_id, StatusLayout) : Control(std::move(stabl
 
 void ToolStrip::construct() {
     set_focusable(true);
+    // Items carry their own tooltips in their semantic nodes.
+    set_publishes_item_tool_tips(true);
     set_cursor(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
     popup_ = std::make_unique<ContextMenu>(std::string(stable_id().value()) + ".menu");
@@ -138,7 +140,7 @@ void ToolStrip::set_items(std::vector<ToolStripItemSpec> items) {
         // Hosted items and overflow menu rows carry the item ID in a
         // StableId, so every item ID follows the StableId segment rule.
         if (!valid_stable_id(item.stable_id) || !validate_utf8(item.text).valid() ||
-            !item_ids.insert(item.stable_id).second) {
+            !validate_utf8(item.tool_tip_text).valid() || !item_ids.insert(item.stable_id).second) {
             throw std::invalid_argument(
                 "ToolStrip items require unique stable IDs of '.'-separated lowercase dash segments "
                 "and valid UTF-8");
@@ -230,6 +232,7 @@ Control::Ptr ToolStrip::make_hosted(const ToolStripItemSpec& item) const {
 
 void ToolStrip::configure_hosted(const ToolStripItemSpec& item, Control& control) const {
     control.set_accessible_name(item.text);
+    control.set_tool_tip_text(item.tool_tip_text);
     control.set_enabled(item.enabled);
     if (item.kind == ToolStripItemKind::combo_box) {
         ComboBox& combo = static_cast<ComboBox&>(control);
@@ -1065,6 +1068,7 @@ std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
         node.stable_id = item.stable_id;
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = item_text(item);
+        node.tool_tip = item.tool_tip_text;
         node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
         node.states = SemanticState::visible;
         if (item_enabled(item)) node.states |= SemanticState::enabled;

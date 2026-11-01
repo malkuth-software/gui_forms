@@ -261,6 +261,14 @@ gui_forms::Control
       **accessible_description** : ``std::string``
          A longer description for assistive technology. Empty by default.
 
+      **tool_tip_text** : ``std::string``
+         The control's plain tooltip (owner, 2026-10-28): text, never markup, that its window's tooltip presenter shows as tool_tip_presentation() says, when the window's and the program's switches allow. Empty, the default, never shows. The text also reaches the control's semantic node (SemanticNode::tool_tip). Throws std::invalid_argument for text that is not valid UTF-8, changing nothing. Raises tool_tip_text_changed when the text changes. Bindable as "tool_tip_text".
+
+      **tool_tip_presentation** : ``ToolTipPresentation``, read-only
+
+      **publishes_item_tool_tips** : ``bool``, read-only
+         Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it.
+
       **command_target** : ``std::shared_ptr<CommandTarget>``
          The command target this control offers its window's command routing chain while focus is on it or inside it (the focused route, owner decision DK-29; see gui_forms/commands/command_route). The control shares ownership, so a docking workspace may also name the same target as an active panel's or document's. None by default.
 
@@ -355,6 +363,8 @@ gui_forms::Control
 
       **validated** : ``Event<>``
          Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+      **tool_tip_text_changed** : ``Event<const std::string&>``
 
       **initialization_completed** : ``Event<Dirty, bool>``
          Raised at the end of the outermost :cpp:func:`end_init <gui_forms::Control::end_init>`, after the coalesced
@@ -1014,6 +1024,18 @@ gui_forms::Control
 
       Sets :cpp:func:`accessible_description <gui_forms::Control::accessible_description>`; see the property's description above.
 
+   .. cpp:function:: const std::string& tool_tip_text() const noexcept
+
+      The control's plain tooltip (owner, 2026-10-28): text, never markup, that its window's tooltip presenter shows as tool_tip_presentation() says, when the window's and the program's switches allow. Empty, the default, never shows. The text also reaches the control's semantic node (SemanticNode::tool_tip). Throws std::invalid_argument for text that is not valid UTF-8, changing nothing. Raises tool_tip_text_changed when the text changes. Bindable as "tool_tip_text".
+
+   .. cpp:function:: void set_tool_tip_text(std::string text)
+
+   .. cpp:function:: ToolTipPresentation tool_tip_presentation() const noexcept
+
+   .. cpp:function:: bool publishes_item_tool_tips() const noexcept
+
+      Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it.
+
    .. cpp:function:: const std::shared_ptr<CommandTarget>& command_target() const noexcept
 
       The command target this control offers its window's command routing chain while focus is on it or inside it (the focused route, owner decision DK-29; see gui_forms/commands/command_route). The control shares ownership, so a docking workspace may also name the same target as an active panel's or document's. None by default.
@@ -1142,6 +1164,8 @@ gui_forms::Control
    .. cpp:function:: Event<>& validated() noexcept
 
       Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
+
+   .. cpp:function:: Event<const std::string&>& tool_tip_text_changed() noexcept
 
    .. cpp:function:: Event<Dirty, bool>& initialization_completed() noexcept
 
@@ -1622,6 +1646,18 @@ gui_forms::Control
    .. cpp:function:: Window* window() const noexcept
 
       *Protected.*
+
+   .. cpp:function:: void set_tool_tip_presentation(ToolTipPresentation presentation) noexcept
+
+      *Protected.*
+
+      Chooses where this type's tooltip shows (ToolTipPresentation); bubble by default. Call it from the constructor.
+
+   .. cpp:function:: void set_publishes_item_tool_tips(bool publishes) noexcept
+
+      *Protected.*
+
+      Declares that this type's semantic virtual children may carry part tooltips (publishes_item_tool_tips). Call it from the constructor.
 
    .. cpp:function:: void require_mutable() const
 

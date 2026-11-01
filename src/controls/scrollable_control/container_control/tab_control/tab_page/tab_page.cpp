@@ -11,6 +11,9 @@ namespace gui_forms {
 
 TabPage::TabPage(StableId stable_id, std::string text)
     : Panel(std::move(stable_id)), text_(std::move(text)) {
+    // The page's tooltip shows over its tab header only, never over the
+    // page's body (owner, 2026-10-28).
+    set_tool_tip_presentation(ToolTipPresentation::owner_item);
     set_background(Color::rgba(255, 255, 255));
     set_border_style(BorderStyle::line);
 }
