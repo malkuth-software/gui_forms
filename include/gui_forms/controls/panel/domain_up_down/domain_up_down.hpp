@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -33,8 +34,8 @@ public:
     // order) while sorted() is true, in insertion order otherwise.
     [[nodiscard]] std::span<const std::string> items() const noexcept { return items_; }
     // Replaces the items. The text is kept and the selection re-matched to it.
-    void set_items(std::vector<std::string> items);
-    void add_item(std::string item);
+    void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
+    void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
     // Throws std::out_of_range for an index past the end. Removing the
     // selected item clears the selection and keeps the text.
     void remove_item_at(std::size_t index);

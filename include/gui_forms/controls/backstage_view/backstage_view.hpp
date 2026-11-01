@@ -3,6 +3,7 @@
 #include "gui_forms/commands.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -25,7 +26,7 @@ struct BackstageItemSpec final {
     std::string stable_id{};
     BackstageItemKind kind{BackstageItemKind::command};
     std::shared_ptr<Command> command{};
-    std::string text{};
+    GUI_FORMS_LOCALIZABLE(text) std::string text{};
     ImageId image{};
     bool definitive{};
     Control::Ptr page{};

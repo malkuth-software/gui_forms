@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <string>
 
@@ -12,7 +13,7 @@ public:
     explicit TabPage(StableId stable_id, std::string text = {});
 
     [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(std::string text);
+    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     // The tab's image in the TabControl's image list, by key or by index
     // (Windows Forms' ImageKey and ImageIndex). Setting one clears the other,
     // as in Windows Forms; an empty key and index -1 show no image, and so

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -30,8 +31,8 @@ public:
     [[nodiscard]] std::span<const std::string> items() const noexcept {
         return items_;
     }
-    virtual void set_items(std::vector<std::string> items);
-    virtual void add_item(std::string item);
+    virtual void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
+    virtual void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
     virtual void remove_item(std::size_t index);
     virtual void clear_items();
     void set_item_stable_ids(std::vector<std::string> stable_ids);

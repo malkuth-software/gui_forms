@@ -17,11 +17,12 @@
 #include <vector>
 
 #include "gui_forms/components/context_menu/context_menu.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 namespace gui_forms {
 struct MenuStripItemSpec final {
     std::string stable_id{};
-    std::string text{};
+    GUI_FORMS_LOCALIZABLE(text) std::string text{};
     std::vector<MenuItemSpec> items{};
     bool enabled{true};
     bool visible{true};

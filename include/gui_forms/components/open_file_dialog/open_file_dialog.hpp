@@ -5,6 +5,7 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <memory>
 #include <span>
@@ -34,7 +35,7 @@ public:
 
     // The dialog's title; empty gives the host's own ("Open").
     [[nodiscard]] const std::string& title() const noexcept { return title_; }
-    void set_title(std::string title);
+    void set_title(GUI_FORMS_LOCALIZABLE(title) std::string title);
     // The directory the dialog starts in; empty lets the host choose.
     [[nodiscard]] const std::string& initial_directory() const noexcept { return initial_directory_; }
     void set_initial_directory(std::string directory);

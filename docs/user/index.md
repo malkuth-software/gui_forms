@@ -44,4 +44,5 @@ threading
 lifecycle
 hosts-and-capabilities
 audio
+localizable-literals
 ```
