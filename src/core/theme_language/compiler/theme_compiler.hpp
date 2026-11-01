@@ -290,6 +290,32 @@ struct VariationStorage final {
     std::vector<ScopedDefinition> important{};
 };
 
+// The work one compilation did, by stage (P11, PLAN section 6 item 3), so
+// that a test bounds it per input byte by count, never by time. Each field
+// counts its stage's steps over the whole compilation.
+struct ThemeCompileWork final {
+    // Tokens the tokenizer made and syntax nodes the parser made.
+    std::uint64_t tokens{};
+    std::uint64_t nodes{};
+    // Tokens the var() substitutions passed over, and tokens the value
+    // reader was given after them.
+    std::uint64_t substituted_tokens{};
+    std::uint64_t value_tokens{};
+    // Combinations of media and scoped conditions the rules' lowering
+    // visited (at most maximum_variable_combinations per rule).
+    std::uint64_t variation_worlds{};
+    // Lowered rules written, and their bytes as the E513 budget counts them.
+    std::uint64_t rules_emitted{};
+    std::uint64_t emitted_bytes{};
+
+    // The sum of the counts.
+    [[nodiscard]] std::uint64_t operations() const noexcept {
+        const std::uint64_t sum = tokens + nodes + substituted_tokens + value_tokens + variation_worlds +
+                                  rules_emitted + emitted_bytes;
+        return sum;
+    }
+};
+
 class ThemeCompiler final {
 public:
     // Replaces `sheet` with the lowered rules of `input.source` and appends
@@ -309,6 +335,8 @@ public:
     // After an inline style compiled alone against a theme's names
     // (ThemeCompileInput::theme_names): whether it read one of them.
     [[nodiscard]] bool reads_theme_names() const noexcept { return substitution_.theme_read(); }
+    // The last compilation's work, refused or not.
+    [[nodiscard]] const ThemeCompileWork& work() const noexcept { return work_; }
     // After an inline style of text `text` compiled: appends to `output`
     // its rules written as sheet rules for a theme compiled for it
     // (ThemeCompileInput::inline_definitions_from), each selector after
@@ -341,6 +369,7 @@ private:
     PaletteStorage palette_{};
     VariationStorage variations_{};
     std::string folded_{};
+    ThemeCompileWork work_{};
 };
 
 } // namespace gui_forms::theme_language

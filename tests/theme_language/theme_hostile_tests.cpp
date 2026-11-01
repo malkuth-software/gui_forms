@@ -16,6 +16,7 @@
 
 #include <array>
 #include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <optional>
 #include <string>
@@ -28,6 +29,19 @@ namespace theme_language = gui_forms::theme_language;
 using theme_language::DiagnosticCode;
 
 int failures = 0;
+
+// The work bound (PLAN section 6 item 3): every compilation here, at a
+// limit or past it, does at most this many counted operations
+// (ThemeCompileWork::operations) per input byte, plus a constant for the
+// smallest inputs. A rule reading varying custom properties is lowered
+// once per combination, at most maximum_variable_combinations times, so
+// the bound is a few operations per byte for each copy; measured at
+// 2026-11-01, the worst input (the combinations at their limit) does 276.
+// The worst ratio seen is printed.
+constexpr std::uint64_t maximum_operations_per_byte = 4U * theme_language::maximum_variable_combinations;
+constexpr std::uint64_t operations_allowance = 4096U;
+double worst_ratio = 0.0;
+std::string worst_input{};
 
 void require(bool condition, std::string_view message) {
     if (!condition) {
@@ -67,6 +81,17 @@ Outcome compile(std::string_view text) {
     theme_language::ThemeDiagnosticList diagnostics{};
     Outcome outcome{};
     outcome.compiled = compiler.compile(input, sheet, diagnostics) == theme_language::CompileOutcome::compiled;
+    const std::uint64_t operations = compiler.work().operations();
+    const std::uint64_t bytes = text.size();
+    const double ratio = static_cast<double>(operations) / static_cast<double>(bytes == 0U ? 1U : bytes);
+    if (ratio > worst_ratio) {
+        worst_ratio = ratio;
+        worst_input = std::string(text.substr(0U, 48U));
+    }
+    if (operations > maximum_operations_per_byte * bytes + operations_allowance) {
+        std::cerr << "  " << operations << " operations for " << bytes << " bytes: " << text.substr(0U, 48U) << '\n';
+        require(false, "the work is bounded per input byte");
+    }
     for (const theme_language::ThemeDiagnostic& diagnostic : diagnostics.records()) {
         const bool error =
             theme_language::diagnostic_severity(diagnostic.code) == theme_language::DiagnosticSeverity::error;
@@ -314,6 +339,7 @@ int main() {
     test_expression_budget();
     test_derived_limits();
     test_diagnostic_records();
+    std::cout << "work: at most " << worst_ratio << " operations per byte, for " << worst_input << '\n';
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;
