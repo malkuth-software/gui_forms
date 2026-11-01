@@ -340,7 +340,7 @@ public:
                 std::vector<LoweredDeclaration>& declarations, std::vector<MaterialDeclaration>& materials,
                 MaterialLowering& material_lowering, std::vector<MaterialField>& material_fields,
                 std::vector<RecipeDeclaration>& recipe_fields, MotionStorage& motion,
-                std::vector<MediaQuery>& media_queries, PaletteStorage& palette,
+                std::vector<MediaQuery>& media_queries, PaletteStorage& palette, VariationStorage& variations,
                 std::string& folded) noexcept;
 
     [[nodiscard]] CompileOutcome run();
@@ -362,9 +362,50 @@ private:
     // The style rules of an `@media` block under media_, which is then
     // reset.
     [[nodiscard]] bool lower_media_rules(std::size_t media_index);
+    // How each custom property varies (P12) into variations_, and the
+    // palette's definitions of the scoped names style rules read as the
+    // sheet's first rules; false after an error.
+    [[nodiscard]] bool collect_variations();
+    // The palette definitions of a name (`group`, its definitions) in
+    // cascade order, each under each media query it holds under.
+    void palette_variants(std::span<const CustomPropertyDefinition> group, std::vector<MediaVariant>& variants);
+    // The queries of the `@media` block at `media_index` into
+    // media_queries_; false when its prelude is refused.
+    [[nodiscard]] bool read_block_queries(std::uint32_t media_index);
+    // A scoped name's candidates, from its definitions (`group`) and its
+    // palette variants; false after an error.
+    [[nodiscard]] bool scoped_candidates(std::span<const CustomPropertyDefinition> group, NameVariation& name);
+    // Whether the scoped names' candidates chosen through `depth` (of
+    // variations_.scoped_read) can win together in the world `world`,
+    // whose conditions joined with the rule's give `joined`.
+    [[nodiscard]] bool candidates_meet(std::size_t depth, std::size_t world, const MediaCondition& joined) const;
+    // A rule of scoped definitions for each of the rule's selectors (with
+    // its media condition), at the level `important` picks.
+    [[nodiscard]] bool emit_definitions(std::span<const LoweredSelector> selectors, bool important,
+                                        std::uint32_t at);
+    // The rule's definitions of the scoped names some rule reads, as rules
+    // of their own.
+    [[nodiscard]] bool lower_definitions(std::size_t rule_index);
+    // The names the rule reads directly, and the media names it reads
+    // through any number of definitions with their conditions, into
+    // variations_.
+    void read_variations(std::size_t rule_index);
+    // The scopes of the rule's selectors into `scopes`, and into `covers`
+    // the control types it selects whole, when given; nothing for a rule
+    // whose selectors are refused (its own lowering reports them).
+    void rule_scopes(std::size_t rule_index, std::vector<SelectorScope>& scopes, std::vector<std::string>* covers);
+    // The first scoped name, in name order, that the copy being lowered
+    // reads and has not decided: through the rule's direct names and the
+    // definitions they read, a decided scoped name's only through its
+    // chosen candidate. None when every name it reads is decided.
+    [[nodiscard]] std::optional<std::uint32_t> undecided_name();
+    // A style rule: its scoped definitions, then a copy for each
+    // combination of the definitions of the varying names it reads (P12),
+    // each lowered by lower_rule_palette.
+    [[nodiscard]] bool lower_rule(std::size_t rule_index);
     // A style rule, and its copies for the palette's conditional variants
     // of the roles it reads (P8b).
-    [[nodiscard]] bool lower_rule(std::size_t rule_index);
+    [[nodiscard]] bool lower_rule_palette(std::size_t rule_index);
     [[nodiscard]] bool lower_rule_once(std::size_t rule_index);
     // The rule's ordinary or its `!important` declarations (P9) into
     // declarations_, materials_, recipe_fields_ and motion_, parameters
@@ -469,6 +510,7 @@ private:
     MotionStorage& motion_;
     std::vector<MediaQuery>& media_queries_;
     PaletteStorage& palette_;
+    VariationStorage& variations_;
     std::string& folded_;
     SourcePositionCursor cursor_;
     ReservedInputs reserved_{};
@@ -485,6 +527,11 @@ private:
     std::optional<ColourRoleSide> bare_side_{};
     // The roles the rule being lowered read, one bit a role.
     std::uint32_t rule_roles_read_{};
+    // Whether a declaration whose var() reads a name no definition of which
+    // holds is left undeclared (a rule's, P12) rather than refused; and
+    // whether the value just read was so left.
+    bool undefined_drops_{};
+    bool undefined_read_{};
     // The em lowering's storage (P8c).
     std::vector<MaterialDeclaration> em_materials_{};
     std::vector<RecipeDeclaration> em_recipe_fields_{};
@@ -507,13 +554,14 @@ CompilePass::CompilePass(const ThemeCompileInput& input, ThemeRuleSheet& sheet, 
                          MaterialLowering& material_lowering, std::vector<MaterialField>& material_fields,
                          std::vector<RecipeDeclaration>& recipe_fields, MotionStorage& motion,
                          std::vector<MediaQuery>& media_queries, PaletteStorage& palette,
-                         std::string& folded) noexcept
+                         VariationStorage& variations, std::string& folded) noexcept
     : input_(input), sheet_(sheet), diagnostics_(diagnostics), tokens_(tokens), lines_(lines), tree_(tree),
       custom_properties_(custom_properties), selectors_(selectors), substitution_(substitution), reader_(reader),
       lowered_selectors_(lowered_selectors), substituted_(substituted), value_(value),
       parameter_names_(parameter_names), declarations_(declarations), materials_(materials),
       material_lowering_(material_lowering), material_fields_(material_fields), recipe_fields_(recipe_fields),
-      motion_(motion), media_queries_(media_queries), palette_(palette), folded_(folded),
+      motion_(motion), media_queries_(media_queries), palette_(palette), variations_(variations),
+      folded_(folded),
       cursor_(lines, input.source.text) {}
 
 CompileOutcome CompilePass::run() {
@@ -534,7 +582,9 @@ CompileOutcome CompilePass::run() {
     }
     parameter_names_.reserve(maximum_primitive_parameters);
     motion_.origins.clear();
-    // The palette first: a rule reads it wherever its `:root` block is.
+    // How the custom properties vary, which the palette's values read;
+    // then the palette: a rule reads it wherever its `:root` block is.
+    if (!collect_variations()) return CompileOutcome::refused;
     if (!collect_palette()) return CompileOutcome::refused;
     const std::vector<SyntaxNode>& nodes = tree_.nodes;
     // The keyframes first: an animation may name keyframes defined after
@@ -637,13 +687,687 @@ bool CompilePass::lower_media_rules(std::size_t media_index) {
     return true;
 }
 
-// A window takes the last copy whose condition holds there: for each role,
-// its last variant that holds, as CSS's later `:root` declaration wins.
+namespace {
+
+// The palette's definition of a scoped name, for collect_variations: the
+// definitions of one `:root` block at one importance become one rule.
+struct PaletteDefinition final {
+    bool important{};
+    std::uint32_t rule{};
+    std::uint32_t media{};
+    std::uint32_t declaration{};
+    std::string_view name{};
+};
+
+struct PaletteDefinitionLess final {
+    bool operator()(const PaletteDefinition& left, const PaletteDefinition& right) const noexcept {
+        if (left.important != right.important) return !left.important;
+        if (left.rule != right.rule) return left.rule < right.rule;
+        return left.declaration < right.declaration;
+    }
+};
+
+} // namespace
+
+bool CompilePass::collect_variations() {
+    VariationStorage& variations = variations_;
+    const std::size_t name_count = custom_properties_.name_count();
+    variations.names.assign(name_count, NameVariation{});
+    variations.choices.assign(name_count, variable_unassigned);
+    variations.seen.assign(name_count, 0U);
+    variations.copy_conditions.clear();
+    const std::span<const CustomPropertyDefinition> definitions = custom_properties_.definitions();
+    for (const CustomPropertyDefinition& definition : definitions) {
+        NameVariation& name = variations.names[definition.name_index];
+        append_variable_names(input_.source, tokens_.tokens, definition.value, custom_properties_, name.reads);
+    }
+    // The names some style rule's declaration reads, through any number of
+    // definitions.
+    const std::vector<SyntaxNode>& nodes = tree_.nodes;
+    variations.pending.clear();
+    std::uint32_t rule_end = 0U;
+    for (std::uint32_t index = 0U; index < nodes.size(); ++index) {
+        const SyntaxNode& node = nodes[index];
+        if (node.kind == SyntaxNodeKind::style_rule) rule_end = node.subtree_end.value;
+        if (node.kind == SyntaxNodeKind::keyframe_block) rule_end = 0U;
+        if (node.kind != SyntaxNodeKind::declaration || index >= rule_end) continue;
+        fold_ascii(token_text(node.tokens.first.value), folded_);
+        if (classify(folded_) == PropertyClass::custom) continue;
+        append_variable_names(input_.source, tokens_.tokens, node.content, custom_properties_, variations.pending);
+    }
+    while (!variations.pending.empty()) {
+        const std::uint32_t name_index = variations.pending.back();
+        variations.pending.pop_back();
+        NameVariation& name = variations.names[name_index];
+        if (name.read) continue;
+        name.read = true;
+        variations.pending.insert(variations.pending.end(), name.reads.begin(), name.reads.end());
+    }
+    std::vector<PaletteDefinition> palette_definitions{};
+    std::size_t scoped_read = 0U;
+    std::size_t first = 0U;
+    while (first < definitions.size()) {
+        const std::uint32_t name_index = definitions[first].name_index;
+        std::size_t last = first + 1U;
+        while (last < definitions.size() && definitions[last].name_index == name_index) ++last;
+        const std::span<const CustomPropertyDefinition> group = definitions.subspan(first, last - first);
+        first = last;
+        NameVariation& name = variations.names[name_index];
+        if (group.size() == 1U) {
+            // Defined in one place: substituted wherever it is read.
+            name.fixed = 0U;
+            variations.choices[name_index] = 0U;
+            continue;
+        }
+        bool in_palette = true;
+        for (const CustomPropertyDefinition& definition : group) {
+            in_palette = in_palette && selects_root(definition.rule.value);
+        }
+        palette_variants(group, name.variants);
+        const bool everywhere = !name.variants.empty() && media_condition_unconditional(name.variants[0].media);
+        if (in_palette) {
+            if (name.variants.empty() || (everywhere && name.variants.size() == 1U)) {
+                name.fixed = name.variants.empty() ? variable_undefined : name.variants[0].ordinal;
+                variations.choices[name_index] = name.fixed;
+                continue;
+            }
+            name.kind = Variation::media;
+            continue;
+        }
+        name.kind = Variation::scoped;
+        if (!scoped_candidates(group, name)) return false;
+        if (!name.read) continue;
+        scoped_read = scoped_read + 1U;
+        if (scoped_read > maximum_scoped_custom_properties) {
+            const std::uint32_t token = nodes[group[0].declaration.value].tokens.first.value;
+            report(DiagnosticCode::too_many_scoped_variables, token, std::to_string(maximum_scoped_custom_properties));
+            return false;
+        }
+        for (const CustomPropertyDefinition& definition : group) {
+            if (!selects_root(definition.rule.value)) continue;
+            palette_definitions.push_back(PaletteDefinition{.important = definition.important,
+                                                            .rule = definition.rule.value,
+                                                            .media = definition.media.value,
+                                                            .declaration = definition.declaration.value,
+                                                            .name = definition.name});
+        }
+    }
+    // The palette's definitions of the scoped names, first in the sheet:
+    // at the sheet's level and no specificity, so that any rule's own
+    // definition replaces them, as a CSS declaration replaces an
+    // inherited value; the `!important` ones after the ordinary ones.
+    std::sort(palette_definitions.begin(), palette_definitions.end(), PaletteDefinitionLess{});
+    rule_ = ":root";
+    const LoweredSelector everything{};
+    const std::span<const LoweredSelector> root(&everything, 1U);
+    std::size_t start = 0U;
+    while (start < palette_definitions.size()) {
+        const PaletteDefinition& head = palette_definitions[start];
+        std::size_t end = start;
+        variations.ordinary.clear();
+        while (end < palette_definitions.size() && palette_definitions[end].rule == head.rule &&
+               palette_definitions[end].important == head.important) {
+            const PaletteDefinition& definition = palette_definitions[end];
+            variations.ordinary.push_back(
+                ScopedDefinition{.name = std::string(definition.name), .definition = definition.declaration});
+            ++end;
+        }
+        start = end;
+        const std::uint32_t at = nodes[head.declaration].tokens.first.value;
+        if (head.media == 0U) {
+            media_ = MediaCondition{};
+            if (!emit_definitions(root, false, at)) return false;
+            continue;
+        }
+        MediaQueryProblem problem{};
+        const MediaQueryOutcome read =
+            read_media_queries(input_.source.text, tokens_, nodes[head.media].content, media_queries_, problem);
+        if (read == MediaQueryOutcome::refused) continue;
+        for (const MediaQuery& query : media_queries_) {
+            if (query.unknown_feature || query.never) continue;
+            media_ = query.condition;
+            if (!emit_definitions(root, false, at)) return false;
+        }
+    }
+    media_ = MediaCondition{};
+    variations.ordinary.clear();
+    rule_.clear();
+    return true;
+}
+
+void CompilePass::palette_variants(std::span<const CustomPropertyDefinition> group,
+                                   std::vector<MediaVariant>& variants) {
+    // In cascade order, as the palette's roles (collect_palette): the
+    // ordinary definitions, then the `!important` ones, each in sheet
+    // order; an unconditional one replaces those before it.
+    variants.clear();
+    for (std::size_t pass = 0U; pass < 2U; ++pass) {
+        for (std::size_t ordinal = 0U; ordinal < group.size(); ++ordinal) {
+            const CustomPropertyDefinition& definition = group[ordinal];
+            if (definition.important != (pass == 1U) || !selects_root(definition.rule.value)) continue;
+            if (definition.media.value == 0U) {
+                variants.clear();
+                variants.push_back(MediaVariant{.ordinal = static_cast<std::uint32_t>(ordinal), .media = {}});
+                continue;
+            }
+            // The rules' pass reports a refused prelude's problems.
+            if (!read_block_queries(definition.media.value)) continue;
+            for (const MediaQuery& query : media_queries_) {
+                if (query.unknown_feature || query.never) continue;
+                if (media_condition_unconditional(query.condition)) variants.clear();
+                variants.push_back(
+                    MediaVariant{.ordinal = static_cast<std::uint32_t>(ordinal), .media = query.condition});
+            }
+        }
+    }
+}
+
+bool CompilePass::read_block_queries(std::uint32_t media_index) {
+    MediaQueryProblem problem{};
+    const MediaQueryOutcome read = read_media_queries(input_.source.text, tokens_, tree_.nodes[media_index].content,
+                                                      media_queries_, problem);
+    return read != MediaQueryOutcome::refused;
+}
+
+bool CompilePass::scoped_candidates(std::span<const CustomPropertyDefinition> group, NameVariation& name) {
+    for (const CustomPropertyDefinition& definition : group) {
+        if (!selects_root(definition.rule.value)) name.scoped_rules.push_back(definition.rule.value);
+    }
+    // The palette's definitions that may win: those left in its cascade.
+    const std::vector<MediaVariant>& variants = name.variants;
+    for (std::size_t index = 0U; index < variants.size(); ++index) {
+        const std::uint32_t ordinal = variants[index].ordinal;
+        // One candidate per definition, at its last variant (a block of
+        // several queries gives one variant a query).
+        bool later_same = false;
+        std::size_t queries = 0U;
+        for (std::size_t other = 0U; other < variants.size(); ++other) {
+            if (variants[other].ordinal != ordinal) continue;
+            queries = queries + 1U;
+            later_same = later_same || other > index;
+        }
+        if (later_same) continue;
+        VariableCandidate candidate{};
+        candidate.ordinal = ordinal;
+        candidate.unscoped = true;
+        append_variable_names(input_.source, tokens_.tokens, group[ordinal].value, custom_properties_,
+                              candidate.reads);
+        if (queries == 1U && !media_condition_unconditional(variants[index].media)) {
+            candidate.needs = variants[index].media;
+        }
+        for (std::size_t later = index + 1U; later < variants.size(); ++later) {
+            candidate.replaced_under.push_back(variants[later].media);
+        }
+        name.candidates.push_back(std::move(candidate));
+    }
+    // The scoped definitions, but for one a later declaration in its rule
+    // at its importance always replaces.
+    for (std::size_t ordinal = 0U; ordinal < group.size(); ++ordinal) {
+        const CustomPropertyDefinition& definition = group[ordinal];
+        if (selects_root(definition.rule.value)) continue;
+        bool replaced = false;
+        for (std::size_t later = ordinal + 1U; later < group.size(); ++later) {
+            replaced = replaced || (group[later].rule == definition.rule && group[later].important == definition.important);
+        }
+        if (replaced) continue;
+        VariableCandidate candidate{};
+        candidate.ordinal = static_cast<std::uint32_t>(ordinal);
+        candidate.rule = definition.rule.value;
+        append_variable_names(input_.source, tokens_.tokens, definition.value, custom_properties_, candidate.reads);
+        rule_scopes(definition.rule.value, candidate.scopes,
+                    definition.media.value == 0U ? &candidate.covers : nullptr);
+        if (definition.media.value != 0U && read_block_queries(definition.media.value)) {
+            std::size_t queries = 0U;
+            for (const MediaQuery& query : media_queries_) {
+                if (query.unknown_feature || query.never) continue;
+                queries = queries + 1U;
+                candidate.needs = query.condition;
+            }
+            if (queries != 1U) candidate.needs.reset();
+        }
+        name.candidates.push_back(std::move(candidate));
+    }
+    // None, where no palette definition holds everywhere.
+    if (variants.empty() || !media_condition_unconditional(variants[0].media)) {
+        VariableCandidate none{};
+        none.unscoped = true;
+        for (const MediaVariant& variant : variants) none.replaced_under.push_back(variant.media);
+        name.candidates.push_back(std::move(none));
+    }
+    return true;
+}
+
+bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, bool important, std::uint32_t at) {
+    const std::vector<ScopedDefinition>& definitions = important ? variations_.important : variations_.ordinary;
+    if (definitions.empty()) return true;
+    std::size_t bytes = lowered_record_bytes + rule_.size();
+    for (const ScopedDefinition& definition : definitions) bytes += lowered_record_bytes + definition.name.size();
+    for (const LoweredSelector& selector : selectors) {
+        if (bytes > budget_.bytes) {
+            report(DiagnosticCode::lowered_sheet_too_large, at, std::to_string(maximum_lowered_bytes));
+            return false;
+        }
+        budget_.bytes -= bytes;
+        ThemeRule rule{};
+        rule.label = rule_;
+        rule.media = media_;
+        rule.selector = selector.selector;
+        rule.level = important ? CascadeLevel::important_theme_sheet : selector.level;
+        if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
+        rule.scoped_definitions = definitions;
+        sheet_.rules.push_back(std::move(rule));
+    }
+    return true;
+}
+
+bool CompilePass::lower_definitions(std::size_t rule_index) {
+    VariationStorage& variations = variations_;
+    variations.ordinary.clear();
+    variations.important.clear();
+    const SyntaxNode& rule = tree_.nodes[rule_index];
+    const std::size_t end = rule.subtree_end.value;
+    for (std::size_t child = rule_index + 1U; child < end; child = tree_.nodes[child].subtree_end.value) {
+        const SyntaxNode& node = tree_.nodes[child];
+        const std::string_view name = token_text(node.tokens.first.value);
+        const std::span<const CustomPropertyDefinition> found = custom_properties_.definitions_of(name);
+        // Only a custom property's declaration is found among the
+        // definitions (a declaration of another property is not).
+        if (found.empty()) continue;
+        const NameVariation& variation = variations.names[found[0].name_index];
+        if (variation.kind != Variation::scoped || !variation.read) continue;
+        const bool important = (node.flags & syntax_flag_important) != 0U;
+        std::vector<ScopedDefinition>& into = important ? variations.important : variations.ordinary;
+        const ScopedDefinition definition{.name = std::string(name), .definition = static_cast<std::uint32_t>(child)};
+        // A later declaration of the name in the rule replaces this one.
+        bool replaced = false;
+        for (ScopedDefinition& earlier : into) {
+            if (earlier.name != definition.name) continue;
+            earlier.definition = definition.definition;
+            replaced = true;
+        }
+        if (!replaced) into.push_back(definition);
+    }
+    if (variations.ordinary.empty() && variations.important.empty()) return true;
+    const std::string_view written = range_text(rule.content);
+    rule_ = clipped_theme_detail(written);
+    lowered_selectors_.clear();
+    const SelectorInput selector_input{.source = input_.source,
+                                       .tokens = tokens_,
+                                       .selectors = rule.content,
+                                       .rule_label = written,
+                                       .cursor = cursor_};
+    // The rule's own lowering reports its selectors' warnings, and counts
+    // it against the rule limit.
+    const bool muted = diagnostics_.warnings_muted();
+    const std::size_t rules = budget_.rules;
+    diagnostics_.mute_warnings(true);
+    const SelectorOutcome selected =
+        selectors_.lower(selector_input, input_.vocabulary, budget_, lowered_selectors_, diagnostics_);
+    diagnostics_.mute_warnings(muted);
+    budget_.rules = rules;
+    if (selected == SelectorOutcome::refused) return false;
+    if (selected == SelectorOutcome::dropped) return true;
+    const std::uint32_t at = rule.content.first.value;
+    if (!emit_definitions(lowered_selectors_, false, at)) return false;
+    return emit_definitions(lowered_selectors_, true, at);
+}
+
+void CompilePass::read_variations(std::size_t rule_index) {
+    VariationStorage& variations = variations_;
+    variations.direct.clear();
+    variations.pending.clear();
+    variations.visited.clear();
+    variations.media_read.clear();
+    variations.conditions.clear();
+    variations.reads_scoped = false;
+    const SyntaxNode& rule = tree_.nodes[rule_index];
+    const std::size_t end = rule.subtree_end.value;
+    for (std::size_t child = rule_index + 1U; child < end; child = tree_.nodes[child].subtree_end.value) {
+        const SyntaxNode& node = tree_.nodes[child];
+        fold_ascii(token_text(node.tokens.first.value), folded_);
+        if (classify(folded_) == PropertyClass::custom) continue;
+        append_variable_names(input_.source, tokens_.tokens, node.content, custom_properties_, variations.direct);
+    }
+    std::sort(variations.direct.begin(), variations.direct.end());
+    const std::vector<std::uint32_t>::iterator unique_end =
+        std::unique(variations.direct.begin(), variations.direct.end());
+    variations.direct.erase(unique_end, variations.direct.end());
+    // Every name it may read, through every definition: its media names
+    // set the worlds (a world a copy's chosen candidates do not need
+    // gives that copy again, unchanged, which costs room but not
+    // correctness).
+    variations.pending.assign(variations.direct.begin(), variations.direct.end());
+    while (!variations.pending.empty()) {
+        const std::uint32_t name_index = variations.pending.back();
+        variations.pending.pop_back();
+        if (variations.seen[name_index] != 0U) continue;
+        variations.seen[name_index] = 1U;
+        variations.visited.push_back(name_index);
+        const NameVariation& name = variations.names[name_index];
+        if (name.kind == Variation::media) variations.media_read.push_back(name_index);
+        if (name.kind == Variation::scoped) variations.reads_scoped = true;
+        variations.pending.insert(variations.pending.end(), name.reads.begin(), name.reads.end());
+    }
+    for (const std::uint32_t name_index : variations.visited) variations.seen[name_index] = 0U;
+    // In name order, so that the conditions' order follows the names'.
+    std::sort(variations.media_read.begin(), variations.media_read.end());
+    for (const std::uint32_t name_index : variations.media_read) {
+        for (const MediaVariant& variant : variations.names[name_index].variants) {
+            if (media_condition_unconditional(variant.media)) continue;
+            const bool known = std::find(variations.conditions.begin(), variations.conditions.end(),
+                                         variant.media) != variations.conditions.end();
+            if (!known) variations.conditions.push_back(variant.media);
+        }
+    }
+}
+
+void CompilePass::rule_scopes(std::size_t rule_index, std::vector<SelectorScope>& scopes,
+                              std::vector<std::string>* covers) {
+    scopes.clear();
+    if (covers != nullptr) (*covers).clear();
+    const SyntaxNode& rule = tree_.nodes[rule_index];
+    const std::string_view written = range_text(rule.content);
+    const SelectorInput selector_input{.source = input_.source,
+                                       .tokens = tokens_,
+                                       .selectors = rule.content,
+                                       .rule_label = written,
+                                       .cursor = cursor_};
+    // The rule's own lowering reports its selectors and counts them
+    // against the limits, so this one does neither.
+    LoweringBudget budget = budget_;
+    ThemeDiagnosticList unreported{};
+    std::vector<LoweredSelector>& lowered = variations_.scope_selectors;
+    lowered.clear();
+    const SelectorOutcome selected = selectors_.lower(selector_input, input_.vocabulary, budget, lowered, unreported);
+    if (selected != SelectorOutcome::lowered) return;
+    for (const LoweredSelector& selector : lowered) {
+        const RuleSelector& named = selector.selector;
+        scopes.push_back(SelectorScope{.control_type = named.control_type, .stable_id = named.stable_id});
+        const bool whole = !named.control_type.empty() && named.stable_id.empty() && named.classes.empty() &&
+                           named.part.empty() && !named.role.has_value() && named.states.empty();
+        if (whole && covers != nullptr) (*covers).push_back(named.control_type);
+    }
+}
+
+std::optional<std::uint32_t> CompilePass::undecided_name() {
+    VariationStorage& variations = variations_;
+    variations.pending.assign(variations.direct.begin(), variations.direct.end());
+    variations.visited.clear();
+    std::optional<std::uint32_t> first{};
+    while (!variations.pending.empty()) {
+        const std::uint32_t name_index = variations.pending.back();
+        variations.pending.pop_back();
+        if (variations.seen[name_index] != 0U) continue;
+        variations.seen[name_index] = 1U;
+        variations.visited.push_back(name_index);
+        const NameVariation& name = variations.names[name_index];
+        if (name.kind != Variation::scoped) {
+            variations.pending.insert(variations.pending.end(), name.reads.begin(), name.reads.end());
+            continue;
+        }
+        std::optional<std::size_t> level{};
+        for (std::size_t index = 0U; index < variations.scoped_read.size(); ++index) {
+            if (variations.scoped_read[index] == name_index) level = index;
+        }
+        if (!level) {
+            if (!first || name_index < *first) first = name_index;
+            continue;
+        }
+        const VariableCandidate& chosen = name.candidates[variations.scoped_choice[*level]];
+        variations.pending.insert(variations.pending.end(), chosen.reads.begin(), chosen.reads.end());
+    }
+    for (const std::uint32_t name_index : variations.visited) variations.seen[name_index] = 0U;
+    return first;
+}
+
+namespace {
+
+// Whether two selectors can match a part in common (SelectorScope).
+[[nodiscard]] bool scopes_meet(const SelectorScope& left, const SelectorScope& right) noexcept {
+    const bool types_differ =
+        !left.control_type.empty() && !right.control_type.empty() && left.control_type != right.control_type;
+    const bool ids_differ = !left.stable_id.empty() && !right.stable_id.empty() && left.stable_id != right.stable_id;
+    return !types_differ && !ids_differ;
+}
+
+// Whether a candidate's rule can match a part some selector of the reader
+// matches; a rule or reader of unknown scopes can.
+[[nodiscard]] bool candidate_reaches(const VariableCandidate& candidate,
+                                     std::span<const SelectorScope> reader) noexcept {
+    if (candidate.rule == 0U || candidate.scopes.empty() || reader.empty()) return true;
+    for (const SelectorScope& own : candidate.scopes) {
+        for (const SelectorScope& read : reader) {
+            if (scopes_meet(own, read)) return true;
+        }
+    }
+    return false;
+}
+
+// Whether every selector of the reader is of a type the name's scoped
+// definitions select whole: then one of them always matches its parts.
+[[nodiscard]] bool reader_covered(const NameVariation& name, std::span<const SelectorScope> reader) noexcept {
+    if (reader.empty()) return false;
+    for (const VariableCandidate& candidate : name.candidates) {
+        for (const std::string& type : candidate.covers) {
+            bool all = true;
+            for (const SelectorScope& read : reader) all = all && read.control_type == type;
+            if (all) return true;
+        }
+    }
+    return false;
+}
+
+} // namespace
+
+bool CompilePass::candidates_meet(std::size_t depth, std::size_t world, const MediaCondition& joined) const {
+    const VariationStorage& variations = variations_;
+    const std::span<const SelectorScope> reader(variations.reader_scopes);
+    MediaCondition needed = joined;
+    for (std::size_t index = 0U; index <= depth; ++index) {
+        const NameVariation& name = variations.names[variations.scoped_read[index]];
+        if (variations.scoped_choice[index] >= name.candidates.size()) return false;
+        const VariableCandidate& candidate = name.candidates[variations.scoped_choice[index]];
+        if (candidate.needs && !join_media(needed, *candidate.needs, needed)) return false;
+        // A rule that matches none of the reader's parts never wins for
+        // them; and where a definition selecting the reader's control
+        // whole always matches, neither the palette's nor none wins.
+        if (!candidate_reaches(candidate, reader)) return false;
+        if (candidate.unscoped && reader_covered(name, reader)) return false;
+    }
+    // Where a condition the world leaves out holds, a later world's copy
+    // applies; and a candidate's replacing conditions must not hold.
+    for (std::size_t index = 0U; index < variations.conditions.size(); ++index) {
+        if ((world & (std::size_t{1} << index)) != 0U) continue;
+        MediaCondition with{};
+        if (join_media(needed, variations.conditions[index], with) && with == needed) return false;
+    }
+    for (std::size_t index = 0U; index <= depth; ++index) {
+        const NameVariation& name = variations.names[variations.scoped_read[index]];
+        const VariableCandidate& candidate = name.candidates[variations.scoped_choice[index]];
+        for (const MediaCondition& replacing : candidate.replaced_under) {
+            MediaCondition with{};
+            if (join_media(needed, replacing, with) && with == needed) return false;
+        }
+        // A scoped definition's rule matches where it wins; where a
+        // palette definition or none wins, no scoped definition of that
+        // name matches.
+        if (candidate.rule == 0U) continue;
+        for (std::size_t other = 0U; other <= depth; ++other) {
+            const NameVariation& unscoped = variations.names[variations.scoped_read[other]];
+            if (!unscoped.candidates[variations.scoped_choice[other]].unscoped) continue;
+            const bool excluded = std::find(unscoped.scoped_rules.begin(), unscoped.scoped_rules.end(),
+                                            candidate.rule) != unscoped.scoped_rules.end();
+            if (excluded) return false;
+        }
+    }
+    return true;
+}
+
+// The copies of a rule reading varying names (P12): one for each set of
+// the media names' conditions taken as holding (a world), in counting
+// order, so that a window's last holding copy is the one of every
+// condition it meets, whose media names read their last definitions that
+// hold there; and within each, one for each combination of the scoped
+// names' candidates that can win together, which the engine tells apart
+// by the part's winners. The combinations are a decision tree: a copy
+// decides only the scoped names it reads given the candidates chosen
+// above them (a candidate's value may read further names), so its
+// conditions name those alone, and the copies of a world still cover
+// every part once.
 bool CompilePass::lower_rule(std::size_t rule_index) {
     // The palette's own block was collected first.
     if (selects_root(rule_index)) return true;
+    if (!lower_definitions(rule_index)) return false;
+    read_variations(rule_index);
+    VariationStorage& variations = variations_;
+    variations.world = 0U;
+    undefined_drops_ = true;
+    if (variations.media_read.empty() && !variations.reads_scoped) {
+        variations.conditions.clear();
+        const bool lowered = lower_rule_palette(rule_index);
+        undefined_drops_ = false;
+        return lowered;
+    }
+    const SyntaxNode& rule = tree_.nodes[rule_index];
+    variations.reader_scopes.clear();
+    if (variations.reads_scoped) rule_scopes(rule_index, variations.reader_scopes, nullptr);
+    // At most maximum_variable_combinations copies, and so at most
+    // log2 of it conditions.
+    std::size_t worlds = 1U;
+    for (std::size_t index = 0U; index < variations.conditions.size() && worlds <= maximum_variable_combinations;
+         ++index) {
+        worlds = worlds * 2U;
+    }
+    const MediaCondition rule_media = media_;
+    const bool muted = diagnostics_.warnings_muted();
+    variations.assigned.clear();
+    std::size_t copies = 0U;
+    std::size_t steps = 0U;
+    bool over = worlds > maximum_variable_combinations;
+    bool lowered = true;
+    for (std::size_t world = 0U; lowered && !over && world < worlds; ++world) {
+        MediaCondition joined = rule_media;
+        bool holds = true;
+        for (std::size_t index = 0U; index < variations.conditions.size() && holds; ++index) {
+            if ((world & (std::size_t{1} << index)) == 0U) continue;
+            holds = join_media(joined, variations.conditions[index], joined);
+        }
+        // A world no window meets is skipped, and so is one where a
+        // condition it leaves out holds wherever it does: the world with
+        // that condition too follows it.
+        for (std::size_t index = 0U; index < variations.conditions.size() && holds; ++index) {
+            if ((world & (std::size_t{1} << index)) != 0U) continue;
+            MediaCondition with{};
+            holds = !(join_media(joined, variations.conditions[index], with) && with == joined);
+        }
+        if (!holds) continue;
+        variations.world = world;
+        for (const std::uint32_t name_index : variations.media_read) {
+            std::uint32_t choice = variable_undefined;
+            for (const MediaVariant& variant : variations.names[name_index].variants) {
+                bool meets = media_condition_unconditional(variant.media);
+                for (std::size_t index = 0U; index < variations.conditions.size(); ++index) {
+                    const bool taken = (world & (std::size_t{1} << index)) != 0U;
+                    meets = meets || (taken && variations.conditions[index] == variant.media);
+                }
+                if (meets) choice = variant.ordinal;
+            }
+            variations.choices[name_index] = choice;
+            variations.assigned.push_back(name_index);
+        }
+        // The decision tree, depth first in counting order: each level
+        // decides the next scoped name the copy reads; a level whose
+        // candidates cannot win together with those above is passed over.
+        variations.scoped_read.clear();
+        variations.scoped_choice.clear();
+        bool fresh = true;
+        bool searching = true;
+        while (searching && lowered && !over) {
+            if (fresh) {
+                bool feasible = true;
+                if (!variations.scoped_read.empty()) {
+                    steps = steps + 1U;
+                    over = steps > maximum_variable_steps;
+                    if (over) break;
+                    feasible = candidates_meet(variations.scoped_read.size() - 1U, world, joined);
+                }
+                const std::optional<std::uint32_t> next = feasible ? undecided_name() : std::nullopt;
+                if (next) {
+                    variations.scoped_read.push_back(*next);
+                    variations.scoped_choice.push_back(0U);
+                    continue;
+                }
+                if (feasible) {
+                    copies = copies + 1U;
+                    over = copies > maximum_variable_combinations;
+                    if (over) break;
+                    variations.copy_conditions.clear();
+                    for (std::size_t index = 0U; index < variations.scoped_read.size(); ++index) {
+                        const std::uint32_t name_index = variations.scoped_read[index];
+                        const VariableCandidate& candidate =
+                            variations.names[name_index].candidates[variations.scoped_choice[index]];
+                        variations.choices[name_index] = candidate.ordinal;
+                        variations.assigned.push_back(name_index);
+                        const std::span<const CustomPropertyDefinition> named =
+                            custom_properties_.definitions_named(name_index);
+                        ScopedCondition condition{};
+                        condition.name = std::string(named[0].name);
+                        if (candidate.ordinal != variable_undefined) {
+                            condition.definition = named[candidate.ordinal].declaration.value;
+                        }
+                        variations.copy_conditions.push_back(std::move(condition));
+                    }
+                    media_ = joined;
+                    // The copies' warnings are the rule's, reported once.
+                    if (copies > 1U) diagnostics_.mute_warnings(true);
+                    lowered = lower_rule_palette(rule_index);
+                    for (const std::uint32_t name_index : variations.scoped_read) {
+                        variations.choices[name_index] = variable_unassigned;
+                    }
+                }
+            }
+            // The next candidate at the deepest level, or back up.
+            fresh = false;
+            while (!variations.scoped_read.empty()) {
+                const NameVariation& name = variations.names[variations.scoped_read.back()];
+                if (variations.scoped_choice.back() + 1U < name.candidates.size()) {
+                    variations.scoped_choice.back() = variations.scoped_choice.back() + 1U;
+                    fresh = true;
+                    break;
+                }
+                variations.scoped_read.pop_back();
+                variations.scoped_choice.pop_back();
+            }
+            searching = fresh;
+        }
+    }
+    media_ = rule_media;
+    diagnostics_.mute_warnings(muted);
+    variations.copy_conditions.clear();
+    variations.scoped_read.clear();
+    variations.scoped_choice.clear();
+    variations.world = 0U;
+    for (const std::uint32_t name_index : variations.assigned) variations.choices[name_index] = variable_unassigned;
+    variations.assigned.clear();
+    undefined_drops_ = false;
+    if (over && lowered) {
+        rule_ = clipped_theme_detail(range_text(rule.content));
+        property_.clear();
+        report(DiagnosticCode::too_many_variable_combinations, rule.content.first.value,
+               std::to_string(maximum_variable_combinations));
+        return false;
+    }
+    return lowered;
+}
+
+// A window takes the last copy whose condition holds there: for each role,
+// its last variant that holds, as CSS's later `:root` declaration wins.
+bool CompilePass::lower_rule_palette(std::size_t rule_index) {
     palette_.in_use = palette_.base;
     rule_roles_read_ = 0U;
+    const std::size_t rules = sheet_.rules.size();
+    const std::size_t origins = motion_.origins.size();
+    const LoweringBudget budget = budget_;
     if (!lower_rule_once(rule_index)) return false;
     palette_.varying.clear();
     for (std::size_t role = 0U; role < colour_role_count; ++role) {
@@ -653,6 +1377,24 @@ bool CompilePass::lower_rule(std::size_t rule_index) {
     if (palette_.varying.empty()) return true;
     palette_.choice.assign(palette_.varying.size(), 0U);
     const MediaCondition rule_media = media_;
+    // The base copy is taken back where a later variant of a role it reads
+    // holds wherever the rule does (a world of lower_rule that takes the
+    // variant's condition): the copies with that variant follow and cover
+    // it. Its lowering still told which roles the rule reads.
+    bool dominated = false;
+    for (const std::size_t role : palette_.varying) {
+        const std::vector<PaletteVariant>& variants = palette_.variants[role];
+        if (!media_condition_unconditional(variants[0].media)) continue;
+        for (std::size_t later = 1U; later < variants.size(); ++later) {
+            MediaCondition with{};
+            dominated = dominated || (join_media(rule_media, variants[later].media, with) && with == rule_media);
+        }
+    }
+    if (dominated) {
+        sheet_.rules.resize(rules);
+        motion_.origins.resize(origins);
+        budget_ = budget;
+    }
     const bool muted = diagnostics_.warnings_muted();
     // The copies' warnings are the rule's, reported once.
     diagnostics_.mute_warnings(true);
@@ -666,7 +1408,22 @@ bool CompilePass::lower_rule(std::size_t rule_index) {
             palette_.in_use.roles[role] = variant.colours;
             if (holds) holds = join_media(joined, variant.media, joined);
         }
-        // A copy no window can meet is skipped.
+        // A copy no window can meet is skipped, and so is one a later copy
+        // covers: where a later variant of one of its roles holds wherever
+        // it does, or a condition the variable world (lower_rule) leaves
+        // out does, that world's copies following.
+        for (std::size_t index = 0U; index < palette_.varying.size() && holds; ++index) {
+            const std::vector<PaletteVariant>& variants = palette_.variants[palette_.varying[index]];
+            for (std::size_t later = palette_.choice[index] + 1U; later < variants.size() && holds; ++later) {
+                MediaCondition with{};
+                holds = !(join_media(joined, variants[later].media, with) && with == joined);
+            }
+        }
+        for (std::size_t index = 0U; index < variations_.conditions.size() && holds; ++index) {
+            if ((variations_.world & (std::size_t{1} << index)) != 0U) continue;
+            MediaCondition with{};
+            holds = !(join_media(joined, variations_.conditions[index], with) && with == joined);
+        }
         if (!holds) continue;
         media_ = joined;
         lowered = lower_rule_once(rule_index);
@@ -853,11 +1610,6 @@ bool CompilePass::lower_rule_once(std::size_t rule_index) {
         any_important = any_important || flagged;
         fold_ascii(token_text(property), folded_);
         const PropertyClass kind = classify(folded_);
-        if (kind == PropertyClass::custom && flagged) {
-            // P12 builds custom properties through the cascade.
-            report(DiagnosticCode::not_yet_built, property, "!important on a custom property");
-            return false;
-        }
         if (kind == PropertyClass::custom && input_.form == ThemeSheetForm::inline_style) {
             // P12 builds custom properties through the cascade, inline
             // definitions reaching the theme's declarations.
@@ -866,7 +1618,13 @@ bool CompilePass::lower_rule_once(std::size_t rule_index) {
         }
         if (kind != PropertyClass::primitive) continue;
         PrimitiveSelection one{};
-        if (!select_primitive(node, one)) return false;
+        if (!select_primitive(node, one)) {
+            // A var() no definition of which holds for this copy: the
+            // declaration is not declared (P12).
+            if (!undefined_read_) return false;
+            undefined_read_ = false;
+            continue;
+        }
         PrimitiveSelection& into = flagged ? important : ordinary;
         if (one.selects) {
             into.selects = true;
@@ -936,7 +1694,10 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
                    "!important on a parameter of a primitive selected without it");
             return false;
         }
-        if (!lower_declaration(node, kind, selection)) return false;
+        if (!lower_declaration(node, kind, selection)) {
+            if (!undefined_read_) return false;
+            undefined_read_ = false;
+        }
     }
     property_.clear();
     return true;
@@ -2038,6 +2799,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     if (!apply_animations(selection, lowered)) return false;
     lowered.materials = materials_;
     lowered.recipe_fields = recipe_fields_;
+    lowered.scoped_conditions = variations_.copy_conditions;
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
@@ -2049,6 +2811,9 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     for (const MaterialDeclaration& declaration : lowered.materials) bytes += material_bytes(declaration);
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
+    for (const ScopedCondition& condition : lowered.scoped_conditions) {
+        bytes += lowered_record_bytes + condition.name.size();
+    }
     for (const LoweredSelector& selector : lowered_selectors_) {
         if (bytes > budget_.bytes) {
             report(DiagnosticCode::lowered_sheet_too_large, at, std::to_string(maximum_lowered_bytes));
@@ -2086,9 +2851,17 @@ bool CompilePass::read_value(const SyntaxNode& node) {
                                          .tokens = tokens_,
                                          .table = custom_properties_,
                                          .reserved = reserved_,
-                                         .cursor = cursor_};
-    bool read = substitution_.substitute(substitution, node.content, substituted_, diagnostics_) ==
-                SubstitutionOutcome::substituted;
+                                         .cursor = cursor_,
+                                         .choices = variations_.choices};
+    const SubstitutionOutcome substituted =
+        substitution_.substitute(substitution, node.content, substituted_, diagnostics_);
+    if (substituted == SubstitutionOutcome::undefined && undefined_drops_) undefined_read_ = true;
+    if (substituted == SubstitutionOutcome::undefined && !undefined_drops_) {
+        // Read where nothing can be left undeclared (the palette, a
+        // keyframe): a name defined only where nothing holds.
+        report(DiagnosticCode::variable_undefined, node.content.first.value, "no definition holds here");
+    }
+    bool read = substituted == SubstitutionOutcome::substituted;
     if (read) {
         const ValueInput value_input{.source = input_.source,
                                      .tokens = tokens_,
@@ -2197,7 +2970,7 @@ CompileOutcome ThemeCompiler::compile(const ThemeCompileInput& input, ThemeRuleS
     CompilePass pass(input, sheet, diagnostics, tokens_, lines_, tree_, custom_properties_, selectors_, substitution_,
                      reader_, lowered_selectors_, substituted_, value_, parameter_names_, declarations_, materials_,
                      material_lowering_, material_fields_, recipe_fields_, motion_, media_queries_, palette_,
-                     folded_);
+                     variations_, folded_);
     const CompileOutcome outcome = pass.run();
     if (outcome == CompileOutcome::refused) {
         sheet.rules.clear();

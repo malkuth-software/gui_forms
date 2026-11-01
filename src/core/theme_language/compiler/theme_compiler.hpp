@@ -29,6 +29,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -137,6 +138,123 @@ struct PaletteStorage final {
     std::vector<std::size_t> choice{};
 };
 
+// How a custom property's value varies from part to part and window to
+// window (P12, PLAN.md section 1.11; owner decision of 2026-10-29).
+enum class Variation : std::uint8_t {
+    // Defined in one place, or in the palette alone with one definition
+    // holding everywhere: substituted where it is read, as one value.
+    fixed,
+    // Defined in the palette alone, under media conditions: a rule that
+    // reads it is lowered once per combination of the conditions.
+    media,
+    // Defined in more than one place, some in a rule's scope: a rule that
+    // reads it is lowered once per definition that may win for its parts
+    // (and once for none, where none may), each copy conditioned on the
+    // part's winner.
+    scoped,
+};
+
+// One palette definition of a media name: its position among the name's
+// definitions, holding where `media` holds.
+struct MediaVariant final {
+    std::uint32_t ordinal{};
+    MediaCondition media{};
+};
+
+// What one selector of a rule can match, for the pruning of a scoped
+// name's candidates: its control type and stable ID, each empty for any.
+// Two selectors whose types or IDs are both given and differ match no part
+// in common.
+struct SelectorScope final {
+    std::string control_type{};
+    std::string stable_id{};
+};
+
+// A definition of a scoped name that may win for a part, or none
+// (ordinal variable_undefined), with what its winning needs: copies whose
+// candidates cannot win together are not made.
+struct VariableCandidate final {
+    std::uint32_t ordinal{variable_undefined};
+    // The media condition it holds under, where it has exactly one.
+    std::optional<MediaCondition> needs{};
+    // The conditions under which a later palette definition replaces it.
+    std::vector<MediaCondition> replaced_under{};
+    // A scoped definition's rule node, which matches wherever it wins; 0
+    // for a palette definition or none.
+    std::uint32_t rule{};
+    // A palette definition or none: no scoped definition of the name
+    // matches where it wins.
+    bool unscoped{};
+    // The names its value reads, by name_index; a reader's copy decides
+    // them only where this candidate is chosen.
+    std::vector<std::uint32_t> reads{};
+    // A scoped definition's rule's selectors: a reader none of whose
+    // selectors can match a part in common with one of them never sees
+    // it win. And the control types its rule selects whole (a selector of
+    // a type alone, outside `@media`): a reader of only such a type always
+    // matches it, so no palette definition, nor none, wins there.
+    std::vector<SelectorScope> scopes{};
+    std::vector<std::string> covers{};
+};
+
+struct NameVariation final {
+    Variation kind{Variation::fixed};
+    // fixed: the substitution's choice.
+    std::uint32_t fixed{};
+    // media: the palette definitions in cascade order (ordinary, then
+    // `!important`, each in sheet order), from the last unconditional
+    // one, which an unconditional definition replaces.
+    std::vector<MediaVariant> variants{};
+    // scoped: the definitions that may win, then none where no palette
+    // definition holds everywhere; and the rule nodes of its scoped
+    // definitions.
+    std::vector<VariableCandidate> candidates{};
+    std::vector<std::uint32_t> scoped_rules{};
+    // The names its definitions read, by name_index.
+    std::vector<std::uint32_t> reads{};
+    // Whether a style rule's declaration reads it, through any number of
+    // definitions.
+    bool read{};
+};
+
+// The theme's custom property variations (P12) and what lowering their
+// readers takes, reused from one compilation to the next.
+struct VariationStorage final {
+    // By name_index.
+    std::vector<NameVariation> names{};
+    // The substitution's choice of each name's definition: a fixed name's
+    // own, the copy's for a name the rule reads, else variable_unassigned.
+    std::vector<std::uint32_t> choices{};
+    // A walk through the names a rule reads.
+    std::vector<std::uint32_t> pending{};
+    std::vector<std::uint32_t> visited{};
+    std::vector<std::uint8_t> seen{};
+    // The names the rule being lowered reads directly, deduplicated; the
+    // media names it reads through any definitions and their distinct
+    // conditions; and whether it may read a scoped name.
+    std::vector<std::uint32_t> direct{};
+    std::vector<std::uint32_t> media_read{};
+    std::vector<MediaCondition> conditions{};
+    bool reads_scoped{};
+    // The copy being lowered: the scoped names decided so far, in the
+    // order decided (each read by the rule or by a candidate chosen
+    // above it), each one's chosen candidate, and every name a copy of
+    // the rule assigned, to unassign after.
+    std::vector<std::uint32_t> scoped_read{};
+    std::vector<std::size_t> scoped_choice{};
+    std::vector<std::uint32_t> assigned{};
+    // The world being lowered, one bit per condition taken as holding.
+    std::size_t world{};
+    // The rule's selectors' scopes, and a selector lowering's scratch.
+    std::vector<SelectorScope> reader_scopes{};
+    std::vector<LoweredSelector> scope_selectors{};
+    // The copy's conditions, for its rules.
+    std::vector<ScopedCondition> copy_conditions{};
+    // A rule's scoped definitions, ordinary and `!important`.
+    std::vector<ScopedDefinition> ordinary{};
+    std::vector<ScopedDefinition> important{};
+};
+
 class ThemeCompiler final {
 public:
     // Replaces `sheet` with the lowered rules of `input.source` and appends
@@ -170,6 +288,7 @@ private:
     MotionStorage motion_{};
     std::vector<MediaQuery> media_queries_{};
     PaletteStorage palette_{};
+    VariationStorage variations_{};
     std::string folded_{};
 };
 

@@ -19,19 +19,34 @@ namespace gui_forms::theme_language {
 // value holds once every var() in it is substituted.
 inline constexpr std::size_t maximum_custom_properties = 1024U;
 inline constexpr std::size_t maximum_substituted_tokens = 4096U;
+// The most combinations of the definitions of the varying custom
+// properties one rule reads (P12, PLAN.md section 1.11; E508), each a copy
+// of the rule. Set from the token-heavy test theme
+// (theme_custom_property_css_tests), whose most copied rule takes 24:
+// more than four times that.
+inline constexpr std::size_t maximum_variable_combinations = 128U;
+// The most combinations of their candidate definitions one rule's copies
+// are sought among (P12; E508 too): 32 for each copy the limit admits.
+inline constexpr std::size_t maximum_variable_steps = 4096U;
 
 // One definition, `--name: <tokens>`: the name as written (with its `--`),
 // the value's tokens, the declaration's node, and the name's position among
-// the sheet's distinct names in name order (from 0 to name_count() - 1).
+// the sheet's distinct names in name order (from 0 to name_count() - 1);
+// the style rule that declares it, the `@media` block holding that rule
+// (node 0, the sheet, outside one), and whether it is `!important`.
 struct CustomPropertyDefinition final {
     std::string_view name{};
     TokenRange value{};
     NodeIndex declaration{};
     std::uint32_t name_index{};
+    NodeIndex rule{};
+    NodeIndex media{};
+    bool important{};
 
     friend bool operator==(const CustomPropertyDefinition& left, const CustomPropertyDefinition& right) noexcept {
         return left.name == right.name && left.value == right.value && left.declaration == right.declaration &&
-               left.name_index == right.name_index;
+               left.name_index == right.name_index && left.rule == right.rule && left.media == right.media &&
+               left.important == right.important;
     }
 };
 
@@ -73,6 +88,12 @@ public:
     // The definitions of `name` (written with its `--`), in document order.
     [[nodiscard]] std::span<const CustomPropertyDefinition> definitions_of(std::string_view name) const& noexcept;
     std::span<const CustomPropertyDefinition> definitions_of(std::string_view name) const&& = delete;
+    // The definitions of the name at `name_index`, in document order.
+    [[nodiscard]] std::span<const CustomPropertyDefinition> definitions_named(std::uint32_t name_index) const& noexcept;
+    std::span<const CustomPropertyDefinition> definitions_named(std::uint32_t name_index) const&& = delete;
+    // Every definition, by name_index, then in document order.
+    [[nodiscard]] std::span<const CustomPropertyDefinition> definitions() const& noexcept;
+    std::span<const CustomPropertyDefinition> definitions() const&& = delete;
     [[nodiscard]] std::size_t name_count() const noexcept;
 
 private:
@@ -96,16 +117,35 @@ struct ValueToken final {
     }
 };
 
-// What a substitution reads, all borrowed for the call.
+// Appends to `names` the name_index of each name `range` reads with
+// var() that `table` defines, fallbacks included, in token order.
+void append_variable_names(const ThemeSource& source, const std::vector<Token>& tokens, TokenRange range,
+                           const CustomPropertyTable& table, std::vector<std::uint32_t>& names);
+
+// A substitution's choice of a name's definition (P12, PLAN.md section
+// 1.11): its position among the name's definitions, or one of these.
+// - variable_unassigned: the name varies (it is defined in more than one
+//   place) and the value is read where it cannot (E416);
+// - variable_undefined: no definition holds, so var() reads its fallback,
+//   or, without one, the declaration is not declared.
+inline constexpr std::uint32_t variable_unassigned = 0xFFFF'FFFEU;
+inline constexpr std::uint32_t variable_undefined = 0xFFFF'FFFFU;
+
+// What a substitution reads, all borrowed for the call. `choices` holds a
+// choice for each of the table's names, by name_index; when it is empty,
+// a name defined once reads its definition and any other is unassigned.
 struct SubstitutionInput final {
     const ThemeSource& source;
     const ThemeTokenBuffer& tokens;
     const CustomPropertyTable& table;
     const ReservedInputs& reserved;
     SourcePositionCursor& cursor;
+    std::span<const std::uint32_t> choices{};
 };
 
-enum class SubstitutionOutcome : std::uint8_t { substituted, refused };
+// `undefined`: a var() read a name whose choice is variable_undefined,
+// without a fallback; nothing is reported.
+enum class SubstitutionOutcome : std::uint8_t { substituted, refused, undefined };
 
 // Substitutes the var()s of declaration values (PLAN.md section 1.6). It
 // keeps its working storage from value to value.
@@ -114,17 +154,16 @@ public:
     // Fills `output` (replacing its contents) with the tokens of `value`,
     // each `var(--name)` or `var(--name, fallback)` replaced by the name's
     // value (substituted in turn), by a reserved input, or by the fallback
-    // when no rule defines the name. Whitespace and comments are left out:
-    // tokens already separate the components. Until P12 resolves custom
-    // properties per part, a name with more than one definition is refused
-    // with the temporary not_yet_built (E999), so that no interim meaning
-    // ships. Errors: a name undefined without a fallback (E409), a cycle
-    // (E410), a malformed var() (E401), and a substitution that passes over
+    // when no rule defines the name. A name's definition is the one its
+    // choice names. Whitespace and comments are left out: tokens already
+    // separate the components. Errors: a name undefined without a fallback
+    // (E409), an unassigned choice (E416), a cycle (E410), a malformed
+    // var() (E401), and a substitution that passes over
     // more than maximum_substituted_tokens tokens (E512). Every token it
     // passes over counts once: whitespace and comments, each var()'s own
     // tokens and a fallback it skips. So its work stays within a constant
-    // of the bound however the definitions nest. On `refused`, `output` is
-    // empty.
+    // of the bound however the definitions nest. On `refused` and
+    // `undefined`, `output` is empty.
     [[nodiscard]] SubstitutionOutcome substitute(const SubstitutionInput& input, TokenRange value,
                                                  std::vector<ValueToken>& output, ThemeDiagnosticList& diagnostics);
 
