@@ -10,6 +10,7 @@
 #include "../scheduler/request/scheduled_frame_request.hpp"
 #include "accelerator/accelerator_attachment.hpp"
 #include "popup/popup_attachment.hpp"
+#include "../theme/theme_compiler/control_inline_style.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -2041,11 +2042,31 @@ void Window::detach_subtree_state(const Control::Ptr& control,
     }
 }
 
+bool Window::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
+                                     std::vector<ThemeCompileDiagnostic>& diagnostics) const {
+    if (root_ && !(*root_).theme_override_) {
+        if (!(*root_).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+    }
+    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
+        const Control::Ptr overlay = (*popup).popup();
+        if (!overlay || (*overlay).theme_override_) continue;
+        if (!(*overlay).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+    }
+    return true;
+}
+
+void Window::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles) {
+    Control::commit_inline_restyles(restyles);
+}
+
 void Window::attach_subtree(const Control::Ptr& control, const Control::WeakPtr& parent) {
     require_ui_thread("visual-tree attachment");
     register_subtree(control);
     ControlList controls;
     attach_subtree_state(control, parent, controls);
+    // The theme in effect may have changed with the window or the parent
+    // (P12b).
+    for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
     ControlList notified;
     in_lifecycle_notification_ = true;
     try {

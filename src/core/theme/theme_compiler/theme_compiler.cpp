@@ -8,6 +8,7 @@
 #include "../theme/theme_access.hpp"
 #include "control_inline_style.hpp"
 #include "theme_image_lease.hpp"
+#include "theme_source_record.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -293,7 +294,28 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
     (*definition).id = root.manifest.name;
-    std::shared_ptr<const Theme> theme = detail::ThemeAccess::create_holding(*definition, std::move(held));
+    // The source the theme keeps for inline styles compiled against it
+    // (P12b).
+    std::shared_ptr<detail::ThemeSourceRecord> record = std::make_shared<detail::ThemeSourceRecord>();
+    (*record).text = text;
+    (*record).file = closure_file;
+    for (const ClosureSegment& segment : segments) {
+        (*record).sheets.push_back(detail::ThemeSourceSheet{
+            .file = sheet_file(*segment.pack), .start = segment.start, .length = (*segment.pack).sheet.size()});
+    }
+    compiler.append_defined_names((*record).defined_names);
+    std::sort((*record).defined_names.begin(), (*record).defined_names.end());
+    (*record).published_values = published;
+    for (const theme_language::ThemeImageResource& resource : loaded) {
+        (*record).images.push_back(detail::ThemeSourceImage{.resource = std::string(resource.resource),
+                                                            .image = resource.image,
+                                                            .pixel_size = resource.pixel_size});
+    }
+    (*record).controls.assign(options.controls.begin(), options.controls.end());
+    (*record).requires_engine = requires_engine;
+    std::shared_ptr<const detail::ThemeSourceRecord> kept(std::move(record));
+    std::shared_ptr<const Theme> theme =
+        detail::ThemeAccess::create_holding(*definition, std::move(held), std::move(kept));
     return ThemeCompileResult::compiled(std::move(theme), std::move(found));
 }
 
@@ -421,11 +443,246 @@ std::span<const ThemeCompileDiagnostic> InlineStyleResult::diagnostics() const n
     return {};
 }
 
+namespace {
+
+// Whether `rule`, lowered from a theme compiled again for an inline style,
+// is one of the theme's rules that the style's definitions vary (P12b): a
+// rule at the theme's levels, reading a name in `defined` (sorted), whose
+// selector can match the control `stable_id` of type `control_type`. The
+// segment's own rules, at the inline levels, are the style's and are taken
+// apart (style_rule).
+bool theme_reader_taken(const ThemeRule& rule, std::span<const std::string> defined, std::string_view control_type,
+                        std::string_view stable_id) noexcept {
+    if (rule.level == CascadeLevel::inline_style || rule.level == CascadeLevel::important_inline_style) return false;
+    if (rule.source_position == 0U) return false;
+    if (!rule.selector.control_type.empty() && rule.selector.control_type != control_type) return false;
+    if (!rule.selector.stable_id.empty() && rule.selector.stable_id != stable_id) return false;
+    for (const std::string& name : rule.reads) {
+        if (std::binary_search(defined.begin(), defined.end(), name)) return true;
+    }
+    return false;
+}
+
+bool style_rule(const ThemeRule& rule) noexcept {
+    return rule.level == CascadeLevel::inline_style || rule.level == CascadeLevel::important_inline_style;
+}
+
+// Whether `rule`, lowered as above, is one of the theme's definitions of a
+// name in `read` (sorted), the names the style's own rules read, whose
+// selector can match the control (P12b): the style holds them, so that
+// where none of its own definitions holds for a part, the theme's does.
+bool theme_definition_taken(const ThemeRule& rule, std::span<const std::string> read, std::string_view control_type,
+                            std::string_view stable_id) noexcept {
+    if (style_rule(rule) || rule.source_position == 0U) return false;
+    if (!rule.selector.control_type.empty() && rule.selector.control_type != control_type) return false;
+    if (!rule.selector.stable_id.empty() && rule.selector.stable_id != stable_id) return false;
+    for (const ScopedDefinition& definition : rule.scoped_definitions) {
+        if (std::binary_search(read.begin(), read.end(), definition.name)) return true;
+    }
+    return false;
+}
+
+// Places a diagnostic of a theme compiled again for an inline style (P12b)
+// in the text it came from: at or after `from` in the style `text`
+// (through `pieces`, named `file`), else in the theme's own sheet.
+void place_recompiled(ThemeDiagnostic& diagnostic, std::size_t from, std::string_view text, std::string_view file,
+                      std::span<const theme_language::InlineSheetPiece> pieces,
+                      const detail::ThemeSourceRecord& record) {
+    const std::size_t offset = diagnostic.position.offset.value;
+    if (offset >= from) {
+        // The last piece starting at or before the offset; a written byte
+        // between pieces (the `*`, braces, `;`) is placed at its piece's
+        // end.
+        std::size_t within = 0U;
+        for (const theme_language::InlineSheetPiece& piece : pieces) {
+            if (piece.written > offset) break;
+            within = piece.style + std::min(offset - piece.written, piece.length);
+        }
+        within = std::min(within, text.size());
+        theme_language::LineStartTable lines{};
+        lines.reset(text);
+        diagnostic.file = std::string(file);
+        diagnostic.position = lines.position(text, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
+        return;
+    }
+    if (record.sheets.empty()) return;
+    std::size_t found = 0U;
+    for (std::size_t index = 0U; index < record.sheets.size(); ++index) {
+        if (record.sheets[index].start <= offset) found = index;
+    }
+    const detail::ThemeSourceSheet& sheet = record.sheets[found];
+    const std::string_view own = std::string_view(record.text).substr(sheet.start, sheet.length);
+    const std::size_t within = std::min(offset - sheet.start, own.size());
+    theme_language::LineStartTable lines{};
+    lines.reset(own);
+    diagnostic.file = sheet.file;
+    diagnostic.position = lines.position(own, theme_language::ByteOffset{static_cast<std::uint32_t>(within)});
+}
+
+// Whether `diagnostic` repeats one of `earlier`: the style's own
+// compilation reported it already.
+bool reported(const ThemeCompileDiagnostic& diagnostic, std::span<const ThemeCompileDiagnostic> earlier) noexcept {
+    for (const ThemeCompileDiagnostic& one : earlier) {
+        if (one.code == diagnostic.code && one.file == diagnostic.file && one.line == diagnostic.line &&
+            one.column == diagnostic.column) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// What compiling a theme again for an inline style takes (P12b): the style
+// `text` (compiled by `compiler`, defining the names `defined`, sorted),
+// whether its own declarations are lowered there too (`declarations`: it
+// reads a name the theme defines), and where the style's own diagnostics
+// begin in the output list (`own_first`).
+struct ThemeRecompile final {
+    std::string_view text;
+    const theme_language::ThemeCompiler& compiler;
+    std::span<const std::string> defined;
+    bool declarations{};
+    std::size_t own_first{};
+};
+
+// Compiles the theme of `record` again with the inline style written after
+// it as sheet rules, and puts in `sheet` the theme's rules the style's
+// definitions vary (theme_reader_taken), after the style's own rules: those
+// already in `sheet`, or, with `declarations`, the style's rules as lowered
+// there, which replace them. The theme's own diagnostics are its warnings
+// again and are not repeated, nor are the style's own; every other
+// diagnostic is appended to `diagnostics`, placed in the theme's sheet or
+// the style. False, with `sheet` unchanged, where an error refuses the
+// style.
+bool append_theme_readers(const ThemeRecompile& recompile, const ControlAnatomy& anatomy, std::string_view stable_id,
+                          std::string_view file, const detail::ThemeSourceRecord& record, ThemeRuleSheet& sheet,
+                          std::vector<ThemeCompileDiagnostic>& diagnostics) {
+    std::string combined = record.text;
+    combined += "\n";
+    const std::size_t from = combined.size();
+    std::vector<theme_language::InlineSheetPiece> pieces{};
+    recompile.compiler.append_inline_as_sheet(recompile.text, combined, pieces);
+    if (combined.size() > theme_language::maximum_sheet_bytes) {
+        diagnostics.push_back(public_diagnostic(problem_of(DiagnosticCode::sheet_too_large, std::string(file),
+                                                           std::to_string(theme_language::maximum_sheet_bytes))));
+        return false;
+    }
+    // The theme's control types, and the style's own where the theme names
+    // none of its kind.
+    std::vector<ControlAnatomy> controls = record.controls;
+    bool listed = false;
+    for (const ControlAnatomy& control : controls) {
+        if (control.control_id == anatomy.control_id) listed = true;
+    }
+    if (!listed) controls.push_back(anatomy);
+    // Borrows of the record's strings, which outlive the compilation.
+    std::vector<std::string_view> names{};
+    std::vector<theme_language::ThemeImageResource> images{};
+    names.reserve(record.images.size());
+    images.reserve(record.images.size());
+    for (const detail::ThemeSourceImage& image : record.images) {
+        names.push_back(image.resource);
+        theme_language::ThemeImageResource resource{};
+        resource.resource = image.resource;
+        resource.image = image.image;
+        resource.pixel_size = image.pixel_size;
+        images.push_back(resource);
+    }
+    const theme_language::ThemeSource source{.file = record.file, .text = combined};
+    const theme_language::ThemeCompileInput input{.source = source,
+                                                  .registry = builtin_primitive_registry(),
+                                                  .vocabulary = theme_language::SelectorVocabulary{controls},
+                                                  .published_values = record.published_values,
+                                                  .resources = names,
+                                                  .images = images,
+                                                  .requires_engine = record.requires_engine,
+                                                  .form = theme_language::ThemeSheetForm::sheet,
+                                                  .inline_definitions_from = static_cast<std::uint32_t>(from),
+                                                  .inline_declarations = recompile.declarations};
+    ThemeRuleSheet lowered{};
+    theme_language::ThemeCompiler again{};
+    theme_language::ThemeDiagnosticList found{};
+    const theme_language::CompileOutcome outcome = again.compile(input, lowered, found);
+    const std::size_t own_end = diagnostics.size();
+    for (const ThemeDiagnostic& diagnostic : found.records()) {
+        const bool in_style = diagnostic.position.offset.value >= from;
+        const bool error = theme_language::diagnostic_severity(diagnostic.code) == theme_language::DiagnosticSeverity::error;
+        if (!in_style && !error) continue;
+        ThemeDiagnostic placed = diagnostic;
+        place_recompiled(placed, from, recompile.text, file, pieces, record);
+        const ThemeCompileDiagnostic published = public_diagnostic(placed);
+        const std::span<const ThemeCompileDiagnostic> own =
+            std::span<const ThemeCompileDiagnostic>(diagnostics).subspan(recompile.own_first, own_end - recompile.own_first);
+        if (in_style && reported(published, own)) continue;
+        diagnostics.push_back(published);
+    }
+    if (outcome != theme_language::CompileOutcome::compiled) return false;
+    if (recompile.declarations) {
+        // The style's rules as lowered here replace its own compilation's;
+        // the theme's definitions of the scoped names they read come first,
+        // below them.
+        std::vector<std::string> read{};
+        for (const ThemeRule& rule : lowered.rules) {
+            if (!style_rule(rule)) continue;
+            for (const ScopedCondition& condition : rule.scoped_conditions) read.push_back(condition.name);
+        }
+        std::sort(read.begin(), read.end());
+        sheet.rules.clear();
+        for (ThemeRule& rule : lowered.rules) {
+            if (theme_definition_taken(rule, read, anatomy.control_id, stable_id)) sheet.rules.push_back(rule);
+        }
+        for (ThemeRule& rule : lowered.rules) {
+            if (style_rule(rule)) sheet.rules.push_back(std::move(rule));
+        }
+    }
+    for (ThemeRule& rule : lowered.rules) {
+        if (theme_reader_taken(rule, recompile.defined, anatomy.control_id, stable_id)) {
+            sheet.rules.push_back(std::move(rule));
+        }
+    }
+    return true;
+}
+
+} // namespace
+
+namespace {
+
+// ` (<code> <name> in <file>:<line>:<column>)` for the first error of
+// `diagnostics`; empty without one.
+std::string first_error_text(std::span<const ThemeCompileDiagnostic> diagnostics) {
+    std::string text{};
+    for (const ThemeCompileDiagnostic& diagnostic : diagnostics) {
+        if (diagnostic.severity != ThemeDiagnosticSeverity::error) continue;
+        text = " (" + diagnostic.code + " " + diagnostic.name + " in " + diagnostic.file + ":" +
+               std::to_string(diagnostic.line) + ":" + std::to_string(diagnostic.column) + ")";
+        break;
+    }
+    return text;
+}
+
+} // namespace
+
+std::string detail::inline_restyle_refusal(std::string_view change,
+                                           std::span<const ThemeCompileDiagnostic> diagnostics) {
+    std::string message = std::string(change);
+    message += " refused: an inline style using custom properties does not compile against it";
+    message += first_error_text(diagnostics);
+    return message;
+}
+
+std::string detail::inline_restyle_kept(std::string_view file, std::span<const ThemeCompileDiagnostic> diagnostics) {
+    std::string message = std::string(file);
+    message += ": inline style kept as it was on attachment: it does not compile against the theme in effect";
+    message += first_error_text(diagnostics);
+    message += "; the theme's definitions apply to the theme's rules";
+    return message;
+}
+
 std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
-    std::string_view text, const ControlAnatomy& anatomy, std::string_view file,
-    std::vector<ThemeCompileDiagnostic>& diagnostics) {
+    std::string_view text, const ControlAnatomy& anatomy, std::string_view stable_id, std::string_view file,
+    const Theme& theme, std::vector<ThemeCompileDiagnostic>& diagnostics) {
     const theme_language::ThemeSource source{.file = file, .text = text};
     const PrimitiveRegistry& registry = builtin_primitive_registry();
+    const detail::ThemeSourceRecord& record = ThemeAccess::source(theme);
     const theme_language::ThemeCompileInput input{
         .source = source,
         .registry = registry,
@@ -434,16 +691,39 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
         .resources = {},
         .images = {},
         .requires_engine = current_engine_version,
-        .form = theme_language::ThemeSheetForm::inline_style};
+        .form = theme_language::ThemeSheetForm::inline_style,
+        .theme_names = record.defined_names};
     ThemeRuleSheet sheet{};
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList found{};
+    const std::size_t own_first = diagnostics.size();
     const theme_language::CompileOutcome outcome = compiler.compile(input, sheet, found);
     for (const ThemeDiagnostic& diagnostic : found.records()) diagnostics.push_back(public_diagnostic(diagnostic));
     if (outcome != theme_language::CompileOutcome::compiled) return nullptr;
+    // A style defining custom properties, or reading one the theme in
+    // effect defines, is compiled against that theme (P12b): the theme's
+    // rules reading the style's names are lowered again with its
+    // definitions, and where it reads the theme's names its own rules are
+    // lowered there too. Every theme keeps a source; a theme made from a
+    // definition alone (the default) keeps the empty sheet's.
+    std::vector<std::string> defined{};
+    compiler.append_defined_names(defined);
+    std::sort(defined.begin(), defined.end());
+    const bool reads_theme = compiler.reads_theme_names();
+    const bool bound = !defined.empty() || reads_theme;
+    if (bound) {
+        const ThemeRecompile recompile{.text = text,
+                                       .compiler = compiler,
+                                       .defined = defined,
+                                       .declarations = reads_theme,
+                                       .own_first = own_first};
+        if (!append_theme_readers(recompile, anatomy, stable_id, file, record, sheet, diagnostics)) return nullptr;
+    }
+    const CompiledThemeRules* const against = bound ? &theme.engine().rules() : nullptr;
     std::shared_ptr<ControlInlineStyle> style = std::make_shared<ControlInlineStyle>();
     (*style).text = std::string(text);
-    (*style).rules = CompiledThemeRules::compile_inline(sheet, registry);
+    (*style).theme_bound = bound;
+    (*style).rules = CompiledThemeRules::compile_inline(sheet, registry, against);
     std::shared_ptr<const ControlInlineStyle> result(std::move(style));
     return result;
 }

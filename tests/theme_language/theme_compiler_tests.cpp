@@ -327,7 +327,23 @@ void test_gate() {
     require(compiled.outcome == CompileOutcome::compiled && compiled.diagnostics.empty(),
             "the gate sheet compiles with no diagnostic");
     const ThemeRuleSheet reference = reference_sheet();
-    require(compiled.sheet == reference, "the gate sheet lowers to the hand-built records");
+    // The sheet names custom properties, so its rules carry what an inline
+    // style's definitions need (P12b): the names each reads, and their
+    // source positions, in source order. The hand-built records predate
+    // them.
+    ThemeRuleSheet lowered = compiled.sheet;
+    std::uint32_t previous = 0U;
+    bool ordered = true;
+    for (ThemeRule& rule : lowered.rules) {
+        if (rule.source_position <= previous) ordered = false;
+        previous = rule.source_position;
+        rule.source_position = 0U;
+    }
+    require(ordered, "the gate rules' source positions follow the source");
+    const std::vector<std::string> pad_reads{"--lift"};
+    require(!lowered.rules.empty() && lowered.rules[0].reads == pad_reads, "the pad rule reads --lift");
+    for (ThemeRule& rule : lowered.rules) rule.reads.clear();
+    require(lowered == reference, "the gate sheet lowers to the hand-built records");
     if (compiled.sheet.rules.size() == reference.rules.size()) {
         for (std::size_t index = 0U; index < reference.rules.size(); ++index) {
             const ThemeRule& got = compiled.sheet.rules[index];

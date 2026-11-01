@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstdio>
 #include <functional>
 #include <limits>
 #include <stdexcept>
@@ -695,6 +696,10 @@ double Control::snap_text_baseline(double logical_baseline) const noexcept {
 
 const Theme& Control::effective_theme() const noexcept {
     if (theme_override_) return *theme_override_;
+    return inherited_theme();
+}
+
+const Theme& Control::inherited_theme() const noexcept {
     if (const Ptr visual_parent = parent_.lock()) {
         return (*visual_parent).effective_theme();
     }
@@ -715,15 +720,70 @@ void Control::set_theme_override(std::shared_ptr<const Theme> theme) {
         throw std::invalid_argument("control theme override may not be null");
     }
     if (theme_override_ == theme) return;
+    std::vector<detail::InlineRestyle> restyles{};
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    if (!collect_inline_restyles(*theme, restyles, diagnostics)) {
+        throw std::invalid_argument(detail::inline_restyle_refusal("control theme override", diagnostics));
+    }
     theme_override_ = std::move(theme);
+    commit_inline_restyles(restyles);
     invalidate_subtree(invalidation::conservative_subtree);
 }
 
 void Control::clear_theme_override() {
     require_mutable();
     if (!theme_override_) return;
+    std::vector<detail::InlineRestyle> restyles{};
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    if (!collect_inline_restyles(inherited_theme(), restyles, diagnostics)) {
+        throw std::invalid_argument(detail::inline_restyle_refusal("control theme override removal", diagnostics));
+    }
     theme_override_.reset();
+    commit_inline_restyles(restyles);
     invalidate_subtree(invalidation::conservative_subtree);
+}
+
+bool Control::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
+                                      std::vector<ThemeCompileDiagnostic>& diagnostics) {
+    const std::uint64_t serial = theme.engine().rules().serial();
+    if (inline_style_ != nullptr && (*inline_style_).theme_bound && (*inline_style_).rules.theme_serial() != serial) {
+        const std::string file = "inline:" + std::string(stable_id().value());
+        std::shared_ptr<const detail::ControlInlineStyle> compiled = detail::compile_inline_style(
+            (*inline_style_).text, anatomy(), stable_id().value(), file, theme, diagnostics);
+        if (compiled == nullptr) return false;
+        restyles.push_back(detail::InlineRestyle{.control = this, .style = std::move(compiled)});
+    }
+    for (const Ptr& child : children_) {
+        if ((*child).theme_override_) continue;
+        if (!(*child).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+    }
+    return true;
+}
+
+void Control::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles) {
+    for (detail::InlineRestyle& restyle : restyles) {
+        (*restyle.control).inline_style_ = std::move(restyle.style);
+        (*restyle.control).invalidate(Dirty::style | Dirty::paint);
+    }
+    restyles.clear();
+}
+
+void Control::refresh_inline_style() {
+    if (inline_style_ == nullptr || !(*inline_style_).theme_bound) return;
+    const Theme& theme = effective_theme();
+    if ((*inline_style_).rules.theme_serial() == theme.engine().rules().serial()) return;
+    const std::string file = "inline:" + std::string(stable_id().value());
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    std::shared_ptr<const detail::ControlInlineStyle> compiled =
+        detail::compile_inline_style((*inline_style_).text, anatomy(), stable_id().value(), file, theme, diagnostics);
+    if (compiled == nullptr) {
+        // Kept as it was, with one log line (owner, 2026-10-31).
+        const std::string line = detail::inline_restyle_kept(file, diagnostics);
+        std::fprintf(stderr, "%s\n", line.c_str());
+        return;
+    }
+    inline_style_ = std::move(compiled);
+    invalidate(Dirty::style | Dirty::paint);
 }
 
 void Control::set_authored_surface_material(SurfaceMaterial material) {
@@ -2036,7 +2096,7 @@ InlineStyleResult Control::set_inline_style(std::string_view text) {
     const std::string file = "inline:" + std::string(stable_id().value());
     std::vector<ThemeCompileDiagnostic> diagnostics{};
     std::shared_ptr<const detail::ControlInlineStyle> compiled =
-        detail::compile_inline_style(text, anatomy(), file, diagnostics);
+        detail::compile_inline_style(text, anatomy(), stable_id().value(), file, effective_theme(), diagnostics);
     // A refused style changes nothing (B2).
     if (compiled == nullptr) return InlineStyleResult::refused(std::move(diagnostics));
     inline_style_ = std::move(compiled);

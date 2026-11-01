@@ -57,7 +57,7 @@ Types
 
    .. cpp:function:: void set_theme(std::shared_ptr<const Theme> theme)
 
-      Replaces the theme of every window sharing these resources; each remeasures and repaints, and publishes its theme_changed. The same as Window::set_theme on any of them. Null is invalid_argument.
+      Replaces the theme of every window sharing these resources; each remeasures and repaints, and publishes its theme_changed. The same as Window::set_theme on any of them. Null is invalid_argument, and so is a theme against which an inline style defining custom properties, of a control taking the windows' theme, does not compile: each such style is compiled against the new theme first, and nothing changes where one fails (P12b).
 
    .. cpp:function:: std::shared_ptr<const Theme> theme_ptr() const noexcept
 

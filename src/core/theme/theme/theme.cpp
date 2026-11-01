@@ -4,6 +4,7 @@
 
 #include "forced_high_contrast.hpp"
 #include "theme_access.hpp"
+#include "../theme_compiler/theme_source_record.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1198,16 +1199,29 @@ ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes) {
 }
 
 std::shared_ptr<const Theme> Theme::create(const ThemeDefinition& definition) {
-    std::shared_ptr<const Theme> result(validated(definition));
+    std::unique_ptr<Theme> theme = validated(definition);
+    (*theme).source_ = detail::empty_theme_source();
+    std::shared_ptr<const Theme> result(std::move(theme));
     return result;
 }
 
+std::shared_ptr<const detail::ThemeSourceRecord> detail::empty_theme_source() {
+    static const std::shared_ptr<const ThemeSourceRecord> empty = std::make_shared<const ThemeSourceRecord>();
+    return empty;
+}
+
 std::shared_ptr<const Theme> detail::ThemeAccess::create_holding(
-    const ThemeDefinition& definition, std::vector<std::shared_ptr<const ThemeImageLease>> images) {
+    const ThemeDefinition& definition, std::vector<std::shared_ptr<const ThemeImageLease>> images,
+    std::shared_ptr<const ThemeSourceRecord> source) {
     std::unique_ptr<Theme> theme = Theme::validated(definition);
     (*theme).images_ = std::move(images);
+    (*theme).source_ = source != nullptr ? std::move(source) : empty_theme_source();
     std::shared_ptr<const Theme> result(std::move(theme));
     return result;
+}
+
+const detail::ThemeSourceRecord& detail::ThemeAccess::source(const Theme& theme) noexcept {
+    return *theme.source_;
 }
 
 std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {

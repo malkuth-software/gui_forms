@@ -574,6 +574,14 @@ Types
 
    .. rubric:: Properties
 
+   .. cpp:function:: std::uint64_t theme_serial() const noexcept
+
+      The serial of the theme an inline style was compiled against, 0 for none (P12b).
+
+   .. cpp:function:: std::size_t read_name_count() const noexcept
+
+      How many custom property names the rules read (P12b).
+
    .. cpp:function:: bool inline_style() const noexcept
 
       Whether the rules are a control's inline style (compile_inline).
@@ -615,9 +623,9 @@ Types
 
       Compiles the engine's built-in rules (built_in_theme_rules, at CascadeLevel::built_in, below every authored rule) and then ``sheet``. The theme engine's rules are made this way. Diagnostics name the sheet's rules by their positions in ``sheet``.
 
-   .. cpp:function:: static CompiledThemeRules compile_inline(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry)
+   .. cpp:function:: static CompiledThemeRules compile_inline(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry, const CompiledThemeRules* theme = nullptr)
 
-      Compiles one control's inline style (T3 P9, R2-10): rules at :cpp:func:`inline_style <gui_forms::CompiledThemeRules::inline_style>` and ``important_inline_style`` only, each without a stable ID, since the control owns them and consults them for itself alone (PartFacts::inline_rules). The sheet publishes no values.
+      Compiles one control's inline style (T3 P9, R2-10): rules at :cpp:func:`inline_style <gui_forms::CompiledThemeRules::inline_style>` and ``important_inline_style`` only, each without a stable ID, since the control owns them and consults them for itself alone (PartFacts::inline_rules). The sheet publishes no values. Compiled against ``theme`` (P12b), the style also holds copies of the theme's rules that read its custom properties (each with a source_position, at the theme's authored levels): the theme's rules are then passed over wherever the style's definition of a name they read wins, while the style is used with ``theme`` itself (the same compilation, by serial). ``theme`` is read during the call only.
 
    .. cpp:function:: std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
 
@@ -4135,6 +4143,12 @@ Types
 
    .. cpp:member:: std::vector<ScopedCondition> scoped_conditions
 
+   .. cpp:member:: std::vector<std::string> reads
+
+      Inline custom properties (P12b). A theme's rule lists the custom properties it reads, through any number of definitions: where a control's inline definition of one wins for a part, the rule is passed over there and the inline style's copy of it applies instead. ``source_position`` is the position of the style rule the rule was lowered from in the theme's source (its syntax node, from 1), which places such a copy among the theme's rules; 0 for none.
+
+   .. cpp:member:: std::uint32_t source_position
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ThemeRuleSheet final
@@ -6031,6 +6045,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_scoped_custom_properties
 
    The most scoped names one compilation's conditions may read (E515): eight times the token-heavy test theme's 8 (theme_custom_property_css_tests). Value: ``64U``.
+
+.. cpp:var:: constexpr std::size_t maximum_read_custom_properties
+
+   The most custom property names a theme's rules read (P12b, ThemeRule::reads): a sheet defines at most 1,024. Value: ``1024U``.
+
+.. cpp:var:: constexpr std::uint32_t inline_definition_base
+
+   A definition made in a control's inline style (P12b) is numbered at or above this, a theme's below it, so the two never share a number and the engine tells an inline definition's win apart. Value: ``0x8000'0000U``.
 
 .. cpp:var:: constexpr std::uint32_t maximum_operations_per_device_pixel
 

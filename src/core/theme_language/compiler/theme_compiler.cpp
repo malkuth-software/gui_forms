@@ -355,6 +355,15 @@ private:
     // Whether the style rule's selector is `:root` alone: the palette's
     // block, collected before the rules.
     [[nodiscard]] bool selects_root(std::size_t rule_index) const noexcept;
+    // Whether a definition is the palette's, or holds everywhere as the
+    // palette's do (NameVariation::global_declaration, P12b).
+    [[nodiscard]] bool palette_scope(const CustomPropertyDefinition& definition) const noexcept;
+    // Whether a node is an inline style's, in a theme compiled for it
+    // (ThemeCompileInput::inline_definitions_from).
+    [[nodiscard]] bool in_inline_segment(std::size_t node_index) const noexcept;
+    // The number a definition declared at `declaration` goes by (P12b):
+    // an inline style's from inline_definition_base, a theme's its node.
+    [[nodiscard]] std::uint32_t definition_number(std::uint32_t declaration) const noexcept;
     // The next combination of the varying roles' variants in order; false
     // after the last.
     [[nodiscard]] bool next_palette_choice() noexcept;
@@ -532,6 +541,15 @@ private:
     // whether the value just read was so left.
     bool undefined_drops_{};
     bool undefined_read_{};
+    // The style rule being lowered (ThemeRule::source_position), 0 for
+    // none; and the first node of an inline style's rules in a theme
+    // compiled for it (P12b), 0 for none.
+    std::uint32_t source_position_{};
+    std::uint32_t segment_node_{};
+    // Whether the sheet names a custom property at all: only then can an
+    // inline style's definitions vary its rules, and only then are its
+    // rules given their source positions (P12b).
+    bool positions_{};
     // The em lowering's storage (P8c).
     std::vector<MaterialDeclaration> em_materials_{};
     std::vector<RecipeDeclaration> em_recipe_fields_{};
@@ -570,6 +588,24 @@ CompileOutcome CompilePass::run() {
     const ParseOutcome parsed = parse_theme_sheet(input_.source, tokens_, lines_, tree_, diagnostics_, input_.form);
     if (parsed != ParseOutcome::tree_complete) return CompileOutcome::refused;
     newer_engine_ = current_engine_version < input_.requires_engine;
+    substitution_.clear_theme_read();
+    segment_node_ = 0U;
+    positions_ = false;
+    if (input_.form == ThemeSheetForm::sheet) {
+        for (const Token& token : tokens_.tokens) {
+            if (token.kind != TokenKind::ident || token.length.value < 2U) continue;
+            const std::string_view name = input_.source.text.substr(token.offset.value, 2U);
+            if (name == "--") positions_ = true;
+        }
+    }
+    if (input_.inline_definitions_from) {
+        const std::vector<SyntaxNode>& all = tree_.nodes;
+        for (std::uint32_t index = 1U; index < all.size() && segment_node_ == 0U; ++index) {
+            if (all[index].kind != SyntaxNodeKind::style_rule) continue;
+            const ByteOffset at = tokens_.tokens[all[index].tokens.first.value].offset;
+            if (at.value >= *input_.inline_definitions_from) segment_node_ = index;
+        }
+    }
     motion_.keyframes.clear();
     if (newer_engine_) {
         const std::string version =
@@ -585,7 +621,21 @@ CompileOutcome CompilePass::run() {
     // How the custom properties vary, which the palette's values read;
     // then the palette: a rule reads it wherever its `:root` block is.
     if (!collect_variations()) return CompileOutcome::refused;
-    if (!collect_palette()) return CompileOutcome::refused;
+    // The palette is the theme's whole: a name an inline style defines
+    // reads there as the theme alone defines it (P12b).
+    for (std::uint32_t name_index = 0U; name_index < variations_.names.size(); ++name_index) {
+        const NameVariation& name = variations_.names[name_index];
+        if (!name.inline_defined || name.global_declaration == 0U) continue;
+        const std::span<const CustomPropertyDefinition> named = custom_properties_.definitions_named(name_index);
+        for (std::uint32_t ordinal = 0U; ordinal < named.size(); ++ordinal) {
+            if (named[ordinal].declaration.value == name.global_declaration) variations_.choices[name_index] = ordinal;
+        }
+    }
+    const bool palette = collect_palette();
+    for (std::uint32_t name_index = 0U; name_index < variations_.names.size(); ++name_index) {
+        if (variations_.names[name_index].inline_defined) variations_.choices[name_index] = variable_unassigned;
+    }
+    if (!palette) return CompileOutcome::refused;
     const std::vector<SyntaxNode>& nodes = tree_.nodes;
     // The keyframes first: an animation may name keyframes defined after
     // its rule, as in CSS.
@@ -697,6 +747,9 @@ struct PaletteDefinition final {
     std::uint32_t media{};
     std::uint32_t declaration{};
     std::string_view name{};
+    // A theme's one definition outside the palette (P12b), which keeps its
+    // importance: a palette's `!important` never beats a rule's own.
+    bool global{};
 };
 
 struct PaletteDefinitionLess final {
@@ -753,13 +806,29 @@ bool CompilePass::collect_variations() {
         const std::span<const CustomPropertyDefinition> group = definitions.subspan(first, last - first);
         first = last;
         NameVariation& name = variations.names[name_index];
-        if (group.size() == 1U) {
+        // In a theme compiled for an inline style (P12b), a name the style
+        // defines varies for its readers; the theme's one definition of it
+        // holds everywhere, as when the theme stands alone. The style alone
+        // defines its names for the theme's readers as well as its own, so
+        // each is scoped and lowered whether it reads them or not.
+        const bool inline_form = input_.form == ThemeSheetForm::inline_style;
+        std::size_t theme_definitions = 0U;
+        for (const CustomPropertyDefinition& definition : group) {
+            if (inline_form || in_inline_segment(definition.declaration.value)) {
+                name.inline_defined = true;
+                continue;
+            }
+            theme_definitions = theme_definitions + 1U;
+            name.global_declaration = definition.declaration.value;
+        }
+        if (theme_definitions != 1U || !name.inline_defined) name.global_declaration = 0U;
+        if (group.size() == 1U && !name.inline_defined) {
             // Defined in one place: substituted wherever it is read.
             name.fixed = 0U;
             variations.choices[name_index] = 0U;
             continue;
         }
-        bool in_palette = true;
+        bool in_palette = !name.inline_defined;
         for (const CustomPropertyDefinition& definition : group) {
             in_palette = in_palette && selects_root(definition.rule.value);
         }
@@ -784,12 +853,13 @@ bool CompilePass::collect_variations() {
             return false;
         }
         for (const CustomPropertyDefinition& definition : group) {
-            if (!selects_root(definition.rule.value)) continue;
+            if (!palette_scope(definition)) continue;
             palette_definitions.push_back(PaletteDefinition{.important = definition.important,
                                                             .rule = definition.rule.value,
                                                             .media = definition.media.value,
                                                             .declaration = definition.declaration.value,
-                                                            .name = definition.name});
+                                                            .name = definition.name,
+                                                            .global = !selects_root(definition.rule.value)});
         }
     }
     // The palette's definitions of the scoped names, first in the sheet:
@@ -804,19 +874,23 @@ bool CompilePass::collect_variations() {
     while (start < palette_definitions.size()) {
         const PaletteDefinition& head = palette_definitions[start];
         std::size_t end = start;
+        const bool important = head.global && head.important;
+        std::vector<ScopedDefinition>& into = important ? variations.important : variations.ordinary;
         variations.ordinary.clear();
+        variations.important.clear();
         while (end < palette_definitions.size() && palette_definitions[end].rule == head.rule &&
                palette_definitions[end].important == head.important) {
             const PaletteDefinition& definition = palette_definitions[end];
-            variations.ordinary.push_back(
-                ScopedDefinition{.name = std::string(definition.name), .definition = definition.declaration});
+            into.push_back(ScopedDefinition{.name = std::string(definition.name),
+                                            .definition = definition_number(definition.declaration)});
             ++end;
         }
         start = end;
         const std::uint32_t at = nodes[head.declaration].tokens.first.value;
+        source_position_ = head.rule;
         if (head.media == 0U) {
             media_ = MediaCondition{};
-            if (!emit_definitions(root, false, at)) return false;
+            if (!emit_definitions(root, important, at)) return false;
             continue;
         }
         MediaQueryProblem problem{};
@@ -826,13 +900,34 @@ bool CompilePass::collect_variations() {
         for (const MediaQuery& query : media_queries_) {
             if (query.unknown_feature || query.never) continue;
             media_ = query.condition;
-            if (!emit_definitions(root, false, at)) return false;
+            if (!emit_definitions(root, important, at)) return false;
         }
     }
     media_ = MediaCondition{};
     variations.ordinary.clear();
+    variations.important.clear();
+    source_position_ = 0U;
     rule_.clear();
     return true;
+}
+
+bool CompilePass::palette_scope(const CustomPropertyDefinition& definition) const noexcept {
+    if (selects_root(definition.rule.value)) return true;
+    const NameVariation& name = variations_.names[definition.name_index];
+    return name.global_declaration != 0U && name.global_declaration == definition.declaration.value;
+}
+
+bool CompilePass::in_inline_segment(std::size_t node_index) const noexcept {
+    return segment_node_ != 0U && node_index >= segment_node_;
+}
+
+std::uint32_t CompilePass::definition_number(std::uint32_t declaration) const noexcept {
+    // An inline style numbers its own definitions by their nodes; written
+    // after a theme, its first rule's node stands for its own first rule's
+    // (node 1), its nodes keeping their order and nesting.
+    if (input_.form == ThemeSheetForm::inline_style) return inline_definition_base | declaration;
+    if (in_inline_segment(declaration)) return inline_definition_base | (declaration - segment_node_ + 1U);
+    return declaration;
 }
 
 void CompilePass::palette_variants(std::span<const CustomPropertyDefinition> group,
@@ -844,7 +939,7 @@ void CompilePass::palette_variants(std::span<const CustomPropertyDefinition> gro
     for (std::size_t pass = 0U; pass < 2U; ++pass) {
         for (std::size_t ordinal = 0U; ordinal < group.size(); ++ordinal) {
             const CustomPropertyDefinition& definition = group[ordinal];
-            if (definition.important != (pass == 1U) || !selects_root(definition.rule.value)) continue;
+            if (definition.important != (pass == 1U) || !palette_scope(definition)) continue;
             if (definition.media.value == 0U) {
                 variants.clear();
                 variants.push_back(MediaVariant{.ordinal = static_cast<std::uint32_t>(ordinal), .media = {}});
@@ -871,7 +966,7 @@ bool CompilePass::read_block_queries(std::uint32_t media_index) {
 
 bool CompilePass::scoped_candidates(std::span<const CustomPropertyDefinition> group, NameVariation& name) {
     for (const CustomPropertyDefinition& definition : group) {
-        if (!selects_root(definition.rule.value)) name.scoped_rules.push_back(definition.rule.value);
+        if (!palette_scope(definition)) name.scoped_rules.push_back(definition.rule.value);
     }
     // The palette's definitions that may win: those left in its cascade.
     const std::vector<MediaVariant>& variants = name.variants;
@@ -904,7 +999,7 @@ bool CompilePass::scoped_candidates(std::span<const CustomPropertyDefinition> gr
     // at its importance always replaces.
     for (std::size_t ordinal = 0U; ordinal < group.size(); ++ordinal) {
         const CustomPropertyDefinition& definition = group[ordinal];
-        if (selects_root(definition.rule.value)) continue;
+        if (palette_scope(definition)) continue;
         bool replaced = false;
         for (std::size_t later = ordinal + 1U; later < group.size(); ++later) {
             replaced = replaced || (group[later].rule == definition.rule && group[later].important == definition.important);
@@ -953,8 +1048,14 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
         rule.media = media_;
         rule.selector = selector.selector;
         rule.level = important ? CascadeLevel::important_theme_sheet : selector.level;
+        // An inline style's definitions, alone or written after a theme
+        // (P12b), are at the inline levels.
+        if (input_.form == ThemeSheetForm::inline_style || in_inline_segment(source_position_)) {
+            rule.level = important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
+        }
         if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
         rule.scoped_definitions = definitions;
+        rule.source_position = positions_ ? source_position_ : 0U;
         sheet_.rules.push_back(std::move(rule));
     }
     return true;
@@ -974,10 +1075,14 @@ bool CompilePass::lower_definitions(std::size_t rule_index) {
         // definitions (a declaration of another property is not).
         if (found.empty()) continue;
         const NameVariation& variation = variations.names[found[0].name_index];
-        if (variation.kind != Variation::scoped || !variation.read) continue;
+        if (variation.kind != Variation::scoped || (!variation.read && !variation.inline_defined)) continue;
+        // The theme's one definition of a name an inline style defines
+        // went first, with the palette's (P12b).
+        if (variation.global_declaration == child) continue;
         const bool important = (node.flags & syntax_flag_important) != 0U;
         std::vector<ScopedDefinition>& into = important ? variations.important : variations.ordinary;
-        const ScopedDefinition definition{.name = std::string(name), .definition = static_cast<std::uint32_t>(child)};
+        const ScopedDefinition definition{.name = std::string(name),
+                                          .definition = definition_number(static_cast<std::uint32_t>(child))};
         // A later declaration of the name in the rule replaces this one.
         bool replaced = false;
         for (ScopedDefinition& earlier : into) {
@@ -998,6 +1103,13 @@ bool CompilePass::lower_definitions(std::size_t rule_index) {
                                        .cursor = cursor_};
     // The rule's own lowering reports its selectors' warnings, and counts
     // it against the rule limit.
+    const std::uint32_t at = rule.content.first.value;
+    if (input_.form == ThemeSheetForm::inline_style && rule.content.first.value == rule.content.end.value) {
+        // An inline style's own declarations: the control itself.
+        lowered_selectors_.push_back(LoweredSelector{.selector = {}, .specificity = {}, .level = {}});
+        if (!emit_definitions(lowered_selectors_, false, at)) return false;
+        return emit_definitions(lowered_selectors_, true, at);
+    }
     const bool muted = diagnostics_.warnings_muted();
     const std::size_t rules = budget_.rules;
     diagnostics_.mute_warnings(true);
@@ -1007,7 +1119,6 @@ bool CompilePass::lower_definitions(std::size_t rule_index) {
     budget_.rules = rules;
     if (selected == SelectorOutcome::refused) return false;
     if (selected == SelectorOutcome::dropped) return true;
-    const std::uint32_t at = rule.content.first.value;
     if (!emit_definitions(lowered_selectors_, false, at)) return false;
     return emit_definitions(lowered_selectors_, true, at);
 }
@@ -1217,15 +1328,33 @@ bool CompilePass::candidates_meet(std::size_t depth, std::size_t world, const Me
 bool CompilePass::lower_rule(std::size_t rule_index) {
     // The palette's own block was collected first.
     if (selects_root(rule_index)) return true;
-    if (!lower_definitions(rule_index)) return false;
+    source_position_ = static_cast<std::uint32_t>(rule_index);
+    const bool definitions = lower_definitions(rule_index);
+    // An inline style's rules after a theme (P12b) give their definitions
+    // only, its declarations being the style's own compilation's, unless
+    // the style reads the theme's names (inline_declarations).
+    if (!definitions || (in_inline_segment(rule_index) && !input_.inline_declarations)) {
+        source_position_ = 0U;
+        return definitions;
+    }
     read_variations(rule_index);
     VariationStorage& variations = variations_;
     variations.world = 0U;
+    // The names it reads, for the inline styles that redefine one (P12b).
+    variations.read_names.clear();
+    if (input_.form == ThemeSheetForm::sheet && !in_inline_segment(rule_index)) {
+        for (const std::uint32_t name_index : variations.visited) {
+            const std::span<const CustomPropertyDefinition> named = custom_properties_.definitions_named(name_index);
+            variations.read_names.push_back(std::string(named[0].name));
+        }
+        std::sort(variations.read_names.begin(), variations.read_names.end());
+    }
     undefined_drops_ = true;
     if (variations.media_read.empty() && !variations.reads_scoped) {
         variations.conditions.clear();
         const bool lowered = lower_rule_palette(rule_index);
         undefined_drops_ = false;
+        source_position_ = 0U;
         return lowered;
     }
     const SyntaxNode& rule = tree_.nodes[rule_index];
@@ -1313,7 +1442,7 @@ bool CompilePass::lower_rule(std::size_t rule_index) {
                         ScopedCondition condition{};
                         condition.name = std::string(named[0].name);
                         if (candidate.ordinal != variable_undefined) {
-                            condition.definition = named[candidate.ordinal].declaration.value;
+                            condition.definition = definition_number(named[candidate.ordinal].declaration.value);
                         }
                         variations.copy_conditions.push_back(std::move(condition));
                     }
@@ -1350,6 +1479,7 @@ bool CompilePass::lower_rule(std::size_t rule_index) {
     for (const std::uint32_t name_index : variations.assigned) variations.choices[name_index] = variable_unassigned;
     variations.assigned.clear();
     undefined_drops_ = false;
+    source_position_ = 0U;
     if (over && lowered) {
         rule_ = clipped_theme_detail(range_text(rule.content));
         property_.clear();
@@ -1610,12 +1740,6 @@ bool CompilePass::lower_rule_once(std::size_t rule_index) {
         any_important = any_important || flagged;
         fold_ascii(token_text(property), folded_);
         const PropertyClass kind = classify(folded_);
-        if (kind == PropertyClass::custom && input_.form == ThemeSheetForm::inline_style) {
-            // P12 builds custom properties through the cascade, inline
-            // definitions reaching the theme's declarations.
-            report(DiagnosticCode::not_yet_built, property, "a custom property in an inline style");
-            return false;
-        }
         if (kind != PropertyClass::primitive) continue;
         PrimitiveSelection one{};
         if (!select_primitive(node, one)) {
@@ -2800,6 +2924,11 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     lowered.materials = materials_;
     lowered.recipe_fields = recipe_fields_;
     lowered.scoped_conditions = variations_.copy_conditions;
+    // An inline style's own rules (P12b: alone, or lowered after a theme)
+    // are not the theme's readers.
+    const bool style_rule = input_.form == ThemeSheetForm::inline_style || in_inline_segment(source_position_);
+    if (!style_rule) lowered.reads = variations_.read_names;
+    lowered.source_position = positions_ && !style_rule ? source_position_ : 0U;
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
@@ -2824,7 +2953,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
         ThemeRule& rule = sheet_.rules.back();
         rule.selector = selector.selector;
         rule.level = emitted.important ? CascadeLevel::important_theme_sheet : selector.level;
-        if (input_.form == ThemeSheetForm::inline_style) {
+        if (style_rule) {
             rule.level = emitted.important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
         }
         // A given specificity only where CSS's differs from the engine's
@@ -2852,7 +2981,8 @@ bool CompilePass::read_value(const SyntaxNode& node) {
                                          .table = custom_properties_,
                                          .reserved = reserved_,
                                          .cursor = cursor_,
-                                         .choices = variations_.choices};
+                                         .choices = variations_.choices,
+                                         .theme_names = input_.theme_names};
     const SubstitutionOutcome substituted =
         substitution_.substitute(substitution, node.content, substituted_, diagnostics_);
     if (substituted == SubstitutionOutcome::undefined && undefined_drops_) undefined_read_ = true;
@@ -2978,6 +3108,50 @@ CompileOutcome ThemeCompiler::compile(const ThemeCompileInput& input, ThemeRuleS
         sheet.requires_engine = current_engine_version;
     }
     return outcome;
+}
+
+void ThemeCompiler::append_defined_names(std::vector<std::string>& names) const {
+    const std::span<const CustomPropertyDefinition> definitions = custom_properties_.definitions();
+    for (std::size_t index = 0U; index < definitions.size(); ++index) {
+        const bool first_of_name = index == 0U || definitions[index].name_index != definitions[index - 1U].name_index;
+        if (first_of_name) names.push_back(std::string(definitions[index].name));
+    }
+}
+
+void ThemeCompiler::append_inline_as_sheet(std::string_view text, std::string& output,
+                                           std::vector<InlineSheetPiece>& pieces) const {
+    const std::vector<SyntaxNode>& nodes = tree_.nodes;
+    const std::vector<Token>& tokens = tokens_.tokens;
+    for (std::size_t index = 1U; index < nodes.size(); index = nodes[index].subtree_end.value) {
+        const SyntaxNode& rule = nodes[index];
+        if (rule.kind != SyntaxNodeKind::style_rule) continue;
+        output += "*";
+        if (rule.content.first.value < rule.content.end.value) {
+            const Token& first = tokens[rule.content.first.value];
+            const Token& last = tokens[rule.content.end.value - 1U];
+            const std::size_t start = first.offset.value;
+            const std::size_t end = last.offset.value + last.length.value;
+            pieces.push_back(InlineSheetPiece{.written = output.size(), .style = start, .length = end - start});
+            output += text.substr(start, end - start);
+        }
+        output += " {\n";
+        const std::size_t rule_end = rule.subtree_end.value;
+        for (std::size_t child = index + 1U; child < rule_end; child = nodes[child].subtree_end.value) {
+            const SyntaxNode& declaration = nodes[child];
+            if (declaration.tokens.first.value >= declaration.tokens.end.value) continue;
+            const Token& first = tokens[declaration.tokens.first.value];
+            const Token& last = tokens[declaration.tokens.end.value - 1U];
+            const std::size_t start = first.offset.value;
+            const std::size_t end = last.offset.value + last.length.value;
+            output += "  ";
+            pieces.push_back(InlineSheetPiece{.written = output.size(), .style = start, .length = end - start});
+            output += text.substr(start, end - start);
+            // A declaration written without its `;` (the last of a block)
+            // is given one; an empty one after a written `;` makes no node.
+            output += ";\n";
+        }
+        output += "}\n";
+    }
 }
 
 } // namespace gui_forms::theme_language
