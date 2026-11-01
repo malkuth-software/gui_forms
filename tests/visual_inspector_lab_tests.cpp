@@ -72,9 +72,9 @@ int main() {
                 "pointer-transparent visual geometry overlay must remain absent from accessibility");
         // The inspector polls on a UI timer and repaints only what changed:
         // an idle poll leaves nothing to paint (it used to repaint the whole
-        // window through the overlay four times a second).
+        // window through the overlay four times a second); it polls once a second.
         static_cast<void>((*window).take_damage());
-        const FrameTime first_poll = FrameClock::now() + std::chrono::milliseconds(300);
+        const FrameTime first_poll = FrameClock::now() + std::chrono::milliseconds(1100);
         static_cast<void>((*window).poll_frame_schedule(first_poll));
         require(!(*window).needs_frame(), "an idle inspector poll must not repaint");
         const Control::Ptr card_control = (*window).find("visual-inspector.specimen-card");
@@ -97,7 +97,7 @@ int main() {
         static_cast<void>((*window).paint(painter, (*card_control).absolute_bounds()));
         static_cast<void>((*window).take_damage());
         require(!(*window).needs_frame(), "repainting the card must leave nothing pending");
-        const FrameTime second_poll = first_poll + std::chrono::milliseconds(300);
+        const FrameTime second_poll = first_poll + std::chrono::milliseconds(1100);
         static_cast<void>((*window).poll_frame_schedule(second_poll));
         require((*window).needs_frame(), "a poll after the target changed must repaint the inspector");
         std::cout << "gui_forms_visual_inspector_lab_tests: all tests passed\n";

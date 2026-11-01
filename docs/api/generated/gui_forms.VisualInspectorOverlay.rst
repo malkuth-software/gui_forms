@@ -57,6 +57,10 @@ gui_forms::VisualInspectorOverlay
         - Repaints the overlay from a new snapshot.
       * - :cpp:func:`refresh_if_changed <gui_forms::VisualInspectorOverlay::refresh_if_changed>`
         - Repaints only when the outlines differ from the ones last drawn, and returns whether it did.
+      * - :cpp:func:`start_polling <gui_forms::VisualInspectorOverlay::start_polling>`
+        - ``start_polling(FrameInterval interval)`` polls the inspected target every ``interval`` on a paint-gated :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` while the overlay is shown, and repaints only when what it shows has changed, so a settled overlay costs one inspection snapshot a poll and no paint.
+      * - :cpp:func:`stop_polling <gui_forms::VisualInspectorOverlay::stop_polling>`
+        - Stops polling.
 
    .. seealso::
 
@@ -133,6 +137,19 @@ gui_forms::VisualInspectorOverlay
    .. cpp:function:: bool refresh_if_changed()
 
       Repaints only when the outlines differ from the ones last drawn, and returns whether it did. The overlay usually spans the window, so an unconditional repaint repaints the whole window; poll this from a UI timer, not an active surface (see VisualInspectorView).
+
+   .. cpp:function:: void start_polling(FrameInterval interval)
+
+      ``start_polling(FrameInterval interval)`` polls the inspected target every
+      ``interval`` on a paint-gated :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` while the overlay is shown, and
+      repaints only when what it shows has changed, so a settled overlay costs
+      one inspection snapshot a poll and no paint. A hidden overlay or covered
+      window holds no wake. An interval below 1 ms throws
+      ``std::invalid_argument``.
+
+   .. cpp:function:: void stop_polling() noexcept
+
+      Stops polling.
 
 
    .. rubric:: Extension points

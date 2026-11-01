@@ -25,6 +25,15 @@ target_stable_id
 
 Methods
 -------
+start_polling
+    `start_polling(FrameInterval interval)` polls the inspected target every
+    `interval` on a paint-gated `AnimationTimer` while the overlay is shown, and
+    repaints only when what it shows has changed, so a settled overlay costs
+    one inspection snapshot a poll and no paint. A hidden overlay or covered
+    window holds no wake. An interval below 1 ms throws
+    `std::invalid_argument`.
+stop_polling
+    Stops polling.
 refresh
     Repaints the overlay from a new snapshot. Call it after the target moves
     or changes size.

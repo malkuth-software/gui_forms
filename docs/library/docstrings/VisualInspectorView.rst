@@ -27,6 +27,15 @@ target_stable_id
 
 Methods
 -------
+start_polling
+    `start_polling(FrameInterval interval)` polls the inspected target every
+    `interval` on a paint-gated `AnimationTimer` while the view is shown, and
+    repaints only when what it shows has changed, so a settled view costs
+    one inspection snapshot a poll and no paint. A hidden view or covered
+    window holds no wake. An interval below 1 ms throws
+    `std::invalid_argument`.
+stop_polling
+    Stops polling.
 refresh
     Repaints the view and updates its semantics from a new snapshot. Call it
     after the target changes.

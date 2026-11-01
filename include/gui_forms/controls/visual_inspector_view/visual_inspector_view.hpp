@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/control.hpp"
 
 #include <optional>
@@ -28,6 +29,12 @@ public:
     // the paint that drew it, which always includes the view's own damage. Returns whether it repainted. Poll it from a UI timer: an
     // active surface repaints its control on every tick whatever on_frame does.
     bool refresh_if_changed();
+    // Polls refresh_if_changed every `interval` on a paint-gated
+    // AnimationTimer while the view is shown (ADR-016): an unchanged poll
+    // damages nothing, and a hidden view or covered window holds no wake.
+    // An interval below 1 ms throws std::invalid_argument.
+    void start_polling(FrameInterval interval);
+    void stop_polling() noexcept;
 
     void on_frame(FrameTime now) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -55,6 +62,13 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The poll timer's target. Observes the control; a destroyed one is
+    // skipped.
+    struct PollTick final {
+        std::weak_ptr<VisualInspectorView> control;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+    AnimationTimer poll_timer_;
     [[nodiscard]] std::string accessible_value() const;
     std::string target_stable_id_;
     // The rows on_paint last drew, as one key (empty before the first paint).
@@ -80,6 +94,12 @@ public:
     // unconditional repaint repaints the whole window; poll this from a UI
     // timer, not an active surface (see VisualInspectorView).
     bool refresh_if_changed();
+    // Polls refresh_if_changed every `interval` on a paint-gated
+    // AnimationTimer while the overlay is shown (ADR-016): an unchanged poll
+    // damages nothing, and a hidden overlay or covered window holds no wake.
+    // An interval below 1 ms throws std::invalid_argument.
+    void start_polling(FrameInterval interval);
+    void stop_polling() noexcept;
 
     void on_frame(FrameTime now) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -106,6 +126,13 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The poll timer's target. Observes the control; a destroyed one is
+    // skipped.
+    struct PollTick final {
+        std::weak_ptr<VisualInspectorOverlay> control;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+    AnimationTimer poll_timer_;
     // The three outlines in this control's coordinates, or none when the
     // target is missing (or is this overlay).
     struct Outlines final {
