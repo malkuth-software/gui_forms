@@ -20,7 +20,7 @@ enum class DiagnosticSeverity : std::uint8_t { error, warning };
 
 // Each code's number is its stable record; its class is its hundreds digit
 // (PLAN.md section 2): E1xx lexical, E2xx structure, E3xx selectors, E4xx
-// values, E5xx limits, E7xx reserved names, W1xx unknown names. Later
+// values, E5xx limits, E7xx reserved names, W1xx unknown names, W5xx icons. Later
 // phases add the other classes. An error's enumerator value is its number; a warning's is 1000 plus its number, so W104 and
 // E104 stay distinct values.
 enum class DiagnosticCode : std::uint16_t {
@@ -210,6 +210,14 @@ enum class DiagnosticCode : std::uint16_t {
     // under a theme with rules of its own, reported once per window; the
     // file names the control (`inline:<control>`).
     inline_with_theme = 1401,
+    // W5xx icons (user themes, USER_THEMES.md section 6): a user theme's
+    // `icons/<identifier>.png` naming no program icon, or one the program
+    // marks fixed, or an image the rules refuse (not decoding, over 1024 by
+    // 1024 pixels or 1 MiB, or fully transparent). The file is ignored and
+    // the program's icon stays.
+    icon_unknown = 1501,
+    icon_not_overridable = 1502,
+    icon_refused = 1503,
 };
 
 [[nodiscard]] DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept;

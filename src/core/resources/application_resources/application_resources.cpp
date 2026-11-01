@@ -106,6 +106,53 @@ void ApplicationResources::set_user_theme(std::shared_ptr<const Theme> theme) {
     theme_ = replaces && user_theme_ != nullptr ? user_theme_ : program_theme_;
 }
 
+bool icon_identifier_valid(std::string_view identifier) noexcept {
+    constexpr std::size_t maximum_icon_identifier_bytes = 128U;
+    if (identifier.empty() || identifier.size() > maximum_icon_identifier_bytes) return false;
+    bool segment_start = true;
+    for (const char character : identifier) {
+        const bool lower = character >= 'a' && character <= 'z';
+        const bool digit = character >= '0' && character <= '9';
+        if (character == '.') {
+            if (segment_start) return false;
+            segment_start = true;
+            continue;
+        }
+        if (character == '-' && segment_start) return false;
+        if (!lower && !digit && character != '-') return false;
+        segment_start = false;
+    }
+    const bool ended = !segment_start;
+    return ended;
+}
+
+void ApplicationResources::register_icon(std::string_view identifier, ImageId image, IconOverride policy) {
+    require_access("icon registration");
+    if (!icon_identifier_valid(identifier)) throw std::invalid_argument("not an icon identifier");
+    for (const IconDeclaration& declared : icons_) {
+        if (declared.identifier == identifier) throw std::invalid_argument("the icon is already registered");
+    }
+    if (!images_.find(image)) throw std::invalid_argument("the icon's image is not one of these resources'");
+    // Both reserved first, so that neither push_back can throw between
+    // them.
+    icons_.reserve(icons_.size() + 1U);
+    icon_images_.reserve(icon_images_.size() + 1U);
+    icons_.push_back(IconDeclaration{.identifier = std::string(identifier), .policy = policy});
+    icon_images_.push_back(image);
+}
+
+std::optional<ImageId> ApplicationResources::icon(std::string_view identifier) const noexcept {
+    for (std::size_t index = 0U; index < icons_.size(); ++index) {
+        if (icons_[index].identifier != identifier) continue;
+        if (icons_[index].policy == IconOverride::overridable && user_theme_ != nullptr) {
+            const std::optional<ImageId> replaced = (*user_theme_).icon_override(identifier);
+            if (replaced) return replaced;
+        }
+        return icon_images_[index];
+    }
+    return std::nullopt;
+}
+
 const CompiledThemeRules* ApplicationResources::user_theme_rules() const noexcept {
     if (user_theme_ == nullptr || user_theme_policy_ != UserThemePolicy::layered) return nullptr;
     return &(*user_theme_).engine().rules();

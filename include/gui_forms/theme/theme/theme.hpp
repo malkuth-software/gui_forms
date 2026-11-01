@@ -7,6 +7,7 @@
 #include <cstddef>
 
 #include <memory>
+#include <optional>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -65,6 +66,12 @@ public:
     // The theme's engine, which paint_part calls for every part. The theme
     // owns it, so every window showing the theme shares it (T2 plan).
     [[nodiscard]] const ThemeEngine& engine() const noexcept { return engine_; }
+    // The image a compiled user theme gives the program icon `identifier`
+    // (its `icons/<identifier>.png`), held by the theme while it lives;
+    // nullopt where it gives none (T3 user themes). Whether the program
+    // lets the icon be replaced is the application's (ApplicationResources::
+    // icon).
+    [[nodiscard]] std::optional<ImageId> icon_override(std::string_view identifier) const noexcept;
 
 private:
     // The engine compiles the definition's rules: a theme is made whole or

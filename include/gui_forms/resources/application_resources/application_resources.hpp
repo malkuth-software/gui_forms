@@ -5,7 +5,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
+#include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -29,6 +32,24 @@ enum class UserThemePolicy : std::uint8_t {
     // No user themes.
     refused,
 };
+
+// Whether a user theme may replace a program icon (T3 user themes,
+// USER_THEMES.md section 6): `fixed` is the icon's counterpart of
+// `!important`, for such as a security indicator or the icon of the
+// settings entry leading back to the built-in theme.
+enum class IconOverride : std::uint8_t { overridable, fixed };
+
+// One program icon a user theme may name, by its identifier.
+struct IconDeclaration final {
+    std::string identifier{};
+    IconOverride policy{IconOverride::overridable};
+};
+
+// Whether `identifier` is an icon identifier: segments of ASCII lowercase
+// letters, digits and dashes, each beginning with a letter or digit,
+// joined by `.` (as the locale keys), at most 128 bytes in all; for
+// example `toolbar.save` or `check-mark`.
+[[nodiscard]] bool icon_identifier_valid(std::string_view identifier) noexcept;
 
 // The image registry and the theme of an application (stage DK decision 8),
 // shared by every Window constructed with it. In those windows an ImageId
@@ -87,6 +108,23 @@ public:
     [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
     // The layered user theme's rules, or null where none is layered.
     [[nodiscard]] const CompiledThemeRules* user_theme_rules() const noexcept;
+
+    // Program icons (T3 user themes). Registers `image`, an image of these
+    // resources, as the icon `identifier`. std::invalid_argument when the
+    // identifier is invalid or already registered, or the image is not
+    // one of these resources'; nothing changes then. The image stays the
+    // program's: removing it leaves icon() naming an image no longer there.
+    void register_icon(std::string_view identifier, ImageId image, IconOverride policy);
+    // The registered icons, in registration order, for a user theme's
+    // compilation (ThemeCompileOptions::icons).
+    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const noexcept { return icons_; }
+    // The image to draw for the icon `identifier`: the selected user
+    // theme's override of an overridable icon, else the program's image;
+    // nullopt for an identifier not registered. A user theme is selected
+    // before the first window, so a window resolves the same image for its
+    // whole life.
+    [[nodiscard]] std::optional<ImageId> icon(std::string_view identifier) const noexcept;
+
     // The windows currently sharing these resources.
     [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }
 
@@ -116,6 +154,10 @@ private:
     std::shared_ptr<const Theme> program_theme_;
     std::shared_ptr<const Theme> user_theme_{};
     UserThemePolicy user_theme_policy_{UserThemePolicy::layered};
+    // The registered icons and, at the same positions, their images.
+    // Bounded by the icons the program registers.
+    std::vector<IconDeclaration> icons_{};
+    std::vector<ImageId> icon_images_{};
     // Observing: each Window attaches in its constructor and detaches in its
     // destructor. Bounded by the windows the program creates on this thread.
     std::vector<Window*> windows_;

@@ -9,6 +9,7 @@
 // never half-applies and the running one stays (B2, RC003).
 
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 
@@ -98,6 +99,9 @@ struct ThemeCompileOptions final {
     // The application values the application publishes; a package listing
     // another is refused (E606).
     std::span<const std::string> published_values{};
+    // The program icons a user theme may replace (ApplicationResources::
+    // icon_declarations); a package compiles no icons.
+    std::span<const IconDeclaration> icons{};
 };
 
 // What setting a control's inline style gave (Control::set_inline_style):

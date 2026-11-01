@@ -5,7 +5,8 @@
 // packages imported by name; the folder's images as resources; the folder's
 // limits and kinds of file; the diagnostics named for their own files; and
 // the levels, the user levels for a layered theme and the program's for a
-// replacing one.
+// replacing one; and the icon overrides (section 6), checked, held by the
+// theme and resolved by the application's icon registry.
 
 #include "../../src/core/theme_language/package/theme_manifest.hpp"
 #include "gui_forms/gui_forms.hpp"
@@ -13,6 +14,10 @@
 #include <array>
 #include <cstddef>
 #include <iostream>
+#include <memory>
+#include <optional>
+#include <span>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -37,6 +42,26 @@ const std::string tiny_png("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49
                            "\xf8\xcf\xc0\xf0\x1f\x84\x19\xa0\xf4\x7f\x00\x43\xce\x07\xf9\xfa\x81\x4a\xfd\x00\x00\x00"
                            "\x00\x49\x45\x4e\x44\xae\x42\x60\x82",
                            75U);
+
+// A 2 x 2 PNG every pixel of which is transparent.
+const std::string clear_png("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49\x48\x44\x52\x00\x00"
+                            "\x00\x02\x00\x00\x00\x02\x08\x06\x00\x00\x00\x72\xb6\x0d\x24\x00\x00\x00\x0b"
+                            "\x49\x44\x41\x54\x78\xda\x63\x60\x40\x07\x00\x00\x12\x00\x01\xe4\x55\x8d\xe7"
+                            "\x00\x00\x00\x00\x49\x45\x4e\x44\xae\x42\x60\x82",
+                            68U);
+// A 1025 x 1 opaque PNG: one pixel wider than an icon may be.
+const std::string wide_png("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49\x48\x44\x52\x00\x00"
+                           "\x04\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\xaf\xcc\xb7\x0b\x00\x00\x00\x1a"
+                           "\x49\x44\x41\x54\x78\xda\xed\xc1\x01\x01\x00\x00\x00\x01\x20\xff\x4f\x33\x44"
+                           "\x95\x02\x00\x00\x00\x17\x06\x4f\x1c\xf4\xde\xd0\xfc\xa5\xea\x00\x00\x00\x00"
+                           "\x49\x45\x4e\x44\xae\x42\x60\x82",
+                           83U);
+// A 2 x 2 PNG whose compressed data is damaged.
+const std::string damaged_png("\x89\x50\x4e\x47\x0d\x0a\x1a\x0a\x00\x00\x00\x0d\x49\x48\x44\x52\x00\x00"
+                              "\x00\x02\x00\x00\x00\x02\x08\x06\x00\x00\x00\x72\xb6\x0d\x24\x00\x00\x00"
+                              "\x0e\x49\x44\x41\x54\x78\xda\xff\xff\xff\xff\x0c\x30\x06\x00\x8f\x82\x0f\xf1"
+                              "\x72\xb7\x07\xa4\x00\x00\x00\x00\x49\x45\x4e\x44\xae\x42\x60\x82",
+                              71U);
 
 constexpr std::array<PartDeclaration, 1> pad_parts{{
     {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
@@ -225,6 +250,75 @@ void test_folder() {
     require(!crowded.succeeded() && has(crowded, "E601", "harbour.css", 0U), "at most 256 files");
 }
 
+void test_icons() {
+    ApplicationResources resources{};
+    const ImageLoadResult save = resources.load_png(std::as_bytes(std::span<const char>(tiny_png)));
+    const ImageLoadResult shield = resources.load_png(std::as_bytes(std::span<const char>(tiny_png)));
+    require(save && shield, "the program's icons load");
+    resources.register_icon("toolbar.save", save.image, IconOverride::overridable);
+    resources.register_icon("security.shield", shield.image, IconOverride::fixed);
+    bool refused = false;
+    try {
+        resources.register_icon("toolbar.save", save.image, IconOverride::fixed);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && resources.icon_declarations().size() == 2U, "an identifier is registered once");
+    require(icon_identifier_valid("check-mark") && icon_identifier_valid("toolbar.save.2"),
+            "identifiers of lowercase segments");
+    require(!icon_identifier_valid("Toolbar") && !icon_identifier_valid("a..b") && !icon_identifier_valid(".a") &&
+                !icon_identifier_valid("a.") && !icon_identifier_valid("-a") && !icon_identifier_valid(""),
+            "the identifier rule");
+
+    ThemeCompileOptions with_icons = options();
+    with_icons.icons = resources.icon_declarations();
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    const UserThemeFiles files = theme_of(std::string(header), {{"icons/toolbar.save.png", tiny_png},
+                                                                 {"icons/security.shield.png", tiny_png},
+                                                                 {"icons/toolbar.open.png", tiny_png}});
+    const ThemeCompileResult compiled = compile_user_theme(files, library, images, with_icons, ThemeRuleSet::user);
+    require(compiled.succeeded(), "a theme with icon overrides compiles");
+    require(has(compiled, "W502", "harbour/icons/security.shield.png", 0U), "a fixed icon's override is W502");
+    require(has(compiled, "W501", "harbour/icons/toolbar.open.png", 0U), "an unknown icon is W501");
+    const std::shared_ptr<const Theme> theme = compiled.theme();
+    const std::optional<ImageId> replaced = theme == nullptr ? std::nullopt : (*theme).icon_override("toolbar.save");
+    require(replaced && images.find(*replaced), "the override is the theme's image");
+    require(theme != nullptr && !(*theme).icon_override("security.shield") && !(*theme).icon_override("toolbar.open"),
+            "an override refused is ignored");
+
+    require(resources.icon("toolbar.save") == save.image, "the program's icon without a user theme");
+    resources.set_user_theme(theme);
+    require(resources.icon("toolbar.save") == replaced, "an overridable icon takes the user theme's");
+    require(resources.icon("security.shield") == shield.image, "a fixed icon stays the program's");
+    require(!resources.icon("toolbar.open"), "an icon not registered is none");
+    resources.set_user_theme(nullptr);
+    require(resources.icon("toolbar.save") == save.image, "the program's icon once no user theme is selected");
+
+    // The image rules: each refusal a warning, the theme compiling.
+    const UserThemeFiles bad = theme_of(std::string(header), {{"icons/toolbar.save.png", clear_png}});
+    const ThemeCompileResult clear = compile_user_theme(bad, library, images, with_icons, ThemeRuleSet::user);
+    require(clear.succeeded() && has(clear, "W503", "harbour/icons/toolbar.save.png", 0U) &&
+                !(*clear.theme()).icon_override("toolbar.save"),
+            "a fully transparent icon is W503");
+    const UserThemeFiles wide = theme_of(std::string(header), {{"icons/toolbar.save.png", wide_png}});
+    const ThemeCompileResult over = compile_user_theme(wide, library, images, with_icons, ThemeRuleSet::user);
+    require(over.succeeded() && has(over, "W503", "harbour/icons/toolbar.save.png", 0U),
+            "an icon over 1024 pixels wide is W503");
+    const UserThemeFiles damaged = theme_of(std::string(header), {{"icons/toolbar.save.png", damaged_png}});
+    const ThemeCompileResult broken = compile_user_theme(damaged, library, images, with_icons, ThemeRuleSet::user);
+    require(broken.succeeded() && has(broken, "W503", "harbour/icons/toolbar.save.png", 0U),
+            "an icon that does not decode is W503");
+    const UserThemeFiles large =
+        theme_of(std::string(header), {{"icons/toolbar.save.png", tiny_png + std::string(std::size_t{1} << 20U, '\0')}});
+    const ThemeCompileResult heavy = compile_user_theme(large, library, images, with_icons, ThemeRuleSet::user);
+    require(heavy.succeeded() && has(heavy, "W503", "harbour/icons/toolbar.save.png", 0U),
+            "an icon over 1 MiB is W503");
+    // Only the first theme's override is still held; the refused icons
+    // left nothing in the registry.
+    require(images.image_ids().size() == 1U, "a refused icon is not kept");
+}
+
 } // namespace
 
 int main() {
@@ -233,6 +327,7 @@ int main() {
     test_sub_sheets();
     test_program_packages();
     test_folder();
+    test_icons();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

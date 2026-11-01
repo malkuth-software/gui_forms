@@ -98,6 +98,9 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyword_from_newer_engine:
     case DiagnosticCode::literal_colour_unremappable:
     case DiagnosticCode::inline_with_theme:
+    case DiagnosticCode::icon_unknown:
+    case DiagnosticCode::icon_not_overridable:
+    case DiagnosticCode::icon_refused:
         return DiagnosticSeverity::warning;
     }
     // A value outside the enumeration is treated as the stricter class.
@@ -177,6 +180,9 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyword_from_newer_engine: return "keyword_from_newer_engine";
     case DiagnosticCode::literal_colour_unremappable: return "literal_colour_unremappable";
     case DiagnosticCode::inline_with_theme: return "inline_with_theme";
+    case DiagnosticCode::icon_unknown: return "icon_unknown";
+    case DiagnosticCode::icon_not_overridable: return "icon_not_overridable";
+    case DiagnosticCode::icon_refused: return "icon_refused";
     }
     return "unknown";
 }

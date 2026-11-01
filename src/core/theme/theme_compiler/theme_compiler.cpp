@@ -2,6 +2,7 @@
 
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
 
+#include "../../image/resource_pixels.hpp"
 #include "../../resources/image_registry/image_registry_access.hpp"
 #include "../../theme_language/compiler/theme_compiler.hpp"
 #include "../../theme_language/package/theme_header.hpp"
@@ -209,11 +210,74 @@ std::shared_ptr<detail::ThemeImageLease> lease_image(const std::string& encoded,
     return made;
 }
 
+// A user theme's icon override, its identifier one the program lets it
+// replace (compile_user_theme); `bytes` borrows the folder's file.
+struct UserIcon final {
+    std::string identifier{};
+    std::string file{};
+    const std::string* bytes{};
+};
+
+constexpr std::uint32_t maximum_icon_side = 1024U;
+constexpr std::size_t maximum_icon_bytes = std::size_t{1} << 20U;
+
+// Whether any pixel of `pixels` (premultiplied BGRA rows) is not fully
+// transparent: in premultiplied pixels a zero alpha means a zero pixel.
+bool any_pixel_visible(std::span<const std::byte> pixels) noexcept {
+    for (std::size_t alpha = 3U; alpha < pixels.size(); alpha += 4U) {
+        if (pixels[alpha] != std::byte{0}) return true;
+    }
+    return false;
+}
+
+// Leases `icon`'s image and checks it (USER_THEMES.md section 6): null,
+// with `refused` saying why, where the registry does not admit it, it is
+// larger than 1024 by 1024 pixels, it does not decode or every pixel is
+// transparent. `decoder` and `pixels` are the caller's, kept across icons;
+// `pixels` grows to the largest icon decoded.
+std::shared_ptr<detail::ThemeImageLease> checked_icon(const UserIcon& icon, ImageRegistry& images,
+                                                      ThemeImageShares& shares, image::ResourcePixelDecoder& decoder,
+                                                      std::vector<std::byte>& pixels, std::string& refused) {
+    ImageResourceError error{ImageResourceError::none};
+    std::shared_ptr<detail::ThemeImageLease> lease = lease_image(*icon.bytes, images, shares, error);
+    if (lease == nullptr) {
+        refused = std::string(image_resource_error_name(error));
+        return nullptr;
+    }
+    const std::optional<ImageResourceView> view = images.find((*lease).image());
+    if (!view) {
+        refused = "not in the registry";
+        return nullptr;
+    }
+    const std::uint32_t width = (*view).metadata.width;
+    const std::uint32_t height = (*view).metadata.height;
+    if (width > maximum_icon_side || height > maximum_icon_side) {
+        refused = "larger than 1024 by 1024 pixels";
+        return nullptr;
+    }
+    // At most 1024 * 4 bytes a row and 4 MiB in all: no overflow.
+    const std::size_t row_bytes = static_cast<std::size_t>(width) * 4U;
+    const std::size_t needed = row_bytes * static_cast<std::size_t>(height);
+    if (pixels.size() < needed) pixels.resize(needed);
+    const std::span<std::byte> target_pixels(pixels.data(), needed);
+    const image::PixelTarget target{image::PixelOrder::bgra, image::PixelAlpha::premultiplied};
+    const image::ResourcePixelResult decoded = decoder.decode(*view, target, target_pixels, row_bytes);
+    if (decoded.error != image::ResourcePixelError::none) {
+        refused = "does not decode";
+        return nullptr;
+    }
+    if (!any_pixel_visible(target_pixels)) {
+        refused = "fully transparent";
+        return nullptr;
+    }
+    return lease;
+}
+
 // Compiles `root` with its imports among `index`'s packs, at the levels of
 // `set`, into a theme named `id`.
 ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_language::InstalledThemeIndex& index,
                                    ImageRegistry& images, ThemeImageShares& shares, const ThemeCompileOptions& options,
-                                   ThemeRuleSet set, std::string_view id) {
+                                   ThemeRuleSet set, std::string_view id, std::span<const UserIcon> icons) {
     std::vector<const VerifiedThemePack*> order{};
     ThemeDiagnostic problem{};
     if (theme_language::resolve_theme_imports(root, index, order, problem) != theme_language::ThemeImportOutcome::resolved) {
@@ -326,6 +390,22 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
         (*record).images.push_back(detail::ThemeSourceImage{.resource = std::string(resource.resource),
                                                             .image = resource.image,
                                                             .pixel_size = resource.pixel_size});
+    }
+    // The icon overrides, each checked and held as the images are; one
+    // refused is a warning and the program's icon stays.
+    image::ResourcePixelDecoder decoder{};
+    std::vector<std::byte> pixels{};
+    for (const UserIcon& icon : icons) {
+        std::string refused{};
+        const std::shared_ptr<detail::ThemeImageLease> lease =
+            checked_icon(icon, images, shares, decoder, pixels, refused);
+        if (lease == nullptr) {
+            found.push_back(public_diagnostic(problem_of(DiagnosticCode::icon_refused, icon.file, refused)));
+            continue;
+        }
+        (*record).icons.push_back(detail::ThemeSourceImage{
+            .resource = icon.identifier, .image = (*lease).image(), .pixel_size = (*lease).pixel_size()});
+        held.push_back(lease);
     }
     (*record).controls.assign(options.controls.begin(), options.controls.end());
     (*record).requires_engine = requires_engine;
@@ -537,7 +617,7 @@ ThemeCompileResult compile_theme_package(const ThemePackage& package, const Them
     ThemeImageShares unshared{};
     ThemeImageShares* const shares = ThemeLibraryAccess::images(library);
     return compile_closure(root, index, images, shares == nullptr ? unshared : *shares, options, ThemeRuleSet::program,
-                           root.manifest.name);
+                           root.manifest.name, std::span<const UserIcon>{});
 }
 
 ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images,
@@ -549,7 +629,7 @@ ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLib
                                   theme_language::clipped_theme_detail(name)));
     }
     return compile_closure(*root, ThemeLibraryAccess::index(library), images, *ThemeLibraryAccess::images(library),
-                           options, ThemeRuleSet::program, (*root).manifest.name);
+                           options, ThemeRuleSet::program, (*root).manifest.name, std::span<const UserIcon>{});
 }
 
 ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, ImageRegistry& images,
@@ -567,6 +647,7 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
     std::size_t total = 0U;
     std::vector<UserSheet> subs{};
     std::vector<const ThemePackageFile*> resources{};
+    std::vector<const ThemePackageFile*> icon_files{};
     for (std::size_t index = 0U; index < files.files.size(); ++index) {
         const ThemePackageFile& file = files.files[index];
         const std::string where = files.name + "/" + file.path;
@@ -591,6 +672,7 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
             return refusal(problem_of(DiagnosticCode::manifest_invalid, where, "a resource name the rules refuse"));
         }
         if (kind == UserThemeFileKind::resource) resources.push_back(&file);
+        if (kind == UserThemeFileKind::icon) icon_files.push_back(&file);
         if (kind == UserThemeFileKind::sub_sheet) {
             subs.push_back(UserSheet{.name = where,
                                      .path = file.path,
@@ -690,10 +772,40 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
         }
         if (all) break;
     }
+    // The icon overrides, each naming an icon the program lets it replace;
+    // any other is a warning and is ignored.
+    std::vector<UserIcon> icons{};
+    for (const ThemePackageFile* const file : icon_files) {
+        const std::string where = files.name + "/" + (*file).path;
+        constexpr std::string_view icons_folder = "icons/";
+        constexpr std::string_view png = ".png";
+        const std::string_view path = (*file).path;
+        const std::string_view identifier =
+            path.substr(icons_folder.size(), path.size() - icons_folder.size() - png.size());
+        const IconDeclaration* declared = nullptr;
+        for (const IconDeclaration& declaration : options.icons) {
+            if (declaration.identifier == identifier) declared = &declaration;
+        }
+        if (declared == nullptr) {
+            warnings.push_back(public_diagnostic(
+                problem_of(DiagnosticCode::icon_unknown, where, theme_language::clipped_theme_detail(identifier))));
+            continue;
+        }
+        if ((*declared).policy == IconOverride::fixed) {
+            warnings.push_back(public_diagnostic(
+                problem_of(DiagnosticCode::icon_not_overridable, where, std::string(identifier))));
+            continue;
+        }
+        if ((*file).bytes.size() > maximum_icon_bytes) {
+            warnings.push_back(public_diagnostic(problem_of(DiagnosticCode::icon_refused, where, "larger than 1 MiB")));
+            continue;
+        }
+        icons.push_back(UserIcon{.identifier = std::string(identifier), .file = where, .bytes = &(*file).bytes});
+    }
     ThemeImageShares unshared{};
     ThemeImageShares* const shares = ThemeLibraryAccess::images(program);
-    ThemeCompileResult compiled =
-        compile_closure(main, index, images, shares == nullptr ? unshared : *shares, options, set, files.name);
+    ThemeCompileResult compiled = compile_closure(main, index, images, shares == nullptr ? unshared : *shares, options,
+                                                  set, files.name, icons);
     if (!compiled.succeeded()) return compiled;
     if (header != nullptr) {
         (*header).version = read.version;

@@ -3801,6 +3801,10 @@ Types
 
       The overlay shadow's layers (owner decision RB-37) for ordinary or high-contrast presentation; empty when the theme casts none.
 
+   .. cpp:function:: std::optional<ImageId> icon_override(std::string_view identifier) const noexcept
+
+      The image a compiled user theme gives the program icon ``identifier`` (its ``icons/<identifier>.png``), held by the theme while it lives; nullopt where it gives none (T3 user themes). Whether the program lets the icon be replaced is the application's (ApplicationResources:: icon).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ThemeBackdropBase final
@@ -3868,6 +3872,10 @@ Types
    .. cpp:member:: std::span<const std::string> published_values
 
       The application values the application publishes; a package listing another is refused (E606).
+
+   .. cpp:member:: std::span<const IconDeclaration> icons
+
+      The program icons a user theme may replace (ApplicationResources:: icon_declarations); a package compiles no icons.
 
 .. cpp:namespace:: gui_forms
 

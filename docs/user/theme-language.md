@@ -208,6 +208,16 @@ Forced high contrast stands over every user declaration, and a user theme's
 opacity is at least 0.5, so that no user theme hides a control. A program
 may instead let a user theme replace its own, or refuse user themes.
 
+A program's icons are registered with an identifier, segments of lowercase
+letters, digits and dashes joined by `.` (`toolbar.save`,
+`ApplicationResources::register_icon`), and each may be marked fixed, for
+such as a security indicator. A user theme's `icons/toolbar.save.png`
+replaces that icon (`ApplicationResources::icon`) when it decodes, is at
+most 1024 by 1024 pixels and 1 MiB, and is not fully transparent. Each
+other icon file is a warning and is ignored: one naming no program icon
+(`W501`), one replacing a fixed icon (`W502`), and one breaking those
+rules (`W503`).
+
 ## Not yet built
 
 - `backdrop-filter` is refused (`E999 not_yet_built`).

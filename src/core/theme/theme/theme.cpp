@@ -1221,6 +1221,13 @@ std::shared_ptr<const Theme> detail::ThemeAccess::create_holding(
     return result;
 }
 
+std::optional<ImageId> Theme::icon_override(std::string_view identifier) const noexcept {
+    for (const detail::ThemeSourceImage& icon : (*source_).icons) {
+        if (icon.resource == identifier) return icon.image;
+    }
+    return std::nullopt;
+}
+
 const detail::ThemeSourceRecord& detail::ThemeAccess::source(const Theme& theme) noexcept {
     return *theme.source_;
 }
