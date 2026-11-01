@@ -644,8 +644,15 @@ void localized_caret_blinks() {
         require(metrics.display_chunks_rebuilt == 2U && metrics.measure_passes == 0U &&
                     metrics.arrange_passes == 0U && metrics.painted_damage_area < 400.0,
                 "blink keeps chunk rebuilding but bounds raster damage without layout");
+        // The blink timer runs on while the window is covered, but the caret
+        // is paint-gated: one blink damages it, and the next finds it
+        // unpainted and stops until a paint.
         fixture.window.set_occluded(true, FrameClock::now());
-        require(!fixture.window.next_wake().has_value(), "occluded caret remains suspended");
+        for (std::size_t tick = 0U; tick < 2U && fixture.window.next_wake().has_value(); ++tick) {
+            static_cast<void>(fixture.window.poll_frame_schedule(*fixture.window.next_wake()));
+        }
+        require(!fixture.window.next_wake().has_value(),
+                "an occluded caret stops after one unpainted blink");
     }
 
     Fixture fixture{};

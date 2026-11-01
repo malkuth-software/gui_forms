@@ -450,6 +450,12 @@ private:
     bool focused_{};
     bool selecting_{};
     bool caret_visible_{true};
+    // The caret blink is paint-gated (ADR-016): a blink that finds the box
+    // not painted since the last one (a covered window or a hidden box)
+    // stops the timer, and the next paint starts it again. Before the first
+    // blink there is no earlier one to have been painted.
+    bool caret_painted_{true};
+    bool caret_waiting_for_paint_{};
     bool reveal_pending_{true};
     bool caret_upstream_{};
     bool next_upstream_{};

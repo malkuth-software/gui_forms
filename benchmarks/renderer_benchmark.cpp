@@ -411,13 +411,13 @@ public:
 
 private:
     std::uint64_t sequence_{};
+};
 
 void BandControl::FrameTick::operator()(FrameTime now) const {
     static_cast<void>(now);
     const std::shared_ptr<BandControl> live = band.lock();
     if (live) (*live).invalidate(Dirty::paint);
 }
-};
 
 template <typename Raster>
 std::string band_record(std::string_view renderer,

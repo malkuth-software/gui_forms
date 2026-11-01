@@ -565,6 +565,7 @@ void RichTextBox::reset_caret_blink() {
     reveal_pending_ = true;
     preferred_x_ = -1.0;
     caret_visible_ = true;
+    caret_waiting_for_paint_ = false;
     caret_frame_.disconnect();
     schedule_caret_blink();
 }
@@ -603,6 +604,12 @@ void RichTextBox::on_focus_changed(bool focused) {
 
 void RichTextBox::toggle_caret() {
     if (!focused_) return;
+    if (!caret_painted_) {
+        caret_frame_.disconnect();
+        caret_waiting_for_paint_ = true;
+        return;
+    }
+    caret_painted_ = false;
     caret_visible_ = !caret_visible_;
     invalidate(Dirty::paint);
 }
@@ -618,6 +625,11 @@ void RichTextBox::on_detached_from_window() noexcept {
 }
 
 void RichTextBox::on_paint(Painter& painter, Rect damage) {
+    caret_painted_ = true;
+    if (caret_waiting_for_paint_) {
+        caret_waiting_for_paint_ = false;
+        schedule_caret_blink();
+    }
     const Rect bounds = local_bounds();
     const bool themed = !has_background_override() && !has_style_override();
     const ControlVisualRecipe& editor = effective_theme().resolve(ControlVisualRole::editor,
