@@ -4,11 +4,13 @@
 // fills and rectangle frames. A recording blitter captures every call in order, including
 // every coverage byte of each blitted mask.
 //
-// Clip-row invariance (owner decision 2026-10-28): a non-inverse fill walks the path's own
-// rows whatever the clip, so a clip whose rows cut the path changes no coverage inside it. The
-// cases whose clip rows cut a non-inverse path go to a second corpus, aa-scan-clip-rows.raw,
-// which differs from the reference on purpose; the rest must still match. The candidate also
-// checks that a fill split into row bands draws exactly the coverage of the whole fill.
+// Clip invariance (owner decisions 2026-10-28 and 2026-10-31): a non-inverse fill walks the
+// path's own rows and columns whatever the clip, and the clip blitters keep each call's kind,
+// so a clip that cuts the path changes no coverage or blend inside it. The cases a clip cuts
+// (its rows or columns cut a non-inverse path, or the clip is not a rectangle, whose blitter
+// now keeps paired calls) go to a second corpus, aa-scan-clip-cuts.raw, which differs from the
+// reference on purpose; the rest must still match. The candidate also checks that a fill split
+// into row bands, column bands or a region draws exactly the coverage of the whole fill.
 
 #include "differential_corpus.h"
 
@@ -21,6 +23,7 @@
 #include "include/core/SkPoint.h"
 #include "include/core/SkRRect.h"
 #include "include/core/SkRect.h"
+#include "include/core/SkRegion.h"
 #include "include/core/SkSpan.h"
 #include "src/core/SkBlitter.h"
 #include "src/core/SkMask.h"
@@ -275,21 +278,30 @@ std::vector<SkRasterClip> make_clips() {
     return clips;
 }
 
-// True when the clip's rows cut a non-inverse path's rows: the fill then walks rows the clip
-// leaves out, which the candidate draws differently from the reference on purpose.
-bool clip_rows_cut(const SkPath& path, const SkIRect& clipBounds) {
+// True when the clip cuts a fill: a clip that is not a rectangle (its blitter now keeps paired
+// calls), or a rectangle whose rows or columns cut a non-inverse path (the fill then walks
+// pixels the clip leaves out). The candidate draws these differently from the reference on
+// purpose.
+bool clip_cuts(const SkPath& path, const SkIRect& clipBounds, bool rectClip) {
+    if (!rectClip) return true;
     if (path.isInverseFillType()) return false;
     const SkIRect ir = path.getBounds().roundOut();
-    const bool cut = ir.fTop < clipBounds.fTop || ir.fBottom > clipBounds.fBottom;
+    const bool cut = !clipBounds.contains(ir);
     return cut;
 }
 
-void fill_corpus(Output& stable, Output& clipRows, Sequence& sequence,
+// The same for the rectangle and hairline cases, whose primitives lie within bounds.
+bool clip_cuts(const SkRasterClip& clip, const SkRect& bounds) {
+    const bool cut = !clip.isRect() || !clip.getBounds().contains(bounds.roundOut());
+    return cut;
+}
+
+void fill_corpus(Output& stable, Output& clipCuts, Sequence& sequence,
                  const std::vector<SkRasterClip>& clips) {
     for (int i = 0; i < 3000; ++i) {
         const SkPath path = random_path(sequence);
         const SkRasterClip& clip = clips[sequence.pick(clips.size())];
-        Output& output = clip_rows_cut(path, clip.getBounds()) ? clipRows : stable;
+        Output& output = clip_cuts(path, clip.getBounds(), clip.isRect()) ? clipCuts : stable;
         for (int resolve = 0; resolve < 2; ++resolve) {
             const std::optional<SkPathRaw> raw = SkPathPriv::Raw(
                     path, resolve == 0 ? SkResolveConvexity::kNo : SkResolveConvexity::kYes);
@@ -305,12 +317,12 @@ void fill_corpus(Output& stable, Output& clipRows, Sequence& sequence,
     }
 }
 
-void aa_clip_corpus(Output& stable, Output& clipRows, Sequence& sequence) {
+void aa_clip_corpus(Output& stable, Output& clipCuts, Sequence& sequence) {
     for (int i = 0; i < 600; ++i) {
         const SkPath path = random_path(sequence);
         const SkIRect bounds = SkIRect::MakeLTRB(-10, -10, 120 + static_cast<int>(i % 300),
                                                  110);
-        Output& output = clip_rows_cut(path, bounds) ? clipRows : stable;
+        Output& output = clip_cuts(path, bounds, true) ? clipCuts : stable;
         // Building an anti-aliased clip fills the path through the run-based accumulator.
         const SkRasterClip clip(path, bounds, true);
         append_bool(output, clip.isEmpty());
@@ -328,7 +340,7 @@ void aa_clip_corpus(Output& stable, Output& clipRows, Sequence& sequence) {
     }
 }
 
-void rect_and_hairline_corpus(Output& output, Sequence& sequence,
+void rect_and_hairline_corpus(Output& stable, Output& clipCuts, Sequence& sequence,
                               const std::vector<SkRasterClip>& clips) {
     for (int i = 0; i < 2500; ++i) {
         const SkRasterClip& clip = clips[sequence.pick(clips.size())];
@@ -336,17 +348,9 @@ void rect_and_hairline_corpus(Output& output, Sequence& sequence,
                                              pick_coordinate(sequence, -20, 140),
                                              pick_coordinate(sequence, -20, 140),
                                              pick_coordinate(sequence, -20, 140));
-        RecordingBlitter blitter(&output);
-        SkScan::AntiFillRect(rect, clip, &blitter);
-        SkScan::AntiHairRect(rect, clip, &blitter);
         const std::array<float, 6> strokes{0.0f, 0.25f, 0.5f, 1.0f, 2.5f, 7.0f};
         const SkPoint stroke{strokes[sequence.pick(strokes.size())],
                              strokes[sequence.pick(strokes.size())]};
-        SkScan::AntiFrameRect(rect, stroke, clip, &blitter);
-        SkXRect xrect = SkIRect::MakeEmpty();
-        XRect_set(&xrect, rect.makeSorted());
-        SkScan::AntiFillXRect(xrect, clip, &blitter);
-
         std::array<SkPoint, 5> pts{};
         for (SkPoint& point : pts) {
             point = SkPoint{pick_coordinate(sequence, -40, 180),
@@ -360,6 +364,22 @@ void rect_and_hairline_corpus(Output& output, Sequence& sequence,
             pts[1] = SkPoint{pts[0].fX + 2000, pts[0].fY + 3};  // long, subdivided
         }
         const size_t count = 2 + sequence.pick(pts.size() - 1);
+
+        // Every primitive lies within the rectangle outset by the widest frame, or the hairline
+        // points outset by one pixel.
+        SkRect lineBounds = SkRect::MakeEmpty();
+        lineBounds.setBounds(SkSpan<const SkPoint>(pts.data(), count));
+        const bool cut = clip_cuts(clip, rect.makeSorted().makeOutset(5, 5)) ||
+                         clip_cuts(clip, lineBounds.makeOutset(1, 1));
+        Output& output = cut ? clipCuts : stable;
+
+        RecordingBlitter blitter(&output);
+        SkScan::AntiFillRect(rect, clip, &blitter);
+        SkScan::AntiHairRect(rect, clip, &blitter);
+        SkScan::AntiFrameRect(rect, stroke, clip, &blitter);
+        SkXRect xrect = SkIRect::MakeEmpty();
+        XRect_set(&xrect, rect.makeSorted());
+        SkScan::AntiFillXRect(xrect, clip, &blitter);
         SkScan::AntiHairLine(SkSpan<const SkPoint>(pts.data(), count), clip, &blitter);
         append(output, blitter.calls());
         ++output.cases;
@@ -375,23 +395,30 @@ bool fill_coverage(const SkPath& path, const SkIRect& clip, CoverageBlitter& cov
     return true;
 }
 
-// One clip-row case: the whole fill against the fill split into row bands at the given cut
-// rows. Appends the banded coverage to the corpus; returns false when the candidate's bands
-// differ from the whole fill.
-bool band_case(Output& clipRows, const char* name, const SkPath& path,
-               const std::vector<int>& cuts) {
+enum class BandAxis { rows, columns };
+
+// One clip-cut case: the whole fill against the fill split into bands at the given cuts, rows
+// or columns. Appends the banded coverage to the corpus; returns false when the candidate's
+// bands differ from the whole fill.
+bool band_case(Output& clipCuts, const char* name, const SkPath& path,
+               const std::vector<int>& cuts, BandAxis axis) {
     CoverageBlitter whole{};
     if (!fill_coverage(path, coverage_bounds, whole)) return true;
     CoverageBlitter banded{};
-    int top = coverage_bounds.fTop;
+    const bool rows = axis == BandAxis::rows;
+    int start = rows ? coverage_bounds.fTop : coverage_bounds.fLeft;
+    const int end = rows ? coverage_bounds.fBottom : coverage_bounds.fRight;
     for (size_t index = 0; index <= cuts.size(); ++index) {
-        const int bottom = index < cuts.size() ? cuts[index] : coverage_bounds.fBottom;
-        SkIRect band = SkIRect::MakeLTRB(coverage_bounds.fLeft, top, coverage_bounds.fRight, bottom);
+        const int stop = index < cuts.size() ? cuts[index] : end;
+        SkIRect band = rows ? SkIRect::MakeLTRB(coverage_bounds.fLeft, start,
+                                                coverage_bounds.fRight, stop)
+                            : SkIRect::MakeLTRB(start, coverage_bounds.fTop, stop,
+                                                coverage_bounds.fBottom);
         if (band.intersect(coverage_bounds)) static_cast<void>(fill_coverage(path, band, banded));
-        top = bottom;
+        start = stop;
     }
-    corpus::append(clipRows, corpus::fnv1a(banded.coverage()));
-    ++clipRows.cases;
+    corpus::append(clipCuts, corpus::fnv1a(banded.coverage()));
+    ++clipCuts.cases;
 #ifndef STX_SKIA_REFERENCE
     const std::optional<SkIPoint> difference = whole.firstDifference(banded);
     if (!whole.valid() || !banded.valid() || difference.has_value()) {
@@ -422,30 +449,43 @@ SkPath rounded_ring(const SkRect& outer, float radius, float width) {
     return path;
 }
 
-bool clip_row_corpus(Output& clipRows, Sequence& sequence) {
+bool clip_band_corpus(Output& clipCuts, Sequence& sequence) {
     bool same = true;
     const SkPath ring = rounded_ring(SkRect::MakeXYWH(0.5f, 29.5f, 389.0f, 183.107f), 5.5f, 1.0f);
-    same = band_case(clipRows, "rounded stroke cut near its bottom", ring, {211}) && same;
-    same = band_case(clipRows, "rounded stroke cut through its corner", ring, {32, 209}) && same;
+    same = band_case(clipCuts, "rounded stroke cut near its bottom", ring, {211}, BandAxis::rows) &&
+           same;
+    same = band_case(clipCuts, "rounded stroke cut through its corner", ring, {32, 209},
+                     BandAxis::rows) &&
+           same;
+    same = band_case(clipCuts, "rounded stroke cut through its side", ring, {3, 200, 388},
+                     BandAxis::columns) &&
+           same;
     SkPathBuilder fill{};
     fill.addRRect(SkRRect::MakeRectXY(SkRect::MakeXYWH(18.0f, 9.5f, 11.0f, 11.0f), 5.5f, 5.5f));
-    same = band_case(clipRows, "small rounded fill cut", fill.detach(), {12, 15}) && same;
-    for (int i = 0; i < 1500; ++i) {
+    const SkPath small = fill.detach();
+    same = band_case(clipCuts, "small rounded fill cut", small, {12, 15}, BandAxis::rows) && same;
+    same = band_case(clipCuts, "small rounded fill cut across", small, {19, 23, 28},
+                     BandAxis::columns) &&
+           same;
+    for (int i = 0; i < 3000; ++i) {
         SkPath path = random_path(sequence);
         if (path.isInverseFillType()) path.toggleInverseFillType();
         const SkIRect ir = path.getBounds().roundOut();
+        const BandAxis axis = i % 2 == 0 ? BandAxis::rows : BandAxis::columns;
+        const int first = axis == BandAxis::rows ? ir.fTop : ir.fLeft;
+        const int last = axis == BandAxis::rows ? ir.fBottom : ir.fRight;
         std::vector<int> cuts{};
-        if (ir.height() > 1) {
+        if (last - first > 1) {
             const int count = 1 + static_cast<int>(sequence.next() % 3);
-            int last = ir.fTop;
+            int at = first;
             for (int cut = 0; cut < count; ++cut) {
-                const int room = ir.fBottom - last;
+                const int room = last - at;
                 if (room <= 1) break;
-                last += 1 + static_cast<int>(sequence.next() % static_cast<uint32_t>(room - 1));
-                cuts.push_back(last);
+                at += 1 + static_cast<int>(sequence.next() % static_cast<uint32_t>(room - 1));
+                cuts.push_back(at);
             }
         }
-        same = band_case(clipRows, "random path", path, cuts) && same;
+        same = band_case(clipCuts, "random path", path, cuts, axis) && same;
     }
     return same;
 }
@@ -477,36 +517,61 @@ void paint_shape(SkCanvas& canvas, const CanvasShape& shape) {
     }
 }
 
-// Returns false, after printing the first differing pixel, when a banded paint differs.
-bool canvas_band_case(Output& clipRows, const CanvasShape& shape) {
+// The three ways a canvas case splits the surface: at a row, at a column, or into a region of
+// two overlapping rectangles and its complement (GUI.Forms damage is a region).
+enum class CanvasSplit { row, column, region };
+
+// The two clips of one split at position at.
+std::array<SkRegion, 2> split_clips(CanvasSplit split, int at) {
+    const SkIRect surface = SkIRect::MakeWH(canvas_width, canvas_height);
+    std::array<SkRegion, 2> clips{};
+    if (split == CanvasSplit::row) {
+        clips[0].setRect(SkIRect::MakeLTRB(0, 0, canvas_width, at));
+    } else if (split == CanvasSplit::column) {
+        clips[0].setRect(SkIRect::MakeLTRB(0, 0, at, canvas_height));
+    } else {
+        clips[0].setRect(SkIRect::MakeXYWH(at, at / 2, 60, 40));
+        clips[0].op(SkIRect::MakeXYWH(at + 50, at / 2 + 30, 70, 60), SkRegion::kUnion_Op);
+        clips[0].op(surface, SkRegion::kIntersect_Op);
+    }
+    clips[1].setRect(surface);
+    clips[1].op(clips[0], SkRegion::kDifference_Op);
+    return clips;
+}
+
+// Returns false, after printing the first differing pixel, when a split paint differs.
+bool canvas_band_case(Output& clipCuts, const CanvasShape& shape, CanvasSplit split) {
     SkBitmap whole{};
     whole.allocN32Pixels(canvas_width, canvas_height);
     SkCanvas wholeCanvas(whole);
     paint_shape(wholeCanvas, shape);
     const size_t bytes = whole.computeByteSize();
+    const int positions = split == CanvasSplit::row ? canvas_height : canvas_width;
     bool same = true;
-    for (int cut = 0; cut <= canvas_height; ++cut) {
+    for (int at = 0; at <= positions; ++at) {
         SkBitmap part{};
         part.allocN32Pixels(canvas_width, canvas_height);
         SkCanvas canvas(part);
-        for (int band = 0; band < 2; ++band) {
+        const std::array<SkRegion, 2> clips = split_clips(split, at);
+        for (const SkRegion& clip : clips) {
+            if (clip.isEmpty()) continue;
             canvas.save();
-            canvas.clipRect(band == 0 ? SkRect::MakeLTRB(0, 0, canvas_width, cut)
-                                      : SkRect::MakeLTRB(0, cut, canvas_width, canvas_height));
+            canvas.clipRegion(clip);
             paint_shape(canvas, shape);
             canvas.restore();
         }
         const uint8_t* const pixels = static_cast<const uint8_t*>(part.getPixels());
-        corpus::append(clipRows, corpus::fnv1a(std::vector<uint8_t>(pixels, pixels + bytes)));
-        ++clipRows.cases;
+        corpus::append(clipCuts, corpus::fnv1a(std::vector<uint8_t>(pixels, pixels + bytes)));
+        ++clipCuts.cases;
 #ifndef STX_SKIA_REFERENCE
         if (same && std::memcmp(pixels, whole.getPixels(), bytes) != 0) {
             for (size_t index = 0; index < bytes; ++index) {
                 if (pixels[index] != static_cast<const uint8_t*>(whole.getPixels())[index]) {
                     const size_t pixel = index / 4;
-                    std::printf("aa scan converters: canvas %s cut at row %d: pixel (%zu, %zu) "
+                    std::printf("aa scan converters: canvas %s split %d at %d: pixel (%zu, %zu) "
                                 "differs\n",
-                                shape.name, cut, pixel % canvas_width, pixel / canvas_width);
+                                shape.name, static_cast<int>(split), at, pixel % canvas_width,
+                                pixel / canvas_width);
                     break;
                 }
             }
@@ -517,7 +582,7 @@ bool canvas_band_case(Output& clipRows, const CanvasShape& shape) {
     return same;
 }
 
-bool canvas_band_corpus(Output& clipRows) {
+bool canvas_band_corpus(Output& clipCuts) {
     // Device geometry as GUI.Forms snaps it: a 1-pixel rounded stroke as two rounded
     // rectangles, a translucent rounded fill at scale 1 and a small one at scale 3.
     const CanvasShape shapes[] = {
@@ -540,19 +605,21 @@ bool canvas_band_corpus(Output& clipRows) {
     };
     bool same = true;
     for (const CanvasShape& shape : shapes) {
-        same = canvas_band_case(clipRows, shape) && same;
+        for (const CanvasSplit split : {CanvasSplit::row, CanvasSplit::column, CanvasSplit::region}) {
+            same = canvas_band_case(clipCuts, shape, split) && same;
+        }
     }
     return same;
 }
 
-bool aa_scan_corpus(Output& output, Output& clipRows) {
+bool aa_scan_corpus(Output& output, Output& clipCuts) {
     Sequence sequence{};
     const std::vector<SkRasterClip> clips = make_clips();
-    fill_corpus(output, clipRows, sequence, clips);
-    aa_clip_corpus(output, clipRows, sequence);
-    rect_and_hairline_corpus(output, sequence, clips);
-    const bool rowsSame = clip_row_corpus(clipRows, sequence);
-    const bool canvasSame = canvas_band_corpus(clipRows);
+    fill_corpus(output, clipCuts, sequence, clips);
+    aa_clip_corpus(output, clipCuts, sequence);
+    rect_and_hairline_corpus(output, clipCuts, sequence, clips);
+    const bool rowsSame = clip_band_corpus(clipCuts, sequence);
+    const bool canvasSame = canvas_band_corpus(clipCuts);
     return rowsSame && canvasSame;
 }
 
@@ -561,18 +628,18 @@ bool aa_scan_corpus(Output& output, Output& clipRows) {
 int main(int argc, char** argv) {
     if (argc < 1 || argc > 3) return 2;
     Output output{};
-    Output clipRows{};
-    const bool same = aa_scan_corpus(output, clipRows);
+    Output clipCuts{};
+    const bool same = aa_scan_corpus(output, clipCuts);
     if (argc >= 2 && !corpus::write_file(argv[1], output)) return 2;
-    if (argc == 3 && !corpus::write_file(argv[2], clipRows)) return 2;
+    if (argc == 3 && !corpus::write_file(argv[2], clipCuts)) return 2;
     if (!same) {
         std::puts("aa scan converters: banded fills differ from whole fills FAIL");
         return 1;
     }
     const unsigned long long hash = corpus::fnv1a(output.bytes);
-    const unsigned long long clipRowsHash = corpus::fnv1a(clipRows.bytes);
-    std::printf("aa scan converters: %zu cases, %zu bytes, hash=%llu; clip rows %zu cases, "
+    const unsigned long long clipCutsHash = corpus::fnv1a(clipCuts.bytes);
+    std::printf("aa scan converters: %zu cases, %zu bytes, hash=%llu; clip cuts %zu cases, "
                 "hash=%llu PASS\n",
-                output.cases, output.bytes.size(), hash, clipRows.cases, clipRowsHash);
+                output.cases, output.bytes.size(), hash, clipCuts.cases, clipCutsHash);
     return 0;
 }

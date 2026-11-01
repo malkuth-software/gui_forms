@@ -352,6 +352,33 @@ static inline bool x_in_rect(int x, const SkIRect& rect) {
     return inside;
 }
 
+// Sends the part of blitAntiRect(x, kept.fTop, width, kept.height(), leftAlpha, rightAlpha)
+// inside kept as the calls the base blitAntiRect makes: blitV for an edge column, blitRect for
+// the columns between. A cut therefore never changes the call that reaches a kept pixel (a
+// blitter's blitV and blitRect may blend differently). kept lies within the rectangle's width
+// + 2 columns; when it holds all of them, the rectangle goes on whole.
+static void blit_anti_rect_part(SkBlitter* blitter, const SkIRect& kept, int x, int width,
+                                SkAlpha leftAlpha, SkAlpha rightAlpha) {
+    const int rightColumn = x + 1 + width;
+    const bool keepsLeft = kept.fLeft == x;
+    const bool keepsRight = kept.fRight == rightColumn + 1;
+    if (keepsLeft && keepsRight) {
+        (*blitter).blitAntiRect(x, kept.fTop, width, kept.height(), leftAlpha, rightAlpha);
+        return;
+    }
+    if (keepsLeft && leftAlpha > 0) {
+        (*blitter).blitV(x, kept.fTop, kept.height(), leftAlpha);
+    }
+    const int middleLeft = std::max(x + 1, kept.fLeft);
+    const int middleRight = std::min(rightColumn, kept.fRight);
+    if (middleLeft < middleRight) {
+        (*blitter).blitRect(middleLeft, kept.fTop, middleRight - middleLeft, kept.height());
+    }
+    if (keepsRight && rightAlpha > 0) {
+        (*blitter).blitV(rightColumn, kept.fTop, kept.height(), rightAlpha);
+    }
+}
+
 void SkRectClipBlitter::blitH(int left, int y, int width) {
     SkASSERT(width > 0);
 
@@ -434,29 +461,43 @@ void SkRectClipBlitter::blitAntiRect(int left, int y, int width, int height,
     // The *true* width of the rectangle blitted is width+2:
     SkIRect r = SkIRect::MakeLTRB(left, y, left + width + 2, y + height);
     if (r.intersect(fClipRect)) {
-        SkAlpha clippedLeftAlpha = leftAlpha;
-        SkAlpha clippedRightAlpha = rightAlpha;
-        if (r.fLeft != left) {
-            SkASSERT(r.fLeft > left);
-            clippedLeftAlpha = 255;
-        }
-        if (r.fRight != left + width + 2) {
-            SkASSERT(r.fRight < left + width + 2);
-            clippedRightAlpha = 255;
-        }
-        if (255 == clippedLeftAlpha && 255 == clippedRightAlpha) {
-            (*fBlitter).blitRect(r.fLeft, r.fTop, r.width(), r.height());
-        } else if (1 == r.width()) {
-            if (r.fLeft == left) {
-                (*fBlitter).blitV(r.fLeft, r.fTop, r.height(), clippedLeftAlpha);
-            } else {
-                SkASSERT(r.fLeft == left + width + 1);
-                (*fBlitter).blitV(r.fLeft, r.fTop, r.height(), clippedRightAlpha);
-            }
-        } else {
-            (*fBlitter).blitAntiRect(r.fLeft, r.fTop, r.width() - 2, r.height(),
-                                     clippedLeftAlpha, clippedRightAlpha);
-        }
+        blit_anti_rect_part(fBlitter, r, left, width, leftAlpha, rightAlpha);
+    }
+}
+
+void SkRectClipBlitter::blitAntiH2(int x, int y, U8CPU a0, U8CPU a1) {
+    if (!y_in_rect(y, fClipRect)) {
+        return;
+    }
+    const bool first = x_in_rect(x, fClipRect);
+    const bool second = x_in_rect(x + 1, fClipRect);
+    if (first && second) {
+        (*fBlitter).blitAntiH2(x, y, a0, a1);
+    } else if (first) {
+        (*fBlitter).blitAntiPairPixel(x, y, a0);
+    } else if (second) {
+        (*fBlitter).blitAntiPairPixel(x + 1, y, a1);
+    }
+}
+
+void SkRectClipBlitter::blitAntiV2(int x, int y, U8CPU a0, U8CPU a1) {
+    if (!x_in_rect(x, fClipRect)) {
+        return;
+    }
+    const bool first = y_in_rect(y, fClipRect);
+    const bool second = y_in_rect(y + 1, fClipRect);
+    if (first && second) {
+        (*fBlitter).blitAntiV2(x, y, a0, a1);
+    } else if (first) {
+        (*fBlitter).blitAntiPairPixel(x, y, a0);
+    } else if (second) {
+        (*fBlitter).blitAntiPairPixel(x, y + 1, a1);
+    }
+}
+
+void SkRectClipBlitter::blitAntiPairPixel(int x, int y, U8CPU alpha) {
+    if (x_in_rect(x, fClipRect) && y_in_rect(y, fClipRect)) {
+        (*fBlitter).blitAntiPairPixel(x, y, alpha);
     }
 }
 
@@ -568,29 +609,40 @@ void SkRgnClipBlitter::blitAntiRect(int x, int y, int width, int height,
     while (!iter.done()) {
         const SkIRect& r = iter.rect();
         SkASSERT(bounds.contains(r));
-        SkASSERT(r.fLeft >= x);
-        SkASSERT(r.fRight <= x + width + 2);
-
-        const SkAlpha effectiveLeftAlpha = (r.fLeft == x) ? leftAlpha : 255;
-        const SkAlpha effectiveRightAlpha = (r.fRight == x + width + 2) ? rightAlpha : 255;
-
-        if (255 == effectiveLeftAlpha && 255 == effectiveRightAlpha) {
-            (*fBlitter).blitRect(r.fLeft, r.fTop, r.width(), r.height());
-        } else if (1 == r.width()) {
-            if (r.fLeft == x) {
-                (*fBlitter).blitV(r.fLeft, r.fTop, r.height(), effectiveLeftAlpha);
-            } else {
-                SkASSERT(r.fLeft == x + width + 1);
-                (*fBlitter).blitV(r.fLeft, r.fTop, r.height(), effectiveRightAlpha);
-            }
-        } else {
-            (*fBlitter).blitAntiRect(r.fLeft, r.fTop, r.width() - 2, r.height(),
-                                     effectiveLeftAlpha, effectiveRightAlpha);
-        }
+        blit_anti_rect_part(fBlitter, r, x, width, leftAlpha, rightAlpha);
         iter.next();
     }
 }
 
+void SkRgnClipBlitter::blitAntiH2(int x, int y, U8CPU a0, U8CPU a1) {
+    const bool first = (*fRgn).contains(x, y);
+    const bool second = (*fRgn).contains(x + 1, y);
+    if (first && second) {
+        (*fBlitter).blitAntiH2(x, y, a0, a1);
+    } else if (first) {
+        (*fBlitter).blitAntiPairPixel(x, y, a0);
+    } else if (second) {
+        (*fBlitter).blitAntiPairPixel(x + 1, y, a1);
+    }
+}
+
+void SkRgnClipBlitter::blitAntiV2(int x, int y, U8CPU a0, U8CPU a1) {
+    const bool first = (*fRgn).contains(x, y);
+    const bool second = (*fRgn).contains(x, y + 1);
+    if (first && second) {
+        (*fBlitter).blitAntiV2(x, y, a0, a1);
+    } else if (first) {
+        (*fBlitter).blitAntiPairPixel(x, y, a0);
+    } else if (second) {
+        (*fBlitter).blitAntiPairPixel(x, y + 1, a1);
+    }
+}
+
+void SkRgnClipBlitter::blitAntiPairPixel(int x, int y, U8CPU alpha) {
+    if ((*fRgn).contains(x, y)) {
+        (*fBlitter).blitAntiPairPixel(x, y, alpha);
+    }
+}
 
 void SkRgnClipBlitter::blitMask(const SkMask& mask, const SkIRect& clip) {
     SkASSERT(mask.fBounds.contains(clip));
@@ -842,6 +894,11 @@ void SkRectClipCheckBlitter::blitAntiH2(int x, int y, U8CPU a0, U8CPU a1) {
 void SkRectClipCheckBlitter::blitAntiV2(int x, int y, U8CPU a0, U8CPU a1) {
     SkASSERT(fClipRect.contains(SkIRect::MakeXYWH(x, y, 1, 2)));
     (*fBlitter).blitAntiV2(x, y, a0, a1);
+}
+
+void SkRectClipCheckBlitter::blitAntiPairPixel(int x, int y, U8CPU alpha) {
+    SkASSERT(fClipRect.contains(SkIRect::MakeXYWH(x, y, 1, 1)));
+    (*fBlitter).blitAntiPairPixel(x, y, alpha);
 }
 
 #endif

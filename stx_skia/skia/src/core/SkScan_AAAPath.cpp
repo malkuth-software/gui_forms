@@ -491,6 +491,10 @@ void RunBasedAdditiveBlitter::blitAntiH(int x, int y, const SkAlpha antialias[],
     x -= fLeft;
 
     const int skip = clipRun(&x, &len);
+    // A run wholly outside the clip's columns: the walk covers the path's own columns.
+    if (len <= 0) {
+        return;
+    }
     SkASSERT(check(x, len));
 
     if (x < fOffsetX) {
@@ -530,7 +534,10 @@ void RunBasedAdditiveBlitter::blitAntiH(int x, int y, int width, SkAlpha alpha) 
         fOffsetX = 0;
     }
 
-    if (check(x, width)) {
+    // The walk runs over the path's own columns (SkScan::AAAFillPath), so a run may cross the
+    // clip's columns; it is cut to them, never dropped whole.
+    static_cast<void>(clipRun(&x, &width));
+    if (width > 0) {
         fOffsetX = fRuns.add(x, 0, width, 0, alpha, fOffsetX);
     }
 }
@@ -558,6 +565,10 @@ void SafeRLEAdditiveBlitter::blitAntiH(int x, int y, const SkAlpha antialias[], 
     x -= fLeft;
 
     const int skip = clipRun(&x, &len);
+    // A run wholly outside the clip's columns: the walk covers the path's own columns.
+    if (len <= 0) {
+        return;
+    }
     SkASSERT(check(x, len));
 
     if (x < fOffsetX) {
@@ -599,7 +610,9 @@ void SafeRLEAdditiveBlitter::blitAntiH(int x, int y, int width, SkAlpha alpha) {
         fOffsetX = 0;
     }
 
-    if (check(x, width)) {
+    // Cut to the clip's columns, as in RunBasedAdditiveBlitter.
+    static_cast<void>(clipRun(&x, &width));
+    if (width > 0) {
         // Break the run
         fOffsetX = fRuns.add(x, 0, width, 0, 0, fOffsetX);
         for (int i = x; i < x + width; i += fRuns.fRuns[i]) {
@@ -1122,10 +1135,22 @@ static bool is_smooth_enough(SkAnalyticEdge* leftE,
     return is_smooth_enough(leftE, currE, stop_y) && is_smooth_enough(riteE, nextCurrE, stop_y);
 }
 
+// x after rows steps of dx, as rows repeated additions would leave it.
+static SkFixed add_rows(SkFixed x, SkFixed dx, int rows) {
+    const int64_t moved = static_cast<int64_t>(x) + static_cast<int64_t>(dx) * rows;
+    const SkFixed result = static_cast<SkFixed>(moved);
+    return result;
+}
+
+// visible_top and visible_bottom are the clip's rows. The walk covers the path's own rows (see
+// walk_bounds), but rows outside the clip only carry the edges forward: full rows above it are
+// passed over without coverage, and the walk stops at its bottom.
 static void aaa_walk_convex_edges(SkAnalyticEdge*  prevHead,
                                   AdditiveBlitter* blitter,
                                   int              start_y,
                                   int              stop_y,
+                                  int              visible_top,
+                                  int              visible_bottom,
                                   SkFixed          leftBound,
                                   SkFixed          riteBound,
                                   bool             isUsingMask) {
@@ -1164,6 +1189,10 @@ static void aaa_walk_convex_edges(SkAnalyticEdge*  prevHead,
 
         // check our bottom clip
         if (SkFixedFloorToInt(y) >= stop_y) {
+            break;
+        }
+        // Rows from the clip's bottom down are never shown, and no row changes the rows above it.
+        if (SkFixedFloorToInt(y) >= visible_bottom) {
             break;
         }
 
@@ -1322,6 +1351,17 @@ static void aaa_walk_convex_edges(SkAnalyticEdge*  prevHead,
                     left = nextLeft;
                     rite = nextRite;
                     y    = nextY;
+                }
+
+                // Full rows above the clip would all be dropped: pass over them at once. Adding
+                // dLeft and dRite once per row equals adding them times the row count, since the
+                // walk's x never leaves SkFixed.
+                const int hidden = std::clamp(visible_top - (y >> 16), 0, count - 1);
+                if (hidden > 0) {
+                    left = add_rows(left, dLeft, hidden);
+                    rite = add_rows(rite, dRite, hidden);
+                    y += SkIntToFixed(hidden);
+                    count -= hidden;
                 }
 
                 while (count > 1) {  // Full rows in the middle
@@ -1498,12 +1538,53 @@ static bool edges_too_close(int prevRite, SkFixed ul, SkFixed ll) {
     return tooClose;
 }
 
+// How many whole rows from y, an integer row above the clip, the walk can pass over at once,
+// at most limit. Over such a stretch every row would be dropped and nothing but the edges' x
+// changes: no edge starts, ends or turns (nextNextY, the next event, lies past the stretch, so
+// the row after it still meets the event as the full walk does), and no two neighbours cross,
+// so no edge is reinserted and no intersection is predicted. Neighbours keep their order at
+// the stretch's two ends and at the row after it, hence (x being linear in the row) at every
+// row between; the walker predicts one row ahead. The last edge is not compared with the tail,
+// which the walker never reorders against.
+static int hidden_rows(const SkAnalyticEdge* prevHead, SkFixed y, SkFixed nextNextY, int limit) {
+    const int64_t untilEvent = (static_cast<int64_t>(nextNextY) - y + SK_Fixed1 - 1) / SK_Fixed1 - 1;
+    int64_t rows = std::min<int64_t>(limit, untilEvent);
+    const SkAnalyticEdge* left = prevHead;
+    for (const SkAnalyticEdge* edge = (*prevHead).fNext; rows > 0 && (*edge).fUpperY <= y;
+         edge = (*edge).fNext) {
+        const int64_t gap = static_cast<int64_t>((*edge).fX) - (*left).fX;
+        const int64_t closing = static_cast<int64_t>((*left).fDX) - (*edge).fDX;
+        if (gap < 0) {
+            rows = 0;
+        } else if (closing > 0) {
+            // The order holds through row r + 1 while gap - (r + 1) * closing >= 0.
+            rows = std::min(rows, gap / closing - 1);
+        }
+        left = edge;
+    }
+    const int result = static_cast<int>(std::max<int64_t>(rows, 0));
+    return result;
+}
+
+// Moves every active edge down rows whole rows, as rows walker steps would (goY(nextY, 0)).
+static void pass_hidden_rows(SkAnalyticEdge* prevHead, SkFixed y, int rows) {
+    const SkFixed nextY = y + SkIntToFixed(rows);
+    for (SkAnalyticEdge* edge = (*prevHead).fNext; (*edge).fUpperY <= y; edge = (*edge).fNext) {
+        (*edge).fX = add_rows((*edge).fX, (*edge).fDX, rows);
+        (*edge).fY = nextY;
+    }
+}
+
+// visible_top and visible_bottom are the clip's rows, as for aaa_walk_convex_edges; an inverse
+// fill walks every row it is given.
 static void aaa_walk_edges(SkAnalyticEdge*  prevHead,
                            SkAnalyticEdge*  nextTail,
                            SkPathFillType   fillType,
                            AdditiveBlitter* blitter,
                            int              start_y,
                            int              stop_y,
+                           int              visible_top,
+                           int              visible_bottom,
                            SkFixed          leftClip,
                            SkFixed          rightClip,
                            bool             isUsingMask,
@@ -1548,6 +1629,17 @@ static void aaa_walk_edges(SkAnalyticEdge*  prevHead,
     }
 
     while (true) {
+        // Whole rows above the clip between events: pass over them without coverage. At least
+        // the last row before stop_y is walked, so the loop's end test stays where it was.
+        if (!isInverse && (y & 0xFFFF) == 0 && SkFixedFloorToInt(y) < visible_top) {
+            const int limit = std::min(visible_top, stop_y - 1) - SkFixedFloorToInt(y);
+            const int rows = hidden_rows(prevHead, y, nextNextY, limit);
+            if (rows > 0) {
+                pass_hidden_rows(prevHead, y, rows);
+                y += SkIntToFixed(rows);
+            }
+        }
+
         int             w               = 0;
         bool            in_interval     = isInverse;
         SkFixed         prevX           = (*prevHead).fX;
@@ -1695,6 +1787,10 @@ static void aaa_walk_edges(SkAnalyticEdge*  prevHead,
         if (y >= SkIntToFixed(stop_y)) {
             break;
         }
+        // Rows from the clip's bottom down are never shown, and no row changes the rows above it.
+        if (!isInverse && SkFixedFloorToInt(y) >= visible_bottom) {
+            break;
+        }
 
         // now currE points to the first edge with a fUpperY larger than the previous y
         insert_new_edges(currE, y, &nextNextY);
@@ -1706,6 +1802,8 @@ static void aaa_fill_path(const SkPathRaw& path,
                           AdditiveBlitter* blitter,
                           int start_y,
                           int stop_y,
+                          int visible_top,
+                          int visible_bottom,
                           bool pathContainedInClip,
                           bool isUsingMask,
                           bool forceRLE) {  // forceRLE implies that SkAAClip is calling us
@@ -1785,8 +1883,15 @@ static void aaa_fill_path(const SkPathRaw& path,
     }
 
     if (!path.isInverseFillType() && path.isKnownToBeConvex() && count >= 2) {
-        aaa_walk_convex_edges(
-                &headEdge, blitter, start_y, stop_y, leftBound, rightBound, isUsingMask);
+        aaa_walk_convex_edges(&headEdge,
+                              blitter,
+                              start_y,
+                              stop_y,
+                              visible_top,
+                              visible_bottom,
+                              leftBound,
+                              rightBound,
+                              isUsingMask);
     } else {
         // We skip intersection computation if there are many points which probably already
         // give us enough fractional scan lines.
@@ -1798,6 +1903,8 @@ static void aaa_fill_path(const SkPathRaw& path,
                        blitter,
                        start_y,
                        stop_y,
+                       visible_top,
+                       visible_bottom,
                        leftBound,
                        rightBound,
                        isUsingMask,
@@ -1806,7 +1913,9 @@ static void aaa_fill_path(const SkPathRaw& path,
     }
 }
 
-// Check if the path is a rect and fat enough after clipping; if so, blit it.
+// Check if the path is a rect and fat enough within bounds; if so, blit it. The bounds are the
+// walk's, not the clip's, so that a clip never changes whether a rect is fat; the blitter cuts
+// the rect to the clip.
 static inline bool try_blit_fat_anti_rect(SkBlitter* blitter,
                                           const SkPathRaw& raw,
                                           const SkIRect& clip) {
@@ -1857,11 +1966,15 @@ public:
             (*fBlitter).blitAntiV2(x, y, a0, a1);
             return;
         }
-        // The analytic walk never blits two rows this way; one row falls back to blitAntiH.
-        if (top || bottom) {
-            int16_t runs[2] = {1, 0};
-            uint8_t alpha[1] = {SkToU8(top ? a0 : a1)};
-            (*fBlitter).blitAntiH(x, top ? y : y + 1, alpha, runs);
+        if (top) {
+            (*fBlitter).blitAntiPairPixel(x, y, a0);
+        } else if (bottom) {
+            (*fBlitter).blitAntiPairPixel(x, y + 1, a1);
+        }
+    }
+    void blitAntiPairPixel(int x, int y, U8CPU alpha) override {
+        if ((*this).inRows(y)) {
+            (*fBlitter).blitAntiPairPixel(x, y, alpha);
         }
     }
     void blitV(int x, int y, int height, SkAlpha alpha) override {
@@ -1914,22 +2027,41 @@ private:
     int fBottom;
 };
 
-// The rows a fill walks, with the clip's columns. A non-inverse fill walks the path's own rows,
-// limited only to the fixed-point range, so that a clip's top and bottom never chop an edge
-// or start the walk: the coverage of every row inside the clip is then the coverage of an
-// unclipped fill (GUI.Forms banded paint and damage repaint, owner decision 2026-10-28). The
-// additive blitters drop the rows outside the clip. An inverse fill keeps the clip's rows: it
-// covers the clip above and below the path.
+// One axis of the pixels a fill walks: the path's own extent [own_low, own_high) limited to
+// the SkFixed range, when it spans little enough that the difference of any two of its
+// coordinates fits SkFixed too; otherwise the clip's extent, as Skia walks it.
+struct WalkSpan final {
+    int low;
+    int high;
+};
+
+static WalkSpan walk_span(int own_low, int own_high, int clip_low, int clip_high) {
+    static constexpr int kFixedLimit = 32767;
+    const int low = std::max(own_low, -kFixedLimit);
+    const int high = std::min(own_high, kFixedLimit);
+    if (high - low <= kFixedLimit) {
+        const WalkSpan own{low, high};
+        return own;
+    }
+    const WalkSpan clip{clip_low, clip_high};
+    return clip;
+}
+
+// The pixels a fill walks. A non-inverse fill walks the path's own rows and columns, so that no
+// side of a clip ever chops an edge, starts the walk or bounds an edge's drift: the coverage of
+// every pixel inside the clip is then the coverage of an unclipped fill (GUI.Forms banded paint
+// and damage repaint, owner decisions 2026-10-28 and 2026-10-31). The additive blitters drop
+// the pixels outside the clip, and the clip blitters cut the calls the walkers send the real
+// blitter directly, keeping each call's kind. A path spanning more than 32767 pixels on an
+// axis walks the clip's extent on that axis instead, and keeps Skia's seams there. An inverse
+// fill keeps the clip: it covers the clip around the path.
 static SkIRect walk_bounds(const SkIRect& ir, const SkIRect& clipBounds, bool isInverse) {
     if (isInverse) {
         return clipBounds;
     }
-    // Rows past this limit do not fit SkFixed; edges are cut there, at the same rows whatever
-    // the clip.
-    static constexpr int kRowLimit = 32767;
-    const int top = std::max(ir.fTop, -kRowLimit);
-    const int bottom = std::min(ir.fBottom, kRowLimit);
-    const SkIRect bounds = SkIRect::MakeLTRB(clipBounds.fLeft, top, clipBounds.fRight, bottom);
+    const WalkSpan columns = walk_span(ir.fLeft, ir.fRight, clipBounds.fLeft, clipBounds.fRight);
+    const WalkSpan rows = walk_span(ir.fTop, ir.fBottom, clipBounds.fTop, clipBounds.fBottom);
+    const SkIRect bounds = SkIRect::MakeLTRB(columns.low, rows.low, columns.high, rows.high);
     return bounds;
 }
 
@@ -1962,13 +2094,15 @@ void SkScan::AAAFillPath(const SkPathRaw&  path,
     if (MaskAdditiveBlitter::CanHandleRect(ir) && !isInverse && !forceRLE) {
         // blitFatAntiRect is slower than the normal AAA flow without MaskAdditiveBlitter.
         // Hence only tryBlitFatAntiRect when MaskAdditiveBlitter would have been used.
-        if (!try_blit_fat_anti_rect(target, path, clipBounds)) {
+        if (!try_blit_fat_anti_rect(target, path, walkBounds)) {
             MaskAdditiveBlitter additiveBlitter(target, ir, clipBounds, isInverse);
             aaa_fill_path(path,
                           walkBounds,
                           &additiveBlitter,
                           startY,
                           stopY,
+                          clipBounds.fTop,
+                          clipBounds.fBottom,
                           containedInWalk,
                           true,
                           forceRLE);
@@ -1984,6 +2118,8 @@ void SkScan::AAAFillPath(const SkPathRaw&  path,
                       &additiveBlitter,
                       startY,
                       stopY,
+                      clipBounds.fTop,
+                      clipBounds.fBottom,
                       containedInWalk,
                       false,
                       forceRLE);
@@ -1997,6 +2133,8 @@ void SkScan::AAAFillPath(const SkPathRaw&  path,
                       &additiveBlitter,
                       startY,
                       stopY,
+                      clipBounds.fTop,
+                      clipBounds.fBottom,
                       containedInWalk,
                       false,
                       forceRLE);
