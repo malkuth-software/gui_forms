@@ -56,7 +56,9 @@ gui_forms::ComboBox
          selected.
 
       **placeholder_text** : ``std::string_view``, default ``""``
-         Text shown in a muted colour when nothing is selected. It is also the
+         Text shown in a muted colour when nothing is selected; in the
+         ``drop_down`` style, the edit field shows it while empty, and it then
+         takes precedence over the field hint. It is also the
          accessible description when the control has none of its own. It must
          be valid UTF-8, or ``std::invalid_argument`` is thrown.
 
@@ -179,7 +181,7 @@ gui_forms::ComboBox
 
    In the ``drop_down`` style, the combo box's ``tool_tip_text`` shows as grey
    hint text in the empty edit field while it has focus, in place of a
-   tooltip bubble. Resting the pointer on it still shows the bubble.
+   tooltip bubble, unless :cpp:func:`placeholder_text <gui_forms::ComboBox::placeholder_text>` is set. Resting the pointer on it still shows the bubble.
 
    A primary press on the field opens the list. With the field focused, F4,
    Alt+Down and Space open the list, and Up, Down, Home and End select the
@@ -341,7 +343,9 @@ gui_forms::ComboBox
 
    .. cpp:function:: std::string_view placeholder_text() const noexcept
 
-      Text shown in a muted colour when nothing is selected. It is also the
+      Text shown in a muted colour when nothing is selected; in the
+      ``drop_down`` style, the edit field shows it while empty, and it then
+      takes precedence over the field hint. It is also the
       accessible description when the control has none of its own. It must
       be valid UTF-8, or ``std::invalid_argument`` is thrown.
 

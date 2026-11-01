@@ -229,6 +229,7 @@ void ComboBox::create_editor() {
     (*editor_).set_border_style(BorderStyle::none);
     (*editor_).set_font(font_);
     (*editor_).set_text(std::string(selected_text()));
+    (*editor_).set_placeholder_text(placeholder_);
     editor_text_ = (*editor_).text_changed().subscribe(*this,
         Delegate<const std::string&>::bind<ComboBox, &ComboBox::editor_text_changed>(*this));
     editor_focus_ = (*editor_).focus_observed().subscribe(*this,
@@ -576,6 +577,9 @@ void ComboBox::set_placeholder_text(std::string text) {
     }
     if (placeholder_ == text) return;
     placeholder_ = std::move(text);
+    // The edit field shows the placeholder itself, so it wins over the
+    // combo box's field hint there too.
+    if (editor_) (*editor_).set_placeholder_text(placeholder_);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
