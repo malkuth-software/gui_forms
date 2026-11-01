@@ -4048,6 +4048,10 @@ if(GUI_FORMS_BUILD_TESTS)
         target_link_libraries(gui_forms_skia_edge_snapping_tests PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_edge_snapping_tests COMMAND gui_forms_skia_edge_snapping_tests)
 
+        add_executable(gui_forms_skia_damage_edge_tests tests/skia_damage_edge_tests.cpp)
+        target_link_libraries(gui_forms_skia_damage_edge_tests PRIVATE gui_forms_skia)
+        add_test(NAME gui_forms_skia_damage_edge_tests COMMAND gui_forms_skia_damage_edge_tests)
+
 
         add_test(
             NAME gui_forms_skia_archive_policy
