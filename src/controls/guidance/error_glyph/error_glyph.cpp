@@ -45,7 +45,7 @@ void ErrorGlyph::refresh_motion_policy() {
 }
 
 bool ErrorGlyph::blink_active() const noexcept {
-    return frame_request_.connected();
+    return blink_timer_.started();
 }
 
 bool ErrorGlyph::phase_visible() const noexcept {
@@ -53,6 +53,7 @@ bool ErrorGlyph::phase_visible() const noexcept {
 }
 
 void ErrorGlyph::on_paint(Painter& painter, Rect) {
+    blink_timer_.note_painted();
     if (!phase_visible_) return;
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
@@ -95,7 +96,7 @@ void ErrorGlyph::on_frame(FrameTime) {
     if (!owner || (*owner).presentation_settings().reduced_motion ||
         style_ == ErrorBlinkStyle::never_blink) {
         phase_visible_ = true;
-        frame_request_.disconnect();
+        blink_timer_.stop();
         invalidate(Dirty::paint);
         return;
     }
@@ -104,7 +105,7 @@ void ErrorGlyph::on_frame(FrameTime) {
         if (transitions_remaining_ > 0U) --transitions_remaining_;
         if (transitions_remaining_ == 0U) {
             phase_visible_ = true;
-            frame_request_.disconnect();
+            blink_timer_.stop();
         }
     }
     invalidate(Dirty::paint);
@@ -114,18 +115,18 @@ void ErrorGlyph::on_attachment_committed() noexcept {
     try {
         refresh_schedule();
     } catch (...) {
-        frame_request_.disconnect();
+        blink_timer_.stop();
         phase_visible_ = true;
     }
 }
 
 void ErrorGlyph::on_detached_from_window() noexcept {
-    frame_request_.disconnect();
+    blink_timer_.stop();
     phase_visible_ = true;
 }
 
 void ErrorGlyph::refresh_schedule() {
-    frame_request_.disconnect();
+    blink_timer_.stop();
     Window* owner = attached_window();
     if (!owner || (*owner).presentation_settings().reduced_motion ||
         style_ == ErrorBlinkStyle::never_blink ||
@@ -136,8 +137,15 @@ void ErrorGlyph::refresh_schedule() {
     }
     std::shared_ptr<gui_forms::ErrorGlyph> self = std::dynamic_pointer_cast<ErrorGlyph>(shared_from_this());
     if (!self) return;
-    frame_request_ = (*owner).activate_surface(
-        self, rate_, FrameClock::now() + rate_);
+    blink_timer_.start(*this, rate_, BlinkTick{self});
+}
+
+AnimationTickResult ErrorGlyph::BlinkTick::operator()(FrameTime now) const {
+    const std::shared_ptr<ErrorGlyph> live = glyph.lock();
+    if (!live) return AnimationTickResult::unchanged;
+    // on_frame toggles the phase and damages the glyph.
+    (*live).on_frame(now);
+    return AnimationTickResult::damaged;
 }
 
 } // namespace gui_forms
