@@ -1444,9 +1444,9 @@ private:
         std::vector<PaintControlCheckpoint>;
     void collect_paint_checkpoints(
         const Control::Ptr& control, PaintControlCheckpointList& checkpoints);
-    void abandon_paint(const PaintControlCheckpointList& checkpoints,
-                       std::uint64_t generation_before,
-                       std::span<const Rect> painted_rectangles);
+    // Restores the paint pass's checkpoints, re-damages its rectangles and
+    // releases the checkpoints (paint_checkpoints_ is left empty).
+    void abandon_paint(std::uint64_t generation_before);
     // One paint pass over `rectangles` (window coordinates, disjoint after
     // merging). With `explicit_request`, every plane paints each rectangle;
     // otherwise each plane paints only where it holds damage.
@@ -1532,6 +1532,14 @@ private:
     std::vector<LayoutDiagnostic> layout_diagnostics_{};
     std::uint64_t dropped_layout_diagnostics_{};
     bool in_paint_{};
+    // Paint-pass scratch, reused by every pass so that a frame allocates
+    // nothing once they have grown to the window's size (paint_rectangles
+    // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds
+    // each control and its chunk only during a pass and is cleared, keeping
+    // its capacity, when the pass completes or is abandoned;
+    // painted_rectangles_ is the pass's merged window-space rectangles.
+    PaintControlCheckpointList paint_checkpoints_{};
+    std::vector<Rect> painted_rectangles_{};
     bool inline_with_theme_reported_{};
     std::uint64_t content_revision_{1U};
     std::uint64_t rendered_revision_{};
