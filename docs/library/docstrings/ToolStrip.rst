@@ -17,6 +17,12 @@ stable_id
 
 Properties
 ----------
+content_length
+    The length along the strip's axis (its width, or its height when
+    vertical) that its visible items need with none overflowed: the edge
+    insets, the grip, the end reserve or sizing grip and every visible item
+    at its own size. A `ToolStripPanel` gives each strip but the last of a
+    shared row this much.
 items
     The items, in strip order. `set_items` replaces them and throws
     `std::invalid_argument` for a repeated ID or one that breaks the

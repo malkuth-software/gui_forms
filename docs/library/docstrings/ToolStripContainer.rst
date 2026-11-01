@@ -10,7 +10,9 @@ content panel.
 Strips are dragged by their grips with the docking drag's mechanics: a press
 on a grip that moves 4 units drags the strip, whose stamp (its picture,
 shrinking to a miniature at the pointer) follows the pointer while a line
-marks the row it would take in the shown panel under the pointer. A release
+marks where it would go in the shown panel under the pointer: between rows
+for a new row, or across a row between its strips to join it (the middle
+half of a row's thickness joins it). A release
 there moves the strip and turns it to that panel's orientation. Strips never
 leave the container, enter dock stacks or float: a release elsewhere, with
 Ctrl held, after Escape or when the capture is lost leaves the strip where
@@ -43,8 +45,9 @@ dragged_strip
     The strip being dragged, or null.
 drag_target
     Where a release would put the strip: a `ToolStripDropTarget` with the
-    panel's edge, the row (counted without the dragged strip) and the
-    insertion line; none when nothing accepts.
+    panel's edge, the row (rows counted without the dragged strip), whether
+    it joins that row and at which position, and the insertion line; none
+    when nothing accepts.
 drag_stamp
     The stamp's rectangle while dragging or settling; empty otherwise.
 drag_suppressed
@@ -57,18 +60,22 @@ Events
 ------
 strip_moved
     Raised after a strip changed panel or row, by a drag or by `move_strip`,
-    with a `ToolStripMove`: the strip's identity and its edge and row before
-    and after.
+    with a `ToolStripMove`: the strip's identity and its edge, row and
+    position in the row before and after.
 
 Methods
 -------
 move_strip
-    Moves a strip joined to one of the panels to a row of the panel on an
-    edge, as a drop would, and raises `strip_moved`. True when the strip is
+    Moves a strip joined to one of the panels into a new row of the panel on
+    an edge (rows counted without the strip), as a drop would, and raises
+    `strip_moved`. True when the strip is
     there afterwards (also when it already was, which raises nothing); false,
     changing nothing, for a strip not joined here, an invalid edge, a row
     past the end, or a `StatusStrip` sent to the left or right. A drag under
     way is cancelled first.
+move_strip_into_row
+    As `move_strip`, into an existing row at a position among its strips;
+    false also for a position past the row's strips.
 cancel_drag
     Ends an armed drag, or a drag under way as Escape does; false when there
     is none.
@@ -92,8 +99,8 @@ insertion line, ``drop_accepted``), painted on a layer above the panels. The con
 so Tab reaches the content before the strips. It is a group to
 accessibility, exposed when it has an accessible name.
 
-Not supported yet: several strips sharing a row, a keyboard way to move a
-strip other than `move_strip`, and rafting panels outside a container.
+Not supported yet: a keyboard way to move a strip other than `move_strip`,
+and rafting panels outside a container.
 
 Examples
 --------

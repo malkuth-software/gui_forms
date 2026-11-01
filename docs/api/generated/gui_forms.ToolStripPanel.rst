@@ -13,10 +13,13 @@ gui_forms::ToolStripPanel
 
    A band along one edge that holds ToolStrips.
 
-   A tool strip panel stacks the strips joined to it. A top or bottom panel
-   puts each strip in its own row across the panel; a left or right panel
-   turns its strips vertical and puts each in its own column. The panel is as
-   thick as its strips together and has no thickness without them. A
+   A tool strip panel stacks the strips joined to it in rows: across a top or
+   bottom panel, or as columns down a left or right panel, whose strips turn
+   vertical (columns are called rows here too). A row holds one strip or
+   several side by side: each strip but the last takes its ``content_length``,
+   no more than the row has left, and the last takes the rest, so a strip
+   alone fills its row. A row is as thick as its thickest strip, and the panel
+   as its rows together; it has no thickness without strips. A
    :cpp:class:`ToolStripContainer <gui_forms::ToolStripContainer>` owns four of them.
 
    *Status:* stable. *Windows Forms counterpart:* ``ToolStripPanel``.
@@ -37,7 +40,13 @@ gui_forms::ToolStripPanel
          would have to turn vertical.
 
       **strips** : ``std::vector<std::shared_ptr<ToolStrip>>``, read-only
-         The joined strips, in order.
+         The joined strips, in order, row by row.
+
+      **rows** : ``std::vector<std::vector<std::shared_ptr<ToolStrip>>>``, read-only
+         The joined strips by row, each row in order along the panel.
+
+      **row_count** : ``std::size_t``, read-only
+         How many rows the panel has.
 
       **parts** : ``Parts``, read-only
 
@@ -54,7 +63,9 @@ gui_forms::ToolStripPanel
       * - :cpp:func:`join <gui_forms::ToolStripPanel::join>`
         - Adds a strip after the others, turns it to the panel's orientation and takes ownership of it.
       * - :cpp:func:`insert <gui_forms::ToolStripPanel::insert>`
-        - Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, at a row of the joined strips (0 first, their count last).
+        - Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, in a new row at a row index (0 first, the row count last).
+      * - :cpp:func:`join_row <gui_forms::ToolStripPanel::join_row>`
+        - Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, into an existing row at a position among its strips (0 first, their count last).
       * - :cpp:func:`remove <gui_forms::ToolStripPanel::remove>`
         - Removes a joined strip and returns it; null when the strip is not joined to this panel.
 
@@ -69,9 +80,8 @@ gui_forms::ToolStripPanel
    .. rubric:: Notes
 
    The panel paints its ``face`` through the by-role paint path and publishes
-   ``region`` and ``face``. Strips do not share rows yet: each joined strip
-   takes the whole length of the panel, and strips cannot be dragged between
-   panels. The panel is not exposed to accessibility itself; its strips are.
+   ``region`` and ``face``. Strips are dragged between rows and panels by the
+   :cpp:class:`ToolStripContainer <gui_forms::ToolStripContainer>` that owns the panel. The panel is not exposed to accessibility itself; its strips are.
 
    .. rubric:: Examples
 
@@ -108,7 +118,15 @@ gui_forms::ToolStripPanel
 
    .. cpp:function:: std::vector<std::shared_ptr<ToolStrip>> strips() const
 
-      The joined strips, in order.
+      The joined strips, in order, row by row.
+
+   .. cpp:function:: std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows() const
+
+      The joined strips by row, each row in order along the panel.
+
+   .. cpp:function:: std::size_t row_count() const
+
+      How many rows the panel has.
 
    .. cpp:function:: Parts parts() const
 
@@ -124,14 +142,21 @@ gui_forms::ToolStripPanel
 
    .. cpp:function:: void insert(std::shared_ptr<ToolStrip> strip, std::size_t row)
 
-      Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, at a row of the joined strips (0 first,
-      their count last). Throws ``std::out_of_range`` for a row past that count,
-      before anything changes.
+      Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, in a new row at a row index (0 first, the
+      row count last). Throws ``std::out_of_range`` for a row past the row
+      count, before anything changes.
+
+   .. cpp:function:: void join_row(std::shared_ptr<ToolStrip> strip, std::size_t row, std::size_t position)
+
+      Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, into an existing row at a position among
+      its strips (0 first, their count last). Throws ``std::out_of_range`` for a
+      row or position past those, before anything changes.
 
    .. cpp:function:: std::shared_ptr<ToolStrip> remove(const ToolStrip& strip)
 
       Removes a joined strip and returns it; null when the strip is not joined
-      to this panel.
+      to this panel. A row it leaves empty goes, and the strip after it starts
+      the row when it started it.
 
 
    .. rubric:: Extension points

@@ -181,6 +181,12 @@ public:
     }
 
     [[nodiscard]] Size measure(Size available) override;
+    // The length along the strip's axis (its width, or its height when
+    // vertical) its visible items need with none overflowed: the edge
+    // insets, the grip, the end reserve or sizing grip, and every visible
+    // item at its own size (spring labels at their text's). A ToolStripPanel
+    // gives each strip but the last of a shared row this much.
+    [[nodiscard]] double content_length() const;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_pointer(PointerEvent& event) override;

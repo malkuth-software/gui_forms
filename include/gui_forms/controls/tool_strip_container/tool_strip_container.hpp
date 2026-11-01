@@ -22,29 +22,37 @@ namespace gui_forms {
 // place (its new one, or its old one when nothing moved).
 enum class ToolStripDragPhase : std::uint8_t { idle, armed, dragging, settling };
 
-// Where a dragged strip would go: the panel on `edge`, at `row`, counted
-// among that panel's strips without the dragged one (0 before the first,
-// the count after the last). `marker` is the insertion line, in the
-// container's coordinates.
+// Where a dragged strip would go in the panel on `edge`, its rows counted
+// as they are without the dragged strip: a new row at `row` (0 before the
+// first, the row count after the last), or, when `joins_row`, the existing
+// row `row` at `position` among its strips. `marker` is the insertion line
+// (between rows, or across a row between its strips), in the container's
+// coordinates.
 struct ToolStripDropTarget final {
     ToolStripPanelEdge edge{ToolStripPanelEdge::top};
     std::size_t row{};
+    bool joins_row{};
+    std::size_t position{};
     Rect marker{};
 
     [[nodiscard]] bool operator==(const ToolStripDropTarget& other) const noexcept {
-        const bool same = edge == other.edge && row == other.row && marker == other.marker;
+        const bool same = edge == other.edge && row == other.row && joins_row == other.joins_row &&
+                          position == other.position && marker == other.marker;
         return same;
     }
 };
 
-// A strip that changed panel or row, raised after the move (by a drag or by
-// move_strip). Rows are counted as in ToolStripDropTarget.
+// A strip that changed place, raised after the move (by a drag, move_strip
+// or move_strip_into_row): its edge, row and position in the row before,
+// and after (rows counted in the panel as it is after the move).
 struct ToolStripMove final {
     std::string strip_id{};
     ToolStripPanelEdge from{ToolStripPanelEdge::top};
     std::size_t from_row{};
+    std::size_t from_position{};
     ToolStripPanelEdge to{ToolStripPanelEdge::top};
     std::size_t to_row{};
+    std::size_t to_position{};
 };
 
 // Four ToolStripPanels around a content panel (Windows Forms'
@@ -59,8 +67,9 @@ struct ToolStripMove final {
 // that moves the drag threshold (4 units) drags the strip; its stamp, the
 // strip's picture shrinking to a miniature at the pointer, follows the
 // pointer, and the shown panel under the pointer marks the row the strip
-// would take. A release there moves the strip, which turns to that panel's
-// orientation. Strips never leave the container, enter dock stacks or
+// would take: between rows for a new row, or across a row, between its
+// strips, to join it (the middle half of a row's thickness joins it). A
+// release there moves the strip, which turns to that panel's orientation. Strips never leave the container, enter dock stacks or
 // float: a release elsewhere, with Ctrl held, after Escape, or when the
 // pointer capture is lost leaves the strip where it was. A StatusStrip has
 // no left or right target. An empty panel's band reaches a few units in
@@ -92,13 +101,18 @@ public:
     [[nodiscard]] bool right_panel_visible() const noexcept { return right_visible_; }
     void set_right_panel_visible(bool visible);
 
-    // Moves a strip joined to one of the four panels to `row` of the panel
-    // on `edge`, as a drop would, and raises strip_moved. True when the
-    // strip is there afterwards (also when it already was, which raises
-    // nothing); false, changing nothing, for a strip not joined here, an
-    // invalid edge, a row past the end, or a StatusStrip sent to the left or
-    // right. A drag under way is cancelled first.
+    // Moves a strip joined to one of the four panels into a new row at `row`
+    // of the panel on `edge` (rows counted without the strip), as a drop
+    // would, and raises strip_moved. True when the strip is there afterwards
+    // (also when it already was, which raises nothing); false, changing
+    // nothing, for a strip not joined here, an invalid edge, a row past the
+    // end, or a StatusStrip sent to the left or right. A drag under way is
+    // cancelled first.
     bool move_strip(const ToolStrip& strip, ToolStripPanelEdge edge, std::size_t row);
+    // As move_strip, into the existing row `row` at `position` among its
+    // strips; false also for a position past the row's strips.
+    bool move_strip_into_row(const ToolStrip& strip, ToolStripPanelEdge edge, std::size_t row,
+                             std::size_t position);
     [[nodiscard]] Event<const ToolStripMove&>& strip_moved() noexcept { return strip_moved_; }
 
     [[nodiscard]] ToolStripDragPhase drag_phase() const noexcept { return drag_.phase; }
@@ -174,10 +188,13 @@ private:
         std::weak_ptr<Control> focus_before{};
         bool focusable_before{};
     };
-    // A strip's place among the four panels.
+    // A strip's place among the four panels: its row and its position in
+    // the row, and whether it is alone there.
     struct StripPlace final {
         ToolStripPanelEdge edge{ToolStripPanelEdge::top};
         std::size_t row{};
+        std::size_t position{};
+        bool alone{true};
     };
 
     // Where the panels sit for one client size.
@@ -199,8 +216,19 @@ private:
     // The strip whose grip is under a window point, or null.
     [[nodiscard]] std::shared_ptr<ToolStrip> grip_strip_at(Point window_point) const;
     [[nodiscard]] std::optional<ToolStripDropTarget> target_at(Point local) const;
-    // Moves without cancelling a drag or checking the place again.
-    void move_to(const std::shared_ptr<ToolStrip>& strip, StripPlace from, StripPlace to);
+    // The rows of the panel on `edge` as they are without `strip` (rows it
+    // would leave empty dropped).
+    [[nodiscard]] std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows_without(ToolStripPanelEdge edge,
+                                                                                   const ToolStrip& strip) const;
+    // Whether `target` admits `strip` (a shown panel's edge, a StatusStrip
+    // never left or right, a row and position in range).
+    [[nodiscard]] bool admits(const ToolStrip& strip, const ToolStripDropTarget& target) const;
+    // Whether `target` is where the strip already is.
+    [[nodiscard]] static bool same_place(StripPlace place, const ToolStripDropTarget& target) noexcept;
+    // Validates, cancels a drag, and moves unless the strip is in place.
+    bool move_checked(const ToolStrip& strip, const ToolStripDropTarget& target);
+    // Moves without cancelling a drag or checking the target again.
+    void move_to(const std::shared_ptr<ToolStrip>& strip, StripPlace from, const ToolStripDropTarget& to);
     void arm_drag(const std::shared_ptr<ToolStrip>& strip, Point local, std::uint64_t pointer_id);
     void begin_drag();
     void update_drag(Point local, Modifier modifiers);

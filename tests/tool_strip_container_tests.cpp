@@ -5,6 +5,7 @@
 #include "gui_forms/gui_forms.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <cstdlib>
 #include <iostream>
 #include <optional>
@@ -310,11 +311,11 @@ void dragging() {
     window.perform_layout();
     const Rect behind = (*first).absolute_bounds();
     pointer(window, PointerAction::down, grip_point(*second));
-    pointer(window, PointerAction::move, {behind.x + behind.width * 0.75, 200.0});
+    pointer(window, PointerAction::move, {behind.x + behind.width * 0.9, 200.0});
     target = (*frame).drag_target();
     require(target && (*target).edge == ToolStripPanelEdge::left && (*target).row == 1U,
             "past the middle of the other strip the target is after it");
-    pointer(window, PointerAction::up, {behind.x + behind.width * 0.75, 200.0});
+    pointer(window, PointerAction::up, {behind.x + behind.width * 0.9, 200.0});
     settle(window);
     require(row_of(*(*frame).left_panel(), *second) == 1U && moves.size() == 3U && moves[2].from_row == 0U &&
                 moves[2].to_row == 1U,
@@ -348,6 +349,80 @@ void dragging() {
             "under reduced motion the drop ends the drag at once");
 }
 
+// Several strips in one row (stage W toolbar follow-up to DK-36): the row
+// model, its layout, joining a row by dragging and in code.
+void shared_rows() {
+    std::shared_ptr<ToolStripContainer> frame = make_control<ToolStripContainer>(StableId("rows"));
+    std::shared_ptr<ToolStrip> file = strip_named("file");
+    std::shared_ptr<ToolStrip> edit = strip_named("edit");
+    std::shared_ptr<ToolStrip> view = strip_named("view");
+    ToolStripPanel& top = *(*frame).top_panel();
+    top.join(file);
+    top.join_row(edit, 0U, 1U);
+    top.join(view);
+    require(top.row_count() == 2U && top.rows()[0].size() == 2U && top.rows()[0][1] == edit &&
+                top.rows()[1][0] == view,
+            "join_row puts a strip beside another in its row; join starts a new row");
+    bool refused = false;
+    try {
+        top.join_row(strip_named("late"), 2U, 0U);
+    } catch (const std::out_of_range&) {
+        refused = true;
+    }
+    require(refused && top.strips().size() == 3U, "join_row refuses a row past the rows");
+    Window window(frame, {600.0, 400.0});
+    window.perform_layout();
+    const Rect file_bounds = (*file).absolute_bounds();
+    const Rect edit_bounds = (*edit).absolute_bounds();
+    const Rect view_bounds = (*view).absolute_bounds();
+    require(std::fabs(file_bounds.width - (*file).content_length()) < 0.01 && edit_bounds.x == file_bounds.right() &&
+                edit_bounds.right() == 600.0 && edit_bounds.y == file_bounds.y &&
+                view_bounds.y == file_bounds.bottom() && view_bounds.width == 600.0,
+            "in a shared row the first strip takes its content length and the last the rest");
+    require((*(*frame).top_panel()).parts().region.bounds.height == file_bounds.height + view_bounds.height,
+            "the panel is as thick as its rows");
+
+    std::vector<ToolStripMove> moves;
+    SubscriptionToken token = (*frame).strip_moved().subscribe(RecordMove{&moves});
+    // Dragging the view strip into the first row, before edit.
+    const Point onto{edit_bounds.x + 4.0, file_bounds.y + file_bounds.height * 0.5};
+    pointer(window, PointerAction::move, grip_point(*view));
+    pointer(window, PointerAction::down, grip_point(*view));
+    pointer(window, PointerAction::move, onto);
+    std::optional<ToolStripDropTarget> target = (*frame).drag_target();
+    require(target && (*target).edge == ToolStripPanelEdge::top && (*target).joins_row && (*target).row == 0U &&
+                (*target).position == 1U && (*target).marker.height > (*target).marker.width,
+            "the middle of a row joins it, marked across the row between its strips");
+    pointer(window, PointerAction::up, onto);
+    settle(window);
+    require(top.row_count() == 1U && top.rows()[0].size() == 3U && top.rows()[0][1] == view &&
+                moves.size() == 1U && moves[0].from_row == 1U && moves[0].to_row == 0U &&
+                moves[0].to_position == 1U,
+            "the drop joins the row at that position");
+
+    // Taking the row's first strip out leaves the next one starting it.
+    require((*frame).move_strip(*file, ToolStripPanelEdge::bottom, 0U) && top.row_count() == 1U &&
+                top.rows()[0][0] == view && moves.size() == 2U,
+            "the strip after a row's first starts the row when the first leaves");
+    require((*frame).move_strip_into_row(*file, ToolStripPanelEdge::top, 0U, 2U) && top.rows()[0].size() == 3U &&
+                top.rows()[0][2] == file && moves.size() == 3U && moves[2].to_position == 2U,
+            "move_strip_into_row puts a strip at a row's end");
+    require((*frame).move_strip_into_row(*file, ToolStripPanelEdge::top, 0U, 2U) && moves.size() == 3U,
+            "a strip already at that place reports nothing");
+    require(!(*frame).move_strip_into_row(*file, ToolStripPanelEdge::top, 0U, 3U) &&
+                !(*frame).move_strip_into_row(*file, ToolStripPanelEdge::top, 1U, 0U),
+            "a position or row past the end is refused");
+    // An outer quarter of the row makes a new row.
+    window.perform_layout();
+    const Rect row = (*view).absolute_bounds();
+    pointer(window, PointerAction::down, grip_point(*edit));
+    pointer(window, PointerAction::move, {300.0, row.bottom() - 1.0});
+    target = (*frame).drag_target();
+    require(target && !(*target).joins_row && (*target).row == 1U, "near a row's far edge the strip takes a new row after it");
+    static_cast<void>((*frame).cancel_drag());
+    settle(window);
+}
+
 } // namespace
 
 int main() {
@@ -355,6 +430,7 @@ int main() {
     panels();
     container();
     dragging();
+    shared_rows();
     std::cout << "Vertical ToolStrip, ToolStripPanel and ToolStripContainer: layout, keys, orientation, "
                  "panels and content passed\n";
     return 0;

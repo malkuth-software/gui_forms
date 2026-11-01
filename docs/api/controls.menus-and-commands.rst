@@ -211,7 +211,7 @@ Related types
    * - :cpp:class:`ToolStripDropDownInvocation <gui_forms::ToolStripDropDownInvocation>`
      - A choice from a drop-down or split button's menu, or from the overflow menu's copy of one.
    * - :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>`
-     - Where a dragged strip would go: the panel on ``edge``, at ``row``, counted among that panel's strips without the dragged one (0 before the first, the count after the last).
+     - Where a dragged strip would go in the panel on ``edge``, its rows counted as they are without the dragged strip: a new row at ``row`` (0 before the first, the row count after the last), or, when ``joins_row``, the existing row ``row`` at ``position`` among its strips.
    * - :cpp:class:`ToolStripItemClick <gui_forms::ToolStripItemClick>`
      - A click on an item, after any command it carries has executed.
    * - :cpp:class:`ToolStripItemFocus <gui_forms::ToolStripItemFocus>`
@@ -219,7 +219,7 @@ Related types
    * - :cpp:class:`ToolStripItemSpec <gui_forms::ToolStripItemSpec>`
      - One item.
    * - :cpp:class:`ToolStripMove <gui_forms::ToolStripMove>`
-     - A strip that changed panel or row, raised after the move (by a drag or by move_strip).
+     - A strip that changed place, raised after the move (by a drag, move_strip or move_strip_into_row): its edge, row and position in the row before, and after (rows counted in the panel as it is after the move).
    * - :cpp:class:`ToolStripPanel::Parts <gui_forms::ToolStripPanel::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1410,13 +1410,17 @@ Related types
 
    ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
 
-   Where a dragged strip would go: the panel on ``edge``, at ``row``, counted among that panel's strips without the dragged one (0 before the first, the count after the last). ``marker`` is the insertion line, in the container's coordinates.
+   Where a dragged strip would go in the panel on ``edge``, its rows counted as they are without the dragged strip: a new row at ``row`` (0 before the first, the row count after the last), or, when ``joins_row``, the existing row ``row`` at ``position`` among its strips. ``marker`` is the insertion line (between rows, or across a row between its strips), in the container's coordinates.
 
    .. cpp:member:: ToolStripPanelEdge edge
 
       Default: ``{ToolStripPanelEdge::top}``.
 
    .. cpp:member:: std::size_t row
+
+   .. cpp:member:: bool joins_row
+
+   .. cpp:member:: std::size_t position
 
    .. cpp:member:: Rect marker
 
@@ -1506,7 +1510,7 @@ Related types
 
    ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
 
-   A strip that changed panel or row, raised after the move (by a drag or by move_strip). Rows are counted as in ToolStripDropTarget.
+   A strip that changed place, raised after the move (by a drag, move_strip or move_strip_into_row): its edge, row and position in the row before, and after (rows counted in the panel as it is after the move).
 
    .. cpp:member:: std::string strip_id
 
@@ -1516,11 +1520,15 @@ Related types
 
    .. cpp:member:: std::size_t from_row
 
+   .. cpp:member:: std::size_t from_position
+
    .. cpp:member:: ToolStripPanelEdge to
 
       Default: ``{ToolStripPanelEdge::top}``.
 
    .. cpp:member:: std::size_t to_row
+
+   .. cpp:member:: std::size_t to_position
 
 .. cpp:namespace:: gui_forms
 

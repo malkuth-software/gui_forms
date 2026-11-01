@@ -264,45 +264,103 @@ std::optional<ToolStripContainer::StripPlace> ToolStripContainer::place_of(const
     for (const ToolStripPanelEdge edge : panel_edges) {
         const std::shared_ptr<ToolStripPanel>& panel = panel_on(edge);
         if (!panel) continue;
-        const std::vector<std::shared_ptr<ToolStrip>> joined = (*panel).strips();
+        const std::vector<std::vector<std::shared_ptr<ToolStrip>>> joined = (*panel).rows();
         for (std::size_t row = 0U; row < joined.size(); ++row) {
-            if (joined[row].get() == &strip) return StripPlace{edge, row};
+            for (std::size_t position = 0U; position < joined[row].size(); ++position) {
+                if (joined[row][position].get() != &strip) continue;
+                const StripPlace place{edge, row, position, joined[row].size() == 1U};
+                return place;
+            }
         }
     }
     return std::nullopt;
 }
 
-bool ToolStripContainer::move_strip(const ToolStrip& strip, ToolStripPanelEdge edge, std::size_t row) {
-    require_mutable();
-    if (!valid_edge(edge)) return false;
-    const std::optional<StripPlace> place = place_of(strip);
-    if (!place) return false;
-    if (vertical_edge(edge) && is_status_strip(strip)) return false;
+std::vector<std::vector<std::shared_ptr<ToolStrip>>> ToolStripContainer::rows_without(ToolStripPanelEdge edge,
+                                                                                      const ToolStrip& strip) const {
+    std::vector<std::vector<std::shared_ptr<ToolStrip>>> result;
     const std::shared_ptr<ToolStripPanel>& panel = panel_on(edge);
-    if (!panel) return false;
-    const std::size_t joined = (*panel).strips().size();
-    const std::size_t others = (*place).edge == edge ? joined - 1U : joined;
-    if (row > others) return false;
+    if (!panel) return result;
+    for (const std::vector<std::shared_ptr<ToolStrip>>& row : (*panel).rows()) {
+        std::vector<std::shared_ptr<ToolStrip>> kept;
+        kept.reserve(row.size());
+        for (const std::shared_ptr<ToolStrip>& member : row) {
+            if (member.get() != &strip) kept.push_back(member);
+        }
+        if (!kept.empty()) result.push_back(std::move(kept));
+    }
+    return result;
+}
+
+bool ToolStripContainer::admits(const ToolStrip& strip, const ToolStripDropTarget& target) const {
+    if (!valid_edge(target.edge) || !panel_on(target.edge)) return false;
+    if (vertical_edge(target.edge) && is_status_strip(strip)) return false;
+    const std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows = rows_without(target.edge, strip);
+    if (!target.joins_row) return target.row <= rows.size();
+    const bool admitted = target.row < rows.size() && target.position <= rows[target.row].size();
+    return admitted;
+}
+
+// A strip alone in its row is in place for a new row at that row; a strip
+// sharing a row is in place joining that row at its position (the rows
+// without it keep that row).
+bool ToolStripContainer::same_place(StripPlace place, const ToolStripDropTarget& target) noexcept {
+    if (place.edge != target.edge || place.row != target.row) return false;
+    if (place.alone) return !target.joins_row;
+    const bool same = target.joins_row && target.position == place.position;
+    return same;
+}
+
+bool ToolStripContainer::move_checked(const ToolStrip& strip, const ToolStripDropTarget& target) {
+    require_mutable();
+    const std::optional<StripPlace> place = place_of(strip);
+    if (!place || !admits(strip, target)) return false;
     // The strip, owned: the panel's own pointer to it.
-    const std::shared_ptr<ToolStrip> held = (*panel_on((*place).edge)).strips()[(*place).row];
+    const std::shared_ptr<ToolStrip> held =
+        (*panel_on((*place).edge)).rows()[(*place).row][(*place).position];
     const Control::Ptr keep = shared_from_this();
     static_cast<void>(cancel_drag());
-    if ((*place).edge == edge && (*place).row == row) return true;
-    move_to(held, *place, StripPlace{edge, row});
+    if (same_place(*place, target)) return true;
+    move_to(held, *place, target);
     return true;
 }
 
-// The place is checked: the strip is joined at `from`, and `to` admits it.
-void ToolStripContainer::move_to(const std::shared_ptr<ToolStrip>& strip, StripPlace from, StripPlace to) {
+bool ToolStripContainer::move_strip(const ToolStrip& strip, ToolStripPanelEdge edge, std::size_t row) {
+    ToolStripDropTarget target{};
+    target.edge = edge;
+    target.row = row;
+    const bool moved = move_checked(strip, target);
+    return moved;
+}
+
+bool ToolStripContainer::move_strip_into_row(const ToolStrip& strip, ToolStripPanelEdge edge, std::size_t row,
+                                             std::size_t position) {
+    ToolStripDropTarget target{};
+    target.edge = edge;
+    target.row = row;
+    target.joins_row = true;
+    target.position = position;
+    const bool moved = move_checked(strip, target);
+    return moved;
+}
+
+// The target is checked: the strip is joined at `from`, and `to` admits it.
+void ToolStripContainer::move_to(const std::shared_ptr<ToolStrip>& strip, StripPlace from,
+                                 const ToolStripDropTarget& to) {
     std::shared_ptr<ToolStrip> removed = (*panel_on(from.edge)).remove(*strip);
-    (*panel_on(to.edge)).insert(std::move(removed), to.row);
+    ToolStripPanel& panel = *panel_on(to.edge);
+    if (to.joins_row) panel.join_row(std::move(removed), to.row, to.position);
+    else panel.insert(std::move(removed), to.row);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    const std::optional<StripPlace> now = place_of(*strip);
     ToolStripMove moved{};
     moved.strip_id = std::string((*strip).stable_id().value());
     moved.from = from.edge;
     moved.from_row = from.row;
+    moved.from_position = from.position;
     moved.to = to.edge;
-    moved.to_row = to.row;
+    moved.to_row = now ? (*now).row : to.row;
+    moved.to_position = now ? (*now).position : to.position;
     strip_moved_.emit(moved);
 }
 
@@ -338,10 +396,13 @@ std::shared_ptr<ToolStrip> ToolStripContainer::grip_strip_at(Point window_point)
 }
 
 // The first shown panel whose band holds the point, in the order top,
-// bottom, left, right (the top and bottom panels own the corners); the row
-// is the count of that panel's other strips the point is past the middle
-// of, hidden strips counted as passed until a shown strip is not. Without
-// shown strips the line lies on the band's container edge.
+// bottom, left, right (the top and bottom panels own the corners). Its rows
+// without the dragged strip are taken in order across the panel: the outer
+// quarters of a row's thickness put the strip in a new row before or after
+// it, the middle half joins it, before the first of its strips whose middle
+// the point is not past. Rows with no shown strip count as passed while the
+// point is past the row before them. Without shown rows the line lies on
+// the band's container edge.
 std::optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local) const {
     const std::shared_ptr<ToolStrip> dragged = drag_.strip.lock();
     if (!dragged) return std::nullopt;
@@ -353,29 +414,66 @@ std::optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local) co
         if (vertical && status) continue;
         const Rect band = drop_band(edge, local_bounds_of(*panel));
         if (!band.contains(local)) continue;
-        const double along = vertical ? local.x : local.y;
+        // `across` runs across the rows, `along` along them.
+        const double across = vertical ? local.x : local.y;
+        const double along = vertical ? local.y : local.x;
         double line = vertical ? band.x : band.y;
         if (edge == ToolStripPanelEdge::bottom) line = band.y + band.height;
         if (edge == ToolStripPanelEdge::right) line = band.x + band.width;
+        ToolStripDropTarget target{};
+        target.edge = edge;
+        const std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows = rows_without(edge, *dragged);
         std::size_t row = 0U;
-        for (const std::shared_ptr<ToolStrip>& strip : (*panel).strips()) {
-            if (strip == dragged) continue;
-            if (!(*strip).visible()) {
-                ++row;
-                continue;
+        for (; row < rows.size(); ++row) {
+            // The row's span across, from its shown strips.
+            double start = 0.0;
+            double end = 0.0;
+            bool shown = false;
+            for (const std::shared_ptr<ToolStrip>& member : rows[row]) {
+                if (!(*member).visible()) continue;
+                const Rect bounds = local_bounds_of(*member);
+                const double member_start = vertical ? bounds.x : bounds.y;
+                const double member_end = member_start + (vertical ? bounds.width : bounds.height);
+                start = shown ? std::min(start, member_start) : member_start;
+                end = shown ? std::max(end, member_end) : member_end;
+                shown = true;
             }
-            const Rect bounds = local_bounds_of(*strip);
-            const double start = vertical ? bounds.x : bounds.y;
-            const double length = vertical ? bounds.width : bounds.height;
-            if (along < start + length * 0.5) {
+            if (!shown) continue;
+            const double thickness = end - start;
+            if (across < start + thickness * 0.25) {
                 line = start;
                 break;
             }
-            ++row;
-            line = start + length;
+            if (across <= start + thickness * 0.75) {
+                // Joins this row, before the first strip whose middle the
+                // point is not past.
+                std::size_t position = 0U;
+                double between = vertical ? band.y : band.x;
+                for (const std::shared_ptr<ToolStrip>& member : rows[row]) {
+                    if (!(*member).visible()) {
+                        ++position;
+                        continue;
+                    }
+                    const Rect bounds = local_bounds_of(*member);
+                    const double member_start = vertical ? bounds.y : bounds.x;
+                    const double member_length = vertical ? bounds.height : bounds.width;
+                    if (along < member_start + member_length * 0.5) {
+                        between = member_start;
+                        break;
+                    }
+                    ++position;
+                    between = member_start + member_length;
+                }
+                const double half = marker_thickness * 0.5;
+                target.row = row;
+                target.joins_row = true;
+                target.position = position;
+                target.marker = vertical ? Rect{start, between - half, thickness, marker_thickness}
+                                         : Rect{between - half, start, marker_thickness, thickness};
+                return target;
+            }
+            line = end;
         }
-        ToolStripDropTarget target{};
-        target.edge = edge;
         target.row = row;
         target.marker = marker_at(vertical, band, line);
         return target;
@@ -501,19 +599,12 @@ void ToolStripContainer::end_drag(bool drop) {
     Window* const host = attached_window();
     if (host != nullptr && (*host).captured_control().get() == this) (*host).release_pointer();
     return_focus();
-    // The place is checked again: the program may have moved the strip, or
-    // hidden a panel, while it was dragged.
+    // The target is checked again: the program may have moved the strip,
+    // or hidden a panel, while it was dragged.
     if (target && strip) {
         const std::optional<StripPlace> place = place_of(*strip);
-        const std::shared_ptr<ToolStripPanel>& panel = panel_on((*target).edge);
-        bool admitted = place.has_value() && panel && panel_shown((*target).edge);
-        if (admitted) {
-            const std::size_t joined = (*panel).strips().size();
-            const std::size_t others = (*place).edge == (*target).edge ? joined - 1U : joined;
-            admitted = (*target).row <= others && !(vertical_edge((*target).edge) && is_status_strip(*strip));
-        }
-        const bool moves = admitted && !((*place).edge == (*target).edge && (*place).row == (*target).row);
-        if (moves) move_to(strip, *place, StripPlace{(*target).edge, (*target).row});
+        const bool admitted = place && panel_shown((*target).edge) && admits(*strip, *target);
+        if (admitted && !same_place(*place, *target)) move_to(strip, *place, *target);
         if (!is_alive()) return;
     }
     // The stamp settles into the strip's place (at once under reduced

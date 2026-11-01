@@ -88,34 +88,98 @@ void ToolStripPanel::join(std::shared_ptr<ToolStrip> strip) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ToolStripPanel::insert(std::shared_ptr<ToolStrip> strip, std::size_t row) {
-    require_mutable();
-    const std::vector<std::shared_ptr<ToolStrip>> joined = strips();
-    if (row > joined.size()) throw std::out_of_range("ToolStripPanel insert row is past the joined strips");
-    // The position in children() of the strip now at `row` (paint order,
-    // which is the panel's stacking order); none to join last.
+bool ToolStripPanel::continues_row(const ToolStrip& strip) const noexcept {
+    const RuntimeId id = strip.runtime_id();
+    const bool continues = std::find(continuing_.begin(), continuing_.end(), id) != continuing_.end();
+    return continues;
+}
+
+std::vector<std::vector<std::shared_ptr<ToolStrip>>> ToolStripPanel::rows() const {
+    std::vector<std::vector<std::shared_ptr<ToolStrip>>> result;
+    for (const std::shared_ptr<ToolStrip>& strip : strips()) {
+        if (result.empty() || !continues_row(*strip)) result.emplace_back();
+        result.back().push_back(strip);
+    }
+    return result;
+}
+
+std::size_t ToolStripPanel::row_count() const {
+    std::size_t count = 0U;
+    for (const std::shared_ptr<ToolStrip>& strip : strips()) {
+        if (count == 0U || !continues_row(*strip)) ++count;
+    }
+    return count;
+}
+
+void ToolStripPanel::place(std::shared_ptr<ToolStrip> strip, const std::shared_ptr<ToolStrip>& before, bool continues) {
+    // The position in children() of `before` (paint order, which is the
+    // panel's stacking order).
     std::optional<std::size_t> position{};
-    if (row < joined.size()) {
+    if (before) {
         const std::span<const Control::Ptr> owned = children();
         for (std::size_t index = 0U; index < owned.size(); ++index) {
-            if (owned[index] == joined[row]) position = index;
+            if (owned[index] == before) position = index;
         }
     }
-    const RuntimeId inserted = strip ? (*strip).runtime_id() : RuntimeId{};
+    const RuntimeId inserted = (*strip).runtime_id();
     join(std::move(strip));
+    if (continues) continuing_.push_back(inserted);
     if (!position) return;
     // set_child_index counts as Windows Forms does, from the last child
     // (topmost) at 0: with the joined strip taken out, `count - 1 - position`
-    // puts it just before the strip that was at `row`.
+    // puts it just before `before`.
     const std::size_t count = children().size();
     static_cast<void>(set_child_index(inserted, count - 1U - *position));
+}
+
+void ToolStripPanel::insert(std::shared_ptr<ToolStrip> strip, std::size_t row) {
+    require_mutable();
+    const std::vector<std::vector<std::shared_ptr<ToolStrip>>> joined = rows();
+    if (row > joined.size()) throw std::out_of_range("ToolStripPanel insert row is past the rows");
+    if (!strip || (*strip).parent()) throw std::invalid_argument("ToolStripPanel joins a strip without a parent");
+    const std::shared_ptr<ToolStrip> before = row < joined.size() ? joined[row].front() : nullptr;
+    place(std::move(strip), before, false);
+}
+
+void ToolStripPanel::join_row(std::shared_ptr<ToolStrip> strip, std::size_t row, std::size_t position) {
+    require_mutable();
+    const std::vector<std::vector<std::shared_ptr<ToolStrip>>> joined = rows();
+    if (row >= joined.size()) throw std::out_of_range("ToolStripPanel join_row row is past the rows");
+    const std::vector<std::shared_ptr<ToolStrip>>& members = joined[row];
+    if (position > members.size()) throw std::out_of_range("ToolStripPanel join_row position is past the row");
+    if (!strip || (*strip).parent()) throw std::invalid_argument("ToolStripPanel joins a strip without a parent");
+    if (vertical() && status_strip(*strip)) {
+        throw std::logic_error("A StatusStrip cannot join a left or right panel");
+    }
+    // Before the strip now at `position`, or before the next row's first.
+    std::shared_ptr<ToolStrip> before{};
+    if (position < members.size()) before = members[position];
+    else if (row + 1U < joined.size()) before = joined[row + 1U].front();
+    if (position == 0U) {
+        // The new strip starts the row; the row's first strip continues it.
+        const RuntimeId first = (*members.front()).runtime_id();
+        place(std::move(strip), before, false);
+        continuing_.push_back(first);
+        return;
+    }
+    place(std::move(strip), before, true);
 }
 
 std::shared_ptr<ToolStrip> ToolStripPanel::remove(const ToolStrip& strip) {
     require_mutable();
     const Control::Ptr owner = strip.parent();
     if (!owner || owner.get() != this) return nullptr;
-    const Control::Ptr removed = remove_child(strip.runtime_id());
+    const RuntimeId id = strip.runtime_id();
+    const bool continued = continues_row(strip);
+    // The strip after it, which starts the row when this one did.
+    std::shared_ptr<ToolStrip> next{};
+    const std::vector<std::shared_ptr<ToolStrip>> joined = strips();
+    for (std::size_t index = 0U; index + 1U < joined.size(); ++index) {
+        if (joined[index].get() == &strip) next = joined[index + 1U];
+    }
+    const Control::Ptr removed = remove_child(id);
+    std::erase(continuing_, id);
+    if (!continued && next) std::erase(continuing_, (*next).runtime_id());
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     return std::static_pointer_cast<ToolStrip>(removed);
 }
@@ -123,13 +187,18 @@ std::shared_ptr<ToolStrip> ToolStripPanel::remove(const ToolStrip& strip) {
 Size ToolStripPanel::measure(Size available) {
     const bool along_height = vertical();
     // Each strip is measured with unbounded thickness and the panel's full
-    // length; the panel is their thicknesses together.
+    // length; a row is as thick as its thickest shown strip, and the panel
+    // is its rows together.
     const double unbounded = std::numeric_limits<double>::max();
     const Size offered = along_height ? Size{unbounded, available.height} : Size{available.width, unbounded};
     double thickness = 0.0;
-    for (const std::shared_ptr<ToolStrip>& strip : strips()) {
-        if (!(*strip).visible()) continue;
-        thickness += strip_thickness(*strip, along_height, offered);
+    for (const std::vector<std::shared_ptr<ToolStrip>>& row : rows()) {
+        double row_thickness = 0.0;
+        for (const std::shared_ptr<ToolStrip>& strip : row) {
+            if (!(*strip).visible()) continue;
+            row_thickness = std::max(row_thickness, strip_thickness(*strip, along_height, offered));
+        }
+        thickness += row_thickness;
     }
     if (along_height) {
         const Size result{std::min(available.width, thickness), available.height};
@@ -139,25 +208,44 @@ Size ToolStripPanel::measure(Size available) {
     return result;
 }
 
+// Row by row: the row's shown strips get their content lengths in order, no
+// more than is left, and the last shown strip the rest; each is as thick as
+// the row.
 void ToolStripPanel::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     const bool along_height = vertical();
+    const double length = along_height ? final_bounds.height : final_bounds.width;
     const double unbounded = std::numeric_limits<double>::max();
     const Size offered = along_height ? Size{unbounded, final_bounds.height} : Size{final_bounds.width, unbounded};
-    double next = 0.0;
-    const std::vector<Control::Ptr> retained = snapshot_layout_children();
-    for (const Control::Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible()) continue;
-        ToolStrip* const strip = dynamic_cast<ToolStrip*>(child.get());
-        if (strip == nullptr) continue;
-        const double thickness = strip_thickness(*strip, along_height, offered);
-        // Measuring runs the strip's program code, which may take it out of
-        // the panel.
-        if (!is_current_layout_child(child)) continue;
-        const Rect slot = along_height ? Rect{next, 0.0, thickness, final_bounds.height}
-                                       : Rect{0.0, next, final_bounds.width, thickness};
-        set_child_layout(child, slot);
-        next += thickness;
+    const std::vector<std::vector<std::shared_ptr<ToolStrip>>> joined = rows();
+    double next_row = 0.0;
+    for (const std::vector<std::shared_ptr<ToolStrip>>& row : joined) {
+        // The row's shown strips and its thickness. Measuring runs the
+        // strips' program code, which may take one out of the panel.
+        std::vector<std::shared_ptr<ToolStrip>> shown;
+        shown.reserve(row.size());
+        double thickness = 0.0;
+        for (const std::shared_ptr<ToolStrip>& strip : row) {
+            if (!is_current_layout_child(strip) || !(*strip).visible()) continue;
+            const double measured = strip_thickness(*strip, along_height, offered);
+            if (!is_current_layout_child(strip)) continue;
+            thickness = std::max(thickness, measured);
+            shown.push_back(strip);
+        }
+        double along = 0.0;
+        for (std::size_t index = 0U; index < shown.size(); ++index) {
+            const double left = std::max(0.0, length - along);
+            double extent = left;
+            if (index + 1U < shown.size()) {
+                const double wanted = (*shown[index]).content_length();
+                extent = std::isfinite(wanted) && wanted > 0.0 ? std::min(left, wanted) : 0.0;
+            }
+            const Rect slot = along_height ? Rect{next_row, along, thickness, extent}
+                                           : Rect{along, next_row, extent, thickness};
+            set_child_layout(shown[index], slot);
+            along += extent;
+        }
+        next_row += thickness;
     }
 }
 
