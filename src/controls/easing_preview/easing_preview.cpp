@@ -67,7 +67,7 @@ void EasingPreview::set_specification(AnimationSpec specification) {
         if (!motion_policy_.active()) timeline_.pause(now);
         phase_ = timeline_.sample(now).progress;
     }
-    frames_.disconnect();
+    frames_.stop();
     if (motion_policy_.active()) register_frames();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -93,7 +93,7 @@ void EasingPreview::set_motion_policy(MotionPolicy policy) {
     if (motion_policy_ == policy) return;
     const bool was_live = motion_policy_.active();
     const bool becomes_live = policy.active();
-    frames_.disconnect();
+    frames_.stop();
     if (timeline_started_) {
         const FrameTime transition = FrameClock::now();
         if (was_live && !becomes_live) {
@@ -131,7 +131,7 @@ void EasingPreview::on_frame(FrameTime now) {
     if (!effective_motion_policy().active()) return;
     const AnimationSample sample = timeline_.sample(now);
     phase_ = sample.progress;
-    if (sample.finished) frames_.disconnect();
+    if (sample.finished) frames_.stop();
 }
 
 std::string EasingPreview::motion_readout(double presented_phase) const {
@@ -194,8 +194,7 @@ Rect EasingPreview::readout_bounds() const noexcept {
 
 void EasingPreview::on_paint(Painter& painter, Rect) {
     // The preview is shown: a timer stopped while it was not starts again.
-    if (frames_waiting_for_paint_) register_frames();
-    painted_since_tick_ = true;
+    frames_.note_painted();
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
     const double s = effective_text_scale();
@@ -271,14 +270,14 @@ void EasingPreview::on_attached_to_window() {
 
 void EasingPreview::on_presentation_changed(
     const PresentationSettings&) {
-    frames_.disconnect();
+    frames_.stop();
     if (effective_motion_policy().active()) register_frames();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void EasingPreview::on_detached_from_window() noexcept {
     presentation_subscription_.disconnect();
-    frames_.disconnect();
+    frames_.stop();
     if (timeline_started_) {
         const FrameTime detached = FrameClock::now();
         phase_ = timeline_.sample(detached).progress;
@@ -288,48 +287,31 @@ void EasingPreview::on_detached_from_window() noexcept {
 }
 
 void EasingPreview::register_frames() {
-    frames_.disconnect();
-    frames_waiting_for_paint_ = false;
     const MotionPolicy policy = effective_motion_policy();
-    if (window() == nullptr || !policy.active()) return;
-    // A preview that is not shown waits for its first paint instead of
-    // holding a wake.
-    if (!effectively_visible()) {
-        frames_waiting_for_paint_ = true;
+    if (window() == nullptr || !policy.active()) {
+        frames_.stop();
         return;
     }
-    // Every caller also invalidates the preview, so it is painted before the
-    // first tick; the first tick counts that paint.
-    painted_since_tick_ = true;
-    const FrameInterval interval = policy.frame_interval(16ms);
-    // The first tick falls on a multiple of the interval in clock time, so
-    // that timers with the same interval tick in the same frame poll.
-    const FrameTime now = FrameClock::now();
-    const FrameInterval into_interval = now.time_since_epoch() % interval;
-    const FrameTime first_tick = now + (interval - into_interval);
+    // A motion demonstrator: its markers need every display frame.
+    const FrameInterval interval = policy.frame_interval(display_frame_interval);
     const std::shared_ptr<EasingPreview> self =
         std::static_pointer_cast<EasingPreview>(shared_from_this());
-    frames_ = (*window()).schedule_ui_timer(*this, interval, first_tick, FrameTick{self});
+    frames_.start(*this, interval, FrameTick{self});
 }
 
-void EasingPreview::FrameTick::operator()(FrameTime now) const {
+AnimationTickResult EasingPreview::FrameTick::operator()(FrameTime now) const {
     const std::shared_ptr<EasingPreview> live = preview.lock();
-    if (live) (*live).on_frame_tick(now);
+    const AnimationTickResult result = live
+        ? (*live).on_frame_tick(now) : AnimationTickResult::unchanged;
+    return result;
 }
 
-void EasingPreview::on_frame_tick(FrameTime now) {
-    if (!painted_since_tick_ || !effectively_visible()) {
-        frames_.disconnect();
-        frames_waiting_for_paint_ = true;
-        return;
-    }
+AnimationTickResult EasingPreview::on_frame_tick(FrameTime now) {
     const MotionPolicy policy = effective_motion_policy();
     const double before = policy.presentation_phase(phase_);
     on_frame(now);
     const double after = policy.presentation_phase(phase_);
-    // A tick that changes nothing damages nothing and expects no paint.
-    if (after == before) return;
-    painted_since_tick_ = false;
+    if (after == before) return AnimationTickResult::unchanged;
     // The preview publishes its phase as its accessible value.
     invalidate(Dirty::semantics);
     invalidate(readout_bounds());
@@ -337,6 +319,7 @@ void EasingPreview::on_frame_tick(FrameTime now) {
         const Rect moved = Rect::united(marker_bounds(index, before), marker_bounds(index, after));
         invalidate(moved);
     }
+    return AnimationTickResult::damaged;
 }
 
 

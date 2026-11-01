@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/animation.hpp"
 #include "gui_forms/basic_controls.hpp"
 
@@ -82,20 +83,17 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
-    // The animation timer's named target (ADR-016: a UI timer the preview
-    // stops, not an active surface). Observes the preview; a destroyed one is
-    // skipped.
+    // The animation timer's named target. Observes the preview; a destroyed
+    // one is skipped.
     struct FrameTick final {
         std::weak_ptr<EasingPreview> preview;
-        void operator()(FrameTime now) const;
+        AnimationTickResult operator()(FrameTime now) const;
     };
 
     void register_frames();
     // One timer tick: samples the timeline and damages each marker's old and
-    // new place and the readout; or, when the preview is not shown (hidden,
-    // or not painted since the last tick), stops the timer until its next
-    // paint.
-    void on_frame_tick(FrameTime now);
+    // new place and the readout.
+    AnimationTickResult on_frame_tick(FrameTime now);
     // The places that move with the phase, used by on_paint and the tick's
     // damage: track `index`'s marker at `presented_phase`, and the readout.
     [[nodiscard]] Rect marker_bounds(std::size_t index, double presented_phase) const noexcept;
@@ -107,7 +105,8 @@ private:
     void on_presentation_changed(const PresentationSettings& settings);
     [[nodiscard]] std::string motion_readout(double presented_phase) const;
 
-    FrameRequestToken frames_;
+    // ADR-016: a paint-gated UI timer the preview stops, not an active surface.
+    AnimationTimer frames_;
     SubscriptionToken presentation_subscription_;
     AnimationTimeline timeline_;
     std::vector<EasingPreviewTrack> tracks_;
@@ -117,11 +116,6 @@ private:
     double marker_size_{14.0};
     double phase_{};
     bool timeline_started_{};
-    // Set by on_paint (and by starting the timer), cleared by each tick: a
-    // tick that finds it clear stops the timer and sets
-    // frames_waiting_for_paint_, and the next paint starts it again.
-    bool painted_since_tick_{};
-    bool frames_waiting_for_paint_{};
 };
 
 } // namespace gui_forms

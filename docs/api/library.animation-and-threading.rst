@@ -11,6 +11,8 @@ Animation timelines and motion policy, cooperative workers, cancellation and the
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>`
+     - A paint-gated UI timer that drives one control's animation.
    * - :cpp:class:`CancellationFlag <gui_forms::CancellationFlag>`
      - A one-way flag that asks background work to stop.
    * - :cpp:class:`Worker <gui_forms::Worker>`
@@ -19,6 +21,7 @@ Animation timelines and motion policy, cooperative workers, cancellation and the
 .. toctree::
    :hidden:
 
+   generated/gui_forms.AnimationTimer
    generated/gui_forms.CancellationFlag
    generated/gui_forms.Worker
 
@@ -219,6 +222,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: AnimationTickResult
+
+   ``#include <gui_forms/animation/animation_timer/animation_timer.hpp>``
+
+   .. cpp:enumerator:: damaged
+
+   .. cpp:enumerator:: unchanged
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: EasingCurve
 
    ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
@@ -247,3 +260,15 @@ Functions, constants and aliases
 ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
 
 .. cpp:function:: double apply_easing(EasingCurve easing, double progress) noexcept
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/animation/animation_timer/animation_timer.hpp>``
+
+.. cpp:function:: FrameInterval animation_interval_for_travel(double device_pixels_per_second, FrameInterval display_interval = display_frame_interval) noexcept
+
+   The interval at which something travelling ``device_pixels_per_second`` moves about one device pixel a tick, never shorter than ``display_interval``. A speed that is not positive and finite gets ``display_interval``.
+
+.. cpp:var:: constexpr FrameInterval display_frame_interval
+
+   The display interval an animation paces to when it needs every frame. Value: ``std::chrono::milliseconds(16)``.

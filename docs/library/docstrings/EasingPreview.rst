@@ -61,8 +61,8 @@ Notes
 -----
 The timeline starts when the preview is first attached to a window. While
 detached it pauses at its phase and resumes on reattachment. While the
-policy is active and the preview is shown, it runs one UI timer on the
-window, so it keeps a resting window awake; pause it with `motion_policy` when
+policy is active and the preview is shown, it runs an `AnimationTimer` at
+the display rate, so it keeps a resting window awake; pause it with `motion_policy` when
 it is not being watched. Each tick repaints only what moved: each marker's old
 and new place and the readout. A preview that is hidden, or not painted since
 the last tick, stops its timer at that tick and starts it again when it is

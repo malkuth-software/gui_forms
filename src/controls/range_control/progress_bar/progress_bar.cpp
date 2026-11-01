@@ -149,54 +149,65 @@ bool ProgressBar::animated_style() const noexcept {
 }
 
 void ProgressBar::update_animation_registration() {
-    animation_frames_.disconnect();
-    animation_waiting_for_paint_ = false;
     const MotionPolicy policy = effective_motion_policy();
     if (window() == nullptr || !animation_enabled_ || !policy.active() ||
         !animated_style()) {
+        animation_timer_.stop();
         return;
     }
-    // A bar that is not shown (hidden here or by an ancestor) waits for its
-    // first paint instead of holding a wake.
-    if (!effectively_visible()) {
-        animation_waiting_for_paint_ = true;
-        return;
-    }
-    // Every caller also invalidates the bar, so it is painted before the
-    // first tick; the first tick counts that paint.
-    painted_since_tick_ = true;
-    const FrameInterval interval = policy.frame_interval(
-        std::chrono::milliseconds(16));
     last_animation_frame_ = FrameClock::now();
-    // The first tick falls on a multiple of the interval in clock time, so
-    // that every bar with the same interval ticks in the same frame poll
-    // (and one paint), however its timer started.
-    const FrameInterval into_interval =
-        last_animation_frame_.time_since_epoch() % interval;
-    const FrameTime first_tick = last_animation_frame_ + (interval - into_interval);
     const std::shared_ptr<ProgressBar> self =
         std::static_pointer_cast<ProgressBar>(shared_from_this());
-    animation_frames_ = (*window()).schedule_ui_timer(
-        *this, interval, first_tick, AnimationTick{self});
+    animation_timer_.start(*this, animation_interval(), AnimationTick{self});
 }
 
-void ProgressBar::AnimationTick::operator()(FrameTime now) const {
-    const std::shared_ptr<ProgressBar> live = bar.lock();
-    if (live) (*live).on_animation_tick(now);
-}
-
-void ProgressBar::on_animation_tick(FrameTime now) {
-    if (!painted_since_tick_ || !effectively_visible()) {
-        animation_frames_.disconnect();
-        animation_waiting_for_paint_ = true;
-        return;
+FrameInterval ProgressBar::animation_interval() const noexcept {
+    // Logical pixels the fastest moving part travels in one period: a band
+    // crosses the track and its own extent; stripes advance one pitch. The
+    // laser's flames flicker about 24 pixels a period whatever its pitch.
+    const Rect interior = indicator_bounds();
+    const bool horizontal = orientation() == Orientation::horizontal;
+    const double track = horizontal ? local_bounds().width : local_bounds().height;
+    double travel = 0.0;
+    if (visual_style_ == ProgressBarVisualStyle::marquee) {
+        travel = track + std::max(18.0, track * 0.28);
+    } else if (visual_style_ == ProgressBarVisualStyle::pulse) {
+        travel = interior.width + std::max(8.0, interior.width * animation_appearance_.pulse_extent);
+    } else if (visual_style_ == ProgressBarVisualStyle::laser_etch) {
+        travel = std::max(animation_appearance_.laser_phase_pitch, 24.0);
     }
-    painted_since_tick_ = false;
+    if (visual_style_ == ProgressBarVisualStyle::marching_stripes ||
+        overlay_style_ == ProgressBarOverlayStyle::moving_stripes) {
+        travel = std::max(travel, stripe_width_ * 2.0);
+    }
+    const MotionPolicy policy = effective_motion_policy();
+    // Reduced motion halves the travel (MotionPolicy::presentation_phase)
+    // and scales the speed.
+    const double presented_travel = policy.reduced ? travel * 0.5 : travel;
+    const double period = std::chrono::duration<double>(animation_period_).count();
+    const double scale = window() != nullptr ? (*window()).scale() : 1.0;
+    const double device_speed = period > 0.0
+        ? presented_travel * scale * policy.speed_scale() / period : 0.0;
+    const FrameInterval interval =
+        policy.frame_interval(animation_interval_for_travel(device_speed));
+    return interval;
+}
+
+AnimationTickResult ProgressBar::AnimationTick::operator()(FrameTime now) const {
+    const std::shared_ptr<ProgressBar> live = bar.lock();
+    const AnimationTickResult result = live
+        ? (*live).on_animation_tick(now) : AnimationTickResult::unchanged;
+    return result;
+}
+
+AnimationTickResult ProgressBar::on_animation_tick(FrameTime now) {
     const Rect before = animated_extent();
     on_frame(now);
     const Rect after = animated_extent();
     const Rect damage = Rect::united(before, after);
-    if (!damage.empty()) invalidate(damage);
+    if (damage.empty()) return AnimationTickResult::unchanged;
+    invalidate(damage);
+    return AnimationTickResult::damaged;
 }
 
 Rect ProgressBar::animated_extent() const noexcept {
@@ -231,7 +242,7 @@ void ProgressBar::on_presentation_changed(const PresentationSettings&) {
 
 void ProgressBar::on_detached_from_window() noexcept {
     presentation_subscription_.disconnect();
-    animation_frames_.disconnect();
+    animation_timer_.stop();
     RangeControl::on_detached_from_window();
 }
 
@@ -383,9 +394,12 @@ ProgressBar::States ProgressBar::states() const {
 }
 
 void ProgressBar::on_paint(Painter& painter, Rect) {
-    // The bar is shown: a timer stopped while it was not starts again here.
-    if (animation_waiting_for_paint_) update_animation_registration();
-    painted_since_tick_ = true;
+    // The bar is shown: a timer stopped while it was not starts again here,
+    // its phase continuing from where it stopped.
+    if (animation_timer_.started() && !animation_timer_.ticking()) {
+        last_animation_frame_ = FrameClock::now();
+    }
+    animation_timer_.note_painted();
     const Rect bounds = local_bounds();
     const ControlVisualRecipe& track_recipe = effective_theme().resolve(
         ControlVisualRole::progress, visual_context());

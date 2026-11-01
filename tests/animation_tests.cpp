@@ -208,6 +208,107 @@ void test_progress_animation_damages_what_moves() {
     }
 }
 
+// A control animated by an AnimationTimer: counts ticks, reports them as
+// damaging or not, and can stop its own timer from a tick.
+class TimerProbe final : public Control {
+public:
+    explicit TimerProbe(StableId id) : Control(std::move(id)) {}
+
+    struct Tick final {
+        TimerProbe* probe;
+        AnimationTickResult operator()(FrameTime) const {
+            ++(*probe).ticks;
+            if ((*probe).stop_in_tick) (*probe).timer.stop();
+            const AnimationTickResult result = (*probe).damaging
+                ? AnimationTickResult::damaged : AnimationTickResult::unchanged;
+            return result;
+        }
+    };
+
+    void on_paint(Painter&, Rect) override { timer.note_painted(); }
+
+    AnimationTimer timer;
+    int ticks{};
+    bool damaging{true};
+    bool stop_in_tick{};
+};
+
+void test_animation_timer_is_paint_gated() {
+    require(animation_interval_for_travel(20.0) == 50ms &&
+                animation_interval_for_travel(1000.0) == display_frame_interval &&
+                animation_interval_for_travel(0.0) == display_frame_interval &&
+                animation_interval_for_travel(std::nan("")) == display_frame_interval &&
+                animation_interval_for_travel(1.0e-300) == std::chrono::seconds(3600),
+            "travel pacing must give one device pixel a tick, between the display and one hour");
+
+    std::shared_ptr<TimerProbe> probe = make_control<TimerProbe>(StableId("animation.timer.probe"));
+    (*probe).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
+    Window window(probe, {40.0, 20.0});
+    StripePainter painter;
+    bool rejected = false;
+    try {
+        (*probe).timer.start(*probe, 500us, TimerProbe::Tick{probe.get()});
+    } catch (const std::invalid_argument&) {
+        rejected = true;
+    }
+    require(rejected && !(*probe).timer.started(),
+            "an interval below one millisecond must be rejected without starting");
+
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    require((*probe).timer.ticking() && window.next_wake().has_value() &&
+                (*window.next_wake()).time_since_epoch() % 20ms == FrameInterval{},
+            "a started timer's first tick must fall on a multiple of its interval");
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 1 && (*probe).timer.ticking(),
+            "the first tick counts the paint its start requested");
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 1 && !(*probe).timer.ticking() &&
+                (*probe).timer.started() && !window.next_wake().has_value(),
+            "a tick after an unpainted damaging tick must stop the timer and hold no wake");
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require((*probe).timer.ticking() && window.next_wake().has_value(),
+            "the owner's next paint must start a waiting timer");
+
+    // A late poll is one tick, and the cadence keeps its phase.
+    const FrameTime due = *window.next_wake();
+    const FramePollResult late = window.poll_frame_schedule(due + 105ms);
+    require(late.ui_timer_ticks == 1U && (*probe).ticks == 2 &&
+                *window.next_wake() == due + 120ms,
+            "a late tick must be one tick, the next one the first deadline of its cadence");
+
+    // A tick that changes nothing expects no paint and stays scheduled.
+    (*probe).damaging = false;
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 4 && (*probe).timer.ticking(),
+            "unchanged ticks must keep the timer running without paints");
+
+    // Hidden: the timer waits for a paint instead of holding a wake.
+    (*probe).set_visible(false);
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    require((*probe).ticks == 4 && !window.next_wake().has_value() &&
+                (*probe).timer.started(),
+            "a hidden owner's timer must stop at its next tick without ticking");
+    (*probe).set_visible(true);
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    (*probe).set_visible(false);
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    require(!(*probe).timer.ticking() && !window.next_wake().has_value(),
+            "starting for a hidden owner must wait for its paint");
+    (*probe).set_visible(true);
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require((*probe).timer.ticking(), "a paint must start a timer started while hidden");
+
+    // A tick may stop its own timer; a stopped timer is not restarted by paint.
+    (*probe).stop_in_tick = true;
+    static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require((*probe).ticks == 5 && !(*probe).timer.started() &&
+                !window.next_wake().has_value(),
+            "a timer stopped by its tick must stay stopped through paints");
+}
+
 void test_progress_animation_and_hidden_suspension() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("animation.root"));
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("animation.progress"));
@@ -275,8 +376,11 @@ void test_progress_animation_and_hidden_suspension() {
             "reduced motion must retain animation and state updates without resetting phase");
     (*progress).on_frame(*window.next_wake());
     const double reduced_phase = (*progress).animation_phase();
-    require(reduced_phase > pre_reduced_phase &&
-                reduced_phase - pre_reduced_phase < 0.05,
+    // The timer is paced to about one device pixel of stripe travel a tick
+    // (the window's scale is 1): reduced motion presents half the 14-pixel
+    // pitch per period.
+    const double reduced_travel = (reduced_phase - pre_reduced_phase) * 14.0 * 0.5;
+    require(reduced_phase > pre_reduced_phase && reduced_travel <= 1.05,
             "reduced progress motion must advance visibly at its calmer speed");
     (*progress).set_reduced_motion(false);
     require(window.next_wake().has_value() &&
@@ -597,6 +701,7 @@ int main() {
         test_timeline_pause_resume_retains_phase_without_catch_up();
         test_invalid_timeline_contract();
         test_reduced_motion_remains_active_and_calm();
+        test_animation_timer_is_paint_gated();
         test_progress_animation_and_hidden_suspension();
         test_progress_animation_damages_what_moves();
         test_progress_stripes_are_clipped_and_configurable();

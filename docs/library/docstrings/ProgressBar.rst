@@ -70,12 +70,14 @@ A vertical bar, set with `set_orientation`, fills from the bottom. Without a
 requested size the bar prefers 160 by 20 horizontally and 20 by 160
 vertically.
 
-An animated style runs a UI timer at about 60 frames a second, only while it
-is in a window, shown, enabled for animation and not paused; a static style
-schedules nothing. Each tick repaints only what moved: the activity band, the
-pulse band or the fill. A bar that is hidden, or not painted since the last
-tick, stops its timer at that tick and starts it again when it is next
-painted. The bar paints from the theme's progress
+An animated style runs an `AnimationTimer`, only while it is in a window,
+shown, enabled for animation and not paused; a static style schedules nothing.
+The timer is paced to the motion: about one device pixel of travel of the
+fastest moving part a tick, at most one tick a display frame (a sweeping band
+ticks every frame; marching stripes about 20 times a second at the default
+period). Each tick repaints only what moved: the activity band, the pulse band
+or the fill. A bar that is hidden, or not painted since the last tick, stops
+its timer at that tick and starts it again when it is next painted. The bar paints from the theme's progress
 colours; the inherited `RangeControl` `style` does not change its look.
 
 The control publishes the accessibility role `progress_bar`, with the value

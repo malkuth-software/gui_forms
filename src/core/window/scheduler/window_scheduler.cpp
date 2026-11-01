@@ -192,12 +192,15 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
         }
         if ((*request).kind == detail::FrameRequestKind::motion_clock) {
             // The motion clock's one request: one frame advances every value
-            // it holds. Like an active surface, a late frame is one frame.
+            // it holds. It keeps its phase, like a UI timer: the next frame is
+            // the first deadline of its cadence after now, so a late frame is
+            // one frame and never a burst (re-arming at now + interval would
+            // add each poll's lateness to every interval).
             ++result.motion_clock_ticks;
             const FrameInterval lateness = now - (*request).deadline;
             const FrameInterval::rep skipped = lateness / (*request).interval;
             result.coalesced_requests += static_cast<std::uint64_t>(skipped);
-            (*request).deadline = now + (*request).interval;
+            (*request).deadline += (*request).interval * (skipped + 1);
             metrics_.record_callback_emitted();
             motion_clock_.advance(now);
             continue;
