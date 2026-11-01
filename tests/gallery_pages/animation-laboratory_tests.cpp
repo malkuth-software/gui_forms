@@ -24,10 +24,11 @@ void test_animation_laboratory(gui_forms::Window& window) {
     const double retained_progress_phase = (*animated_progress).animation_phase();
     const std::uint64_t full_motion_surfaces =
         poll_active_surface_count(window);
-    // Progress bars animate on UI timers (ADR-016); the easing previews are
-    // still active surfaces.
-    require(retained_progress_phase > 0.0 && full_motion_surfaces >= 1U,
-            "gallery motion must begin with independently retained easing surfaces");
+    // The easing previews and progress bars animate on UI timers they stop
+    // themselves (ADR-016), not on active surfaces; the one surface left is
+    // the gallery's instrument sweep, until its own migration.
+    require(retained_progress_phase > 0.0 && full_motion_surfaces <= 1U,
+            "gallery motion must run on control-owned UI timers, not active surfaces");
     require(window.next_wake().has_value(),
             "visible animation page must publish a retained frame deadline");
     click(window, window.find("gallery.animation.reduced"));
@@ -43,7 +44,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
     const FramePollResult reduced_frame =
         window.poll_frame_schedule(FrameClock::now());
     const std::vector<Rect> reduced_geometry = paint_fill_trace(easing);
-    require(reduced_frame.active_surface_ticks > 0U,
+    require(reduced_frame.ui_timer_ticks > 0U,
             "reduced motion must emit retained animation ticks");
     require(reduced_geometry != reduced_geometry_before,
             "reduced easing geometry must advance rather than present a frozen substitute");
@@ -86,7 +87,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "one global live-on action must restore the retained reduced animation policy");
 
     // A connected deadline is not proof of animation. Repeatedly pause,
-    // replace the active-surface lease, poll its first deadline, and require
+    // replace the animation timer, poll its first deadline, and require
     // the rendered marker geometry to advance each time.
     click(window, window.find("gallery.animation.reduced"));
     require(window.next_wake().has_value(),
@@ -105,7 +106,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
         const FrameTime due = *window.next_wake();
         const FramePollResult frame = window.poll_frame_schedule(due);
         const std::vector<Rect> after = paint_fill_trace(easing);
-        require(frame.active_surface_ticks == 1U && before != after,
+        require(frame.ui_timer_ticks >= 1U && before != after,
                 "a resumed deadline must advance visible easing geometry");
     }
     click(window, window.find("gallery.animation.pause"));

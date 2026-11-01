@@ -149,7 +149,53 @@ std::string EasingPreview::motion_readout(double presented_phase) const {
     return readout;
 }
 
+double EasingPreview::track_row_top(std::size_t index) const noexcept {
+    const double s = effective_text_scale();
+    const double height = committed_arranged_bounds().height;
+    const double row_height = tracks_.empty()
+        ? 0.0 : std::max(marker_size_ + 4.0,
+                         (height - 48.0 * s) / static_cast<double>(tracks_.size()));
+    const double top = 48.0 * s + static_cast<double>(index) * row_height;
+    return top;
+}
+
+double EasingPreview::track_left() const noexcept {
+    const double left = 112.0 * effective_text_scale();
+    return left;
+}
+
+double EasingPreview::track_width() const noexcept {
+    const double s = effective_text_scale();
+    const double width = std::max(40.0 * s, committed_arranged_bounds().width - 140.0 * s);
+    return width;
+}
+
+Rect EasingPreview::marker_bounds(std::size_t index, double presented_phase) const noexcept {
+    const double directed = presented_phase < 0.5
+        ? presented_phase * 2.0 : (1.0 - presented_phase) * 2.0;
+    const double y = track_row_top(index);
+    const double left = track_left();
+    const double travel = std::max(0.0, track_width() - marker_size_);
+    const double eased = std::clamp(
+        apply_easing(tracks_[index].curve, directed), -0.08, 1.08);
+    const double x = std::clamp(left + eased * travel, left, left + travel);
+    const Rect marker{x, y + 2.0, marker_size_, marker_size_};
+    return marker;
+}
+
+Rect EasingPreview::readout_bounds() const noexcept {
+    // The readout's baseline is at 25 (scaled) in an 11-point face: 17 above
+    // it and 7 below cover the face's ascent and descent at every scale.
+    const double s = effective_text_scale();
+    const double left = committed_arranged_bounds().width - 150.0 * s;
+    const Rect readout{left, 8.0 * s, 150.0 * s, 24.0 * s};
+    return readout;
+}
+
 void EasingPreview::on_paint(Painter& painter, Rect) {
+    // The preview is shown: a timer stopped while it was not starts again.
+    if (frames_waiting_for_paint_) register_frames();
+    painted_since_tick_ = true;
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
     const double s = effective_text_scale();
@@ -163,32 +209,23 @@ void EasingPreview::on_paint(Painter& painter, Rect) {
     const MotionPolicy policy = effective_motion_policy();
     const double presented_phase = policy.presentation_phase(phase_);
     const std::string readout = motion_readout(presented_phase);
-    painter.draw_text_utf8({bounds.width - 150.0 * s, 25.0 * s}, readout,
+    const Rect readout_box = readout_bounds();
+    painter.draw_text_utf8({readout_box.x, 25.0 * s}, readout,
                            effective_font({FontRole::control, 11.0, 600, false}),
                            policy.active() ? style_.accent
                                            : Color::rgba(211, 121, 42));
 
-    const double row_height = tracks_.empty()
-        ? 0.0 : std::max(marker_size_ + 4.0,
-                         (bounds.height - 48.0 * s) / tracks_.size());
-    const double directed = presented_phase < 0.5
-        ? presented_phase * 2.0 : (1.0 - presented_phase) * 2.0;
+    const double track_x = track_left();
+    const double width = track_width();
     for (std::size_t index = 0U; index < tracks_.size(); ++index) {
-        const double y = 48.0 * s + static_cast<double>(index) * row_height;
+        const double y = track_row_top(index);
         painter.draw_text_utf8({18.0 * s, y + 15.0 * s}, tracks_[index].label,
                                effective_font({FontRole::content, 11.0, 400, false}),
                                style_.text);
-        const double track_x = 112.0 * s;
-        const double track_width = std::max(40.0 * s, bounds.width - 140.0 * s);
-        painter.fill_rect({track_x, y + 8.0, track_width, 3.0}, style_.face);
-        const double eased = std::clamp(
-            apply_easing(tracks_[index].curve, directed), -0.08, 1.08);
-        const double x = std::clamp(
-            track_x + eased * std::max(0.0, track_width - marker_size_),
-            track_x, track_x + std::max(0.0, track_width - marker_size_));
-        painter.fill_rect({x, y + 2.0, marker_size_, marker_size_},
-                          tracks_[index].color);
-        painter.stroke_rect({x + 0.5, y + 2.5,
+        painter.fill_rect({track_x, y + 8.0, width, 3.0}, style_.face);
+        const Rect marker = marker_bounds(index, presented_phase);
+        painter.fill_rect(marker, tracks_[index].color);
+        painter.stroke_rect({marker.x + 0.5, marker.y + 0.5,
                              std::max(0.0, marker_size_ - 1.0),
                              std::max(0.0, marker_size_ - 1.0)},
                             style_.dark_border, 1.0);
@@ -251,11 +288,53 @@ void EasingPreview::on_detached_from_window() noexcept {
 }
 
 void EasingPreview::register_frames() {
+    frames_.disconnect();
+    frames_waiting_for_paint_ = false;
     const MotionPolicy policy = effective_motion_policy();
     if (window() == nullptr || !policy.active()) return;
+    // A preview that is not shown waits for its first paint instead of
+    // holding a wake.
+    if (!effectively_visible()) {
+        frames_waiting_for_paint_ = true;
+        return;
+    }
+    // Every caller also invalidates the preview, so it is painted before the
+    // first tick; the first tick counts that paint.
+    painted_since_tick_ = true;
     const FrameInterval interval = policy.frame_interval(16ms);
-    frames_ = (*window()).activate_surface(
-        shared_from_this(), interval, FrameClock::now() + interval);
+    // The first tick falls on a multiple of the interval in clock time, so
+    // that timers with the same interval tick in the same frame poll.
+    const FrameTime now = FrameClock::now();
+    const FrameInterval into_interval = now.time_since_epoch() % interval;
+    const FrameTime first_tick = now + (interval - into_interval);
+    const std::shared_ptr<EasingPreview> self =
+        std::static_pointer_cast<EasingPreview>(shared_from_this());
+    frames_ = (*window()).schedule_ui_timer(*this, interval, first_tick, FrameTick{self});
+}
+
+void EasingPreview::FrameTick::operator()(FrameTime now) const {
+    const std::shared_ptr<EasingPreview> live = preview.lock();
+    if (live) (*live).on_frame_tick(now);
+}
+
+void EasingPreview::on_frame_tick(FrameTime now) {
+    if (!painted_since_tick_ || !effectively_visible()) {
+        frames_.disconnect();
+        frames_waiting_for_paint_ = true;
+        return;
+    }
+    const MotionPolicy policy = effective_motion_policy();
+    const double before = policy.presentation_phase(phase_);
+    on_frame(now);
+    const double after = policy.presentation_phase(phase_);
+    // A tick that changes nothing damages nothing and expects no paint.
+    if (after == before) return;
+    painted_since_tick_ = false;
+    invalidate(readout_bounds());
+    for (std::size_t index = 0U; index < tracks_.size(); ++index) {
+        const Rect moved = Rect::united(marker_bounds(index, before), marker_bounds(index, after));
+        invalidate(moved);
+    }
 }
 
 
