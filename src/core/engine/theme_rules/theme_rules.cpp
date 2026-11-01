@@ -1275,10 +1275,41 @@ void CompiledThemeRules::collect_scoped_names(const ThemeRuleSheet& sheet) {
     }
 }
 
+bool CompiledThemeRules::add_reads(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                   const ThemeRule& rule, const CompiledThemeRules& result, CompiledRule& compiled) {
+    // read_names_ holds every name a rule reads unless it was past the
+    // limit; a rule reading one past it is dropped.
+    for (const std::string& name : rule.reads) {
+        const std::optional<std::size_t> position = result.read_name_position(name);
+        if (!position) {
+            diagnostics.push_back(diagnostic(RuleDiagnosticKind::scoped_property_invalid, index, rule, name));
+            return false;
+        }
+        compiled.reads.push_back(static_cast<std::uint32_t>(*position));
+    }
+    return true;
+}
+
+std::optional<std::size_t> CompiledThemeRules::read_name_position(std::string_view name) const noexcept {
+    for (std::size_t position = 0U; position < read_names_.size(); ++position) {
+        if (read_names_[position] == name) return position;
+    }
+    return std::nullopt;
+}
+
 void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSheet& sheet,
                                    const PrimitiveRegistry& registry, bool engine_table) {
     const std::size_t input_count = result.input_count();
     result.collect_scoped_names(sheet);
+    // The names the rules read (P12b), in sheet order, at most
+    // maximum_read_custom_properties.
+    for (const ThemeRule& rule : sheet.rules) {
+        for (const std::string& name : rule.reads) {
+            if (!scoped_name_valid(name) || result.read_name_position(name)) continue;
+            if (result.read_names_.size() >= maximum_read_custom_properties) continue;
+            result.read_names_.push_back(name);
+        }
+    }
     result.rules_.reserve(result.rules_.size() + sheet.rules.size());
     for (std::size_t index = 0; index < sheet.rules.size(); ++index) {
         const ThemeRule& rule = sheet.rules[index];
@@ -1293,7 +1324,9 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
             rule.level == CascadeLevel::inline_style || rule.level == CascadeLevel::important_inline_style;
         bool level_allowed = authored(rule.level);
         if (engine_table) level_allowed = rule.level == CascadeLevel::built_in;
-        if (result.inline_style_) level_allowed = inline_level;
+        // A theme rule's copy in an inline style compiled against the
+        // theme (P12b) keeps the theme rule's authored level.
+        if (result.inline_style_) level_allowed = inline_level || (rule.source_position != 0U && authored(rule.level));
         if (!level_allowed) {
             result.diagnostics_.push_back(diagnostic(RuleDiagnosticKind::level_not_authored, index, rule, {}));
             continue;
@@ -1312,6 +1345,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         compiled.media = rule.media;
         compiled.specificity = rule.specificity ? *rule.specificity : rule_specificity(rule.selector);
         compiled.order = index;
+        compiled.source_position = rule.source_position;
         compiled.selector = rule.selector;
         for (const AnatomyState state : rule.selector.states) compiled.states.insert(state);
         // The primitive first, so that the parameters can be checked against
@@ -1423,6 +1457,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         add_materials(result.diagnostics_, index, rule, compiled);
         add_recipe_fields(result.diagnostics_, index, rule, compiled);
         if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
+        if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
                               compiled.ambient.has_value() || compiled.blend.has_value() || compiled.font.has_value() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
@@ -1810,7 +1845,11 @@ CompiledThemeRules::CompiledThemeRules(const CompiledThemeRules& other)
       serial_(next_rules_serial()),
       recipe_fields_set_(other.recipe_fields_set_),
       inline_style_(other.inline_style_),
-      scoped_names_(other.scoped_names_) {}
+      scoped_names_(other.scoped_names_),
+      read_names_(other.read_names_),
+      theme_serial_(other.theme_serial_),
+      theme_read_positions_(other.theme_read_positions_),
+      theme_scoped_positions_(other.theme_scoped_positions_) {}
 
 CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& other) {
     if (this == &other) return *this;
@@ -1822,6 +1861,10 @@ CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& othe
     recipe_fields_set_ = other.recipe_fields_set_;
     inline_style_ = other.inline_style_;
     scoped_names_ = other.scoped_names_;
+    read_names_ = other.read_names_;
+    theme_serial_ = other.theme_serial_;
+    theme_read_positions_ = other.theme_read_positions_;
+    theme_scoped_positions_ = other.theme_scoped_positions_;
     return *this;
 }
 
@@ -1867,11 +1910,15 @@ CompiledThemeRules CompiledThemeRules::compile_with_built_in(const ThemeRuleShee
     return result;
 }
 
-CompiledThemeRules CompiledThemeRules::compile_inline(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry) {
+CompiledThemeRules CompiledThemeRules::compile_inline(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry,
+                                                      const CompiledThemeRules* theme) {
     CompiledThemeRules result{};
     result.inline_style_ = true;
-    // An inline style's expressions read the engine's inputs only: the
-    // published values are the theme's.
+    // An inline style's expressions read the engine's inputs and the
+    // published values of the theme it is compiled against (P12b: the
+    // theme's rules lowered again with the style's definitions read them
+    // at the theme's positions); the style names none of its own.
+    if (theme != nullptr) result.published_values_ = (*theme).published_values_;
     for (const std::string& name : sheet.published_values) {
         RuleDiagnostic invalid{};
         invalid.kind = RuleDiagnosticKind::published_value_invalid;
@@ -1882,6 +1929,22 @@ CompiledThemeRules CompiledThemeRules::compile_inline(const ThemeRuleSheet& shee
     add_rules(result, sheet, registry, false);
     std::sort(result.rules_.begin(), result.rules_.end(), LowerPrecedence{});
     result.number_machines();
+    // Each scoped name's place among the theme's read names: where the
+    // style's definition of it wins, the theme's rules reading it give way.
+    if (theme != nullptr) {
+        result.theme_serial_ = (*theme).serial_;
+        result.theme_read_positions_.assign(result.scoped_names_.size(), no_read_name);
+        result.theme_scoped_positions_.assign(result.scoped_names_.size(), no_read_name);
+        for (std::size_t position = 0U; position < result.scoped_names_.size(); ++position) {
+            const std::string& name = result.scoped_names_[position];
+            const std::optional<std::size_t> read = (*theme).read_name_position(name);
+            if (read) result.theme_read_positions_[position] = static_cast<std::uint32_t>(*read);
+            const std::vector<std::string>& theme_names = (*theme).scoped_names_;
+            for (std::size_t scoped = 0U; scoped < theme_names.size(); ++scoped) {
+                if (theme_names[scoped] == name) result.theme_scoped_positions_[position] = static_cast<std::uint32_t>(scoped);
+            }
+        }
+    }
     return result;
 }
 
@@ -1940,25 +2003,43 @@ public:
         return taken;
     }
 
+    // Only the theme's rules, or only the inline style's: each set's
+    // scoped winners are found among its own definitions (P12b).
+    void restrict_to(bool inline_rules) noexcept {
+        if (inline_rules) {
+            theme_next_ = theme_.size();
+            return;
+        }
+        inline_next_ = inline_.size();
+    }
+
 private:
-    // The next rule of the merge, or null after the last.
+    // The next rule of the merge, or null after the last; taken_inline_
+    // tells which set it is from.
     [[nodiscard]] const CompiledRule* merged() noexcept {
         const bool theme_left = theme_next_ < theme_.size();
         const bool inline_left = inline_next_ < inline_.size();
         if (theme_left && (!inline_left || !precedes(inline_[inline_next_], theme_[theme_next_]))) {
             const CompiledRule* const taken = &theme_[theme_next_];
             theme_next_ = theme_next_ + 1U;
+            taken_inline_ = false;
             return taken;
         }
         if (!inline_left) return nullptr;
         const CompiledRule* const taken = &inline_[inline_next_];
         inline_next_ = inline_next_ + 1U;
+        taken_inline_ = true;
         return taken;
     }
 
+    // Whether the inline style's rule `left` comes before the theme's
+    // `right`: at equal level and specificity a copy of a theme rule
+    // (P12b) comes after the theme's rules from earlier in the theme's
+    // source, and its own rules after all of them.
     [[nodiscard]] static bool precedes(const CompiledRule& left, const CompiledRule& right) noexcept {
         if (left.level != right.level) return left.level < right.level;
-        return left.specificity < right.specificity;
+        if (!(left.specificity == right.specificity)) return left.specificity < right.specificity;
+        return left.source_position != 0U && left.source_position < right.source_position;
     }
 
     std::span<const CompiledRule> theme_;
@@ -1966,8 +2047,17 @@ private:
     [[nodiscard]] bool admitted(const CompiledRule& rule) const noexcept {
         if (forced_ && rule.level < CascadeLevel::important_inline_style) return false;
         if (winners_ == nullptr) return true;
+        const std::array<std::uint32_t, maximum_scoped_custom_properties>& winning =
+            taken_inline_ ? (*winners_).inline_definitions : (*winners_).definitions;
         for (const CompiledScoped& condition : rule.scoped_conditions) {
-            if ((*winners_).definitions[condition.name] != condition.definition) return false;
+            if (winning[condition.name] != condition.definition) return false;
+        }
+        // A theme rule reading a name the inline style's definition wins
+        // for gives way to the style's copy of it.
+        if (taken_inline_) return true;
+        for (const std::uint32_t read : rule.reads) {
+            const std::uint64_t bit = std::uint64_t{1} << (read % 64U);
+            if (((*winners_).inline_won[read / 64U] & bit) != 0U) return false;
         }
         return true;
     }
@@ -1976,6 +2066,7 @@ private:
     std::size_t inline_next_{};
     const ScopedWinners* winners_{};
     bool forced_{};
+    bool taken_inline_{};
 };
 
 CompiledThemeRules::Resolution CompiledThemeRules::resolve(const PartFacts& facts) const noexcept {
@@ -2000,16 +2091,50 @@ CompiledThemeRules::Resolution CompiledThemeRules::resolve(const PartFacts& fact
 
 void CompiledThemeRules::resolve_scoped(const PartFacts& facts, ScopedWinners& winners) const noexcept {
     winners.definitions.fill(custom_property_undefined);
-    if (scoped_names_.empty()) return;
+    winners.inline_definitions.fill(custom_property_undefined);
+    winners.inline_won.fill(0U);
     // The last matching definition of each name wins, rules being in
     // ascending precedence. Definitions hold no conditions.
+    if (!scoped_names_.empty()) {
+        RuleWalk walk(*this, facts, false, nullptr);
+        walk.restrict_to(false);
+        for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+            const CompiledRule& rule = *next;
+            if (rule.scoped_definitions.empty() || !matches(rule, facts)) continue;
+            for (const CompiledScoped& definition : rule.scoped_definitions) {
+                winners.definitions[definition.name] = definition.definition;
+            }
+        }
+    }
+    // The inline style's own names among its own definitions, which hold
+    // the theme's of the same names where it was compiled against this
+    // theme; a style compiled against another theme (stale until it is
+    // compiled again) has no definitions the theme's rules give way to.
+    const CompiledThemeRules* const style = facts.inline_rules;
+    if (style == nullptr || (*style).scoped_names_.empty()) return;
     RuleWalk walk(*this, facts, false, nullptr);
+    walk.restrict_to(true);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.scoped_definitions.empty() || !matches(rule, facts)) continue;
         for (const CompiledScoped& definition : rule.scoped_definitions) {
-            winners.definitions[definition.name] = definition.definition;
+            winners.inline_definitions[definition.name] = definition.definition;
         }
+    }
+    if ((*style).theme_serial_ != serial_) return;
+    // Where none of the style's definitions of a name holds, the theme's
+    // winner does: the style's own rules reading a name the theme defines
+    // (P12b) hold copies for the theme's definitions of it.
+    for (std::size_t position = 0U; position < (*style).theme_scoped_positions_.size(); ++position) {
+        const std::uint32_t scoped = (*style).theme_scoped_positions_[position];
+        if (scoped == no_read_name || winners.inline_definitions[position] != custom_property_undefined) continue;
+        winners.inline_definitions[position] = winners.definitions[scoped];
+    }
+    for (std::size_t position = 0U; position < (*style).theme_read_positions_.size(); ++position) {
+        const std::uint32_t read = (*style).theme_read_positions_[position];
+        const std::uint32_t winner = winners.inline_definitions[position];
+        if (read == no_read_name || winner == custom_property_undefined || winner < inline_definition_base) continue;
+        winners.inline_won[read / 64U] = winners.inline_won[read / 64U] | (std::uint64_t{1} << (read % 64U));
     }
 }
 

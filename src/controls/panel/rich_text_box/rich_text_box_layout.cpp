@@ -685,6 +685,15 @@ Rect RichTextBox::paint_rows(Painter& painter) {
             painter.restore();
         }
     }
+    // An empty document shows the field hint while it has focus, on the
+    // first row's baseline, in the muted ink placeholder text uses.
+    if (focused_ && (*editing_).text().empty() && !rows_.empty()) {
+        const std::string hint = field_hint_text();
+        if (!hint.empty()) {
+            const Point baseline{inks.origin.x, inks.origin.y + rows_[0].y + rows_[0].baseline};
+            painter.draw_text_utf8(baseline, hint, effective_font(font_), inks.muted);
+        }
+    }
     Rect caret{};
     if (focused_ && !rows_.empty()) {
         const Row& row = rows_[caret_row()];

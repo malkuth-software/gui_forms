@@ -198,7 +198,7 @@ gui_forms::DockSite
       * - :cpp:func:`close_position_menu <gui_forms::DockSite::close_position_menu>`
         - Closes the position menu.
       * - :cpp:func:`position_command_enabled <gui_forms::DockSite::position_command_enabled>`
-        - Whether a position command (Float, Dock, Dock as Tabbed Document, Auto Hide, Hide, Close) is available for a panel now.
+        - Whether a position command (Float, Dock, Dock as Tabbed Document, Auto Hide, Hide, Close, Move, Close All Documents, Close Other Documents) is available for a panel now.
       * - :cpp:func:`run_position_command <gui_forms::DockSite::run_position_command>`
         - Runs a position command as the menu does; false when it is not available.
       * - :cpp:func:`open_navigator <gui_forms::DockSite::open_navigator>`
@@ -261,7 +261,11 @@ gui_forms::DockSite
    Tabbed Document, for a tool panel whose descriptor allows it; Auto Hide,
    checked while the panel is auto-hidden and available for a root-level
    docked tool stack; Hide; Close; and Move, the keyboard move mode. A
-   document's menu lists Float, Close and Move.
+   document's menu lists Float, Close, Close All Documents (while any
+   document may close), Close Other Documents (while another may) and Move.
+   Close and the two document commands ask before documents close
+   (``DockWorkspace::request_close``, ``close_all_documents`` and
+   ``close_other_documents``); a cancelled prompt counts as not run.
 
    Auto-hide (phase D5; decisions DK-27, DK-28, DK-41, DK-42): the pin, or
    Auto Hide, takes the whole stack (E4-1) out of the tree in one transaction
@@ -709,7 +713,8 @@ gui_forms::DockSite
    .. cpp:function:: bool position_command_enabled(const DockPanelId& panel, DockPositionCommand command) const
 
       Whether a position command (Float, Dock, Dock as Tabbed Document, Auto
-      Hide, Hide, Close) is available for a panel now.
+      Hide, Hide, Close, Move, Close All Documents, Close Other Documents) is
+      available for a panel now.
 
    .. cpp:function:: bool run_position_command(const DockPanelId& panel, DockPositionCommand command)
 

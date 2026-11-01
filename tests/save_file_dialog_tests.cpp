@@ -291,14 +291,59 @@ void ended_and_nested() {
             "the two dialogs' requests have their own identities, one on the modal stack at a time");
 }
 
+// The filter the dialog starts on, the one the user ended on, and the
+// extension that filter gives a name without one.
+void filter_index_and_extension() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("save.filter"));
+    Window window(root, {320.0, 200.0});
+    host::HeadlessHost headless(window);
+    host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
+    DialogScript script;
+    services.set_dialog_handler(ScriptedDialogs{&script});
+
+    SaveFileDialog dialog;
+    dialog.set_filter("Text|*.txt|Markdown|*.md;*.markdown|All files|*.*");
+    dialog.set_default_ext("log");
+    dialog.set_filter_index(2U);
+    HostPathDialogResult answer = accepted("/tmp/notes");
+    answer.chosen_filter = 1U;
+    script.answers.push_back(answer);
+    require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
+    const HostSaveFileDialogRequest* const sent = save_request(script.requests[0]);
+    require(sent != nullptr && (*sent).initial_filter == 2U && dialog.filter_index() == 1U &&
+                dialog.file_name() == "/tmp/notes.md",
+            "the chosen filter's first extension is added and its index taken");
+
+    answer.chosen_filter = 2U;
+    script.answers.push_back(answer);
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/tmp/notes.log" &&
+                dialog.filter_index() == 2U,
+            "a filter of any file adds the default extension");
+
+    script.answers.push_back(accepted("/tmp/notes"));
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/tmp/notes.log" &&
+                dialog.filter_index() == 2U,
+            "a host that does not tell the filter adds the default extension and keeps the index");
+
+    answer.chosen_filter = 0U;
+    script.answers.push_back(answer);
+    dialog.set_add_extension(false);
+    require(dialog.show_dialog(window) == DialogResult::ok && dialog.file_name() == "/tmp/notes" &&
+                dialog.filter_index() == 0U,
+            "without add_extension the name is kept as chosen");
+    dialog.reset();
+    require(dialog.filter_index() == 0U, "reset returns to the first filter");
+}
+
 } // namespace
 
 int main() {
     settings();
     without_host();
     shown_through_host();
+    filter_index_and_extension();
     ended_and_nested();
-    std::cout << "SaveFileDialog: settings, refusals, default extension, host requests and answers, file_ok, "
+    std::cout << "SaveFileDialog: settings, refusals, default extension, host requests and answers, the filter index, file_ok, "
                  "destruction and nesting under an open dialog passed\n";
     return 0;
 }

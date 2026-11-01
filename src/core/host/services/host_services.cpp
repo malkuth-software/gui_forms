@@ -199,6 +199,15 @@ bool choice_allowed(HostMessageButtons buttons, HostDialogChoice choice) noexcep
     return false;
 }
 
+// A file dialog's starting filter names one of its filters, or is zero
+// when it has none.
+bool valid_initial_filter(std::size_t initial_filter,
+                          std::size_t filter_count) noexcept {
+    const bool valid = filter_count == 0U ? initial_filter == 0U
+                                          : initial_filter < filter_count;
+    return valid;
+}
+
 struct DialogRequestValidator final {
     template <typename PayloadValue>
     bool operator()(const PayloadValue& payload) const noexcept {
@@ -215,6 +224,8 @@ struct DialogRequestValidator final {
                    valid_dialog_string(payload.suggested_name) &&
                    payload.filters.size() <=
                        HostServices::maximum_dialog_filters &&
+                   valid_initial_filter(payload.initial_filter,
+                                        payload.filters.size()) &&
                    std::all_of(payload.filters.begin(), payload.filters.end(),
                                &valid_dialog_filter);
         } else if constexpr (
@@ -225,6 +236,8 @@ struct DialogRequestValidator final {
                    valid_dialog_string(payload.default_extension) &&
                    payload.filters.size() <=
                        HostServices::maximum_dialog_filters &&
+                   valid_initial_filter(payload.initial_filter,
+                                        payload.filters.size()) &&
                    std::all_of(payload.filters.begin(), payload.filters.end(),
                                &valid_dialog_filter);
         } else if constexpr (
@@ -273,12 +286,23 @@ struct DialogResultValidator final {
                 return false;
             }
             if ((*value).outcome == HostDialogOutcome::cancelled) {
-                return (*value).paths.empty();
+                return (*value).paths.empty() && !(*value).chosen_filter;
             }
             bool multiple = false;
             if constexpr (
                 std::is_same_v<Request, HostOpenFileDialogRequest>) {
                 multiple = request.allow_multiple;
+            }
+            // A chosen filter names one of the request's filters; a folder
+            // dialog has none.
+            if constexpr (
+                std::is_same_v<Request, HostFolderDialogRequest>) {
+                if ((*value).chosen_filter) return false;
+            } else {
+                if ((*value).chosen_filter &&
+                    *(*value).chosen_filter >= request.filters.size()) {
+                    return false;
+                }
             }
             if ((*value).paths.empty() ||
                 (!multiple && (*value).paths.size() != 1U)) {

@@ -24,7 +24,7 @@ Anchored popups, tooltips, owned dialogs and the host's file and colour dialogs.
    * - :cpp:class:`ColorDialog <gui_forms::ColorDialog>`
      - The host's dialog for choosing a color.
    * - :cpp:class:`ToolTip <gui_forms::ToolTip>`
-     - A provider of short help text that pops up when the pointer rests on a control or the control receives keyboard focus.
+     - The Windows Forms way to give controls short help text and to set when it shows.
    * - :cpp:class:`RibbonToolTip <gui_forms::RibbonToolTip>`
      - A provider of enhanced tooltips: a title, a description, a shortcut, an image, why a command is unavailable, and an F1 help topic.
    * - :cpp:class:`SaveFileDialog <gui_forms::SaveFileDialog>`
@@ -96,8 +96,6 @@ Related types
      - How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
    * - :cpp:class:`ThreadExceptionReport <gui_forms::ThreadExceptionReport>`
      - What a ThreadExceptionDialog reports.
-   * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
-     - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
 
 .. cpp:namespace:: gui_forms
 
@@ -574,22 +572,6 @@ Related types
    .. cpp:member:: std::string details
 
    .. cpp:member:: bool warning
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: ToolTipEvent final
-
-   ``#include <gui_forms/components/tool_tip/tool_tip.hpp>``
-
-   ToolTipEvent is the immutable publication payload for a tooltip visibility transition. It names the stable target, carries the presented text, and records shown/hidden and keyboard/pointer origin without exposing overlay internals.
-
-   .. cpp:member:: std::string target_stable_id
-
-   .. cpp:member:: std::string text
-
-   .. cpp:member:: bool shown
-
-   .. cpp:member:: bool keyboard_initiated
 
 Enumerations
 ------------

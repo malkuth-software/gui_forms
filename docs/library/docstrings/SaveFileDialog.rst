@@ -26,16 +26,25 @@ filter : default empty
     The filter in Windows Forms' syntax, as `OpenFileDialog` reads it:
     ``"Reports|*.txt|All files|*.*"``. `set_filter` throws
     `std::invalid_argument` for a string `parse_file_dialog_filter` refuses,
-    and keeps the old filter. The first filter is the one the dialog starts
-    with.
+    and keeps the old filter.
 filters
     The host filters the filter parsed into, in order.
+filter_index : default ``0``
+    The filter the dialog starts with, an index into `filters` counting from
+    zero (Windows Forms' ``FilterIndex`` counts from one). After the user
+    accepts it is the filter they had selected, where the host tells: every
+    host does, except that the host's own "All files" entry (X11's dialog
+    adds one) is no filter of the program's and leaves the index as it was.
+    An index past the filters starts the dialog on the first.
+    A chosen name without an extension takes the selected filter's first
+    extension (unless that filter is any file), else `default_ext`.
 default_ext : default empty
     The extension a chosen name without one is given, without its dot; a
     leading dot is removed when it is set. An extension holding a wildcard,
     a path separator or a character Windows forbids in a name is refused.
 add_extension : default ``true``
-    Whether a chosen name without an extension is given `default_ext`. A
+    Whether a chosen name without an extension is given an extension: the
+    selected filter's, or `default_ext` (see `filter_index`). A
     name has an extension when it holds a dot that is not its last
     character, as .NET's ``Path.HasExtension`` says.
 overwrite_prompt : default ``true``

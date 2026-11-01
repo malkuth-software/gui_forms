@@ -140,6 +140,22 @@ validation_snapshot
 semantic_generation
     A number that changes whenever the semantic (accessibility) tree may
     have changed.
+tool_tips_shown : default follows ``Application::tool_tips_shown()``
+    Whether the window's tooltip presenter shows tooltips when the pointer
+    rests or keyboard focus arrives. `set_tool_tips_shown` takes an
+    optional: unset, the window follows the program switch,
+    `Application::set_tool_tips_shown`. Turning it off closes a tooltip that
+    shows. `show_tool_tip` shows one regardless.
+tool_tip_settings
+    The window's `ToolTipSettings`: the initial, reshow and auto-pop delays,
+    the maximum width, and whether hover, focus and disabled controls show
+    tooltips. Every `ToolTip` of the window reads and writes them. A
+    negative delay, or a width that is not finite and between 80 and 2048,
+    throws `std::invalid_argument`, changing nothing.
+tool_tip_visible
+    Whether a tooltip shows; `tool_tip_target`, `tool_tip_item_id` and
+    `tool_tip_text` name what it describes (the item ID is empty for a whole
+    control).
 
 Events
 ------
@@ -161,6 +177,10 @@ pointer_capture_changed
     it.
 focus_scope_changed
     Raised when a focus scope opens or closes.
+tool_tip_visibility_changed
+    Raised when a tooltip opens and when it closes, with a `ToolTipEvent`:
+    the target's stable ID, the item ID, the text, whether it now shows and
+    whether keyboard focus showed it.
 focused_control_changed
     Raised after `request_focus` moved focus to another control (or to
     none), once the controls' own focus notifications ran, with the old and
@@ -306,6 +326,14 @@ open_popup
     Shows a detached control as an overlay owned by another control, such as
     a menu or a drop-down, and returns a `PopupToken` that closes it. The
     popup closes on its own when its owner is hidden, disabled or detached.
+show_tool_tip
+    `show_tool_tip(control)` shows the control's tooltip at once, below it,
+    for the auto-pop delay; `show_tool_tip(control, duration)` for
+    `duration`, where zero means until hidden. It shows even with the
+    switches off. A control without tooltip text throws
+    `std::invalid_argument`.
+hide_tool_tip
+    Closes the tooltip that shows and cancels one waiting to show.
 begin_focus_scope
     Confines keyboard focus to a subtree, as a modal panel or menu does,
     until `end_focus_scope`. Scopes nest up to 32 deep and by default restore

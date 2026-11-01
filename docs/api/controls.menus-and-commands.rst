@@ -1422,7 +1422,7 @@ Related types
 
    ``#include <gui_forms/controls/tool_strip/tool_strip.hpp>``
 
-   One item. ``stable_id`` is unique within the strip and names the item in events, semantics and the published anatomy. An item with a ``command`` takes its text (when ``text`` is empty), enabled, visible and checked state from it, and a click executes it. An item without one uses ``text``, ``enabled``, ``visible`` and the strip's own checked state. ``drop_down`` is the menu of a drop-down or split button and must be empty for other kinds. ``spring`` is honoured only by StatusStrip, on labels: spring labels share the width the other items leave. A hosted item (combo box, text box, progress bar) takes no command, menu or check. Its ``text`` is the hosted control's accessible name, ``choices`` are a combo box's items, and ``width`` its width in logical units (zero for the default: 120 for a combo box, 100 otherwise). Hosted items never move to the overflow menu, whatever their ``overflow``: a menu row cannot hold a control. The application reaches the control through combo_box(), text_box() or progress_bar(); it keeps its state while set_items keeps an item of the same ID and kind.
+   One item. ``stable_id`` is unique within the strip and names the item in events, semantics and the published anatomy. An item with a ``command`` takes its text (when ``text`` is empty), enabled, visible and checked state from it, and a click executes it. An item without one uses ``text``, ``enabled``, ``visible`` and the strip's own checked state. ``drop_down`` is the menu of a drop-down or split button and must be empty for other kinds. ``spring`` is honoured only by StatusStrip, on labels: spring labels share the width the other items leave. A hosted item (combo box, text box, progress bar) takes no command, menu or check. Its ``text`` is the hosted control's accessible name, ``choices`` are a combo box's items, and ``width`` its width in logical units (zero for the default: 120 for a combo box, 100 otherwise). Hosted items never move to the overflow menu, whatever their ``overflow``: a menu row cannot hold a control. The application reaches the control through combo_box(), text_box() or progress_bar(); it keeps its state while set_items keeps an item of the same ID and kind. ``tool_tip_text`` is the item's plain tooltip (owner, 2026-10-28): the window's presenter shows it over the item, and keyboard focus on the item shows it below the item; empty shows none. It reaches the item's semantic node (SemanticNode::tool_tip), and a hosted item's control as that control's tooltip text.
 
    .. cpp:member:: std::string stable_id
 
@@ -1431,6 +1431,8 @@ Related types
       Default: ``{ToolStripItemKind::button}``.
 
    .. cpp:member:: std::string text
+
+   .. cpp:member:: std::string tool_tip_text
 
    .. cpp:member:: ImageId image
 

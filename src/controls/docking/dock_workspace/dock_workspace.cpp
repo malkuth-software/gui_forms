@@ -21,7 +21,8 @@ void bring_to_front(std::vector<DockPanelId>& history, const DockPanelId& panel)
 }
 
 // The events DockWorkspace adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 1> workspace_interactions{{
+constexpr std::array<InteractionDeclaration, 2> workspace_interactions{{
+    {.name = "document_closing", .payload = "DockDocumentClosing", .mutable_payload = true},
     {.name = "activation_changed", .payload = "DockActivationChange", .mutable_payload = false},
 }};
 
@@ -116,7 +117,7 @@ struct DockWorkspace::CloseFloatingSite final {
     DockSiteId site{};
     void operator()() const {
         if (!liaison || (*liaison).workspace == nullptr) return;
-        (*(*liaison).workspace).close_floating_site(site);
+        static_cast<void>((*(*liaison).workspace).close_floating_site(site));
     }
 };
 
@@ -134,6 +135,7 @@ DockWorkspace::~DockWorkspace() {
 }
 
 void DockWorkspace::on_dispose() noexcept {
+    close_request_.reset();
     release_sites();
     Component::on_dispose();
 }
@@ -273,6 +275,162 @@ DockTransactionResult DockWorkspace::close_panel(const DockPanelId& panel, DockE
     PanelEntry* const entry = find_entry(panel);
     if (entry != nullptr) (*entry).content.reset();
     return result;
+}
+
+// -- closing documents at the user's request (phase D6) ------------------------
+
+DockCloseOutcome DockWorkspace::request_close(const DockPanelId& panel) {
+    if (close_request_) return DockCloseOutcome::busy;
+    const DockPanelDescriptor* const descriptor = layout_.find_descriptor(panel);
+    if (descriptor == nullptr || !placed(panel) || !(*descriptor).allowed.closed) return DockCloseOutcome::refused;
+    if ((*descriptor).kind != DockPanelKind::document) {
+        const DockTransactionResult result = close_panel(panel, DockEditOrigin::user);
+        return result ? DockCloseOutcome::closed : DockCloseOutcome::refused;
+    }
+    CloseRequest request{};
+    request.cause = DockCloseCause::document;
+    request.documents.push_back(panel);
+    return begin_close(std::move(request));
+}
+
+DockCloseOutcome DockWorkspace::close_all_documents() {
+    if (close_request_) return DockCloseOutcome::busy;
+    CloseRequest request{};
+    request.cause = DockCloseCause::all_documents;
+    request.documents = closable_documents();
+    return begin_close(std::move(request));
+}
+
+DockCloseOutcome DockWorkspace::close_other_documents(const DockPanelId& kept) {
+    if (close_request_) return DockCloseOutcome::busy;
+    CloseRequest request{};
+    request.cause = DockCloseCause::other_documents;
+    for (const DockPanelId& document : closable_documents()) {
+        if (!(document == kept)) request.documents.push_back(document);
+    }
+    return begin_close(std::move(request));
+}
+
+DockCloseOutcome DockWorkspace::answer_close(bool close) {
+    if (!close_request_ || (*close_request_).asked == 0U) return DockCloseOutcome::refused;
+    if (!close) {
+        close_request_.reset();
+        return DockCloseOutcome::cancelled;
+    }
+    CloseRequest& request = *close_request_;
+    request.next = request.next + request.asked;
+    request.asked = 0U;
+    return run_close();
+}
+
+bool DockWorkspace::close_pending() const noexcept {
+    const bool pending = close_request_ && (*close_request_).asked != 0U;
+    return pending;
+}
+
+std::span<const DockPanelId> DockWorkspace::pending_close() const noexcept {
+    if (!close_pending()) return {};
+    const CloseRequest& request = *close_request_;
+    const std::span<const DockPanelId> asked(request.documents.data() + request.next, request.asked);
+    return asked;
+}
+
+std::vector<DockPanelId> DockWorkspace::closable_documents() const {
+    std::vector<DockNodeId> stacks{};
+    const DockLayoutState& state = layout_.state();
+    collect_stacks(layout_, state.main_root, stacks);
+    for (const DockFloatingSite& site : state.floating_sites) collect_stacks(layout_, site.root, stacks);
+    std::vector<DockPanelId> documents{};
+    for (const DockNodeId stack : stacks) {
+        const DockNode* const node = layout_.find_node(stack);
+        if (node == nullptr) continue;
+        for (const DockPanelId& panel : (*node).panels) {
+            const DockPanelDescriptor* const descriptor = layout_.find_descriptor(panel);
+            const bool closable = descriptor != nullptr && (*descriptor).kind == DockPanelKind::document &&
+                                  (*descriptor).allowed.closed;
+            if (closable) documents.push_back(panel);
+        }
+    }
+    return documents;
+}
+
+DockCloseOutcome DockWorkspace::begin_close(CloseRequest request) {
+    if (close_request_) return DockCloseOutcome::busy;
+    if (request.documents.empty() && request.companions.empty()) return DockCloseOutcome::refused;
+    close_request_ = std::move(request);
+    return run_close();
+}
+
+// Drops the request's documents not yet asked about that are no longer
+// placed (a handler, or the program, closed them meanwhile).
+void DockWorkspace::drop_unplaced_close_documents() {
+    CloseRequest& request = *close_request_;
+    std::size_t index = request.next;
+    while (index < request.documents.size()) {
+        if (placed(request.documents[index])) {
+            ++index;
+            continue;
+        }
+        request.documents.erase(request.documents.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+}
+
+// The prompts run in the request's order. A handler's own changes are
+// allowed: the request holds its documents by identity; one that left the
+// layout before it is asked about is not asked about, and those that left
+// when the request finishes are skipped.
+DockCloseOutcome DockWorkspace::run_close() {
+    while (close_request_) {
+        drop_unplaced_close_documents();
+        CloseRequest& request = *close_request_;
+        if (request.next >= request.documents.size()) break;
+        const std::size_t remaining = request.documents.size() - request.next;
+        const std::size_t count = close_prompt_ == DockClosePrompt::combined ? remaining : 1U;
+        // The handlers see the documents through a copy, which stays valid
+        // whatever they do to the request.
+        const std::vector<DockPanelId> asked(request.documents.begin() + static_cast<std::ptrdiff_t>(request.next),
+                                             request.documents.begin() +
+                                                 static_cast<std::ptrdiff_t>(request.next + count));
+        DockDocumentClosing closing{};
+        closing.documents = asked;
+        closing.cause = request.cause;
+        document_closing_.emit(closing);
+        // A handler may have disposed the workspace, which drops the
+        // request.
+        if (!is_alive() || !close_request_) return DockCloseOutcome::cancelled;
+        if (closing.cancel) {
+            close_request_.reset();
+            return DockCloseOutcome::cancelled;
+        }
+        if (closing.defer) {
+            (*close_request_).asked = count;
+            return DockCloseOutcome::pending;
+        }
+        (*close_request_).next = (*close_request_).next + count;
+    }
+    if (!close_request_) return DockCloseOutcome::cancelled;
+    return finish_close();
+}
+
+// Every document was allowed: they close, with the request's companion
+// edits, in one user transaction.
+DockCloseOutcome DockWorkspace::finish_close() {
+    CloseRequest request = std::move(*close_request_);
+    close_request_.reset();
+    DockTransaction transaction{};
+    transaction.origin = DockEditOrigin::user;
+    for (const DockPanelId& document : request.documents) {
+        if (placed(document)) transaction.edits.push_back(DockEdit::close(document));
+    }
+    transaction.edits.insert(transaction.edits.end(), request.companions.begin(), request.companions.end());
+    if (transaction.edits.empty()) return DockCloseOutcome::closed;
+    const DockTransactionResult result = layout_.apply(transaction);
+    if (!result) return DockCloseOutcome::refused;
+    for (const DockPanelId& panel : request.closed_tools) {
+        PanelEntry* const entry = find_entry(panel);
+        if (entry != nullptr) (*entry).content.reset();
+    }
+    return DockCloseOutcome::closed;
 }
 
 // -- content -------------------------------------------------------------------
@@ -750,7 +908,8 @@ void DockWorkspace::on_window_ready(DockSiteId site, Window& window, const Appli
 // after this request returns), and that transaction destroys the window.
 // Without one (no main site is bound, or it is in no window) there is no
 // main window to post to and no transaction would destroy the window: the
-// panels go at once, as close_floating_site does, and the close goes ahead,
+// panels go at once, as close_floating_site does (once its documents are
+// allowed to close, phase D6), and the close goes ahead,
 // so the host closes the window and on_window_closed forgets it. If that
 // transaction is refused (the docking lock), the window still closes and
 // its site stays in the layout without a window, as after a refused opening;
@@ -758,7 +917,11 @@ void DockWorkspace::on_window_ready(DockSiteId site, Window& window, const Appli
 void DockWorkspace::on_window_closing(DockSiteId site, HostCloseRequest& request) {
     Window* const main = main_model();
     if (main == nullptr) {
-        close_floating_site(site);
+        // A prompt that kept the documents, or waits for its answer, keeps
+        // the window too; an answer that closes them later leaves the site
+        // empty in a window that stays until the next attach.
+        const DockCloseOutcome outcome = close_floating_site(site);
+        if (outcome == DockCloseOutcome::cancelled || outcome == DockCloseOutcome::pending) request.cancel = true;
         return;
     }
     request.cancel = true;
@@ -825,35 +988,36 @@ void DockWorkspace::follow_layout_frames() {
 }
 
 // Hides the site's tool panels and closes its documents and the panels that
-// may not be hidden, as one user transaction.
-void DockWorkspace::close_floating_site(DockSiteId site) {
+// may not be hidden, as one user transaction, once the documents are allowed
+// to close.
+DockCloseOutcome DockWorkspace::close_floating_site(DockSiteId site) {
     const DockFloatingSite* const floating = layout_.find_floating_site(site);
-    if (floating == nullptr) return;
+    if (floating == nullptr) return DockCloseOutcome::refused;
     std::vector<DockNodeId> stacks{};
     collect_stacks(layout_, (*floating).root, stacks);
-    DockTransaction transaction{};
-    transaction.origin = DockEditOrigin::user;
-    std::vector<DockPanelId> closed_tools{};
+    // The documents are asked about first (phase D6); the tool panels hide,
+    // or close, with them in one transaction, so a cancelled prompt leaves
+    // the window as it was.
+    CloseRequest request{};
+    request.cause = DockCloseCause::floating_window;
     for (const DockNodeId stack : stacks) {
         const DockNode* const node = layout_.find_node(stack);
         if (node == nullptr) continue;
         for (const DockPanelId& panel : (*node).panels) {
             const DockPanelDescriptor* const descriptor = layout_.find_descriptor(panel);
             const bool tool = descriptor != nullptr && (*descriptor).kind == DockPanelKind::tool;
-            if (tool && (*descriptor).allowed.hidden) {
-                transaction.edits.push_back(DockEdit::hide(panel));
-                continue;
+            if (!tool) {
+                request.documents.push_back(panel);
+            } else if ((*descriptor).allowed.hidden) {
+                request.companions.push_back(DockEdit::hide(panel));
+            } else {
+                request.companions.push_back(DockEdit::close(panel));
+                request.closed_tools.push_back(panel);
             }
-            transaction.edits.push_back(DockEdit::close(panel));
-            if (tool) closed_tools.push_back(panel);
         }
     }
-    const DockTransactionResult result = layout_.apply(transaction);
-    if (!result) return;
-    for (const DockPanelId& panel : closed_tools) {
-        PanelEntry* const entry = find_entry(panel);
-        if (entry != nullptr) (*entry).content.reset();
-    }
+    const DockCloseOutcome outcome = begin_close(std::move(request));
+    return outcome;
 }
 
 bool DockWorkspace::can_float(const DockSubject& subject) const {

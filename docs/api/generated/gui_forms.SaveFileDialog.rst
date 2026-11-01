@@ -43,11 +43,20 @@ gui_forms::SaveFileDialog
          The filter in Windows Forms' syntax, as :cpp:class:`OpenFileDialog <gui_forms::OpenFileDialog>` reads it:
          ``"Reports|*.txt|All files|*.*"``. :cpp:func:`set_filter <gui_forms::SaveFileDialog::set_filter>` throws
          ``std::invalid_argument`` for a string ``parse_file_dialog_filter`` refuses,
-         and keeps the old filter. The first filter is the one the dialog starts
-         with.
+         and keeps the old filter.
 
       **filters** : ``std::span<const HostFileDialogFilter>``, read-only
          The host filters the filter parsed into, in order.
+
+      **filter_index** : ``std::size_t``, default ``0``
+         The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::SaveFileDialog::filters>` counting from
+         zero (Windows Forms' ``FilterIndex`` counts from one). After the user
+         accepts it is the filter they had selected, where the host tells: every
+         host does, except that the host's own "All files" entry (X11's dialog
+         adds one) is no filter of the program's and leaves the index as it was.
+         An index past the filters starts the dialog on the first.
+         A chosen name without an extension takes the selected filter's first
+         extension (unless that filter is any file), else :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>`.
 
       **default_ext** : ``std::string``, default empty
          The extension a chosen name without one is given, without its dot; a
@@ -55,7 +64,8 @@ gui_forms::SaveFileDialog
          a path separator or a character Windows forbids in a name is refused.
 
       **add_extension** : ``bool``, default ``true``
-         Whether a chosen name without an extension is given :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>`. A
+         Whether a chosen name without an extension is given an extension: the
+         selected filter's, or :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>` (see :cpp:func:`filter_index <gui_forms::SaveFileDialog::filter_index>`). A
          name has an extension when it holds a dot that is not its last
          character, as .NET's ``Path.HasExtension`` says.
 
@@ -182,8 +192,7 @@ gui_forms::SaveFileDialog
       The filter in Windows Forms' syntax, as :cpp:class:`OpenFileDialog <gui_forms::OpenFileDialog>` reads it:
       ``"Reports|*.txt|All files|*.*"``. :cpp:func:`set_filter <gui_forms::SaveFileDialog::set_filter>` throws
       ``std::invalid_argument`` for a string ``parse_file_dialog_filter`` refuses,
-      and keeps the old filter. The first filter is the one the dialog starts
-      with.
+      and keeps the old filter.
 
    .. cpp:function:: void set_filter(std::string filter)
 
@@ -192,6 +201,21 @@ gui_forms::SaveFileDialog
    .. cpp:function:: std::span<const HostFileDialogFilter> filters() const noexcept
 
       The host filters the filter parsed into, in order.
+
+   .. cpp:function:: std::size_t filter_index() const noexcept
+
+      The filter the dialog starts with, an index into :cpp:func:`filters <gui_forms::SaveFileDialog::filters>` counting from
+      zero (Windows Forms' ``FilterIndex`` counts from one). After the user
+      accepts it is the filter they had selected, where the host tells: every
+      host does, except that the host's own "All files" entry (X11's dialog
+      adds one) is no filter of the program's and leaves the index as it was.
+      An index past the filters starts the dialog on the first.
+      A chosen name without an extension takes the selected filter's first
+      extension (unless that filter is any file), else :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>`.
+
+   .. cpp:function:: void set_filter_index(std::size_t index) noexcept
+
+      Sets :cpp:func:`filter_index <gui_forms::SaveFileDialog::filter_index>`; see the property's description above.
 
    .. cpp:function:: const std::string& default_ext() const noexcept
 
@@ -205,7 +229,8 @@ gui_forms::SaveFileDialog
 
    .. cpp:function:: bool add_extension() const noexcept
 
-      Whether a chosen name without an extension is given :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>`. A
+      Whether a chosen name without an extension is given an extension: the
+      selected filter's, or :cpp:func:`default_ext <gui_forms::SaveFileDialog::default_ext>` (see :cpp:func:`filter_index <gui_forms::SaveFileDialog::filter_index>`). A
       name has an extension when it holds a dot that is not its last
       character, as .NET's ``Path.HasExtension`` says.
 

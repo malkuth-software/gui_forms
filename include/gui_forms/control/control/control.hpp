@@ -52,6 +52,7 @@ namespace detail {
 class DisplayChunk;
 struct DispatcherState;
 struct ControlInlineStyle;
+struct InlineRestyle;
 
 template <typename EventType, typename... Values>
 class DeferredEventPublication final {
@@ -244,6 +245,20 @@ struct MnemonicText final {
 [[nodiscard]] std::string mnemonic_access_key(std::string_view text);
 [[nodiscard]] bool is_mnemonic(char32_t character,
                                std::string_view text) noexcept;
+
+// Where a control's plain tooltip (Control::tool_tip_text) shows. Its
+// window's one presenter reads it; a control type chooses it once, in its
+// constructor.
+// - bubble: a bubble near the pointer when it rests over the control, and
+//   below the control when keyboard focus reaches it.
+// - field_hint: a typed-text field (TextBox, NumericUpDown and the like).
+//   Hover shows the bubble; keyboard focus shows the text inside the empty
+//   field in light grey instead, as placeholder text, which the control
+//   paints itself. A placeholder the program set wins.
+// - owner_item: shown only over the item of an owning control that stands
+//   for this one, such as a TabPage's tab header; never over the control's
+//   own body.
+enum class ToolTipPresentation : std::uint8_t { bubble, field_hint, owner_item };
 
 // Forms-compatible style requests are retained as control state. GUI.Forms is
 // always coherently composited, so clearing a buffering bit never opts a
@@ -457,6 +472,10 @@ public:
     [[nodiscard]] std::shared_ptr<const Theme> theme_override() const noexcept {
         return theme_override_;
     }
+    // Setting or clearing the override changes the theme in effect for the
+    // subtree: each inline style there defining custom properties is
+    // compiled against the new theme first, and where one does not compile
+    // the change is refused, invalid_argument, with nothing changed (P12b).
     void set_theme_override(std::shared_ptr<const Theme> theme);
     void clear_theme_override();
     [[nodiscard]] const std::optional<SurfaceMaterial>&
@@ -589,7 +608,15 @@ public:
     // `!important` declarations that are not colours stand. A refused style
     // changes nothing: the control keeps its previous one, and the result
     // holds the diagnostics. Empty text clears the style. Its diagnostics
-    // name the file `inline:<stable ID>`.
+    // name the file `inline:<stable ID>`. A style defining custom
+    // properties (`--accent: #c00; ::part(face) { fill: var(--accent) }`),
+    // or reading one the theme defines, is compiled against the theme in
+    // effect for the control (the default theme while it has none): where
+    // its definitions win for a part, the theme's rules reading them read
+    // the style's values, and where they do not, its own var()s read the
+    // theme's. A change of that
+    // theme compiles it again (ApplicationResources::set_theme,
+    // set_theme_override, attachment).
     [[nodiscard]] InlineStyleResult set_inline_style(std::string_view text);
     // The inline style's text in force; empty without one.
     [[nodiscard]] std::string_view inline_style() const noexcept;
@@ -617,6 +644,28 @@ public:
         return accessible_description_;
     }
     void set_accessible_description(std::string description);
+    // The control's plain tooltip (owner, 2026-10-28): text, never markup,
+    // that its window's tooltip presenter shows as tool_tip_presentation()
+    // says, when the window's and the program's switches allow. Empty, the
+    // default, never shows. The text also reaches the control's semantic
+    // node (SemanticNode::tool_tip). Throws std::invalid_argument for text
+    // that is not valid UTF-8, changing nothing. Raises tool_tip_text_changed
+    // when the text changes. Bindable as "tool_tip_text".
+    [[nodiscard]] const std::string& tool_tip_text() const noexcept { return tool_tip_text_; }
+    void set_tool_tip_text(std::string text);
+    [[nodiscard]] Event<const std::string&>& tool_tip_text_changed() noexcept {
+        return tool_tip_text_changed_;
+    }
+    [[nodiscard]] ToolTipPresentation tool_tip_presentation() const noexcept {
+        return tool_tip_presentation_;
+    }
+    // Whether this control's semantic virtual children may carry tooltips
+    // of authored parts (SemanticNode::tool_tip), as a strip's items and a
+    // tab control's headers do. The tooltip presenter looks for a part's
+    // tooltip only in such a control; a list of data items never sets it.
+    [[nodiscard]] bool publishes_item_tool_tips() const noexcept {
+        return publishes_item_tool_tips_;
+    }
     // The command target this control offers its window's command routing
     // chain while focus is on it or inside it (the focused route, owner
     // decision DK-29; see gui_forms/commands/command_route). The control
@@ -903,6 +952,23 @@ protected:
     // focused and focus-visible. Overrides start from this and add their own.
     [[nodiscard]] AnatomyStateSet base_anatomy_states() const;
     [[nodiscard]] Window* window() const noexcept { return window_; }
+    // Chooses where this type's tooltip shows (ToolTipPresentation); bubble
+    // by default. Call it from the constructor, or when the control changes
+    // what it is (a ComboBox gaining or losing its edit field).
+    void set_tool_tip_presentation(ToolTipPresentation presentation) noexcept {
+        tool_tip_presentation_ = presentation;
+    }
+    // The hint a typed-text field paints in light grey while it has focus,
+    // is empty and has no placeholder: its own tooltip text, else that of
+    // the nearest enclosing field_hint control it edits for (a
+    // NumericUpDown's or an editable ComboBox's TextBox). Empty when this
+    // control is not a field_hint, or no such text is set.
+    [[nodiscard]] std::string field_hint_text() const;
+    // Declares that this type's semantic virtual children may carry part
+    // tooltips (publishes_item_tool_tips). Call it from the constructor.
+    void set_publishes_item_tool_tips(bool publishes) noexcept {
+        publishes_item_tool_tips_ = publishes;
+    }
     void require_mutable() const;
     // Layout is allowed to invoke application-overridable measurement. Such a
     // callback may legally mutate the retained tree, so layout authors must
@@ -984,6 +1050,27 @@ protected:
     void on_dispose() noexcept override;
 
 private:
+    // The theme the control takes without its own override: its parent's,
+    // else its window's, else the default theme.
+    [[nodiscard]] const Theme& inherited_theme() const noexcept;
+    // P12b: compiles again, against `theme`, each inline style of this
+    // subtree that defines custom properties and was compiled against
+    // another theme, appending each to `restyles` uninstalled; a control
+    // below this one with an override of its own keeps its theme and is
+    // passed over with its subtree. False, the diagnostics appended, at the
+    // first that does not compile.
+    [[nodiscard]] bool collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
+                                               std::vector<ThemeCompileDiagnostic>& diagnostics);
+    // Installs restyles collected by collect_inline_restyles, with no user
+    // code run between (their controls are alive).
+    static void commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles);
+    // On attachment to a window: an inline style defining custom
+    // properties compiled against another theme than the one now in effect
+    // is compiled again. One that no longer compiles is kept as it was,
+    // with one line written to stderr naming the control and the first
+    // error: the theme's rules reading its names then keep the theme's
+    // definitions (CompiledThemeRules::theme_serial differs).
+    void refresh_inline_style();
     friend class Window;
     friend class ContainerControl;
     friend class ErrorProvider;
@@ -1114,6 +1201,9 @@ private:
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
     std::string accessible_name_;
     std::string accessible_description_;
+    std::string tool_tip_text_;
+    ToolTipPresentation tool_tip_presentation_{ToolTipPresentation::bubble};
+    bool publishes_item_tool_tips_{};
     std::shared_ptr<CommandTarget> command_target_;
     // Ordered by provider identity so semantic traces remain byte-for-byte
     // deterministic when multiple nonvisual providers extend one control.
@@ -1121,6 +1211,7 @@ private:
     ProviderTextMap provider_help_;
     Event<Dirty, bool> initialization_completed_;
     Event<const std::string&> name_changed_;
+    Event<const std::string&> tool_tip_text_changed_;
     Event<bool> visible_changed_;
     Event<bool> enabled_changed_;
     Event<bool> causes_validation_changed_;
@@ -1184,6 +1275,7 @@ private:
         hit_test_transparent,
         accessible_name,
         accessible_description,
+        tool_tip_text,
     };
 
     template <RegisteredProperty Property>
@@ -1248,6 +1340,9 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::accessible_name) {
                 return BindingValue{(*control).accessible_name_};
+            } else if constexpr (
+                Property == RegisteredProperty::tool_tip_text) {
+                return BindingValue{(*control).tool_tip_text_};
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
@@ -1335,6 +1430,15 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::accessible_name) {
                 (*control).set_accessible_name(std::get<std::string>(value));
+            } else if constexpr (
+                Property == RegisteredProperty::tool_tip_text) {
+                const std::optional<BindingValue> converted =
+                    convert_binding_value(value, BindingValueKind::text);
+                if (!converted) {
+                    throw std::invalid_argument(
+                        "ToolTipText binding requires text");
+                }
+                (*control).set_tool_tip_text(std::get<std::string>(*converted));
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
@@ -1371,6 +1475,10 @@ private:
                     owner, std::move(relay));
             } else if constexpr (Property == RegisteredProperty::auto_size) {
                 return (*control).auto_size_changed_.subscribe(
+                    owner, std::move(relay));
+            } else if constexpr (
+                Property == RegisteredProperty::tool_tip_text) {
+                return (*control).tool_tip_text_changed_.subscribe(
                     owner, std::move(relay));
             } else {
                 static_assert(

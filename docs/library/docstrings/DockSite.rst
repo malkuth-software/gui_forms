@@ -151,7 +151,8 @@ close_position_menu
     Closes the position menu.
 position_command_enabled
     Whether a position command (Float, Dock, Dock as Tabbed Document, Auto
-    Hide, Hide, Close) is available for a panel now.
+    Hide, Hide, Close, Move, Close All Documents, Close Other Documents) is
+    available for a panel now.
 run_position_command
     Runs a position command as the menu does; false when it is not
     available.
@@ -222,7 +223,11 @@ stood) and for a floating panel (it returns where it was docked last); Dock as
 Tabbed Document, for a tool panel whose descriptor allows it; Auto Hide,
 checked while the panel is auto-hidden and available for a root-level
 docked tool stack; Hide; Close; and Move, the keyboard move mode. A
-document's menu lists Float, Close and Move.
+document's menu lists Float, Close, Close All Documents (while any
+document may close), Close Other Documents (while another may) and Move.
+Close and the two document commands ask before documents close
+(`DockWorkspace::request_close`, `close_all_documents` and
+`close_other_documents`); a cancelled prompt counts as not run.
 
 Auto-hide (phase D5; decisions DK-27, DK-28, DK-41, DK-42): the pin, or
 Auto Hide, takes the whole stack (E4-1) out of the tree in one transaction

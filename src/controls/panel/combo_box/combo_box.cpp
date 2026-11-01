@@ -229,12 +229,16 @@ void ComboBox::create_editor() {
     (*editor_).set_border_style(BorderStyle::none);
     (*editor_).set_font(font_);
     (*editor_).set_text(std::string(selected_text()));
+    (*editor_).set_placeholder_text(placeholder_);
     editor_text_ = (*editor_).text_changed().subscribe(*this,
         Delegate<const std::string&>::bind<ComboBox, &ComboBox::editor_text_changed>(*this));
     editor_focus_ = (*editor_).focus_observed().subscribe(*this,
         Delegate<bool>::bind<ComboBox, &ComboBox::editor_focus_changed>(*this));
     add_child(editor_);
     configure_editor_auto_complete();
+    // With an edit field the combo box is a typed-text field: its tooltip
+    // shows as the field's hint on focus.
+    set_tool_tip_presentation(ToolTipPresentation::field_hint);
     // The editor takes the focus for the field.
     set_focusable(false);
     Window* const host = window();
@@ -251,6 +255,7 @@ void ComboBox::remove_editor() {
     editor_.reset();
     focused_ = false;
     set_focusable(true);
+    set_tool_tip_presentation(ToolTipPresentation::bubble);
     Window* const host = window();
     if (had_focus && host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
 }
@@ -572,6 +577,9 @@ void ComboBox::set_placeholder_text(std::string text) {
     }
     if (placeholder_ == text) return;
     placeholder_ = std::move(text);
+    // The edit field shows the placeholder itself, so it wins over the
+    // combo box's field hint there too.
+    if (editor_) (*editor_).set_placeholder_text(placeholder_);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

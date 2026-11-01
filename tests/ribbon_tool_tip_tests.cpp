@@ -229,12 +229,44 @@ void validation_and_removal() {
     require(!tips.has_tool_tip(*fixture.strip, "bold"), "clear removes every mapping");
 }
 
+// A mapping without a title takes the thing's plain tooltip as its title,
+// and while it exists the window's plain presenter shows nothing for that
+// thing; removing it hands the thing back to the plain presenter.
+void plain_text_and_covering() {
+    Fixture fixture;
+    (*fixture.button).set_tool_tip_text("Copy formatting to other text.");
+    ToolTipSettings settings = fixture.window.tool_tip_settings();
+    settings.initial_delay = 1ms;
+    settings.auto_pop_delay = 0ms;
+    fixture.window.set_tool_tip_settings(settings);
+    RibbonToolTip tips(fixture.window);
+    tips.set_initial_delay(1ms);
+    tips.set_auto_pop_delay(0ms);
+    tips.set_tool_tip(fixture.button, {.description = "Apply the look of one selection to another."});
+    require(tips.has_tool_tip(*fixture.button), "a plain tooltip stands in for a title");
+
+    const Point over_button = centre((*fixture.button).absolute_bounds());
+    hover(fixture.window, over_button);
+    while (!tips.visible() && fixture.window.next_wake().has_value()) fire_next(fixture.window);
+    require(tips.visible() && tips.shown_content().title == "Copy formatting to other text.",
+            "the enhanced tooltip's title is the plain text");
+    require(!fixture.window.tool_tip_visible(), "the plain presenter shows nothing for a covered control");
+
+    require(tips.remove_tool_tip(*fixture.button), "the mapping is removed");
+    hover(fixture.window, {400.0, 220.0});
+    hover(fixture.window, over_button);
+    fire_next(fixture.window);
+    require(fixture.window.tool_tip_visible() && fixture.window.tool_tip_text() == "Copy formatting to other text.",
+            "an uncovered control shows its plain tooltip again");
+}
+
 } // namespace
 
 int main() {
     content_from_commands_and_hover();
     keyboard_and_help();
     validation_and_removal();
-    std::cout << "RibbonToolTip: command content, disabled reason, hover, keyboard, F1 help and validation passed\n";
+    plain_text_and_covering();
+    std::cout << "RibbonToolTip: command content, disabled reason, hover, keyboard, F1 help, validation, plain text and covering passed\n";
     return 0;
 }

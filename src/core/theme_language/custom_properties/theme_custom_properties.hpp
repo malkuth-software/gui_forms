@@ -141,6 +141,12 @@ struct SubstitutionInput final {
     const ReservedInputs& reserved;
     SourcePositionCursor& cursor;
     std::span<const std::uint32_t> choices{};
+    // An inline style compiled alone (P12b): the custom property names the
+    // theme in effect defines, sorted. A var() of one the style does not
+    // define is left undeclared (`undefined`, not E409, its fallback
+    // unread), and any var() of one is noted (theme_read): the style is
+    // then lowered with the theme's text.
+    std::span<const std::string> theme_names{};
 };
 
 // `undefined`: a var() read a name whose choice is variable_undefined,
@@ -177,6 +183,11 @@ public:
         std::uint32_t name_index{};
     };
 
+    // Whether a var() substituted since clear_theme_read() named one of
+    // SubstitutionInput::theme_names (P12b).
+    [[nodiscard]] bool theme_read() const noexcept { return theme_read_; }
+    void clear_theme_read() noexcept { theme_read_ = false; }
+
 private:
     // Counts `added` more tokens visited; false, after reporting E512 at
     // `token`, past the bound.
@@ -188,6 +199,7 @@ private:
     // so a cycle is found without searching the open frames.
     std::vector<std::uint8_t> active_{};
     std::size_t visited_{};
+    bool theme_read_{};
 };
 
 } // namespace gui_forms::theme_language

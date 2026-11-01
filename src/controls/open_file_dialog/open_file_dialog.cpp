@@ -73,6 +73,7 @@ void OpenFileDialog::reset() {
     initial_directory_.clear();
     filter_.clear();
     filters_.clear();
+    filter_index_ = 0U;
     multiselect_ = false;
     file_names_.clear();
     status_ = {};
@@ -85,6 +86,7 @@ HostOpenFileDialogRequest OpenFileDialog::request() const {
     built.suggested_name = file_name();
     built.filters = filters_;
     built.allow_multiple = multiselect_;
+    built.initial_filter = filter_index_ < filters_.size() ? filter_index_ : 0U;
     return built;
 }
 
@@ -126,6 +128,7 @@ DialogResult OpenFileDialog::show_dialog(Window& owner) {
         if (presence.expired() || !is_alive()) return DialogResult::cancel;
         if (!ok.cancel) {
             file_names_ = (*paths).paths;
+            if ((*paths).chosen_filter) filter_index_ = *(*paths).chosen_filter;
             return DialogResult::ok;
         }
         // A cancelled file_ok shows the dialog again, while its window lives.

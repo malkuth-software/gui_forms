@@ -76,7 +76,9 @@ drop_down_items
     The items the open list shows, as indices into `items`, in row order;
     empty while the list is closed.
 placeholder_text : default ``""``
-    Text shown in a muted colour when nothing is selected. It is also the
+    Text shown in a muted colour when nothing is selected; in the
+    `drop_down` style, the edit field shows it while empty, and it then
+    takes precedence over the field hint. It is also the
     accessible description when the control has none of its own. It must
     be valid UTF-8, or `std::invalid_argument` is thrown.
 dropped_down : default ``false``
@@ -145,6 +147,10 @@ ChoiceGroup : A row of exclusive choices bound to a `Value`.
 
 Notes
 -----
+In the `drop_down` style, the combo box's `tool_tip_text` shows as grey
+hint text in the empty edit field while it has focus, in place of a
+tooltip bubble, unless `placeholder_text` is set. Resting the pointer on it still shows the bubble.
+
 A primary press on the field opens the list. With the field focused, F4,
 Alt+Down and Space open the list, and Up, Down, Home and End select the
 previous, next, first or last item directly without opening it. When

@@ -87,6 +87,10 @@ Related types
      - PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
    * - :cpp:class:`PresentedArea <gui_forms::PresentedArea>`
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
+   * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
+     - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
+   * - :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`
+     - How a window's one tooltip presenter behaves (owner, 2026-10-28).
    * - :cpp:class:`ValidationSnapshot <gui_forms::ValidationSnapshot>`
      - ValidationSnapshot reports attempts, outcomes, focus blocks, reentrancy rejection, bulk visits, and active transaction state.
 
@@ -759,6 +763,60 @@ Related types
    .. cpp:member:: std::uint64_t rectangles
 
    .. cpp:member:: std::uint64_t copy_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToolTipEvent final
+
+   ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
+
+   ToolTipEvent is the immutable publication payload for a tooltip visibility transition. It names the stable target, carries the presented text, and records shown/hidden and keyboard/pointer origin without exposing overlay internals.
+
+   .. cpp:member:: std::string target_stable_id
+
+   .. cpp:member:: std::string item_id
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: bool shown
+
+   .. cpp:member:: bool keyboard_initiated
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToolTipSettings final
+
+   ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
+
+   How a window's one tooltip presenter behaves (owner, 2026-10-28). Every window has one presenter; it shows the plain tooltip text of controls (Control::tool_tip_text) and of authored parts (the semantic tool_tip of a strip item or a tab header). The ToolTip component sets these through the window it was made for. - initial_delay: how long the pointer rests over a thing, or keyboard focus stays on it, before its tooltip shows. - reshow_delay: the rest that shows the next tooltip while the pointer moves on from one that showed, within initial_delay of its closing. - auto_pop_delay: how long a tooltip stays; zero keeps it until the pointer leaves its thing, a press, or focus moves. - maximum_width: the widest a tooltip's text runs before it wraps, in logical units, from 80 to 2048. - show_on_hover and show_on_focus: whether a resting pointer, and keyboard focus, show tooltips. - show_when_disabled: whether a disabled control's or item's tooltip shows.
+
+   .. cpp:member:: std::chrono::milliseconds initial_delay
+
+      Default: ``{500}``.
+
+   .. cpp:member:: std::chrono::milliseconds reshow_delay
+
+      Default: ``{100}``.
+
+   .. cpp:member:: std::chrono::milliseconds auto_pop_delay
+
+      Default: ``{5000}``.
+
+   .. cpp:member:: double maximum_width
+
+      Default: ``{336.0}``.
+
+   .. cpp:member:: bool show_on_hover
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool show_on_focus
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool show_when_disabled
+
+      Default: ``{false}``.
 
 .. cpp:namespace:: gui_forms
 

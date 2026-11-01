@@ -105,6 +105,7 @@ TextBox::TextBox(StableId stable_id, std::string text)
     set_border_style(BorderStyle::sunken);
     set_focusable(true);
     set_cursor(CursorKind::text);
+    set_tool_tip_presentation(ToolTipPresentation::field_hint);
     auto_complete_custom_source_ = std::make_shared<AutoCompleteStringCollection>();
     define_bindable_property({
         {"text", BindingValueKind::text, "Appearance",
@@ -198,6 +199,12 @@ void TextBox::text_edited() {
     const std::string value((*editing_).text());
     publish_change(text_changed_, value);
     publish_change(selection_changed_, (*editing_).selection());
+}
+
+std::string TextBox::empty_field_text() const {
+    if (!placeholder_.empty()) return placeholder_;
+    if (!focused_) return {};
+    return field_hint_text();
 }
 
 void TextBox::set_placeholder_text(std::string text) {
@@ -704,8 +711,13 @@ Rect TextBox::paint_multiline(Painter& painter) {
             painter.restore();
         }
     }
-    if (text().empty() && !placeholder_.empty()) painter.draw_text_utf8(
-        {text_left_, 4.0 + line_ascent_}, placeholder_, font, themed ? editor.muted_text : style().disabled_text);
+    if (text().empty()) {
+        const std::string empty_text = empty_field_text();
+        if (!empty_text.empty()) {
+            painter.draw_text_utf8({text_left_, 4.0 + line_ascent_}, empty_text, font,
+                                   themed ? editor.muted_text : style().disabled_text);
+        }
+    }
     Rect caret_bounds{};
     if (focused_) {
         const std::size_t row = caret_line();
@@ -853,10 +865,12 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
             painter.draw_text_utf8({origin_x, baseline}, presented, font, span == 1U ? selected_text : text_ink);
             painter.restore();
         }
-    } else if (!placeholder_.empty()) {
-        painter.draw_text_utf8(
-            {text_left_, baseline}, placeholder_, font,
-            themed ? editor_recipe.muted_text : style().disabled_text);
+    } else {
+        const std::string empty_text = empty_field_text();
+        if (!empty_text.empty()) {
+            painter.draw_text_utf8({text_left_, baseline}, empty_text, font,
+                                   themed ? editor_recipe.muted_text : style().disabled_text);
+        }
     }
     if (focused_ && caret_visible_ && (*editing_).selection().empty()) {
         const double caret_x = origin_x + caret_content_x;

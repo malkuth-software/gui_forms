@@ -38,6 +38,23 @@ gui_forms::DockWorkspace
          restoring go through it directly; register panels through
          :cpp:func:`register_panel <gui_forms::DockWorkspace::register_panel>` so that their titles and factories are known.
 
+      **closable_documents** : ``std::vector<DockPanelId>``, read-only
+         The placed documents that may close, the main site's in tree and tab
+         order, then each floating site's: the documents Close All Documents
+         asks about.
+
+      **close_pending** : ``bool``, default ``false``, read-only
+         Whether a close request waits for :cpp:func:`answer_close <gui_forms::DockWorkspace::answer_close>`.
+
+      **pending_close** : ``std::span<const DockPanelId>``, default empty, read-only
+         The documents the waiting prompt asked about; valid until the next
+         request, answer or layout change.
+
+      **close_prompt** : ``DockClosePrompt``, default ``DockClosePrompt::each``
+         How the program is asked before documents close at the user's request
+         (owner decision DK-31): one ``document_closing`` event per document, in
+         order, or (``combined``) one event for all of them.
+
       **created_panel_count** : ``std::size_t``, read-only
          The number of factory runs that produced content.
 
@@ -76,6 +93,14 @@ gui_forms::DockWorkspace
 
    :Events:
 
+      **document_closing** : ``Event<DockDocumentClosing&>``
+         Raised before documents close at the user's request, with the documents
+         asked about and the cause (one document, Close All, Close Others, or a
+         floating window's close button). A handler sets ``cancel`` to keep
+         them, which ends the request with nothing closed, or ``defer`` to answer
+         later with :cpp:func:`answer_close <gui_forms::DockWorkspace::answer_close>`. A handler may change the layout itself; a
+         request made from inside it is ``busy``.
+
       **activation_changed** : ``Event<const DockActivationChange&>``
          Raised after a track changed, with the track, the old and new panel and
          the cause; when one activation changes both, the panel track is raised
@@ -107,6 +132,14 @@ gui_forms::DockWorkspace
         - Hides a panel, keeping its placeholder and its content.
       * - :cpp:func:`close_panel <gui_forms::DockWorkspace::close_panel>`
         - Closes a panel and releases its content.
+      * - :cpp:func:`request_close <gui_forms::DockWorkspace::request_close>`
+        - The user's close of one panel: a document is asked about first (``document_closing``) and closes once allowed; a tool panel closes at once.
+      * - :cpp:func:`close_all_documents <gui_forms::DockWorkspace::close_all_documents>`
+        - Close All Documents: every placed document that may close, the main site's in tree and tab order, then each floating site's.
+      * - :cpp:func:`close_other_documents <gui_forms::DockWorkspace::close_other_documents>`
+        - Close Other Documents: as :cpp:func:`close_all_documents <gui_forms::DockWorkspace::close_all_documents>`, keeping the given one.
+      * - :cpp:func:`answer_close <gui_forms::DockWorkspace::answer_close>`
+        - Answers the waiting prompt: ``true`` goes on with the request (the next document is asked about, or the documents close), ``false`` cancels it.
       * - :cpp:func:`panel_content <gui_forms::DockWorkspace::panel_content>`
         - The panel's content, or null before its factory ran.
       * - :cpp:func:`create_panel_content <gui_forms::DockWorkspace::create_panel_content>`
@@ -175,8 +208,20 @@ gui_forms::DockWorkspace
    (``place_on_monitor``), wholly inside the work area when the fallback moved
    it and it fits. A move or resize is written back as ``set_floating_frame``
    with the monitor it is on (a change that realizes nothing); a frame the
-   program sets moves the window. The close button hides the window's tool
-   panels and closes its documents, which closes it.
+   program sets moves the window. The close button asks about the window's
+   documents (cause ``floating_window``); once they are allowed it hides the
+   window's tool panels and closes its documents, which closes it. A
+   cancelled or deferred prompt keeps the window open.
+
+   Closing documents (phase D6; owner decision DK-31): a close at the user's
+   request (a document tab's close, the position menu's Close, a floating
+   window's close button, or the program's :cpp:func:`request_close <gui_forms::DockWorkspace::request_close>`,
+   :cpp:func:`close_all_documents <gui_forms::DockWorkspace::close_all_documents>` and :cpp:func:`close_other_documents <gui_forms::DockWorkspace::close_other_documents>`) asks before anything
+   closes. The prompts run in the request's order; a document that left the
+   layout before its turn is not asked about. A cancel at any prompt, or a
+   ``false`` answer, ends the request and closes nothing, including the
+   documents already allowed: the documents close together, in one user
+   transaction, only after the last prompt allowed them.
 
    After every layout change the workspace drops panels that left the layout
    from its histories, releases the content of a document that left, and
@@ -241,6 +286,31 @@ gui_forms::DockWorkspace
       restoring go through it directly; register panels through
       :cpp:func:`register_panel <gui_forms::DockWorkspace::register_panel>` so that their titles and factories are known.
 
+   .. cpp:function:: std::vector<DockPanelId> closable_documents() const
+
+      The placed documents that may close, the main site's in tree and tab
+      order, then each floating site's: the documents Close All Documents
+      asks about.
+
+   .. cpp:function:: bool close_pending() const noexcept
+
+      Whether a close request waits for :cpp:func:`answer_close <gui_forms::DockWorkspace::answer_close>`.
+
+   .. cpp:function:: std::span<const DockPanelId> pending_close() const noexcept
+
+      The documents the waiting prompt asked about; valid until the next
+      request, answer or layout change.
+
+   .. cpp:function:: DockClosePrompt close_prompt() const noexcept
+
+      How the program is asked before documents close at the user's request
+      (owner decision DK-31): one ``document_closing`` event per document, in
+      order, or (``combined``) one event for all of them.
+
+   .. cpp:function:: void set_close_prompt(DockClosePrompt prompt) noexcept
+
+      Sets :cpp:func:`close_prompt <gui_forms::DockWorkspace::close_prompt>`; see the property's description above.
+
    .. cpp:function:: std::size_t created_panel_count() const noexcept
 
       The number of factory runs that produced content.
@@ -295,6 +365,15 @@ gui_forms::DockWorkspace
 
    .. rubric:: Events
 
+   .. cpp:function:: Event<DockDocumentClosing&>& document_closing() noexcept
+
+      Raised before documents close at the user's request, with the documents
+      asked about and the cause (one document, Close All, Close Others, or a
+      floating window's close button). A handler sets ``cancel`` to keep
+      them, which ends the request with nothing closed, or ``defer`` to answer
+      later with :cpp:func:`answer_close <gui_forms::DockWorkspace::answer_close>`. A handler may change the layout itself; a
+      request made from inside it is ``busy``.
+
    .. cpp:function:: Event<const DockActivationChange&>& activation_changed() noexcept
 
       Raised after a track changed, with the track, the old and new panel and
@@ -340,7 +419,31 @@ gui_forms::DockWorkspace
    .. cpp:function:: DockTransactionResult close_panel(const DockPanelId& panel, DockEditOrigin origin = DockEditOrigin::user)
 
       Closes a panel and releases its content. A closed tool panel keeps its
-      placeholder and reopens where it was; a closed document leaves.
+      placeholder and reopens where it was; a closed document leaves. It
+      asks nobody: the program's own close.
+
+   .. cpp:function:: DockCloseOutcome request_close(const DockPanelId& panel)
+
+      The user's close of one panel: a document is asked about first
+      (``document_closing``) and closes once allowed; a tool panel closes at
+      once. Returns a :cpp:enum:`DockCloseOutcome <gui_forms::DockCloseOutcome>`: ``closed``, ``cancelled``,
+      ``pending`` (a handler deferred), ``busy`` (another request waits) or
+      ``refused`` (not placed, may not close, or the layout refused).
+
+   .. cpp:function:: DockCloseOutcome close_all_documents()
+
+      Close All Documents: every placed document that may close, the main
+      site's in tree and tab order, then each floating site's.
+
+   .. cpp:function:: DockCloseOutcome close_other_documents(const DockPanelId& kept)
+
+      Close Other Documents: as :cpp:func:`close_all_documents <gui_forms::DockWorkspace::close_all_documents>`, keeping the given one.
+
+   .. cpp:function:: DockCloseOutcome answer_close(bool close)
+
+      Answers the waiting prompt: ``true`` goes on with the request (the next
+      document is asked about, or the documents close), ``false`` cancels it.
+      Refused when no request waits.
 
    .. cpp:function:: Control::Ptr panel_content(const DockPanelId& panel) const
 

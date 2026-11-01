@@ -115,6 +115,7 @@ RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
     set_border_style(BorderStyle::sunken);
     set_focusable(true);
     set_cursor(CursorKind::text);
+    set_tool_tip_presentation(ToolTipPresentation::field_hint);
     Panel::set_auto_scroll(true);
     reparse();
     heading_menu_ = std::make_unique<ContextMenu>(std::string((*this).stable_id().value()) + ".heading-menu");

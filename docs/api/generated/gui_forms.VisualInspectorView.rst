@@ -57,6 +57,8 @@ gui_forms::VisualInspectorView
 
       * - :cpp:func:`refresh <gui_forms::VisualInspectorView::refresh>`
         - Repaints the view and updates its semantics from a new snapshot.
+      * - :cpp:func:`refresh_if_changed <gui_forms::VisualInspectorView::refresh_if_changed>`
+        - Repaints only when the text the view would draw differs from what it last drew, so polling an unchanged target costs one inspection snapshot and no paint.
 
    .. seealso::
 
@@ -139,6 +141,10 @@ gui_forms::VisualInspectorView
 
       Repaints the view and updates its semantics from a new snapshot. Call it
       after the target changes.
+
+   .. cpp:function:: bool refresh_if_changed()
+
+      Repaints only when the text the view would draw differs from what it last drew, so polling an unchanged target costs one inspection snapshot and no paint. The pending damage count is not compared: it describes the paint that drew it, which always includes the view's own damage. Returns whether it repainted. Poll it from a UI timer: an active surface repaints its control on every tick whatever on_frame does.
 
 
    .. rubric:: Extension points

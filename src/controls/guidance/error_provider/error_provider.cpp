@@ -4,7 +4,6 @@
 #include "../error_glyph/error_glyph.hpp"
 #include "../guidance_utilities.hpp"
 #include "gui_forms/binding.hpp"
-#include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -51,12 +50,9 @@ struct ErrorProvider::TargetBoundsObserver final {
 }
 
 ErrorProvider::ErrorProvider(Window& window)
-    : window_lifetime_(window.lifetime_), tool_tip_(std::make_unique<ToolTip>(window)),
+    : window_lifetime_(window.lifetime_),
       provider_id_(next_error_provider_id.fetch_add(1U)) {
     window.verify_access("ErrorProvider construction");
-    (*tool_tip_).set_initial_delay(std::chrono::milliseconds(250));
-    (*tool_tip_).set_show_on_focus(false);
-    (*tool_tip_).set_show_always(true);
     availability_subscription_ = window.control_availability_changed().subscribe(
         *this, Delegate<const ControlAvailabilityChange&>::bind<
             ErrorProvider, &ErrorProvider::control_availability_changed>(*this));
@@ -73,7 +69,6 @@ ErrorProvider::~ErrorProvider() {
         try {
             dispose();
         } catch (...) {
-            tool_tip_.reset();
             entries_.clear();
         }
     }
@@ -553,12 +548,8 @@ void ErrorProvider::position_visual(Entry& entry) {
 }
 
 void ErrorProvider::close_visual(Entry& entry) noexcept {
-    try {
-        if (tool_tip_ && entry.glyph) {
-            static_cast<void>((*tool_tip_).remove_tool_tip(*entry.glyph));
-        }
-    } catch (...) {
-    }
+    // The glyph's tooltip (its error text) goes with the glyph: closing the
+    // popup detaches it, which closes a tooltip that shows for it.
     if (entry.popup) (*entry.popup).disconnect();
     entry.popup.reset();
     entry.glyph.reset();
@@ -592,14 +583,14 @@ void ErrorProvider::refresh_visual(Entry& entry, bool error_changed) {
         PopupToken popup = (*owner).open_popup(
             target, entry.layer, PopupOptions{.require_enabled_owner = false});
         entry.popup = std::make_unique<PopupToken>(std::move(popup));
-        (*tool_tip_).set_tool_tip(entry.glyph, entry.error);
+        (*entry.glyph).set_tool_tip_text(entry.error);
         return;
     }
 
     (*entry.glyph).set_error(entry.error);
     (*entry.glyph).set_icon(icon_);
     (*entry.glyph).configure_blink(blink_style_, blink_rate_, error_changed);
-    (*tool_tip_).set_tool_tip(entry.glyph, entry.error);
+    (*entry.glyph).set_tool_tip_text(entry.error);
     position_visual(entry);
 }
 
@@ -671,13 +662,11 @@ void ErrorProvider::on_dispose() noexcept {
             close_visual(*entry);
         }
         entries_.clear();
-        if (tool_tip_ && (*tool_tip_).is_alive()) (*tool_tip_).dispose();
     } catch (...) {
     }
     availability_subscription_.disconnect();
     presentation_subscription_.disconnect();
     root_bounds_subscription_.disconnect();
-    tool_tip_.reset();
     tag_.reset();
     window_lifetime_.reset();
 }

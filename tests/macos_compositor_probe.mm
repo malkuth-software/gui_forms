@@ -38,8 +38,23 @@
 // and never judges: it fails only when it cannot make its windows or open
 // its output.
 //
+// Every image read needs a Screen Recording grant, and without one
+// CGWindowListCreateImage asks the user for it in a dialog. The probe checks
+// CGPreflightScreenCaptureAccess (which never asks) once, before any read;
+// without the grant it makes no image read, so no dialog appears, and each
+// case prints "image_reads":"not exercised: screen recording not granted"
+// in place of its colours and colour verdicts. The rest of the case (the
+// window under the clear column, the click, AppKit's flags) is still read,
+// and the run prints "not exercised: image reads (screen recording not
+// granted)" before its last line and succeeds: the missing grant is a
+// measurement of the host, not a probe failure.
+//
 // Arguments: `--output <path>` writes the lines to that file instead of
 // standard output (LaunchServices gives a launched bundle no terminal).
+// `--no-image-reads` makes no image read even with the grant, as without
+// it, so that path can be exercised on a host that has the grant; its
+// lines then say "image reads turned off" in place of "screen recording not
+// granted".
 #import <AppKit/AppKit.h>
 #import <ApplicationServices/ApplicationServices.h>
 
@@ -323,6 +338,9 @@ struct CaseReading final {
     Sample own_clear{};
     Sample own_half{};
     Sample own_opaque{};
+    // False when the probe had no Screen Recording grant and made no image
+    // read; the samples and the two read flags are then unset.
+    bool images_exercised{};
     bool composite_read{};
     bool own_read{};
     const char* window_at_clear{"none"};
@@ -455,8 +473,12 @@ NSWindow* make_probe_window(GFProbeView* view) {
     return window;
 }
 
-CaseReading run_case(const ProbeCase& probe, const ProbeWindows& windows) {
+// image_reads is whether the probe may read window images:
+// CGPreflightScreenCaptureAccess's answer, read once before the first case,
+// unless --no-image-reads turned them off.
+CaseReading run_case(const ProbeCase& probe, const ProbeWindows& windows, bool image_reads) {
     CaseReading reading{};
+    reading.images_exercised = image_reads;
     GFProbeView* const view = [[GFProbeView alloc] initWithFrame:NSMakeRect(0.0, 0.0, content_width, content_height)];
     NSWindow* const window = make_probe_window(view);
     arrange(window, view, probe.first, probe.material);
@@ -468,9 +490,11 @@ CaseReading run_case(const ProbeCase& probe, const ProbeWindows& windows) {
     }
     reading.key_window = window.isKeyWindow == YES;
     reading.app_active = NSApp.isActive == YES;
-    read_columns(window, false, reading.clear, reading.half, reading.opaque, reading.composite_read);
-    reading.caption = read_caption(window);
-    read_columns(window, true, reading.own_clear, reading.own_half, reading.own_opaque, reading.own_read);
+    if (reading.images_exercised) {
+        read_columns(window, false, reading.clear, reading.half, reading.opaque, reading.composite_read);
+        reading.caption = read_caption(window);
+        read_columns(window, true, reading.own_clear, reading.own_half, reading.own_opaque, reading.own_read);
+    }
     reading.window_opaque = window.opaque;
     reading.background_alpha = window.backgroundColor.alphaComponent;
     reading.ignores_mouse_events = window.ignoresMouseEvents;
@@ -493,7 +517,9 @@ CaseReading run_case(const ProbeCase& probe, const ProbeWindows& windows) {
     Sample half_inactive{};
     Sample opaque_inactive{};
     bool inactive_read = false;
-    read_columns(window, false, reading.clear_inactive, half_inactive, opaque_inactive, inactive_read);
+    if (reading.images_exercised) {
+        read_columns(window, false, reading.clear_inactive, half_inactive, opaque_inactive, inactive_read);
+    }
     [window makeKeyAndOrderFront:nil];
     spin(0.4);
     const unsigned probe_before = view.mouseDowns;
@@ -520,19 +546,8 @@ void print_sample(std::FILE* output, const char* name, const Sample& sample, boo
     std::fprintf(output, ",\"%s\":[%d,%d,%d]", name, sample.red, sample.green, sample.blue);
 }
 
-// Prints one case. Returns false when it is a material case read in an
-// inactive window, which then prints no material results.
-bool print_case(std::FILE* output, const ProbeCase& probe, const CaseReading& reading) {
-    const bool active = reading.key_window && reading.app_active;
-    std::fprintf(output,
-                 "{\"probe\":\"macos_compositor\",\"case\":\"%s\",\"first\":\"%s\",\"then\":\"%s\","
-                 "\"requested_material\":\"%s\",\"key_window\":%s,\"app_active\":%s",
-                 probe.name, base_name(probe.first), base_name(probe.then), probe.material_name,
-                 reading.key_window ? "true" : "false", reading.app_active ? "true" : "false");
-    if (reading.has_effect && !active) {
-        std::fprintf(output, ",\"not_exercised\":\"window inactive\"}\n");
-        return false;
-    }
+// The image reads of one case and the colour verdicts drawn from them.
+void print_images(std::FILE* output, const CaseReading& reading) {
     std::fprintf(output, ",\"composite_read\":%s,\"own_read\":%s", reading.composite_read ? "true" : "false",
                  reading.own_read ? "true" : "false");
     print_sample(output, "clear", reading.clear, false);
@@ -546,12 +561,33 @@ bool print_case(std::FILE* output, const ProbeCase& probe, const CaseReading& re
     const bool backdrop_shown = near_rgb(reading.clear, backdrop_rgb[0], backdrop_rgb[1], backdrop_rgb[2]);
     const bool black = near_rgb(reading.clear, 0, 0, 0);
     const bool material_shown = reading.clear.read && !backdrop_shown && !black && reading.has_effect;
+    std::fprintf(output, ",\"per_pixel_alpha\":%s,\"material_shown\":%s", backdrop_shown ? "true" : "false",
+                 material_shown ? "true" : "false");
+}
+
+// Prints one case. Returns false when it is a material case read in an
+// inactive window, which then prints no material results.
+// skipped_reason names why images were not read, for a case without them.
+bool print_case(std::FILE* output, const ProbeCase& probe, const CaseReading& reading, const char* skipped_reason) {
+    const bool active = reading.key_window && reading.app_active;
     std::fprintf(output,
-                 ",\"per_pixel_alpha\":%s,\"material_shown\":%s,\"window_at_clear\":\"%s\","
-                 "\"click_received\":\"%s\",\"window_opaque\":%s,\"background_alpha\":%.3f,"
-                 "\"ignores_mouse_events\":%s",
-                 backdrop_shown ? "true" : "false", material_shown ? "true" : "false", reading.window_at_clear,
-                 reading.click_received, reading.window_opaque ? "true" : "false",
+                 "{\"probe\":\"macos_compositor\",\"case\":\"%s\",\"first\":\"%s\",\"then\":\"%s\","
+                 "\"requested_material\":\"%s\",\"key_window\":%s,\"app_active\":%s",
+                 probe.name, base_name(probe.first), base_name(probe.then), probe.material_name,
+                 reading.key_window ? "true" : "false", reading.app_active ? "true" : "false");
+    if (reading.has_effect && !active) {
+        std::fprintf(output, ",\"not_exercised\":\"window inactive\"}\n");
+        return false;
+    }
+    if (reading.images_exercised) {
+        print_images(output, reading);
+    } else {
+        std::fprintf(output, ",\"image_reads\":\"not exercised: %s\"", skipped_reason);
+    }
+    std::fprintf(output,
+                 ",\"window_at_clear\":\"%s\",\"click_received\":\"%s\",\"window_opaque\":%s,"
+                 "\"background_alpha\":%.3f,\"ignores_mouse_events\":%s",
+                 reading.window_at_clear, reading.click_received, reading.window_opaque ? "true" : "false",
                  static_cast<double>(reading.background_alpha), reading.ignores_mouse_events ? "true" : "false");
     if (reading.has_effect) {
         std::fprintf(output,
@@ -598,7 +634,7 @@ Activation activate_probe() {
     return Activation::none;
 }
 
-void print_settings(std::FILE* output, Activation activation) {
+void print_settings(std::FILE* output, Activation activation, bool screen_capture_access) {
     NSWorkspace* const workspace = NSWorkspace.sharedWorkspace;
     const NSOperatingSystemVersion version = NSProcessInfo.processInfo.operatingSystemVersion;
     const char* const appearance = appearance_name(NSApp.effectiveAppearance.name);
@@ -614,7 +650,7 @@ void print_settings(std::FILE* output, Activation activation) {
                 workspace.accessibilityDisplayShouldReduceTransparency ? "true" : "false",
                 workspace.accessibilityDisplayShouldIncreaseContrast ? "true" : "false",
                 workspace.accessibilityDisplayShouldDifferentiateWithoutColor ? "true" : "false",
-                appearance, CGPreflightScreenCaptureAccess() ? "true" : "false",
+                appearance, screen_capture_access ? "true" : "false",
                 AXIsProcessTrusted() ? "true" : "false", window_list_create_image() != nullptr ? "true" : "false",
                 static_cast<unsigned long>(NSScreen.screens.count),
                 static_cast<double>(NSScreen.mainScreen != nil ? NSScreen.mainScreen.backingScaleFactor : 0.0));
@@ -625,8 +661,10 @@ void print_settings(std::FILE* output, Activation activation) {
 int main(int argc, char** argv) {
     // The output: standard output, or the file after --output.
     const char* output_path = nullptr;
-    for (int index = 1; index + 1 < argc; ++index) {
-        if (std::strcmp(argv[index], "--output") == 0) output_path = argv[index + 1];
+    bool image_reads_requested = true;
+    for (int index = 1; index < argc; ++index) {
+        if (std::strcmp(argv[index], "--output") == 0 && index + 1 < argc) output_path = argv[index + 1];
+        if (std::strcmp(argv[index], "--no-image-reads") == 0) image_reads_requested = false;
     }
     std::FILE* output = stdout;
     if (output_path != nullptr) {
@@ -658,16 +696,23 @@ int main(int argc, char** argv) {
         windows.backdrop.contentView = windows.backdrop_view;
         [windows.backdrop orderFront:nil];
         spin(0.4);
+        // Read once, before any CGWindowListCreateImage call: without the
+        // grant the probe makes none, so the system shows no dialog.
+        const bool screen_capture_access = CGPreflightScreenCaptureAccess();
+        const bool image_reads = screen_capture_access && image_reads_requested;
+        const char* const skipped_reason =
+            image_reads_requested ? "screen recording not granted" : "image reads turned off";
         bool exercised = true;
         for (const ProbeCase& probe : probe_cases) {
-            const CaseReading reading = run_case(probe, windows);
-            if (!print_case(output, probe, reading)) exercised = false;
+            const CaseReading reading = run_case(probe, windows, image_reads);
+            if (!print_case(output, probe, reading, skipped_reason)) exercised = false;
             std::fflush(output);
         }
-        print_settings(output, activation);
+        print_settings(output, activation, screen_capture_access);
         [windows.backdrop orderOut:nil];
         [windows.backdrop close];
         if (exercised) {
+            if (!image_reads) std::fprintf(output, "not exercised: image reads (%s)\n", skipped_reason);
             std::fprintf(output, "macos compositor probe finished\n");
         } else {
             std::fprintf(output, "not exercised: window inactive\n");

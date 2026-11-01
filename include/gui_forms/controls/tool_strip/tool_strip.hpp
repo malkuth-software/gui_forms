@@ -65,10 +65,17 @@ enum class ToolStripOverflow : std::uint8_t { as_needed, never };
 // The application reaches the control through combo_box(), text_box() or
 // progress_bar(); it keeps its state while set_items keeps an item of the
 // same ID and kind.
+//
+// `tool_tip_text` is the item's plain tooltip (owner, 2026-10-28): the
+// window's presenter shows it over the item, and keyboard focus on the item
+// shows it below the item; empty shows none. It reaches the item's semantic
+// node (SemanticNode::tool_tip), and a hosted item's control as that
+// control's tooltip text.
 struct ToolStripItemSpec final {
     std::string stable_id{};
     ToolStripItemKind kind{ToolStripItemKind::button};
     std::string text{};
+    std::string tool_tip_text{};
     ImageId image{};
     ToolStripItemDisplay display{ToolStripItemDisplay::image_and_text};
     std::shared_ptr<Command> command{};

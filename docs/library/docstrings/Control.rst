@@ -171,6 +171,15 @@ accessible_name
     Empty by default.
 accessible_description
     A longer description for assistive technology. Empty by default.
+tool_tip_text
+    Short help text about the control, shown by its window's one tooltip
+    presenter when the pointer rests on the control, or below the control
+    when keyboard focus reaches it with the focus cue showing. Controls you
+    type into show it as grey hint text in their empty field while they
+    have focus instead, unless a placeholder is set. Empty by default, and
+    empty text never shows. It must be valid UTF-8, or
+    `std::invalid_argument` is thrown. It is bindable and published as the
+    semantic field ``tool_tip``. Data items such as list rows have none.
 invoke_required
     Whether the calling thread must go through `begin_invoke` or `invoke`
     to touch the control: true when the control is attached and the caller
@@ -232,6 +241,8 @@ validating
     false.
 validated
     Raised after `validating` when no handler cancelled.
+tool_tip_text_changed
+    Raised after `tool_tip_text` changes, with the new text.
 focus_observed
     Raised with `true` when the control gains focus and `false` when it loses
     it. When focus moves, the control losing it is told first.

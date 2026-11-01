@@ -67,6 +67,8 @@ Related types
      - The one object the work function may touch on the worker thread: the argument, the result, the cancellation request and progress reports.
    * - :cpp:class:`DockActivationChange <gui_forms::DockActivationChange>`
      -  
+   * - :cpp:class:`DockDocumentClosing <gui_forms::DockDocumentClosing>`
+     - Documents about to close at the user's request (DockWorkspace:: document_closing).
    * - :cpp:class:`DockPanelCreation <gui_forms::DockPanelCreation>`
      - A factory's request: build the content of ``panel`` and store it in ``content``.
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
@@ -167,6 +169,24 @@ Related types
    .. cpp:member:: DockActivationCause cause
 
       Default: ``{DockActivationCause::programmatic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DockDocumentClosing final
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+
+   Documents about to close at the user's request (DockWorkspace:: document_closing). ``documents`` is the one document asked about (each) or every document of the request (combined), in the request's order; it is valid only while the event is raised. A handler sets ``cancel`` to keep them, which ends the request with nothing closed, or ``defer`` to answer later with DockWorkspace::answer_close (an asynchronous prompt). With neither set, the request goes on.
+
+   .. cpp:member:: std::span<const DockPanelId> documents
+
+   .. cpp:member:: DockCloseCause cause
+
+      Default: ``{DockCloseCause::document}``.
+
+   .. cpp:member:: bool cancel
+
+   .. cpp:member:: bool defer
 
 .. cpp:namespace:: gui_forms
 
@@ -376,6 +396,46 @@ Enumerations
    .. cpp:enumerator:: panel
 
    .. cpp:enumerator:: document
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DockCloseCause
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+
+   .. cpp:enumerator:: document
+
+   .. cpp:enumerator:: all_documents
+
+   .. cpp:enumerator:: other_documents
+
+   .. cpp:enumerator:: floating_window
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DockCloseOutcome
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+
+   .. cpp:enumerator:: closed
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: pending
+
+   .. cpp:enumerator:: busy
+
+   .. cpp:enumerator:: refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DockClosePrompt
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+
+   .. cpp:enumerator:: each
+
+   .. cpp:enumerator:: combined
 
 .. cpp:namespace:: gui_forms
 

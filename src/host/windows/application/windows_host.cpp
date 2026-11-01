@@ -182,6 +182,23 @@ std::wstring native_filter(const std::vector<HostFileDialogFilter>& filters) {
     return result;
 }
 
+// The native filter index (counting from one) the dialog starts on, and the
+// request's filter (counting from zero) it ended on. Without filters the
+// dialog shows its own "All files", which is no filter of the request.
+DWORD native_filter_index(const std::vector<HostFileDialogFilter>& filters,
+                          std::size_t initial_filter) {
+    if (filters.empty() || initial_filter >= filters.size()) return 1U;
+    const DWORD index = static_cast<DWORD>(initial_filter + 1U);
+    return index;
+}
+
+std::optional<std::size_t> chosen_filter(
+    const std::vector<HostFileDialogFilter>& filters, DWORD native_index) {
+    if (native_index == 0U || native_index > filters.size()) return std::nullopt;
+    const std::size_t chosen = static_cast<std::size_t>(native_index) - 1U;
+    return chosen;
+}
+
 HostDialogResult path_dialog_failure(std::uint64_t request_id,
                                      HostServiceError error) {
     return {{error}, request_id, HostPathDialogResult{}};
@@ -202,6 +219,7 @@ HostDialogResult native_open_dialog(HWND owner, std::uint64_t request_id,
     native.lStructSize = sizeof(native);
     native.hwndOwner = owner;
     native.lpstrFilter = filter.c_str();
+    native.nFilterIndex = native_filter_index(request.filters, request.initial_filter);
     native.lpstrFile = path.data();
     native.nMaxFile = static_cast<DWORD>(path.size());
     native.lpstrInitialDir = directory.empty() ? nullptr : directory.c_str();
@@ -217,6 +235,7 @@ HostDialogResult native_open_dialog(HWND owner, std::uint64_t request_id,
     }
     HostPathDialogResult value;
     value.outcome = HostDialogOutcome::accepted;
+    value.chosen_filter = chosen_filter(request.filters, native.nFilterIndex);
     const std::wstring first(path.data());
     const wchar_t* cursor = path.data() + first.size() + 1U;
     if (*cursor == L'\0') {
@@ -252,6 +271,7 @@ HostDialogResult native_save_dialog(HWND owner, std::uint64_t request_id,
     native.lStructSize = sizeof(native);
     native.hwndOwner = owner;
     native.lpstrFilter = filter.c_str();
+    native.nFilterIndex = native_filter_index(request.filters, request.initial_filter);
     native.lpstrFile = path.data();
     native.nMaxFile = static_cast<DWORD>(path.size());
     native.lpstrInitialDir = directory.empty() ? nullptr : directory.c_str();
@@ -268,6 +288,7 @@ HostDialogResult native_save_dialog(HWND owner, std::uint64_t request_id,
     }
     HostPathDialogResult value;
     value.outcome = HostDialogOutcome::accepted;
+    value.chosen_filter = chosen_filter(request.filters, native.nFilterIndex);
     value.paths.push_back(utf8_from_wide(path.data()));
     return {{}, request_id, std::move(value)};
 }

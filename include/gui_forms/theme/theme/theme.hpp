@@ -14,7 +14,7 @@
 namespace gui_forms {
 
 class Control;
-namespace detail { class ThemeImageLease; struct ThemeAccess; }
+namespace detail { class ThemeImageLease; struct ThemeAccess; struct ThemeSourceRecord; }
 
 class Theme final {
 public:
@@ -80,6 +80,10 @@ private:
     // The images a compiled theme package loaded, each removed from its
     // registry when the last theme holding it is released.
     std::vector<std::shared_ptr<const detail::ThemeImageLease>> images_{};
+    // The theme's source, kept so that a control's inline style using
+    // custom properties can be compiled against it (T3 P12b): a compiled
+    // package's, else the empty sheet's (never null once created).
+    std::shared_ptr<const detail::ThemeSourceRecord> source_{};
 };
 
 [[nodiscard]] ThemeDefinition windows_professional_theme_definition();

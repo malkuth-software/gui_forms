@@ -52,7 +52,8 @@ namespace gui_forms::theme_language {
 //   rules are at the inline levels with the control's selector implied
 //   and whose blocks may name only the control's own parts and states (the
 //   vocabulary is the control's anatomy alone). An inline style has no
-//   palette, custom properties (E999 until P12), at-rules or resources.
+//   palette, at-rules or resources; its custom property definitions are
+//   compiled against the theme in effect (P12b, inline_definitions_from).
 struct ThemeCompileInput final {
     const ThemeSource& source;
     const PrimitiveRegistry& registry;
@@ -62,6 +63,31 @@ struct ThemeCompileInput final {
     std::span<const ThemeImageResource> images{};
     EngineVersion requires_engine{current_engine_version};
     ThemeSheetForm form{ThemeSheetForm::sheet};
+    // A theme compiled again for a control's inline style (P12b): the
+    // byte offset where the style's rules, written as sheet rules, follow
+    // the theme's text. Their custom property definitions are the
+    // style's, at the inline levels and numbered as the style numbers them
+    // (inline_definition_base and the style's own node); a name they
+    // define varies for every rule reading it; and their other
+    // declarations are not lowered.
+    std::optional<std::uint32_t> inline_definitions_from{};
+    // With inline_definitions_from: whether the style's other declarations
+    // are lowered too, at the inline levels, reading the theme's
+    // definitions where the style does not define a name (P12b: a style
+    // reading a name the theme defines).
+    bool inline_declarations{};
+    // An inline style compiled alone (P12b): the custom property names the
+    // theme in effect defines, sorted (SubstitutionInput::theme_names).
+    std::span<const std::string> theme_names{};
+};
+
+// One stretch of an inline style's text copied into a sheet by
+// ThemeCompiler::append_inline_as_sheet: `length` bytes from `style` in the
+// style, at `written` in the sheet. In increasing order of both.
+struct InlineSheetPiece final {
+    std::size_t written{};
+    std::size_t style{};
+    std::size_t length{};
 };
 
 enum class CompileOutcome : std::uint8_t {
@@ -215,6 +241,12 @@ struct NameVariation final {
     // Whether a style rule's declaration reads it, through any number of
     // definitions.
     bool read{};
+    // A theme compiled for an inline style (P12b): whether the style
+    // defines the name, and the declaration node of the theme's one
+    // definition of it, which holds everywhere as the palette's do (a
+    // name defined once is read everywhere); 0 for none.
+    bool inline_defined{};
+    std::uint32_t global_declaration{};
 };
 
 // The theme's custom property variations (P12) and what lowering their
@@ -245,6 +277,9 @@ struct VariationStorage final {
     std::vector<std::uint32_t> assigned{};
     // The world being lowered, one bit per condition taken as holding.
     std::size_t world{};
+    // The names the rule being lowered reads through any definitions
+    // (ThemeRule::reads).
+    std::vector<std::string> read_names{};
     // The rule's selectors' scopes, and a selector lowering's scratch.
     std::vector<SelectorScope> reader_scopes{};
     std::vector<LoweredSelector> scope_selectors{};
@@ -267,6 +302,22 @@ public:
     // then been dropped with a warning (R2-07), so the rest applies.
     [[nodiscard]] CompileOutcome compile(const ThemeCompileInput& input, ThemeRuleSheet& sheet,
                                          ThemeDiagnosticList& diagnostics);
+
+    // After an inline style compiled (P12b): appends to `names` each custom
+    // property name it defines, once, in name order.
+    void append_defined_names(std::vector<std::string>& names) const;
+    // After an inline style compiled alone against a theme's names
+    // (ThemeCompileInput::theme_names): whether it read one of them.
+    [[nodiscard]] bool reads_theme_names() const noexcept { return substitution_.theme_read(); }
+    // After an inline style of text `text` compiled: appends to `output`
+    // its rules written as sheet rules for a theme compiled for it
+    // (ThemeCompileInput::inline_definitions_from), each selector after
+    // `*` (the control's own), with the same rules and declarations in the
+    // same order, so that their nodes keep the style's own order and
+    // nesting. Appends to `pieces` where each copied stretch went, so that
+    // diagnostics placed in `output` can be placed in the style.
+    void append_inline_as_sheet(std::string_view text, std::string& output,
+                                std::vector<InlineSheetPiece>& pieces) const;
 
 private:
     ThemeTokenBuffer tokens_{};

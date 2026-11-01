@@ -322,7 +322,15 @@ SubstitutionOutcome VariableSubstitution::substitute(const SubstitutionInput& in
                 choice = definitions.size() == 1U ? 0U : variable_unassigned;
             }
         }
-        const bool reads_fallback = reserved.kind == ReservedInputKind::none && choice == variable_undefined;
+        // A name the theme in effect defines, read by an inline style
+        // compiled alone (P12b): where the style does not define it, the
+        // theme's definition holds, so neither the fallback nor E409 does.
+        const bool theme_named = !input.theme_names.empty() &&
+                                 std::binary_search(input.theme_names.begin(), input.theme_names.end(), name);
+        if (theme_named) theme_read_ = true;
+        const bool deferred = theme_named && definitions.empty();
+        const bool reads_fallback =
+            reserved.kind == ReservedInputKind::none && choice == variable_undefined && !deferred;
         const std::size_t passed = reads_fallback ? inside - fallback_tokens : inside;
         if (!visit(input, passed, index, diagnostics)) {
             output.clear();
@@ -336,6 +344,10 @@ SubstitutionOutcome VariableSubstitution::substitute(const SubstitutionInput& in
             read.input = reserved.index;
             output.push_back(read);
             continue;
+        }
+        if (deferred) {
+            output.clear();
+            return SubstitutionOutcome::undefined;
         }
         if (choice == variable_undefined) {
             if (reference.has_fallback) {

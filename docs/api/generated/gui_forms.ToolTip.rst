@@ -11,16 +11,20 @@ gui_forms::ToolTip
 
    ``#include <gui_forms/components/tool_tip/tool_tip.hpp>``
 
-   A provider of short help text that pops up when the pointer rests on a control or the control receives keyboard focus.
+   The Windows Forms way to give controls short help text and to set when it shows.
 
-   A tool tip belongs to one window and holds a text for each control you
-   register with :cpp:func:`set_tool_tip <gui_forms::ToolTip::set_tool_tip>`. When the pointer enters a registered control,
-   or the control receives focus, the tip appears after :cpp:func:`initial_delay <gui_forms::ToolTip::initial_delay>` and
-   disappears after :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`, or as soon as the pointer leaves or focus
-   moves on. The tip is drawn over the window but never intercepts the pointer.
-   One tool tip can serve every control in a window; several tool tips in one
-   window are independent of each other. Use a :cpp:class:`HelpProvider <gui_forms::HelpProvider>` for help that the
-   user asks for, and an :cpp:class:`ErrorProvider <gui_forms::ErrorProvider>` to flag invalid input.
+   Tooltips belong to the things they describe: every control has a
+   ``tool_tip_text``, and each window has one presenter that shows it when the
+   pointer rests on the control, or when the control receives keyboard focus
+   while the focus cue is showing. A tool tip shows nothing itself.
+   :cpp:func:`set_tool_tip <gui_forms::ToolTip::set_tool_tip>` writes the control's text, and the timing and policy
+   properties read and change the window's :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`, which every tool
+   tip of the window shares: the last value set holds. Text controls (a text
+   box, a combo box's edit field) show their text as light grey hint text in the
+   empty field instead of a bubble when they receive focus. Data items (list
+   rows, tree nodes) have no tooltips; a list reveals cut-off text in place. Use
+   a :cpp:class:`HelpProvider <gui_forms::HelpProvider>` for help that the user asks for, and an :cpp:class:`ErrorProvider <gui_forms::ErrorProvider>` to
+   flag invalid input.
 
    *Status:* stable. *Windows Forms counterpart:* ``ToolTip``.
 
@@ -34,48 +38,47 @@ gui_forms::ToolTip
 
       **initial_delay** : ``std::chrono::milliseconds``, default ``500 ms``
          How long the pointer must rest on a control, or the control must have
-         focus, before the tip appears. A negative delay throws
-         ``std::invalid_argument``.
+         keyboard focus, before its tooltip appears. Moving the pointer starts
+         the rest again. A negative delay throws ``std::invalid_argument``.
 
       **reshow_delay** : ``std::chrono::milliseconds``, default ``100 ms``
-         The shorter delay used instead when this tool tip hid a tip no more than
+         The shorter delay used instead when a tooltip closed no more than
          :cpp:func:`initial_delay <gui_forms::ToolTip::initial_delay>` ago, so that moving from one control to the next shows
-         each tip quickly. A negative delay throws ``std::invalid_argument``.
+         each tooltip quickly. A negative delay throws ``std::invalid_argument``.
 
       **auto_pop_delay** : ``std::chrono::milliseconds``, default ``5000 ms``
-         How long a tip stays up. Zero keeps it up until the pointer leaves, focus
-         moves or :cpp:func:`hide <gui_forms::ToolTip::hide>` is called. A negative delay throws
+         How long a tooltip stays up. Zero keeps it up until the pointer leaves,
+         focus moves or :cpp:func:`hide <gui_forms::ToolTip::hide>` is called. A negative delay throws
          ``std::invalid_argument``.
 
       **show_on_hover** : ``bool``, default ``true``
-         Whether the pointer entering a control shows its tip.
+         Whether the pointer resting on a control shows its tooltip.
 
       **show_on_focus** : ``bool``, default ``true``
-         Whether a control receiving focus shows its tip, placed below the
-         control.
+         Whether keyboard focus reaching a control shows its tooltip, placed
+         below the control.
 
       **show_always** : ``bool``, default ``false``
-         Whether tips also appear for disabled controls, for example to explain
-         why a command is unavailable. Hidden controls never show tips.
+         Whether tooltips also appear for disabled controls, for example to
+         explain why a command is unavailable. Hidden controls never show them.
 
       **maximum_width** : ``double``, default ``336.0``
-         The widest the tip's text may be before it wraps onto further lines. It
-         must be finite and between 80 and 2048, or ``std::invalid_argument`` is
-         thrown. Changing it reshapes a tip that is showing.
+         The widest a tooltip's text may be before it wraps onto further lines.
+         It must be finite and between 80 and 2048, or ``std::invalid_argument`` is
+         thrown. Changing it reshapes a tooltip that is showing.
 
       **visible** : ``bool``, default ``false``, read-only
-         Whether a tip is showing.
+         Whether a tooltip of a control this tool tip set text on is showing.
 
       **active_control** : ``std::shared_ptr<Control>``, read-only
-         The control whose tip is showing, or null.
+         That control, or null.
 
    :Events:
 
       **visibility_changed** : ``Event<const ToolTipEvent&>``
-         Raised when a tip appears and when it disappears, with the control's
-         stable ID, the text, whether it is now shown, and whether keyboard focus
-         showed it. Showing a tip while another is up raises the hiding of the
-         old one first.
+         Raised when the tooltip of a control this tool tip set text on appears
+         and when it disappears, with the control's stable ID, the text, whether
+         it is now shown, and whether keyboard focus showed it.
 
    :Inherited:
 
@@ -88,19 +91,28 @@ gui_forms::ToolTip
       :widths: 35 65
 
       * - :cpp:func:`tool_tip <gui_forms::ToolTip::tool_tip>`
-        - The text registered for a control, or an empty string.
+        - A control's tooltip text, whoever set it, or an empty string.
       * - :cpp:func:`remove_tool_tip <gui_forms::ToolTip::remove_tool_tip>`
-        - Removes a control's text, hiding its tip and cancelling a pending one.
+        - Clears the text this tool tip set on a control, closing its tooltip and cancelling a pending one.
       * - :cpp:func:`clear <gui_forms::ToolTip::clear>`
-        - Hides any tip and removes every registered text.
+        - Clears the text this tool tip set on every control.
       * - :cpp:func:`show <gui_forms::ToolTip::show>`
-        - ``show(control)`` shows a registered control's tip at once, placed below the control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for ``duration``, where zero means until it is hidden.
+        - ``show(control)`` shows the control's tooltip at once, placed below the control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for ``duration``, where zero means until it is hidden.
       * - :cpp:func:`hide <gui_forms::ToolTip::hide>`
-        - Hides the tip that is showing and cancels one that is waiting for its delay.
+        - Closes the window's tooltip when it shows one of this tool tip's controls.
       * - :cpp:func:`set_tool_tip <gui_forms::ToolTip::set_tool_tip>`
-        - ``set_tool_tip(control, text)`` registers or changes the text of a control; empty text removes it.
+        - ``set_tool_tip(control, text)`` sets a control's ``tool_tip_text``; empty text removes it.
 
    .. seealso::
+
+      :cpp:class:`Window <gui_forms::Window>`
+         The presenter, its :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`, and the window switch ``set_tool_tips_shown``.
+
+      :cpp:class:`Application <gui_forms::Application>`
+         The program switch ``set_tool_tips_shown``.
+
+      :cpp:class:`RibbonToolTip <gui_forms::RibbonToolTip>`
+         Enhanced tooltips with a title, description and shortcut.
 
       :cpp:class:`HelpProvider <gui_forms::HelpProvider>`
          Help text that the user requests.
@@ -108,27 +120,27 @@ gui_forms::ToolTip
       :cpp:class:`ErrorProvider <gui_forms::ErrorProvider>`
          An error icon and message beside a control.
 
-      :cpp:class:`AnchoredPopupLayer <gui_forms::AnchoredPopupLayer>`
-         An interactive popup placed against a control.
-
    .. rubric:: Notes
 
-   A tip shown by the pointer appears just below and to the right of the pointer;
-   a tip shown by focus or by :cpp:func:`show <gui_forms::ToolTip::show>` appears just below the control's left edge.
-   Either way it moves above when there is no room below and stays at least 4
-   pixels inside the window. A tip that is showing follows its control when the
-   control is laid out somewhere else.
+   A tooltip shown by the pointer appears just below and to the right of the
+   pointer; one shown by focus or by :cpp:func:`show <gui_forms::ToolTip::show>` appears just below the control's
+   left edge. Either way it moves above when there is no room below and stays
+   at least 4 pixels inside the window. A tooltip that is showing follows its
+   control when the control is laid out somewhere else. Pressing a pointer
+   button closes the tooltip, and nothing shows again until the pointer leaves
+   the control.
 
-   The tip ignores the pointer, so the control underneath keeps receiving
-   clicks and hover. Disposing or hiding the control closes its tip, and
-   disposing the tool tip closes its tip and cancels any pending one.
+   The tooltip ignores the pointer, so the control underneath keeps receiving
+   clicks and hover. Disposing or hiding the control closes its tooltip.
+   Disposing the tool tip clears the text it set.
 
    Changing, showing or hiding a tool tip must happen on the window's UI
    thread. Doing so after the tool tip is disposed, or after its window has
    shut down, throws ``std::logic_error``.
 
-   The tip publishes the accessibility role :cpp:func:`tool_tip <gui_forms::ToolTip::tool_tip>`, named by its text,
-   while it is showing.
+   The tooltip publishes the accessibility role :cpp:func:`tool_tip <gui_forms::ToolTip::tool_tip>`, named by its text,
+   while it is showing, and every control publishes its text as the semantic
+   field :cpp:func:`tool_tip <gui_forms::ToolTip::tool_tip>`.
 
    .. rubric:: Examples
 
@@ -146,7 +158,8 @@ gui_forms::ToolTip
 
       gf::ToolTip tips(window);
       tips.set_tool_tip(save, "Save the document (Ctrl+S)");
-      // Hovering over or focusing the button now shows the tip after 500 ms.
+      // (*save).tool_tip_text() is now that text; resting the pointer on the
+      // button, or tabbing to it, shows it after 500 ms.
 
       tips.show(save, std::chrono::milliseconds(0));   // until hide()
       // tips.visible() is true and tips.active_control() is save.
@@ -185,136 +198,138 @@ gui_forms::ToolTip
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::chrono::milliseconds initial_delay() const noexcept
+   .. cpp:function:: std::chrono::milliseconds initial_delay() const
 
       How long the pointer must rest on a control, or the control must have
-      focus, before the tip appears. A negative delay throws
-      ``std::invalid_argument``.
+      keyboard focus, before its tooltip appears. Moving the pointer starts
+      the rest again. A negative delay throws ``std::invalid_argument``.
 
    .. cpp:function:: void set_initial_delay(std::chrono::milliseconds delay)
 
       Sets :cpp:func:`initial_delay <gui_forms::ToolTip::initial_delay>`; see the property's description above.
 
-   .. cpp:function:: std::chrono::milliseconds reshow_delay() const noexcept
+   .. cpp:function:: std::chrono::milliseconds reshow_delay() const
 
-      The shorter delay used instead when this tool tip hid a tip no more than
+      The shorter delay used instead when a tooltip closed no more than
       :cpp:func:`initial_delay <gui_forms::ToolTip::initial_delay>` ago, so that moving from one control to the next shows
-      each tip quickly. A negative delay throws ``std::invalid_argument``.
+      each tooltip quickly. A negative delay throws ``std::invalid_argument``.
 
    .. cpp:function:: void set_reshow_delay(std::chrono::milliseconds delay)
 
       Sets :cpp:func:`reshow_delay <gui_forms::ToolTip::reshow_delay>`; see the property's description above.
 
-   .. cpp:function:: std::chrono::milliseconds auto_pop_delay() const noexcept
+   .. cpp:function:: std::chrono::milliseconds auto_pop_delay() const
 
-      How long a tip stays up. Zero keeps it up until the pointer leaves, focus
-      moves or :cpp:func:`hide <gui_forms::ToolTip::hide>` is called. A negative delay throws
+      How long a tooltip stays up. Zero keeps it up until the pointer leaves,
+      focus moves or :cpp:func:`hide <gui_forms::ToolTip::hide>` is called. A negative delay throws
       ``std::invalid_argument``.
 
    .. cpp:function:: void set_auto_pop_delay(std::chrono::milliseconds delay)
 
       Sets :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; see the property's description above.
 
-   .. cpp:function:: bool show_on_hover() const noexcept
+   .. cpp:function:: bool show_on_hover() const
 
-      Whether the pointer entering a control shows its tip.
+      Whether the pointer resting on a control shows its tooltip.
 
    .. cpp:function:: void set_show_on_hover(bool value)
 
       Sets :cpp:func:`show_on_hover <gui_forms::ToolTip::show_on_hover>`; see the property's description above.
 
-   .. cpp:function:: bool show_on_focus() const noexcept
+   .. cpp:function:: bool show_on_focus() const
 
-      Whether a control receiving focus shows its tip, placed below the
-      control.
+      Whether keyboard focus reaching a control shows its tooltip, placed
+      below the control.
 
    .. cpp:function:: void set_show_on_focus(bool value)
 
       Sets :cpp:func:`show_on_focus <gui_forms::ToolTip::show_on_focus>`; see the property's description above.
 
-   .. cpp:function:: bool show_always() const noexcept
+   .. cpp:function:: bool show_always() const
 
-      Whether tips also appear for disabled controls, for example to explain
-      why a command is unavailable. Hidden controls never show tips.
+      Whether tooltips also appear for disabled controls, for example to
+      explain why a command is unavailable. Hidden controls never show them.
 
    .. cpp:function:: void set_show_always(bool value)
 
       Sets :cpp:func:`show_always <gui_forms::ToolTip::show_always>`; see the property's description above.
 
-   .. cpp:function:: double maximum_width() const noexcept
+   .. cpp:function:: double maximum_width() const
 
-      The widest the tip's text may be before it wraps onto further lines. It
-      must be finite and between 80 and 2048, or ``std::invalid_argument`` is
-      thrown. Changing it reshapes a tip that is showing.
+      The widest a tooltip's text may be before it wraps onto further lines.
+      It must be finite and between 80 and 2048, or ``std::invalid_argument`` is
+      thrown. Changing it reshapes a tooltip that is showing.
 
    .. cpp:function:: void set_maximum_width(double width)
 
       Sets :cpp:func:`maximum_width <gui_forms::ToolTip::maximum_width>`; see the property's description above.
 
-   .. cpp:function:: bool visible() const noexcept
+   .. cpp:function:: bool visible() const
 
-      Whether a tip is showing.
+      Whether a tooltip of a control this tool tip set text on is showing.
 
-   .. cpp:function:: std::shared_ptr<Control> active_control() const noexcept
+   .. cpp:function:: std::shared_ptr<Control> active_control() const
 
-      The control whose tip is showing, or null.
+      That control, or null.
 
 
    .. rubric:: Events
 
    .. cpp:function:: Event<const ToolTipEvent&>& visibility_changed() noexcept
 
-      Raised when a tip appears and when it disappears, with the control's
-      stable ID, the text, whether it is now shown, and whether keyboard focus
-      showed it. Showing a tip while another is up raises the hiding of the
-      old one first.
+      Raised when the tooltip of a control this tool tip set text on appears
+      and when it disappears, with the control's stable ID, the text, whether
+      it is now shown, and whether keyboard focus showed it.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: std::string tool_tip(const Control& target) const
 
-      The text registered for a control, or an empty string.
+      A control's tooltip text, whoever set it, or an empty string.
 
-   .. cpp:function:: bool remove_tool_tip(const Control& target)
+   .. cpp:function:: bool remove_tool_tip(Control& target)
 
-      Removes a control's text, hiding its tip and cancelling a pending one.
-      Returns false when the control has none.
+      Clears the text this tool tip set on a control, closing its tooltip and
+      cancelling a pending one. Returns false, changing nothing, when this
+      tool tip set none there.
 
    .. cpp:function:: void clear()
 
-      Hides any tip and removes every registered text.
+      Clears the text this tool tip set on every control.
 
    .. cpp:function:: void show(const std::shared_ptr<Control>& target)
 
-      ``show(control)`` shows a registered control's tip at once, placed below
-      the control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it
-      for ``duration``, where zero means until it is hidden. A control without
-      text throws ``std::invalid_argument``, as does a negative duration. A
-      hidden control shows nothing, and so does a disabled one unless
-      :cpp:func:`show_always <gui_forms::ToolTip::show_always>` is true.
+      ``show(control)`` shows the control's tooltip at once, placed below the
+      control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for
+      ``duration``, where zero means until it is hidden. It shows even when the
+      window's or the program's tooltips are switched off. A control this
+      tool tip set no text on throws ``std::invalid_argument``, as does a
+      negative duration. A hidden control shows nothing, and so does a
+      disabled one unless :cpp:func:`show_always <gui_forms::ToolTip::show_always>` is true.
 
    .. cpp:function:: void show(const std::shared_ptr<Control>& target, std::chrono::milliseconds duration)
 
-      ``show(control)`` shows a registered control's tip at once, placed below
-      the control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it
-      for ``duration``, where zero means until it is hidden. A control without
-      text throws ``std::invalid_argument``, as does a negative duration. A
-      hidden control shows nothing, and so does a disabled one unless
-      :cpp:func:`show_always <gui_forms::ToolTip::show_always>` is true.
+      ``show(control)`` shows the control's tooltip at once, placed below the
+      control, for :cpp:func:`auto_pop_delay <gui_forms::ToolTip::auto_pop_delay>`; ``show(control, duration)`` shows it for
+      ``duration``, where zero means until it is hidden. It shows even when the
+      window's or the program's tooltips are switched off. A control this
+      tool tip set no text on throws ``std::invalid_argument``, as does a
+      negative duration. A hidden control shows nothing, and so does a
+      disabled one unless :cpp:func:`show_always <gui_forms::ToolTip::show_always>` is true.
 
    .. cpp:function:: void hide()
 
-      Hides the tip that is showing and cancels one that is waiting for its
-      delay.
+      Closes the window's tooltip when it shows one of this tool tip's
+      controls.
 
    .. cpp:function:: void set_tool_tip(const std::shared_ptr<Control>& target, std::string text)
 
-      ``set_tool_tip(control, text)`` registers or changes the text of a
-      control; empty text removes it. The control must be live and attached
-      to the tool tip's window, and the text valid UTF-8, or
-      ``std::invalid_argument`` is thrown. Changing the text of the tip that is
-      showing updates it at once.
+      ``set_tool_tip(control, text)`` sets a control's ``tool_tip_text``; empty
+      text removes it. The control must be live and attached to the tool
+      tip's window, and the text valid UTF-8, or ``std::invalid_argument`` is
+      thrown. Changing the text of a tooltip that is showing updates it at
+      once.
 
 
    .. rubric:: Extension points

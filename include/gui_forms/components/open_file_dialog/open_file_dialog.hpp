@@ -6,6 +6,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 
+#include <cstddef>
 #include <memory>
 #include <span>
 #include <string>
@@ -40,10 +41,16 @@ public:
     void set_initial_directory(std::string directory);
 
     // The filter in Windows Forms' syntax, as set, and the host filters it
-    // parsed into. The first filter is the one the dialog starts with.
+    // parsed into.
     [[nodiscard]] const std::string& filter() const noexcept { return filter_; }
     void set_filter(std::string filter);
     [[nodiscard]] std::span<const HostFileDialogFilter> filters() const noexcept { return filters_; }
+    // The filter the dialog starts with, an index into filters() (Windows
+    // Forms' FilterIndex, which counts from one; this counts from zero).
+    // After the user accepts it is the filter they had selected, where the
+    // host tells; an index past the filters starts the dialog on the first.
+    [[nodiscard]] std::size_t filter_index() const noexcept { return filter_index_; }
+    void set_filter_index(std::size_t index) noexcept { filter_index_ = index; }
 
     // Whether the user may choose more than one file (Windows Forms'
     // Multiselect).
@@ -97,6 +104,7 @@ private:
     std::string initial_directory_{};
     std::string filter_{};
     std::vector<HostFileDialogFilter> filters_{};
+    std::size_t filter_index_{};
     bool multiselect_{};
     std::vector<std::string> file_names_{};
     HostServiceStatus status_{};

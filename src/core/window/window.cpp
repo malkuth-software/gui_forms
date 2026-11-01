@@ -1,4 +1,5 @@
 #include "gui_forms/window.hpp"
+#include "tool_tips/tool_tip_presenter.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
@@ -9,6 +10,7 @@
 #include "../scheduler/request/scheduled_frame_request.hpp"
 #include "accelerator/accelerator_attachment.hpp"
 #include "popup/popup_attachment.hpp"
+#include "../theme/theme_compiler/control_inline_style.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -247,6 +249,7 @@ void append_semantic_nodes(const Control::Ptr& control,
     node.large_step = descriptor.large_step;
     node.text_selection = descriptor.text_selection;
     node.multiline = descriptor.multiline;
+    node.tool_tip = (*control).tool_tip_text();
     node.bounds = (*control).absolute_bounds();
     if (!current_semantic_identity(control, expected_parent, owner)) return;
     node.states |= descriptor.states;
@@ -711,6 +714,7 @@ bool Window::request_focus(const Control::Ptr& control) {
         moved.current_id = (*current).runtime_id();
         moved.stable_id = std::string((*current).stable_id().value());
     }
+    if (tool_tip_presenter_) (*tool_tip_presenter_).focus_changed(current);
     focused_control_changed_.emit(moved);
     return true;
 }
@@ -1533,6 +1537,13 @@ bool Window::dispatch_pointer(PointerEvent event) {
                 (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
             }
         }
+        if (tool_tip_presenter_) {
+            (*tool_tip_presenter_).pointer_moved(event.position, hovered_.lock(), FrameClock::now());
+        }
+    } else if (event.action == PointerAction::down && tool_tip_presenter_) {
+        (*tool_tip_presenter_).pointer_pressed();
+    } else if (event.action == PointerAction::leave && tool_tip_presenter_) {
+        (*tool_tip_presenter_).pointer_left();
     }
     Control::Ptr target = captured_.lock();
     if (!target) {
@@ -1628,6 +1639,15 @@ bool Window::dispatch_key(KeyEvent event) {
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
+    const bool key_down = event.action == KeyAction::down;
+    const bool handled = route_key(std::move(event));
+    // A key may have moved the keyboard within the focused control, or
+    // shown the focus cue: the presenter looks at what focus is on again.
+    if (key_down && tool_tip_presenter_) (*tool_tip_presenter_).key_handled();
+    return handled;
+}
+
+bool Window::route_key(KeyEvent event) {
     metrics_.record_input();
     if (event.action == KeyAction::down) {
         set_focus_cue_visible(true);
@@ -2022,11 +2042,31 @@ void Window::detach_subtree_state(const Control::Ptr& control,
     }
 }
 
+bool Window::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
+                                     std::vector<ThemeCompileDiagnostic>& diagnostics) const {
+    if (root_ && !(*root_).theme_override_) {
+        if (!(*root_).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+    }
+    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
+        const Control::Ptr overlay = (*popup).popup();
+        if (!overlay || (*overlay).theme_override_) continue;
+        if (!(*overlay).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+    }
+    return true;
+}
+
+void Window::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles) {
+    Control::commit_inline_restyles(restyles);
+}
+
 void Window::attach_subtree(const Control::Ptr& control, const Control::WeakPtr& parent) {
     require_ui_thread("visual-tree attachment");
     register_subtree(control);
     ControlList controls;
     attach_subtree_state(control, parent, controls);
+    // The theme in effect may have changed with the window or the parent
+    // (P12b).
+    for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
     ControlList notified;
     in_lifecycle_notification_ = true;
     try {
@@ -2771,6 +2811,9 @@ void Window::ensure_layout(bool read_barrier) {
             arrange_dirty_recursive(
                 root_, {0.0, 0.0, client_size_.width, client_size_.height},
                 arrange_visited, arranged);
+            // A tooltip below a control follows it before the popups are
+            // arranged.
+            if (tool_tip_presenter_) (*tool_tip_presenter_).root_arranged();
             for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
                 if (const Control::Ptr overlay = (*popup).popup()) {
                     arrange_dirty_recursive(overlay, (*overlay).requested_bounds_,

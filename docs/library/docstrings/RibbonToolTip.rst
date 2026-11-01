@@ -18,6 +18,12 @@ enabled state says whether the target is disabled. A strip item with a
 command supplies it when the content names none. The disabled reason shows
 only while the target is disabled.
 
+Content without a title takes the thing's plain tooltip as its title: the
+control's `tool_tip_text`, or the strip item's `tool_tip_text`. While a
+mapping exists, the window's plain tooltip presenter shows nothing for what
+it describes (a control mapping covers every part of the control), so the
+two never show at once; removing the mapping hands the thing back.
+
 Parameters
 ----------
 window
@@ -65,10 +71,11 @@ Methods
 set_tool_tip
     `set_tool_tip(control, content)` maps a whole control. The control must
     be live and attached to the provider's window, and the content valid
-    UTF-8 with a title or a command, or `std::invalid_argument` is thrown.
+    UTF-8 with a title, a command or a plain tooltip on the control, or
+    `std::invalid_argument` is thrown.
 set_item_tool_tip
     `set_item_tool_tip(strip, item_id, content)` maps one item of a strip;
-    the item's command or text may supply the title. Throws as
+    the item's command, plain tooltip or text may supply the title. Throws as
     `set_tool_tip` does, and `std::out_of_range` for an ID that names no
     item of the strip.
 has_tool_tip
@@ -88,7 +95,7 @@ hide
 
 See Also
 --------
-ToolTip : Plain one-line tooltips.
+ToolTip : Plain tooltip text and the window's tooltip timing.
 HelpProvider : Help the user asks for with F1 on a focused control.
 QuickAccessToolbar : A ribbon toolbar whose buttons take enhanced tooltips.
 

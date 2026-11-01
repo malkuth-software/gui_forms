@@ -366,6 +366,46 @@ void ended_from_file_ok() {
     require(wrong_thread && reentered.file_name() == "/tmp/d.txt", "showing off the UI thread is refused");
 }
 
+// The filter the dialog starts on, and the one the user ended on.
+void filter_index() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("open.filter"));
+    Window window(root, {320.0, 200.0});
+    host::HeadlessHost headless(window);
+    host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
+    DialogScript script;
+    services.set_dialog_handler(ScriptedDialogs{&script});
+
+    OpenFileDialog dialog;
+    require(dialog.filter_index() == 0U, "the first filter is the default");
+    dialog.set_filter("Logs|*.log|Text|*.txt|All files|*.*");
+    dialog.set_filter_index(1U);
+    HostPathDialogResult answer = accepted({"/tmp/a.txt"});
+    answer.chosen_filter = 2U;
+    script.answers.push_back(answer);
+    require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted");
+    const HostOpenFileDialogRequest* const first = open_request(script.requests[0]);
+    require(first != nullptr && (*first).initial_filter == 1U && dialog.filter_index() == 2U,
+            "the request starts on the set filter and the dialog takes the one the user ended on");
+
+    dialog.set_filter_index(7U);
+    script.answers.push_back(accepted({"/tmp/b.log"}));
+    require(dialog.show_dialog(window) == DialogResult::ok, "the dialog is accepted again");
+    const HostOpenFileDialogRequest* const second = open_request(script.requests[1]);
+    require(second != nullptr && (*second).initial_filter == 0U && dialog.filter_index() == 7U,
+            "an index past the filters starts on the first, and a host that does not tell keeps the index");
+
+    answer.chosen_filter = 3U;
+    script.answers.push_back(answer);
+    require(dialog.show_dialog(window) == DialogResult::none && !dialog.status().accepted() &&
+                dialog.filter_index() == 7U && dialog.file_name() == "/tmp/b.log",
+            "a host naming a filter the request does not have is refused and changes nothing");
+
+    require(dialog.show_dialog(window) == DialogResult::cancel && dialog.filter_index() == 7U,
+            "a cancelled dialog keeps the index");
+    dialog.reset();
+    require(dialog.filter_index() == 0U, "reset returns to the first filter");
+}
+
 } // namespace
 
 int main() {
@@ -374,8 +414,9 @@ int main() {
     settings();
     without_host();
     shown_through_host();
+    filter_index();
     ended_from_file_ok();
     std::cout << "OpenFileDialog: filter syntax, name part, settings, refusals, host requests and answers, "
-                 "file_ok, disposal, destruction, reentrancy and threads passed\n";
+                 "the filter index, file_ok, disposal, destruction, reentrancy and threads passed\n";
     return 0;
 }

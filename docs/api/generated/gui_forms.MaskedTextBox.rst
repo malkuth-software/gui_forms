@@ -165,6 +165,9 @@ gui_forms::MaskedTextBox
 
    .. rubric:: Notes
 
+   Its ``tool_tip_text`` shows as grey hint text in the edit field when the
+   field is empty and has focus, in place of a tooltip bubble.
+
    The caret passes over literals: after a character is typed it moves to the
    next position the user can fill. Typing inserts before the caret (later
    characters move on) unless :cpp:func:`overwrite_mode <gui_forms::MaskedTextBox::overwrite_mode>` is on. Backspace and Delete
