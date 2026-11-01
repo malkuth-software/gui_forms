@@ -81,6 +81,13 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The press-and-hold repeat timer's target (ADR-016: a UI timer the bar
+    // stops on release, not an active surface). Observes the bar.
+    struct RepeatTick final {
+        std::weak_ptr<ScrollBar> bar;
+        void operator()(FrameTime now) const;
+    };
+
     void paint_button(Painter& painter, Rect button, ScrollBarPart part,
                       bool incrementing, const BasicControlStyle& colors);
     [[nodiscard]] double axis_coordinate(Point local_point) const noexcept;
@@ -96,6 +103,9 @@ private:
     double minimum_thumb_extent_{18.0};
     FrameInterval initial_repeat_delay_{std::chrono::milliseconds(400)};
     FrameInterval repeat_interval_{std::chrono::milliseconds(60)};
+    // Repeats the pressed part: first after initial_repeat_delay_, then
+    // every repeat_interval_, until release. Each repeat's value change
+    // damages the bar.
     FrameRequestToken repeat_frames_;
     bool focused_{};
     bool tracking_thumb_{};

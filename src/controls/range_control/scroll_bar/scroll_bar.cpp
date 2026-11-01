@@ -241,8 +241,15 @@ void ScrollBar::begin_repeat(ScrollBarPart part, Point pointer) {
     if (window() == nullptr || part == ScrollBarPart::none ||
         part == ScrollBarPart::thumb) return;
     const FrameTime now = FrameClock::now();
-    repeat_frames_ = (*window()).activate_surface(
-        shared_from_this(), repeat_interval_, now + initial_repeat_delay_);
+    const std::shared_ptr<ScrollBar> self =
+        std::static_pointer_cast<ScrollBar>(shared_from_this());
+    repeat_frames_ = (*window()).schedule_ui_timer(
+        *this, repeat_interval_, now + initial_repeat_delay_, RepeatTick{self});
+}
+
+void ScrollBar::RepeatTick::operator()(FrameTime now) const {
+    const std::shared_ptr<ScrollBar> live = bar.lock();
+    if (live) (*live).on_frame(now);
 }
 
 void ScrollBar::stop_interaction() noexcept {
