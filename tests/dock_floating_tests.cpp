@@ -647,6 +647,29 @@ void close_button_asks_about_documents() {
             "an allowed prompt closes the document and the window");
 }
 
+// A restore on live windows opens the floating windows the saved layout
+// holds and destroys those it drops (phase D7).
+void load_layout_on_live_windows() {
+    std::unique_ptr<App> app = make_app();
+    DockWorkspace& workspace = *(*app).workspace;
+    const std::string docked_layout = workspace.save_layout().text;
+    static_cast<void>(float_properties(*app));
+    const std::string floating_layout = workspace.save_layout().text;
+    require(workspace.load_layout(docked_layout).status == DockRestoreStatus::restored, "the docked layout loads");
+    (*(*app).application).reclaim();
+    require(workspace.floating_window_count() == 0U &&
+                workspace.layout().locate(DockPanelId("properties")).placement == DockPlacementKind::docked,
+            "the floating window it drops is destroyed and Properties is docked");
+    require(workspace.load_layout(floating_layout).status == DockRestoreStatus::restored, "the floating layout loads");
+    (*(*app).application).reclaim();
+    lay_out_all(*app);
+    const DockSiteId floating = floating_site_of(workspace, "properties");
+    const Control::Ptr content = workspace.panel_content(DockPanelId("properties"));
+    require(workspace.floating_window_count() == 1U && model_of(*app, floating) != nullptr && content &&
+                (*content).attached_window() == model_of(*app, floating),
+            "its floating window opens again with Properties inside");
+}
+
 } // namespace
 
 int main() {
@@ -661,6 +684,7 @@ int main() {
     close_button_hides_panels();
     close_button_without_a_main_site();
     close_button_asks_about_documents();
+    load_layout_on_live_windows();
     std::cout << "Floating windows: the Float trace, floating on release and at the limit, docking back, drags "
                  "across windows, moving by the caption, frames saved, Ctrl+S, restore and closing passed\n";
     return EXIT_SUCCESS;

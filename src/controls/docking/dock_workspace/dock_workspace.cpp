@@ -3,10 +3,12 @@
 #include "gui_forms/application/workspace_transaction/workspace_transaction.hpp"
 #include "gui_forms/commands/command_route/command_route.hpp"
 #include "gui_forms/controls/docking/dock_site/dock_site.hpp"
+#include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
 #include <array>
+#include <stdexcept>
 #include <string>
 #include <utility>
 
@@ -431,6 +433,101 @@ DockCloseOutcome DockWorkspace::finish_close() {
         if (entry != nullptr) (*entry).content.reset();
     }
     return DockCloseOutcome::closed;
+}
+
+// -- saving and restoring layouts (phase D7) -------------------------------------
+
+DockLayoutWriteResult DockWorkspace::save_layout() const {
+    DockLayoutWriteResult written = layout_.write_xml();
+    return written;
+}
+
+// The restore is one layout change: on_layout_changed then carries it out
+// on the windows in one WorkspaceTransaction (floating windows opened and
+// destroyed as for any change) and the sites create only what they show.
+DockRestoreResult DockWorkspace::load_layout(std::string_view xml, const DockRestoreOptions& options) {
+    // The monitors must outlive the restore, which reads them through the
+    // options' span.
+    const std::vector<DockMonitor> attached = options.monitors.empty() ? monitors() : std::vector<DockMonitor>{};
+    DockRestoreOptions used = options;
+    if (options.monitors.empty()) used.monitors = attached;
+    // A waiting close request holds documents of the layout being replaced:
+    // it ends, closing nothing, before the restore changes the layout.
+    close_request_.reset();
+    DockRestoreResult result = layout_.restore_xml(xml, used);
+    return result;
+}
+
+const DockNamedLayout* DockWorkspace::find_named_layout(std::string_view name) const noexcept {
+    for (const DockNamedLayout& layout : named_layouts_) {
+        if (layout.name == name) return &layout;
+    }
+    return nullptr;
+}
+
+namespace {
+
+void require_layout_name(std::string_view name) {
+    if (name.empty() || !validate_utf8(name).valid()) {
+        throw std::invalid_argument("GUI.Forms named layout names must be non-empty valid UTF-8");
+    }
+}
+
+} // namespace
+
+bool DockWorkspace::save_named_layout(std::string name) {
+    require_layout_name(name);
+    DockLayoutWriteResult written = layout_.write_xml();
+    if (!written) return false;
+    for (DockNamedLayout& layout : named_layouts_) {
+        if (layout.name != name) continue;
+        layout.xml = std::move(written.text);
+        return true;
+    }
+    DockNamedLayout added{};
+    added.name = std::move(name);
+    added.xml = std::move(written.text);
+    named_layouts_.push_back(std::move(added));
+    return true;
+}
+
+DockRestoreResult DockWorkspace::apply_named_layout(std::string_view name, const DockRestoreOptions& options) {
+    const DockNamedLayout* const layout = find_named_layout(name);
+    if (layout == nullptr) {
+        DockRestoreResult missing{};
+        missing.status = DockRestoreStatus::kept_current;
+        DockRestoreDiagnostic diagnostic{};
+        diagnostic.kind = DockRestoreDiagnosticKind::not_a_layout;
+        diagnostic.detail = "no named layout \"" + std::string(name) + "\"";
+        missing.diagnostics.push_back(std::move(diagnostic));
+        return missing;
+    }
+    // The restore's handlers may save or remove named layouts: the XML is
+    // copied first so it stays valid through the restore.
+    const std::string xml = (*layout).xml;
+    DockRestoreResult result = load_layout(xml, options);
+    return result;
+}
+
+bool DockWorkspace::remove_named_layout(std::string_view name) {
+    for (std::size_t index = 0; index < named_layouts_.size(); ++index) {
+        if (named_layouts_[index].name != name) continue;
+        named_layouts_.erase(named_layouts_.begin() + static_cast<std::ptrdiff_t>(index));
+        return true;
+    }
+    return false;
+}
+
+void DockWorkspace::set_named_layouts(std::vector<DockNamedLayout> layouts) {
+    for (std::size_t index = 0; index < layouts.size(); ++index) {
+        require_layout_name(layouts[index].name);
+        for (std::size_t earlier = 0; earlier < index; ++earlier) {
+            if (layouts[earlier].name == layouts[index].name) {
+                throw std::invalid_argument("GUI.Forms named layout names must not repeat");
+            }
+        }
+    }
+    named_layouts_ = std::move(layouts);
 }
 
 // -- content -------------------------------------------------------------------
