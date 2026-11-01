@@ -1,6 +1,7 @@
 #include "visual_inspector_lab.hpp"
 
 #include "gui_forms/gui_forms.hpp"
+#include "visual_inspector_poll.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -250,10 +251,8 @@ std::unique_ptr<Window> make_visual_inspector_lab() {
     std::unique_ptr<Window> window = std::make_unique<Window>(root,
                                                                Size{1160.0, 700.0});
     (*window).perform_layout();
-    (*root).retain((*window).activate_surface(
-        inspector, 250ms, FrameClock::now() + 250ms));
-    (*root).retain((*window).activate_surface(
-        overlay, 250ms, FrameClock::now() + 250ms));
+    (*root).retain(gui_forms::demo::schedule_visual_inspector_poll(
+        *window, *root, inspector, overlay));
     return window;
 }
 

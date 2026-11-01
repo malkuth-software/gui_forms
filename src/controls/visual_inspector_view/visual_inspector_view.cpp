@@ -3,9 +3,11 @@
 #include "gui_forms/window.hpp"
 
 #include <array>
+#include <cstddef>
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -132,54 +134,40 @@ VisualInspectionOptions overlay_options() {
     return options;
 }
 
-} // namespace
+// What the view draws below its title: the target's rows, or one message
+// when there are none (no window, or no such target).
+struct InspectorRow final {
+    std::string label;
+    std::string value;
+    Color color;
+    // How much of `value` a poll compares; the rest is drawn but describes the
+    // paint itself. The window's pending damage always counts the inspector's
+    // own repaint, so comparing it would make every poll repaint the panel.
+    std::size_t compared_length{std::string::npos};
+};
 
-VisualInspectorView::VisualInspectorView(StableId stable_id,
-                                         std::string target_stable_id)
-    : Control(std::move(stable_id)),
-      target_stable_id_(std::move(target_stable_id)) {
-    set_accessible_name("Visual state inspector");
-}
+struct InspectorContent final {
+    std::string message;
+    Color message_color{};
+    std::vector<InspectorRow> rows;
+};
 
-void VisualInspectorView::set_target_stable_id(std::string stable_id) {
-    require_mutable();
-    if (target_stable_id_ == stable_id) return;
-    target_stable_id_ = std::move(stable_id);
-    invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
-}
-
-void VisualInspectorView::refresh() { invalidate(Dirty::paint | Dirty::semantics); }
-
-void VisualInspectorView::on_frame(FrameTime) { refresh(); }
-
-void VisualInspectorView::on_paint(Painter& painter, Rect) {
-    const Rect bounds = client_rectangle();
-    painter.fill_rect(bounds, inspector_panel);
-    painter.fill_rect({0.0, 0.0, bounds.width, 44.0}, inspector_panel_light);
-    painter.fill_rect({0.0, 0.0, 5.0, bounds.height}, inspector_blue);
-
-    const FontSpec title = effective_font({FontRole::control, 14.0, 700, false});
-    const FontSpec section = effective_font({FontRole::control, 10.0, 700, false});
-    const FontSpec body = effective_font({FontRole::monospace, 10.0, 400, false});
-    painter.draw_text_utf8({18.0, 27.0}, "VISUAL STATE INSPECTOR", title,
-                           inspector_ink);
-
-    Window* owner = window();
+InspectorContent inspector_content(Window* owner, const std::string& target_stable_id) {
+    InspectorContent content;
     if (owner == nullptr) {
-        painter.draw_text_utf8({18.0, 68.0}, "Detached", body, inspector_muted);
-        return;
+        content.message = "Detached";
+        content.message_color = inspector_muted;
+        return content;
     }
     const VisualInspectionSnapshot snapshot =
         (*owner).visual_inspection_snapshot(view_options());
-    const VisualControlInspection* target = snapshot.find(target_stable_id_);
+    const VisualControlInspection* target = snapshot.find(target_stable_id);
     if (target == nullptr) {
-        painter.draw_text_utf8({18.0, 68.0}, "Target not found: " + target_stable_id_,
-                               body, inspector_gold);
-        return;
+        content.message = "Target not found: " + target_stable_id;
+        content.message_color = inspector_gold;
+        return content;
     }
-
-    struct Row final { std::string label; std::string value; Color color; };
-    const std::vector<Row> rows{
+    content.rows = {
         {"IDENTITY", (*target).stable_id + "  #" +
              std::to_string((*target).runtime_id.value), inspector_ink},
         {"STATE", state_text(*target), inspector_ink},
@@ -201,15 +189,92 @@ void VisualInspectorView::on_paint(Painter& painter, Rect) {
         {"THEME", (*target).theme_id +
              ((*target).theme_override ? " · local override" : " · inherited"),
              inspector_muted},
-        {"WINDOW", std::to_string(snapshot.total_controls) + " controls · " +
-             std::to_string(snapshot.pending_damage[0].size() +
-                            snapshot.pending_damage[1].size() +
-                            snapshot.pending_damage[2].size()) +
-             " pending damage rects", inspector_muted},
     };
+    const std::string controls_text = std::to_string(snapshot.total_controls) + " controls";
+    const std::size_t pending_damage = snapshot.pending_damage[0].size() +
+        snapshot.pending_damage[1].size() + snapshot.pending_damage[2].size();
+    const std::string window_text =
+        controls_text + " · " + std::to_string(pending_damage) + " pending damage rects";
+    content.rows.push_back({"WINDOW", window_text, inspector_muted, controls_text.size()});
+    return content;
+}
 
+void append_color(std::string& key, Color color) {
+    key.push_back(static_cast<char>(color.red));
+    key.push_back(static_cast<char>(color.green));
+    key.push_back(static_cast<char>(color.blue));
+    key.push_back(static_cast<char>(color.alpha));
+}
+
+// Every drawn string and colour, separated by a byte no row text contains
+// (0x1F, the unit separator), so two different contents never share a key.
+std::string content_key(const InspectorContent& content) {
+    std::string key = content.message;
+    key.push_back('\x1f');
+    append_color(key, content.message_color);
+    for (const InspectorRow& row : content.rows) {
+        key.push_back('\x1f');
+        key += row.label;
+        key.push_back('\x1f');
+        key.append(row.value, 0U, row.compared_length);
+        key.push_back('\x1f');
+        append_color(key, row.color);
+    }
+    return key;
+}
+
+} // namespace
+
+VisualInspectorView::VisualInspectorView(StableId stable_id,
+                                         std::string target_stable_id)
+    : Control(std::move(stable_id)),
+      target_stable_id_(std::move(target_stable_id)) {
+    set_accessible_name("Visual state inspector");
+}
+
+void VisualInspectorView::set_target_stable_id(std::string stable_id) {
+    require_mutable();
+    if (target_stable_id_ == stable_id) return;
+    target_stable_id_ = std::move(stable_id);
+    invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
+}
+
+void VisualInspectorView::refresh() { invalidate(Dirty::paint | Dirty::semantics); }
+
+bool VisualInspectorView::refresh_if_changed() {
+    // An occluded window paints nothing; the first poll after it shows again
+    // compares against what was last drawn.
+    const Window* owner = window();
+    if (owner != nullptr && (*owner).occluded()) return false;
+    const InspectorContent content = inspector_content(window(), target_stable_id_);
+    const std::string key = content_key(content);
+    const bool changed = key != painted_content_;
+    if (changed) refresh();
+    return changed;
+}
+
+void VisualInspectorView::on_frame(FrameTime) { static_cast<void>(refresh_if_changed()); }
+
+void VisualInspectorView::on_paint(Painter& painter, Rect) {
+    const Rect bounds = client_rectangle();
+    painter.fill_rect(bounds, inspector_panel);
+    painter.fill_rect({0.0, 0.0, bounds.width, 44.0}, inspector_panel_light);
+    painter.fill_rect({0.0, 0.0, 5.0, bounds.height}, inspector_blue);
+
+    const FontSpec title = effective_font({FontRole::control, 14.0, 700, false});
+    const FontSpec section = effective_font({FontRole::control, 10.0, 700, false});
+    const FontSpec body = effective_font({FontRole::monospace, 10.0, 400, false});
+    painter.draw_text_utf8({18.0, 27.0}, "VISUAL STATE INSPECTOR", title,
+                           inspector_ink);
+
+    const InspectorContent content = inspector_content(window(), target_stable_id_);
+    painted_content_ = content_key(content);
+    if (content.rows.empty()) {
+        painter.draw_text_utf8({18.0, 68.0}, content.message, body, content.message_color);
+        return;
+    }
     double y = 64.0;
-    for (const Row& row : rows) {
+    for (const InspectorRow& row : content.rows) {
         painter.draw_text_utf8({18.0, y}, row.label, section, inspector_muted);
         painter.draw_text_utf8({145.0, y}, row.value, body, row.color);
         y += 30.0;
@@ -261,22 +326,39 @@ void VisualInspectorOverlay::set_target_stable_id(std::string stable_id) {
 
 void VisualInspectorOverlay::refresh() { invalidate(Dirty::paint); }
 
-void VisualInspectorOverlay::on_frame(FrameTime) { refresh(); }
-
-void VisualInspectorOverlay::on_paint(Painter& painter, Rect) {
+VisualInspectorOverlay::Outlines VisualInspectorOverlay::current_outlines() const {
+    Outlines outlines;
     Window* owner = window();
-    if (owner == nullptr || target_stable_id_.empty()) return;
+    if (owner == nullptr || target_stable_id_.empty()) return outlines;
     const VisualInspectionSnapshot snapshot =
         (*owner).visual_inspection_snapshot(overlay_options());
     const VisualControlInspection* target = snapshot.find(target_stable_id_);
-    if (target == nullptr || (*target).runtime_id == runtime_id()) return;
+    if (target == nullptr || (*target).runtime_id == runtime_id()) return outlines;
+    outlines.shown = true;
+    outlines.arranged = rectangle_from_window((*target).layout.absolute_bounds);
+    outlines.visual = rectangle_from_window((*target).layout.visual_bounds);
+    outlines.clip = rectangle_from_window((*target).layout.effective_clip);
+    return outlines;
+}
 
-    Rect arranged = rectangle_from_window((*target).layout.absolute_bounds);
-    Rect visual = rectangle_from_window((*target).layout.visual_bounds);
-    Rect clip = rectangle_from_window((*target).layout.effective_clip);
-    painter.stroke_rect(visual, inspector_magenta, 2.0);
-    painter.stroke_rect(arranged, inspector_blue, 2.0);
-    if (!clip.empty()) painter.stroke_rect(clip, inspector_gold, 1.0);
+bool VisualInspectorOverlay::refresh_if_changed() {
+    const Window* owner = window();
+    if (owner != nullptr && (*owner).occluded()) return false;
+    const Outlines outlines = current_outlines();
+    const bool changed = !painted_ || !(outlines == *painted_);
+    if (changed) refresh();
+    return changed;
+}
+
+void VisualInspectorOverlay::on_frame(FrameTime) { static_cast<void>(refresh_if_changed()); }
+
+void VisualInspectorOverlay::on_paint(Painter& painter, Rect) {
+    const Outlines outlines = current_outlines();
+    painted_ = outlines;
+    if (!outlines.shown) return;
+    painter.stroke_rect(outlines.visual, inspector_magenta, 2.0);
+    painter.stroke_rect(outlines.arranged, inspector_blue, 2.0);
+    if (!outlines.clip.empty()) painter.stroke_rect(outlines.clip, inspector_gold, 1.0);
 }
 
 bool VisualInspectorOverlay::hit_test_local(Point) const { return false; }
