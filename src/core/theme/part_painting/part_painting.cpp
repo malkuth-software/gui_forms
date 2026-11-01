@@ -439,6 +439,42 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
     case PartMark::dock_shape:
         paint_dock_shape(painter, box, part.dock_region, ink);
         return;
+    case PartMark::pencil: {
+        // A two-unit shaft from the lower left towards the upper right, its
+        // point a one-unit stroke at the lower left.
+        const Rect square = square_in(box);
+        const double side = square.width;
+        const Point tip{square.x + side * 0.1, square.y + side * 0.9};
+        const Point heel{square.x + side * 0.3, square.y + side * 0.7};
+        const Point top{square.x + side * 0.9, square.y + side * 0.1};
+        painter.draw_line(tip, heel, ink, 1.0);
+        painter.draw_line(heel, top, ink, 2.0);
+        return;
+    }
+    case PartMark::asterisk: {
+        // Three strokes through the centre: upright and two at 60 degrees.
+        const Rect square = square_in(box);
+        const double half = square.width * 0.45;
+        const Point centre{square.x + square.width * 0.5, square.y + square.height * 0.5};
+        const double along = half * 0.866;
+        const double across = half * 0.5;
+        painter.draw_line({centre.x, centre.y - half}, {centre.x, centre.y + half}, ink, 1.5);
+        painter.draw_line({centre.x - along, centre.y - across}, {centre.x + along, centre.y + across}, ink, 1.5);
+        painter.draw_line({centre.x - along, centre.y + across}, {centre.x + along, centre.y - across}, ink, 1.5);
+        return;
+    }
+    case PartMark::error: {
+        // A one-unit ring holding an exclamation mark: a bar and a dot.
+        const Rect square = square_in(box);
+        const double side = square.width;
+        if (side < 5.0) return;
+        const Rect ring{square.x + 0.5, square.y + 0.5, side - 1.0, side - 1.0};
+        painter.stroke_rounded_rect(ring, (side - 1.0) * 0.5, ink, 1.0);
+        const double bar_x = std::floor(square.x + side * 0.5 - 0.5);
+        painter.fill_rect({bar_x, square.y + side * 0.22, 1.5, side * 0.38}, ink);
+        painter.fill_rect({bar_x, square.y + side * 0.68, 1.5, 1.5}, ink);
+        return;
+    }
     case PartMark::underline: {
         // A one-unit rule whose lower edge is the box's bottom edge.
         const double y = box.y + box.height - 0.5;
@@ -544,6 +580,9 @@ std::string_view part_mark_name(PartMark mark) noexcept {
     case PartMark::pin: return "pin";
     case PartMark::dock_shape: return "dock_shape";
     case PartMark::underline: return "underline";
+    case PartMark::pencil: return "pencil";
+    case PartMark::asterisk: return "asterisk";
+    case PartMark::error: return "error";
     case PartMark::count: return {};
     }
     return {};

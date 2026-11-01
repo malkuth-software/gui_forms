@@ -61,6 +61,32 @@ enum class DataGridViewSelectionMode : std::uint8_t { cell_select, full_row_sele
 // become visible; bound rows are a BindingSource's records.
 enum class DataGridViewRowSource : std::uint8_t { unbound, virtual_rows, binding_source };
 
+// Which of the user's keys and clicks begin an edit of the current cell
+// (Windows Forms' DataGridViewEditMode):
+//
+//   mode                     typing  F2   on becoming current
+//   edit_on_enter            yes     yes  yes (a text cell, while focused)
+//   edit_on_keystroke        yes     no   no
+//   edit_on_keystroke_or_f2  yes     yes  no
+//   edit_on_f2               no      yes  no
+//   edit_programmatically    no      no   no
+//
+// A double click, a combo box cell's drop-down button, F4 and Alt+Down begin
+// an edit in every mode but edit_programmatically; begin_edit always does.
+enum class DataGridViewEditMode : std::uint8_t {
+    edit_on_enter,
+    edit_on_keystroke,
+    edit_on_keystroke_or_f2,
+    edit_on_f2,
+    edit_programmatically,
+};
+
+// Why a value did not reach its cell (the two of Windows Forms'
+// DataGridViewDataErrorContexts the grid raises): the typed text does not
+// convert to the column's value kind, or the row's store (a provider or a
+// binding source) refused the value.
+enum class DataGridViewDataErrorContext : std::uint8_t { parsing, commit };
+
 // One column. `name` is the column's identity: unique within the grid, not
 // empty, and without '.', since a cell's stable ID is its row's ID, '.' and
 // the column's name. `width` and `minimum_width` are logical units at text
@@ -147,6 +173,45 @@ struct DataGridViewCellValidatingEvent final {
     bool cancel{};
 };
 
+// Raised when a value does not reach its cell (Windows Forms' DataError).
+// `formatted_value` is the text the user gave (a typed text, a choice, or
+// "true"/"false" for a check box). For a text edit, `cancel` true (the
+// default, and the outcome when no handler is subscribed: owner decision
+// B1-1) keeps the cell in edit, marked invalid, with its old value stored;
+// false discards the edit, leaving the old value. A check box or choice has
+// no edit to keep: its cell keeps its old value either way.
+struct DataGridViewDataErrorEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    std::size_t column{};
+    DataGridViewDataErrorContext context{DataGridViewDataErrorContext::parsing};
+    std::string formatted_value{};
+    bool cancel{true};
+};
+
+// A row an event concerns: its identity and its position when the event is
+// raised (the position it had, for a row just removed).
+struct DataGridViewRowEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+};
+
+// Raised before a row is left or deleted; setting `cancel` keeps it.
+struct DataGridViewRowCancelEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    bool cancel{};
+};
+
+// Raised when the new row becomes current (Windows Forms'
+// DefaultValuesNeeded): `values` holds one value per column, empty, for the
+// handler to fill with the values the new row starts with.
+struct DataGridViewRowValuesEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    std::vector<BindingValue> values{};
+};
+
 // The application side of virtual mode (Windows Forms' CellValueNeeded and
 // CellValuePushed), on ObjectView's stable-ID model: the application owns the
 // rows and their order and gives the order to the grid as row IDs (in full
@@ -209,9 +274,11 @@ public:
 
     // -- rows ------------------------------------------------------------
     [[nodiscard]] DataGridViewRowSource row_source() const noexcept { return row_source_; }
+    // Every row shown, the new row included (Windows Forms' RowCount).
     [[nodiscard]] std::size_t row_count() const noexcept;
     // Unbound rows grow with generated rows or are cut from the end; cutting
-    // the current row makes the new last row current. Throws
+    // the current row makes the new last row current. `count` is the number
+    // of rows before the new row, which stays last. Throws
     // std::logic_error for virtual rows (counted by their order) and bound
     // rows (counted by their source).
     void set_row_count(std::size_t count);
@@ -223,7 +290,9 @@ public:
     void insert_row(DataGridViewRowPosition position, DataGridViewRow row);
     void set_rows(std::vector<DataGridViewRow> rows);
     // When the removed row held the current cell, the row that takes its
-    // position, or the new last row, becomes current.
+    // position, or the new last row, becomes current. Throws
+    // std::invalid_argument for the new row, which is not a row of the grid's
+    // until a value is committed to it.
     void remove_row_at(DataGridViewRowPosition position);
     // Removes every row of any source and returns to unbound rows.
     void clear_rows();
@@ -329,6 +398,58 @@ public:
     void set_data_source(std::shared_ptr<BindingSource> source);
     [[nodiscard]] std::shared_ptr<BindingSource> data_source() const noexcept { return data_source_; }
 
+    // -- adding and deleting rows (owner decision B1-2) ------------------
+    // With allow_user_to_add_rows (off by default) unbound and bound grids
+    // show a new row after the last row (Windows Forms' new row); virtual
+    // grids do not. A bound grid shows it while its source allows new
+    // records; a read-only grid or one without columns never does. The new
+    // row has a generated ID and empty values; when it becomes current,
+    // default_values_needed gives it its first values. The first value the
+    // user commits to it (an edit, a toggle or a choice) makes it a row of the
+    // grid's, or a record of the source's, with the same ID: user_added_row
+    // is raised, and a new row appears after it. Until the current cell
+    // leaves it, the added row can be discarded with cancel_row_edit (Escape
+    // when no cell is in edit).
+    [[nodiscard]] bool allow_user_to_add_rows() const noexcept { return allow_add_rows_; }
+    void set_allow_user_to_add_rows(bool allow);
+    // The new row's position, while it is shown.
+    [[nodiscard]] std::optional<DataGridViewRowPosition> new_row_index() const noexcept;
+    // With allow_user_to_delete_rows (off by default) Delete, pressed while no
+    // cell is in edit, deletes the selected rows (selected_rows(), never the
+    // new row) of an unbound grid or of a source that allows removal: each
+    // raises user_deleting_row, which may keep it, then is removed and raises
+    // user_deleted_row.
+    [[nodiscard]] bool allow_user_to_delete_rows() const noexcept { return allow_delete_rows_; }
+    void set_allow_user_to_delete_rows(bool allow);
+    // Discards the row the user added, while it is the current row and the
+    // current cell has not left it since; any edit is discarded first.
+    // Raises row_edit_cancelled. Returns false when there is no such row.
+    bool cancel_row_edit();
+
+    // -- error text ------------------------------------------------------
+    // A cell's or row's error text (Windows Forms' ErrorText), kept by row ID
+    // for every row source; it ends with its row, when the rows or columns
+    // are replaced and when a column is removed. A bound row with no text of
+    // the grid's shows its record's error for the column's field, or for the
+    // record as a whole. A cell with error text shows the error glyph at its
+    // end (with show_cell_errors), a row with error text one in its header
+    // (with show_row_errors); both publish it as their semantic description
+    // and are invalid. The setters raise cell_error_text_changed and
+    // row_error_text_changed. Throw std::out_of_range past the rows or
+    // columns and std::invalid_argument for invalid UTF-8.
+    [[nodiscard]] std::string cell_error_text(DataGridViewRowPosition row, std::size_t column) const;
+    void set_cell_error_text(DataGridViewRowPosition row, std::size_t column, std::string text);
+    [[nodiscard]] std::string row_error_text(DataGridViewRowPosition row) const;
+    void set_row_error_text(DataGridViewRowPosition row, std::string text);
+    [[nodiscard]] bool show_cell_errors() const noexcept { return show_cell_errors_; }
+    void set_show_cell_errors(bool show);
+    [[nodiscard]] bool show_row_errors() const noexcept { return show_row_errors_; }
+    void set_show_row_errors(bool show);
+    // The pencil the current row's header shows while the row is dirty
+    // (Windows Forms' ShowEditingIcon); on by default.
+    [[nodiscard]] bool show_editing_icon() const noexcept { return show_editing_icon_; }
+    void set_show_editing_icon(bool show);
+
     // -- appearance ------------------------------------------------------
     [[nodiscard]] bool column_headers_visible() const noexcept { return column_headers_visible_; }
     void set_column_headers_visible(bool visible);
@@ -409,6 +530,27 @@ public:
     bool end_edit();
     // Discards the edit in progress.
     void cancel_edit();
+    [[nodiscard]] DataGridViewEditMode edit_mode() const noexcept { return edit_mode_; }
+    void set_edit_mode(DataGridViewEditMode mode);
+    // Stores the text edit's value without leaving edit (Windows Forms'
+    // CommitEdit): conversion, then the value; cell_validating is not
+    // raised. Returns true when no text edit is in progress or it stored;
+    // false (after data_error) when it did not.
+    bool commit_edit();
+    // Shows the cell's stored value in the editor again, discarding what was
+    // typed (Windows Forms' RefreshEdit). False when no text edit is in
+    // progress.
+    bool refresh_edit();
+    // Whether the edit in progress holds a value the cell does not: the user
+    // changed the editor's text, or notify_current_cell_dirty said so.
+    [[nodiscard]] bool is_current_cell_dirty() const noexcept { return cell_dirty_; }
+    // Whether the current row holds changes the user made since it became
+    // current: a dirty cell, a committed value, or a row the user added.
+    [[nodiscard]] bool is_current_row_dirty() const noexcept;
+    // Marks the edit in progress dirty or clean, raising
+    // current_cell_dirty_state_changed when that changes; ignored when no
+    // edit is in progress.
+    void notify_current_cell_dirty(bool dirty);
     // The hosted editor. It is laid out over the current cell only while a
     // text cell is in edit.
     [[nodiscard]] std::shared_ptr<TextBox> editing_control() const noexcept { return editor_; }
@@ -442,6 +584,46 @@ public:
     // Raised after the virtual row order switched mode, with the reason.
     [[nodiscard]] Event<const DataGridViewRowOrderModeChange&>& row_order_mode_changed() noexcept {
         return row_order_mode_changed_;
+    }
+    // Raised when a value does not reach its cell (owner decision B1-1).
+    [[nodiscard]] Event<DataGridViewDataErrorEvent&>& data_error() noexcept { return data_error_; }
+    // Raised after an edit's value is validated and stored, before
+    // cell_end_edit.
+    [[nodiscard]] Event<const DataGridViewCellEvent&>& cell_validated() noexcept { return cell_validated_; }
+    // Raised with the new state when is_current_cell_dirty changes.
+    [[nodiscard]] Event<bool>& current_cell_dirty_state_changed() noexcept {
+        return current_cell_dirty_state_changed_;
+    }
+    // Moving the current cell, by the user or the program, runs in this
+    // order. The edit in progress commits (cell_validating, cell_validated,
+    // cell_end_edit); a commit that fails stops the move. When the row
+    // changes, row_validating may keep the current row. Then the current
+    // cell moves and cell_leave, row_leave (when the row changes),
+    // row_validated (when it was validated), row_enter, default_values_needed
+    // (entering the new row), cell_enter and current_cell_changed are raised.
+    // Handlers of these events may not call set_current_cell
+    // (std::logic_error); a handler that moves rows or the current cell
+    // otherwise ends the remaining enter events of the move. A move that
+    // follows a binding source's position is not validated.
+    [[nodiscard]] Event<DataGridViewRowCancelEvent&>& row_validating() noexcept { return row_validating_; }
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& row_validated() noexcept { return row_validated_; }
+    [[nodiscard]] Event<const DataGridViewCellEvent&>& cell_enter() noexcept { return cell_enter_; }
+    [[nodiscard]] Event<const DataGridViewCellEvent&>& cell_leave() noexcept { return cell_leave_; }
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& row_enter() noexcept { return row_enter_; }
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& row_leave() noexcept { return row_leave_; }
+    [[nodiscard]] Event<DataGridViewRowValuesEvent&>& default_values_needed() noexcept {
+        return default_values_needed_;
+    }
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& user_added_row() noexcept { return user_added_row_; }
+    [[nodiscard]] Event<DataGridViewRowCancelEvent&>& user_deleting_row() noexcept { return user_deleting_row_; }
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& user_deleted_row() noexcept { return user_deleted_row_; }
+    // Raised after cancel_row_edit discarded the row the user added.
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& row_edit_cancelled() noexcept { return row_edit_cancelled_; }
+    [[nodiscard]] Event<const DataGridViewCellEvent&>& cell_error_text_changed() noexcept {
+        return cell_error_text_changed_;
+    }
+    [[nodiscard]] Event<const DataGridViewRowEvent&>& row_error_text_changed() noexcept {
+        return row_error_text_changed_;
     }
     // Raised when a column header is clicked, with the column's index.
     [[nodiscard]] Event<std::size_t>& column_header_click() noexcept { return column_header_click_; }
@@ -496,13 +678,19 @@ public:
     struct RowParts final {
         PartGeometry row_header;
         PartGeometry row_header_label;
+        // The current row's arrow, the pencil while it is dirty, or the new
+        // row's star (owner decision B1-3).
         PartGeometry row_glyph;
+        // The error glyph of a row with error text, at the header's end.
+        PartGeometry row_error;
         PartGeometry row_rule;
     };
     struct RowStates final {
         bool selected{};
         bool current{};
         bool read_only{};
+        // A row with error text.
+        bool invalid{};
     };
     struct Row final {
         DataGridViewRowPosition position{};
@@ -532,11 +720,14 @@ public:
         PartGeometry cell_vertical_rule;
         PartGeometry cell_horizontal_rule;
         PartGeometry cell_focus;
+        // The error glyph of a cell with error text, at the cell's end.
+        PartGeometry cell_error;
     };
     struct CellStates final {
         bool selected{};
         bool current{};
         bool read_only{};
+        // A cell whose edit did not commit, or with error text.
         bool invalid{};
         bool checked{};
         bool pressed{};
@@ -787,14 +978,40 @@ private:
     // in cell mode with a plain click, selects the whole row. False when the
     // row could not become current.
     bool click_row_header(DataGridViewRowPosition row, SelectionGesture gesture);
-    void apply_current(std::optional<CellKey> cell);
+    // Sets the current cell and raises the leave and enter events of the
+    // move; `validated` says row_validating ran for a row change.
+    void apply_current(std::optional<CellKey> cell, bool validated = false);
+    // Before the current cell leaves its row for `target` (none: no cell):
+    // row_validating. False when a handler kept the row.
+    [[nodiscard]] bool validate_row_change(const std::optional<CellKey>& target);
+    [[nodiscard]] DataGridViewRowEvent row_event(std::string_view row_id) const;
+    void require_settled_current() const;
     void clear_selection_state() noexcept;
     void select_current_alone();
     // Raises selection_changed when the selection revision moved past `before`.
     void publish_selection(std::uint64_t before);
 
     // Editing and activation.
+    enum class EditTrigger : std::uint8_t { keystroke, f2, entering, pointer };
+    [[nodiscard]] bool edit_trigger_allowed(EditTrigger trigger) const noexcept;
     bool begin_text_edit(std::string initial_text, bool select_all);
+    // Converts and stores a text edit's value, raising data_error when it does
+    // not reach the cell: stored (a changed value), unchanged (the cell held
+    // it already), kept_invalid (the edit stays, marked invalid) or discarded
+    // (a data_error handler gave the edit up).
+    enum class CommitOutcome : std::uint8_t { stored, unchanged, kept_invalid, discarded };
+    [[nodiscard]] CommitOutcome commit_text(const CellKey& key, DataGridViewCellAddress at, const std::string& text);
+    // Stores a value the user gave, the new row becoming a row first. When
+    // the value does not reach the cell, data_error is raised (commit) and
+    // `keep_edit` is its handler's cancel.
+    struct UserStore final {
+        bool stored{};
+        bool keep_edit{};
+    };
+    [[nodiscard]] UserStore store_user_value(DataGridViewCellAddress cell, const BindingValue& value,
+                                             const std::string& formatted);
+    void set_cell_dirty(bool dirty);
+    void on_editor_text_changed(const std::string& text);
     bool open_choices();
     void on_choice_invoked(const MenuItemInvocation& invocation);
     void on_choices_open_changed(bool open);
@@ -803,6 +1020,20 @@ private:
     bool toggle_check(DataGridViewCellAddress cell);
     void click_content(DataGridViewCellAddress cell);
     bool activate_current();
+
+    // The new row (owner decision B1-2).
+    [[nodiscard]] std::size_t data_row_count() const noexcept;
+    [[nodiscard]] bool new_row_shown() const noexcept;
+    [[nodiscard]] bool is_new_row(DataGridViewRowPosition row) const noexcept;
+    // Gives the new row an ID when it has none, or when a row of the grid's
+    // or a record took its ID (the current cell, anchor and selection follow).
+    void renew_new_row_id(bool force);
+    void rekey_row(const std::string& from, const std::string& to);
+    // Makes the new row a row of the grid's or a record of the source's.
+    bool add_new_row();
+    void fill_default_values();
+    bool delete_selected_rows();
+    void remove_row_by_id(const std::string& row_id);
 
     // Navigation.
     [[nodiscard]] bool navigation_key(KeyEvent& event);
@@ -881,11 +1112,38 @@ private:
     // Visited link cells by row ID, as selected_cells_ keeps cells: sorted
     // unique column indices, and no entry for a row with none.
     SelectedCells visited_links_{};
+    // Error text by row ID: one row's cells' texts by column (no entry for a
+    // cell without text), and rows' own texts.
+    using CellErrors = std::unordered_map<std::size_t, std::string>;
+    using CellErrorRows = std::unordered_map<std::string, CellErrors, RowIdHash, std::equal_to<>>;
+    using RowErrors = std::unordered_map<std::string, std::string, RowIdHash, std::equal_to<>>;
+    CellErrorRows cell_errors_{};
+    RowErrors row_errors_{};
+    bool show_cell_errors_{true};
+    bool show_row_errors_{true};
+    bool show_editing_icon_{true};
+    // The new row: its ID (empty until it is first shown) and the values it
+    // shows, one per column; a row the user added that the current cell has
+    // not left yet; and whether add_new_row is adding a record.
+    DataGridViewRow new_row_{};
+    std::optional<std::string> added_row_{};
+    bool adding_row_{};
+    bool allow_add_rows_{};
+    bool allow_delete_rows_{};
     // Counts selection changes, so an operation raises selection_changed once.
     std::uint64_t selection_revision_{};
 
     EditKind edit_kind_{EditKind::none};
+    DataGridViewEditMode edit_mode_{DataGridViewEditMode::edit_on_keystroke_or_f2};
     bool editing_{};
+    bool cell_dirty_{};
+    // A value the user committed to the current row since it became current.
+    bool row_dirty_{};
+    // The grid writes the editor's text; its text_changed is not the user's.
+    bool writing_editor_{};
+    // The leave and enter events of a move are being raised.
+    bool changing_current_{};
+    SubscriptionToken editor_text_changed_{};
     bool ending_edit_{};
     bool edit_invalid_{};
     bool focused_{};
@@ -905,6 +1163,22 @@ private:
     Event<const DataGridViewRowOrderModeChange&> row_order_mode_changed_{};
     Event<std::size_t> column_header_click_{};
     Event<std::size_t> column_width_changed_{};
+    Event<DataGridViewDataErrorEvent&> data_error_{};
+    Event<const DataGridViewCellEvent&> cell_validated_{};
+    Event<bool> current_cell_dirty_state_changed_{};
+    Event<DataGridViewRowCancelEvent&> row_validating_{};
+    Event<const DataGridViewRowEvent&> row_validated_{};
+    Event<const DataGridViewCellEvent&> cell_enter_{};
+    Event<const DataGridViewCellEvent&> cell_leave_{};
+    Event<const DataGridViewRowEvent&> row_enter_{};
+    Event<const DataGridViewRowEvent&> row_leave_{};
+    Event<DataGridViewRowValuesEvent&> default_values_needed_{};
+    Event<const DataGridViewRowEvent&> user_added_row_{};
+    Event<DataGridViewRowCancelEvent&> user_deleting_row_{};
+    Event<const DataGridViewRowEvent&> user_deleted_row_{};
+    Event<const DataGridViewRowEvent&> row_edit_cancelled_{};
+    Event<const DataGridViewCellEvent&> cell_error_text_changed_{};
+    Event<const DataGridViewRowEvent&> row_error_text_changed_{};
 };
 
 } // namespace gui_forms

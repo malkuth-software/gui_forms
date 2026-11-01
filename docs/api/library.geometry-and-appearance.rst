@@ -5101,6 +5101,12 @@ Enumerations
 
    .. cpp:enumerator:: underline
 
+   .. cpp:enumerator:: pencil
+
+   .. cpp:enumerator:: asterisk
+
+   .. cpp:enumerator:: error
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms

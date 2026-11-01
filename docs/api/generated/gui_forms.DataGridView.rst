@@ -97,6 +97,22 @@ gui_forms::DataGridView
          :cpp:func:`set_data_source <gui_forms::DataGridView::set_data_source>` shows a source's records as rows, or returns to empty
          unbound rows for none.
 
+      **allow_user_to_add_rows** : ``bool``
+         -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (off by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit).
+
+      **new_row_index** : ``std::optional<DataGridViewRowPosition>``, read-only
+         The new row's position, while it is shown.
+
+      **allow_user_to_delete_rows** : ``bool``
+         With allow_user_to_delete_rows (off by default) Delete, pressed while no cell is in edit, deletes the selected rows (selected_rows(), never the new row) of an unbound grid or of a source that allows removal: each raises user_deleting_row, which may keep it, then is removed and raises user_deleted_row.
+
+      **show_cell_errors** : ``bool``
+
+      **show_row_errors** : ``bool``
+
+      **show_editing_icon** : ``bool``
+         The pencil the current row's header shows while the row is dirty (Windows Forms' ShowEditingIcon); on by default.
+
       **column_headers_visible** : ``bool``, default ``true``
          Whether the column header row shows.
 
@@ -166,6 +182,14 @@ gui_forms::DataGridView
       **is_current_cell_in_edit_mode** : ``bool``, read-only
          Whether a text cell is in edit or a combo box cell's choices are open.
 
+      **edit_mode** : ``DataGridViewEditMode``
+
+      **is_current_cell_dirty** : ``bool``, read-only
+         Whether the edit in progress holds a value the cell does not: the user changed the editor's text, or notify_current_cell_dirty said so.
+
+      **is_current_row_dirty** : ``bool``, read-only
+         Whether the current row holds changes the user made since it became current: a dirty cell, a committed value, or a row the user added.
+
       **editing_control** : ``std::shared_ptr<TextBox>``, read-only
          The :cpp:class:`TextBox <gui_forms::TextBox>` a text cell edits in. It is laid out over the current cell
          only during an edit.
@@ -217,6 +241,43 @@ gui_forms::DataGridView
          Raised after the virtual rows' order switched mode, with the old and new
          mode, the reason (``row_count``, ``change_rate``, ``policy`` or
          ``source``), the row count and this pass's reported changes.
+
+      **data_error** : ``Event<DataGridViewDataErrorEvent&>``
+         Raised when a value does not reach its cell (owner decision B1-1).
+
+      **cell_validated** : ``Event<const DataGridViewCellEvent&>``
+         Raised after an edit's value is validated and stored, before cell_end_edit.
+
+      **current_cell_dirty_state_changed** : ``Event<bool>``
+         Raised with the new state when is_current_cell_dirty changes.
+
+      **row_validating** : ``Event<DataGridViewRowCancelEvent&>``
+         Moving the current cell, by the user or the program, runs in this order. The edit in progress commits (cell_validating, cell_validated, cell_end_edit); a commit that fails stops the move. When the row changes, row_validating may keep the current row. Then the current cell moves and cell_leave, row_leave (when the row changes), row_validated (when it was validated), row_enter, default_values_needed (entering the new row), cell_enter and current_cell_changed are raised. Handlers of these events may not call set_current_cell (std::logic_error); a handler that moves rows or the current cell otherwise ends the remaining enter events of the move. A move that follows a binding source's position is not validated.
+
+      **row_validated** : ``Event<const DataGridViewRowEvent&>``
+
+      **cell_enter** : ``Event<const DataGridViewCellEvent&>``
+
+      **cell_leave** : ``Event<const DataGridViewCellEvent&>``
+
+      **row_enter** : ``Event<const DataGridViewRowEvent&>``
+
+      **row_leave** : ``Event<const DataGridViewRowEvent&>``
+
+      **default_values_needed** : ``Event<DataGridViewRowValuesEvent&>``
+
+      **user_added_row** : ``Event<const DataGridViewRowEvent&>``
+
+      **user_deleting_row** : ``Event<DataGridViewRowCancelEvent&>``
+
+      **user_deleted_row** : ``Event<const DataGridViewRowEvent&>``
+
+      **row_edit_cancelled** : ``Event<const DataGridViewRowEvent&>``
+         Raised after cancel_row_edit discarded the row the user added.
+
+      **cell_error_text_changed** : ``Event<const DataGridViewCellEvent&>``
+
+      **row_error_text_changed** : ``Event<const DataGridViewRowEvent&>``
 
       **column_header_click** : ``Event<std::size_t>``
          Raised when a column header is clicked, with the column's index.
@@ -270,6 +331,12 @@ gui_forms::DataGridView
         - Reports a row the application moved: it now stands at the position.
       * - :cpp:func:`refresh_rows <gui_forms::DataGridView::refresh_rows>`
         - Repaints after the provider's values changed outside the grid.
+      * - :cpp:func:`cancel_row_edit <gui_forms::DataGridView::cancel_row_edit>`
+        - Discards the row the user added, while it is the current row and the current cell has not left it since; any edit is discarded first.
+      * - :cpp:func:`cell_error_text <gui_forms::DataGridView::cell_error_text>`
+        - -- error text ------------------------------------------------------ A cell's or row's error text (Windows Forms' ErrorText), kept by row ID for every row source; it ends with its row, when the rows or columns are replaced and when a column is removed.
+      * - :cpp:func:`row_error_text <gui_forms::DataGridView::row_error_text>`
+        -  
       * - :cpp:func:`is_cell_selected <gui_forms::DataGridView::is_cell_selected>`
         - Whether a cell is selected; in full-row mode, whether its row is.
       * - :cpp:func:`is_row_selected <gui_forms::DataGridView::is_row_selected>`
@@ -284,6 +351,12 @@ gui_forms::DataGridView
         - Commits the edit in progress: :cpp:func:`cell_validating <gui_forms::DataGridView::cell_validating>`, conversion to the column's ``value_kind``, then the value.
       * - :cpp:func:`cancel_edit <gui_forms::DataGridView::cancel_edit>`
         - Discards the edit in progress.
+      * - :cpp:func:`commit_edit <gui_forms::DataGridView::commit_edit>`
+        - Stores the text edit's value without leaving edit (Windows Forms' CommitEdit): conversion, then the value; cell_validating is not raised.
+      * - :cpp:func:`refresh_edit <gui_forms::DataGridView::refresh_edit>`
+        - Shows the cell's stored value in the editor again, discarding what was typed (Windows Forms' RefreshEdit).
+      * - :cpp:func:`notify_current_cell_dirty <gui_forms::DataGridView::notify_current_cell_dirty>`
+        - Marks the edit in progress dirty or clean, raising current_cell_dirty_state_changed when that changes; ignored when no edit is in progress.
       * - :cpp:func:`close_drop_down <gui_forms::DataGridView::close_drop_down>`
         - Closes a combo box cell's choices, ending its edit.
       * - :cpp:func:`set_column_width <gui_forms::DataGridView::set_column_width>`
@@ -302,6 +375,10 @@ gui_forms::DataGridView
         - Switches to virtual rows: the application's row IDs in presentation order, or a :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>` that keeps the order, with values asked of a provider by ID.
       * - :cpp:func:`set_virtual_row_order <gui_forms::DataGridView::set_virtual_row_order>`
         - Replaces the virtual rows' order after the application inserted, removed, filtered or sorted rows.
+      * - :cpp:func:`set_cell_error_text <gui_forms::DataGridView::set_cell_error_text>`
+        -  
+      * - :cpp:func:`set_row_error_text <gui_forms::DataGridView::set_row_error_text>`
+        -  
       * - :cpp:func:`set_cell_selected <gui_forms::DataGridView::set_cell_selected>`
         - Selects or deselects a cell (its row in full-row mode).
       * - :cpp:func:`set_row_selected <gui_forms::DataGridView::set_row_selected>`
@@ -420,12 +497,46 @@ gui_forms::DataGridView
    is drawn by the ``glyph`` role with the ``underline`` mark in the same
    family, so the underline takes the link's colour.
 
+   A commit converts the typed text to the column's value kind and stores it.
+   When a value does not reach its cell, ``data_error`` reports why
+   (``parsing`` or ``commit``) with the text given; with no handler, or with
+   ``cancel`` left set, the cell stays in edit, marked invalid, and keeps its
+   old value (no dialog is shown); clearing ``cancel`` discards the edit.
+   ``cell_validated`` follows a stored edit. ``is_current_cell_dirty`` is true
+   once the user changes the editor's text (``current_cell_dirty_state_changed``
+   reports each change), ``is_current_row_dirty`` once the row holds a change.
+   ``commit_edit`` stores without leaving edit and ``refresh_edit`` shows the
+   stored value again. ``edit_mode`` chooses which keys begin an edit: typing,
+   F2, both (the default), on becoming current, or only ``begin_edit``.
+
+   Moving the current cell commits the edit, raises ``row_validating`` when
+   the row changes (a handler may keep the row), then ``cell_leave``,
+   ``row_leave``, ``row_validated``, ``row_enter``, ``default_values_needed``
+   (on the new row), ``cell_enter`` and ``current_cell_changed``. Their
+   handlers may not call ``set_current_cell``.
+
+   With ``allow_user_to_add_rows`` an unbound or bound grid shows a new row
+   after the last; its row header shows a star. The first value the user
+   commits to it adds a row (or a record) with the new row's ID, raising
+   ``user_added_row``; Escape, or ``cancel_row_edit``, discards it until the
+   current cell leaves it. With ``allow_user_to_delete_rows`` Delete removes
+   the selected rows, each after ``user_deleting_row``. The current row's
+   header shows a pencil while the row is dirty (``show_editing_icon``).
+
+   ``set_cell_error_text`` and ``set_row_error_text`` give cells and rows error
+   text (a bound row also shows its record's errors). It is drawn as the error
+   glyph, the ``cell_error`` and ``row_error`` parts, at the cell's end and in
+   the row header, published as the semantic description, and makes the cell or
+   row ``invalid``. The arrow, pencil, star and error glyphs are glyph marks
+   (``pencil``, ``asterisk``, ``error``) whose look belongs to the theme.
+
    Not supported yet: cell styles and their inheritance, ``LinkBehavior`` (the
    link is always underlined), an image column's default
    image for empty cells and icon values, frozen rows and columns beyond the headers, clipboard copy, sort
    modes (the application sorts, or calls :cpp:func:`sort <gui_forms::DataGridView::sort>` for unbound rows), automatic
-   column and row sizing, row height resizing, the new-row and row-deletion
-   editing interface, error icons and cell tool tips.
+   column and row sizing, row height resizing, the new row in virtual mode,
+   error text asked of the application (``CellErrorTextNeeded``), and cell
+   tool tips.
 
    .. rubric:: Examples
 
@@ -568,6 +679,36 @@ gui_forms::DataGridView
 
       Sets :cpp:func:`data_source <gui_forms::DataGridView::data_source>`; see the property's description above.
 
+   .. cpp:function:: bool allow_user_to_add_rows() const noexcept
+
+      -- adding and deleting rows (owner decision B1-2) ------------------ With allow_user_to_add_rows (off by default) unbound and bound grids show a new row after the last row (Windows Forms' new row); virtual grids do not. A bound grid shows it while its source allows new records; a read-only grid or one without columns never does. The new row has a generated ID and empty values; when it becomes current, default_values_needed gives it its first values. The first value the user commits to it (an edit, a toggle or a choice) makes it a row of the grid's, or a record of the source's, with the same ID: user_added_row is raised, and a new row appears after it. Until the current cell leaves it, the added row can be discarded with cancel_row_edit (Escape when no cell is in edit).
+
+   .. cpp:function:: void set_allow_user_to_add_rows(bool allow)
+
+   .. cpp:function:: std::optional<DataGridViewRowPosition> new_row_index() const noexcept
+
+      The new row's position, while it is shown.
+
+   .. cpp:function:: bool allow_user_to_delete_rows() const noexcept
+
+      With allow_user_to_delete_rows (off by default) Delete, pressed while no cell is in edit, deletes the selected rows (selected_rows(), never the new row) of an unbound grid or of a source that allows removal: each raises user_deleting_row, which may keep it, then is removed and raises user_deleted_row.
+
+   .. cpp:function:: void set_allow_user_to_delete_rows(bool allow)
+
+   .. cpp:function:: bool show_cell_errors() const noexcept
+
+   .. cpp:function:: void set_show_cell_errors(bool show)
+
+   .. cpp:function:: bool show_row_errors() const noexcept
+
+   .. cpp:function:: void set_show_row_errors(bool show)
+
+   .. cpp:function:: bool show_editing_icon() const noexcept
+
+      The pencil the current row's header shows while the row is dirty (Windows Forms' ShowEditingIcon); on by default.
+
+   .. cpp:function:: void set_show_editing_icon(bool show)
+
    .. cpp:function:: bool column_headers_visible() const noexcept
 
       Whether the column header row shows.
@@ -709,6 +850,18 @@ gui_forms::DataGridView
 
       Whether a text cell is in edit or a combo box cell's choices are open.
 
+   .. cpp:function:: DataGridViewEditMode edit_mode() const noexcept
+
+   .. cpp:function:: void set_edit_mode(DataGridViewEditMode mode)
+
+   .. cpp:function:: bool is_current_cell_dirty() const noexcept
+
+      Whether the edit in progress holds a value the cell does not: the user changed the editor's text, or notify_current_cell_dirty said so.
+
+   .. cpp:function:: bool is_current_row_dirty() const noexcept
+
+      Whether the current row holds changes the user made since it became current: a dirty cell, a committed value, or a row the user added.
+
    .. cpp:function:: std::shared_ptr<TextBox> editing_control() const noexcept
 
       The :cpp:class:`TextBox <gui_forms::TextBox>` a text cell edits in. It is laid out over the current cell
@@ -771,6 +924,48 @@ gui_forms::DataGridView
       Raised after the virtual rows' order switched mode, with the old and new
       mode, the reason (``row_count``, ``change_rate``, ``policy`` or
       ``source``), the row count and this pass's reported changes.
+
+   .. cpp:function:: Event<DataGridViewDataErrorEvent&>& data_error() noexcept
+
+      Raised when a value does not reach its cell (owner decision B1-1).
+
+   .. cpp:function:: Event<const DataGridViewCellEvent&>& cell_validated() noexcept
+
+      Raised after an edit's value is validated and stored, before cell_end_edit.
+
+   .. cpp:function:: Event<bool>& current_cell_dirty_state_changed() noexcept
+
+      Raised with the new state when is_current_cell_dirty changes.
+
+   .. cpp:function:: Event<DataGridViewRowCancelEvent&>& row_validating() noexcept
+
+      Moving the current cell, by the user or the program, runs in this order. The edit in progress commits (cell_validating, cell_validated, cell_end_edit); a commit that fails stops the move. When the row changes, row_validating may keep the current row. Then the current cell moves and cell_leave, row_leave (when the row changes), row_validated (when it was validated), row_enter, default_values_needed (entering the new row), cell_enter and current_cell_changed are raised. Handlers of these events may not call set_current_cell (std::logic_error); a handler that moves rows or the current cell otherwise ends the remaining enter events of the move. A move that follows a binding source's position is not validated.
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& row_validated() noexcept
+
+   .. cpp:function:: Event<const DataGridViewCellEvent&>& cell_enter() noexcept
+
+   .. cpp:function:: Event<const DataGridViewCellEvent&>& cell_leave() noexcept
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& row_enter() noexcept
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& row_leave() noexcept
+
+   .. cpp:function:: Event<DataGridViewRowValuesEvent&>& default_values_needed() noexcept
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& user_added_row() noexcept
+
+   .. cpp:function:: Event<DataGridViewRowCancelEvent&>& user_deleting_row() noexcept
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& user_deleted_row() noexcept
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& row_edit_cancelled() noexcept
+
+      Raised after cancel_row_edit discarded the row the user added.
+
+   .. cpp:function:: Event<const DataGridViewCellEvent&>& cell_error_text_changed() noexcept
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& row_error_text_changed() noexcept
 
    .. cpp:function:: Event<std::size_t>& column_header_click() noexcept
 
@@ -883,6 +1078,16 @@ gui_forms::DataGridView
 
       Repaints after the provider's values changed outside the grid.
 
+   .. cpp:function:: bool cancel_row_edit()
+
+      Discards the row the user added, while it is the current row and the current cell has not left it since; any edit is discarded first. Raises row_edit_cancelled. Returns false when there is no such row.
+
+   .. cpp:function:: std::string cell_error_text(DataGridViewRowPosition row, std::size_t column) const
+
+      -- error text ------------------------------------------------------ A cell's or row's error text (Windows Forms' ErrorText), kept by row ID for every row source; it ends with its row, when the rows or columns are replaced and when a column is removed. A bound row with no text of the grid's shows its record's error for the column's field, or for the record as a whole. A cell with error text shows the error glyph at its end (with show_cell_errors), a row with error text one in its header (with show_row_errors); both publish it as their semantic description and are invalid. The setters raise cell_error_text_changed and row_error_text_changed. Throw std::out_of_range past the rows or columns and std::invalid_argument for invalid UTF-8.
+
+   .. cpp:function:: std::string row_error_text(DataGridViewRowPosition row) const
+
    .. cpp:function:: bool is_cell_selected(DataGridViewRowPosition row, std::size_t column) const
 
       Whether a cell is selected; in full-row mode, whether its row is.
@@ -915,6 +1120,18 @@ gui_forms::DataGridView
    .. cpp:function:: void cancel_edit()
 
       Discards the edit in progress.
+
+   .. cpp:function:: bool commit_edit()
+
+      Stores the text edit's value without leaving edit (Windows Forms' CommitEdit): conversion, then the value; cell_validating is not raised. Returns true when no text edit is in progress or it stored; false (after data_error) when it did not.
+
+   .. cpp:function:: bool refresh_edit()
+
+      Shows the cell's stored value in the editor again, discarding what was typed (Windows Forms' RefreshEdit). False when no text edit is in progress.
+
+   .. cpp:function:: void notify_current_cell_dirty(bool dirty)
+
+      Marks the edit in progress dirty or clean, raising current_cell_dirty_state_changed when that changes; ignored when no edit is in progress.
 
    .. cpp:function:: void close_drop_down() noexcept
 
@@ -983,6 +1200,10 @@ gui_forms::DataGridView
       mode its policy chooses. A null provider or source, or an empty,
       repeated or invalid UTF-8 ID, throws ``std::invalid_argument`` and changes
       nothing.
+
+   .. cpp:function:: void set_cell_error_text(DataGridViewRowPosition row, std::size_t column, std::string text)
+
+   .. cpp:function:: void set_row_error_text(DataGridViewRowPosition row, std::string text)
 
    .. cpp:function:: void set_cell_selected(DataGridViewRowPosition row, std::size_t column, bool selected)
 

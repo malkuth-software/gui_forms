@@ -3,7 +3,9 @@
 // editor, check box, button, combo box and image cells, virtual rows on stable row
 // IDs with a provider asked by ID, row identity kept across inserts, removals
 // and sorts in every row source, sorting, header clicks and column resizing,
-// BindingSource rows, scrolling and semantics.
+// BindingSource rows, scrolling and semantics; and the editing lifecycle
+// (batch 1): data errors, validation, dirty state, edit modes, enter and
+// leave events, the new row, deleting rows and error text.
 
 #include "gui_forms/gui_forms.hpp"
 
@@ -249,6 +251,10 @@ struct SetOrder final {
     DataGridView* grid{};
     std::vector<DataGridViewRowId> order{};
     void operator()() const { (*grid).set_virtual_row_order(order); }
+};
+struct RemoveNewRow final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).remove_row_at(*(*grid).new_row_index()); }
 };
 struct SetCount final {
     DataGridView* grid{};
@@ -1369,6 +1375,387 @@ void semantics() {
             "pressing a header node raises column_header_click");
 }
 
+
+// -- the editing lifecycle (batch 1) -------------------------------------------
+
+// Records every event of a move, by name, in order.
+struct EventLog final {
+    std::vector<std::string> names{};
+};
+struct LogCell final {
+    EventLog* log{};
+    const char* name{};
+    void operator()(const DataGridViewCellEvent&) const { (*log).names.emplace_back(name); }
+};
+struct LogRow final {
+    EventLog* log{};
+    const char* name{};
+    void operator()(const DataGridViewRowEvent&) const { (*log).names.emplace_back(name); }
+};
+struct LogValidating final {
+    EventLog* log{};
+    bool* cancel{};
+    void operator()(DataGridViewRowCancelEvent& event) const {
+        (*log).names.emplace_back("row_validating");
+        event.cancel = *cancel;
+    }
+};
+struct LogCurrent final {
+    EventLog* log{};
+    void operator()(std::optional<DataGridViewCellAddress>) const { (*log).names.emplace_back("current"); }
+};
+struct RecordDataError final {
+    std::vector<DataGridViewDataErrorEvent>* seen{};
+    bool cancel{true};
+    void operator()(DataGridViewDataErrorEvent& event) const {
+        (*seen).push_back(event);
+        event.cancel = cancel;
+    }
+};
+struct RecordDirty final {
+    std::vector<bool>* seen{};
+    void operator()(bool dirty) const { (*seen).push_back(dirty); }
+};
+struct RecordRow final {
+    std::vector<DataGridViewRowEvent>* seen{};
+    void operator()(const DataGridViewRowEvent& event) const { (*seen).push_back(event); }
+};
+struct FillDefaults final {
+    int* calls{};
+    void operator()(DataGridViewRowValuesEvent& event) const {
+        ++*calls;
+        event.values[2] = BindingValue{std::string("USB")};
+    }
+};
+struct KeepRow final {
+    std::string kept{};
+    int* asked{};
+    void operator()(DataGridViewRowCancelEvent& event) const {
+        ++*asked;
+        if (event.row_id.value == kept) event.cancel = true;
+    }
+};
+// Calls set_current_cell from an enter event, which the grid refuses.
+struct ReenterCurrent final {
+    DataGridView* grid{};
+    bool* refused{};
+    void operator()(const DataGridViewCellEvent&) const {
+        try {
+            static_cast<void>((*grid).set_current_cell(cell_at(0U, 0U)));
+        } catch (const std::logic_error&) {
+            *refused = true;
+        }
+    }
+};
+
+std::vector<DataGridViewColumn> number_columns() {
+    std::vector<DataGridViewColumn> columns = sample_columns();
+    columns.push_back({.name = "freq", .header_text = "Freq", .width = 80.0,
+                       .value_kind = BindingValueKind::number});
+    return columns;
+}
+
+void data_errors_and_dirty_state() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.errors");
+    (*grid).set_columns(number_columns());
+    (*grid).set_row_count(2U);
+    Window window(grid, {420.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    std::vector<DataGridViewDataErrorEvent> errors;
+    std::vector<bool> dirty;
+    std::vector<DataGridViewCellEvent> validated;
+    SubscriptionToken dirty_token = (*grid).current_cell_dirty_state_changed().subscribe(RecordDirty{&dirty});
+    SubscriptionToken validated_token = (*grid).cell_validated().subscribe(RecordCell{&validated});
+    require((*grid).set_current_cell(cell_at(0U, 4U)), "the number cell is current");
+
+    // B1-1: with no handler a parse error keeps the edit, marked invalid.
+    require((*grid).begin_edit() && !(*grid).is_current_cell_dirty(), "F2-style edit starts clean");
+    require(window.dispatch_text({"abc"}) && (*grid).is_current_cell_dirty() && dirty == std::vector<bool>{true},
+            "typing makes the edit dirty, raised once");
+    require(!(*grid).end_edit() && (*grid).is_current_cell_in_edit_mode() &&
+                (*grid).cell_value(row_at(0U), 4U) == BindingValue{},
+            "an unhandled data error keeps the edit and the old value");
+    const std::vector<DataGridView::Cell> invalid_cells = (*grid).realized_cells();
+    const DataGridView::Cell* invalid = find_cell(invalid_cells, 0U, 4U);
+    require(invalid != nullptr && (*invalid).states.invalid, "the cell is marked invalid");
+
+    SubscriptionToken error_token = (*grid).data_error().subscribe(RecordDataError{&errors, true});
+    require(!(*grid).end_edit() && errors.size() == 1U &&
+                errors[0].context == DataGridViewDataErrorContext::parsing && errors[0].formatted_value == "abc" &&
+                errors[0].row_id == id("alpha") && errors[0].column == 4U,
+            "data_error reports the parse with its text and cell");
+    error_token.disconnect();
+    error_token = (*grid).data_error().subscribe(RecordDataError{&errors, false});
+    require((*grid).end_edit() && !(*grid).is_current_cell_in_edit_mode() && !(*grid).is_current_cell_dirty() &&
+                (*grid).cell_value(row_at(0U), 4U) == BindingValue{} && validated.empty(),
+            "a handler that clears cancel discards the edit; nothing is validated");
+    require(dirty.size() == 2U && !dirty[1], "the dirty state ends with the edit");
+
+    // commit_edit stores without leaving edit; refresh_edit restores the cell.
+    require((*grid).begin_edit(), "edit again");
+    (*(*grid).editing_control()).set_text("7.5");
+    require((*grid).commit_edit() && (*grid).is_current_cell_in_edit_mode() && !(*grid).is_current_cell_dirty() &&
+                (*grid).cell_value(row_at(0U), 4U) == BindingValue{7.5},
+            "commit_edit stores and stays in edit");
+    require((*grid).is_current_row_dirty(), "a committed value makes the row dirty");
+    (*(*grid).editing_control()).set_text("9");
+    require((*grid).refresh_edit() && (*(*grid).editing_control()).text() == "7.5" &&
+                !(*grid).is_current_cell_dirty(),
+            "refresh_edit shows the stored value again");
+    require((*grid).end_edit() && validated.size() == 1U && validated[0].column == 4U,
+            "a commit raises cell_validated");
+
+    // A provider that refuses a value raises a commit data error.
+    std::shared_ptr<DataGridView> virtual_grid = make_control<DataGridView>(StableId("grid.errors-virtual"));
+    (*virtual_grid).set_columns(virtual_columns());
+    std::shared_ptr<CountingProvider> provider = std::make_shared<CountingProvider>();
+    (*provider).refuse = true;
+    (*virtual_grid).set_virtual_rows(provider, virtual_order(3U));
+    Window virtual_window(virtual_grid, {300.0, 160.0});
+    virtual_window.perform_layout();
+    std::vector<DataGridViewDataErrorEvent> commits;
+    SubscriptionToken commit_token = (*virtual_grid).data_error().subscribe(RecordDataError{&commits, true});
+    require((*virtual_grid).set_current_cell(cell_at(1U, 0U)) && (*virtual_grid).begin_edit(), "virtual edit");
+    (*(*virtual_grid).editing_control()).set_text("changed");
+    require(!(*virtual_grid).end_edit() && commits.size() == 1U &&
+                commits[0].context == DataGridViewDataErrorContext::commit && commits[0].row_id == id("v1"),
+            "a refused store is a commit data error");
+    (*virtual_grid).cancel_edit();
+    require(!(*virtual_grid).is_current_cell_in_edit_mode(), "the refused edit is discarded by cancel_edit");
+}
+
+void enter_leave_and_validation() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.moves");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    EventLog log;
+    bool cancel_row = false;
+    SubscriptionToken cell_leave = (*grid).cell_leave().subscribe(LogCell{&log, "cell_leave"});
+    SubscriptionToken cell_enter = (*grid).cell_enter().subscribe(LogCell{&log, "cell_enter"});
+    SubscriptionToken row_leave = (*grid).row_leave().subscribe(LogRow{&log, "row_leave"});
+    SubscriptionToken row_enter = (*grid).row_enter().subscribe(LogRow{&log, "row_enter"});
+    SubscriptionToken row_validated = (*grid).row_validated().subscribe(LogRow{&log, "row_validated"});
+    SubscriptionToken row_validating = (*grid).row_validating().subscribe(LogValidating{&log, &cancel_row});
+    SubscriptionToken current = (*grid).current_cell_changed().subscribe(LogCurrent{&log});
+    require((*grid).set_current_cell(cell_at(0U, 0U)), "first current cell");
+    require(log.names == std::vector<std::string>{"row_enter", "cell_enter", "current"},
+            "entering the first cell raises row_enter, cell_enter, then current_cell_changed");
+    log.names.clear();
+    require((*grid).set_current_cell(cell_at(0U, 2U)), "within the row");
+    require(log.names == std::vector<std::string>{"cell_leave", "cell_enter", "current"},
+            "a move within a row validates no row");
+    log.names.clear();
+    require((*grid).set_current_cell(cell_at(1U, 2U)), "to another row");
+    require(log.names == std::vector<std::string>{"row_validating", "cell_leave", "row_leave", "row_validated",
+                                                  "row_enter", "cell_enter", "current"},
+            "a row change validates, leaves, then enters, in order");
+    log.names.clear();
+    cancel_row = true;
+    require(!(*grid).set_current_cell(cell_at(2U, 0U)) && (*grid).current_cell() == cell_at(1U, 2U) &&
+                log.names == std::vector<std::string>{"row_validating"},
+            "a cancelled row_validating keeps the current row");
+    cancel_row = false;
+    log.names.clear();
+    require((*grid).set_current_cell(std::nullopt) && !(*grid).current_cell(), "no current cell");
+    require(log.names == std::vector<std::string>{"row_validating", "cell_leave", "row_leave", "row_validated",
+                                                  "current"},
+            "clearing the current cell validates and leaves its row");
+    bool refused = false;
+    SubscriptionToken reenter = (*grid).cell_enter().subscribe(ReenterCurrent{grid.get(), &refused});
+    require((*grid).set_current_cell(cell_at(2U, 0U)) && refused && (*grid).current_cell() == cell_at(2U, 0U),
+            "set_current_cell from an enter handler is refused");
+}
+
+void edit_modes() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.modes");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid) && (*grid).current_cell() == cell_at(0U, 0U), "focused on the first cell");
+    require((*grid).edit_mode() == DataGridViewEditMode::edit_on_keystroke_or_f2, "the default edit mode");
+    (*grid).set_edit_mode(DataGridViewEditMode::edit_programmatically);
+    require(!window.dispatch_text({"x"}) && !(*grid).is_current_cell_in_edit_mode(), "typing does not edit");
+    static_cast<void>(key(window, PhysicalKey::f2));
+    require(!(*grid).is_current_cell_in_edit_mode(), "F2 does not edit programmatically");
+    require((*grid).begin_edit(), "begin_edit always edits");
+    (*grid).cancel_edit();
+    (*grid).set_edit_mode(DataGridViewEditMode::edit_on_f2);
+    require(!window.dispatch_text({"x"}) && !(*grid).is_current_cell_in_edit_mode(), "on_f2 ignores typing");
+    static_cast<void>(key(window, PhysicalKey::f2));
+    require((*grid).is_current_cell_in_edit_mode(), "on_f2 edits on F2");
+    (*grid).cancel_edit();
+    (*grid).set_edit_mode(DataGridViewEditMode::edit_on_keystroke);
+    static_cast<void>(key(window, PhysicalKey::f2));
+    require(!(*grid).is_current_cell_in_edit_mode(), "on_keystroke ignores F2");
+    require(window.dispatch_text({"Z"}) && (*grid).is_current_cell_in_edit_mode() &&
+                (*grid).is_current_cell_dirty(),
+            "on_keystroke edits on typing, dirty at once");
+    (*grid).cancel_edit();
+    (*grid).set_edit_mode(DataGridViewEditMode::edit_on_enter);
+    static_cast<void>(key(window, PhysicalKey::down));
+    require((*grid).current_cell() == cell_at(1U, 0U) && (*grid).is_current_cell_in_edit_mode(),
+            "on_enter edits a text cell as it becomes current");
+    static_cast<void>(key(window, PhysicalKey::tab));
+    require((*grid).current_cell() == cell_at(1U, 1U) && !(*grid).is_current_cell_in_edit_mode(),
+            "on_enter does not edit a check box cell");
+}
+
+void new_row_unbound() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.new-row");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    require(!(*grid).new_row_index() && (*grid).row_count() == 3U, "no new row by default");
+    (*grid).set_allow_user_to_add_rows(true);
+    window.perform_layout();
+    require((*grid).new_row_index() == row_at(3U) && (*grid).row_count() == 4U,
+            "the new row follows the last row");
+    const DataGridViewRowId placeholder = (*grid).row_id(row_at(3U));
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(rows.size() == 4U && rows[3].parts.row_glyph.present, "the new row shows its star glyph");
+    int defaults = 0;
+    std::vector<DataGridViewRowEvent> added;
+    std::vector<DataGridViewRowEvent> cancelled;
+    SubscriptionToken default_token = (*grid).default_values_needed().subscribe(FillDefaults{&defaults});
+    SubscriptionToken added_token = (*grid).user_added_row().subscribe(RecordRow{&added});
+    SubscriptionToken cancelled_token = (*grid).row_edit_cancelled().subscribe(RecordRow{&cancelled});
+    require(window.request_focus(grid), "focus");
+    require((*grid).set_current_cell(cell_at(3U, 0U)) && defaults == 1 &&
+                (*grid).cell_text(row_at(3U), 2U) == "USB",
+            "entering the new row asks for its default values");
+    require(!(*grid).is_current_row_dirty() && added.empty(), "entering adds nothing");
+    require(window.dispatch_text({"Delta"}) && (*grid).is_current_row_dirty(), "typing into the new row");
+    require(key(window, PhysicalKey::tab), "Tab commits");
+    require(added.size() == 1U && added[0].row_id == placeholder && (*grid).row_count() == 5U &&
+                (*grid).new_row_index() == row_at(4U) && (*grid).cell_text(row_at(3U), 0U) == "Delta" &&
+                (*grid).cell_text(row_at(3U), 2U) == "USB" && (*grid).row_id(row_at(3U)) == placeholder,
+            "the commit adds the row with the new row's ID and its defaults; a new row follows");
+    require((*grid).current_cell() == cell_at(3U, 1U) && (*grid).is_current_row_dirty(),
+            "the added row stays current and dirty");
+    require(key(window, PhysicalKey::escape) && cancelled.size() == 1U && (*grid).row_count() == 4U &&
+                !(*grid).row_position(placeholder) && (*grid).current_cell() == cell_at(3U, 1U) &&
+                (*grid).new_row_index() == row_at(3U),
+            "Escape discards the added row; the new row takes its place");
+    // Adding and leaving keeps the row.
+    require((*grid).set_current_cell(cell_at(3U, 1U)), "the new row's check box");
+    require(key(window, PhysicalKey::space) && (*grid).row_count() == 5U && added.size() == 2U,
+            "a toggle adds the row too");
+    require((*grid).set_current_cell(cell_at(0U, 0U)) && !(*grid).cancel_row_edit() && (*grid).row_count() == 5U,
+            "once left, the added row is kept");
+    require(throws<std::invalid_argument>(RemoveNewRow{grid.get()}), "the new row is not removed");
+    (*grid).set_allow_user_to_add_rows(false);
+    require((*grid).row_count() == 4U && !(*grid).new_row_index(), "turning it off hides the new row");
+}
+
+void new_row_bound() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.new-bound"));
+    (*grid).set_columns({{.name = "name", .header_text = "Name", .data_property_name = "Name"},
+                         {.name = "city", .header_text = "City", .data_property_name = "City"}});
+    Window window(grid, {360.0, 160.0});
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
+    BindingRecord::FieldMap first;
+    first["Name"] = std::string("Ada");
+    (*source).set_records({BindingRecord("person.1", first)});
+    (*grid).set_data_source(source);
+    (*grid).set_allow_user_to_add_rows(true);
+    window.perform_layout();
+    require((*grid).row_count() == 2U && (*grid).new_row_index() == row_at(1U), "a bound grid shows the new row");
+    const DataGridViewRowId placeholder = (*grid).row_id(row_at(1U));
+    require((*grid).set_current_cell(cell_at(1U, 1U)) && (*grid).begin_edit(), "edit the new row");
+    (*(*grid).editing_control()).set_text("Paris");
+    require((*grid).end_edit() && (*source).count() == 2U && (*source).records()[1].stable_id == placeholder.value &&
+                (*grid).cell_text(row_at(1U), 1U) == "Paris" && (*grid).row_count() == 3U,
+            "the commit adds a record with the new row's ID and the value");
+    (*source).set_allow_new(false);
+    window.perform_layout();
+    require((*grid).row_count() == 2U && !(*grid).new_row_index(), "a source without additions has no new row");
+}
+
+void deleting_rows() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.delete");
+    (*grid).set_selection_mode(DataGridViewSelectionMode::full_row_select);
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(window.request_focus(grid), "focus");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && !key(window, PhysicalKey::delete_forward) &&
+                (*grid).row_count() == 3U,
+            "Delete does nothing unless deleting is allowed");
+    (*grid).set_allow_user_to_delete_rows(true);
+    int asked = 0;
+    std::vector<DataGridViewRowEvent> deleted;
+    SubscriptionToken deleting_token = (*grid).user_deleting_row().subscribe(KeepRow{"charlie", &asked});
+    SubscriptionToken deleted_token = (*grid).user_deleted_row().subscribe(RecordRow{&deleted});
+    (*grid).set_row_selected(row_at(2U), true);
+    require(key(window, PhysicalKey::delete_forward) && asked == 2 && deleted.size() == 1U &&
+                deleted[0].row_id == id("bravo") && deleted[0].row == row_at(1U) && (*grid).row_count() == 2U &&
+                (*grid).row_position(id("charlie")) == row_at(1U),
+            "Delete removes the selected rows a handler does not keep");
+
+    std::shared_ptr<DataGridView> bound = make_control<DataGridView>(StableId("grid.delete-bound"));
+    (*bound).set_columns({{.name = "name", .header_text = "Name", .data_property_name = "Name"}});
+    (*bound).set_selection_mode(DataGridViewSelectionMode::full_row_select);
+    Window bound_window(bound, {300.0, 160.0});
+    std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(bound_window);
+    BindingRecord::FieldMap fields;
+    fields["Name"] = std::string("Ada");
+    (*source).set_records({BindingRecord("p.1", fields), BindingRecord("p.2", fields)});
+    (*bound).set_data_source(source);
+    (*bound).set_allow_user_to_delete_rows(true);
+    bound_window.perform_layout();
+    require(bound_window.request_focus(bound) && (*bound).set_current_cell(cell_at(0U, 0U)), "bound focus");
+    require(key(bound_window, PhysicalKey::delete_forward) && (*source).count() == 1U &&
+                (*source).records()[0].stable_id == "p.2",
+            "Delete removes a bound row's record");
+}
+
+void error_text() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.error-text");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    std::vector<DataGridViewCellEvent> cell_changes;
+    std::vector<DataGridViewRowEvent> row_changes;
+    SubscriptionToken cell_token = (*grid).cell_error_text_changed().subscribe(RecordCell{&cell_changes});
+    SubscriptionToken row_token = (*grid).row_error_text_changed().subscribe(RecordRow{&row_changes});
+    (*grid).set_cell_error_text(row_at(1U), 0U, "Name is required");
+    (*grid).set_row_error_text(row_at(1U), "Row has errors");
+    window.perform_layout();
+    require((*grid).cell_error_text(row_at(1U), 0U) == "Name is required" &&
+                (*grid).row_error_text(row_at(1U)) == "Row has errors" && cell_changes.size() == 1U &&
+                row_changes.size() == 1U,
+            "error text is kept and reported");
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* errored = find_cell(cells, 1U, 0U);
+    const DataGridView::Cell* clean = find_cell(cells, 0U, 0U);
+    require(errored != nullptr && (*errored).parts.cell_error.present && (*errored).states.invalid &&
+                (*errored).parts.cell_content.bounds.width < (*clean).parts.cell_content.bounds.width &&
+                !(*clean).parts.cell_error.present,
+            "a cell with error text shows the error glyph and is invalid");
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(rows[1].parts.row_error.present && rows[1].states.invalid && !rows[0].parts.row_error.present,
+            "a row with error text shows the glyph in its header");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    bool described = false;
+    for (const SemanticNode& node : nodes) {
+        if (node.stable_id != "bravo") continue;
+        bool cell_described = false;
+        for (const SemanticNode& child : node.children) {
+            if (child.stable_id == "bravo.name") {
+                cell_described = child.description == "Name is required" &&
+                                 has_semantic_state(child.states, SemanticState::invalid);
+            }
+        }
+        described = cell_described && node.description == "Row has errors";
+    }
+    require(described, "error text is the semantic description of the cell and row");
+    (*grid).set_show_cell_errors(false);
+    window.perform_layout();
+    const std::vector<DataGridView::Cell> hidden = (*grid).realized_cells();
+    const DataGridView::Cell* quiet = find_cell(hidden, 1U, 0U);
+    require(quiet != nullptr && !(*quiet).parts.cell_error.present, "show_cell_errors hides the glyph");
+    (*grid).remove_row_at(row_at(1U));
+    require((*grid).row_count() == 2U && (*grid).cell_error_text(row_at(1U), 0U).empty(),
+            "error text ends with its row");
+}
+
 } // namespace
 
 int main() {
@@ -1386,6 +1773,13 @@ int main() {
     semantics();
     image_cells();
     link_cells();
+    data_errors_and_dirty_state();
+    enter_leave_and_validation();
+    edit_modes();
+    new_row_unbound();
+    new_row_bound();
+    deleting_rows();
+    error_text();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells passed\n";
     return 0;
