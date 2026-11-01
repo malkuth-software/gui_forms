@@ -75,6 +75,15 @@ gui_forms::EasingPreview
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`advance_animation <gui_forms::EasingPreview::advance_animation>`
+        - Samples the timeline at a frame time into :cpp:func:`phase <gui_forms::EasingPreview::phase>`.
+
    .. seealso::
 
       :cpp:class:`AnimationTimeline <gui_forms::AnimationTimeline>`
@@ -211,12 +220,16 @@ gui_forms::EasingPreview
    .. cpp:function:: States states() const
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: void advance_animation(FrameTime now)
+
+      Samples the timeline at a frame time into :cpp:func:`phase <gui_forms::EasingPreview::phase>`. The preview's
+      animation timer calls it on each tick; tests call it to step the preview
+      without a clock.
+
+
    .. rubric:: Extension points
-
-   .. cpp:function:: void on_frame(FrameTime now) override
-
-      Called on each tick of the preview's animation timer; it samples the
-      timeline into :cpp:func:`phase <gui_forms::EasingPreview::phase>`.
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 

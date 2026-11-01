@@ -79,7 +79,7 @@ gui_forms::VisualInspectorOverlay
 
    The overlay does not observe its target: it reads a snapshot of the window
    each time it paints. Call :cpp:func:`refresh <gui_forms::VisualInspectorOverlay::refresh>` when the target changes, or keep it live
-   with ``Window::activate_surface``. Hide it with ``set_visible`` when it is not
+   with :cpp:func:`start_polling <gui_forms::VisualInspectorOverlay::start_polling>`. Hide it with ``set_visible`` when it is not
    needed.
 
    .. rubric:: Examples
@@ -136,7 +136,7 @@ gui_forms::VisualInspectorOverlay
 
    .. cpp:function:: bool refresh_if_changed()
 
-      Repaints only when the outlines differ from the ones last drawn, and returns whether it did. The overlay usually spans the window, so an unconditional repaint repaints the whole window; poll this from a UI timer, not an active surface (see VisualInspectorView).
+      Repaints only when the outlines differ from the ones last drawn, and returns whether it did. The overlay usually spans the window, so an unconditional repaint repaints the whole window; poll it with start_polling.
 
    .. cpp:function:: void start_polling(FrameInterval interval)
 
@@ -153,11 +153,6 @@ gui_forms::VisualInspectorOverlay
 
 
    .. rubric:: Extension points
-
-   .. cpp:function:: void on_frame(FrameTime now) override
-
-      Calls :cpp:func:`refresh <gui_forms::VisualInspectorOverlay::refresh>`. The window's frame scheduler calls it for frames
-      requested with ``Window::schedule_paint`` or ``Window::activate_surface``.
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 

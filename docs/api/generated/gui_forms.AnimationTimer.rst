@@ -60,8 +60,8 @@ gui_forms::AnimationTimer
    The tick target returns :cpp:enumerator:`AnimationTickResult::damaged <gui_forms::AnimationTickResult::damaged>` when it invalidated
    what it changed, and :cpp:enumerator:`AnimationTickResult::unchanged <gui_forms::AnimationTickResult::unchanged>` when nothing moved; an
    unchanged tick expects no paint, so a calm or finished state stays scheduled.
-   This result belongs to the timer's own tick target; ``Control::on_frame``
-   returns nothing, and a control damages what it changes either way.
+   A control damages what it changes either way; the result only tells the
+   timer whether to wait for a paint.
    The target is called on the window's UI thread and may call :cpp:func:`start <gui_forms::AnimationTimer::start>` or
    :cpp:func:`stop <gui_forms::AnimationTimer::stop>`.
 

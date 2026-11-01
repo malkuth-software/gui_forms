@@ -80,7 +80,7 @@ gui_forms::VisualInspectorView
    The view does not observe its target. It reads a snapshot when it paints and
    when its semantics are queried, so what it draws is stale until it is
    repainted: call :cpp:func:`refresh <gui_forms::VisualInspectorView::refresh>` after changing the target, or keep it live with
-   ``Window::activate_surface``. Each paint and each semantic query takes a
+   :cpp:func:`start_polling <gui_forms::VisualInspectorView::start_polling>`. Each paint and each semantic query takes a
    snapshot of the whole window, with up to 512 paint commands per control, so
    a live inspector costs a full-window snapshot on every refresh.
 
@@ -148,7 +148,7 @@ gui_forms::VisualInspectorView
 
    .. cpp:function:: bool refresh_if_changed()
 
-      Repaints only when the text the view would draw differs from what it last drew, so polling an unchanged target costs one inspection snapshot and no paint. The pending damage count is not compared: it describes the paint that drew it, which always includes the view's own damage. Returns whether it repainted. Poll it from a UI timer: an active surface repaints its control on every tick whatever on_frame does.
+      Repaints only when the text the view would draw differs from what it last drew, so polling an unchanged target costs one inspection snapshot and no paint. The pending damage count is not compared: it describes the paint that drew it, which always includes the view's own damage. Returns whether it repainted.
 
    .. cpp:function:: void start_polling(FrameInterval interval)
 
@@ -165,12 +165,6 @@ gui_forms::VisualInspectorView
 
 
    .. rubric:: Extension points
-
-   .. cpp:function:: void on_frame(FrameTime now) override
-
-      Calls :cpp:func:`refresh <gui_forms::VisualInspectorView::refresh>`. The window's frame scheduler calls it for frames
-      requested with ``Window::schedule_paint`` or ``Window::activate_surface``, so
-      an active surface refreshes the view on every interval.
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 

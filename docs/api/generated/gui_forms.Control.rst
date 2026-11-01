@@ -1554,8 +1554,6 @@ gui_forms::Control
 
       Dialog characters are routed by Window only after the focused key route and accelerators decline them. The base implementation traverses the retained subtree in stable child order.
 
-   .. cpp:function:: virtual void on_frame(FrameTime now)
-
    .. cpp:function:: virtual SemanticDescriptor semantic_descriptor() const
 
       Override to describe the control to assistive technology: role, name,
