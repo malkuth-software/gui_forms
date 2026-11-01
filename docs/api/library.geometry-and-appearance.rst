@@ -248,6 +248,10 @@ Types
      - What a rule applies to.
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
      - A selector's specificity: the stable ID, the classes, the control type, the part (its name or role, one each) and the states, compared in that order (T2 plan, E4).
+   * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
+     - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
+   * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
+     -  
    * - :cpp:class:`Size <gui_forms::Size>`
      - Size is a renderer-neutral logical width and height.
    * - :cpp:class:`SliceAxis <gui_forms::SliceAxis>`
@@ -281,7 +285,7 @@ Types
    * - :cpp:class:`ThemePackageFile <gui_forms::ThemePackageFile>`
      - One file of a theme package: its path inside the package, as the manifest lists it, and its bytes.
    * - :cpp:class:`ThemeRule <gui_forms::ThemeRule>`
-     - One rule.
+     -  
    * - :cpp:class:`ThemeRuleSheet <gui_forms::ThemeRuleSheet>`
      - A theme's rules, as authored, with the engine version the theme declares it needs and the values an application publishes that its expressions read (E6; Window::publish_value).
    * - :cpp:class:`ThemeSpacingTokens <gui_forms::ThemeSpacingTokens>`
@@ -581,6 +585,10 @@ Types
    .. cpp:function:: bool empty() const noexcept
 
    .. cpp:function:: std::size_t rule_count() const noexcept
+
+   .. cpp:function:: std::size_t scoped_name_count() const noexcept
+
+      How many scoped custom property names the rules' conditions read (P12).
 
    .. cpp:function:: const std::vector<RuleDiagnostic>& diagnostics() const noexcept
 
@@ -3576,6 +3584,30 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ScopedCondition final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::uint32_t definition
+
+      Default: ``{custom_property_undefined}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ScopedDefinition final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::uint32_t definition
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: Size
 
    ``#include <gui_forms/types/geometry/geometry.hpp>``
@@ -4071,8 +4103,6 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One rule. ``label`` names it in diagnostics (T3: its source position). ``requires_engine``, when set, is the engine version the rule needs, in place of its sheet's. Its transitions and its ambient effect cascade as declarations do: for each property, the transition of the last matching rule that declares one (for a parameter, among the rules selecting the part's primitive), and the ambient effect of the last matching rule that declares one. Its material fields (EC1) cascade the same way, each on its own, from every matching rule, whatever primitive it selects: they change a part only where its primitive draws a theme material. Its recipe fields (RecipeField) cascade the same way for the control as a whole. ``specificity``, when set, is the rule's specificity in place of the one its selector gives (T3 engine change EC2): a rule expanded from CSS's ``:is()`` takes its most specific argument's. A class or stable-ID rule with a given specificity then needs a class or an ID in it rather than in its selector; an inline style still needs its selector's stable ID.
-
    .. cpp:member:: std::string label
 
    .. cpp:member:: CascadeLevel level
@@ -4098,6 +4128,12 @@ Types
    .. cpp:member:: MediaCondition media
 
       The windows the rule holds in (EC3); by default, all.
+
+   .. cpp:member:: std::vector<ScopedDefinition> scoped_definitions
+
+      Scoped custom properties (P12): the definitions the rule declares, and the conditions under which the rule, a copy, applies.
+
+   .. cpp:member:: std::vector<ScopedCondition> scoped_conditions
 
 .. cpp:namespace:: gui_forms
 
@@ -5361,6 +5397,8 @@ Enumerations
 
    .. cpp:enumerator:: media_invalid
 
+   .. cpp:enumerator:: scoped_property_invalid
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RuleValueKind
@@ -5985,6 +6023,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_text_shadow_offset
 
    Value: ``16.0``.
+
+.. cpp:var:: constexpr std::uint32_t custom_property_undefined
+
+   One rule. ``label`` names it in diagnostics (T3: its source position). ``requires_engine``, when set, is the engine version the rule needs, in place of its sheet's. Its transitions and its ambient effect cascade as declarations do: for each property, the transition of the last matching rule that declares one (for a parameter, among the rules selecting the part's primitive), and the ambient effect of the last matching rule that declares one. Its material fields (EC1) cascade the same way, each on its own, from every matching rule, whatever primitive it selects: they change a part only where its primitive draws a theme material. Its recipe fields (RecipeField) cascade the same way for the control as a whole. ``specificity``, when set, is the rule's specificity in place of the one its selector gives (T3 engine change EC2): a rule expanded from CSS's ``:is()`` takes its most specific argument's. A class or stable-ID rule with a given specificity then needs a class or an ID in it rather than in its selector; an inline style still needs its selector's stable ID. Custom properties defined in more than one place (T3 P12, EC7; owner decision of 2026-10-29), resolved per part when the theme loads: each definition of such a name is a scoped definition of the rule that declares it, at the rule's level, selector and media; and a rule that reads such names is lowered once per combination of their candidate definitions, each copy holding the combination as its conditions. A part's winning definition of a name is the last matching one in ascending precedence, or none; a copy applies to a part only where every condition names the part's winner. A name defined once is substituted when the theme loads, and is not scoped. Names are written with their ``--``; a definition is identified by a number unique in the sheet. Value: ``0xFFFF'FFFFU``.
+
+.. cpp:var:: constexpr std::size_t maximum_scoped_custom_properties
+
+   The most scoped names one compilation's conditions may read (E515): eight times the token-heavy test theme's 8 (theme_custom_property_css_tests). Value: ``64U``.
 
 .. cpp:var:: constexpr std::uint32_t maximum_operations_per_device_pixel
 

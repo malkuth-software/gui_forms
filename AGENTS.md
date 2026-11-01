@@ -50,10 +50,12 @@ all eleven:
    templates for declared choices; virtual dispatch and type erasure only
    where runtime variation is required; no universal callable frameworks or
    speculative portability layers.
-8. **Repeated kernels:** choose mode and implementation before the loop;
-   handle empty inputs and edges apart from the interior; validate whole
-   buffers up front; no per-element allocation, logging, locking or
-   callbacks; numerical shortcuts only within stated error bounds.
+8. **Repeated kernels:** no decisions inside the loop: a per-element branch
+   marks an unfinished formulation, so find the reformulation rather than
+   evaluating both alternatives; break the local paradigm, then restore
+   exactness with corrections outside the interior, proved against a kept
+   reference; bookkeeping lives outside the loop; then layout, hoisting and
+   stated numerical freedoms.
 9. **Statements and expressions:** write in execution order; no lambdas or
    anonymous callbacks; one recognizable operation per expression; calculate,
    then return; break chains that hide types, state or allocation.

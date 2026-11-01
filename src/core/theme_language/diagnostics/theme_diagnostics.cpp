@@ -57,6 +57,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::variable_cycle:
     case DiagnosticCode::keyframes_undefined:
     case DiagnosticCode::colour_role_undefined:
+    case DiagnosticCode::variable_cannot_vary:
     case DiagnosticCode::resource_unknown:
     case DiagnosticCode::sheet_too_large:
     case DiagnosticCode::too_many_rules:
@@ -65,12 +66,14 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::string_too_long:
     case DiagnosticCode::too_many_imports:
     case DiagnosticCode::expression_over_budget:
+    case DiagnosticCode::too_many_variable_combinations:
     case DiagnosticCode::too_many_is_arguments:
     case DiagnosticCode::selector_too_long:
     case DiagnosticCode::too_many_custom_properties:
     case DiagnosticCode::substitution_too_long:
     case DiagnosticCode::lowered_sheet_too_large:
     case DiagnosticCode::too_many_keyframes:
+    case DiagnosticCode::too_many_scoped_variables:
     case DiagnosticCode::manifest_invalid:
     case DiagnosticCode::file_hash_mismatch:
     case DiagnosticCode::import_not_installed:
@@ -133,6 +136,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::variable_cycle: return "variable_cycle";
     case DiagnosticCode::keyframes_undefined: return "keyframes_undefined";
     case DiagnosticCode::colour_role_undefined: return "colour_role_undefined";
+    case DiagnosticCode::variable_cannot_vary: return "variable_cannot_vary";
     case DiagnosticCode::resource_unknown: return "resource_unknown";
     case DiagnosticCode::sheet_too_large: return "sheet_too_large";
     case DiagnosticCode::too_many_rules: return "too_many_rules";
@@ -141,12 +145,14 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::string_too_long: return "string_too_long";
     case DiagnosticCode::too_many_imports: return "too_many_imports";
     case DiagnosticCode::expression_over_budget: return "expression_over_budget";
+    case DiagnosticCode::too_many_variable_combinations: return "too_many_variable_combinations";
     case DiagnosticCode::too_many_is_arguments: return "too_many_is_arguments";
     case DiagnosticCode::selector_too_long: return "selector_too_long";
     case DiagnosticCode::too_many_custom_properties: return "too_many_custom_properties";
     case DiagnosticCode::substitution_too_long: return "substitution_too_long";
     case DiagnosticCode::lowered_sheet_too_large: return "lowered_sheet_too_large";
     case DiagnosticCode::too_many_keyframes: return "too_many_keyframes";
+    case DiagnosticCode::too_many_scoped_variables: return "too_many_scoped_variables";
     case DiagnosticCode::manifest_invalid: return "manifest_invalid";
     case DiagnosticCode::file_hash_mismatch: return "file_hash_mismatch";
     case DiagnosticCode::import_not_installed: return "import_not_installed";

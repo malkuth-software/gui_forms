@@ -96,6 +96,9 @@ enum class DiagnosticCode : std::uint16_t {
     // role() of a colour role the theme's palette does not declare (P8,
     // owner decision D2 of 2026-10-28).
     colour_role_undefined = 415,
+    // A var() of a custom property defined in more than one place, read
+    // where it cannot vary (P12): in `@keyframes` or in the palette.
+    variable_cannot_vary = 416,
     // E5xx limits (T3 decision E2).
     sheet_too_large = 501,
     too_many_rules = 502,
@@ -107,8 +110,11 @@ enum class DiagnosticCode : std::uint16_t {
     // maximum_expression_operations instructions or needs a deeper stack
     // than maximum_expression_stack.
     expression_over_budget = 507,
-    // 508 (too_many_variable_combinations) arrives with P12. The derived
-    // limits of PLAN.md section 6:
+    // A rule reading custom properties defined in more than one place whose
+    // definitions combine more than maximum_variable_combinations ways
+    // (P12, PLAN.md section 1.11).
+    too_many_variable_combinations = 508,
+    // The derived limits of PLAN.md section 6:
     // more than maximum_is_arguments arguments in one `:is()`.
     too_many_is_arguments = 509,
     // An expanded selector of more than maximum_simple_selectors simple
@@ -126,6 +132,9 @@ enum class DiagnosticCode : std::uint16_t {
     // More than maximum_keyframes_rules `@keyframes` rules in one sheet
     // (R2-14, P7b).
     too_many_keyframes = 514,
+    // More than maximum_scoped_custom_properties names that some rule's
+    // selector redefines read in one sheet (P12, PLAN.md section 1.11).
+    too_many_scoped_variables = 515,
     // E6xx package (P10, owner decisions of 2026-10-28 on theme.json): the
     // theme is refused, and the running one stays.
     // A manifest that is not JSON, or not the schema: a key missing, of
