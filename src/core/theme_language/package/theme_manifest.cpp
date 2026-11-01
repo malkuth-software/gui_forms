@@ -339,6 +339,11 @@ std::string engine_too_old_detail(EngineVersion needed) {
            "; upgrade to run it";
 }
 
+bool package_resource_name_valid(std::string_view name) noexcept {
+    const bool valid = resource_name_valid(name);
+    return valid;
+}
+
 bool package_name_valid(std::string_view name) noexcept {
     if (name.empty() || name.size() > maximum_package_name_bytes) return false;
     if (!lower_letter_or_digit(name[0])) return false;

@@ -12,6 +12,7 @@
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -164,6 +165,48 @@ private:
 // release of their themes, are not safe to run concurrently.
 [[nodiscard]] ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
                                                        ImageRegistry& images, const ThemeCompileOptions& options);
+
+// A user theme's files (T3 user themes, notes:planning/stages/
+// T3-theme-language/USER_THEMES.md): its name, the stem of its main file
+// `themes/<name>.css`; that file's bytes; and the files of its folder
+// `themes/<name>/`, each by its path inside the folder, as the host read
+// them. The folder's top-level `.css` files are the theme's sub-sheets, its
+// top-level `.png` files its image resources (`url("resource:wood.png")`),
+// and `icons/<identifier>.png` its icon overrides; nothing else is admitted.
+struct UserThemeFiles final {
+    std::string name{};
+    std::string main_sheet{};
+    std::vector<ThemePackageFile> files{};
+};
+
+// A user theme's limits (USER_THEMES.md section 2): its folder holds at
+// most 256 files and 16 MiB. Its sheets, with the packages they import,
+// are one closure under the package limits (at most 16 imports, 1 MiB).
+inline constexpr std::size_t maximum_user_theme_files = 256U;
+inline constexpr std::size_t maximum_user_theme_bytes = std::size_t{16} * 1024U * 1024U;
+
+// The header of a user theme's main file, which makes the file a theme.
+struct UserThemeHeader final {
+    std::string version{};
+    std::string author{};
+    std::string provenance{};
+};
+
+// Compiles a user theme as the package its files imply (USER_THEMES.md
+// section 3): its sub-sheets in filename order (byte order of their names)
+// and then its main file, one cascade; an `@import` of a sub-sheet
+// (`@import "editor.css";`) places it there instead, and an `@import` of
+// another name imports the program's package of that name from `program`,
+// pinned to the installed one. The main file opens with an `@theme` header
+// (refused without, E601); its `engine` descriptor bounds the engine
+// (E607). `set` chooses the levels: ThemeRuleSet::user for a theme layered
+// under the program's (ApplicationResources::set_user_theme under the
+// layered policy), ThemeRuleSet::program for one replacing it. Images are
+// owned as compile_theme_package's are. `header`, when given, receives the
+// header of a compiled theme.
+[[nodiscard]] ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
+                                                    ImageRegistry& images, const ThemeCompileOptions& options,
+                                                    ThemeRuleSet set, UserThemeHeader* header = nullptr);
 
 // As compile_theme_package, for the installed package named `name`; an
 // unknown name is refused (E603).

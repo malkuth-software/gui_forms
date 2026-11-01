@@ -4,6 +4,7 @@
 
 #include "../../resources/image_registry/image_registry_access.hpp"
 #include "../../theme_language/compiler/theme_compiler.hpp"
+#include "../../theme_language/package/theme_header.hpp"
 #include "../../theme_language/package/theme_package.hpp"
 #include "../theme/theme_access.hpp"
 #include "control_inline_style.hpp"
@@ -92,11 +93,16 @@ ThemeDiagnostic problem_of(DiagnosticCode code, std::string file, std::string de
     return problem;
 }
 
+// A package's sheet as `<theme>/<path>`; a user theme's sheet, whose pack
+// has no sheet path, by its own name (`harbour.css`, `harbour/editor.css`).
 std::string sheet_file(const VerifiedThemePack& pack) {
+    if (pack.manifest.sheet.path.empty()) return pack.manifest.name;
     return pack.manifest.name + "/" + pack.manifest.sheet.path;
 }
 
+// A package's manifest; a user theme's sheet stands for its implied one.
 std::string manifest_file(const VerifiedThemePack& pack) {
+    if (pack.manifest.sheet.path.empty()) return pack.manifest.name;
     return pack.manifest.name + "/" + std::string(theme_language::theme_manifest_file);
 }
 
@@ -203,9 +209,11 @@ std::shared_ptr<detail::ThemeImageLease> lease_image(const std::string& encoded,
     return made;
 }
 
+// Compiles `root` with its imports among `index`'s packs, at the levels of
+// `set`, into a theme named `id`.
 ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_language::InstalledThemeIndex& index,
-                                   ImageRegistry& images, ThemeImageShares& shares,
-                                   const ThemeCompileOptions& options) {
+                                   ImageRegistry& images, ThemeImageShares& shares, const ThemeCompileOptions& options,
+                                   ThemeRuleSet set, std::string_view id) {
     std::vector<const VerifiedThemePack*> order{};
     ThemeDiagnostic problem{};
     if (theme_language::resolve_theme_imports(root, index, order, problem) != theme_language::ThemeImportOutcome::resolved) {
@@ -227,6 +235,12 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
             }
             if (std::find(published.begin(), published.end(), name) == published.end()) published.push_back(name);
         }
+    }
+    // A layered user theme publishes no values (CompiledThemeRules::
+    // compile_user): its expressions read the engine inputs alone.
+    if (set == ThemeRuleSet::user && !published.empty()) {
+        return refusal(problem_of(DiagnosticCode::published_value_invalid, sheet_file(root),
+                                  "a user theme reads no published value: " + published[0]));
     }
     std::vector<ClosureSegment> segments{};
     const std::string text = combined_text(order, segments);
@@ -280,8 +294,10 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
                                                   .published_values = published,
                                                   .resources = names,
                                                   .images = loaded,
-                                                  .requires_engine = requires_engine};
+                                                  .requires_engine = requires_engine,
+                                                  .user_theme = set == ThemeRuleSet::user};
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(windows_professional_theme_definition()));
+    (*definition).rule_set = set;
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList diagnostics{};
     const theme_language::CompileOutcome outcome = compiler.compile(input, (*definition).rules, diagnostics);
@@ -293,7 +309,7 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
-    (*definition).id = root.manifest.name;
+    (*definition).id = std::string(id);
     // The source the theme keeps for inline styles compiled against it
     // (P12b).
     std::shared_ptr<detail::ThemeSourceRecord> record = std::make_shared<detail::ThemeSourceRecord>();
@@ -317,6 +333,145 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
     std::shared_ptr<const Theme> theme =
         detail::ThemeAccess::create_holding(*definition, std::move(held), std::move(kept));
     return ThemeCompileResult::compiled(std::move(theme), std::move(found));
+}
+
+
+// -- user themes (T3, USER_THEMES.md) -------------------------------------------
+
+// What one file of a user theme's folder is.
+enum class UserThemeFileKind : std::uint8_t { sub_sheet, resource, icon, other };
+
+UserThemeFileKind user_file_kind(std::string_view path) noexcept {
+    const bool top_level = path.find('/') == std::string_view::npos;
+    if (top_level && path.ends_with(".css")) return UserThemeFileKind::sub_sheet;
+    if (top_level && path.ends_with(".png")) return UserThemeFileKind::resource;
+    constexpr std::string_view icons = "icons/";
+    const bool in_icons = path.starts_with(icons) && path.find('/', icons.size()) == std::string_view::npos;
+    if (in_icons && path.ends_with(".png")) return UserThemeFileKind::icon;
+    return UserThemeFileKind::other;
+}
+
+// One sheet of a user theme: its name in the closure (`harbour.css` for
+// the main file, `harbour/editor.css` for a sub-sheet), its path in the
+// theme's folder (empty for the main file), its bytes and their hash.
+struct UserSheet final {
+    std::string name{};
+    std::string path{};
+    const std::string* text{};
+    detail::Sha256Digest identity{};
+};
+
+// The first error of `diagnostics`, or a manifest_invalid problem in `file`.
+ThemeDiagnostic first_error(const theme_language::ThemeDiagnosticList& diagnostics, std::string_view file) {
+    for (const ThemeDiagnostic& diagnostic : diagnostics.records()) {
+        if (theme_language::diagnostic_severity(diagnostic.code) == theme_language::DiagnosticSeverity::error) {
+            return diagnostic;
+        }
+    }
+    return problem_of(DiagnosticCode::manifest_invalid, std::string(file), {});
+}
+
+// `sheet` made a pack in `pack`: its `@import`s read, a sub-sheet's
+// (`@import "editor.css";`) named as `<theme>/<path>` and pinned to its
+// hash, any other pinned to `index`'s package of that name; its `@theme`
+// header, when `header` is given, read into it with its warnings appended
+// to `warnings`, and blanked from the pack's text (every byte but line
+// breaks a space), since the closure's combined text holds it after other
+// sheets. False with `problem` set at the first error.
+bool read_user_sheet(const UserSheet& sheet, std::string_view theme, std::span<const UserSheet> subs,
+                     const theme_language::InstalledThemeIndex& index, VerifiedThemePack& pack,
+                     theme_language::ThemeHeader* header, std::vector<ThemeCompileDiagnostic>& warnings,
+                     ThemeDiagnostic& problem) {
+    const theme_language::ThemeSource source{.file = sheet.name, .text = *sheet.text};
+    theme_language::ThemeTokenBuffer tokens{};
+    theme_language::LineStartTable lines{};
+    theme_language::ThemeSyntaxTree tree{};
+    theme_language::ThemeDiagnosticList diagnostics{};
+    const theme_language::TokenizeOutcome tokenized =
+        theme_language::tokenize_theme_sheet(source, tokens, lines, diagnostics);
+    if (tokenized == theme_language::TokenizeOutcome::tokens_cover_sheet && diagnostics.error_count() == 0U) {
+        static_cast<void>(theme_language::parse_theme_sheet(source, tokens, lines, tree, diagnostics));
+    }
+    if (diagnostics.error_count() != 0U) {
+        problem = first_error(diagnostics, sheet.name);
+        return false;
+    }
+    pack = VerifiedThemePack{};
+    pack.manifest.name = sheet.name;
+    pack.identity = sheet.identity;
+    pack.sheet = *sheet.text;
+    for (std::size_t index_of = 1U; index_of < tree.nodes.size(); index_of = tree.nodes[index_of].subtree_end.value) {
+        const theme_language::SyntaxNode& node = tree.nodes[index_of];
+        const theme_language::Token& last = tokens.tokens[node.tokens.end.value - 1U];
+        const std::size_t first = tokens.tokens[node.tokens.first.value].offset.value;
+        const std::size_t end = last.offset.value + last.length.value;
+        if (node.kind == theme_language::SyntaxNodeKind::theme_header) {
+            for (std::size_t offset = first; offset < end; ++offset) {
+                if (pack.sheet[offset] != '\n' && pack.sheet[offset] != '\r') pack.sheet[offset] = ' ';
+            }
+            continue;
+        }
+        if (node.kind != theme_language::SyntaxNodeKind::import_rule) continue;
+        const theme_language::Token& written = tokens.tokens[node.content.first.value];
+        const std::string_view quoted = std::string_view(*sheet.text).substr(written.offset.value, written.length.value);
+        const std::string_view name = quoted.substr(1U, quoted.size() - 2U);
+        theme_language::ThemeSheetImport imported{};
+        imported.position = lines.position(source.text, written.offset);
+        imported.first = theme_language::ByteOffset{static_cast<std::uint32_t>(first)};
+        imported.end = theme_language::ByteOffset{static_cast<std::uint32_t>(end)};
+        theme_language::ThemeManifestImport pin{};
+        bool pinned = false;
+        if (name.ends_with(".css")) {
+            for (const UserSheet& sub : subs) {
+                if (sub.path != name) continue;
+                pin.name = sub.name;
+                pin.manifest_sha256 = sub.identity;
+                pinned = true;
+            }
+            if (!pinned) {
+                problem = problem_of(DiagnosticCode::import_not_installed, sheet.name,
+                                     theme_language::clipped_theme_detail(name));
+                problem.position = imported.position;
+                return false;
+            }
+        } else {
+            pin.name = std::string(name);
+            const VerifiedThemePack* const installed = index.find(name);
+            if (installed != nullptr) {
+                pin.manifest_sha256 = (*installed).identity;
+                pinned = true;
+            }
+        }
+        imported.name = pin.name;
+        if (pinned) pack.manifest.imports.push_back(pin);
+        pack.imports.push_back(std::move(imported));
+    }
+    if (header == nullptr) return true;
+    if (theme_language::read_theme_header(source, tokens, lines, tree, *header, diagnostics) !=
+        theme_language::ThemeHeaderOutcome::read) {
+        problem = first_error(diagnostics, sheet.name);
+        return false;
+    }
+    for (const ThemeDiagnostic& diagnostic : diagnostics.records()) warnings.push_back(public_diagnostic(diagnostic));
+    return true;
+}
+
+// Sub-sheets by the byte order of their paths.
+struct UserSheetNameOrder final {
+    bool operator()(const UserSheet& left, const UserSheet& right) const noexcept { return left.path < right.path; }
+};
+
+// Whether any of `packs` imports the sheet named `name`.
+bool imported_by(std::span<const VerifiedThemePack> packs, const VerifiedThemePack& main, std::string_view name) {
+    for (const theme_language::ThemeSheetImport& imported : main.imports) {
+        if (imported.name == name) return true;
+    }
+    for (const VerifiedThemePack& pack : packs) {
+        for (const theme_language::ThemeSheetImport& imported : pack.imports) {
+            if (imported.name == name) return true;
+        }
+    }
+    return false;
 }
 
 } // namespace
@@ -381,7 +536,8 @@ ThemeCompileResult compile_theme_package(const ThemePackage& package, const Them
         library.size() == 0U ? empty : ThemeLibraryAccess::index(library);
     ThemeImageShares unshared{};
     ThemeImageShares* const shares = ThemeLibraryAccess::images(library);
-    return compile_closure(root, index, images, shares == nullptr ? unshared : *shares, options);
+    return compile_closure(root, index, images, shares == nullptr ? unshared : *shares, options, ThemeRuleSet::program,
+                           root.manifest.name);
 }
 
 ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images,
@@ -393,7 +549,160 @@ ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLib
                                   theme_language::clipped_theme_detail(name)));
     }
     return compile_closure(*root, ThemeLibraryAccess::index(library), images, *ThemeLibraryAccess::images(library),
-                           options);
+                           options, ThemeRuleSet::program, (*root).manifest.name);
+}
+
+ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, ImageRegistry& images,
+                                      const ThemeCompileOptions& options, ThemeRuleSet set, UserThemeHeader* header) {
+    const std::string main_name = files.name + ".css";
+    // The folder, checked whole before anything is read.
+    if (!theme_language::package_name_valid(files.name)) {
+        return refusal(problem_of(DiagnosticCode::manifest_invalid, main_name,
+                                  "name: " + theme_language::clipped_theme_detail(files.name)));
+    }
+    if (files.files.size() > maximum_user_theme_files) {
+        return refusal(problem_of(DiagnosticCode::manifest_invalid, main_name,
+                                  "the folder holds more than " + std::to_string(maximum_user_theme_files) + " files"));
+    }
+    std::size_t total = 0U;
+    std::vector<UserSheet> subs{};
+    std::vector<const ThemePackageFile*> resources{};
+    for (std::size_t index = 0U; index < files.files.size(); ++index) {
+        const ThemePackageFile& file = files.files[index];
+        const std::string where = files.name + "/" + file.path;
+        if (!theme_language::package_path_valid(file.path)) {
+            return refusal(problem_of(DiagnosticCode::manifest_invalid, where, "a path the package rules refuse"));
+        }
+        for (std::size_t earlier = 0U; earlier < index; ++earlier) {
+            if (files.files[earlier].path == file.path) {
+                return refusal(problem_of(DiagnosticCode::manifest_invalid, where, "listed twice"));
+            }
+        }
+        total = total + file.bytes.size();
+        if (total > maximum_user_theme_bytes) {
+            return refusal(problem_of(DiagnosticCode::manifest_invalid, main_name,
+                                      "the folder holds more than 16 MiB"));
+        }
+        const UserThemeFileKind kind = user_file_kind(file.path);
+        if (kind == UserThemeFileKind::other) {
+            return refusal(problem_of(DiagnosticCode::manifest_invalid, where, "not a sheet, an image or an icon"));
+        }
+        if (kind == UserThemeFileKind::resource && !theme_language::package_resource_name_valid(file.path)) {
+            return refusal(problem_of(DiagnosticCode::manifest_invalid, where, "a resource name the rules refuse"));
+        }
+        if (kind == UserThemeFileKind::resource) resources.push_back(&file);
+        if (kind == UserThemeFileKind::sub_sheet) {
+            subs.push_back(UserSheet{.name = where,
+                                     .path = file.path,
+                                     .text = &file.bytes,
+                                     .identity = theme_language::package_sha256(file.bytes)});
+        }
+    }
+    // Sub-sheets in filename order: the byte order of their names.
+    std::sort(subs.begin(), subs.end(), UserSheetNameOrder{});
+    const theme_language::InstalledThemeIndex empty{};
+    const theme_language::InstalledThemeIndex& installed =
+        program.size() == 0U ? empty : ThemeLibraryAccess::index(program);
+    // Each sheet a pack; the main file's header read.
+    std::vector<ThemeCompileDiagnostic> warnings{};
+    std::vector<VerifiedThemePack> packs(subs.size());
+    ThemeDiagnostic problem{};
+    for (std::size_t index = 0U; index < subs.size(); ++index) {
+        if (!read_user_sheet(subs[index], files.name, subs, installed, packs[index], nullptr, warnings, problem)) {
+            return refusal(problem);
+        }
+    }
+    const UserSheet main_sheet{.name = main_name,
+                               .path = {},
+                               .text = &files.main_sheet,
+                               .identity = theme_language::package_sha256(files.main_sheet)};
+    VerifiedThemePack main{};
+    theme_language::ThemeHeader read{};
+    if (!read_user_sheet(main_sheet, files.name, subs, installed, main, &read, warnings, problem)) {
+        return refusal(problem);
+    }
+    if (!read.present) {
+        return refusal(problem_of(DiagnosticCode::manifest_invalid, main_name, "no @theme header: not a theme"));
+    }
+    if (read.engine && current_engine_version < *read.engine) {
+        return refusal(problem_of(DiagnosticCode::engine_too_old, main_name,
+                                  theme_language::engine_too_old_detail(*read.engine)));
+    }
+    main.manifest.engine = read.engine.value_or(EngineVersion{});
+    main.manifest.version = read.version;
+    main.manifest.author = read.author;
+    main.manifest.provenance = read.provenance;
+    for (const ThemePackageFile* const file : resources) {
+        theme_language::ThemeManifestResource resource{};
+        resource.name = (*file).path;
+        resource.file.path = (*file).path;
+        main.manifest.resources.push_back(resource);
+        main.resources.push_back((*file).bytes);
+    }
+    // The sub-sheets no sheet imports load first, in filename order, as if
+    // the main file imported them before its own imports.
+    std::vector<std::uint8_t> implied(subs.size(), 0U);
+    for (std::size_t position = 0U; position < subs.size(); ++position) {
+        implied[position] = imported_by(packs, main, subs[position].name) ? 0U : 1U;
+    }
+    // The program's packages and the sub-sheets, one index for the closure.
+    theme_language::InstalledThemeIndex index = installed;
+    for (VerifiedThemePack& pack : packs) {
+        if (!index.install(std::move(pack))) {
+            return refusal(problem_of(DiagnosticCode::too_many_imports, main_name,
+                                      std::to_string(theme_language::maximum_imports)));
+        }
+    }
+    // A sub-sheet only sheets that never load import (sub-sheets importing
+    // each other alone) is implied too, so that its cycle is found (E605).
+    const std::vector<theme_language::ThemeSheetImport> written = main.imports;
+    std::vector<const VerifiedThemePack*> reached{};
+    for (std::size_t round = 0U; round < 2U; ++round) {
+        main.imports.clear();
+        main.manifest.imports.clear();
+        for (std::size_t position = 0U; position < subs.size(); ++position) {
+            if (implied[position] == 0U) continue;
+            theme_language::ThemeSheetImport imported{};
+            imported.name = subs[position].name;
+            main.imports.push_back(imported);
+            main.manifest.imports.push_back(
+                theme_language::ThemeManifestImport{subs[position].name, subs[position].identity});
+        }
+        main.imports.insert(main.imports.end(), written.begin(), written.end());
+        for (const theme_language::ThemeSheetImport& imported : written) {
+            const VerifiedThemePack* const target = index.find(imported.name);
+            if (target != nullptr) {
+                main.manifest.imports.push_back(theme_language::ThemeManifestImport{imported.name, (*target).identity});
+            }
+        }
+        if (round == 1U) break;
+        ThemeDiagnostic unused{};
+        if (theme_language::resolve_theme_imports(main, index, reached, unused) !=
+            theme_language::ThemeImportOutcome::resolved) {
+            break;
+        }
+        bool all = true;
+        for (std::size_t position = 0U; position < subs.size(); ++position) {
+            const VerifiedThemePack* const sub = index.find(subs[position].name);
+            if (std::find(reached.begin(), reached.end(), sub) != reached.end()) continue;
+            implied[position] = 1U;
+            all = false;
+        }
+        if (all) break;
+    }
+    ThemeImageShares unshared{};
+    ThemeImageShares* const shares = ThemeLibraryAccess::images(program);
+    ThemeCompileResult compiled =
+        compile_closure(main, index, images, shares == nullptr ? unshared : *shares, options, set, files.name);
+    if (!compiled.succeeded()) return compiled;
+    if (header != nullptr) {
+        (*header).version = read.version;
+        (*header).author = read.author;
+        (*header).provenance = read.provenance;
+    }
+    if (warnings.empty()) return compiled;
+    for (const ThemeCompileDiagnostic& later : compiled.diagnostics()) warnings.push_back(later);
+    return ThemeCompileResult::compiled(compiled.theme(), std::move(warnings));
 }
 
 ThemeCompileResult::ThemeCompileResult(std::variant<Compiled, Refused> state) noexcept : state_(std::move(state)) {}

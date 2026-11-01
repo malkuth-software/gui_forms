@@ -79,6 +79,10 @@ struct ThemeCompileInput final {
     // An inline style compiled alone (P12b): the custom property names the
     // theme in effect defines, sorted (SubstitutionInput::theme_names).
     std::span<const std::string> theme_names{};
+    // A user theme's sheet (T3 user themes): every rule at `user_theme`, or
+    // at `important_user_theme` for its `!important` declarations, its
+    // selectors ordered by specificity within the level.
+    bool user_theme{};
 };
 
 // One stretch of an inline style's text copied into a sheet by

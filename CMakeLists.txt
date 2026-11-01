@@ -266,6 +266,7 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/media/theme_media_query.cpp
     src/core/theme_language/compiler/theme_compiler.cpp
     src/core/theme_language/package/theme_manifest.cpp
+    src/core/theme_language/package/theme_header.cpp
     src/core/theme_language/package/theme_package.cpp
     src/core/json/json_reader/json_reader.cpp
     src/core/docking/types/dock_types.cpp
@@ -2798,6 +2799,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_package_compile_tests tests/theme_language/theme_package_compile_tests.cpp)
     target_link_libraries(gui_forms_theme_package_compile_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_package_compile_tests COMMAND gui_forms_theme_package_compile_tests)
+    add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_theme_tests COMMAND gui_forms_theme_user_theme_tests)
 
     add_executable(gui_forms_theme_sheet_fuzz_tests fuzz/theme_sheet_fuzz.cpp)
     target_link_libraries(gui_forms_theme_sheet_fuzz_tests PRIVATE gui_forms_core)

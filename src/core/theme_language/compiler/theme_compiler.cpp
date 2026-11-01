@@ -1058,6 +1058,7 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
         if (input_.form == ThemeSheetForm::inline_style || in_inline_segment(source_position_)) {
             rule.level = important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
         }
+        if (input_.user_theme) rule.level = important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
         if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
         rule.scoped_definitions = definitions;
         rule.source_position = positions_ ? source_position_ : 0U;
@@ -2963,6 +2964,9 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
         rule.level = emitted.important ? CascadeLevel::important_theme_sheet : selector.level;
         if (style_rule) {
             rule.level = emitted.important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
+        }
+        if (input_.user_theme) {
+            rule.level = emitted.important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
         }
         // A given specificity only where CSS's differs from the engine's
         // own count of the selector (EC2: an `:is()` argument's).

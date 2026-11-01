@@ -179,6 +179,35 @@ against the theme in effect, and again when that theme changes; a theme
 against which it no longer compiles is refused (`std::invalid_argument`,
 naming the first error), the old theme staying in use.
 
+## User themes
+
+A user theme is a sheet a program's user writes: a main file
+`themes/<name>.css` and an optional folder `themes/<name>/` beside it. The
+main file opens with a header, which makes it a theme:
+
+```css
+@theme { version: "1.0.0"; author: "A. User"; engine: ">=0.3"; }
+button::part(face) { background-color: #2b3a4a !important }
+```
+
+The header is the sheet's first item (`E207` elsewhere); its descriptors
+are strings, and `engine` is a bound as a manifest's (`">=0.3"`). The
+folder's top-level `.css` files are further sheets of the theme, loaded
+before the main file in filename order, or where an `@import "editor.css";`
+names one; its top-level `.png` files are images
+(`url("resource:wood.png")`); `icons/<identifier>.png` overrides one of the
+program's icons. `@import "<package>"` imports one of the program's own
+theme packages. `compile_user_theme` compiles the files a host read.
+
+Under a program's own theme (the layered policy,
+`ApplicationResources::set_user_theme_policy`), a user theme's ordinary
+declarations apply only where the program declares nothing for that
+property of that part, and its `!important` ones over the program's
+ordinary declarations, never over the program's own `!important` ones.
+Forced high contrast stands over every user declaration, and a user theme's
+opacity is at least 0.5, so that no user theme hides a control. A program
+may instead let a user theme replace its own, or refuse user themes.
+
 ## Not yet built
 
 - `backdrop-filter` is refused (`E999 not_yet_built`).

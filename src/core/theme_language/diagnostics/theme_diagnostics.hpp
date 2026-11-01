@@ -53,6 +53,9 @@ enum class DiagnosticCode : std::uint16_t {
     // A rule or at-rule inside a rule's block, or an at-rule inside an
     // at-rule's block (B1).
     nesting_not_admitted = 206,
+    // A `@theme` header (T3 user themes) after another item, or a second
+    // one: the header opens the sheet.
+    theme_header_misplaced = 207,
     // E3xx selectors (B1).
     // A selector that is not one compound selector of the admitted forms.
     selector_syntax = 301,

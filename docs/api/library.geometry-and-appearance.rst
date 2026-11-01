@@ -296,6 +296,10 @@ Types
      - ThemeTypographyTokens defines role-aware control, field, caption, heading, title, and monospace font recipes.
    * - :cpp:class:`ThemeWindowBackdrop <gui_forms::ThemeWindowBackdrop>`
      - The theme's window backdrop (stage T5, owner decision T5-Q8, option 1): what a window showing the theme asks the compositor for, and the base its backplane is drawn from over each backdrop the window may be granted (notes:planning/stages/T5-compositor/PLAN.md §4.1).
+   * - :cpp:class:`UserThemeFiles <gui_forms::UserThemeFiles>`
+     - A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them.
+   * - :cpp:class:`UserThemeHeader <gui_forms::UserThemeHeader>`
+     - The header of a user theme's main file, which makes the file a theme.
 
 .. cpp:namespace:: gui_forms
 
@@ -4300,6 +4304,34 @@ Types
 
       At most one base per non-opaque backdrop, in any order; held out of line, so the definition stays small. Over a granted non-opaque backdrop the window's backplane is drawn from that backdrop's base, typically a partly clear tint over a material, or clear around a drawn shape over ``transparent``. Without one it is drawn from the window recipe's material, as over ``opaque``, which has no base.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UserThemeFiles final
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them. The folder's top-level ``.css`` files are the theme's sub-sheets, its top-level ``.png`` files its image resources (``url("resource:wood.png")``), and ``icons/<identifier>.png`` its icon overrides; nothing else is admitted.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::string main_sheet
+
+   .. cpp:member:: std::vector<ThemePackageFile> files
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UserThemeHeader final
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   The header of a user theme's main file, which makes the file a theme.
+
+   .. cpp:member:: std::string version
+
+   .. cpp:member:: std::string author
+
+   .. cpp:member:: std::string provenance
+
 Enumerations
 ------------
 
@@ -6280,9 +6312,21 @@ Functions, constants and aliases
 
    Compiles ``package`` with its ``@import`` closure among ``library``'s packages (one cascade: imported sheets first, and the later definition of a colour role or ``@keyframes`` wins) onto the built-in professional theme. Its image resources are loaded into ``images`` and owned by the compiled theme: each is removed from ``images`` when the last theme holding it is released, so replacing or dropping a theme removes its images. Themes compiled through one library that load the same bytes into one registry share one image. A refusal leaves none of its own. The package itself need not be installed. Compiles through one library, and the release of their themes, are not safe to run concurrently.
 
+.. cpp:function:: ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, ImageRegistry& images, const ThemeCompileOptions& options, ThemeRuleSet set, UserThemeHeader* header = nullptr)
+
+   Compiles a user theme as the package its files imply (USER_THEMES.md section 3): its sub-sheets in filename order (byte order of their names) and then its main file, one cascade; an ``@import`` of a sub-sheet (``@import "editor.css";``) places it there instead, and an ``@import`` of another name imports the program's package of that name from ``program``, pinned to the installed one. The main file opens with an ``@theme`` header (refused without, E601); its ``engine`` descriptor bounds the engine (E607). ``set`` chooses the levels: ThemeRuleSet::user for a theme layered under the program's (ApplicationResources::set_user_theme under the layered policy), ThemeRuleSet::program for one replacing it. Images are owned as compile_theme_package's are. ``header``, when given, receives the header of a compiled theme.
+
 .. cpp:function:: ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 
    As compile_theme_package, for the installed package named ``name``; an unknown name is refused (E603).
+
+.. cpp:var:: constexpr std::size_t maximum_user_theme_files
+
+   A user theme's limits (USER_THEMES.md section 2): its folder holds at most 256 files and 16 MiB. Its sheets, with the packages they import, are one closure under the package limits (at most 16 imports, 1 MiB). Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_user_theme_bytes
+
+   Value: ``std::size_t{16} * 1024U * 1024U``.
 
 .. cpp:namespace:: gui_forms
 

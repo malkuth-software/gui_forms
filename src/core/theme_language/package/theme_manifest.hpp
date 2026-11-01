@@ -147,6 +147,9 @@ enum class ThemeManifestOutcome : std::uint8_t { read, refused };
 [[nodiscard]] std::string engine_too_old_detail(EngineVersion needed);
 // `[a-z0-9][a-z0-9-]{0,63}`.
 [[nodiscard]] bool package_name_valid(std::string_view name) noexcept;
+// A resource's name: a package name that may also hold `.` and `_` after
+// its first character.
+[[nodiscard]] bool package_resource_name_valid(std::string_view name) noexcept;
 // A relative package path, as the encoding rules above state.
 [[nodiscard]] bool package_path_valid(std::string_view path) noexcept;
 

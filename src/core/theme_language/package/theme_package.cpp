@@ -208,7 +208,10 @@ ThemeImportOutcome resolve_theme_imports(const VerifiedThemePack& root, const In
         }
         const ThemeSheetImport& written = importer.imports[stack.back().next];
         stack.back().next = stack.back().next + 1U;
-        const std::string file = importer.manifest.name + "/" + importer.manifest.sheet.path;
+        // A user theme's sheet has no sheet path and is named for itself.
+        const std::string file = importer.manifest.sheet.path.empty()
+                                     ? importer.manifest.name
+                                     : importer.manifest.name + "/" + importer.manifest.sheet.path;
         const std::string detail = clipped_theme_detail(written.name);
         DiagnosticCode refusal = DiagnosticCode::manifest_invalid;
         bool refused = false;

@@ -41,6 +41,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::import_after_rules:
     case DiagnosticCode::important_in_keyframes:
     case DiagnosticCode::nesting_not_admitted:
+    case DiagnosticCode::theme_header_misplaced:
     case DiagnosticCode::selector_syntax:
     case DiagnosticCode::combinator_not_admitted:
     case DiagnosticCode::pseudo_class_not_admitted:
@@ -120,6 +121,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::import_after_rules: return "import_after_rules";
     case DiagnosticCode::important_in_keyframes: return "important_in_keyframes";
     case DiagnosticCode::nesting_not_admitted: return "nesting_not_admitted";
+    case DiagnosticCode::theme_header_misplaced: return "theme_header_misplaced";
     case DiagnosticCode::selector_syntax: return "selector_syntax";
     case DiagnosticCode::combinator_not_admitted: return "combinator_not_admitted";
     case DiagnosticCode::pseudo_class_not_admitted: return "pseudo_class_not_admitted";
