@@ -1,0 +1,3 @@
+/* forms: diagnostic.W104 */
+@frob x { y { z: 1 } }
+button { opacity: 1 }

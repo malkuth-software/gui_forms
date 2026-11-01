@@ -1,0 +1,2 @@
+/* forms: property.sheen */
+button::part(face) { background-image: radial-gradient(circle at var(--pointer-x) var(--pointer-y), white, transparent) }

@@ -1,0 +1,5 @@
+/* forms: atrule.import */
+/* An @import resolves only among installed packages (theme_package_compile_tests); compiled
+   alone, the sheet is refused, naming the import. */
+@import "palette";
+button { opacity: 0.9 }

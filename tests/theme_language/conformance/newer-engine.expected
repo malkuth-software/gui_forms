@@ -1,0 +1,6 @@
+compiled
+W301 needs_newer_engine 1:1 detail=0.4
+W302 keyword_from_newer_engine 3:38 rule=button property=shape detail=hexagon
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material

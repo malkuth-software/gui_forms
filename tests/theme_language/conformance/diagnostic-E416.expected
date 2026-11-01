@@ -1,0 +1,2 @@
+refused
+E416 variable_cannot_vary 3:36 rule=@keyframes k property=opacity detail=--o

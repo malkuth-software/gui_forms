@@ -1,0 +1,33 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material
+  material shadows shadows=2 lengths=[0 0 1 0 0 1 2 0] colours=[#000000ff #ffffffff #0000004d]
+rule 1 theme_sheet type=button
+  label button
+  recipe text_shadow colour=#000000ff number=0 outline=0 shadow(0 1 1)
+rule 2 theme_sheet type=button part=label
+  label button::part(label)
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 3 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material colour_filter colours=[#000000ff]
+  material drop_shadow colours=[#000000ff]
+  material filter_blur lengths=[0] colours=[#000000ff]
+rule 4 theme_sheet type=button part=glyph
+  label button::part(glyph)
+  decl primitive = name material
+  material colour_filter colours=[#000000ff]
+  material drop_shadow colours=[#000000ff]
+  material filter_blur number=2 lengths=[2] colours=[#000000ff]
+rule 5 theme_sheet type=track_bar part=thumb
+  label track-bar::part(thumb)
+  decl primitive = name material
+  material colour_filter colours=[#000000ff]
+  material drop_shadow drop-shadow lengths=[1 1 0] colours=[#000000ff #ff0000ff]
+  material filter_blur lengths=[0] colours=[#000000ff]
+rule 6 theme_sheet type=track_bar
+  label track-bar
+  decl blend = name multiply

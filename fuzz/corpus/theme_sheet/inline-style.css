@@ -1,0 +1,5 @@
+/* forms: inline.declarations inline.part-block inline.state-block important.inline inline.custom-property
+   source: inline */
+--lift: 0.4; opacity: 0.8 !important;
+::part(face):hover { scale: 1.04; transition: scale 90ms ease }
+::part(label) { opacity: var(--lift) }

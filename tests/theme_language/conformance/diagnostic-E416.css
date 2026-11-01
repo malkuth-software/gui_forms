@@ -1,0 +1,4 @@
+/* forms: diagnostic.E416 */
+.a { --o: 0.1 } .b { --o: 0.2 }
+@keyframes k { from { opacity: var(--o) } to { opacity: 1 } }
+button { animation: k 1s }

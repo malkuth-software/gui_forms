@@ -1,0 +1,8 @@
+/* forms: atrule.media media.color-scheme media.forced-colors media.reduced-motion media.resolution media.and media.list media.screen media.all */
+@media (prefers-color-scheme: dark) { button { opacity: 0.9 } }
+@media (forced-colors: active) { button { opacity: 1 } }
+@media (prefers-reduced-motion: reduce) { button { transition: opacity 0ms linear } }
+@media (min-resolution: 2x) and (prefers-color-scheme: light) { button { opacity: 0.8 } }
+@media (prefers-color-scheme: dark), (forced-colors: none) { button::part(face) { opacity: 0.7 } }
+@media screen and (prefers-reduced-motion: no-preference) { button::part(label) { opacity: 0.6 } }
+@media all { track-bar { opacity: 0.5 } }

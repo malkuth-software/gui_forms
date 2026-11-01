@@ -1,0 +1,22 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material
+  material finish number=0.5 colours=[#000000ff]
+  material glows glows=1 lengths=[2 0] colours=[#000000ff #ff0000ff]
+  material glow_placements placements=1 colours=[#000000ff]
+rule 1 theme_sheet type=button part=label
+  label button::part(label)
+  decl primitive = name material
+  material fills fills=1 colours=[#000000ff]
+  material fill_sizes sizes=1 size(1) lengths=[0] colours=[#000000ff]
+  material fill_repeats repeats=1 repeat(1) colours=[#000000ff]
+  material fill_positions positions=1 lengths=[0 0] colours=[#000000ff]
+rule 2 theme_sheet type=button part=glyph
+  label button::part(glyph)
+  decl primitive = name material
+  material mask mask colours=[#000000ff]
+rule 3 theme_sheet type=track_bar
+  label track-bar
+  decl primitive = name material
+  material mask mask colours=[#000000ff]

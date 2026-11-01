@@ -1,0 +1,35 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  media dark
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 1 theme_sheet type=button
+  label button
+  media forced
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 2 theme_sheet type=button
+  label button
+  media light min=2
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.8
+rule 3 theme_sheet type=button part=face
+  label button::part(face)
+  media dark
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.7
+rule 4 theme_sheet type=button part=face
+  label button::part(face)
+  media unforced
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.7
+rule 5 theme_sheet type=button part=label
+  label button::part(label)
+  media full-motion
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.6
+rule 6 theme_sheet type=track_bar
+  label track-bar
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.5

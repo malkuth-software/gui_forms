@@ -1,0 +1,29 @@
+compiled
+rule 0 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  transition opacity curve kind=3 duration=120000us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.5
+  material border_top_width number=2 lengths=[2] colours=[#000000ff]
+  material border_right_width number=2 lengths=[2] colours=[#000000ff]
+  material border_bottom_width number=2 lengths=[2] colours=[#000000ff]
+  material border_left_width number=2 lengths=[2] colours=[#000000ff]
+  material corner_top_left lengths=[0] colours=[#000000ff] em=[0.5]
+  material corner_top_right lengths=[0] colours=[#000000ff] em=[0.5]
+  material corner_bottom_right lengths=[0] colours=[#000000ff] em=[0.5]
+  material corner_bottom_left lengths=[0] colours=[#000000ff] em=[0.5]
+  material fills fills=3 colours=[#000000ff] origin=literal
+rule 1 theme_sheet type=button
+  label button
+  media min=2
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 2 theme_sheet type=button
+  label button
+  media max=1
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.8
+rule 3 theme_sheet type=button part=label
+  label button::part(label)
+  transition scale curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1.5

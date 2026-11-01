@@ -1,0 +1,15 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material
+  decl shape = name pill
+  decl font = name inherit
+  recipe text inherit colour=#000000ff number=0 outline=0
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material fills fills=1 colours=[#000000ff]
+rule 2 theme_sheet type=button part=label
+  label button::part(label)
+  decl primitive = name bulge
+  decl amplitude = number 1

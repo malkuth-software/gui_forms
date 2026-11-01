@@ -1,0 +1,2 @@
+/* forms: diagnostic.E401 */
+button { opacity: var(1) }

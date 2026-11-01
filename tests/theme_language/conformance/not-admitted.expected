@@ -1,0 +1,13 @@
+compiled
+W107 property_not_admitted 2:10 rule=button property=clip-path detail=clip-path
+W107 property_not_admitted 2:34 rule=button property=rotate detail=rotate
+W107 property_not_admitted 2:49 rule=button property=transform detail=transform
+W107 property_not_admitted 2:66 rule=button property=transform-origin detail=transform-origin
+W107 property_not_admitted 2:92 rule=button property=text-decoration detail=text-decoration
+W107 property_not_admitted 2:120 rule=button property=letter-spacing detail=letter-spacing
+W107 property_not_admitted 2:141 rule=button property=width detail=width
+W107 property_not_admitted 2:154 rule=button property=margin detail=margin
+rule 0 theme_sheet type=button
+  label button
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1

@@ -1,0 +1,13 @@
+/* forms: motion.transition motion.transition-longhands motion.linear motion.ease motion.ease-in motion.ease-out motion.ease-in-out motion.cubic-bezier motion.steps motion.follow motion.spring motion.decay motion.delay motion.state-machine */
+button { opacity: 1; transition: opacity 120ms linear }
+button:hover { opacity: 0.8 }
+button::part(face) { scale: 1; transition-property: scale; transition-duration: 90ms; transition-timing-function: ease; transition-delay: 10ms }
+button::part(face):active { scale: 0.97 }
+button::part(label) { opacity: 1; transition: opacity 100ms ease-in }
+button::part(glyph) { opacity: 1; transition: opacity 100ms ease-out }
+button::part(focus-cue) { opacity: 1; transition: opacity 100ms ease-in-out }
+track-bar { opacity: 1; transition: opacity 100ms cubic-bezier(0.1, 0, 0.9, 1) }
+track-bar::part(track) { opacity: 1; transition: opacity 100ms steps(4, jump-start) }
+track-bar::part(thumb) { opacity: 1; transition: opacity follow(50ms) }
+#spring { scale: 1; transition: scale spring(80ms, 0.7) }
+#decay { opacity: 1; transition: opacity decay(80ms) }
