@@ -692,6 +692,46 @@ void test_failed_candidate_preserves_damage_and_never_replays_partial_commands()
             "a later valid lease must replace the abandoned candidate");
 }
 
+// The Window reuses its paint-pass checkpoints from pass to pass; a pass,
+// completed or abandoned, must not keep a removed control alive.
+void test_paint_pass_releases_its_checkpoints() {
+    std::shared_ptr<TransactionPaintControl> root =
+        make_control<TransactionPaintControl>(StableId("paint.checkpoints"));
+    (*root).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
+    std::shared_ptr<TransactionPaintControl> child =
+        make_control<TransactionPaintControl>(StableId("paint.checkpoints.child"));
+    (*child).set_requested_bounds({10.0, 10.0, 40.0, 30.0});
+    (*root).add_child(child);
+    std::shared_ptr<TransactionPaintControl> failing =
+        make_control<TransactionPaintControl>(StableId("paint.checkpoints.failing"));
+    (*failing).set_requested_bounds({60.0, 10.0, 40.0, 30.0});
+    (*root).add_child(failing);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{120.0, 80.0});
+    Window& window = *held_window;
+    NullPainter painter;
+    (*failing).throw_during_paint = true;
+    bool failed = false;
+    try {
+        window.paint(painter, window.take_damage().bounds());
+    } catch (const std::runtime_error&) {
+        failed = true;
+    }
+    const RuntimeId failing_id = (*failing).runtime_id();
+    const std::weak_ptr<TransactionPaintControl> failing_observer = failing;
+    failing.reset();
+    static_cast<void>((*root).remove_child(failing_id));
+    require(failed && failing_observer.expired(),
+            "an abandoned paint pass must release the controls it checkpointed");
+
+    window.paint(painter, window.take_damage().bounds());
+    const RuntimeId child_id = (*child).runtime_id();
+    const std::weak_ptr<TransactionPaintControl> child_observer = child;
+    child.reset();
+    static_cast<void>((*root).remove_child(child_id));
+    require(window.paint_lease_snapshot().leases_completed == 1U && child_observer.expired(),
+            "a completed paint pass must release the controls it checkpointed");
+}
+
 void test_retained_input_waits_for_lease_and_compacts_move_pressure() {
     std::shared_ptr<DeferredInputPaintControl> root =
         make_control<DeferredInputPaintControl>(StableId("paint.input"));
@@ -1030,6 +1070,7 @@ int main() {
         test_exclusive_paint_lease_defers_reentry_and_tracks_release();
         test_paint_touch_during_render_survives_current_lease();
         test_failed_candidate_preserves_damage_and_never_replays_partial_commands();
+        test_paint_pass_releases_its_checkpoints();
         test_retained_input_waits_for_lease_and_compacts_move_pressure();
         test_retained_input_is_abandoned_when_paint_owner_retires();
         test_retained_input_fault_does_not_drop_later_events();
