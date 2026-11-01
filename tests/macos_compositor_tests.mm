@@ -22,6 +22,12 @@
 //   behind the window;
 // - opaque: the window opaque again, the composed pixel not the green.
 // Each reading is printed as a JSON line for the C3 record.
+//
+// Without a Screen Recording grant (CGPreflightScreenCaptureAccess false)
+// the composed reads see only this test's windows and the desktop; the test
+// then says so in one line on standard error, naming the process that needs
+// the grant, and runs as before, so a failure that follows reads as a setup
+// problem.
 #import <AppKit/AppKit.h>
 
 #include "gui_forms/application.hpp"
@@ -505,6 +511,12 @@ struct GateReady final {
 } // namespace
 
 int main() {
+    if (!CGPreflightScreenCaptureAccess()) {
+        std::fprintf(stderr,
+                     "macos compositor tests: Screen Recording is not granted to the process that started them (over "
+                     "ssh on the M4: sshd-keygen-wrapper; grant it in System Settings, Privacy & Security, Screen & "
+                     "System Audio Recording); composed-screen reads see only this test's windows and the desktop\n");
+    }
     const HostCapabilities capabilities = Application::capabilities();
     if (!capabilities.supports(HostCapability::transparent_windows) ||
         !capabilities.supports(HostCapability::window_backdrops) ||
