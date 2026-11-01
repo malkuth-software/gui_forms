@@ -237,6 +237,8 @@ add_library(gui_forms_core STATIC
     src/core/window/inspection/window_visual_inspection.cpp
     src/core/resources/image_registry/image_registry.cpp
     src/core/resources/application_resources/application_resources.cpp
+    src/runtime/user_themes/theme_files.cpp
+    src/runtime/user_themes/user_themes.cpp
     src/core/resources/integrity/sha256.cpp
     src/core/resources/fonts/bundled_font_set.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
@@ -267,6 +269,7 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/media/theme_media_query.cpp
     src/core/theme_language/compiler/theme_compiler.cpp
     src/core/theme_language/package/theme_manifest.cpp
+    src/core/theme_language/package/theme_header.cpp
     src/core/theme_language/package/theme_package.cpp
     src/core/json/json_reader/json_reader.cpp
     src/core/docking/types/dock_types.cpp
@@ -2503,6 +2506,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_cascade_tests tests/theme_cascade_tests.cpp)
     target_link_libraries(gui_forms_theme_cascade_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_cascade_tests COMMAND gui_forms_theme_cascade_tests)
+    add_executable(gui_forms_theme_user_layer_tests tests/theme_user_layer_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_layer_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_theme_user_layer_tests COMMAND gui_forms_theme_user_layer_tests)
     add_executable(gui_forms_motion_clock_tests tests/motion_clock_tests.cpp)
     target_link_libraries(gui_forms_motion_clock_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_motion_clock_tests COMMAND gui_forms_motion_clock_tests)
@@ -2748,6 +2754,14 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_compiler_tests tests/theme_language/theme_compiler_tests.cpp)
     target_link_libraries(gui_forms_theme_compiler_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_compiler_tests COMMAND gui_forms_theme_compiler_tests)
+    add_executable(gui_forms_theme_conformance_tests tests/theme_language/theme_conformance_tests.cpp)
+    target_link_libraries(gui_forms_theme_conformance_tests PRIVATE gui_forms_controls)
+    target_compile_definitions(gui_forms_theme_conformance_tests PRIVATE
+        GUI_FORMS_THEME_CONFORMANCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/conformance")
+    add_test(NAME gui_forms_theme_conformance_tests COMMAND gui_forms_theme_conformance_tests)
+    add_executable(gui_forms_theme_hostile_tests tests/theme_language/theme_hostile_tests.cpp)
+    target_link_libraries(gui_forms_theme_hostile_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_hostile_tests COMMAND gui_forms_theme_hostile_tests)
     add_executable(gui_forms_theme_material_css_tests tests/theme_language/theme_material_css_tests.cpp)
     target_link_libraries(gui_forms_theme_material_css_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_material_css_tests COMMAND gui_forms_theme_material_css_tests)
@@ -2790,6 +2804,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_package_compile_tests tests/theme_language/theme_package_compile_tests.cpp)
     target_link_libraries(gui_forms_theme_package_compile_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_package_compile_tests COMMAND gui_forms_theme_package_compile_tests)
+    add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_theme_tests COMMAND gui_forms_theme_user_theme_tests)
+
+    add_executable(gui_forms_theme_user_folder_tests tests/theme_language/theme_user_folder_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_folder_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_folder_tests COMMAND gui_forms_theme_user_folder_tests)
 
     add_executable(gui_forms_theme_sheet_fuzz_tests fuzz/theme_sheet_fuzz.cpp)
     target_link_libraries(gui_forms_theme_sheet_fuzz_tests PRIVATE gui_forms_core)

@@ -1,0 +1,5 @@
+compiled
+W103 unknown_function 2:39 rule=button property=amplitude detail=wobble
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name bulge

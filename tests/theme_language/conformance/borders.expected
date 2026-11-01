@@ -1,0 +1,103 @@
+compiled
+W201 literal_colour_unremappable 2:28 rule=button property=border detail=#333
+W201 literal_colour_unremappable 3:45 rule=button::part(face) property=border-top detail=red
+W201 literal_colour_unremappable 3:74 rule=button::part(face) property=border-left detail=blue
+W201 literal_colour_unremappable 4:68 rule=button::part(label) property=border-color detail=red
+W201 literal_colour_unremappable 5:42 rule=button::part(glyph) property=border detail=#333
+W201 literal_colour_unremappable 6:46 rule=button::part(focus-cue) property=border detail=#333
+W201 literal_colour_unremappable 7:31 rule=track-bar property=border detail=#333
+W107 property_not_admitted 8:26 rule=track-bar::part(track) property=outline detail=outline on a part or a role
+W107 property_not_admitted 8:58 rule=track-bar::part(track) property=outline-offset detail=outline-offset on a part or a role
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material
+  material border_top_style border-style=0 colours=[#000000ff]
+  material border_top_width number=1 lengths=[1] colours=[#000000ff]
+  material border_top_colour colours=[#333333ff] origin=literal
+  material border_right_style border-style=0 colours=[#000000ff]
+  material border_right_width number=1 lengths=[1] colours=[#000000ff]
+  material border_right_colour colours=[#333333ff] origin=literal
+  material border_bottom_style border-style=0 colours=[#000000ff]
+  material border_bottom_width number=1 lengths=[1] colours=[#000000ff]
+  material border_bottom_colour colours=[#333333ff] origin=literal
+  material border_left_style border-style=0 colours=[#000000ff]
+  material border_left_width number=1 lengths=[1] colours=[#000000ff]
+  material border_left_colour colours=[#333333ff] origin=literal
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material border_top_style border-style=1 colours=[#000000ff]
+  material border_top_width number=2 lengths=[2] colours=[#000000ff]
+  material border_top_colour colours=[#ff0000ff] origin=literal
+  material border_left_style border-style=2 colours=[#000000ff]
+  material border_left_width number=1 lengths=[1] colours=[#000000ff]
+  material border_left_colour colours=[#0000ffff] origin=literal
+rule 2 theme_sheet type=button part=label
+  label button::part(label)
+  decl primitive = name material
+  material border_top_width number=1 lengths=[1] colours=[#000000ff]
+  material border_right_width number=2 lengths=[2] colours=[#000000ff]
+  material border_bottom_width number=3 lengths=[3] colours=[#000000ff]
+  material border_left_width number=4 lengths=[4] colours=[#000000ff]
+  material border_top_colour colours=[#ff0000ff] origin=literal
+  material border_right_colour colours=[#0000ffff] origin=literal
+  material border_bottom_colour colours=[#ff0000ff] origin=literal
+  material border_left_colour colours=[#0000ffff] origin=literal
+  material border_top_style border-style=0 colours=[#000000ff]
+  material border_right_style border-style=0 colours=[#000000ff]
+  material border_bottom_style border-style=0 colours=[#000000ff]
+  material border_left_style border-style=0 colours=[#000000ff]
+rule 3 theme_sheet type=button part=glyph
+  label button::part(glyph)
+  decl primitive = name material
+  material border_top_style border-style=0 edge-lines=1 colours=[#000000ff]
+  material border_top_width number=3 lengths=[3] colours=[#000000ff]
+  material border_top_colour colours=[#333333ff] origin=literal
+  material border_right_style border-style=0 edge-lines=1 colours=[#000000ff]
+  material border_right_width number=3 lengths=[3] colours=[#000000ff]
+  material border_right_colour colours=[#333333ff] origin=literal
+  material border_bottom_style border-style=0 edge-lines=1 colours=[#000000ff]
+  material border_bottom_width number=3 lengths=[3] colours=[#000000ff]
+  material border_bottom_colour colours=[#333333ff] origin=literal
+  material border_left_style border-style=0 edge-lines=1 colours=[#000000ff]
+  material border_left_width number=3 lengths=[3] colours=[#000000ff]
+  material border_left_colour colours=[#333333ff] origin=literal
+  material corner_top_left number=2 lengths=[2] colours=[#000000ff]
+  material corner_top_right number=4 lengths=[4] colours=[#000000ff]
+  material corner_bottom_right number=6 lengths=[6] colours=[#000000ff]
+  material corner_bottom_left number=8 lengths=[8] colours=[#000000ff]
+rule 4 theme_sheet type=button part=focus_cue
+  label button::part(focus-cue)
+  decl primitive = name material
+  material border_top_style border-style=0 edge-lines=2 colours=[#000000ff]
+  material border_top_width number=2 lengths=[2] colours=[#000000ff]
+  material border_top_colour colours=[#333333ff] origin=literal
+  material border_right_style border-style=0 edge-lines=2 colours=[#000000ff]
+  material border_right_width number=2 lengths=[2] colours=[#000000ff]
+  material border_right_colour colours=[#333333ff] origin=literal
+  material border_bottom_style border-style=0 edge-lines=2 colours=[#000000ff]
+  material border_bottom_width number=2 lengths=[2] colours=[#000000ff]
+  material border_bottom_colour colours=[#333333ff] origin=literal
+  material border_left_style border-style=0 edge-lines=2 colours=[#000000ff]
+  material border_left_width number=2 lengths=[2] colours=[#000000ff]
+  material border_left_colour colours=[#333333ff] origin=literal
+rule 5 theme_sheet type=track_bar
+  label track-bar
+  decl primitive = name material
+  decl shape = name rounded_rectangle
+  material border_top_style border-style=0 edge-lines=3 colours=[#000000ff]
+  material border_top_width number=2 lengths=[2] colours=[#000000ff]
+  material border_top_colour colours=[#333333ff] origin=literal
+  material border_right_style border-style=0 edge-lines=3 colours=[#000000ff]
+  material border_right_width number=2 lengths=[2] colours=[#000000ff]
+  material border_right_colour colours=[#333333ff] origin=literal
+  material border_bottom_style border-style=0 edge-lines=3 colours=[#000000ff]
+  material border_bottom_width number=2 lengths=[2] colours=[#000000ff]
+  material border_bottom_colour colours=[#333333ff] origin=literal
+  material border_left_style border-style=0 edge-lines=3 colours=[#000000ff]
+  material border_left_width number=2 lengths=[2] colours=[#000000ff]
+  material border_left_colour colours=[#333333ff] origin=literal
+rule 6 theme_sheet type=track_bar part=thumb
+  label track-bar::part(thumb)
+  decl primitive = name material
+  material border_image border-image colours=[#000000ff]

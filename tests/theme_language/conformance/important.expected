@@ -1,0 +1,9 @@
+compiled
+rule 0 important_theme_sheet type=button
+  label button
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.5
+rule 1 theme_sheet type=button
+  label button
+  transition scale curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1.02

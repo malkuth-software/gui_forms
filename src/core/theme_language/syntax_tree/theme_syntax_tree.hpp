@@ -49,6 +49,10 @@ enum class SyntaxNodeKind : std::uint8_t {
     media_rule,
     // `@keyframes <name> { <keyframe blocks> }`. Content: the name.
     keyframes_rule,
+    // `@theme { <descriptors> }`, a user theme's header (T3 user themes):
+    // the sheet's first item, its block of declarations read by
+    // read_theme_header. Content: the empty prelude.
+    theme_header,
     // Any other at-rule, kept for the round trip and otherwise skipped (a
     // W104 warning). Content: its prelude; its block, if any, is not parsed.
     unknown_at_rule,

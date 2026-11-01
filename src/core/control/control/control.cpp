@@ -719,6 +719,9 @@ void Control::set_theme_override(std::shared_ptr<const Theme> theme) {
     if (!theme) {
         throw std::invalid_argument("control theme override may not be null");
     }
+    if ((*theme).definition().rule_set != ThemeRuleSet::program) {
+        throw std::invalid_argument("a user theme is not a control theme override");
+    }
     if (theme_override_ == theme) return;
     std::vector<detail::InlineRestyle> restyles{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};

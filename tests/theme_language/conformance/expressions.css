@@ -1,0 +1,10 @@
+/* forms: expr.calc expr.clamp expr.min expr.max expr.mix expr.smoothstep expr.choose expr.less expr.less-equal expr.greater expr.greater-equal expr.equal expr.not-equal expr.state expr.param expr.folded */
+button::part(face) { primitive: bulge; amplitude: calc(0.25 + var(--pointer-x) / 800px) }
+button::part(label) { primitive: bulge; amplitude: clamp(0, var(--pointer-y) / 100px, 1) }
+button::part(glyph) { primitive: bulge; amplitude: min(1, max(0, var(--time-in-state) / 1s)) }
+button::part(focus-cue) { primitive: bulge; amplitude: mix(0.2, 0.8, smoothstep(0s, 1s, var(--time-in-state))) }
+button:hover::part(face) { primitive: bulge; amplitude: choose(less(var(--pointer-x), 10px), 0.1, 0.9) }
+button:active::part(face) { primitive: bulge; amplitude: choose(less-equal(var(--pointer-x), 10px), greater(var(--pointer-y), 1px), 0.2) }
+button:focus::part(face) { primitive: bulge; amplitude: choose(greater-equal(var(--pointer-x), 1px), equal(var(--pointer-y), 0px), not-equal(var(--pointer-y), 2px)) }
+button:checked::part(face) { primitive: bulge; amplitude: state(hot); exponent: param(amplitude) }
+track-bar { primitive: bulge; amplitude: calc(0.5 * 2 - 0.25) }

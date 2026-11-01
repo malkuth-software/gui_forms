@@ -39,12 +39,21 @@ namespace gui_forms {
 // (the owner's rule E1). Forced high contrast sits between them: under it,
 // only the `important_inline_style` declarations that are not colours
 // stand, and every colour is the high-contrast pass's.
+//
+// The user levels (T3 user themes, notes:planning/stages/T3-theme-language/
+// USER_THEMES.md section 4) hold a user theme layered under the program's:
+// its ordinary declarations below every program declaration, its
+// `!important` ones above the program's ordinary declarations and below
+// its `!important` ones. A user theme's rules are a set of their own
+// (CompiledThemeRules::compile_user, PartFacts::user_rules).
 enum class CascadeLevel : std::uint8_t {
     built_in,
+    user_theme,
     theme_sheet,
     class_rule,
     stable_id_rule,
     inline_style,
+    important_user_theme,
     important_theme_sheet,
     forced_high_contrast,
     important_inline_style,
@@ -52,6 +61,11 @@ enum class CascadeLevel : std::uint8_t {
 };
 
 [[nodiscard]] std::string_view cascade_level_name(CascadeLevel level) noexcept;
+
+// Which set a theme's rules are compiled as: a program's theme
+// (CompiledThemeRules::compile_with_built_in) or a user theme layered under
+// it (CompiledThemeRules::compile_user).
+enum class ThemeRuleSet : std::uint8_t { program, user };
 
 // Whether `name` is a valid style class name: 1 to 64 characters of
 // lowercase ASCII letters, digits, '-' and '_', the first a letter.
@@ -1079,9 +1093,16 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // maximum_scoped_custom_properties, or a scoped definition or
     // condition names no custom property; the rule is dropped.
     scoped_property_invalid,
+    // A user theme's opacity below user_theme_minimum_opacity, in a state's
+    // target, entry value or stop, is raised to it; the declaration stays.
+    user_opacity_raised,
 };
 
 [[nodiscard]] std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept;
+
+// The least opacity a user theme gives a part (USER_THEMES.md section 8,
+// decision 7), so that no user theme hides a control outright.
+inline constexpr double user_theme_minimum_opacity = 0.5;
 
 // The rule position of a diagnostic about the sheet itself rather than one
 // of its rules.
@@ -1134,6 +1155,15 @@ public:
     [[nodiscard]] static CompiledThemeRules compile_inline(const ThemeRuleSheet& sheet,
                                                            const PrimitiveRegistry& registry,
                                                            const CompiledThemeRules* theme = nullptr);
+    // Compiles a user theme (USER_THEMES.md section 4): rules at
+    // `user_theme` and `important_user_theme` only, a set of their own
+    // that every part of a program's windows consults beside its theme's
+    // (PartFacts::user_rules). Its opacity is at least
+    // user_theme_minimum_opacity. It publishes no values, so its
+    // expressions read the engine inputs alone, and its custom properties
+    // are its own.
+    [[nodiscard]] static CompiledThemeRules compile_user(const ThemeRuleSheet& sheet,
+                                                         const PrimitiveRegistry& registry);
     // The serial of the theme an inline style was compiled against, 0 for
     // none (P12b).
     [[nodiscard]] std::uint64_t theme_serial() const noexcept { return theme_serial_; }
@@ -1141,6 +1171,8 @@ public:
     [[nodiscard]] std::size_t read_name_count() const noexcept { return read_names_.size(); }
     // Whether the rules are a control's inline style (compile_inline).
     [[nodiscard]] bool inline_style() const noexcept { return inline_style_; }
+    // Whether the rules are a user theme (compile_user).
+    [[nodiscard]] bool user_theme() const noexcept { return user_theme_; }
     // How many of the rules are the engine's built-in rules.
     [[nodiscard]] std::size_t built_in_rule_count() const noexcept { return built_in_rules_; }
 
@@ -1181,6 +1213,9 @@ public:
         // rules join the cascade at their levels, after the theme's rules
         // of the same level and specificity. Borrowed for the call.
         const CompiledThemeRules* inline_rules{};
+        // The program's user theme (compile_user), or null: its rules join
+        // the cascade at the user levels. Borrowed for the call.
+        const CompiledThemeRules* user_rules{};
         // Forced high contrast's pass (E1): the part's drawing (its
         // primitive and parameters, its material and recipe fields) comes
         // from the important_inline_style rules alone, every lower level
@@ -1269,6 +1304,9 @@ public:
         // The serial of the part's inline style (PartFacts::inline_rules),
         // or 0: the declarations above may belong to it.
         std::uint64_t inline_serial{};
+        // The serial of the part's user theme (PartFacts::user_rules), or
+        // 0, likewise.
+        std::uint64_t user_serial{};
     };
 
     // The winning declaration of each recipe field (RecipeField) of the
@@ -1332,6 +1370,8 @@ private:
         std::array<std::uint32_t, maximum_scoped_custom_properties> definitions{};
         std::array<std::uint32_t, maximum_scoped_custom_properties> inline_definitions{};
         std::array<std::uint64_t, maximum_read_custom_properties / 64U> inline_won{};
+        // The user theme's names among its own definitions.
+        std::array<std::uint32_t, maximum_scoped_custom_properties> user_definitions{};
     };
 
     struct CompiledRule final {
@@ -1420,9 +1460,12 @@ private:
                                   CompiledRule& compiled);
 
     [[nodiscard]] static bool matches(const CompiledRule& rule, const PartFacts& facts) noexcept;
-    // These rules and a part's inline style's, merged in ascending
-    // precedence.
+    // These rules, a part's user theme's and its inline style's, merged in
+    // ascending precedence.
     class RuleWalk;
+    // Raises a user theme's opacity to user_theme_minimum_opacity.
+    static void raise_user_opacity(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                   const ThemeRule& rule, CompiledRule& compiled);
 
     // Sorted by precedence, lowest first: level, then specificity, then
     // order. The cascade's winner for a property is the last match.
@@ -1435,6 +1478,8 @@ private:
     bool recipe_fields_set_{};
     // Whether the rules are a control's inline style.
     bool inline_style_{};
+    // Whether the rules are a user theme.
+    bool user_theme_{};
     // The scoped custom property names the rules' conditions read (P12),
     // at most maximum_scoped_custom_properties.
     std::vector<std::string> scoped_names_{};

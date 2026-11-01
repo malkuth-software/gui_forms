@@ -1,0 +1,2 @@
+/* forms: diagnostic.E103 */
+button::part(face) { background-image: url("resource:tile.quadrant) }

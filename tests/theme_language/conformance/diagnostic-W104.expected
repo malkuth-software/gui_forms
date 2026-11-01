@@ -1,0 +1,6 @@
+compiled
+W104 unknown_at_rule 2:1 detail=@frob
+rule 0 theme_sheet type=button
+  label button
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1

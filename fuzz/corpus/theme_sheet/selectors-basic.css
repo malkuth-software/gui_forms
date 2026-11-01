@@ -1,0 +1,11 @@
+/* forms: selector.type selector.type-kebab selector.any selector.any-implied selector.stable-id selector.class selector.part selector.role selector.list selector.is */
+button { opacity: 0.9 }
+track-bar::part(thumb) { opacity: 0.8 }
+* { opacity: 1 }
+::part(face) { opacity: 0.95 }
+#player-play { opacity: 0.7 }
+button.primary.wide { opacity: 0.6 }
+button::part(label) { opacity: 0.5 }
+button::role(face) { opacity: 0.4 }
+button, track-bar { opacity: 0.3 }
+button:is(:hover, :focus-visible)::part(face) { opacity: 0.2 }

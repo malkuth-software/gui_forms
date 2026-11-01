@@ -1,0 +1,2 @@
+refused
+E301 selector_syntax 2:7 rule=button:: detail='::' without a name

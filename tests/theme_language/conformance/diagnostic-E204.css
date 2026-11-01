@@ -1,0 +1,3 @@
+/* forms: diagnostic.E204 */
+button { opacity: 1 }
+@import "palette";

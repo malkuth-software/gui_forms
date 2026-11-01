@@ -1,0 +1,21 @@
+compiled
+rule 0 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material fills fills=1 colours=[#000000ff] origin=literal
+rule 1 theme_sheet type=button part=label
+  label button::part(label)
+  decl primitive = name material
+  material fills fills=1 colours=[#000000ff] origin=literal
+rule 2 theme_sheet type=button part=glyph
+  label button::part(glyph)
+  decl primitive = name material
+  material fills fills=1 colours=[#000000ff] origin=literal
+rule 3 theme_sheet type=button
+  label button
+  decl primitive = name material
+  material background_colour colours=[#4d00b3ff] origin=literal
+rule 4 theme_sheet type=track_bar
+  label track-bar
+  decl primitive = name material
+  material background_colour colours=[#663399ff] origin=literal

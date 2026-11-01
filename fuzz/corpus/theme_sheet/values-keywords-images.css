@@ -1,0 +1,4 @@
+/* forms: value.keyword value.image-url value.initial value.inherit-color value.inherit-font */
+button { primitive: material; shape: pill; color: inherit; font: inherit }
+button::part(face) { background-image: url("resource:tile.quadrant") }
+button::part(label) { primitive: bulge; amplitude: initial }

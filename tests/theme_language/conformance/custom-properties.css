@@ -1,0 +1,8 @@
+/* forms: custom.definition custom.var custom.var-fallback custom.scoped custom.important custom.engine-input custom.published-value */
+:root { --lift: 0.4; --tint: red }
+button.loud { --lift: 0.8 }
+button.quiet { --lift: 0.1 !important }
+button::part(face) { primitive: bulge; amplitude: var(--lift) }
+button::part(label) { opacity: var(--missing, 0.5) }
+button::part(glyph) { primitive: bulge; amplitude: clamp(0, var(--pointer-x) / 400px, 1) }
+track-bar::part(thumb) { primitive: bulge; amplitude: var(--app-progress) }

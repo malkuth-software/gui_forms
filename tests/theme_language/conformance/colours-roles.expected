@@ -1,0 +1,19 @@
+compiled
+W107 property_not_admitted 5:23 rule=button::part(label) property=color detail=color on a part or a role
+rule 0 theme_sheet type=button
+  label button
+  decl primitive = name material
+  material background_colour colours=[#ffffffff] origin=role(ink-on-paper background)
+  material fill_positions colours=[#000000ff]
+  material fill_sizes colours=[#000000ff]
+  material fill_repeats colours=[#000000ff]
+  material fills colours=[#000000ff] origin=role(ink-on-paper background)
+  recipe text colour=#1b2733ff number=0 outline=0 origin=role(ink-on-paper foreground)
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material border_top_colour colours=[#1b2733ff] origin=role(ink-on-paper foreground)
+  material border_right_colour colours=[#1b2733ff] origin=role(ink-on-paper foreground)
+  material border_bottom_colour colours=[#1b2733ff] origin=role(ink-on-paper foreground)
+  material border_left_colour colours=[#1b2733ff] origin=role(ink-on-paper foreground)
+  material background_colour colours=[#ddddddff] origin=role(chrome foreground)

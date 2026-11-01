@@ -347,6 +347,9 @@ public:
         return presentation_changed_;
     }
     [[nodiscard]] const Theme& theme() const noexcept { return *theme_; }
+    // The rules of the user theme layered under every theme of these
+    // resources (ApplicationResources::user_theme_rules), or null.
+    [[nodiscard]] const CompiledThemeRules* user_theme_rules() const noexcept;
     [[nodiscard]] std::shared_ptr<const Theme> theme_ptr() const noexcept {
         return theme_;
     }

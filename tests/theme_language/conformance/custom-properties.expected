@@ -1,0 +1,40 @@
+compiled
+rule 0 theme_sheet *
+  label :root
+  defines --lift #2
+rule 1 class_rule type=button class=loud
+  label button.loud
+  defines --lift #5
+rule 2 important_theme_sheet type=button class=quiet
+  label button.quiet
+  defines --lift #7
+rule 3 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name bulge
+  decl amplitude = number 0.4
+  when --lift #2
+  reads --lift at 8
+rule 4 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name bulge
+  decl amplitude = number 0.8
+  when --lift #5
+  reads --lift at 8
+rule 5 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name bulge
+  decl amplitude = number 0.1
+  when --lift #7
+  reads --lift at 8
+rule 6 theme_sheet type=button part=label
+  label button::part(label)
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.5
+rule 7 theme_sheet type=button part=glyph
+  label button::part(glyph)
+  decl primitive = name bulge
+  decl amplitude = expression [0(0) 1 0(400) 8 0(1) 9 10] fallback 1
+rule 8 theme_sheet type=track_bar part=thumb
+  label track-bar::part(thumb)
+  decl primitive = name bulge
+  decl amplitude = expression [1.5] fallback 1

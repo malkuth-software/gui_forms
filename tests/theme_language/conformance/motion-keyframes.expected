@@ -1,0 +1,10 @@
+compiled
+rule 0 theme_sheet type=button part=face states=:hot
+  label button:hover::part(face)
+  transition opacity curve kind=3 duration=300000us easing=3 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1 from=0.5 stop(0.5 0.8)
+rule 1 theme_sheet type=button part=label
+  label button::part(label)
+  decl primitive = name bulge
+  decl amplitude = expression [0(0.2) 1.2 0(0) 6 0(2) 8 0(0) 0(1) 17 0(0.39999999999999997) 7 5] fallback 0.2
+  ambient period=2000000us fps=12 pose=300000us

@@ -1,0 +1,9 @@
+/* forms: property.border property.border-edge property.border-width property.border-color property.border-style property.border-style-keyline property.border-radius property.shape property.outline property.outline-offset property.border-image */
+button { border: 1px solid #333 }
+button::part(face) { border-top: 2px dashed red; border-left: 1px dotted blue }
+button::part(label) { border-width: 1px 2px 3px 4px; border-color: red blue; border-style: solid }
+button::part(glyph) { border: 3px double #333; border-radius: 2px 4px 6px 8px }
+button::part(focus-cue) { border: 2px groove #333 }
+track-bar { border: 2px ridge #333; primitive: material; shape: rounded-rectangle }
+track-bar::part(track) { outline: 2px solid role(focus); outline-offset: 1px }
+track-bar::part(thumb) { border-image: url("resource:tile.quadrant") 1 fill / 2px }

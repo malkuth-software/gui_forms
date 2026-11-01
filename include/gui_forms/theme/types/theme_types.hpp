@@ -459,6 +459,10 @@ struct ThemeDefinition final {
     // compiled when the theme is made; an invalid rule or declaration is
     // dropped with a diagnostic (Theme::engine().rules().diagnostics()).
     ThemeRuleSheet rules{};
+    // Whether the rules are a program's theme or a user theme's (T3 user
+    // themes): a user theme's rules are at the user levels only, and its
+    // other fields are unused while it is layered under a program's.
+    ThemeRuleSet rule_set{ThemeRuleSet::program};
     // The backdrop request and backplane bases (stage T5). Empty by
     // default: an opaque window, drawn as before.
     ThemeWindowBackdrop window_backdrop{};
@@ -472,7 +476,8 @@ struct ThemeDefinition final {
                left.accent_ramp == right.accent_ramp &&
                left.overlay_shadow == right.overlay_shadow &&
                left.high_contrast_overlay_shadow == right.high_contrast_overlay_shadow &&
-               left.rules == right.rules && left.window_backdrop == right.window_backdrop;
+               left.rules == right.rules && left.rule_set == right.rule_set &&
+               left.window_backdrop == right.window_backdrop;
     }
 };
 

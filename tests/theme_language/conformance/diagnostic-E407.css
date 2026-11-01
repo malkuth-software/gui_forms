@@ -1,0 +1,2 @@
+/* forms: diagnostic.E407 */
+button { background-image: linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue) }

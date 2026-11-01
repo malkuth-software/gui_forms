@@ -1,0 +1,61 @@
+compiled
+rule 0 theme_sheet type=button states=:hot
+  label button:hover
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 1 theme_sheet type=button states=:pressed
+  label button:active
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 2 theme_sheet type=button states=:focused
+  label button:focus
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 3 theme_sheet type=button states=:focus_visible
+  label button:focus-visible
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 4 theme_sheet type=button states=:checked
+  label button:checked
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 5 theme_sheet type=button states=:indeterminate
+  label button:indeterminate
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 6 theme_sheet type=button states=:disabled
+  label button:disabled
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.5
+rule 7 theme_sheet type=button states=:enabled
+  label button:enabled
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 8 theme_sheet type=button states=:read_only
+  label button:read-only
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 9 theme_sheet type=button states=:invalid
+  label button:invalid
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 10 theme_sheet type=button states=:open
+  label button:open
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 11 theme_sheet type=button states=:preselect
+  label button:default
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.9
+rule 12 theme_sheet type=button states=:drag_proximate
+  label button:state(drag-proximate)
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.8
+rule 13 theme_sheet type=button states=:drop_accepted
+  label button:state(drop-accepted)
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.7
+rule 14 theme_sheet type=track_bar part=thumb states=:pressed
+  label track-bar::part(thumb):active
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.6

@@ -1,0 +1,5 @@
+/* forms: colour.role-pair colour.role-side colour.palette colour.role-in-mix */
+:root { ink-on-paper: #1b2733 on #ffffff; focus: #0060df; chrome: #dddddd }
+button { color: role(ink-on-paper); background: role(ink-on-paper) }
+button::part(face) { border-color: role(ink-on-paper foreground); background-color: role(chrome) }
+button::part(label) { color: color-mix(in srgb, role(ink-on-paper) 50%, role(focus)) }

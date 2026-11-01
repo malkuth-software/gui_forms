@@ -1,0 +1,5 @@
+/* forms: motion.keyframes motion.keyframes-stops motion.animation motion.animation-infinite motion.animation-frame-rate motion.animation-rest-pose atrule.keyframes */
+@keyframes pulse { from { opacity: 0.5 } 50% { opacity: 0.8 } to { opacity: 1 } }
+@keyframes breathe { from { amplitude: 0.2 } to { amplitude: 0.6 } }
+button:hover::part(face) { animation: pulse 300ms ease }
+button::part(label) { primitive: bulge; animation: breathe 2s linear infinite; animation-frame-rate: 12; animation-rest-pose: 300ms }
