@@ -220,6 +220,8 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
 
 void Window::cancel_frame_requests() {
     require_ui_thread("frame schedule cancellation");
+    // Animation timers waiting for a paint read the count and stay stopped.
+    ++frame_request_cancellations_;
     // Motion ends with the requests: every value jumps to its end.
     motion_clock_.cancel();
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {

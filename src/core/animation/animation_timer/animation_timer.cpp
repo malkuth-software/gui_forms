@@ -46,6 +46,11 @@ struct AnimationTimer::State final {
     bool started{};
     bool painted_since_tick{};
     bool waiting_for_paint{};
+    // The window the timer last scheduled in, observed through its lifetime
+    // token (a destroyed window's token expires), and that window's count of
+    // frame-request cancellations then; empty while the owner had no window.
+    std::weak_ptr<detail::WindowLifetime> window;
+    std::uint64_t window_cancellations{};
 };
 
 AnimationTimer::AnimationTimer() noexcept = default;
@@ -80,12 +85,35 @@ void AnimationTimer::note_painted() {
     if (!state_) return;
     State& state = *state_;
     state.painted_since_tick = true;
-    if (state.started && state.waiting_for_paint) schedule(state_);
+    if (!state.started) return;
+    if (cancelled_by_window(state)) {
+        stop();
+        return;
+    }
+    if (state.waiting_for_paint) schedule(state_);
 }
 
 bool AnimationTimer::started() const noexcept {
-    const bool result = state_ && (*state_).started;
+    const bool result = state_ && (*state_).started && !cancelled_by_window(*state_);
     return result;
+}
+
+bool AnimationTimer::cancelled_by_window(const State& state) noexcept {
+    // Ticking: only stop() or the window ends the request, and stop() also
+    // clears `started`.
+    if (!state.waiting_for_paint) {
+        const bool ended = !state.request.connected();
+        return ended;
+    }
+    const std::shared_ptr<Control> owner = state.owner.lock();
+    if (!owner) return false;
+    const Window* const window = (*owner).attached_window();
+    const std::shared_ptr<detail::WindowLifetime> recorded = state.window.lock();
+    // Waiting outside any window, or since in another one: no cancellation
+    // of the owner's present window can have passed the timer by.
+    if (window == nullptr || !recorded || recorded != (*window).lifetime_) return false;
+    const bool cancelled = (*window).frame_request_cancellations_ != state.window_cancellations;
+    return cancelled;
 }
 
 bool AnimationTimer::ticking() const noexcept {
@@ -110,6 +138,12 @@ void AnimationTimer::schedule(const std::shared_ptr<State>& shared) {
     // An owner that is not shown waits for its next paint instead of holding
     // a wake.
     Window* const window = (*owner).attached_window();
+    if (window == nullptr) {
+        state.window.reset();
+    } else {
+        state.window = (*window).lifetime_;
+        state.window_cancellations = (*window).frame_request_cancellations_;
+    }
     if (window == nullptr || !(*owner).effectively_visible()) {
         state.waiting_for_paint = true;
         return;

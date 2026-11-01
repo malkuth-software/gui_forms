@@ -80,6 +80,12 @@ private:
 
     static void schedule(const std::shared_ptr<State>& state);
     static void on_tick(const std::shared_ptr<State>& state, FrameTime now);
+    // Window::cancel_frame_requests stops the timers of its window as it
+    // ends their requests: a ticking timer loses its request, and one
+    // waiting for a paint, which holds none, finds the window's count of
+    // cancellations moved since it began waiting there. Either is stopped,
+    // as by stop(), and no paint starts it again; start does.
+    [[nodiscard]] static bool cancelled_by_window(const State& state) noexcept;
 
     std::shared_ptr<State> state_;
 };

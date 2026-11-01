@@ -891,6 +891,10 @@ private:
     friend class Control;
     friend class UpdateScope;
     friend class Timer;
+    // Reads lifetime_ and frame_request_cancellations_: a timer waiting
+    // for its owner's paint holds no request, and stops instead of
+    // resuming when this window cancelled its requests meanwhile.
+    friend class AnimationTimer;
     friend class detail::ToolTipPresenter;
     // Called by Control::set_tool_tip_text: a tooltip that shows the
     // control's text shows the new text, or closes when it is empty.
@@ -1496,6 +1500,9 @@ private:
     using FrameRequestList =
         std::vector<std::shared_ptr<detail::ScheduledFrameRequest>>;
     FrameRequestList frame_requests_;
+    // Counts cancel_frame_requests calls, so that work which holds no
+    // request while it waits (AnimationTimer) can tell it was cancelled.
+    std::uint64_t frame_request_cancellations_{};
     bool in_frame_poll_{};
     std::shared_ptr<detail::WindowLifetime> lifetime_;
     std::thread::id ui_thread_;

@@ -307,6 +307,46 @@ void test_animation_timer_is_paint_gated() {
     require((*probe).ticks == 5 && !(*probe).timer.started() &&
                 !window.next_wake().has_value(),
             "a timer stopped by its tick must stay stopped through paints");
+
+    // The window's cancel_frame_requests stops a ticking timer, and the
+    // next paint does not start it again.
+    (*probe).stop_in_tick = false;
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    window.cancel_frame_requests();
+    require(!(*probe).timer.ticking() && !(*probe).timer.started(),
+            "cancelling the window's frame requests must stop a ticking timer");
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require(!(*probe).timer.ticking() && !(*probe).timer.started() &&
+                !window.next_wake().has_value(),
+            "a paint must not start a timer its window cancelled");
+
+    // A timer waiting for a paint holds no request, and is stopped as well
+    // (the Gallery accessibility clients freeze a page this way before
+    // reading it: a hidden page's animation started at its first paint).
+    (*probe).set_visible(false);
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    require((*probe).timer.started() && !(*probe).timer.ticking(),
+            "a hidden owner's timer must wait for a paint");
+    window.cancel_frame_requests();
+    require(!(*probe).timer.started(),
+            "cancelling the window's frame requests must stop a timer waiting for a paint");
+    (*probe).set_visible(true);
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require(!(*probe).timer.ticking() && !(*probe).timer.started() &&
+                !window.next_wake().has_value(),
+            "a paint must not start a waiting timer its window cancelled");
+
+    // Another window's cancellation leaves the timer waiting; start after a
+    // cancellation runs again.
+    std::shared_ptr<TimerProbe> other_root = make_control<TimerProbe>(StableId("animation.timer.other"));
+    Window other(other_root, {40.0, 20.0});
+    (*probe).set_visible(false);
+    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    other.cancel_frame_requests();
+    (*probe).set_visible(true);
+    (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
+    require((*probe).timer.started() && (*probe).timer.ticking() && window.next_wake().has_value(),
+            "another window's cancellation must not stop the timer, and start must run it again");
 }
 
 void test_progress_animation_and_hidden_suspension() {
