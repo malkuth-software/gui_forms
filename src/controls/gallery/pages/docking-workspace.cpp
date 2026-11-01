@@ -85,6 +85,12 @@ private:
         const DockNodeId toolbox_stack = (*workspace_).layout().locate(DockPanelId("toolbox")).stack;
         pinned.edits.push_back(DockEdit::auto_hide(DockSubject::of_stack(toolbox_stack), DockSide::left, 160.0));
         static_cast<void>((*workspace_).apply(pinned));
+        // Each stack opens on its first tab: tabbing a panel in selected it.
+        DockTransaction first_tabs{};
+        first_tabs.edits.push_back(DockEdit::select(DockPanelId("solution")));
+        first_tabs.edits.push_back(DockEdit::select(DockPanelId("output")));
+        first_tabs.edits.push_back(DockEdit::select(DockPanelId(std::string(document_ids[0]))));
+        static_cast<void>((*workspace_).apply(first_tabs));
         site_ = make_control<DockSite>(StableId("gallery.docking.site"), *workspace_);
         (*site_).set_accessible_name("Docking workspace");
         (*docking).add_at(site_, {18.0, 36.0, 636.0, 504.0});
@@ -137,12 +143,12 @@ private:
         const std::string title = (*workspace_).panel_title(creation.panel);
         std::shared_ptr<Panel> content = make_control<Panel>(StableId("gallery.docking.content." + creation.panel.value));
         std::shared_ptr<Label> copy =
-            label("gallery.docking.copy." + creation.panel.value, title + " · made when first shown", 11.0, 400, ink);
-        (*copy).set_requested_bounds({8.0, 8.0, 260.0, 22.0});
+            label("gallery.docking.copy." + creation.panel.value, title, 11.0, 400, ink);
+        (*copy).set_requested_bounds({8.0, 8.0, 160.0, 22.0});
         (*content).add_child(copy);
         std::shared_ptr<TextBox> field = make_control<TextBox>(StableId("gallery.docking.field." + creation.panel.value));
         (*field).set_accessible_name(title);
-        (*field).set_requested_bounds({8.0, 36.0, 160.0, 24.0});
+        (*field).set_requested_bounds({8.0, 36.0, 100.0, 24.0});
         (*content).add_child(field);
         creation.content = content;
     }

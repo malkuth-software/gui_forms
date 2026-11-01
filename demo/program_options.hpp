@@ -19,6 +19,10 @@
 //   --size <W>x<H>      Create the window at this logical size.
 //   --scale <factor>    Recorded as a hint only; hosts take the device scale
 //                       from the display.
+//   --page <id>         The Gallery opens on this page (its stable id, as in
+//                       demo/gallery_page_specs.hpp), as its navigation row
+//                       would show it; with --capture, that page is
+//                       captured. Other programs ignore it.
 //
 // Header-only so every demo executable can include it without a new library.
 // It is demo-facing code: no host, renderer or platform type appears here.
@@ -47,12 +51,13 @@ struct ProgramOptions final {
     std::string capture_path;
     std::optional<Size> capture_size;
     double scale_hint{};
+    std::string page;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
                  "usage: %s [--automation] [--smoke-test] [--capture <path.png>] "
-                 "[--size <W>x<H>] [--scale <factor>]\n",
+                 "[--size <W>x<H>] [--scale <factor>] [--page <id>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
 
@@ -107,7 +112,7 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
             continue;
         }
         const bool wants_value = argument == "--capture" || argument == "--size" ||
-                                 argument == "--scale";
+                                 argument == "--scale" || argument == "--page";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -123,6 +128,12 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.capture_path = std::string(value);
+        } else if (argument == "--page") {
+            if (value.empty()) {
+                print_program_usage(program);
+                return std::nullopt;
+            }
+            options.page = std::string(value);
         } else if (argument == "--size") {
             Size size{};
             if (!detail::parse_size(value, size)) {

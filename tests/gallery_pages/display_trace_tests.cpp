@@ -354,6 +354,12 @@ struct PageDigest final {
 // (the new group below the TokenBox group), states-and-diagnostics (1300
 // controls) and typography-and-inspection (#1333) differ and were recorded
 // again; no other page moved.
+// The docking workspace page (DK D8) adds a navigation row: on every page
+// the sidebar gains the row, its list grows and its scroll thumb and the
+// rows below move; containers-and-focus also loses its header's DockSite
+// and DockWorkspace entries (now the new page's), and its content moves up.
+// Diffed against the previous traces, nothing else changed; every page was
+// recorded again.
 //
 // Each later phase, rebased onto those main pages, recorded again the
 // pages whose digests the combination moved: the counts on
@@ -372,37 +378,37 @@ struct PageDigest final {
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 31> expected_digests{{
-    {"basics", 0x8ad3bd64955e6995ULL},
-    {"values", 0xbd711b8e809d2a46ULL},
-    {"retained-rows", 0xc9963872eaa82963ULL},
-    {"instrument", 0x8df238b8c4100a0dULL},
-    {"control-spectrum", 0x09c60ca6ad72d9f9ULL},
-    {"ranges-and-progress", 0x0845245fa3b2aec3ULL},
-    {"containers-and-focus", 0xf95d5ff60e4c2575ULL},
-    {"animation-laboratory", 0xb963a539e95cacffULL},
-    {"states-and-diagnostics", 0x6de32e8e35607c9bULL},
-    {"text-and-input", 0xe6fb680f7424950eULL},
-    {"collections-and-popups", 0xdbe4ac4c284ef5b4ULL},
-    {"values-and-spinners", 0xfb634418f84b0471ULL},
-    {"images-and-drawing", 0x5b839082cf98aff9ULL},
-    {"tabs-and-pages", 0xbb1be91c5ef45738ULL},
-    {"checked-collections", 0x9d43fb8ad621f7d4ULL},
-    {"timing-and-tooltips", 0xf46d9934a1353098ULL},
-    {"dates-and-calendar", 0x77e1d7b77f2eb5deULL},
-    {"dialogs-and-host-services", 0xfdf1c0b82a22ae37ULL},
-    {"css-layout-panels", 0x92431e3c88c313d3ULL},
-    {"retained-layout-panels", 0x3c72e8bb2cfc39a5ULL},
-    {"dock-and-anchor", 0x6d0427d16dae5d7cULL},
-    {"docking-workspace", 0x67168c2a206614e4ULL},
-    {"commands-and-menus", 0x6c25c689c3d2cb5dULL},
-    {"tree-and-object-views", 0xd495e239f142b4ffULL},
-    {"choices-and-sections", 0xa08d8c7f1f7c976fULL},
-    {"value-editors", 0x964758c34df50825ULL},
-    {"responsive-layouts", 0xe093a43b924bb130ULL},
-    {"anchored-popups", 0xac8247262e33fd7cULL},
-    {"live-surfaces", 0x124e6a48b13ec2d9ULL},
-    {"typography-and-inspection", 0x99de0904581ba98fULL},
-    {"semantic-feedback", 0x4967c806108d9f5eULL},
+    {"basics", 0x895cec1e0b9bad22ULL},
+    {"values", 0xd02f465db04cab37ULL},
+    {"retained-rows", 0x311f34dafb3f1fa0ULL},
+    {"instrument", 0x73ef432f3f584b65ULL},
+    {"control-spectrum", 0x88f46e5be00c611dULL},
+    {"ranges-and-progress", 0xa87a93119403429fULL},
+    {"containers-and-focus", 0x6453ae1a68f17a79ULL},
+    {"animation-laboratory", 0x72b96622cc60adafULL},
+    {"states-and-diagnostics", 0x276a07d7bd615626ULL},
+    {"text-and-input", 0x892f83f92dd96c9cULL},
+    {"collections-and-popups", 0x4e0133a78d1c777cULL},
+    {"values-and-spinners", 0xb23a36f2d606d283ULL},
+    {"images-and-drawing", 0x9c31d93ea9b111b4ULL},
+    {"tabs-and-pages", 0xa84947b517c23551ULL},
+    {"checked-collections", 0xb2b4535e0625614dULL},
+    {"timing-and-tooltips", 0x4dc57e55d62fd598ULL},
+    {"dates-and-calendar", 0x2275cebac384bc28ULL},
+    {"dialogs-and-host-services", 0x3d67afa5c18ad895ULL},
+    {"css-layout-panels", 0x8e36f6f013b42b35ULL},
+    {"retained-layout-panels", 0xd10017f230f19f4dULL},
+    {"dock-and-anchor", 0x5698ac97316ba172ULL},
+    {"docking-workspace", 0x0ae60d01ae07f40dULL},
+    {"commands-and-menus", 0xad66254dc8c0381dULL},
+    {"tree-and-object-views", 0xfd247bc2a83c680fULL},
+    {"choices-and-sections", 0x017f65da9377d3b5ULL},
+    {"value-editors", 0x942e403932ba873dULL},
+    {"responsive-layouts", 0x11d9d76fcba60db8ULL},
+    {"anchored-popups", 0x4b77d8054f5d42ceULL},
+    {"live-surfaces", 0x35e0cb31f519b8d5ULL},
+    {"typography-and-inspection", 0x4ce9720ec50a2fb0ULL},
+    {"semantic-feedback", 0xd3b585cb78fb8e63ULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {
