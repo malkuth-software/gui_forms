@@ -22,6 +22,12 @@ constexpr std::size_t maximum_style_class_length = 64U;
 // (CompiledTransition::machine), so that none is a theme's.
 constexpr std::size_t inline_machine_base = std::size_t{1} << 30U;
 
+// A scoped custom property's name (P12): `--` and at least one character,
+// at most 256 bytes in all.
+[[nodiscard]] bool scoped_name_valid(std::string_view name) noexcept {
+    return name.size() > 2U && name.size() <= 256U && name.substr(0U, 2U) == "--";
+}
+
 bool lowercase_letter(char character) noexcept {
     const bool letter = character >= 'a' && character <= 'z';
     return letter;
@@ -259,6 +265,7 @@ std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept {
     case RuleDiagnosticKind::recipe_field_invalid: return "recipe_field_invalid";
     case RuleDiagnosticKind::recipe_field_on_part: return "recipe_field_on_part";
     case RuleDiagnosticKind::media_invalid: return "media_invalid";
+    case RuleDiagnosticKind::scoped_property_invalid: return "scoped_property_invalid";
     }
     return {};
 }
@@ -1220,9 +1227,58 @@ struct LowerPrecedence final {
 
 } // namespace
 
+bool CompiledThemeRules::add_scoped(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                    const ThemeRule& rule, CompiledThemeRules& result, CompiledRule& compiled) {
+    // scoped_names_ holds the names the sheet's conditions read
+    // (add_rules collects them first): a condition's name is among them
+    // unless it was past the limit, and a definition of another name is
+    // read by nothing, so it is not kept.
+    for (const ScopedCondition& condition : rule.scoped_conditions) {
+        const std::optional<std::size_t> position = result.scoped_name_position(condition.name);
+        if (!position) {
+            diagnostics.push_back(diagnostic(RuleDiagnosticKind::scoped_property_invalid, index, rule, condition.name));
+            return false;
+        }
+        compiled.scoped_conditions.push_back(
+            CompiledScoped{.name = static_cast<std::uint32_t>(*position), .definition = condition.definition});
+    }
+    for (const ScopedDefinition& definition : rule.scoped_definitions) {
+        if (!scoped_name_valid(definition.name) || definition.definition == custom_property_undefined) {
+            diagnostics.push_back(diagnostic(RuleDiagnosticKind::scoped_property_invalid, index, rule, definition.name));
+            return false;
+        }
+        const std::optional<std::size_t> position = result.scoped_name_position(definition.name);
+        if (!position) continue;
+        compiled.scoped_definitions.push_back(
+            CompiledScoped{.name = static_cast<std::uint32_t>(*position), .definition = definition.definition});
+    }
+    return true;
+}
+
+std::optional<std::size_t> CompiledThemeRules::scoped_name_position(std::string_view name) const noexcept {
+    for (std::size_t position = 0U; position < scoped_names_.size(); ++position) {
+        if (scoped_names_[position] == name) return position;
+    }
+    return std::nullopt;
+}
+
+void CompiledThemeRules::collect_scoped_names(const ThemeRuleSheet& sheet) {
+    // The names the conditions read, in sheet order, at most
+    // maximum_scoped_custom_properties; a rule reading one past them is
+    // dropped by add_scoped.
+    for (const ThemeRule& rule : sheet.rules) {
+        for (const ScopedCondition& condition : rule.scoped_conditions) {
+            if (!scoped_name_valid(condition.name) || scoped_name_position(condition.name)) continue;
+            if (scoped_names_.size() >= maximum_scoped_custom_properties) continue;
+            scoped_names_.push_back(condition.name);
+        }
+    }
+}
+
 void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSheet& sheet,
                                    const PrimitiveRegistry& registry, bool engine_table) {
     const std::size_t input_count = result.input_count();
+    result.collect_scoped_names(sheet);
     result.rules_.reserve(result.rules_.size() + sheet.rules.size());
     for (std::size_t index = 0; index < sheet.rules.size(); ++index) {
         const ThemeRule& rule = sheet.rules[index];
@@ -1366,9 +1422,14 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         add_ambient(result.diagnostics_, index, rule, compiled);
         add_materials(result.diagnostics_, index, rule, compiled);
         add_recipe_fields(result.diagnostics_, index, rule, compiled);
+        if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
                               compiled.ambient.has_value() || compiled.blend.has_value() || compiled.font.has_value() ||
-                              !compiled.materials.empty() || !compiled.recipe_fields.empty();
+                              !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
+                              !compiled.scoped_definitions.empty();
+        // A rule of definitions no condition reads declares nothing the
+        // cascade uses, and is dropped without a diagnostic.
+        if (!declares && !rule.scoped_definitions.empty()) continue;
         if (!declares) {
             result.diagnostics_.push_back(diagnostic(RuleDiagnosticKind::rule_empty, index, rule, {}));
             continue;
@@ -1748,7 +1809,8 @@ CompiledThemeRules::CompiledThemeRules(const CompiledThemeRules& other)
       built_in_rules_(other.built_in_rules_),
       serial_(next_rules_serial()),
       recipe_fields_set_(other.recipe_fields_set_),
-      inline_style_(other.inline_style_) {}
+      inline_style_(other.inline_style_),
+      scoped_names_(other.scoped_names_) {}
 
 CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& other) {
     if (this == &other) return *this;
@@ -1759,6 +1821,7 @@ CompiledThemeRules& CompiledThemeRules::operator=(const CompiledThemeRules& othe
     serial_ = next_rules_serial();
     recipe_fields_set_ = other.recipe_fields_set_;
     inline_style_ = other.inline_style_;
+    scoped_names_ = other.scoped_names_;
     return *this;
 }
 
@@ -1858,19 +1921,22 @@ bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& fact
 // specificity the compilation's come first, each set in its own order.
 // A walk for the part's drawing under forced high contrast
 // (PartFacts::forced_high_contrast) passes over every rule below
-// important_inline_style.
+// important_inline_style; one given the part's scoped winners (P12) passes
+// over every copy whose conditions they do not meet.
 class CompiledThemeRules::RuleWalk final {
 public:
-    RuleWalk(const CompiledThemeRules& rules, const PartFacts& facts, bool drawing) noexcept
+    RuleWalk(const CompiledThemeRules& rules, const PartFacts& facts, bool drawing,
+             const ScopedWinners* winners) noexcept
         : theme_(rules.rules_),
           inline_(facts.inline_rules == nullptr ? std::span<const CompiledRule>{}
                                                 : std::span<const CompiledRule>((*facts.inline_rules).rules_)),
+          winners_(winners),
           forced_(drawing && facts.forced_high_contrast) {}
 
     // The next rule, or null after the last.
     [[nodiscard]] const CompiledRule* next() noexcept {
         const CompiledRule* taken = merged();
-        while (forced_ && taken != nullptr && (*taken).level < CascadeLevel::important_inline_style) taken = merged();
+        while (taken != nullptr && !admitted(*taken)) taken = merged();
         return taken;
     }
 
@@ -1897,8 +1963,18 @@ private:
 
     std::span<const CompiledRule> theme_;
     std::span<const CompiledRule> inline_;
+    [[nodiscard]] bool admitted(const CompiledRule& rule) const noexcept {
+        if (forced_ && rule.level < CascadeLevel::important_inline_style) return false;
+        if (winners_ == nullptr) return true;
+        for (const CompiledScoped& condition : rule.scoped_conditions) {
+            if ((*winners_).definitions[condition.name] != condition.definition) return false;
+        }
+        return true;
+    }
+
     std::size_t theme_next_{};
     std::size_t inline_next_{};
+    const ScopedWinners* winners_{};
     bool forced_{};
 };
 
@@ -1910,20 +1986,38 @@ CompiledThemeRules::Resolution CompiledThemeRules::resolve(const PartFacts& fact
     // The winner is the last matching rule that selects, rules being in
     // ascending precedence.
     const CompiledRule* winner = nullptr;
-    RuleWalk walk(*this, facts, true);
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    RuleWalk walk(*this, facts, true, &winners);
     for (const CompiledRule* rule = walk.next(); rule != nullptr; rule = walk.next()) {
         if ((*rule).selects && matches(*rule, facts)) winner = rule;
     }
-    if (winner != nullptr) resolve_primitive(facts, *winner, result);
-    resolve_transitions(facts, result);
-    resolve_materials(facts, result);
+    if (winner != nullptr) resolve_primitive(facts, winners, *winner, result);
+    resolve_transitions(facts, winners, result);
+    resolve_materials(facts, winners, result);
     return result;
 }
 
-void CompiledThemeRules::resolve_materials(const PartFacts& facts, Resolution& result) const noexcept {
+void CompiledThemeRules::resolve_scoped(const PartFacts& facts, ScopedWinners& winners) const noexcept {
+    winners.definitions.fill(custom_property_undefined);
+    if (scoped_names_.empty()) return;
+    // The last matching definition of each name wins, rules being in
+    // ascending precedence. Definitions hold no conditions.
+    RuleWalk walk(*this, facts, false, nullptr);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        if (rule.scoped_definitions.empty() || !matches(rule, facts)) continue;
+        for (const CompiledScoped& definition : rule.scoped_definitions) {
+            winners.definitions[definition.name] = definition.definition;
+        }
+    }
+}
+
+void CompiledThemeRules::resolve_materials(const PartFacts& facts, const ScopedWinners& winners,
+                                           Resolution& result) const noexcept {
     // The last matching declaration of each field wins, rules being in
     // ascending precedence; a rule declares each field at most once.
-    RuleWalk walk(*this, facts, true);
+    RuleWalk walk(*this, facts, true, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.materials.empty() || !matches(rule, facts)) continue;
@@ -1940,7 +2034,9 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     if (!recipe_fields_set_ && !inline_fields) return result;
     // As for the material fields: the last matching declaration of each
     // field wins, and a rule declares each field at most once.
-    RuleWalk walk(*this, facts, true);
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    RuleWalk walk(*this, facts, true, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.recipe_fields.empty() || !matches(rule, facts)) continue;
@@ -1952,8 +2048,8 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     return result;
 }
 
-void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const CompiledRule& chosen,
-                                           Resolution& result) const noexcept {
+void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const ScopedWinners& winners,
+                                           const CompiledRule& chosen, Resolution& result) const noexcept {
     result.level = chosen.level;
     if (chosen.primitive == nullptr) {
         result.outcome = Outcome::built_in_selected;
@@ -1969,7 +2065,7 @@ void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const Compile
     // precedence, so the last write of each parameter is its winner. A
     // winning expression keeps its fallback as the parameter's value until
     // the engine evaluates it.
-    RuleWalk walk(*this, facts, true);
+    RuleWalk walk(*this, facts, true, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         if (rule.primitive != chosen.primitive || !matches(rule, facts)) continue;
@@ -1990,7 +2086,8 @@ void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const Compile
     result.primitive = chosen.primitive;
 }
 
-void CompiledThemeRules::resolve_transitions(const PartFacts& facts, Resolution& result) const noexcept {
+void CompiledThemeRules::resolve_transitions(const PartFacts& facts, const ScopedWinners& winners,
+                                             Resolution& result) const noexcept {
     // The last matching declaration of each property wins: opacity, scale
     // and face from any rule, a parameter only from the rules selecting the
     // part's primitive.
@@ -2001,7 +2098,7 @@ void CompiledThemeRules::resolve_transitions(const PartFacts& facts, Resolution&
     const CompiledTransition* down = nullptr;
     std::array<const CompiledTransition*, maximum_primitive_parameters> parameters{};
     const bool primitive = result.outcome == Outcome::primitive;
-    RuleWalk walk(*this, facts, false);
+    RuleWalk walk(*this, facts, false, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
         const bool presents = !rule.transitions.empty() || rule.ambient || rule.blend || rule.font;

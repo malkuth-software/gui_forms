@@ -458,7 +458,9 @@ void test_custom_properties() {
     require_refused("a { --a: var(--b); --b: var(--a); value: var(--a); }", DiagnosticCode::variable_cycle,
                     "--a); value");
     require_refused("a { --a: var(--a); value: var(--a); }", DiagnosticCode::variable_cycle, "--a); value");
-    require_refused("a { --r: 1px; } b { --r: 2px; } c { value: var(--r); }", DiagnosticCode::not_yet_built,
+    // Read without a choice of its definitions (as in a keyframe), a name
+    // defined twice cannot vary (P12).
+    require_refused("a { --r: 1px; } b { --r: 2px; } c { value: var(--r); }", DiagnosticCode::variable_cannot_vary,
                     "--r); }");
     require_refused("a { value: var(radius); }", DiagnosticCode::value_syntax, "var(");
     require_refused("a { value: var(--a 1px); }", DiagnosticCode::value_syntax, "var(");
