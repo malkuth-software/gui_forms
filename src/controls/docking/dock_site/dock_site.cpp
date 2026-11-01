@@ -1999,7 +1999,11 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
     if (command == DockPositionCommand::hide) {
         result = (*workspace_).hide_panel(panel, DockEditOrigin::user);
     } else if (command == DockPositionCommand::close) {
-        result = (*workspace_).close_panel(panel, DockEditOrigin::user);
+        // A document is asked about first (DockWorkspace::request_close,
+        // phase D6); a prompt that waits for its answer counts as run.
+        const DockCloseOutcome outcome = (*workspace_).request_close(panel);
+        const bool ran = outcome == DockCloseOutcome::closed || outcome == DockCloseOutcome::pending;
+        return ran;
     } else {
         DockTransaction transaction{};
         transaction.origin = DockEditOrigin::user;
