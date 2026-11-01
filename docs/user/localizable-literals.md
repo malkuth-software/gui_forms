@@ -49,8 +49,12 @@ The toolkit builds the plugin with the Clang it is compiled with, using that
 Clang's CMake package (Homebrew's `llvm@22` has it; on Linux, LLVM 22's Clang
 development package). The `GUI_FORMS_LOCALIZABLE_PLUGIN` option, on by
 default, builds it, compiles the Gallery with it and installs it with the SDK.
-When the Clang package is missing, the build goes on without the plugin and
-says so.
+The configure first proves the plugin usable: it configures and builds the
+plugin's project and compiles a probe unit with it. When the Clang package is
+missing or unusable (present but naming libraries that are not installed, for
+example), or the compiler cannot load the plugin, the build goes on without
+the plugin and says so in one status line; the reason's details are in
+`localizable_plugin/probe.log` in the build tree.
 
 A program consuming the installed SDK with Clang 22 is compiled with the
 plugin through `GUIForms::Core`. To compile without it, turn the package's
