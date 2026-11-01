@@ -29,6 +29,10 @@ join
     takes ownership of it. Throws `std::invalid_argument` for a null strip or
     one that already has a parent, and `std::logic_error` for a `StatusStrip`
     on a left or right panel.
+insert
+    Joins a strip as `join` does, at a row of the joined strips (0 first,
+    their count last). Throws `std::out_of_range` for a row past that count,
+    before anything changes.
 remove
     Removes a joined strip and returns it; null when the strip is not joined
     to this panel.

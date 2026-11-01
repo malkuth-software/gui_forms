@@ -2,6 +2,7 @@
 #include "dock_site_children.hpp"
 
 #include "dock_site_internal.hpp"
+#include "../../drag_gesture/drag_gesture.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
@@ -37,9 +38,9 @@ constexpr double label_gap = 4.0;
 // The active caption's accent line (DK-41, T4-3).
 constexpr double accent_height = 2.0;
 constexpr double extent_tolerance = 1e-9;
-// The drag's motions (about 220 ms for the stamp, D1 as corrected; the
-// tiles fade in over about 100 ms, T2-4), run on the window's motion clock.
-constexpr std::chrono::milliseconds stamp_motion_duration{220};
+// The drag's motions, run on the window's motion clock: the stamp's is the
+// shared drag curve (drag_gesture.hpp, 220 ms, D1 as corrected); the tiles
+// fade in over about 100 ms (T2-4).
 constexpr std::chrono::milliseconds tile_fade_duration{100};
 
 
@@ -92,7 +93,7 @@ DockSite::DockSite(StableId stable_id, DockWorkspace& workspace)
 
 DockSite::DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floating_site)
     : Control(std::move(stable_id)), workspace_(&workspace), floating_site_(floating_site),
-      stamp_motion_(*this, MotionCurve::timed(stamp_motion_duration, MotionEasing::smoothstep), 1.0),
+      stamp_motion_(*this, drag_gesture::stamp_curve(), 1.0),
       tile_fade_(*this, MotionCurve::timed(tile_fade_duration, MotionEasing::linear), 1.0),
       flyout_slide_(*this, MotionCurve::timed(flyout_slide_duration, MotionEasing::linear), 1.0) {
     set_cursor(CursorKind::arrow);

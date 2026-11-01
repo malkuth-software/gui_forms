@@ -5819,7 +5819,10 @@
         {"name": "bottom_panel", "role": "face", "composed_from": "tool_strip_panel", "states": []},
         {"name": "left_panel", "role": "face", "composed_from": "tool_strip_panel", "states": []},
         {"name": "right_panel", "role": "face", "composed_from": "tool_strip_panel", "states": []},
-        {"name": "content_panel", "role": "region", "composed_from": "panel", "states": []}
+        {"name": "content_panel", "role": "region", "composed_from": "panel", "states": []},
+        {"name": "drag_stamp", "role": "face", "composed_from": null, "states": []},
+        {"name": "drag_stamp_image", "role": "image", "composed_from": null, "states": []},
+        {"name": "drop_marker", "role": "drop", "composed_from": null, "states": ["drop_accepted"]}
       ],
       "states": ["normal", "enabled", "disabled", "focused", "focus_visible"],
       "custom_states": [],
@@ -5862,7 +5865,8 @@
         {"name": "pointer_preview_observed", "payload": "PointerEvent", "mutable_payload": false},
         {"name": "focus_observed", "payload": "bool", "mutable_payload": false},
         {"name": "arranged_bounds_changed", "payload": "Rect", "mutable_payload": false},
-        {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true}
+        {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
+        {"name": "strip_moved", "payload": "ToolStripMove", "mutable_payload": false}
       ]
     },
     {

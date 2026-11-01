@@ -691,6 +691,7 @@ add_library(gui_forms_controls STATIC
     src/controls/docking/dock_workspace/dock_workspace.cpp
     src/controls/docking/dock_site/dock_site.cpp
     src/controls/docking/dock_site/dock_site_drag.cpp
+    src/controls/drag_gesture/drag_gesture.cpp
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp

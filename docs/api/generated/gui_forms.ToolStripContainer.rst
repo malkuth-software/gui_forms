@@ -20,6 +20,16 @@ gui_forms::ToolStripContainer
    takes the rest. Join strips to a panel and put the window's controls in the
    content panel.
 
+   Strips are dragged by their grips with the docking drag's mechanics: a press
+   on a grip that moves 4 units drags the strip, whose stamp (its picture,
+   shrinking to a miniature at the pointer) follows the pointer while a line
+   marks the row it would take in the shown panel under the pointer. A release
+   there moves the strip and turns it to that panel's orientation. Strips never
+   leave the container, enter dock stacks or float: a release elsewhere, with
+   Ctrl held, after Escape or when the capture is lost leaves the strip where
+   it was. A :cpp:class:`StatusStrip <gui_forms::StatusStrip>` has no left or right target. An empty panel's band
+   reaches 12 units in from its edge, so a strip can be dropped on it.
+
    *Status:* stable. *Windows Forms counterpart:* ``ToolStripContainer``.
 
    :Parameters:
@@ -55,7 +65,37 @@ gui_forms::ToolStripContainer
 
       **right_panel_visible** : ``bool``
 
+      **drag_phase** : ``ToolStripDragPhase``, read-only
+         Where a strip drag stands: ``idle``, ``armed`` (pressed on a grip, not
+         yet moved the threshold), ``dragging`` or ``settling`` (the stamp moving
+         into the strip's place).
+
+      **dragged_strip** : ``std::shared_ptr<ToolStrip>``, read-only
+         The strip being dragged, or null.
+
+      **drag_target** : ``std::optional<ToolStripDropTarget>``, read-only
+         Where a release would put the strip: a :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>` with the
+         panel's edge, the row (counted without the dragged strip) and the
+         insertion line; none when nothing accepts.
+
+      **drag_stamp** : ``Rect``, read-only
+         The stamp's rectangle while dragging or settling; empty otherwise.
+
+      **drag_suppressed** : ``bool``, read-only
+         Whether Ctrl is suppressing the targets.
+
+      **drag_threshold** : ``double``, default ``4``
+         How far the pointer moves from a grip press before it drags. A host may
+         set 1 to 64; ``std::out_of_range`` otherwise.
+
       **parts** : ``Parts``, read-only
+
+   :Events:
+
+      **strip_moved** : ``Event<const ToolStripMove&>``
+         Raised after a strip changed panel or row, by a drag or by :cpp:func:`move_strip <gui_forms::ToolStripContainer::move_strip>`,
+         with a :cpp:class:`ToolStripMove <gui_forms::ToolStripMove>`: the strip's identity and its edge and row before
+         and after.
 
    :Inherited:
 
@@ -69,6 +109,10 @@ gui_forms::ToolStripContainer
 
       * - :cpp:func:`initialize_control_tree <gui_forms::ToolStripContainer::initialize_control_tree>`
         -  
+      * - :cpp:func:`move_strip <gui_forms::ToolStripContainer::move_strip>`
+        - Moves a strip joined to one of the panels to a row of the panel on an edge, as a drop would, and raises :cpp:func:`strip_moved <gui_forms::ToolStripContainer::strip_moved>`.
+      * - :cpp:func:`cancel_drag <gui_forms::ToolStripContainer::cancel_drag>`
+        - Ends an armed drag, or a drag under way as Escape does; false when there is none.
 
    .. seealso::
 
@@ -87,12 +131,15 @@ gui_forms::ToolStripContainer
    publishes ``region`` and the composed parts ``top_panel``,
    ``bottom_panel``, ``left_panel``, ``right_panel`` (each a
    ``tool_strip_panel``) and ``content_panel`` (a ``panel``); an empty or
-   hidden panel is absent. The content panel comes first among the children,
+   hidden panel is absent. While a strip is dragged it also publishes
+   ``drag_stamp`` and ``drag_stamp_image`` (the stamp's card face and the
+   strip's picture) and, while a target is chosen, ``drop_marker`` (the
+   insertion line, ``drop_accepted``), painted on a layer above the panels. The content panel comes first among the children,
    so Tab reaches the content before the strips. It is a group to
    accessibility, exposed when it has an accessible name.
 
-   Not supported yet: dragging strips between panels, several strips sharing a
-   row, and rafting panels outside a container.
+   Not supported yet: several strips sharing a row, a keyboard way to move a
+   strip other than :cpp:func:`move_strip <gui_forms::ToolStripContainer::move_strip>`, and rafting panels outside a container.
 
    .. rubric:: Examples
 
@@ -154,23 +201,99 @@ gui_forms::ToolStripContainer
 
    .. cpp:function:: void set_right_panel_visible(bool visible)
 
+   .. cpp:function:: ToolStripDragPhase drag_phase() const noexcept
+
+      Where a strip drag stands: ``idle``, ``armed`` (pressed on a grip, not
+      yet moved the threshold), ``dragging`` or ``settling`` (the stamp moving
+      into the strip's place).
+
+   .. cpp:function:: std::shared_ptr<ToolStrip> dragged_strip() const
+
+      The strip being dragged, or null.
+
+   .. cpp:function:: std::optional<ToolStripDropTarget> drag_target() const
+
+      Where a release would put the strip: a :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>` with the
+      panel's edge, the row (counted without the dragged strip) and the
+      insertion line; none when nothing accepts.
+
+   .. cpp:function:: Rect drag_stamp() const noexcept
+
+      The stamp's rectangle while dragging or settling; empty otherwise.
+
+   .. cpp:function:: bool drag_suppressed() const noexcept
+
+      Whether Ctrl is suppressing the targets.
+
+   .. cpp:function:: double drag_threshold() const noexcept
+
+      How far the pointer moves from a grip press before it drags. A host may
+      set 1 to 64; ``std::out_of_range`` otherwise.
+
+   .. cpp:function:: void set_drag_threshold(double threshold)
+
+      Sets :cpp:func:`drag_threshold <gui_forms::ToolStripContainer::drag_threshold>`; see the property's description above.
+
    .. cpp:function:: Parts parts() const
+
+
+   .. rubric:: Events
+
+   .. cpp:function:: Event<const ToolStripMove&>& strip_moved() noexcept
+
+      Raised after a strip changed panel or row, by a drag or by :cpp:func:`move_strip <gui_forms::ToolStripContainer::move_strip>`,
+      with a :cpp:class:`ToolStripMove <gui_forms::ToolStripMove>`: the strip's identity and its edge and row before
+      and after.
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void initialize_control_tree()
 
+   .. cpp:function:: bool move_strip(const ToolStrip& strip, ToolStripPanelEdge edge, std::size_t row)
+
+      Moves a strip joined to one of the panels to a row of the panel on an
+      edge, as a drop would, and raises :cpp:func:`strip_moved <gui_forms::ToolStripContainer::strip_moved>`. True when the strip is
+      there afterwards (also when it already was, which raises nothing); false,
+      changing nothing, for a strip not joined here, an invalid edge, a row
+      past the end, or a :cpp:class:`StatusStrip <gui_forms::StatusStrip>` sent to the left or right. A drag under
+      way is cancelled first.
+
+   .. cpp:function:: bool cancel_drag()
+
+      Ends an armed drag, or a drag under way as Escape does; false when there
+      is none.
+
 
    .. rubric:: Extension points
 
    .. cpp:function:: void arrange(Rect final_bounds) override
+
+   .. cpp:function:: void on_pointer_preview(PointerEvent& event) override
+
+   .. cpp:function:: void on_pointer(PointerEvent& event) override
+
+   .. cpp:function:: void on_key_preview(KeyEvent& event) override
+
+   .. cpp:function:: void on_key(KeyEvent& event) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
+
+      *Protected.*
+
+   .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
+
+      *Protected.*
+
+   .. cpp:function:: void on_detaching_from_window(Window& former_window) noexcept override
+
+      *Protected.*
+
+   .. cpp:function:: void on_dispose() noexcept override
 
       *Protected.*
 

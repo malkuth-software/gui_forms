@@ -2,23 +2,76 @@
 
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
+#include "gui_forms/event.hpp"
+#include "gui_forms/window.hpp"
 
+#include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
+#include <string>
+#include <vector>
 
 namespace gui_forms {
+
+// The phases of a strip drag: `armed` from a press on a strip's grip until
+// the pointer has moved the drag threshold; `dragging` while the stamp
+// follows the pointer; `settling` while the stamp moves into the strip's
+// place (its new one, or its old one when nothing moved).
+enum class ToolStripDragPhase : std::uint8_t { idle, armed, dragging, settling };
+
+// Where a dragged strip would go: the panel on `edge`, at `row`, counted
+// among that panel's strips without the dragged one (0 before the first,
+// the count after the last). `marker` is the insertion line, in the
+// container's coordinates.
+struct ToolStripDropTarget final {
+    ToolStripPanelEdge edge{ToolStripPanelEdge::top};
+    std::size_t row{};
+    Rect marker{};
+
+    [[nodiscard]] bool operator==(const ToolStripDropTarget& other) const noexcept {
+        const bool same = edge == other.edge && row == other.row && marker == other.marker;
+        return same;
+    }
+};
+
+// A strip that changed panel or row, raised after the move (by a drag or by
+// move_strip). Rows are counted as in ToolStripDropTarget.
+struct ToolStripMove final {
+    std::string strip_id{};
+    ToolStripPanelEdge from{ToolStripPanelEdge::top};
+    std::size_t from_row{};
+    ToolStripPanelEdge to{ToolStripPanelEdge::top};
+    std::size_t to_row{};
+};
 
 // Four ToolStripPanels around a content panel (Windows Forms'
 // ToolStripContainer). The top and bottom panels span the container's width
 // and are as tall as their strips; the left and right panels fill the height
 // between them and are as wide as their strips; the content panel takes the
 // rest. Put strips in a panel with ToolStripPanel::join and the window's
-// controls in content_panel(). Dragging strips between panels is not
-// supported yet.
+// controls in content_panel().
+//
+// Strips are dragged by their grips (owner decision DK-36, K2-1), with the
+// docking drag's mechanics (src/controls/drag_gesture): a press on a grip
+// that moves the drag threshold (4 units) drags the strip; its stamp, the
+// strip's picture shrinking to a miniature at the pointer, follows the
+// pointer, and the shown panel under the pointer marks the row the strip
+// would take. A release there moves the strip, which turns to that panel's
+// orientation. Strips never leave the container, enter dock stacks or
+// float: a release elsewhere, with Ctrl held, after Escape, or when the
+// pointer capture is lost leaves the strip where it was. A StatusStrip has
+// no left or right target. An empty panel's band reaches a few units in
+// from its edge, so a strip can be dropped on it.
 class ToolStripContainer final : public Control {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     explicit ToolStripContainer(StableId stable_id);
+    ~ToolStripContainer() override;
+    ToolStripContainer(const ToolStripContainer&) = delete;
+    ToolStripContainer& operator=(const ToolStripContainer&) = delete;
     void initialize_control_tree();
 
     // The panels are child controls named <stable_id>.top, .bottom, .left,
@@ -39,7 +92,38 @@ public:
     [[nodiscard]] bool right_panel_visible() const noexcept { return right_visible_; }
     void set_right_panel_visible(bool visible);
 
+    // Moves a strip joined to one of the four panels to `row` of the panel
+    // on `edge`, as a drop would, and raises strip_moved. True when the
+    // strip is there afterwards (also when it already was, which raises
+    // nothing); false, changing nothing, for a strip not joined here, an
+    // invalid edge, a row past the end, or a StatusStrip sent to the left or
+    // right. A drag under way is cancelled first.
+    bool move_strip(const ToolStrip& strip, ToolStripPanelEdge edge, std::size_t row);
+    [[nodiscard]] Event<const ToolStripMove&>& strip_moved() noexcept { return strip_moved_; }
+
+    [[nodiscard]] ToolStripDragPhase drag_phase() const noexcept { return drag_.phase; }
+    // The strip being dragged (armed, dragging or settling), or null.
+    [[nodiscard]] std::shared_ptr<ToolStrip> dragged_strip() const { return drag_.strip.lock(); }
+    // Where a release would put the strip now, or none.
+    [[nodiscard]] std::optional<ToolStripDropTarget> drag_target() const { return drag_.target; }
+    // The stamp's rectangle in the container's coordinates while dragging
+    // or settling; empty otherwise.
+    [[nodiscard]] Rect drag_stamp() const noexcept;
+    // Whether Ctrl is suppressing the targets.
+    [[nodiscard]] bool drag_suppressed() const noexcept { return drag_.suppressed; }
+    // How far the pointer moves from a grip press before it drags (4 units;
+    // a host may set 1 to 64). Throws std::out_of_range outside that.
+    [[nodiscard]] double drag_threshold() const noexcept { return drag_threshold_; }
+    void set_drag_threshold(double threshold);
+    // Ends an armed drag, or a drag under way as Escape does. False when
+    // there is none.
+    bool cancel_drag();
+
     void arrange(Rect final_bounds) override;
+    void on_pointer_preview(PointerEvent& event) override;
+    void on_pointer(PointerEvent& event) override;
+    void on_key_preview(KeyEvent& event) override;
+    void on_key(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members; its states are Control's.
@@ -50,13 +134,52 @@ public:
         PartGeometry left_panel;
         PartGeometry right_panel;
         PartGeometry content_panel;
+        // While dragging or settling: the stamp and its picture; while a
+        // target is chosen, its insertion line.
+        PartGeometry drag_stamp;
+        PartGeometry drag_stamp_image;
+        PartGeometry drop_marker;
     };
     [[nodiscard]] Parts parts() const;
 
 protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
+    void on_detaching_from_window(Window& former_window) noexcept override;
+    void on_dispose() noexcept override;
 
 private:
+    class DragLayer;
+    // The drag session, replaced whole. `from` and `from_row` are where the
+    // strip was when it was pressed; `source` its rectangle then and `grab`
+    // where the press held it (fractions of `source`), in the container's
+    // coordinates. `settle_from` is the stamp where the drag ended. The
+    // picture is the strip's snapshot (none where the window cannot take
+    // one), released by reset_drag. `focus_before` gets the focus back.
+    struct DragSession final {
+        ToolStripDragPhase phase{ToolStripDragPhase::idle};
+        std::weak_ptr<ToolStrip> strip{};
+        ToolStripPanelEdge from{ToolStripPanelEdge::top};
+        std::size_t from_row{};
+        std::uint64_t pointer_id{1U};
+        Point press{};
+        Point pointer{};
+        Point grab{};
+        Rect source{};
+        bool suppressed{};
+        std::optional<ToolStripDropTarget> target{};
+        Rect stamp{};
+        Rect settle_from{};
+        std::optional<ControlSnapshot> picture{};
+        std::weak_ptr<Control> focus_before{};
+        bool focusable_before{};
+    };
+    // A strip's place among the four panels.
+    struct StripPlace final {
+        ToolStripPanelEdge edge{ToolStripPanelEdge::top};
+        std::size_t row{};
+    };
+
     // Where the panels sit for one client size.
     struct Layout final {
         Rect top{};
@@ -67,6 +190,40 @@ private:
     };
     [[nodiscard]] Layout layout_for(Size client);
     void set_panel_visible(bool& flag, bool visible);
+    [[nodiscard]] const std::shared_ptr<ToolStripPanel>& panel_on(ToolStripPanelEdge edge) const noexcept;
+    [[nodiscard]] bool panel_shown(ToolStripPanelEdge edge) const noexcept;
+    [[nodiscard]] std::optional<StripPlace> place_of(const ToolStrip& strip) const;
+    // A rectangle of a descendant, in this container's coordinates.
+    [[nodiscard]] Rect local_bounds_of(const Control& control) const noexcept;
+    [[nodiscard]] Point local_point(Point window_point) const noexcept;
+    // The strip whose grip is under a window point, or null.
+    [[nodiscard]] std::shared_ptr<ToolStrip> grip_strip_at(Point window_point) const;
+    [[nodiscard]] std::optional<ToolStripDropTarget> target_at(Point local) const;
+    // Moves without cancelling a drag or checking the place again.
+    void move_to(const std::shared_ptr<ToolStrip>& strip, StripPlace from, StripPlace to);
+    void arm_drag(const std::shared_ptr<ToolStrip>& strip, Point local, std::uint64_t pointer_id);
+    void begin_drag();
+    void update_drag(Point local, Modifier modifiers);
+    // Ends a drag under way: a drop moves the strip to the target there is;
+    // anything else leaves it. Then the stamp settles into the strip's place.
+    void end_drag(bool drop);
+    void finish_settling() noexcept;
+    void reset_drag() noexcept;
+    void release_picture(Window& host) noexcept;
+    [[nodiscard]] Rect stamp_now() const;
+    // Marks the stamp and the insertion line for repainting where they are.
+    void invalidate_drag_paint();
+    bool handle_drag_key(KeyEvent& event);
+    void return_focus() noexcept;
+    void on_stamp_motion(const MotionStep& step);
+    // The window lets go of the capture before it dispatches a primary
+    // release, so a release of the capture is checked a turn later: the
+    // drag ends as lost only when the capture did not come back and the
+    // release did not end it.
+    void on_capture_changed(const PointerCaptureChange& change);
+    struct CaptureCheck;
+    void check_capture_after_release();
+    void paint_drag_layer(Painter& painter);
 
     std::shared_ptr<ToolStripPanel> top_{};
     std::shared_ptr<ToolStripPanel> bottom_{};
@@ -77,6 +234,19 @@ private:
     bool bottom_visible_{true};
     bool left_visible_{true};
     bool right_visible_{true};
+    Event<const ToolStripMove&> strip_moved_{};
+    // The drag: its session, the layer that paints it above the panels (a
+    // child kept last), the stamp's motion (0 to 1 on the shared drag
+    // curve: shrinking while dragging, settling after) and the capture
+    // subscription that ends it, held while a drag is armed or under way.
+    DragSession drag_{};
+    std::shared_ptr<DragLayer> drag_layer_{};
+    MotionValue stamp_motion_;
+    SubscriptionToken capture_token_{};
+    DispatchOperation capture_check_{};
+    // drag_gesture::default_threshold, kept here so the public header needs
+    // no private one.
+    double drag_threshold_{4.0};
 };
 
 } // namespace gui_forms

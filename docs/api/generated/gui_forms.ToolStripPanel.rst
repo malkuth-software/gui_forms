@@ -53,6 +53,8 @@ gui_forms::ToolStripPanel
 
       * - :cpp:func:`join <gui_forms::ToolStripPanel::join>`
         - Adds a strip after the others, turns it to the panel's orientation and takes ownership of it.
+      * - :cpp:func:`insert <gui_forms::ToolStripPanel::insert>`
+        - Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, at a row of the joined strips (0 first, their count last).
       * - :cpp:func:`remove <gui_forms::ToolStripPanel::remove>`
         - Removes a joined strip and returns it; null when the strip is not joined to this panel.
 
@@ -119,6 +121,12 @@ gui_forms::ToolStripPanel
       takes ownership of it. Throws ``std::invalid_argument`` for a null strip or
       one that already has a parent, and ``std::logic_error`` for a :cpp:class:`StatusStrip <gui_forms::StatusStrip>`
       on a left or right panel.
+
+   .. cpp:function:: void insert(std::shared_ptr<ToolStrip> strip, std::size_t row)
+
+      Joins a strip as :cpp:func:`join <gui_forms::ToolStripPanel::join>` does, at a row of the joined strips (0 first,
+      their count last). Throws ``std::out_of_range`` for a row past that count,
+      before anything changes.
 
    .. cpp:function:: std::shared_ptr<ToolStrip> remove(const ToolStrip& strip)
 

@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -32,6 +33,10 @@ public:
     // a parent, and std::logic_error for a StatusStrip on a left or right
     // panel.
     void join(std::shared_ptr<ToolStrip> strip);
+    // Joins a strip as join does, at `row` of the joined strips (0 first;
+    // the count of joined strips last). Throws std::out_of_range for a row
+    // past that count, before anything changes, and as join otherwise.
+    void insert(std::shared_ptr<ToolStrip> strip, std::size_t row);
     // Removes a joined strip and returns it; null when the strip is not
     // joined to this panel.
     std::shared_ptr<ToolStrip> remove(const ToolStrip& strip);

@@ -7,6 +7,7 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -85,6 +86,29 @@ void ToolStripPanel::join(std::shared_ptr<ToolStrip> strip) {
     (*strip).set_orientation(vertical() ? Orientation::vertical : Orientation::horizontal);
     add_child(std::move(strip));
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ToolStripPanel::insert(std::shared_ptr<ToolStrip> strip, std::size_t row) {
+    require_mutable();
+    const std::vector<std::shared_ptr<ToolStrip>> joined = strips();
+    if (row > joined.size()) throw std::out_of_range("ToolStripPanel insert row is past the joined strips");
+    // The position in children() of the strip now at `row` (paint order,
+    // which is the panel's stacking order); none to join last.
+    std::optional<std::size_t> position{};
+    if (row < joined.size()) {
+        const std::span<const Control::Ptr> owned = children();
+        for (std::size_t index = 0U; index < owned.size(); ++index) {
+            if (owned[index] == joined[row]) position = index;
+        }
+    }
+    const RuntimeId inserted = strip ? (*strip).runtime_id() : RuntimeId{};
+    join(std::move(strip));
+    if (!position) return;
+    // set_child_index counts as Windows Forms does, from the last child
+    // (topmost) at 0: with the joined strip taken out, `count - 1 - position`
+    // puts it just before the strip that was at `row`.
+    const std::size_t count = children().size();
+    static_cast<void>(set_child_index(inserted, count - 1U - *position));
 }
 
 std::shared_ptr<ToolStrip> ToolStripPanel::remove(const ToolStrip& strip) {

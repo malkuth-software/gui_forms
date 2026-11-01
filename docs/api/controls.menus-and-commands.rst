@@ -210,12 +210,16 @@ Related types
      - Stage T1 anatomy, as dot members; its states are Control's.
    * - :cpp:class:`ToolStripDropDownInvocation <gui_forms::ToolStripDropDownInvocation>`
      - A choice from a drop-down or split button's menu, or from the overflow menu's copy of one.
+   * - :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>`
+     - Where a dragged strip would go: the panel on ``edge``, at ``row``, counted among that panel's strips without the dragged one (0 before the first, the count after the last).
    * - :cpp:class:`ToolStripItemClick <gui_forms::ToolStripItemClick>`
      - A click on an item, after any command it carries has executed.
    * - :cpp:class:`ToolStripItemFocus <gui_forms::ToolStripItemFocus>`
      - The item the keyboard is on changed while the strip has focus: the strip took focus, or an arrow key or a semantic focus action moved it.
    * - :cpp:class:`ToolStripItemSpec <gui_forms::ToolStripItemSpec>`
      - One item.
+   * - :cpp:class:`ToolStripMove <gui_forms::ToolStripMove>`
+     - A strip that changed panel or row, raised after the move (by a drag or by move_strip).
    * - :cpp:class:`ToolStripPanel::Parts <gui_forms::ToolStripPanel::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1378,6 +1382,14 @@ Related types
 
    .. cpp:member:: PartGeometry content_panel
 
+   .. cpp:member:: PartGeometry drag_stamp
+
+      While dragging or settling: the stamp and its picture; while a target is chosen, its insertion line.
+
+   .. cpp:member:: PartGeometry drag_stamp_image
+
+   .. cpp:member:: PartGeometry drop_marker
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ToolStripDropDownInvocation final
@@ -1391,6 +1403,22 @@ Related types
    .. cpp:member:: std::string item_id
 
    .. cpp:member:: MenuItemInvocation choice
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToolStripDropTarget final
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
+
+   Where a dragged strip would go: the panel on ``edge``, at ``row``, counted among that panel's strips without the dragged one (0 before the first, the count after the last). ``marker`` is the insertion line, in the container's coordinates.
+
+   .. cpp:member:: ToolStripPanelEdge edge
+
+      Default: ``{ToolStripPanelEdge::top}``.
+
+   .. cpp:member:: std::size_t row
+
+   .. cpp:member:: Rect marker
 
 .. cpp:namespace:: gui_forms
 
@@ -1471,6 +1499,28 @@ Related types
    .. cpp:member:: std::vector<std::string> choices
 
    .. cpp:member:: double width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToolStripMove final
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
+
+   A strip that changed panel or row, raised after the move (by a drag or by move_strip). Rows are counted as in ToolStripDropTarget.
+
+   .. cpp:member:: std::string strip_id
+
+   .. cpp:member:: ToolStripPanelEdge from
+
+      Default: ``{ToolStripPanelEdge::top}``.
+
+   .. cpp:member:: std::size_t from_row
+
+   .. cpp:member:: ToolStripPanelEdge to
+
+      Default: ``{ToolStripPanelEdge::top}``.
+
+   .. cpp:member:: std::size_t to_row
 
 .. cpp:namespace:: gui_forms
 
@@ -1682,6 +1732,20 @@ Enumerations
    .. cpp:enumerator:: available
 
    .. cpp:enumerator:: active
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ToolStripDragPhase
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
+
+   .. cpp:enumerator:: idle
+
+   .. cpp:enumerator:: armed
+
+   .. cpp:enumerator:: dragging
+
+   .. cpp:enumerator:: settling
 
 .. cpp:namespace:: gui_forms
 

@@ -7,6 +7,16 @@ between them and are as wide as their (vertical) strips; the content panel
 takes the rest. Join strips to a panel and put the window's controls in the
 content panel.
 
+Strips are dragged by their grips with the docking drag's mechanics: a press
+on a grip that moves 4 units drags the strip, whose stamp (its picture,
+shrinking to a miniature at the pointer) follows the pointer while a line
+marks the row it would take in the shown panel under the pointer. A release
+there moves the strip and turns it to that panel's orientation. Strips never
+leave the container, enter dock stacks or float: a release elsewhere, with
+Ctrl held, after Escape or when the capture is lost leaves the strip where
+it was. A `StatusStrip` has no left or right target. An empty panel's band
+reaches 12 units in from its edge, so a strip can be dropped on it.
+
 Parameters
 ----------
 stable_id
@@ -25,6 +35,43 @@ top_panel_visible : default ``true``
     Whether the top panel is shown. A hidden panel takes no room and hides
     its strips. `bottom_panel_visible`, `left_panel_visible` and
     `right_panel_visible` do the same for the others.
+drag_phase
+    Where a strip drag stands: ``idle``, ``armed`` (pressed on a grip, not
+    yet moved the threshold), ``dragging`` or ``settling`` (the stamp moving
+    into the strip's place).
+dragged_strip
+    The strip being dragged, or null.
+drag_target
+    Where a release would put the strip: a `ToolStripDropTarget` with the
+    panel's edge, the row (counted without the dragged strip) and the
+    insertion line; none when nothing accepts.
+drag_stamp
+    The stamp's rectangle while dragging or settling; empty otherwise.
+drag_suppressed
+    Whether Ctrl is suppressing the targets.
+drag_threshold : default ``4``
+    How far the pointer moves from a grip press before it drags. A host may
+    set 1 to 64; `std::out_of_range` otherwise.
+
+Events
+------
+strip_moved
+    Raised after a strip changed panel or row, by a drag or by `move_strip`,
+    with a `ToolStripMove`: the strip's identity and its edge and row before
+    and after.
+
+Methods
+-------
+move_strip
+    Moves a strip joined to one of the panels to a row of the panel on an
+    edge, as a drop would, and raises `strip_moved`. True when the strip is
+    there afterwards (also when it already was, which raises nothing); false,
+    changing nothing, for a strip not joined here, an invalid edge, a row
+    past the end, or a `StatusStrip` sent to the left or right. A drag under
+    way is cancelled first.
+cancel_drag
+    Ends an armed drag, or a drag under way as Escape does; false when there
+    is none.
 
 See Also
 --------
@@ -38,12 +85,15 @@ The container paints nothing of its own; its panels and content do. It
 publishes ``region`` and the composed parts ``top_panel``,
 ``bottom_panel``, ``left_panel``, ``right_panel`` (each a
 ``tool_strip_panel``) and ``content_panel`` (a ``panel``); an empty or
-hidden panel is absent. The content panel comes first among the children,
+hidden panel is absent. While a strip is dragged it also publishes
+``drag_stamp`` and ``drag_stamp_image`` (the stamp's card face and the
+strip's picture) and, while a target is chosen, ``drop_marker`` (the
+insertion line, ``drop_accepted``), painted on a layer above the panels. The content panel comes first among the children,
 so Tab reaches the content before the strips. It is a group to
 accessibility, exposed when it has an accessible name.
 
-Not supported yet: dragging strips between panels, several strips sharing a
-row, and rafting panels outside a container.
+Not supported yet: several strips sharing a row, a keyboard way to move a
+strip other than `move_strip`, and rafting panels outside a container.
 
 Examples
 --------
