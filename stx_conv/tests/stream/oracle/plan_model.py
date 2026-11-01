@@ -1,6 +1,6 @@
 """Binary64 plan and gather model of stx_conv's line factor (src/plan.cpp).
 
-Extracted from the 2026-10-29 CONV ingest study's conv_model.py: only the
+Extracted from the 2026-10-29 CONV study's conv_model.py (not retained): only the
 regular plan (tail weights, point and basin segments) and the production
 gather are kept. Operation order follows src/plan.cpp and the stream's
 synthesis exactly; the stream regression's bitwise claims depend on it.

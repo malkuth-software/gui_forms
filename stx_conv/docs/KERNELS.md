@@ -1,142 +1,177 @@
-# CONV kernel collection
+# CONV stream and kernel collection
 
-The enhanced streaming path, instruction kernels and transform queries are
-source-owned library components, built and installed by `stx_conv/CMakeLists.txt`.
-There is no runtime BFFT, Plan Paint, codec, graphics or thread-pool dependency.
-This buildout follows BFFT revision 6e64386's separation of backend primitives,
-small arithmetic kernels, prepared schedules, public owners and independent
-instruction probes. It does not copy its FFT transform or FMA rounding policy.
+`stx_conv::stream` (`<stx_conv/stream.hpp>`) is the streaming 2D resizer with
+bounded bubble correction. `stx_conv::kernels` (`<stx_conv/kernels.hpp>`)
+exposes its arithmetic batches, tensor-quintic atlas queries and
+affine/projective point mapping. Both are built and installed by
+`stx_conv/CMakeLists.txt` beside the profile library (`stx_conv::stx_conv`,
+`<stx_conv/conv.hpp>`), which they link and which stays the reference API.
+There is no runtime BFFT, codec, graphics or thread-pool dependency.
 
-## Where to edit instructions
+## Layout
+
+The layout follows BFFT's: each algorithm is written once over a small
+primitive vocabulary, the vocabulary has scalar, NEON and SSE2 versions, and
+schedules, public owners and instruction probes are separate files. The FFT
+transform and BFFT's FMA rounding policy are not copied.
 
 | Source | Responsibility |
 |---|---|
-| `src/detail/conv_simd.hpp` | Scalar, NEON f32x4/f64x2, SSE2 f32x4/f64x2 primitives |
-| `src/detail/conv_jets.hpp` | Five-point interior first/second jet terms |
-| `src/detail/conv_raw.hpp` | Endpoint jets into five quintic currents |
-| `src/detail/conv_box_admission.hpp` | Fixed capacity threshold and fused admission |
-| `src/detail/conv_bubble.hpp` | Reduced residual functional and sign-preserving amplitude |
-| `src/detail/conv_synthesis.hpp` | Zero/active bubble and opening/accumulating synthesis kernels |
-| `src/detail/conv_tensor.hpp` | Batch tensor evaluation and fused RGBA patch/curve/node queries |
-| `src/detail/conv_mapping.hpp` | Affine and projective coordinate kernels |
-| `src/stream.cpp` | Plan construction, validation, node rings, pass ordering and output ownership |
-| `src/kernels.cpp` | Public batch wrappers and checked mapping/atlas boundaries |
+| `src/detail/conv_simd_backend.hpp` | `ScalarOps`, NEON and SSE2 `HardwareOps` (f32x4, f64x2), `NativeOps` |
+| `src/detail/conv_jet_kernel.hpp` | Five-point interior jets: first/5, 2*first/5, second/20 |
+| `src/detail/conv_raw_current_kernel.hpp` | Endpoint jets into five quintic currents |
+| `src/detail/conv_admission_kernel.hpp` | Unsigned box bounds, five-capacity threshold, admission |
+| `src/detail/conv_bubble_kernel.hpp` | Bounded odd bubble amplitude (stored as 3a/5) |
+| `src/detail/conv_synthesis_kernel.hpp` | Opening/accumulating synthesis, with or without bubble |
+| `src/detail/conv_tensor_kernel.hpp` | Tensor quintic batches and RGBA patch, curve and node queries |
+| `src/detail/conv_mapping_kernel.hpp` | Affine and projective coordinate lane groups |
+| `src/stream.cpp` | Plans, validation, node rings, pass order and output ownership |
+| `src/kernels.cpp` | Public batches, checked mapping and atlas boundaries |
+| `tools/kernels/probes.cpp` | One `extern "C"` symbol per lane group and precision |
 
-Geometry, sampling policy and backend selection happen outside arithmetic lane
-loops. Scalar tails remain explicit. There is no fast-math or FP contraction.
-The generic tensor batch uses SoA planes for independent positions; the atlas
-patch kernel uses RGBA as its contiguous lane dimension. Geometry dispatch on
-exact grid lines happens once per query, outside channel-vector loops. A grid
-line uses six controls; an exact source node copies one RGBA control; a generic
-query uses 36. No epsilon snapping changes the requested coordinate.
+Every kernel is a `*_group` (one 128-bit lane group, or one scalar lane)
+and a `*_lanes` loop of whole groups followed by a scalar tail. Vector lanes
+are independent lines, channels or positions; the five currents of a cell are
+array slots, never lanes, so no lane moves. `STX_CONV_FORCE_SCALAR=ON` builds
+both libraries with `ScalarOps` throughout.
+
+## Loop shape (house style section 8)
+
+- No decision inside a lane loop. Sampling, pass order, the bubble toggle,
+  interior versus closure cells, opening versus accumulating synthesis and
+  affine versus projective mapping are template parameters or are chosen per
+  cell or per call, before the loop. The capacity threshold is a fixed
+  nine-comparator min/max network, not a selection among 31 subset forms;
+  the admission bounds are min/max forms; the exact grid-line and node
+  reductions of an atlas query are chosen once per query.
+- Kept references. The scalar backend is the backends' reference: on the
+  M4, NEON and scalar outputs are identical for every kernel and for all
+  2,112 stream regression cases. The NumPy model in `tests/stream/oracle/`
+  is the stream's reference (below), and `tests/capacity.cpp` keeps an
+  independent 31-form threshold.
+- Mechanics: 128-bit lane groups only, no intrinsics outside the backend,
+  no fast-math and `-ffp-contract=off` on the libraries and their tests, so
+  the backends agree bit for bit on finite data.
 
 ## Standard streaming use
 
 ```cpp
 #include <stx_conv/stream.hpp>
-stx_conv::stream::Workspace<double> work(sw, sh, tw, th, channels,
-                                        stx_conv::Sampling::pixel_area);
-// Bounded bubble correction is enabled by default.
-// work.set_bubble_enabled(false); // optional five-current base comparison
-const stx_conv::Status status = stx_conv::stream::resize<double>(
-    work, {input, input_stride}, {output, output_stride});
+stx_conv::stream::Workspace<double> workspace(sw, sh, tw, th, channels, stx_conv::Sampling::pixel_area);
+// Bubble correction is on by default; set_bubble_enabled(false) gives the base.
+const stx_conv::Status status = stx_conv::stream::resize<double>(workspace, {input, input_stride}, {output, output_stride});
 ```
 
-Link `stx_conv::stream`. Input/output spans are disjoint, strides count Scalar
-elements. Workspace construction allocates all repeated-use storage. A workspace
-is fixed-shape, noncopyable/nonmovable and admits one caller at a time. The toggle
-may change between calls without allocation; changing it during a call races.
-Plans retain their prepared weights, and the disabled path skips amplitude
-computation and correction loads. Identity/unchanged axes and original short-axis
-closures remain. Input validation failure preserves output; numerical failure
-may leave partial output. Existing finite-range limits apply.
-
-The pre-existing `conv.hpp` profile/image API is retained for compatibility and
-as a reference. The enhanced streaming API is the recommended path for this
-buildout. The old ingest bubble target forwards to it; it no longer owns a copy
-of the resizer. The base ingest retains its numerical comparison implementation.
+Link `stx_conv::stream`. Input and output are disjoint; strides count
+Scalar elements. The workspace allocates all repeated-use storage at
+construction, is fixed-shape, neither copyable nor movable, and serves one
+caller at a time. The toggle may change between calls without allocation;
+the disabled path skips the amplitude and its loads. Unchanged axes and the
+profile library's short-line closures are kept. An input validation failure
+leaves the output unchanged; a numerical failure may leave partial output.
 
 ## Kernels and transforms
 
-Link `stx_conv::kernels`, include `stx_conv/kernels.hpp`. Leaf calls are low-level,
-allocation-free borrowed-buffer kernels with explicit count, stride, finite
-intermediate and disjoint-output preconditions. They intentionally do not scan
-all input streams for validation. Checked mapping and atlas-query wrappers
-validate shape/access before output mutation. Keep compiler arithmetic choices
-consistent with the library when comparing numerical results.
+Link `stx_conv::kernels`. Leaf batches borrow length-counted SoA streams for
+the call, neither allocate nor validate, and require disjoint outputs and
+finite intermediates (see the header). `map_points` and `sample_rgba`
+validate shape and access before writing any output.
 
-An inverse 3x3 homography maps target centres to source coordinates. Its affine
-specialization covers resize/stretch, rotation, skew and translation without
-perspective divisions. Perspective correction uses the projective denominator;
-zero horizons or nonfinite coordinate results fail before writing outputs.
-These are point-coordinate kernels. Area sampling additionally needs target
-footprints and positive quadrature; coordinate mapping alone is not an
-antialiasing method.
+An inverse 3x3 homography maps target points to source coordinates. Its
+affine form covers resize, stretch, rotation, skew and translation without a
+division; the projective form divides by the denominator, and a zero
+denominator (a horizon) or a nonfinite result fails before any output is
+written. These are point kernels: area sampling also needs target footprints
+and positive quadrature.
 
-`tensor_patch_rgba` consumes six rows of six RGBA controls with an explicit row
-stride. It assumes the caller has already located and validated the patch.
-`sample_rgba` additionally handles a shared five-controls-per-cell atlas,
-half-pixel source boundaries and transparent exterior. Its optional physical
-projection clamps opacity and then color at each query, before any positive
-filter weights. The view borrows controls for the call; it does not allocate or
-recompile the source. These functions evaluate the existing quintic atlas;
-bubble enrichment of a 2D warp atlas is not silently inferred from five currents.
+`tensor_patch_rgba` reads six rows of six RGBA controls at a row stride; the
+caller has located the patch. `sample_rgba` reads a shared atlas of five
+lattice steps per source cell, handles the half-pixel footprint and returns
+transparent outside it; its premultiplied projection clamps alpha, then each
+colour into [0, alpha], at each query before any filtering.
+`integrate_patch_rgba` projects each sample before adding it, weighted. Bubble
+enrichment of a 2D warp atlas is not inferred from the five currents.
 
-Plan Paint's consumer adapter uses exact grid-boundary/node reductions after
-its existing bounds/cell lookup. The affine point path selects this before filtering. Dense minification
-and area queries retain its existing tensor evaluator: routing dense minification through the standalone patch kernel
-regressed application timings. Atlas compilation, clipped footprint quadrature
-and per-sample physical projection remain. `integrate_patch_rgba` is available
-for further instruction optimization; it accumulates known-patch samples with
-physical projection before positive weighting, but is not selected by this
-adapter. Resize distributes independent rows or column bands over up to eight
-workers, one workspace each, and defaults bubble on. Build options are
-`PLAN_PAINT_CONV_KERNELS=AUTO|ON|OFF` and `PLAN_PAINT_CONV_BUBBLE=ON|OFF`.
-The homography kernel is available for true perspective point queries; this
-change does not add a new perspective-area rasterizer or UI control.
+The atlas layout is Plan Paint's; its adapter lives in that repository and
+its checks are described there.
+
+## Build and verify
+
+```sh
+cmake -S stx_conv -B build/stx-conv-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build/stx-conv-release --parallel
+ctest --test-dir build/stx-conv-release --output-on-failure
+
+cmake -S stx_conv -B build/stx-conv-sanitize -DCMAKE_BUILD_TYPE=Debug -DSTX_CONV_SANITIZE=ON
+cmake --build build/stx-conv-sanitize --parallel
+ctest --test-dir build/stx-conv-sanitize --output-on-failure
+
+cmake -S stx_conv -B build/stx-conv-scalar -DCMAKE_BUILD_TYPE=Release -DSTX_CONV_FORCE_SCALAR=ON
+cmake --build build/stx-conv-scalar --parallel
+ctest --test-dir build/stx-conv-scalar --output-on-failure -R 'stx_conv_(kernels|capacity|stream_.*)'
+```
+
+The tests of this collection:
+
+| Test | Checks |
+|---|---|
+| `stx_conv_kernels` | Leaf batches on closed forms with guard samples; tensor against a long-double de Casteljau; patch specializations; projection before quadrature; five maps of an affine ramp; exteriors, horizons, aliasing, overflow; the bubble toggle |
+| `stx_conv_capacity` | 100,003 capacity sets per precision against the scalar backend (bitwise) and the 31-form threshold |
+| `stx_conv_stream_contracts` | Workspace construction, validation and preservation contracts |
+| `stx_conv_stream_regression` | 2,112 cases, bubble off, bit for bit against the NumPy base model's digests; bubble on against the recorded digests |
+| `stx_conv_stream_bubble_oracle` | Bubble on against the NumPy bubble model to 256 eps of max(1, largest source magnitude) |
+
+The 2,112 cases (22 shapes, 1/3/4 channels, nodal and pixel-area sampling,
+eight patterns, both precisions; case k is seeded k + 1) are generated by a
+SplitMix64 generator written identically in `tests/stream/regression_cases.cpp`
+and `tests/stream/oracle/cases.py`; both digest files carry a digest of every
+input to keep the two in step. `base_oracle.sha256` holds the NumPy base
+model's output digests and is regenerated only when the model changes:
+
+```sh
+python3 -B stx_conv/tests/stream/oracle/make_base_digests.py stx_conv/tests/stream/base_oracle.sha256
+```
+
+`bubble_record.sha256` is the stream's own output as folded; it detects later
+changes and is not an oracle. Rewrite it only for an intended change, after
+the bubble oracle passes:
+
+```sh
+build/stx-conv-release/stx_conv_stream_regression --write-bubble-record \
+    stx_conv/tests/stream/base_oracle.sha256 stx_conv/tests/stream/bubble_record.sha256
+```
+
+The bubble oracle needs Python with NumPy (`-DSTX_CONV_ORACLE_PYTHON=...`
+selects the interpreter); without it the test reports skipped. Its first run
+generates the fixture into the build tree (about 90 s on an M4) and reuses it
+while the oracle sources are unchanged.
 
 ## Instruction workflow
 
-Build with `STX_CONV_BUILD_KERNEL_PROBES=ON` for stable C probe symbols covering
-jets, raw currents, capacity, admission, bubble, synthesis, tensor, patch, affine
-and projective kernels, each in float and double. The probe is an instruction
-inspection target, not a separate supported application ABI.
-
-On macOS with an installed Clang supporting both targets:
+Configure with `-DSTX_CONV_BUILD_KERNEL_PROBES=ON` for the probe object, or
+emit both architectures' assembly directly:
 
 ```sh
 CXX=clang++ sh stx_conv/tools/kernels/inspect.sh build/conv-kernel-assembly
-python3 stx_conv/tools/kernels/audit.py build/conv-kernel-assembly
+python3 -B stx_conv/tools/kernels/audit.py build/conv-kernel-assembly
 ```
 
-The script records compiler version and emits NEON and baseline SSE2 assembly,
-using -O3 and -ffp-contract=off, with no AVX/FMA in the x86 target. Inspect full
-functions as well as counts: stack arguments are not automatically spills,
-constant broadcasts are not signal-lane permutations, and instruction count is
-not throughput. Keep the numerical and sanitizer suite alongside each change.
+`inspect.sh` writes NEON and baseline SSE2 assembly (no AVX or FMA) with
+`-O3 -ffp-contract=off`; it executes nothing. The probes are an inspection
+target, not an interface.
 
-Build `STX_CONV_BUILD_KERNEL_BENCHMARKS=ON` for `stx_conv_kernel_benchmark`.
-It prepares 65,536 positions, warms each kernel, then reports a median of five
-batches of eight calls. Allocation is excluded. Checked coordinate mapping
-includes validation. The scalar-backend control is `STX_CONV_FORCE_SCALAR=ON`;
-the compiler may still auto-vectorize scalar code. Isolated kernel timings do
-not establish complete-image or threaded-application performance.
+Configure with `-DSTX_CONV_BUILD_KERNEL_BENCHMARKS=ON` for
+`stx_conv_kernel_benchmark`: 65,536 prepared positions, one warming call, the
+median of five samples of eight calls, allocation excluded; checked mapping
+includes its validation. The scalar build's compiler may still vectorize
+scalar code. Kernel timings say nothing about whole images or threaded use.
 
-Use the same C++ toolchain for library and installed consumer. Our verified SDK
-uses LLVM 22.1.8; mixing it with Apple Clang 21 produced incompatible mangling of
-constrained function templates. The installed-consumer test selects LLVM22.
+Build the library and an installed consumer with the same toolchain: LLVM 22
+and Apple Clang 21 mangle constrained function templates differently.
 
-## Verification scope
+## Scope
 
-The ingest regression harness retains 2,112 base bitwise fixtures and 2,112
-bubble numerical fixtures, both precisions and sampling modes, including mixed
-pass orders, short/singleton axes, padding and high-range values. New kernel
-checks include tails, source-node/cardinal queries, an independent long-double
-de Casteljau tensor oracle, analytic transformed ramps, perspective horizons,
-overlap rejection and repeatable bubble toggling. Boundary specialization is
-compared with the generic tensor evaluator.
-
-The focused Plan Paint build tests atlas range/continuity, affine/mesh sampling,
-physical alpha before filtering, identity, invalid transforms, resize cardinality,
-aliasing, parallel row/column cardinality and destination preservation. It is not the full application/package
-suite. No universal image-quality or speed claim follows from these tests.
+Measured on the M4 (arm64, NEON, LLVM 22.1.8) only. SSE2 correctness and
+timing are not run: x86-64 execution belongs on an x86-64 host, and the
+cross-host bitwise claim for SSE2 rests on CI's Linux runs. No image-quality
+or speed claim follows from these tests.

@@ -1,21 +1,75 @@
-"""Inspect stable probe symbols; stack arguments are not classified as spills."""
+"""Counts instructions, conditional branches, calls and spill annotations of
+each probe symbol (and of any helper it tail-calls) in the .s files that
+inspect.sh wrote, and writes audit.json beside them.
+
+Counts are a reading aid, not a cost model: stack arguments are not spills,
+constant broadcasts are not lane permutations, and instruction count is not
+throughput. Read the whole function before concluding anything.
+"""
 from pathlib import Path
-import hashlib,json,re,sys
-root=Path(sys.argv[1]);records={}
-for p in sorted(root.glob('*.s')):
- s=p.read_text();functions=[]
- for m in re.finditer(r'^(_stx_[A-Za-z0-9_]+):[^\n]*\n',s,re.M):
-  end=s.find('.cfi_endproc',m.end())
-  if end<0:continue
-  body=s[m.end():end]
-  functions.append(dict(symbol=m[1],instructions=len(re.findall(r'^\t[a-z][a-z0-9.]*\s',body,re.M)),conditional_branches=len(re.findall(r'^\t(?:b\.[a-z]+|cbz|cbnz|tbz|tbnz|j(?!mp)[a-z]+)\s',body,re.M)),calls=len(re.findall(r'^\t(?:callq|bl)\s',body,re.M)),tail_targets=re.findall(r'^\t(?:b|jmp)\s+(_[^\s,]+)',body,re.M),spill_annotations=body.count('Spill'),reload_annotations=body.count('Reload')))
- helpers=[]
- for target in sorted({target for f in functions for target in f['tail_targets']}):
-  found=re.search(r'^'+re.escape(target)+r':[^\n]*\n',s,re.M)
-  if found is None:continue
-  end=s.find('.cfi_endproc',found.end())
-  body=s[found.end():end]
-  helpers.append(dict(symbol=target,instructions=len(re.findall(r'^\t[a-z][a-z0-9.]*\s',body,re.M)),conditional_branches=len(re.findall(r'^\t(?:b\.[a-z]+|cbz|cbnz|tbz|tbnz|j(?!mp)[a-z]+)\s',body,re.M)),spill_annotations=body.count('Spill'),calls=len(re.findall(r'^\t(?:callq|bl)\s',body,re.M))))
- records[p.name]={'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'functions':functions,'tail_helpers':helpers}
-(root/'audit.json').write_text(json.dumps(records,indent=2)+'\n')
-print(json.dumps(records,indent=2))
+import hashlib
+import json
+import re
+import sys
+
+INSTRUCTION = re.compile(r'^\t[a-z][a-z0-9.]*\s', re.M)
+CONDITIONAL = re.compile(r'^\t(?:b\.[a-z]+|cbz|cbnz|tbz|tbnz|j(?!mp)[a-z]+)\s', re.M)
+CALL = re.compile(r'^\t(?:callq|bl)\s', re.M)
+TAIL = re.compile(r'^\t(?:b|jmp)\s+(_[^\s,]+)', re.M)
+PROBE = re.compile(r'^(_stx_[A-Za-z0-9_]+):[^\n]*\n', re.M)
+
+
+def body_after(text, match):
+    end = text.find('.cfi_endproc', match.end())
+    if end < 0:
+        return None
+    return text[match.end():end]
+
+
+def summary(symbol, body):
+    return {
+        'symbol': symbol,
+        'instructions': len(INSTRUCTION.findall(body)),
+        'conditional_branches': len(CONDITIONAL.findall(body)),
+        'calls': len(CALL.findall(body)),
+        'spill_annotations': body.count('Spill'),
+        'reload_annotations': body.count('Reload'),
+    }
+
+
+def audit(path):
+    text = path.read_text()
+    functions = []
+    targets = set()
+    for match in PROBE.finditer(text):
+        body = body_after(text, match)
+        if body is None:
+            continue
+        record = summary(match[1], body)
+        record['tail_targets'] = TAIL.findall(body)
+        targets.update(record['tail_targets'])
+        functions.append(record)
+    helpers = []
+    for target in sorted(targets):
+        found = re.search(r'^' + re.escape(target) + r':[^\n]*\n', text, re.M)
+        if found is None:
+            continue
+        body = body_after(text, found)
+        if body is not None:
+            helpers.append(summary(target, body))
+    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+    return {'sha256': digest, 'functions': functions, 'tail_helpers': helpers}
+
+
+def main():
+    root = Path(sys.argv[1])
+    records = {}
+    for path in sorted(root.glob('*.s')):
+        records[path.name] = audit(path)
+    report = json.dumps(records, indent=2) + '\n'
+    (root / 'audit.json').write_text(report)
+    print(report, end='')
+
+
+if __name__ == '__main__':
+    main()

@@ -4,7 +4,7 @@
 // mass and full-capacity mass, across 121 binary exponents. Also checks short
 // counts from an unaligned offset for tail overwrites, and the empty call.
 #include <stx_conv/kernels.hpp>
-#include "detail/conv_box_admission.hpp"
+#include "detail/conv_admission_kernel.hpp"
 #include <algorithm>
 #include <array>
 #include <bit>

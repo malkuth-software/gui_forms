@@ -1,6 +1,7 @@
 #pragma once
-// Preclipped unsigned-box streaming resize. See docs/KERNELS.md and
-// ingest/box_cascade/DERIVATION.md in the source distribution.
+// stx_conv::stream: the separable CONV resize as a lockstep stream of line
+// factors, with preclipped unsigned-box admission and bounded odd bubble
+// correction (enabled by default). See docs/KERNELS.md.
 #include <stx_conv/conv.hpp>
 #include <array>
 #include <cstddef>
@@ -104,7 +105,6 @@ private:
     std::vector<Scalar> carry_last_;
     // [target % ring][lane].
     std::vector<Scalar> targets_;
-
 };
 
 // Same shapes and statuses as stx_conv::resize. Finite samples with
@@ -112,8 +112,11 @@ private:
 template<stx_conv::Precision Scalar>
 class Workspace final {
 public:
+    // Allocates every buffer resize uses; throws std::invalid_argument for a
+    // zero or oversized extent, std::length_error when a size product
+    // overflows, and std::bad_alloc.
     Workspace(std::size_t source_width, std::size_t source_height, std::size_t target_width,
-                      std::size_t target_height, std::size_t channels, stx_conv::Sampling sampling);
+              std::size_t target_height, std::size_t channels, stx_conv::Sampling sampling);
     Workspace(const Workspace&) = delete;
     Workspace& operator=(const Workspace&) = delete;
     [[nodiscard]] std::size_t storage_bytes() const noexcept;
@@ -145,8 +148,12 @@ private:
     std::vector<Scalar> middle;
 };
 
+// Resizes source into output with the workspace's shape. Rows are strided in
+// Scalar elements; source and output must not overlap. A validation failure
+// (insufficient_storage, overlap, nonfinite_input, input_out_of_range)
+// leaves output unchanged; numerical_failure may leave it partly written.
 template<stx_conv::Precision Scalar>
 [[nodiscard]] stx_conv::Status resize(Workspace<Scalar>& workspace, stx_conv::BasicImageInput<Scalar> source,
-                                               stx_conv::BasicImageOutput<Scalar> output) noexcept;
+                                      stx_conv::BasicImageOutput<Scalar> output) noexcept;
 
 } // namespace stx_conv::stream

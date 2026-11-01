@@ -1,6 +1,7 @@
 """Operation-order binary32/binary64 model of stx_conv::stream.
 
-From the 2026-10-29 CONV ingest's streaming and bubble references (NumPy).
+Restated from the 2026-10-29 CONV study's NumPy streaming and bubble
+references (the study itself is not retained).
 `base_line` reproduces raw jets, unsigned bounds, preclipping, the fixed
 five-capacity min/max network, threshold correction and synthesis order, so
 the stream with bubble correction disabled must match it bit for bit.

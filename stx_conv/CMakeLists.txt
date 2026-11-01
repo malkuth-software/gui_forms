@@ -37,7 +37,7 @@ if(STX_CONV_SANITIZE)
     target_compile_options(stx_conv PRIVATE -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
 endif()
 # The streaming resizer and the kernel collection (docs/KERNELS.md). Both
-# share src/detail/conv_simd.hpp's backend: 128-bit NEON or SSE2 lane groups
+# share src/detail/conv_simd_backend.hpp's backend: 128-bit NEON or SSE2 lane groups
 # with a scalar tail, or the scalar backend throughout when forced. No FP
 # contraction, so the backends agree bit for bit on finite data.
 foreach(component stream kernels)
@@ -49,8 +49,10 @@ foreach(component stream kernels)
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(stx_conv_${component} PRIVATE -Wall -Wextra -Wpedantic -Wconversion -Wshadow -ffp-contract=off -fopenmp-simd)
     endif()
-    if(STX_CONV_SANITIZE AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        # Instrumented loops do not vectorize; the omp simd hint then warns.
+    # Instrumented loops do not vectorize; the omp simd hint then warns. The
+    # repository's sanitizer tree instruments through CMAKE_CXX_FLAGS instead
+    # of STX_CONV_SANITIZE.
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND (STX_CONV_SANITIZE OR CMAKE_CXX_FLAGS MATCHES "-fsanitize="))
         target_compile_options(stx_conv_${component} PRIVATE -Wno-pass-failed)
     endif()
     if(STX_CONV_FORCE_SCALAR)
