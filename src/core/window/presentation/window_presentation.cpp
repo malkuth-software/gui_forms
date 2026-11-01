@@ -340,7 +340,6 @@ void Window::arm_engine_idle() {
         detail::FrameRequestKind::engine_idle, Control::WeakPtr{}, first, motion_frame_interval);
     frame_requests_.push_back(std::move(idle));
     metrics_.record_frame_request();
-    update_frame_schedule_metrics();
 }
 
 PartRasterResult Window::engine_unkeyed_raster(const PartRasterRequest& request) {

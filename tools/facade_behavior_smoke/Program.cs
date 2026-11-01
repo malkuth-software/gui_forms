@@ -2975,7 +2975,7 @@ static int RunNativeWindowSurfaceLifecycleHost()
         liveUpdatesPresented =
             live.GetProperty("updates_presented").GetUInt64();
         liveUpdatesFailed = live.GetProperty("updates_failed").GetUInt64();
-        // Direct live surfaces deliberately bypass retained active-surface
+        // Direct live surfaces deliberately bypass retained
         // invalidation. Judge sustained animation by the terminal host's
         // display clock and presentation lane, not by ordinary paint polls.
         Require(displayClockSignals >= 30 && livePresentationDrains >= 30 &&

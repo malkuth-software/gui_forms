@@ -511,9 +511,6 @@ public:
     [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
                                                    FrameTime deadline);
-    [[nodiscard]] FrameRequestToken activate_surface(const Control::Ptr& control,
-                                                     FrameInterval interval,
-                                                     FrameTime first_deadline);
     [[nodiscard]] FrameRequestToken schedule_ui_timer(
         Component& owner, FrameInterval interval, FrameTime first_deadline,
         std::function<void(FrameTime)> callback);
@@ -1310,8 +1307,6 @@ private:
         const Control::Ptr& control) const noexcept;
     void update_display_cache_metrics() noexcept;
     void compact_frame_requests() noexcept;
-    [[nodiscard]] std::size_t active_surface_count() const noexcept;
-    void update_frame_schedule_metrics() noexcept;
     [[nodiscard]] Rect absolute_bounds_of(const Control& control) const;
     [[nodiscard]] Rect visual_bounds_of(const Control& control,
                                         Insets outsets) const;

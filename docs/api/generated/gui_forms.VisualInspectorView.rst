@@ -59,6 +59,10 @@ gui_forms::VisualInspectorView
         - Repaints the view and updates its semantics from a new snapshot.
       * - :cpp:func:`refresh_if_changed <gui_forms::VisualInspectorView::refresh_if_changed>`
         - Repaints only when the text the view would draw differs from what it last drew, so polling an unchanged target costs one inspection snapshot and no paint.
+      * - :cpp:func:`start_polling <gui_forms::VisualInspectorView::start_polling>`
+        - ``start_polling(FrameInterval interval)`` polls the inspected target every ``interval`` on a paint-gated :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` while the view is shown, and repaints only when what it shows has changed, so a settled view costs one inspection snapshot a poll and no paint.
+      * - :cpp:func:`stop_polling <gui_forms::VisualInspectorView::stop_polling>`
+        - Stops polling.
 
    .. seealso::
 
@@ -145,6 +149,19 @@ gui_forms::VisualInspectorView
    .. cpp:function:: bool refresh_if_changed()
 
       Repaints only when the text the view would draw differs from what it last drew, so polling an unchanged target costs one inspection snapshot and no paint. The pending damage count is not compared: it describes the paint that drew it, which always includes the view's own damage. Returns whether it repainted. Poll it from a UI timer: an active surface repaints its control on every tick whatever on_frame does.
+
+   .. cpp:function:: void start_polling(FrameInterval interval)
+
+      ``start_polling(FrameInterval interval)`` polls the inspected target every
+      ``interval`` on a paint-gated :cpp:class:`AnimationTimer <gui_forms::AnimationTimer>` while the view is shown, and
+      repaints only when what it shows has changed, so a settled view costs
+      one inspection snapshot a poll and no paint. A hidden view or covered
+      window holds no wake. An interval below 1 ms throws
+      ``std::invalid_argument``.
+
+   .. cpp:function:: void stop_polling() noexcept
+
+      Stops polling.
 
 
    .. rubric:: Extension points

@@ -27,13 +27,9 @@ public:
     void retain(SubscriptionToken token) {
         subscriptions_.push_back(std::move(token));
     }
-    void retain(FrameRequestToken token) {
-        frames_.push_back(std::move(token));
-    }
 
 private:
     std::vector<SubscriptionToken> subscriptions_;
-    std::vector<FrameRequestToken> frames_;
 };
 
 template <typename Parent, typename Child>
@@ -415,8 +411,7 @@ std::unique_ptr<Window> make_seam_proximity_lab() {
     (*window).perform_layout();
     // Polling belongs solely to the explicitly opened inspector. No seam or
     // proximity transition schedules a frame or an idle animation loop.
-    (*root).retain(gui_forms::demo::schedule_visual_inspector_poll(
-        *window, *root, inspector, overlay));
+    gui_forms::demo::start_visual_inspector_poll(*inspector, *overlay);
     return window;
 }
 

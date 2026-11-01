@@ -822,7 +822,6 @@ public:
     // and accelerators decline them. The base implementation traverses the
     // retained subtree in stable child order.
     virtual bool process_mnemonic(char32_t character);
-    virtual void on_frame(FrameTime now);
     [[nodiscard]] virtual SemanticDescriptor semantic_descriptor() const;
     // Extender providers enrich the final semantic projection after a stock or
     // custom control has authored its own descriptor. This keeps validation

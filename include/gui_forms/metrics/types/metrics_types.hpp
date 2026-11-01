@@ -79,15 +79,12 @@ struct MetricsSnapshot {
     std::uint64_t scheduled_frame_requests{};
     std::uint64_t scheduler_wakes{};
     std::uint64_t frame_deadlines_fired{};
-    std::uint64_t active_surface_ticks{};
     // Frames of the window's motion clock (T2 plan, phase E3): at most one
     // per frame poll, however many motion values move.
     std::uint64_t motion_clock_ticks{};
     std::uint64_t frame_requests_coalesced{};
     std::uint64_t frame_callback_faults{};
     std::uint64_t reentrant_frame_polls_deferred{};
-    std::uint64_t active_surface_count{};
-    std::uint64_t maximum_active_surface_count{};
     std::uint64_t occlusion_suspensions{};
     std::uint64_t occlusion_resumes{};
     std::uint64_t occluded_frame_polls{};

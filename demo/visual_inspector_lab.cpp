@@ -22,13 +22,9 @@ public:
     void retain(SubscriptionToken token) {
         subscriptions_.push_back(std::move(token));
     }
-    void retain(FrameRequestToken token) {
-        frames_.push_back(std::move(token));
-    }
 
 private:
     std::vector<SubscriptionToken> subscriptions_;
-    std::vector<FrameRequestToken> frames_;
 };
 
 class ClippingPanel final : public Panel {
@@ -251,8 +247,7 @@ std::unique_ptr<Window> make_visual_inspector_lab() {
     std::unique_ptr<Window> window = std::make_unique<Window>(root,
                                                                Size{1160.0, 700.0});
     (*window).perform_layout();
-    (*root).retain(gui_forms::demo::schedule_visual_inspector_poll(
-        *window, *root, inspector, overlay));
+    gui_forms::demo::start_visual_inspector_poll(*inspector, *overlay);
     return window;
 }
 

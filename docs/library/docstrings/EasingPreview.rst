@@ -32,7 +32,7 @@ tracks
     thrown.
 motion_policy : default ``MotionPolicy{}``
     The authored policy. While it is `active()`, that is enabled and not
-    paused, the preview requests frames; otherwise it freezes at its current
+    paused, the preview runs its animation timer; otherwise it freezes at its current
     phase. With `reduced`, frames come every 100 ms instead of every 16 ms
     and the markers travel half as far.
 effective_motion_policy
@@ -47,9 +47,10 @@ phase : default ``0.0``
 
 Methods
 -------
-on_frame
-    Called by the window's frame scheduler on each frame the preview
-    requested; it samples the timeline into `phase`.
+advance_animation
+    Samples the timeline at a frame time into `phase`. The preview's
+    animation timer calls it on each tick; tests call it to step the preview
+    without a clock.
 
 See Also
 --------
@@ -61,11 +62,13 @@ Notes
 -----
 The timeline starts when the preview is first attached to a window. While
 detached it pauses at its phase and resumes on reattachment. While the
-policy is active, the preview holds one frame request on the window, so it
-keeps a resting window awake; pause it with `motion_policy` when it is not
-being watched. Like every frame request, it receives no frames while the
-window is occluded or the preview is hidden. With a finite `specification`,
-it stops requesting frames when the timeline finishes.
+policy is active and the preview is shown, it runs an `AnimationTimer` at
+the display rate, so it keeps a resting window awake; pause it with `motion_policy` when
+it is not being watched. Each tick repaints only what moved: each marker's old
+and new place and the readout. A preview that is hidden, or not painted since
+the last tick, stops its timer at that tick and starts it again when it is
+next painted. With a finite `specification`, it stops its timer when the
+timeline finishes.
 
 A readout at the top right shows the policy, `LIVE`, `PAUSED`, `REDUCED`,
 `REDUCED + PAUSED` or `DISABLED`, and the presented phase as a percentage.
@@ -96,4 +99,4 @@ Compare two curves at a 600 ms duration, then pause the preview:
 
    gf::MotionPolicy paused;
    paused.paused = true;
-   (*preview).set_motion_policy(paused);   // releases its frame request
+   (*preview).set_motion_policy(paused);   // stops its animation timer

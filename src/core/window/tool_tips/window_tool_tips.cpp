@@ -96,7 +96,6 @@ FrameRequestToken Window::request_tool_tip_wake(FrameTime deadline, std::functio
         deadline, std::chrono::duration_cast<FrameInterval>(std::chrono::hours(1)), std::move(callback));
     frame_requests_.push_back(request);
     metrics_.record_frame_request();
-    update_frame_schedule_metrics();
     return FrameRequestToken(request);
 }
 

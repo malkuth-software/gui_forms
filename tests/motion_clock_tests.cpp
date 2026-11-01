@@ -194,7 +194,7 @@ void one_request_for_many_values() {
             "sixteen values moving share one frame request");
     for (int k = 0; k < 4; ++k) {
         const FramePollResult result = frame(*fixture, milliseconds(16));
-        require(result.motion_clock_ticks == 1U && result.active_surface_ticks == 0U && result.ui_timer_ticks == 0U,
+        require(result.motion_clock_ticks == 1U && result.ui_timer_ticks == 0U,
                 "each poll runs one motion frame for all of them");
     }
     for (const std::shared_ptr<Mover>& mover : (*fixture).movers) {
@@ -523,9 +523,10 @@ struct BitHash final {
 };
 
 // The bits of a fixed table of samples, the same on every host. The
-// expected value was produced on Windows x64 and is checked by every CI
-// platform.
-constexpr std::uint64_t expected_motion_hash = 0x7684c6ac4e20477dULL;
+// expected value was produced on macOS arm64 when the motion clock began
+// keeping its phase (2026-11-01; Windows x64 produced the one before) and
+// is checked by every CI platform.
+constexpr std::uint64_t expected_motion_hash = 0x2f342903f8ff3083ULL;
 
 void identical_samples() {
     BitHash hash{};

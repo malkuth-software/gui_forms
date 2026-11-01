@@ -23,7 +23,6 @@ void Metrics::reset_activity() noexcept {
     const bool backplane_replay = values_.backplane_replay;
     const std::uint64_t display_cache_entries = values_.display_cache_entries;
     const std::uint64_t display_generation = values_.display_generation;
-    const std::uint64_t active_surfaces = values_.active_surface_count;
     const std::uint64_t engine_part_records = values_.engine_part_records;
     const std::uint64_t motion_values_moving = values_.motion_values_moving;
     values_ = {};
@@ -40,8 +39,6 @@ void Metrics::reset_activity() noexcept {
     values_.backplane_replay = backplane_replay;
     values_.display_cache_entries = display_cache_entries;
     values_.display_generation = display_generation;
-    values_.active_surface_count = active_surfaces;
-    values_.maximum_active_surface_count = active_surfaces;
     wrong_thread_rejections_.store(0, std::memory_order_relaxed);
 }
 
@@ -185,14 +182,12 @@ void Metrics::record_callback_arbitration_retry(bool limit_hit) noexcept {
 }
 void Metrics::record_frame_request() noexcept { ++values_.scheduled_frame_requests; }
 void Metrics::record_frame_poll(std::uint64_t deadlines_fired,
-                                std::uint64_t active_surface_ticks,
                                 std::uint64_t motion_clock_ticks,
                                 std::uint64_t coalesced_requests) noexcept {
-    if (deadlines_fired != 0 || active_surface_ticks != 0 || motion_clock_ticks != 0) {
+    if (deadlines_fired != 0 || motion_clock_ticks != 0) {
         ++values_.scheduler_wakes;
     }
     values_.frame_deadlines_fired += deadlines_fired;
-    values_.active_surface_ticks += active_surface_ticks;
     values_.motion_clock_ticks += motion_clock_ticks;
     values_.frame_requests_coalesced += coalesced_requests;
 }
@@ -235,11 +230,6 @@ void Metrics::record_frame_callback_fault() noexcept {
 }
 void Metrics::record_reentrant_frame_poll() noexcept {
     ++values_.reentrant_frame_polls_deferred;
-}
-void Metrics::set_active_surface_count(std::size_t count) noexcept {
-    values_.active_surface_count = static_cast<std::uint64_t>(count);
-    values_.maximum_active_surface_count =
-        std::max(values_.maximum_active_surface_count, values_.active_surface_count);
 }
 void Metrics::record_occlusion_transition(bool occluded) noexcept {
     ++(occluded ? values_.occlusion_suspensions : values_.occlusion_resumes);
