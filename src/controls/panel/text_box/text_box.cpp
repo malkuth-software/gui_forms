@@ -1079,9 +1079,15 @@ void TextBox::reset_caret_blink() {
     reveal_pending_ = true;
     preferred_x_ = -1.0;
     caret_visible_ = true;
-    caret_waiting_for_paint_ = false;
     caret_frame_.disconnect();
-    schedule_caret_blink();
+    // A box focused in an occluded window (hidden, minimized or covered)
+    // starts its blink at the window's next paint, so the window holds no
+    // wake meanwhile (the macOS idle-visibility probe; ADR-016).
+    const bool occluded = window() != nullptr && (*window()).occluded();
+    caret_waiting_for_paint_ = occluded;
+    if (!occluded) {
+        schedule_caret_blink();
+    }
 }
 
 void TextBox::schedule_caret_blink() {
