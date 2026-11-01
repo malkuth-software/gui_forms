@@ -90,6 +90,17 @@ class Report:
     signature_only_members: int = 0
 
 
+def without_localizable_marks(text: str) -> str:
+    """The header without its GUI_FORMS_LOCALIZABLE(property) marks.
+
+    The mark is an attribute for the localizable-literal plugin
+    (gui_forms/text/localizable/localizable_property.hpp), not part of a
+    signature the reference shows. Only the mark and the blanks after it go,
+    so every declaration keeps its line.
+    """
+    return re.sub(r"\bGUI_FORMS_LOCALIZABLE\(\w+\)[ \t]*", "", text)
+
+
 def sanitized(text: str) -> str:
     result = list(text)
     index = 0
@@ -470,7 +481,7 @@ def declarations() -> tuple[list[TypeRecord], list[EnumRecord], list[HeaderScope
     enum_pattern = re.compile(
         r"\benum\s+class\s+([A-Za-z_]\w*)\s*(?::\s*[^\{;]+)?\s*\{")
     for path in headers:
-        text = path.read_text(encoding="utf-8")
+        text = without_localizable_marks(path.read_text(encoding="utf-8"))
         lines = text.splitlines()
         clean = sanitized(text)
         relative = path.relative_to(GUI_FORMS).as_posix()

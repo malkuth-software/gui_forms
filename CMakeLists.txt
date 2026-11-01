@@ -76,6 +76,7 @@ option(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 include(GNUInstallDirs)
+include(cmake/LocalizablePlugin.cmake)
 
 # Windows (the MSYS2 CLANG64 toolchain, a MinGW-w64 target): every executable
 # and DLL this project builds links the LLVM runtimes (libc++, libc++abi,
@@ -217,6 +218,7 @@ add_library(gui_forms_core STATIC
     src/core/text/text_store/text_store.cpp
     src/core/text/prepared/prepared_storage.cpp
     src/core/text/composite/text_composite.cpp
+    src/core/text/localizable/localizable.cpp
     src/core/document_view/document_view_state.cpp
     src/core/pages/page_set/page_set.cpp
     src/core/events/key_commands/key_commands.cpp
@@ -1456,6 +1458,9 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_compile_definitions(gui_forms_gallery_model PRIVATE
         GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}")
     target_link_libraries(gui_forms_gallery_model PUBLIC gui_forms_controls)
+    # The Gallery is compiled with the localizable-literal plugin: its own
+    # literals are the first table a translator reads.
+    gui_forms_compile_with_localizable_plugin(gui_forms_gallery_model)
 
     add_library(gui_forms_vsync_lab_model STATIC
         demo/vsync_lab.cpp
@@ -3350,6 +3355,38 @@ if(GUI_FORMS_BUILD_TESTS)
     )
     target_link_libraries(gui_forms_semantic_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_semantic_tests COMMAND gui_forms_semantic_tests)
+
+    # The localizable-literal plugin, dogfooded: a unit with the plugin, one
+    # without it, a static and a shared library with it. Without the plugin
+    # the test checks the table reader only.
+    add_library(gui_forms_localizable_plugin_static STATIC tests/localizable_plugin_static.cpp)
+    target_link_libraries(gui_forms_localizable_plugin_static PUBLIC gui_forms_controls)
+    gui_forms_compile_with_localizable_plugin(gui_forms_localizable_plugin_static)
+    add_library(gui_forms_localizable_plugin_shared SHARED tests/localizable_plugin_shared.cpp)
+    target_include_directories(gui_forms_localizable_plugin_shared PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    gui_forms_compile_with_localizable_plugin(gui_forms_localizable_plugin_shared)
+    add_executable(gui_forms_localizable_plugin_tests
+        tests/localizable_plugin_tests.cpp
+        tests/localizable_plugin_plain.cpp)
+    target_link_libraries(gui_forms_localizable_plugin_tests PRIVATE
+        gui_forms_localizable_plugin_static gui_forms_localizable_plugin_shared gui_forms_controls)
+    target_compile_definitions(gui_forms_localizable_plugin_tests PRIVATE
+        GUI_FORMS_LOCALIZABLE_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    if(GUI_FORMS_LOCALIZABLE_PLUGIN_PATH)
+        target_compile_definitions(gui_forms_localizable_plugin_tests PRIVATE GUI_FORMS_LOCALIZABLE_TEST_PLUGIN)
+        gui_forms_compile_with_localizable_plugin(gui_forms_localizable_plugin_tests
+            SOURCES tests/localizable_plugin_tests.cpp)
+    endif()
+    add_test(NAME gui_forms_localizable_plugin_tests COMMAND gui_forms_localizable_plugin_tests)
+    # The dump tool reads the same tables from the linked program's file.
+    get_filename_component(_gf_compiler_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_program(GUI_FORMS_LLVM_OBJCOPY NAMES llvm-objcopy HINTS "${_gf_compiler_dir}")
+    if(GUI_FORMS_LOCALIZABLE_PLUGIN_PATH AND GUI_FORMS_LLVM_OBJCOPY AND Python3_EXECUTABLE)
+        add_test(NAME gui_forms_localizable_dump_tests
+                 COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/dump_localizable_literals.py
+                         --objcopy ${GUI_FORMS_LLVM_OBJCOPY} --require Ready --require "Static library text"
+                         $<TARGET_FILE:gui_forms_localizable_plugin_tests>)
+    endif()
 
     add_executable(gui_forms_lifecycle_controls_tests
         tests/lifecycle_controls_tests.cpp

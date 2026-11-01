@@ -2,6 +2,7 @@
 
 #include "gui_forms/commands.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
 
 #include <optional>
@@ -12,9 +13,9 @@ namespace gui_forms {
 
 struct CommandItem final {
     int id{};
-    std::string label{};
+    GUI_FORMS_LOCALIZABLE(text) std::string label{};
     std::string glyph{};
-    std::string accessible_name{};
+    GUI_FORMS_LOCALIZABLE(accessible_name) std::string accessible_name{};
     std::optional<KeyGesture> shortcut{};
     Command* command{}; // Borrowed at set_items; subsequent access is token-guarded.
 };

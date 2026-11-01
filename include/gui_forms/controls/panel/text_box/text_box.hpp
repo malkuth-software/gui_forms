@@ -5,6 +5,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -106,7 +107,7 @@ public:
     // The placeholder shows in the empty field. Without one, the field's
     // tooltip (Control::field_hint_text) shows there in the same light grey
     // while the field has focus.
-    void set_placeholder_text(std::string text);
+    void set_placeholder_text(GUI_FORMS_LOCALIZABLE(placeholder) std::string text);
     [[nodiscard]] bool read_only() const noexcept;
     void set_read_only(bool read_only);
     // Opt-in plain-text document editing. Existing single-line behavior remains

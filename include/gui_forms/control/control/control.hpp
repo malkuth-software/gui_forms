@@ -15,6 +15,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/theme.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <atomic>
 #include <any>
@@ -639,11 +640,11 @@ public:
     [[nodiscard]] const std::string& accessible_name() const noexcept {
         return accessible_name_;
     }
-    void set_accessible_name(std::string name);
+    void set_accessible_name(GUI_FORMS_LOCALIZABLE(accessible_name) std::string name);
     [[nodiscard]] const std::string& accessible_description() const noexcept {
         return accessible_description_;
     }
-    void set_accessible_description(std::string description);
+    void set_accessible_description(GUI_FORMS_LOCALIZABLE(accessible_description) std::string description);
     // The control's plain tooltip (owner, 2026-10-28): text, never markup,
     // that its window's tooltip presenter shows as tool_tip_presentation()
     // says, when the window's and the program's switches allow. Empty, the
@@ -652,7 +653,7 @@ public:
     // that is not valid UTF-8, changing nothing. Raises tool_tip_text_changed
     // when the text changes. Bindable as "tool_tip_text".
     [[nodiscard]] const std::string& tool_tip_text() const noexcept { return tool_tip_text_; }
-    void set_tool_tip_text(std::string text);
+    void set_tool_tip_text(GUI_FORMS_LOCALIZABLE(tool_tip) std::string text);
     [[nodiscard]] Event<const std::string&>& tool_tip_text_changed() noexcept {
         return tool_tip_text_changed_;
     }

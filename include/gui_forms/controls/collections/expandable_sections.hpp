@@ -2,6 +2,7 @@
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/value.hpp"
 
 #include <span>
@@ -11,7 +12,7 @@ namespace gui_forms {
 
 struct SectionItem final {
     int id{};
-    std::string label{};
+    GUI_FORMS_LOCALIZABLE(text) std::string label{};
     Control::Ptr content{};
     Value<bool>* expanded{}; // Borrowed; a missing model uses retained local state.
 };

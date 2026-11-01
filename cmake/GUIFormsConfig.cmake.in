@@ -26,6 +26,24 @@ if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")
 endif()
 
+# The localizable-literal Clang plugin, installed with the SDK when it was
+# built (cmake/LocalizablePlugin.cmake): a consumer compiling with Clang 22 is
+# compiled with it, so the literals it passes to localizable properties are
+# recorded for gui_forms::localizable_literals(). Set
+# GUI_FORMS_LOCALIZABLE_LITERALS OFF before find_package to compile without it.
+option(GUI_FORMS_LOCALIZABLE_LITERALS "Compile with the GUI.Forms localizable-literal Clang plugin" ON)
+set(_gui_forms_plugin
+    "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_LIBDIR@/gui_forms/gui_forms_localizable@CMAKE_SHARED_MODULE_SUFFIX@")
+if(GUI_FORMS_LOCALIZABLE_LITERALS AND EXISTS "${_gui_forms_plugin}" AND TARGET GUIForms::Core)
+    set(_gui_forms_clang22
+        "$<AND:$<COMPILE_LANGUAGE:CXX,OBJCXX>,$<CXX_COMPILER_ID:Clang>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,22>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,23>>")
+    set_property(TARGET GUIForms::Core APPEND PROPERTY INTERFACE_COMPILE_OPTIONS
+        "$<${_gui_forms_clang22}:-fplugin=${_gui_forms_plugin}>"
+        "$<${_gui_forms_clang22}:-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}>")
+    unset(_gui_forms_clang22)
+endif()
+unset(_gui_forms_plugin)
+
 set(GUIForms_FONT_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/GUIForms/fonts")
 
 # Components describe installed targets, not the producer's build options.
