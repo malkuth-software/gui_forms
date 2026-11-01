@@ -99,8 +99,17 @@ insertion line, ``drop_accepted``), painted on a layer above the panels. The con
 so Tab reaches the content before the strips. It is a group to
 accessibility, exposed when it has an accessible name.
 
-Not supported yet: a keyboard way to move a strip other than `move_strip`,
-and rafting panels outside a container.
+Keyboard move: the docking ``move_panel`` chord of the host key map
+(Ctrl+Alt+Shift+M by default), pressed with the focus in a strip, starts
+a keyboard move of that strip; ``begin_keyboard_move`` starts one
+directly and ``keyboard_moving`` reports one in progress. Arrows across
+the panel step between a new row before each row and joining a row;
+arrows along a joined row step between positions; Tab and Shift+Tab step
+between the four panels; Enter drops the strip at the marked place and
+Escape cancels. Pointer input is ignored meanwhile, and the focus returns
+to the strip when the move ends.
+
+Not supported yet: rafting panels outside a container.
 
 Examples
 --------

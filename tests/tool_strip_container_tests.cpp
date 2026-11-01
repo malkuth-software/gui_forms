@@ -423,6 +423,83 @@ void shared_rows() {
     settle(window);
 }
 
+bool press_key(Window& window, std::uint32_t key, Modifier modifiers = Modifier::none) {
+    KeyEvent down{KeyAction::down, key};
+    down.modifiers = modifiers;
+    const bool handled = window.dispatch_key(down);
+    KeyEvent up{KeyAction::up, key};
+    up.modifiers = modifiers;
+    static_cast<void>(window.dispatch_key(up));
+    return handled;
+}
+
+// The keyboard strip move (owner decision DK-59): the move_panel command
+// with the focus in a strip.
+void keyboard_move() {
+    std::shared_ptr<ToolStripContainer> frame = make_control<ToolStripContainer>(StableId("keys"));
+    std::shared_ptr<ToolStrip> file = strip_named("file");
+    std::shared_ptr<ToolStrip> edit = strip_named("edit");
+    std::shared_ptr<ToolStrip> view = strip_named("view");
+    ToolStripPanel& top = *(*frame).top_panel();
+    top.join(file);
+    top.join_row(edit, 0U, 1U);
+    top.join(view);
+    Window window(frame, {600.0, 400.0});
+    window.perform_layout();
+    std::vector<ToolStripMove> moves;
+    SubscriptionToken token = (*frame).strip_moved().subscribe(RecordMove{&moves});
+    require(window.request_focus(edit), "the strip takes focus");
+    const Modifier chord = Modifier::control | Modifier::alt | Modifier::shift;
+    require(press_key(window, PhysicalKey::m, chord) && (*frame).keyboard_moving() && (*frame).dragged_strip() == edit,
+            "Ctrl+Alt+Shift+M in a strip starts its keyboard move");
+    std::optional<ToolStripDropTarget> target = (*frame).drag_target();
+    require(target && (*target).edge == ToolStripPanelEdge::top && (*target).joins_row && (*target).row == 0U &&
+                (*target).position == 1U && !(*frame).drag_stamp().empty(),
+            "the move starts at the strip's own place");
+    require(press_key(window, PhysicalKey::down), "Down is the move's");
+    target = (*frame).drag_target();
+    require(target && !(*target).joins_row && (*target).row == 1U, "Down steps to a new row after the first");
+    press_key(window, PhysicalKey::down);
+    target = (*frame).drag_target();
+    require(target && (*target).joins_row && (*target).row == 1U && (*target).position == 1U,
+            "Down again joins the next row, at the position kept");
+    press_key(window, PhysicalKey::left);
+    target = (*frame).drag_target();
+    require(target && (*target).position == 0U, "Left steps to the position before");
+    press_key(window, PhysicalKey::left);
+    require((*(*frame).drag_target()).position == 0U, "the steps stop at the row's start");
+    press_key(window, PhysicalKey::enter);
+    settle(window);
+    // The moved strip takes the focus back on the dispatcher's next turn.
+    static_cast<void>(window.drain_posted_work());
+    require((*frame).drag_phase() == ToolStripDragPhase::idle && top.row_count() == 2U && top.rows()[1][0] == edit &&
+                moves.size() == 1U && moves[0].to_row == 1U && moves[0].to_position == 0U &&
+                window.focused_control() == edit,
+            "Enter drops there and the focus returns to the strip");
+
+    // Tab moves to the next shown panel; Escape cancels.
+    press_key(window, PhysicalKey::m, chord);
+    press_key(window, PhysicalKey::tab);
+    target = (*frame).drag_target();
+    require(target && (*target).edge == ToolStripPanelEdge::bottom && (*target).row == 0U && !(*target).joins_row,
+            "Tab moves to the empty bottom panel's first row");
+    press_key(window, PhysicalKey::tab, Modifier::shift);
+    require((*(*frame).drag_target()).edge == ToolStripPanelEdge::top, "Shift+Tab moves back");
+    press_key(window, PhysicalKey::tab);
+    press_key(window, PhysicalKey::tab);
+    target = (*frame).drag_target();
+    require(target && (*target).edge == ToolStripPanelEdge::left, "Tab reaches the left panel");
+    press_key(window, PhysicalKey::escape);
+    settle(window);
+    static_cast<void>(window.drain_posted_work());
+    require((*frame).drag_phase() == ToolStripDragPhase::idle && moves.size() == 1U && top.rows()[1][0] == edit &&
+                window.focused_control() == edit,
+            "Escape cancels and the focus returns");
+    // The chord outside a strip starts nothing.
+    require(!press_key(window, PhysicalKey::m, Modifier::control) && (*frame).drag_phase() == ToolStripDragPhase::idle,
+            "another chord starts nothing");
+}
+
 } // namespace
 
 int main() {
@@ -431,6 +508,7 @@ int main() {
     container();
     dragging();
     shared_rows();
+    keyboard_move();
     std::cout << "Vertical ToolStrip, ToolStripPanel and ToolStripContainer: layout, keys, orientation, "
                  "panels and content passed\n";
     return 0;

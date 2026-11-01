@@ -132,10 +132,26 @@ public:
     // Ends an armed drag, or a drag under way as Escape does. False when
     // there is none.
     bool cancel_drag();
+    // Moves a strip joined here by keys (owner decision DK-59): the host key
+    // map's move_panel command (Ctrl+Alt+Shift+M by default), pressed with
+    // the focus in a strip, starts it, as for a docking panel. The stamp
+    // stands over the chosen place, starting at the strip's own: the arrows
+    // across the panel's rows step between rows (a new row, then joining
+    // that row, in turn), the arrows along them between positions in a
+    // joined row, Tab and Shift+Tab to the next or previous shown panel
+    // that admits the strip; Enter drops, Escape cancels, and the focus
+    // goes back to where it was. False, starting nothing, while a drag is
+    // under way or for a strip not joined to a shown panel here.
+    bool begin_keyboard_move(const ToolStrip& strip);
+    [[nodiscard]] bool keyboard_moving() const noexcept {
+        return drag_.phase == ToolStripDragPhase::dragging && drag_.keyboard;
+    }
 
     void arrange(Rect final_bounds) override;
     void on_pointer_preview(PointerEvent& event) override;
     void on_pointer(PointerEvent& event) override;
+    // Takes the move_panel command with the focus in a strip, and the
+    // drag's keys.
     void on_key_preview(KeyEvent& event) override;
     void on_key(KeyEvent& event) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -187,6 +203,18 @@ private:
         std::optional<ControlSnapshot> picture{};
         std::weak_ptr<Control> focus_before{};
         bool focusable_before{};
+        // The keyboard move: the chosen panel, its stop (2r: a new row at
+        // r; 2r + 1: joining row r, rows counted without the strip) and the
+        // position in a joined row.
+        bool keyboard{};
+        ToolStripPanelEdge key_edge{ToolStripPanelEdge::top};
+        std::size_t key_stop{};
+        std::size_t key_position{};
+    };
+    // A row's span across the panel, from its shown strips.
+    struct RowSpan final {
+        double start{};
+        double end{};
     };
     // A strip's place among the four panels: its row and its position in
     // the row, and whether it is alone there.
@@ -242,7 +270,19 @@ private:
     // Marks the stamp and the insertion line for repainting where they are.
     void invalidate_drag_paint();
     bool handle_drag_key(KeyEvent& event);
+    struct FocusReturn;
     void return_focus() noexcept;
+    [[nodiscard]] std::optional<RowSpan> row_span(const std::vector<std::shared_ptr<ToolStrip>>& row,
+                                                  bool vertical) const;
+    // The insertion line of a target for the dragged strip.
+    [[nodiscard]] Rect marker_for(const ToolStripDropTarget& target) const;
+    // The keyboard move's chosen target, or none when it admits nothing.
+    [[nodiscard]] std::optional<ToolStripDropTarget> keyboard_target() const;
+    void show_keyboard_target();
+    void step_keyboard(int across, int along);
+    void step_keyboard_panel(int step);
+    // The strip joined here that holds the window's focus, or null.
+    [[nodiscard]] std::shared_ptr<ToolStrip> focused_strip() const;
     void on_stamp_motion(const MotionStep& step);
     // The window lets go of the capture before it dispatches a primary
     // release, so a release of the capture is checked a turn later: the
@@ -272,6 +312,8 @@ private:
     MotionValue stamp_motion_;
     SubscriptionToken capture_token_{};
     DispatchOperation capture_check_{};
+    // A focus return the dispatcher's next turn tries again (return_focus).
+    DispatchOperation focus_return_{};
     // drag_gesture::default_threshold, kept here so the public header needs
     // no private one.
     double drag_threshold_{4.0};

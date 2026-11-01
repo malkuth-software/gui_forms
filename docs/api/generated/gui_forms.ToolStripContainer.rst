@@ -91,6 +91,8 @@ gui_forms::ToolStripContainer
          How far the pointer moves from a grip press before it drags. A host may
          set 1 to 64; ``std::out_of_range`` otherwise.
 
+      **keyboard_moving** : ``bool``, read-only
+
       **parts** : ``Parts``, read-only
 
    :Events:
@@ -118,6 +120,8 @@ gui_forms::ToolStripContainer
         - As :cpp:func:`move_strip <gui_forms::ToolStripContainer::move_strip>`, into an existing row at a position among its strips; false also for a position past the row's strips.
       * - :cpp:func:`cancel_drag <gui_forms::ToolStripContainer::cancel_drag>`
         - Ends an armed drag, or a drag under way as Escape does; false when there is none.
+      * - :cpp:func:`begin_keyboard_move <gui_forms::ToolStripContainer::begin_keyboard_move>`
+        - Moves a strip joined here by keys (owner decision DK-59): the host key map's move_panel command (Ctrl+Alt+Shift+M by default), pressed with the focus in a strip, starts it, as for a docking panel.
 
    .. seealso::
 
@@ -143,8 +147,17 @@ gui_forms::ToolStripContainer
    so Tab reaches the content before the strips. It is a group to
    accessibility, exposed when it has an accessible name.
 
-   Not supported yet: a keyboard way to move a strip other than :cpp:func:`move_strip <gui_forms::ToolStripContainer::move_strip>`,
-   and rafting panels outside a container.
+   Keyboard move: the docking ``move_panel`` chord of the host key map
+   (Ctrl+Alt+Shift+M by default), pressed with the focus in a strip, starts
+   a keyboard move of that strip; ``begin_keyboard_move`` starts one
+   directly and ``keyboard_moving`` reports one in progress. Arrows across
+   the panel step between a new row before each row and joining a row;
+   arrows along a joined row step between positions; Tab and Shift+Tab step
+   between the four panels; Enter drops the strip at the marked place and
+   Escape cancels. Pointer input is ignored meanwhile, and the focus returns
+   to the strip when the move ends.
+
+   Not supported yet: rafting panels outside a container.
 
    .. rubric:: Examples
 
@@ -240,6 +253,8 @@ gui_forms::ToolStripContainer
 
       Sets :cpp:func:`drag_threshold <gui_forms::ToolStripContainer::drag_threshold>`; see the property's description above.
 
+   .. cpp:function:: bool keyboard_moving() const noexcept
+
    .. cpp:function:: Parts parts() const
 
 
@@ -276,6 +291,10 @@ gui_forms::ToolStripContainer
       Ends an armed drag, or a drag under way as Escape does; false when there
       is none.
 
+   .. cpp:function:: bool begin_keyboard_move(const ToolStrip& strip)
+
+      Moves a strip joined here by keys (owner decision DK-59): the host key map's move_panel command (Ctrl+Alt+Shift+M by default), pressed with the focus in a strip, starts it, as for a docking panel. The stamp stands over the chosen place, starting at the strip's own: the arrows across the panel's rows step between rows (a new row, then joining that row, in turn), the arrows along them between positions in a joined row, Tab and Shift+Tab to the next or previous shown panel that admits the strip; Enter drops, Escape cancels, and the focus goes back to where it was. False, starting nothing, while a drag is under way or for a strip not joined to a shown panel here.
+
 
    .. rubric:: Extension points
 
@@ -286,6 +305,8 @@ gui_forms::ToolStripContainer
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
+
+      Takes the move_panel command with the focus in a strip, and the drag's keys.
 
    .. cpp:function:: void on_key(KeyEvent& event) override
 

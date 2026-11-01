@@ -3,6 +3,7 @@
 #include "../drag_gesture/drag_gesture.hpp"
 #include "gui_forms/controls/status_strip/status_strip.hpp"
 #include "gui_forms/delegate.hpp"
+#include "gui_forms/events/key_commands/key_commands.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
@@ -124,6 +125,7 @@ ToolStripContainer::ToolStripContainer(StableId stable_id)
 
 ToolStripContainer::~ToolStripContainer() {
     capture_token_.disconnect();
+    static_cast<void>(focus_return_.cancel());
     static_cast<void>(capture_check_.cancel());
     if (drag_layer_) (*drag_layer_).release_container();
 }
@@ -571,12 +573,34 @@ void ToolStripContainer::update_drag(Point local, Modifier modifiers) {
     invalidate_drag_paint();
 }
 
+struct ToolStripContainer::FocusReturn final {
+    std::weak_ptr<Control> container{};
+    std::weak_ptr<Control> target{};
+    void operator()() const {
+        const std::shared_ptr<Control> held = container.lock();
+        const std::shared_ptr<Control> focus = target.lock();
+        if (!held || !(*held).is_alive() || !focus || !(*focus).attached()) return;
+        Window* const host = (*held).attached_window();
+        if (host != nullptr) static_cast<void>((*host).request_focus(focus));
+    }
+};
+
+// A strip just moved is not eligible for focus until the layout pass that
+// ends the event's dispatch places it: a refused request is tried again on
+// the dispatcher's next turn.
 void ToolStripContainer::return_focus() noexcept {
     try {
         Window* const host = attached_window();
         const Control::Ptr before = drag_.focus_before.lock();
-        if (host != nullptr && before && (*before).attached()) static_cast<void>((*host).request_focus(before));
+        // Focusability first: making the container unfocusable lets go of
+        // the focus in its subtree.
         set_focusable(drag_.focusable_before);
+        bool returned = false;
+        if (host != nullptr && before && (*before).attached()) returned = (*host).request_focus(before);
+        if (!returned && host != nullptr && before && (*host).dispatcher_snapshot().accepting) {
+            static_cast<void>(focus_return_.cancel());
+            focus_return_ = (*host).begin_invoke(shared_from_this(), FocusReturn{weak_from_this(), before});
+        }
     } catch (...) {
     }
 }
@@ -598,7 +622,6 @@ void ToolStripContainer::end_drag(bool drop) {
     capture_token_.disconnect();
     Window* const host = attached_window();
     if (host != nullptr && (*host).captured_control().get() == this) (*host).release_pointer();
-    return_focus();
     // The target is checked again: the program may have moved the strip,
     // or hidden a panel, while it was dragged.
     if (target && strip) {
@@ -607,6 +630,9 @@ void ToolStripContainer::end_drag(bool drop) {
         if (admitted && !same_place(*place, *target)) move_to(strip, *place, *target);
         if (!is_alive()) return;
     }
+    // After the move, which takes the strip (perhaps holding the focus
+    // before the drag) out of the tree and back.
+    return_focus();
     // The stamp settles into the strip's place (at once under reduced
     // motion or in an occluded window).
     stamp_motion_.jump_to(0.0);
@@ -736,6 +762,8 @@ void ToolStripContainer::on_pointer_preview(PointerEvent& event) {
 
 void ToolStripContainer::on_pointer(PointerEvent& event) {
     if (drag_.phase != ToolStripDragPhase::armed && drag_.phase != ToolStripDragPhase::dragging) return;
+    // The keyboard move takes no pointer input.
+    if (drag_.keyboard) return;
     const Control::Ptr keep = shared_from_this();
     const Point local = local_point(event.position);
     if (event.action == PointerAction::move) {
@@ -764,6 +792,25 @@ bool ToolStripContainer::handle_drag_key(KeyEvent& event) {
     }
     if (drag_.phase != ToolStripDragPhase::dragging) return false;
     const Control::Ptr keep = shared_from_this();
+    if (drag_.keyboard) {
+        // Every key is the keyboard move's.
+        event.handled = true;
+        if (event.action != KeyAction::down) return true;
+        const std::uint32_t key = event.physical_key;
+        const bool vertical = vertical_edge(drag_.key_edge);
+        const std::uint32_t across_back = vertical ? PhysicalKey::left : PhysicalKey::up;
+        const std::uint32_t across_forward = vertical ? PhysicalKey::right : PhysicalKey::down;
+        const std::uint32_t along_back = vertical ? PhysicalKey::up : PhysicalKey::left;
+        const std::uint32_t along_forward = vertical ? PhysicalKey::down : PhysicalKey::right;
+        if (key == PhysicalKey::escape) end_drag(false);
+        else if (key == PhysicalKey::enter) end_drag(true);
+        else if (key == PhysicalKey::tab) step_keyboard_panel(has_modifier(event.modifiers, Modifier::shift) ? -1 : 1);
+        else if (key == across_back) step_keyboard(-1, 0);
+        else if (key == across_forward) step_keyboard(1, 0);
+        else if (key == along_back) step_keyboard(0, -1);
+        else if (key == along_forward) step_keyboard(0, 1);
+        return true;
+    }
     if (drag_gesture::suppresses_targets(event.modifiers) != drag_.suppressed) {
         update_drag(drag_.pointer, event.modifiers);
     }
@@ -776,7 +823,177 @@ bool ToolStripContainer::handle_drag_key(KeyEvent& event) {
 }
 
 void ToolStripContainer::on_key_preview(KeyEvent& event) {
-    static_cast<void>(handle_drag_key(event));
+    if (handle_drag_key(event)) return;
+    if (event.handled || event.action != KeyAction::down || drag_.phase != ToolStripDragPhase::idle) return;
+    if (!effective_key_map().matches(KeyCommand::move_panel, event)) return;
+    const std::shared_ptr<ToolStrip> strip = focused_strip();
+    if (strip && begin_keyboard_move(*strip)) event.handled = true;
+}
+
+// -- the keyboard move ---------------------------------------------------------
+
+std::shared_ptr<ToolStrip> ToolStripContainer::focused_strip() const {
+    const Window* const host = attached_window();
+    if (host == nullptr) return nullptr;
+    Control::Ptr control = (*host).focused_control();
+    while (control) {
+        std::shared_ptr<ToolStrip> strip = std::dynamic_pointer_cast<ToolStrip>(control);
+        if (strip && place_of(*strip)) return strip;
+        control = (*control).parent();
+    }
+    return nullptr;
+}
+
+bool ToolStripContainer::begin_keyboard_move(const ToolStrip& strip) {
+    require_mutable();
+    if (drag_.phase != ToolStripDragPhase::idle) return false;
+    const std::optional<StripPlace> place = place_of(strip);
+    if (attached_window() == nullptr || !place || !panel_shown((*place).edge)) return false;
+    const std::shared_ptr<ToolStrip> held =
+        (*panel_on((*place).edge)).rows()[(*place).row][(*place).position];
+    reset_drag();
+    DragSession session{};
+    session.phase = ToolStripDragPhase::armed;
+    session.strip = held;
+    session.from = (*place).edge;
+    session.from_row = (*place).row;
+    session.keyboard = true;
+    // Grabbed at its middle, so the stamp centres on the chosen place.
+    const Rect bounds = local_bounds_of(strip);
+    session.press = {bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
+    session.pointer = session.press;
+    drag_ = std::move(session);
+    begin_drag();
+    if (drag_.phase != ToolStripDragPhase::dragging) return false;
+    // Its own place: a new row where it is alone, or its position in the
+    // row it shares.
+    drag_.key_edge = (*place).edge;
+    drag_.key_stop = (*place).alone ? (*place).row * 2U : (*place).row * 2U + 1U;
+    drag_.key_position = (*place).position;
+    show_keyboard_target();
+    return true;
+}
+
+std::optional<ToolStripContainer::RowSpan> ToolStripContainer::row_span(
+    const std::vector<std::shared_ptr<ToolStrip>>& row, bool vertical) const {
+    std::optional<RowSpan> span{};
+    for (const std::shared_ptr<ToolStrip>& member : row) {
+        if (!(*member).visible()) continue;
+        const Rect bounds = local_bounds_of(*member);
+        const double start = vertical ? bounds.x : bounds.y;
+        const double end = start + (vertical ? bounds.width : bounds.height);
+        if (!span) span = RowSpan{start, end};
+        else span = RowSpan{std::min((*span).start, start), std::max((*span).end, end)};
+    }
+    return span;
+}
+
+Rect ToolStripContainer::marker_for(const ToolStripDropTarget& target) const {
+    const std::shared_ptr<ToolStrip> dragged = drag_.strip.lock();
+    const std::shared_ptr<ToolStripPanel>& panel = panel_on(target.edge);
+    if (!dragged || !panel) return {};
+    const bool vertical = vertical_edge(target.edge);
+    const Rect band = drop_band(target.edge, local_bounds_of(*panel));
+    const std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows = rows_without(target.edge, *dragged);
+    // Without shown rows the line lies on the band's container edge.
+    double line = vertical ? band.x : band.y;
+    if (target.edge == ToolStripPanelEdge::bottom) line = band.y + band.height;
+    if (target.edge == ToolStripPanelEdge::right) line = band.x + band.width;
+    if (!target.joins_row) {
+        std::optional<RowSpan> span{};
+        if (target.row < rows.size()) span = row_span(rows[target.row], vertical);
+        if (span) line = (*span).start;
+        else if (target.row > 0U && target.row <= rows.size()) {
+            const std::optional<RowSpan> before = row_span(rows[target.row - 1U], vertical);
+            if (before) line = (*before).end;
+        }
+        return marker_at(vertical, band, line);
+    }
+    if (target.row >= rows.size()) return marker_at(vertical, band, line);
+    const std::optional<RowSpan> span = row_span(rows[target.row], vertical);
+    if (!span) return marker_at(vertical, band, line);
+    // Between the strip before the position and the one at it.
+    const std::vector<std::shared_ptr<ToolStrip>>& members = rows[target.row];
+    double between = vertical ? band.y : band.x;
+    for (std::size_t index = 0U; index < members.size() && index <= target.position; ++index) {
+        if (!(*members[index]).visible()) continue;
+        const Rect bounds = local_bounds_of(*members[index]);
+        const double start = vertical ? bounds.y : bounds.x;
+        const double length = vertical ? bounds.height : bounds.width;
+        between = index == target.position ? start : start + length;
+    }
+    const double half = marker_thickness * 0.5;
+    const double thickness = (*span).end - (*span).start;
+    const Rect marker = vertical ? Rect{(*span).start, between - half, thickness, marker_thickness}
+                                 : Rect{between - half, (*span).start, marker_thickness, thickness};
+    return marker;
+}
+
+std::optional<ToolStripDropTarget> ToolStripContainer::keyboard_target() const {
+    const std::shared_ptr<ToolStrip> dragged = drag_.strip.lock();
+    if (!dragged) return std::nullopt;
+    ToolStripDropTarget target{};
+    target.edge = drag_.key_edge;
+    target.row = drag_.key_stop / 2U;
+    target.joins_row = drag_.key_stop % 2U == 1U;
+    target.position = target.joins_row ? drag_.key_position : 0U;
+    if (!panel_shown(target.edge) || !admits(*dragged, target)) return std::nullopt;
+    target.marker = marker_for(target);
+    return target;
+}
+
+// The stamp stands over the chosen place's line.
+void ToolStripContainer::show_keyboard_target() {
+    invalidate_drag_paint();
+    drag_.target = keyboard_target();
+    if (drag_.target) {
+        const Rect marker = (*drag_.target).marker;
+        drag_.pointer = {marker.x + marker.width * 0.5, marker.y + marker.height * 0.5};
+    }
+    drag_.stamp = stamp_now();
+    invalidate_drag_paint();
+}
+
+// `across` steps the stop through the rows (a new row, then joining that
+// row, in turn); `along` steps the position in a joined row. Both stop at
+// the ends.
+void ToolStripContainer::step_keyboard(int across, int along) {
+    const std::shared_ptr<ToolStrip> dragged = drag_.strip.lock();
+    if (!dragged) return;
+    const std::vector<std::vector<std::shared_ptr<ToolStrip>>> rows = rows_without(drag_.key_edge, *dragged);
+    const std::size_t last_stop = rows.size() * 2U;
+    if (across < 0 && drag_.key_stop > 0U) --drag_.key_stop;
+    if (across > 0 && drag_.key_stop < last_stop) ++drag_.key_stop;
+    const bool joins = drag_.key_stop % 2U == 1U;
+    if (joins) {
+        const std::size_t members = rows[drag_.key_stop / 2U].size();
+        if (along < 0 && drag_.key_position > 0U) --drag_.key_position;
+        if (along > 0 && drag_.key_position < members) ++drag_.key_position;
+        drag_.key_position = std::min(drag_.key_position, members);
+    }
+    show_keyboard_target();
+}
+
+// The next or previous shown panel (in the order top, bottom, left, right,
+// wrapping) that admits the strip, at its first stop.
+void ToolStripContainer::step_keyboard_panel(int step) {
+    const std::shared_ptr<ToolStrip> dragged = drag_.strip.lock();
+    if (!dragged) return;
+    std::size_t index = 0U;
+    for (std::size_t probe = 0U; probe < panel_edges.size(); ++probe) {
+        if (panel_edges[probe] == drag_.key_edge) index = probe;
+    }
+    for (std::size_t tried = 0U; tried < panel_edges.size(); ++tried) {
+        index = step < 0 ? (index + panel_edges.size() - 1U) % panel_edges.size() : (index + 1U) % panel_edges.size();
+        const ToolStripPanelEdge edge = panel_edges[index];
+        if (!panel_on(edge) || !panel_shown(edge)) continue;
+        if (vertical_edge(edge) && is_status_strip(*dragged)) continue;
+        drag_.key_edge = edge;
+        drag_.key_stop = 0U;
+        drag_.key_position = 0U;
+        break;
+    }
+    show_keyboard_target();
 }
 
 void ToolStripContainer::on_key(KeyEvent& event) {
@@ -826,6 +1043,7 @@ void ToolStripContainer::on_detaching_from_window(Window& former_window) noexcep
 }
 
 void ToolStripContainer::on_dispose() noexcept {
+    static_cast<void>(focus_return_.cancel());
     reset_drag();
     Control::on_dispose();
 }
