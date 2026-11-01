@@ -476,6 +476,7 @@ public:
     // subtree: each inline style there defining custom properties is
     // compiled against the new theme first, and where one does not compile
     // the change is refused, invalid_argument, with nothing changed (P12b).
+    // A user theme (ThemeRuleSet::user) is invalid_argument too.
     void set_theme_override(std::shared_ptr<const Theme> theme);
     void clear_theme_override();
     [[nodiscard]] const std::optional<SurfaceMaterial>&

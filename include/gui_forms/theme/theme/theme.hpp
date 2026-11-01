@@ -71,7 +71,7 @@ private:
     // not at all, so the theme it replaces stays in force until it exists.
     // The copy is made straight into the theme's heap storage.
     explicit Theme(const ThemeDefinition& definition)
-        : definition_(definition), engine_(definition_.rules) {}
+        : definition_(definition), engine_(definition_.rules, definition_.rule_set) {}
     friend struct detail::ThemeAccess;
     // Checks `definition` (throwing as create states) and makes the theme.
     [[nodiscard]] static std::unique_ptr<Theme> validated(const ThemeDefinition& definition);

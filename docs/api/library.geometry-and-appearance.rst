@@ -325,6 +325,10 @@ Types
 
       The serial of the part's inline style, or 0 (T3 P9).
 
+   .. cpp:member:: std::uint64_t user_serial
+
+      The serial of the part's user theme, or 0 (T3 user themes).
+
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> fields
 
    .. cpp:member:: Size box
@@ -586,6 +590,10 @@ Types
 
       Whether the rules are a control's inline style (compile_inline).
 
+   .. cpp:function:: bool user_theme() const noexcept
+
+      Whether the rules are a user theme (compile_user).
+
    .. cpp:function:: std::size_t built_in_rule_count() const noexcept
 
       How many of the rules are the engine's built-in rules.
@@ -626,6 +634,10 @@ Types
    .. cpp:function:: static CompiledThemeRules compile_inline(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry, const CompiledThemeRules* theme = nullptr)
 
       Compiles one control's inline style (T3 P9, R2-10): rules at :cpp:func:`inline_style <gui_forms::CompiledThemeRules::inline_style>` and ``important_inline_style`` only, each without a stable ID, since the control owns them and consults them for itself alone (PartFacts::inline_rules). The sheet publishes no values. Compiled against ``theme`` (P12b), the style also holds copies of the theme's rules that read its custom properties (each with a source_position, at the theme's authored levels): the theme's rules are then passed over wherever the style's definition of a name they read wins, while the style is used with ``theme`` itself (the same compilation, by serial). ``theme`` is read during the call only.
+
+   .. cpp:function:: static CompiledThemeRules compile_user(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry)
+
+      Compiles a user theme (USER_THEMES.md section 4): rules at :cpp:func:`user_theme <gui_forms::CompiledThemeRules::user_theme>` and ``important_user_theme`` only, a set of their own that every part of a program's windows consults beside its theme's (PartFacts::user_rules). Its opacity is at least user_theme_minimum_opacity. It publishes no values, so its expressions read the engine inputs alone, and its custom properties are its own.
 
    .. cpp:function:: std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
 
@@ -715,6 +727,10 @@ Types
 
       The part's control's inline style (compile_inline), or null: its rules join the cascade at their levels, after the theme's rules of the same level and specificity. Borrowed for the call.
 
+   .. cpp:member:: const CompiledThemeRules* user_rules
+
+      The program's user theme (compile_user), or null: its rules join the cascade at the user levels. Borrowed for the call.
+
    .. cpp:member:: bool forced_high_contrast
 
       Forced high contrast's pass (E1): the part's drawing (its primitive and parameters, its material and recipe fields) comes from the important_inline_style rules alone, every lower level lying under the pass; its presentation (transitions, ambient effect, blend and font) from every matching rule.
@@ -794,6 +810,10 @@ Types
    .. cpp:member:: std::uint64_t inline_serial
 
       The serial of the part's inline style (PartFacts::inline_rules), or 0: the declarations above may belong to it.
+
+   .. cpp:member:: std::uint64_t user_serial
+
+      The serial of the part's user theme (PartFacts::user_rules), or 0, likewise.
 
 .. cpp:namespace:: gui_forms
 
@@ -3907,6 +3927,10 @@ Types
 
       The theme's rules (the cascade, T2 E4): which primitive draws which part. Empty by default: every part keeps the built-in recipe. They are compiled when the theme is made; an invalid rule or declaration is dropped with a diagnostic (Theme::engine().rules().diagnostics()).
 
+   .. cpp:member:: ThemeRuleSet rule_set
+
+      Whether the rules are a program's theme or a user theme's (T3 user themes): a user theme's rules are at the user levels only, and its other fields are unused while it is layered under a program's. Default: ``{ThemeRuleSet::program}``.
+
    .. cpp:member:: ThemeWindowBackdrop window_backdrop
 
       The backdrop request and backplane bases (stage T5). Empty by default: an opaque window, drawn as before.
@@ -3929,6 +3953,10 @@ Types
    .. cpp:function:: explicit ThemeEngine(const ThemeRuleSheet& sheet)
 
       An engine with ``sheet`` compiled against the built-in registry. Invalid rules and declarations are dropped with diagnostics; nothing throws for them.
+
+   .. cpp:function:: ThemeEngine(const ThemeRuleSheet& sheet, ThemeRuleSet set)
+
+      An engine with ``sheet`` compiled as ``set``: a user theme's has no built-in rules and is consulted beside a program theme's (CompiledThemeRules::compile_user).
 
 
    .. rubric:: Properties
@@ -4283,6 +4311,8 @@ Enumerations
 
    .. cpp:enumerator:: built_in
 
+   .. cpp:enumerator:: user_theme
+
    .. cpp:enumerator:: theme_sheet
 
    .. cpp:enumerator:: class_rule
@@ -4290,6 +4320,8 @@ Enumerations
    .. cpp:enumerator:: stable_id_rule
 
    .. cpp:enumerator:: inline_style
+
+   .. cpp:enumerator:: important_user_theme
 
    .. cpp:enumerator:: important_theme_sheet
 
@@ -5413,6 +5445,8 @@ Enumerations
 
    .. cpp:enumerator:: scoped_property_invalid
 
+   .. cpp:enumerator:: user_opacity_raised
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RuleValueKind
@@ -5500,6 +5534,16 @@ Enumerations
    .. cpp:enumerator:: over_frame_budget
 
    .. cpp:enumerator:: not_paintable
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeRuleSet
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: program
+
+   .. cpp:enumerator:: user
 
 Functions, constants and aliases
 --------------------------------
@@ -6069,6 +6113,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_ambient_loop_frames
 
    The most frames in an ambient effect's loop (E7r): its time in the period steps through at most this many, or its frame rate's count for one period if fewer, each baked once, the first time it is shown, and shared. Value: ``24U``.
+
+.. cpp:var:: constexpr double user_theme_minimum_opacity
+
+   The least opacity a user theme gives a part (USER_THEMES.md section 8, decision 7), so that no user theme hides a control outright. Value: ``0.5``.
 
 .. cpp:var:: constexpr std::size_t sheet_diagnostic
 

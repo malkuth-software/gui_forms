@@ -21,7 +21,10 @@ bool listed(const std::vector<Window*>& windows, const Window* window) noexcept 
 } // namespace
 
 ApplicationResources::ApplicationResources(ImageRegistryLimits limits)
-    : ui_thread_(std::this_thread::get_id()), images_(limits), theme_(default_theme()) {}
+    : ui_thread_(std::this_thread::get_id()),
+      images_(limits),
+      theme_(default_theme()),
+      program_theme_(theme_) {}
 
 ApplicationResources::~ApplicationResources() = default;
 
@@ -49,6 +52,14 @@ void ApplicationResources::detach(Window& window) noexcept {
 void ApplicationResources::set_theme(std::shared_ptr<const Theme> theme) {
     require_access("theme mutation");
     if (!theme) throw std::invalid_argument("application theme may not be null");
+    if ((*theme).definition().rule_set != ThemeRuleSet::program) {
+        throw std::invalid_argument("a user theme is not an application theme");
+    }
+    // A user theme replacing the program's stays in force.
+    if (user_theme_ != nullptr && user_theme_policy_ == UserThemePolicy::replaces_program_sheet) {
+        program_theme_ = std::move(theme);
+        return;
+    }
     if (theme_ == theme) return;
     std::vector<detail::InlineRestyle> restyles{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};
@@ -59,12 +70,45 @@ void ApplicationResources::set_theme(std::shared_ptr<const Theme> theme) {
     }
     Window::commit_inline_restyles(restyles);
     theme_ = std::move(theme);
+    program_theme_ = theme_;
     // A window's theme_changed handler may create or destroy windows; walk a
     // copy of the list and skip windows that left it meanwhile.
     const std::vector<Window*> windows = windows_;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         if (listed(windows_, windows[index])) (*windows[index]).apply_theme(theme_);
     }
+}
+
+void ApplicationResources::set_user_theme_policy(UserThemePolicy policy) {
+    require_access("user theme policy");
+    if (!windows_.empty()) throw std::logic_error("the user theme policy is chosen before the first window");
+    // A theme selected under another policy was compiled for that one.
+    if (policy != user_theme_policy_) {
+        user_theme_.reset();
+        theme_ = program_theme_;
+    }
+    user_theme_policy_ = policy;
+}
+
+void ApplicationResources::set_user_theme(std::shared_ptr<const Theme> theme) {
+    require_access("user theme selection");
+    if (!windows_.empty()) throw std::logic_error("a user theme is chosen before the first window");
+    if (user_theme_policy_ == UserThemePolicy::refused) throw std::logic_error("this program refuses user themes");
+    const bool replaces = user_theme_policy_ == UserThemePolicy::replaces_program_sheet;
+    if (theme != nullptr) {
+        const ThemeRuleSet wanted = replaces ? ThemeRuleSet::program : ThemeRuleSet::user;
+        if ((*theme).definition().rule_set != wanted) {
+            throw std::invalid_argument(replaces ? "a replacing user theme is compiled as a program theme"
+                                                 : "a layered user theme is compiled as a user theme");
+        }
+    }
+    user_theme_ = std::move(theme);
+    theme_ = replaces && user_theme_ != nullptr ? user_theme_ : program_theme_;
+}
+
+const CompiledThemeRules* ApplicationResources::user_theme_rules() const noexcept {
+    if (user_theme_ == nullptr || user_theme_policy_ != UserThemePolicy::layered) return nullptr;
+    return &(*user_theme_).engine().rules();
 }
 
 ImageLoadResult ApplicationResources::load_png(std::span<const std::byte> encoded) {

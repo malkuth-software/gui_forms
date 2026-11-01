@@ -57,9 +57,31 @@ Types
 
    .. cpp:function:: void set_theme(std::shared_ptr<const Theme> theme)
 
-      Replaces the theme of every window sharing these resources; each remeasures and repaints, and publishes its theme_changed. The same as Window::set_theme on any of them. Null is invalid_argument, and so is a theme against which an inline style defining custom properties, of a control taking the windows' theme, does not compile: each such style is compiled against the new theme first, and nothing changes where one fails (P12b).
+      Replaces the theme of every window sharing these resources; each remeasures and repaints, and publishes its theme_changed. The same as Window::set_theme on any of them. Null is invalid_argument, and so is a theme against which an inline style defining custom properties, of a control taking the windows' theme, does not compile: each such style is compiled against the new theme first, and nothing changes where one fails (P12b). A user theme (Theme with ThemeRuleSet::user) is invalid_argument. While a user theme replaces the program's (UserThemePolicy::replaces_program_sheet), the program's theme is kept (program_theme) and the windows keep the user theme.
 
    .. cpp:function:: std::shared_ptr<const Theme> theme_ptr() const noexcept
+
+   .. cpp:function:: const Theme& program_theme() const noexcept
+
+      The program's own theme: theme() but while a user theme replaces it.
+
+   .. cpp:function:: UserThemePolicy user_theme_policy() const noexcept
+
+   .. cpp:function:: void set_user_theme_policy(UserThemePolicy policy)
+
+      User themes (T3), chosen before the program's first window: once a window shares these resources, both are std::logic_error. The default policy is layered.
+
+   .. cpp:function:: const Theme* user_theme() const noexcept
+
+      The selected user theme, or null.
+
+   .. cpp:function:: void set_user_theme(std::shared_ptr<const Theme> theme)
+
+      Selects the user theme, or none for null. Under the layered policy it must be compiled as a user theme (ThemeRuleSet::user), and every part of these windows consults its rules beside its own theme's; under replaces_program_sheet as a program theme, which becomes theme(). Anything else is std::invalid_argument, and under the refused policy std::logic_error; nothing changes then.
+
+   .. cpp:function:: const CompiledThemeRules* user_theme_rules() const noexcept
+
+      The layered user theme's rules, or null where none is layered.
 
    .. cpp:function:: std::size_t window_count() const noexcept
 
@@ -431,6 +453,18 @@ Enumerations
    .. cpp:enumerator:: grayscale_alpha
 
    .. cpp:enumerator:: truecolor_alpha
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: UserThemePolicy
+
+   ``#include <gui_forms/resources/application_resources/application_resources.hpp>``
+
+   .. cpp:enumerator:: layered
+
+   .. cpp:enumerator:: replaces_program_sheet
+
+   .. cpp:enumerator:: refused
 
 Functions, constants and aliases
 --------------------------------

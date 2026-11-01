@@ -231,6 +231,11 @@ void Window::set_presentation_settings(PresentationSettings settings) {
     refresh_backdrop();
 }
 
+const CompiledThemeRules* Window::user_theme_rules() const noexcept {
+    const CompiledThemeRules* const rules = (*resources_).user_theme_rules();
+    return rules;
+}
+
 void Window::set_theme(std::shared_ptr<const Theme> theme) {
     require_ui_thread("theme mutation");
     if (!theme) throw std::invalid_argument("window theme may not be null");

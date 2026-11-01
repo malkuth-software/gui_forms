@@ -1,6 +1,7 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/surface_material/presets/material_presets.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include "forced_high_contrast.hpp"
 #include "theme_access.hpp"
@@ -1355,6 +1356,7 @@ Color inherited_text(const Control& control, Color fallback) {
         facts.states = above.anatomy_states();
         const Window* const window = above.attached_window();
         if (window != nullptr) facts.media = window_media_facts(*window);
+        if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
         const CompiledThemeRules::RecipeResolution fields =
             above.effective_theme().engine().rules().resolve_recipe_fields(facts);
         const RecipeDeclaration* const text = fields.fields[static_cast<std::size_t>(RecipeField::text)];
@@ -1431,6 +1433,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     facts.forced_high_contrast = forced;
     const Window* const window = control.attached_window();
     if (window != nullptr) facts.media = window_media_facts(*window);
+    if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
     CompiledThemeRules::RecipeResolution fields = engine_.rules().resolve_recipe_fields(facts);
     if (forced) {
         // The pass's colours stand over every declaration's, and it draws

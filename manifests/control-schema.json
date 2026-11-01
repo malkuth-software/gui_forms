@@ -19,7 +19,7 @@
   },
   "engine": {
     "version": "0.3",
-    "cascade_levels": ["built_in", "theme_sheet", "class_rule", "stable_id_rule", "inline_style", "important_theme_sheet", "forced_high_contrast", "important_inline_style"],
+    "cascade_levels": ["built_in", "user_theme", "theme_sheet", "class_rule", "stable_id_rule", "inline_style", "important_user_theme", "important_theme_sheet", "forced_high_contrast", "important_inline_style"],
     "budgets": {"operations_per_device_pixel": 512, "animated_operations_per_frame": 4000000},
     "primitives": [
       {

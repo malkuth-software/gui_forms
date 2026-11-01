@@ -67,6 +67,9 @@ gui_forms::Window
          :cpp:func:`resources <gui_forms::Window::resources>` and raises :cpp:func:`theme_changed <gui_forms::Window::theme_changed>` in each; a null theme throws
          ``std::invalid_argument``.
 
+      **user_theme_rules** : ``CompiledThemeRules*``, read-only
+         The rules of the user theme layered under every theme of these resources (ApplicationResources::user_theme_rules), or null.
+
       **theme_ptr** : ``std::shared_ptr<const Theme>``, read-only
          Returns shared ownership of the active immutable theme.
 
@@ -676,6 +679,10 @@ gui_forms::Window
    .. cpp:function:: void set_theme(std::shared_ptr<const Theme> theme)
 
       Sets :cpp:func:`theme <gui_forms::Window::theme>`; see the property's description above.
+
+   .. cpp:function:: const CompiledThemeRules* user_theme_rules() const noexcept
+
+      The rules of the user theme layered under every theme of these resources (ApplicationResources::user_theme_rules), or null.
 
    .. cpp:function:: std::shared_ptr<const Theme> theme_ptr() const noexcept
 

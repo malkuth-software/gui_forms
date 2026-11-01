@@ -64,6 +64,10 @@ public:
     // Invalid rules and declarations are dropped with diagnostics; nothing
     // throws for them.
     explicit ThemeEngine(const ThemeRuleSheet& sheet);
+    // An engine with `sheet` compiled as `set`: a user theme's has no
+    // built-in rules and is consulted beside a program theme's
+    // (CompiledThemeRules::compile_user).
+    ThemeEngine(const ThemeRuleSheet& sheet, ThemeRuleSet set);
 
     // The primitives the engine's rules may select.
     [[nodiscard]] const PrimitiveRegistry& registry() const noexcept { return *registry_; }
