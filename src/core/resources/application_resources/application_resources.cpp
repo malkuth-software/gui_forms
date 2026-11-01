@@ -1,5 +1,6 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
 
 #include "../../theme/theme_compiler/control_inline_style.hpp"
@@ -151,6 +152,26 @@ std::optional<ImageId> ApplicationResources::icon(std::string_view identifier) c
         return icon_images_[index];
     }
     return std::nullopt;
+}
+
+std::optional<ImageId> ApplicationResources::program_icon(std::string_view identifier) const noexcept {
+    for (std::size_t index = 0U; index < icons_.size(); ++index) {
+        if (icons_[index].identifier == identifier) return icon_images_[index];
+    }
+    return std::nullopt;
+}
+
+ThemeCompileResult ApplicationResources::compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
+                                                           const ThemeCompileOptions& options,
+                                                           UserThemeHeader* header) {
+    require_access("user theme compilation");
+    if (user_theme_policy_ == UserThemePolicy::refused) throw std::logic_error("this program refuses user themes");
+    const ThemeRuleSet set =
+        user_theme_policy_ == UserThemePolicy::replaces_program_sheet ? ThemeRuleSet::program : ThemeRuleSet::user;
+    ThemeCompileOptions with_icons = options;
+    with_icons.icons = icons_;
+    ThemeCompileResult result = gui_forms::compile_user_theme(files, program, images_, with_icons, set, header);
+    return result;
 }
 
 const CompiledThemeRules* ApplicationResources::user_theme_rules() const noexcept {

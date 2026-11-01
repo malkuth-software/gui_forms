@@ -236,6 +236,8 @@ add_library(gui_forms_core STATIC
     src/core/window/inspection/window_visual_inspection.cpp
     src/core/resources/image_registry/image_registry.cpp
     src/core/resources/application_resources/application_resources.cpp
+    src/runtime/user_themes/theme_files.cpp
+    src/runtime/user_themes/user_themes.cpp
     src/core/resources/integrity/sha256.cpp
     src/core/resources/fonts/bundled_font_set.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
@@ -2802,6 +2804,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
     target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_user_theme_tests COMMAND gui_forms_theme_user_theme_tests)
+
+    add_executable(gui_forms_theme_user_folder_tests tests/theme_language/theme_user_folder_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_folder_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_folder_tests COMMAND gui_forms_theme_user_folder_tests)
 
     add_executable(gui_forms_theme_sheet_fuzz_tests fuzz/theme_sheet_fuzz.cpp)
     target_link_libraries(gui_forms_theme_sheet_fuzz_tests PRIVATE gui_forms_core)

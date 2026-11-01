@@ -218,6 +218,21 @@ other icon file is a warning and is ignored: one naming no program icon
 (`W501`), one replacing a fixed icon (`W502`), and one breaking those
 rules (`W503`).
 
+A program finds its users' themes at launch with `scan_user_themes`, which
+reads the `themes/` folder beside the program and the per-user one
+(`per_user_theme_folder`, under the platform's configuration folder; the
+per-user theme wins a name). It reads at most 64 themes a folder, and
+compiles each into the program's resources
+(`ApplicationResources::compile_user_theme`), so a list can show the
+themes that compile and the refused ones with their diagnostics. A `.css`
+file without the header is no theme, and the scan's log says so.
+`read_theme_command_line` reads `--theme <name>`, `--theme built-in` (no
+user theme; the way back that needs no reading) and
+`--export-themes [folder]`; `select_user_theme` applies the choice before
+the first window. `export_user_themes` writes the program's own packages
+as user themes, each a verbatim copy that changes nothing until edited,
+with the overridable icons and a `README.txt`, and never overwrites a file.
+
 ## Not yet built
 
 - `backdrop-filter` is refused (`E999 not_yet_built`).

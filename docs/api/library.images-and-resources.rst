@@ -96,6 +96,10 @@ Types
 
    .. rubric:: Methods
 
+   .. cpp:function:: ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, const ThemeCompileOptions& options, UserThemeHeader* header = nullptr)
+
+      Compiles a user theme into these resources' registry (compile_user_theme), at the levels the policy needs: a user theme's under the layered policy, a program theme's under replaces_program_sheet. ``options.icons`` is replaced by the icons registered here. Selects nothing (set_user_theme does); the theme's images live while it does. Under the refused policy std::logic_error.
+
    .. cpp:function:: void register_icon(std::string_view identifier, ImageId image, IconOverride policy)
 
       Program icons (T3 user themes). Registers ``image``, an image of these resources, as the icon ``identifier``. std::invalid_argument when the identifier is invalid or already registered, or the image is not one of these resources'; nothing changes then. The image stays the program's: removing it leaves icon() naming an image no longer there.
@@ -103,6 +107,10 @@ Types
    .. cpp:function:: std::optional<ImageId> icon(std::string_view identifier) const noexcept
 
       The image to draw for the icon ``identifier``: the selected user theme's override of an overridable icon, else the program's image; nullopt for an identifier not registered. A user theme is selected before the first window, so a window resolves the same image for its whole life.
+
+   .. cpp:function:: std::optional<ImageId> program_icon(std::string_view identifier) const noexcept
+
+      The program's own image for the icon ``identifier``, whatever user theme is selected; nullopt for an identifier not registered.
 
    .. cpp:function:: ImageLoadResult load_png(std::span<const std::byte> encoded)
 

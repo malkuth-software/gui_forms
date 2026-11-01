@@ -201,6 +201,18 @@ Related types
      - MacHostOptions declares initial native window title, geometry, display scale, and run policy.
    * - :cpp:class:`MacHostServiceOptions <gui_forms::host::MacHostServiceOptions>`
      - MacHostServiceOptions injects bounded dialog, tooltip, clipboard, and semantic-sound services into an AppKit session.
+   * - :cpp:class:`ThemeChoice <gui_forms::ThemeChoice>`
+     -  
+   * - :cpp:class:`ThemeCommandLine <gui_forms::ThemeCommandLine>`
+     - The user-theme options of a command line (the arguments after the program's own name): ``--theme <name>`` and ``--export-themes [folder]``, the folder empty for the per-user one.
+   * - :cpp:class:`ThemeExportReport <gui_forms::ThemeExportReport>`
+     - What an export did: the files written, those already there (left as they were) and those that could not be written, by path; and the package resources and icons that a user theme cannot hold.
+   * - :cpp:class:`UserThemeCandidate <gui_forms::UserThemeCandidate>`
+     - One theme found: compiled, or refused with its diagnostics (a list shows it greyed out).
+   * - :cpp:class:`UserThemeFolders <gui_forms::UserThemeFolders>`
+     - Where a scan reads: the folder beside the program (read-only, shipped with it) and the user's own; an empty path is a folder not read.
+   * - :cpp:class:`UserThemeScan <gui_forms::UserThemeScan>`
+     - What a scan found: the themes by name (where both folders hold one, the per-user one), and one line for each file passed over (no theme header, a name the rule refuses, a limit, a folder that could not be read).
    * - :cpp:class:`WindowBackdropConditions <gui_forms::WindowBackdropConditions>`
      - The window-side conditions a grant depends on besides the host's state.
    * - :cpp:class:`WindowBackdropGrant <gui_forms::WindowBackdropGrant>`
@@ -2293,6 +2305,102 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ThemeChoice final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:member:: ThemeChoiceKind kind
+
+      Default: ``{ThemeChoiceKind::unspecified}``.
+
+   .. cpp:member:: std::string name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeCommandLine final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   The user-theme options of a command line (the arguments after the program's own name): ``--theme <name>`` and ``--export-themes [folder]``, the folder empty for the per-user one. Other arguments are the program's and are passed over. ``error`` is set, and the rest left as unspecified, when ``--theme`` has no value or is given twice.
+
+   .. cpp:member:: ThemeChoice theme
+
+   .. cpp:member:: bool export_themes
+
+   .. cpp:member:: std::string export_folder
+
+   .. cpp:member:: std::string error
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeExportReport final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   What an export did: the files written, those already there (left as they were) and those that could not be written, by path; and the package resources and icons that a user theme cannot hold.
+
+   .. cpp:member:: std::vector<std::string> written
+
+   .. cpp:member:: std::vector<std::string> skipped
+
+   .. cpp:member:: std::vector<std::string> failed
+
+   .. cpp:member:: std::vector<std::string> omitted
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UserThemeCandidate final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   One theme found: compiled, or refused with its diagnostics (a list shows it greyed out).
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: UserThemeOrigin origin
+
+      Default: ``{UserThemeOrigin::beside_program}``.
+
+   .. cpp:member:: std::string file
+
+      The main file's path.
+
+   .. cpp:member:: UserThemeHeader header
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> diagnostics
+
+      A compiled theme's warnings, or a refused one's diagnostics.
+
+   .. cpp:member:: std::shared_ptr<const Theme> theme
+
+      Null for a refused theme. Holds the theme's images in the resources' registry while it lives.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UserThemeFolders final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   Where a scan reads: the folder beside the program (read-only, shipped with it) and the user's own; an empty path is a folder not read.
+
+   .. cpp:member:: std::string beside_program
+
+   .. cpp:member:: std::string per_user
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UserThemeScan final
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   What a scan found: the themes by name (where both folders hold one, the per-user one), and one line for each file passed over (no theme header, a name the rule refuses, a limit, a folder that could not be read).
+
+   .. cpp:member:: std::vector<UserThemeCandidate> themes
+
+   .. cpp:member:: std::vector<std::string> log
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: WindowBackdropConditions final
 
    ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
@@ -3109,6 +3217,44 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ThemeChoiceKind
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:enumerator:: unspecified
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: named
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeSelection
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:enumerator:: unchanged
+
+   .. cpp:enumerator:: built_in
+
+   .. cpp:enumerator:: selected
+
+   .. cpp:enumerator:: unknown
+
+   .. cpp:enumerator:: refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: UserThemeOrigin
+
+   ``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+   .. cpp:enumerator:: beside_program
+
+   .. cpp:enumerator:: per_user
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: WindowBackdrop
 
    ``#include <gui_forms/host/compositor/window_backdrop.hpp>``
@@ -3195,6 +3341,36 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/application/user_themes/user_themes.hpp>``
+
+.. cpp:function:: std::string per_user_theme_folder(std::string_view program)
+
+   The per-user ``themes`` folder of ``program`` (a name, as ``harbour-editor``) under the platform's configuration folder: on macOS ``~/Library/Application Support/<program>/themes``, on Windows ``%APPDATA%\<program>\themes``, elsewhere ``$XDG_CONFIG_HOME/<program>/themes`` (``~/.config`` without it). Empty where the environment names none.
+
+.. cpp:function:: UserThemeScan scan_user_themes(const UserThemeFolders& folders, ApplicationResources& resources, const ThemeLibrary& program, const ThemeCompileOptions& options)
+
+   Reads both folders and compiles each theme found into ``resources`` (ApplicationResources::compile_user_theme, so its policy and icons) against the program's packages. Every theme is compiled, so a scan holds the images of all of them until it is released; select one and release the scan. Under the refused policy, nothing is read and the scan is empty. The resources' UI thread only.
+
+.. cpp:function:: ThemeCommandLine read_theme_command_line(std::span<const std::string_view> arguments)
+
+.. cpp:function:: ThemeSelection select_user_theme(ApplicationResources& resources, const UserThemeScan& scan, const ThemeChoice& choice)
+
+   Applies ``choice`` to ``resources`` (ApplicationResources::set_user_theme, so before the first window) from the themes ``scan`` found.
+
+.. cpp:function:: ThemeExportReport export_user_themes(const ThemeLibrary& program, const ApplicationResources& resources, std::string_view folder)
+
+   Writes every package of ``program`` into ``folder`` as a user theme (export_theme_packages: ``<name>.css``, its images in ``<name>/``), every overridable icon of ``resources`` that is a PNG as ``<name>/icons/<identifier>.png`` of each, and a ``README.txt``. Never overwrites a file.
+
+.. cpp:var:: constexpr std::size_t maximum_theme_folder_files
+
+   At most 64 theme files (``*.css``) are read from each folder; later ones, in name order, are skipped with a log line. Value: ``64U``.
+
+.. cpp:var:: constexpr std::string_view built_in_theme_name
+
+   The word ``--theme`` takes for no user theme; no user theme has the name. Value: ``"built-in"``.
 
 .. cpp:namespace:: gui_forms
 

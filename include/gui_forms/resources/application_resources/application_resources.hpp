@@ -16,7 +16,12 @@ namespace gui_forms {
 
 class CompiledThemeRules;
 class Theme;
+class ThemeCompileResult;
+class ThemeLibrary;
 class Window;
+struct ThemeCompileOptions;
+struct UserThemeFiles;
+struct UserThemeHeader;
 
 // How a program admits user themes (T3 user themes, notes:planning/stages/
 // T3-theme-language/USER_THEMES.md section 4.3).
@@ -104,6 +109,15 @@ public:
     // Anything else is std::invalid_argument, and under the refused policy
     // std::logic_error; nothing changes then.
     void set_user_theme(std::shared_ptr<const Theme> theme);
+    // Compiles a user theme into these resources' registry
+    // (compile_user_theme), at the levels the policy needs: a user theme's
+    // under the layered policy, a program theme's under
+    // replaces_program_sheet. `options.icons` is replaced by the icons
+    // registered here. Selects nothing (set_user_theme does); the theme's
+    // images live while it does. Under the refused policy std::logic_error.
+    [[nodiscard]] ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
+                                                        const ThemeCompileOptions& options,
+                                                        UserThemeHeader* header = nullptr);
     // The selected user theme, or null.
     [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
     // The layered user theme's rules, or null where none is layered.
@@ -124,6 +138,9 @@ public:
     // before the first window, so a window resolves the same image for its
     // whole life.
     [[nodiscard]] std::optional<ImageId> icon(std::string_view identifier) const noexcept;
+    // The program's own image for the icon `identifier`, whatever user
+    // theme is selected; nullopt for an identifier not registered.
+    [[nodiscard]] std::optional<ImageId> program_icon(std::string_view identifier) const noexcept;
 
     // The windows currently sharing these resources.
     [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }

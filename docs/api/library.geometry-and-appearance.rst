@@ -282,6 +282,8 @@ Types
      - ThemeMotionTokens defines quick, standard, emphasized, and busy-cycle durations without prescribing an animation engine.
    * - :cpp:class:`ThemePackage <gui_forms::ThemePackage>`
      - A theme package: its manifest's bytes and its files.
+   * - :cpp:class:`ThemePackageExport <gui_forms::ThemePackageExport>`
+     - One of the program's packages as a user theme's files, for export (USER_THEMES.md section 7): its sheet verbatim after an ``@theme`` header of its manifest's version, author, provenance and engine bound, and its ``.png`` resources as the folder's images.
    * - :cpp:class:`ThemePackageFile <gui_forms::ThemePackageFile>`
      - One file of a theme package: its path inside the package, as the manifest lists it, and its bytes.
    * - :cpp:class:`ThemeRule <gui_forms::ThemeRule>`
@@ -4135,6 +4137,18 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ThemePackageExport final
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   One of the program's packages as a user theme's files, for export (USER_THEMES.md section 7): its sheet verbatim after an ``@theme`` header of its manifest's version, author, provenance and engine bound, and its ``.png`` resources as the folder's images. A resource of another kind cannot be a user theme's file; it is left out and named in ``omitted``.
+
+   .. cpp:member:: UserThemeFiles files
+
+   .. cpp:member:: std::vector<std::string> omitted
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ThemePackageFile final
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -4333,6 +4347,10 @@ Types
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
 
    The header of a user theme's main file, which makes the file a theme.
+
+   .. cpp:member:: bool present
+
+      Whether the main file opens with one: a file without it is no theme.
 
    .. cpp:member:: std::string version
 
@@ -6322,7 +6340,11 @@ Functions, constants and aliases
 
 .. cpp:function:: ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, ImageRegistry& images, const ThemeCompileOptions& options, ThemeRuleSet set, UserThemeHeader* header = nullptr)
 
-   Compiles a user theme as the package its files imply (USER_THEMES.md section 3): its sub-sheets in filename order (byte order of their names) and then its main file, one cascade; an ``@import`` of a sub-sheet (``@import "editor.css";``) places it there instead, and an ``@import`` of another name imports the program's package of that name from ``program``, pinned to the installed one. The main file opens with an ``@theme`` header (refused without, E601); its ``engine`` descriptor bounds the engine (E607). ``set`` chooses the levels: ThemeRuleSet::user for a theme layered under the program's (ApplicationResources::set_user_theme under the layered policy), ThemeRuleSet::program for one replacing it. Images are owned as compile_theme_package's are. ``header``, when given, receives the header of a compiled theme.
+   Compiles a user theme as the package its files imply (USER_THEMES.md section 3): its sub-sheets in filename order (byte order of their names) and then its main file, one cascade; an ``@import`` of a sub-sheet (``@import "editor.css";``) places it there instead, and an ``@import`` of another name imports the program's package of that name from ``program``, pinned to the installed one. The main file opens with an ``@theme`` header (refused without, E601); its ``engine`` descriptor bounds the engine (E607). ``set`` chooses the levels: ThemeRuleSet::user for a theme layered under the program's (ApplicationResources::set_user_theme under the layered policy), ThemeRuleSet::program for one replacing it. Images are owned as compile_theme_package's are. ``header``, when given, receives the main file's header once it is read, whether or not the theme then compiles (present false where the main file has none or does not read).
+
+.. cpp:function:: std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library)
+
+   Every package of ``library``, in name order, as export writes it.
 
 .. cpp:function:: ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 

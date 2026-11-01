@@ -703,6 +703,12 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
     if (!read_user_sheet(main_sheet, files.name, subs, installed, main, &read, warnings, problem)) {
         return refusal(problem);
     }
+    if (header != nullptr) {
+        (*header).present = read.present;
+        (*header).version = read.version;
+        (*header).author = read.author;
+        (*header).provenance = read.provenance;
+    }
     if (!read.present) {
         return refusal(problem_of(DiagnosticCode::manifest_invalid, main_name, "no @theme header: not a theme"));
     }
@@ -807,14 +813,64 @@ ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLi
     ThemeCompileResult compiled = compile_closure(main, index, images, shares == nullptr ? unshared : *shares, options,
                                                   set, files.name, icons);
     if (!compiled.succeeded()) return compiled;
-    if (header != nullptr) {
-        (*header).version = read.version;
-        (*header).author = read.author;
-        (*header).provenance = read.provenance;
-    }
     if (warnings.empty()) return compiled;
     for (const ThemeCompileDiagnostic& later : compiled.diagnostics()) warnings.push_back(later);
     return ThemeCompileResult::compiled(compiled.theme(), std::move(warnings));
+}
+
+namespace {
+
+// `text` as the body of a CSS string a header descriptor admits: a quote,
+// a backslash or a control character (none of which a string may hold
+// unescaped, and the language admits no escapes, E105) becomes a space.
+std::string header_string(std::string_view text) {
+    std::string made{};
+    made.reserve(text.size());
+    for (const char character : text) {
+        const bool control = static_cast<unsigned char>(character) < 0x20U || character == '\x7f';
+        const bool replaced = control || character == '"' || character == '\\';
+        made.push_back(replaced ? ' ' : character);
+    }
+    return made;
+}
+
+struct PackNameOrder final {
+    bool operator()(const ThemePackageExport& left, const ThemePackageExport& right) const noexcept {
+        return left.files.name < right.files.name;
+    }
+};
+
+} // namespace
+
+std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library) {
+    std::vector<ThemePackageExport> exports{};
+    if (library.size() == 0U) return exports;
+    const std::span<const VerifiedThemePack> packs = ThemeLibraryAccess::index(library).packs();
+    exports.reserve(packs.size());
+    for (const VerifiedThemePack& pack : packs) {
+        ThemePackageExport made{};
+        made.files.name = pack.manifest.name;
+        std::string header = "@theme { version: \"" + header_string(pack.manifest.version) + "\"; author: \"" +
+                             header_string(pack.manifest.author) + "\"; provenance: \"" +
+                             header_string(pack.manifest.provenance) + "\"";
+        const EngineVersion engine = pack.manifest.engine;
+        if (!(engine == EngineVersion{})) {
+            header += "; engine: \">=" + std::to_string(engine.major) + "." + std::to_string(engine.minor) + "\"";
+        }
+        header += "; }\n";
+        made.files.main_sheet = header + pack.sheet;
+        for (std::size_t position = 0U; position < pack.manifest.resources.size(); ++position) {
+            const std::string& name = pack.manifest.resources[position].name;
+            if (!std::string_view(name).ends_with(".png")) {
+                made.omitted.push_back(name);
+                continue;
+            }
+            made.files.files.push_back(ThemePackageFile{name, pack.resources[position]});
+        }
+        exports.push_back(std::move(made));
+    }
+    std::sort(exports.begin(), exports.end(), PackNameOrder{});
+    return exports;
 }
 
 ThemeCompileResult::ThemeCompileResult(std::variant<Compiled, Refused> state) noexcept : state_(std::move(state)) {}

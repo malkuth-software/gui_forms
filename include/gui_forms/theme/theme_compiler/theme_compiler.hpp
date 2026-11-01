@@ -191,6 +191,8 @@ inline constexpr std::size_t maximum_user_theme_bytes = std::size_t{16} * 1024U 
 
 // The header of a user theme's main file, which makes the file a theme.
 struct UserThemeHeader final {
+    // Whether the main file opens with one: a file without it is no theme.
+    bool present{};
     std::string version{};
     std::string author{};
     std::string provenance{};
@@ -207,10 +209,24 @@ struct UserThemeHeader final {
 // under the program's (ApplicationResources::set_user_theme under the
 // layered policy), ThemeRuleSet::program for one replacing it. Images are
 // owned as compile_theme_package's are. `header`, when given, receives the
-// header of a compiled theme.
+// main file's header once it is read, whether or not the theme then
+// compiles (present false where the main file has none or does not read).
 [[nodiscard]] ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
                                                     ImageRegistry& images, const ThemeCompileOptions& options,
                                                     ThemeRuleSet set, UserThemeHeader* header = nullptr);
+
+// One of the program's packages as a user theme's files, for export
+// (USER_THEMES.md section 7): its sheet verbatim after an `@theme` header
+// of its manifest's version, author, provenance and engine bound, and its
+// `.png` resources as the folder's images. A resource of another kind
+// cannot be a user theme's file; it is left out and named in `omitted`.
+struct ThemePackageExport final {
+    UserThemeFiles files{};
+    std::vector<std::string> omitted{};
+};
+
+// Every package of `library`, in name order, as export writes it.
+[[nodiscard]] std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library);
 
 // As compile_theme_package, for the installed package named `name`; an
 // unknown name is refused (E603).
