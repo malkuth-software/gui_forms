@@ -376,13 +376,12 @@ void test_forms() {
         std::string_view code{};
         std::string_view detail{};
     };
-    const std::array<Refusal, 10> refusals{{
+    const std::array<Refusal, 9> refusals{{
         {"@media (forced-colors: active) { opacity: 1 }", "E206", "@media"},
         {"::part(face) { opacity: 1 } opacity: 1", "E203", ""},
         {"#other { opacity: 1 }", "E301", "its own control"},
         {"pad::part(face) { opacity: 1 }", "E206", ""},
         {".loud { opacity: 1 }", "E301", "its own control"},
-        {"--radius: 4px", "E999", "inline style"},
         {"opacity: 1 }", "E202", "no opening"},
         {"opacity", "E201", "end of sheet"},
         {"opacity: 2", "E403", "2"},

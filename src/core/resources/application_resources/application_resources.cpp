@@ -2,9 +2,12 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 
+#include "../../theme/theme_compiler/control_inline_style.hpp"
+
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 namespace {
@@ -47,6 +50,14 @@ void ApplicationResources::set_theme(std::shared_ptr<const Theme> theme) {
     require_access("theme mutation");
     if (!theme) throw std::invalid_argument("application theme may not be null");
     if (theme_ == theme) return;
+    std::vector<detail::InlineRestyle> restyles{};
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    for (Window* const window : windows_) {
+        if (!(*window).collect_inline_restyles(*theme, restyles, diagnostics)) {
+            throw std::invalid_argument(detail::inline_restyle_refusal("application theme", diagnostics));
+        }
+    }
+    Window::commit_inline_restyles(restyles);
     theme_ = std::move(theme);
     // A window's theme_changed handler may create or destroy windows; walk a
     // copy of the list and skip windows that left it meanwhile.

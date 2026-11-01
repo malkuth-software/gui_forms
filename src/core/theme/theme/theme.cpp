@@ -4,6 +4,7 @@
 
 #include "forced_high_contrast.hpp"
 #include "theme_access.hpp"
+#include "../theme_compiler/theme_source_record.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -1203,11 +1204,17 @@ std::shared_ptr<const Theme> Theme::create(const ThemeDefinition& definition) {
 }
 
 std::shared_ptr<const Theme> detail::ThemeAccess::create_holding(
-    const ThemeDefinition& definition, std::vector<std::shared_ptr<const ThemeImageLease>> images) {
+    const ThemeDefinition& definition, std::vector<std::shared_ptr<const ThemeImageLease>> images,
+    std::shared_ptr<const ThemeSourceRecord> source) {
     std::unique_ptr<Theme> theme = Theme::validated(definition);
     (*theme).images_ = std::move(images);
+    (*theme).source_ = std::move(source);
     std::shared_ptr<const Theme> result(std::move(theme));
     return result;
+}
+
+const detail::ThemeSourceRecord* detail::ThemeAccess::source(const Theme& theme) noexcept {
+    return theme.source_.get();
 }
 
 std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {

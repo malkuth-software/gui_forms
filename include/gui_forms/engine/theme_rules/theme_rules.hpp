@@ -901,6 +901,15 @@ inline constexpr std::uint32_t custom_property_undefined = 0xFFFF'FFFFU;
 // times the token-heavy test theme's 8 (theme_custom_property_css_tests).
 inline constexpr std::size_t maximum_scoped_custom_properties = 64U;
 
+// The most custom property names a theme's rules read (P12b,
+// ThemeRule::reads): a sheet defines at most 1,024.
+inline constexpr std::size_t maximum_read_custom_properties = 1024U;
+
+// A definition made in a control's inline style (P12b) is numbered at or
+// above this, a theme's below it, so the two never share a number and the
+// engine tells an inline definition's win apart.
+inline constexpr std::uint32_t inline_definition_base = 0x8000'0000U;
+
 struct ScopedDefinition final {
     std::string name{};
     std::uint32_t definition{};
@@ -938,6 +947,15 @@ struct ThemeRule final {
     // and the conditions under which the rule, a copy, applies.
     std::vector<ScopedDefinition> scoped_definitions{};
     std::vector<ScopedCondition> scoped_conditions{};
+    // Inline custom properties (P12b). A theme's rule lists the custom
+    // properties it reads, through any number of definitions: where a
+    // control's inline definition of one wins for a part, the rule is
+    // passed over there and the inline style's copy of it applies instead.
+    // `source_position` is the position of the style rule the rule was
+    // lowered from in the theme's source (its syntax node, from 1), which
+    // places such a copy among the theme's rules; 0 for none.
+    std::vector<std::string> reads{};
+    std::uint32_t source_position{};
 
     friend bool operator==(const ThemeRule& left, const ThemeRule& right) noexcept {
         return left.label == right.label && left.level == right.level && left.selector == right.selector &&
@@ -946,7 +964,8 @@ struct ThemeRule final {
                left.ambient == right.ambient && left.materials == right.materials &&
                left.recipe_fields == right.recipe_fields && left.media == right.media &&
                left.scoped_definitions == right.scoped_definitions &&
-               left.scoped_conditions == right.scoped_conditions;
+               left.scoped_conditions == right.scoped_conditions && left.reads == right.reads &&
+               left.source_position == right.source_position;
     }
 };
 
@@ -1106,8 +1125,20 @@ public:
     // `inline_style` and `important_inline_style` only, each without a
     // stable ID, since the control owns them and consults them for itself
     // alone (PartFacts::inline_rules). The sheet publishes no values.
+    // Compiled against `theme` (P12b), the style also holds copies of the
+    // theme's rules that read its custom properties (each with a
+    // source_position, at the theme's authored levels): the theme's rules
+    // are then passed over wherever the style's definition of a name they
+    // read wins, while the style is used with `theme` itself (the same
+    // compilation, by serial). `theme` is read during the call only.
     [[nodiscard]] static CompiledThemeRules compile_inline(const ThemeRuleSheet& sheet,
-                                                           const PrimitiveRegistry& registry);
+                                                           const PrimitiveRegistry& registry,
+                                                           const CompiledThemeRules* theme = nullptr);
+    // The serial of the theme an inline style was compiled against, 0 for
+    // none (P12b).
+    [[nodiscard]] std::uint64_t theme_serial() const noexcept { return theme_serial_; }
+    // How many custom property names the rules read (P12b).
+    [[nodiscard]] std::size_t read_name_count() const noexcept { return read_names_.size(); }
     // Whether the rules are a control's inline style (compile_inline).
     [[nodiscard]] bool inline_style() const noexcept { return inline_style_; }
     // How many of the rules are the engine's built-in rules.
@@ -1292,9 +1323,15 @@ private:
         std::uint32_t definition{custom_property_undefined};
     };
 
-    // A part's winning definition of each scoped name, by its position.
+    // A part's winning definition of each scoped name, by its position:
+    // the theme's names among the theme's definitions, and an inline
+    // style's names among the style's (which holds the theme's
+    // definitions of its names too, P12b); and, by the theme's read_names_
+    // positions, the names whose inline definition wins, one bit each.
     struct ScopedWinners final {
         std::array<std::uint32_t, maximum_scoped_custom_properties> definitions{};
+        std::array<std::uint32_t, maximum_scoped_custom_properties> inline_definitions{};
+        std::array<std::uint64_t, maximum_read_custom_properties / 64U> inline_won{};
     };
 
     struct CompiledRule final {
@@ -1321,6 +1358,10 @@ private:
         // Scoped custom properties (P12), by position in scoped_names_.
         std::vector<CompiledScoped> scoped_definitions{};
         std::vector<CompiledScoped> scoped_conditions{};
+        // The names it reads, by position in read_names_ (P12b), and its
+        // ThemeRule::source_position.
+        std::vector<std::uint32_t> reads{};
+        std::uint32_t source_position{};
     };
 
     // Compiles `sheet`'s rules into `result` at their authored levels, or,
@@ -1336,8 +1377,15 @@ private:
     // The resolved transitions, ambient effect and blend of the matching
     // rules into `result`.
     void resolve_transitions(const PartFacts& facts, const ScopedWinners& winners, Resolution& result) const noexcept;
-    // The part's winning definition of each scoped name.
+    // The part's winning definition of each scoped name, the theme's and
+    // its inline style's, and the names whose inline definition wins.
     void resolve_scoped(const PartFacts& facts, ScopedWinners& winners) const noexcept;
+    // A rule's read names, mapped to read_names_ (which add_rules collects
+    // first); false, with a diagnostic, for a rule to drop.
+    static bool add_reads(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                          const CompiledThemeRules& result, CompiledRule& compiled);
+    // The position of `name` in read_names_, if it is there.
+    [[nodiscard]] std::optional<std::size_t> read_name_position(std::string_view name) const noexcept;
     // A rule's scoped definitions and conditions, mapped to scoped_names_;
     // false, with a diagnostic, for a rule to drop.
     static bool add_scoped(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
@@ -1390,6 +1438,15 @@ private:
     // The scoped custom property names the rules' conditions read (P12),
     // at most maximum_scoped_custom_properties.
     std::vector<std::string> scoped_names_{};
+    // The custom property names the rules read (P12b), at most
+    // maximum_read_custom_properties.
+    std::vector<std::string> read_names_{};
+    // An inline style's (P12b): the serial of the theme compiled against,
+    // and for each of its scoped names the position of the name in that
+    // theme's read_names_, or no_read_name.
+    static constexpr std::uint32_t no_read_name = 0xFFFF'FFFFU;
+    std::uint64_t theme_serial_{};
+    std::vector<std::uint32_t> theme_read_positions_{};
 };
 
 // The engine's built-in rules (E7), compiled below every theme's: the

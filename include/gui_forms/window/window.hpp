@@ -857,6 +857,14 @@ private:
     friend class ApplicationResources;
     // Called by ApplicationResources for every window sharing it.
     void apply_theme(const std::shared_ptr<const Theme>& theme);
+    // Called by ApplicationResources before a theme change (P12b): the
+    // inline styles of the window's root and popups compiled again against
+    // `theme` (Control::collect_inline_restyles).
+    [[nodiscard]] bool collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
+                                               std::vector<ThemeCompileDiagnostic>& diagnostics) const;
+    // Installs what collect_inline_restyles collected
+    // (Control::commit_inline_restyles).
+    static void commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles);
     void repaint_for_image_replacement();
     void repaint_for_image_removal();
     friend class BindingSource;

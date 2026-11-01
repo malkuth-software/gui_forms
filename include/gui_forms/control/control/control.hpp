@@ -52,6 +52,7 @@ namespace detail {
 class DisplayChunk;
 struct DispatcherState;
 struct ControlInlineStyle;
+struct InlineRestyle;
 
 template <typename EventType, typename... Values>
 class DeferredEventPublication final {
@@ -457,6 +458,10 @@ public:
     [[nodiscard]] std::shared_ptr<const Theme> theme_override() const noexcept {
         return theme_override_;
     }
+    // Setting or clearing the override changes the theme in effect for the
+    // subtree: each inline style there defining custom properties is
+    // compiled against the new theme first, and where one does not compile
+    // the change is refused, invalid_argument, with nothing changed (P12b).
     void set_theme_override(std::shared_ptr<const Theme> theme);
     void clear_theme_override();
     [[nodiscard]] const std::optional<SurfaceMaterial>&
@@ -589,7 +594,13 @@ public:
     // `!important` declarations that are not colours stand. A refused style
     // changes nothing: the control keeps its previous one, and the result
     // holds the diagnostics. Empty text clears the style. Its diagnostics
-    // name the file `inline:<stable ID>`.
+    // name the file `inline:<stable ID>`. A style defining custom
+    // properties (`--accent: #c00; ::part(face) { fill: var(--accent) }`)
+    // is compiled against the theme in effect for the control (the default
+    // theme while it has none): where its definitions win for a part, the
+    // theme's rules reading them read the style's values. A change of that
+    // theme compiles it again (ApplicationResources::set_theme,
+    // set_theme_override, attachment).
     [[nodiscard]] InlineStyleResult set_inline_style(std::string_view text);
     // The inline style's text in force; empty without one.
     [[nodiscard]] std::string_view inline_style() const noexcept;
@@ -984,6 +995,26 @@ protected:
     void on_dispose() noexcept override;
 
 private:
+    // The theme the control takes without its own override: its parent's,
+    // else its window's, else the default theme.
+    [[nodiscard]] const Theme& inherited_theme() const noexcept;
+    // P12b: compiles again, against `theme`, each inline style of this
+    // subtree that defines custom properties and was compiled against
+    // another theme, appending each to `restyles` uninstalled; a control
+    // below this one with an override of its own keeps its theme and is
+    // passed over with its subtree. False, the diagnostics appended, at the
+    // first that does not compile.
+    [[nodiscard]] bool collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
+                                               std::vector<ThemeCompileDiagnostic>& diagnostics);
+    // Installs restyles collected by collect_inline_restyles, with no user
+    // code run between (their controls are alive).
+    static void commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles);
+    // On attachment to a window: an inline style defining custom
+    // properties compiled against another theme than the one now in effect
+    // is compiled again. One that no longer compiles is kept as it was:
+    // the theme's rules reading its names then keep the theme's
+    // definitions (CompiledThemeRules::theme_serial differs).
+    void refresh_inline_style();
     friend class Window;
     friend class ContainerControl;
     friend class ErrorProvider;
