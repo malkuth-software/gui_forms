@@ -34,6 +34,10 @@ void add_css_layout_panels(const std::shared_ptr<Surface>& page,
 void add_dock_and_anchor(const std::shared_ptr<Surface>& page,
                          const std::shared_ptr<PageContext>& context);
 
+// docking-workspace
+void add_docking_workspace(const std::shared_ptr<Surface>& page,
+                           const std::shared_ptr<PageContext>& context);
+
 // animation-laboratory
 void add_animation(const std::shared_ptr<Surface>& page,
                    const std::shared_ptr<PageContext>& context);

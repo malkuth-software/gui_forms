@@ -89,6 +89,7 @@ void populate_page_body(std::string_view page_id,
     else if (page_id == "retained-layout-panels") add_layout_panels(body, context);
     else if (page_id == "css-layout-panels") add_css_layout_panels(body, context);
     else if (page_id == "dock-and-anchor") add_dock_and_anchor(body, context);
+    else if (page_id == "docking-workspace") add_docking_workspace(body, context);
     else if (page_id == "commands-and-menus") add_commands_and_menus(body, context);
     else if (page_id == "tree-and-object-views") add_tree_and_object_views(body, context);
     else if (page_id == "choices-and-sections") add_choices_and_sections(body, context);

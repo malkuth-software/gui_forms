@@ -371,7 +371,7 @@ struct PageDigest final {
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
-constexpr std::array<PageDigest, 30> expected_digests{{
+constexpr std::array<PageDigest, 31> expected_digests{{
     {"basics", 0x8ad3bd64955e6995ULL},
     {"values", 0xbd711b8e809d2a46ULL},
     {"retained-rows", 0xc9963872eaa82963ULL},
@@ -393,6 +393,7 @@ constexpr std::array<PageDigest, 30> expected_digests{{
     {"css-layout-panels", 0x92431e3c88c313d3ULL},
     {"retained-layout-panels", 0x3c72e8bb2cfc39a5ULL},
     {"dock-and-anchor", 0x6d0427d16dae5d7cULL},
+    {"docking-workspace", 0x67168c2a206614e4ULL},
     {"commands-and-menus", 0x6c25c689c3d2cb5dULL},
     {"tree-and-object-views", 0xd495e239f142b4ffULL},
     {"choices-and-sections", 0xa08d8c7f1f7c976fULL},

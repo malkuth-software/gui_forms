@@ -1432,6 +1432,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/retained-layout-panels.cpp
         src/controls/gallery/pages/css-layout-panels.cpp
         src/controls/gallery/pages/dock-and-anchor.cpp
+        src/controls/gallery/pages/docking-workspace.cpp
         src/controls/gallery/pages/commands-and-menus.cpp
         src/controls/gallery/pages/tree-and-object-views.cpp
         src/controls/gallery/pages/choices-and-sections.cpp
@@ -3567,6 +3568,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/dialogs-and-host-services_tests.cpp
             tests/gallery_pages/states-and-diagnostics_tests.cpp
             tests/gallery_pages/dock-and-anchor_tests.cpp
+            tests/gallery_pages/docking-workspace_tests.cpp
             tests/gallery_pages/retained-layout-panels_tests.cpp
             tests/gallery_pages/css-layout-panels_tests.cpp
             tests/gallery_pages/control-spectrum_tests.cpp

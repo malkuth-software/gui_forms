@@ -72,6 +72,7 @@ void test_dock_anchor_gallery_interaction() {
     std::unique_ptr<Window> owned = gallery::make_gallery();
     Window& window = *owned;
     test_dock_and_anchor(window);
+    test_docking_workspace(window);
 }
 
 void test_registry_pages_gallery() {

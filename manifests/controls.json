@@ -565,7 +565,7 @@
       "purpose": "The docked part of a DockWorkspace in one window: binary splits with 3-unit seams moved by pointer and keyboard within minimums, captioned tool stacks and the document area built from PageView, root-level pins that auto-hide a stack to side tabs on the window's edges with sliding in-window flyouts, the position menu, F6 regions, the Ctrl+Tab navigator, Escape and Shift+Escape, a maximized document area, tool stacks collapsing by priority behind side tabs when the window is too small, and dragging in one window: caption and tab drags with a postage-stamp miniature, position-sensitive targets with quiet tiles over the hovered pane and global edge targets, Ctrl suppression, snap-back, and the keyboard move mode.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": "containers-and-focus",
+      "gallery_page": "docking-workspace",
       "doc": "api/generated/gui_forms.DockSite.rst"
     },
     {
@@ -916,10 +916,10 @@
       "type": "DockWorkspace",
       "header": "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp",
       "category": "Components",
-      "purpose": "Docking workspace component: owns the DockLayout, the panel registrations with lazy factories and their content, and the active panel and active document tracks with their histories, named on the window's command routing chain.",
+      "purpose": "Docking workspace component: owns the DockLayout, the panel registrations with lazy factories and their content, and the active panel and active document tracks with their histories, named on the window's command routing chain; asks the program before documents close at the user's request (each or combined, cancellable and deferrable); saves and restores the layout on live windows, and keeps named layouts for the program to save.",
       "winforms": "GUI.Forms-only",
       "status": "provisional",
-      "gallery_page": "containers-and-focus",
+      "gallery_page": "docking-workspace",
       "doc": "api/generated/gui_forms.DockWorkspace.rst"
     },
     {
