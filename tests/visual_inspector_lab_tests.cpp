@@ -2,9 +2,11 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <chrono>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -68,6 +70,36 @@ int main() {
                 "lab inspector must expose its target and current visual summary to accessibility");
         require(semantics.find("visual-inspector.overlay") == std::string::npos,
                 "pointer-transparent visual geometry overlay must remain absent from accessibility");
+        // The inspector polls on a UI timer and repaints only what changed:
+        // an idle poll leaves nothing to paint (it used to repaint the whole
+        // window through the overlay four times a second).
+        static_cast<void>((*window).take_damage());
+        const FrameTime first_poll = FrameClock::now() + std::chrono::milliseconds(300);
+        static_cast<void>((*window).poll_frame_schedule(first_poll));
+        require(!(*window).needs_frame(), "an idle inspector poll must not repaint");
+        const Control::Ptr card_control = (*window).find("visual-inspector.specimen-card");
+        require(card_control != nullptr, "lab must keep its inspected card");
+        (*card_control).set_enabled(false);
+        static_cast<void>((*window).paint(painter, {0.0, 0.0, 1160.0, 700.0}));
+        static_cast<void>((*window).take_damage());
+        const std::shared_ptr<VisualInspectorView> view =
+            std::dynamic_pointer_cast<VisualInspectorView>((*window).find("visual-inspector.readout"));
+        require(view != nullptr, "lab must keep its inspector view");
+        // The inspector may paint before its target's new display chunk is
+        // committed, so one poll can repaint it; after that it is current.
+        static_cast<void>((*view).refresh_if_changed());
+        static_cast<void>((*window).paint(painter, {0.0, 0.0, 1160.0, 700.0}));
+        static_cast<void>((*window).take_damage());
+        require(!(*view).refresh_if_changed(), "a repainted inspector must settle after one poll");
+        // Repaint only the card: the inspector now shows a stale state, and
+        // only its poll can notice.
+        (*card_control).set_enabled(true);
+        static_cast<void>((*window).paint(painter, (*card_control).absolute_bounds()));
+        static_cast<void>((*window).take_damage());
+        require(!(*window).needs_frame(), "repainting the card must leave nothing pending");
+        const FrameTime second_poll = first_poll + std::chrono::milliseconds(300);
+        static_cast<void>((*window).poll_frame_schedule(second_poll));
+        require((*window).needs_frame(), "a poll after the target changed must repaint the inspector");
         std::cout << "gui_forms_visual_inspector_lab_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

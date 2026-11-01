@@ -2,6 +2,7 @@
 
 #include "gui_forms/control.hpp"
 
+#include <optional>
 #include <span>
 #include <string>
 
@@ -19,7 +20,14 @@ public:
         return target_stable_id_;
     }
     void set_target_stable_id(std::string stable_id);
+    // Repaints (and republishes semantics) unconditionally.
     void refresh();
+    // Repaints only when the text the view would draw differs from what it
+    // last drew, so polling an unchanged target costs one inspection snapshot
+    // and no paint. The pending damage count is not compared: it describes
+    // the paint that drew it, which always includes the view's own damage. Returns whether it repainted. Poll it from a UI timer: an
+    // active surface repaints its control on every tick whatever on_frame does.
+    bool refresh_if_changed();
 
     void on_frame(FrameTime now) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -49,6 +57,8 @@ protected:
 private:
     [[nodiscard]] std::string accessible_value() const;
     std::string target_stable_id_;
+    // The rows on_paint last drew, as one key (empty before the first paint).
+    std::string painted_content_;
 };
 
 // Transparent overlay companion which draws the target's arranged, visual,
@@ -63,7 +73,13 @@ public:
         return target_stable_id_;
     }
     void set_target_stable_id(std::string stable_id);
+    // Repaints unconditionally.
     void refresh();
+    // Repaints only when the outlines differ from the ones last drawn, and
+    // returns whether it did. The overlay usually spans the window, so an
+    // unconditional repaint repaints the whole window; poll this from a UI
+    // timer, not an active surface (see VisualInspectorView).
+    bool refresh_if_changed();
 
     void on_frame(FrameTime now) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -90,7 +106,23 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The three outlines in this control's coordinates, or none when the
+    // target is missing (or is this overlay).
+    struct Outlines final {
+        bool shown{};
+        Rect visual{};
+        Rect arranged{};
+        Rect clip{};
+        friend bool operator==(const Outlines& left, const Outlines& right) {
+            const bool same = left.shown == right.shown && left.visual == right.visual &&
+                              left.arranged == right.arranged && left.clip == right.clip;
+            return same;
+        }
+    };
+    [[nodiscard]] Outlines current_outlines() const;
     std::string target_stable_id_;
+    // What on_paint last drew; nullopt before the first paint.
+    std::optional<Outlines> painted_;
 };
 
 } // namespace gui_forms

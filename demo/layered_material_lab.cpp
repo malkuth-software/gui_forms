@@ -1,6 +1,7 @@
 #include "layered_material_lab.hpp"
 
 #include "gui_forms/gui_forms.hpp"
+#include "visual_inspector_poll.hpp"
 
 #include <array>
 #include <chrono>
@@ -521,12 +522,8 @@ std::unique_ptr<Window> make_layered_material_lab() {
     (*root).retain((*scale).clicked().subscribe(
         *root, CycleTextScale{window.get(), scale}));
     (*window).perform_layout();
-    (*root).retain((*window).activate_surface(
-        inspector, std::chrono::milliseconds(250),
-        FrameClock::now() + std::chrono::milliseconds(250)));
-    (*root).retain((*window).activate_surface(
-        overlay, std::chrono::milliseconds(250),
-        FrameClock::now() + std::chrono::milliseconds(250)));
+    (*root).retain(gui_forms::demo::schedule_visual_inspector_poll(
+        *window, *root, inspector, overlay));
     return window;
 }
 

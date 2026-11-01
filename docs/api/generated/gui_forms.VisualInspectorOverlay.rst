@@ -55,6 +55,8 @@ gui_forms::VisualInspectorOverlay
 
       * - :cpp:func:`refresh <gui_forms::VisualInspectorOverlay::refresh>`
         - Repaints the overlay from a new snapshot.
+      * - :cpp:func:`refresh_if_changed <gui_forms::VisualInspectorOverlay::refresh_if_changed>`
+        - Repaints only when the outlines differ from the ones last drawn, and returns whether it did.
 
    .. seealso::
 
@@ -127,6 +129,10 @@ gui_forms::VisualInspectorOverlay
 
       Repaints the overlay from a new snapshot. Call it after the target moves
       or changes size.
+
+   .. cpp:function:: bool refresh_if_changed()
+
+      Repaints only when the outlines differ from the ones last drawn, and returns whether it did. The overlay usually spans the window, so an unconditional repaint repaints the whole window; poll this from a UI timer, not an active surface (see VisualInspectorView).
 
 
    .. rubric:: Extension points

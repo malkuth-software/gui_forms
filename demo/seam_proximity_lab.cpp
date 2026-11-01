@@ -1,6 +1,7 @@
 #include "seam_proximity_lab.hpp"
 
 #include "gui_forms/gui_forms.hpp"
+#include "visual_inspector_poll.hpp"
 
 #include <chrono>
 #include <memory>
@@ -414,12 +415,8 @@ std::unique_ptr<Window> make_seam_proximity_lab() {
     (*window).perform_layout();
     // Polling belongs solely to the explicitly opened inspector. No seam or
     // proximity transition schedules a frame or an idle animation loop.
-    (*root).retain((*window).activate_surface(
-        inspector, std::chrono::milliseconds(250),
-        FrameClock::now() + std::chrono::milliseconds(250)));
-    (*root).retain((*window).activate_surface(
-        overlay, std::chrono::milliseconds(250),
-        FrameClock::now() + std::chrono::milliseconds(250)));
+    (*root).retain(gui_forms::demo::schedule_visual_inspector_poll(
+        *window, *root, inspector, overlay));
     return window;
 }
 
