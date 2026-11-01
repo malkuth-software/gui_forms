@@ -91,7 +91,7 @@ SemanticDescriptor ErrorGlyph::semantic_descriptor() const {
     return descriptor;
 }
 
-void ErrorGlyph::on_frame(FrameTime) {
+void ErrorGlyph::advance_blink() {
     Window* owner = attached_window();
     if (!owner || (*owner).presentation_settings().reduced_motion ||
         style_ == ErrorBlinkStyle::never_blink) {
@@ -143,8 +143,8 @@ void ErrorGlyph::refresh_schedule() {
 AnimationTickResult ErrorGlyph::BlinkTick::operator()(FrameTime now) const {
     const std::shared_ptr<ErrorGlyph> live = glyph.lock();
     if (!live) return AnimationTickResult::unchanged;
-    // on_frame toggles the phase and damages the glyph.
-    (*live).on_frame(now);
+    static_cast<void>(now);
+    (*live).advance_blink();
     return AnimationTickResult::damaged;
 }
 

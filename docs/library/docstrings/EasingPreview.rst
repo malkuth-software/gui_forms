@@ -47,9 +47,10 @@ phase : default ``0.0``
 
 Methods
 -------
-on_frame
-    Called on each tick of the preview's animation timer; it samples the
-    timeline into `phase`.
+advance_animation
+    Samples the timeline at a frame time into `phase`. The preview's
+    animation timer calls it on each tick; tests call it to step the preview
+    without a clock.
 
 See Also
 --------

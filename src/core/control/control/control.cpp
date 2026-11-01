@@ -2839,7 +2839,6 @@ void Control::collect_mnemonic_candidates(const Ptr& control,
         collect_mnemonic_candidates(child, character, candidates);
     }
 }
-void Control::on_frame(FrameTime) {}
 
 bool Control::prepare_command_activation() {
     if (!is_alive() || initialization_blocked() || !effectively_visible() ||

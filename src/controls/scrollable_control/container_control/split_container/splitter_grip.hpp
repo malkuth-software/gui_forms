@@ -38,7 +38,6 @@ public:
     void on_focus_changed(bool focused) override;
     void on_focus_cue_changed(bool visible) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_frame(FrameTime now) override;
 
 protected:
     void on_attached_to_window() override;
@@ -54,6 +53,8 @@ private:
     // One transition tick: advances the actuator and damages its old and new
     // place.
     AnimationTickResult on_transition_tick(FrameTime now);
+    // Advances the actuator transition to `now`.
+    void advance_animation(FrameTime now);
     [[nodiscard]] bool engaged() const noexcept;
     [[nodiscard]] Rect actuator_bounds(double cross_extent,
                                        double axis_extent) const noexcept;
@@ -75,8 +76,7 @@ private:
     bool focused_{};
     FrameInterval transition_duration_{std::chrono::milliseconds(90)};
     AnimationTimeline transition_timeline_;
-    // ADR-016: a paint-gated UI timer at the display rate, not an active
-    // surface.
+    // ADR-016: a paint-gated UI timer at the display rate.
     AnimationTimer transition_frames_;
     Size transition_from_{7.0, 28.0};
     Size transition_to_{7.0, 28.0};

@@ -186,8 +186,7 @@ int main()
     // which starts when the shown instrument is first painted.
     CountingPainter instrument_painter;
     (*window).paint(instrument_painter);
-    expect((*window).metrics_snapshot().active_surface_count == 0 &&
-               (*window).next_wake().has_value(),
+    expect((*window).next_wake().has_value(),
            "custom instrument schedules its sweep timer while shown");
     const gui_forms::ImageRegistrySnapshot images = (*window).image_resource_snapshot();
     // One validated PNG (the status badge, 146 encoded bytes), the six

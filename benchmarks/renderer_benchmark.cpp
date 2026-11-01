@@ -271,7 +271,6 @@ MetricsSnapshot metrics_delta(const MetricsSnapshot& after,
     result.paint_invalidations_consumed =
         after.paint_invalidations_consumed - before.paint_invalidations_consumed;
     result.scheduler_wakes = after.scheduler_wakes - before.scheduler_wakes;
-    result.active_surface_ticks = after.active_surface_ticks - before.active_surface_ticks;
     return result;
 }
 
@@ -394,6 +393,12 @@ class BandControl final : public Control {
 public:
     explicit BandControl(StableId id) : Control(std::move(id)) {}
 
+    // The band's UI timer target: repaints the whole band each tick.
+    struct FrameTick final {
+        std::weak_ptr<BandControl> band;
+        void operator()(FrameTime now) const;
+    };
+
     void on_paint(Painter& painter, Rect) override {
         ++sequence_;
         const std::uint8_t phase = static_cast<std::uint8_t>(sequence_ % 96U);
@@ -406,6 +411,12 @@ public:
 
 private:
     std::uint64_t sequence_{};
+
+void BandControl::FrameTick::operator()(FrameTime now) const {
+    static_cast<void>(now);
+    const std::shared_ptr<BandControl> live = band.lock();
+    if (live) (*live).invalidate(Dirty::paint);
+}
 };
 
 template <typename Raster>
@@ -428,8 +439,11 @@ std::string band_record(std::string_view renderer,
     window.reset_activity_metrics();
 
     const FrameTime origin{};
-    FrameRequestToken active = window.activate_surface(band, band_interval,
-                                                       origin + band_interval);
+    // ADR-016: a UI timer that damages the band, as an animated control's own
+    // timer would.
+    FrameRequestToken active = window.schedule_ui_timer(
+        *band, band_interval, origin + band_interval, BandControl::FrameTick{band});
+    std::uint64_t timer_ticks = 0;
     std::vector<std::uint64_t> samples;
     samples.reserve(band_frames);
     std::uint64_t frame_budget_misses = 0;
@@ -438,9 +452,10 @@ std::string band_record(std::string_view renderer,
     for (std::size_t frame = 1; frame <= band_frames; ++frame) {
         const FramePollResult poll = window.poll_frame_schedule(
             origin + band_interval * static_cast<FrameInterval::rep>(frame));
-        if (poll.active_surface_ticks != 1) {
-            throw std::runtime_error("30 Hz active surface did not emit exactly one tick");
+        if (poll.ui_timer_ticks != 1) {
+            throw std::runtime_error("30 Hz band timer did not emit exactly one tick");
         }
+        timer_ticks += poll.ui_timer_ticks;
         DamageRegion damage = window.take_damage();
         if (damage.bounds() != Rect{0.0, 0.0, 900.0, 10.0}) {
             throw std::runtime_error("30 Hz band damage escaped the isolated surface");
@@ -478,7 +493,7 @@ std::string band_record(std::string_view renderer,
            << ",\"rss_before\":" << process_before.resident_bytes
            << ",\"rss_after\":" << process_after.resident_bytes
            << ",\"scheduler_wakes\":" << metrics.scheduler_wakes
-           << ",\"active_surface_ticks\":" << metrics.active_surface_ticks
+           << ",\"ui_timer_ticks\":" << timer_ticks
            << ",\"controls_painted\":" << metrics.controls_painted
            << ",\"surrounding_repaints\":" << surrounding_repaints
            << ",\"chunks_rebuilt\":" << metrics.display_chunks_rebuilt

@@ -26,6 +26,7 @@
 //
 // Usage: gui_forms_present_profile_workload [output]
 
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
 
@@ -42,6 +43,8 @@
 
 namespace {
 
+using gui_forms::AnimationTickResult;
+using gui_forms::AnimationTimer;
 using gui_forms::Application;
 using gui_forms::ApplicationResult;
 using gui_forms::ApplicationWindowHandle;
@@ -49,8 +52,6 @@ using gui_forms::ApplicationWindowOptions;
 using gui_forms::Color;
 using gui_forms::Control;
 using gui_forms::Dirty;
-using gui_forms::FrameClock;
-using gui_forms::FrameRequestToken;
 using gui_forms::FrameTime;
 using gui_forms::MetricsSnapshot;
 using gui_forms::Painter;
@@ -99,10 +100,14 @@ public:
         Window* const owner = window();
         if (owner == nullptr) return;
         (*run_).started = Clock::now();
-        frames_ = (*owner).activate_surface(shared_from_this(), frame_interval, FrameClock::now() + frame_interval);
+        // ADR-016: a paint-gated animation timer, as an animated control
+        // would use; each tick damages the whole probe.
+        const std::shared_ptr<PresentProbe> self =
+            std::static_pointer_cast<PresentProbe>(shared_from_this());
+        frames_.start(*this, frame_interval, FrameTick{self});
     }
 
-    void on_frame(FrameTime) override {
+    AnimationTickResult advance() {
         PresentRun& run = *run_;
         const bool finished = run.last.has_value();
         const bool late = Clock::now() - run.started > time_limit;
@@ -110,15 +115,17 @@ public:
             if (!run.close_requested) {
                 run.close_requested = true;
                 run.timed_out = !finished;
-                frames_.disconnect();
+                frames_.stop();
                 static_cast<void>(run.handle.request_close());
             }
-            return;
+            return AnimationTickResult::unchanged;
         }
         invalidate(Dirty::paint);
+        return AnimationTickResult::damaged;
     }
 
     void on_paint(Painter& painter, Rect damage) override {
+        frames_.note_painted();
         PresentRun& run = *run_;
         Window* const owner = window();
         // Presents up to the previous frame are in the metrics now.
@@ -137,7 +144,19 @@ public:
 
 private:
     PresentRun* run_{};
-    FrameRequestToken frames_{};
+    // The timer's target. Observes the probe.
+    struct FrameTick final {
+        std::weak_ptr<PresentProbe> probe;
+        AnimationTickResult operator()(FrameTime now) const {
+            static_cast<void>(now);
+            const std::shared_ptr<PresentProbe> live = probe.lock();
+            const AnimationTickResult result =
+                live ? (*live).advance() : AnimationTickResult::unchanged;
+            return result;
+        }
+    };
+
+    AnimationTimer frames_;
 };
 
 // The window's ready callback: keeps its handle and scale, then starts the

@@ -22,11 +22,30 @@ public:
     explicit FrameProbe(gui_forms::StableId stable_id)
         : Control(std::move(stable_id)) {}
 
-    void on_frame(gui_forms::FrameTime) override { ++ticks; }
+    // One tick of the probe's UI timer: counts it and damages the probe, as
+    // an animated control's own timer does (ADR-016).
+    void advance_frame() {
+        ++ticks;
+        invalidate(gui_forms::Dirty::paint);
+    }
     void on_paint(gui_forms::Painter&, gui_forms::Rect) override { ++paints; }
 
     std::uint64_t ticks{};
     std::uint64_t paints{};
+};
+
+// The probe's UI timer target. Observes the probe.
+class FrameProbeTick final {
+public:
+    explicit FrameProbeTick(const std::shared_ptr<FrameProbe>& probe) : probe_(probe) {}
+
+    void operator()(gui_forms::FrameTime) const {
+        const std::shared_ptr<FrameProbe> live = probe_.lock();
+        if (live) (*live).advance_frame();
+    }
+
+private:
+    std::weak_ptr<FrameProbe> probe_;
 };
 
 struct RearmProbeState final {
@@ -346,9 +365,10 @@ void rearm_after_disconnect(void* context) {
     if (state.ticks_at_rearm[current] != state.ticks_before[current]) {
         ++state.quiescent_gap_failures;
     }
-    state.replacement = (*state.window).activate_surface(
-        state.root, std::chrono::milliseconds(10),
-        gui_forms::FrameClock::now() + std::chrono::milliseconds(10));
+    state.replacement = (*state.window).schedule_ui_timer(
+        *state.root, std::chrono::milliseconds(10),
+        gui_forms::FrameClock::now() + std::chrono::milliseconds(10),
+        FrameProbeTick{state.root});
     state.wake();
     post_after(70 * NSEC_PER_MSEC, work.release(), &rearm_measure);
 }
@@ -378,8 +398,8 @@ public:
         ReadClipboardCallback,
         WriteClipboardCallback) const {
         // Exercise the exact transport used by pause/resume: disconnect the
-        // last active lease, force the host to disarm, then publish a new
-        // lease and wake it again. Repeating the transition catches a host
+        // last timer, force the host to disarm, then publish a new
+        // timer and wake it again. Repeating the transition catches a host
         // source that reports a logically live model but remains disarmed.
         rearm_state_ = std::make_shared<RearmProbeState>();
         (*rearm_state_).root = surface_;
@@ -556,9 +576,10 @@ int main() {
     std::unique_ptr<gui_forms::Window> window = std::make_unique<gui_forms::Window>(root,
                                                       gui_forms::Size{320.0, 180.0});
     gui_forms::Window* const live_window = window.get();
-    gui_forms::FrameRequestToken active = (*window).activate_surface(
-        surface, std::chrono::milliseconds(10),
-        gui_forms::FrameClock::now() + std::chrono::milliseconds(10));
+    gui_forms::FrameRequestToken active = (*window).schedule_ui_timer(
+        *surface, std::chrono::milliseconds(10),
+        gui_forms::FrameClock::now() + std::chrono::milliseconds(10),
+        FrameProbeTick{surface});
     std::shared_ptr<RearmProbeState> rearm_state;
     const std::shared_ptr<NativeWindowProbeState> native_window_probe =
         std::make_shared<NativeWindowProbeState>();
@@ -652,7 +673,7 @@ int main() {
         (*rearm_state).nested_dispatch.state() !=
             gui_forms::DispatchOperationState::completed) {
         std::cerr << "AppKit scheduled wake did not autonomously advance after "
-                     "repeated active-surface replacement: before="
+                     "repeated UI timer replacement: before="
                   << (*rearm_state).ticks_before.front()
                   << " after=" << (*rearm_state).ticks_after.back()
                   << " paints=" << (*(*rearm_state).root).paints

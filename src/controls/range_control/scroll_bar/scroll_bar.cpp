@@ -248,8 +248,9 @@ void ScrollBar::begin_repeat(ScrollBarPart part, Point pointer) {
 }
 
 void ScrollBar::RepeatTick::operator()(FrameTime now) const {
+    static_cast<void>(now);
     const std::shared_ptr<ScrollBar> live = bar.lock();
-    if (live) (*live).on_frame(now);
+    if (live) (*live).repeat_step();
 }
 
 void ScrollBar::stop_interaction() noexcept {
@@ -400,7 +401,7 @@ void ScrollBar::on_focus_changed(bool focused) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ScrollBar::on_frame(FrameTime) {
+void ScrollBar::repeat_step() {
     if (pressed_part_ == ScrollBarPart::decrement_track ||
         pressed_part_ == ScrollBarPart::increment_track) {
         if (part_at(repeat_pointer_) != pressed_part_) {

@@ -171,10 +171,10 @@ void sunken_frame(Painter& painter, Rect rect, Color fill)
                       static_cast<unsigned long long>(m.focus_transitions),
                       static_cast<unsigned long long>(m.activations));
     } else if (id == "gallery.diagnostics.flush") {
-        std::snprintf(buffer, sizeof(buffer), "wake %llu / ticks %llu / active %llu",
+        std::snprintf(buffer, sizeof(buffer), "wake %llu / deadlines %llu / motion %llu",
                       static_cast<unsigned long long>(m.scheduler_wakes),
-                      static_cast<unsigned long long>(m.active_surface_ticks),
-                      static_cast<unsigned long long>(m.active_surface_count));
+                      static_cast<unsigned long long>(m.frame_deadlines_fired),
+                      static_cast<unsigned long long>(m.motion_clock_ticks));
     } else if (id == "gallery.diagnostics.present") {
         std::snprintf(buffer, sizeof(buffer), "present %llu / worst %.3f ms",
                       static_cast<unsigned long long>(m.frames_presented),

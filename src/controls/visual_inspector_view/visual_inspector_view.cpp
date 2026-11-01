@@ -269,7 +269,6 @@ AnimationTickResult VisualInspectorView::PollTick::operator()(FrameTime) const {
     return result;
 }
 
-void VisualInspectorView::on_frame(FrameTime) { static_cast<void>(refresh_if_changed()); }
 
 void VisualInspectorView::on_paint(Painter& painter, Rect) {
     poll_timer_.note_painted();
@@ -383,7 +382,6 @@ AnimationTickResult VisualInspectorOverlay::PollTick::operator()(FrameTime) cons
     return result;
 }
 
-void VisualInspectorOverlay::on_frame(FrameTime) { static_cast<void>(refresh_if_changed()); }
 
 void VisualInspectorOverlay::on_paint(Painter& painter, Rect) {
     poll_timer_.note_painted();

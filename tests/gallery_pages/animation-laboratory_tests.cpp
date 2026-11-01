@@ -19,20 +19,17 @@ void test_animation_laboratory(gui_forms::Window& window) {
         std::dynamic_pointer_cast<CheckBox>(window.find("gallery.animation.reduced"));
     require(reduced_box != nullptr && !(*reduced_box).checked(),
             "reduced-motion check box must start from the page Value's false state");
-    (*animated_progress).on_frame(
+    (*animated_progress).advance_animation(
         FrameClock::now() + std::chrono::milliseconds(410));
     const double retained_progress_phase = (*animated_progress).animation_phase();
-    const std::uint64_t full_motion_surfaces =
-        poll_active_surface_count(window);
     // The easing previews and progress bars animate on UI timers they stop
-    // themselves (ADR-016), not on active surfaces.
-    require(retained_progress_phase > 0.0 && full_motion_surfaces == 0U,
-            "gallery motion must run on control-owned UI timers, not active surfaces");
+    // themselves (ADR-016).
+    require(retained_progress_phase > 0.0,
+            "gallery progress must advance its retained phase");
     require(window.next_wake().has_value(),
             "visible animation page must publish a retained frame deadline");
     click(window, window.find("gallery.animation.reduced"));
     require(window.next_wake().has_value() &&
-                poll_active_surface_count(window) == full_motion_surfaces &&
                 (*animated_progress).animation_phase() == retained_progress_phase &&
                 has_semantic_state((*animated_progress).semantic_descriptor().states,
                                    SemanticState::busy),
@@ -61,14 +58,12 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "paused reduced motion must retain stable geometry without wakeups");
     click(window, window.find("gallery.animation.pause"));
     require(window.next_wake().has_value() &&
-                poll_active_surface_count(window) == full_motion_surfaces &&
                 paint_fill_trace(easing) == paused_reduced_geometry &&
                 (*animated_progress).animation_phase() == reduced_progress_phase &&
                 (*pause_button).text() == "Pause motion",
             "one resume action under reduced motion must restore calm animation");
     click(window, window.find("gallery.animation.reduced"));
     require(window.next_wake().has_value() &&
-                poll_active_surface_count(window) == full_motion_surfaces &&
                 (*animated_progress).animation_phase() == reduced_progress_phase,
             "leaving reduced motion must preserve phase while restoring full cadence");
     click(window, window.find("gallery.status.live"));
@@ -99,8 +94,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
         const std::vector<Rect> before = paint_fill_trace(easing);
         click(window, window.find("gallery.animation.pause"));
         require(window.next_wake().has_value() &&
-                    (*pause_button).text() == "Pause motion" &&
-                    poll_active_surface_count(window) == full_motion_surfaces,
+                    (*pause_button).text() == "Pause motion",
                 "every resume cycle must replace the lease and publish one command");
         const FrameTime due = *window.next_wake();
         const FramePollResult frame = window.poll_frame_schedule(due);

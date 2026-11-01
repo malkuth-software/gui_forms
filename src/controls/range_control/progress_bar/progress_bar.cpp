@@ -202,7 +202,7 @@ AnimationTickResult ProgressBar::AnimationTick::operator()(FrameTime now) const 
 
 AnimationTickResult ProgressBar::on_animation_tick(FrameTime now) {
     const Rect before = animated_extent();
-    on_frame(now);
+    advance_animation(now);
     const Rect after = animated_extent();
     const Rect damage = Rect::united(before, after);
     if (damage.empty()) return AnimationTickResult::unchanged;
@@ -246,7 +246,7 @@ void ProgressBar::on_detached_from_window() noexcept {
     RangeControl::on_detached_from_window();
 }
 
-void ProgressBar::on_frame(FrameTime now) {
+void ProgressBar::advance_animation(FrameTime now) {
     const MotionPolicy policy = effective_motion_policy();
     if (!animation_enabled_ || !policy.active() ||
         !animated_style()) {

@@ -601,8 +601,10 @@ Rect blink_damage(Fixture& fixture) {
     const std::optional<FrameTime> deadline = fixture.window.next_wake();
     require(deadline.has_value(), "focused caret must retain a deadline");
     const FramePollResult poll = fixture.window.poll_frame_schedule(*deadline);
-    require(poll.deadlines_fired == 1U && poll.coalesced_requests == 1U,
-            "actual caret callback must supply damage before scheduler fallback");
+    // ADR-016: the caret blinks on its own UI timer, which damages only the
+    // caret; no paint deadline repaints the whole box.
+    require(poll.ui_timer_ticks == 1U && poll.deadlines_fired == 0U,
+            "the caret blink timer must supply its own damage");
     const DamageRegion damage = fixture.window.take_damage();
     const Rect bounds = damage.bounds();
     return bounds;

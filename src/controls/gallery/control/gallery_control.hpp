@@ -54,7 +54,7 @@ private:
     bool focused_{};
     bool drag_hovered_{};
     // The instrument's sweep (ADR-016: a paint-gated UI timer at the
-    // instrument's 30 Hz, not an active surface). The phase advances with
+    // instrument's 30 Hz). The phase advances with
     // time, not with paints.
     AnimationTimer sweep_timer_;
     FrameTime sweep_last_tick_{};

@@ -230,8 +230,7 @@ void test_scroll_bar_press_and_hold_repeats_on_a_ui_timer() {
             "pressing the increment button must step once");
     const FrameTime pressed = FrameClock::now();
     require(window.next_wake().has_value() &&
-                *window.next_wake() >= pressed + (*bar).initial_repeat_delay() - std::chrono::milliseconds(5) &&
-                window.metrics_snapshot().active_surface_count == 0,
+                *window.next_wake() >= pressed + (*bar).initial_repeat_delay() - std::chrono::milliseconds(5),
             "holding must schedule the first repeat after the initial delay, on a UI timer");
     const FrameTime first = *window.next_wake();
     const FramePollResult repeat = window.poll_frame_schedule(first);

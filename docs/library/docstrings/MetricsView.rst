@@ -2,7 +2,7 @@ A diagnostic panel that shows the window's runtime counters.
 
 A metrics view draws a dark card with a title and one or two lines read from
 the window's `MetricsSnapshot`: the number of controls, paint passes, reused
-display chunks, input events, active surfaces and focus scopes, and the area
+display chunks, input events and focus scopes, and the area
 painted. It is meant for development builds, test windows and diagnostics
 panels, where it shows whether an interaction repaints more than it should or
 leaves the window busy. It ignores the pointer. Read `Window::metrics_snapshot`

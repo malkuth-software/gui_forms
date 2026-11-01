@@ -116,7 +116,7 @@ void test_ranges_and_progress(gui_forms::Window& window) {
     }
     require(window.metrics_snapshot().frame_callback_faults ==
                 frame_faults_before,
-            "slider-to-animation stress must not fault an active surface callback");
+            "slider-to-animation stress must not fault an animation timer callback");
 }
 
 } // namespace gallery_pages_tests

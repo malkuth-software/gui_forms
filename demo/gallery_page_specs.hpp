@@ -47,7 +47,7 @@ inline constexpr std::array<GalleryPageSpec, 30> gallery_pages {{
      "Compiled-DML GalleryControl rows with exclusive selection and a typed drop target (demo-private, not a registry type).",
      false, "Selection from a list"},
     {"instrument", "Custom instrument",
-     "Compiled-DML GalleryControl instrument on a 30 fps active-surface lease (demo-private, not a registry type).",
+     "Compiled-DML GalleryControl instrument on a paint-gated 30 fps animation timer (demo-private, not a registry type).",
      false, "Drawing"},
     {"control-spectrum", "Control spectrum",
      "Stock button family: default, disabled, visual styles, image list, check and radio indicators.",

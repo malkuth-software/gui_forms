@@ -199,7 +199,7 @@ void test_progress_animation_damages_what_moves() {
         const DamageRegion damage = window.take_damage();
         const Rect bounds = damage.bounds();
         // The fill is the left half of the 236-pixel interior, inset 2.
-        require(frame.ui_timer_ticks == 1U && frame.active_surface_ticks == 0U &&
+        require(frame.ui_timer_ticks == 1U &&
                     (*progress).animation_phase() > before && !bounds.empty() &&
                     bounds.x >= 1.0 && bounds.x + bounds.width <= 121.0 &&
                     bounds.y >= 1.0 && bounds.y + bounds.height <= 19.0 &&
@@ -321,8 +321,8 @@ void test_progress_animation_and_hidden_suspension() {
             "animated progress style must register a retained frame source");
 
     const FrameTime origin = FrameClock::now();
-    (*progress).on_frame(origin);
-    (*progress).on_frame(origin + 250ms);
+    (*progress).advance_animation(origin);
+    (*progress).advance_animation(origin + 250ms);
     require((*progress).animation_phase() > 0.24 &&
                 (*progress).animation_phase() < 0.26,
             "progress animation phase must follow its declared period");
@@ -352,7 +352,7 @@ void test_progress_animation_and_hidden_suspension() {
     require(!window.next_wake().has_value() && (*progress).animation_phase() == 0.0,
             "disabled stripe motion must paint statically without an idle wake");
     (*progress).set_animation_enabled(true);
-    (*progress).on_frame(FrameClock::now() + 325ms);
+    (*progress).advance_animation(FrameClock::now() + 325ms);
     const double retained_phase = (*progress).animation_phase();
     (*progress).set_animation_paused(true);
     require(!window.next_wake().has_value() &&
@@ -362,7 +362,7 @@ void test_progress_animation_and_hidden_suspension() {
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), retained_phase),
             "resumed progress motion must retain phase before its next frame");
-    (*progress).on_frame(*window.next_wake());
+    (*progress).advance_animation(*window.next_wake());
     require((*progress).animation_phase() > retained_phase,
             "the first resumed frame must advance from the retained phase");
     const double pre_reduced_phase = (*progress).animation_phase();
@@ -374,7 +374,7 @@ void test_progress_animation_and_hidden_suspension() {
                 has_semantic_state((*progress).semantic_descriptor().states,
                                    SemanticState::busy),
             "reduced motion must retain animation and state updates without resetting phase");
-    (*progress).on_frame(*window.next_wake());
+    (*progress).advance_animation(*window.next_wake());
     const double reduced_phase = (*progress).animation_phase();
     // The timer is paced to about one device pixel of stripe travel a tick
     // (the window's scale is 1): reduced motion presents half the 14-pixel
@@ -559,8 +559,8 @@ void test_progress_animation_style_family() {
 
     (*progress).set_visual_style(ProgressBarVisualStyle::luminance_pulse);
     const FrameTime origin = FrameClock::now();
-    (*progress).on_frame(origin);
-    (*progress).on_frame(origin + 250ms);
+    (*progress).advance_animation(origin);
+    (*progress).advance_animation(origin + 250ms);
     ProgressEffectsPainter pulse;
     (*progress).on_paint(pulse, {0.0, 0.0, 240.0, 24.0});
     require(window.next_wake().has_value() &&
@@ -573,7 +573,7 @@ void test_progress_animation_style_family() {
             "luminance progress must own one clipped, forward-moving soft pulse");
 
     (*progress).set_visual_style(ProgressBarVisualStyle::marching_stripes);
-    (*progress).on_frame(origin + 500ms);
+    (*progress).advance_animation(origin + 500ms);
     ProgressEffectsPainter stripes;
     (*progress).on_paint(stripes, {0.0, 0.0, 240.0, 24.0});
     require(stripes.bands > 2 && stripes.saves >= 1 &&
@@ -583,7 +583,7 @@ void test_progress_animation_style_family() {
             "marching-stripe progress must remain clipped to determinate fill");
 
     (*progress).set_visual_style(ProgressBarVisualStyle::laser_etch);
-    (*progress).on_frame(origin + 750ms);
+    (*progress).advance_animation(origin + 750ms);
     ProgressEffectsPainter laser;
     (*progress).on_paint(laser, {0.0, 0.0, 240.0, 24.0});
     require(laser.five_stop_spread_gradients == 1 &&
@@ -666,7 +666,7 @@ void test_public_easing_preview_owns_scheduler_policy_and_semantics() {
     (*preview).set_motion_policy({true, false, true});
     require(window.next_wake().has_value() && (*preview).phase() == before,
             "reduced EasingPreview motion must retain phase and remain scheduled");
-    (*preview).on_frame(FrameClock::now() + 300ms);
+    (*preview).advance_animation(FrameClock::now() + 300ms);
     require((*preview).phase() > before &&
                 (*preview).semantic_descriptor().numeric_value.has_value(),
             "public EasingPreview frames must advance reusable timeline state");

@@ -127,7 +127,7 @@ MotionPolicy EasingPreview::effective_motion_policy() const noexcept {
     return policy;
 }
 
-void EasingPreview::on_frame(FrameTime now) {
+void EasingPreview::advance_animation(FrameTime now) {
     if (!effective_motion_policy().active()) return;
     const AnimationSample sample = timeline_.sample(now);
     phase_ = sample.progress;
@@ -309,7 +309,7 @@ AnimationTickResult EasingPreview::FrameTick::operator()(FrameTime now) const {
 AnimationTickResult EasingPreview::on_frame_tick(FrameTime now) {
     const MotionPolicy policy = effective_motion_policy();
     const double before = policy.presentation_phase(phase_);
-    on_frame(now);
+    advance_animation(now);
     const double after = policy.presentation_phase(phase_);
     if (after == before) return AnimationTickResult::unchanged;
     // The preview publishes its phase as its accessible value.

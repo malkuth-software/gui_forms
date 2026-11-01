@@ -204,7 +204,6 @@ public:
     void on_key(KeyEvent& event) override;
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
-    void on_frame(FrameTime now) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     // The bar's buttons, as buttons (the heading button as a menu button).
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
@@ -429,6 +428,14 @@ private:
     [[nodiscard]] bool vertical_key(const KeyEvent& event, bool extend, bool command);
     void reset_caret_blink();
     void schedule_caret_blink();
+    // The caret blink timer's target. Observes the box; a destroyed one is
+    // skipped.
+    struct CaretTick final {
+        std::weak_ptr<RichTextBox> box;
+        void operator()(FrameTime now) const;
+    };
+    // One blink: toggles the caret and damages it.
+    void toggle_caret();
     [[nodiscard]] BindingValue text_property_value() const;
     void set_text_property(std::string text);
 

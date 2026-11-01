@@ -71,7 +71,6 @@ public:
     void on_pointer(PointerEvent& event) override;
     void on_key(KeyEvent& event) override;
     void on_focus_changed(bool focused) override;
-    void on_frame(FrameTime now) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     bool on_semantic_action(SemanticAction action,
                             std::string_view value) override;
@@ -82,11 +81,15 @@ protected:
 
 private:
     // The press-and-hold repeat timer's target (ADR-016: a UI timer the bar
-    // stops on release, not an active surface). Observes the bar.
+    // stops on release). Observes the bar.
     struct RepeatTick final {
         std::weak_ptr<ScrollBar> bar;
         void operator()(FrameTime now) const;
     };
+
+    // One repeat tick: steps the pressed part again, and stops the repeat
+    // when the track no longer lies under the pointer or the step is refused.
+    void repeat_step();
 
     void paint_button(Painter& painter, Rect button, ScrollBarPart part,
                       bool incrementing, const BasicControlStyle& colors);

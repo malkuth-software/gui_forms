@@ -26,8 +26,7 @@ public:
     // Repaints only when the text the view would draw differs from what it
     // last drew, so polling an unchanged target costs one inspection snapshot
     // and no paint. The pending damage count is not compared: it describes
-    // the paint that drew it, which always includes the view's own damage. Returns whether it repainted. Poll it from a UI timer: an
-    // active surface repaints its control on every tick whatever on_frame does.
+    // the paint that drew it, which always includes the view's own damage. Returns whether it repainted.
     bool refresh_if_changed();
     // Polls refresh_if_changed every `interval` on a paint-gated
     // AnimationTimer while the view is shown (ADR-016): an unchanged poll
@@ -36,7 +35,6 @@ public:
     void start_polling(FrameInterval interval);
     void stop_polling() noexcept;
 
-    void on_frame(FrameTime now) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
@@ -91,8 +89,8 @@ public:
     void refresh();
     // Repaints only when the outlines differ from the ones last drawn, and
     // returns whether it did. The overlay usually spans the window, so an
-    // unconditional repaint repaints the whole window; poll this from a UI
-    // timer, not an active surface (see VisualInspectorView).
+    // unconditional repaint repaints the whole window; poll it with
+    // start_polling.
     bool refresh_if_changed();
     // Polls refresh_if_changed every `interval` on a paint-gated
     // AnimationTimer while the overlay is shown (ADR-016): an unchanged poll
@@ -101,7 +99,6 @@ public:
     void start_polling(FrameInterval interval);
     void stop_polling() noexcept;
 
-    void on_frame(FrameTime now) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;

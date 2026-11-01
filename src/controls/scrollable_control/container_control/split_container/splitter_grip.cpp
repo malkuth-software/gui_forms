@@ -214,7 +214,7 @@ AnimationTickResult SplitterGrip::TransitionTick::operator()(FrameTime now) cons
 AnimationTickResult SplitterGrip::on_transition_tick(FrameTime now) {
     // The actuator's stroke reaches half a pixel outside its bounds.
     const Rect before = actuator_bounds();
-    on_frame(now);
+    advance_animation(now);
     const Rect after = actuator_bounds();
     const Rect moved = Rect::united(before, after);
     invalidate({moved.x - 1.0, moved.y - 1.0, moved.width + 2.0, moved.height + 2.0});
@@ -254,7 +254,7 @@ void SplitterGrip::on_detached_from_window() noexcept {
     Control::on_detached_from_window();
 }
 
-void SplitterGrip::on_frame(FrameTime now) {
+void SplitterGrip::advance_animation(FrameTime now) {
     if (!transition_active_) return;
     if (window() != nullptr &&
         (*window()).presentation_settings().reduced_motion) {

@@ -93,9 +93,12 @@ public:
         return animation_phase_;
     }
 
+    // Advances the indeterminate or marquee phase to `now`; the animation
+    // timer calls it on each tick, and tests call it to step the bar.
+    void advance_animation(FrameTime now);
+
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_frame(FrameTime now) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
@@ -148,7 +151,7 @@ private:
     ProgressBarOverlayStyle overlay_style_{ProgressBarOverlayStyle::none};
     ProgressBarAnimationAppearance animation_appearance_{};
     double stripe_width_{7.0};
-    // ADR-016: a paint-gated UI timer the bar stops, not an active surface.
+    // ADR-016: a paint-gated UI timer the bar stops.
     AnimationTimer animation_timer_;
     SubscriptionToken presentation_subscription_;
     FrameInterval animation_period_{std::chrono::milliseconds(1400)};

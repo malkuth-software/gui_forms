@@ -22,7 +22,6 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
-    void on_frame(FrameTime now) override;
 
 protected:
     void on_attachment_committed() noexcept override;
@@ -37,10 +36,13 @@ private:
     };
 
     void refresh_schedule();
+    // One blink tick: toggles the phase (or settles it visible when motion
+    // is reduced or blinking is off) and damages the glyph.
+    void advance_blink();
 
     std::string error_;
     std::optional<ImageId> icon_;
-    // ADR-016: a paint-gated UI timer the glyph stops, not an active surface.
+    // ADR-016: a paint-gated UI timer the glyph stops.
     AnimationTimer blink_timer_;
     std::chrono::milliseconds rate_{250};
     ErrorBlinkStyle style_{ErrorBlinkStyle::blink_if_different_error};

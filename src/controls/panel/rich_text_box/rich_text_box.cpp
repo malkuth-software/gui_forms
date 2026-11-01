@@ -21,6 +21,9 @@ using namespace input_control_detail;
 
 namespace {
 
+// The caret shows and hides for this long each.
+constexpr FrameInterval caret_blink_interval = std::chrono::milliseconds(530);
+
 // Throws for a source the box does not take.
 void require_source(std::string_view source) {
     if (!validate_utf8(source).valid()) throw std::invalid_argument("RichTextBox markdown is not valid UTF-8");
@@ -568,12 +571,21 @@ void RichTextBox::reset_caret_blink() {
 
 void RichTextBox::schedule_caret_blink() {
     if (focused_ && attached() && window() != nullptr) {
-        // The window keeps a weak target; the token is revoked on blur and
-        // detachment and replaced when the caret moves.
-        const Control::Ptr target = shared_from_this();
-        const FrameTime deadline = FrameClock::now() + std::chrono::milliseconds(530);
-        caret_frame_ = (*window()).schedule_paint(target, deadline);
+        // ADR-016: a UI timer the box stops on blur and detachment and
+        // replaces when the caret moves, so the caret stays visible for one
+        // whole blink interval after each movement.
+        const FrameTime now = FrameClock::now();
+        const std::shared_ptr<RichTextBox> self =
+            std::static_pointer_cast<RichTextBox>(shared_from_this());
+        caret_frame_ = (*window()).schedule_ui_timer(
+            *this, caret_blink_interval, now + caret_blink_interval, CaretTick{self});
     }
+}
+
+void RichTextBox::CaretTick::operator()(FrameTime now) const {
+    static_cast<void>(now);
+    const std::shared_ptr<RichTextBox> live = box.lock();
+    if (live) (*live).toggle_caret();
 }
 
 void RichTextBox::on_focus_changed(bool focused) {
@@ -589,11 +601,10 @@ void RichTextBox::on_focus_changed(bool focused) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void RichTextBox::on_frame(FrameTime) {
+void RichTextBox::toggle_caret() {
     if (!focused_) return;
     caret_visible_ = !caret_visible_;
     invalidate(Dirty::paint);
-    schedule_caret_blink();
 }
 
 void RichTextBox::on_detached_from_window() noexcept {

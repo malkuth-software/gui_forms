@@ -55,7 +55,9 @@ public:
     void set_marker_size(double size);
     [[nodiscard]] double phase() const noexcept { return phase_; }
 
-    void on_frame(FrameTime now) override;
+    // Samples the timeline at `now` into the phase; the frame timer calls it
+    // on each tick, and tests call it to step the preview without a clock.
+    void advance_animation(FrameTime now);
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -105,7 +107,7 @@ private:
     void on_presentation_changed(const PresentationSettings& settings);
     [[nodiscard]] std::string motion_readout(double presented_phase) const;
 
-    // ADR-016: a paint-gated UI timer the preview stops, not an active surface.
+    // ADR-016: a paint-gated UI timer the preview stops.
     AnimationTimer frames_;
     SubscriptionToken presentation_subscription_;
     AnimationTimeline timeline_;
