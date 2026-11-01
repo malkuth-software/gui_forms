@@ -126,8 +126,14 @@ Related types
      - The application side of virtual mode (Windows Forms' CellValueNeeded and CellValuePushed), on ObjectView's stable-ID model: the application owns the rows and their order and gives the order to the grid as row IDs (in full with set_virtual_rows and set_virtual_row_order, by change with insert_virtual_rows, remove_virtual_rows and move_virtual_row, or on demand through a DataGridViewRowWindowSource); the grid asks for values by ID.
    * - :cpp:class:`DataGridViewColumn <gui_forms::DataGridViewColumn>`
      - One column.
+   * - :cpp:class:`DataGridViewDataErrorEvent <gui_forms::DataGridViewDataErrorEvent>`
+     - Raised when a value does not reach its cell (Windows Forms' DataError).
    * - :cpp:class:`DataGridViewRow <gui_forms::DataGridViewRow>`
      - One unbound row.
+   * - :cpp:class:`DataGridViewRowCancelEvent <gui_forms::DataGridViewRowCancelEvent>`
+     - Raised before a row is left or deleted; setting ``cancel`` keeps it.
+   * - :cpp:class:`DataGridViewRowEvent <gui_forms::DataGridViewRowEvent>`
+     - A row an event concerns: its identity and its position when the event is raised (the position it had, for a row just removed).
    * - :cpp:class:`DataGridViewRowId <gui_forms::DataGridViewRowId>`
      - A row's stable identity: not empty, unique among the grid's rows, and kept while the row moves.
    * - :cpp:class:`DataGridViewRowOrder <gui_forms::DataGridViewRowOrder>`
@@ -140,6 +146,8 @@ Related types
      - The automatic policy's thresholds.
    * - :cpp:class:`DataGridViewRowPosition <gui_forms::DataGridViewRowPosition>`
      - A row's presentation position: its index in the grid's current row order, 0 at the top.
+   * - :cpp:class:`DataGridViewRowValuesEvent <gui_forms::DataGridViewRowValuesEvent>`
+     - Raised when the new row becomes current (Windows Forms' DefaultValuesNeeded): ``values`` holds one value per column, empty, for the handler to fill with the values the new row starts with.
    * - :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>`
      - The application side of a virtual grid's window mode (owner decision W-5): the application keeps the rows' order, and the grid asks for the IDs at the positions it shows (plus a margin) instead of holding the whole order.
    * - :cpp:class:`ItemCheckEvent <gui_forms::ItemCheckEvent>`
@@ -659,6 +667,10 @@ Related types
 
    .. cpp:member:: PartGeometry cell_focus
 
+   .. cpp:member:: PartGeometry cell_error
+
+      The error glyph of a cell with error text, at the cell's end.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DataGridView::CellStates final
@@ -672,6 +684,8 @@ Related types
    .. cpp:member:: bool read_only
 
    .. cpp:member:: bool invalid
+
+      A cell whose edit did not commit, or with error text.
 
    .. cpp:member:: bool checked
 
@@ -793,6 +807,12 @@ Related types
 
    .. cpp:member:: PartGeometry row_glyph
 
+      The current row's arrow, the pencil while it is dirty, or the new row's star (owner decision B1-3).
+
+   .. cpp:member:: PartGeometry row_error
+
+      The error glyph of a row with error text, at the header's end.
+
    .. cpp:member:: PartGeometry row_rule
 
 .. cpp:namespace:: gui_forms
@@ -806,6 +826,10 @@ Related types
    .. cpp:member:: bool current
 
    .. cpp:member:: bool read_only
+
+   .. cpp:member:: bool invalid
+
+      A row with error text.
 
 .. cpp:namespace:: gui_forms
 
@@ -962,6 +986,30 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewDataErrorEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Raised when a value does not reach its cell (Windows Forms' DataError). ``formatted_value`` is the text the user gave (a typed text, a choice, or "true"/"false" for a check box). For a text edit, ``cancel`` true (the default, and the outcome when no handler is subscribed: owner decision B1-1) keeps the cell in edit, marked invalid, with its old value stored; false discards the edit, leaving the old value. A check box or choice has no edit to keep: its cell keeps its old value either way.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: DataGridViewDataErrorContext context
+
+      Default: ``{DataGridViewDataErrorContext::parsing}``.
+
+   .. cpp:member:: std::string formatted_value
+
+   .. cpp:member:: bool cancel
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewRow final
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
@@ -975,6 +1023,32 @@ Related types
    .. cpp:member:: std::string header_text
 
    .. cpp:member:: bool read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowCancelEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Raised before a row is left or deleted; setting ``cancel`` keeps it.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: bool cancel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   A row an event concerns: its identity and its position when the event is raised (the position it had, for a row just removed).
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
 
 .. cpp:namespace:: gui_forms
 
@@ -1170,6 +1244,20 @@ Related types
    A row's presentation position: its index in the grid's current row order, 0 at the top. A position is not an identity: inserting, removing or sorting rows changes which row holds it. row_id and row_position convert between the two.
 
    .. cpp:member:: std::size_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowValuesEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Raised when the new row becomes current (Windows Forms' DefaultValuesNeeded): ``values`` holds one value per column, empty, for the handler to fill with the values the new row starts with.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::vector<BindingValue> values
 
 .. cpp:namespace:: gui_forms
 
@@ -2399,6 +2487,32 @@ Enumerations
    .. cpp:enumerator:: image
 
    .. cpp:enumerator:: link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewDataErrorContext
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: parsing
+
+   .. cpp:enumerator:: commit
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewEditMode
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: edit_on_enter
+
+   .. cpp:enumerator:: edit_on_keystroke
+
+   .. cpp:enumerator:: edit_on_keystroke_or_f2
+
+   .. cpp:enumerator:: edit_on_f2
+
+   .. cpp:enumerator:: edit_programmatically
 
 .. cpp:namespace:: gui_forms
 

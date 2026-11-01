@@ -60,6 +60,12 @@ enum class PartMark : std::uint8_t {
     pin,
     dock_shape,
     underline,
+    // DataGridView's row header and error glyphs (owner decision B1-3): the
+    // dirty row's pencil, the new row's star and the error mark. Provisional
+    // drawings in glyph ink; their look is T4's.
+    pencil,
+    asterisk,
+    error,
     count,
 };
 
