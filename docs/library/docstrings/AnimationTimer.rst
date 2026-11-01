@@ -45,6 +45,8 @@ Notes
 The tick target returns `AnimationTickResult::damaged` when it invalidated
 what it changed, and `AnimationTickResult::unchanged` when nothing moved; an
 unchanged tick expects no paint, so a calm or finished state stays scheduled.
+This result belongs to the timer's own tick target; `Control::on_frame`
+returns nothing, and a control damages what it changes either way.
 The target is called on the window's UI thread and may call `start` or
 `stop`.
 
