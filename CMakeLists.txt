@@ -4692,3 +4692,28 @@ if(GUI_FORMS_BUILD_TESTS)
     include(cmake/TestAreas.cmake)
     gui_forms_label_test_areas(stx_zlib stx_png stx_conv)
 endif()
+
+# No floating-point contraction in first-party code (owner, 2026-11-01): Clang's default
+# fuses a * b + c within an expression where the target has a fused multiply-add, which
+# arm64 always has and the x86-64 baseline never does, so the same source gave different
+# bits on the two. Every target this directory defines gets -ffp-contract=off; the
+# first-party subprojects (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on
+# their own targets. A kernel that wants fusion spells it std::fma, so the choice is
+# visible and gives the same bits everywhere. Third-party code (FreeType, HarfBuzz) keeps
+# its own flags, as do the targets here that compile only third-party sources (md4c,
+# SheenBidi, libunibreak and its conformance driver); miniaudio is compiled inside
+# src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
+# library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
+# log) are a separate matter.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    get_property(gui_forms_first_party_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    list(REMOVE_ITEM gui_forms_first_party_targets gui_forms_md4c gui_forms_bidi
+        gui_forms_linebreak gui_forms_linebreak_conformance_tests)
+    foreach(gui_forms_first_party_target IN LISTS gui_forms_first_party_targets)
+        get_target_property(gui_forms_target_type ${gui_forms_first_party_target} TYPE)
+        if(gui_forms_target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
+            target_compile_options(${gui_forms_first_party_target} PRIVATE
+                $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-ffp-contract=off>)
+        endif()
+    endforeach()
+endif()
