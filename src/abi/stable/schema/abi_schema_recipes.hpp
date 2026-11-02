@@ -1,14 +1,17 @@
 #pragma once
 
-// How the C ABI makes each registry type (stage C3): describe_type records
-// one fresh instance's schema, and create_type makes a control for
-// objects.create. The generated catalog (abi_schema_catalog.hpp) names both
-// for every type in manifests/controls.json.
+// How the C ABI makes each registry type (stages C3, C5): describe_type
+// records one fresh instance's schema, create_type makes an object for
+// objects.create, and is_exact_type recognizes an instance of exactly the
+// type. The generated catalog (abi_schema_catalog.hpp) names them for every
+// type in manifests/controls.json.
 //
-// A control made from a stable id alone uses the primary templates. A type
-// that needs anything else (a component, which a window or a command owns,
-// or a control that needs another object) has its own describe_type below,
-// and create_type makes none of it.
+// A control made from a stable id alone, and a component made from nothing
+// or from its id, use the primary templates. A type that needs anything
+// else (a component a window or a command owns, a control that needs
+// another object) has its own describe_type below; create_type makes none
+// of it (objects.create_with makes the controls and the command
+// extensions).
 
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
@@ -47,6 +50,7 @@
 #include <string>
 #include <string_view>
 #include <type_traits>
+#include <typeinfo>
 #include <vector>
 
 namespace gui_forms::abi1 {
@@ -73,16 +77,42 @@ template <typename Type>
 inline constexpr bool made_from_stable_id =
     std::is_base_of_v<Control, Type> && std::is_constructible_v<Type, StableId>;
 
-// A new control of Type, or null when Type is not made from a stable id
-// alone. Throws what the control's constructor throws.
+// True for a component (not a control) objects.create makes from nothing
+// or from its id as text.
 template <typename Type>
-Control::Ptr create_type(StableId stable_id) {
+inline constexpr bool made_from_nothing = std::is_base_of_v<Component, Type> && !std::is_base_of_v<Control, Type> &&
+                                          (std::is_default_constructible_v<Type> ||
+                                           std::is_constructible_v<Type, std::string>);
+
+// A new object of Type, or null when Type is made from neither. Throws what
+// the constructor throws.
+template <typename Type>
+Component::Ptr create_type(StableId stable_id) {
     if constexpr (made_from_stable_id<Type>) {
         const Control::Ptr control = make_control<Type>(std::move(stable_id));
         return control;
+    } else if constexpr (made_from_nothing<Type> && std::is_constructible_v<Type, std::string>) {
+        const std::shared_ptr<Type> component = std::make_shared<Type>(std::string(stable_id.value()));
+        return component;
+    } else if constexpr (made_from_nothing<Type>) {
+        static_cast<void>(stable_id);
+        const std::shared_ptr<Type> component = std::make_shared<Type>();
+        return component;
     } else {
+        static_cast<void>(stable_id);
         return nullptr;
     }
+}
+
+// A thread exception dialog made with an empty report.
+template <>
+Component::Ptr create_type<ThreadExceptionDialog>(StableId stable_id);
+
+// Whether object is exactly a Type (not a subclass).
+template <typename Type>
+bool is_exact_type(const Component& object) {
+    const bool exact = typeid(object) == typeid(Type);
+    return exact;
 }
 
 // Records a fresh instance of Type into sample, then destroys it.
@@ -90,7 +120,7 @@ template <typename Type>
 void describe_type(SchemaSample& sample) {
     static_assert(made_from_stable_id<Type>,
                   "a type not made from a stable id alone needs its own describe_type");
-    const Control::Ptr control = create_type<Type>(StableId(std::string(sample_stable_id)));
+    const Control::Ptr control = make_control<Type>(StableId(std::string(sample_stable_id)));
     record_control(*control, sample);
 }
 
@@ -134,7 +164,8 @@ struct SchemaCatalogEntry final {
     std::string_view id;
     std::string_view type_name;
     void (*describe)(SchemaSample& sample) = nullptr;
-    Control::Ptr (*create)(StableId stable_id) = nullptr;
+    Component::Ptr (*create)(StableId stable_id) = nullptr;
+    bool (*is_exact)(const Component& object) = nullptr;
 };
 
 } // namespace gui_forms::abi1

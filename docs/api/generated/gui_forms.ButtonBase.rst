@@ -595,9 +595,17 @@ gui_forms::ButtonBase
 
       *Protected.*
 
-   .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false) const
+   .. cpp:function:: bool paints_override_frame() const noexcept
 
       *Protected.*
+
+      Whether the button paints its style override's own frame: only an overridden button with per-control recipes or a connection, which the engine's parts do not shape. Every other button paints themed, an override supplying its authored colours.
+
+   .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false, std::optional<AuthoredButtonColours> authored = {}) const
+
+      *Protected.*
+
+      The face, cues and content of a themed push-style button. With a style override, ``authored`` (by default the override's face and text) colours the face and the enabled text.
 
    .. cpp:function:: const ControlVisualRecipe& resolve_visual_recipe(ControlVisualRole role, ControlVisualContext context) const noexcept
 

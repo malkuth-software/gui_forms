@@ -1,4 +1,5 @@
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -7,14 +8,39 @@
 #include <algorithm>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 namespace gui_forms {
 
+namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> border_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "border_style", {{"none", 0}, {"line", 1}, {"sunken", 2}, {"raised", 3}}, false});
+    return value;
+}
+
+} // namespace
+
 Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::backplane);
+    PropertyDescriptor border_style;
+    border_style.name = "border_style";
+    border_style.kind = BindingValueKind::enumeration;
+    border_style.category = "Appearance";
+    // A property grid starts with a line, so the descriptor states no default.
+    border_style.description = "The panel's border: none, a line, sunken or raised.";
+    border_style.invalidation_effects = Dirty::paint;
+    border_style.bindable = false;
+    border_style.enumeration = border_style_enum();
+    define_bindable_property({
+        std::move(border_style),
+        detail::EnumerationPropertyGetter<Panel, BorderStyle>(*this, &Panel::border_style, border_style_enum()),
+        detail::EnumerationPropertySetter<Panel, BorderStyle>(*this, &Panel::set_border_style), {}, {}, {}});
 }
 
 void Panel::set_border_style(BorderStyle style) {

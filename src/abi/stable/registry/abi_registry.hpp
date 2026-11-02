@@ -71,13 +71,16 @@ private:
 class SubscriptionBinding final {
 public:
     SubscriptionBinding(const gf_callback& callback, gf_subscription subscription,
-                        const Control* source, std::string name) noexcept;
+                        const Component* source, std::string name) noexcept;
     ~SubscriptionBinding();
     SubscriptionBinding(const SubscriptionBinding&) = delete;
     SubscriptionBinding& operator=(const SubscriptionBinding&) = delete;
 
     // Calls the callback with the source's current identity as sender.
     void emit(const gf_value* payload) noexcept;
+    // Calls the callback with event, whose payload and fields the caller
+    // filled, after setting its sender and name.
+    void emit(gf_event& event) noexcept;
     void disarm() noexcept;
 
 private:
@@ -85,7 +88,7 @@ private:
     gf_subscription subscription_ = 0U;
     // Observed only as a key into the registry's identity map; the source
     // owns this binding, so it outlives every emission.
-    const Control* source_ = nullptr;
+    const Component* source_ = nullptr;
     std::string name_;
 };
 
@@ -117,19 +120,27 @@ public:
 
     // The control behind a live identity (GF_STATUS_INVALID_ARGUMENT for
     // zero, GF_STATUS_STALE_HANDLE for an ended one).
+    // The control behind object; GF_STATUS_WRONG_HANDLE_KIND for a
+    // component that is not a control.
     [[nodiscard]] gf_status find_object(gf_object object, SlotIdentity slot, Control::Ptr& control);
-    // A new reference to control, reusing its identity when it has one.
+    // The component (a control among them) behind object.
+    [[nodiscard]] gf_status find_component(gf_object object, SlotIdentity slot, Component::Ptr& component);
+    // A new reference to component, reusing its identity when it has one.
     // UI thread. Throws std::bad_alloc, leaving the registry unchanged.
-    [[nodiscard]] gf_object add_reference(const Control::Ptr& control);
+    [[nodiscard]] gf_object add_reference(const Component::Ptr& component);
     [[nodiscard]] gf_status retain(gf_object object, SlotIdentity slot);
     [[nodiscard]] gf_status release(gf_object object, SlotIdentity slot);
-    // The identity of control, or zero when it has none. Borrowed.
-    [[nodiscard]] gf_object identity_of(const Control* control);
+    // The identity of component, or zero when it has none. Borrowed.
+    [[nodiscard]] gf_object identity_of(const Component* component);
+    // A new reference to the component that has the identity of component,
+    // or zero when it has none (a component not owned through the
+    // registry cannot be lent by address alone).
+    [[nodiscard]] gf_object add_reference_if_known(const Component* component);
 
     // A subscription is reserved before its source is connected, so its
     // binding knows its identity, then completed with the source's token or
     // abandoned. UI thread.
-    [[nodiscard]] gf_subscription reserve_subscription(const Control::Ptr& source);
+    [[nodiscard]] gf_subscription reserve_subscription(const Component::Ptr& source);
     void complete_subscription(gf_subscription subscription, SubscriptionToken token) noexcept;
     void abandon_subscription(gf_subscription subscription) noexcept;
     [[nodiscard]] gf_status disconnect(gf_subscription subscription, SlotIdentity slot);
@@ -161,13 +172,13 @@ private:
         std::uint32_t generation = 1U;
         bool occupied = false;
         std::uint64_t references = 0U;
-        Control::Ptr control;
+        Component::Ptr object;
     };
     struct SubscriptionSlot {
         std::uint32_t generation = 1U;
         bool occupied = false;
         SubscriptionToken token;
-        std::weak_ptr<Control> source;
+        std::weak_ptr<Component> source;
     };
 
     [[nodiscard]] bool on_ui_thread_locked() const noexcept;
@@ -175,7 +186,7 @@ private:
     [[nodiscard]] SubscriptionSlot* subscription_slot_locked(gf_subscription subscription) noexcept;
     // Drops one reference; at zero frees the identity and moves the control
     // into ended. ended is destroyed by the caller without the lock.
-    void drop_reference_locked(gf_object object, ObjectSlot& slot, Control::Ptr& ended);
+    void drop_reference_locked(gf_object object, ObjectSlot& slot, Component::Ptr& ended);
     // Takes the deferred controls and destroys them without the lock.
     void complete_deferred();
     void wake_locked() noexcept;
@@ -185,13 +196,13 @@ private:
     std::thread::id ui_thread_{};
     std::vector<ObjectSlot> objects_;
     std::vector<std::uint32_t> free_objects_;
-    std::unordered_map<const Control*, std::uint32_t> object_index_;
+    std::unordered_map<const Component*, std::uint32_t> object_index_;
     std::size_t live_objects_ = 0U;
     std::vector<SubscriptionSlot> subscriptions_;
     std::vector<std::uint32_t> free_subscriptions_;
     std::size_t live_subscriptions_ = 0U;
-    // Controls whose last reference was released off the UI thread.
-    std::vector<Control::Ptr> deferred_;
+    // Objects whose last reference was released off the UI thread.
+    std::vector<Component::Ptr> deferred_;
     std::deque<PostedCall> posted_;
     bool running_ = false;
     // Set once the engine state exists; the binding then never ends.

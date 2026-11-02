@@ -204,6 +204,11 @@ struct PartPaint final {
 // where the theme casts no overlay shadow (high contrast, by default). A
 // control that paints a shadow part reports overlay_shadow_outsets from its
 // visual_outsets, so that damage and replay cover the blur.
+//
+// A part without its own authored colours takes the control's
+// (Control::set_back_color and set_fore_color): the control's own or
+// inherited foreground, and its own background, or an inherited one on any
+// role but a well.
 void paint_part(Painter& painter, const Control& control, const PartPaint& part);
 
 // How far `control`'s theme's overlay shadow reaches outside the casting

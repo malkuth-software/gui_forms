@@ -124,25 +124,63 @@ void paint_preselect(Painter& painter, Rect bounds, const ControlVisualRecipe& r
                                 recipe.default_ring, width);
 }
 
+// One side of a dotted ring: `count` square dots `width` across, the first
+// with its top-left corner at `start`, each next one two widths further
+// along `step` (a unit axis).
+void paint_dot_run(Painter& painter, Point start, Point step, std::size_t count, double width, Color colour) {
+    const double pitch = width * 2.0;
+    for (std::size_t index = 0; index < count; ++index) {
+        const double along = pitch * static_cast<double>(index);
+        const Rect dot{start.x + step.x * along, start.y + step.y * along, width, width};
+        painter.fill_rect(dot, colour);
+    }
+}
+
+// A dotted ring whose stroke is centred on `ring`'s edges: square dots one
+// width across, one every two widths, clockwise from the top-left corner,
+// which always holds a dot. Each side holds the dots that start before the
+// next corner, so the corners join without doubling a dot.
+void paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) {
+    const double half = width * 0.5;
+    // The span the dots' top-left corners run along on each axis: from the
+    // stroke's outer corner to its far side less one width.
+    const double across = ring.width;
+    const double down = ring.height;
+    if (across <= 0.0 || down <= 0.0) return;
+    const double pitch = width * 2.0;
+    const std::size_t across_count = static_cast<std::size_t>(std::ceil(across / pitch));
+    const std::size_t down_count = static_cast<std::size_t>(std::ceil(down / pitch));
+    const double left = ring.x - half;
+    const double top = ring.y - half;
+    const double right = left + across;
+    const double bottom = top + down;
+    paint_dot_run(painter, Point{left, top}, Point{1.0, 0.0}, across_count, width, colour);
+    paint_dot_run(painter, Point{right, top}, Point{0.0, 1.0}, down_count, width, colour);
+    paint_dot_run(painter, Point{right, bottom}, Point{-1.0, 0.0}, across_count, width, colour);
+    paint_dot_run(painter, Point{left, bottom}, Point{0.0, -1.0}, down_count, width, colour);
+}
+
 // The focus ring: the recipe's authored outline outside the bounds, or the
-// house ring inset inside them.
+// house ring inset inside them; dotted when the recipe says so.
 void paint_focus_ring(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe) {
     if (recipe.focus_width <= 0.0 || bounds.width <= 8.0 || bounds.height <= 8.0) return;
+    Rect ring{};
+    double radius = 0.0;
     if (recipe.authored_focus_outline) {
         const double outset = recipe.focus_offset + recipe.focus_width * 0.5;
-        const Rect outline{bounds.x - outset, bounds.y - outset,
-                           bounds.width + outset * 2.0, bounds.height + outset * 2.0};
-        if (outline.empty()) return;
-        painter.stroke_rounded_rect(outline, std::max(0.0, recipe.material.corner_radius + outset),
-                                    recipe.focus_ring, recipe.focus_width);
+        ring = Rect{bounds.x - outset, bounds.y - outset, bounds.width + outset * 2.0, bounds.height + outset * 2.0};
+        radius = std::max(0.0, recipe.material.corner_radius + outset);
+    } else {
+        const double inset = std::max(3.0, recipe.default_width + 1.0);
+        ring = Rect{bounds.x + inset, bounds.y + inset, bounds.width - inset * 2.0, bounds.height - inset * 2.0};
+        radius = std::max(0.0, recipe.material.corner_radius - inset);
+    }
+    if (ring.empty()) return;
+    if (recipe.dotted_focus) {
+        paint_dotted_ring(painter, ring, recipe.focus_width, recipe.focus_ring);
         return;
     }
-    const double inset = std::max(3.0, recipe.default_width + 1.0);
-    const Rect ring{bounds.x + inset, bounds.y + inset,
-                    bounds.width - inset * 2.0, bounds.height - inset * 2.0};
-    if (ring.empty()) return;
-    painter.stroke_rounded_rect(ring, std::max(0.0, recipe.material.corner_radius - inset),
-                                recipe.focus_ring, recipe.focus_width);
+    painter.stroke_rounded_rect(ring, radius, recipe.focus_ring, recipe.focus_width);
 }
 
 // One arrow kernel: `rows` one-unit strips across the arrow's axis, strip
@@ -657,7 +695,23 @@ bool part_bounds_paintable(Rect bounds) noexcept {
 
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
     const Theme& theme = control.effective_theme();
-    theme.engine().paint(painter, control, part);
+    // The control's authored colours (Control::set_back_color and
+    // set_fore_color) under the part's own: its own background fills every
+    // ground, an inherited one every ground but a well.
+    std::optional<Color> background = part.authored_background;
+    if (!background) background = control.back_color();
+    if (!background && part.role != PartRole::well) background = control.ambient_back_color();
+    std::optional<Color> foreground = part.authored_foreground;
+    if (!foreground) foreground = control.ambient_fore_color();
+    const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
+    if (unchanged) {
+        theme.engine().paint(painter, control, part);
+        return;
+    }
+    PartPaint coloured = part;
+    coloured.authored_background = background;
+    coloured.authored_foreground = foreground;
+    theme.engine().paint(painter, control, coloured);
 }
 
 void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part) {

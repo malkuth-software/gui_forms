@@ -248,7 +248,20 @@ bool Binding::update_source(bool automatic) {
         if (options_.formatting_enabled) {
             BindingConvertEvent event{proposed, desired, false};
             parse_.emit(event);
+            const bool handled = event.handled;
             proposed = std::move(event.value);
+            // Text shown under a number format ("1,234.50", "12.5 %") goes
+            // back as the plain number it shows.
+            const std::string* const shown = std::get_if<std::string>(&proposed);
+            const bool number_kind = desired == BindingValueKind::number ||
+                                     desired == BindingValueKind::signed_integer ||
+                                     desired == BindingValueKind::unsigned_integer;
+            if (!handled && shown != nullptr && number_kind && !options_.format_string.empty()) {
+                const std::optional<NumberFormat> format = parse_number_format(options_.format_string);
+                const std::optional<std::string> plain =
+                    format ? plain_number_text(*shown, *format) : std::optional<std::string>{};
+                if (plain) proposed = *plain;
+            }
         }
         const std::optional<BindingValue> converted = convert_binding_value(proposed, desired);
         if (!converted) {

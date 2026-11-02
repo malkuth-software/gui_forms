@@ -225,26 +225,6 @@ const SurfaceMaterial& baked_material(const SurfaceMaterial& material,
     return *storage;
 }
 
-// A colour in straight alpha, each channel in [0, 255].
-struct Straight final {
-    double red{};
-    double green{};
-    double blue{};
-    double alpha{};
-};
-
-Straight straight_of(Color colour) noexcept {
-    const Straight straight{static_cast<double>(colour.red), static_cast<double>(colour.green),
-                            static_cast<double>(colour.blue), static_cast<double>(colour.alpha)};
-    return straight;
-}
-
-Unit premultiply_straight(Straight colour, double coverage) noexcept {
-    const double alpha = colour.alpha / 255.0 * coverage;
-    const Unit unit{colour.red / 255.0 * alpha, colour.green / 255.0 * alpha, colour.blue / 255.0 * alpha, alpha};
-    return unit;
-}
-
 double inverse_sigma_of(double blur, double scale) noexcept {
     const double sigma = blur * 0.5 * scale;
     // The pixel's own box filter adds a variance of 1/12.
@@ -892,19 +872,22 @@ double spread_position(double t, GradientSpreadMode spread) noexcept {
     return std::clamp(t, 0.0, 1.0);
 }
 
-// The gradient's straight colour at `t` in [0, 1]; the stops are valid
-// (valid_gradient_stops: at least two, from 0 to 1, increasing).
-Straight stop_colour(std::span<const GradientStop> stops, double t) noexcept {
+// The gradient's colour at `t` in [0, 1], premultiplied and scaled by
+// `coverage`; the stops are valid (valid_gradient_stops: at least two, from
+// 0 to 1, increasing). The stops are interpolated premultiplied, as CSS
+// gradients and the Skia painter's are: a stop fading to transparent black
+// fades the other stop's colour, never towards grey.
+Unit stop_colour(std::span<const GradientStop> stops, double t, double coverage) noexcept {
     std::size_t next = 1U;
     while (next + 1U < stops.size() && t > stops[next].offset) next = next + 1U;
     const GradientStop& low = stops[next - 1U];
     const GradientStop& high = stops[next];
     const double span = high.offset - low.offset;
     const double f = std::clamp((t - low.offset) / span, 0.0, 1.0);
-    const Straight a = straight_of(low.color);
-    const Straight b = straight_of(high.color);
-    const Straight colour{a.red + (b.red - a.red) * f, a.green + (b.green - a.green) * f,
-                          a.blue + (b.blue - a.blue) * f, a.alpha + (b.alpha - a.alpha) * f};
+    const Unit a = premultiply(low.color, coverage);
+    const Unit b = premultiply(high.color, coverage);
+    const Unit colour{a.red + (b.red - a.red) * f, a.green + (b.green - a.green) * f,
+                      a.blue + (b.blue - a.blue) * f, a.alpha + (b.alpha - a.alpha) * f};
     return colour;
 }
 
@@ -917,14 +900,14 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
     }
     case MaterialFillKind::linear_gradient: {
         const double t = (centre_x - fill.origin_x) * fill.step_x + (centre_y - fill.origin_y) * fill.step_y;
-        const Unit linear = premultiply_straight(stop_colour(fill.stops, spread_position(t, fill.spread)), coverage);
+        const Unit linear = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
         return linear;
     }
     case MaterialFillKind::radial_gradient: {
         const double across = (centre_x - fill.origin_x) * fill.inverse_radius_x;
         const double down = (centre_y - fill.origin_y) * fill.inverse_radius_y;
         const double t = std::sqrt(across * across + down * down);
-        const Unit radial = premultiply_straight(stop_colour(fill.stops, spread_position(t, fill.spread)), coverage);
+        const Unit radial = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
         return radial;
     }
     case MaterialFillKind::conic_gradient: {
@@ -935,7 +918,7 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
         const double turn = angle * inverse_whole_turn - fill.from_turn;
         const double past = turn - std::floor(turn);
         const double t = past * fill.periods_per_turn;
-        const Unit conic = premultiply_straight(stop_colour(fill.stops, spread_position(t, fill.spread)), coverage);
+        const Unit conic = stop_colour(fill.stops, spread_position(t, fill.spread), coverage);
         return conic;
     }
     case MaterialFillKind::image: {

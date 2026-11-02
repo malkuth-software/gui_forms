@@ -16,5 +16,15 @@ namespace gui_forms::abi1 {
 [[nodiscard]] const gf_schema_table& schema_table() noexcept;
 [[nodiscard]] const gf_themes_table& themes_table() noexcept;
 [[nodiscard]] const gf_host_table& host_table() noexcept;
+[[nodiscard]] const gf_diagnostics_table& diagnostics_table() noexcept;
+[[nodiscard]] const gf_controls_table& controls_table() noexcept;
+[[nodiscard]] const gf_text_editing_table& text_editing_table() noexcept;
+[[nodiscard]] const gf_popups_table& popups_table() noexcept;
+[[nodiscard]] const gf_property_grid_table& property_grid_table() noexcept;
+[[nodiscard]] const gf_custom_controls_table& custom_controls_table() noexcept;
+[[nodiscard]] const gf_bindings_table& bindings_table() noexcept;
+#if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
+[[nodiscard]] const gf_windows_paint_endpoint_table& windows_paint_endpoint_table() noexcept;
+#endif
 
 } // namespace gui_forms::abi1

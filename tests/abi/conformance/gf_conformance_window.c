@@ -151,3 +151,61 @@ void gf_kit_window(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(button), GF_STATUS_OK, "release the button");
     gf_kit_status(kit, (*kit).objects.release(run.root), GF_STATUS_OK, "release the root");
 }
+
+/* A window from create: what its ready callback saw. */
+typedef struct handle_run {
+    gf_kit* kit;
+    gf_object tips;
+    gf_status made_during_run;
+    gf_status close;
+} handle_run;
+
+static void GF_CALL on_handle_ready(void* context, gf_event* event) {
+    handle_run* run = (handle_run*)context;
+    gf_kit* kit = (*run).kit;
+    gf_create_arguments arguments;
+    memset(&arguments, 0, sizeof(arguments));
+    arguments.struct_size = (uint32_t)sizeof(arguments);
+    arguments.owner = (*event).sender;
+    (*run).made_during_run = (*kit).objects.create_with(gf_kit_text("tool_tip"), gf_kit_text("kit.handle.tips"),
+                                                        &arguments, &(*run).tips);
+    (*run).close = (*kit).windows.request_close((*event).sender);
+}
+
+/* A window made by create, components bound to it before and during the
+ * run, and the window's end. */
+void gf_kit_window_handle(gf_kit* kit) {
+    handle_run run;
+    memset(&run, 0, sizeof(run));
+    run.kit = kit;
+    run.made_during_run = -1;
+    run.close = -1;
+    const gf_object root = gf_kit_create(kit, "Panel", "kit.handle");
+    gf_object window = 0u;
+    gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window");
+    gf_create_arguments arguments;
+    memset(&arguments, 0, sizeof(arguments));
+    arguments.struct_size = (uint32_t)sizeof(arguments);
+    arguments.owner = window;
+    gf_object timer = 0u;
+    gf_kit_status(kit, (*kit).objects.create_with(gf_kit_text("timer"), gf_kit_text("kit.handle.timer"), &arguments,
+                                                  &timer),
+                  GF_STATUS_OK, "a timer bound to the window before its run");
+    const gf_callback ready = gf_kit_callback(&on_handle_ready, NULL, &run);
+    gf_run_options options;
+    memset(&options, 0, sizeof(options));
+    options.struct_size = (uint32_t)sizeof(options);
+    options.title = gf_kit_text("GUI.Forms C ABI window handle");
+    options.ready = &ready;
+    gf_kit_status(kit, (*kit).windows.run(window, &options), GF_STATUS_OK, "run a window from create");
+    gf_kit_status(kit, run.made_during_run, GF_STATUS_OK, "a component bound to the running window");
+    gf_kit_status(kit, run.close, GF_STATUS_OK, "request_close takes the window");
+    gf_kit_check(kit, gf_kit_state(kit, window) == GF_OBJECT_STATE_DISPOSED, "the run ends the window");
+    gf_kit_check(kit, gf_kit_state(kit, timer) == GF_OBJECT_STATE_ALIVE,
+                 "a bound component outlives its window, unbound");
+    gf_kit_status(kit, (*kit).windows.run(window, &options), GF_STATUS_DISPOSED, "a window runs once");
+    gf_kit_status(kit, (*kit).objects.release(run.tips), GF_STATUS_OK, "release the run's tool tip");
+    gf_kit_status(kit, (*kit).objects.release(timer), GF_STATUS_OK, "release the timer");
+    gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the window");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the window's root");
+}

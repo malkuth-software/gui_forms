@@ -1013,6 +1013,10 @@ Types
 
    .. cpp:member:: bool authored_focus_outline
 
+   .. cpp:member:: bool dotted_focus
+
+      Whether the focus ring, the house ring or the authored outline, is drawn as dots (design language: the default theme's ring is dotted): square dots one focus width across, one every two widths, on the ring's square path (a dotted ring ignores the corner radius).
+
    .. cpp:member:: double default_width
 
       Default: ``{2.0}``.
@@ -5439,6 +5443,8 @@ Enumerations
 
    .. cpp:enumerator:: none
 
+   .. cpp:enumerator:: dotted
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RegistrationOutcome
@@ -6368,7 +6374,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void paint_part(Painter& painter, const Control& control, const PartPaint& part)
 
-   Paints one part of ``control`` by its role (see PartPaint), through the engine of the control's effective theme. Roles that draw nothing of their own (region, edge, perimeter, sheen) are no-ops: the material of the surface they belong to draws them. An empty or non-finite ``bounds`` paints nothing. What disabled means (owner, 2026-10-20: "a change in font color or control highlighting. greyed out"): a disabled part greys the control's chrome, through the recipes' disabled states: the text colour of labels and captions, and the highlighting (edge, well, hot and selected plates). Content never changes: - the image role (T2 GIVEN H1-1) is a content picture, such as the docking stamp's snapshot, drawn exactly as given into ``bounds``, never tinted, dimmed or resized by a theme, disabled or not; - a content colour (GIVEN E2-1) is drawn exactly as given, disabled or not. An icon is chrome, the theme's or the command's symbol, and keeps its disabled treatment: 45 % opacity. The shadow role paints the theme's overlay shadow (owner decision RB-37): ``bounds`` is the rect of the surface that casts it (a tooltip's face, a menu's panel), with the corner radius of ``corner_radius`` or else of the ``family`` recipe, and the shadow falls outside it, down and right. Paint it before the surface. Only surfaces that really overlap content cast it; a control's own contact shadow stays in its material. Nothing is painted where the theme casts no overlay shadow (high contrast, by default). A control that paints a shadow part reports overlay_shadow_outsets from its visual_outsets, so that damage and replay cover the blur.
+   Paints one part of ``control`` by its role (see PartPaint), through the engine of the control's effective theme. Roles that draw nothing of their own (region, edge, perimeter, sheen) are no-ops: the material of the surface they belong to draws them. An empty or non-finite ``bounds`` paints nothing. What disabled means (owner, 2026-10-20: "a change in font color or control highlighting. greyed out"): a disabled part greys the control's chrome, through the recipes' disabled states: the text colour of labels and captions, and the highlighting (edge, well, hot and selected plates). Content never changes: - the image role (T2 GIVEN H1-1) is a content picture, such as the docking stamp's snapshot, drawn exactly as given into ``bounds``, never tinted, dimmed or resized by a theme, disabled or not; - a content colour (GIVEN E2-1) is drawn exactly as given, disabled or not. An icon is chrome, the theme's or the command's symbol, and keeps its disabled treatment: 45 % opacity. The shadow role paints the theme's overlay shadow (owner decision RB-37): ``bounds`` is the rect of the surface that casts it (a tooltip's face, a menu's panel), with the corner radius of ``corner_radius`` or else of the ``family`` recipe, and the shadow falls outside it, down and right. Paint it before the surface. Only surfaces that really overlap content cast it; a control's own contact shadow stays in its material. Nothing is painted where the theme casts no overlay shadow (high contrast, by default). A control that paints a shadow part reports overlay_shadow_outsets from its visual_outsets, so that damage and replay cover the blur. A part without its own authored colours takes the control's (Control::set_back_color and set_fore_color): the control's own or inherited foreground, and its own background, or an inherited one on any role but a well.
 
 .. cpp:function:: Insets overlay_shadow_outsets(const Control& control) noexcept
 

@@ -127,8 +127,11 @@ bool ToolTipPresenter::available(const Control& control) const noexcept {
 // The thing under the pointer: from the control under it outwards, a part
 // of a control that publishes part tooltips, else the control's own text
 // (a control whose tooltip shows only over its owner's item is passed
-// over). A disabled control, unless disabled tooltips show, and a part
-// without a tooltip end the search with nothing.
+// over). A part's tooltip only overrides where it exists: over a part
+// without one, the control's own text shows, as anywhere else on it
+// (coordinator decision, 2026-11-02). A disabled control, unless disabled
+// tooltips show, and a disabled or covered part end the search with
+// nothing.
 ToolTipSubject ToolTipPresenter::resolve_pointer(const Control::Ptr& hovered, Point position) const {
     for (Control::Ptr current = hovered; current; current = (*current).parent()) {
         const Rect bounds = (*current).absolute_bounds();
@@ -139,10 +142,10 @@ ToolTipSubject ToolTipPresenter::resolve_pointer(const Control::Ptr& hovered, Po
             if (node != nullptr) {
                 const bool enabled = window_.tool_tip_settings().show_when_disabled ||
                                      has_semantic_state((*node).states, SemanticState::enabled);
-                if ((*node).tool_tip.empty() || !enabled || covered(*current, (*node).stable_id)) {
-                    return nothing_over((*node).bounds);
+                if (!(*node).tool_tip.empty()) {
+                    if (!enabled || covered(*current, (*node).stable_id)) return nothing_over((*node).bounds);
+                    return subject_of(current, (*node).stable_id, (*node).tool_tip, (*node).bounds);
                 }
-                return subject_of(current, (*node).stable_id, (*node).tool_tip, (*node).bounds);
             }
         }
         if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&

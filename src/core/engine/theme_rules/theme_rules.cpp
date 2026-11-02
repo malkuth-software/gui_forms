@@ -1640,6 +1640,7 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     case RecipeField::outline_style:
         return declaration.outline_style == RecipeOutlineStyle::ring ||
                declaration.outline_style == RecipeOutlineStyle::solid ||
+               declaration.outline_style == RecipeOutlineStyle::dotted ||
                declaration.outline_style == RecipeOutlineStyle::none;
     case RecipeField::outline_width: return in_range(declaration.number, 0.0, maximum_recipe_outline_width);
     case RecipeField::outline_offset:

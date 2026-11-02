@@ -1,4 +1,5 @@
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -7,14 +8,58 @@
 #include <array>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 namespace gui_forms {
 
+namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> visual_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "button_visual_style", {{"standard", 0}, {"flat", 1}, {"accent", 2}, {"command", 3}}, false});
+    return value;
+}
+
+} // namespace
+
 Button::Button(StableId stable_id, std::string text)
-    : ButtonBase(std::move(stable_id), std::move(text)) {}
+    : ButtonBase(std::move(stable_id), std::move(text)) {
+    PropertyDescriptor visual_style;
+    visual_style.name = "visual_style";
+    visual_style.kind = BindingValueKind::enumeration;
+    visual_style.category = "Appearance";
+    visual_style.description = "Standard, flat, accent or command button.";
+    visual_style.default_value = BindingValue{PropertyEnumValue{"button_visual_style", "standard", 0}};
+    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
+    visual_style.bindable = false;
+    visual_style.enumeration = visual_style_enum();
+    define_bindable_property({
+        std::move(visual_style),
+        detail::EnumerationPropertyGetter<Button, ButtonVisualStyle>(*this, &Button::visual_style,
+                                                                     visual_style_enum()),
+        detail::EnumerationPropertySetter<Button, ButtonVisualStyle>(*this, &Button::set_visual_style),
+        {}, {}, {}});
+
+    PropertyDescriptor flat_border_width;
+    flat_border_width.name = "flat_border_width";
+    flat_border_width.kind = BindingValueKind::number;
+    flat_border_width.category = "Appearance";
+    flat_border_width.description = "Border width in logical pixels of a flat button.";
+    flat_border_width.default_value = BindingValue{1.0};
+    flat_border_width.invalidation_effects = Dirty::paint;
+    flat_border_width.bindable = false;
+    define_bindable_property({
+        std::move(flat_border_width),
+        detail::BindingNoexceptMethodGetter<Button, double>(*this, &Button::flat_border_width),
+        detail::ConvertedPropertySetter<Button, double>(*this, &Button::set_flat_border_width,
+                                                        BindingValueKind::number,
+                                                        "Button.FlatBorderWidth requires a number"),
+        {}, {}, {}});
+}
 
 void Button::set_default_button(bool is_default) {
     require_mutable();
@@ -157,7 +202,7 @@ const ControlAnatomy& Button::anatomy() const noexcept {
 
 Button::Parts Button::button_parts() const {
     // Paint passes the selection to the image lookup only on the themed path.
-    const bool layout_selected = !has_style_override() && selected_;
+    const bool layout_selected = !paints_override_frame() && selected_;
     const bool command_alignment = visual_style_ == ButtonVisualStyle::command;
     const ButtonBase::Parts base = push_button_parts(layout_selected, command_alignment);
     Parts record;
@@ -202,11 +247,22 @@ Button::States Button::states() const {
 void Button::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const std::string display = display_text();
-    if (!has_style_override()) {
+    if (!paints_override_frame()) {
         const ControlVisualRole role = button_visual_role(visual_style_);
+        // An overridden accent button keeps its accent face and paper text;
+        // the other styles take the override's face and text.
+        std::optional<AuthoredButtonColours> authored{};
+        if (has_style_override()) {
+            const BasicControlStyle& colours = style();
+            const bool accent = visual_style_ == ButtonVisualStyle::accent;
+            const bool flat = visual_style_ == ButtonVisualStyle::flat;
+            const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
+            const Color text = accent ? colours.paper : colours.text;
+            authored = AuthoredButtonColours{face, text};
+        }
         paint_themed_button(painter, bounds, role, default_button_,
                             visual_style_ == ButtonVisualStyle::command,
-                            selected_);
+                            selected_, authored);
         return;
     }
     switch (visual_style_) {
@@ -265,7 +321,7 @@ SemanticDescriptor Button::semantic_descriptor() const {
 }
 
 Insets Button::visual_outsets() const noexcept {
-    if (has_style_override()) return {};
+    if (paints_override_frame()) return {};
     const ControlVisualRole role = button_visual_role(visual_style_);
     const ControlVisualContext context = visual_context(
         hovered_visual(), pressed_visual(), selected_, focus_cue_visible(),

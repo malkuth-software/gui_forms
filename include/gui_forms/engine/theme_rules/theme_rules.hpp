@@ -811,8 +811,9 @@ inline constexpr std::size_t recipe_field_count = static_cast<std::size_t>(Recip
 
 // How the focus ring is drawn (CSS `outline-style`): the theme's own ring
 // inside the control's bounds (CSS's `auto`), an outline outside them,
-// offset by the outline offset (CSS's `solid`), or none (a width of 0).
-enum class RecipeOutlineStyle : std::uint8_t { ring, solid, none };
+// offset by the outline offset (CSS's `solid`), the same outline as dots
+// (CSS's `dotted`), or none (a width of 0).
+enum class RecipeOutlineStyle : std::uint8_t { ring, solid, none, dotted };
 
 // What a recipe admits (valid_recipe): an outline at most 16 logical units
 // wide, offset at most 64 either way; a text shadow offset at most 16 on

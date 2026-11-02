@@ -24,6 +24,15 @@ typedef struct gf_kit {
     gf_schema_table schema;
     gf_themes_table themes;
     gf_host_table host;
+    gf_diagnostics_table diagnostics;
+    gf_controls_table controls;
+    gf_text_editing_table text_editing;
+    gf_popups_table popups;
+    gf_property_grid_table property_grid;
+    gf_custom_controls_table custom_controls;
+    gf_bindings_table bindings;
+    /* Loaded by the custom part where the library has it (Windows). */
+    gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;
 
 /* Counts a check and reports it when condition is zero. */
@@ -42,6 +51,13 @@ int gf_kit_view_equals(gf_utf8_view view, const char* text);
 gf_object gf_kit_create(gf_kit* kit, const char* type, const char* stable_id);
 /* The object's state, or GF_OBJECT_STATE_DISPOSED + 1 when the call fails. */
 gf_object_state gf_kit_state(gf_kit* kit, gf_object object);
+/* Whether create refuses the schema type id (it needs another object or a
+ * window, or is a service). */
+int gf_kit_create_refuses(gf_utf8_view id);
+/* Makes the schema type id through create, or through create_with with the
+ * owner or enumeration it needs (owner receives a reference the caller
+ * releases, zero when none); zero when neither slot makes it. */
+gf_object gf_kit_make_any(gf_kit* kit, gf_utf8_view id, const char* stable_id, gf_object* owner);
 /* Sets a text property; returns the call's status. */
 gf_status gf_kit_set_text(gf_kit* kit, gf_object object, const char* property, const char* text);
 
@@ -65,9 +81,17 @@ void gf_kit_ownership(gf_kit* kit);
 void gf_kit_values(gf_kit* kit);
 void gf_kit_schema(gf_kit* kit);
 void gf_kit_callbacks(gf_kit* kit);
+void gf_kit_events(gf_kit* kit);
+void gf_kit_create_with(gf_kit* kit);
+void gf_kit_diagnostics(gf_kit* kit);
 void gf_kit_threads(gf_kit* kit);
 void gf_kit_window(gf_kit* kit);
+void gf_kit_window_handle(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
+void gf_kit_proxies(gf_kit* kit);
+void gf_kit_families(gf_kit* kit);
+void gf_kit_custom(gf_kit* kit);
+void gf_kit_bindings(gf_kit* kit);
 void gf_kit_host(gf_kit* kit);
 /* The host checks that need a running window; from its ready callback. */
 void gf_kit_host_running(gf_kit* kit);

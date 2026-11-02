@@ -75,6 +75,10 @@ jobs:
           python3 tools/control_schema.py render --check
           # Stage T4: the stock anatomies the default theme's sheets compile against.
           python3 -B tools/stock_anatomies.py --check
+          # Every recorded difference from Windows Forms' observable contract.
+          python3 -B -m unittest discover -s tools -p test_winforms_divergences.py
+          python3 tools/winforms_divergences.py check
+          python3 tools/winforms_divergences.py render --check
           # Stage T4: direct drawing in controls may only fall (manifests/paint_census.json).
           python3 -B -m unittest discover -s tools -p test_paint_census.py
           python3 -B tools/paint_census.py check

@@ -46,9 +46,7 @@ constexpr Color disabled_ink = Color::rgba(82, 99, 122);
 constexpr Color stock = Color::rgba(244, 244, 245);
 constexpr Color paper = Color::rgba(255, 255, 255);
 constexpr Color clear = Color::rgba(255, 255, 255, 0);
-// The focus ring: dark ink, a non-colour cue (design language: the ring is
-// dotted; the built-in recipe draws it solid until a dotted ring primitive
-// exists).
+// The focus ring: dark ink, a non-colour cue, dotted (design language).
 constexpr Color focus_ink = Color::rgba(27, 39, 51);
 // The default button's second perimeter (M105), Plan Paint's default ring.
 constexpr Color default_perimeter = Color::rgba(33, 75, 129);
@@ -115,6 +113,7 @@ ControlVisualRecipe recipe_of(SurfaceMaterial material, Color text) {
     result.glyph = text;
     result.focus_ring = focus_ink;
     result.focus_width = 1.0;
+    result.dotted_focus = true;
     result.default_ring = default_perimeter;
     result.default_width = 1.0;
     return result;
@@ -392,24 +391,31 @@ constexpr std::string_view light_sheet = R"css(/* gui-forms: the default theme's
 }
 
 /* Plan Paint's tab stack (make_tab_theme): faces #9BB6DA at rest, #ACC6E7
-   hot, #E8F2FF selected; radius 4 on the top corners; the dark keyline
-   #496C9F; a white top line (49 %, 100 % selected) as an inset light; the
-   hard two-unit cast and the soft shadow to the right. A material takes
-   either one border or per-edge borders, and per-edge borders only square,
-   so the edge is one border. The tab's ink is its family's recipe text (a
-   part takes no `color`). */
+   hot, #E8F2FF selected, radius 4, no border; a shade over the top 72 %
+   (a white sheen when selected); a white top line (49 %, 100 % selected);
+   on the right the dark keyline #496C9F with the light #D1E0F5 inside it;
+   the hard two-unit cast and the soft shadow to the right. A material
+   holds four shadows, so the top line is a one-unit band of the
+   background; the keylines are inset shadows. Against Plan Paint's own
+   material the largest channel difference is 112, at the two right
+   corners only, where an inset shadow follows the radius and a keyline
+   does not; elsewhere it is 16 or less (T4 phase 4). The tab's ink is its
+   family's recipe text (a part takes no `color`). */
 tab-control::part(tab), page-strip::part(tab) {
-  background: #9bb6da;
-  border: 1px solid role(dark-line);
-  border-radius: 4px 4px 0 0;
-  box-shadow: inset 0 1px 0 rgb(255 255 255 / 49%), 2px 0 0 #496c9f, 3px 1px 2px rgb(24 56 97 / 22%);
+  background-color: #9bb6da;
+  background-image: linear-gradient(to bottom, rgb(255 255 255 / 49%) 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(34 70 116 / 15%), rgb(34 70 116 / 0%) 72%);
+  border: none;
+  border-radius: 4px;
+  box-shadow: inset -1px 0 0 #496c9f, inset -2px 0 0 #d1e0f5, 3px 1px 2px rgb(24 56 97 / 22%), 2px 0 0 #496c9f;
 }
 tab-control::part(tab):hover, page-strip::part(tab):hover {
-  background: #acc6e7;
+  background-color: #acc6e7;
 }
 tab-control::part(tab):state(selected), page-strip::part(tab):state(selected) {
-  background: #e8f2ff;
-  box-shadow: inset 0 1px 0 #ffffff, 2px 0 0 #496c9f, 3px 1px 2px rgb(24 56 97 / 22%);
+  background-color: #e8f2ff;
+  background-image: linear-gradient(to bottom, #ffffff 1px, transparent 1px),
+    linear-gradient(to bottom, rgb(255 255 255 / 57%), rgb(255 255 255 / 0%) 72%);
 }
 /* A disabled tab rests on the chrome face, the ground the disabled ink is
    declared against (#52637A on #9BB6DA would read at 2.95:1). */

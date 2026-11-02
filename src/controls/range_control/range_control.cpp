@@ -44,6 +44,38 @@ RangeControl::RangeControl(StableId stable_id)
             *this, &RangeControl::set_value, BindingValueKind::number,
             "RangeControl.Value binding requires a number"),
         detail::EventChangeConnector<double>(value_changed_), {}, {}});
+
+    PropertyDescriptor minimum;
+    minimum.name = "minimum";
+    minimum.kind = BindingValueKind::number;
+    minimum.category = "Behavior";
+    minimum.description = "Lower bound of the range; below the maximum.";
+    minimum.default_value = BindingValue{0.0};
+    minimum.invalidation_effects = Dirty::paint | Dirty::semantics;
+    minimum.bindable = false;
+    define_bindable_property({
+        std::move(minimum),
+        detail::BindingNoexceptMethodGetter<RangeControl, double>(*this, &RangeControl::minimum),
+        detail::ConvertedPropertySetter<RangeControl, double>(
+            *this, &RangeControl::set_minimum, BindingValueKind::number,
+            "RangeControl.Minimum requires a number"),
+        detail::EventChangeConnector<double, double>(range_changed_), {}, {}});
+
+    PropertyDescriptor maximum;
+    maximum.name = "maximum";
+    maximum.kind = BindingValueKind::number;
+    maximum.category = "Behavior";
+    maximum.description = "Upper bound of the range; above the minimum.";
+    maximum.default_value = BindingValue{100.0};
+    maximum.invalidation_effects = Dirty::paint | Dirty::semantics;
+    maximum.bindable = false;
+    define_bindable_property({
+        std::move(maximum),
+        detail::BindingNoexceptMethodGetter<RangeControl, double>(*this, &RangeControl::maximum),
+        detail::ConvertedPropertySetter<RangeControl, double>(
+            *this, &RangeControl::set_maximum, BindingValueKind::number,
+            "RangeControl.Maximum requires a number"),
+        detail::EventChangeConnector<double, double>(range_changed_), {}, {}});
 }
 
 double RangeControl::normalized_value() const noexcept {

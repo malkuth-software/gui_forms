@@ -8,18 +8,19 @@
 
 #include "abi_tables.hpp"
 
+#include "../events/abi_event_catalog.hpp"
 #include "../registry/abi_registry.hpp"
 
-#include "gui_forms/controls/button_base/button_base.hpp"
-#include "gui_forms/controls/button_base/check_box/check_box.hpp"
-#include "gui_forms/controls/label/label.hpp"
-#include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 namespace gui_forms::abi1 {
 namespace {
@@ -27,33 +28,11 @@ namespace {
 constexpr SlotIdentity subscribe_slot{GF_TABLE_EVENTS, 0U};
 constexpr SlotIdentity subscribe_property_slot{GF_TABLE_EVENTS, 1U};
 constexpr SlotIdentity disconnect_slot{GF_TABLE_EVENTS, 2U};
+constexpr SlotIdentity write_field_slot{GF_TABLE_EVENTS, 3U};
+constexpr SlotIdentity field_element_slot{GF_TABLE_EVENTS, 4U};
 
-// The interactions the table connects at ABI 1.0, by schema name.
-enum class Interaction : std::uint8_t {
-    name_changed,
-    visible_changed,
-    enabled_changed,
-    clicked,
-    text_changed,
-    checked_changed,
-};
-
-struct NamedInteraction {
-    std::string_view name;
-    Interaction interaction = Interaction::name_changed;
-};
-
-constexpr std::array<NamedInteraction, 6> interactions{{
-    {"name_changed", Interaction::name_changed},
-    {"visible_changed", Interaction::visible_changed},
-    {"enabled_changed", Interaction::enabled_changed},
-    {"clicked", Interaction::clicked},
-    {"text_changed", Interaction::text_changed},
-    {"checked_changed", Interaction::checked_changed},
-}};
-
-// Forwarders: one per C++ event signature. Each holds the binding; the
-// event's copy of the forwarder is the binding's owner.
+// A property subscription's forwarder: the event has no payload. The
+// event's copy of the forwarder owns the binding.
 struct PlainForwarder {
     std::shared_ptr<SubscriptionBinding> binding;
     void operator()() const {
@@ -61,84 +40,47 @@ struct PlainForwarder {
     }
 };
 
-struct ButtonForwarder {
-    std::shared_ptr<SubscriptionBinding> binding;
-    void operator()(ButtonBase&) const {
-        (*binding).emit(nullptr);
+// Orders connectors by interaction name (the catalog's order).
+struct ConnectorBefore final {
+    bool operator()(const EventConnector& connector, std::string_view name) const noexcept {
+        return connector.interaction < name;
+    }
+    bool operator()(std::string_view name, const EventConnector& connector) const noexcept {
+        return name < connector.interaction;
     }
 };
 
-struct BooleanForwarder {
-    std::shared_ptr<SubscriptionBinding> binding;
-    void operator()(bool value) const {
-        gf_value payload{};
-        payload.struct_size = sizeof(gf_value);
-        payload.kind = GF_VALUE_KIND_BOOLEAN;
-        payload.boolean = value ? 1U : 0U;
-        (*binding).emit(&payload);
+// Whether source's type raises the interaction name.
+bool raises(const Component& source, std::string_view name) {
+    const std::vector<InteractionDeclaration> declared = source.interactions();
+    for (const InteractionDeclaration& declaration : declared) {
+        if (declaration.name == name) {
+            return true;
+        }
     }
-};
+    return false;
+}
 
-struct TextForwarder {
-    std::shared_ptr<SubscriptionBinding> binding;
-    void operator()(const std::string& text) const {
-        gf_value payload{};
-        payload.struct_size = sizeof(gf_value);
-        payload.kind = GF_VALUE_KIND_TEXT;
-        payload.text.data = text.data();
-        payload.text.size = text.size();
-        (*binding).emit(&payload);
-    }
-};
-
-// Subscribes the forwarder for interaction to source. An empty token means
-// the source's type does not offer the interaction.
-SubscriptionToken connect_interaction(Control& source, Interaction interaction,
+// Subscribes binding to the interaction name of source through the most
+// derived declaring type's connector. An empty token when no connector
+// takes source (a catalog that does not match the schema).
+SubscriptionToken connect_interaction(Component& source, std::string_view name,
                                       const std::shared_ptr<SubscriptionBinding>& binding) {
-    ButtonBase* button = dynamic_cast<ButtonBase*>(&source);
-    switch (interaction) {
-    case Interaction::name_changed:
-        return source.name_changed().subscribe(TextForwarder{binding});
-    case Interaction::visible_changed:
-        return source.visible_changed().subscribe(BooleanForwarder{binding});
-    case Interaction::enabled_changed:
-        return source.enabled_changed().subscribe(BooleanForwarder{binding});
-    case Interaction::clicked:
-        if (button != nullptr) {
-            return (*button).clicked().subscribe(ButtonForwarder{binding});
+    using ConnectorIterator = std::array<EventConnector, event_connectors.size()>::const_iterator;
+    const std::pair<ConnectorIterator, ConnectorIterator> range =
+        std::equal_range(event_connectors.begin(), event_connectors.end(), name, ConnectorBefore{});
+    const EventSink sink{binding};
+    ConnectorIterator connector = range.first;
+    for (connector = range.first; connector != range.second; ++connector) {
+        SubscriptionToken token = (*connector).connect(source, sink);
+        if (token.connected()) {
+            return token;
         }
-        return SubscriptionToken{};
-    case Interaction::text_changed: {
-        if (button != nullptr) {
-            return (*button).text_changed().subscribe(TextForwarder{binding});
-        }
-        Label* label = dynamic_cast<Label*>(&source);
-        if (label != nullptr) {
-            return (*label).text_changed().subscribe(TextForwarder{binding});
-        }
-        TextBox* text_box = dynamic_cast<TextBox*>(&source);
-        if (text_box != nullptr) {
-            return (*text_box).text_changed().subscribe(TextForwarder{binding});
-        }
-        return SubscriptionToken{};
-    }
-    case Interaction::checked_changed: {
-        CheckBox* check_box = dynamic_cast<CheckBox*>(&source);
-        if (check_box != nullptr) {
-            return (*check_box).checked_changed().subscribe(BooleanForwarder{binding});
-        }
-        return SubscriptionToken{};
-    }
     }
     return SubscriptionToken{};
 }
 
 // What a subscription connects to: an interaction or a property's changes.
-struct SubscriptionTarget {
-    bool property = false;
-    Interaction interaction = Interaction::name_changed;
-};
-
 // The shared body of subscribe and subscribe_property.
 gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* callback,
                        gf_subscription* subscription, bool property, SlotIdentity slot) {
@@ -159,42 +101,36 @@ gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* c
     if (entered != GF_STATUS_OK) {
         return entered;
     }
+    // A component raises interactions; only a control has properties.
+    Component::Ptr component;
     Control::Ptr control;
-    const gf_status found = registry().find_object(source, slot, control);
+    const gf_status found = property ? registry().find_object(source, slot, control)
+                                     : registry().find_component(source, slot, component);
     if (found != GF_STATUS_OK) {
         return found;
     }
-    if (!(*control).is_alive()) {
+    if (property) {
+        component = control;
+    }
+    if (!(*component).is_alive()) {
         return fail(GF_STATUS_DISPOSED, slot, "the source has been disposed");
     }
-    SubscriptionTarget target{};
-    target.property = property;
     if (property) {
         if (!(*control).property_descriptor(name_text)) {
             return fail(GF_STATUS_NOT_FOUND, slot, "the source has no property of that name");
         }
-    } else {
-        const NamedInteraction* known = nullptr;
-        std::size_t index = 0U;
-        for (index = 0U; index < interactions.size(); ++index) {
-            if (interactions[index].name == name_text) {
-                known = &interactions[index];
-            }
-        }
-        if (known == nullptr) {
-            return fail(GF_STATUS_NOT_FOUND, slot, "this table does not connect an interaction of that name");
-        }
-        target.interaction = (*known).interaction;
+    } else if (!raises(*component, name_text)) {
+        return fail(GF_STATUS_NOT_FOUND, slot, "the source's type does not raise an interaction of that name");
     }
-    const gf_subscription reserved = registry().reserve_subscription(control);
+    const gf_subscription reserved = registry().reserve_subscription(component);
     std::shared_ptr<SubscriptionBinding> binding;
     SubscriptionToken token;
     try {
-        binding = std::make_shared<SubscriptionBinding>(copy, reserved, control.get(), std::string(name_text));
+        binding = std::make_shared<SubscriptionBinding>(copy, reserved, component.get(), std::string(name_text));
         if (property) {
             token = (*control).subscribe_property_changed(name_text, *control, PlainForwarder{binding});
         } else {
-            token = connect_interaction(*control, target.interaction, binding);
+            token = connect_interaction(*component, name_text, binding);
         }
     } catch (...) {
         if (binding) {
@@ -208,8 +144,10 @@ gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* c
         (*binding).disarm();
         binding.reset();
         registry().abandon_subscription(reserved);
-        return fail(GF_STATUS_NOT_FOUND, slot, property ? "the property does not report its changes"
-                                                        : "the source's type does not offer that interaction");
+        if (property) {
+            return fail(GF_STATUS_NOT_FOUND, slot, "the property does not report its changes");
+        }
+        return fail(GF_STATUS_INTERNAL, slot, "the event catalog has no connector for the source's type");
     }
     // The event's forwarder now owns the binding.
     binding.reset();
@@ -221,6 +159,7 @@ gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* c
 gf_status GF_CALL events_subscribe(gf_object source, gf_utf8_view interaction, const gf_callback* callback,
                                    gf_subscription* subscription) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(subscribe_slot.table_id, subscribe_slot.slot_index);
         const gf_status subscribed = subscribe_to(source, interaction, callback, subscription, false, subscribe_slot);
         return subscribed;
     } catch (...) {
@@ -231,6 +170,7 @@ gf_status GF_CALL events_subscribe(gf_object source, gf_utf8_view interaction, c
 gf_status GF_CALL events_subscribe_property(gf_object source, gf_utf8_view property, const gf_callback* callback,
                                             gf_subscription* subscription) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(subscribe_property_slot.table_id, subscribe_property_slot.slot_index);
         const gf_status subscribed =
             subscribe_to(source, property, callback, subscription, true, subscribe_property_slot);
         return subscribed;
@@ -241,6 +181,7 @@ gf_status GF_CALL events_subscribe_property(gf_object source, gf_utf8_view prope
 
 gf_status GF_CALL events_disconnect(gf_subscription subscription) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(disconnect_slot.table_id, disconnect_slot.slot_index);
         const gf_status entered = registry().enter_ui(disconnect_slot, false);
         if (entered != GF_STATUS_OK) {
             return entered;
@@ -252,12 +193,51 @@ gf_status GF_CALL events_disconnect(gf_subscription subscription) noexcept {
     }
 }
 
+gf_status GF_CALL events_write_field(gf_event* event, std::uint64_t field, const gf_value* value) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(write_field_slot.table_id, write_field_slot.slot_index);
+        const gf_status entered = registry().enter_ui(write_field_slot, false);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        EventFields* frame = EventFields::frame_of(event);
+        if (frame == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, write_field_slot, "no callback is running for that event");
+        }
+        const gf_status written = (*frame).write(field, value, write_field_slot);
+        return written;
+    } catch (...) {
+        return fail_with_current_exception(write_field_slot);
+    }
+}
+
+gf_status GF_CALL events_field_element(const gf_event* event, std::uint64_t field, std::uint64_t index,
+                                       gf_value* element) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(field_element_slot.table_id, field_element_slot.slot_index);
+        const gf_status entered = registry().enter_ui(field_element_slot, false);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        EventFields* frame = EventFields::frame_of(event);
+        if (frame == nullptr) {
+            return fail(GF_STATUS_INVALID_STATE, field_element_slot, "no callback is running for that event");
+        }
+        const gf_status read = (*frame).element(field, index, element, field_element_slot);
+        return read;
+    } catch (...) {
+        return fail_with_current_exception(field_element_slot);
+    }
+}
+
 constexpr gf_events_table table{
     .struct_size = sizeof(gf_events_table),
     .abi_minor = GF_ABI_MINOR,
     .subscribe = &events_subscribe,
     .subscribe_property = &events_subscribe_property,
     .disconnect = &events_disconnect,
+    .write_field = &events_write_field,
+    .field_element = &events_field_element,
 };
 
 } // namespace

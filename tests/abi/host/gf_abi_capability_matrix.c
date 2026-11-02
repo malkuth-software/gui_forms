@@ -56,6 +56,7 @@ static const capability_name capability_names[] = {
     {"window_backdrops", GF_HOST_CAPABILITY_WINDOW_BACKDROPS},
     {"compositor_notifications", GF_HOST_CAPABILITY_COMPOSITOR_NOTIFICATIONS},
     {"presentation_preferences", GF_HOST_CAPABILITY_PRESENTATION_PREFERENCES},
+    {"windows_paint_endpoint", GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT},
 };
 
 enum { capability_name_count = (int)(sizeof(capability_names) / sizeof(capability_names[0])) };

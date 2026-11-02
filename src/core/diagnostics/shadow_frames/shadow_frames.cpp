@@ -1,0 +1,119 @@
+// Each thread's shadow stack. See shadow_frames.hpp.
+
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
+#include <algorithm>
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
+#include <span>
+#include <string_view>
+
+namespace gui_forms {
+namespace {
+
+// One thread's stack. It is zero-initialized thread storage, made with the
+// thread, so no push allocates.
+struct ShadowStack final {
+    std::array<ShadowFrame, shadow_stack_capacity> frames{};
+    std::uint32_t depth = 0U;
+    std::uint64_t pushed = 0U;
+    std::uint64_t dropped = 0U;
+};
+
+thread_local ShadowStack thread_stack;
+
+// The leading bytes of text that fit in capacity and end on a whole UTF-8
+// sequence.
+std::size_t whole_prefix(std::string_view text, std::size_t capacity) noexcept {
+    if (text.size() <= capacity) {
+        return text.size();
+    }
+    std::size_t size = capacity;
+    // Back up over continuation bytes to the lead byte of the cut sequence.
+    while (size > 0U && (static_cast<unsigned char>(text[size]) & 0xC0U) == 0x80U) {
+        --size;
+    }
+    return size;
+}
+
+// The frame to record into, or null when the stack is past its capacity.
+// Counts the push either way.
+ShadowFrame* open_frame() noexcept {
+    ShadowStack& stack = thread_stack;
+    ++stack.pushed;
+    const std::uint32_t index = stack.depth;
+    ++stack.depth;
+    if (index >= shadow_stack_capacity) {
+        ++stack.dropped;
+        return nullptr;
+    }
+    return &stack.frames[index];
+}
+
+} // namespace
+
+ShadowFrameScope::ShadowFrameScope(const ShadowFrameKind kind, const std::string_view subject,
+                                   const std::string_view name, const std::uint64_t sequence) noexcept {
+    ShadowFrame* frame = open_frame();
+    if (frame == nullptr) {
+        return;
+    }
+    const std::size_t subject_size = whole_prefix(subject, shadow_frame_subject_capacity);
+    const std::size_t name_size = whole_prefix(name, shadow_frame_name_capacity);
+    std::uint32_t flags = 0U;
+    if (subject_size != subject.size()) {
+        flags |= static_cast<std::uint32_t>(ShadowFrameFlags::subject_truncated);
+    }
+    if (name_size != name.size()) {
+        flags |= static_cast<std::uint32_t>(ShadowFrameFlags::name_truncated);
+    }
+    (*frame).kind = kind;
+    (*frame).flags = flags;
+    (*frame).interface_id = 0U;
+    (*frame).function_index = 0U;
+    (*frame).sequence = sequence;
+    (*frame).subject_size = static_cast<std::uint32_t>(subject_size);
+    (*frame).name_size = static_cast<std::uint32_t>(name_size);
+    if (subject_size != 0U) {
+        std::memcpy((*frame).subject.data(), subject.data(), subject_size);
+    }
+    if (name_size != 0U) {
+        std::memcpy((*frame).name.data(), name.data(), name_size);
+    }
+}
+
+ShadowFrameScope::ShadowFrameScope(const std::uint32_t interface_id, const std::uint32_t function_index) noexcept {
+    ShadowFrame* frame = open_frame();
+    if (frame == nullptr) {
+        return;
+    }
+    (*frame).kind = ShadowFrameKind::library_call;
+    (*frame).flags = 0U;
+    (*frame).interface_id = interface_id;
+    (*frame).function_index = function_index;
+    (*frame).sequence = 0U;
+    (*frame).subject_size = 0U;
+    (*frame).name_size = 0U;
+}
+
+ShadowFrameScope::~ShadowFrameScope() {
+    // Scopes nest strictly, so the stack is never empty here.
+    --thread_stack.depth;
+}
+
+std::size_t copy_shadow_frames(const std::span<ShadowFrame> frames, ShadowStackState& state) noexcept {
+    const ShadowStack& stack = thread_stack;
+    const std::size_t recorded = std::min<std::size_t>(stack.depth, shadow_stack_capacity);
+    const std::size_t copied = std::min(recorded, frames.size());
+    for (std::size_t index = 0U; index < copied; ++index) {
+        frames[index] = stack.frames[index];
+    }
+    state.depth = stack.depth;
+    state.pushed = stack.pushed;
+    state.dropped = stack.dropped;
+    return recorded;
+}
+
+} // namespace gui_forms

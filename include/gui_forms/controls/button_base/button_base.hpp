@@ -213,10 +213,25 @@ protected:
                               std::string_view text, Color foreground,
                               Point offset = {}, bool selected = false,
                               bool command_alignment = false) const;
+    // The colours a style override gives a themed button's face and text
+    // (owner decision T4-1; hot states, option 1).
+    struct AuthoredButtonColours final {
+        Color face{};
+        Color text{};
+    };
+    // Whether the button paints its style override's own frame: only an
+    // overridden button with per-control recipes or a connection, which the
+    // engine's parts do not shape. Every other button paints themed, an
+    // override supplying its authored colours.
+    [[nodiscard]] bool paints_override_frame() const noexcept;
+    // The face, cues and content of a themed push-style button. With a
+    // style override, `authored` (by default the override's face and text)
+    // colours the face and the enabled text.
     void paint_themed_button(Painter& painter, Rect bounds,
                              ControlVisualRole role, bool default_cue,
                              bool command_alignment = false,
-                             bool selected = false) const;
+                             bool selected = false,
+                             std::optional<AuthoredButtonColours> authored = {}) const;
     [[nodiscard]] const ControlVisualRecipe& resolve_visual_recipe(
         ControlVisualRole role, ControlVisualContext context) const noexcept;
     [[nodiscard]] Insets resolved_visual_outsets(

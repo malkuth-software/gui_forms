@@ -8,14 +8,10 @@
 #include <memory>
 #include <string>
 #include <vector>
-#if defined(GUI_FORMS_PREPARED_TEXT)
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
-#endif
 
 namespace gui_forms::detail {
-#if defined(GUI_FORMS_PREPARED_TEXT)
 struct PreparedTextStorage;
-#endif
 
 enum class DisplayOperation : std::uint8_t {
     save = 0,
@@ -39,9 +35,7 @@ enum class DisplayOperation : std::uint8_t {
     draw_image_region_sampled = 18,
     draw_live_surface = 19,
     draw_inset_box_shadow = 20,
-#if defined(GUI_FORMS_PREPARED_TEXT)
     draw_prepared_text = 21,
-#endif
     draw_part_raster = 22,
     // A paint group (Painter::begin_group): `rect` its bounds, `scalar` its
     // opacity, `secondary_scalar` its composite mode's value,
@@ -80,10 +74,8 @@ struct DisplayCommand final {
     // its logical origin, `rect` its logical bounds at its own scale (for
     // inspection), and `scalar` its opacity.
     std::shared_ptr<const PartRaster> part_raster{};
-#if defined(GUI_FORMS_PREPARED_TEXT)
     std::shared_ptr<const PreparedTextStorage> prepared_text{};
     LayoutAuthority prepared_authority{};
-#endif
 };
 
 } // namespace gui_forms::detail

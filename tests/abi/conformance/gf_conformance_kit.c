@@ -150,16 +150,37 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
     load_table(&kit, GF_TABLE_SCHEMA, &kit.schema, sizeof(kit.schema), "load the schema table");
     load_table(&kit, GF_TABLE_THEMES, &kit.themes, sizeof(kit.themes), "load the themes table");
     load_table(&kit, GF_TABLE_HOST, &kit.host, sizeof(kit.host), "load the host table");
+    load_table(&kit, GF_TABLE_DIAGNOSTICS, &kit.diagnostics, sizeof(kit.diagnostics), "load the diagnostics table");
+    load_table(&kit, GF_TABLE_CONTROLS, &kit.controls, sizeof(kit.controls), "load the controls table");
+    load_table(&kit, GF_TABLE_TEXT_EDITING, &kit.text_editing, sizeof(kit.text_editing),
+               "load the text editing table");
+    load_table(&kit, GF_TABLE_POPUPS, &kit.popups, sizeof(kit.popups), "load the popups table");
+    load_table(&kit, GF_TABLE_PROPERTY_GRID, &kit.property_grid, sizeof(kit.property_grid),
+               "load the property grid table");
+    load_table(&kit, GF_TABLE_CUSTOM_CONTROLS, &kit.custom_controls, sizeof(kit.custom_controls),
+               "load the custom controls table");
+    load_table(&kit, GF_TABLE_BINDINGS, &kit.bindings, sizeof(kit.bindings), "load the bindings table");
     if (kit.failures == 0u) {
         gf_kit_ownership(&kit);
         gf_kit_values(&kit);
         gf_kit_schema(&kit);
         gf_kit_callbacks(&kit);
+        /* The thread handover needs an idle library, so it runs before the
+         * first window: the engine a window uses binds the UI thread for
+         * good. */
         gf_kit_threads(&kit);
+        gf_kit_create_with(&kit);
+        gf_kit_events(&kit);
         gf_kit_themes(&kit);
+        gf_kit_proxies(&kit);
+        gf_kit_families(&kit);
+        gf_kit_custom(&kit);
+        gf_kit_bindings(&kit);
         gf_kit_host(&kit);
+        gf_kit_diagnostics(&kit);
         if ((flags & GF_CONFORMANCE_FLAGS_WINDOW) != 0u) {
             gf_kit_window(&kit);
+            gf_kit_window_handle(&kit);
         }
     }
     if (out != NULL) {

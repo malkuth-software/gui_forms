@@ -12,6 +12,7 @@
 #include "../src/controls/text_block/line_wrapping.hpp"
 
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -21,6 +22,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -1786,7 +1788,7 @@ void error_text() {
 
 struct SetBadFormat final {
     DataGridView* grid{};
-    void operator()() const { (*grid).set_default_cell_style({.format = std::string("N2")}); }
+    void operator()() const { (*grid).set_default_cell_style({.format = std::string("X2")}); }
 };
 struct SetNegativePadding final {
     DataGridView* grid{};
@@ -1875,7 +1877,8 @@ void cell_styles() {
     require(throws<std::invalid_argument>(SetBadFormat{grid.get()}) &&
                 throws<std::invalid_argument>(SetNegativePadding{grid.get()}) &&
                 throws<std::out_of_range>(StyleCellPastEnd{grid.get()}),
-            "a format outside F0 to F12, a negative padding and a cell past the rows are refused");
+            "a format that is not a standard numeric format, a negative padding and a cell past the rows are "
+            "refused");
 
     // Styles are kept by row ID: they follow their rows and end with them.
     require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
@@ -1931,6 +1934,29 @@ void formatting_and_parsing() {
     (*(*grid).editing_control()).set_text("(none)");
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{-1.0},
             "the null value's text stores the data source null value");
+
+    // The standard numeric formats beyond F, and typed text in them.
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("N2")});
+    require((*grid).cell_text(row_at(0U), 0U) == "-1.00", "N2 formats the number");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
+                (*grid).begin_edit(),
+            "edit the number under N2");
+    (*(*grid).editing_control()).set_text("1,234.5");
+    require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{1234.5} &&
+                (*grid).cell_text(row_at(0U), 0U) == "1,234.50",
+            "grouped text stores the number it shows");
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("C")});
+    require((*grid).cell_text(row_at(0U), 0U) == "\xC2\xA4" "1,234.50", "C formats with the currency sign");
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("P0")});
+    require((*grid).cell_text(row_at(0U), 0U) == "123,450 %", "P0 formats the hundredfold value");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
+                (*grid).begin_edit(),
+            "edit the number under P0");
+    (*(*grid).editing_control()).set_text("50 %");
+    require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{0.5},
+            "a percent text stores its hundredth");
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("E2")});
+    require((*grid).cell_text(row_at(0U), 0U) == "5.00E-001", "E2 formats in the scientific form");
 
     int formatted = 0;
     SubscriptionToken format_token = (*grid).cell_formatting().subscribe(FormatNames{&formatted});
@@ -2599,6 +2625,523 @@ void clipboard() {
             "with nothing selected Ctrl+C is not handled");
 }
 
+// A deterministic sequence for the row height tests (a 64-bit LCG).
+struct HeightSequence final {
+    std::uint64_t state{0x9E3779B97F4A7C15ULL};
+    std::uint64_t next() {
+        state = state * 6364136223846793005ULL + 1442695040888963407ULL;
+        const std::uint64_t result = state >> 33U;
+        return result;
+    }
+};
+
+struct SetRowHeightTooSmall final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_row_height_at(row_at(0U), 3.0); }
+};
+struct SetRowHeightPastEnd final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_row_height_at(row_at(99U), 30.0); }
+};
+
+double seconds_since(std::chrono::steady_clock::time_point start) {
+    const std::chrono::duration<double> elapsed = std::chrono::steady_clock::now() - start;
+    return elapsed.count();
+}
+
+void row_height_index() {
+    // Against plain prefix sums: random heights, then random changes.
+    const std::size_t count = 1000U;
+    std::vector<double> heights(count, 22.0);
+    DataGridViewRowHeights index;
+    index.reset(count, 22.0);
+    require(index.uniform() && index.total() == 22000.0 && index.position_at(43.9) == 1U &&
+                index.position_at(44.0) == 2U && index.position_at(-1.0) == 0U && index.position_at(22000.0) == count,
+            "uniform rows are arithmetic");
+    HeightSequence sequence;
+    std::vector<DataGridViewRowHeight> given;
+    for (std::size_t step = 0; step < 300U; ++step) {
+        const std::size_t position = static_cast<std::size_t>(sequence.next() % count);
+        const double height = 4.0 + static_cast<double>(sequence.next() % 120U) * 0.5;
+        given.push_back({position, height});
+        heights[position] = height;
+    }
+    index.reset(count, 22.0, given);
+    for (std::size_t round = 0; round < 2U; ++round) {
+        bool tops = true;
+        bool positions = true;
+        double top = 0.0;
+        for (std::size_t position = 0; position < count; ++position) {
+            if (index.top(position) != top || index.height(position) != heights[position]) tops = false;
+            if (index.position_at(top) != position) positions = false;
+            if (index.position_at(top + heights[position] * 0.5) != position) positions = false;
+            top += heights[position];
+        }
+        require(tops && index.total() == top && !index.uniform(), "tops and heights match the prefix sums");
+        require(positions && index.position_at(top) == count, "each offset finds the row that holds it");
+        // Then the same through set_height, one row at a time.
+        for (std::size_t step = 0; step < 200U; ++step) {
+            const std::size_t position = static_cast<std::size_t>(sequence.next() % count);
+            const double height = 4.0 + static_cast<double>(sequence.next() % 120U) * 0.5;
+            index.set_height(position, height);
+            heights[position] = height;
+        }
+    }
+    for (std::size_t position = 0; position < count; ++position) index.set_height(position, 22.0);
+    require(index.uniform() && index.total() == 22000.0, "rows back at the default release the tree");
+}
+
+void row_heights() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.heights");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    std::vector<DataGridViewRowEvent> changed;
+    SubscriptionToken changed_token = (*grid).row_height_changed().subscribe(RecordRow{&changed});
+    require((*grid).row_height_at(row_at(1U)) == 22.0, "a row without its own height has the grid's");
+    (*grid).set_row_height_at(row_at(1U), 50.0);
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(1U)) == 50.0 && changed.size() == 1U && changed[0].row == row_at(1U) &&
+                changed[0].row_id == id("bravo"),
+            "a row takes its own height and reports it");
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(rows.size() == 3U && rows[1].parts.row_header.bounds.height == 50.0 &&
+                rows[2].parts.row_header.bounds.y == rows[1].parts.row_header.bounds.y + 50.0,
+            "the rows below a taller row start below it");
+    bool cells_follow = true;
+    for (const DataGridView::Cell& cell : (*grid).realized_cells()) {
+        const Rect bounds = cell.parts.cell.bounds;
+        const Rect header = rows[cell.address.row.value].parts.row_header.bounds;
+        if (bounds.y != header.y || bounds.height != header.height) cells_follow = false;
+    }
+    require(cells_follow, "cells take their row's top and height");
+    const Rect tall = rows[1].parts.row_header.bounds;
+    click(window, {(*grid).parts().well.bounds.x + 120.0, tall.y + tall.height - 3.0});
+    require((*grid).current_cell() && (*(*grid).current_cell()).row == row_at(1U),
+            "a click low in a taller row hits that row");
+
+    // The height stays with its row's ID.
+    require((*grid).sort(0U, DataGridViewSortDirection::descending), "the rows sort");
+    require((*grid).row_height_at(row_at(1U)) == 50.0 && (*grid).row_id(row_at(1U)) == id("bravo") &&
+                (*grid).row_height_at(row_at(0U)) == 22.0,
+            "sorting keeps the height on its row");
+    (*grid).set_row_height_at(row_at(0U), 30.0);
+    require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).row_height_at(row_at(2U)) == 30.0,
+            "both own heights follow their rows");
+    (*grid).insert_row(row_at(0U), {.stable_id = {"delta"}, .cells = {BindingValue{std::string("Delta")}}});
+    require((*grid).row_height_at(row_at(0U)) == 22.0 && (*grid).row_height_at(row_at(2U)) == 50.0,
+            "an inserted row has the default and shifts the others");
+    (*grid).remove_row_at(row_at(2U));
+    (*grid).insert_row(row_at(2U), {.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}}});
+    require((*grid).row_height_at(row_at(2U)) == 22.0, "a removed row's height ends with it");
+    changed.clear();
+    (*grid).reset_row_height_at(row_at(3U));
+    require((*grid).row_height_at(row_at(3U)) == 22.0 && changed.size() == 1U, "a reset row has the default again");
+    (*grid).set_row_height(26.0);
+    require((*grid).row_height_at(row_at(0U)) == 26.0, "rows without their own follow the grid's height");
+    require(throws<std::out_of_range>(SetRowHeightTooSmall{grid.get()}) &&
+                throws<std::out_of_range>(SetRowHeightPastEnd{grid.get()}),
+            "heights outside [4, 4096] and rows past the end are refused");
+
+    // Scrolling by rows of mixed heights: the last row ends at the bottom.
+    (*grid).set_row_count(40U);
+    for (std::size_t position = 0; position < 40U; position += 3U) (*grid).set_row_height_at(row_at(position), 41.0);
+    window.perform_layout();
+    require(window.request_focus(grid), "the grid takes focus");
+    require(key(window, PhysicalKey::end, Modifier::control), "Ctrl+End moves to the last row");
+    window.perform_layout();
+    const std::vector<DataGridView::Row> last = (*grid).realized_rows();
+    const Rect well = (*grid).parts().well.bounds;
+    const DataGridView::Parts parts = (*grid).parts();
+    const Rect bottom_row = last.back().parts.row_header.bounds;
+    require(last.back().position == row_at(39U) &&
+                bottom_row.y + bottom_row.height <= parts.row_header_band.bounds.y + parts.row_header_band.bounds.height &&
+                last.front().parts.row_header.bounds.y == parts.row_header_band.bounds.y,
+            "the last row is shown whole, and the first shown starts at the top");
+    static_cast<void>(well);
+    (*grid).set_first_displayed_row(row_at(0U));
+    window.perform_layout();
+    require(key(window, PhysicalKey::up, Modifier::control) && (*grid).first_displayed_row() == row_at(0U),
+            "Ctrl+Up returns to the top");
+}
+
+// Scrolls to `rounds` places in a grid of `count` rows, laying out, hit
+// testing and painting at each; returns the seconds taken, and the most
+// cells any one paint asked the provider for in `asked_most`.
+double scroll_rounds(Window& window, DataGridView& grid, CountingProvider& provider, std::size_t count,
+                     std::size_t rounds, std::size_t& asked_most) {
+    HeightSequence sequence;
+    const Rect well = grid.parts().well.bounds;
+    const Point probe{well.x + 20.0, well.y + well.height * 0.5};
+    const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    for (std::size_t round = 0; round < rounds; ++round) {
+        const std::size_t first = static_cast<std::size_t>(sequence.next() % count);
+        grid.set_first_displayed_row(row_at(first));
+        window.perform_layout();
+        const PointerEvent hover{PointerAction::move, PointerButton::none, probe};
+        static_cast<void>(window.dispatch_pointer(hover));
+        provider.asked = 0U;
+        CountingPainter painter;
+        grid.on_paint(painter, grid.client_rectangle());
+        asked_most = std::max(asked_most, provider.asked);
+    }
+    const double result = seconds_since(start);
+    return result;
+}
+
+void row_resizing() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.row.resize");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    require((*grid).allow_user_to_resize_rows(), "the user resizes rows by default");
+    const Rect grip = (*grid).realized_rows()[0].parts.row_grip.bounds;
+    const Rect header = (*grid).realized_rows()[0].parts.row_header.bounds;
+    require((*grid).realized_rows()[0].parts.row_grip.present && grip.y < header.y + header.height &&
+                grip.y + grip.height > header.y + header.height,
+            "a row's grip straddles its header's bottom edge");
+    std::vector<DataGridViewRowEvent> changed;
+    SubscriptionToken changed_token = (*grid).row_height_changed().subscribe(RecordRow{&changed});
+    const Point start = centre(*grid, grip);
+    require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, start}), "the grip takes the press");
+    require((*grid).realized_rows()[0].states.captured, "a resizing row publishes captured");
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, {start.x, start.y + 20.0}}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {start.x, start.y + 20.0}}));
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(0U)) == 42.0 && !changed.empty() && changed.back().row_id == id("alpha"),
+            "dragging the grip gives the row its own height");
+    require(!(*grid).realized_rows()[0].states.captured && (*grid).row_height_at(row_at(1U)) == 22.0,
+            "the release ends the drag, and other rows keep theirs");
+    require(!(*grid).current_cell() || (*(*grid).current_cell()).row == row_at(0U),
+            "a resize selects no other row");
+    const Rect lower = (*grid).realized_rows()[0].parts.row_grip.bounds;
+    const Point up_start = centre(*grid, lower);
+    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, up_start}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, {up_start.x, up_start.y - 60.0}}));
+    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {up_start.x, up_start.y - 60.0}}));
+    require((*grid).row_height_at(row_at(0U)) == 4.0, "a row is never dragged below 4 units");
+    (*grid).set_allow_user_to_resize_rows(false);
+    window.perform_layout();
+    require(!(*grid).realized_rows()[0].parts.row_grip.present, "without row resizing there is no grip");
+}
+
+void row_auto_sizing() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.row.auto");
+    Window window(grid, {360.0, 220.0});
+    static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Kilo Lima Mike November")}));
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    window.perform_layout();
+    require((*grid).auto_size_rows_mode() == DataGridViewAutoSizeRowsMode::none &&
+                (*grid).row_height_at(row_at(0U)) == 22.0,
+            "rows do not size themselves by default");
+    const double wrapped = (*grid).preferred_cell_height(row_at(0U), 0U);
+    const double single = (*grid).preferred_cell_height(row_at(1U), 0U);
+    require(wrapped > single * 1.5 && single > 0.0, "a wrapped cell asks for its lines' height");
+    std::vector<DataGridViewRowEvent> changed;
+    SubscriptionToken changed_token = (*grid).row_height_changed().subscribe(RecordRow{&changed});
+
+    (*grid).set_auto_size_rows_mode(DataGridViewAutoSizeRowsMode::all_cells);
+    window.perform_layout();
+    const double header = (*grid).preferred_row_header_height(row_at(1U));
+    double tallest = header;
+    for (std::size_t column = 0U; column < 4U; ++column) {
+        tallest = std::max(tallest, (*grid).preferred_cell_height(row_at(1U), column));
+    }
+    require((*grid).row_height_at(row_at(0U)) == std::max(wrapped, header) &&
+                (*grid).row_height_at(row_at(1U)) == tallest && changed.empty(),
+            "all_cells gives each row its tallest cell's or header's height, raising nothing");
+    require(!(*grid).realized_rows()[0].parts.row_grip.present, "auto-sized rows are not resized by the user");
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(rows[1].parts.row_header.bounds.y == rows[0].parts.row_header.bounds.y + (*grid).row_height_at(row_at(0U)),
+            "the rows below a wrapped row start below its lines");
+
+    // Values and widths measure the rows again.
+    (*grid).set_column_width(0U, 400.0);
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(0U)) < std::max(wrapped, header) + 0.5 &&
+                (*grid).row_height_at(row_at(0U)) == std::max(single, tallest),
+            "a wider column takes the lines back to one");
+    (*grid).set_column_width(0U, 100.0);
+    static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Kilo")}));
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(0U)) == tallest, "a shorter value shrinks its row");
+
+    // Own heights wait for the mode to return to none.
+    (*grid).set_row_height_at(row_at(2U), 60.0);
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(2U)) != 60.0 && changed.empty(), "an own height waits while rows auto size");
+    (*grid).set_auto_size_rows_mode(DataGridViewAutoSizeRowsMode::none);
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(2U)) == 60.0 && (*grid).row_height_at(row_at(0U)) == 22.0,
+            "back at none, own heights and the default return");
+
+    // One-time sizing gives the row its own height.
+    static_cast<void>((*grid).set_cell_value(row_at(1U), 0U, BindingValue{std::string("Oscar Papa Quebec Romeo")}));
+    (*grid).auto_resize_row(row_at(1U));
+    window.perform_layout();
+    require((*grid).row_height_at(row_at(1U)) > tallest && changed.size() == 1U && changed[0].row_id == id("bravo"),
+            "auto_resize_row sizes a row once and reports it");
+    (*grid).auto_resize_rows(DataGridViewAutoSizeRowsMode::all_headers);
+    require((*grid).row_height_at(row_at(1U)) == header, "auto_resize_rows sizes every row by its header");
+}
+
+struct GiveCellError final {
+    int* calls{};
+    void operator()(DataGridViewCellErrorTextNeededEvent& event) const {
+        ++*calls;
+        if (event.row_id.value == "v3" && event.column == 0U) event.error_text = "Out of range";
+    }
+};
+struct GiveRowError final {
+    void operator()(DataGridViewRowErrorTextNeededEvent& event) const {
+        if (event.row_id.value == "v4") event.error_text = event.error_text + "Duplicate";
+    }
+};
+
+void error_text_needed() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.errors.needed"));
+    (*grid).set_columns(virtual_columns());
+    (*grid).set_virtual_rows(std::make_shared<CountingProvider>(), virtual_order(10U));
+    Window window(grid, {300.0, 200.0});
+    int calls = 0;
+    SubscriptionToken cell_token = (*grid).cell_error_text_needed().subscribe(GiveCellError{&calls});
+    SubscriptionToken row_token = (*grid).row_error_text_needed().subscribe(GiveRowError{});
+    window.perform_layout();
+    require((*grid).cell_error_text(row_at(3U), 0U) == "Out of range" && (*grid).cell_error_text(row_at(2U), 0U).empty() &&
+                calls >= 2,
+            "virtual rows ask the application for cell error text");
+    require((*grid).row_error_text(row_at(4U)) == "Duplicate" && (*grid).row_error_text(row_at(5U)).empty(),
+            "and for row error text");
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* errored = find_cell(cells, 3U, 0U);
+    require(errored != nullptr && (*errored).parts.cell_error.present, "an asked error shows its glyph");
+    (*grid).set_cell_error_text(row_at(3U), 1U, "Held");
+    require((*grid).cell_error_text(row_at(3U), 1U) == "Held", "held text reaches the handler and stays");
+
+    std::shared_ptr<DataGridView> unbound = make_grid("grid.errors.unbound");
+    int unbound_calls = 0;
+    SubscriptionToken unbound_token = (*unbound).cell_error_text_needed().subscribe(GiveCellError{&unbound_calls});
+    static_cast<void>((*unbound).cell_error_text(row_at(0U), 0U));
+    require(unbound_calls == 0, "unbound rows hold their own error text and ask for none");
+}
+
+void focus_loss_validation() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("grid.leave.root"));
+    (*root).set_requested_bounds({0.0, 0.0, 400.0, 240.0});
+    std::shared_ptr<DataGridView> grid = make_grid("grid.leave");
+    (*grid).set_requested_bounds({0.0, 0.0, 360.0, 160.0});
+    std::shared_ptr<Button> button = make_control<Button>(StableId("grid.leave.button"), "Apply");
+    (*button).set_requested_bounds({0.0, 180.0, 100.0, 30.0});
+    (*root).add_child(grid);
+    (*root).add_child(button);
+    Window window(root, {400.0, 240.0});
+    window.perform_layout();
+    EventLog log;
+    bool cancel_row = false;
+    SubscriptionToken row_validated = (*grid).row_validated().subscribe(LogRow{&log, "row_validated"});
+    SubscriptionToken row_validating = (*grid).row_validating().subscribe(LogValidating{&log, &cancel_row});
+    require(window.request_focus(grid) && (*grid).current_cell() == cell_at(0U, 0U), "the grid takes focus");
+    require(window.dispatch_text({"Zulu"}) && (*grid).is_current_cell_in_edit_mode(), "typing begins an edit");
+    log.names.clear();
+    require(window.request_focus(button), "focus moves to the button");
+    require(!(*grid).is_current_cell_in_edit_mode() &&
+                (*grid).cell_value(row_at(0U), 0U) == BindingValue{std::string("Zulu")} &&
+                log.names == std::vector<std::string>{"row_validating", "row_validated"},
+            "leaving the grid commits the edit and validates the current row");
+    log.names.clear();
+    require(window.request_focus(grid) && log.names.empty(), "returning validates nothing");
+    require(key(window, PhysicalKey::f2) && (*grid).is_current_cell_in_edit_mode(), "an edit starts");
+    require(log.names.empty(), "moving focus into the editor is not leaving the grid");
+    cancel_row = true;
+    require(window.request_focus(button) && log.names == std::vector<std::string>{"row_validating"},
+            "a cancelled validation raises no row_validated");
+    require((*grid).current_cell() == cell_at(0U, 0U), "the current cell stays");
+}
+
+// Rows by ID from a map; adds rows the user enters, as "added-1" and on,
+// unless refusing.
+class AddingProvider final : public DataGridViewCellValueProvider {
+public:
+    [[nodiscard]] BindingValue cell_value(const DataGridViewRowId& row, std::size_t column) const override {
+        const std::string key = row.value + "/" + std::to_string(column);
+        const std::unordered_map<std::string, BindingValue>::const_iterator found = values.find(key);
+        if (found != values.end()) return (*found).second;
+        return BindingValue{"label " + row.value};
+    }
+    bool push_cell_value(const DataGridViewRowId& row, std::size_t column, const BindingValue& value) override {
+        values.insert_or_assign(row.value + "/" + std::to_string(column), value);
+        return true;
+    }
+    [[nodiscard]] bool can_add_rows() const override { return true; }
+    [[nodiscard]] std::optional<DataGridViewRowId> add_row(std::span<const BindingValue> given) override {
+        ++asked;
+        given_count = given.size();
+        if (refuse) return std::nullopt;
+        ++added;
+        DataGridViewRowId row{"added-" + std::to_string(added)};
+        return row;
+    }
+
+    std::unordered_map<std::string, BindingValue> values{};
+    std::size_t asked{};
+    std::size_t added{};
+    std::size_t given_count{};
+    bool refuse{};
+};
+
+void virtual_new_row() {
+    std::shared_ptr<DataGridView> plain = make_control<DataGridView>(StableId("grid.virtual.no.new"));
+    (*plain).set_columns(virtual_columns());
+    (*plain).set_virtual_rows(std::make_shared<CountingProvider>(), virtual_order(3U));
+    require((*plain).row_count() == 3U, "a provider that adds no rows shows no new row");
+
+    std::shared_ptr<AddingProvider> provider = std::make_shared<AddingProvider>();
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.virtual.new"));
+    (*grid).set_columns(virtual_columns());
+    (*grid).set_virtual_rows(provider, virtual_order(3U));
+    Window window(grid, {300.0, 200.0});
+    window.perform_layout();
+    require((*grid).row_count() == 4U, "a provider that adds rows shows the new row last");
+    require(window.request_focus(grid) && (*grid).set_current_cell(cell_at(3U, 0U)), "the new row becomes current");
+    (*provider).refuse = true;
+    require(window.dispatch_text({"Zulu"}) && key(window, PhysicalKey::enter), "an entry commits");
+    require((*provider).asked == 1U && (*grid).row_count() == 4U, "a refused row is not added");
+    (*provider).refuse = false;
+    (*grid).cancel_edit();
+    require((*grid).set_current_cell(cell_at(3U, 0U)) && window.dispatch_text({"Yankee"}) &&
+                key(window, PhysicalKey::enter),
+            "a second entry commits");
+    window.perform_layout();
+    require((*provider).added == 1U && (*provider).given_count == 2U && (*grid).row_count() == 5U &&
+                (*grid).row_id(row_at(3U)) == id("added-1"),
+            "the application adds the row and names it; a new row follows");
+    require((*grid).cell_text(row_at(3U), 0U) == "Yankee", "the committed value reaches the added row");
+    require((*grid).current_row_id() == id("added-1") || (*grid).current_row_id() != id("v0"),
+            "the current cell follows the added row's ID");
+}
+
+void error_glyph_tool_tips() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.error.tips");
+    Window window(grid, {360.0, 200.0});
+    (*grid).set_cell_error_text(row_at(0U), 0U, "Name is required");
+    (*grid).set_row_error_text(row_at(1U), "Duplicate row");
+    window.perform_layout();
+    require((*grid).publishes_item_tool_tips(), "the grid publishes its error glyphs' tooltips");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    const SemanticNode* cell_glyph = nullptr;
+    const SemanticNode* row_glyph = nullptr;
+    const SemanticNode* plain_cell = nullptr;
+    std::size_t tipped = 0U;
+    for (const SemanticNode& row : nodes) {
+        for (const SemanticNode& child : row.children) {
+            if (!child.tool_tip.empty()) ++tipped;
+            if (child.role == SemanticRole::cell && child.children.empty()) plain_cell = &child;
+            for (const SemanticNode& glyph : child.children) {
+                if (glyph.tool_tip == "Name is required") cell_glyph = &glyph;
+                if (glyph.tool_tip == "Duplicate row") row_glyph = &glyph;
+            }
+        }
+    }
+    require(cell_glyph != nullptr && (*cell_glyph).role == SemanticRole::image &&
+                (*cell_glyph).name == "Name is required" && (*cell_glyph).bounds.width > 0.0,
+            "a cell's error glyph is an image tooltipped by its error text");
+    require(row_glyph != nullptr, "a row header's error glyph is tooltipped too");
+    require(tipped == 0U, "cells and headers carry no tooltip");
+
+    // Over a glyph its error text shows; over a cell without one, the grid's
+    // own tooltip, as before.
+    const Rect glyph = (*cell_glyph).bounds;
+    (*grid).set_tool_tip_text("Orders");
+    ToolTipSettings settings = window.tool_tip_settings();
+    settings.initial_delay = std::chrono::milliseconds{1};
+    settings.reshow_delay = std::chrono::milliseconds{1};
+    window.set_tool_tip_settings(settings);
+    window.perform_layout();
+    const Point over_glyph{glyph.x + glyph.width / 2.0, glyph.y + glyph.height / 2.0};
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_glyph}));
+    std::optional<FrameTime> wake = window.next_wake();
+    require(wake.has_value(), "resting over the glyph schedules its tooltip");
+    static_cast<void>(window.poll_frame_schedule(*wake));
+    require(window.tool_tip_visible() && window.tool_tip_text() == "Name is required" &&
+                window.tool_tip_item_id() == (*cell_glyph).stable_id,
+            "the glyph shows its error text");
+    require(plain_cell != nullptr, "a cell without an error is published");
+    const Rect plain = (*plain_cell).bounds;
+    const Point over_cell{plain.x + plain.width / 2.0, plain.y + plain.height / 2.0};
+    static_cast<void>(window.dispatch_pointer({PointerAction::move, PointerButton::none, over_cell}));
+    wake = window.next_wake();
+    if (wake) static_cast<void>(window.poll_frame_schedule(*wake));
+    require(window.tool_tip_visible() && window.tool_tip_text() == "Orders" && window.tool_tip_item_id().empty() &&
+                window.tool_tip_target() == grid,
+            "a cell without an error shows the grid's own tooltip");
+}
+
+void million_row_heights() {
+    std::shared_ptr<CountingProvider> provider = std::make_shared<CountingProvider>();
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.million.heights"));
+    (*grid).set_columns(virtual_columns());
+    const std::size_t count = 1000000U;
+    (*grid).set_virtual_rows(provider, virtual_order(count));
+    Window window(grid, {300.0, 400.0});
+    window.perform_layout();
+    // The same work over uniform rows first, for comparison.
+    const std::size_t rounds = 2000U;
+    std::size_t asked_most = 0U;
+    const double uniform_seconds = scroll_rounds(window, *grid, *provider, count, rounds, asked_most);
+    // A thousand rows taller than the rest, set one by one in place.
+    std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
+    for (std::size_t position = 500U; position < count; position += 1000U) {
+        (*grid).set_row_height_at(row_at(position), 66.0);
+    }
+    const double set_seconds = seconds_since(start);
+    require((*grid).row_height_at(row_at(500U)) == 66.0 && (*grid).row_height_at(row_at(501U)) == 22.0,
+            "virtual rows take their own heights");
+
+    // Scroll to a row: the rows shown follow, by their offsets.
+    (*grid).set_first_displayed_row(row_at(700490U));
+    window.perform_layout();
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    bool stacked = !rows.empty() && rows.front().stable_id == "v700490";
+    bool tall_shown = false;
+    for (std::size_t index = 1; index < rows.size(); ++index) {
+        const Rect above = rows[index - 1U].parts.row_header.bounds;
+        if (rows[index].parts.row_header.bounds.y != above.y + above.height) stacked = false;
+        const bool tall = rows[index].position.value % 1000U == 500U;
+        const bool cut = index + 1U == rows.size();
+        if (tall && !cut) tall_shown = true;
+        if (!cut && rows[index].parts.row_header.bounds.height != (tall ? 66.0 : 22.0)) stacked = false;
+    }
+    require(stacked && tall_shown, "a million rows of mixed heights stack where they are scrolled to");
+
+    // Scroll, hit test and paint at many places: each costs the index's
+    // logarithmic descent, and the provider is asked only for rows shown.
+    const double scroll_seconds = scroll_rounds(window, *grid, *provider, count, rounds, asked_most);
+    require(asked_most <= 40U * 2U * 3U, "each paint asks only for the rows shown");
+
+    // A change to the rows rebuilds the index once, in one pass.
+    start = std::chrono::steady_clock::now();
+    (*grid).set_row_height(24.0);
+    window.perform_layout();
+    const double rebuild_seconds = seconds_since(start);
+    require((*grid).row_height_at(row_at(1500U)) == 66.0 && (*grid).row_height_at(row_at(1501U)) == 24.0,
+            "the rebuilt index keeps the own heights");
+    require(window.request_focus(grid) && key(window, PhysicalKey::end, Modifier::control),
+            "Ctrl+End moves to the last of a million rows");
+    window.perform_layout();
+    require((*grid).displayed_row_end() == row_at(count), "the last of a million rows scrolls into view");
+    // The displayed modes measure only the rows shown, as they are placed.
+    (*grid).set_auto_size_rows_mode(DataGridViewAutoSizeRowsMode::displayed_cells);
+    window.perform_layout();
+    std::size_t displayed_asked = 0U;
+    const double displayed_seconds = scroll_rounds(window, *grid, *provider, count, rounds, displayed_asked);
+    require(displayed_asked <= 40U * 2U * 3U, "displayed_cells asks only for the rows shown");
+    const double per_round = 1000000.0 / static_cast<double>(rounds);
+    std::cout << "million-row displayed_cells: scroll+measure+layout+hit+paint " << displayed_seconds * per_round
+              << " us each" << std::endl;
+    std::cout << "million-row heights: scroll+layout+hit+paint " << uniform_seconds * per_round
+              << " us uniform, " << scroll_seconds * per_round << " us with 1000 own heights; 1000 set_row_height_at "
+              << set_seconds * 1000.0 << " ms; default-height change + rebuild + layout " << rebuild_seconds * 1000.0
+              << " ms" << std::endl;
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -2631,8 +3174,17 @@ int main() {
     wrapped_cells();
     column_auto_sizing();
     column_order();
+    row_height_index();
+    row_heights();
+    row_resizing();
+    row_auto_sizing();
+    error_text_needed();
+    focus_loss_validation();
+    virtual_new_row();
+    error_glyph_tool_tips();
+    million_row_heights();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
-                 "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing and column order passed\n";
+                 "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing, column order and row heights passed\n";
     return 0;
 }

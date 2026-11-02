@@ -75,10 +75,21 @@ file(CONFIGURE OUTPUT "${_gf_abi_generated}/${_gf_abi_output_name}.def" CONTENT 
 add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/engine/abi_engine.cpp
     src/abi/stable/entry/abi_entry.cpp
+    src/abi/stable/events/abi_event_fields.cpp
     src/abi/stable/failure/abi_failure.cpp
     src/abi/stable/registry/abi_registry.cpp
+    src/abi/stable/schema/abi_create_with.cpp
     src/abi/stable/schema/abi_schema.cpp
     src/abi/stable/schema/abi_schema_recipes.cpp
+    src/abi/stable/tables/abi_diagnostics.cpp
+    src/abi/stable/tables/abi_controls.cpp
+    src/abi/stable/tables/abi_text_editing.cpp
+    src/abi/stable/tables/abi_popups.cpp
+    src/abi/stable/tables/abi_property_grid.cpp
+    src/abi/stable/tables/abi_custom_controls.cpp
+    src/abi/stable/tables/abi_bindings.cpp
+    src/abi/stable/custom/abi_custom_control.cpp
+    src/abi/stable/windows/abi_windows_paint_endpoint.cpp
     src/abi/stable/tables/abi_dispatch.cpp
     src/abi/stable/tables/abi_events.cpp
     src/abi/stable/tables/abi_host.cpp
@@ -87,6 +98,8 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_schema_table.cpp
     src/abi/stable/tables/abi_themes.cpp
     src/abi/stable/tables/abi_windows.cpp
+    src/abi/stable/values/abi_values.cpp
+    src/abi/stable/windows/abi_window_handle.cpp
 )
 target_link_libraries(gui_forms_abi_objects PRIVATE gui_forms_application)
 target_include_directories(gui_forms_abi_objects PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -100,6 +113,12 @@ target_compile_definitions(gui_forms_abi_objects
     GF_ABI_LIBRARY_VERSION_MINOR=${PROJECT_VERSION_MINOR}
     GF_ABI_LIBRARY_VERSION_PATCH=${PROJECT_VERSION_PATCH}
 )
+# The Windows build carries the paint endpoint table
+# (GF_TABLE_WINDOWS_PAINT_ENDPOINT) over the Windows host the application
+# library contains.
+if(TARGET gui_forms_host_windows)
+    target_compile_definitions(gui_forms_abi_objects PRIVATE GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT=1)
+endif()
 set_target_properties(gui_forms_abi_objects PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES
@@ -200,9 +219,16 @@ if(GUI_FORMS_BUILD_TESTS)
     # The conformance kit, part 1 (ownership, threads, callbacks, the window
     # run), as consumers will run it, and the check that it calls every slot.
     add_library(gui_forms_abi_conformance_kit STATIC
+        tests/abi/conformance/gf_conformance_bindings.c
         tests/abi/conformance/gf_conformance_callbacks.c
+        tests/abi/conformance/gf_conformance_create.c
+        tests/abi/conformance/gf_conformance_custom.c
+        tests/abi/conformance/gf_conformance_diagnostics.c
+        tests/abi/conformance/gf_conformance_events.c
+        tests/abi/conformance/gf_conformance_families.c
         tests/abi/conformance/gf_conformance_kit.c
         tests/abi/conformance/gf_conformance_ownership.c
+        tests/abi/conformance/gf_conformance_proxies.c
         tests/abi/conformance/gf_conformance_schema.c
         tests/abi/conformance/gf_conformance_threads.c
         tests/abi/conformance/gf_conformance_values.c
@@ -249,6 +275,24 @@ if(GUI_FORMS_BUILD_TESTS)
     # The registry and the ABI's generated type catalog agree.
     add_test(NAME gui_forms_abi_schema_catalog_current
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/control_registry.py emit-abi --check)
+    # The stage C5 fields: C++ events raised directly reach an ABI callback
+    # as named fields, and what the callback writes reaches the C++ payload.
+    add_executable(gui_forms_abi_event_fields tests/abi/events/gf_abi_event_fields.cpp)
+    target_link_libraries(gui_forms_abi_event_fields PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_compile_features(gui_forms_abi_event_fields PRIVATE cxx_std_20)
+    add_test(NAME gui_forms_abi_event_fields COMMAND gui_forms_abi_event_fields)
+    # A custom control's paint callback fills the pixels a window presents.
+    add_executable(gui_forms_abi_custom_paint tests/abi/custom/gf_abi_custom_paint.cpp)
+    target_link_libraries(gui_forms_abi_custom_paint PRIVATE gui_forms_abi_objects gui_forms_application)
+    target_compile_features(gui_forms_abi_custom_paint PRIVATE cxx_std_20)
+    add_test(NAME gui_forms_abi_custom_paint COMMAND gui_forms_abi_custom_paint)
+    add_test(NAME gui_forms_abi_event_catalog_current
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_event_catalog.py --check)
+
+    # The C5 gate: the 0.x surface the Windows Forms facade uses, mapped onto
+    # stable slots and schema names (pending families are listed, not failed).
+    add_test(NAME gui_forms_abi_compat_map
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_compat_map.py)
 
     # The manifest's sizes and offsets, asserted by this host's compiler in C11 and C++.
     add_executable(gui_forms_abi_layout_probe_c11 tests/abi/gf_abi_layout_probe.c tests/abi/gf_abi_coexistence.c)

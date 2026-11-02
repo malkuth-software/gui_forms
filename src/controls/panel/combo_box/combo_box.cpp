@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 
 #include "drop_down_layer.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../input_control_utilities.hpp"
 #include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
@@ -790,73 +791,83 @@ void ComboBox::commit_popup_selection(std::size_t row) {
     close_drop_down();
 }
 
-void ComboBox::on_paint(Painter& painter, Rect damage) {
+// The well, the drop-down button, its divider and arrow, and the focus ring
+// are parts the theme's engine draws, in the control's anatomy states (hot
+// under the pointer, open while the list is down). A background or style
+// override supplies the well's ground, and a style override the text and
+// the arrow's ink, as authored colours (T4-1); a disabled combo box keeps
+// the theme's disabled text. The ring shows while the field has focus or
+// its list is open.
+void ComboBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const bool themed = !has_background_override() && !has_style_override();
-    const ControlVisualRecipe& editor_recipe = effective_theme().resolve(
-        ControlVisualRole::editor,
-        visual_context(false, dropped_down_, false, focused_));
-    if (themed) {
-        paint_surface_material(painter, bounds, editor_recipe.material);
-    } else {
-        Panel::on_paint(painter, damage);
-    }
-    const FontSpec font = effective_font(font_);
+    const AnatomyStateSet states = anatomy_states();
+    std::optional<Color> ground{};
+    std::optional<Color> ink{};
+    if (has_background_override() || has_style_override()) ground = background();
+    if (has_style_override()) ink = style().text;
+    PartPaint well;
+    well.family = ControlVisualRole::editor;
+    well.role = PartRole::well;
+    well.bounds = bounds;
+    well.states = states;
+    well.authored_background = ground;
+    well.key = PartKey{"well", {}, {}};
+    paint_part(painter, *this, well);
     const double button_width = std::min(24.0, bounds.width);
-    const Rect button_bounds{std::max(0.0, bounds.width - button_width), 1.0,
-                             std::max(0.0, button_width - 1.0),
-                             std::max(0.0, bounds.height - 2.0)};
-    const ControlVisualRecipe& button_recipe = effective_theme().resolve(
-        ControlVisualRole::choice,
-        visual_context(false, dropped_down_, dropped_down_, focused_));
-    if (themed) {
-        paint_surface_material(painter, button_bounds, button_recipe.material);
-    } else {
-        painter.fill_rect(button_bounds, style().face);
-    }
-    painter.draw_line({bounds.width - button_width, 1.0},
-                      {bounds.width - button_width, bounds.height - 1.0},
-                      themed ? (button_recipe.material.border
-                                    ? (*button_recipe.material.border).color
-                                    : button_recipe.glyph)
-                             : style().border,
-                      1.0);
+    PartPaint drop_down;
+    drop_down.family = ControlVisualRole::choice;
+    drop_down.role = PartRole::actuator;
+    drop_down.bounds = {std::max(0.0, bounds.width - button_width), 1.0,
+                        std::max(0.0, button_width - 1.0), std::max(0.0, bounds.height - 2.0)};
+    drop_down.states = states;
+    drop_down.key = PartKey{"drop_down", {}, {}};
+    paint_part(painter, *this, drop_down);
+    PartPaint divider;
+    divider.family = ControlVisualRole::choice;
+    divider.role = PartRole::divider;
+    divider.bounds = {bounds.width - button_width - 0.5, 1.0, 1.0, std::max(0.0, bounds.height - 2.0)};
+    divider.states = states;
+    divider.key = PartKey{"divider", {}, {}};
+    paint_part(painter, *this, divider);
+    // The 7 x 4 arrow, which flips and moves when the list is open. The
+    // arrow mark draws half its square's side in rows, so the square is 8
+    // units, placed to put the rows where the published disclosure is.
     const double center_x = bounds.width - button_width * 0.5;
     const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
-    const double direction = dropped_down_ ? -1.0 : 1.0;
-    const Color arrow = themed ? button_recipe.glyph : style().dark_border;
-    for (int row = 0; row < 4; ++row) {
-        painter.fill_rect({std::floor(center_x) - 3.0 + row,
-                           std::floor(center_y) + direction * (row - 1.0),
-                           7.0 - row * 2.0, 1.0},
-                          arrow);
-    }
+    const double square_top = dropped_down_ ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
+    PartPaint disclosure;
+    disclosure.family = ControlVisualRole::choice;
+    disclosure.role = PartRole::disclosure;
+    disclosure.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
+    disclosure.bounds = {std::floor(center_x) - 4.0, square_top, 8.0, 8.0};
+    disclosure.states = states;
+    disclosure.authored_foreground = ink;
+    disclosure.key = PartKey{"disclosure", {}, {}};
+    paint_part(painter, *this, disclosure);
     // The drop_down style's editor shows its own text; otherwise the field
     // shows the selected item, or the placeholder without one.
     std::string_view text{};
     if (!editor_) text = selected_index_ ? selected_text() : std::string_view(placeholder_);
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const ControlVisualRecipe& editor_recipe = effective_theme().resolve(ControlVisualRole::editor, context);
+    Color text_ink = selected_index_ ? editor_recipe.text : editor_recipe.muted_text;
+    if (ink && effectively_enabled() && selected_index_) text_ink = *ink;
+    const FontSpec font = effective_font(font_);
     painter.save();
     painter.clip_rect({5.0, 2.0,
                        std::max(0.0, bounds.width - button_width - 8.0),
                        std::max(0.0, bounds.height - 4.0)});
-    painter.draw_text_utf8({7.0, std::max(font.size,
-                            (bounds.height + font.size) * 0.5 - 1.0)},
-                           text, font,
-                           themed ? (selected_index_ ? editor_recipe.text
-                                                     : editor_recipe.muted_text)
-                                  : selected_index_ ? style().text
-                                                    : style().disabled_text);
+    painter.draw_text_utf8({7.0, std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0)},
+                           text, font, text_ink);
     painter.restore();
     if (focused_ || dropped_down_) {
-        const Rect ring{1.5, 1.5, std::max(0.0, bounds.width - 3.0),
-                        std::max(0.0, bounds.height - 3.0)};
-        if (themed) {
-            painter.stroke_rounded_rect(
-                ring, std::max(0.0, editor_recipe.material.corner_radius - 1.0),
-                editor_recipe.focus_ring, editor_recipe.focus_width);
-        } else {
-            painter.stroke_rect(ring, style().accent, 1.0);
-        }
+        PartPaint ring;
+        ring.family = ControlVisualRole::editor;
+        ring.role = PartRole::focus;
+        ring.bounds = bounds;
+        ring.states = states;
+        ring.states.insert(AnatomyState::focus_visible);
+        paint_part(painter, *this, ring);
     }
 }
 
@@ -1021,8 +1032,9 @@ constexpr std::array<PartField<ComboBox::Parts>, 7> combo_box_extra_part_fields{
      .member = &ComboBox::Parts::disclosure},
 }};
 
-constexpr std::array<StateField<ComboBox::States>, 9> combo_box_state_fields{{
+constexpr std::array<StateField<ComboBox::States>, 10> combo_box_state_fields{{
     {.state = AnatomyState::normal, .member = &ComboBox::States::normal},
+    {.state = AnatomyState::hot, .member = &ComboBox::States::hot},
     {.state = AnatomyState::pressed, .member = &ComboBox::States::pressed},
     {.state = AnatomyState::captured, .member = &ComboBox::States::captured},
     {.state = AnatomyState::enabled, .member = &ComboBox::States::enabled},
@@ -1036,7 +1048,7 @@ constexpr std::array<StateField<ComboBox::States>, 9> combo_box_state_fields{{
 constexpr std::array<PartDeclaration, scrollable_detail::part_count + 7>
     combo_box_parts = joined_declarations(scrollable_detail::parts,
                                          part_declarations(combo_box_extra_part_fields));
-constexpr std::array<AnatomyState, 9> combo_box_states =
+constexpr std::array<AnatomyState, 10> combo_box_states =
     state_declarations(combo_box_state_fields);
 
 constexpr ControlAnatomy combo_box_anatomy{

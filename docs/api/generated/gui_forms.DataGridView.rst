@@ -186,7 +186,11 @@ gui_forms::DataGridView
          The width of the row header column, from 4 to 1024.
 
       **row_height** : ``double``, default ``22``
-         The height of every row, from 4 to 256.
+         The height of every row without its own, from 4 to 256.
+
+      **auto_size_rows_mode** : ``DataGridViewAutoSizeRowsMode``, default ``none``
+         How rows size their heights: to their headers, cells or both, over
+         every row or the rows shown.
 
       **font** : ``FontSpec``
          The font of cell and header text.
@@ -196,6 +200,10 @@ gui_forms::DataGridView
 
       **allow_user_to_resize_columns** : ``bool``, default ``true``
          Whether dragging a column header's divider resizes the column.
+
+      **allow_user_to_resize_rows** : ``bool``, default ``true``
+         Whether dragging a row header's bottom edge (the ``row_grip`` part)
+         gives the row its own height, while rows do not size themselves.
 
       **allow_user_to_order_columns** : ``bool``, default ``false``
          Whether dragging a column header moves the column.
@@ -345,6 +353,13 @@ gui_forms::DataGridView
 
       **row_error_text_changed** : ``Event<const DataGridViewRowEvent&>``
 
+      **cell_error_text_needed** : ``Event<DataGridViewCellErrorTextNeededEvent&>``
+         Raised when the grid reads a cell's error text in virtual or bound rows,
+         with the text it holds: a handler may give the application's own.
+
+      **row_error_text_needed** : ``Event<DataGridViewRowErrorTextNeededEvent&>``
+         As ``cell_error_text_needed``, for a row's error text.
+
       **column_header_click** : ``Event<std::size_t>``
          Raised when a column header is clicked, with the column's index, before
          the automatic sort the click makes.
@@ -361,6 +376,9 @@ gui_forms::DataGridView
 
       **column_display_index_changed** : ``Event<std::size_t>``
          Raised after a column's display index changes, with the column's index.
+
+      **row_height_changed** : ``Event<const DataGridViewRowEvent&>``
+         Raised after a row's own height changes, with the row.
 
       **cell_formatting** : ``Event<DataGridViewCellFormattingEvent&>``
          Raised when the grid needs a cell's text, with its value and inherited
@@ -442,6 +460,18 @@ gui_forms::DataGridView
         - The style a cell draws with: each property from the first of the cell's, its row's, the alternating rows' (odd positions), the rows', its column's and the grid's styles that sets it.
       * - :cpp:func:`inherited_column_header_style <gui_forms::DataGridView::inherited_column_header_style>`
         - A column header's style: its own, the column headers', the grid's.
+      * - :cpp:func:`row_height_at <gui_forms::DataGridView::row_height_at>`
+        - A row's height: its own, or :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+      * - :cpp:func:`reset_row_height_at <gui_forms::DataGridView::reset_row_height_at>`
+        - Returns a row to :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+      * - :cpp:func:`auto_resize_row <gui_forms::DataGridView::auto_resize_row>`
+        - Gives a row its preferred height once, raising :cpp:func:`row_height_changed <gui_forms::DataGridView::row_height_changed>`.
+      * - :cpp:func:`auto_resize_rows <gui_forms::DataGridView::auto_resize_rows>`
+        - Sizes every row, or the rows shown, once.
+      * - :cpp:func:`preferred_cell_height <gui_forms::DataGridView::preferred_cell_height>`
+        - The height a cell asks for: its content (a wrapped cell's lines), padding and grid line.
+      * - :cpp:func:`preferred_row_header_height <gui_forms::DataGridView::preferred_row_header_height>`
+        - The height a row header asks for.
       * - :cpp:func:`column_display_index <gui_forms::DataGridView::column_display_index>`
         - A column's place in the order the grid shows its columns.
       * - :cpp:func:`column_at_display_index <gui_forms::DataGridView::column_at_display_index>`
@@ -502,6 +532,8 @@ gui_forms::DataGridView
         - Sets a row's style, kept by its ID; :cpp:func:`row_default_cell_style <gui_forms::DataGridView::row_default_cell_style>` reads it.
       * - :cpp:func:`set_cell_style <gui_forms::DataGridView::set_cell_style>`
         - Sets a cell's own style, kept by the row's ID; :cpp:func:`cell_style <gui_forms::DataGridView::cell_style>` reads it.
+      * - :cpp:func:`set_row_height_at <gui_forms::DataGridView::set_row_height_at>`
+        - Gives a row its own height, from 4 to 4096, kept with the row's ID.
       * - :cpp:func:`set_column_display_index <gui_forms::DataGridView::set_column_display_index>`
         - Moves a column to a display index, the columns between shifting by one.
       * - :cpp:func:`set_cell_selected <gui_forms::DataGridView::set_cell_selected>`
@@ -638,14 +670,28 @@ gui_forms::DataGridView
    the row changes (a handler may keep the row), then ``cell_leave``,
    ``row_leave``, ``row_validated``, ``row_enter``, ``default_values_needed``
    (on the new row), ``cell_enter`` and ``current_cell_changed``. Their
-   handlers may not call ``set_current_cell``.
+   handlers may not call ``set_current_cell``. When focus leaves the grid and
+   its editor (not for a combo box cell's open choices), the edit commits and
+   the current row validates: ``row_validating``, then ``row_validated`` unless
+   a handler cancelled. Focus is not held on a cancel, where Windows Forms
+   keeps it in the grid: a recorded divergence (``manifests/winforms-divergences.json``,
+   listed under Windows Forms divergences in the control guide).
 
    With ``allow_user_to_add_rows``, on by default as in Windows Forms, an
    unbound or bound grid shows a new row after the last; its row header shows
    a star. Turn it off where the rows are fixed. The first value the user
    commits to it adds a row (or a record) with the new row's ID, raising
    ``user_added_row``; Escape, or ``cancel_row_edit``, discards it until the
-   current cell leaves it. With ``allow_user_to_delete_rows``, also on by
+   current cell leaves it. Virtual rows show the new row when their provider's
+   ``can_add_rows`` says so: the first committed value asks the provider's
+   ``add_row`` for the row (owner decision, 2026-11-02), which names it or
+   refuses; the grid inserts the ID in edit mode, and in window mode the
+   application reports the insertion as soon as ``add_row`` returns. The C#
+   facade can raise Windows Forms' ``NewRowNeeded`` and ``CellValuePushed`` on
+   top of it. Each error glyph, the grid's own interface rather than its data,
+   shows its error text as a tooltip (owner decision, 2026-11-02); cells carry
+   no tooltips of their own, so over them the grid's own ``tool_tip_text``
+   shows. With ``allow_user_to_delete_rows``, also on by
    default, Delete removes the selected rows, each after ``user_deleting_row``.
    The current row's header shows a pencil while the row is dirty
    (``show_editing_icon``).
@@ -704,8 +750,30 @@ gui_forms::DataGridView
    out, never below ``minimum_width``, without raising :cpp:func:`column_width_changed <gui_forms::DataGridView::column_width_changed>`,
    and the user cannot resize an auto-sized column (a fill column included,
    where Windows Forms moves the weights). The cell modes measure every row's
-   formatted cell, so virtual rows ask their provider for each. Rows keep one
-   height.
+   formatted cell, so virtual rows ask their provider for each.
+
+   Any row may have its own height (Windows Forms' DataGridViewRow.Height), of
+   any row source, virtual rows included (owner decision, 2026-11-02): it stays
+   with the row's ID while rows move and ends with the row. Rows without one
+   have :cpp:func:`row_height <gui_forms::DataGridView::row_height>`. The grid finds rows by offset through a Fenwick tree of
+   the heights' differences from :cpp:func:`row_height <gui_forms::DataGridView::row_height>` (:cpp:class:`DataGridViewRowHeights <gui_forms::DataGridViewRowHeights>`), so
+   scrolling, hit testing and painting cost a logarithmic search, not a walk
+   over the rows; while no row has its own height nothing is stored. A change
+   to the rows rebuilds the tree in one pass over them while any row has its
+   own height. Scrolling stays by whole rows, as in Windows Forms: the first
+   displayed row is shown from its top, and the last row ends at the bottom
+   when scrolled to the end.
+
+   Rows size themselves as Windows Forms' do. With an ``all`` mode of
+   :cpp:func:`auto_size_rows_mode <gui_forms::DataGridView::auto_size_rows_mode>` every row is measured, its header's or cells'
+   preferred height (a wrapped text cell's lines at its column's width), after
+   a change to the values, rows, columns, column widths, styles or text scale;
+   virtual rows ask their provider for every cell. A ``displayed`` mode
+   measures from the first displayed row down until the viewport is full, on
+   every layout pass, and rows keep their measured heights once scrolled away.
+   Automatic heights raise no :cpp:func:`row_height_changed <gui_forms::DataGridView::row_height_changed>`, override own heights (which
+   return when the mode is ``none`` again), and rows are not resized by the
+   user meanwhile.
 
    Columns have a display order apart from their indices (Windows Forms'
    DisplayIndex): :cpp:func:`set_column_display_index <gui_forms::DataGridView::set_column_display_index>` moves one, and with
@@ -723,11 +791,9 @@ gui_forms::DataGridView
    link is always underlined), an image column's default
    image for empty cells and icon values, frozen rows and columns beyond the headers, the
    clipboard's HTML and CSV formats, automatic sorting of virtual and bound
-   rows (the application sorts them), frozen columns, automatic
-   row sizing and per-row heights, header size modes, row height resizing,
-   the new row in virtual mode,
-   error text asked of the application (``CellErrorTextNeeded``), and cell
-   tool tips.
+   rows (the application sorts them), frozen columns,
+   header size modes,
+   and cell tool tips.
 
    .. rubric:: Examples
 
@@ -1077,11 +1143,20 @@ gui_forms::DataGridView
 
    .. cpp:function:: double row_height() const noexcept
 
-      The height of every row, from 4 to 256.
+      The height of every row without its own, from 4 to 256.
 
    .. cpp:function:: void set_row_height(double height)
 
       Sets :cpp:func:`row_height <gui_forms::DataGridView::row_height>`; see the property's description above.
+
+   .. cpp:function:: DataGridViewAutoSizeRowsMode auto_size_rows_mode() const noexcept
+
+      How rows size their heights: to their headers, cells or both, over
+      every row or the rows shown.
+
+   .. cpp:function:: void set_auto_size_rows_mode(DataGridViewAutoSizeRowsMode mode)
+
+      Sets :cpp:func:`auto_size_rows_mode <gui_forms::DataGridView::auto_size_rows_mode>`; see the property's description above.
 
    .. cpp:function:: FontSpec font() const noexcept
 
@@ -1106,6 +1181,15 @@ gui_forms::DataGridView
    .. cpp:function:: void set_allow_user_to_resize_columns(bool allow)
 
       Sets :cpp:func:`allow_user_to_resize_columns <gui_forms::DataGridView::allow_user_to_resize_columns>`; see the property's description above.
+
+   .. cpp:function:: bool allow_user_to_resize_rows() const noexcept
+
+      Whether dragging a row header's bottom edge (the ``row_grip`` part)
+      gives the row its own height, while rows do not size themselves.
+
+   .. cpp:function:: void set_allow_user_to_resize_rows(bool allow)
+
+      Sets :cpp:func:`allow_user_to_resize_rows <gui_forms::DataGridView::allow_user_to_resize_rows>`; see the property's description above.
 
    .. cpp:function:: bool allow_user_to_order_columns() const noexcept
 
@@ -1313,6 +1397,15 @@ gui_forms::DataGridView
 
    .. cpp:function:: Event<const DataGridViewRowEvent&>& row_error_text_changed() noexcept
 
+   .. cpp:function:: Event<DataGridViewCellErrorTextNeededEvent&>& cell_error_text_needed() noexcept
+
+      Raised when the grid reads a cell's error text in virtual or bound rows,
+      with the text it holds: a handler may give the application's own.
+
+   .. cpp:function:: Event<DataGridViewRowErrorTextNeededEvent&>& row_error_text_needed() noexcept
+
+      As ``cell_error_text_needed``, for a row's error text.
+
    .. cpp:function:: Event<std::size_t>& column_header_click() noexcept
 
       Raised when a column header is clicked, with the column's index, before
@@ -1334,6 +1427,10 @@ gui_forms::DataGridView
    .. cpp:function:: Event<std::size_t>& column_display_index_changed() noexcept
 
       Raised after a column's display index changes, with the column's index.
+
+   .. cpp:function:: Event<const DataGridViewRowEvent&>& row_height_changed() noexcept
+
+      Raised after a row's own height changes, with the row.
 
    .. cpp:function:: Event<DataGridViewCellFormattingEvent&>& cell_formatting() noexcept
 
@@ -1501,7 +1598,7 @@ gui_forms::DataGridView
 
    .. cpp:function:: DataGridViewCellStyle row_default_cell_style(DataGridViewRowPosition row) const
 
-      A row's and a cell's own styles (Windows Forms' Row.DefaultCellStyle and Cell.Style), kept by row ID for every row source as error text is: a style ends with its row, when the rows or columns are replaced and when a column is removed. The getters and setters throw std::out_of_range past the rows or columns; every style setter throws std::invalid_argument for a padding that is negative or not finite, a format other than "F0" to "F12", an alignment outside the enumeration, or a text value that is not valid UTF-8.
+      A row's and a cell's own styles (Windows Forms' Row.DefaultCellStyle and Cell.Style), kept by row ID for every row source as error text is: a style ends with its row, when the rows or columns are replaced and when a column is removed. The getters and setters throw std::out_of_range past the rows or columns; every style setter throws std::invalid_argument for a padding that is negative or not finite, a format that is not a standard numeric format, an alignment outside the enumeration, or a text value that is not valid UTF-8.
 
    .. cpp:function:: DataGridViewCellStyle cell_style(DataGridViewRowPosition row, std::size_t column) const
 
@@ -1514,6 +1611,31 @@ gui_forms::DataGridView
    .. cpp:function:: DataGridViewCellStyle inherited_column_header_style(std::size_t column) const
 
       A column header's style: its own, the column headers', the grid's.
+
+   .. cpp:function:: double row_height_at(DataGridViewRowPosition row) const
+
+      A row's height: its own, or :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+
+   .. cpp:function:: void reset_row_height_at(DataGridViewRowPosition row)
+
+      Returns a row to :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+
+   .. cpp:function:: void auto_resize_row(DataGridViewRowPosition row, DataGridViewAutoSizeRowMode mode = DataGridViewAutoSizeRowMode::all_cells)
+
+      Gives a row its preferred height once, raising :cpp:func:`row_height_changed <gui_forms::DataGridView::row_height_changed>`.
+
+   .. cpp:function:: void auto_resize_rows(DataGridViewAutoSizeRowsMode mode = DataGridViewAutoSizeRowsMode::all_cells)
+
+      Sizes every row, or the rows shown, once.
+
+   .. cpp:function:: double preferred_cell_height(DataGridViewRowPosition row, std::size_t column) const
+
+      The height a cell asks for: its content (a wrapped cell's lines),
+      padding and grid line.
+
+   .. cpp:function:: double preferred_row_header_height(DataGridViewRowPosition row) const
+
+      The height a row header asks for.
 
    .. cpp:function:: DataGridViewDisplayIndex column_display_index(std::size_t column) const
 
@@ -1668,6 +1790,10 @@ gui_forms::DataGridView
 
       Sets a cell's own style, kept by the row's ID; :cpp:func:`cell_style <gui_forms::DataGridView::cell_style>` reads it.
 
+   .. cpp:function:: void set_row_height_at(DataGridViewRowPosition row, double height)
+
+      Gives a row its own height, from 4 to 4096, kept with the row's ID.
+
    .. cpp:function:: void set_column_display_index(std::size_t column, DataGridViewDisplayIndex display_index)
 
       Moves a column to a display index, the columns between shifting by one.
@@ -1699,6 +1825,8 @@ gui_forms::DataGridView
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
+
+   .. cpp:function:: void on_attachment_committed() noexcept override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 

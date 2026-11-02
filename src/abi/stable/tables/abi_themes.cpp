@@ -8,11 +8,15 @@
 #include "../registry/abi_registry.hpp"
 
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <cstdint>
 #include <memory>
 #include <span>
@@ -35,6 +39,9 @@ constexpr SlotIdentity theme_id_slot{GF_TABLE_THEMES, 6U};
 constexpr SlotIdentity publish_value_slot{GF_TABLE_THEMES, 7U};
 constexpr SlotIdentity withdraw_value_slot{GF_TABLE_THEMES, 8U};
 constexpr SlotIdentity published_value_slot{GF_TABLE_THEMES, 9U};
+constexpr SlotIdentity load_image_slot{GF_TABLE_THEMES, 10U};
+constexpr SlotIdentity remove_image_slot{GF_TABLE_THEMES, 11U};
+constexpr SlotIdentity load_pixels_slot{GF_TABLE_THEMES, 12U};
 
 // The 1.0 size of gf_theme_package: a caller passes at least this much.
 constexpr std::uint32_t theme_package_size_1_0 = 40U;
@@ -145,6 +152,7 @@ gf_status read_published_name(gf_utf8_view view, SlotIdentity slot, std::string_
 
 gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* report) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(load_slot.table_id, load_slot.slot_index);
         const gf_status checked = check_record(report, load_slot);
         if (checked != GF_STATUS_OK) {
             return checked;
@@ -183,6 +191,7 @@ gf_status GF_CALL themes_load(const gf_theme_package* package, gf_theme_report* 
 
 gf_status GF_CALL themes_reset() noexcept {
     try {
+        const ShadowFrameScope shadow_frame(reset_slot.table_id, reset_slot.slot_index);
         const gf_status entered = registry().enter_ui(reset_slot, true);
         if (entered != GF_STATUS_OK) {
             return entered;
@@ -202,6 +211,7 @@ gf_status GF_CALL themes_reset() noexcept {
 
 gf_status GF_CALL themes_install(const gf_theme_package* package, gf_theme_report* report) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(install_slot.table_id, install_slot.slot_index);
         const gf_status checked = check_record(report, install_slot);
         if (checked != GF_STATUS_OK) {
             return checked;
@@ -229,6 +239,7 @@ gf_status GF_CALL themes_install(const gf_theme_package* package, gf_theme_repor
 
 gf_status GF_CALL themes_remove(gf_utf8_view name, std::uint32_t* removed) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(remove_slot.table_id, remove_slot.slot_index);
         if (removed == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, remove_slot, "removed is null");
         }
@@ -269,6 +280,7 @@ gf_status find_diagnostic(std::uint64_t index, SlotIdentity slot, const ThemeCom
 
 gf_status GF_CALL themes_diagnostic_at(std::uint64_t index, gf_theme_diagnostic* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(diagnostic_at_slot.table_id, diagnostic_at_slot.slot_index);
         const gf_status checked = check_record(record, diagnostic_at_slot);
         if (checked != GF_STATUS_OK) {
             return checked;
@@ -315,6 +327,7 @@ const std::string* diagnostic_text_of(const ThemeCompileDiagnostic& finding, gf_
 gf_status GF_CALL themes_diagnostic_text(std::uint64_t index, gf_theme_diagnostic_text text, char* buffer,
                                          std::uint64_t capacity, std::uint64_t* required) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(diagnostic_text_slot.table_id, diagnostic_text_slot.slot_index);
         if (text > GF_THEME_DIAGNOSTIC_TEXT_DETAIL) {
             return fail(GF_STATUS_INVALID_ARGUMENT, diagnostic_text_slot, "unknown diagnostic text");
         }
@@ -333,6 +346,7 @@ gf_status GF_CALL themes_diagnostic_text(std::uint64_t index, gf_theme_diagnosti
 
 gf_status GF_CALL themes_theme_id(char* buffer, std::uint64_t capacity, std::uint64_t* required) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(theme_id_slot.table_id, theme_id_slot.slot_index);
         const gf_status entered = registry().enter_ui(theme_id_slot, true);
         if (entered != GF_STATUS_OK) {
             return entered;
@@ -347,6 +361,7 @@ gf_status GF_CALL themes_theme_id(char* buffer, std::uint64_t capacity, std::uin
 
 gf_status GF_CALL themes_publish_value(gf_utf8_view name, double value) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(publish_value_slot.table_id, publish_value_slot.slot_index);
         std::string_view text;
         const gf_status read = read_published_name(name, publish_value_slot, text);
         if (read != GF_STATUS_OK) {
@@ -383,6 +398,7 @@ gf_status GF_CALL themes_publish_value(gf_utf8_view name, double value) noexcept
 
 gf_status GF_CALL themes_withdraw_value(gf_utf8_view name) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(withdraw_value_slot.table_id, withdraw_value_slot.slot_index);
         std::string_view text;
         const gf_status read = read_published_name(name, withdraw_value_slot, text);
         if (read != GF_STATUS_OK) {
@@ -411,6 +427,7 @@ gf_status GF_CALL themes_withdraw_value(gf_utf8_view name) noexcept {
 
 gf_status GF_CALL themes_published_value(gf_utf8_view name, double* value, std::uint32_t* present) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(published_value_slot.table_id, published_value_slot.slot_index);
         if (value == nullptr || present == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, published_value_slot, "value and present are outputs");
         }
@@ -438,6 +455,117 @@ gf_status GF_CALL themes_published_value(gf_utf8_view name, double* value, std::
     }
 }
 
+// The status a refused image load gives.
+gf_status image_failure(ImageResourceError error) noexcept {
+    switch (error) {
+    case ImageResourceError::encoded_limit_exceeded:
+    case ImageResourceError::chunk_limit_exceeded:
+    case ImageResourceError::dimension_limit_exceeded:
+    case ImageResourceError::resource_count_exceeded:
+    case ImageResourceError::registry_encoded_limit_exceeded:
+    case ImageResourceError::registry_decoded_limit_exceeded:
+        return GF_STATUS_LIMIT_EXCEEDED;
+    case ImageResourceError::allocation_failed:
+        return GF_STATUS_OUT_OF_MEMORY;
+    case ImageResourceError::none:
+    case ImageResourceError::empty_input:
+    case ImageResourceError::invalid_signature:
+    case ImageResourceError::truncated_chunk:
+    case ImageResourceError::invalid_chunk_type:
+    case ImageResourceError::crc_mismatch:
+    case ImageResourceError::ihdr_not_first:
+    case ImageResourceError::duplicate_ihdr:
+    case ImageResourceError::invalid_ihdr:
+    case ImageResourceError::unsupported_color_format:
+    case ImageResourceError::unsupported_color_profile:
+    case ImageResourceError::invalid_palette:
+    case ImageResourceError::invalid_transparency:
+    case ImageResourceError::invalid_color_metadata:
+    case ImageResourceError::noncontiguous_idat:
+    case ImageResourceError::missing_idat:
+    case ImageResourceError::missing_iend:
+    case ImageResourceError::trailing_data:
+    case ImageResourceError::unknown_critical_chunk:
+    case ImageResourceError::stale_image_id:
+        return GF_STATUS_INVALID_ARGUMENT;
+    }
+    return GF_STATUS_INVALID_ARGUMENT;
+}
+
+gf_status GF_CALL themes_load_image(const std::uint8_t* bytes, std::uint64_t size, std::uint64_t* image) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(load_image_slot.table_id, load_image_slot.slot_index);
+        if (image == nullptr || (bytes == nullptr && size != 0U)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, load_image_slot,
+                        "load_image needs an image output, and bytes when size is not zero");
+        }
+        const gf_status entered = registry().enter_ui(load_image_slot, true);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const std::span<const std::byte> encoded(reinterpret_cast<const std::byte*>(bytes),
+                                                 static_cast<std::size_t>(size));
+        const ImageLoadResult loaded = engine().resources().load_png(encoded);
+        if (!loaded) {
+            return fail(image_failure(loaded.error), load_image_slot, image_resource_error_name(loaded.error));
+        }
+        *image = loaded.image.value;
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(load_image_slot);
+    }
+}
+
+gf_status GF_CALL themes_load_pixels(const std::uint8_t* pixels, std::uint32_t width, std::uint32_t height,
+                                     std::uint64_t row_bytes, std::uint64_t* image) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(load_pixels_slot.table_id, load_pixels_slot.slot_index);
+        const bool empty = width == 0U || height == 0U;
+        if (image == nullptr || (pixels == nullptr && !empty)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot,
+                        "load_pixels needs an image output, and pixels unless the image is empty");
+        }
+        if (!empty && row_bytes < static_cast<std::uint64_t>(width) * 4U) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot, "a row holds at least width * 4 bytes");
+        }
+        // The rows end within the address space: row_bytes * height bytes.
+        const std::uint64_t address_limit = static_cast<std::uint64_t>(std::numeric_limits<std::size_t>::max());
+        if (row_bytes > address_limit || (height != 0U && row_bytes > address_limit / height)) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, load_pixels_slot, "the pixel rows exceed the address space");
+        }
+        const gf_status entered = registry().enter_ui(load_pixels_slot, true);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const std::size_t byte_count = static_cast<std::size_t>(row_bytes) * height;
+        const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(pixels), empty ? 0U : byte_count);
+        const ImageLoadResult loaded = engine().resources().load_bgra32_premultiplied(width, height, row_bytes, bytes);
+        if (!loaded) {
+            return fail(image_failure(loaded.error), load_pixels_slot, image_resource_error_name(loaded.error));
+        }
+        *image = loaded.image.value;
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(load_pixels_slot);
+    }
+}
+
+gf_status GF_CALL themes_remove_image(std::uint64_t image) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(remove_image_slot.table_id, remove_image_slot.slot_index);
+        const gf_status entered = registry().enter_ui(remove_image_slot, true);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        if (!engine().resources().remove_image(ImageId{image})) {
+            return fail(GF_STATUS_NOT_FOUND, remove_image_slot, "the image registry does not hold that image");
+        }
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(remove_image_slot);
+    }
+}
+
 constexpr gf_themes_table table{
     .struct_size = sizeof(gf_themes_table),
     .abi_minor = GF_ABI_MINOR,
@@ -451,6 +579,9 @@ constexpr gf_themes_table table{
     .publish_value = &themes_publish_value,
     .withdraw_value = &themes_withdraw_value,
     .published_value = &themes_published_value,
+    .load_image = &themes_load_image,
+    .remove_image = &themes_remove_image,
+    .load_pixels = &themes_load_pixels,
 };
 
 } // namespace

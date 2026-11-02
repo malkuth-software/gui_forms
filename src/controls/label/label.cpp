@@ -10,6 +10,7 @@
 #include <cctype>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -34,6 +35,20 @@ struct PainterLabelWidth final {
         return layout.logical_size.width;
     }
 };
+std::shared_ptr<const PropertyEnumDescriptor> horizontal_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "horizontal_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> vertical_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "vertical_alignment", {{"near", 0}, {"center", 1}, {"far", 2}}, false});
+    return value;
+}
+
 } // namespace
 
 Label::Label(StableId stable_id, std::string text)
@@ -92,6 +107,38 @@ Label::Label(StableId stable_id, std::string text)
         detail::BoundMemberFunction<
             PropertyValueOrigin (Label::*)() const noexcept>(
                 *this, &Label::foreground_property_origin)});
+
+    PropertyDescriptor alignment;
+    alignment.name = "alignment";
+    alignment.kind = BindingValueKind::enumeration;
+    alignment.category = "Appearance";
+    alignment.description = "Horizontal placement of the text: near, center or far.";
+    alignment.default_value = BindingValue{PropertyEnumValue{"horizontal_alignment", "near", 0}};
+    alignment.invalidation_effects = Dirty::paint | Dirty::semantics;
+    alignment.bindable = false;
+    alignment.enumeration = horizontal_alignment_enum();
+    define_bindable_property({
+        std::move(alignment),
+        detail::EnumerationPropertyGetter<Label, HorizontalAlignment>(*this, &Label::alignment,
+                                                                      horizontal_alignment_enum()),
+        detail::EnumerationPropertySetter<Label, HorizontalAlignment>(*this, &Label::set_alignment), {}, {},
+        {}});
+
+    PropertyDescriptor vertical_alignment;
+    vertical_alignment.name = "vertical_alignment";
+    vertical_alignment.kind = BindingValueKind::enumeration;
+    vertical_alignment.category = "Appearance";
+    vertical_alignment.description = "Vertical placement of the text: near, center or far.";
+    vertical_alignment.default_value = BindingValue{PropertyEnumValue{"vertical_alignment", "center", 1}};
+    vertical_alignment.invalidation_effects = Dirty::paint | Dirty::semantics;
+    vertical_alignment.bindable = false;
+    vertical_alignment.enumeration = vertical_alignment_enum();
+    define_bindable_property({
+        std::move(vertical_alignment),
+        detail::EnumerationPropertyGetter<Label, VerticalAlignment>(*this, &Label::vertical_alignment,
+                                                                    vertical_alignment_enum()),
+        detail::EnumerationPropertySetter<Label, VerticalAlignment>(*this, &Label::set_vertical_alignment),
+        {}, {}, {}});
 
     PropertyDescriptor maximum_lines;
     maximum_lines.name = "maximum_lines";

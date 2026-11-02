@@ -148,6 +148,7 @@ public:
     };
     struct States final {
         bool normal{};
+        bool hot{};
         bool pressed{};
         bool captured{};
         bool enabled{};

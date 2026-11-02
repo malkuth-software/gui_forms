@@ -1077,6 +1077,8 @@ Enumerations
 
    .. cpp:enumerator:: end_group
 
+   .. cpp:enumerator:: draw_prepared_text
+
 Functions, constants and aliases
 --------------------------------
 

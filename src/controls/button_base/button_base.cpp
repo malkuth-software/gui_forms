@@ -7,12 +7,14 @@
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
 #include <array>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -118,6 +120,16 @@ void ButtonBase::unbind_command() noexcept {
 
 
 namespace {
+std::shared_ptr<const PropertyEnumDescriptor> content_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "content_alignment",
+            {{"top_left", 0}, {"top_center", 1}, {"top_right", 2}, {"middle_left", 3}, {"middle_center", 4},
+             {"middle_right", 5}, {"bottom_left", 6}, {"bottom_center", 7}, {"bottom_right", 8}},
+            false});
+    return value;
+}
+
 std::vector<std::string_view> button_text_lines(std::string_view text) {
     std::vector<std::string_view> result;
     if (text.empty()) return result;
@@ -162,6 +174,22 @@ ButtonBase::ButtonBase(StableId stable_id, std::string text)
     : Control(std::move(stable_id)), text_(std::move(text)) {
     set_focusable(true);
     set_cursor(CursorKind::hand);
+
+    PropertyDescriptor text_alignment;
+    text_alignment.name = "text_alignment";
+    text_alignment.kind = BindingValueKind::enumeration;
+    text_alignment.category = "Appearance";
+    text_alignment.description = "Where the text sits in the content area.";
+    text_alignment.invalidation_effects = Dirty::paint | Dirty::semantics;
+    text_alignment.bindable = false;
+    text_alignment.enumeration = content_alignment_enum();
+    define_bindable_property({
+        std::move(text_alignment),
+        detail::EnumerationPropertyGetter<ButtonBase, ContentAlignment>(
+            *this, &ButtonBase::text_alignment, content_alignment_enum()),
+        detail::EnumerationPropertySetter<ButtonBase, ContentAlignment>(*this,
+                                                                        &ButtonBase::set_text_alignment),
+        {}, {}, {}});
     define_bindable_property({
         {"text", BindingValueKind::text, "Appearance",
          "Text displayed by the button.", BindingValue{std::string{}},
@@ -864,11 +892,18 @@ ButtonBase::States ButtonBase::states() const {
     return record;
 }
 
+bool ButtonBase::paints_override_frame() const noexcept {
+    const bool shaped_elsewhere = visual_recipes_override_.has_value() || connection_topology_.has_value();
+    const bool override_frame = style_override_.has_value() && shaped_elsewhere;
+    return override_frame;
+}
+
 void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
                                      ControlVisualRole role,
                                      bool default_cue,
                                      bool command_alignment,
-                                     bool selected) const {
+                                     bool selected,
+                                     std::optional<AuthoredButtonColours> authored) const {
     const ControlVisualContext context = visual_context(
         hovered_, pressed_visual(), selected, focus_cue_visible(), default_cue);
     const ControlVisualRecipe& recipe = resolve_visual_recipe(role, context);
@@ -878,18 +913,59 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         bounds.width,
         bounds.height,
     };
-    paint_connected_surface_material(
-        painter, visual_bounds, recipe.material, connection_topology_);
-    ControlVisualRecipe cue_recipe = recipe;
-    // Connection shapes the physical stock only. Focus/default ownership is
-    // still per control, so use a square per-segment cue instead of implying
-    // that the whole joined instrument owns one focus identity.
-    if (connection_topology_) cue_recipe.material.corner_radius = 0.0;
-    paint_theme_cues(painter, visual_bounds, cue_recipe, context);
+    if (style_override_ && !authored) {
+        authored = AuthoredButtonColours{(*style_override_).face, (*style_override_).text};
+    }
+    const bool engine_drawn = !visual_recipes_override_ && !connection_topology_;
+    if (engine_drawn) {
+        // The face and the cues are parts the theme's engine draws, so a
+        // theme's `::part(face)` and `::part(focus)` rules select them; the
+        // states give the recipe context above.
+        AnatomyStateSet states;
+        if (hovered_) states.insert(AnatomyState::hot);
+        if (pressed_visual()) states.insert(AnatomyState::pressed);
+        if (selected) states.insert(AnatomyState::selected);
+        if (focus_cue_visible()) states.insert(AnatomyState::focus_visible);
+        if (default_cue) states.insert(AnatomyState::preselect);
+        PartPaint face;
+        face.family = role;
+        face.role = PartRole::face;
+        face.bounds = visual_bounds;
+        face.states = states;
+        face.key = PartKey{"face", {}, {}};
+        if (authored) {
+            face.authored_background = (*authored).face;
+            face.authored_foreground = (*authored).text;
+        }
+        paint_part(painter, *this, face);
+        // The default ring first, then the focus ring over it, in the
+        // theme's own cue colours.
+        PartPaint cue;
+        cue.family = role;
+        cue.bounds = visual_bounds;
+        cue.states = states;
+        cue.role = PartRole::preselect;
+        paint_part(painter, *this, cue);
+        cue.role = PartRole::focus;
+        cue.key = PartKey{"focus", {}, {}};
+        paint_part(painter, *this, cue);
+    } else {
+        paint_connected_surface_material(
+            painter, visual_bounds, recipe.material, connection_topology_);
+        ControlVisualRecipe cue_recipe = recipe;
+        // Connection shapes the physical stock only. Focus/default ownership is
+        // still per control, so use a square per-segment cue instead of implying
+        // that the whole joined instrument owns one focus identity.
+        if (connection_topology_) cue_recipe.material.corner_radius = 0.0;
+        paint_theme_cues(painter, visual_bounds, cue_recipe, context);
+    }
     const Point offset = context.surface == ControlSurfaceState::pressed
         ? recipe.pressed_content_offset : Point{};
+    // Authored text stands while the button is enabled; a disabled button
+    // keeps the theme's disabled ink (T4-1).
+    const Color ink = authored && effectively_enabled() ? (*authored).text : recipe.text;
     const std::string display = display_text();
-    paint_button_content(painter, visual_bounds, display, recipe.text, offset, selected,
+    paint_button_content(painter, visual_bounds, display, ink, offset, selected,
                          command_alignment);
 }
 
@@ -925,7 +1001,7 @@ Insets ButtonBase::resolved_visual_outsets(
 void ButtonBase::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const std::string display = display_text();
-    if (has_style_override()) {
+    if (paints_override_frame()) {
         paint_button_frame(painter, bounds, false);
         paint_button_text(painter, bounds, display);
     } else {
@@ -934,7 +1010,7 @@ void ButtonBase::on_paint(Painter& painter, Rect) {
 }
 
 Insets ButtonBase::visual_outsets() const noexcept {
-    if (has_style_override()) return {};
+    if (paints_override_frame()) return {};
     const ControlVisualContext context = visual_context(
         hovered_, pressed_visual(), false, focus_cue_visible(), false);
     return resolved_visual_outsets(ControlVisualRole::button, context);

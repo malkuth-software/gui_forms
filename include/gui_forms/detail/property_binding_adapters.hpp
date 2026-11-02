@@ -3,7 +3,9 @@
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/event.hpp"
 
+#include <cstdint>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -97,6 +99,57 @@ public:
 
     void operator()(const BindingValue& value) const {
         ((*object_).*method_)(std::get<Value>(value));
+    }
+
+private:
+    Object* object_{};
+    Method method_{};
+};
+
+// Reads an enumerated property through its getter as one of the
+// enumeration's choices; a choice's value is the C++ enumerator's underlying
+// value.
+template <typename Object, typename Enumeration>
+class EnumerationPropertyGetter final {
+public:
+    using Method = Enumeration (Object::*)() const noexcept;
+
+    EnumerationPropertyGetter(const Object& object, Method method,
+                              std::shared_ptr<const PropertyEnumDescriptor> enumeration) noexcept
+        : object_(&object), method_(method), enumeration_(std::move(enumeration)) {}
+
+    BindingValue operator()() const {
+        PropertyDescriptor descriptor;
+        descriptor.kind = BindingValueKind::enumeration;
+        descriptor.enumeration = enumeration_;
+        const std::int64_t value = static_cast<std::int64_t>(((*object_).*method_)());
+        const std::optional<BindingValue> normalized =
+            convert_property_value(BindingValue{value}, descriptor);
+        if (!normalized) {
+            throw std::logic_error("GUI.Forms retained enumerator is outside its property enumeration");
+        }
+        return *normalized;
+    }
+
+private:
+    const Object* object_{};
+    Method method_{};
+    std::shared_ptr<const PropertyEnumDescriptor> enumeration_;
+};
+
+// Writes an enumerated property's choice, already validated against its
+// enumeration, through the setter.
+template <typename Object, typename Enumeration>
+class EnumerationPropertySetter final {
+public:
+    using Method = void (Object::*)(Enumeration);
+
+    EnumerationPropertySetter(Object& object, Method method) noexcept
+        : object_(&object), method_(method) {}
+
+    void operator()(const BindingValue& value) const {
+        const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+        ((*object_).*method_)(static_cast<Enumeration>(choice.value));
     }
 
 private:

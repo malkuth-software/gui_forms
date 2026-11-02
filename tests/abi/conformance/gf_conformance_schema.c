@@ -5,24 +5,6 @@
 #include <pthread.h>
 #include <string.h>
 
-/* The controls create cannot make from a stable id alone: each needs another
- * object (an anchor, a workspace, an enumeration, a page set). */
-static const char* const needs_another_object[] = {
-    "anchored_popup_layer",
-    "dock_site",
-    "flags_value_editor",
-    "page_strip",
-};
-
-static int needs_another(gf_utf8_view id) {
-    size_t index = 0u;
-    for (index = 0u; index < sizeof(needs_another_object) / sizeof(needs_another_object[0]); ++index) {
-        if (gf_kit_view_equals(id, needs_another_object[index])) {
-            return 1;
-        }
-    }
-    return 0;
-}
 
 static gf_schema_type type_record(void) {
     gf_schema_type record;
@@ -119,8 +101,8 @@ static void lookups(gf_kit* kit) {
     gf_kit_check(kit, engine.primitive_count > 0u, "the engine registers primitives");
 }
 
-/* Every control the schema lists is created by its id unless it needs
- * another object; every component is refused. */
+/* Every type the schema lists is created by its id unless it needs another
+ * object or a window, or is a service. */
 static void create_every_type(gf_kit* kit) {
     uint64_t count = 0u;
     gf_kit_status(kit, (*kit).schema.type_count(&count), GF_STATUS_OK, "type_count for create");
@@ -135,7 +117,7 @@ static void create_every_type(gf_kit* kit) {
         }
         gf_object object = 0u;
         const gf_status status = (*kit).objects.create(record.id, gf_kit_text("kit.schema.every"), &object);
-        if (record.kind != GF_SCHEMA_KIND_CONTROL || needs_another(record.id)) {
+        if (gf_kit_create_refuses(record.id)) {
             if (status != GF_STATUS_UNSUPPORTED_CAPABILITY || object != 0u) {
                 ++wrong;
             }
@@ -150,8 +132,8 @@ static void create_every_type(gf_kit* kit) {
             ++wrong;
         }
     }
-    gf_kit_check(kit, wrong == 0u, "create makes every control made from a stable id and refuses the rest");
-    gf_kit_check(kit, created > 80u, "most schema controls are made by create");
+    gf_kit_check(kit, wrong == 0u, "create makes every type made from a stable id or from nothing and refuses the rest");
+    gf_kit_check(kit, created > 90u, "most schema types are made by create");
     gf_object none = 0u;
     gf_kit_status(kit, (*kit).objects.create(gf_kit_text("no_such_type"), gf_kit_text("kit.none"), &none),
                   GF_STATUS_NOT_FOUND, "create of an unknown type is not found");

@@ -21,6 +21,13 @@ template_harness, checked out beside this repository at the commit
   with `--check`, verifies `demo/gallery_catalog.inc`.
   `python3 tools/control_registry.py check`
 
+`tools/winforms_divergences.py`
+: Checks `manifests/winforms-divergences.json`, the record of every difference
+  from a Windows Forms control's observable behaviour (each entry complete,
+  with its reason and decision), and `render` writes
+  `docs/controls/generated/winforms-divergences.md`.
+  `python3 tools/winforms_divergences.py check`
+
 `tools/generate_library_docs.py`
 : Generates the API reference pages under `docs/api/` and the documented
   examples test `tests/doc_examples_tests.cpp`. `--check` regenerates into a

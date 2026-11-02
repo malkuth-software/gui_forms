@@ -6,6 +6,7 @@
 #include "../registry/abi_registry.hpp"
 #include "../schema/abi_schema.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <memory>
 #include <new>
@@ -49,6 +50,28 @@ std::span<const ControlAnatomy> EngineState::controls() {
 void EngineState::replace_diagnostics(std::span<const ThemeCompileDiagnostic> findings) {
     std::vector<ThemeCompileDiagnostic> copied(findings.begin(), findings.end());
     diagnostics_ = std::move(copied);
+}
+
+namespace {
+
+// Whether a kept owner's dependent has been destroyed.
+struct DependentEnded final {
+    bool operator()(const KeptOwner& kept) const noexcept {
+        return kept.dependent.expired();
+    }
+};
+
+} // namespace
+
+void EngineState::keep_owner(const Component::Ptr& dependent, Component::Ptr owner) {
+    // Owners are let go here, on the UI thread, outside any lock.
+    const std::vector<KeptOwner>::iterator ended =
+        std::remove_if(kept_owners_.begin(), kept_owners_.end(), DependentEnded{});
+    kept_owners_.erase(ended, kept_owners_.end());
+    KeptOwner kept{};
+    kept.dependent = dependent;
+    kept.owner = std::move(owner);
+    kept_owners_.push_back(std::move(kept));
 }
 
 PublishedInput* EngineState::find_published(std::string_view name) noexcept {

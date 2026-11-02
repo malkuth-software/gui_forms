@@ -5,7 +5,7 @@
 Window, scheduling and dispatch
 ===============================
 
-The retained window model, update scopes, damage, frame scheduling, the UI-thread dispatcher and per-window instrumentation.
+The retained window model, update scopes, damage, frame scheduling, the UI-thread dispatcher, per-window instrumentation and each thread's shadow frames.
 
 .. list-table::
    :class: autosummary longtable
@@ -87,6 +87,12 @@ Related types
      - PresentationSettings keeps logical text scaling, contrast, motion, and sound preferences independent from device scale and native host mechanics.
    * - :cpp:class:`PresentedArea <gui_forms::PresentedArea>`
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
+   * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
+     - One frame.
+   * - :cpp:class:`ShadowFrameScope <gui_forms::ShadowFrameScope>`
+     - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
+   * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
+     - The calling thread's stack beside its frames.
    * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
      - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
    * - :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`
@@ -764,6 +770,85 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ShadowFrame final
+
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+   One frame. Fields a kind does not use are zero and empty. The text arrays hold subject_size and name_size bytes; the bytes past them are stale.
+
+   .. cpp:member:: ShadowFrameKind kind
+
+      Default: ``ShadowFrameKind::library_call``.
+
+   .. cpp:member:: std::uint32_t flags
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::uint32_t interface_id
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::uint32_t function_index
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::uint64_t sequence
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::uint32_t subject_size
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::uint32_t name_size
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::array<char, shadow_frame_subject_capacity> subject
+
+   .. cpp:member:: std::array<char, shadow_frame_name_capacity> name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ShadowFrameScope final
+
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+   Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included. Never throws or allocates. Scopes nest strictly (they are not copied or moved), so the frame closed is always the innermost.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ShadowFrameScope(ShadowFrameKind kind, std::string_view subject, std::string_view name, std::uint64_t sequence) noexcept
+
+      A frame of kind with subject and name (each cut to its capacity).
+
+   .. cpp:function:: ShadowFrameScope(std::uint32_t interface_id, std::uint32_t function_index) noexcept
+
+      A library_call frame.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ShadowStackState final
+
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+   The calling thread's stack beside its frames. depth counts every frame open now, recorded or not; the recorded frames are the outermost min(depth, shadow_stack_capacity). pushed and dropped count every push, and every push past the capacity, since the thread began.
+
+   .. cpp:member:: std::uint32_t depth
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::uint64_t pushed
+
+      Default: ``0U``.
+
+   .. cpp:member:: std::uint64_t dropped
+
+      Default: ``0U``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolTipEvent final
 
    ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
@@ -951,8 +1036,58 @@ Enumerations
 
    .. cpp:enumerator:: host
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ShadowFrameFlags
+
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: subject_truncated
+
+   .. cpp:enumerator:: name_truncated
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ShadowFrameKind
+
+   ``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+   .. cpp:enumerator:: library_call
+
+   .. cpp:enumerator:: input_dispatch
+
+   .. cpp:enumerator:: event_callback
+
+   .. cpp:enumerator:: layout_pass
+
+   .. cpp:enumerator:: paint_pass
+
+   .. cpp:enumerator:: posted_callback
+
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/diagnostics/shadow_frames/shadow_frames.hpp>``
+
+.. cpp:function:: std::size_t copy_shadow_frames(std::span<ShadowFrame> frames, ShadowStackState& state) noexcept
+
+   Copies the calling thread's recorded frames, outermost first, into the leading elements of frames (at most frames.size()), and its state into state. Returns the number of recorded frames, which may exceed the number copied. Never throws or allocates.
+
+.. cpp:var:: constexpr std::size_t shadow_frame_subject_capacity
+
+   The bytes a frame keeps of its subject and of its name. Value: ``48U``.
+
+.. cpp:var:: constexpr std::size_t shadow_frame_name_capacity
+
+   Value: ``32U``.
+
+.. cpp:var:: constexpr std::size_t shadow_stack_capacity
+
+   The frames a thread records. Deeper frames are counted, not recorded. Value: ``64U``.
 
 .. cpp:namespace:: gui_forms
 

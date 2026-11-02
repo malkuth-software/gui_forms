@@ -11,6 +11,8 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -133,6 +135,7 @@ gf_status running_services(SlotIdentity slot, HostServices*& services) {
 
 gf_status GF_CALL host_capabilities(gf_host_capabilities* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(capabilities_slot.table_id, capabilities_slot.slot_index);
         const gf_status checked = check_record(record, capabilities_slot);
         if (checked != GF_STATUS_OK) {
             return checked;
@@ -142,6 +145,11 @@ gf_status GF_CALL host_capabilities(gf_host_capabilities* record) noexcept {
         complete.struct_size = sizeof(gf_host_capabilities);
         complete.protocol_version = report.protocol_version;
         complete.available = abi_capabilities(report.available);
+#if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
+        // A capability of this library, not of the host: its Windows build
+        // has the paint endpoint table.
+        complete.available = complete.available | GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT;
+#endif
         write_record(complete, record);
         return GF_STATUS_OK;
     } catch (...) {
@@ -151,6 +159,7 @@ gf_status GF_CALL host_capabilities(gf_host_capabilities* record) noexcept {
 
 gf_status GF_CALL host_platform_name(char* buffer, std::uint64_t capacity, std::uint64_t* required) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(platform_name_slot.table_id, platform_name_slot.slot_index);
         const HostCapabilities report = Application::capabilities();
         const gf_status written = write_text(report.platform, buffer, capacity, required, platform_name_slot);
         return written;
@@ -175,6 +184,7 @@ static_assert(cursor_kinds.size() == GF_POINTER_CURSOR_RESIZE_DIAGONAL_UP + 1U);
 
 gf_status GF_CALL host_set_cursor(gf_pointer_cursor cursor) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(set_cursor_slot.table_id, set_cursor_slot.slot_index);
         if (cursor >= cursor_kinds.size()) {
             return fail(GF_STATUS_INVALID_ARGUMENT, set_cursor_slot, "unknown cursor");
         }
@@ -192,6 +202,7 @@ gf_status GF_CALL host_set_cursor(gf_pointer_cursor cursor) noexcept {
 
 gf_status GF_CALL host_read_clipboard_text(char* buffer, std::uint64_t capacity, std::uint64_t* required) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(read_clipboard_text_slot.table_id, read_clipboard_text_slot.slot_index);
         if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
             return fail(GF_STATUS_INVALID_ARGUMENT, read_clipboard_text_slot,
                         "a text output needs a size output, and a buffer unless its capacity is zero");
@@ -218,6 +229,7 @@ gf_status GF_CALL host_read_clipboard_text(char* buffer, std::uint64_t capacity,
 
 gf_status GF_CALL host_write_clipboard_text(gf_utf8_view text) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(write_clipboard_text_slot.table_id, write_clipboard_text_slot.slot_index);
         std::string_view checked;
         const gf_status read = read_text(text, write_clipboard_text_slot, checked);
         if (read != GF_STATUS_OK) {
@@ -460,6 +472,7 @@ gf_dialog_outcome abi_outcome(HostDialogOutcome outcome) noexcept {
 
 gf_status GF_CALL host_show_dialog(const gf_dialog_request* request, gf_dialog_result* result) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(show_dialog_slot.table_id, show_dialog_slot.slot_index);
         const gf_status checked = check_record(result, show_dialog_slot);
         if (checked != GF_STATUS_OK) {
             return checked;
@@ -512,6 +525,7 @@ gf_status GF_CALL host_show_dialog(const gf_dialog_request* request, gf_dialog_r
 gf_status GF_CALL host_dialog_path_at(std::uint64_t index, char* buffer, std::uint64_t capacity,
                                       std::uint64_t* required) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(dialog_path_at_slot.table_id, dialog_path_at_slot.slot_index);
         const gf_status entered = registry().enter_ui(dialog_path_at_slot, false);
         if (entered != GF_STATUS_OK) {
             return entered;

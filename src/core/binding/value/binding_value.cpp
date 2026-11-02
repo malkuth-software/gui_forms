@@ -84,38 +84,32 @@ std::optional<Number> parse_number(std::string_view text) noexcept {
     }
 }
 
-std::optional<unsigned> fixed_precision(std::string_view format) noexcept {
-    if (format.size() < 2U || (format.front() != 'F' && format.front() != 'f')) {
-        return std::nullopt;
-    }
-    unsigned precision{};
-    const std::from_chars_result parsed = std::from_chars(
-        format.data() + 1, format.data() + format.size(), precision);
-    if (parsed.ec != std::errc{} || parsed.ptr != format.data() + format.size() ||
-        precision > 12U) {
-        return std::nullopt;
-    }
-    return precision;
-}
-
+// A number value under a standard numeric format (number_format.hpp): an
+// integer from its exact digits, any other number through double.
 BindingValue apply_format_string(const BindingValue& value,
                                  std::string_view format) {
     if (format.empty()) return value;
-    const std::optional<unsigned int> precision = fixed_precision(format);
-    if (!precision) {
+    const std::optional<NumberFormat> parsed = parse_number_format(format);
+    if (!parsed) {
         throw std::invalid_argument(
-            "GUI.Forms native binding currently supports invariant F0..F12 formats");
+            "GUI.Forms native binding formats are the standard numeric formats F, N, P, C, E and G");
+    }
+    std::string text{};
+    if (const std::int64_t* const signed_value = std::get_if<std::int64_t>(&value)) {
+        append_formatted_number(text, *signed_value, *parsed);
+        return text;
+    }
+    if (const std::uint64_t* const unsigned_value = std::get_if<std::uint64_t>(&value)) {
+        append_formatted_number(text, *unsigned_value, *parsed);
+        return text;
     }
     const std::optional<double> number = binding_value_to_number(value);
     if (!number) {
         throw std::invalid_argument(
-            "GUI.Forms fixed binding format requires a numeric source value");
+            "GUI.Forms binding number format requires a numeric source value");
     }
-    std::ostringstream output;
-    output.setf(std::ios::fixed, std::ios::floatfield);
-    output.precision(static_cast<std::streamsize>(*precision));
-    output << *number;
-    return output.str();
+    append_formatted_number(text, *number, *parsed);
+    return text;
 }
 
 std::string failure_text(std::string_view direction,
@@ -141,9 +135,10 @@ void validate_options(const BindingOptions& options) {
         !valid_control_update_mode(options.control_update_mode)) {
         throw std::invalid_argument("GUI.Forms binding update mode is invalid");
     }
-    if (!options.format_string.empty() && !fixed_precision(options.format_string)) {
+    if (!options.format_string.empty() && !parse_number_format(options.format_string)) {
         throw std::invalid_argument(
-            "GUI.Forms native binding format must be invariant F0..F12");
+            "GUI.Forms native binding format must be a standard numeric format: F, N, P, C, E or G "
+            "with a precision of 0 to 99");
     }
 }
 

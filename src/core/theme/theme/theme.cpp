@@ -1420,9 +1420,17 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
         switch ((*style).outline_style) {
         case RecipeOutlineStyle::ring:
             recipe.authored_focus_outline = false;
+            recipe.dotted_focus = false;
             recipe.focus_offset = 0.0;
             break;
-        case RecipeOutlineStyle::solid: recipe.authored_focus_outline = true; break;
+        case RecipeOutlineStyle::solid:
+            recipe.authored_focus_outline = true;
+            recipe.dotted_focus = false;
+            break;
+        case RecipeOutlineStyle::dotted:
+            recipe.authored_focus_outline = true;
+            recipe.dotted_focus = true;
+            break;
         case RecipeOutlineStyle::none: recipe.focus_width = 0.0; break;
         // A value outside the enumeration, which the rules refuse
         // (recipe_field_invalid), keeps the floor's outline.

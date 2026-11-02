@@ -31,6 +31,14 @@ namespace gui_forms::abi1 {
 // The most names the library publishes values for (gf_abi.h).
 inline constexpr std::size_t maximum_published_values = GF_THEME_MAXIMUM_PUBLISHED_VALUES;
 
+// An object create_with made that borrows from its owner (a dock site its
+// workspace, a page strip its owner's page set), and that owner, kept alive
+// until the dependent has been destroyed.
+struct KeptOwner final {
+    std::weak_ptr<Component> dependent;
+    Component::Ptr owner;
+};
+
 // One published name and, while present, its value.
 struct PublishedInput final {
     std::string name;
@@ -80,6 +88,11 @@ public:
     // The paths the last dialog chose.
     [[nodiscard]] std::vector<std::string>& dialog_paths() noexcept { return dialog_paths_; }
 
+    // Keeps owner alive while dependent lives. An owner whose dependent has
+    // been destroyed is let go at the next call. Throws std::bad_alloc,
+    // keeping nothing new.
+    void keep_owner(const Component::Ptr& dependent, Component::Ptr owner);
+
 private:
     std::shared_ptr<ApplicationResources> resources_{};
     ThemeLibrary library_{};
@@ -93,6 +106,7 @@ private:
     std::vector<std::string> published_names_{};
     Window* running_ = nullptr;
     std::vector<std::string> dialog_paths_{};
+    std::vector<KeptOwner> kept_owners_{};
 };
 
 // The library's one engine state. UI thread.

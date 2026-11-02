@@ -2,6 +2,7 @@
 
 // Compatibility umbrella. Prefer narrow binding hierarchy headers in new code.
 #include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/binding/number_format/number_format.hpp"
 #include "gui_forms/binding/types/binding_contract_types.hpp"
 #include "gui_forms/binding/binding_manager_base/binding_manager_base.hpp"
 #include "gui_forms/binding/currency_manager/currency_manager.hpp"

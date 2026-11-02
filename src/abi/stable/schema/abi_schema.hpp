@@ -76,11 +76,17 @@ struct Schema final {
 
 // The registry's types, in the schema's order, without building the schema:
 // how many there are, the index of the one named in any spelling of its id
-// (the count when none is), and a new control of the type at index for
-// objects.create (null when the type is not made from a stable id alone).
-// find_catalog_type throws std::invalid_argument for an empty name.
+// (the count when none is), its id (static storage), and a new object of
+// the type at index for objects.create (null when the type is made neither
+// from a stable id nor from nothing). find_catalog_type throws
+// std::invalid_argument for an empty name.
 [[nodiscard]] std::size_t catalog_type_count() noexcept;
 [[nodiscard]] std::size_t find_catalog_type(std::string_view name);
-[[nodiscard]] Control::Ptr create_catalog_type(std::size_t index, StableId stable_id);
+[[nodiscard]] std::string_view catalog_type_id(std::size_t index);
+[[nodiscard]] Component::Ptr create_catalog_type(std::size_t index, StableId stable_id);
+// The schema type id of object: a control's nearest schema type (its
+// anatomy's), a component's exact type; empty for a component of a type
+// the schema does not list.
+[[nodiscard]] std::string_view catalog_type_id_of(const Component& object);
 
 } // namespace gui_forms::abi1

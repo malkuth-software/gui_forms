@@ -1,0 +1,391 @@
+// Stage C5: a C++ event raised directly reaches a C ABI callback as named
+// fields (gf_abi.h, "Event fields"), and what the callback writes with
+// events.write_field reaches the C++ payload when the callback returns.
+//
+// The program links the ABI's objects and the C++ library statically, so
+// both sides share one process: it makes and subscribes objects through
+// gf_abi_get_table alone, then finds the C++ control behind a handle in the
+// ABI's registry and raises its events itself, with payloads no property
+// change can produce (a cancellable tab selection, a label edit, a
+// selection change, an event of two arguments).
+
+#include "gui_forms/c/gf_abi.h"
+
+#include "../../../src/abi/stable/registry/abi_registry.hpp"
+
+#include "gui_forms/basic_controls.hpp"
+#include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel/list_box/list_box.hpp"
+#include "gui_forms/controls/panel/list_view/list_view.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_control.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/tab_control/tab_page/tab_page.hpp"
+#include "gui_forms/dirty.hpp"
+
+#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace {
+
+using namespace gui_forms;
+
+int failures = 0;
+
+void require(bool condition, std::string_view message) {
+    if (!condition) {
+        std::cerr << "FAIL: " << message << '\n';
+        failures = failures + 1;
+    }
+}
+
+void require_ok(gf_status status, std::string_view call) {
+    if (status != GF_STATUS_OK) {
+        throw std::runtime_error(std::string(call) + " failed with status " + std::to_string(status));
+    }
+}
+
+gf_utf8_view text_view(std::string_view text) {
+    gf_utf8_view view{};
+    view.data = text.data();
+    view.size = text.size();
+    return view;
+}
+
+std::string_view view_text(gf_utf8_view view) {
+    const std::string_view text(view.data, static_cast<std::size_t>(view.size));
+    return text;
+}
+
+struct Tables final {
+    gf_objects_table objects{};
+    gf_events_table events{};
+};
+
+Tables load_tables() {
+    Tables tables;
+    tables.objects.struct_size = sizeof(gf_objects_table);
+    tables.events.struct_size = sizeof(gf_events_table);
+    require_ok(gf_abi_get_table(GF_TABLE_OBJECTS, GF_ABI_MAJOR, GF_ABI_MINOR, &tables.objects, sizeof(tables.objects)),
+               "objects table");
+    require_ok(gf_abi_get_table(GF_TABLE_EVENTS, GF_ABI_MAJOR, GF_ABI_MINOR, &tables.events, sizeof(tables.events)),
+               "events table");
+    return tables;
+}
+
+gf_object create(const Tables& tables, std::string_view type, std::string_view stable_id) {
+    gf_object object = 0U;
+    require_ok(tables.objects.create(text_view(type), text_view(stable_id), &object), "create");
+    return object;
+}
+
+// The C++ control behind a handle, as the ABI's registry holds it.
+template <typename Type>
+std::shared_ptr<Type> control_of(gf_object object) {
+    Control::Ptr control;
+    require_ok(abi1::registry().find_object(object, abi1::SlotIdentity{GF_TABLE_OBJECTS, 0U}, control),
+               "find_object");
+    const std::shared_ptr<Type> typed = std::dynamic_pointer_cast<Type>(control);
+    if (!typed) {
+        throw std::runtime_error("the object is not of the expected type");
+    }
+    return typed;
+}
+
+// One field of an event by name, or null.
+const gf_event_field* field_named(const gf_event& event, std::string_view name, std::uint64_t& index) {
+    for (index = 0U; index < event.field_count; ++index) {
+        if (view_text(event.fields[index].name) == name) {
+            return &event.fields[index];
+        }
+    }
+    return nullptr;
+}
+
+gf_value blank_value(gf_value_kind kind) {
+    gf_value value{};
+    value.struct_size = sizeof(gf_value);
+    value.kind = kind;
+    return value;
+}
+
+// What a callback saw and did, for the checks after the emission.
+struct Probe final {
+    const Tables* tables = nullptr;
+    int invoked = 0;
+    std::vector<std::string> names;
+    std::vector<gf_value_kind> kinds;
+    std::vector<gf_event_field_flags> flags;
+    bool payload_null = false;
+    gf_object lent = 0U;
+    std::string action_name;
+    gf_status cancel_written = GF_STATUS_INTERNAL;
+    gf_status object_refused = GF_STATUS_INTERNAL;
+    gf_status kind_refused = GF_STATUS_INTERNAL;
+    gf_status choice_refused = GF_STATUS_INTERNAL;
+    gf_status past_end = GF_STATUS_INTERNAL;
+    bool record_changed = false;
+    std::uint64_t previous_count = 0U;
+    std::uint64_t first_previous = 0U;
+    gf_status element_past_end = GF_STATUS_INTERNAL;
+    gf_value_kind active_kind = GF_VALUE_KIND_TEXT;
+    gf_value_kind active_declared = GF_VALUE_KIND_NULL;
+    gf_status label_written = GF_STATUS_INTERNAL;
+    std::string first_name;
+    std::string flag_names;
+    bool keep_lent = false;
+};
+
+void record_names(Probe& probe, const gf_event& event) {
+    probe.invoked = probe.invoked + 1;
+    probe.names.clear();
+    probe.kinds.clear();
+    probe.flags.clear();
+    for (std::uint64_t index = 0U; index < event.field_count; ++index) {
+        probe.names.emplace_back(view_text(event.fields[index].name));
+        probe.kinds.push_back(event.fields[index].kind);
+        probe.flags.push_back(event.fields[index].flags);
+    }
+    probe.payload_null = event.payload == nullptr;
+}
+
+// selecting: cancels through the cancel field and tries refused writes.
+void GF_CALL selecting_invoke(void* context, gf_event* event) {
+    Probe& probe = *static_cast<Probe*>(context);
+    record_names(probe, *event);
+    std::uint64_t index = 0U;
+    const gf_event_field* page = field_named(*event, "page", index);
+    if (page != nullptr) {
+        probe.lent = (*(*page).value).unsigned_integer;
+        const gf_value value = blank_value(GF_VALUE_KIND_OBJECT);
+        probe.object_refused = (*probe.tables).events.write_field(event, index, &value);
+        if (probe.keep_lent && probe.lent != 0U) {
+            require_ok((*probe.tables).objects.retain(probe.lent), "retain the lent page");
+        }
+    }
+    const gf_event_field* action = field_named(*event, "action", index);
+    if (action != nullptr) {
+        probe.action_name = view_text((*(*action).value).text);
+        gf_value unknown = blank_value(GF_VALUE_KIND_ENUMERATION);
+        unknown.signed_integer = 99;
+        probe.choice_refused = (*probe.tables).events.write_field(event, index, &unknown);
+    }
+    const gf_event_field* cancel = field_named(*event, "cancel", index);
+    if (cancel != nullptr) {
+        const gf_value wrong = blank_value(GF_VALUE_KIND_TEXT);
+        probe.kind_refused = (*probe.tables).events.write_field(event, index, &wrong);
+        gf_value yes = blank_value(GF_VALUE_KIND_BOOLEAN);
+        yes.boolean = 1U;
+        probe.cancel_written = (*probe.tables).events.write_field(event, index, &yes);
+        probe.record_changed = (*(*cancel).value).boolean == 1U;
+    }
+    const gf_value yes = blank_value(GF_VALUE_KIND_BOOLEAN);
+    probe.past_end = (*probe.tables).events.write_field(event, (*event).field_count, &yes);
+}
+
+void cancellable_selection(const Tables& tables) {
+    const gf_object tabs = create(tables, "tab_control", "fields.tabs");
+    const gf_object page = create(tables, "tab_page", "fields.page");
+    const std::shared_ptr<TabControl> control = control_of<TabControl>(tabs);
+    const std::shared_ptr<TabPage> page_control = control_of<TabPage>(page);
+    // The page's handle is released, so the event must lend it an identity.
+    require_ok(tables.objects.release(page), "release the page handle");
+
+    Probe probe;
+    probe.tables = &tables;
+    gf_callback callback{};
+    callback.struct_size = sizeof(gf_callback);
+    callback.invoke = &selecting_invoke;
+    callback.context = &probe;
+    gf_subscription subscription = 0U;
+    require_ok(tables.events.subscribe(tabs, text_view("selecting"), &callback, &subscription), "subscribe selecting");
+
+    TabControlCancelEvent event{page_control, 0U, TabControlAction::selecting, false};
+    (*control).selecting().emit(event);
+    require(probe.invoked == 1, "selecting reached the callback once");
+    const std::vector<std::string> expected{"page", "index", "action", "cancel"};
+    require(probe.names == expected, "a struct payload's fields are its members in order");
+    require(probe.kinds.size() == 4U && probe.kinds[0] == GF_VALUE_KIND_OBJECT &&
+                probe.kinds[1] == GF_VALUE_KIND_UNSIGNED && probe.kinds[2] == GF_VALUE_KIND_ENUMERATION &&
+                probe.kinds[3] == GF_VALUE_KIND_BOOLEAN,
+            "the fields have the members' kinds");
+    require(probe.flags.size() == 4U && (probe.flags[0] & GF_EVENT_FIELD_WRITABLE) == 0U &&
+                (probe.flags[3] & GF_EVENT_FIELD_WRITABLE) != 0U,
+            "a mutable payload's scalars are writable and its objects are not");
+    require(probe.payload_null, "a struct payload is not a single payload value");
+    require(probe.lent != 0U, "the page is lent an identity");
+    require(probe.action_name == "selecting", "an enumeration field carries its choice's name");
+    require(probe.object_refused == GF_STATUS_INVALID_ARGUMENT, "an object field is not writable");
+    require(probe.kind_refused == GF_STATUS_INVALID_ARGUMENT, "a value of another kind is refused");
+    require(probe.choice_refused == GF_STATUS_INVALID_ARGUMENT, "an unknown choice is refused");
+    require(probe.past_end == GF_STATUS_NOT_FOUND, "an index past the fields is not found");
+    require(probe.cancel_written == GF_STATUS_OK && probe.record_changed,
+            "a written field changes the record at once");
+    require(event.cancel, "what the callback wrote reached the C++ payload");
+    require(event.action == TabControlAction::selecting && event.index == 0U,
+            "fields the callback did not write keep their values");
+    require(tables.objects.retain(probe.lent) == GF_STATUS_STALE_HANDLE,
+            "an identity lent for the callback ends with it");
+
+    probe.keep_lent = true;
+    TabControlCancelEvent kept{page_control, 1U, TabControlAction::selecting, false};
+    (*control).selecting().emit(kept);
+    require(probe.lent != 0U && tables.objects.retain(probe.lent) == GF_STATUS_OK,
+            "a lent identity the callback retained lives on");
+    require_ok(tables.objects.release(probe.lent), "release the retained page (second reference)");
+    require_ok(tables.objects.release(probe.lent), "release the retained page");
+
+    require_ok(tables.events.disconnect(subscription), "disconnect selecting");
+    require_ok(tables.objects.release(tabs), "release the tab control");
+}
+
+// selection_changed: collections read on demand, an absent optional.
+void GF_CALL selection_invoke(void* context, gf_event* event) {
+    Probe& probe = *static_cast<Probe*>(context);
+    record_names(probe, *event);
+    std::uint64_t index = 0U;
+    const gf_event_field* previous = field_named(*event, "previous", index);
+    if (previous != nullptr) {
+        probe.previous_count = (*(*previous).value).unsigned_integer;
+        gf_value element = blank_value(GF_VALUE_KIND_NULL);
+        if ((*probe.tables).events.field_element(event, index, 1U, &element) == GF_STATUS_OK &&
+            element.kind == GF_VALUE_KIND_UNSIGNED) {
+            probe.first_previous = element.unsigned_integer;
+        }
+        probe.element_past_end =
+            (*probe.tables).events.field_element(event, index, probe.previous_count, &element);
+    }
+    const gf_event_field* active = field_named(*event, "active_index", index);
+    if (active != nullptr) {
+        probe.active_kind = (*(*active).value).kind;
+        probe.active_declared = (*active).kind;
+    }
+}
+
+void collections(const Tables& tables) {
+    const gf_object list = create(tables, "list_box", "fields.list");
+    const std::shared_ptr<ListBox> control = control_of<ListBox>(list);
+    Probe probe;
+    probe.tables = &tables;
+    gf_callback callback{};
+    callback.struct_size = sizeof(gf_callback);
+    callback.invoke = &selection_invoke;
+    callback.context = &probe;
+    gf_subscription subscription = 0U;
+    require_ok(tables.events.subscribe(list, text_view("selection_changed"), &callback, &subscription),
+               "subscribe selection_changed");
+    const ListSelectionChange change{{4U, 7U}, {9U}, std::nullopt};
+    (*control).selection_changed().emit(change);
+    require(probe.invoked == 1, "selection_changed reached the callback");
+    require(probe.previous_count == 2U && probe.first_previous == 7U,
+            "a collection field holds its count and reads its elements on demand");
+    require(probe.element_past_end == GF_STATUS_NOT_FOUND, "an element past the end is not found");
+    require(probe.active_kind == GF_VALUE_KIND_NULL && probe.active_declared == GF_VALUE_KIND_UNSIGNED,
+            "an absent optional is NULL with its declared kind");
+    require_ok(tables.events.disconnect(subscription), "disconnect selection_changed");
+    require_ok(tables.objects.release(list), "release the list box");
+}
+
+// before_label_edit: an optional text written, then cleared.
+struct LabelWrite final {
+    const Tables* tables = nullptr;
+    bool clear = false;
+    gf_status status = GF_STATUS_INTERNAL;
+};
+
+void GF_CALL label_invoke(void* context, gf_event* event) {
+    LabelWrite& write = *static_cast<LabelWrite*>(context);
+    std::uint64_t index = 0U;
+    const gf_event_field* label = field_named(*event, "label", index);
+    if (label == nullptr) {
+        return;
+    }
+    gf_value value = blank_value(write.clear ? GF_VALUE_KIND_NULL : GF_VALUE_KIND_TEXT);
+    // The callback's own text: the library copies it.
+    char renamed[] = "renamed";
+    value.text.data = renamed;
+    value.text.size = write.clear ? 0U : 7U;
+    write.status = (*write.tables).events.write_field(event, index, &value);
+    std::memset(renamed, 'x', sizeof(renamed) - 1U);
+}
+
+void optional_text(const Tables& tables) {
+    const gf_object view = create(tables, "list_view", "fields.view");
+    const std::shared_ptr<ListView> control = control_of<ListView>(view);
+    LabelWrite write;
+    write.tables = &tables;
+    gf_callback callback{};
+    callback.struct_size = sizeof(gf_callback);
+    callback.invoke = &label_invoke;
+    callback.context = &write;
+    gf_subscription subscription = 0U;
+    require_ok(tables.events.subscribe(view, text_view("before_label_edit"), &callback, &subscription),
+               "subscribe before_label_edit");
+    ListViewLabelEdit edit{"list", 0U, "item", std::nullopt, false};
+    (*control).before_label_edit().emit(edit);
+    require(write.status == GF_STATUS_OK && edit.label.has_value() && *edit.label == "renamed",
+            "an absent optional text is written, and the library kept its own copy");
+    write.clear = true;
+    (*control).before_label_edit().emit(edit);
+    require(write.status == GF_STATUS_OK && !edit.label.has_value(), "NULL clears an optional");
+    require_ok(tables.events.disconnect(subscription), "disconnect before_label_edit");
+    require_ok(tables.objects.release(view), "release the list view");
+}
+
+// initialization_completed: two arguments, one a combination of flags.
+void GF_CALL two_arguments_invoke(void* context, gf_event* event) {
+    Probe& probe = *static_cast<Probe*>(context);
+    record_names(probe, *event);
+    if ((*event).field_count >= 1U) {
+        probe.flag_names = view_text((*(*event).fields[0].value).text);
+    }
+}
+
+void two_arguments(const Tables& tables) {
+    const gf_object panel = create(tables, "panel", "fields.panel");
+    const Control::Ptr control = control_of<Control>(panel);
+    Probe probe;
+    probe.tables = &tables;
+    gf_callback callback{};
+    callback.struct_size = sizeof(gf_callback);
+    callback.invoke = &two_arguments_invoke;
+    callback.context = &probe;
+    gf_subscription subscription = 0U;
+    require_ok(tables.events.subscribe(panel, text_view("initialization_completed"), &callback, &subscription),
+               "subscribe initialization_completed");
+    (*control).initialization_completed().emit(Dirty::measure | Dirty::paint, true);
+    const std::vector<std::string> expected{"value_1", "value_2"};
+    require(probe.names == expected, "several arguments are value_1, value_2");
+    require(probe.payload_null, "several arguments are not a single payload value");
+    require(probe.flag_names == "measure, paint", "a combination of flags is named by its choices");
+    (*control).initialization_completed().emit(Dirty::layout, false);
+    require(probe.flag_names == "layout", "a combination that is itself a choice takes that choice's name");
+    require_ok(tables.events.disconnect(subscription), "disconnect initialization_completed");
+    require_ok(tables.objects.release(panel), "release the panel");
+}
+
+} // namespace
+
+int main() {
+    try {
+        const Tables tables = load_tables();
+        cancellable_selection(tables);
+        collections(tables);
+        optional_text(tables);
+        two_arguments(tables);
+    } catch (const std::exception& error) {
+        std::cerr << "FAIL: " << error.what() << '\n';
+        return 1;
+    }
+    if (failures != 0) {
+        std::cerr << failures << " event field checks failed\n";
+        return 1;
+    }
+    std::cout << "event fields: all checks passed\n";
+    return 0;
+}

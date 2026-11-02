@@ -98,6 +98,11 @@ struct ControlVisualRecipe final {
     double focus_width{1.0};
     double focus_offset{};
     bool authored_focus_outline{};
+    // Whether the focus ring, the house ring or the authored outline, is
+    // drawn as dots (design language: the default theme's ring is dotted):
+    // square dots one focus width across, one every two widths, on the
+    // ring's square path (a dotted ring ignores the corner radius).
+    bool dotted_focus{};
     double default_width{2.0};
     Point visual_offset{};
     Point pressed_content_offset{1.0, 1.0};
@@ -112,6 +117,7 @@ struct ControlVisualRecipe final {
         left.focus_width == right.focus_width &&
         left.focus_offset == right.focus_offset &&
         left.authored_focus_outline == right.authored_focus_outline &&
+        left.dotted_focus == right.dotted_focus &&
         left.default_width == right.default_width &&
         left.visual_offset == right.visual_offset &&
         left.pressed_content_offset == right.pressed_content_offset &&
@@ -124,6 +130,7 @@ struct ControlVisualRecipe final {
                left.focus_width == right.focus_width &&
                left.focus_offset == right.focus_offset &&
                left.authored_focus_outline == right.authored_focus_outline &&
+               left.dotted_focus == right.dotted_focus &&
                left.default_width == right.default_width &&
                left.visual_offset == right.visual_offset &&
                left.pressed_content_offset == right.pressed_content_offset &&

@@ -148,6 +148,40 @@ TableBytes find_table(gf_table_id table_id) noexcept {
         found.data = &gui_forms::abi1::host_table();
         found.size = sizeof(gf_host_table);
         break;
+    case GF_TABLE_DIAGNOSTICS:
+        found.data = &gui_forms::abi1::diagnostics_table();
+        found.size = sizeof(gf_diagnostics_table);
+        break;
+    case GF_TABLE_CONTROLS:
+        found.data = &gui_forms::abi1::controls_table();
+        found.size = sizeof(gf_controls_table);
+        break;
+    case GF_TABLE_TEXT_EDITING:
+        found.data = &gui_forms::abi1::text_editing_table();
+        found.size = sizeof(gf_text_editing_table);
+        break;
+    case GF_TABLE_POPUPS:
+        found.data = &gui_forms::abi1::popups_table();
+        found.size = sizeof(gf_popups_table);
+        break;
+    case GF_TABLE_PROPERTY_GRID:
+        found.data = &gui_forms::abi1::property_grid_table();
+        found.size = sizeof(gf_property_grid_table);
+        break;
+    case GF_TABLE_CUSTOM_CONTROLS:
+        found.data = &gui_forms::abi1::custom_controls_table();
+        found.size = sizeof(gf_custom_controls_table);
+        break;
+    case GF_TABLE_BINDINGS:
+        found.data = &gui_forms::abi1::bindings_table();
+        found.size = sizeof(gf_bindings_table);
+        break;
+#if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
+    case GF_TABLE_WINDOWS_PAINT_ENDPOINT:
+        found.data = &gui_forms::abi1::windows_paint_endpoint_table();
+        found.size = sizeof(gf_windows_paint_endpoint_table);
+        break;
+#endif
     default:
         // An id this library does not know has no table: the caller gets
         // GF_STATUS_NOT_FOUND.

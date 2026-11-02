@@ -101,6 +101,17 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_SCHEMA 7u
 #define GF_TABLE_THEMES 8u
 #define GF_TABLE_HOST 9u
+#define GF_TABLE_DIAGNOSTICS 10u
+#define GF_TABLE_CONTROLS 11u
+#define GF_TABLE_TEXT_EDITING 12u
+#define GF_TABLE_POPUPS 13u
+#define GF_TABLE_PROPERTY_GRID 14u
+#define GF_TABLE_CUSTOM_CONTROLS 15u
+#define GF_TABLE_BINDINGS 16u
+/* Platform extension tables have ids from 0x100. A library has one only on
+ * its platform, and reports it as a host capability; elsewhere
+ * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
+#define GF_TABLE_WINDOWS_PAINT_ENDPOINT 0x100u
 
 /* The slot index an error detail reports for gf_abi_get_table itself. */
 #define GF_ABI_ENTRY_SLOT 4294967295u
@@ -244,14 +255,42 @@ typedef struct gf_logical_insets {
     double bottom;
 } gf_logical_insets;
 
+/* gf_font_role: the face family a font draws from. */
+typedef uint32_t gf_font_role;
+#define GF_FONT_ROLE_CONTROL 0u
+#define GF_FONT_ROLE_CONTENT 1u
+#define GF_FONT_ROLE_MONOSPACE 2u
+
+/*
+ * A font: its role, weight (1 to 1000; 400 regular, 700 bold), italic (0 or
+ * 1), size in logical pixels (finite, above zero) and the logical pixels
+ * added between grapheme clusters (finite, from -size/4 to size).
+ */
+typedef struct gf_font {
+    gf_font_role role;
+    uint32_t weight;
+    uint32_t italic;
+    uint32_t reserved;
+    double size;
+    double letter_spacing;
+} gf_font;
+
 /*
  * A property or event value. kind selects the field that holds it: boolean
  * (0 or 1), signed_integer, unsigned_integer, number, text, point, size,
  * rectangle, insets, or color (0xRRGGBBAA). An ENUMERATION holds its value
  * in signed_integer; a value the library reports also carries the choice's
  * name in text ("top, left" for a combination of flags), and a value the
- * caller passes is read from signed_integer alone. FONT, IMAGE, OBJECT and
- * COLLECTION have no gf_value form yet (GF_STATUS_UNSUPPORTED_CAPABILITY).
+ * caller passes is read from signed_integer alone. A FONT is in font. An
+ * IMAGE is the image's id in unsigned_integer (themes.load_image; zero is
+ * no image). A COLLECTION the library reports holds its element count in
+ * unsigned_integer, and each element is read on its own
+ * (properties.element_at, events.field_element); a COLLECTION the caller
+ * passes lists its elements in elements and element_count, each a gf_value
+ * of the collection's item kind (not itself a COLLECTION), read during the
+ * call only. An OBJECT is an object's identity in unsigned_integer (event
+ * fields); a property of an object value has no gf_value form yet
+ * (GF_STATUS_UNSUPPORTED_CAPABILITY), and the schema lists none.
  * Other fields are ignored on input and zero on output. The caller sets
  * struct_size; the record may grow at its tail in a later minor.
  */
@@ -268,7 +307,51 @@ typedef struct gf_value {
     gf_logical_size size;
     gf_logical_rect rectangle;
     gf_logical_insets insets;
+    gf_font font;
+    const struct gf_value* elements;
+    uint64_t element_count;
 } gf_value;
+
+/* gf_event_field_flags: what a callback may do with an event field. */
+typedef uint32_t gf_event_field_flags;
+/* events.write_field accepts a value of the field's kind. */
+#define GF_EVENT_FIELD_WRITABLE 1u
+/* The field may be absent: its value is then NULL, and a writable one also
+ * accepts NULL. */
+#define GF_EVENT_FIELD_OPTIONAL 2u
+/* A writable field that accepts a value of any kind with a gf_value form
+ * (a binding value, such as BindingConvertEvent's). */
+#define GF_EVENT_FIELD_ANY_KIND 4u
+
+/*
+ * Event fields. An interaction's payload reaches the callback as named
+ * fields, in the order of the C++ payload's members:
+ * - a scalar payload is one field named "value" (and is also the event's
+ *   payload); a struct payload is its members ("cancel", "row_id"), nested
+ *   members dotted ("font.size"); several arguments are "value_1",
+ *   "value_2", ..., a struct argument's members below them
+ *   ("value_1.cancel");
+ * - an enumeration is ENUMERATION: signed_integer and its choice's name in
+ *   text ("a, b" for a combination of flags; empty for an unknown value);
+ * - an object is OBJECT, its identity in unsigned_integer (zero when it has
+ *   none to lend); the identity is lent for the invoke, so a callback that
+ *   keeps the object retains it;
+ * - a collection is COLLECTION, its element count in unsigned_integer; its
+ *   elements are read with events.field_element;
+ * - a reference to the sender adds no field; a member no field carries yet
+ *   is left out (the C ABI track lists them).
+ * kind is the field's declared kind; the value's own kind is NULL when an
+ * OPTIONAL field is absent, and FONT, IMAGE, OBJECT or COLLECTION with no
+ * other content for a binding value that has no gf_value form yet. Names,
+ * values and the text they reference are lent for the invoke. The record's
+ * layout is fixed: an array of them has the stride sizeof(gf_event_field).
+ */
+typedef struct gf_event_field {
+    gf_utf8_view name;
+    gf_value_kind kind;
+    gf_event_field_flags flags;
+    const gf_value* value;
+} gf_event_field;
 
 /*
  * One event, lent to a callback for the duration of its invoke. sender is the
@@ -276,8 +359,11 @@ typedef struct gf_value {
  * callback that keeps it retains it. name is the interaction, the property
  * (for a property subscription), "invoke" (begin_invoke), or "ready",
  * "closing" or "closed" (a run). payload is null when the event carries no
- * value. A "closing" callback sets cancel to 1 to keep the window open;
- * other events ignore cancel.
+ * single value. A "closing" callback sets cancel to 1 to keep the window
+ * open; other events ignore cancel. fields are the interaction's payload as
+ * named fields (Event fields above); field_count is zero for the other
+ * events. A callback writes a writable field with events.write_field; the
+ * library applies what was written once the invoke returns.
  */
 typedef struct gf_event {
     uint32_t struct_size;
@@ -285,6 +371,8 @@ typedef struct gf_event {
     gf_object sender;
     gf_utf8_view name;
     const gf_value* payload;
+    uint64_t field_count;
+    const gf_event_field* fields;
 } gf_event;
 
 /*
@@ -311,14 +399,69 @@ typedef uint64_t gf_subscription;
  * parent outlives its last release, and an object without one ends at its
  * last release. Its identity goes stale then, even when a parent keeps it.
  */
+/* gf_create_flags: how objects.create_with reads its arguments. */
+typedef uint32_t gf_create_flags;
+/* The choices combine as flags (a flags editor's enumeration). */
+#define GF_CREATE_FLAGS_COMBINABLE 1u
+
+/* The most choices a caller's enumeration has (create_with), and the most
+ * bytes of its name and of each choice's name. */
+#define GF_CREATE_MAXIMUM_CHOICES 256u
+#define GF_CREATE_MAXIMUM_NAME_BYTES 256u
+
+/* One choice of an enumeration the caller defines. */
+typedef struct gf_create_choice {
+    gf_utf8_view name;
+    int64_t value;
+} gf_create_choice;
+
+/*
+ * What objects.create_with makes a type with. The caller sets struct_size;
+ * the library reads the record and the choices during the call only.
+ * owner is the object the new one needs:
+ * - anchored_popup_layer: its anchor control;
+ * - dock_site: its dock_workspace;
+ * - page_strip: the page_view or navigation_pane whose pages it shows;
+ * - color_command, font_command, gallery_command: the command it extends;
+ * - background_worker, binding_context, binding_source, error_provider,
+ *   help_provider, image_list, notify_icon, ribbon_tool_tip,
+ *   semantic_feedback, timer, tool_tip: the window (windows.create) it
+ *   binds to.
+ * A flags_value_editor takes no owner but an enumeration: its name, its
+ * choices (1 to GF_CREATE_MAXIMUM_CHOICES, distinct non-empty names) and
+ * value, its current value. The new object keeps what it needs of its owner
+ * alive for as long as it lives, except a window. For a component bound to a
+ * window, owner means only the window it binds to, as in C++: the caller's
+ * references own the component, the component observes the window without
+ * keeping it, and when the window is destroyed the component stays alive,
+ * unbound (GF_TABLE_WINDOWS). Fields a type does not read are zero.
+ */
+typedef struct gf_create_arguments {
+    uint32_t struct_size;
+    gf_create_flags flags;
+    gf_object owner;
+    gf_utf8_view enumeration;
+    const gf_create_choice* choices;
+    uint64_t choice_count;
+    int64_t value;
+} gf_create_arguments;
+
 typedef struct gf_objects_table {
     uint32_t struct_size;
     uint32_t abi_minor;
-    /* Creates a control of the schema type type_name, written in any
+    /* Creates an object of the schema type type_name, written in any
      * spelling of its id ("check_box" or "CheckBox"), with a non-empty
-     * stable_id. A type that is not a control, or that needs another
-     * object to be made (a dock site its workspace, say), gives
-     * GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND. */
+     * stable_id: a control made from its stable id, or a component made
+     * from nothing (a command, a file dialog) or from its id (a context
+     * menu, a dock workspace). A type that needs another object (a dock site
+     * its workspace or a timer its window, say: create_with), and the types
+     * neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and
+     * live_surface), give GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.
+     * The objects table takes components wherever it takes an object,
+     * except the tree slots, which take controls
+     * (GF_STATUS_WRONG_HANDLE_KIND), and the properties table, which takes
+     * controls. A component's stable_id is empty unless its type has one
+     * (a context menu, a dock workspace). */
     gf_status (GF_CALL* create)(gf_utf8_view type_name, gf_utf8_view stable_id,
                                 gf_object* object);
     /* Adds a reference. Any thread. */
@@ -349,6 +492,13 @@ typedef struct gf_objects_table {
     gf_status (GF_CALL* child_at)(gf_object parent, uint64_t index, gf_object* child);
     /* A new reference to the parent, or zero when there is none. */
     gf_status (GF_CALL* parent)(gf_object object, gf_object* parent);
+    /* Creates an object of a type that needs another object, as
+     * gf_create_arguments describes. An owner of the wrong type gives
+     * GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a
+     * malformed enumeration GF_STATUS_INVALID_ARGUMENT; a type create makes
+     * is made as create makes it when arguments asks nothing of it. */
+    gf_status (GF_CALL* create_with)(gf_utf8_view type_name, gf_utf8_view stable_id,
+                                     const gf_create_arguments* arguments, gf_object* object);
 } gf_objects_table;
 
 /*
@@ -374,6 +524,12 @@ typedef struct gf_properties_table {
     /* Returns a property to its default. GF_STATUS_UNSUPPORTED_CAPABILITY when
      * it has no reset path. */
     gf_status (GF_CALL* reset)(gf_object object, gf_utf8_view name);
+    /* The element at index of the COLLECTION property name, as get reports
+     * a value (text copied into text_buffer). GF_STATUS_INVALID_ARGUMENT
+     * when the property is not a collection, GF_STATUS_NOT_FOUND when index
+     * is not below its count. */
+    gf_status (GF_CALL* element_at)(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value,
+                                    char* text_buffer, uint64_t text_capacity, uint64_t* text_required);
 } gf_properties_table;
 
 /*
@@ -385,12 +541,10 @@ typedef struct gf_properties_table {
 typedef struct gf_events_table {
     uint32_t struct_size;
     uint32_t abi_minor;
-    /* Subscribes to an interaction of source by its schema name. At 1.0:
-     * name_changed, visible_changed and enabled_changed (boolean payload)
-     * on every control; clicked on Button and CheckBox; text_changed (text
-     * payload) on Button, CheckBox, Label and TextBox; checked_changed on
-     * CheckBox. Another schema interaction gives
-     * GF_STATUS_UNSUPPORTED_CAPABILITY, an unknown name GF_STATUS_NOT_FOUND. */
+    /* Subscribes to an interaction of source by its schema name: any
+     * interaction the schema lists for source's type (schema.interaction_at).
+     * The event's fields carry the payload (Event fields above). A name the
+     * type does not raise gives GF_STATUS_NOT_FOUND. */
     gf_status (GF_CALL* subscribe)(gf_object source, gf_utf8_view interaction,
                                    const gf_callback* callback,
                                    gf_subscription* subscription);
@@ -402,6 +556,23 @@ typedef struct gf_events_table {
      * called from its own invoke, once that invoke returns. A subscription
      * that has ended gives GF_STATUS_STALE_HANDLE. */
     gf_status (GF_CALL* disconnect)(gf_subscription subscription);
+    /* Writes field (an index below event's field_count) of the event a
+     * callback is running for, from within that callback. The field must be
+     * WRITABLE and value of its kind (or NULL when it is OPTIONAL, or any
+     * kind when it is ANY_KIND), well formed and within the C++ member's
+     * range or choices; text is copied. The record the callback sees changes
+     * at once; the library applies the written fields when the invoke
+     * returns. GF_STATUS_INVALID_STATE when event is not running,
+     * GF_STATUS_NOT_FOUND for an index past the fields,
+     * GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value
+     * it does not admit; nothing is written then. */
+    gf_status (GF_CALL* write_field)(gf_event* event, uint64_t field, const gf_value* value);
+    /* Reads element index of a COLLECTION field of the event a callback is
+     * running for, from within that callback, into element (the caller sets
+     * struct_size); its text is lent for the invoke.
+     * GF_STATUS_UNSUPPORTED_CAPABILITY when the elements are structs. */
+    gf_status (GF_CALL* field_element)(const gf_event* event, uint64_t field, uint64_t index,
+                                       gf_value* element);
 } gf_events_table;
 
 /*
@@ -443,17 +614,38 @@ typedef struct gf_run_options {
     const gf_callback* closed;
 } gf_run_options;
 
-/* GF_TABLE_WINDOWS: one window at a time, on the platform's host. */
+/*
+ * GF_TABLE_WINDOWS: one window at a time, on the platform's host.
+ *
+ * A window is an object (type id "window", stable id its root's) that create
+ * makes over a root and run then shows. The components that need a window
+ * (timer, tool_tip and the others objects.create_with lists) are made with a
+ * window as owner before or during its run. They bind to the window as the
+ * C++ components constructed over a Window do: they observe it and do not
+ * keep it, and it does not keep them. The caller's references own both.
+ * When the run ends the window is destroyed and disposed; its components
+ * stay alive but unbound, and refuse what needs the window. Disposing a
+ * window that has not run destroys it; during its run, disposing it only
+ * stops new components binding to it.
+ */
 typedef struct gf_windows_table {
     uint32_t struct_size;
     uint32_t abi_minor;
-    /* Shows root, which has no parent, in a window and runs the event loop
-     * until the window closes. GF_STATUS_INVALID_STATE while another run is
-     * under way. */
-    gf_status (GF_CALL* run)(gf_object root, const gf_run_options* options);
-    /* Asks the running window of root to close; closing may cancel it.
-     * GF_STATUS_INVALID_STATE when root is not running. */
-    gf_status (GF_CALL* request_close)(gf_object root);
+    /* Runs window, a window from create that has not run, or root, a control
+     * with no parent that the run makes a window for, and runs the event
+     * loop until the window closes. The callbacks' sender is the object
+     * given. options.width and height, when not zero, resize the window.
+     * GF_STATUS_INVALID_STATE while another run is under way. */
+    gf_status (GF_CALL* run)(gf_object window_or_root, const gf_run_options* options);
+    /* Asks the running window, given as the object passed to run, to close;
+     * closing may cancel it. GF_STATUS_INVALID_STATE when it is not
+     * running. */
+    gf_status (GF_CALL* request_close)(gf_object window_or_root);
+    /* Makes a window over root, a control with no parent and not in a
+     * window, at the host's default size. The window holds root until it is
+     * destroyed. GF_STATUS_INVALID_STATE when root has a parent or a
+     * window. */
+    gf_status (GF_CALL* create)(gf_object root, gf_object* window);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -809,6 +1001,24 @@ typedef struct gf_themes_table {
     /* present is 1 and value the value when name is published; else
      * present is 0 and value is left unchanged. */
     gf_status (GF_CALL* published_value)(gf_utf8_view name, double* value, uint32_t* present);
+    /* Admits an image file (PNG is the only format) of size bytes into the
+     * image registry and writes its id, which IMAGE values name. The bytes
+     * are read during the call only. A file that is not a valid PNG gives
+     * GF_STATUS_INVALID_ARGUMENT, one past the registry's limits
+     * GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then. */
+    gf_status (GF_CALL* load_image)(const uint8_t* bytes, uint64_t size, uint64_t* image);
+    /* Removes an image; controls showing it show none and repaint.
+     * GF_STATUS_NOT_FOUND for an id the registry does not hold. */
+    gf_status (GF_CALL* remove_image)(uint64_t image);
+    /*
+     * Copies width x height pixels of 32-bit premultiplied BGRA (row_bytes
+     * apart, at least width * 4) into the image registry, as load_image does
+     * a PNG; image receives the new id. pixels may be null only for an empty
+     * image. Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits,
+     * else GF_STATUS_INVALID_ARGUMENT, leaving image unwritten.
+     */
+    gf_status (GF_CALL* load_pixels)(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes,
+                                     uint64_t* image);
 } gf_themes_table;
 
 /* gf_host_capability: what a host can do, one bit each; a host reports the
@@ -846,6 +1056,8 @@ typedef uint64_t gf_host_capability;
 #define GF_HOST_CAPABILITY_WINDOW_BACKDROPS 536870912ull
 #define GF_HOST_CAPABILITY_COMPOSITOR_NOTIFICATIONS 1073741824ull
 #define GF_HOST_CAPABILITY_PRESENTATION_PREFERENCES 2147483648ull
+/* The library has GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only). */
+#define GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT 4294967296ull
 
 /* The host's report. An output record. protocol_version is the host
  * protocol's revision; available is a set of gf_host_capability bits. */
@@ -996,6 +1208,577 @@ typedef struct gf_host_table {
     /* A path the last dialog chose, in the host's order. */
     gf_status (GF_CALL* dialog_path_at)(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required);
 } gf_host_table;
+
+/*
+ * GF_TABLE_DIAGNOSTICS: what a thread is doing. Its functions may be called
+ * from any thread and read only the calling thread's state; they open no
+ * shadow frame of their own.
+ *
+ * Shadow frames. Each thread keeps a stack of logical frames, which a
+ * debugger or a crash report reads where the native frames say nothing a
+ * program's author would recognise. The library opens a frame on entry to
+ * every function of the tables above except the runtime table, around each
+ * event and posted callback it calls, and around a window's input dispatch,
+ * layout and paint, and closes it on every way out. A callback never unwinds
+ * into the library, so a binding that catches its language's exceptions
+ * before returning keeps the stack balanced. A frame holds numbers and
+ * copied text, never an address. A thread records its outermost
+ * GF_SHADOW_STACK_CAPACITY frames; deeper frames count in depth and dropped
+ * but are not recorded.
+ */
+
+/* gf_shadow_frame_kind: what a shadow frame records. */
+typedef uint32_t gf_shadow_frame_kind;
+/* A call of a function of these tables: table_id and slot_index name it. */
+#define GF_SHADOW_FRAME_KIND_LIBRARY_CALL 1u
+/* A window's dispatch of one input: subject is the window root's stable id,
+ * name the input's kind (pointer, key, text or drag). */
+#define GF_SHADOW_FRAME_KIND_INPUT_DISPATCH 2u
+/* An event delivered to a callback: subject is the sender's stable id when
+ * the sender is a control (else empty), name the event's name. */
+#define GF_SHADOW_FRAME_KIND_EVENT_CALLBACK 3u
+/* A window's layout: subject is the window root's stable id, sequence the
+ * number of its first layout pass. */
+#define GF_SHADOW_FRAME_KIND_LAYOUT_PASS 4u
+/* A window's paint: subject is the window root's stable id, sequence the
+ * number of the paint lease it starts. */
+#define GF_SHADOW_FRAME_KIND_PAINT_PASS 5u
+/* A callback posted with dispatch.begin_invoke: subject is the target's
+ * stable id when the target is a control (else empty). */
+#define GF_SHADOW_FRAME_KIND_POSTED_CALLBACK 6u
+
+/* gf_shadow_frame_flags: set on a frame whose text was cut to its field, at
+ * the last whole UTF-8 sequence that fits. */
+typedef uint32_t gf_shadow_frame_flags;
+#define GF_SHADOW_FRAME_SUBJECT_TRUNCATED 1u
+#define GF_SHADOW_FRAME_NAME_TRUNCATED 2u
+
+/* The bytes a frame keeps of its subject and of its name. */
+#define GF_SHADOW_FRAME_SUBJECT_CAPACITY 48u
+#define GF_SHADOW_FRAME_NAME_CAPACITY 32u
+/* The frames a thread records. */
+#define GF_SHADOW_STACK_CAPACITY 64u
+
+/*
+ * One shadow frame, an element of a caller's array (a fixed 112-byte
+ * stride; it grows only with a new major). Fields its kind does not use are
+ * zero. subject and name hold subject_size and name_size bytes of UTF-8,
+ * not terminated; the bytes after them are zero.
+ */
+typedef struct gf_shadow_frame {
+    gf_shadow_frame_kind kind;
+    gf_shadow_frame_flags flags;
+    gf_table_id table_id;
+    uint32_t slot_index;
+    uint64_t sequence;
+    uint32_t subject_size;
+    uint32_t name_size;
+    /* GF_SHADOW_FRAME_SUBJECT_CAPACITY bytes. */
+    uint8_t subject[48];
+    /* GF_SHADOW_FRAME_NAME_CAPACITY bytes. */
+    uint8_t name[32];
+} gf_shadow_frame;
+
+/*
+ * The calling thread's shadow stack beside its frames. An output record, as
+ * gf_abi_version_info. depth counts the frames open now, recorded or not;
+ * pushed and dropped count every frame opened, and every one opened past
+ * the capacity, since the thread began.
+ */
+typedef struct gf_shadow_stack_info {
+    uint32_t struct_size;
+    uint32_t depth;
+    uint64_t pushed;
+    uint64_t dropped;
+} gf_shadow_stack_info;
+
+typedef struct gf_diagnostics_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /*
+     * Copies the calling thread's recorded frames, outermost first, into
+     * frames and its state into info. required receives the number of
+     * recorded frames (at most GF_SHADOW_STACK_CAPACITY). When capacity is
+     * smaller, nothing else is written and the result is
+     * GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.
+     * The frames are copies; nothing is lent.
+     */
+    gf_status (GF_CALL* shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required,
+                                       gf_shadow_stack_info* info);
+} gf_diagnostics_table;
+
+/*
+ * A control's layout transaction (Control::layout_transaction_state): how
+ * deeply layout is suspended, whether a layout waits for the resume, and the
+ * revisions requested and committed. An output record, as
+ * gf_abi_version_info.
+ */
+typedef struct gf_layout_transaction {
+    uint32_t struct_size;
+    uint32_t suspend_depth;
+    uint32_t deferred;
+    uint32_t reserved;
+    uint64_t requested_revision;
+    uint64_t committed_revision;
+} gf_layout_transaction;
+
+/* gf_scroll_orientation: a scroll axis. */
+typedef uint32_t gf_scroll_orientation;
+#define GF_SCROLL_ORIENTATION_HORIZONTAL 0u
+#define GF_SCROLL_ORIENTATION_VERTICAL 1u
+
+/*
+ * One scroll axis (ScrollProperties): enabled and visible (0 or 1), its
+ * range, the changes a page and a line make, and its value. Minimum and the
+ * changes are finite and not negative; value lies in the range.
+ */
+typedef struct gf_scroll_axis {
+    uint32_t enabled;
+    uint32_t visible;
+    double minimum;
+    double maximum;
+    double large_change;
+    double small_change;
+    double value;
+} gf_scroll_axis;
+
+/*
+ * A scrollable control's scroll state (ScrollableControl::scroll_snapshot),
+ * after layout, and its last scroll: event_revision counts scrolls,
+ * event_type and event_orientation are the scroll interaction's type and
+ * orientation choices (zero before the first), with its old and new values.
+ * An output record, as gf_abi_version_info.
+ */
+typedef struct gf_scroll_snapshot {
+    uint32_t struct_size;
+    uint32_t auto_scroll;
+    gf_logical_point position;
+    gf_logical_size margin;
+    gf_logical_size minimum_content_size;
+    gf_logical_rect display_rectangle;
+    gf_logical_rect viewport_rectangle;
+    gf_scroll_axis horizontal;
+    gf_scroll_axis vertical;
+    uint64_t event_revision;
+    uint32_t event_type;
+    gf_scroll_orientation event_orientation;
+    double event_old_value;
+    double event_new_value;
+} gf_scroll_snapshot;
+
+/*
+ * GF_TABLE_CONTROLS: operations on a control that are not state: layout
+ * transactions, window-relative bounds, pointer capture and scrolling. The
+ * state the 0.x table set (a range's bounds, the cursor, the auto-scroll
+ * settings, ...) is schema properties (GF_TABLE_PROPERTIES). UI thread
+ * only. A scrolling function on a control that does not scroll gives
+ * GF_STATUS_WRONG_HANDLE_KIND.
+ */
+typedef struct gf_controls_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Defers layout until the matching resume_layout; transactions nest. */
+    gf_status (GF_CALL* suspend_layout)(gf_object object);
+    /* Ends one suspension; perform_layout (0 or 1) lays out a deferred change
+     * when the outermost one ends. Without a suspension it does nothing, as
+     * Windows Forms tolerates an unmatched ResumeLayout. */
+    gf_status (GF_CALL* resume_layout)(gf_object object, uint32_t perform_layout);
+    /* Lays the control's children out now. */
+    gf_status (GF_CALL* perform_layout)(gf_object object);
+    gf_status (GF_CALL* layout_state)(gf_object object, gf_layout_transaction* state);
+    /* The control's bounds in its window's client space, after layout. */
+    gf_status (GF_CALL* window_bounds)(gf_object object, gf_logical_rect* bounds);
+    /* Takes (1) or releases (0) the pointer for the control. */
+    gf_status (GF_CALL* set_pointer_capture)(gf_object object, uint32_t captured);
+    gf_status (GF_CALL* pointer_capture)(gf_object object, uint32_t* captured);
+    gf_status (GF_CALL* scroll_state)(gf_object object, gf_scroll_snapshot* state);
+    /* Sets one axis whole; an invalid axis gives INVALID_ARGUMENT. */
+    gf_status (GF_CALL* set_scroll_axis)(gf_object object, gf_scroll_orientation orientation,
+                                         const gf_scroll_axis* axis);
+    /* Scrolls object, after layout, so that child, its descendant, shows. */
+    gf_status (GF_CALL* scroll_into_view)(gf_object object, gf_object child);
+    /* Asks for a repaint of damage, in the control's logical units, or of
+     * the whole control when damage is null; a custom control's paint
+     * callback then runs (GF_TABLE_CUSTOM_CONTROLS). A damage rectangle
+     * that is not finite, or has a negative size, gives INVALID_ARGUMENT. */
+    gf_status (GF_CALL* invalidate)(gf_object object, const gf_logical_rect* damage);
+} gf_controls_table;
+
+/*
+ * GF_TABLE_TEXT_EDITING: a text box's selection, grapheme navigation, edits
+ * and history (TextBox). Positions are UTF-8 byte offsets
+ * into the text property; a position inside a grapheme cluster or past the
+ * text gives GF_STATUS_INVALID_ARGUMENT. Another control gives
+ * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ */
+typedef struct gf_text_editing_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Selects from anchor to caret; the caret is where typing goes. */
+    gf_status (GF_CALL* select)(gf_object object, uint64_t anchor, uint64_t caret);
+    gf_status (GF_CALL* selection)(gf_object object, uint64_t* anchor, uint64_t* caret);
+    /* The grapheme boundary after (direction 1) or before (-1) position;
+     * position itself at either end of the text. */
+    gf_status (GF_CALL* grapheme_boundary)(gf_object object, uint64_t position, int32_t direction,
+                                           uint64_t* boundary);
+    /* Replaces length bytes at start with replacement as one history step,
+     * as typing does (filters apply); changed receives 1 when the text
+     * changed, 0 when the box refused it (read-only, a filter, the limit). */
+    gf_status (GF_CALL* replace_range)(gf_object object, uint64_t start, uint64_t length,
+                                       gf_utf8_view replacement, uint32_t* changed);
+    /* Undoes or redoes one history step; changed 0 when there is none. */
+    gf_status (GF_CALL* undo)(gf_object object, uint32_t* changed);
+    gf_status (GF_CALL* redo)(gf_object object, uint32_t* changed);
+    /* Starts the history afresh without touching the text. */
+    gf_status (GF_CALL* clear_undo_history)(gf_object object);
+} gf_text_editing_table;
+
+/*
+ * GF_TABLE_POPUPS: popup roots and tooltips. A popup is a root control,
+ * without a parent, shown over its owner's window until close_popup, until
+ * its owner leaves the window or until the window closes. Tooltips belong to
+ * a tool_tip component (create_with). UI thread only.
+ */
+typedef struct gf_popups_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Shows popup over owner's window. owner must be in a running window
+     * (else GF_STATUS_INVALID_STATE); a popup already open gives
+     * GF_STATUS_INVALID_STATE. */
+    gf_status (GF_CALL* open_popup)(gf_object owner, gf_object popup);
+    /* Closes popup; one not open gives GF_STATUS_NOT_FOUND. */
+    gf_status (GF_CALL* close_popup)(gf_object popup);
+    /* The text tool_tip shows for target; empty text removes it. */
+    gf_status (GF_CALL* set_tool_tip)(gf_object tool_tip, gf_object target, gf_utf8_view text);
+    /* Shows target's text now, for duration_ms milliseconds (0: until the
+     * pointer leaves or hide_tool_tip). */
+    gf_status (GF_CALL* show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms);
+    gf_status (GF_CALL* hide_tool_tip)(gf_object tool_tip);
+} gf_popups_table;
+
+/*
+ * GF_TABLE_PROPERTY_GRID: a property grid's selection and its editing
+ * operations (PropertyGrid). Its sort is the property_sort property. A name
+ * is a property of the selected objects. Another control gives
+ * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
+ */
+typedef struct gf_property_grid_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Shows the properties the count controls share; count 0 clears. The
+     * grid keeps them as it keeps a child, without a reference. */
+    gf_status (GF_CALL* select_objects)(gf_object grid, const gf_object* objects, uint64_t count);
+    /* Reads the selected objects' properties afresh. */
+    gf_status (GF_CALL* refresh)(gf_object grid);
+    /* Parses text into the named property as its editor would; accepted
+     * receives 0 when the text does not convert or the property refuses it. */
+    gf_status (GF_CALL* try_set_text)(gf_object grid, gf_utf8_view name, gf_utf8_view text, uint32_t* accepted);
+    /* Resets the named property; reset receives 0 when it cannot reset. */
+    gf_status (GF_CALL* reset_property)(gf_object grid, gf_utf8_view name, uint32_t* reset);
+    /* Opens the named property's editor; activated 0 when it has none. */
+    gf_status (GF_CALL* activate_editor)(gf_object grid, gf_utf8_view name, uint32_t* activated);
+} gf_property_grid_table;
+
+/*
+ * GF_TABLE_CUSTOM_CONTROLS: a control type the caller defines, the C form of
+ * a C++ subclass. As a C++ custom control subclasses a stock control,
+ * declares its properties (define_bindable_property) and overrides on_paint,
+ * a custom control takes a stock base, declares properties the caller's
+ * callbacks get and set, and paints through a callback into pixels the
+ * library presents. Its schema type (objects.type_id) is its base's, as a
+ * C++ subclass reports its nearest schema type; its properties are the
+ * base's and its own, through GF_TABLE_PROPERTIES and the property grid like
+ * any other. UI thread only.
+ */
+
+/* gf_custom_base: the stock control a custom control extends. */
+typedef uint32_t gf_custom_base;
+#define GF_CUSTOM_BASE_SCROLLABLE_CONTROL 0u
+#define GF_CUSTOM_BASE_USER_CONTROL 1u
+
+/* gf_custom_control_flags. */
+typedef uint32_t gf_custom_control_flags;
+/* The control takes keyboard focus. */
+#define GF_CUSTOM_CONTROL_FOCUSABLE 1u
+
+/* gf_custom_property_flags. */
+typedef uint32_t gf_custom_property_flags;
+/* No set_property: the property is read only. */
+#define GF_CUSTOM_PROPERTY_READ_ONLY 1u
+/* The enumeration's choices are combinable flags. */
+#define GF_CUSTOM_PROPERTY_COMBINABLE 2u
+/* The caller reports changes with notify_changed, so the property's change
+ * can be subscribed to and bound. */
+#define GF_CUSTOM_PROPERTY_CHANGE_NOTIFICATIONS 4u
+
+#define GF_CUSTOM_MAXIMUM_PROPERTIES 256u
+
+/*
+ * One property a custom control declares. name is a registered name in any
+ * spelling (snake_case, camelCase or PascalCase; GF_TABLE_SCHEMA), distinct
+ * from its siblings' and from its base's properties. kind is a gf_value_kind
+ * other than NULL, OBJECT and COLLECTION. default_value, which may be null,
+ * makes a writable property resettable to it. An ENUMERATION names its type
+ * in enumeration and lists 1 to GF_CREATE_MAXIMUM_CHOICES choices, as
+ * create_with does; other kinds leave both empty. The library copies the
+ * record during create; nothing in it need outlive the call.
+ */
+typedef struct gf_custom_property {
+    gf_utf8_view name;
+    gf_utf8_view category;
+    gf_utf8_view description;
+    gf_value_kind kind;
+    gf_custom_property_flags flags;
+    const gf_value* default_value;
+    gf_utf8_view enumeration;
+    const gf_create_choice* choices;
+    uint64_t choice_count;
+} gf_custom_property;
+
+/*
+ * The pixels a paint callback fills, lent for the call: width by height
+ * premultiplied BGRA (byte order blue, green, red, alpha), row_bytes apart,
+ * covering the control's client area at scale device pixels per logical
+ * unit. damage, in the control's logical units, is what must be painted;
+ * every pixel outside it already holds what the previous paint left. After
+ * the control's size or scale changes, damage is the whole control and the
+ * pixels' contents are unspecified.
+ */
+typedef struct gf_paint_target {
+    uint32_t struct_size;
+    uint32_t width;
+    uint32_t height;
+    uint32_t reserved;
+    uint64_t row_bytes;
+    uint8_t* pixels;
+    double scale;
+    gf_logical_rect damage;
+} gf_paint_target;
+
+/*
+ * The callbacks of a custom control, called on the UI thread with context
+ * and the control's identity (zero while the caller holds no reference to
+ * it). paint draws over the base's own painting (its background). index is
+ * the property's position in the spec's properties. get_property fills
+ * value, whose struct_size the library sets, with a value of the property's
+ * kind; text it lends stays valid until the library's next callback on the
+ * control. set_property receives a value of the property's kind, already
+ * converted and checked against its enumeration; it returns GF_STATUS_OK to
+ * accept it, any other status to refuse it (the setting call then gives
+ * GF_STATUS_INVALID_ARGUMENT). A get_property that fails, or gives another
+ * kind, makes the reading call give GF_STATUS_INVALID_STATE. paint and
+ * get_property must not change controls. release, which may be null, is
+ * called once, when the control is disposed or destroyed; no callback runs
+ * after it. paint and get_property are required, set_property is required
+ * unless every property is read only; reserved is zero.
+ */
+typedef struct gf_custom_control_callbacks {
+    uint32_t struct_size;
+    uint32_t reserved;
+    void* context;
+    void (GF_CALL* paint)(void* context, gf_object control, const gf_paint_target* target);
+    gf_status (GF_CALL* get_property)(void* context, gf_object control, uint64_t index, gf_value* value);
+    gf_status (GF_CALL* set_property)(void* context, gf_object control, uint64_t index, const gf_value* value);
+    void (GF_CALL* release)(void* context);
+} gf_custom_control_callbacks;
+
+/*
+ * A custom control's definition. property_size is the size of one
+ * gf_custom_property as the caller declares it (at least the 1.0 size); the
+ * library steps through properties by it. properties may be null when
+ * property_count is 0; at most GF_CUSTOM_MAXIMUM_PROPERTIES.
+ */
+typedef struct gf_custom_control_spec {
+    uint32_t struct_size;
+    gf_custom_base base;
+    gf_custom_control_flags flags;
+    uint32_t property_size;
+    const gf_custom_property* properties;
+    uint64_t property_count;
+    gf_custom_control_callbacks callbacks;
+} gf_custom_control_spec;
+
+typedef struct gf_custom_controls_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Creates a custom control with stable_id (non-empty) and gives the
+     * caller one reference to it. A malformed spec gives INVALID_ARGUMENT
+     * and calls no callback, release among them. */
+    gf_status (GF_CALL* create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object);
+    /* Reports that property index changed, as a C++ control raises its
+     * changed event: subscribers and bindings read it afresh. A property
+     * declared without GF_CUSTOM_PROPERTY_CHANGE_NOTIFICATIONS gives
+     * INVALID_ARGUMENT; another control gives WRONG_HANDLE_KIND. */
+    gf_status (GF_CALL* notify_changed)(gf_object object, uint64_t index);
+} gf_custom_controls_table;
+
+/*
+ * GF_TABLE_BINDINGS: data binding, as C++ binds: a binding_source (made
+ * with create_with over a window) holds records of named fields and a
+ * current position; a binding ties one property of a control to one field
+ * of a source's current record (Control::data_bindings().add). A source is
+ * filled and moved here; a binding's options are fixed when it is made.
+ * Field names are registered names in any spelling. Another object where a
+ * source or binding is expected gives GF_STATUS_WRONG_HANDLE_KIND. UI
+ * thread only.
+ */
+
+/* gf_source_update_mode: when a control's change reaches the source. */
+typedef uint32_t gf_source_update_mode;
+#define GF_SOURCE_UPDATE_ON_VALIDATION 0u
+#define GF_SOURCE_UPDATE_ON_PROPERTY_CHANGED 1u
+#define GF_SOURCE_UPDATE_NEVER 2u
+
+/* gf_control_update_mode: when a source's change reaches the control. */
+typedef uint32_t gf_control_update_mode;
+#define GF_CONTROL_UPDATE_ON_PROPERTY_CHANGED 0u
+#define GF_CONTROL_UPDATE_NEVER 1u
+
+/*
+ * A binding's definition: target's property bound to source's field
+ * data_member. formatting_enabled (0 or 1) applies format_string and the
+ * format and parse events; null_value, which may be null, is what the
+ * control shows for a null field, source_null_value what the source
+ * receives for a null control value. The library copies what it needs
+ * during bind.
+ */
+typedef struct gf_binding_arguments {
+    uint32_t struct_size;
+    gf_source_update_mode source_update_mode;
+    gf_control_update_mode control_update_mode;
+    uint32_t formatting_enabled;
+    gf_object target;
+    gf_object source;
+    gf_utf8_view property;
+    gf_utf8_view data_member;
+    gf_utf8_view format_string;
+    const gf_value* null_value;
+    const gf_value* source_null_value;
+} gf_binding_arguments;
+
+/* One field of a record: its name and value (a NULL value for none). */
+typedef struct gf_binding_field {
+    gf_utf8_view name;
+    const gf_value* value;
+} gf_binding_field;
+
+/* A record: its stable id (may be empty), whether it may be edited (0 or
+ * 1) and its fields, with distinct names. */
+typedef struct gf_binding_record {
+    uint32_t struct_size;
+    uint32_t editable;
+    gf_utf8_view stable_id;
+    const gf_binding_field* fields;
+    uint64_t field_count;
+} gf_binding_record;
+
+#define GF_BINDING_MAXIMUM_FIELDS 1024u
+
+typedef struct gf_bindings_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Binds as arguments says and gives the caller one reference to the
+     * binding. The control keeps the binding until unbind or its disposal.
+     * A property that is not bindable gives GF_STATUS_INVALID_ARGUMENT. */
+    gf_status (GF_CALL* bind)(const gf_binding_arguments* arguments, gf_object* binding);
+    /* Removes the binding from its control, which disposes it, as
+     * ControlBindingsCollection::remove does; a later call on it gives
+     * GF_STATUS_DISPOSED. */
+    gf_status (GF_CALL* unbind)(gf_object binding);
+    /* Sets the control's property from the source (read_value) or the
+     * source's field from the control (write_value), as the binding's modes
+     * would; updated receives 0 when conversion or validation refused it. */
+    gf_status (GF_CALL* read_value)(gf_object binding, uint32_t* updated);
+    gf_status (GF_CALL* write_value)(gf_object binding, uint32_t* updated);
+    /* Appends a record; index receives its position. */
+    gf_status (GF_CALL* add_record)(gf_object source, const gf_binding_record* record, uint64_t* index);
+    /* Inserts a record at index (at most the count). */
+    gf_status (GF_CALL* insert_record)(gf_object source, uint64_t index, const gf_binding_record* record);
+    /* Removes the record at index; removed 0 for an index past the
+     * records. A source that allows no removal gives
+     * GF_STATUS_INVALID_STATE. */
+    gf_status (GF_CALL* remove_record)(gf_object source, uint64_t index, uint32_t* removed);
+    gf_status (GF_CALL* clear_records)(gf_object source);
+    /* Moves to the record at position (-1 for none); moved 0 when it is
+     * already there. A position past the records gives
+     * GF_STATUS_INVALID_ARGUMENT. */
+    gf_status (GF_CALL* set_position)(gf_object source, int64_t position, uint32_t* moved);
+    /* The current position (-1 for none) and the count of records. */
+    gf_status (GF_CALL* position)(gf_object source, int64_t* position, uint64_t* count);
+    /* The current record's field, as properties.get gives a value; no
+     * current record or no such field gives GF_STATUS_NOT_FOUND. */
+    gf_status (GF_CALL* current_field)(gf_object source, gf_utf8_view field, gf_value* value, char* text_buffer,
+                                       uint64_t text_capacity, uint64_t* text_required);
+    /* Sets the current record's field; accepted 0 when there is no current
+     * record or it, or the source, allows no edit. */
+    gf_status (GF_CALL* set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value,
+                                           uint32_t* accepted);
+} gf_bindings_table;
+
+/*
+ * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability
+ * GF_HOST_CAPABILITY_WINDOWS_PAINT_ENDPOINT): a virtual Windows paint target
+ * for code that paints through GDI, as a Windows Forms owner-drawn control
+ * does. An endpoint is bound to a custom control (GF_TABLE_CUSTOM_CONTROLS):
+ * while it lives, the control shows the frames the endpoint publishes
+ * instead of calling its paint callback. Its compatibility handle is a
+ * virtual window handle the compatibility shim understands, never an HWND;
+ * its device context is a memory DC over the endpoint's pixels.
+ *
+ * acquire, configure, drain run on the UI thread. touch, snapshot,
+ * submit_bgra and the device-context functions may run on any thread; a
+ * write lease ends on the thread that began it. release may run on any
+ * thread (a finalizer's): on the UI thread it unbinds the control at once,
+ * elsewhere the control keeps the endpoint's last frame until it is
+ * disposed. An endpoint or lease no longer active, and a handle or device
+ * context that is not an endpoint's, give GF_STATUS_STALE_HANDLE, so a shim
+ * falls through to the system. A call on the wrong thread gives
+ * GF_STATUS_WRONG_THREAD.
+ */
+
+/* An endpoint and a write lease: nonzero tokens, never reused. A
+ * compatibility handle and a device context are Windows handle values
+ * widened to 64 bits. */
+typedef uint64_t gf_paint_endpoint;
+typedef uint64_t gf_paint_write_lease;
+
+#define GF_PAINT_ENDPOINT_MAXIMUM_SIDE 32768u
+
+typedef struct gf_windows_paint_endpoint_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* Makes an endpoint of width by height pixels (1 to
+     * GF_PAINT_ENDPOINT_MAXIMUM_SIDE each, at most 2^28 pixels) bound to
+     * control, a custom control (else GF_STATUS_WRONG_HANDLE_KIND), and
+     * gives its token and compatibility handle. */
+    gf_status (GF_CALL* acquire)(gf_object control, uint32_t width, uint32_t height, gf_paint_endpoint* endpoint,
+                                 uint64_t* compatibility_handle);
+    /* Resizes the pixels; the token and handle stay. */
+    gf_status (GF_CALL* configure)(gf_paint_endpoint endpoint, uint32_t width, uint32_t height);
+    /* Marks the pixels changed; explicit_boundary (0 or 1) ends a frame now
+     * rather than at the endpoint's next quiet point. */
+    gf_status (GF_CALL* touch)(gf_paint_endpoint endpoint, uint32_t explicit_boundary);
+    /* Publishes what the endpoint holds now. */
+    gf_status (GF_CALL* drain)(gf_paint_endpoint endpoint);
+    /* The endpoint's state as text, for diagnostics; required receives its
+     * size, a short buffer gives GF_STATUS_BUFFER_TOO_SMALL. */
+    gf_status (GF_CALL* snapshot)(gf_paint_endpoint endpoint, char* buffer, uint64_t capacity, uint64_t* required);
+    /* Publishes width by height premultiplied BGRA pixels, row_bytes apart
+     * (at least width * 4), to the endpoint behind compatibility_handle. */
+    gf_status (GF_CALL* submit_bgra)(uint64_t compatibility_handle, uint32_t width, uint32_t height,
+                                     uint64_t row_bytes, const uint8_t* pixels);
+    /* Ends the endpoint; its token and handle stop working. */
+    gf_status (GF_CALL* release)(gf_paint_endpoint endpoint);
+    /* GetDC and ReleaseDC for the shim: the endpoint's memory DC. */
+    gf_status (GF_CALL* get_dc)(uint64_t compatibility_handle, uint64_t* device_context);
+    gf_status (GF_CALL* release_dc)(uint64_t compatibility_handle, uint64_t device_context);
+    /* Publishes what was drawn into device_context. */
+    gf_status (GF_CALL* publish_dc)(uint64_t device_context);
+    /* A short lease that serializes one write into device_context against
+     * resizing and release; end_write publishes (1) or not (0). */
+    gf_status (GF_CALL* begin_write)(uint64_t device_context, gf_paint_write_lease* lease);
+    gf_status (GF_CALL* end_write)(gf_paint_write_lease lease, uint32_t publish);
+} gf_windows_paint_endpoint_table;
 
 /*
  * Fills table (table_capacity bytes, a multiple of 8 and at least 8) with

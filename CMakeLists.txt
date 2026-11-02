@@ -167,6 +167,7 @@ add_library(gui_forms_core STATIC
     src/core/animation/animation_timeline/animation_timeline.cpp
     src/core/animation/animation_timer/animation_timer.cpp
     src/core/binding/value/binding_value.cpp
+    src/core/binding/number_format/number_format.cpp
     src/core/binding/value/property_collection_value/property_collection_value.cpp
     src/core/binding/value/property_object_value/property_object_value.cpp
     src/core/binding/currency_manager/currency_manager.cpp
@@ -236,6 +237,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
+    src/core/diagnostics/shadow_frames/shadow_frames.cpp
     src/core/metrics/metrics/metrics.cpp
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
@@ -498,8 +500,10 @@ if(GUI_FORMS_BUILD_PREPARED_TEXT)
         message(FATAL_ERROR "GUI_FORMS_BUILD_PREPARED_TEXT requires GUI_FORMS_ENABLE_HARFBUZZ_TEXT")
     endif()
     find_package(Threads REQUIRED)
-    target_compile_definitions(gui_forms_core PUBLIC
-        $<BUILD_INTERFACE:GUI_FORMS_PREPARED_TEXT>)
+    # Core and Controls compile the same with or without this option: Painter
+    # always declares draw_prepared_text, and the retained display list always
+    # carries the prepared command, so toggling it adds sources but never
+    # recompiles them. Only the renderer and the hosts see a definition.
     add_library(gui_forms_prepared_text_impl STATIC
         src/render/text/prepared_service.cpp
         src/render/text/prepared_window_shape.cpp
@@ -704,6 +708,7 @@ add_library(gui_forms_controls STATIC
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
+    src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
     src/controls/task_dialog/task_dialog.cpp
     src/controls/notify_icon/notify_icon.cpp
@@ -1011,6 +1016,10 @@ if(GUI_FORMS_ENABLE_SKIA)
         target_sources(gui_forms_skia PRIVATE
             src/render/skia/raster/prepared_skia_frame.cpp)
         target_link_libraries(gui_forms_skia PRIVATE gui_forms_prepared_text_impl)
+        # Public so that every includer of skia_raster.hpp (the hosts,
+        # Application, the raster tests) sees the same SkiaRaster class.
+        target_compile_definitions(gui_forms_skia PUBLIC
+            $<BUILD_INTERFACE:GUI_FORMS_PREPARED_TEXT>)
     endif()
     if(APPLE)
         find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
@@ -1957,6 +1966,11 @@ if(GUI_FORMS_BUILD_PAINT_PROFILE)
         GUI_FORMS_PROFILE_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
     target_link_libraries(gui_forms_paint_profile_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
 endif()
+
+# Stage C5: the cost of shadow frames, alone and over a window workload.
+# Built only when asked for.
+add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
+target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
 
 # SK2: the time each host spends presenting a frame, which the native jobs
 # measure (.github/workflows/native-platform.yml). Built only when asked for.
@@ -3458,6 +3472,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_program_options_tests COMMAND gui_forms_program_options_tests)
 
+    add_executable(gui_forms_shadow_frames_tests tests/shadow_frames_tests.cpp)
+    target_link_libraries(gui_forms_shadow_frames_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_shadow_frames_tests COMMAND gui_forms_shadow_frames_tests)
+
     add_executable(gui_forms_timer_tests tests/timer_tests.cpp)
     target_link_libraries(gui_forms_timer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_timer_tests COMMAND gui_forms_timer_tests)
@@ -3481,6 +3499,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_binding_tests tests/binding_tests.cpp)
     target_link_libraries(gui_forms_binding_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_binding_tests COMMAND gui_forms_binding_tests)
+    add_executable(gui_forms_number_format_tests tests/number_format_tests.cpp)
+    target_link_libraries(gui_forms_number_format_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_number_format_tests COMMAND gui_forms_number_format_tests)
 
     add_executable(gui_forms_validation_tests tests/validation_tests.cpp)
     target_link_libraries(gui_forms_validation_tests PRIVATE gui_forms_controls)
