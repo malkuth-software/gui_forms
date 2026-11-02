@@ -1,0 +1,23 @@
+{
+  "description": "Every recorded difference between a GUI.Forms control and the observable contract of its Windows Forms counterpart. GUI.Forms matches Windows Forms' documented observable behaviour, not its internals or timings, and records each difference here (owner rule). Checked by tools/winforms_divergences.py; docs/controls/generated/winforms-divergences.md is rendered from it.",
+  "divergences": [
+    {
+      "control": "DataGridView",
+      "member": "row_validating (focus leaving the grid)",
+      "winforms": "When focus leaves the grid and a RowValidating handler cancels, the grid keeps focus and the current cell stays in the row.",
+      "gui_forms": "When focus leaves the grid, the edit commits and the current row validates; a cancel skips row_validated, but focus is not held: it moves where the user sent it.",
+      "reason": "Focus moves before the grid learns of it (Window::focused_control_changed), and taking it back from the window's focus change would let one control veto another's focus, which no other control may do.",
+      "source": "owner",
+      "date": "2026-11-02"
+    },
+    {
+      "control": "CheckBox",
+      "member": "back_color",
+      "winforms": "BackColor paints the control's background; the check box's square stays white.",
+      "gui_forms": "The control's own back_color also fills the check box's square.",
+      "reason": "Stage T4's Control colours work: a control's back colour is the fill of its own surfaces, the square included, so one colour themes the whole control.",
+      "source": "coordinator",
+      "date": "2026-11-02"
+    }
+  ]
+}

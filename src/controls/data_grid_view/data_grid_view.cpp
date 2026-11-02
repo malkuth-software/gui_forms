@@ -1,4 +1,5 @@
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include "../panel/input_control_utilities.hpp"
 #include "../scrollable_control/scrolling_utilities.hpp"
@@ -153,6 +154,14 @@ bool contains_dot(std::string_view text) noexcept {
 } // namespace
 
 DataGridViewCellValueProvider::~DataGridViewCellValueProvider() = default;
+
+bool DataGridViewCellValueProvider::can_add_rows() const {
+    return false;
+}
+
+std::optional<DataGridViewRowId> DataGridViewCellValueProvider::add_row(std::span<const BindingValue>) {
+    return std::nullopt;
+}
 DataGridViewRowComparer::~DataGridViewRowComparer() = default;
 
 // Orders unbound row indices by one column, asking sort_compare's handlers
@@ -200,6 +209,10 @@ DataGridView::DataGridView(StableId stable_id) : Control(std::move(stable_id)) {
     set_focusable(true);
     set_cursor(CursorKind::arrow);
     set_paint_plane(PaintPlane::control);
+    // The error glyphs are the grid's interface, not its data: each shows
+    // its error text as a part tooltip (owner decision, 2026-11-02). Cells
+    // and headers carry none.
+    set_publishes_item_tool_tips(true);
     // allow_user_to_add_rows is on by default, so the new row has its ID
     // from the start.
     renew_new_row_id(false);
@@ -261,6 +274,7 @@ std::size_t DataGridView::data_row_count() const noexcept {
 bool DataGridView::new_row_shown() const noexcept {
     if (!allow_add_rows_ || read_only_ || columns_.empty() || new_row_.stable_id.value.empty()) return false;
     if (row_source_ == DataGridViewRowSource::unbound) return true;
+    if (row_source_ == DataGridViewRowSource::virtual_rows) return provider_ && (*provider_).can_add_rows();
     if (row_source_ != DataGridViewRowSource::binding_source) return false;
     const bool shown = data_source_ && (*data_source_).is_alive() && (*data_source_).allow_new();
     return shown;
@@ -585,6 +599,7 @@ bool DataGridView::set_cell_value(DataGridViewRowPosition row, std::size_t colum
 void DataGridView::structure_changed() {
     ++structure_revision_;
     auto_size_stale_ = true;
+    row_auto_size_stale_ = true;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -596,6 +611,8 @@ void DataGridView::reset_row_state() {
     anchor_.reset();
     pressed_content_.reset();
     visited_links_.clear();
+    own_row_heights_.clear();
+    row_heights_stale_ = true;
     first_row_ = 0U;
     cell_errors_.clear();
     row_errors_.clear();
@@ -638,7 +655,13 @@ void DataGridView::index_rows_from(std::size_t first) {
 }
 
 std::optional<std::size_t> DataGridView::find_row(std::string_view row_id) const {
-    if (row_source_ == DataGridViewRowSource::virtual_rows) return virtual_order_.position_of(row_id);
+    if (row_source_ == DataGridViewRowSource::virtual_rows) {
+        const std::optional<std::size_t> position = virtual_order_.position_of(row_id);
+        if (position) return position;
+        // The new row is last.
+        if (new_row_shown() && row_id == new_row_.stable_id.value) return data_row_count();
+        return std::nullopt;
+    }
     const RowPositions::const_iterator found = row_positions_.find(row_id);
     if (found == row_positions_.end()) {
         // The new row is last; a data row that took its ID is found first.
@@ -659,6 +682,7 @@ DataGridViewRowPosition DataGridView::event_position(std::string_view row_id) co
     DataGridViewRowPosition position{};
     if (row_source_ == DataGridViewRowSource::virtual_rows) {
         position.value = virtual_order_.held_position(row_id).value_or(0U);
+        if (new_row_shown() && row_id == new_row_.stable_id.value) position.value = data_row_count();
         return position;
     }
     const RowPositions::const_iterator found = row_positions_.find(row_id);
@@ -736,6 +760,14 @@ void DataGridView::drop_missing_rows(std::optional<std::size_t> former_current) 
             continue;
         }
         visited = visited_links_.erase(visited);
+    }
+    RowHeightsById::iterator height = own_row_heights_.begin();
+    while (height != own_row_heights_.end()) {
+        if (find_row((*height).first)) {
+            ++height;
+            continue;
+        }
+        height = own_row_heights_.erase(height);
     }
     CellErrorRows::iterator errors = cell_errors_.begin();
     while (errors != cell_errors_.end()) {
@@ -1055,7 +1087,7 @@ void DataGridView::insert_row(DataGridViewRowPosition position, DataGridViewRow 
     // selection and the current cell are kept by ID and need no shift.
     index_rows_from(position.value);
     if (takes_new_row_id) renew_new_row_id(true);
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::set_rows(std::vector<DataGridViewRow> rows) {
@@ -1086,7 +1118,7 @@ void DataGridView::set_rows(std::vector<DataGridViewRow> rows) {
     rows_ = std::move(rows);
     row_positions_.swap(index);
     if (row_positions_.contains(new_row_.stable_id.value)) renew_new_row_id(true);
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::remove_row_at(DataGridViewRowPosition position) {
@@ -1104,7 +1136,7 @@ void DataGridView::remove_row_at(DataGridViewRowPosition position) {
     row_positions_.erase(removed);
     index_rows_from(position.value);
     drop_missing_rows(former);
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::clear_rows() {
@@ -1118,7 +1150,7 @@ void DataGridView::clear_rows() {
     rows_.clear();
     row_positions_.clear();
     row_source_ = DataGridViewRowSource::unbound;
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::set_row_count(std::size_t count) {
@@ -1137,7 +1169,7 @@ void DataGridView::set_row_count(std::size_t count) {
         }
         rows_.erase(rows_.begin() + static_cast<std::ptrdiff_t>(std::min(count, rows_.size())), rows_.end());
         drop_missing_rows(former);
-        structure_changed();
+        rows_changed();
         return;
     }
     rows_.reserve(count);
@@ -1148,7 +1180,7 @@ void DataGridView::set_row_count(std::size_t count) {
         row_positions_.emplace(row.stable_id.value, rows_.size());
         rows_.push_back(std::move(row));
     }
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::validate_virtual_order(const std::vector<DataGridViewRowId>& order) {
@@ -1185,7 +1217,7 @@ void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvide
     // Without a window source the order stays in edit mode; a policy pinned
     // to window falls back to automatic.
     if (row_order_policy_ == DataGridViewRowOrderPolicy::window) row_order_policy_ = DataGridViewRowOrderPolicy::automatic;
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvider> provider,
@@ -1205,7 +1237,7 @@ void DataGridView::set_virtual_rows(std::shared_ptr<DataGridViewCellValueProvide
     row_source_ = DataGridViewRowSource::virtual_rows;
     changes_this_pass_ = 0U;
     changes_last_pass_ = 0U;
-    structure_changed();
+    rows_changed();
     // Few rows, or a policy pinned to edit, take the whole order now.
     update_row_order_mode(DataGridViewRowOrderSwitchReason::source);
 }
@@ -1235,7 +1267,7 @@ void DataGridView::set_virtual_row_order(std::vector<DataGridViewRowId> order) {
     }
     first_row_ = first;
     drop_missing_rows(former);
-    structure_changed();
+    rows_changed();
     update_row_order_mode(DataGridViewRowOrderSwitchReason::source);
 }
 
@@ -1253,7 +1285,7 @@ void DataGridView::after_reported_change(const std::optional<std::string>& top, 
     }
     if (first_row_ >= count) first_row_ = count == 0U ? 0U : count - 1U;
     changes_this_pass_ += changed;
-    structure_changed();
+    rows_changed();
     update_row_order_mode(DataGridViewRowOrderSwitchReason::change_rate);
 }
 
@@ -1301,6 +1333,7 @@ void DataGridView::remove_virtual_rows(std::vector<DataGridViewRowId> ids) {
         if (anchor_ && (*anchor_).row_id == row.value) anchor_.reset();
         if (pressed_content_ && (*pressed_content_).row_id == row.value) pressed_content_.reset();
         visited_links_.erase(row.value);
+        own_row_heights_.erase(row.value);
     }
     if (current_removed) {
         const std::size_t count = virtual_order_.count();
@@ -1443,7 +1476,7 @@ void DataGridView::set_data_source(std::shared_ptr<BindingSource> source) {
     row_positions_.clear();
     if (!source) {
         row_source_ = DataGridViewRowSource::unbound;
-        structure_changed();
+        rows_changed();
         return;
     }
     data_source_ = std::move(source);
@@ -1453,7 +1486,7 @@ void DataGridView::set_data_source(std::shared_ptr<BindingSource> source) {
         *this, Delegate<const BindingListChange&>::bind<DataGridView, &DataGridView::on_source_list_changed>(*this));
     source_position_changed_ = (*data_source_).position_changed().subscribe(
         *this, Delegate<std::ptrdiff_t>::bind<DataGridView, &DataGridView::on_source_position_changed>(*this));
-    structure_changed();
+    rows_changed();
     on_source_position_changed((*data_source_).position());
 }
 
@@ -1484,7 +1517,7 @@ void DataGridView::on_source_list_changed(const BindingListChange& change) {
     // is adding, moves the new row to another ID.
     if (!adding_row_ && row_positions_.contains(new_row_.stable_id.value)) renew_new_row_id(true);
     drop_missing_rows(former);
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::on_source_position_changed(std::ptrdiff_t position) {
@@ -1538,7 +1571,7 @@ bool DataGridView::sort(std::size_t column, DataGridViewSortDirection direction)
     }
     sorted_column_ = column;
     sort_order_ = direction;
-    structure_changed();
+    rows_changed();
     sorted_.emit();
     return true;
 }
@@ -1563,7 +1596,7 @@ bool DataGridView::sort(const DataGridViewRowComparer& comparer) {
     for (DataGridViewColumn& column : columns_) column.sort_glyph = DataGridViewSortDirection::none;
     sorted_column_.reset();
     sort_order_ = DataGridViewSortDirection::none;
-    structure_changed();
+    rows_changed();
     sorted_.emit();
     return true;
 }
@@ -1737,6 +1770,46 @@ void DataGridView::set_row_height(double height) {
     structure_changed();
 }
 
+double DataGridView::row_height_at(DataGridViewRowPosition row) const {
+    if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    const double result = row_heights().height(row.value);
+    return result;
+}
+
+void DataGridView::set_row_height_at(DataGridViewRowPosition row, double height) {
+    require_mutable();
+    if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    if (!std::isfinite(height) || height < 4.0 || height > 4096.0) {
+        throw std::out_of_range("DataGridView row height must be between 4 and 4096");
+    }
+    const std::string row_id = row_id_text(row);
+    const double before = row_height_at(row);
+    own_row_heights_.insert_or_assign(row_id, height);
+    // Automatic heights override own heights until the mode returns to none.
+    if (auto_size_rows_mode_ != DataGridViewAutoSizeRowsMode::none) return;
+    if (before == height) return;
+    // The index takes the one change in place, unless it is rebuilt anyway.
+    if (!row_heights_stale_ && row_heights_.count() == row_count()) row_heights_.set_height(row.value, height);
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    const DataGridViewRowEvent changed{DataGridViewRowId{row_id}, row};
+    row_height_changed_.emit(changed);
+}
+
+void DataGridView::reset_row_height_at(DataGridViewRowPosition row) {
+    require_mutable();
+    if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    const std::string row_id = row_id_text(row);
+    const RowHeightsById::iterator found = own_row_heights_.find(row_id);
+    if (found == own_row_heights_.end()) return;
+    const double before = (*found).second;
+    own_row_heights_.erase(found);
+    if (auto_size_rows_mode_ != DataGridViewAutoSizeRowsMode::none || before == row_height_) return;
+    if (!row_heights_stale_ && row_heights_.count() == row_count()) row_heights_.set_height(row.value, row_height_);
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    const DataGridViewRowEvent changed{DataGridViewRowId{row_id}, row};
+    row_height_changed_.emit(changed);
+}
+
 void DataGridView::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("DataGridView font specification is invalid");
@@ -1758,6 +1831,13 @@ void DataGridView::set_allow_user_to_resize_columns(bool allow) {
     require_mutable();
     if (allow_column_resize_ == allow) return;
     allow_column_resize_ = allow;
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void DataGridView::set_allow_user_to_resize_rows(bool allow) {
+    require_mutable();
+    if (allow_row_resize_ == allow) return;
+    allow_row_resize_ = allow;
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -1796,16 +1876,16 @@ void DataGridView::on_horizontal_scroll(double value) {
 
 void DataGridView::scroll_into_view(DataGridViewCellAddress cell) {
     const GridLayout layout = grid_layout();
-    const std::size_t fully = std::max<std::size_t>(1U, fully_visible_rows(layout));
     if (cell.row.value < first_row_) {
         first_row_ = cell.row.value;
-    } else if (cell.row.value >= first_row_ + fully) {
-        first_row_ = cell.row.value + 1U - fully;
+    } else if (cell.row.value < row_count()) {
+        first_row_ = std::max(first_row_, first_row_ending_at(cell.row.value, layout));
     }
-    // Columns in logical units at text scale 1.
+    // Columns in logical units at text scale 1, in display order.
     double left = 0.0;
-    for (std::size_t index = 0; index < cell.column && index < columns_.size(); ++index) {
-        left += columns_[index].width;
+    const std::size_t display = cell.column < display_indices_.size() ? display_indices_[cell.column] : 0U;
+    for (std::size_t position = 0; position < display; ++position) {
+        left += columns_[display_order_[position]].width;
     }
     const double right = left + (cell.column < columns_.size() ? columns_[cell.column].width : 0.0);
     const double viewport = layout.data.width / layout.scale;
@@ -1819,8 +1899,10 @@ void DataGridView::scroll_into_view(DataGridViewCellAddress cell) {
 
 void DataGridView::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    // Automatic widths first: everything below reads the columns' widths.
+    // Automatic widths first: everything below reads the columns' widths;
+    // then automatic heights, which wrapped cells take from the widths.
     apply_auto_sizes();
+    apply_row_auto_sizes();
     const GridLayout layout = grid_layout();
     first_row_ = std::min(first_row_, maximum_first_row(layout));
     // A layout pass ends the change-rate interval of the virtual order
@@ -2367,9 +2449,12 @@ bool DataGridView::is_current_row_dirty() const noexcept {
 
 DataGridView::UserStore DataGridView::store_user_value(DataGridViewCellAddress cell, const BindingValue& value,
                                                       const std::string& formatted) {
-    const CellKey key = key_of(cell);
+    CellKey key = key_of(cell);
     UserStore result{};
-    bool stored = !is_new_row(cell.row) || add_new_row();
+    const bool adding = is_new_row(cell.row);
+    bool stored = !adding || add_new_row();
+    // A virtual row takes the ID the application gave it.
+    if (stored && adding && added_row_) key.row_id = *added_row_;
     if (stored) {
         // Adding the row ran the program's handlers; the cell stays on its ID.
         const std::optional<DataGridViewCellAddress> at = address_of(key);
@@ -2734,7 +2819,7 @@ void DataGridView::set_allow_user_to_add_rows(bool allow) {
     new_row_.cells.resize(columns_.size());
     // Hiding the new row moves a current cell on it to the last row.
     drop_missing_rows(former);
-    structure_changed();
+    rows_changed();
 }
 
 void DataGridView::set_allow_user_to_delete_rows(bool allow) {
@@ -2757,7 +2842,13 @@ void DataGridView::rekey_row(const std::string& from, const std::string& to) {
         selected_cells_.erase(cells);
         selected_cells_.emplace(to, std::move(columns));
     }
-    // The new row's styles follow its ID too.
+    // The new row's styles and height follow its ID too.
+    const RowHeightsById::iterator height = own_row_heights_.find(from);
+    if (height != own_row_heights_.end()) {
+        const double moved = (*height).second;
+        own_row_heights_.erase(height);
+        own_row_heights_.insert_or_assign(to, moved);
+    }
     const CellStyleRows::iterator styles = cell_styles_.find(from);
     if (styles != cell_styles_.end()) {
         CellStyles moved = std::move((*styles).second);
@@ -2796,7 +2887,7 @@ void DataGridView::fill_default_values() {
 
 bool DataGridView::add_new_row() {
     if (!new_row_shown()) return false;
-    const std::string row_id = new_row_.stable_id.value;
+    std::string row_id = new_row_.stable_id.value;
     std::vector<BindingValue> values = std::move(new_row_.cells);
     values.resize(columns_.size());
     const DataGridViewRowPosition position{data_row_count()};
@@ -2815,6 +2906,31 @@ bool DataGridView::add_new_row() {
         synchronizing_position_ = false;
         adding_row_ = false;
         if (!is_alive()) return false;
+    } else if (row_source_ == DataGridViewRowSource::virtual_rows) {
+        // The application adds the row and names it; the new row's state
+        // (current cell, selection, styles, height) moves to that ID.
+        const std::shared_ptr<DataGridViewCellValueProvider> provider = provider_;
+        const std::optional<DataGridViewRowId> given = (*provider).add_row(std::span<const BindingValue>(values));
+        if (!is_alive()) return false;
+        if (!given) {
+            new_row_.cells = std::move(values);
+            return false;
+        }
+        const bool present = virtual_order_.mode() == DataGridViewRowOrderMode::edit &&
+                             virtual_order_.contains((*given).value);
+        if ((*given).value.empty() || !validate_utf8((*given).value).valid() || present ||
+            (*given).value == row_id) {
+            new_row_.cells = std::move(values);
+            throw std::invalid_argument("DataGridView add_row must return a new, non-empty, valid UTF-8 row ID");
+        }
+        rekey_row(row_id, (*given).value);
+        row_id = (*given).value;
+        if (virtual_order_.mode() == DataGridViewRowOrderMode::edit) {
+            const std::optional<std::string> top = held_top_row();
+            const std::vector<DataGridViewRowId> inserted{*given};
+            virtual_order_.insert(position.value, inserted);
+            after_reported_change(top, 1U);
+        }
     } else {
         DataGridViewRow row{};
         row.stable_id.value = row_id;
@@ -2828,7 +2944,7 @@ bool DataGridView::add_new_row() {
     new_row_.cells.clear();
     new_row_.cells.resize(columns_.size());
     added_row_ = row_id;
-    structure_changed();
+    rows_changed();
     const DataGridViewRowEvent added{DataGridViewRowId{row_id}, position};
     user_added_row_.emit(added);
     const bool present = is_alive() && find_row(row_id).has_value();
@@ -2895,6 +3011,15 @@ bool DataGridView::delete_selected_rows() {
 
 std::string DataGridView::cell_error_text(DataGridViewRowPosition row, std::size_t column) const {
     require_cell(row, column);
+    std::string held = held_cell_error_text(row, column);
+    if (row_source_ == DataGridViewRowSource::unbound) return held;
+    DataGridViewCellErrorTextNeededEvent needed{DataGridViewRowId{row_id_text(row)}, row, column, held};
+    cell_error_text_needed_.emit(needed);
+    if (!validate_utf8(needed.error_text).valid()) return held;
+    return needed.error_text;
+}
+
+std::string DataGridView::held_cell_error_text(DataGridViewRowPosition row, std::size_t column) const {
     const std::string row_id = row_id_text(row);
     const CellErrorRows::const_iterator found = cell_errors_.find(row_id);
     if (found != cell_errors_.end()) {
@@ -2914,7 +3039,7 @@ void DataGridView::set_cell_error_text(DataGridViewRowPosition row, std::size_t 
     require_mutable();
     require_cell(row, column);
     if (!validate_utf8(text).valid()) throw std::invalid_argument("DataGridView error text requires valid UTF-8");
-    if (cell_error_text(row, column) == text) return;
+    if (held_cell_error_text(row, column) == text) return;
     const std::string row_id = row_id_text(row);
     if (text.empty()) {
         const CellErrorRows::iterator found = cell_errors_.find(row_id);
@@ -2931,6 +3056,15 @@ void DataGridView::set_cell_error_text(DataGridViewRowPosition row, std::size_t 
 
 std::string DataGridView::row_error_text(DataGridViewRowPosition row) const {
     if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    std::string held = held_row_error_text(row);
+    if (row_source_ == DataGridViewRowSource::unbound) return held;
+    DataGridViewRowErrorTextNeededEvent needed{DataGridViewRowId{row_id_text(row)}, row, held};
+    row_error_text_needed_.emit(needed);
+    if (!validate_utf8(needed.error_text).valid()) return held;
+    return needed.error_text;
+}
+
+std::string DataGridView::held_row_error_text(DataGridViewRowPosition row) const {
     const std::string row_id = row_id_text(row);
     const RowErrors::const_iterator found = row_errors_.find(row_id);
     if (found != row_errors_.end()) return (*found).second;
@@ -2945,7 +3079,7 @@ void DataGridView::set_row_error_text(DataGridViewRowPosition row, std::string t
     require_mutable();
     if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
     if (!validate_utf8(text).valid()) throw std::invalid_argument("DataGridView error text requires valid UTF-8");
-    if (row_error_text(row) == text) return;
+    if (held_row_error_text(row) == text) return;
     const std::string row_id = row_id_text(row);
     if (text.empty()) row_errors_.erase(row_id);
     else row_errors_.insert_or_assign(row_id, std::move(text));
@@ -3218,6 +3352,21 @@ void DataGridView::on_pointer(PointerEvent& event) {
     const Point local = point_from_window(event.position);
     const GridLayout layout = grid_layout();
     if (resizing_column_ && !has_pointer_capture()) resizing_column_.reset();
+    if (resizing_row_ && !has_pointer_capture() && event.action != PointerAction::up) resizing_row_.reset();
+    if (resizing_row_) {
+        if (event.action == PointerAction::move && *resizing_row_ < row_count()) {
+            const double delta = (local.y - resize_start_y_) / layout.scale;
+            const double height = std::clamp(resize_start_height_ + delta, 4.0, 4096.0);
+            set_row_height_at(DataGridViewRowPosition{*resizing_row_}, height);
+        } else if (event.action == PointerAction::up) {
+            resizing_row_.reset();
+            Window* const host = window();
+            if (host != nullptr && has_pointer_capture()) (*host).release_pointer();
+            invalidate(Dirty::paint | Dirty::semantics);
+        }
+        event.handled = true;
+        return;
+    }
     // A capture lost mid-drag ends it; the window may release the capture
     // before the release itself arrives, which still ends it normally.
     if (ordering_ && !has_pointer_capture() && event.action != PointerAction::up) {
@@ -3276,7 +3425,11 @@ void DataGridView::on_pointer(PointerEvent& event) {
             const CellParts placed = cell_parts(hit.row, hit.column, layout);
             over_link = placed.cell_link.present && placed.cell_link.bounds.contains(local);
         }
-        const CursorKind wanted = over_link ? CursorKind::hand : CursorKind::arrow;
+        CursorKind wanted = over_link ? CursorKind::hand : CursorKind::arrow;
+        if (hit.zone == HitZone::row_divider) wanted = CursorKind::resize_vertical;
+        if (hit.zone == HitZone::column_divider && column_resizable(hit.column)) {
+            wanted = CursorKind::resize_horizontal;
+        }
         if (cursor() != wanted) set_cursor(wanted);
         return;
     }
@@ -3326,6 +3479,15 @@ void DataGridView::on_pointer(PointerEvent& event) {
             resize_start_x_ = local.x;
             resize_start_width_ = columns_[hit.column].width;
             // Read again: the focus change above ran the program's handlers.
+            Window* const capture_host = window();
+            if (capture_host != nullptr) (*capture_host).capture_pointer(lifetime, event.pointer_id);
+            invalidate(Dirty::paint | Dirty::semantics);
+            return;
+        }
+        if (hit.zone == HitZone::row_divider) {
+            resizing_row_ = hit.row.value;
+            resize_start_y_ = local.y;
+            resize_start_height_ = row_height_at(hit.row);
             Window* const capture_host = window();
             if (capture_host != nullptr) (*capture_host).capture_pointer(lifetime, event.pointer_id);
             invalidate(Dirty::paint | Dirty::semantics);
@@ -3617,6 +3779,42 @@ void DataGridView::on_text_input(TextInputEvent& event) {
     if (begin_text_edit(event.text_utf8, false)) event.handled = true;
 }
 
+void DataGridView::on_attachment_committed() noexcept {
+    Control::on_attachment_committed();
+    Window* const host = attached_window();
+    if (host == nullptr || followed_window_ == host) return;
+    try {
+        window_focus_.disconnect();
+        window_focus_ = (*host).focused_control_changed().subscribe(
+            *this, Delegate<const FocusedControlChange&>::bind<DataGridView, &DataGridView::on_window_focus_moved>(*this));
+        followed_window_ = host;
+    } catch (...) {
+        // Without the subscription a focus loss validates no row; nothing
+        // else depends on it.
+        followed_window_ = nullptr;
+    }
+}
+
+void DataGridView::on_window_focus_moved(const FocusedControlChange& change) {
+    const RuntimeId grid = runtime_id();
+    const RuntimeId editor = editor_ ? (*editor_).runtime_id() : RuntimeId{};
+    const bool from_grid = change.previous_id == grid || (editor_ && change.previous_id == editor);
+    const bool to_grid = change.current_id == grid || (editor_ && change.current_id == editor);
+    // A combo box cell's open choices take focus while the edit goes on.
+    if (!from_grid || to_grid || drop_down_open() || (editing_ && edit_kind_ == EditKind::choice)) return;
+    // Focus left the grid: an edit commits (or is discarded when it does
+    // not commit), then the current row validates. A handler's cancel
+    // leaves the row unvalidated; focus is not held (a deviation: Windows
+    // Forms keeps it in the grid).
+    const Control::Ptr lifetime = shared_from_this();
+    if (editing_ && !end_edit() && is_alive()) cancel_edit();
+    if (!is_alive() || !current_) return;
+    const std::string row_id = (*current_).row_id;
+    if (!find_row(row_id)) return;
+    if (!validate_row_change(std::nullopt) || !is_alive()) return;
+    row_validated_.emit(row_event(row_id));
+}
+
 void DataGridView::on_focus_changed(bool focused) {
     focused_ = focused;
     if (focused_ && !current_ && row_count() > 0U && !columns_.empty()) {
@@ -3640,6 +3838,35 @@ std::string DataGridView::column_stable_id(std::size_t column) const {
     identity += ".column.";
     identity += columns_[column].name;
     return identity;
+}
+
+// The error glyph of a cell or row: an image named and tooltipped by the
+// error text, at the glyph's place.
+SemanticNode DataGridView::error_glyph_node(std::string stable_id, const std::string& text, const PartGeometry& glyph,
+                                            const Rect& absolute) const {
+    SemanticNode node{};
+    node.stable_id = std::move(stable_id);
+    node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
+    node.role = SemanticRole::image;
+    node.name = text;
+    node.tool_tip = text;
+    node.bounds = {absolute.x + glyph.bounds.x, absolute.y + glyph.bounds.y, glyph.bounds.width, glyph.bounds.height};
+    node.states = SemanticState::visible | SemanticState::enabled;
+    return node;
+}
+
+// The starts of the error glyphs' identities, apart for cells and rows and
+// beginning with the grid's own identity, as the row headers' do.
+std::string DataGridView::cell_error_prefix() const {
+    std::string prefix(stable_id().value());
+    prefix += ".cell-error.";
+    return prefix;
+}
+
+std::string DataGridView::row_error_prefix() const {
+    std::string prefix(stable_id().value());
+    prefix += ".row-error.";
+    return prefix;
 }
 
 // The start of every row header's identity; the row's identity follows it.
@@ -3733,9 +3960,8 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
         if (is_new_row(row)) row_node.name = "New row";
         row_node.description = row_error_text(row);
         if (!row_node.description.empty()) row_node.states |= SemanticState::invalid;
-        const Rect row_bounds{layout.client.x, layout.data.y + (static_cast<double>(position) -
-                              static_cast<double>(first_row_)) * layout.row_height,
-                              layout.client.width, layout.row_height};
+        const Rect row_bounds{layout.client.x, layout.data.y + row_offset(position, layout), layout.client.width,
+                              row_heights().height(position) * layout.scale};
         row_node.bounds = {absolute.x + row_bounds.x, absolute.y + row_bounds.y, row_bounds.width,
                            row_bounds.height};
         row_node.states |= SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
@@ -3757,6 +3983,10 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
                              placed_row.row_header.bounds.width, placed_row.row_header.bounds.height};
             header.states = SemanticState::visible | SemanticState::enabled;
             header.actions = {SemanticAction::press};
+            if (placed_row.row_error.present && !row_node.description.empty()) {
+                header.children.push_back(error_glyph_node(row_error_prefix() + row_node.stable_id,
+                                                           row_node.description, placed_row.row_error, absolute));
+            }
             row_node.children.push_back(std::move(header));
         }
         for (std::size_t display = first_display; display < display_end; ++display) {
@@ -3813,6 +4043,10 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
                 // description and it offers no set_value.
             } else {
                 if (!read_only) cell.actions.push_back(SemanticAction::set_value);
+            }
+            if (placed.cell_error.present && !cell.description.empty()) {
+                cell.children.push_back(
+                    error_glyph_node(cell_error_prefix() + cell.stable_id, cell.description, placed.cell_error, absolute));
             }
             row_node.children.push_back(std::move(cell));
         }

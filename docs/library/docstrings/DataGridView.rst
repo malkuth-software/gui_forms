@@ -58,13 +58,19 @@ column_headers_height : default ``23``
 row_headers_width : default ``41``
     The width of the row header column, from 4 to 1024.
 row_height : default ``22``
-    The height of every row, from 4 to 256.
+    The height of every row without its own, from 4 to 256.
 font
     The font of cell and header text.
 read_only : default ``false``
     Whether no cell of the grid edits, toggles or chooses.
 allow_user_to_resize_columns : default ``true``
     Whether dragging a column header's divider resizes the column.
+allow_user_to_resize_rows : default ``true``
+    Whether dragging a row header's bottom edge (the ``row_grip`` part)
+    gives the row its own height, while rows do not size themselves.
+auto_size_rows_mode : default ``none``
+    How rows size their heights: to their headers, cells or both, over
+    every row or the rows shown.
 allow_user_to_order_columns : default ``false``
     Whether dragging a column header moves the column.
 allow_user_to_add_rows : default ``true``
@@ -210,6 +216,13 @@ column_width_changed
     Raised after a column's width changes, with the column's index.
 column_display_index_changed
     Raised after a column's display index changes, with the column's index.
+row_height_changed
+    Raised after a row's own height changes, with the row.
+cell_error_text_needed
+    Raised when the grid reads a cell's error text in virtual or bound rows,
+    with the text it holds: a handler may give the application's own.
+row_error_text_needed
+    As ``cell_error_text_needed``, for a row's error text.
 cell_formatting
     Raised when the grid needs a cell's text, with its value and inherited
     style: a handler may give the text, change the value or the style.
@@ -326,6 +339,21 @@ set_column_display_index
     Moves a column to a display index, the columns between shifting by one.
 column_at_display_index
     The column shown at a display index.
+row_height_at
+    A row's height: its own, or `row_height`.
+set_row_height_at
+    Gives a row its own height, from 4 to 4096, kept with the row's ID.
+reset_row_height_at
+    Returns a row to `row_height`.
+auto_resize_row
+    Gives a row its preferred height once, raising `row_height_changed`.
+auto_resize_rows
+    Sizes every row, or the rows shown, once.
+preferred_cell_height
+    The height a cell asks for: its content (a wrapped cell's lines),
+    padding and grid line.
+preferred_row_header_height
+    The height a row header asks for.
 preferred_cell_width
     The width a cell asks for: its content, padding and grid line.
 preferred_column_header_width
@@ -518,14 +546,28 @@ Moving the current cell commits the edit, raises ``row_validating`` when
 the row changes (a handler may keep the row), then ``cell_leave``,
 ``row_leave``, ``row_validated``, ``row_enter``, ``default_values_needed``
 (on the new row), ``cell_enter`` and ``current_cell_changed``. Their
-handlers may not call ``set_current_cell``.
+handlers may not call ``set_current_cell``. When focus leaves the grid and
+its editor (not for a combo box cell's open choices), the edit commits and
+the current row validates: ``row_validating``, then ``row_validated`` unless
+a handler cancelled. Focus is not held on a cancel, where Windows Forms
+keeps it in the grid: a recorded divergence (``manifests/winforms-divergences.json``,
+listed under Windows Forms divergences in the control guide).
 
 With ``allow_user_to_add_rows``, on by default as in Windows Forms, an
 unbound or bound grid shows a new row after the last; its row header shows
 a star. Turn it off where the rows are fixed. The first value the user
 commits to it adds a row (or a record) with the new row's ID, raising
 ``user_added_row``; Escape, or ``cancel_row_edit``, discards it until the
-current cell leaves it. With ``allow_user_to_delete_rows``, also on by
+current cell leaves it. Virtual rows show the new row when their provider's
+``can_add_rows`` says so: the first committed value asks the provider's
+``add_row`` for the row (owner decision, 2026-11-02), which names it or
+refuses; the grid inserts the ID in edit mode, and in window mode the
+application reports the insertion as soon as ``add_row`` returns. The C#
+facade can raise Windows Forms' ``NewRowNeeded`` and ``CellValuePushed`` on
+top of it. Each error glyph, the grid's own interface rather than its data,
+shows its error text as a tooltip (owner decision, 2026-11-02); cells carry
+no tooltips of their own, so over them the grid's own ``tool_tip_text``
+shows. With ``allow_user_to_delete_rows``, also on by
 default, Delete removes the selected rows, each after ``user_deleting_row``.
 The current row's header shows a pencil while the row is dirty
 (``show_editing_icon``).
@@ -584,8 +626,30 @@ leave by ``fill_weight``. Automatic widths are applied when the grid lays
 out, never below ``minimum_width``, without raising `column_width_changed`,
 and the user cannot resize an auto-sized column (a fill column included,
 where Windows Forms moves the weights). The cell modes measure every row's
-formatted cell, so virtual rows ask their provider for each. Rows keep one
-height.
+formatted cell, so virtual rows ask their provider for each.
+
+Any row may have its own height (Windows Forms' DataGridViewRow.Height), of
+any row source, virtual rows included (owner decision, 2026-11-02): it stays
+with the row's ID while rows move and ends with the row. Rows without one
+have `row_height`. The grid finds rows by offset through a Fenwick tree of
+the heights' differences from `row_height` (`DataGridViewRowHeights`), so
+scrolling, hit testing and painting cost a logarithmic search, not a walk
+over the rows; while no row has its own height nothing is stored. A change
+to the rows rebuilds the tree in one pass over them while any row has its
+own height. Scrolling stays by whole rows, as in Windows Forms: the first
+displayed row is shown from its top, and the last row ends at the bottom
+when scrolled to the end.
+
+Rows size themselves as Windows Forms' do. With an ``all`` mode of
+`auto_size_rows_mode` every row is measured, its header's or cells'
+preferred height (a wrapped text cell's lines at its column's width), after
+a change to the values, rows, columns, column widths, styles or text scale;
+virtual rows ask their provider for every cell. A ``displayed`` mode
+measures from the first displayed row down until the viewport is full, on
+every layout pass, and rows keep their measured heights once scrolled away.
+Automatic heights raise no `row_height_changed`, override own heights (which
+return when the mode is ``none`` again), and rows are not resized by the
+user meanwhile.
 
 Columns have a display order apart from their indices (Windows Forms'
 DisplayIndex): `set_column_display_index` moves one, and with
@@ -603,11 +667,9 @@ styles, `RowPrePaint` and `RowPostPaint`, `LinkBehavior` (the
 link is always underlined), an image column's default
 image for empty cells and icon values, frozen rows and columns beyond the headers, the
 clipboard's HTML and CSV formats, automatic sorting of virtual and bound
-rows (the application sorts them), frozen columns, automatic
-row sizing and per-row heights, header size modes, row height resizing,
-the new row in virtual mode,
-error text asked of the application (``CellErrorTextNeeded``), and cell
-tool tips.
+rows (the application sorts them), frozen columns,
+header size modes,
+and cell tool tips.
 
 Examples
 --------

@@ -22,7 +22,10 @@ gui_forms::ToolTip
    tip of the window shares: the last value set holds. Text controls (a text
    box, a combo box's edit field) show their text as light grey hint text in the
    empty field instead of a bubble when they receive focus. Data items (list
-   rows, tree nodes) have no tooltips; a list reveals cut-off text in place. Use
+   rows, tree nodes) have no tooltips; a list reveals cut-off text in place.
+   Controls with parts of their own interface (a strip's items, a tab control's
+   headers, a grid's error glyphs) may give a part a tooltip; it shows over
+   that part, and over a part without one the control's own text shows. Use
    a :cpp:class:`HelpProvider <gui_forms::HelpProvider>` for help that the user asks for, and an :cpp:class:`ErrorProvider <gui_forms::ErrorProvider>` to
    flag invalid input.
 

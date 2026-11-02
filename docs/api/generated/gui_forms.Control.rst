@@ -284,7 +284,7 @@ gui_forms::Control
       **tool_tip_presentation** : ``ToolTipPresentation``, read-only
 
       **publishes_item_tool_tips** : ``bool``, read-only
-         Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it.
+         Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it, with one exception (owner decision, 2026-11-02): DataGridView sets it for its error glyphs, which are the grid's interface, not data, and tooltip their error text. Its cells' contents still carry none.
 
       **command_target** : ``std::shared_ptr<CommandTarget>``
          The command target this control offers its window's command routing chain while focus is on it or inside it (the focused route, owner decision DK-29; see gui_forms/commands/command_route). The control shares ownership, so a docking workspace may also name the same target as an active panel's or document's. None by default.
@@ -1081,7 +1081,7 @@ gui_forms::Control
 
    .. cpp:function:: bool publishes_item_tool_tips() const noexcept
 
-      Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it.
+      Whether this control's semantic virtual children may carry tooltips of authored parts (SemanticNode::tool_tip), as a strip's items and a tab control's headers do. The tooltip presenter looks for a part's tooltip only in such a control; a list of data items never sets it, with one exception (owner decision, 2026-11-02): DataGridView sets it for its error glyphs, which are the grid's interface, not data, and tooltip their error text. Its cells' contents still carry none.
 
    .. cpp:function:: const std::shared_ptr<CommandTarget>& command_target() const noexcept
 

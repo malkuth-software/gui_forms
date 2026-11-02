@@ -255,6 +255,12 @@ void DataGridView::set_column_fill_weight(std::size_t column, double weight) {
     structure_changed();
 }
 
+bool DataGridView::row_resizable() const noexcept {
+    const bool result = allow_row_resize_ && row_headers_visible_ &&
+                        auto_size_rows_mode_ == DataGridViewAutoSizeRowsMode::none;
+    return result;
+}
+
 bool DataGridView::column_resizable(std::size_t column) const {
     const bool result = allow_column_resize_ && column < columns_.size() &&
                         column_auto_size_mode(column) == DataGridViewAutoSizeColumnMode::none;
@@ -263,8 +269,10 @@ bool DataGridView::column_resizable(std::size_t column) const {
 
 void DataGridView::values_changed() {
     auto_size_stale_ = true;
-    // A column sized by its cells may change width: lay the grid out again.
-    bool sized_by_cells = false;
+    row_auto_size_stale_ = true;
+    // A column sized by its cells may change width, and rows sized by
+    // their cells height: lay the grid out again.
+    bool sized_by_cells = auto_size_rows_mode_ != DataGridViewAutoSizeRowsMode::none;
     for (std::size_t column = 0U; column < columns_.size() && !sized_by_cells; ++column) {
         const DataGridViewAutoSizeColumnMode mode = column_auto_size_mode(column);
         sized_by_cells = measures(mode) && mode != DataGridViewAutoSizeColumnMode::column_header;
@@ -441,6 +449,205 @@ void DataGridView::auto_resize_column(std::size_t column, DataGridViewAutoSizeCo
     column_width_changed_.emit(column);
 }
 
+// -- automatic row heights -----------------------------------------------------
+
+namespace {
+
+DataGridViewAutoSizeRowMode row_mode(DataGridViewAutoSizeRowsMode mode) noexcept {
+    DataGridViewAutoSizeRowMode result = DataGridViewAutoSizeRowMode::all_cells;
+    if (mode == DataGridViewAutoSizeRowsMode::all_headers || mode == DataGridViewAutoSizeRowsMode::displayed_headers) {
+        result = DataGridViewAutoSizeRowMode::row_header;
+    } else if (mode == DataGridViewAutoSizeRowsMode::all_cells_except_headers ||
+               mode == DataGridViewAutoSizeRowsMode::displayed_cells_except_headers) {
+        result = DataGridViewAutoSizeRowMode::all_cells_except_header;
+    }
+    return result;
+}
+
+bool displayed_rows_only(DataGridViewAutoSizeRowsMode mode) noexcept {
+    const bool result = mode == DataGridViewAutoSizeRowsMode::displayed_headers ||
+                        mode == DataGridViewAutoSizeRowsMode::displayed_cells_except_headers ||
+                        mode == DataGridViewAutoSizeRowsMode::displayed_cells;
+    return result;
+}
+
+} // namespace
+
+double DataGridView::preferred_cell_height(DataGridViewRowPosition row, std::size_t column) const {
+    require_cell(row, column);
+    const std::uint64_t revision = structure_revision_;
+    FormattedCell formatted = formatted_cell(row, column);
+    // A formatting handler that changed the grid leaves no height to measure.
+    if (structure_revision_ != revision) return 0.0;
+    const std::string text = shown_text(row, column, std::move(formatted.text));
+    const DataGridViewCellStyle& style = formatted.style;
+    const double scale = effective_text_scale();
+    const FontSpec font = effective_font(style.font.value_or(font_));
+    // Lines are measured in the scaled font; heights are logical units.
+    const double line = text_line_height(font) / scale;
+    const Insets padding = content_padding(style, 1.0);
+    const DataGridViewColumnKind kind = columns_[column].kind;
+    double content = line;
+    if (kind == DataGridViewColumnKind::check_box) {
+        content = check_box_size;
+    } else if (kind == DataGridViewColumnKind::button) {
+        // The face's inset and its label's margins.
+        content = line + button_inset * 2.0 + cell_padding;
+    } else if (kind == DataGridViewColumnKind::image) {
+        content = 0.0;
+        const BindingValue value = stored_value(row, column);
+        const ImageId* const image = std::get_if<ImageId>(&value);
+        const Window* const host = attached_window();
+        if (image != nullptr && (*image).value != 0U && host != nullptr) {
+            const std::optional<ImageResourceView> resource = (*host).image_resources().find(*image);
+            if (resource) content = static_cast<double>((*resource).metadata.height);
+        }
+    } else if (kind == DataGridViewColumnKind::text && style.wrap_mode.value_or(false) && !text.empty()) {
+        // The lines at the content's width, as cell_layout wraps them.
+        double reserved = 0.0;
+        if (show_cell_errors_ && !cell_error_text(row, column).empty()) reserved = error_glyph_size + cell_padding;
+        const double width = std::max(0.0, columns_[column].width - 1.0 - padding.left - padding.right - reserved);
+        std::vector<LineBreakOpportunity> opportunities(text.size(), LineBreakOpportunity::prohibited);
+        static_cast<void>(fill_line_break_opportunities_utf8(text, std::span<LineBreakOpportunity>(opportunities)));
+        std::vector<WrappedTextLine> lines;
+        const line_wrapping_detail::ControlRunWidth measure{this, font};
+        line_wrapping_detail::wrap_lines_greedy(std::string_view(text),
+                                                std::span<const LineBreakOpportunity>(opportunities), width * scale,
+                                                measure, lines);
+        content = line * static_cast<double>(std::max<std::size_t>(1U, lines.size()));
+    }
+    // The cell's grid line is inside its height.
+    const double result = content + padding.top + padding.bottom + 1.0;
+    return result;
+}
+
+double DataGridView::preferred_row_header_height(DataGridViewRowPosition row) const {
+    if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    const DataGridViewCellStyle style = inherited_row_header_style();
+    const double scale = effective_text_scale();
+    const FontSpec font = effective_font(style.font.value_or(font_));
+    const Insets padding = content_padding(style, 1.0);
+    const double result = text_line_height(font) / scale + padding.top + padding.bottom + 1.0;
+    return result;
+}
+
+std::optional<double> DataGridView::automatic_height(std::size_t position, DataGridViewAutoSizeRowMode mode) const {
+    const DataGridViewRowPosition row{position};
+    const std::uint64_t revision = structure_revision_;
+    double tallest = 0.0;
+    const bool header = mode == DataGridViewAutoSizeRowMode::row_header ||
+                        (mode == DataGridViewAutoSizeRowMode::all_cells && row_headers_visible_);
+    if (header) tallest = preferred_row_header_height(row);
+    if (mode != DataGridViewAutoSizeRowMode::row_header) {
+        for (std::size_t column = 0U; column < columns_.size(); ++column) {
+            tallest = std::max(tallest, preferred_cell_height(row, column));
+            // A formatting handler changed the grid: the rows are not these.
+            if (structure_revision_ != revision) return std::nullopt;
+        }
+    }
+    if (tallest <= 0.0) tallest = row_height_;
+    const double result = std::clamp(tallest, 4.0, 4096.0);
+    return result;
+}
+
+void DataGridView::apply_row_auto_sizes() {
+    if (auto_size_rows_mode_ == DataGridViewAutoSizeRowsMode::none) return;
+    const double scale = effective_text_scale();
+    if (scale != row_auto_size_scale_) {
+        row_auto_size_scale_ = scale;
+        row_auto_size_stale_ = true;
+    }
+    // Wrapped cells' heights follow their columns' widths, automatic ones
+    // included.
+    bool widths_changed = row_auto_size_widths_.size() != columns_.size();
+    for (std::size_t column = 0U; column < columns_.size() && !widths_changed; ++column) {
+        widths_changed = row_auto_size_widths_[column] != columns_[column].width;
+    }
+    if (widths_changed) {
+        row_auto_size_widths_.resize(columns_.size());
+        for (std::size_t column = 0U; column < columns_.size(); ++column) {
+            row_auto_size_widths_[column] = columns_[column].width;
+        }
+        row_auto_size_stale_ = true;
+    }
+    const std::size_t count = row_count();
+    const DataGridViewAutoSizeRowMode each = row_mode(auto_size_rows_mode_);
+    const std::uint64_t revision = structure_revision_;
+    if (!displayed_rows_only(auto_size_rows_mode_)) {
+        if (!row_auto_size_stale_ && row_heights_.count() == count && row_heights_.default_height() == row_height_) {
+            return;
+        }
+        // Every row measured, and the index built from the heights at once.
+        row_height_scratch_.clear();
+        row_height_scratch_.reserve(count);
+        for (std::size_t position = 0U; position < count; ++position) {
+            const std::optional<double> height = automatic_height(position, each);
+            if (structure_revision_ != revision) return;
+            if (height) row_height_scratch_.push_back(DataGridViewRowHeight{position, *height});
+        }
+        row_heights_.reset(count, row_height_, row_height_scratch_);
+        row_heights_stale_ = false;
+        row_auto_size_stale_ = false;
+        return;
+    }
+    // The displayed modes: from the first displayed row down, each row
+    // measured before the next is placed, until the viewport is full.
+    const DataGridViewRowHeights& heights = row_heights();
+    const GridLayout layout = grid_layout();
+    const double viewport = layout.data.height / layout.scale;
+    const std::size_t first = std::min(first_row_, count);
+    const double first_top = heights.top(first);
+    for (std::size_t position = first; position < count && heights.top(position) - first_top < viewport; ++position) {
+        const std::optional<double> height = automatic_height(position, each);
+        if (structure_revision_ != revision) return;
+        if (height) row_heights_.set_height(position, *height);
+    }
+    row_auto_size_stale_ = false;
+}
+
+void DataGridView::set_auto_size_rows_mode(DataGridViewAutoSizeRowsMode mode) {
+    require_mutable();
+    if (static_cast<std::uint8_t>(mode) > static_cast<std::uint8_t>(DataGridViewAutoSizeRowsMode::displayed_cells)) {
+        throw std::invalid_argument("DataGridView auto size rows mode is outside the enumeration");
+    }
+    if (auto_size_rows_mode_ == mode) return;
+    auto_size_rows_mode_ = mode;
+    // The index is rebuilt from the own heights, and measured again.
+    rows_changed();
+}
+
+void DataGridView::auto_resize_row(DataGridViewRowPosition row, DataGridViewAutoSizeRowMode mode) {
+    require_mutable();
+    if (row.value >= row_count()) throw std::out_of_range("DataGridView row is past the end");
+    if (static_cast<std::uint8_t>(mode) > static_cast<std::uint8_t>(DataGridViewAutoSizeRowMode::row_header)) {
+        throw std::invalid_argument("DataGridView auto size row mode is outside the enumeration");
+    }
+    const std::optional<double> height = automatic_height(row.value, mode);
+    // A formatting handler may have changed the rows.
+    if (!height || !is_alive() || row.value >= row_count()) return;
+    set_row_height_at(row, *height);
+}
+
+void DataGridView::auto_resize_rows(DataGridViewAutoSizeRowsMode mode) {
+    require_mutable();
+    if (mode == DataGridViewAutoSizeRowsMode::none ||
+        static_cast<std::uint8_t>(mode) > static_cast<std::uint8_t>(DataGridViewAutoSizeRowsMode::displayed_cells)) {
+        throw std::invalid_argument("DataGridView auto_resize_rows takes a header or cell mode");
+    }
+    const DataGridViewAutoSizeRowMode each = row_mode(mode);
+    std::size_t begin = 0U;
+    std::size_t end = row_count();
+    if (displayed_rows_only(mode)) {
+        const GridLayout layout = grid_layout();
+        end = visible_row_end(layout);
+        begin = std::min(first_row_, end);
+    }
+    // Read the count each time: a handler may change the rows.
+    for (std::size_t position = begin; is_alive() && position < end && position < row_count(); ++position) {
+        auto_resize_row(DataGridViewRowPosition{position}, each);
+    }
+}
+
 void DataGridView::auto_resize_columns(DataGridViewAutoSizeColumnsMode mode) {
     require_mutable();
     const DataGridViewAutoSizeColumnMode each = column_mode(mode);
@@ -473,7 +680,7 @@ DataGridView::GridLayout DataGridView::grid_layout() const {
     const double header_width = row_headers_visible_ ? row_headers_width_ * scale : 0.0;
     const double bar = scroll_bar_thickness * scale;
     const double content_x = content_width() * scale;
-    const double content_y = static_cast<double>(row_count()) * layout.row_height;
+    const double content_y = row_heights().total() * scale;
     // A bar on one axis narrows the other; three passes settle both.
     bool horizontal = false;
     bool vertical = false;
@@ -523,18 +730,16 @@ Rect DataGridView::column_header_bounds(std::size_t column, const GridLayout& la
     return bounds;
 }
 
-Rect DataGridView::row_header_bounds(DataGridViewRowPosition row, const GridLayout& layout) const noexcept {
-    const double offset = static_cast<double>(row.value) - static_cast<double>(first_row_);
-    const Rect bounds{0.0, layout.data.y + offset * layout.row_height, layout.row_header_band.width,
-                      layout.row_height};
+Rect DataGridView::row_header_bounds(DataGridViewRowPosition row, const GridLayout& layout) const {
+    const double height = row_heights().height(row.value) * layout.scale;
+    const Rect bounds{0.0, layout.data.y + row_offset(row.value, layout), layout.row_header_band.width, height};
     return bounds;
 }
 
-Rect DataGridView::cell_bounds(DataGridViewRowPosition row, std::size_t column,
-                               const GridLayout& layout) const noexcept {
-    const double offset = static_cast<double>(row.value) - static_cast<double>(first_row_);
-    const Rect bounds{column_left(column, layout), layout.data.y + offset * layout.row_height,
-                      columns_[column].width * layout.scale, layout.row_height};
+Rect DataGridView::cell_bounds(DataGridViewRowPosition row, std::size_t column, const GridLayout& layout) const {
+    const double height = row_heights().height(row.value) * layout.scale;
+    const Rect bounds{column_left(column, layout), layout.data.y + row_offset(row.value, layout),
+                      columns_[column].width * layout.scale, height};
     return bounds;
 }
 
@@ -576,15 +781,63 @@ DataGridViewDisplayIndex DataGridView::order_target_at(double x, const GridLayou
     return result;
 }
 
-std::size_t DataGridView::visible_row_end(const GridLayout& layout) const noexcept {
+// -- row heights ---------------------------------------------------------------
+
+const DataGridViewRowHeights& DataGridView::row_heights() const {
     const std::size_t count = row_count();
-    if (first_row_ >= count || layout.row_height <= 0.0 || layout.data.height <= 0.0) {
-        return std::min(first_row_, count);
+    const bool current = !row_heights_stale_ && row_heights_.count() == count &&
+                         row_heights_.default_height() == row_height_;
+    if (current) return row_heights_;
+    // Each own height at its row's present position; rows gone are skipped
+    // (drop_missing_rows erases them).
+    row_height_scratch_.clear();
+    for (const RowHeightsById::value_type& own : own_row_heights_) {
+        const std::optional<std::size_t> position = find_row(own.first);
+        if (!position || *position >= count) continue;
+        const DataGridViewRowHeight given{*position, own.second};
+        row_height_scratch_.push_back(given);
     }
+    row_heights_.reset(count, row_height_, row_height_scratch_);
+    row_heights_stale_ = false;
+    return row_heights_;
+}
+
+void DataGridView::rows_changed() {
+    row_heights_stale_ = true;
+    row_auto_size_stale_ = true;
+    structure_changed();
+}
+
+double DataGridView::row_offset(std::size_t position, const GridLayout& layout) const {
+    const DataGridViewRowHeights& heights = row_heights();
+    const std::size_t first = std::min(first_row_, heights.count());
+    const double result = (heights.top(position) - heights.top(first)) * layout.scale;
+    return result;
+}
+
+std::size_t DataGridView::first_row_ending_at(std::size_t last, const GridLayout& layout) const {
+    const DataGridViewRowHeights& heights = row_heights();
+    const double viewport = layout.data.height / layout.scale;
+    // The first row must start at or below `target` for `last` to end at
+    // the viewport's bottom.
+    const double target = heights.top(last + 1U) - viewport;
+    if (target <= 0.0) return 0U;
+    std::size_t first = heights.position_at(target);
+    if (first < heights.count() && heights.top(first) < target) ++first;
+    const std::size_t result = std::min(first, last);
+    return result;
+}
+
+std::size_t DataGridView::visible_row_end(const GridLayout& layout) const {
+    const DataGridViewRowHeights& heights = row_heights();
+    const std::size_t count = heights.count();
+    if (first_row_ >= count || layout.data.height <= 0.0) return std::min(first_row_, count);
     // Rows whose top lies inside the viewport, the last one perhaps cut off.
-    const double shown = std::ceil(layout.data.height / layout.row_height);
-    const std::size_t end = first_row_ + static_cast<std::size_t>(shown);
-    return std::min(count, end);
+    const double bottom = heights.top(first_row_) + layout.data.height / layout.scale;
+    const std::size_t last = heights.position_at(bottom);
+    if (last >= count) return count;
+    const std::size_t end = heights.top(last) < bottom ? last + 1U : last;
+    return end;
 }
 
 DataGridViewRowPosition DataGridView::displayed_row_end() const {
@@ -592,16 +845,21 @@ DataGridViewRowPosition DataGridView::displayed_row_end() const {
     return end;
 }
 
-std::size_t DataGridView::fully_visible_rows(const GridLayout& layout) const noexcept {
-    if (layout.row_height <= 0.0) return 0U;
-    const double rows = std::floor(layout.data.height / layout.row_height);
-    return static_cast<std::size_t>(std::max(0.0, rows));
+std::size_t DataGridView::fully_visible_rows(const GridLayout& layout) const {
+    const DataGridViewRowHeights& heights = row_heights();
+    const std::size_t count = heights.count();
+    if (first_row_ >= count || layout.data.height <= 0.0) return 0U;
+    // The row holding the viewport's bottom is cut off, or starts there.
+    const double bottom = heights.top(first_row_) + layout.data.height / layout.scale;
+    const std::size_t last = heights.position_at(bottom);
+    const std::size_t result = last > first_row_ ? last - first_row_ : 0U;
+    return result;
 }
 
-std::size_t DataGridView::maximum_first_row(const GridLayout& layout) const noexcept {
+std::size_t DataGridView::maximum_first_row(const GridLayout& layout) const {
     const std::size_t count = row_count();
-    const std::size_t fully = std::max<std::size_t>(1U, fully_visible_rows(layout));
-    const std::size_t result = count > fully ? count - fully : 0U;
+    if (count == 0U) return 0U;
+    const std::size_t result = first_row_ending_at(count - 1U, layout);
     return result;
 }
 
@@ -685,6 +943,11 @@ DataGridView::RowParts DataGridView::row_parts(DataGridViewRowPosition row, cons
     if (row_headers_border_style_ != DataGridViewHeaderBorderStyle::none) {
         const Rect rule{header.x, header.y + header.height - 1.0, header.width, 1.0};
         record.row_rule = visible_part(rule, clip);
+    }
+    if (row_resizable()) {
+        const double half = grip_half_width * layout.scale;
+        const double edge = header.y + header.height;
+        record.row_grip = visible_part({header.x, edge - half, header.width, half * 2.0}, clip);
     }
     // Without header visual styles the row header style's colours stand on
     // the header, its label and its glyph (owner decision T4-1).
@@ -946,6 +1209,7 @@ AnatomyStateSet DataGridView::row_states(DataGridViewRowPosition row) const {
     if (is_current_row(row)) states.insert(AnatomyState::current);
     if (read_only_ || row_read_only(row)) states.insert(AnatomyState::read_only);
     if (!row_error_text(row).empty()) states.insert(AnatomyState::invalid);
+    if (resizing_row_ == row.value) states.insert(AnatomyState::captured);
     return states;
 }
 
@@ -1026,21 +1290,31 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
         }
         return result;
     }
+    // The row under the point, by offset from the first displayed row's top.
     const std::size_t row_end = visible_row_end(layout);
+    const DataGridViewRowHeights& heights = row_heights();
+    const std::size_t first_row = std::min(first_row_, heights.count());
+    const double offset = heights.top(first_row) + std::max(0.0, local.y - layout.data.y) / layout.scale;
+    const DataGridViewRowPosition row{std::max(first_row, heights.position_at(offset))};
     if (!layout.row_header_band.empty() && layout.row_header_band.contains(local)) {
-        for (std::size_t position = std::min(first_row_, row_end); position < row_end; ++position) {
-            const DataGridViewRowPosition row{position};
-            if (row_header_bounds(row, layout).contains(local)) {
-                result.zone = HitZone::row_header;
-                result.row = row;
+        // A row's grip reaches half into the row below, so the row above
+        // the one under the point is tried as well.
+        const std::size_t above = row.value > first_row ? row.value - 1U : row.value;
+        for (std::size_t position = above; position <= row.value && position < row_end; ++position) {
+            const RowParts placed = row_parts(DataGridViewRowPosition{position}, layout);
+            if (placed.row_grip.present && placed.row_grip.bounds.contains(local)) {
+                result.zone = HitZone::row_divider;
+                result.row = DataGridViewRowPosition{position};
                 return result;
             }
         }
+        if (row.value < row_end) {
+            result.zone = HitZone::row_header;
+            result.row = row;
+        }
         return result;
     }
-    if (!layout.data.contains(local) || layout.row_height <= 0.0) return result;
-    const double offset = std::floor((local.y - layout.data.y) / layout.row_height);
-    const DataGridViewRowPosition row{first_row_ + static_cast<std::size_t>(std::max(0.0, offset))};
+    if (!layout.data.contains(local)) return result;
     if (row.value >= row_end) return result;
     for (std::size_t display = first_display; display < display_end; ++display) {
         const std::size_t column = display_order_[display];
@@ -1448,7 +1722,7 @@ constexpr std::array<StateField<DataGridView::States>, 6> grid_state_fields{{
     {.state = AnatomyState::read_only, .member = &DataGridView::States::read_only},
 }};
 
-constexpr std::array<PartField<DataGridView::RowParts>, 5> row_part_fields{{
+constexpr std::array<PartField<DataGridView::RowParts>, 6> row_part_fields{{
     {.declaration = {.name = "row_header", .role = PartRole::face, .composed_from = {}},
      .member = &DataGridView::RowParts::row_header},
     {.declaration = {.name = "row_header_label", .role = PartRole::label, .composed_from = {}},
@@ -1459,13 +1733,16 @@ constexpr std::array<PartField<DataGridView::RowParts>, 5> row_part_fields{{
      .member = &DataGridView::RowParts::row_error},
     {.declaration = {.name = "row_rule", .role = PartRole::divider, .composed_from = {}},
      .member = &DataGridView::RowParts::row_rule},
+    {.declaration = {.name = "row_grip", .role = PartRole::grip, .composed_from = {}},
+     .member = &DataGridView::RowParts::row_grip},
 }};
 
-constexpr std::array<StateField<DataGridView::RowStates>, 4> row_state_fields{{
+constexpr std::array<StateField<DataGridView::RowStates>, 5> row_state_fields{{
     {.state = AnatomyState::selected, .member = &DataGridView::RowStates::selected},
     {.state = AnatomyState::current, .member = &DataGridView::RowStates::current},
     {.state = AnatomyState::read_only, .member = &DataGridView::RowStates::read_only},
     {.state = AnatomyState::invalid, .member = &DataGridView::RowStates::invalid},
+    {.state = AnatomyState::captured, .member = &DataGridView::RowStates::captured},
 }};
 
 constexpr std::array<PartField<DataGridView::CellParts>, 16> cell_part_fields{{
@@ -1546,8 +1823,8 @@ constexpr std::array<CustomStateDeclaration, 2> column_custom_states{{
 
 constexpr std::array<PartDeclaration, 12> grid_parts_declared = part_declarations(grid_part_fields);
 constexpr std::array<AnatomyState, 6> grid_states_declared = state_declarations(grid_state_fields);
-constexpr std::array<PartDeclaration, 5> row_parts_declared = part_declarations(row_part_fields);
-constexpr std::array<AnatomyState, 4> row_states_declared = state_declarations(row_state_fields);
+constexpr std::array<PartDeclaration, 6> row_parts_declared = part_declarations(row_part_fields);
+constexpr std::array<AnatomyState, 5> row_states_declared = state_declarations(row_state_fields);
 constexpr std::array<PartDeclaration, 16> cell_parts_declared = part_declarations(cell_part_fields);
 constexpr std::array<AnatomyState, 8> cell_states_declared = state_declarations(cell_state_fields);
 constexpr std::array<PartDeclaration, 5> column_parts_declared = part_declarations(column_part_fields);
@@ -1743,7 +2020,7 @@ std::vector<DataGridView::Column> DataGridView::realized_columns() const {
 namespace {
 
 // The events DataGridView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 32> data_grid_view_interactions{{
+constexpr std::array<InteractionDeclaration, 35> data_grid_view_interactions{{
     {.name = "draw_item_content", .payload = "ItemContentPaint", .mutable_payload = true},
     {.name = "selection_changed", .payload = "", .mutable_payload = false},
     {.name = "current_cell_changed", .payload = "std::optional<DataGridViewCellAddress>", .mutable_payload = false},
@@ -1769,11 +2046,14 @@ constexpr std::array<InteractionDeclaration, 32> data_grid_view_interactions{{
     {.name = "row_edit_cancelled", .payload = "DataGridViewRowEvent", .mutable_payload = false},
     {.name = "cell_error_text_changed", .payload = "DataGridViewCellEvent", .mutable_payload = false},
     {.name = "row_error_text_changed", .payload = "DataGridViewRowEvent", .mutable_payload = false},
+    {.name = "cell_error_text_needed", .payload = "DataGridViewCellErrorTextNeededEvent", .mutable_payload = true},
+    {.name = "row_error_text_needed", .payload = "DataGridViewRowErrorTextNeededEvent", .mutable_payload = true},
     {.name = "column_header_click", .payload = "std::size_t", .mutable_payload = false},
     {.name = "sort_compare", .payload = "DataGridViewSortCompareEvent", .mutable_payload = true},
     {.name = "sorted", .payload = "", .mutable_payload = false},
     {.name = "column_width_changed", .payload = "std::size_t", .mutable_payload = false},
     {.name = "column_display_index_changed", .payload = "std::size_t", .mutable_payload = false},
+    {.name = "row_height_changed", .payload = "DataGridViewRowEvent", .mutable_payload = false},
     {.name = "cell_formatting", .payload = "DataGridViewCellFormattingEvent", .mutable_payload = true},
     {.name = "cell_parsing", .payload = "DataGridViewCellParsingEvent", .mutable_payload = true},
 }};

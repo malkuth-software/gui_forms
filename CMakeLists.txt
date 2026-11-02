@@ -705,6 +705,7 @@ add_library(gui_forms_controls STATIC
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
+    src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
     src/controls/task_dialog/task_dialog.cpp
     src/controls/notify_icon/notify_icon.cpp

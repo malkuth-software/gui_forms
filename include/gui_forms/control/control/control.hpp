@@ -699,7 +699,10 @@ public:
     // Whether this control's semantic virtual children may carry tooltips
     // of authored parts (SemanticNode::tool_tip), as a strip's items and a
     // tab control's headers do. The tooltip presenter looks for a part's
-    // tooltip only in such a control; a list of data items never sets it.
+    // tooltip only in such a control; a list of data items never sets it,
+    // with one exception (owner decision, 2026-11-02): DataGridView sets it
+    // for its error glyphs, which are the grid's interface, not data, and
+    // tooltip their error text. Its cells' contents still carry none.
     [[nodiscard]] bool publishes_item_tool_tips() const noexcept {
         return publishes_item_tool_tips_;
     }

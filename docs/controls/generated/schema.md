@@ -867,8 +867,9 @@ Item system `row`:
 | `row_glyph` | glyph |  |  |
 | `row_error` | glyph |  |  |
 | `row_rule` | divider |  |  |
+| `row_grip` | grip |  |  |
 
-Item states: `selected`, `current`, `read_only`, `invalid`.
+Item states: `selected`, `current`, `read_only`, `invalid`, `captured`.
 
 Item system `cell`:
 
@@ -934,11 +935,14 @@ Properties beyond every control's: none.
 | `row_edit_cancelled` | `DataGridViewRowEvent` |
 | `cell_error_text_changed` | `DataGridViewCellEvent` |
 | `row_error_text_changed` | `DataGridViewRowEvent` |
+| `cell_error_text_needed` | `DataGridViewCellErrorTextNeededEvent`, by reference |
+| `row_error_text_needed` | `DataGridViewRowErrorTextNeededEvent`, by reference |
 | `column_header_click` | `std::size_t` |
 | `sort_compare` | `DataGridViewSortCompareEvent`, by reference |
 | `sorted` | none |
 | `column_width_changed` | `std::size_t` |
 | `column_display_index_changed` | `std::size_t` |
+| `row_height_changed` | `DataGridViewRowEvent` |
 | `cell_formatting` | `DataGridViewCellFormattingEvent`, by reference |
 | `cell_parsing` | `DataGridViewCellParsingEvent`, by reference |
 

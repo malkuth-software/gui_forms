@@ -2064,9 +2064,10 @@
             {"name": "row_header_label", "role": "label", "composed_from": null, "states": []},
             {"name": "row_glyph", "role": "glyph", "composed_from": null, "states": []},
             {"name": "row_error", "role": "glyph", "composed_from": null, "states": []},
-            {"name": "row_rule", "role": "divider", "composed_from": null, "states": []}
+            {"name": "row_rule", "role": "divider", "composed_from": null, "states": []},
+            {"name": "row_grip", "role": "grip", "composed_from": null, "states": []}
           ],
-          "states": ["selected", "current", "read_only", "invalid"],
+          "states": ["selected", "current", "read_only", "invalid", "captured"],
           "custom_states": []
         },
         {
@@ -2172,11 +2173,14 @@
         {"name": "row_edit_cancelled", "payload": "DataGridViewRowEvent", "mutable_payload": false},
         {"name": "cell_error_text_changed", "payload": "DataGridViewCellEvent", "mutable_payload": false},
         {"name": "row_error_text_changed", "payload": "DataGridViewRowEvent", "mutable_payload": false},
+        {"name": "cell_error_text_needed", "payload": "DataGridViewCellErrorTextNeededEvent", "mutable_payload": true},
+        {"name": "row_error_text_needed", "payload": "DataGridViewRowErrorTextNeededEvent", "mutable_payload": true},
         {"name": "column_header_click", "payload": "std::size_t", "mutable_payload": false},
         {"name": "sort_compare", "payload": "DataGridViewSortCompareEvent", "mutable_payload": true},
         {"name": "sorted", "payload": "", "mutable_payload": false},
         {"name": "column_width_changed", "payload": "std::size_t", "mutable_payload": false},
         {"name": "column_display_index_changed", "payload": "std::size_t", "mutable_payload": false},
+        {"name": "row_height_changed", "payload": "DataGridViewRowEvent", "mutable_payload": false},
         {"name": "cell_formatting", "payload": "DataGridViewCellFormattingEvent", "mutable_payload": true},
         {"name": "cell_parsing", "payload": "DataGridViewCellParsingEvent", "mutable_payload": true}
       ]

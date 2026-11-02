@@ -118,6 +118,8 @@ Related types
      - A cell by row position and column index, as the rows are presented now.
    * - :cpp:class:`DataGridViewCellCancelEvent <gui_forms::DataGridViewCellCancelEvent>`
      - Raised before an edit begins; setting ``cancel`` keeps the cell out of edit.
+   * - :cpp:class:`DataGridViewCellErrorTextNeededEvent <gui_forms::DataGridViewCellErrorTextNeededEvent>`
+     - Raised when the grid reads a cell's error text in virtual or bound rows (Windows Forms' CellErrorTextNeeded): ``error_text`` starts as the text the grid holds (set_cell_error_text, or the record's error) and a handler may replace it with valid UTF-8 (other text is ignored).
    * - :cpp:class:`DataGridViewCellEvent <gui_forms::DataGridViewCellEvent>`
      - The cell an event concerns: its row's identity, the row's position when the event is raised (the position it had, for a row just removed), and the column.
    * - :cpp:class:`DataGridViewCellFormattingEvent <gui_forms::DataGridViewCellFormattingEvent>`
@@ -142,8 +144,14 @@ Related types
      - Raised before a row is left or deleted; setting ``cancel`` keeps it.
    * - :cpp:class:`DataGridViewRowComparer <gui_forms::DataGridViewRowComparer>`
      - Orders unbound rows for DataGridView::sort(comparer) (Windows Forms' Sort(IComparer)).
+   * - :cpp:class:`DataGridViewRowErrorTextNeededEvent <gui_forms::DataGridViewRowErrorTextNeededEvent>`
+     - As DataGridViewCellErrorTextNeededEvent, for a row's own error text (Windows Forms' RowErrorTextNeeded).
    * - :cpp:class:`DataGridViewRowEvent <gui_forms::DataGridViewRowEvent>`
      - A row an event concerns: its identity and its position when the event is raised (the position it had, for a row just removed).
+   * - :cpp:class:`DataGridViewRowHeight <gui_forms::DataGridViewRowHeight>`
+     - One row's own height, by its presentation position, for DataGridViewRowHeights::reset.
+   * - :cpp:class:`DataGridViewRowHeights <gui_forms::DataGridViewRowHeights>`
+     - A grid's row heights by presentation position, renderer-free, in logical units at text scale 1 (owner decision of 2026-11-02: real per-row heights for every row source, with no linear walk in scrolling, hit testing or painting).
    * - :cpp:class:`DataGridViewRowId <gui_forms::DataGridViewRowId>`
      - A row's stable identity: not empty, unique among the grid's rows, and kept while the row moves.
    * - :cpp:class:`DataGridViewRowOrder <gui_forms::DataGridViewRowOrder>`
@@ -833,6 +841,10 @@ Related types
 
    .. cpp:member:: PartGeometry row_rule
 
+   .. cpp:member:: PartGeometry row_grip
+
+      The resize hit region on the header's bottom edge, while the user may resize rows.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DataGridView::RowStates final
@@ -848,6 +860,10 @@ Related types
    .. cpp:member:: bool invalid
 
       A row with error text.
+
+   .. cpp:member:: bool captured
+
+      A row whose height the user is dragging.
 
 .. cpp:namespace:: gui_forms
 
@@ -894,6 +910,22 @@ Related types
    .. cpp:member:: std::size_t column
 
    .. cpp:member:: bool cancel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellErrorTextNeededEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Raised when the grid reads a cell's error text in virtual or bound rows (Windows Forms' CellErrorTextNeeded): ``error_text`` starts as the text the grid holds (set_cell_error_text, or the record's error) and a handler may replace it with valid UTF-8 (other text is ignored). Raised from const reads (layout, paint, semantics); handlers may not change the grid.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: std::string error_text
 
 .. cpp:namespace:: gui_forms
 
@@ -1019,6 +1051,14 @@ Related types
    .. cpp:function:: virtual bool push_cell_value(const DataGridViewRowId& row, std::size_t column, const BindingValue& value) = 0
 
       Stores a committed value. Returning false refuses it: the cell keeps its old value and no cell_value_changed is raised.
+
+   .. cpp:function:: virtual bool can_add_rows() const
+
+      Whether the grid shows a new row for the user to add rows through add_row (with allow_user_to_add_rows). The default is false.
+
+   .. cpp:function:: virtual std::optional<DataGridViewRowId> add_row(std::span<const BindingValue> values)
+
+      Adds the row the user entered in the new row (owner decision, 2026-11-02), when its first value commits: ``values`` holds one value per column, in column order, empty for cells the user left. Returns the new row's ID (not empty, valid UTF-8, not a present row's), or none to refuse, which leaves the new row as it was. The default refuses. In edit mode the grid then inserts the ID after the last row; in window mode the application reports the insertion (insert_virtual_rows) as soon as add_row returns. The committed value then arrives through push_cell_value. The provider may not change the grid from inside it. The C# facade can raise Windows Forms' NewRowNeeded and CellValuePushed on top of it, for compatibility.
 
 .. cpp:namespace:: gui_forms
 
@@ -1165,6 +1205,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewRowErrorTextNeededEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   As DataGridViewCellErrorTextNeededEvent, for a row's own error text (Windows Forms' RowErrorTextNeeded).
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::string error_text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewRowEvent final
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
@@ -1174,6 +1228,66 @@ Related types
    .. cpp:member:: DataGridViewRowId row_id
 
    .. cpp:member:: DataGridViewRowPosition row
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewRowHeight final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp>``
+
+   One row's own height, by its presentation position, for DataGridViewRowHeights::reset.
+
+   .. cpp:member:: std::size_t position
+
+   .. cpp:member:: double height
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DataGridViewRowHeights final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_row_heights.hpp>``
+
+   A grid's row heights by presentation position, renderer-free, in logical units at text scale 1 (owner decision of 2026-11-02: real per-row heights for every row source, with no linear walk in scrolling, hit testing or painting). Every row has the default height except those given their own. While none is, nothing is stored and every query is arithmetic. Once one is, the index keeps each row's difference from the default and a Fenwick tree of the differences, 16 bytes a row. A row's height costs O(1); a row's top, the row at an offset and setting one row's height cost O(log count); reset with heights costs O(count + heights given). Offsets are sums of doubles. Heights of a few significant bits (whole and half units, quarter units at a text scale) add exactly; others may drift by rounding after many set_height calls, which reset clears. Single UI thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t count() const noexcept
+
+   .. cpp:function:: double default_height() const noexcept
+
+   .. cpp:function:: bool uniform() const noexcept
+
+      Whether every row has the default height (nothing stored).
+
+   .. cpp:function:: double total() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void reset(std::size_t count, double default_height)
+
+      :cpp:func:`count <gui_forms::DataGridViewRowHeights::count>` rows of :cpp:func:`default_height <gui_forms::DataGridViewRowHeights::default_height>`, none with its own.
+
+   .. cpp:function:: void reset(std::size_t count, double default_height, std::span<const DataGridViewRowHeight> heights)
+
+      As reset(count, default_height), then each given height in order; a later height for the same position wins. Positions must be below :cpp:func:`count <gui_forms::DataGridViewRowHeights::count>` and heights positive (the grid validates them first).
+
+   .. cpp:function:: double height(std::size_t position) const noexcept
+
+      The height of the row at a position below count().
+
+   .. cpp:function:: double top(std::size_t position) const noexcept
+
+      The distance from the first row's top to a row's top: the heights of the rows before ``position``, which is at most count() (count() gives the total).
+
+   .. cpp:function:: std::size_t position_at(double offset) const noexcept
+
+      The row whose span [top, top + height) holds ``offset``: 0 for an offset before the first row, count() for one at or past the total.
+
+   .. cpp:function:: void set_height(std::size_t position, double height)
+
+      One row's height; position below count(), height positive.
 
 .. cpp:namespace:: gui_forms
 
@@ -2650,6 +2764,38 @@ Enumerations
    .. cpp:enumerator:: column_header
 
    .. cpp:enumerator:: fill
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewAutoSizeRowMode
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: all_cells_except_header
+
+   .. cpp:enumerator:: all_cells
+
+   .. cpp:enumerator:: row_header
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewAutoSizeRowsMode
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: all_headers
+
+   .. cpp:enumerator:: all_cells_except_headers
+
+   .. cpp:enumerator:: all_cells
+
+   .. cpp:enumerator:: displayed_headers
+
+   .. cpp:enumerator:: displayed_cells_except_headers
+
+   .. cpp:enumerator:: displayed_cells
 
 .. cpp:namespace:: gui_forms
 

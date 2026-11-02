@@ -510,6 +510,20 @@ void test_strip_item_tooltips() {
     require(!window.tool_tip_visible(), "leaving the item closes its tooltip");
     if (window.next_wake()) fire_next(window);
     require(!window.tool_tip_visible(), "an item without a tooltip shows none");
+    // An item's tooltip only overrides where it exists: over an item without
+    // one, the strip's own text shows.
+    hover(window, {390.0, 150.0});
+    (*strip).set_tool_tip_text("Commands");
+    hover(window, {save_bounds.x + 4.0, save_bounds.y + 4.0});
+    fire_next(window);
+    require(window.tool_tip_text() == "Save (Ctrl+S)", "an item's tooltip overrides the strip's");
+    hover(window, {plain_bounds.x + 4.0, plain_bounds.y + 4.0});
+    if (window.next_wake()) fire_next(window);
+    require(window.tool_tip_visible() && window.tool_tip_text() == "Commands" && window.tool_tip_item_id().empty(),
+            "an item without a tooltip shows the strip's own");
+    (*strip).set_tool_tip_text("");
+    hover(window, {390.0, 150.0});
+    if (window.next_wake()) fire_next(window);
 
     // The keyboard: focus reaches the strip, and the arrows move between
     // items. The pointer leaves first: the strip's keyboard item starts at
