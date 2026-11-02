@@ -483,11 +483,11 @@ void test_property_metadata_defaults_reset_and_serialization() {
 
     const std::vector<std::string> names = (*editor).bindable_property_names();
     require(names == std::vector<std::string>{
-                "auto_size", "causes_validation", "enabled", "name", "text",
-                "tool_tip_text", "visible"},
+                "auto_size", "back_color", "causes_validation", "enabled", "fore_color",
+                "name", "text", "tool_tip_text", "visible"},
             "bindable property enumeration must be deterministic and use the registered names");
     const std::vector<PropertyDescriptor> descriptors = (*editor).property_descriptors();
-    require(descriptors.size() == 23U &&
+    require(descriptors.size() == 31U &&
                 descriptors.front().name == "accessible_description" &&
                 descriptors.back().name == "visible",
             "property descriptor snapshots must follow deterministic canonical order");

@@ -564,6 +564,44 @@ void test_nested_authored_surfaces_are_control_background_layers() {
             "invalid child surfaces must fail atomically and restore parent reveal");
 }
 
+// A control's own background colour (WinForms' BackColor) paints its
+// bounds before its content; a child that sets none inherits it without
+// painting it again; forced high contrast drops both.
+void test_control_back_color_paints_background_once() {
+    const Color root_color = Color::rgba(250, 236, 200);
+    const Color child_color = Color::rgba(210, 236, 250);
+    std::shared_ptr<Control> root = make_control<Control>(StableId("back-color"));
+    std::shared_ptr<Control> child = make_control<Control>(StableId("back-color.child"));
+    (*child).set_requested_bounds({10.0, 10.0, 60.0, 24.0});
+    (*root).add_child(child);
+    (*root).set_back_color(root_color);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 60.0});
+    Window& window = *held_window;
+    window.perform_layout();
+
+    RecordingPainter inherited_painter{};
+    window.paint(inherited_painter, {0.0, 0.0, 100.0, 60.0});
+    require(std::count(inherited_painter.fill_colors.begin(), inherited_painter.fill_colors.end(), root_color) == 1 &&
+                (*child).ambient_back_color() == root_color,
+            "an inherited background must paint once, on the control that sets it");
+
+    (*child).set_back_color(child_color);
+    RecordingPainter own_painter{};
+    window.paint(own_painter, {0.0, 0.0, 100.0, 60.0});
+    require(std::count(own_painter.fill_colors.begin(), own_painter.fill_colors.end(), root_color) == 1 &&
+                std::count(own_painter.fill_colors.begin(), own_painter.fill_colors.end(), child_color) == 1,
+            "a child's own background must paint over its bounds");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.high_contrast = true;
+    window.set_presentation_settings(settings);
+    RecordingPainter contrast_painter{};
+    window.paint(contrast_painter, {0.0, 0.0, 100.0, 60.0});
+    require(std::count(contrast_painter.fill_colors.begin(), contrast_painter.fill_colors.end(), root_color) == 0 &&
+                std::count(contrast_painter.fill_colors.begin(), contrast_painter.fill_colors.end(), child_color) == 0,
+            "forced high contrast must drop authored background colours");
+}
+
 void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     const MnemonicText escaped = parse_mnemonic_text("Save && E&xit");
     require(escaped.display_text == "Save & Exit" &&
@@ -1833,6 +1871,7 @@ int main() {
         test_button_pointer_and_keyboard_activation();
         test_button_focus_cue_tracks_input_modality();
         test_button_authored_state_recipes_are_owned_and_retained();
+        test_control_back_color_paints_background_once();
         test_nested_authored_surfaces_are_control_background_layers();
         test_mnemonics_and_dialog_buttons_are_retained_commands();
         test_checkbox_state_and_click_order();

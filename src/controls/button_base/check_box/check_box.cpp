@@ -8,11 +8,22 @@
 #include <array>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 namespace gui_forms {
+namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> check_state_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "check_state", {{"unchecked", 0}, {"checked", 1}, {"indeterminate", 2}}, false});
+    return value;
+}
+
+} // namespace
 
 void CheckBox::bind(Command& command) {
     unbind();
@@ -47,6 +58,22 @@ CheckBox::CheckBox(StableId stable_id, std::string text)
             *this, &CheckBox::set_checked, BindingValueKind::boolean,
             "CheckBox.Checked binding requires Boolean"),
         detail::EventChangeConnector<bool>(checked_changed_), {}, {}});
+
+    PropertyDescriptor check_state;
+    check_state.name = "check_state";
+    check_state.kind = BindingValueKind::enumeration;
+    check_state.category = "Behavior";
+    check_state.description = "Unchecked, checked or indeterminate; checked follows it.";
+    check_state.default_value = BindingValue{PropertyEnumValue{"check_state", "unchecked", 0}};
+    check_state.invalidation_effects = Dirty::paint | Dirty::semantics;
+    check_state.bindable = false;
+    check_state.enumeration = check_state_enum();
+    define_bindable_property({
+        std::move(check_state),
+        detail::EnumerationPropertyGetter<CheckBox, CheckState>(*this, &CheckBox::check_state,
+                                                                check_state_enum()),
+        detail::EnumerationPropertySetter<CheckBox, CheckState>(*this, &CheckBox::set_check_state),
+        detail::EventChangeConnector<CheckState>(check_state_changed_), {}, {}});
 }
 
 void CheckBox::set_check_state(CheckState state) {

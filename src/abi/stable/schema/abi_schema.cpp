@@ -209,9 +209,29 @@ std::size_t find_catalog_type(std::string_view name) {
     return schema_catalog.size();
 }
 
-Control::Ptr create_catalog_type(std::size_t index, StableId stable_id) {
-    const Control::Ptr control = (*schema_catalog.at(index).create)(std::move(stable_id));
-    return control;
+std::string_view catalog_type_id(std::size_t index) {
+    const std::string_view id = schema_catalog.at(index).id;
+    return id;
+}
+
+Component::Ptr create_catalog_type(std::size_t index, StableId stable_id) {
+    const Component::Ptr object = (*schema_catalog.at(index).create)(std::move(stable_id));
+    return object;
+}
+
+std::string_view catalog_type_id_of(const Component& object) {
+    // An application's own subclass publishes its nearest schema type's
+    // anatomy, and with it that type's id.
+    const Control* control = dynamic_cast<const Control*>(&object);
+    if (control != nullptr) {
+        return (*control).anatomy().control_id;
+    }
+    for (const SchemaCatalogEntry& entry : schema_catalog) {
+        if ((*entry.is_exact)(object)) {
+            return entry.id;
+        }
+    }
+    return std::string_view{};
 }
 
 } // namespace gui_forms::abi1

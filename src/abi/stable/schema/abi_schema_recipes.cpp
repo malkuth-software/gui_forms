@@ -212,6 +212,13 @@ void describe_type<ThreadExceptionDialog>(SchemaSample& sample) {
 }
 
 template <>
+Component::Ptr create_type<ThreadExceptionDialog>(StableId stable_id) {
+    const std::shared_ptr<ThreadExceptionDialog> dialog =
+        std::make_shared<ThreadExceptionDialog>(std::move(stable_id), ThreadExceptionReport{});
+    return dialog;
+}
+
+template <>
 void describe_type<Timer>(SchemaSample& sample) {
     describe_window_component<Timer>(sample);
 }

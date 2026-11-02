@@ -259,6 +259,10 @@ def parse_type(text: str, context: str, findings: list[Finding]) -> TypeRef | No
     if tokens and tokens[0] == "const":
         const = True
         tokens = tokens[1:]
+    # A record names itself by its tag (a gf_value's elements point at
+    # gf_values); the tag and the typedef share a name.
+    if len(tokens) >= 2 and tokens[0] == "struct" and re.fullmatch(r"gf_\w+", tokens[1]):
+        tokens = tokens[1:]
     pointers: int = 0
     while tokens and tokens[-1] == "*":
         pointers += 1

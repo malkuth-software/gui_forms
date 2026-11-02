@@ -96,12 +96,14 @@ static void geometry_and_enumerations(gf_kit* kit) {
 
     gf_value font = empty_value();
     font.kind = GF_VALUE_KIND_FONT;
-    gf_kit_status(kit, (*kit).properties.set(button, gf_kit_text("font"), &font), GF_STATUS_UNSUPPORTED_CAPABILITY,
-                  "a font has no gf_value form yet");
+    gf_kit_status(kit, (*kit).properties.set(button, gf_kit_text("font"), &font), GF_STATUS_INVALID_ARGUMENT,
+                  "a zeroed font (no weight, no size) is refused");
     uint64_t required = 0u;
     read = empty_value();
     gf_kit_status(kit, (*kit).properties.get(button, gf_kit_text("font"), &read, text, sizeof(text), &required),
-                  GF_STATUS_UNSUPPORTED_CAPABILITY, "nor can a font be read");
+                  GF_STATUS_OK, "a font is read");
+    gf_kit_check(kit, read.kind == GF_VALUE_KIND_FONT && read.font.size > 0.0 && read.font.weight > 0u,
+                 "a font reads back as its record");
     gf_kit_status(kit, (*kit).objects.release(button), GF_STATUS_OK, "release the geometry button");
 
     const gf_object label = gf_kit_create(kit, "Label", "kit.values.colour");

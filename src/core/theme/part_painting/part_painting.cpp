@@ -657,7 +657,23 @@ bool part_bounds_paintable(Rect bounds) noexcept {
 
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
     const Theme& theme = control.effective_theme();
-    theme.engine().paint(painter, control, part);
+    // The control's authored colours (Control::set_back_color and
+    // set_fore_color) under the part's own: its own background fills every
+    // ground, an inherited one every ground but a well.
+    std::optional<Color> background = part.authored_background;
+    if (!background) background = control.back_color();
+    if (!background && part.role != PartRole::well) background = control.ambient_back_color();
+    std::optional<Color> foreground = part.authored_foreground;
+    if (!foreground) foreground = control.ambient_fore_color();
+    const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
+    if (unchanged) {
+        theme.engine().paint(painter, control, part);
+        return;
+    }
+    PartPaint coloured = part;
+    coloured.authored_background = background;
+    coloured.authored_foreground = foreground;
+    theme.engine().paint(painter, control, coloured);
 }
 
 void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part) {

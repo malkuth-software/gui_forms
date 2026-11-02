@@ -1,3 +1,4 @@
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/window.hpp"
 #include "tool_tips/tool_tip_presenter.hpp"
 #include "gui_forms/host/services/host_services.hpp"
@@ -1501,6 +1502,7 @@ void Window::change_pointer_capture(const Control::Ptr& control,
 
 bool Window::dispatch_pointer(PointerEvent event) {
     require_ui_thread("pointer dispatch");
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "pointer", 0U);
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -1636,6 +1638,7 @@ bool Window::dispatch_pointer(PointerEvent event) {
 
 bool Window::dispatch_key(KeyEvent event) {
     require_ui_thread("key dispatch");
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -1717,6 +1720,7 @@ bool Window::route_key(KeyEvent event) {
 
 bool Window::dispatch_text(TextInputEvent event) {
     require_ui_thread("text dispatch");
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "text", 0U);
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
     }
@@ -1926,6 +1930,7 @@ void Window::leave_drag_target(const DragEvent& event,
 
 DragDispatchResult Window::dispatch_drag(DragEvent event) {
     require_ui_thread("drag dispatch");
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "drag", 0U);
     if (in_paint_) {
         const std::uint64_t session = event.session_id;
         const DragEffect allowed = event.allowed_effects;
@@ -2789,6 +2794,8 @@ void Window::ensure_layout(bool read_barrier) {
     if (!has_any_runnable_layout_dirty()) return;
 
     metrics_.record_flush(read_barrier);
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::layout_pass, (*root_).stable_id().value(), std::string_view{},
+                                        layout_pass_sequence_ + 1U);
     in_layout_ = true;
     try {
         std::uint32_t pass = 0;
@@ -3435,6 +3442,7 @@ void Window::paint_recursive(const Control::Ptr& control,
                                      recording_painter_};
             recording_control_ = control.get();
             recording_painter_ = &recorder;
+            (*control).paint_back_color(recorder, logical_bounds);
             (*control).paint_authored_surface(recorder, logical_bounds);
             (*control).paint_owned_decorations(
                 recorder, logical_bounds,

@@ -1,4 +1,5 @@
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -7,14 +8,58 @@
 #include <array>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
 
 namespace gui_forms {
 
+namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> visual_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "button_visual_style", {{"standard", 0}, {"flat", 1}, {"accent", 2}, {"command", 3}}, false});
+    return value;
+}
+
+} // namespace
+
 Button::Button(StableId stable_id, std::string text)
-    : ButtonBase(std::move(stable_id), std::move(text)) {}
+    : ButtonBase(std::move(stable_id), std::move(text)) {
+    PropertyDescriptor visual_style;
+    visual_style.name = "visual_style";
+    visual_style.kind = BindingValueKind::enumeration;
+    visual_style.category = "Appearance";
+    visual_style.description = "Standard, flat, accent or command button.";
+    visual_style.default_value = BindingValue{PropertyEnumValue{"button_visual_style", "standard", 0}};
+    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
+    visual_style.bindable = false;
+    visual_style.enumeration = visual_style_enum();
+    define_bindable_property({
+        std::move(visual_style),
+        detail::EnumerationPropertyGetter<Button, ButtonVisualStyle>(*this, &Button::visual_style,
+                                                                     visual_style_enum()),
+        detail::EnumerationPropertySetter<Button, ButtonVisualStyle>(*this, &Button::set_visual_style),
+        {}, {}, {}});
+
+    PropertyDescriptor flat_border_width;
+    flat_border_width.name = "flat_border_width";
+    flat_border_width.kind = BindingValueKind::number;
+    flat_border_width.category = "Appearance";
+    flat_border_width.description = "Border width in logical pixels of a flat button.";
+    flat_border_width.default_value = BindingValue{1.0};
+    flat_border_width.invalidation_effects = Dirty::paint;
+    flat_border_width.bindable = false;
+    define_bindable_property({
+        std::move(flat_border_width),
+        detail::BindingNoexceptMethodGetter<Button, double>(*this, &Button::flat_border_width),
+        detail::ConvertedPropertySetter<Button, double>(*this, &Button::set_flat_border_width,
+                                                        BindingValueKind::number,
+                                                        "Button.FlatBorderWidth requires a number"),
+        {}, {}, {}});
+}
 
 void Button::set_default_button(bool is_default) {
     require_mutable();

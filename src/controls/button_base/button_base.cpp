@@ -13,6 +13,7 @@
 #include <array>
 #include <cmath>
 #include <iterator>
+#include <memory>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -118,6 +119,16 @@ void ButtonBase::unbind_command() noexcept {
 
 
 namespace {
+std::shared_ptr<const PropertyEnumDescriptor> content_alignment_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "content_alignment",
+            {{"top_left", 0}, {"top_center", 1}, {"top_right", 2}, {"middle_left", 3}, {"middle_center", 4},
+             {"middle_right", 5}, {"bottom_left", 6}, {"bottom_center", 7}, {"bottom_right", 8}},
+            false});
+    return value;
+}
+
 std::vector<std::string_view> button_text_lines(std::string_view text) {
     std::vector<std::string_view> result;
     if (text.empty()) return result;
@@ -162,6 +173,22 @@ ButtonBase::ButtonBase(StableId stable_id, std::string text)
     : Control(std::move(stable_id)), text_(std::move(text)) {
     set_focusable(true);
     set_cursor(CursorKind::hand);
+
+    PropertyDescriptor text_alignment;
+    text_alignment.name = "text_alignment";
+    text_alignment.kind = BindingValueKind::enumeration;
+    text_alignment.category = "Appearance";
+    text_alignment.description = "Where the text sits in the content area.";
+    text_alignment.invalidation_effects = Dirty::paint | Dirty::semantics;
+    text_alignment.bindable = false;
+    text_alignment.enumeration = content_alignment_enum();
+    define_bindable_property({
+        std::move(text_alignment),
+        detail::EnumerationPropertyGetter<ButtonBase, ContentAlignment>(
+            *this, &ButtonBase::text_alignment, content_alignment_enum()),
+        detail::EnumerationPropertySetter<ButtonBase, ContentAlignment>(*this,
+                                                                        &ButtonBase::set_text_alignment),
+        {}, {}, {}});
     define_bindable_property({
         {"text", BindingValueKind::text, "Appearance",
          "Text displayed by the button.", BindingValue{std::string{}},

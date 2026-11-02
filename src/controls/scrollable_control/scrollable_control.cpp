@@ -1,4 +1,5 @@
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "scrolling_utilities.hpp"
 #include "scrollable_anatomy.hpp"
 
@@ -19,7 +20,74 @@ using namespace scrolling_detail;
 ScrollableControl::ScrollableControl(StableId stable_id)
     : Control(std::move(stable_id)),
       horizontal_scroll_(*this, ScrollOrientation::horizontal),
-      vertical_scroll_(*this, ScrollOrientation::vertical) {}
+      vertical_scroll_(*this, ScrollOrientation::vertical) {
+    PropertyDescriptor auto_scroll;
+    auto_scroll.name = "auto_scroll";
+    auto_scroll.kind = BindingValueKind::boolean;
+    auto_scroll.category = "Layout";
+    auto_scroll.description = "Whether scroll bars appear when content exceeds the client area.";
+    auto_scroll.default_value = BindingValue{false};
+    auto_scroll.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    auto_scroll.bindable = false;
+    define_bindable_property({
+        std::move(auto_scroll),
+        detail::BindingNoexceptMethodGetter<ScrollableControl, bool>(*this, &ScrollableControl::auto_scroll),
+        detail::ConvertedPropertySetter<ScrollableControl, bool>(
+            *this, &ScrollableControl::set_auto_scroll, BindingValueKind::boolean,
+            "ScrollableControl.AutoScroll requires a Boolean"),
+        {}, {}, {}});
+
+    PropertyDescriptor auto_scroll_margin;
+    auto_scroll_margin.name = "auto_scroll_margin";
+    auto_scroll_margin.kind = BindingValueKind::size;
+    auto_scroll_margin.category = "Layout";
+    auto_scroll_margin.description = "Logical space kept around the content when scrolling; nonnegative.";
+    auto_scroll_margin.default_value = BindingValue{Size{}};
+    auto_scroll_margin.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    auto_scroll_margin.bindable = false;
+    define_bindable_property({
+        std::move(auto_scroll_margin),
+        detail::BindingNoexceptMethodGetter<ScrollableControl, Size>(*this,
+                                                                     &ScrollableControl::auto_scroll_margin),
+        detail::ConvertedPropertySetter<ScrollableControl, Size>(
+            *this, &ScrollableControl::set_auto_scroll_margin, BindingValueKind::size,
+            "ScrollableControl.AutoScrollMargin requires a size"),
+        {}, {}, {}});
+
+    PropertyDescriptor auto_scroll_min_size;
+    auto_scroll_min_size.name = "auto_scroll_min_size";
+    auto_scroll_min_size.kind = BindingValueKind::size;
+    auto_scroll_min_size.category = "Layout";
+    auto_scroll_min_size.description = "Smallest logical content size scrolling allows for; nonnegative.";
+    auto_scroll_min_size.default_value = BindingValue{Size{}};
+    auto_scroll_min_size.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    auto_scroll_min_size.bindable = false;
+    define_bindable_property({
+        std::move(auto_scroll_min_size),
+        detail::BindingNoexceptMethodGetter<ScrollableControl, Size>(*this,
+                                                                     &ScrollableControl::auto_scroll_min_size),
+        detail::ConvertedPropertySetter<ScrollableControl, Size>(
+            *this, &ScrollableControl::set_auto_scroll_min_size, BindingValueKind::size,
+            "ScrollableControl.AutoScrollMinSize requires a size"),
+        {}, {}, {}});
+
+    PropertyDescriptor auto_scroll_position;
+    auto_scroll_position.name = "auto_scroll_position";
+    auto_scroll_position.kind = BindingValueKind::point;
+    auto_scroll_position.category = "Layout";
+    auto_scroll_position.description = "The scrolled content's offset, negated as Windows Forms reports it.";
+    auto_scroll_position.default_value = BindingValue{Point{}};
+    auto_scroll_position.invalidation_effects = Dirty::arrange | Dirty::paint;
+    auto_scroll_position.bindable = false;
+    define_bindable_property({
+        std::move(auto_scroll_position),
+        detail::BindingNoexceptMethodGetter<ScrollableControl, Point>(*this,
+                                                                      &ScrollableControl::auto_scroll_position),
+        detail::ConvertedPropertySetter<ScrollableControl, Point>(
+            *this, &ScrollableControl::set_auto_scroll_position, BindingValueKind::point,
+            "ScrollableControl.AutoScrollPosition requires a point"),
+        {}, {}, {}});
+}
 
 void ScrollableControl::validate_size(Size size, const char* message) {
     if (!std::isfinite(size.width) || !std::isfinite(size.height) ||

@@ -3,6 +3,7 @@
 #include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 #include "property_grid_utilities.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
@@ -13,6 +14,7 @@
 #include <iterator>
 #include <limits>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -1201,11 +1203,38 @@ struct PropertyGrid::Impl final {
     bool committing{};
 };
 
+namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> property_sort_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "property_sort", {{"categorized", 0}, {"alphabetical", 1}}, false});
+    return value;
+}
+
+} // namespace
+
 PropertyGrid::PropertyGrid(StableId stable_id)
     : Panel(std::move(stable_id)), impl_(std::make_unique<Impl>(*this)) {
     set_background(Color::rgba(244, 247, 251));
     set_border_style(BorderStyle::line);
     set_paint_plane(PaintPlane::control);
+
+    PropertyDescriptor property_sort;
+    property_sort.name = "property_sort";
+    property_sort.kind = BindingValueKind::enumeration;
+    property_sort.category = "Behavior";
+    property_sort.description = "Properties grouped by category, or alphabetical.";
+    property_sort.default_value = BindingValue{PropertyEnumValue{"property_sort", "categorized", 0}};
+    property_sort.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    property_sort.bindable = false;
+    property_sort.enumeration = property_sort_enum();
+    define_bindable_property({
+        std::move(property_sort),
+        detail::EnumerationPropertyGetter<PropertyGrid, PropertySort>(*this, &PropertyGrid::property_sort,
+                                                                      property_sort_enum()),
+        detail::EnumerationPropertySetter<PropertyGrid, PropertySort>(*this, &PropertyGrid::set_property_sort),
+        {}, {}, {}});
 }
 
 PropertyGrid::~PropertyGrid() = default;

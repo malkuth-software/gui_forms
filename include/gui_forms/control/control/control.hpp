@@ -486,6 +486,41 @@ public:
     }
     void set_authored_surface_material(SurfaceMaterial material);
     void clear_authored_surface_material();
+    // The background and foreground colours the application authored for
+    // this control (WinForms' BackColor and ForeColor), or none: the theme's
+    // colours stand. They are the T4-1 authored colours of the control's
+    // parts (PartPaint::authored_background and authored_foreground), with
+    // the same rules: a part's own authored colour, the most specific,
+    // stands over them; the theme's important declarations stand over them;
+    // forced high contrast drops them; and a disabled part keeps the
+    // theme's disabled colours, so disabled text stays greyed.
+    // - The background paints the control's bounds before its content, as
+    //   WinForms' OnPaintBackground does, and fills the control's grounds
+    //   (faces, wells, plates) flat, keeping their borders.
+    // - The foreground draws the control's text, marks and rules.
+    // They reach what a control paints through paint_part; a control that
+    // draws its own text or surfaces directly reads ambient_back_color and
+    // ambient_fore_color.
+    // Ambient inheritance, as WinForms: a control without its own colour
+    // takes its nearest ancestor's (ambient_back_color, ambient_fore_color),
+    // so a colour set on a container flows to every descendant that sets
+    // none. An inherited background is not painted again over the bounds
+    // (the ancestor already painted it) and does not fill a well: an
+    // editor's or a list's well keeps the theme's window colour, as WinForms'
+    // text and list boxes keep SystemColors.Window under a coloured form.
+    // A check box's box is a well too: it keeps the theme's colour under an
+    // inherited background, but the check box's own background fills it,
+    // where WinForms' box stays white. Setting or clearing one repaints the
+    // control and its descendants.
+    [[nodiscard]] std::optional<Color> back_color() const noexcept { return back_color_; }
+    void set_back_color(Color color);
+    void clear_back_color();
+    [[nodiscard]] std::optional<Color> fore_color() const noexcept { return fore_color_; }
+    void set_fore_color(Color color);
+    void clear_fore_color();
+    // This control's own colour, else its nearest ancestor's, else none.
+    [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
+    [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
     [[nodiscard]] std::span<const OwnerDecorationRecipe>
     owned_decorations() const noexcept {
         return owned_decorations_;
@@ -1101,6 +1136,9 @@ private:
     [[nodiscard]] bool initialization_blocked() const noexcept;
     void verify_dispose_thread() override;
     void paint_authored_surface(Painter& painter, Rect bounds) const;
+    // Fills `bounds` with this control's own background colour, unless it
+    // has none or the window is in forced high contrast.
+    void paint_back_color(Painter& painter, Rect bounds) const;
     void paint_owned_decorations(Painter& painter, Rect bounds,
                                  OwnerDecorationLayer layer) const;
     [[nodiscard]] Insets effective_visual_outsets() const noexcept;
@@ -1127,6 +1165,15 @@ private:
         auto_size_mode_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         layout_direction_property_enum();
+    // The cursor property: "inherit" (no cursor of its own) or a kind.
+    [[nodiscard]] BindingValue cursor_property_value() const;
+    void set_cursor_property_value(const BindingValue& value);
+    // back_color and fore_color as nullable colour properties: null for no
+    // colour of the control's own, and setting null clears it.
+    [[nodiscard]] BindingValue back_color_property_value() const;
+    void set_back_color_property_value(const BindingValue& value);
+    [[nodiscard]] BindingValue fore_color_property_value() const;
+    void set_fore_color_property_value(const BindingValue& value);
     [[nodiscard]] static BindingValue current_enum_property_value(
         std::shared_ptr<const PropertyEnumDescriptor> enumeration,
         std::int64_t value);
@@ -1198,6 +1245,8 @@ private:
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     std::optional<SurfaceMaterial> authored_surface_material_;
+    std::optional<Color> back_color_;
+    std::optional<Color> fore_color_;
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
     std::string accessible_name_;

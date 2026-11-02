@@ -131,6 +131,16 @@ gui_forms::Control
 
       **authored_surface_material** : ``std::optional<SurfaceMaterial>``
 
+      **back_color** : ``std::optional<Color>``
+         The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Setting or clearing one repaints the control and its descendants.
+
+      **fore_color** : ``std::optional<Color>``
+
+      **ambient_back_color** : ``std::optional<Color>``, read-only
+         This control's own colour, else its nearest ancestor's, else none.
+
+      **ambient_fore_color** : ``std::optional<Color>``, read-only
+
       **owned_decorations** : ``std::span<const OwnerDecorationRecipe>``
 
       **visual_status** : ``ControlVisualStatus``, default ``ControlVisualStatus::normal``
@@ -448,6 +458,10 @@ gui_forms::Control
       * - :cpp:func:`clear_theme_override <gui_forms::Control::clear_theme_override>`
         - Removes :cpp:func:`theme_override <gui_forms::Control::theme_override>`, so the subtree inherits its theme again.
       * - :cpp:func:`clear_authored_surface_material <gui_forms::Control::clear_authored_surface_material>`
+        -  
+      * - :cpp:func:`clear_back_color <gui_forms::Control::clear_back_color>`
+        -  
+      * - :cpp:func:`clear_fore_color <gui_forms::Control::clear_fore_color>`
         -  
       * - :cpp:func:`clear_owned_decorations <gui_forms::Control::clear_owned_decorations>`
         -  
@@ -783,6 +797,22 @@ gui_forms::Control
    .. cpp:function:: const std::optional<SurfaceMaterial>& authored_surface_material() const noexcept
 
    .. cpp:function:: void set_authored_surface_material(SurfaceMaterial material)
+
+   .. cpp:function:: std::optional<Color> back_color() const noexcept
+
+      The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Setting or clearing one repaints the control and its descendants.
+
+   .. cpp:function:: void set_back_color(Color color)
+
+   .. cpp:function:: std::optional<Color> fore_color() const noexcept
+
+   .. cpp:function:: void set_fore_color(Color color)
+
+   .. cpp:function:: std::optional<Color> ambient_back_color() const noexcept
+
+      This control's own colour, else its nearest ancestor's, else none.
+
+   .. cpp:function:: std::optional<Color> ambient_fore_color() const noexcept
 
    .. cpp:function:: std::span<const OwnerDecorationRecipe> owned_decorations() const noexcept
 
@@ -1305,6 +1335,10 @@ gui_forms::Control
       Removes :cpp:func:`theme_override <gui_forms::Control::theme_override>`, so the subtree inherits its theme again.
 
    .. cpp:function:: void clear_authored_surface_material()
+
+   .. cpp:function:: void clear_back_color()
+
+   .. cpp:function:: void clear_fore_color()
 
    .. cpp:function:: void clear_owned_decorations()
 

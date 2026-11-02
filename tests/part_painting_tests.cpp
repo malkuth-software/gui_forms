@@ -511,6 +511,75 @@ void authored_colors(const Control& control) {
 }
 
 // A clear plate: one solid fill with no coverage.
+// Control colours (WinForms' BackColor and ForeColor): a part without its
+// own authored colours takes its control's; a container's colours flow to
+// descendants that set none; an inherited background leaves wells alone
+// while the control's own fills them; a part's own colours stand over the
+// control's; and disabled text stays the theme's.
+void control_colors() {
+    const Color ground = Color::rgba(240, 200, 90);
+    const Color ink = Color::rgba(30, 90, 40);
+    const Color own = Color::rgba(200, 230, 250);
+    const Color part_ground = Color::rgba(90, 40, 120);
+    const std::shared_ptr<Control> parent = make_control<Control>(StableId("part.colors"));
+    const std::shared_ptr<Control> child = make_control<Control>(StableId("part.colors.child"));
+    (*parent).add_child(child);
+    (*parent).set_back_color(ground);
+    (*parent).set_fore_color(ink);
+    require(!(*child).back_color() && !(*child).fore_color() && (*child).ambient_back_color() == ground &&
+                (*child).ambient_fore_color() == ink,
+            "a control without its own colours takes its parent's");
+
+    PartPaint face;
+    face.role = PartRole::face;
+    face.family = ControlVisualRole::button;
+    face.bounds = {0.0, 0.0, 60.0, 24.0};
+    RecordingPainter inherited_face;
+    paint_part(inherited_face, *child, face);
+    require(recorded(inherited_face, "fill", ground) || recorded(inherited_face, "fill_rounded", ground),
+            "a face takes an inherited background");
+    PartPaint well = face;
+    well.role = PartRole::well;
+    RecordingPainter inherited_well;
+    paint_part(inherited_well, *child, well);
+    require(!recorded(inherited_well, "fill", ground) && !recorded(inherited_well, "fill_rounded", ground),
+            "an inherited background leaves a well alone");
+    (*child).set_back_color(own);
+    RecordingPainter own_well;
+    paint_part(own_well, *child, well);
+    require(recorded(own_well, "fill", own) || recorded(own_well, "fill_rounded", own),
+            "a control's own background fills its well");
+    face.authored_background = part_ground;
+    RecordingPainter part_face;
+    paint_part(part_face, *child, face);
+    const bool part_filled = recorded(part_face, "fill", part_ground) || recorded(part_face, "fill_rounded", part_ground);
+    const bool own_filled = recorded(part_face, "fill", own) || recorded(part_face, "fill_rounded", own);
+    require(part_filled && !own_filled, "a part's own authored background stands over the control's");
+
+    PartPaint label;
+    label.role = PartRole::label;
+    label.family = ControlVisualRole::button;
+    label.bounds = {0.0, 0.0, 60.0, 24.0};
+    label.text = "Cell";
+    RecordingPainter inherited_label;
+    paint_part(inherited_label, *child, label);
+    require(recorded(inherited_label, "text", ink), "a label draws in an inherited foreground");
+    label.states.insert(AnatomyState::disabled);
+    const ControlVisualContext off = part_visual_context(*child, label.states);
+    const Color muted = (*child).effective_theme().resolve(label.family, off).muted_text;
+    RecordingPainter disabled_label;
+    paint_part(disabled_label, *child, label);
+    require(recorded(disabled_label, "text", muted) && !recorded(disabled_label, "text", ink),
+            "a disabled label keeps the theme's disabled text under a control's foreground");
+
+    (*child).clear_back_color();
+    require((*child).ambient_back_color() == ground, "clearing a control's colour restores its parent's");
+    (*parent).clear_back_color();
+    (*parent).clear_fore_color();
+    require(!(*child).ambient_back_color() && !(*child).ambient_fore_color(),
+            "with no colours set anywhere the theme's stand");
+}
+
 bool clear_fill(const MaterialFillLayer& fill) noexcept {
     const bool clear = fill.kind == MaterialFillKind::solid && fill.color.alpha == 0U;
     return clear;
@@ -576,8 +645,9 @@ int main() {
     theme_without_overlay_shadow();
     content_colors(*control);
     authored_colors(*control);
+    control_colors();
     families();
     std::cout << "by-role paint path: silent roles, surfaces, cues, marks, text, states, overlay shadow, "
-                 "content colours, authored colours and families passed\n";
+                 "content colours, authored colours, control colours and families passed\n";
     return 0;
 }

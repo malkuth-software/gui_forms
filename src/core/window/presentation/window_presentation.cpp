@@ -1,3 +1,4 @@
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/live_surface.hpp"
 
 #include "../../scheduler/request/scheduled_frame_request.hpp"
@@ -449,6 +450,9 @@ std::optional<PaintReceipt> Window::paint_rectangles(
         return std::nullopt;
     }
     if (occluded_) return std::nullopt;
+    // The lease this paint starts, when it paints anything.
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::paint_pass, (*root_).stable_id().value(), std::string_view{},
+                                        paint_leases_started_ + 1U);
     ensure_layout(true);
 
     if (!(*root_).is_alive()) {

@@ -12,7 +12,7 @@ typed records (`(*bar).parts().thumb`) and registers handlers through each type'
 (`(*button).clicked()`). An interaction's payload is the handler's argument types; *by
 reference* marks a payload the handler receives by mutable reference.
 
-Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `bounds`, `causes_validation`, `dock`, `enabled`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
+Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `cursor`, `dock`, `enabled`, `fore_color`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
 Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
 
@@ -77,7 +77,7 @@ Transitions run on `opacity`, `scale`, `face`, `translate_x`, `translate_y` and 
 
 States: `normal`, `hot`, `pressed`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `content_padding` (insets), `font` (font), `image` (image), `text` (text).
+Properties beyond every control's: `content_padding` (insets), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -98,7 +98,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `content_padding` (insets), `font` (font), `image` (image), `text` (text).
+Properties beyond every control's: `content_padding` (insets), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -123,7 +123,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 States: `normal`, `hot`, `pressed`, `preselect`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `content_padding` (insets), `font` (font), `image` (image), `text` (text).
+Properties beyond every control's: `content_padding` (insets), `flat_border_width` (number), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -146,7 +146,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 States: `normal`, `hot`, `pressed`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `visited`.
 
-Properties beyond every control's: `content_padding` (insets), `font` (font), `image` (image), `text` (text).
+Properties beyond every control's: `content_padding` (insets), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -175,7 +175,7 @@ Properties beyond every control's: `content_padding` (insets), `font` (font), `i
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -207,7 +207,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`, `invalid`, `pending`.
 
-Properties beyond every control's: `text` (text).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `text` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -271,7 +271,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`, `invalid`, `pending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -318,7 +318,7 @@ Item system `bar_button`:
 
 Item states: `hot`, `pressed`, `checked`, `indeterminate`, `disabled`, `open`.
 
-Properties beyond every control's: `text` (text).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `text` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -337,7 +337,7 @@ Properties beyond every control's: `text` (text).
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `font` (font), `fore_color` (color), `maximum_lines` (unsigned_integer), `text` (text).
+Properties beyond every control's: `alignment` (enumeration), `font` (font), `maximum_lines` (unsigned_integer), `text` (text), `vertical_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -352,7 +352,7 @@ Properties beyond every control's: `font` (font), `fore_color` (color), `maximum
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `font` (font), `fore_color` (color), `line_height` (number), `text` (text), `text_align` (enumeration).
+Properties beyond every control's: `font` (font), `line_height` (number), `text` (text), `text_align` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -380,7 +380,7 @@ Properties beyond every control's: `font` (font), `fore_color` (color), `line_he
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `image` (image), `image_opacity` (number), `size_mode` (enumeration).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `image` (image), `image_opacity` (number), `size_mode` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -398,7 +398,7 @@ Properties beyond every control's: `image` (image), `image_opacity` (number), `s
 
 States: `normal`, `indeterminate`, `enabled`, `disabled`, `reduced_motion`.
 
-Properties beyond every control's: `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -427,7 +427,7 @@ Properties beyond every control's: `value` (number).
 
 States: `normal`, `hot`, `pressed`, `captured`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -469,7 +469,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -512,7 +512,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`, `checked`, `indeterminate`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -548,7 +548,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `items` (collection), `selected_index` (signed_integer), `text` (text).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selected_index` (signed_integer), `text` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -592,7 +592,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`, `open`, `closed`, `disabled`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -648,7 +648,7 @@ Item system `column`:
 
 Item states: `pressed`, `captured`, `current`. Application-defined: `sorted_ascending`, `sorted_descending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -828,7 +828,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`, `open`, `unavailable`, `disabled`. Application-defined: `pinned`, `stale`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -963,7 +963,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1003,7 +1003,7 @@ Item system `item`:
 
 Item states: `hot`, `current`, `disabled`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1029,7 +1029,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `hot`, `pressed`, `checked`, `indeterminate`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `text` (text).
+Properties beyond every control's: `check_state` (enumeration), `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1052,7 +1052,7 @@ Properties beyond every control's: `checked` (boolean), `content_padding` (inset
 
 States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `text` (text).
+Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1070,7 +1070,7 @@ Properties beyond every control's: `checked` (boolean), `content_padding` (inset
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -1091,7 +1091,7 @@ Properties beyond every control's: `value` (number).
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -1125,7 +1125,7 @@ Properties beyond every control's: `value` (number).
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `invalid`, `pending`.
 
-Properties beyond every control's: `value` (number).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -1158,7 +1158,7 @@ Properties beyond every control's: `value` (number).
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`, `invalid`, `pending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1186,7 +1186,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `invalid`, `pending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1219,7 +1219,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `invalid`, `pending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1248,7 +1248,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `property_sort` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1293,7 +1293,7 @@ Item system `item`:
 
 Item states: `open`, `closed`, `invalid`, `read_only`, `disabled`. Application-defined: `group_header`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1325,7 +1325,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1364,7 +1364,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `checked`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1452,7 +1452,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1480,7 +1480,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1508,7 +1508,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1535,7 +1535,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1563,7 +1563,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `hot`, `pressed`, `captured`, `selected`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1592,7 +1592,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1618,7 +1618,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -1644,7 +1644,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -1685,7 +1685,7 @@ Item system `item`:
 
 Item states: `selected`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -1928,7 +1928,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1953,7 +1953,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -1979,7 +1979,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2005,7 +2005,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2031,7 +2031,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2058,7 +2058,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2084,7 +2084,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2112,7 +2112,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -2139,7 +2139,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `hot`, `open`, `closed`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2167,7 +2167,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2209,7 +2209,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2235,7 +2235,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2262,7 +2262,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
 | Interaction | Payload |
 |---|---|
@@ -2281,7 +2281,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2302,7 +2302,7 @@ Properties beyond every control's: `value` (number).
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2323,7 +2323,7 @@ Properties beyond every control's: `value` (number).
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2813,7 +2813,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -2843,7 +2843,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|

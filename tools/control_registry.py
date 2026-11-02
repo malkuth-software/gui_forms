@@ -544,7 +544,7 @@ def render_abi_catalog(registry: Registry) -> str:
     for record in registry.records:
         lines.append(
             f"    {{{_cpp_string(record.id)}, {_cpp_string(record.type)}, "
-            f"&describe_type<{record.type}>, &create_type<{record.type}>}},"
+            f"&describe_type<{record.type}>, &create_type<{record.type}>, &is_exact_type<{record.type}>}},"
         )
     lines.append("}};")
     lines.append("")

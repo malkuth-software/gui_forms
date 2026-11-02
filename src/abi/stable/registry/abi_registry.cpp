@@ -2,10 +2,14 @@
 
 #include "abi_registry.hpp"
 
+#include "gui_forms/control.hpp"
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
 #include <cstring>
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms::abi1 {
@@ -113,20 +117,44 @@ gf_status read_callback(const gf_callback* callback, SlotIdentity slot, gf_callb
 }
 
 SubscriptionBinding::SubscriptionBinding(const gf_callback& callback, gf_subscription subscription,
-                                         const Control* source, std::string name) noexcept
+                                         const Component* source, std::string name) noexcept
     : callback_(callback), subscription_(subscription), source_(source), name_(std::move(name)) {}
 
 SubscriptionBinding::~SubscriptionBinding() {
     registry().end_subscription(subscription_);
 }
 
+namespace {
+
+// The subject of a shadow frame about component: a control's stable id,
+// nothing for other components.
+std::string_view frame_subject(const Component* component) noexcept {
+    const Control* control = dynamic_cast<const Control*>(component);
+    if (control == nullptr) {
+        return std::string_view{};
+    }
+    return (*control).stable_id().value();
+}
+
+} // namespace
+
 void SubscriptionBinding::emit(const gf_value* payload) noexcept {
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, frame_subject(source_), name_, 0U);
     gf_event event{};
     event.struct_size = sizeof(gf_event);
     event.sender = registry().identity_of(source_);
     event.name.data = name_.data();
     event.name.size = name_.size();
     event.payload = payload;
+    callback_.invoke(event);
+}
+
+void SubscriptionBinding::emit(gf_event& event) noexcept {
+    const ShadowFrameScope shadow_frame(ShadowFrameKind::event_callback, frame_subject(source_), name_, 0U);
+    event.struct_size = sizeof(gf_event);
+    event.sender = registry().identity_of(source_);
+    event.name.data = name_.data();
+    event.name.size = name_.size();
     callback_.invoke(event);
 }
 
@@ -167,7 +195,7 @@ gf_status HandleRegistry::enter_ui(SlotIdentity slot, bool bind) {
 }
 
 void HandleRegistry::complete_deferred() {
-    std::vector<Control::Ptr> ended;
+    std::vector<Component::Ptr> ended;
     {
         const std::scoped_lock lock(mutex_);
         ended.swap(deferred_);
@@ -212,7 +240,7 @@ HandleRegistry::ObjectSlot* HandleRegistry::object_slot_locked(gf_object object)
     return &slot;
 }
 
-gf_status HandleRegistry::find_object(gf_object object, SlotIdentity slot, Control::Ptr& control) {
+gf_status HandleRegistry::find_component(gf_object object, SlotIdentity slot, Component::Ptr& component) {
     if (object == 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the object is zero");
     }
@@ -221,14 +249,28 @@ gf_status HandleRegistry::find_object(gf_object object, SlotIdentity slot, Contr
     if (found == nullptr) {
         return fail(GF_STATUS_STALE_HANDLE, slot, "the object has ended (its last reference was released)");
     }
-    control = (*found).control;
+    component = (*found).object;
     return GF_STATUS_OK;
 }
 
-gf_object HandleRegistry::add_reference(const Control::Ptr& control) {
+gf_status HandleRegistry::find_object(gf_object object, SlotIdentity slot, Control::Ptr& control) {
+    Component::Ptr component;
+    const gf_status found = find_component(object, slot, component);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    Control::Ptr typed = std::dynamic_pointer_cast<Control>(component);
+    if (!typed) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, slot, "the object is a component, not a control");
+    }
+    control = std::move(typed);
+    return GF_STATUS_OK;
+}
+
+gf_object HandleRegistry::add_reference(const Component::Ptr& component) {
     const std::scoped_lock lock(mutex_);
-    const std::unordered_map<const Control*, std::uint32_t>::const_iterator existing =
-        object_index_.find(control.get());
+    const std::unordered_map<const Component*, std::uint32_t>::const_iterator existing =
+        object_index_.find(component.get());
     if (existing != object_index_.end()) {
         ObjectSlot& slot = objects_[(*existing).second - 1U];
         ++slot.references;
@@ -246,7 +288,7 @@ gf_object HandleRegistry::add_reference(const Control::Ptr& control) {
         index = free_objects_.back();
     }
     object_index_.reserve(object_index_.size() + 1U);
-    object_index_.emplace(control.get(), index);
+    object_index_.emplace(component.get(), index);
     if (free_objects_.empty()) {
         objects_.emplace_back();
     } else {
@@ -255,7 +297,7 @@ gf_object HandleRegistry::add_reference(const Control::Ptr& control) {
     ObjectSlot& slot = objects_[index - 1U];
     slot.occupied = true;
     slot.references = 1U;
-    slot.control = control;
+    slot.object = component;
     ++live_objects_;
     const gf_object created = encode_identity(Identity{index, slot.generation});
     return created;
@@ -277,15 +319,15 @@ gf_status HandleRegistry::retain(gf_object object, SlotIdentity slot) {
     return GF_STATUS_OK;
 }
 
-void HandleRegistry::drop_reference_locked(gf_object object, ObjectSlot& slot, Control::Ptr& ended) {
+void HandleRegistry::drop_reference_locked(gf_object object, ObjectSlot& slot, Component::Ptr& ended) {
     --slot.references;
     if (slot.references != 0U) {
         return;
     }
     const Identity identity = decode_identity(object);
-    object_index_.erase(slot.control.get());
-    ended = std::move(slot.control);
-    slot.control.reset();
+    object_index_.erase(slot.object.get());
+    ended = std::move(slot.object);
+    slot.object.reset();
     slot.occupied = false;
     slot.generation = next_generation(slot.generation);
     // free_objects_ has capacity for every slot (add_reference reserves it).
@@ -297,7 +339,7 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
     if (object == 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the object is zero");
     }
-    Control::Ptr ended;
+    Component::Ptr ended;
     bool on_ui_thread = false;
     {
         const std::scoped_lock lock(mutex_);
@@ -327,13 +369,28 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
     return GF_STATUS_OK;
 }
 
-gf_object HandleRegistry::identity_of(const Control* control) {
+gf_object HandleRegistry::identity_of(const Component* component) {
     const std::scoped_lock lock(mutex_);
-    const std::unordered_map<const Control*, std::uint32_t>::const_iterator found = object_index_.find(control);
+    const std::unordered_map<const Component*, std::uint32_t>::const_iterator found = object_index_.find(component);
     if (found == object_index_.end()) {
         return 0U;
     }
     const gf_object identity = encode_identity(Identity{(*found).second, objects_[(*found).second - 1U].generation});
+    return identity;
+}
+
+gf_object HandleRegistry::add_reference_if_known(const Component* component) {
+    const std::scoped_lock lock(mutex_);
+    const std::unordered_map<const Component*, std::uint32_t>::const_iterator found = object_index_.find(component);
+    if (found == object_index_.end()) {
+        return 0U;
+    }
+    ObjectSlot& slot = objects_[(*found).second - 1U];
+    if (slot.references == std::numeric_limits<std::uint64_t>::max()) {
+        return 0U;
+    }
+    ++slot.references;
+    const gf_object identity = encode_identity(Identity{(*found).second, slot.generation});
     return identity;
 }
 
@@ -352,7 +409,7 @@ HandleRegistry::SubscriptionSlot* HandleRegistry::subscription_slot_locked(gf_su
     return &slot;
 }
 
-gf_subscription HandleRegistry::reserve_subscription(const Control::Ptr& source) {
+gf_subscription HandleRegistry::reserve_subscription(const Component::Ptr& source) {
     const std::scoped_lock lock(mutex_);
     std::uint32_t index = 0U;
     if (free_subscriptions_.empty()) {
@@ -446,7 +503,7 @@ void HandleRegistry::end_disposed_subscriptions() {
             if (!slot.occupied) {
                 continue;
             }
-            const Control::Ptr source = slot.source.lock();
+            const Component::Ptr source = slot.source.lock();
             if (source && (*source).is_alive()) {
                 continue;
             }
@@ -502,16 +559,18 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
     std::size_t turn = 0U;
     for (turn = 0U; turn < waiting; ++turn) {
         PostedCall call{};
-        Control::Ptr target;
+        Component::Ptr target;
         {
             const std::scoped_lock lock(mutex_);
             call = std::move(posted_.front());
             posted_.pop_front();
             const ObjectSlot* found = object_slot_locked(call.target);
             // The posted reference keeps the target's identity live.
-            target = (*found).control;
+            target = (*found).object;
         }
         if ((*target).is_alive()) {
+            const ShadowFrameScope shadow_frame(ShadowFrameKind::posted_callback, frame_subject(target.get()),
+                                                std::string_view{}, 0U);
             gf_event event{};
             event.struct_size = sizeof(gf_event);
             event.sender = call.target;

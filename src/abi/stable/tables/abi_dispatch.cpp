@@ -4,6 +4,8 @@
 
 #include "../registry/abi_registry.hpp"
 
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
 #include <cstdint>
 #include <memory>
 
@@ -15,6 +17,7 @@ constexpr SlotIdentity run_pending_slot{GF_TABLE_DISPATCH, 1U};
 
 gf_status GF_CALL dispatch_begin_invoke(gf_object target, const gf_callback* callback) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(begin_invoke_slot.table_id, begin_invoke_slot.slot_index);
         gf_callback copy{};
         const gf_status read = read_callback(callback, begin_invoke_slot, copy);
         if (read != GF_STATUS_OK) {
@@ -34,6 +37,7 @@ gf_status GF_CALL dispatch_begin_invoke(gf_object target, const gf_callback* cal
 
 gf_status GF_CALL dispatch_run_pending(std::uint64_t* invoked) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(run_pending_slot.table_id, run_pending_slot.slot_index);
         if (invoked == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, run_pending_slot, "run_pending needs an output");
         }

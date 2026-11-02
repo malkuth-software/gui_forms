@@ -236,6 +236,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
+    src/core/diagnostics/shadow_frames/shadow_frames.cpp
     src/core/metrics/metrics/metrics.cpp
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
@@ -1958,6 +1959,11 @@ if(GUI_FORMS_BUILD_PAINT_PROFILE)
     target_link_libraries(gui_forms_paint_profile_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
 endif()
 
+# Stage C5: the cost of shadow frames, alone and over a window workload.
+# Built only when asked for.
+add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
+target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
+
 # SK2: the time each host spends presenting a frame, which the native jobs
 # measure (.github/workflows/native-platform.yml). Built only when asked for.
 if(TARGET gui_forms_application)
@@ -3457,6 +3463,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_program_options_tests tests/program_options_tests.cpp)
     target_link_libraries(gui_forms_program_options_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_program_options_tests COMMAND gui_forms_program_options_tests)
+
+    add_executable(gui_forms_shadow_frames_tests tests/shadow_frames_tests.cpp)
+    target_link_libraries(gui_forms_shadow_frames_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_shadow_frames_tests COMMAND gui_forms_shadow_frames_tests)
 
     add_executable(gui_forms_timer_tests tests/timer_tests.cpp)
     target_link_libraries(gui_forms_timer_tests PRIVATE gui_forms_core)

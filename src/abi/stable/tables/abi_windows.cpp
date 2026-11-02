@@ -5,9 +5,12 @@
 
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../windows/abi_window_handle.hpp"
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/window.hpp"
+
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -22,6 +25,7 @@ namespace {
 
 constexpr SlotIdentity run_slot{GF_TABLE_WINDOWS, 0U};
 constexpr SlotIdentity request_close_slot{GF_TABLE_WINDOWS, 1U};
+constexpr SlotIdentity create_slot{GF_TABLE_WINDOWS, 2U};
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
@@ -155,15 +159,24 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     if (entered != GF_STATUS_OK) {
         return entered;
     }
-    Control::Ptr control;
-    const gf_status found = registry().find_object(root, run_slot, control);
+    Component::Ptr object;
+    const gf_status found = registry().find_component(root, run_slot, object);
     if (found != GF_STATUS_OK) {
         return found;
     }
-    if (!(*control).is_alive()) {
-        return fail(GF_STATUS_DISPOSED, run_slot, "the root has been disposed");
+    // A window from create, or a root control the run makes a window for.
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    const Control::Ptr control = std::dynamic_pointer_cast<Control>(object);
+    if (handle == nullptr && control == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, run_slot, "run takes a window or a root control");
     }
-    if ((*control).parent() || (*control).attached()) {
+    if (!(*object).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, run_slot, "the window or root has been disposed");
+    }
+    if (handle != nullptr && !(*handle).owns_window()) {
+        return fail(GF_STATUS_INVALID_STATE, run_slot, "the window is running");
+    }
+    if (control != nullptr && ((*control).parent() || (*control).attached())) {
         return fail(GF_STATUS_INVALID_STATE, run_slot, "the root has a parent or is already in a window");
     }
     RunCallbacks callbacks{};
@@ -194,7 +207,13 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
         window_options.closed = RunClosed{&callbacks};
         // The window shares the library's resources: its theme, images and
         // published values (GF_TABLE_THEMES).
-        window = make_run_window(control, client_size);
+        if (handle != nullptr) {
+            Window& made = *(*handle).window();
+            made.resize(client_size);
+            engine().publish_all(made);
+        } else {
+            window = make_run_window(control, client_size);
+        }
     } catch (...) {
         disarm_all(callbacks);
         throw;
@@ -206,17 +225,27 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
     }
     // From here the callbacks are taken: they are released when this
     // function returns, whatever the run's result.
+    if (handle != nullptr) {
+        window = (*handle).take_for_run();
+    }
     ApplicationResult result{};
     try {
         result = Application::run(std::move(window), std::move(window_options));
     } catch (...) {
         engine().detach_window();
         registry().end_run();
+        if (handle != nullptr) {
+            (*handle).end_run();
+        }
         throw;
     }
     // A run that ended before closed (a host failure) leaves no window.
     engine().detach_window();
     registry().end_run();
+    // The run destroyed the window: components bound to it are unbound.
+    if (handle != nullptr) {
+        (*handle).end_run();
+    }
     // Releases that arrived during the last turn complete before run returns.
     static_cast<void>(registry().run_posted(0U));
     const gf_status status = application_status(result);
@@ -225,6 +254,7 @@ gf_status run_window(gf_object root, const gf_run_options* options) {
 
 gf_status GF_CALL windows_run(gf_object root, const gf_run_options* options) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(run_slot.table_id, run_slot.slot_index);
         const gf_status ran = run_window(root, options);
         return ran;
     } catch (...) {
@@ -234,12 +264,13 @@ gf_status GF_CALL windows_run(gf_object root, const gf_run_options* options) noe
 
 gf_status GF_CALL windows_request_close(gf_object root) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(request_close_slot.table_id, request_close_slot.slot_index);
         const gf_status entered = registry().enter_ui(request_close_slot, false);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        Control::Ptr control;
-        const gf_status found = registry().find_object(root, request_close_slot, control);
+        Component::Ptr object;
+        const gf_status found = registry().find_component(root, request_close_slot, object);
         if (found != GF_STATUS_OK) {
             return found;
         }
@@ -261,11 +292,49 @@ gf_status GF_CALL windows_request_close(gf_object root) noexcept {
     }
 }
 
+// A window over root, not yet running. Validated before anything is made.
+gf_status create_window(gf_object root, gf_object* made) {
+    if (made == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, "create needs a window output");
+    }
+    const gf_status entered = registry().enter_ui(create_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Control::Ptr control;
+    const gf_status found = registry().find_object(root, create_slot, control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    if (!(*control).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, create_slot, "the root has been disposed");
+    }
+    if ((*control).parent() || (*control).attached()) {
+        return fail(GF_STATUS_INVALID_STATE, create_slot, "the root has a parent or is already in a window");
+    }
+    const ApplicationWindowOptions defaults{};
+    std::unique_ptr<Window> window = make_run_window(control, defaults.initial_size);
+    const Component::Ptr handle = std::make_shared<WindowHandle>(std::move(window), control);
+    *made = registry().add_reference(handle);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_create(gf_object root, gf_object* window) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(create_slot.table_id, create_slot.slot_index);
+        const gf_status created = create_window(root, window);
+        return created;
+    } catch (...) {
+        return fail_with_current_exception(create_slot);
+    }
+}
+
 constexpr gf_windows_table table{
     .struct_size = sizeof(gf_windows_table),
     .abi_minor = GF_ABI_MINOR,
     .run = &windows_run,
     .request_close = &windows_request_close,
+    .create = &windows_create,
 };
 
 } // namespace

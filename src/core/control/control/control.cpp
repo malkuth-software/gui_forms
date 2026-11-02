@@ -1,6 +1,7 @@
 #include "gui_forms/control.hpp"
 
 #include "gui_forms/binding.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../../display/chunk/display_chunk.hpp"
@@ -267,7 +268,68 @@ Rect mirror_horizontally(Rect bounds, Rect frame) noexcept {
     return mirrored;
 }
 
+// The cursor property's choices: inherit, then each CursorKind at its
+// underlying value plus one.
+std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "cursor_kind",
+            {{"inherit", 0}, {"arrow", 1}, {"text", 2}, {"hand", 3}, {"crosshair", 4},
+             {"resize_horizontal", 5}, {"resize_vertical", 6}, {"wait", 7}, {"forbidden", 8},
+             {"resize_diagonal_down", 9}, {"resize_diagonal_up", 10}},
+            false});
+    return value;
+}
+
 } // namespace
+
+BindingValue Control::cursor_property_value() const {
+    std::int64_t value = 0;
+    if (cursor_) {
+        value = static_cast<std::int64_t>(*cursor_) + 1;
+    }
+    const BindingValue current = current_enum_property_value(cursor_kind_property_enum(), value);
+    return current;
+}
+
+void Control::set_cursor_property_value(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    if (choice.value == 0) {
+        set_cursor(std::nullopt);
+        return;
+    }
+    set_cursor(static_cast<CursorKind>(choice.value - 1));
+}
+
+BindingValue Control::back_color_property_value() const {
+    if (!back_color_) {
+        return BindingValue{};
+    }
+    return BindingValue{*back_color_};
+}
+
+void Control::set_back_color_property_value(const BindingValue& value) {
+    if (std::holds_alternative<std::monostate>(value)) {
+        clear_back_color();
+        return;
+    }
+    set_back_color(std::get<Color>(value));
+}
+
+BindingValue Control::fore_color_property_value() const {
+    if (!fore_color_) {
+        return BindingValue{};
+    }
+    return BindingValue{*fore_color_};
+}
+
+void Control::set_fore_color_property_value(const BindingValue& value) {
+    if (std::holds_alternative<std::monostate>(value)) {
+        clear_fore_color();
+        return;
+    }
+    set_fore_color(std::get<Color>(value));
+}
 
 std::shared_ptr<const PropertyEnumDescriptor>
 Control::dock_style_property_enum() {
@@ -434,6 +496,53 @@ Control::Control(StableId stable_id)
         RegisteredPropertySetter<RegisteredProperty::tool_tip_text>{this},
         RegisteredPropertyConnector<RegisteredProperty::tool_tip_text>{this},
         {}, {}});
+
+    PropertyDescriptor cursor;
+    cursor.name = "cursor";
+    cursor.kind = BindingValueKind::enumeration;
+    cursor.category = "Appearance";
+    cursor.description = "The pointer's cursor over this control; inherit uses the parent's.";
+    cursor.invalidation_effects = Dirty::none;
+    cursor.bindable = false;
+    cursor.enumeration = cursor_kind_property_enum();
+    define_bindable_property({
+        std::move(cursor),
+        detail::BoundMemberFunction<BindingValue (Control::*)() const>(*this, &Control::cursor_property_value),
+        detail::BoundMemberFunction<void (Control::*)(const BindingValue&)>(*this,
+                                                                             &Control::set_cursor_property_value),
+        {}, {}, {}});
+
+    // The authored colours (BackColor, ForeColor): null when the control has
+    // none of its own, so it shows its parent's (ambient_back_color).
+    PropertyDescriptor back_color;
+    back_color.name = "back_color";
+    back_color.kind = BindingValueKind::color;
+    back_color.category = "Appearance";
+    back_color.description = "The control's own background colour; null takes its parent's.";
+    back_color.invalidation_effects = Dirty::paint;
+    back_color.invalidates_subtree = true;
+    back_color.nullable = true;
+    define_bindable_property({
+        std::move(back_color),
+        detail::BoundMemberFunction<BindingValue (Control::*)() const>(*this, &Control::back_color_property_value),
+        detail::BoundMemberFunction<void (Control::*)(const BindingValue&)>(*this,
+                                                                             &Control::set_back_color_property_value),
+        {}, detail::BoundMemberFunction<void (Control::*)()>(*this, &Control::clear_back_color), {}, {}});
+
+    PropertyDescriptor fore_color;
+    fore_color.name = "fore_color";
+    fore_color.kind = BindingValueKind::color;
+    fore_color.category = "Appearance";
+    fore_color.description = "The control's own text colour; null takes its parent's.";
+    fore_color.invalidation_effects = Dirty::paint;
+    fore_color.invalidates_subtree = true;
+    fore_color.nullable = true;
+    define_bindable_property({
+        std::move(fore_color),
+        detail::BoundMemberFunction<BindingValue (Control::*)() const>(*this, &Control::fore_color_property_value),
+        detail::BoundMemberFunction<void (Control::*)(const BindingValue&)>(*this,
+                                                                             &Control::set_fore_color_property_value),
+        {}, detail::BoundMemberFunction<void (Control::*)()>(*this, &Control::clear_fore_color), {}, {}});
 
     PropertyDescriptor bounds;
     bounds.name = "bounds";
@@ -807,6 +916,52 @@ void Control::clear_authored_surface_material() {
     if (!authored_surface_material_) return;
     authored_surface_material_.reset();
     invalidate(Dirty::style | Dirty::paint);
+}
+
+void Control::set_back_color(Color color) {
+    require_mutable();
+    if (back_color_ == color) return;
+    back_color_ = color;
+    invalidate_subtree(Dirty::paint);
+}
+
+void Control::clear_back_color() {
+    require_mutable();
+    if (!back_color_) return;
+    back_color_.reset();
+    invalidate_subtree(Dirty::paint);
+}
+
+void Control::set_fore_color(Color color) {
+    require_mutable();
+    if (fore_color_ == color) return;
+    fore_color_ = color;
+    invalidate_subtree(Dirty::paint);
+}
+
+void Control::clear_fore_color() {
+    require_mutable();
+    if (!fore_color_) return;
+    fore_color_.reset();
+    invalidate_subtree(Dirty::paint);
+}
+
+std::optional<Color> Control::ambient_back_color() const noexcept {
+    for (const Control* current = this; current != nullptr;) {
+        if ((*current).back_color_) return (*current).back_color_;
+        const std::shared_ptr<Control> parent = (*current).parent_.lock();
+        current = parent.get();
+    }
+    return std::nullopt;
+}
+
+std::optional<Color> Control::ambient_fore_color() const noexcept {
+    for (const Control* current = this; current != nullptr;) {
+        if ((*current).fore_color_) return (*current).fore_color_;
+        const std::shared_ptr<Control> parent = (*current).parent_.lock();
+        current = parent.get();
+    }
+    return std::nullopt;
 }
 
 void Control::set_owned_decorations(
@@ -2720,6 +2875,13 @@ void Control::on_paint_overlay(Painter&, Rect) {}
 
 void Control::report_opaque_cover(const Painter& painter, const Rect local) const noexcept {
     if (window_ != nullptr) (*window_).note_opaque_cover(*this, painter, local);
+}
+
+void Control::paint_back_color(Painter& painter, Rect bounds) const {
+    if (!back_color_) return;
+    const bool high_contrast = window_ != nullptr && (*window_).presentation_settings().high_contrast;
+    if (high_contrast) return;
+    painter.fill_rect(bounds, *back_color_);
 }
 
 void Control::paint_authored_surface(Painter& painter, Rect bounds) const {

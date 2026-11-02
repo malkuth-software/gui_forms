@@ -8,6 +8,8 @@
 
 #include "gui_forms/anatomy.hpp"
 
+#include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -137,6 +139,7 @@ gf_status find_primitive(const Schema& built, std::uint64_t primitive, SlotIdent
 
 gf_status GF_CALL schema_vocabulary_count(gf_schema_vocabulary vocabulary, std::uint64_t* count) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(vocabulary_count_slot.table_id, vocabulary_count_slot.slot_index);
         if (count == nullptr || vocabulary >= vocabulary_list_count) {
             return fail(GF_STATUS_INVALID_ARGUMENT, vocabulary_count_slot,
                         "vocabulary_count needs a known vocabulary and an output");
@@ -157,6 +160,7 @@ gf_status GF_CALL schema_vocabulary_count(gf_schema_vocabulary vocabulary, std::
 gf_status GF_CALL schema_vocabulary_at(gf_schema_vocabulary vocabulary, std::uint64_t index,
                                        gf_utf8_view* name) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(vocabulary_at_slot.table_id, vocabulary_at_slot.slot_index);
         if (name == nullptr || vocabulary >= vocabulary_list_count) {
             return fail(GF_STATUS_INVALID_ARGUMENT, vocabulary_at_slot,
                         "vocabulary_at needs a known vocabulary and an output");
@@ -181,6 +185,7 @@ gf_status GF_CALL schema_vocabulary_at(gf_schema_vocabulary vocabulary, std::uin
 
 gf_status GF_CALL schema_type_count(std::uint64_t* count) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(type_count_slot.table_id, type_count_slot.slot_index);
         if (count == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, type_count_slot, "type_count needs an output");
         }
@@ -199,6 +204,7 @@ gf_status GF_CALL schema_type_count(std::uint64_t* count) noexcept {
 
 gf_status GF_CALL schema_find_type(gf_utf8_view name, std::uint64_t* type) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(find_type_slot.table_id, find_type_slot.slot_index);
         if (type == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, find_type_slot, "find_type needs an output");
         }
@@ -229,6 +235,7 @@ gf_status GF_CALL schema_find_type(gf_utf8_view name, std::uint64_t* type) noexc
 
 gf_status GF_CALL schema_type_at(std::uint64_t type, gf_schema_type* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(type_at_slot.table_id, type_at_slot.slot_index);
         const gf_status valid = check_record(record, type_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -268,6 +275,7 @@ gf_status GF_CALL schema_type_at(std::uint64_t type, gf_schema_type* record) noe
 gf_status GF_CALL schema_item_system_at(std::uint64_t type, std::uint64_t system,
                                         gf_schema_item_system* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(item_system_at_slot.table_id, item_system_at_slot.slot_index);
         const gf_status valid = check_record(record, item_system_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -309,6 +317,7 @@ gf_status GF_CALL schema_item_system_at(std::uint64_t type, std::uint64_t system
 gf_status GF_CALL schema_part_at(std::uint64_t type, std::uint64_t system, std::uint64_t part,
                                  gf_schema_part* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(part_at_slot.table_id, part_at_slot.slot_index);
         const gf_status valid = check_record(record, part_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -350,6 +359,7 @@ gf_status GF_CALL schema_part_at(std::uint64_t type, std::uint64_t system, std::
 gf_status GF_CALL schema_state_at(std::uint64_t type, std::uint64_t system, std::uint64_t part,
                                   std::uint64_t state, gf_utf8_view* name) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(state_at_slot.table_id, state_at_slot.slot_index);
         if (name == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, state_at_slot, "state_at needs an output");
         }
@@ -391,6 +401,7 @@ gf_status GF_CALL schema_state_at(std::uint64_t type, std::uint64_t system, std:
 gf_status GF_CALL schema_custom_state_at(std::uint64_t type, std::uint64_t system, std::uint64_t state,
                                          gf_utf8_view* name) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(custom_state_at_slot.table_id, custom_state_at_slot.slot_index);
         if (name == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, custom_state_at_slot, "custom_state_at needs an output");
         }
@@ -424,6 +435,7 @@ gf_status GF_CALL schema_custom_state_at(std::uint64_t type, std::uint64_t syste
 gf_status GF_CALL schema_property_at(std::uint64_t type, std::uint64_t property,
                                      gf_schema_property* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(property_at_slot.table_id, property_at_slot.slot_index);
         const gf_status valid = check_record(record, property_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -463,6 +475,7 @@ gf_status GF_CALL schema_property_at(std::uint64_t type, std::uint64_t property,
 gf_status GF_CALL schema_choice_at(std::uint64_t type, std::uint64_t property, std::uint64_t choice,
                                    gf_schema_choice* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(choice_at_slot.table_id, choice_at_slot.slot_index);
         const gf_status valid = check_record(record, choice_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -502,6 +515,7 @@ gf_status GF_CALL schema_choice_at(std::uint64_t type, std::uint64_t property, s
 gf_status GF_CALL schema_interaction_at(std::uint64_t type, std::uint64_t interaction,
                                         gf_schema_interaction* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(interaction_at_slot.table_id, interaction_at_slot.slot_index);
         const gf_status valid = check_record(record, interaction_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -536,6 +550,7 @@ gf_status GF_CALL schema_interaction_at(std::uint64_t type, std::uint64_t intera
 
 gf_status GF_CALL schema_engine(gf_schema_engine* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(engine_slot.table_id, engine_slot.slot_index);
         const gf_status valid = check_record(record, engine_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -569,6 +584,7 @@ gf_status GF_CALL schema_engine(gf_schema_engine* record) noexcept {
 
 gf_status GF_CALL schema_primitive_at(std::uint64_t primitive, gf_schema_primitive* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(primitive_at_slot.table_id, primitive_at_slot.slot_index);
         const gf_status valid = check_record(record, primitive_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -610,6 +626,7 @@ gf_status GF_CALL schema_primitive_at(std::uint64_t primitive, gf_schema_primiti
 gf_status GF_CALL schema_primitive_name_at(std::uint64_t primitive, gf_schema_primitive_list list,
                                            std::uint64_t index, gf_utf8_view* name) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(primitive_name_at_slot.table_id, primitive_name_at_slot.slot_index);
         if (name == nullptr || list > GF_SCHEMA_PRIMITIVE_LIST_INPUTS_READ) {
             return fail(GF_STATUS_INVALID_ARGUMENT, primitive_name_at_slot,
                         "primitive_name_at needs a known list and an output");
@@ -666,6 +683,7 @@ gf_schema_parameter_kind parameter_kind_of(PrimitiveParameterKind kind) noexcept
 gf_status GF_CALL schema_parameter_at(std::uint64_t primitive, std::uint64_t parameter,
                                       gf_schema_parameter* record) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(parameter_at_slot.table_id, parameter_at_slot.slot_index);
         const gf_status valid = check_record(record, parameter_at_slot);
         if (valid != GF_STATUS_OK) {
             return valid;
@@ -707,6 +725,7 @@ gf_status GF_CALL schema_parameter_at(std::uint64_t primitive, std::uint64_t par
 gf_status GF_CALL schema_parameter_choice_at(std::uint64_t primitive, std::uint64_t parameter,
                                              std::uint64_t choice, gf_utf8_view* name) noexcept {
     try {
+        const ShadowFrameScope shadow_frame(parameter_choice_at_slot.table_id, parameter_choice_at_slot.slot_index);
         if (name == nullptr) {
             return fail(GF_STATUS_INVALID_ARGUMENT, parameter_choice_at_slot, "parameter_choice_at needs an output");
         }
