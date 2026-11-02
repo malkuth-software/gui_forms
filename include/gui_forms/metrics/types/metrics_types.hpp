@@ -77,7 +77,14 @@ struct MetricsSnapshot {
     std::uint64_t callback_arbitration_retries{};
     std::uint64_t callback_arbitration_limit_hits{};
     std::uint64_t scheduled_frame_requests{};
+    // Frame polls that fired a frame deadline or a motion clock tick. UI
+    // timer callbacks are counted apart, in ui_timer_ticks, so an idle check
+    // sees each cause of a wake (owner, 2026-11-01).
     std::uint64_t scheduler_wakes{};
+    // UI timer callbacks fired (Window::schedule_ui_timer and the helpers
+    // built on it, such as AnimationTimer): one per due timer per poll; ticks
+    // skipped by a late poll are counted in frame_requests_coalesced.
+    std::uint64_t ui_timer_ticks{};
     std::uint64_t frame_deadlines_fired{};
     // Frames of the window's motion clock (T2 plan, phase E3): at most one
     // per frame poll, however many motion values move.

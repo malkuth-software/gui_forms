@@ -185,7 +185,7 @@ void test_same_target_deadlines_coalesce() {
             "all fired one-shot deadline tokens must disconnect");
     const MetricsSnapshot metrics = (*fixture.window).metrics_snapshot();
     require(metrics.scheduled_frame_requests == 2 && metrics.scheduler_wakes == 1 &&
-                metrics.frame_deadlines_fired == 2 &&
+                metrics.ui_timer_ticks == 0 && metrics.frame_deadlines_fired == 2 &&
                 metrics.frame_requests_coalesced == 1,
             "deadline coalescing metrics must remain truthful");
 }
@@ -210,6 +210,13 @@ void test_ui_timer_skips_catch_up_bursts() {
     require(delayed.ui_timer_ticks == 1 && delayed.coalesced_requests == 9 &&
                 delayed.next_wake == late + interval && calls == 2U,
             "late timer polling must emit one tick and skip missed intervals");
+    // Timer ticks are their own counter; they are not scheduler wakes, so an
+    // idle check can tell a ticking timer from a frame deadline (owner,
+    // 2026-11-01).
+    const MetricsSnapshot ticked = (*fixture.window).metrics_snapshot();
+    require(ticked.ui_timer_ticks == 2 && ticked.scheduler_wakes == 0 &&
+                ticked.frame_requests_coalesced == 9,
+            "UI timer ticks must be counted apart from scheduler wakes");
     timer.disconnect();
     static_cast<void>((*fixture.window).poll_frame_schedule(late));
     require(!(*fixture.window).next_wake().has_value() &&

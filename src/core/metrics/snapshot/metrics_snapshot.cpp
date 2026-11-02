@@ -90,6 +90,7 @@ std::string MetricsSnapshot::to_json() const {
            << callback_arbitration_limit_hits << ','
            << "\"scheduled_frame_requests\":" << scheduled_frame_requests << ','
            << "\"scheduler_wakes\":" << scheduler_wakes << ','
+           << "\"ui_timer_ticks\":" << ui_timer_ticks << ','
            << "\"frame_deadlines_fired\":" << frame_deadlines_fired << ','
            << "\"motion_clock_ticks\":" << motion_clock_ticks << ','
            << "\"frame_requests_coalesced\":" << frame_requests_coalesced << ','

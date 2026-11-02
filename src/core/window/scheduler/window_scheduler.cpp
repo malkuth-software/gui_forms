@@ -211,7 +211,7 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
     }
 
     compact_frame_requests();
-    metrics_.record_frame_poll(result.deadlines_fired, result.motion_clock_ticks,
+    metrics_.record_frame_poll(result.deadlines_fired, result.motion_clock_ticks, result.ui_timer_ticks,
                                result.coalesced_requests);
     result.damage_pending = needs_frame();
     result.next_wake = next_wake();

@@ -277,7 +277,7 @@ Related types
 
       Counts a scheduled frame request.
 
-   .. cpp:function:: void record_frame_poll(std::uint64_t deadlines_fired, std::uint64_t motion_clock_ticks, std::uint64_t coalesced_requests) noexcept
+   .. cpp:function:: void record_frame_poll(std::uint64_t deadlines_fired, std::uint64_t motion_clock_ticks, std::uint64_t ui_timer_ticks, std::uint64_t coalesced_requests) noexcept
 
       Accumulates deadlines, motion-clock frames, coalescing, and nonempty scheduler wakes.
 
@@ -501,6 +501,12 @@ Related types
    .. cpp:member:: std::uint64_t scheduled_frame_requests
 
    .. cpp:member:: std::uint64_t scheduler_wakes
+
+      Frame polls that fired a frame deadline or a motion clock tick. UI timer callbacks are counted apart, in ui_timer_ticks, so an idle check sees each cause of a wake (owner, 2026-11-01).
+
+   .. cpp:member:: std::uint64_t ui_timer_ticks
+
+      UI timer callbacks fired (Window::schedule_ui_timer and the helpers built on it, such as AnimationTimer): one per due timer per poll; ticks skipped by a late poll are counted in frame_requests_coalesced.
 
    .. cpp:member:: std::uint64_t frame_deadlines_fired
 
