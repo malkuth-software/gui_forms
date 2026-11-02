@@ -828,6 +828,15 @@ void test_spin_combo_and_picker_parts() {
     require((*combo).states().open && !(*combo).states().closed,
             "an open combo box publishes open");
     (*combo).set_dropped_down(false);
+    // Hot under the pointer (stage T4, hot states): the anatomy declares it.
+    PointerEvent over{};
+    over.action = PointerAction::move;
+    over.position = Point{40.0, 63.0};
+    static_cast<void>(window.dispatch_pointer(over));
+    require((*combo).states().hot, "a combo box under the pointer is hot");
+    over.position = Point{300.0, 150.0};
+    static_cast<void>(window.dispatch_pointer(over));
+    require(!(*combo).states().hot, "a combo box the pointer has left is not hot");
 
     require((*picker).parts().drop_down.present && !(*picker).parts().well.present,
             "a plain picker has a drop-down and no check box");

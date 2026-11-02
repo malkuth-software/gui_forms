@@ -1154,6 +1154,13 @@ private:
     void change_pointer_capture(const Control::Ptr& control,
                                 std::uint64_t pointer_id,
                                 bool revoked);
+    // Marks `control` as the pointer's hovered control or not, and repaints
+    // it when its anatomy declares a hot state (stage T4), so that a
+    // control drawing hot from its anatomy states needs no hover code.
+    void set_pointer_over(Control& control, bool over);
+    // Forgets the hovered control, if any, without events or repaint: the
+    // pointer left the window, or the control left the interaction.
+    void forget_hover() noexcept;
     void on_eligibility_changed(const Control::Ptr& control);
     void on_hit_test_transparency_changed(const Control::Ptr& control);
     void publish_control_availability(Control& control);

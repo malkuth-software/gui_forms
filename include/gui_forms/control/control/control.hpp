@@ -1229,6 +1229,11 @@ private:
     bool layout_collapsed_{};
     bool enabled_{true};
     bool focusable_{};
+    // Whether this is its window's hovered control, the one the pointer was
+    // last over (stage T4, hot states). Only the window sets it, before the
+    // control sees the enter or leave; base_anatomy_states reports it as
+    // hot.
+    bool pointer_over_{};
     bool causes_validation_{true};
     std::uint32_t tab_index_{};
     bool tab_stop_{true};

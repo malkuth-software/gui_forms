@@ -2,6 +2,7 @@
 #include "../src/core/damage/device_damage/device_damage.hpp"
 #include "support/named_callbacks.hpp"
 
+#include <array>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
@@ -500,6 +501,82 @@ void test_damage_take_commits_layout_generated_geometry_damage() {
     window.paint(painter, geometry_damage.bounds());
     require(!window.needs_frame(),
             "one host paint transaction must consume layout-generated damage completely");
+}
+
+// A control whose anatomy declares the hot state, as a stock control that
+// draws hot from its anatomy states does (stage T4).
+constexpr std::array<AnatomyState, 4> hot_pad_states{AnatomyState::normal, AnatomyState::enabled,
+                                                     AnatomyState::disabled, AnatomyState::hot};
+constexpr ControlAnatomy hot_pad_anatomy{
+    .control_id = "hot_pad",
+    .parts = {},
+    .states = hot_pad_states,
+    .custom_states = {},
+};
+
+class HotPad final : public Control {
+public:
+    explicit HotPad(StableId id) : Control(std::move(id)) {}
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override { return hot_pad_anatomy; }
+};
+
+bool is_hot(const Control& control) {
+    const bool hot = control.anatomy_states().contains(AnatomyState::hot);
+    return hot;
+}
+
+void move_pointer(Window& window, PointerAction action, Point position) {
+    PointerEvent event{};
+    event.action = action;
+    event.position = position;
+    static_cast<void>(window.dispatch_pointer(event));
+}
+
+// The window's hovered control is hot (stage T4): the pointer moving onto
+// a control makes it hot and off it makes it not, and the window repaints
+// only a control whose anatomy declares hot. Leaving the window, or the
+// hovered control leaving the interaction, clears it.
+void test_hovered_control_is_hot() {
+    std::shared_ptr<CountingControl> root = make_control<CountingControl>(StableId("hover.root"));
+    std::shared_ptr<HotPad> pad = make_control<HotPad>(StableId("hover.pad"));
+    (*pad).set_requested_bounds({0.0, 0.0, 50.0, 40.0});
+    (*pad).set_dock(DockStyle::left);
+    std::shared_ptr<CountingControl> quiet = make_control<CountingControl>(StableId("hover.quiet"));
+    (*quiet).set_requested_bounds({0.0, 0.0, 50.0, 40.0});
+    (*quiet).set_dock(DockStyle::left);
+    (*root).add_child(pad);
+    (*root).add_child(quiet);
+    const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{200.0, 40.0});
+    Window& window = *held_window;
+    window.perform_layout();
+    NullPainter painter;
+    DamageRegion initial = window.take_damage();
+    window.paint(painter, initial.bounds());
+    require(!is_hot(*pad) && !is_hot(*quiet), "nothing is hot before the pointer arrives");
+
+    const Rect pad_bounds = (*pad).absolute_bounds();
+    move_pointer(window, PointerAction::move, Point{10.0, 10.0});
+    require(is_hot(*pad) && !is_hot(*quiet), "the control under the pointer is hot");
+    const DamageRegion entered = window.take_damage();
+    require(!entered.empty() && entered.bounds().x >= pad_bounds.x &&
+                entered.bounds().x + entered.bounds().width <= pad_bounds.x + pad_bounds.width,
+            "a control declaring hot is repainted, within its bounds, as it becomes hot");
+    window.paint(painter, entered.bounds());
+
+    move_pointer(window, PointerAction::move, Point{70.0, 10.0});
+    require(!is_hot(*pad) && is_hot(*quiet), "moving off a control makes the next one hot instead");
+    const DamageRegion moved = window.take_damage();
+    require(!moved.empty() && moved.bounds().x + moved.bounds().width <= pad_bounds.x + pad_bounds.width,
+            "only the control declaring hot is repainted; the quiet one reports hot without a repaint");
+    window.paint(painter, moved.bounds());
+
+    move_pointer(window, PointerAction::leave, Point{70.0, 10.0});
+    require(!is_hot(*quiet), "the pointer leaving the window leaves nothing hot");
+    move_pointer(window, PointerAction::move, Point{10.0, 10.0});
+    require(is_hot(*pad), "and returning makes the control under it hot again");
+
+    (*pad).set_enabled(false);
+    require(!is_hot(*pad), "a hovered control leaving the interaction is no longer hot");
 }
 
 void test_reentrant_layout_is_bounded() {
@@ -1080,6 +1157,7 @@ int main() {
         test_occluded_mutation_storm_has_one_exposure_wake();
         test_backend_replay_fault_and_retirement_never_issue_receipt();
         test_buffering_styles_are_retained_compatibility_facts();
+        test_hovered_control_is_hot();
         std::cout << "gui_forms_invalidation_damage_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

@@ -492,6 +492,11 @@ void test_recipe_lowering() {
     require(no_style != nullptr && (*no_style).outline_style == RecipeOutlineStyle::none && thick != nullptr &&
                 (*thick).number == 5.0,
             "none and CSS's thick");
+    const std::string_view dotted_sheet = "#pad { outline: 1px dotted green }";
+    const Compilation dotted = compile(dotted_sheet);
+    const RecipeDeclaration* const dots =
+        recipe_field_of(only_rule(dotted, dotted_sheet), RecipeField::outline_style);
+    require(dots != nullptr && (*dots).outline_style == RecipeOutlineStyle::dotted, "a dotted outline");
 
     const std::string_view shadow_sheet = "#pad { text-shadow: blue 1px 2px 3px }";
     const Compilation shadowed = compile(shadow_sheet);

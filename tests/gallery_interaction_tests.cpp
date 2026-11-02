@@ -31,6 +31,8 @@ public:
     }
     void fill_rect(gui_forms::Rect, gui_forms::Color) override { ++fills; }
     void stroke_rect(gui_forms::Rect, gui_forms::Color, double) override { ++strokes; }
+    void fill_rounded_rect(gui_forms::Rect, double, gui_forms::Color) override { ++fills; }
+    void stroke_rounded_rect(gui_forms::Rect, double, gui_forms::Color, double) override { ++strokes; }
     void draw_line(gui_forms::Point, gui_forms::Point, gui_forms::Color, double) override {
         ++lines;
     }
@@ -226,8 +228,8 @@ int main()
     CountingPainter painter;
     (*window).paint(painter, {0.0, 0.0, 1280.0, 820.0});
     expect(painter.saves == painter.restores, "painter state is balanced");
-    expect(painter.fills > 10 && painter.lines > 10 && painter.texts > 10,
-           "gallery paints classic surfaces, relief, and labels");
+    expect(painter.fills > 10 && painter.lines + painter.strokes > 10 && painter.texts > 10,
+           "gallery paints surfaces, edges, and labels");
     expect(painter.images == 1,
            "Gallery replays exactly one validated PNG status resource");
     expect(painter.observed_role("Apply", gui_forms::FontRole::control) &&

@@ -3231,6 +3231,7 @@ AnatomyStateSet Control::base_anatomy_states() const {
     } else {
         states.insert(AnatomyState::disabled);
     }
+    if (pointer_over_) states.insert(AnatomyState::hot);
     if (window_ != nullptr) {
         const Ptr focused = (*window_).focused_control();
         if (focused.get() == this) {

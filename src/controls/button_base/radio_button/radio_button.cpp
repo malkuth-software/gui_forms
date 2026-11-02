@@ -2,6 +2,7 @@
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -205,76 +206,67 @@ RadioButton::States RadioButton::states() const {
     return record;
 }
 
+// The well, its mark (the dot, or the toggle's knob) and the focus cue are
+// parts the theme's engine draws, in the control's anatomy states; a style
+// override supplies the well's ground and the ink of the mark and the label
+// as authored colours (T4-1), and a disabled radio button keeps the theme's
+// disabled text.
 void RadioButton::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    if (!has_style_override()) {
-        const double indicator_width =
-            indicator_style_ == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
-        const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
-        const Rect indicator_bounds{1.0, top, indicator_width, 15.0};
-        const ControlVisualContext context = visual_context(
-            hovered_visual(), pressed_visual(), checked_, focus_cue_visible());
-        const ControlVisualRecipe& recipe = effective_theme().resolve(
-            ControlVisualRole::choice, context);
-        SurfaceMaterial indicator = recipe.material;
-        indicator.corner_radius = 7.5;
-        paint_surface_material(painter, indicator_bounds, indicator);
-        if (indicator_style_ == ChoiceIndicatorStyle::toggle) {
-            const double knob_x = checked_ ? indicator_bounds.x +
-                    indicator_bounds.width - 13.0 : indicator_bounds.x + 2.0;
-            painter.fill_rounded_rect(
-                {knob_x, indicator_bounds.y + 2.0, 11.0, 11.0}, 5.5,
-                recipe.text);
-        } else if (checked_) {
-            painter.fill_rounded_rect(
-                {indicator_bounds.x + 4.0, indicator_bounds.y + 4.0,
-                 7.0, 7.0}, 3.5, recipe.glyph);
-        }
-        paint_button_content(
-            painter,
-            {indicator_bounds.x + indicator_bounds.width + 1.0, 0.0,
-             std::max(0.0, bounds.width - indicator_bounds.x -
-                                   indicator_bounds.width - 1.0),
-             bounds.height},
-            display_text(), recipe.text, {}, checked_);
-        paint_theme_cues(painter, bounds, recipe, context);
-        return;
-    }
-    const BasicControlStyle& colors = style();
-    const double indicator_width =
-        indicator_style_ == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
+    const bool toggle = indicator_style_ == ChoiceIndicatorStyle::toggle;
+    const double indicator_width = toggle ? 30.0 : 15.0;
     const double top = std::max(1.0, (bounds.height - 15.0) * 0.5);
-    if (indicator_style_ == ChoiceIndicatorStyle::toggle) {
-        const Rect track{1.0, top, indicator_width, 15.0};
-        painter.fill_rect(track, checked_ ? colors.accent : colors.border);
-        const double knob_x = checked_ ? track.x + track.width - 13.0
-                                       : track.x + 2.0;
-        painter.fill_rect({knob_x, track.y + 2.0, 11.0, 11.0}, colors.paper);
-        paint_button_content(
-            painter,
-            {track.x + track.width + 1.0, 0.0,
-             std::max(0.0, bounds.width - track.x - track.width - 1.0),
-             bounds.height},
-            display_text(), effectively_enabled() ? colors.text : colors.disabled_text, {}, checked_);
-        return;
+    const Rect box{1.0, top, indicator_width, 15.0};
+    const AnatomyStateSet states = anatomy_states();
+    std::optional<Color> ground{};
+    std::optional<Color> ink{};
+    if (has_style_override()) {
+        const BasicControlStyle& colors = style();
+        ground = colors.paper;
+        ink = colors.text;
     }
-    const Color ring = indicator_style_ == ChoiceIndicatorStyle::modern && checked_
-        ? colors.accent : colors.border;
-    fill_radio_disc(painter, 1.0, top, ring, false);
-    fill_radio_face(painter, 1.0, top, colors.paper);
-    if (checked_) {
-        fill_radio_disc(painter, 1.0, top,
-                        indicator_style_ == ChoiceIndicatorStyle::modern
-                            ? colors.accent : colors.dark_border,
-                        true);
+    PartPaint well;
+    well.family = ControlVisualRole::choice;
+    well.role = PartRole::well;
+    well.bounds = box;
+    well.states = states;
+    well.corner_radius = 7.5;
+    well.authored_background = ground;
+    well.key = PartKey{"well", {}, {}};
+    paint_part(painter, *this, well);
+    if (toggle || checked_) {
+        PartPaint indicator;
+        indicator.family = ControlVisualRole::choice;
+        indicator.role = PartRole::indicator;
+        indicator.states = states;
+        indicator.authored_foreground = ink;
+        indicator.key = PartKey{"indicator", {}, {}};
+        if (toggle) {
+            const double knob_x = checked_ ? box.x + box.width - 13.0 : box.x + 2.0;
+            indicator.mark = PartMark::toggle_knob;
+            indicator.bounds = {knob_x, box.y + 2.0, 11.0, 11.0};
+        } else {
+            indicator.mark = PartMark::radio_dot;
+            indicator.bounds = {box.x + 4.0, box.y + 4.0, 7.0, 7.0};
+        }
+        paint_part(painter, *this, indicator);
     }
-    paint_button_content(
-        painter, {17.0, 0.0, std::max(0.0, bounds.width - 17.0), bounds.height},
-        display_text(), effectively_enabled() ? colors.text : colors.disabled_text, {}, checked_);
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const ControlVisualRecipe& recipe = effective_theme().resolve(ControlVisualRole::choice, context);
+    const Color text = ink && effectively_enabled() ? *ink : recipe.text;
+    const Rect content{box.x + box.width + 1.0, 0.0,
+                       std::max(0.0, bounds.width - box.x - box.width - 1.0), bounds.height};
+    paint_button_content(painter, content, display_text(), text, {}, checked_);
+    PartPaint focus;
+    focus.family = ControlVisualRole::choice;
+    focus.role = PartRole::focus;
+    focus.bounds = bounds;
+    focus.states = states;
+    focus.key = PartKey{"focus", {}, {}};
+    paint_part(painter, *this, focus);
 }
 
 Insets RadioButton::visual_outsets() const noexcept {
-    if (has_style_override()) return {};
     const ControlVisualContext context = visual_context(
         hovered_visual(), pressed_visual(), checked_, focus_cue_visible());
     return surface_material_visual_outsets(

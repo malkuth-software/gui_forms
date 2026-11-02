@@ -380,41 +380,73 @@ struct PageDigest final {
 // changed their first colour and nothing else; those pages were recorded
 // again.
 //
+// Buttons with a style override paint through the theme engine (T4 phase
+// 4, hot states option 1): the override supplies the face's authored
+// colour, and the theme supplies the shape, edge, states and cues. On every
+// page the navigation buttons, and the page's own overridden buttons,
+// changed from the classic relief (a flat fill, its light and dark lines
+// and an inner highlight, and the command style's left accent bar) to the
+// theme's rounded face in the override's face colour with the theme's
+// edge: 1690 fill_rect, 849 stroke_rect and 325 draw_line commands became
+// 848 rounded faces (save, clip, fill, restore) and 849 rounded edges. The
+// text of six disabled overridden buttons on text-and-input and
+// commands-and-menus took the theme's disabled ink (#848f99 for #858f98),
+// as authored colours leave disabled text to the theme (T4-1). Nothing
+// else changed; every page was recorded again.
+//
+// Check boxes and radio buttons paint through the theme engine (T4 phase
+// 4, hot states option 1): the well, the mark and the focus cue are parts,
+// and a style override supplies the well's ground and the ink of the mark
+// and label. Themed choices drew the same commands as before; the
+// overridden ones on basics, choices-and-sections and value-editors changed
+// from the classic boxes and stepped discs (fill_rect rows and relief
+// lines) to the theme's rounded wells in the override's paper with the
+// theme's edge and marks. Their text did not change; those three pages
+// were recorded again.
+//
+// ComboBox paints through the theme engine and declares hot (T4 phase 4):
+// the well, drop-down button, divider, arrow and ring are parts. Themed
+// combo boxes drew the same pixels, the arrow's four rows now listed tip
+// first (collections-and-popups, values-and-spinners, value-editors); the
+// overridden one on value-editors changed from the panel's flat face and
+// relief lines to the theme's rounded well and button in the override's
+// background. Those three pages were recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 31> expected_digests{{
-    {"basics", 0x895cec1e0b9bad22ULL},
-    {"values", 0xd02f465db04cab37ULL},
-    {"retained-rows", 0x311f34dafb3f1fa0ULL},
-    {"instrument", 0x41c4dd4c4b26d348ULL},
-    {"control-spectrum", 0x88f46e5be00c611dULL},
-    {"ranges-and-progress", 0xa87a93119403429fULL},
-    {"containers-and-focus", 0x79e2f62333231f13ULL},
-    {"animation-laboratory", 0x2d916f4d69ed40b1ULL},
-    {"states-and-diagnostics", 0xe729c775f636e797ULL},
-    {"text-and-input", 0x892f83f92dd96c9cULL},
-    {"collections-and-popups", 0x4e0133a78d1c777cULL},
-    {"values-and-spinners", 0xb23a36f2d606d283ULL},
-    {"images-and-drawing", 0x9c31d93ea9b111b4ULL},
-    {"tabs-and-pages", 0xa84947b517c23551ULL},
-    {"checked-collections", 0xb2b4535e0625614dULL},
-    {"timing-and-tooltips", 0xc433483831cbd3a0ULL},
-    {"dates-and-calendar", 0xdbf648a8a44011b2ULL},
-    {"dialogs-and-host-services", 0x29f218d83b9afc85ULL},
-    {"css-layout-panels", 0x070e395e712b6045ULL},
-    {"retained-layout-panels", 0x5cdf1d058bb19b57ULL},
-    {"dock-and-anchor", 0x29f77f1f60f4879eULL},
-    {"docking-workspace", 0x0ae60d01ae07f40dULL},
-    {"commands-and-menus", 0xad66254dc8c0381dULL},
-    {"tree-and-object-views", 0xfd247bc2a83c680fULL},
-    {"choices-and-sections", 0x017f65da9377d3b5ULL},
-    {"value-editors", 0x942e403932ba873dULL},
-    {"responsive-layouts", 0x11d9d76fcba60db8ULL},
-    {"anchored-popups", 0x4b77d8054f5d42ceULL},
-    {"live-surfaces", 0xf21c5ed0a5c224f3ULL},
-    {"typography-and-inspection", 0x4ce9720ec50a2fb0ULL},
-    {"semantic-feedback", 0x5b8f39fc82e64f95ULL},
+    {"basics", 0x90bb349431563af2ULL},
+    {"values", 0xbb4905f0d13fa1fdULL},
+    {"retained-rows", 0xeaac0b7007c0dc4eULL},
+    {"instrument", 0x9175d9af67d4c1cfULL},
+    {"control-spectrum", 0x707a9a903373c445ULL},
+    {"ranges-and-progress", 0x64b83d8bf224433dULL},
+    {"containers-and-focus", 0x6c48cee0339300d1ULL},
+    {"animation-laboratory", 0x542b8d0c21121e6dULL},
+    {"states-and-diagnostics", 0xe3c512597da92c03ULL},
+    {"text-and-input", 0x7e98b7301c190d6fULL},
+    {"collections-and-popups", 0xc5ea7a18af64e3efULL},
+    {"values-and-spinners", 0x5d47033be32d26d2ULL},
+    {"images-and-drawing", 0x638c11f89b3be0c6ULL},
+    {"tabs-and-pages", 0x70e16b01b3d22cdfULL},
+    {"checked-collections", 0x4c2aeda56938097aULL},
+    {"timing-and-tooltips", 0xdec1abb7511851f6ULL},
+    {"dates-and-calendar", 0x6d237c1f3f462e4cULL},
+    {"dialogs-and-host-services", 0x55c611ffa8b50d03ULL},
+    {"css-layout-panels", 0x1481013d6683373bULL},
+    {"retained-layout-panels", 0x8affcbbf0ac3f3a5ULL},
+    {"dock-and-anchor", 0x1dfb92ebe158d490ULL},
+    {"docking-workspace", 0x61e086ed3a9f1c6bULL},
+    {"commands-and-menus", 0x90d7dd6d7df9085dULL},
+    {"tree-and-object-views", 0xf438014e8b43f0c1ULL},
+    {"choices-and-sections", 0xbe17ba0824754a9fULL},
+    {"value-editors", 0xa9cc9e42a5872cc3ULL},
+    {"responsive-layouts", 0x0165a2122f612232ULL},
+    {"anchored-popups", 0x2fa75c97d98572dbULL},
+    {"live-surfaces", 0xa03a5dddc0929445ULL},
+    {"typography-and-inspection", 0x2f076774d1c09b05ULL},
+    {"semantic-feedback", 0x68026f28dcaf1914ULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {

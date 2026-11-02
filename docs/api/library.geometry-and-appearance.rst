@@ -1013,6 +1013,10 @@ Types
 
    .. cpp:member:: bool authored_focus_outline
 
+   .. cpp:member:: bool dotted_focus
+
+      Whether the focus ring, the house ring or the authored outline, is drawn as dots (design language: the default theme's ring is dotted): square dots one focus width across, one every two widths, on the ring's square path (a dotted ring ignores the corner radius).
+
    .. cpp:member:: double default_width
 
       Default: ``{2.0}``.
@@ -5438,6 +5442,8 @@ Enumerations
    .. cpp:enumerator:: solid
 
    .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: dotted
 
 .. cpp:namespace:: gui_forms
 

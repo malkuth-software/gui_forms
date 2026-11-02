@@ -355,6 +355,26 @@ void gradients() {
     repeated.fills.push_back(MaterialFillLayer::repeating_linear(Point{0.0, 0.0}, Point{10.0, 0.0}, stops, 2U));
     const TestRaster stripes = draw(repeated, Size{20.0, 10.0}, 1.0);
     require(channel(stripes, 8U, 13U, 0U) == channel(stripes, 18U, 13U, 0U), "a repeat starts again each period");
+
+    // Stops are interpolated premultiplied, as CSS and the Skia painter
+    // interpolate them: white fading to transparent black stays white at
+    // every coverage, its premultiplied channels equal to its alpha. In
+    // straight alpha the run would pass through grey, the channels half
+    // the alpha at the middle.
+    SurfaceMaterial fading{};
+    fading.fills.clear();
+    const GradientStop to_clear[] = {GradientStop{0.0, Color{255, 255, 255, 255}}, GradientStop{1.0, clear}};
+    fading.fills.push_back(MaterialFillLayer::linear(Point{0.0, 0.5}, Point{1.0, 0.5}, to_clear, 2U));
+    const TestRaster faded = draw(fading, Size{20.0, 10.0}, 1.0);
+    bool white = true;
+    for (std::uint32_t column = 8U; column < 28U; ++column) {
+        const int alpha = channel(faded, column, 13U, 3U);
+        for (std::size_t index = 0U; index < 3U; ++index) {
+            white = white && std::abs(channel(faded, column, 13U, index) - alpha) <= 1;
+        }
+    }
+    const int middle = channel(faded, 18U, 13U, 3U);
+    require(white && middle > 96 && middle < 160, "a fade to transparent black stays white, half covered midway");
 }
 
 void keylines_and_inset_shadow() {
@@ -385,7 +405,7 @@ void keylines_and_inset_shadow() {
 
 // The reference hashes of the glow and gloss bakes, at scale 1 and 2.
 constexpr std::uint64_t expected_glow_hashes[] = {0x047bc7d0bde0012dULL, 0xda184a1654d76385ULL};
-constexpr std::uint64_t expected_gloss_hashes[] = {0x4507eda3b5101fcbULL, 0xce445232e6045c6dULL};
+constexpr std::uint64_t expected_gloss_hashes[] = {0x4507eda3b5101fcbULL, 0x56fd9fc391a1030dULL};
 
 // Checks `raster`'s hash against `expected`, or prints it in print mode.
 bool reference_matches(const TestRaster& raster, const char* name, std::uint64_t expected) {
@@ -1008,7 +1028,7 @@ struct ReferenceCase final {
 constexpr ReferenceCase reference_cases[] = {
     {"button_normal_1", ControlSurfaceState::normal, 1.0, 0xed9a62ab804b8e96ULL},
     {"button_hot_1", ControlSurfaceState::hot, 1.0, 0x660b69d77ff04a61ULL},
-    {"button_pressed_1", ControlSurfaceState::pressed, 1.0, 0x5c9d147f035bb561ULL},
+    {"button_pressed_1", ControlSurfaceState::pressed, 1.0, 0xef812e98de443b04ULL},
     {"button_normal_1.25", ControlSurfaceState::normal, 1.25, 0x2a9264cd54cf3516ULL},
     {"button_hot_1.25", ControlSurfaceState::hot, 1.25, 0xc834436ae1082069ULL},
     {"button_pressed_1.25", ControlSurfaceState::pressed, 1.25, 0x20ffbc54f04c58faULL},

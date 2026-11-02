@@ -1470,7 +1470,7 @@
         {"name": "drop_down", "role": "actuator", "composed_from": "button", "states": []},
         {"name": "disclosure", "role": "disclosure", "composed_from": null, "states": []}
       ],
-      "states": ["normal", "pressed", "captured", "enabled", "disabled", "focused", "focus_visible", "open", "closed"],
+      "states": ["normal", "hot", "pressed", "captured", "enabled", "disabled", "focused", "focus_visible", "open", "closed"],
       "custom_states": [],
       "item_systems": [],
       "properties": [

@@ -634,7 +634,51 @@ void families() {
 
 } // namespace
 
+// A dotted focus ring (design language: the default theme's ring) is square
+// dots one focus width across, one every two widths, centred on the ring the
+// solid stroke would follow: the house ring three units inside the bounds.
+void dotted_focus() {
+    const std::unique_ptr<ThemeDefinition> held_definition = test_support::professional_definition();
+    ThemeDefinition& definition = *held_definition;
+    definition.id = "dotted-focus";
+    for (ControlRoleRecipes& role : definition.roles) {
+        for (ControlVisualRecipe& recipe : role.ordinary) recipe.dotted_focus = true;
+        for (ControlVisualRecipe& recipe : role.selected) recipe.dotted_focus = true;
+    }
+    const std::shared_ptr<Control> control = make_control<Control>(StableId("part.dotted"));
+    (*control).set_theme_override(Theme::create(definition));
+    PartPaint focus;
+    focus.role = PartRole::focus;
+    focus.bounds = {0.0, 0.0, 40.0, 20.0};
+    focus.family = ControlVisualRole::button;
+    focus.states = states_of(AnatomyState::focus_visible);
+    RecordingPainter painter;
+    paint_part(painter, *control, focus);
+    const ControlVisualRecipe& recipe = (*control).effective_theme().resolve(
+        ControlVisualRole::button, part_visual_context(*control, focus.states));
+    require(recipe.dotted_focus && recipe.focus_width == 1.0, "the test theme's ring is dotted, one unit wide");
+    // The house ring inset by max(3, default width + 1) = 3: a 34 by 14
+    // ring whose stroke's dots start at (2.5, 2.5), 17 across and 7 down on
+    // each side.
+    const double inset = std::max(3.0, recipe.default_width + 1.0);
+    const double across = 40.0 - inset * 2.0;
+    const double down = 20.0 - inset * 2.0;
+    const std::size_t expected = static_cast<std::size_t>(std::ceil(across / 2.0) + std::ceil(down / 2.0)) * 2U;
+    bool squares = true;
+    bool inked = true;
+    for (const Operation& operation : painter.operations) {
+        squares = squares && operation.bounds.width == 1.0 && operation.bounds.height == 1.0;
+        inked = inked && operation.color == recipe.focus_ring;
+    }
+    require(painter.count("fill") == expected && painter.operations.size() == expected && squares && inked,
+            "a dotted ring is one-unit dots in the focus colour, one every two units, and no stroke");
+    const Operation& first = painter.operations.front();
+    require(first.bounds.x == inset - 0.5 && first.bounds.y == inset - 0.5,
+            "the first dot sits on the ring's top-left corner");
+}
+
 int main() {
+    dotted_focus();
     const std::shared_ptr<Control> control = make_control<Control>(StableId("part.painting"));
     silent_roles(*control);
     surfaces_and_cues(*control);

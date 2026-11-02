@@ -202,7 +202,7 @@ const ControlAnatomy& Button::anatomy() const noexcept {
 
 Button::Parts Button::button_parts() const {
     // Paint passes the selection to the image lookup only on the themed path.
-    const bool layout_selected = !has_style_override() && selected_;
+    const bool layout_selected = !paints_override_frame() && selected_;
     const bool command_alignment = visual_style_ == ButtonVisualStyle::command;
     const ButtonBase::Parts base = push_button_parts(layout_selected, command_alignment);
     Parts record;
@@ -247,11 +247,22 @@ Button::States Button::states() const {
 void Button::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const std::string display = display_text();
-    if (!has_style_override()) {
+    if (!paints_override_frame()) {
         const ControlVisualRole role = button_visual_role(visual_style_);
+        // An overridden accent button keeps its accent face and paper text;
+        // the other styles take the override's face and text.
+        std::optional<AuthoredButtonColours> authored{};
+        if (has_style_override()) {
+            const BasicControlStyle& colours = style();
+            const bool accent = visual_style_ == ButtonVisualStyle::accent;
+            const bool flat = visual_style_ == ButtonVisualStyle::flat;
+            const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
+            const Color text = accent ? colours.paper : colours.text;
+            authored = AuthoredButtonColours{face, text};
+        }
         paint_themed_button(painter, bounds, role, default_button_,
                             visual_style_ == ButtonVisualStyle::command,
-                            selected_);
+                            selected_, authored);
         return;
     }
     switch (visual_style_) {
@@ -310,7 +321,7 @@ SemanticDescriptor Button::semantic_descriptor() const {
 }
 
 Insets Button::visual_outsets() const noexcept {
-    if (has_style_override()) return {};
+    if (paints_override_frame()) return {};
     const ControlVisualRole role = button_visual_role(visual_style_);
     const ControlVisualContext context = visual_context(
         hovered_visual(), pressed_visual(), selected_, focus_cue_visible(),

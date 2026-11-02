@@ -1523,6 +1523,7 @@ bool Window::dispatch_pointer(PointerEvent event) {
                 leave.phase = EventPhase::target;
                 leave.handled = false;
                 metrics_.record_callback_emitted();
+                set_pointer_over(*previous_hover, false);
                 (*previous_hover).on_pointer(leave);
                 (*previous_hover).publish_change(
                     (*previous_hover).pointer_observed_, leave);
@@ -1535,6 +1536,7 @@ bool Window::dispatch_pointer(PointerEvent event) {
                 enter.phase = EventPhase::target;
                 enter.handled = false;
                 metrics_.record_callback_emitted();
+                set_pointer_over(*next_hover, true);
                 (*next_hover).on_pointer(enter);
                 (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
             }
@@ -1544,8 +1546,15 @@ bool Window::dispatch_pointer(PointerEvent event) {
         }
     } else if (event.action == PointerAction::down && tool_tip_presenter_) {
         (*tool_tip_presenter_).pointer_pressed();
-    } else if (event.action == PointerAction::leave && tool_tip_presenter_) {
-        (*tool_tip_presenter_).pointer_left();
+    } else if (event.action == PointerAction::leave) {
+        // The pointer left the window: nothing is hovered until it returns,
+        // and the control it was over is no longer hot. The leave is routed
+        // below as before.
+        if (Control::Ptr previous_hover = hovered_.lock()) {
+            set_pointer_over(*previous_hover, false);
+        }
+        hovered_.reset();
+        if (tool_tip_presenter_) (*tool_tip_presenter_).pointer_left();
     }
     Control::Ptr target = captured_.lock();
     if (!target) {
@@ -2227,7 +2236,7 @@ void Window::revoke_interaction_for_subtree(const Control::Ptr& control,
         metrics_.record_press_revocation();
     }
     if (contains_control(control, hovered_.lock())) {
-        hovered_.reset();
+        forget_hover();
     }
     if (contains_control(control, drag_target_.lock())) {
         cancel_drag();
@@ -2284,8 +2293,22 @@ void Window::on_hit_test_transparency_changed(const Control::Ptr& control) {
         pressed_.reset();
         metrics_.record_press_revocation();
     }
-    if (contains_control(control, hovered_.lock())) hovered_.reset();
+    if (contains_control(control, hovered_.lock())) forget_hover();
     if (contains_control(control, drag_target_.lock())) cancel_drag();
+}
+
+void Window::set_pointer_over(Control& control, bool over) {
+    if (control.pointer_over_ == over) return;
+    control.pointer_over_ = over;
+    const std::span<const AnatomyState> declared = control.anatomy().states;
+    const bool reads_hot = std::find(declared.begin(), declared.end(), AnatomyState::hot) != declared.end();
+    if (reads_hot) control.invalidate(Dirty::paint);
+}
+
+void Window::forget_hover() noexcept {
+    const Control::Ptr previous_hover = hovered_.lock();
+    if (previous_hover) (*previous_hover).pointer_over_ = false;
+    hovered_.reset();
 }
 
 void Window::publish_control_availability(Control& control) {

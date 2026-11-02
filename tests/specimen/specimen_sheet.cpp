@@ -363,6 +363,27 @@ void send_pointer(Window& window, PointerAction action, PointerButton button, Po
     static_cast<void>(window.dispatch_pointer(event));
 }
 
+// The point the pointer is driven to for hot and pressed: the control's
+// centre when the control itself is hit there, else the first point of a
+// grid over its bounds (row by row, nine by nine) that hits the control
+// itself rather than a child or a sibling over it, else the centre. A
+// composite control's centre often lies on a child (a tab control's page,
+// a panel's label), which would make the child hot instead.
+Point own_point(Window& window, const Control::Ptr& control) {
+    const Rect bounds = (*control).absolute_bounds();
+    const Point centre{bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
+    if (window.hit_test(centre) == control) return centre;
+    constexpr int grid = 9;
+    for (int row = 0; row < grid; ++row) {
+        for (int column = 0; column < grid; ++column) {
+            const Point point{bounds.x + bounds.width * (static_cast<double>(column) + 0.5) / grid,
+                              bounds.y + bounds.height * (static_cast<double>(row) + 0.5) / grid};
+            if (window.hit_test(point) == control) return point;
+        }
+    }
+    return centre;
+}
+
 // Puts `control` in `state`. False when the state does not apply to it: a
 // control that declares neither checked nor selected has no toggled column,
 // and one that refuses keyboard focus has no focus column. Toggled is the
@@ -370,17 +391,16 @@ void send_pointer(Window& window, PointerAction action, PointerButton button, Po
 // declares checked (a check box shown checked shows unchecked), a select
 // for one that declares selected.
 bool drive(Window& window, const Control::Ptr& control, SpecimenState state) {
-    const Rect bounds = (*control).absolute_bounds();
-    const Point centre{bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
+    const Point target = own_point(window, control);
     switch (state) {
     case SpecimenState::rest:
         return true;
     case SpecimenState::hot:
-        send_pointer(window, PointerAction::move, PointerButton::none, centre);
+        send_pointer(window, PointerAction::move, PointerButton::none, target);
         return true;
     case SpecimenState::pressed:
-        send_pointer(window, PointerAction::move, PointerButton::none, centre);
-        send_pointer(window, PointerAction::down, PointerButton::primary, centre);
+        send_pointer(window, PointerAction::move, PointerButton::none, target);
+        send_pointer(window, PointerAction::down, PointerButton::primary, target);
         return true;
     case SpecimenState::focus: {
         const bool focused =

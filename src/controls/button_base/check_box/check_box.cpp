@@ -2,6 +2,7 @@
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -196,6 +197,45 @@ constexpr ControlAnatomy check_box_anatomy{
 
 } // namespace
 
+namespace {
+
+// The well a check box's indicator sits in: 15 units high, centred, and
+// twice as wide for the toggle.
+Rect check_box_well(Rect bounds, ChoiceIndicatorStyle style) noexcept {
+    const double width = style == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
+    const Rect well{1.0, std::max(1.0, (bounds.height - 15.0) * 0.5), width, 15.0};
+    return well;
+}
+
+// The mark in the well: the check, the indeterminate bar, the toggle's knob
+// (checked or not), or none.
+PartMark check_box_mark(ChoiceIndicatorStyle style, CheckState state) noexcept {
+    const bool toggle = style == ChoiceIndicatorStyle::toggle;
+    if (state == CheckState::checked && !toggle) return PartMark::check;
+    if (state == CheckState::indeterminate) return PartMark::indeterminate;
+    if (toggle) return PartMark::toggle_knob;
+    return PartMark::none;
+}
+
+// Where `mark` is drawn in `well`; the knob sits right when checked.
+Rect check_box_mark_bounds(Rect well, PartMark mark, bool checked) noexcept {
+    switch (mark) {
+    case PartMark::check:
+        return {well.x + 2.0, well.y + 2.0, 12.0, 9.0};
+    case PartMark::indeterminate:
+        return {well.x + 4.0, well.y + 6.0, 8.0, 3.0};
+    case PartMark::toggle_knob: {
+        const double knob_x = checked ? well.x + well.width - 13.0 : well.x + 2.0;
+        const Rect knob{knob_x, well.y + 2.0, 11.0, 11.0};
+        return knob;
+    }
+    default: // check_box_mark gives no other mark: nothing is drawn.
+        return {};
+    }
+}
+
+} // namespace
+
 const ControlAnatomy& CheckBox::anatomy() const noexcept {
     return check_box_anatomy;
 }
@@ -205,8 +245,7 @@ void CheckBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
     if (appearance_ == CheckBoxAppearance::button) {
         // The button appearance is a push button whose selection is the
         // check state; it has a face and no well or indicator.
-        const bool layout_selected = !has_style_override() && checked();
-        const ButtonBase::Parts base = push_button_parts(layout_selected, false);
+        const ButtonBase::Parts base = push_button_parts(checked(), false);
         record.region = base.region;
         record.face = base.face;
         record.icon = base.icon;
@@ -216,23 +255,9 @@ void CheckBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
         return;
     }
     const Rect bounds = local_bounds();
-    const double indicator_width =
-        indicator_style_ == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
-    const Rect box{1.0, std::max(1.0, (bounds.height - 15.0) * 0.5),
-                   indicator_width, 15.0};
-    // The mark inside the well: the toggle's knob, the check stroke's extent
-    // or the indeterminate bar, as on_paint draws them.
-    Rect mark{};
-    if (indicator_style_ == ChoiceIndicatorStyle::toggle) {
-        const double knob_x = checked() ? box.x + box.width - 13.0 : box.x + 2.0;
-        mark = {knob_x, box.y + 2.0, 11.0, 11.0};
-    } else if (check_state_ == CheckState::checked) {
-        // Two-unit strokes through (3, 7), (6, 10) and (13, 3) from the box.
-        mark = {box.x + 2.0, box.y + 2.0, 12.0, 9.0};
-    } else if (check_state_ == CheckState::indeterminate) {
-        mark = has_style_override() ? Rect{box.x + 3.0, box.y + 6.0, 9.0, 4.0}
-                                    : Rect{box.x + 4.0, box.y + 6.0, 8.0, 3.0};
-    }
+    const Rect box = check_box_well(bounds, indicator_style_);
+    const PartMark mark_kind = check_box_mark(indicator_style_, check_state_);
+    const Rect mark = check_box_mark_bounds(box, mark_kind, checked());
     const Rect content_face{box.x + box.width + 1.0, 0.0,
                             std::max(0.0, bounds.width - box.x - box.width - 1.0),
                             bounds.height};
@@ -274,96 +299,64 @@ CheckBox::States CheckBox::states() const {
     return record;
 }
 
+// The button appearance paints as a themed push button. Otherwise the well,
+// its mark and the focus cue are parts the theme's engine draws, in the
+// control's anatomy states; a style override supplies the well's ground
+// and the ink of the mark and the label as authored colours (T4-1), and a
+// disabled check box keeps the theme's disabled text.
 void CheckBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    if (appearance_ == CheckBoxAppearance::button && !has_style_override()) {
+    if (appearance_ == CheckBoxAppearance::button) {
         paint_themed_button(painter, bounds, ControlVisualRole::button, false,
                             false, checked());
         return;
     }
-    if (!has_style_override()) {
-        const double indicator_width =
-            indicator_style_ == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
-        const Rect box{1.0, std::max(1.0, (bounds.height - 15.0) * 0.5),
-                       indicator_width, 15.0};
-        const ControlVisualContext context = visual_context(
-            hovered_visual(), pressed_visual(), checked(), focus_cue_visible());
-        const ControlVisualRecipe& recipe = effective_theme().resolve(
-            ControlVisualRole::choice, context);
-        SurfaceMaterial indicator = recipe.material;
-        indicator.corner_radius = indicator_style_ == ChoiceIndicatorStyle::toggle
-            ? 7.5 : 2.0;
-        paint_surface_material(painter, box, indicator);
-        if (check_state_ == CheckState::checked &&
-            indicator_style_ != ChoiceIndicatorStyle::toggle) {
-            painter.draw_line({box.x + 3.0, box.y + 7.0},
-                              {box.x + 6.0, box.y + 10.0}, recipe.glyph, 2.0);
-            painter.draw_line({box.x + 6.0, box.y + 10.0},
-                              {box.x + 13.0, box.y + 3.0}, recipe.glyph, 2.0);
-        } else if (check_state_ == CheckState::indeterminate) {
-            painter.fill_rect({box.x + 4.0, box.y + 6.0, 8.0, 3.0},
-                              recipe.glyph);
-        } else if (indicator_style_ == ChoiceIndicatorStyle::toggle) {
-            const double knob_x = checked() ? box.x + box.width - 13.0
-                                             : box.x + 2.0;
-            painter.fill_rounded_rect({knob_x, box.y + 2.0, 11.0, 11.0},
-                                      5.5, recipe.text);
-        }
-        paint_button_content(
-            painter,
-            {box.x + box.width + 1.0, 0.0,
-             std::max(0.0, bounds.width - box.x - box.width - 1.0),
-             bounds.height},
-            display_text(), recipe.text, {}, checked());
-        paint_theme_cues(painter, bounds, recipe, context);
-        return;
+    const Rect box = check_box_well(bounds, indicator_style_);
+    const AnatomyStateSet states = anatomy_states();
+    std::optional<Color> ground{};
+    std::optional<Color> ink{};
+    if (has_style_override()) {
+        const BasicControlStyle& colors = style();
+        ground = colors.paper;
+        ink = colors.text;
     }
-    const BasicControlStyle& colors = style();
-    const double indicator_width =
-        indicator_style_ == ChoiceIndicatorStyle::toggle ? 30.0 : 15.0;
-    const Rect box{1.0, std::max(1.0, (bounds.height - 15.0) * 0.5),
-                   indicator_width, 15.0};
-    if (indicator_style_ == ChoiceIndicatorStyle::classic) {
-        painter.fill_rect(box, colors.paper);
-        painter.draw_line({box.x, box.y}, {box.x + box.width, box.y},
-                          colors.dark_border, 1.0);
-        painter.draw_line({box.x, box.y}, {box.x, box.y + box.height},
-                          colors.dark_border, 1.0);
-        painter.draw_line({box.x, box.y + box.height - 1.0},
-                          {box.x + box.width, box.y + box.height - 1.0},
-                          colors.highlight, 1.0);
-        painter.draw_line({box.x + box.width - 1.0, box.y},
-                          {box.x + box.width - 1.0, box.y + box.height},
-                          colors.highlight, 1.0);
-    } else if (indicator_style_ == ChoiceIndicatorStyle::modern) {
-        painter.fill_rect(box, checked() ? colors.accent : colors.paper);
-        painter.stroke_rect({box.x + 0.5, box.y + 0.5, box.width - 1.0,
-                             box.height - 1.0},
-                            checked() ? colors.accent : colors.border, 1.0);
-    } else {
-        painter.fill_rect(box, checked() ? colors.accent : colors.border);
-        const double knob_x = checked() ? box.x + box.width - 13.0 : box.x + 2.0;
-        painter.fill_rect({knob_x, box.y + 2.0, 11.0, 11.0}, colors.paper);
+    PartPaint well;
+    well.family = ControlVisualRole::choice;
+    well.role = PartRole::well;
+    well.bounds = box;
+    well.states = states;
+    well.corner_radius = indicator_style_ == ChoiceIndicatorStyle::toggle ? 7.5 : 2.0;
+    well.authored_background = ground;
+    well.key = PartKey{"well", {}, {}};
+    paint_part(painter, *this, well);
+    const PartMark mark = check_box_mark(indicator_style_, check_state_);
+    if (mark != PartMark::none) {
+        PartPaint indicator;
+        indicator.family = ControlVisualRole::choice;
+        indicator.role = PartRole::indicator;
+        indicator.mark = mark;
+        indicator.bounds = check_box_mark_bounds(box, mark, checked());
+        indicator.states = states;
+        indicator.authored_foreground = ink;
+        indicator.key = PartKey{"indicator", {}, {}};
+        paint_part(painter, *this, indicator);
     }
-    if (check_state_ == CheckState::checked) {
-        if (indicator_style_ != ChoiceIndicatorStyle::toggle) {
-            const Color mark = indicator_style_ == ChoiceIndicatorStyle::modern
-                ? colors.paper : colors.accent;
-            painter.draw_line({4.0, box.y + 7.0}, {7.0, box.y + 10.0}, mark, 2.0);
-            painter.draw_line({7.0, box.y + 10.0}, {14.0, box.y + 3.0}, mark, 2.0);
-        }
-    } else if (check_state_ == CheckState::indeterminate) {
-        painter.fill_rect({4.0, box.y + 6.0, 9.0, 4.0}, colors.accent);
-    }
-    paint_button_content(
-        painter,
-        {box.x + box.width + 1.0, 0.0,
-         std::max(0.0, bounds.width - box.x - box.width - 1.0), bounds.height},
-        display_text(), effectively_enabled() ? colors.text : colors.disabled_text, {}, checked());
+    const ControlVisualContext context = part_visual_context(*this, states);
+    const ControlVisualRecipe& recipe = effective_theme().resolve(ControlVisualRole::choice, context);
+    const Color text = ink && effectively_enabled() ? *ink : recipe.text;
+    const Rect content{box.x + box.width + 1.0, 0.0,
+                       std::max(0.0, bounds.width - box.x - box.width - 1.0), bounds.height};
+    paint_button_content(painter, content, display_text(), text, {}, checked());
+    PartPaint focus;
+    focus.family = ControlVisualRole::choice;
+    focus.role = PartRole::focus;
+    focus.bounds = bounds;
+    focus.states = states;
+    focus.key = PartKey{"focus", {}, {}};
+    paint_part(painter, *this, focus);
 }
 
 Insets CheckBox::visual_outsets() const noexcept {
-    if (has_style_override()) return {};
     const ControlVisualContext context = visual_context(
         hovered_visual(), pressed_visual(), checked(), focus_cue_visible());
     if (appearance_ == CheckBoxAppearance::button) {

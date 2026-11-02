@@ -453,6 +453,8 @@ Related types
 
    .. cpp:member:: bool normal
 
+   .. cpp:member:: bool hot
+
    .. cpp:member:: bool pressed
 
    .. cpp:member:: bool captured

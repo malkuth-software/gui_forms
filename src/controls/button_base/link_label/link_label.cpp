@@ -144,7 +144,8 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     ControlVisualRecipe recipe = effective_theme().resolve(family, context);
     if (has_style_override() && !context.high_contrast) {
         const BasicControlStyle& colors = style();
-        recipe.text = enabled() ? (visited_ ? colors.visited_link : colors.link) : colors.disabled_text;
+        // A disabled link keeps the theme's disabled text (T4-1).
+        if (enabled()) recipe.text = visited_ ? colors.visited_link : colors.link;
     }
     recipe.glyph = recipe.text;
     const Color foreground = recipe.text;

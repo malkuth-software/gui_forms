@@ -1982,6 +1982,10 @@ bool MaterialReader::read_outline_style(std::size_t index, RecipeOutlineStyle& s
         style = RecipeOutlineStyle::solid;
         return true;
     }
+    if (keyword(index, "dotted")) {
+        style = RecipeOutlineStyle::dotted;
+        return true;
+    }
     if (keyword(index, "none")) {
         style = RecipeOutlineStyle::none;
         return true;
