@@ -5,6 +5,7 @@
 #include "../scrollable_control/scrolling_utilities.hpp"
 
 #include "gui_forms/binding/binding_source/binding_source.hpp"
+#include "gui_forms/binding/number_format/number_format.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/text.hpp"
@@ -414,24 +415,13 @@ std::string display_text(const BindingValue& value) {
     return binding_value_to_string(value);
 }
 
-// The precision of an invariant fixed format "F0" to "F12" (the formats
-// Binding accepts), or none for another format.
-std::optional<int> fixed_format_precision(std::string_view format) noexcept {
-    if (format.size() < 2U || (format.front() != 'F' && format.front() != 'f')) return std::nullopt;
-    int precision = 0;
-    const char* const end = format.data() + format.size();
-    const std::from_chars_result parsed = std::from_chars(format.data() + 1, end, precision);
-    if (parsed.ec != std::errc{} || parsed.ptr != end || precision < 0 || precision > 12) return std::nullopt;
-    return precision;
-}
-
 bool is_number_kind(BindingValueKind kind) noexcept {
     return kind == BindingValueKind::number || kind == BindingValueKind::signed_integer ||
            kind == BindingValueKind::unsigned_integer;
 }
 
 // A value's text under a style: the null value's text for an empty value,
-// a number in the style's fixed format, else the value's own text.
+// a number in the style's number format, else the value's own text.
 std::string styled_text(const BindingValue& value, const DataGridViewCellStyle& style) {
     const BindingValueKind kind = binding_value_kind(value);
     if (kind == BindingValueKind::null) {
@@ -440,18 +430,17 @@ std::string styled_text(const BindingValue& value, const DataGridViewCellStyle& 
         return text;
     }
     if (style.format && is_number_kind(kind)) {
-        const std::optional<int> precision = fixed_format_precision(*style.format);
-        const std::optional<double> number = binding_value_to_number(value);
-        if (precision && number) {
-            // Up to 12 decimals of a finite double: 309 digits before the
-            // point at most, so 340 bytes always suffice.
-            std::array<char, 340> buffer{};
-            const std::to_chars_result written = std::to_chars(buffer.data(), buffer.data() + buffer.size(),
-                                                               *number, std::chars_format::fixed, *precision);
-            if (written.ec == std::errc{}) {
-                const std::string text(buffer.data(), written.ptr);
-                return text;
+        const std::optional<NumberFormat> format = parse_number_format(*style.format);
+        if (format) {
+            std::string text{};
+            if (const std::int64_t* const signed_value = std::get_if<std::int64_t>(&value)) {
+                append_formatted_number(text, *signed_value, *format);
+            } else if (const std::uint64_t* const unsigned_value = std::get_if<std::uint64_t>(&value)) {
+                append_formatted_number(text, *unsigned_value, *format);
+            } else {
+                append_formatted_number(text, std::get<double>(value), *format);
             }
+            return text;
         }
     }
     std::string text = display_text(value);
@@ -2505,7 +2494,16 @@ DataGridView::CommitOutcome DataGridView::commit_text(const CellKey& key, DataGr
     } else if (value_kind == BindingValueKind::text) {
         value = text;
     } else if (!text.empty()) {
-        const std::optional<BindingValue> converted = convert_binding_value(BindingValue{text}, value_kind);
+        // Text shown under a number format ("1,234.50", "12.5 %") converts
+        // as the plain number it shows.
+        std::string plain = text;
+        if (style.format && is_number_kind(value_kind)) {
+            const std::optional<NumberFormat> format = parse_number_format(*style.format);
+            std::optional<std::string> unformatted{};
+            if (format) unformatted = plain_number_text(text, *format);
+            if (unformatted) plain = std::move(*unformatted);
+        }
+        const std::optional<BindingValue> converted = convert_binding_value(BindingValue{plain}, value_kind);
         if (converted) {
             value = *converted;
         } else {
@@ -3122,8 +3120,10 @@ void DataGridView::validate_cell_style(const DataGridViewCellStyle& style) {
             throw std::invalid_argument("DataGridView cell style padding must be finite and not negative");
         }
     }
-    if (style.format && !(*style.format).empty() && !fixed_format_precision(*style.format)) {
-        throw std::invalid_argument("DataGridView cell style formats are the invariant F0 to F12");
+    if (style.format && !(*style.format).empty() && !parse_number_format(*style.format)) {
+        throw std::invalid_argument(
+            "DataGridView cell style formats are the standard numeric formats F, N, P, C, E and G "
+            "with a precision of 0 to 99");
     }
     if (!valid_text_value(style.null_value) || !valid_text_value(style.data_source_null_value)) {
         throw std::invalid_argument("DataGridView cell style text values require valid UTF-8");

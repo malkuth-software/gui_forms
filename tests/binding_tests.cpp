@@ -872,6 +872,48 @@ void test_format_parse_failure_rollback_and_completion() {
     static_cast<void>(parser);
 }
 
+// The standard numeric formats beyond F: grouped and percent text, an
+// integer's exact digits, and typed text going back as the number it shows.
+void test_number_formats_and_their_text() {
+    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("number.root"));
+    std::shared_ptr<gui_forms::TextBox> amount = make_control<TextBox>(StableId("number.amount"));
+    std::shared_ptr<gui_forms::TextBox> count = make_control<TextBox>(StableId("number.count"));
+    (*root).add_child(amount);
+    (*root).add_child(count);
+    Window window(root, {320.0, 120.0});
+    std::shared_ptr<gui_forms::BindingSource> source = std::make_shared<BindingSource>(window);
+    (*source).set_records({{"number.record",
+                            {{"amount", 1234.5}, {"count", std::int64_t{9007199254740993}}}}});
+    BindingOptions grouped;
+    grouped.formatting_enabled = true;
+    grouped.format_string = "N2";
+    grouped.data_source_update_mode = DataSourceUpdateMode::on_property_changed;
+    const std::shared_ptr<Binding> amount_binding = (*amount).data_bindings().add(
+        "Text", source, "Amount", grouped);
+    BindingOptions whole = grouped;
+    whole.format_string = "N0";
+    const std::shared_ptr<Binding> count_binding = (*count).data_bindings().add(
+        "Text", source, "Count", whole);
+    require((*amount).text() == "1,234.50" && (*count).text() == "9,007,199,254,740,993",
+            "N formats group the digits, an integer's from its exact value");
+    (*amount).set_text("2,000.25");
+    (*count).set_text("12,345");
+    require((*source).current_field("amount") == std::optional<BindingValue>{2000.25} &&
+                (*source).current_field("count") == std::optional<BindingValue>{std::int64_t{12345}},
+            "grouped text goes back as the number it shows");
+    BindingOptions unknown = grouped;
+    unknown.format_string = "X4";
+    bool unknown_refused = false;
+    try {
+        static_cast<void>((*amount).data_bindings().add("Text", source, "Amount", unknown));
+    } catch (const std::invalid_argument&) {
+        unknown_refused = true;
+    }
+    require(unknown_refused, "a format that is not a standard numeric format is refused");
+    static_cast<void>(amount_binding);
+    static_cast<void>(count_binding);
+}
+
 void test_edit_transactions_list_mutation_and_context() {
     Fixture fixture;
     BindingManagerBase& manager = (*fixture.source).currency_manager();
@@ -1060,6 +1102,7 @@ int main() {
         test_multi_control_two_way_currency_and_event_order();
         test_update_modes_suspension_and_explicit_transfers();
         test_format_parse_failure_rollback_and_completion();
+        test_number_formats_and_their_text();
         test_edit_transactions_list_mutation_and_context();
         test_collection_uniqueness_base_properties_and_cleanup();
         test_choice_numeric_defaults_manager_transfer_and_completion_order();

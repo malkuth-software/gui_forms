@@ -106,8 +106,10 @@ enum class DataGridViewHeaderBorderStyle : std::uint8_t { single, raised, sunken
 // engine's line-break opportunities and at line ends; the lines are placed
 // up and down as a block, cut at the content's bottom (rows do not grow to
 // fit them). Other kinds and the headers keep one line. `format` formats a
-// number value: the invariant fixed formats "F0" to "F12", the formats
-// Binding accepts. `null_value` is shown for an empty
+// number value under a standard numeric format ("F2", "N0", "P1", "C",
+// "E3", "G"; gui_forms/binding/number_format), the formats Binding accepts,
+// and text typed in such a cell converts as the number it shows
+// ("1,234.50"). `null_value` is shown for an empty
 // value, and typed text equal to it stores `data_source_null_value` (an
 // empty value when that is not set). The colours are authored colours
 // (owner decision T4-1): over the theme's ordinary colours, under its
@@ -833,8 +835,8 @@ public:
     // when a column is removed. The getters and setters throw
     // std::out_of_range past the rows or columns; every style setter throws
     // std::invalid_argument for a padding that is negative or not finite, a
-    // format other than "F0" to "F12", an alignment outside the enumeration,
-    // or a text value that is not valid UTF-8.
+    // format that is not a standard numeric format, an alignment outside
+    // the enumeration, or a text value that is not valid UTF-8.
     [[nodiscard]] DataGridViewCellStyle row_default_cell_style(DataGridViewRowPosition row) const;
     void set_row_default_cell_style(DataGridViewRowPosition row, DataGridViewCellStyle style);
     [[nodiscard]] DataGridViewCellStyle cell_style(DataGridViewRowPosition row, std::size_t column) const;

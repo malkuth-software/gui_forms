@@ -1598,7 +1598,7 @@ gui_forms::DataGridView
 
    .. cpp:function:: DataGridViewCellStyle row_default_cell_style(DataGridViewRowPosition row) const
 
-      A row's and a cell's own styles (Windows Forms' Row.DefaultCellStyle and Cell.Style), kept by row ID for every row source as error text is: a style ends with its row, when the rows or columns are replaced and when a column is removed. The getters and setters throw std::out_of_range past the rows or columns; every style setter throws std::invalid_argument for a padding that is negative or not finite, a format other than "F0" to "F12", an alignment outside the enumeration, or a text value that is not valid UTF-8.
+      A row's and a cell's own styles (Windows Forms' Row.DefaultCellStyle and Cell.Style), kept by row ID for every row source as error text is: a style ends with its row, when the rows or columns are replaced and when a column is removed. The getters and setters throw std::out_of_range past the rows or columns; every style setter throws std::invalid_argument for a padding that is negative or not finite, a format that is not a standard numeric format, an alignment outside the enumeration, or a text value that is not valid UTF-8.
 
    .. cpp:function:: DataGridViewCellStyle cell_style(DataGridViewRowPosition row, std::size_t column) const
 

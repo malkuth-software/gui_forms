@@ -36,6 +36,8 @@ Types
      - ControlBindingsCollection owns the unique active binding for each canonical target property and disposes the set deterministically.
    * - :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>`
      - CurrencyManager is the non-owning facade over exactly one BindingSource, keeping navigation, edit, and bulk transfer vocabulary uniform.
+   * - :cpp:class:`NumberFormat <gui_forms::NumberFormat>`
+     -  
    * - :cpp:class:`PropertyCollectionData <gui_forms::PropertyCollectionData>`
      - PropertyCollectionData is shared immutable item type/kind plus a bounded homogeneous value sequence.
    * - :cpp:class:`PropertyCollectionValue <gui_forms::PropertyCollectionValue>`
@@ -495,6 +497,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: NumberFormat final
+
+   ``#include <gui_forms/binding/number_format/number_format.hpp>``
+
+   .. cpp:member:: NumberFormatKind kind
+
+      Default: ``{NumberFormatKind::general}``.
+
+   .. cpp:member:: std::optional<std::uint32_t> precision
+
+      Empty for the kind's default: 2 for F, N, P and C; 6 for E. For G an empty or zero precision gives a double's shortest text that parses back to the same value (scientific from an exponent of 15 or below -5) and an integer's every digit.
+
+   .. cpp:member:: bool upper_case
+
+      The exponent letter's case: "E" for an upper-case format letter. Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PropertyCollectionData final
 
    ``#include <gui_forms/binding/value/binding_value.hpp>``
@@ -884,6 +904,24 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: NumberFormatKind
+
+   ``#include <gui_forms/binding/number_format/number_format.hpp>``
+
+   .. cpp:enumerator:: fixed
+
+   .. cpp:enumerator:: number
+
+   .. cpp:enumerator:: percent
+
+   .. cpp:enumerator:: currency
+
+   .. cpp:enumerator:: exponential
+
+   .. cpp:enumerator:: general
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PropertySerializationVisibility
 
    ``#include <gui_forms/binding/value/binding_value.hpp>``
@@ -912,6 +950,30 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/binding/number_format/number_format.hpp>``
+
+.. cpp:function:: std::optional<NumberFormat> parse_number_format(std::string_view text) noexcept
+
+   The format a format string names: one of the letters F, N, P, C, E and G in either case, then at most two decimal digits. Empty for any other text, the empty string included (an empty format string means "no format" to its callers, not a format).
+
+.. cpp:function:: void append_formatted_number(std::string& output, double value, const NumberFormat& format)
+
+   Appends ``value`` under ``format`` to ``output``; nothing else of ``output`` changes.
+
+.. cpp:function:: void append_formatted_number(std::string& output, std::int64_t value, const NumberFormat& format)
+
+.. cpp:function:: void append_formatted_number(std::string& output, std::uint64_t value, const NumberFormat& format)
+
+.. cpp:function:: std::optional<std::string> plain_number_text(std::string_view text, const NumberFormat& format)
+
+   The plain number in ``text`` written under ``format``: the group separators, the currency sign and a percent sign removed, parentheses turned into a leading "-", and a percent value's exponent lowered by two ("12.5 %" gives "12.5e-2"), so that a number parser of plain decimal text (as Binding's and DataGridView's value conversions are) reads the value the text shows. Spaces at either end are ignored. Empty for text that is not a number under the format; a text this returns can still be refused by the parser (an integer kind refuses a fraction).
+
+.. cpp:var:: constexpr std::uint32_t number_format_maximum_precision
+
+   The largest precision a format string can state, as in .NET Framework. Value: ``99U``.
 
 .. cpp:namespace:: gui_forms
 

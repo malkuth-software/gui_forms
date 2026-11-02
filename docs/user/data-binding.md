@@ -94,7 +94,7 @@ binding for the same property throw `std::invalid_argument`.
 |---|---|---|
 | `data_source_update_mode` | `on_validation`, `on_property_changed`, `never` | `on_validation` |
 | `control_update_mode` | `on_property_changed`, `never` | `on_property_changed` |
-| `formatting_enabled`, `format_string` | invariant formatting such as `"F2"` | off |
+| `formatting_enabled`, `format_string` | a standard numeric format in the invariant culture (`"F2"`, `"N0"`, `"P1"`, `"C"`, `"E3"`, `"G"`; `gui_forms/binding/number_format`); typed text goes back as the number it shows | off |
 | `null_value`, `data_source_null_value` | what a null field shows as, and what that shown value is stored back as | null |
 
 With `on_validation` the control's value is written when the control

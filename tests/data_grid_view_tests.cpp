@@ -1788,7 +1788,7 @@ void error_text() {
 
 struct SetBadFormat final {
     DataGridView* grid{};
-    void operator()() const { (*grid).set_default_cell_style({.format = std::string("N2")}); }
+    void operator()() const { (*grid).set_default_cell_style({.format = std::string("X2")}); }
 };
 struct SetNegativePadding final {
     DataGridView* grid{};
@@ -1877,7 +1877,8 @@ void cell_styles() {
     require(throws<std::invalid_argument>(SetBadFormat{grid.get()}) &&
                 throws<std::invalid_argument>(SetNegativePadding{grid.get()}) &&
                 throws<std::out_of_range>(StyleCellPastEnd{grid.get()}),
-            "a format outside F0 to F12, a negative padding and a cell past the rows are refused");
+            "a format that is not a standard numeric format, a negative padding and a cell past the rows are "
+            "refused");
 
     // Styles are kept by row ID: they follow their rows and end with them.
     require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
@@ -1933,6 +1934,29 @@ void formatting_and_parsing() {
     (*(*grid).editing_control()).set_text("(none)");
     require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{-1.0},
             "the null value's text stores the data source null value");
+
+    // The standard numeric formats beyond F, and typed text in them.
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("N2")});
+    require((*grid).cell_text(row_at(0U), 0U) == "-1.00", "N2 formats the number");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
+                (*grid).begin_edit(),
+            "edit the number under N2");
+    (*(*grid).editing_control()).set_text("1,234.5");
+    require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{1234.5} &&
+                (*grid).cell_text(row_at(0U), 0U) == "1,234.50",
+            "grouped text stores the number it shows");
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("C")});
+    require((*grid).cell_text(row_at(0U), 0U) == "\xC2\xA4" "1,234.50", "C formats with the currency sign");
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("P0")});
+    require((*grid).cell_text(row_at(0U), 0U) == "123,450 %", "P0 formats the hundredfold value");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
+                (*grid).begin_edit(),
+            "edit the number under P0");
+    (*(*grid).editing_control()).set_text("50 %");
+    require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{0.5},
+            "a percent text stores its hundredth");
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("E2")});
+    require((*grid).cell_text(row_at(0U), 0U) == "5.00E-001", "E2 formats in the scientific form");
 
     int formatted = 0;
     SubscriptionToken format_token = (*grid).cell_formatting().subscribe(FormatNames{&formatted});

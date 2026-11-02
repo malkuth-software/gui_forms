@@ -167,6 +167,7 @@ add_library(gui_forms_core STATIC
     src/core/animation/animation_timeline/animation_timeline.cpp
     src/core/animation/animation_timer/animation_timer.cpp
     src/core/binding/value/binding_value.cpp
+    src/core/binding/number_format/number_format.cpp
     src/core/binding/value/property_collection_value/property_collection_value.cpp
     src/core/binding/value/property_object_value/property_object_value.cpp
     src/core/binding/currency_manager/currency_manager.cpp
@@ -3492,6 +3493,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_binding_tests tests/binding_tests.cpp)
     target_link_libraries(gui_forms_binding_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_binding_tests COMMAND gui_forms_binding_tests)
+    add_executable(gui_forms_number_format_tests tests/number_format_tests.cpp)
+    target_link_libraries(gui_forms_number_format_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_number_format_tests COMMAND gui_forms_number_format_tests)
 
     add_executable(gui_forms_validation_tests tests/validation_tests.cpp)
     target_link_libraries(gui_forms_validation_tests PRIVATE gui_forms_controls)
