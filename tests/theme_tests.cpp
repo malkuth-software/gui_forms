@@ -1,6 +1,10 @@
 #include "gui_forms/gui_forms.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <iostream>
@@ -373,6 +377,55 @@ void test_editor_selection_menu_and_progress_roles_reach_stock_controls() {
             "editor, selection, menu-item, and progress recipes must reach stock paint");
 }
 
+
+// WCAG 2 relative luminance and contrast ratio, for the accent family's
+// text check (T4 phase 1's contrast report found white text on near-white
+// accent plates).
+double wcag_channel(std::uint8_t value) {
+    const double encoded = static_cast<double>(value) / 255.0;
+    if (encoded <= 0.04045) return encoded / 12.92;
+    return std::pow((encoded + 0.055) / 1.055, 2.4);
+}
+
+double wcag_luminance(Color colour) {
+    const double luminance = 0.2126 * wcag_channel(colour.red) + 0.7152 * wcag_channel(colour.green) +
+                             0.0722 * wcag_channel(colour.blue);
+    return luminance;
+}
+
+double wcag_ratio(Color first, Color second) {
+    const double a = wcag_luminance(first);
+    const double b = wcag_luminance(second);
+    const double ratio = (std::max(a, b) + 0.05) / (std::min(a, b) + 0.05);
+    return ratio;
+}
+
+// The accent family's text passes 4.5:1 on every gradient stop of its
+// resting, hot, pressed, pending and invalid plates, selected or not.
+void test_accent_text_contrast() {
+    const std::shared_ptr<const Theme> theme = default_theme();
+    const std::array<ControlSurfaceState, 5> states{
+        ControlSurfaceState::normal, ControlSurfaceState::hot, ControlSurfaceState::pressed,
+        ControlSurfaceState::pending, ControlSurfaceState::invalid};
+    const std::array<bool, 2> selections{false, true};
+    for (const bool selected : selections) {
+        for (const ControlSurfaceState state : states) {
+            ControlVisualContext context{};
+            context.surface = state;
+            context.selected = selected;
+            const ControlVisualRecipe& recipe = (*theme).resolve(ControlVisualRole::accent_button, context);
+            for (const MaterialFillLayer& fill : recipe.material.fills) {
+                if (fill.kind == MaterialFillKind::solid) {
+                    require(wcag_ratio(recipe.text, fill.color) >= 4.5, "accent text passes 4.5:1 on its plate");
+                }
+                for (const GradientStop& stop : fill.stops) {
+                    require(wcag_ratio(recipe.text, stop.color) >= 4.5, "accent text passes 4.5:1 on its plate");
+                }
+            }
+        }
+    }
+}
+
 } // namespace
 
 int main() {
@@ -383,6 +436,7 @@ int main() {
         test_window_theme_replacement_and_control_inheritance_are_atomic();
         test_button_routes_hover_and_status_through_theme_recipes();
         test_editor_selection_menu_and_progress_roles_reach_stock_controls();
+        test_accent_text_contrast();
         std::cout << "gui_forms_theme_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
