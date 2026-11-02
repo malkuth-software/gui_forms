@@ -29,6 +29,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -94,6 +95,9 @@ public:
     [[nodiscard]] const VerifiedThemePack* find(std::string_view name) const& noexcept;
     const VerifiedThemePack* find(std::string_view name) const&& = delete;
     [[nodiscard]] std::size_t size() const noexcept { return packs_.size(); }
+    // Every pack, in installation order; borrows from the index.
+    [[nodiscard]] std::span<const VerifiedThemePack> packs() const& noexcept { return packs_; }
+    std::span<const VerifiedThemePack> packs() const&& = delete;
 
 private:
     std::vector<VerifiedThemePack> packs_{};

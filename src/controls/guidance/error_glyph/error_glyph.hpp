@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/components/error_provider/error_provider.hpp"
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/control.hpp"
 
 namespace gui_forms {
@@ -21,18 +22,28 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
-    void on_frame(FrameTime now) override;
 
 protected:
     void on_attachment_committed() noexcept override;
     void on_detached_from_window() noexcept override;
 
 private:
+    // The blink timer's target. Observes the glyph; a destroyed one is
+    // skipped.
+    struct BlinkTick final {
+        std::weak_ptr<ErrorGlyph> glyph;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+
     void refresh_schedule();
+    // One blink tick: toggles the phase (or settles it visible when motion
+    // is reduced or blinking is off) and damages the glyph.
+    void advance_blink();
 
     std::string error_;
     std::optional<ImageId> icon_;
-    FrameRequestToken frame_request_;
+    // ADR-016: a paint-gated UI timer the glyph stops.
+    AnimationTimer blink_timer_;
     std::chrono::milliseconds rate_{250};
     ErrorBlinkStyle style_{ErrorBlinkStyle::blink_if_different_error};
     std::size_t transitions_remaining_{6U};

@@ -959,21 +959,20 @@ void test_display_capture_and_occlusion_synchronization() {
     (*fixture.probe).set_enabled(true);
 
     const FrameTime base{};
-    FrameRequestToken active = fixture.window.activate_surface(
-        fixture.probe, std::chrono::milliseconds(10),
-        base + std::chrono::nanoseconds(10));
+    FrameRequestToken active = fixture.window.schedule_paint(
+        fixture.probe, base + std::chrono::nanoseconds(10));
     require(fixture.host.dispatch(HostOcclusionEvent{true}, 7).accepted() &&
                 fixture.window.occluded() && !fixture.window.next_wake().has_value() &&
                 active.connected(),
-            "host occlusion must pause rather than revoke active retained work");
+            "host occlusion must pause rather than revoke retained paint work");
     require(fixture.host.dispatch(HostOcclusionEvent{false}, 20).accepted() &&
                 !fixture.window.occluded() &&
-                fixture.window.next_wake() == base + std::chrono::nanoseconds(20),
-            "host resume must rebase overdue active work to one immediate tick");
+                fixture.window.next_wake() == base + std::chrono::nanoseconds(10),
+            "host resume must expose the overdue paint deadline once");
     const FramePollResult resumed =
         fixture.window.poll_frame_schedule(base + std::chrono::nanoseconds(20));
-    require(resumed.active_surface_ticks == 1,
-            "resumed host work must not replay missed active frames");
+    require(resumed.deadlines_fired == 1 && !active.connected(),
+            "resumed host work must deliver the held deadline as one paint");
 }
 
 void test_environment_services_are_bounded_and_deterministic() {
@@ -1060,9 +1059,8 @@ void test_sequence_geometry_and_shutdown_guards() {
                 HostDispatchError::invalid_geometry,
             "invalid host geometry must be rejected before mutating the window");
 
-    FrameRequestToken active = fixture.window.activate_surface(
-        fixture.probe, std::chrono::milliseconds(10),
-        FrameTime{} + std::chrono::milliseconds(10));
+    FrameRequestToken active = fixture.window.schedule_paint(
+        fixture.probe, FrameTime{} + std::chrono::milliseconds(10));
     fixture.window.capture_pointer(fixture.probe, 11);
     require(fixture.host.services().snapshot().pointer_captured,
             "explicit retained capture must reach host services before shutdown");
@@ -1237,9 +1235,8 @@ void test_close_cancellation_and_closed_cleanup() {
     require(allowed.close_allowed,
             "disconnecting close policy must restore default allow behavior");
 
-    FrameRequestToken active = fixture.window.activate_surface(
-        fixture.probe, std::chrono::milliseconds(10),
-        FrameTime{} + std::chrono::milliseconds(10));
+    FrameRequestToken active = fixture.window.schedule_paint(
+        fixture.probe, FrameTime{} + std::chrono::milliseconds(10));
     static_cast<void>(fixture.host.dispatch(HostClosedEvent{HostCloseReason::user}, 4));
     const HostSessionSnapshot snapshot = fixture.host.session().snapshot();
     require(snapshot.close_requests == 2 && snapshot.close_cancellations == 1 &&

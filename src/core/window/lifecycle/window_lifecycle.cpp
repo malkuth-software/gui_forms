@@ -91,7 +91,6 @@ Window::~Window() {
         (*request).disconnect();
     }
     frame_requests_.clear();
-    update_frame_schedule_metrics();
     if (root_) {
         detach_subtree(root_);
     }
@@ -229,6 +228,11 @@ void Window::set_presentation_settings(PresentationSettings settings) {
     presentation_changed_.emit(presentation_settings_);
     // High contrast and reduced transparency withdraw a backdrop (stage T5).
     refresh_backdrop();
+}
+
+const CompiledThemeRules* Window::user_theme_rules() const noexcept {
+    const CompiledThemeRules* const rules = (*resources_).user_theme_rules();
+    return rules;
 }
 
 void Window::set_theme(std::shared_ptr<const Theme> theme) {

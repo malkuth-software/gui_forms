@@ -3537,26 +3537,6 @@ void Window::compact_frame_requests() noexcept {
     }
 }
 
-std::size_t Window::active_surface_count() const noexcept {
-    std::size_t count = 0U;
-    for (const std::shared_ptr<detail::ScheduledFrameRequest>& request :
-         frame_requests_) {
-        if (!(*request).connected() ||
-            (*request).kind != detail::FrameRequestKind::active_surface) {
-            continue;
-        }
-        const Control::Ptr target = (*request).target.lock();
-        if (target && (*target).is_alive() && (*target).window_ == this) {
-            ++count;
-        }
-    }
-    return count;
-}
-
-void Window::update_frame_schedule_metrics() noexcept {
-    metrics_.set_active_surface_count(active_surface_count());
-}
-
 Rect Window::absolute_bounds_of(const Control& control) const {
     Rect result = control.arranged_bounds_;
     for (Control::Ptr ancestor = control.parent(); ancestor;

@@ -525,7 +525,7 @@ std::size_t run_frames(Window& window, ManualTime& time) {
         time.time += std::chrono::milliseconds(16);
         const FramePollResult result = window.poll_frame_schedule(time.time);
         window.perform_layout();
-        require(result.motion_clock_ticks <= 1U && result.active_surface_ticks == 0U,
+        require(result.motion_clock_ticks <= 1U,
                 "the drag's motion runs on the clock's one request");
         frames += result.motion_clock_ticks;
         if (!result.next_wake) break;

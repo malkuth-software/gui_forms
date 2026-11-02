@@ -186,6 +186,9 @@ public:
     // Whether a var() substituted since clear_theme_read() named one of
     // SubstitutionInput::theme_names (P12b).
     [[nodiscard]] bool theme_read() const noexcept { return theme_read_; }
+    // How many tokens the last substitution passed over (the count
+    // maximum_substituted_tokens bounds).
+    [[nodiscard]] std::size_t visited() const noexcept { return visited_; }
     void clear_theme_read() noexcept { theme_read_ = false; }
 
 private:

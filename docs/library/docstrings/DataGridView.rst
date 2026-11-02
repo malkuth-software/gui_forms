@@ -394,12 +394,46 @@ part, one unit high just below the text's baseline and as wide as the link,
 is drawn by the ``glyph`` role with the ``underline`` mark in the same
 family, so the underline takes the link's colour.
 
+A commit converts the typed text to the column's value kind and stores it.
+When a value does not reach its cell, ``data_error`` reports why
+(``parsing`` or ``commit``) with the text given; with no handler, or with
+``cancel`` left set, the cell stays in edit, marked invalid, and keeps its
+old value (no dialog is shown); clearing ``cancel`` discards the edit.
+``cell_validated`` follows a stored edit. ``is_current_cell_dirty`` is true
+once the user changes the editor's text (``current_cell_dirty_state_changed``
+reports each change), ``is_current_row_dirty`` once the row holds a change.
+``commit_edit`` stores without leaving edit and ``refresh_edit`` shows the
+stored value again. ``edit_mode`` chooses which keys begin an edit: typing,
+F2, both (the default), on becoming current, or only ``begin_edit``.
+
+Moving the current cell commits the edit, raises ``row_validating`` when
+the row changes (a handler may keep the row), then ``cell_leave``,
+``row_leave``, ``row_validated``, ``row_enter``, ``default_values_needed``
+(on the new row), ``cell_enter`` and ``current_cell_changed``. Their
+handlers may not call ``set_current_cell``.
+
+With ``allow_user_to_add_rows`` an unbound or bound grid shows a new row
+after the last; its row header shows a star. The first value the user
+commits to it adds a row (or a record) with the new row's ID, raising
+``user_added_row``; Escape, or ``cancel_row_edit``, discards it until the
+current cell leaves it. With ``allow_user_to_delete_rows`` Delete removes
+the selected rows, each after ``user_deleting_row``. The current row's
+header shows a pencil while the row is dirty (``show_editing_icon``).
+
+``set_cell_error_text`` and ``set_row_error_text`` give cells and rows error
+text (a bound row also shows its record's errors). It is drawn as the error
+glyph, the ``cell_error`` and ``row_error`` parts, at the cell's end and in
+the row header, published as the semantic description, and makes the cell or
+row ``invalid``. The arrow, pencil, star and error glyphs are glyph marks
+(``pencil``, ``asterisk``, ``error``) whose look belongs to the theme.
+
 Not supported yet: cell styles and their inheritance, `LinkBehavior` (the
 link is always underlined), an image column's default
 image for empty cells and icon values, frozen rows and columns beyond the headers, clipboard copy, sort
 modes (the application sorts, or calls `sort` for unbound rows), automatic
-column and row sizing, row height resizing, the new-row and row-deletion
-editing interface, error icons and cell tool tips.
+column and row sizing, row height resizing, the new row in virtual mode,
+error text asked of the application (``CellErrorTextNeeded``), and cell
+tool tips.
 
 Examples
 --------

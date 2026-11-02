@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/controls/range_control/range_control.hpp"
 
 #include <cstdint>
@@ -92,9 +93,12 @@ public:
         return animation_phase_;
     }
 
+    // Advances the indeterminate or marquee phase to `now`; the animation
+    // timer calls it on each tick, and tests call it to step the bar.
+    void advance_animation(FrameTime now);
+
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
-    void on_frame(FrameTime now) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
@@ -122,7 +126,22 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The animation timer's named target. Observes the bar; a destroyed bar
+    // is skipped.
+    struct AnimationTick final {
+        std::weak_ptr<ProgressBar> bar;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+
     void update_animation_registration();
+    // One animation timer tick: advances the phase and damages what moved.
+    AnimationTickResult on_animation_tick(FrameTime now);
+    // The part of the bar that the animation phase changes: the activity
+    // band (marquee), the pulse band (luminance pulse), or the fill.
+    [[nodiscard]] Rect animated_extent() const noexcept;
+    // The tick interval the bar's motion needs: about one device pixel of
+    // its fastest moving part per tick, never faster than the display.
+    [[nodiscard]] FrameInterval animation_interval() const noexcept;
     void on_presentation_changed(const PresentationSettings& settings);
     [[nodiscard]] bool animated_style() const noexcept;
     // The fill (determinate styles) or the moving activity band (marquee).
@@ -132,7 +151,8 @@ private:
     ProgressBarOverlayStyle overlay_style_{ProgressBarOverlayStyle::none};
     ProgressBarAnimationAppearance animation_appearance_{};
     double stripe_width_{7.0};
-    FrameRequestToken animation_frames_;
+    // ADR-016: a paint-gated UI timer the bar stops.
+    AnimationTimer animation_timer_;
     SubscriptionToken presentation_subscription_;
     FrameInterval animation_period_{std::chrono::milliseconds(1400)};
     FrameTime last_animation_frame_{};

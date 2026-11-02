@@ -188,14 +188,14 @@ void Window::collect_paint_checkpoints(
     }
 }
 
-void Window::abandon_paint(
-    const PaintControlCheckpointList& checkpoints,
-    std::uint64_t generation_before, std::span<const Rect> painted_rectangles) {
-    for (const PaintControlCheckpoint& checkpoint : checkpoints) {
+void Window::abandon_paint(std::uint64_t generation_before) {
+    for (const PaintControlCheckpoint& checkpoint : paint_checkpoints_) {
         if (!checkpoint.control || !(*checkpoint.control).is_alive()) continue;
         (*checkpoint.control).display_chunk_ = checkpoint.chunk;
         (*checkpoint.control).dirty_ |= Dirty::paint;
     }
+    paint_checkpoints_.clear();
+    const std::span<const Rect> painted_rectangles = painted_rectangles_;
     if (root_ && (*root_).is_alive()) {
         static_cast<void>(recompute_subtree_dirty(root_));
     }
@@ -340,7 +340,6 @@ void Window::arm_engine_idle() {
         detail::FrameRequestKind::engine_idle, Control::WeakPtr{}, first, motion_frame_interval);
     frame_requests_.push_back(std::move(idle));
     metrics_.record_frame_request();
-    update_frame_schedule_metrics();
 }
 
 PartRasterResult Window::engine_unkeyed_raster(const PartRasterRequest& request) {
@@ -457,7 +456,7 @@ std::optional<PaintReceipt> Window::paint_rectangles(
     }
 
     const Rect window_bounds{0.0, 0.0, client_size_.width, client_size_.height};
-    std::vector<Rect> painted;
+    std::vector<Rect>& painted = painted_rectangles_;
     merge_paint_rectangles(rectangles, window_bounds, painted);
     if (painted.empty()) {
         return std::nullopt;
@@ -469,10 +468,10 @@ std::optional<PaintReceipt> Window::paint_rectangles(
         painted_area += painted[index].area();
     }
 
-    PaintControlCheckpointList checkpoints;
-    collect_paint_checkpoints(root_, checkpoints);
+    paint_checkpoints_.clear();
+    collect_paint_checkpoints(root_, paint_checkpoints_);
     for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-        collect_paint_checkpoints((*popup).popup(), checkpoints);
+        collect_paint_checkpoints((*popup).popup(), paint_checkpoints_);
     }
 
     const std::uint64_t lease_revision = content_revision_;
@@ -583,7 +582,7 @@ std::optional<PaintReceipt> Window::paint_rectangles(
             candidate.finish(
             display_generation_, PaintPlane::control, window_bounds);
         if (lease_epoch != surface_epoch_ || !(*root_).is_alive()) {
-            abandon_paint(checkpoints, generation_before, painted);
+            abandon_paint(generation_before);
             return std::nullopt;
         }
         static_cast<void>(detail::replay_display_chunk(*transaction, painter));
@@ -592,14 +591,16 @@ std::optional<PaintReceipt> Window::paint_rectangles(
         // invalidates the candidate even though every draw command returned.
         // The host receives no receipt and therefore cannot publish it.
         if (lease_epoch != surface_epoch_ || !(*root_).is_alive()) {
-            abandon_paint(checkpoints, generation_before, painted);
+            abandon_paint(generation_before);
             return std::nullopt;
         }
     } catch (...) {
-        abandon_paint(checkpoints, generation_before, painted);
+        abandon_paint(generation_before);
         throw;
     }
 
+    // The pass is complete: the checkpoints release their controls.
+    paint_checkpoints_.clear();
     in_paint_ = false;
     ++paint_leases_completed_;
     rendered_revision_ = lease_revision;

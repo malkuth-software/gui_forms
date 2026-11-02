@@ -33,6 +33,7 @@ void test_dialogs_and_host_services(gui_forms::Window& window,
 void test_states_and_diagnostics(gui_forms::Window& window,
                                  gui_forms::host::HeadlessHost& host);
 void test_dock_and_anchor(gui_forms::Window& window);
+void test_docking_workspace(gui_forms::Window& window);
 void test_commands_and_menus(gui_forms::Window& window);
 void test_tree_and_object_views(gui_forms::Window& window);
 void test_choices_and_sections(gui_forms::Window& window);

@@ -1,0 +1,5 @@
+/* forms: property.surface-finish property.glow property.glow-placement property.background-image-url property.background-size property.background-repeat property.background-position property.mask-image */
+button { surface-finish: 0.5; glow: red 2px; glow-placement: over }
+button::part(label) { background-image: url("resource:tile.quadrant"); background-size: 50% auto; background-repeat: no-repeat; background-position: 10% 20% }
+button::part(glyph) { mask-image: linear-gradient(black, transparent) }
+track-bar { mask-image: url("resource:mask.dots") }

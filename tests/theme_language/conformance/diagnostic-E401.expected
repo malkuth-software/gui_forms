@@ -1,0 +1,2 @@
+refused
+E401 value_syntax 2:19 rule=button property=opacity detail=var() takes a custom property

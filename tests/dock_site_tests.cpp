@@ -1186,6 +1186,130 @@ void document_menu_close_commands() {
             "Close All Documents closes the last document");
 }
 
+// -- saving and restoring layouts (phase D7) -------------------------------------
+
+bool has_diagnostic(const DockRestoreResult& result, DockRestoreDiagnosticKind kind) {
+    for (const DockRestoreDiagnostic& diagnostic : result.diagnostics) {
+        if (diagnostic.kind == kind) return true;
+    }
+    return false;
+}
+
+// A restore on a laid-out window creates only the panels it newly shows
+// selected.
+void load_on_a_live_window() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    Window& window = *(*fixture).window;
+    const std::vector<std::string>& made = (*fixture).factory.made;
+    const DockLayoutWriteResult before = workspace.save_layout();
+    require(static_cast<bool>(before), "the layout saves");
+    require(workspace.close_panel(DockPanelId("doc.second")).applied &&
+                workspace.close_panel(DockPanelId("output")).applied,
+            "a document and a tool panel close");
+    window.perform_layout();
+    const std::size_t created = made.size();
+    const DockRestoreResult result = workspace.load_layout(before.text);
+    window.perform_layout();
+    require(result.status == DockRestoreStatus::restored && docked(workspace, "doc.second") &&
+                docked(workspace, "output"),
+            "the saved layout comes back on the live window");
+    // doc.first was created while it was the only document; it stays,
+    // behind Second's tab again.
+    const std::vector<std::string> again(made.begin() + static_cast<std::ptrdiff_t>(created), made.end());
+    const std::vector<std::string> expected{"doc.second", "output"};
+    std::vector<std::string> sorted = again;
+    std::sort(sorted.begin(), sorted.end());
+    require(sorted == expected, "only the two panels the restore shows selected again are created");
+    require(workspace.load_layout("<not-a-layout/>").status == DockRestoreStatus::kept_current &&
+                docked(workspace, "output"),
+            "an unreadable layout changes nothing");
+}
+
+// A panel the saved layout holds but the program has not registered yet
+// keeps its place, and appears there once registered and shown.
+void plugin_after_restore() {
+    std::string saved{};
+    {
+        std::unique_ptr<Fixture> fixture = make_fixture();
+        DockWorkspace& workspace = *(*fixture).workspace;
+        require(workspace.register_panel(tool((*fixture).factory, "plugin", "Plugin", DockSide::bottom, 0,
+                                              {100.0, 60.0})),
+                "the plugin registers");
+        apply(workspace, DockEdit::dock_into(DockSubject::of_panel(DockPanelId("plugin")), stack_of(workspace, "output")));
+        saved = workspace.save_layout().text;
+    }
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    const DockRestoreResult result = workspace.load_layout(saved);
+    require(result.status == DockRestoreStatus::restored &&
+                has_diagnostic(result, DockRestoreDiagnosticKind::unknown_panel_kept_as_placeholder),
+            "the unregistered plugin is kept as a placeholder");
+    require(workspace.register_panel(tool((*fixture).factory, "plugin", "Plugin", DockSide::left, 0, {100.0, 60.0})) &&
+                workspace.show_panel(DockPanelId("plugin")).applied,
+            "the plugin registers after the restore and is shown");
+    require(stack_of(workspace, "plugin") == stack_of(workspace, "output"),
+            "it appears at its placeholder, beside Output, not at its default side");
+}
+
+void named_layouts() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    require(workspace.named_layouts().empty() && workspace.save_named_layout("Wide"), "a layout is saved by name");
+    require(workspace.hide_panel(DockPanelId("output")).applied && workspace.save_named_layout("Narrow"),
+            "another is saved after Output hides");
+    const std::span<const DockNamedLayout> layouts = workspace.named_layouts();
+    require(layouts.size() == 2U && layouts[0].name == "Wide" && layouts[1].name == "Narrow",
+            "named layouts keep the order they were first saved in");
+    require(workspace.apply_named_layout("Wide").status == DockRestoreStatus::restored && docked(workspace, "output"),
+            "applying Wide brings Output back");
+    const DockRestoreResult missing = workspace.apply_named_layout("Debug");
+    require(missing.status == DockRestoreStatus::kept_current &&
+                has_diagnostic(missing, DockRestoreDiagnosticKind::not_a_layout) && docked(workspace, "output"),
+            "an unknown name changes nothing");
+    require(workspace.save_named_layout("Narrow") && workspace.named_layouts().size() == 2U &&
+                workspace.named_layouts()[1].name == "Narrow" && workspace.apply_named_layout("Narrow").status ==
+                DockRestoreStatus::restored && docked(workspace, "output"),
+            "saving under a name again replaces that layout in its place");
+    require(workspace.remove_named_layout("Wide") && !workspace.remove_named_layout("Wide") &&
+                workspace.find_named_layout("Wide") == nullptr && workspace.named_layouts().size() == 1U,
+            "a named layout is removed once");
+    std::vector<DockNamedLayout> repeated{{"A", "<x/>"}, {"A", "<y/>"}};
+    bool threw = false;
+    try {
+        workspace.set_named_layouts(std::move(repeated));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw && workspace.named_layouts().size() == 1U, "a repeated name is refused and changes nothing");
+    threw = false;
+    try {
+        static_cast<void>(workspace.save_named_layout(""));
+    } catch (const std::invalid_argument&) {
+        threw = true;
+    }
+    require(threw, "an empty name is refused");
+    std::vector<DockNamedLayout> read_back{{"Saved", workspace.save_layout().text}};
+    workspace.set_named_layouts(std::move(read_back));
+    require(workspace.named_layouts().size() == 1U &&
+                workspace.apply_named_layout("Saved").status == DockRestoreStatus::restored,
+            "a list read back by the program replaces the named layouts and applies");
+}
+
+void load_ends_a_waiting_close() {
+    std::unique_ptr<Fixture> fixture = make_fixture();
+    DockWorkspace& workspace = *(*fixture).workspace;
+    const std::string saved = workspace.save_layout().text;
+    ClosingJournal journal{};
+    journal.workspace = &workspace;
+    journal.defer = true;
+    const SubscriptionToken token = workspace.document_closing().subscribe(RecordClosing{&journal});
+    require(workspace.request_close(DockPanelId("doc.first")) == DockCloseOutcome::pending, "a close waits");
+    require(workspace.load_layout(saved).status == DockRestoreStatus::restored && !workspace.close_pending() &&
+                workspace.answer_close(true) == DockCloseOutcome::refused && docked(workspace, "doc.first"),
+            "a restore ends the waiting close, closing nothing");
+}
+
 } // namespace
 
 int main() {
@@ -1206,7 +1330,11 @@ int main() {
     deferred_answers();
     close_others_and_activation();
     document_menu_close_commands();
+    load_on_a_live_window();
+    plugin_after_restore();
+    named_layouts();
+    load_ends_a_waiting_close();
     std::cout << "DockSite, DockWorkspace and DockNavigator: parts, seams, collapse, lazy creation, activation, "
-                 "navigator, keys, menu, semantics and closing documents passed\n";
+                 "navigator, keys, menu, semantics, closing documents and saved layouts passed\n";
     return EXIT_SUCCESS;
 }

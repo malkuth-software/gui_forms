@@ -172,8 +172,8 @@ void test_pointer_drag_paint_and_caret_deadline() {
             "focused TextBox caret must use a bounded scheduled deadline");
     const FrameTime deadline = *window.next_wake();
     const FramePollResult poll = window.poll_frame_schedule(deadline);
-    require(poll.deadlines_fired == 1U && window.next_wake().has_value(),
-            "TextBox caret deadline must repaint and schedule the next blink");
+    require(poll.ui_timer_ticks == 1U && window.next_wake().has_value(),
+            "TextBox caret timer must tick and keep the next blink scheduled");
 }
 
 void test_placeholder_and_validation() {

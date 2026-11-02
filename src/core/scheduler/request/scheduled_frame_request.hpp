@@ -9,7 +9,6 @@ namespace gui_forms::detail {
 
 enum class FrameRequestKind : std::uint8_t {
     deadline,
-    active_surface,
     ui_timer,
     // The window's motion clock: no target and no callback; each frame
     // advances the clock.

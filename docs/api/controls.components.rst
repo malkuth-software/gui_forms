@@ -69,10 +69,12 @@ Related types
      -  
    * - :cpp:class:`DockDocumentClosing <gui_forms::DockDocumentClosing>`
      - Documents about to close at the user's request (DockWorkspace:: document_closing).
+   * - :cpp:class:`DockNamedLayout <gui_forms::DockNamedLayout>`
+     - What the program registers for one panel: the layout's descriptor, the title its caption and tab show, and the factory that builds its content.
    * - :cpp:class:`DockPanelCreation <gui_forms::DockPanelCreation>`
      - A factory's request: build the content of ``panel`` and store it in ``content``.
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
-     - What the program registers for one panel: the layout's descriptor, the title its caption and tab show, and the factory that builds its content.
+     -  
    * - :cpp:class:`ErrorIconSnapshot <gui_forms::ErrorIconSnapshot>`
      - ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, popup presentation, blink activity, and current phase visibility.
    * - :cpp:class:`ErrorProviderChange <gui_forms::ErrorProviderChange>`
@@ -190,6 +192,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DockNamedLayout final
+
+   ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
+
+   What the program registers for one panel: the layout's descriptor, the title its caption and tab show, and the factory that builds its content. The factory is a named delegate: its object must outlive the workspace's use of it (remove the panel or destroy the workspace first). A layout saved under a name (stage DK phase D7, owner decision DK-34, I6-1: Visual Studio's Window Layouts): the name the program shows and the layout's XML as DockLayout::write_xml wrote it. The program keeps and saves the list itself (decision DK-33: the framework never saves).
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::string xml
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DockPanelCreation final
 
    ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
@@ -205,8 +219,6 @@ Related types
 .. cpp:struct:: DockPanelRegistration final
 
    ``#include <gui_forms/controls/docking/dock_workspace/dock_workspace.hpp>``
-
-   What the program registers for one panel: the layout's descriptor, the title its caption and tab show, and the factory that builds its content. The factory is a named delegate: its object must outlive the workspace's use of it (remove the panel or destroy the workspace first).
 
    .. cpp:member:: DockPanelDescriptor descriptor
 

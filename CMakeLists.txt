@@ -76,6 +76,7 @@ option(GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 include(GNUInstallDirs)
+include(cmake/LocalizablePlugin.cmake)
 
 # Windows (the MSYS2 CLANG64 toolchain, a MinGW-w64 target): every executable
 # and DLL this project builds links the LLVM runtimes (libc++, libc++abi,
@@ -164,6 +165,7 @@ add_library(gui_forms_core STATIC
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
+    src/core/animation/animation_timer/animation_timer.cpp
     src/core/binding/value/binding_value.cpp
     src/core/binding/value/property_collection_value/property_collection_value.cpp
     src/core/binding/value/property_object_value/property_object_value.cpp
@@ -217,6 +219,7 @@ add_library(gui_forms_core STATIC
     src/core/text/text_store/text_store.cpp
     src/core/text/prepared/prepared_storage.cpp
     src/core/text/composite/text_composite.cpp
+    src/core/text/localizable/localizable.cpp
     src/core/document_view/document_view_state.cpp
     src/core/pages/page_set/page_set.cpp
     src/core/events/key_commands/key_commands.cpp
@@ -236,6 +239,8 @@ add_library(gui_forms_core STATIC
     src/core/window/inspection/window_visual_inspection.cpp
     src/core/resources/image_registry/image_registry.cpp
     src/core/resources/application_resources/application_resources.cpp
+    src/runtime/user_themes/theme_files.cpp
+    src/runtime/user_themes/user_themes.cpp
     src/core/resources/integrity/sha256.cpp
     src/core/resources/fonts/bundled_font_set.cpp
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
@@ -266,6 +271,7 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/media/theme_media_query.cpp
     src/core/theme_language/compiler/theme_compiler.cpp
     src/core/theme_language/package/theme_manifest.cpp
+    src/core/theme_language/package/theme_header.cpp
     src/core/theme_language/package/theme_package.cpp
     src/core/json/json_reader/json_reader.cpp
     src/core/docking/types/dock_types.cpp
@@ -691,6 +697,7 @@ add_library(gui_forms_controls STATIC
     src/controls/docking/dock_workspace/dock_workspace.cpp
     src/controls/docking/dock_site/dock_site.cpp
     src/controls/docking/dock_site/dock_site_drag.cpp
+    src/controls/drag_gesture/drag_gesture.cpp
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
     src/controls/data_grid_view/data_grid_view_parts.cpp
@@ -1432,6 +1439,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/retained-layout-panels.cpp
         src/controls/gallery/pages/css-layout-panels.cpp
         src/controls/gallery/pages/dock-and-anchor.cpp
+        src/controls/gallery/pages/docking-workspace.cpp
         src/controls/gallery/pages/commands-and-menus.cpp
         src/controls/gallery/pages/tree-and-object-views.cpp
         src/controls/gallery/pages/choices-and-sections.cpp
@@ -1456,6 +1464,9 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_compile_definitions(gui_forms_gallery_model PRIVATE
         GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}")
     target_link_libraries(gui_forms_gallery_model PUBLIC gui_forms_controls)
+    # The Gallery is compiled with the localizable-literal plugin: its own
+    # literals are the first table a translator reads.
+    gui_forms_compile_with_localizable_plugin(gui_forms_gallery_model)
 
     add_library(gui_forms_vsync_lab_model STATIC
         demo/vsync_lab.cpp
@@ -2500,6 +2511,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_cascade_tests tests/theme_cascade_tests.cpp)
     target_link_libraries(gui_forms_theme_cascade_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_cascade_tests COMMAND gui_forms_theme_cascade_tests)
+    add_executable(gui_forms_theme_user_layer_tests tests/theme_user_layer_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_layer_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_theme_user_layer_tests COMMAND gui_forms_theme_user_layer_tests)
     add_executable(gui_forms_motion_clock_tests tests/motion_clock_tests.cpp)
     target_link_libraries(gui_forms_motion_clock_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_motion_clock_tests COMMAND gui_forms_motion_clock_tests)
@@ -2745,6 +2759,14 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_compiler_tests tests/theme_language/theme_compiler_tests.cpp)
     target_link_libraries(gui_forms_theme_compiler_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_compiler_tests COMMAND gui_forms_theme_compiler_tests)
+    add_executable(gui_forms_theme_conformance_tests tests/theme_language/theme_conformance_tests.cpp)
+    target_link_libraries(gui_forms_theme_conformance_tests PRIVATE gui_forms_controls)
+    target_compile_definitions(gui_forms_theme_conformance_tests PRIVATE
+        GUI_FORMS_THEME_CONFORMANCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/theme_language/conformance")
+    add_test(NAME gui_forms_theme_conformance_tests COMMAND gui_forms_theme_conformance_tests)
+    add_executable(gui_forms_theme_hostile_tests tests/theme_language/theme_hostile_tests.cpp)
+    target_link_libraries(gui_forms_theme_hostile_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_hostile_tests COMMAND gui_forms_theme_hostile_tests)
     add_executable(gui_forms_theme_material_css_tests tests/theme_language/theme_material_css_tests.cpp)
     target_link_libraries(gui_forms_theme_material_css_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_material_css_tests COMMAND gui_forms_theme_material_css_tests)
@@ -2787,6 +2809,13 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_package_compile_tests tests/theme_language/theme_package_compile_tests.cpp)
     target_link_libraries(gui_forms_theme_package_compile_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_package_compile_tests COMMAND gui_forms_theme_package_compile_tests)
+    add_executable(gui_forms_theme_user_theme_tests tests/theme_language/theme_user_theme_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_theme_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_theme_tests COMMAND gui_forms_theme_user_theme_tests)
+
+    add_executable(gui_forms_theme_user_folder_tests tests/theme_language/theme_user_folder_tests.cpp)
+    target_link_libraries(gui_forms_theme_user_folder_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_user_folder_tests COMMAND gui_forms_theme_user_folder_tests)
 
     add_executable(gui_forms_theme_sheet_fuzz_tests fuzz/theme_sheet_fuzz.cpp)
     target_link_libraries(gui_forms_theme_sheet_fuzz_tests PRIVATE gui_forms_core)
@@ -3351,6 +3380,38 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_semantic_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_semantic_tests COMMAND gui_forms_semantic_tests)
 
+    # The localizable-literal plugin, dogfooded: a unit with the plugin, one
+    # without it, a static and a shared library with it. Without the plugin
+    # the test checks the table reader only.
+    add_library(gui_forms_localizable_plugin_static STATIC tests/localizable_plugin_static.cpp)
+    target_link_libraries(gui_forms_localizable_plugin_static PUBLIC gui_forms_controls)
+    gui_forms_compile_with_localizable_plugin(gui_forms_localizable_plugin_static)
+    add_library(gui_forms_localizable_plugin_shared SHARED tests/localizable_plugin_shared.cpp)
+    target_include_directories(gui_forms_localizable_plugin_shared PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+    gui_forms_compile_with_localizable_plugin(gui_forms_localizable_plugin_shared)
+    add_executable(gui_forms_localizable_plugin_tests
+        tests/localizable_plugin_tests.cpp
+        tests/localizable_plugin_plain.cpp)
+    target_link_libraries(gui_forms_localizable_plugin_tests PRIVATE
+        gui_forms_localizable_plugin_static gui_forms_localizable_plugin_shared gui_forms_controls)
+    target_compile_definitions(gui_forms_localizable_plugin_tests PRIVATE
+        GUI_FORMS_LOCALIZABLE_TEST_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+    if(GUI_FORMS_LOCALIZABLE_PLUGIN_PATH)
+        target_compile_definitions(gui_forms_localizable_plugin_tests PRIVATE GUI_FORMS_LOCALIZABLE_TEST_PLUGIN)
+        gui_forms_compile_with_localizable_plugin(gui_forms_localizable_plugin_tests
+            SOURCES tests/localizable_plugin_tests.cpp)
+    endif()
+    add_test(NAME gui_forms_localizable_plugin_tests COMMAND gui_forms_localizable_plugin_tests)
+    # The dump tool reads the same tables from the linked program's file.
+    get_filename_component(_gf_compiler_dir "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    find_program(GUI_FORMS_LLVM_OBJCOPY NAMES llvm-objcopy HINTS "${_gf_compiler_dir}")
+    if(GUI_FORMS_LOCALIZABLE_PLUGIN_PATH AND GUI_FORMS_LLVM_OBJCOPY AND Python3_EXECUTABLE)
+        add_test(NAME gui_forms_localizable_dump_tests
+                 COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/dump_localizable_literals.py
+                         --objcopy ${GUI_FORMS_LLVM_OBJCOPY} --require Ready --require "Static library text"
+                         $<TARGET_FILE:gui_forms_localizable_plugin_tests>)
+    endif()
+
     add_executable(gui_forms_lifecycle_controls_tests
         tests/lifecycle_controls_tests.cpp
     )
@@ -3567,6 +3628,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/dialogs-and-host-services_tests.cpp
             tests/gallery_pages/states-and-diagnostics_tests.cpp
             tests/gallery_pages/dock-and-anchor_tests.cpp
+            tests/gallery_pages/docking-workspace_tests.cpp
             tests/gallery_pages/retained-layout-panels_tests.cpp
             tests/gallery_pages/css-layout-panels_tests.cpp
             tests/gallery_pages/control-spectrum_tests.cpp

@@ -7,6 +7,7 @@
 #include "gui_forms/controls/panel/combo_box/combo_box.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -74,8 +75,8 @@ enum class ToolStripOverflow : std::uint8_t { as_needed, never };
 struct ToolStripItemSpec final {
     std::string stable_id{};
     ToolStripItemKind kind{ToolStripItemKind::button};
-    std::string text{};
-    std::string tool_tip_text{};
+    GUI_FORMS_LOCALIZABLE(text) std::string text{};
+    GUI_FORMS_LOCALIZABLE(tool_tip) std::string tool_tip_text{};
     ImageId image{};
     ToolStripItemDisplay display{ToolStripItemDisplay::image_and_text};
     std::shared_ptr<Command> command{};
@@ -181,6 +182,12 @@ public:
     }
 
     [[nodiscard]] Size measure(Size available) override;
+    // The length along the strip's axis (its width, or its height when
+    // vertical) its visible items need with none overflowed: the edge
+    // insets, the grip, the end reserve or sizing grip, and every visible
+    // item at its own size (spring labels at their text's). A ToolStripPanel
+    // gives each strip but the last of a shared row this much.
+    [[nodiscard]] double content_length() const;
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_pointer(PointerEvent& event) override;

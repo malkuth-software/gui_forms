@@ -1,0 +1,2 @@
+﻿/* forms: source.bom source.crlf source.cr token.comment token.string token.number-exponent */
+button { opacity: 5e-1; /* kept */ }button::part(face) { background-image: url("resource:tile.quadrant") }

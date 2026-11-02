@@ -4,6 +4,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 
 #include <chrono>
@@ -54,7 +55,7 @@ enum class ListViewSortOrder : std::uint8_t { none, ascending, descending };
 // units at text scale 1.
 struct ListViewColumn final {
     std::string stable_id{};
-    std::string text{};
+    GUI_FORMS_LOCALIZABLE(header) std::string text{};
     double width{120.0};
     ListViewAlignment alignment{ListViewAlignment::left};
 };
@@ -69,7 +70,7 @@ struct ListViewColumn final {
 // the default group. A virtual view's items are never grouped.
 struct ListViewItem final {
     std::string stable_id{};
-    std::string text{};
+    GUI_FORMS_LOCALIZABLE(text) std::string text{};
     std::vector<std::string> sub_items{};
     std::string image_key{};
     bool checked{};
@@ -80,7 +81,7 @@ struct ListViewItem final {
 // items. `stable_id` is unique within the view; items name it in `group`.
 struct ListViewGroup final {
     std::string stable_id{};
-    std::string header{};
+    GUI_FORMS_LOCALIZABLE(header) std::string header{};
     ListViewAlignment header_alignment{ListViewAlignment::left};
 };
 

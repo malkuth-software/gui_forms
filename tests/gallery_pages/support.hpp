@@ -39,11 +39,6 @@ void require_eventually(Predicate predicate, const char* message) {
     }
 }
 
-inline std::uint64_t poll_active_surface_count(Window& window) {
-    static_cast<void>(window.poll_frame_schedule(FrameTime{}));
-    return window.metrics_snapshot().active_surface_count;
-}
-
 class DispatcherHasOnePending final {
 public:
     explicit DispatcherHasOnePending(Window& window) noexcept : window_(window) {}

@@ -37,6 +37,8 @@ public:
         std::uint64_t wake_posts{};
         std::uint64_t last_painted_generation{};
         LiveSurfaceSnapshot surface;
+        // The producer is idle because its window cannot present its frames.
+        bool presentation_idle{};
     };
 
     explicit WaterfallSurface(StableId stable_id)
@@ -79,6 +81,12 @@ public:
         paused_.store(paused, std::memory_order_release);
     }
 
+    // Whether the window can present the surface (UI thread; the producer
+    // idles while it cannot).
+    void set_presentable(bool presentable) noexcept {
+        presentable_.store(presentable, std::memory_order_release);
+    }
+
     [[nodiscard]] bool paused() const noexcept {
         return paused_.load(std::memory_order_acquire);
     }
@@ -96,6 +104,7 @@ public:
         result.last_painted_generation =
             last_painted_generation_.load(std::memory_order_acquire);
         if (surface_) result.surface = (*surface_).snapshot();
+        result.presentation_idle = !presentable_.load(std::memory_order_acquire);
         return result;
     }
 
@@ -305,6 +314,13 @@ private:
                 next = std::chrono::steady_clock::now();
                 continue;
             }
+            // A producer whose window cannot present (covered, minimized, or
+            // the surface hidden) idles: no rendering, publishing or UI wakes.
+            if (!presentable_.load(std::memory_order_acquire)) {
+                std::this_thread::sleep_for(16ms);
+                next = std::chrono::steady_clock::now();
+                continue;
+            }
             ++frame_index;
             producer_frames_.fetch_add(1U, std::memory_order_relaxed);
             render_candidate(staging, frame_index);
@@ -380,6 +396,7 @@ private:
     std::atomic<std::uint32_t> contrast_{100U};
     std::atomic<std::uint32_t> synthetic_load_{0U};
     std::atomic<bool> paused_{};
+    std::atomic<bool> presentable_{true};
     std::atomic<bool> full_window_repaint_{};
     bool direct_live_registered_{};
     std::atomic<bool> paint_queued_{};
@@ -507,6 +524,12 @@ std::shared_ptr<TrackBar> slider(std::string id, double minimum,
 }
 
 void refresh_telemetry(const std::shared_ptr<LabContext>& context) {
+    // The telemetry tick runs whether or not the window presents (UI timers
+    // ignore occlusion), so it also tells the producer whether to run.
+    WaterfallSurface& waterfall = *(*context).waterfall;
+    const Window* const window = waterfall.attached_window();
+    waterfall.set_presentable(window != nullptr && !(*window).occluded() &&
+                              waterfall.effectively_visible());
     const std::chrono::steady_clock::time_point now =
         std::chrono::steady_clock::now();
     const double seconds = std::max(
@@ -534,7 +557,8 @@ void refresh_telemetry(const std::shared_ptr<LabContext>& context) {
         " fps\nlatest lag " + std::to_string(lag) +
         " generations\ndropped writes " +
         std::to_string(current.surface.dropped_acquires) +
-        "\nUI wake posts " + std::to_string(current.wake_posts));
+        "\nUI wake posts " + std::to_string(current.wake_posts) +
+        (current.presentation_idle ? "\nproducer idle: not presented" : ""));
     (*context).previous = current;
     (*context).previous_time = now;
 }

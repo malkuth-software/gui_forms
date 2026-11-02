@@ -67,6 +67,9 @@ gui_forms::Window
          :cpp:func:`resources <gui_forms::Window::resources>` and raises :cpp:func:`theme_changed <gui_forms::Window::theme_changed>` in each; a null theme throws
          ``std::invalid_argument``.
 
+      **user_theme_rules** : ``CompiledThemeRules*``, read-only
+         The rules of the user theme layered under every theme of these resources (ApplicationResources::user_theme_rules), or null.
+
       **theme_ptr** : ``std::shared_ptr<const Theme>``, read-only
          Returns shared ownership of the active immutable theme.
 
@@ -363,8 +366,6 @@ gui_forms::Window
       * - :cpp:func:`take_damage <gui_forms::Window::take_damage>`
         - Runs pending layout, then returns and clears the accumulated damage of every paint plane.
       * - :cpp:func:`schedule_paint <gui_forms::Window::schedule_paint>`
-        -  
-      * - :cpp:func:`activate_surface <gui_forms::Window::activate_surface>`
         -  
       * - :cpp:func:`schedule_ui_timer <gui_forms::Window::schedule_ui_timer>`
         - Calls an owned callback on the UI thread at a frame-time interval, until the returned token or its owner is disposed.
@@ -676,6 +677,10 @@ gui_forms::Window
    .. cpp:function:: void set_theme(std::shared_ptr<const Theme> theme)
 
       Sets :cpp:func:`theme <gui_forms::Window::theme>`; see the property's description above.
+
+   .. cpp:function:: const CompiledThemeRules* user_theme_rules() const noexcept
+
+      The rules of the user theme layered under every theme of these resources (ApplicationResources::user_theme_rules), or null.
 
    .. cpp:function:: std::shared_ptr<const Theme> theme_ptr() const noexcept
 
@@ -1124,8 +1129,6 @@ gui_forms::Window
       every paint plane.
 
    .. cpp:function:: FrameRequestToken schedule_paint(const Control::Ptr& control, FrameTime deadline)
-
-   .. cpp:function:: FrameRequestToken activate_surface(const Control::Ptr& control, FrameInterval interval, FrameTime first_deadline)
 
    .. cpp:function:: FrameRequestToken schedule_ui_timer(Component& owner, FrameInterval interval, FrameTime first_deadline, std::function<void(FrameTime)> callback)
 

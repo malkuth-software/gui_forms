@@ -60,7 +60,7 @@ Related types
    * - :cpp:class:`FocusScopeOptions <gui_forms::FocusScopeOptions>`
      - FocusScopeOptions independently controls containment, prior-focus restoration, and first-descendant focus on open.
    * - :cpp:class:`FramePollResult <gui_forms::FramePollResult>`
-     - FramePollResult reports deadline, active-surface, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll.
+     - FramePollResult reports deadline, motion-clock, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll.
    * - :cpp:class:`FrameRequestToken <gui_forms::FrameRequestToken>`
      - FrameRequestToken is move-only revocable ownership of one Window frame request, with destruction providing deterministic cancellation.
    * - :cpp:class:`KeyGesture <gui_forms::KeyGesture>`
@@ -443,11 +443,9 @@ Related types
 
    ``#include <gui_forms/scheduler/types/scheduler_types.hpp>``
 
-   FramePollResult reports deadline, active-surface, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll.
+   FramePollResult reports deadline, motion-clock, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll.
 
    .. cpp:member:: std::uint64_t deadlines_fired
-
-   .. cpp:member:: std::uint64_t active_surface_ticks
 
    .. cpp:member:: std::uint64_t ui_timer_ticks
 
@@ -459,7 +457,7 @@ Related types
 
    .. cpp:member:: std::uint64_t callback_faults
 
-      Throwing callbacks are disconnected individually so one animated surface cannot repeatedly escape through a native timer callback.
+      Throwing UI timer callbacks are disconnected individually so one cannot repeatedly escape through a native timer callback.
 
    .. cpp:member:: bool reentrant_poll_deferred
 
@@ -1049,14 +1047,6 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_scheduled_frame_requests
 
    Value: ``256``.
-
-.. cpp:var:: constexpr std::size_t maximum_active_surfaces
-
-   Value: ``32``.
-
-.. cpp:var:: constexpr FrameInterval minimum_active_surface_interval
-
-   Value: ``std::chrono::milliseconds(8)``.
 
 .. cpp:var:: constexpr FrameInterval minimum_ui_timer_interval
 

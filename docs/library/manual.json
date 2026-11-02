@@ -706,7 +706,6 @@
         "on_key": "Implements scalar/word navigation, extension, deletion, clipboard commands, history, commit, and cancel.",
         "on_text_input": "Applies validated text input through the common selection-replacement and history state machine.",
         "on_focus_changed": "Starts or stops caret animation and resets the visible focus phase.",
-        "on_frame": "Advances the retained caret blink deadline only while focused and editable.",
         "semantic_descriptor": "Projects an editable or read-only text role, value policy, selection metadata, and supported actions without leaking passwords.",
         "on_semantic_action": "Routes focus, set-value, selection, clipboard, history, commit, and cancel actions through normal editor laws."
       }
@@ -962,7 +961,7 @@
         "animation_phase": "Returns the normalized retained phase used for deterministic rendering and tests.",
         "measure": "Provides stable progress-track desired thickness independent of phase.",
         "on_paint": "Records the selected track/fill/segment/marquee/overlay presentation from current range and phase.",
-        "on_frame": "Advances phase from frame time under effective motion policy and invalidates only when pixels change.",
+        "advance_animation": "Advances the indeterminate or marquee phase to a frame time; its animation timer calls it, and tests step the bar with it.",
         "hit_test_local": "Always declines input because progress is informational.",
         "semantic_descriptor": "Projects a progress role with numeric range/value and indeterminate state where applicable."
       }
@@ -992,7 +991,6 @@
         "on_pointer": "Owns part qualification, capture, thumb dragging, page/line changes, cancellation, and repeat scheduling.",
         "on_key": "Handles arrows, page movement, home, and end through reasoned RangeControl transitions.",
         "on_focus_changed": "Commits keyboard focus cues and stops interaction when focus policy requires.",
-        "on_frame": "Executes deadline-based held-part repeats while preserving current pointer qualification.",
         "semantic_descriptor": "Projects a scrollbar role with range, value, orientation, and line/page actions.",
         "on_semantic_action": "Routes increment, decrement, page, and set-value commands through ordinary constrained state."
       }
@@ -1478,8 +1476,7 @@
         "phase_visible": "Reports whether the current blink phase paints the glyph.",
         "on_paint": "Records caller imagery or the default error mark only when the current phase is visible.",
         "hit_test_local": "Rejects input so the glyph remains a pure adornment.",
-        "semantic_descriptor": "Projects an alert with the target error while remaining nonfocusable.",
-        "on_frame": "Advances blink phase at cadence and requests only the next necessary frame."
+        "semantic_descriptor": "Projects an alert with the target error while remaining nonfocusable."
       }
     },
     "HelpRequestEvent": {
@@ -1590,7 +1587,7 @@
         "marker_size": "Returns the logical square marker size.",
         "set_marker_size": "Validates a size within [4, 48] and refreshes track paint.",
         "phase": "Returns the last retained normalized timeline phase.",
-        "on_frame": "Samples active timeline state, updates phase, and disconnects when a finite animation finishes.",
+        "advance_animation": "Samples the timeline at a frame time into the phase, and stops the frame timer when a finite animation finishes.",
         "on_paint": "Records frame, title/readout, each track, and curve-sampled markers from effective motion policy.",
         "hit_test_local": "Always rejects input because surrounding controls own policy interaction.",
         "semantic_descriptor": "Projects image role, normalized phase/range, motion readout, and busy state only while active."
@@ -2041,7 +2038,6 @@
         "needs_frame": "Reports retained damage or due scheduled work without polling controls.",
         "next_wake": "Returns the earliest eligible frame/timer deadline, respecting occlusion.",
         "schedule_paint": "Adds one bounded, revocable deadline request for an attached control.",
-        "activate_surface": "Adds a bounded periodic surface request with an enforced minimum interval.",
         "schedule_ui_timer": "Adds a bounded periodic callback for a live Component owner with fault isolation and a minimum interval.",
         "poll_frame_schedule": "Runs one nonreentrant bounded schedule turn, coalesces due work, disconnects faulting callbacks, invalidates due surfaces, and returns the next wake.",
         "cancel_frame_requests": "Revokes every outstanding frame/surface/timer request and refreshes scheduling metrics.",
@@ -2163,8 +2159,6 @@
         "display_cache_entries": "Counts retained display chunks recursively for structured metrics.",
         "update_display_cache_metrics": "Publishes current display-chunk population and generation.",
         "compact_frame_requests": "Erases disconnected/dead scheduled requests without disturbing order.",
-        "active_surface_count": "Counts connected periodic surface requests.",
-        "update_frame_schedule_metrics": "Publishes bounded request/surface counts.",
         "absolute_bounds_of": "Accumulates retained parent transforms into root-client logical bounds.",
         "visual_bounds_of": "Expands absolute bounds by validated bounded visual outsets.",
         "paint_damage_bounds_of": "Unites current and last-painted visual bounds so shrinking effects erase cleanly.",
@@ -2754,7 +2748,7 @@
     },
     "FramePollResult": {
       "status": "OBSERVED: bundle 008 scheduler telemetry review; focused M4 tests pass",
-      "summary": "FramePollResult reports deadline, active-surface, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll."
+      "summary": "FramePollResult reports deadline, motion-clock, UI-timer, coalescing, callback-fault, reentrancy, damage, occlusion, and next-wake outcomes for one host poll."
     },
     "FrameRequestToken": {
       "status": "OBSERVED: bundle 008 scheduler token review; focused M4 tests pass",
@@ -2770,7 +2764,7 @@
     },
     "ScheduledFrameRequest": {
       "status": "OBSERVED: bundle 008 private scheduler request review; focused M4 tests pass",
-      "summary": "ScheduledFrameRequest is the revocable state record for one deadline, periodic active surface, or UI timer, separating weak control targets from callback-owned timer delivery.",
+      "summary": "ScheduledFrameRequest is the revocable state record for one deadline, motion-clock frame, engine idle frame, or UI timer, separating weak control targets from callback-owned timer delivery.",
       "methods": {
         "ScheduledFrameRequest": "Constructs either a weak-target paint request or a callback timer with explicit kind, deadline, and interval.",
         "disconnect": "Revokes future delivery and clears callback ownership.",
@@ -3479,7 +3473,7 @@
     "Metrics": {
       "status": "OBSERVED: bundle 010 metrics accumulator split; focused M4 core tests pass",
       "summary": "Metrics is the structured counter accumulator used by Window and retained controls; only wrong-thread rejection is atomic because that rejection may originate off-thread.",
-      "methods": {"snapshot": "Copies retained counters and samples the atomic wrong-thread rejection total.", "reset_activity": "Clears transient activity while preserving population, nesting depths, renderer, display cache, and active-surface baselines.", "set_population": "Sets live control and stable-ID counts.", "record_mutation": "Counts one retained mutation.", "record_dirty_mark": "Counts a dirty mark and accumulates requested area.", "record_measure": "Counts one measure pass, visited nodes, and callbacks.", "record_arrange": "Counts one arrange pass, visited nodes, and callbacks.", "record_paint": "Counts paint traversal, invalidations, display cache work, replay, area, and full/partial classification.", "set_display_cache": "Sets current cache entries and generation.", "record_input": "Counts one input event.", "record_focus_transition": "Counts one focus transition.", "record_focus_scope_opened": "Counts an open, sets depth, and raises maximum depth.", "record_focus_scope_closed": "Counts a close, optional restoration, and resulting depth.", "record_focus_scope_rejection": "Counts one rejected focus-scope operation.", "record_activation": "Counts one activation transition.", "record_disposal": "Adds one or more disposed controls.", "record_wrong_thread_rejection": "Atomically counts a rejected cross-thread operation.", "record_subscription_connected": "Counts one connected subscription.", "record_subscription_disconnected": "Counts one disconnected subscription.", "record_callback_emitted": "Adds emitted callback count.", "record_focus_revocation": "Counts focus revocation.", "record_capture_revocation": "Counts pointer-capture revocation.", "record_press_revocation": "Counts press-state revocation.", "record_undeclared_mutation": "Counts a mutation outside declared static-tree policy.", "record_damage_region": "Accumulates compaction/collapse work and tracks maximum rectangle cardinality.", "enter_update_scope": "Counts and enters one nested update scope.", "leave_update_scope": "Leaves one update scope without underflow.", "record_flush": "Counts a flush and optional read-barrier cause.", "record_pass_limit_hit": "Counts bounded layout-pass exhaustion.", "record_callback_arbitration_retry": "Counts callback arbitration retry and optional limit exhaustion.", "record_frame_request": "Counts a scheduled frame request.", "record_frame_poll": "Accumulates deadlines, active ticks, coalescing, and nonempty scheduler wakes.", "record_frame_callback_fault": "Counts a contained frame callback exception.", "record_reentrant_frame_poll": "Counts a deferred reentrant poll.", "set_active_surface_count": "Sets active surfaces and raises the maximum.", "record_occlusion_transition": "Counts occlusion suspension or resumption.", "record_occluded_frame_poll": "Counts a poll suppressed by occlusion.", "record_present": "Counts presentation, total duration, and worst duration.", "set_renderer": "Sets renderer identity and the explicit CPU-only assertion."}
+      "methods": {"snapshot": "Copies retained counters and samples the atomic wrong-thread rejection total.", "reset_activity": "Clears transient activity while preserving population, nesting depths, renderer, and display cache baselines.", "set_population": "Sets live control and stable-ID counts.", "record_mutation": "Counts one retained mutation.", "record_dirty_mark": "Counts a dirty mark and accumulates requested area.", "record_measure": "Counts one measure pass, visited nodes, and callbacks.", "record_arrange": "Counts one arrange pass, visited nodes, and callbacks.", "record_paint": "Counts paint traversal, invalidations, display cache work, replay, area, and full/partial classification.", "set_display_cache": "Sets current cache entries and generation.", "record_input": "Counts one input event.", "record_focus_transition": "Counts one focus transition.", "record_focus_scope_opened": "Counts an open, sets depth, and raises maximum depth.", "record_focus_scope_closed": "Counts a close, optional restoration, and resulting depth.", "record_focus_scope_rejection": "Counts one rejected focus-scope operation.", "record_activation": "Counts one activation transition.", "record_disposal": "Adds one or more disposed controls.", "record_wrong_thread_rejection": "Atomically counts a rejected cross-thread operation.", "record_subscription_connected": "Counts one connected subscription.", "record_subscription_disconnected": "Counts one disconnected subscription.", "record_callback_emitted": "Adds emitted callback count.", "record_focus_revocation": "Counts focus revocation.", "record_capture_revocation": "Counts pointer-capture revocation.", "record_press_revocation": "Counts press-state revocation.", "record_undeclared_mutation": "Counts a mutation outside declared static-tree policy.", "record_damage_region": "Accumulates compaction/collapse work and tracks maximum rectangle cardinality.", "enter_update_scope": "Counts and enters one nested update scope.", "leave_update_scope": "Leaves one update scope without underflow.", "record_flush": "Counts a flush and optional read-barrier cause.", "record_pass_limit_hit": "Counts bounded layout-pass exhaustion.", "record_callback_arbitration_retry": "Counts callback arbitration retry and optional limit exhaustion.", "record_frame_request": "Counts a scheduled frame request.", "record_frame_poll": "Accumulates deadlines, motion-clock frames, coalescing, and nonempty scheduler wakes.", "record_frame_callback_fault": "Counts a contained frame callback exception.", "record_reentrant_frame_poll": "Counts a deferred reentrant poll.", "record_occlusion_transition": "Counts occlusion suspension or resumption.", "record_occluded_frame_poll": "Counts a poll suppressed by occlusion.", "record_present": "Counts presentation, total duration, and worst duration.", "set_renderer": "Sets renderer identity and the explicit CPU-only assertion."}
     },
     "PropertyEnumValue": {"status": "OBSERVED: bundle 010 binding value review; focused M4 binding tests pass", "summary": "PropertyEnumValue preserves declared enum type, canonical symbolic name, and signed numeric representation.", "methods": {"operator==": "Compares type, name, and value."}},
     "PropertyObjectMember": {"status": "OBSERVED: bundle 010 property member review; focused M4 binding tests pass", "summary": "PropertyObjectMember is one inert inspectable object member with optional schema, nullability, enum, standard-value, converter, and editor metadata.", "methods": {"operator==": "Compares the complete member snapshot."}},

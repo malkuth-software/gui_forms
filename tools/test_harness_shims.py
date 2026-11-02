@@ -19,8 +19,7 @@ import harness_link
 TOOLS: Path = Path(__file__).resolve().parent
 # The tools that take no options: run with --help they reach the harness's
 # code and fail there on the argument, which their traceback shows.
-POSITIONAL_TOOLS: tuple[str, ...] = ('audit_macos_minimum', 'cache_manifest', 'compiler_identity',
-                                     'macos_runtime_manifest')
+POSITIONAL_TOOLS: tuple[str, ...] = ('cache_manifest', 'compiler_identity', 'macos_runtime_manifest')
 
 
 def run_python(arguments: list[str], environment: dict[str, str] | None = None) -> subprocess.CompletedProcess[str]:

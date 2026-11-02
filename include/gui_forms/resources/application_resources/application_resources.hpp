@@ -3,15 +3,58 @@
 #include "gui_forms/resources/image_registry/image_registry.hpp"
 
 #include <cstddef>
+#include <cstdint>
 #include <memory>
+#include <optional>
 #include <span>
+#include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
 namespace gui_forms {
 
+class CompiledThemeRules;
 class Theme;
+class ThemeCompileResult;
+class ThemeLibrary;
 class Window;
+struct ThemeCompileOptions;
+struct UserThemeFiles;
+struct UserThemeHeader;
+
+// How a program admits user themes (T3 user themes, notes:planning/stages/
+// T3-theme-language/USER_THEMES.md section 4.3).
+enum class UserThemePolicy : std::uint8_t {
+    // The program's theme is authoritative: a user theme's ordinary
+    // declarations stand only where the program's declare nothing, and its
+    // `!important` ones over the program's ordinary declarations, never
+    // over the program's `!important` ones.
+    layered,
+    // A selected user theme takes the program theme's place whole; the
+    // program's inline styles keep their order over it.
+    replaces_program_sheet,
+    // No user themes.
+    refused,
+};
+
+// Whether a user theme may replace a program icon (T3 user themes,
+// USER_THEMES.md section 6): `fixed` is the icon's counterpart of
+// `!important`, for such as a security indicator or the icon of the
+// settings entry leading back to the built-in theme.
+enum class IconOverride : std::uint8_t { overridable, fixed };
+
+// One program icon a user theme may name, by its identifier.
+struct IconDeclaration final {
+    std::string identifier{};
+    IconOverride policy{IconOverride::overridable};
+};
+
+// Whether `identifier` is an icon identifier: segments of ASCII lowercase
+// letters, digits and dashes, each beginning with a letter or digit,
+// joined by `.` (as the locale keys), at most 128 bytes in all; for
+// example `toolbar.save` or `check-mark`.
+[[nodiscard]] bool icon_identifier_valid(std::string_view identifier) noexcept;
 
 // The image registry and the theme of an application (stage DK decision 8),
 // shared by every Window constructed with it. In those windows an ImageId
@@ -46,7 +89,59 @@ public:
     // a control taking the windows' theme, does not compile: each such
     // style is compiled against the new theme first, and nothing changes
     // where one fails (P12b).
+    // A user theme (Theme with ThemeRuleSet::user) is invalid_argument.
+    // While a user theme replaces the program's
+    // (UserThemePolicy::replaces_program_sheet), the program's theme is
+    // kept (program_theme) and the windows keep the user theme.
     void set_theme(std::shared_ptr<const Theme> theme);
+    // The program's own theme: theme() but while a user theme replaces it.
+    [[nodiscard]] const Theme& program_theme() const noexcept { return *program_theme_; }
+
+    // User themes (T3), chosen before the program's first window: once a
+    // window shares these resources, both are std::logic_error. The
+    // default policy is layered.
+    void set_user_theme_policy(UserThemePolicy policy);
+    [[nodiscard]] UserThemePolicy user_theme_policy() const noexcept { return user_theme_policy_; }
+    // Selects the user theme, or none for null. Under the layered policy it
+    // must be compiled as a user theme (ThemeRuleSet::user), and every part
+    // of these windows consults its rules beside its own theme's; under
+    // replaces_program_sheet as a program theme, which becomes theme().
+    // Anything else is std::invalid_argument, and under the refused policy
+    // std::logic_error; nothing changes then.
+    void set_user_theme(std::shared_ptr<const Theme> theme);
+    // Compiles a user theme into these resources' registry
+    // (compile_user_theme), at the levels the policy needs: a user theme's
+    // under the layered policy, a program theme's under
+    // replaces_program_sheet. `options.icons` is replaced by the icons
+    // registered here. Selects nothing (set_user_theme does); the theme's
+    // images live while it does. Under the refused policy std::logic_error.
+    [[nodiscard]] ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
+                                                        const ThemeCompileOptions& options,
+                                                        UserThemeHeader* header = nullptr);
+    // The selected user theme, or null.
+    [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
+    // The layered user theme's rules, or null where none is layered.
+    [[nodiscard]] const CompiledThemeRules* user_theme_rules() const noexcept;
+
+    // Program icons (T3 user themes). Registers `image`, an image of these
+    // resources, as the icon `identifier`. std::invalid_argument when the
+    // identifier is invalid or already registered, or the image is not
+    // one of these resources'; nothing changes then. The image stays the
+    // program's: removing it leaves icon() naming an image no longer there.
+    void register_icon(std::string_view identifier, ImageId image, IconOverride policy);
+    // The registered icons, in registration order, for a user theme's
+    // compilation (ThemeCompileOptions::icons).
+    [[nodiscard]] std::span<const IconDeclaration> icon_declarations() const noexcept { return icons_; }
+    // The image to draw for the icon `identifier`: the selected user
+    // theme's override of an overridable icon, else the program's image;
+    // nullopt for an identifier not registered. A user theme is selected
+    // before the first window, so a window resolves the same image for its
+    // whole life.
+    [[nodiscard]] std::optional<ImageId> icon(std::string_view identifier) const noexcept;
+    // The program's own image for the icon `identifier`, whatever user
+    // theme is selected; nullopt for an identifier not registered.
+    [[nodiscard]] std::optional<ImageId> program_icon(std::string_view identifier) const noexcept;
+
     // The windows currently sharing these resources.
     [[nodiscard]] std::size_t window_count() const noexcept { return windows_.size(); }
 
@@ -71,6 +166,15 @@ private:
     std::thread::id ui_thread_;
     ImageRegistry images_;
     std::shared_ptr<const Theme> theme_;
+    // The program's theme, the same as theme_ but while a user theme
+    // replaces it.
+    std::shared_ptr<const Theme> program_theme_;
+    std::shared_ptr<const Theme> user_theme_{};
+    UserThemePolicy user_theme_policy_{UserThemePolicy::layered};
+    // The registered icons and, at the same positions, their images.
+    // Bounded by the icons the program registers.
+    std::vector<IconDeclaration> icons_{};
+    std::vector<ImageId> icon_images_{};
     // Observing: each Window attaches in its constructor and detaches in its
     // destructor. Bounded by the windows the program creates on this thread.
     std::vector<Window*> windows_;

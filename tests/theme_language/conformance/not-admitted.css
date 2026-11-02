@@ -1,0 +1,2 @@
+/* forms: property.clip-path property.rotate property.transform property.text-decoration property.layout */
+button { clip-path: circle(50%); rotate: 10deg; transform: none; transform-origin: center; text-decoration: underline; letter-spacing: 1px; width: 10px; margin: 2px; opacity: 1 }

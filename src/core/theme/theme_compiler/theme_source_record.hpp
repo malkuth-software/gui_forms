@@ -53,6 +53,9 @@ struct ThemeSourceRecord final {
     std::vector<std::string> defined_names{};
     std::vector<std::string> published_values{};
     std::vector<ThemeSourceImage> images{};
+    // A user theme's icon overrides, `resource` naming the icon: each one
+    // checked (compile_user_theme) and held by the theme as its images are.
+    std::vector<ThemeSourceImage> icons{};
     // The control types the theme's selectors could name. Each anatomy's
     // spans refer to static storage (ControlAnatomy), so the copies stay
     // valid.

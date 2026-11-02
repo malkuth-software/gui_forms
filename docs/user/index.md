@@ -27,6 +27,7 @@ input-and-focus
 values-commands-and-binding
 data-binding
 controls
+theme-language
 ```
 
 ```{toctree}
@@ -44,4 +45,5 @@ threading
 lifecycle
 hosts-and-capabilities
 audio
+localizable-literals
 ```

@@ -1,0 +1,6 @@
+/* forms: property.scale property.translate property.color property.font-role property.primitive */
+.unused { opacity: 1 }
+:root { ink-on-paper: #1b2733 on #ffffff }
+button { scale: 1.05; translate: 2px 1px; color: role(ink-on-paper); font: caption }
+button::part(face) { primitive: bulge; amplitude: 0.5 }
+button::part(label) { font: heading }

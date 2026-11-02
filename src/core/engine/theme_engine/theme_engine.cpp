@@ -689,6 +689,7 @@ bool same_assembly(const AssembledPartMaterial& assembled, std::uint64_t rules_s
                    Size box, MaterialAssemblyContext context,
                    const CompiledThemeRules::Resolution& resolution) noexcept {
     if (assembled.rules_serial != rules_serial || assembled.inline_serial != resolution.inline_serial) return false;
+    if (assembled.user_serial != resolution.user_serial) return false;
     if (assembled.fields != resolution.materials) return false;
     if (!(assembled.box == box) || assembled.em != context.em) return false;
     if (!(assembled.current_colour == context.current_colour)) return false;
@@ -721,6 +722,7 @@ const SurfaceMaterial& authored_material(EnginePartRecord* kept, std::uint64_t r
     if (held == nullptr) held = std::make_unique<AssembledPartMaterial>();
     (*held).rules_serial = rules_serial;
     (*held).inline_serial = resolution.inline_serial;
+    (*held).user_serial = resolution.user_serial;
     (*held).fields = resolution.materials;
     (*held).box = keyed;
     (*held).em = context.em;
@@ -775,6 +777,7 @@ TextRole resolved_text_role(const Control& control, FontDeclaration font) {
         facts.states = above.anatomy_states();
         const Window* const window = above.attached_window();
         if (window != nullptr) facts.media = window_media_facts(*window);
+        if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
         font = above.effective_theme().engine().rules().resolve(facts).font;
         parent = above.parent();
     }
@@ -800,9 +803,18 @@ double text_role_em(const Control& control, TextRole role) noexcept {
 
 ThemeEngine::ThemeEngine() : ThemeEngine(ThemeRuleSheet{}) {}
 
-ThemeEngine::ThemeEngine(const ThemeRuleSheet& sheet)
-    : registry_(&builtin_primitive_registry()),
-      rules_(CompiledThemeRules::compile_with_built_in(sheet, *registry_)) {}
+ThemeEngine::ThemeEngine(const ThemeRuleSheet& sheet) : ThemeEngine(sheet, ThemeRuleSet::program) {}
+
+namespace {
+// `sheet` compiled as `set`.
+CompiledThemeRules compiled_as(const ThemeRuleSheet& sheet, ThemeRuleSet set, const PrimitiveRegistry& registry) {
+    if (set == ThemeRuleSet::user) return CompiledThemeRules::compile_user(sheet, registry);
+    return CompiledThemeRules::compile_with_built_in(sheet, registry);
+}
+} // namespace
+
+ThemeEngine::ThemeEngine(const ThemeRuleSheet& sheet, ThemeRuleSet set)
+    : registry_(&builtin_primitive_registry()), rules_(compiled_as(sheet, set, *registry_)) {}
 
 ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint& part) const noexcept {
     PartPlan result{};
@@ -821,6 +833,7 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
     facts.role = part.role;
     facts.states = part.states;
     facts.media = window_media_facts(*window);
+    facts.user_rules = (*window).user_theme_rules();
     // Forced high contrast's pass (E1): only an important inline style's
     // drawing stands over it.
     const ControlVisualContext context = part_visual_context(control, part.states);

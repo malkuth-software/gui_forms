@@ -331,7 +331,7 @@ bool run_frame(Window& window, ManualTime& time, Painter& painter) {
     window.perform_layout();
     const DamageRegion damage = window.take_damage();
     if (!damage.empty()) window.paint(painter, damage.bounds());
-    const std::uint64_t work = result.deadlines_fired + result.active_surface_ticks + result.ui_timer_ticks +
+    const std::uint64_t work = result.deadlines_fired + result.ui_timer_ticks +
                                result.motion_clock_ticks;
     const bool ran = work != 0U || !damage.empty() || result.damage_pending;
     return ran;

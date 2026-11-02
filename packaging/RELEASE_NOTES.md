@@ -38,6 +38,16 @@ mail mockup.
   - In stx_vorbis, `OggPacket::granule` and `page_granule`, and
     `OggStreamEnd::granule`, are optionals; `has_granule` and
     `page_has_granule` are gone.
+- **Removed: active surfaces** (ADR-016). `Window::activate_surface`,
+  `Control::on_frame`, `MetricsSnapshot::active_surface_count`,
+  `maximum_active_surface_count` and `active_surface_ticks`,
+  `FramePollResult::active_surface_ticks`, `maximum_active_surfaces` and
+  `minimum_active_surface_interval` are gone. Animate with an
+  `AnimationTimer` member: its tick damages what it changed and returns
+  `AnimationTickResult`, and it waits for the control's next paint. For work
+  that is not drawing, such as a press-and-hold repeat or a poll, use
+  `Window::schedule_ui_timer` and stop it yourself. A `schedule_paint`
+  deadline now only repaints its control; it calls nothing.
 - **Removed:** `Command::set_key_tip` and `CommandState::key_tip`. The ribbon
   has no KeyTips, and nothing else read them.
 

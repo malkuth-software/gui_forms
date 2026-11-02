@@ -1,0 +1,8 @@
+/* forms: property.box-shadow property.box-shadow-inset property.text-shadow property.opacity property.filter-colour property.filter-blur property.filter-drop-shadow property.mix-blend-mode property.isolation */
+button { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), inset 0 0 1px white }
+button { text-shadow: 0 1px 1px black }
+button::part(label) { opacity: 0.9 }
+button::part(face) { filter: brightness(1.1) contrast(1.2) saturate(0.8) grayscale(0.1) sepia(0.1) invert(0) hue-rotate(10deg) }
+button::part(glyph) { filter: blur(1px) }
+track-bar::part(thumb) { filter: drop-shadow(1px 1px red) }
+track-bar { mix-blend-mode: multiply; isolation: isolate }

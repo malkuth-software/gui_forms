@@ -26,6 +26,8 @@ constexpr double sort_glyph_size = 8.0;
 constexpr double sort_glyph_margin = 14.0;
 constexpr double row_glyph_size = 8.0;
 constexpr double row_glyph_margin = 4.0;
+// The error glyph of a cell or row with error text.
+constexpr double error_glyph_size = 11.0;
 constexpr double grip_half_width = 4.0;
 // Content overlapping the viewport by less than this does not scroll a bar
 // into view.
@@ -235,13 +237,20 @@ DataGridView::RowParts DataGridView::row_parts(DataGridViewRowPosition row, cons
     record.row_header = visible_part(header, clip);
     const double glyph_side = row_glyph_size * layout.scale;
     const double glyph_margin = row_glyph_margin * layout.scale;
-    // The current row's glyph sits at the header's start; only the current
-    // row has one.
-    if (is_current_row(row)) {
+    // The row glyph sits at the header's start: the current row's arrow or
+    // pencil, or the new row's star.
+    if (is_current_row(row) || is_new_row(row)) {
         const Rect lane{header.x + glyph_margin, header.y, glyph_side, header.height};
         record.row_glyph = visible_part(centred_square(lane, glyph_side), clip);
     }
-    if (row_source_ == DataGridViewRowSource::unbound && !rows_[row.value].header_text.empty()) {
+    if (show_row_errors_ && !row_error_text(row).empty()) {
+        const double error_side = error_glyph_size * layout.scale;
+        const Rect lane{header.x + std::max(0.0, header.width - glyph_margin - error_side), header.y, error_side,
+                        header.height};
+        record.row_error = visible_part(centred_square(lane, error_side), clip);
+    }
+    if (row_source_ == DataGridViewRowSource::unbound && row.value < rows_.size() &&
+        !rows_[row.value].header_text.empty()) {
         const double start = glyph_margin * 2.0 + glyph_side;
         const Rect label{header.x + start, header.y, std::max(0.0, header.width - start - glyph_margin),
                          std::max(0.0, header.height - 1.0)};
@@ -264,6 +273,15 @@ DataGridView::CellParts DataGridView::cell_parts(DataGridViewRowPosition row, st
     record.cell_focus = record.cell_selection;
     const double padding = cell_padding * scale;
     const DataGridViewColumnKind kind = columns_[column].kind;
+    // The error glyph takes the cell's end; text content stops before it.
+    double error_reserved = 0.0;
+    if (show_cell_errors_ && !cell_error_text(row, column).empty()) {
+        const double error_side = error_glyph_size * scale;
+        const Rect lane{inside.x + std::max(0.0, inside.width - padding - error_side), inside.y, error_side,
+                        inside.height};
+        record.cell_error = visible_part(centred_square(lane, error_side), clip);
+        error_reserved = error_side + padding;
+    }
     if (kind == DataGridViewColumnKind::check_box) {
         const Rect well = centred_square(inside, check_box_size * scale);
         record.cell_check_well = visible_part(well, clip);
@@ -286,7 +304,7 @@ DataGridView::CellParts DataGridView::cell_parts(DataGridViewRowPosition row, st
             record.cell_drop_down_glyph = visible_part(centred_square(button, glyph_size * scale), clip);
         }
         const Rect content{inside.x + padding, inside.y,
-                           std::max(0.0, inside.width - padding * 2.0 - reserved), inside.height};
+                           std::max(0.0, inside.width - padding * 2.0 - reserved - error_reserved), inside.height};
         record.cell_content = visible_part(content, clip);
         if (kind == DataGridViewColumnKind::link) {
             const std::optional<CellLink> link = cell_link(row, column, content);
@@ -409,6 +427,7 @@ AnatomyStateSet DataGridView::row_states(DataGridViewRowPosition row) const {
     if (is_row_selected(row)) states.insert(AnatomyState::selected);
     if (is_current_row(row)) states.insert(AnatomyState::current);
     if (read_only_ || row_read_only(row)) states.insert(AnatomyState::read_only);
+    if (!row_error_text(row).empty()) states.insert(AnatomyState::invalid);
     return states;
 }
 
@@ -418,7 +437,8 @@ AnatomyStateSet DataGridView::cell_states(DataGridViewRowPosition row, std::size
     if (is_cell_selected(row, column)) states.insert(AnatomyState::selected);
     if (current) states.insert(AnatomyState::current);
     if (cell_read_only(row, column)) states.insert(AnatomyState::read_only);
-    if (current && editing_ && edit_invalid_) states.insert(AnatomyState::invalid);
+    const bool edit_invalid = current && editing_ && edit_invalid_;
+    if (edit_invalid || !cell_error_text(row, column).empty()) states.insert(AnatomyState::invalid);
     const DataGridViewColumnKind kind = columns_[column].kind;
     if (kind == DataGridViewColumnKind::check_box &&
         binding_value_to_bool(stored_value(row, column)).value_or(false)) {
@@ -526,9 +546,22 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
     part.bounds = parts.row_header.bounds;
     paint_part(painter, *this, part);
     if (parts.row_glyph.present) {
+        // Owner decision B1-3: the arrow, the pencil and the star are glyph
+        // marks, their look the theme's (T4).
+        PartMark mark = PartMark::asterisk;
+        if (is_current_row(row)) {
+            mark = show_editing_icon_ && is_current_row_dirty() ? PartMark::pencil : PartMark::arrow_right;
+        }
         part.role = PartRole::glyph;
         part.bounds = parts.row_glyph.bounds;
-        part.mark = PartMark::arrow_right;
+        part.mark = mark;
+        paint_part(painter, *this, part);
+        part.mark = PartMark::none;
+    }
+    if (parts.row_error.present) {
+        part.role = PartRole::glyph;
+        part.bounds = parts.row_error.bounds;
+        part.mark = PartMark::error;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
@@ -644,6 +677,14 @@ void DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
         part.role = PartRole::glyph;
         part.bounds = parts.cell_drop_down_glyph.bounds;
         part.mark = PartMark::arrow_down;
+        paint_part(painter, *this, part);
+        part.mark = PartMark::none;
+    }
+    if (parts.cell_error.present) {
+        part.family = ControlVisualRole::panel;
+        part.role = PartRole::glyph;
+        part.bounds = parts.cell_error.bounds;
+        part.mark = PartMark::error;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
@@ -784,24 +825,27 @@ constexpr std::array<StateField<DataGridView::States>, 6> grid_state_fields{{
     {.state = AnatomyState::read_only, .member = &DataGridView::States::read_only},
 }};
 
-constexpr std::array<PartField<DataGridView::RowParts>, 4> row_part_fields{{
+constexpr std::array<PartField<DataGridView::RowParts>, 5> row_part_fields{{
     {.declaration = {.name = "row_header", .role = PartRole::face, .composed_from = {}},
      .member = &DataGridView::RowParts::row_header},
     {.declaration = {.name = "row_header_label", .role = PartRole::label, .composed_from = {}},
      .member = &DataGridView::RowParts::row_header_label},
     {.declaration = {.name = "row_glyph", .role = PartRole::glyph, .composed_from = {}},
      .member = &DataGridView::RowParts::row_glyph},
+    {.declaration = {.name = "row_error", .role = PartRole::glyph, .composed_from = {}},
+     .member = &DataGridView::RowParts::row_error},
     {.declaration = {.name = "row_rule", .role = PartRole::divider, .composed_from = {}},
      .member = &DataGridView::RowParts::row_rule},
 }};
 
-constexpr std::array<StateField<DataGridView::RowStates>, 3> row_state_fields{{
+constexpr std::array<StateField<DataGridView::RowStates>, 4> row_state_fields{{
     {.state = AnatomyState::selected, .member = &DataGridView::RowStates::selected},
     {.state = AnatomyState::current, .member = &DataGridView::RowStates::current},
     {.state = AnatomyState::read_only, .member = &DataGridView::RowStates::read_only},
+    {.state = AnatomyState::invalid, .member = &DataGridView::RowStates::invalid},
 }};
 
-constexpr std::array<PartField<DataGridView::CellParts>, 15> cell_part_fields{{
+constexpr std::array<PartField<DataGridView::CellParts>, 16> cell_part_fields{{
     {.declaration = {.name = "cell", .role = PartRole::region, .composed_from = {}},
      .member = &DataGridView::CellParts::cell},
     {.declaration = {.name = "cell_selection", .role = PartRole::selection, .composed_from = {}},
@@ -832,6 +876,8 @@ constexpr std::array<PartField<DataGridView::CellParts>, 15> cell_part_fields{{
      .member = &DataGridView::CellParts::cell_horizontal_rule},
     {.declaration = {.name = "cell_focus", .role = PartRole::focus, .composed_from = {}},
      .member = &DataGridView::CellParts::cell_focus},
+    {.declaration = {.name = "cell_error", .role = PartRole::glyph, .composed_from = {}},
+     .member = &DataGridView::CellParts::cell_error},
 }};
 
 constexpr std::array<StateField<DataGridView::CellStates>, 8> cell_state_fields{{
@@ -877,9 +923,9 @@ constexpr std::array<CustomStateDeclaration, 2> column_custom_states{{
 
 constexpr std::array<PartDeclaration, 11> grid_parts_declared = part_declarations(grid_part_fields);
 constexpr std::array<AnatomyState, 6> grid_states_declared = state_declarations(grid_state_fields);
-constexpr std::array<PartDeclaration, 4> row_parts_declared = part_declarations(row_part_fields);
-constexpr std::array<AnatomyState, 3> row_states_declared = state_declarations(row_state_fields);
-constexpr std::array<PartDeclaration, 15> cell_parts_declared = part_declarations(cell_part_fields);
+constexpr std::array<PartDeclaration, 5> row_parts_declared = part_declarations(row_part_fields);
+constexpr std::array<AnatomyState, 4> row_states_declared = state_declarations(row_state_fields);
+constexpr std::array<PartDeclaration, 16> cell_parts_declared = part_declarations(cell_part_fields);
 constexpr std::array<AnatomyState, 8> cell_states_declared = state_declarations(cell_state_fields);
 constexpr std::array<PartDeclaration, 5> column_parts_declared = part_declarations(column_part_fields);
 constexpr std::array<AnatomyState, 3> column_states_declared = state_declarations(column_state_fields);
@@ -1073,7 +1119,7 @@ std::vector<DataGridView::Column> DataGridView::realized_columns() const {
 namespace {
 
 // The events DataGridView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 10> data_grid_view_interactions{{
+constexpr std::array<InteractionDeclaration, 26> data_grid_view_interactions{{
     {.name = "selection_changed", .payload = "", .mutable_payload = false},
     {.name = "current_cell_changed", .payload = "std::optional<DataGridViewCellAddress>", .mutable_payload = false},
     {.name = "cell_begin_edit", .payload = "DataGridViewCellCancelEvent", .mutable_payload = true},
@@ -1082,6 +1128,22 @@ constexpr std::array<InteractionDeclaration, 10> data_grid_view_interactions{{
     {.name = "cell_value_changed", .payload = "DataGridViewCellEvent", .mutable_payload = false},
     {.name = "cell_content_click", .payload = "DataGridViewCellEvent", .mutable_payload = false},
     {.name = "row_order_mode_changed", .payload = "DataGridViewRowOrderModeChange", .mutable_payload = false},
+    {.name = "data_error", .payload = "DataGridViewDataErrorEvent", .mutable_payload = true},
+    {.name = "cell_validated", .payload = "DataGridViewCellEvent", .mutable_payload = false},
+    {.name = "current_cell_dirty_state_changed", .payload = "bool", .mutable_payload = false},
+    {.name = "row_validating", .payload = "DataGridViewRowCancelEvent", .mutable_payload = true},
+    {.name = "row_validated", .payload = "DataGridViewRowEvent", .mutable_payload = false},
+    {.name = "cell_enter", .payload = "DataGridViewCellEvent", .mutable_payload = false},
+    {.name = "cell_leave", .payload = "DataGridViewCellEvent", .mutable_payload = false},
+    {.name = "row_enter", .payload = "DataGridViewRowEvent", .mutable_payload = false},
+    {.name = "row_leave", .payload = "DataGridViewRowEvent", .mutable_payload = false},
+    {.name = "default_values_needed", .payload = "DataGridViewRowValuesEvent", .mutable_payload = true},
+    {.name = "user_added_row", .payload = "DataGridViewRowEvent", .mutable_payload = false},
+    {.name = "user_deleting_row", .payload = "DataGridViewRowCancelEvent", .mutable_payload = true},
+    {.name = "user_deleted_row", .payload = "DataGridViewRowEvent", .mutable_payload = false},
+    {.name = "row_edit_cancelled", .payload = "DataGridViewRowEvent", .mutable_payload = false},
+    {.name = "cell_error_text_changed", .payload = "DataGridViewCellEvent", .mutable_payload = false},
+    {.name = "row_error_text_changed", .payload = "DataGridViewRowEvent", .mutable_payload = false},
     {.name = "column_header_click", .payload = "std::size_t", .mutable_payload = false},
     {.name = "column_width_changed", .payload = "std::size_t", .mutable_payload = false},
 }};

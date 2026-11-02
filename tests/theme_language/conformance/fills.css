@@ -1,0 +1,9 @@
+/* forms: property.background-color property.linear-gradient property.radial-gradient property.conic-gradient property.repeating-gradient property.background-shorthand property.procedural property.background-blend-mode */
+button { background-color: #336699 }
+button::part(face) { background-image: linear-gradient(to right, red, blue 40%, green) }
+button::part(label) { background-image: radial-gradient(circle at 30% 40%, white, black) }
+button::part(glyph) { background-image: conic-gradient(red, blue) }
+button::part(focus-cue) { background-image: repeating-linear-gradient(45deg, red 0, red 4px, blue 4px, blue 8px) }
+track-bar { background: linear-gradient(red, blue), #fff }
+track-bar::part(track) { background-image: felt(#336699) }
+track-bar::part(thumb) { background-image: linear-gradient(red, blue), linear-gradient(green, white); background-blend-mode: multiply, screen }

@@ -1,0 +1,43 @@
+compiled
+rule 0 theme_sheet type=button
+  label button
+  transition opacity curve kind=3 duration=120000us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when=:hot target=0.8
+    state when= target=1
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  transition scale curve kind=3 duration=90000us easing=3 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=10000us
+    state when=:pressed target=0.97
+    state when= target=1
+rule 2 theme_sheet type=button part=label
+  label button::part(label)
+  transition opacity curve kind=3 duration=100000us easing=5 overshoot=0 bezier=[0.42 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 3 theme_sheet type=button part=glyph
+  label button::part(glyph)
+  transition opacity curve kind=3 duration=100000us easing=5 overshoot=0 bezier=[0 0 0.58 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 4 theme_sheet type=button part=focus_cue
+  label button::part(focus-cue)
+  transition opacity curve kind=3 duration=100000us easing=0 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 5 theme_sheet type=track_bar
+  label track-bar
+  transition opacity curve kind=3 duration=100000us easing=5 overshoot=0 bezier=[0.1 0 0.9 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 6 theme_sheet type=track_bar part=track
+  label track-bar::part(track)
+  transition opacity curve kind=3 duration=100000us easing=6 overshoot=0 bezier=[0 0 1 1] steps=4 step-position=1 delay=0us
+    state when= target=1
+rule 7 theme_sheet type=track_bar part=thumb
+  label track-bar::part(thumb)
+  transition opacity curve kind=0 duration=50000us easing=0 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 8 stable_id_rule id=spring
+  label #spring
+  transition scale curve kind=1 duration=80000us easing=0 overshoot=0.04598791026026775 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 9 stable_id_rule id=decay
+  label #decay
+  transition opacity curve kind=2 duration=80000us easing=0 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1

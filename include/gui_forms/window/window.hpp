@@ -347,6 +347,9 @@ public:
         return presentation_changed_;
     }
     [[nodiscard]] const Theme& theme() const noexcept { return *theme_; }
+    // The rules of the user theme layered under every theme of these
+    // resources (ApplicationResources::user_theme_rules), or null.
+    [[nodiscard]] const CompiledThemeRules* user_theme_rules() const noexcept;
     [[nodiscard]] std::shared_ptr<const Theme> theme_ptr() const noexcept {
         return theme_;
     }
@@ -511,9 +514,6 @@ public:
     [[nodiscard]] std::optional<FrameTime> next_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
                                                    FrameTime deadline);
-    [[nodiscard]] FrameRequestToken activate_surface(const Control::Ptr& control,
-                                                     FrameInterval interval,
-                                                     FrameTime first_deadline);
     [[nodiscard]] FrameRequestToken schedule_ui_timer(
         Component& owner, FrameInterval interval, FrameTime first_deadline,
         std::function<void(FrameTime)> callback);
@@ -891,6 +891,10 @@ private:
     friend class Control;
     friend class UpdateScope;
     friend class Timer;
+    // Reads lifetime_ and frame_request_cancellations_: a timer waiting
+    // for its owner's paint holds no request, and stops instead of
+    // resuming when this window cancelled its requests meanwhile.
+    friend class AnimationTimer;
     friend class detail::ToolTipPresenter;
     // Called by Control::set_tool_tip_text: a tooltip that shows the
     // control's text shows the new text, or closes when it is empty.
@@ -1310,8 +1314,6 @@ private:
         const Control::Ptr& control) const noexcept;
     void update_display_cache_metrics() noexcept;
     void compact_frame_requests() noexcept;
-    [[nodiscard]] std::size_t active_surface_count() const noexcept;
-    void update_frame_schedule_metrics() noexcept;
     [[nodiscard]] Rect absolute_bounds_of(const Control& control) const;
     [[nodiscard]] Rect visual_bounds_of(const Control& control,
                                         Insets outsets) const;
@@ -1444,9 +1446,9 @@ private:
         std::vector<PaintControlCheckpoint>;
     void collect_paint_checkpoints(
         const Control::Ptr& control, PaintControlCheckpointList& checkpoints);
-    void abandon_paint(const PaintControlCheckpointList& checkpoints,
-                       std::uint64_t generation_before,
-                       std::span<const Rect> painted_rectangles);
+    // Restores the paint pass's checkpoints, re-damages its rectangles and
+    // releases the checkpoints (paint_checkpoints_ is left empty).
+    void abandon_paint(std::uint64_t generation_before);
     // One paint pass over `rectangles` (window coordinates, disjoint after
     // merging). With `explicit_request`, every plane paints each rectangle;
     // otherwise each plane paints only where it holds damage.
@@ -1498,6 +1500,9 @@ private:
     using FrameRequestList =
         std::vector<std::shared_ptr<detail::ScheduledFrameRequest>>;
     FrameRequestList frame_requests_;
+    // Counts cancel_frame_requests calls, so that work which holds no
+    // request while it waits (AnimationTimer) can tell it was cancelled.
+    std::uint64_t frame_request_cancellations_{};
     bool in_frame_poll_{};
     std::shared_ptr<detail::WindowLifetime> lifetime_;
     std::thread::id ui_thread_;
@@ -1532,6 +1537,14 @@ private:
     std::vector<LayoutDiagnostic> layout_diagnostics_{};
     std::uint64_t dropped_layout_diagnostics_{};
     bool in_paint_{};
+    // Paint-pass scratch, reused by every pass so that a frame allocates
+    // nothing once they have grown to the window's size (paint_rectangles
+    // is not reentrant: in_paint_ guards both). paint_checkpoints_ holds
+    // each control and its chunk only during a pass and is cleared, keeping
+    // its capacity, when the pass completes or is abandoned;
+    // painted_rectangles_ is the pass's merged window-space rectangles.
+    PaintControlCheckpointList paint_checkpoints_{};
+    std::vector<Rect> painted_rectangles_{};
     bool inline_with_theme_reported_{};
     std::uint64_t content_revision_{1U};
     std::uint64_t rendered_revision_{};

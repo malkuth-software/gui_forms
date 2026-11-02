@@ -1,0 +1,2 @@
+/* forms: diagnostic.E206 */
+button { ::part(face) { opacity: 1 } }

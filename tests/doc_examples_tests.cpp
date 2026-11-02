@@ -1432,7 +1432,7 @@ void example() {
 
     gf::MotionPolicy paused;
     paused.paused = true;
-    (*preview).set_motion_policy(paused);   // releases its frame request
+    (*preview).set_motion_policy(paused);   // stops its animation timer
 }
 }  // namespace doc_example_EasingPreview_1
 

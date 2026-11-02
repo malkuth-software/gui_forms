@@ -31,6 +31,7 @@ std::string_view syntax_node_kind_name(SyntaxNodeKind kind) noexcept {
     case SyntaxNodeKind::import_rule: return "import_rule";
     case SyntaxNodeKind::media_rule: return "media_rule";
     case SyntaxNodeKind::keyframes_rule: return "keyframes_rule";
+    case SyntaxNodeKind::theme_header: return "theme_header";
     case SyntaxNodeKind::unknown_at_rule: return "unknown_at_rule";
     case SyntaxNodeKind::style_rule: return "style_rule";
     case SyntaxNodeKind::keyframe_block: return "keyframe_block";

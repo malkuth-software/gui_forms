@@ -341,7 +341,7 @@ public:
                 MaterialLowering& material_lowering, std::vector<MaterialField>& material_fields,
                 std::vector<RecipeDeclaration>& recipe_fields, MotionStorage& motion,
                 std::vector<MediaQuery>& media_queries, PaletteStorage& palette, VariationStorage& variations,
-                std::string& folded) noexcept;
+                std::string& folded, ThemeCompileWork& work) noexcept;
 
     [[nodiscard]] CompileOutcome run();
 
@@ -521,6 +521,7 @@ private:
     PaletteStorage& palette_;
     VariationStorage& variations_;
     std::string& folded_;
+    ThemeCompileWork& work_;
     SourcePositionCursor cursor_;
     ReservedInputs reserved_{};
     LoweringBudget budget_{};
@@ -572,7 +573,7 @@ CompilePass::CompilePass(const ThemeCompileInput& input, ThemeRuleSheet& sheet, 
                          MaterialLowering& material_lowering, std::vector<MaterialField>& material_fields,
                          std::vector<RecipeDeclaration>& recipe_fields, MotionStorage& motion,
                          std::vector<MediaQuery>& media_queries, PaletteStorage& palette,
-                         VariationStorage& variations, std::string& folded) noexcept
+                         VariationStorage& variations, std::string& folded, ThemeCompileWork& work) noexcept
     : input_(input), sheet_(sheet), diagnostics_(diagnostics), tokens_(tokens), lines_(lines), tree_(tree),
       custom_properties_(custom_properties), selectors_(selectors), substitution_(substitution), reader_(reader),
       lowered_selectors_(lowered_selectors), substituted_(substituted), value_(value),
@@ -580,12 +581,16 @@ CompilePass::CompilePass(const ThemeCompileInput& input, ThemeRuleSheet& sheet, 
       material_lowering_(material_lowering), material_fields_(material_fields), recipe_fields_(recipe_fields),
       motion_(motion), media_queries_(media_queries), palette_(palette), variations_(variations),
       folded_(folded),
+      work_(work),
       cursor_(lines, input.source.text) {}
 
 CompileOutcome CompilePass::run() {
+    work_ = ThemeCompileWork{};
     const TokenizeOutcome tokenized = tokenize_theme_sheet(input_.source, tokens_, lines_, diagnostics_);
+    work_.tokens = tokens_.tokens.size();
     if (tokenized != TokenizeOutcome::tokens_cover_sheet) return CompileOutcome::refused;
     const ParseOutcome parsed = parse_theme_sheet(input_.source, tokens_, lines_, tree_, diagnostics_, input_.form);
+    work_.nodes = tree_.nodes.size();
     if (parsed != ParseOutcome::tree_complete) return CompileOutcome::refused;
     newer_engine_ = current_engine_version < input_.requires_engine;
     substitution_.clear_theme_read();
@@ -1053,6 +1058,7 @@ bool CompilePass::emit_definitions(std::span<const LoweredSelector> selectors, b
         if (input_.form == ThemeSheetForm::inline_style || in_inline_segment(source_position_)) {
             rule.level = important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
         }
+        if (input_.user_theme) rule.level = important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
         if (!(selector.specificity == rule_specificity(selector.selector))) rule.specificity = selector.specificity;
         rule.scoped_definitions = definitions;
         rule.source_position = positions_ ? source_position_ : 0U;
@@ -1375,6 +1381,7 @@ bool CompilePass::lower_rule(std::size_t rule_index) {
     bool over = worlds > maximum_variable_combinations;
     bool lowered = true;
     for (std::size_t world = 0U; lowered && !over && world < worlds; ++world) {
+        work_.variation_worlds += 1U;
         MediaCondition joined = rule_media;
         bool holds = true;
         for (std::size_t index = 0U; index < variations.conditions.size() && holds; ++index) {
@@ -2949,12 +2956,17 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
             return false;
         }
         budget_.bytes -= bytes;
+        work_.rules_emitted += 1U;
+        work_.emitted_bytes += bytes;
         sheet_.rules.push_back(lowered);
         ThemeRule& rule = sheet_.rules.back();
         rule.selector = selector.selector;
         rule.level = emitted.important ? CascadeLevel::important_theme_sheet : selector.level;
         if (style_rule) {
             rule.level = emitted.important ? CascadeLevel::important_inline_style : CascadeLevel::inline_style;
+        }
+        if (input_.user_theme) {
+            rule.level = emitted.important ? CascadeLevel::important_user_theme : CascadeLevel::user_theme;
         }
         // A given specificity only where CSS's differs from the engine's
         // own count of the selector (EC2: an `:is()` argument's).
@@ -2985,6 +2997,8 @@ bool CompilePass::read_value(const SyntaxNode& node) {
                                          .theme_names = input_.theme_names};
     const SubstitutionOutcome substituted =
         substitution_.substitute(substitution, node.content, substituted_, diagnostics_);
+    work_.substituted_tokens += substitution_.visited();
+    work_.value_tokens += substituted_.size();
     if (substituted == SubstitutionOutcome::undefined && undefined_drops_) undefined_read_ = true;
     if (substituted == SubstitutionOutcome::undefined && !undefined_drops_) {
         // Read where nothing can be left undeclared (the palette, a
@@ -3100,7 +3114,7 @@ CompileOutcome ThemeCompiler::compile(const ThemeCompileInput& input, ThemeRuleS
     CompilePass pass(input, sheet, diagnostics, tokens_, lines_, tree_, custom_properties_, selectors_, substitution_,
                      reader_, lowered_selectors_, substituted_, value_, parameter_names_, declarations_, materials_,
                      material_lowering_, material_fields_, recipe_fields_, motion_, media_queries_, palette_,
-                     variations_, folded_);
+                     variations_, folded_, work_);
     const CompileOutcome outcome = pass.run();
     if (outcome == CompileOutcome::refused) {
         sheet.rules.clear();

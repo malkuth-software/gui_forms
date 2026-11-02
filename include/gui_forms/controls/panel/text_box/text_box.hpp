@@ -5,6 +5,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -106,7 +107,7 @@ public:
     // The placeholder shows in the empty field. Without one, the field's
     // tooltip (Control::field_hint_text) shows there in the same light grey
     // while the field has focus.
-    void set_placeholder_text(std::string text);
+    void set_placeholder_text(GUI_FORMS_LOCALIZABLE(placeholder) std::string text);
     [[nodiscard]] bool read_only() const noexcept;
     void set_read_only(bool read_only);
     // Opt-in plain-text document editing. Existing single-line behavior remains
@@ -282,7 +283,6 @@ public:
     void on_key(KeyEvent& event) override;
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
-    void on_frame(FrameTime now) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     // The layout as painted: one line for a single-line box, the visual
     // (wrapped) lines for a multiline one; graphemes at their painted
@@ -401,6 +401,14 @@ private:
     [[nodiscard]] std::string display_text() const;
     void reset_caret_blink();
     void schedule_caret_blink();
+    // The caret blink timer's target. Observes the box; a destroyed one is
+    // skipped.
+    struct CaretTick final {
+        std::weak_ptr<TextBox> box;
+        void operator()(FrameTime now) const;
+    };
+    // One blink: toggles the caret and damages it.
+    void toggle_caret();
     void retain_caret_damage(const Rect line_bounds, const Rect clip);
     [[nodiscard]] bool caret_damage_current() const;
 
@@ -441,6 +449,12 @@ private:
     bool focused_{};
     bool selecting_{};
     bool caret_visible_{true};
+    // The caret blink is paint-gated (ADR-016): a blink that finds the box
+    // not painted since the last one (a covered window or a hidden box)
+    // stops the timer, and the next paint starts it again. Before the first
+    // blink there is no earlier one to have been painted.
+    bool caret_painted_{true};
+    bool caret_waiting_for_paint_{};
     // Last successfully recorded geometry, including the invisible blink phase.
     // Dirty state rejects other pending visual changes before this is reused.
     struct CaretDamage final {

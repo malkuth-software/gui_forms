@@ -169,10 +169,6 @@
       "reviewed": false,
       "summary": "Starts or stops caret animation and resets the visible focus phase."
     },
-    "gui_forms::TextBox::on_frame|void (FrameTime)": {
-      "reviewed": false,
-      "summary": "Advances the retained caret blink deadline only while focused and editable."
-    },
     "gui_forms::TextBox::semantic_descriptor|SemanticDescriptor () const": {
       "reviewed": false,
       "summary": "Projects an editable or read-only text role, value policy, selection metadata, and supported actions without leaking passwords."

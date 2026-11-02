@@ -483,8 +483,6 @@ gui_forms::RichTextBox
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 
-   .. cpp:function:: void on_frame(FrameTime now) override
-
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override

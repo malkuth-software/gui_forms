@@ -1,0 +1,248 @@
+# The theme language's forms (PLAN.md sections 1.1 to 1.10) and diagnostic codes (section 2),
+# each with the conformance fixture covering it (theme_conformance_tests). A form with no fixture
+# fails. `code-elsewhere <code>` rows name the test reporting a code no sheet alone can.
+atrule.import	import
+atrule.keyframes	motion-keyframes
+atrule.media	media
+colour.color-mix	colours-literal
+colour.hex3	colours-literal
+colour.hex4	colours-literal
+colour.hex6	colours-literal
+colour.hex8	colours-literal
+colour.hsl	colours-literal
+colour.hsla	colours-literal
+colour.named	colours-literal
+colour.palette	colours-roles
+colour.rgb	colours-literal
+colour.rgba	colours-literal
+colour.role-in-mix	colours-roles
+colour.role-pair	colours-roles
+colour.role-side	colours-roles
+colour.space-form	colours-literal
+colour.transparent	colours-literal
+custom.definition	custom-properties
+custom.engine-input	custom-properties
+custom.important	custom-properties
+custom.published-value	custom-properties
+custom.scoped	custom-properties
+custom.var	custom-properties
+custom.var-fallback	custom-properties
+diagnostic.E101	diagnostic-E101
+diagnostic.E102	diagnostic-E102
+diagnostic.E103	diagnostic-E103
+diagnostic.E104	diagnostic-E104
+diagnostic.E105	diagnostic-E105
+diagnostic.E106	diagnostic-E106
+diagnostic.E107	diagnostic-E107
+diagnostic.E108	diagnostic-E108
+diagnostic.E109	diagnostic-E109
+diagnostic.E201	diagnostic-E201
+diagnostic.E202	diagnostic-E202
+diagnostic.E203	diagnostic-E203
+diagnostic.E204	diagnostic-E204
+diagnostic.E205	diagnostic-E205
+diagnostic.E206	diagnostic-E206
+diagnostic.E207	diagnostic-E207
+diagnostic.E301	diagnostic-E301
+diagnostic.E302	diagnostic-E302
+diagnostic.E303	diagnostic-E303
+diagnostic.E304	diagnostic-E304
+diagnostic.E401	diagnostic-E401
+diagnostic.E402	diagnostic-E402
+diagnostic.E403	diagnostic-E403
+diagnostic.E404	diagnostic-E404
+diagnostic.E405	diagnostic-E405
+diagnostic.E406	diagnostic-E406
+diagnostic.E407	diagnostic-E407
+diagnostic.E409	diagnostic-E409
+diagnostic.E410	diagnostic-E410
+diagnostic.E411	diagnostic-E411
+diagnostic.E413	diagnostic-E413
+diagnostic.E415	diagnostic-E415
+diagnostic.E416	diagnostic-E416
+diagnostic.E701	diagnostic-E701
+diagnostic.E999	diagnostic-E999
+diagnostic.W101	diagnostic-W101
+diagnostic.W102	diagnostic-W102
+diagnostic.W103	diagnostic-W103
+diagnostic.W104	diagnostic-W104
+diagnostic.W105	diagnostic-W105
+diagnostic.W106	diagnostic-W106
+diagnostic.W107	diagnostic-W107
+diagnostic.W201	diagnostic-W201
+diagnostic.W301	newer-engine
+diagnostic.W302	newer-engine
+expr.calc	expressions
+expr.choose	expressions
+expr.clamp	expressions
+expr.equal	expressions
+expr.folded	expressions
+expr.greater	expressions
+expr.greater-equal	expressions
+expr.less	expressions
+expr.less-equal	expressions
+expr.max	expressions
+expr.min	expressions
+expr.mix	expressions
+expr.not-equal	expressions
+expr.param	expressions
+expr.smoothstep	expressions
+expr.state	expressions
+important.inline	inline-style
+important.rule-split	important
+important.sheet	important
+inline.custom-property	inline-style
+inline.declarations	inline-style
+inline.part-block	inline-style
+inline.state-block	inline-style
+media.all	media
+media.and	media
+media.color-scheme	media
+media.forced-colors	media
+media.list	media
+media.reduced-motion	media
+media.resolution	media
+media.screen	media
+motion.animation	motion-keyframes
+motion.animation-frame-rate	motion-keyframes
+motion.animation-infinite	motion-keyframes
+motion.animation-rest-pose	motion-keyframes
+motion.cubic-bezier	motion-transitions
+motion.decay	motion-transitions
+motion.delay	motion-transitions
+motion.ease	motion-transitions
+motion.ease-in	motion-transitions
+motion.ease-in-out	motion-transitions
+motion.ease-out	motion-transitions
+motion.follow	motion-transitions
+motion.keyframes	motion-keyframes
+motion.keyframes-stops	motion-keyframes
+motion.linear	motion-transitions
+motion.spring	motion-transitions
+motion.state-machine	motion-transitions
+motion.steps	motion-transitions
+motion.transition	motion-transitions
+motion.transition-longhands	motion-transitions
+property.background-blend-mode	fills
+property.background-color	fills
+property.background-image-url	finish-light-images-masks
+property.background-position	finish-light-images-masks
+property.background-repeat	finish-light-images-masks
+property.background-shorthand	fills
+property.background-size	finish-light-images-masks
+property.border	borders
+property.border-color	borders
+property.border-edge	borders
+property.border-image	borders
+property.border-radius	borders
+property.border-style	borders
+property.border-style-keyline	borders
+property.border-width	borders
+property.box-shadow	shadows-opacity-filters
+property.box-shadow-inset	shadows-opacity-filters
+property.clip-path	not-admitted
+property.color	transforms-text
+property.conic-gradient	fills
+property.filter-blur	shadows-opacity-filters
+property.filter-colour	shadows-opacity-filters
+property.filter-drop-shadow	shadows-opacity-filters
+property.font-role	transforms-text
+property.glow	finish-light-images-masks
+property.glow-placement	finish-light-images-masks
+property.isolation	shadows-opacity-filters
+property.layout	not-admitted
+property.linear-gradient	fills
+property.mask-image	finish-light-images-masks
+property.mix-blend-mode	shadows-opacity-filters
+property.opacity	shadows-opacity-filters
+property.outline	borders
+property.outline-offset	borders
+property.primitive	transforms-text
+property.procedural	fills
+property.radial-gradient	fills
+property.repeating-gradient	fills
+property.rotate	not-admitted
+property.scale	transforms-text
+property.shape	borders
+property.sheen	sheen-pointer
+property.surface-finish	finish-light-images-masks
+property.text-decoration	not-admitted
+property.text-shadow	shadows-opacity-filters
+property.transform	not-admitted
+property.translate	transforms-text
+selector.any	selectors-basic
+selector.any-implied	selectors-basic
+selector.class	selectors-basic
+selector.custom-state	selectors-states
+selector.is	selectors-basic
+selector.list	selectors-basic
+selector.part	selectors-basic
+selector.part-state	selectors-states
+selector.role	selectors-basic
+selector.stable-id	selectors-basic
+selector.state-function	selectors-states
+selector.state.active	selectors-states
+selector.state.checked	selectors-states
+selector.state.default	selectors-states
+selector.state.disabled	selectors-states
+selector.state.enabled	selectors-states
+selector.state.focus	selectors-states
+selector.state.focus-visible	selectors-states
+selector.state.hover	selectors-states
+selector.state.indeterminate	selectors-states
+selector.state.invalid	selectors-states
+selector.state.open	selectors-states
+selector.state.read-only	selectors-states
+selector.type	selectors-basic
+selector.type-kebab	selectors-basic
+source.bom	source-and-tokens
+source.cr	source-and-tokens
+source.crlf	source-and-tokens
+token.comment	source-and-tokens
+token.number-exponent	source-and-tokens
+token.string	source-and-tokens
+value.image-url	values-keywords-images
+value.inherit-color	values-keywords-images
+value.inherit-font	values-keywords-images
+value.initial	values-keywords-images
+value.keyword	values-keywords-images
+value.number	units
+value.unit.deg	units
+value.unit.dppx	units
+value.unit.em	units
+value.unit.ms	units
+value.unit.percent	units
+value.unit.px	units
+value.unit.rad	units
+value.unit.s	units
+value.unit.turn	units
+value.unit.x	units
+code-elsewhere E501	theme_hostile_tests (1 MiB limit)
+code-elsewhere E502	theme_hostile_tests
+code-elsewhere E503	theme_hostile_tests
+code-elsewhere E504	theme_hostile_tests
+code-elsewhere E505	theme_hostile_tests
+code-elsewhere E506	theme_package_compile_tests (import closure)
+code-elsewhere E507	theme_hostile_tests
+code-elsewhere E508	theme_hostile_tests
+code-elsewhere E509	theme_hostile_tests
+code-elsewhere E510	theme_hostile_tests
+code-elsewhere E511	theme_hostile_tests
+code-elsewhere E512	theme_hostile_tests
+code-elsewhere E513	theme_compiler_tests
+code-elsewhere E514	theme_hostile_tests
+code-elsewhere E515	theme_hostile_tests
+code-elsewhere E601	theme_package_compile_tests (manifest)
+code-elsewhere E602	theme_package_compile_tests (file hash)
+code-elsewhere E603	theme_package_compile_tests (import not installed)
+code-elsewhere E604	theme_package_compile_tests (import hash)
+code-elsewhere E605	theme_compiler_tests (import cycle)
+code-elsewhere E606	theme_package_compile_tests (published value)
+code-elsewhere E607	theme_compiler_tests (engine too old)
+code-elsewhere W108	theme_compiler_tests (a registry with a costly primitive)
+code-elsewhere W109	theme_compiler_tests (a registry with an unbounded primitive)
+code-elsewhere W401	theme_inline_style_tests (reported by a window)
+code-elsewhere W501	theme_user_theme_tests (an icon file a user theme has)
+code-elsewhere W502	theme_user_theme_tests (an icon file a user theme has)
+code-elsewhere W503	theme_user_theme_tests (an icon file a user theme has)
+code-elsewhere E408	engine_input_tests (no sheet reaches it: the value reader builds well-formed programs)

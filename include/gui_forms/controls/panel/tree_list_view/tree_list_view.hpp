@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -34,7 +35,7 @@ enum class TreeListSortOrder : std::uint8_t { none, ascending, descending };
 // indentation and the expander, and it always stays first.
 struct TreeListColumn final {
     std::string stable_id{};
-    std::string text{};
+    GUI_FORMS_LOCALIZABLE(header) std::string text{};
     double width{120.0};
     TreeListAlignment alignment{TreeListAlignment::left};
 };

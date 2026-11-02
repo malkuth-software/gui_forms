@@ -26,7 +26,7 @@ States: `normal`, `hot`, `pressed`, `captured`, `focused`, `focus_visible`, `pre
 
 Admitted custom states: `modified`, `pinned`.
 
-Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`.
+Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`.
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
@@ -44,7 +44,7 @@ Semantic node fields: `position_in_set`, `set_size`, `has_popup`, `controlled_pa
 
 ## Engine
 
-Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each declares against, and its cost. Cascade levels, lowest first: `built_in`, `theme_sheet`, `class_rule`, `stable_id_rule`, `inline_style`, `important_theme_sheet`, `forced_high_contrast`, `important_inline_style`.
+Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each declares against, and its cost. Cascade levels, lowest first: `built_in`, `user_theme`, `theme_sheet`, `class_rule`, `stable_id_rule`, `inline_style`, `important_user_theme`, `important_theme_sheet`, `forced_high_contrast`, `important_inline_style`.
 
 | Primitive | Since | Paints | Reads | Cost per device pixel | Parameters |
 |---|---|---|---|---|---|
@@ -864,9 +864,10 @@ Item system `row`:
 | `row_header` | face |  |  |
 | `row_header_label` | label |  |  |
 | `row_glyph` | glyph |  |  |
+| `row_error` | glyph |  |  |
 | `row_rule` | divider |  |  |
 
-Item states: `selected`, `current`, `read_only`.
+Item states: `selected`, `current`, `read_only`, `invalid`.
 
 Item system `cell`:
 
@@ -887,6 +888,7 @@ Item system `cell`:
 | `cell_vertical_rule` | divider |  |  |
 | `cell_horizontal_rule` | divider |  |  |
 | `cell_focus` | focus |  |  |
+| `cell_error` | glyph |  |  |
 
 Item states: `selected`, `current`, `read_only`, `invalid`, `checked`, `pressed`, `open`, `focus_visible`. Application-defined: `visited`.
 
@@ -914,6 +916,22 @@ Properties beyond every control's: none.
 | `cell_value_changed` | `DataGridViewCellEvent` |
 | `cell_content_click` | `DataGridViewCellEvent` |
 | `row_order_mode_changed` | `DataGridViewRowOrderModeChange` |
+| `data_error` | `DataGridViewDataErrorEvent`, by reference |
+| `cell_validated` | `DataGridViewCellEvent` |
+| `current_cell_dirty_state_changed` | `bool` |
+| `row_validating` | `DataGridViewRowCancelEvent`, by reference |
+| `row_validated` | `DataGridViewRowEvent` |
+| `cell_enter` | `DataGridViewCellEvent` |
+| `cell_leave` | `DataGridViewCellEvent` |
+| `row_enter` | `DataGridViewRowEvent` |
+| `row_leave` | `DataGridViewRowEvent` |
+| `default_values_needed` | `DataGridViewRowValuesEvent`, by reference |
+| `user_added_row` | `DataGridViewRowEvent` |
+| `user_deleting_row` | `DataGridViewRowCancelEvent`, by reference |
+| `user_deleted_row` | `DataGridViewRowEvent` |
+| `row_edit_cancelled` | `DataGridViewRowEvent` |
+| `cell_error_text_changed` | `DataGridViewCellEvent` |
+| `row_error_text_changed` | `DataGridViewRowEvent` |
 | `column_header_click` | `std::size_t` |
 | `column_width_changed` | `std::size_t` |
 
@@ -2597,12 +2615,17 @@ Interactions beyond every control's: none.
 | `left_panel` | face | `tool_strip_panel` |  |
 | `right_panel` | face | `tool_strip_panel` |  |
 | `content_panel` | region | `panel` |  |
+| `drag_stamp` | face |  |  |
+| `drag_stamp_image` | image |  |  |
+| `drop_marker` | drop |  | drop_accepted |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: none.
 
-Interactions beyond every control's: none.
+| Interaction | Payload |
+|---|---|
+| `strip_moved` | `ToolStripMove` |
 
 ## `binding_navigator` (BindingNavigator, control)
 

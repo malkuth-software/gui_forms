@@ -1,0 +1,22 @@
+compiled
+rule 0 class_rule class=unused
+  label .unused
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+rule 1 theme_sheet type=button
+  label button
+  decl font = name caption
+  transition scale curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1.05
+  transition translate_x curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=2
+  transition translate_y curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1
+  recipe text colour=#1b2733ff number=0 outline=0 origin=role(ink-on-paper foreground)
+rule 2 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name bulge
+  decl amplitude = number 0.5
+rule 3 theme_sheet type=button part=label
+  label button::part(label)
+  decl font = name heading

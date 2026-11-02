@@ -1,0 +1,6 @@
+/* forms: value.number value.unit.px value.unit.percent value.unit.em value.unit.ms value.unit.s value.unit.deg value.unit.rad value.unit.turn value.unit.dppx value.unit.x */
+button::part(face) { opacity: 50%; border-width: 2px; border-radius: 0.5em; transition: opacity 120ms linear, scale 0.1s linear;
+  background-image: conic-gradient(from 90deg, red, blue), linear-gradient(1rad, red, blue), linear-gradient(0.25turn, red, blue) }
+@media (min-resolution: 2dppx) { button { opacity: 0.9 } }
+@media (max-resolution: 1x) { button { opacity: 0.8 } }
+button::part(label) { scale: 1.5 }

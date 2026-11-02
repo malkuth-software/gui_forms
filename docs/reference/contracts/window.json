@@ -8,7 +8,7 @@
         "Provides resize and logical scale; nested update scopes, explicit layout, flush, paint, and per-plane damage; retained lookup by stable ID and recursive hit testing; focus, pointer capture, pressed state, and routed input dispatch.",
         "Owns the retained accept/cancel targets and the exact retained `DialogResult`; dialog keys route to live targets only after the focused route declines them and never move focus.",
         "A paint pass holds one exclusive UI-thread lease. `paint` returns an exact `PaintReceipt` only after complete backend replay; native hosts present only a valid receipt and then call `notify_presented`. Duplicate, backward, forged-future, and replaced-epoch receipts are rejected and counted.",
-        "Exposes frame scheduling, active surfaces, occlusion and wake deadlines, UI timer callbacks, validated PNG resource loading, renderer-free semantic snapshots, and structured metrics."
+        "Exposes frame scheduling, occlusion and wake deadlines, UI timer callbacks, validated PNG resource loading, renderer-free semantic snapshots, and structured metrics."
       ],
       "ownership": "Owns one retained root control tree and one UI thread. The application constructs the Window and keeps it alive for the lifetime of its tree; a native host adapter attaches to it. Window shutdown synchronously revokes timers, popups, paint leases, and pending dispatcher work.",
       "threading": "The Window defines the UI thread. `check_access` reports whether the caller is on it and `verify_access` rejects any other caller; `begin_invoke`/`invoke` marshal work onto it. Only the dispatcher entry points may be called from other threads.",
@@ -167,17 +167,13 @@
       "reviewed": false,
       "summary": "Adds one bounded, revocable deadline request for an attached control."
     },
-    "gui_forms::Window::activate_surface|FrameRequestToken (const Control::Ptr &, FrameInterval, FrameTime)": {
-      "reviewed": false,
-      "summary": "Adds a bounded periodic surface request with an enforced minimum interval."
-    },
     "gui_forms::Window::schedule_ui_timer|FrameRequestToken (Component &, FrameInterval, FrameTime, std::function<void (FrameTime)>)": {
       "reviewed": false,
       "summary": "Adds a bounded periodic callback for a live Component owner with fault isolation and a minimum interval."
     },
     "gui_forms::Window::poll_frame_schedule|FramePollResult (FrameTime)": {
       "reviewed": false,
-      "summary": "Runs one nonreentrant bounded schedule turn, coalesces due work, disconnects faulting callbacks, invalidates due surfaces, and returns the next wake."
+      "summary": "Runs one nonreentrant bounded schedule turn, coalesces due work, disconnects faulting callbacks, invalidates controls whose paint deadlines are due, and returns the next wake."
     },
     "gui_forms::Window::cancel_frame_requests|void ()": {
       "reviewed": false,

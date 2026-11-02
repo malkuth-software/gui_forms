@@ -92,10 +92,6 @@
       "reviewed": false,
       "summary": "Commits keyboard focus cues and stops interaction when focus policy requires."
     },
-    "gui_forms::ScrollBar::on_frame|void (FrameTime)": {
-      "reviewed": false,
-      "summary": "Executes deadline-based held-part repeats while preserving current pointer qualification."
-    },
     "gui_forms::ScrollBar::semantic_descriptor|SemanticDescriptor () const": {
       "reviewed": false,
       "summary": "Projects a scrollbar role with range, value, orientation, and line/page actions."

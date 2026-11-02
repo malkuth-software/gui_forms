@@ -1,0 +1,2 @@
+refused
+E402 value_wrong_kind 2:19 rule=button property=opacity detail=a number or a percentage

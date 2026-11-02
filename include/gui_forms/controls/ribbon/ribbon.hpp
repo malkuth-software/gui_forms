@@ -12,6 +12,7 @@
 #include "gui_forms/controls/ribbon_font_control/ribbon_font_control.hpp"
 #include "gui_forms/controls/ribbon_gallery/ribbon_gallery.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
 
 #include <cstddef>
@@ -84,7 +85,7 @@ struct RibbonCommandSpec final {
     RibbonCommandKind kind{RibbonCommandKind::button};
     RibbonCommandSize size{RibbonCommandSize::large};
     std::shared_ptr<Command> command{};
-    std::string text{};
+    GUI_FORMS_LOCALIZABLE(text) std::string text{};
     ImageId image{};
     bool show_label{true};
     std::vector<MenuItemSpec> drop_down{};
@@ -129,7 +130,7 @@ inline constexpr std::uint32_t ribbon_all_modes = 0xFFFFFFFFU;
 // application modes it shows in.
 struct RibbonGroupSpec final {
     std::string stable_id{};
-    std::string caption{};
+    GUI_FORMS_LOCALIZABLE(text) std::string caption{};
     bool dialog_launcher{};
     std::vector<RibbonCommandSpec> commands{};
     ImageId image{};
@@ -154,7 +155,7 @@ struct RibbonReductionStep final {
 // application modes it shows in.
 struct RibbonTabSpec final {
     std::string stable_id{};
-    std::string text{};
+    GUI_FORMS_LOCALIZABLE(text) std::string text{};
     std::vector<RibbonGroupSpec> groups{};
     std::vector<RibbonReductionStep> reduction_order{};
     std::string tab_set{};

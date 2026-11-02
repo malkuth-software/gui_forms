@@ -36,7 +36,7 @@ inline constexpr std::string_view body_id_prefix = "gallery.body.";
 
 // Compiled-DML pages first (their content is declared in gallery.dml), then the
 // pages migrated from the retired Complete Showcase in their former order.
-inline constexpr std::array<GalleryPageSpec, 30> gallery_pages {{
+inline constexpr std::array<GalleryPageSpec, 31> gallery_pages {{
     {"basics", "Basic controls",
      "Compiled-DML form grid over public Button, CheckBox, RadioButton, LinkLabel and Label instances plus a composed UserControl lifecycle card.",
      false, "Information display"},
@@ -47,7 +47,7 @@ inline constexpr std::array<GalleryPageSpec, 30> gallery_pages {{
      "Compiled-DML GalleryControl rows with exclusive selection and a typed drop target (demo-private, not a registry type).",
      false, "Selection from a list"},
     {"instrument", "Custom instrument",
-     "Compiled-DML GalleryControl instrument on a 30 fps active-surface lease (demo-private, not a registry type).",
+     "Compiled-DML GalleryControl instrument on a paint-gated 30 fps animation timer (demo-private, not a registry type).",
      false, "Drawing"},
     {"control-spectrum", "Control spectrum",
      "Stock button family: default, disabled, visual styles, image list, check and radio indicators.",
@@ -99,6 +99,9 @@ inline constexpr std::array<GalleryPageSpec, 30> gallery_pages {{
      false, "Layout"},
     {"dock-and-anchor", "Dock and anchor",
      "Dock and Anchor layout policy on public Panel and Button instances.",
+     false, "Layout"},
+    {"docking-workspace", "Docking workspace",
+     "DockWorkspace and DockSite: tool panels, documents, pins, closing prompts and saved layouts.",
      false, "Layout"},
     // Pages added for the registry records the migrated Showcase did not demonstrate.
     {"commands-and-menus", "Commands and menus",

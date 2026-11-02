@@ -1,0 +1,17 @@
+compiled
+rule 0 inline_style *
+  label 
+  defines --lift #2147483650
+rule 1 important_inline_style *
+  label 
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.8
+rule 2 inline_style part=face states=:hot
+  label ::part(face):hover
+  transition scale curve kind=3 duration=90000us easing=3 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=1.04
+rule 3 inline_style part=label
+  label ::part(label)
+  transition opacity curve kind=3 duration=0us easing=2 overshoot=0 bezier=[0 0 1 1] steps=1 step-position=0 delay=0us
+    state when= target=0.4
+  when --lift #2147483650

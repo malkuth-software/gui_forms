@@ -282,6 +282,8 @@ Types
      - ThemeMotionTokens defines quick, standard, emphasized, and busy-cycle durations without prescribing an animation engine.
    * - :cpp:class:`ThemePackage <gui_forms::ThemePackage>`
      - A theme package: its manifest's bytes and its files.
+   * - :cpp:class:`ThemePackageExport <gui_forms::ThemePackageExport>`
+     - One of the program's packages as a user theme's files, for export (USER_THEMES.md section 7): its sheet verbatim after an ``@theme`` header of its manifest's version, author, provenance and engine bound, and its ``.png`` resources as the folder's images.
    * - :cpp:class:`ThemePackageFile <gui_forms::ThemePackageFile>`
      - One file of a theme package: its path inside the package, as the manifest lists it, and its bytes.
    * - :cpp:class:`ThemeRule <gui_forms::ThemeRule>`
@@ -296,6 +298,10 @@ Types
      - ThemeTypographyTokens defines role-aware control, field, caption, heading, title, and monospace font recipes.
    * - :cpp:class:`ThemeWindowBackdrop <gui_forms::ThemeWindowBackdrop>`
      - The theme's window backdrop (stage T5, owner decision T5-Q8, option 1): what a window showing the theme asks the compositor for, and the base its backplane is drawn from over each backdrop the window may be granted (notes:planning/stages/T5-compositor/PLAN.md §4.1).
+   * - :cpp:class:`UserThemeFiles <gui_forms::UserThemeFiles>`
+     - A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them.
+   * - :cpp:class:`UserThemeHeader <gui_forms::UserThemeHeader>`
+     - The header of a user theme's main file, which makes the file a theme.
 
 .. cpp:namespace:: gui_forms
 
@@ -324,6 +330,10 @@ Types
    .. cpp:member:: std::uint64_t inline_serial
 
       The serial of the part's inline style, or 0 (T3 P9).
+
+   .. cpp:member:: std::uint64_t user_serial
+
+      The serial of the part's user theme, or 0 (T3 user themes).
 
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> fields
 
@@ -586,6 +596,10 @@ Types
 
       Whether the rules are a control's inline style (compile_inline).
 
+   .. cpp:function:: bool user_theme() const noexcept
+
+      Whether the rules are a user theme (compile_user).
+
    .. cpp:function:: std::size_t built_in_rule_count() const noexcept
 
       How many of the rules are the engine's built-in rules.
@@ -626,6 +640,10 @@ Types
    .. cpp:function:: static CompiledThemeRules compile_inline(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry, const CompiledThemeRules* theme = nullptr)
 
       Compiles one control's inline style (T3 P9, R2-10): rules at :cpp:func:`inline_style <gui_forms::CompiledThemeRules::inline_style>` and ``important_inline_style`` only, each without a stable ID, since the control owns them and consults them for itself alone (PartFacts::inline_rules). The sheet publishes no values. Compiled against ``theme`` (P12b), the style also holds copies of the theme's rules that read its custom properties (each with a source_position, at the theme's authored levels): the theme's rules are then passed over wherever the style's definition of a name they read wins, while the style is used with ``theme`` itself (the same compilation, by serial). ``theme`` is read during the call only.
+
+   .. cpp:function:: static CompiledThemeRules compile_user(const ThemeRuleSheet& sheet, const PrimitiveRegistry& registry)
+
+      Compiles a user theme (USER_THEMES.md section 4): rules at :cpp:func:`user_theme <gui_forms::CompiledThemeRules::user_theme>` and ``important_user_theme`` only, a set of their own that every part of a program's windows consults beside its theme's (PartFacts::user_rules). Its opacity is at least user_theme_minimum_opacity. It publishes no values, so its expressions read the engine inputs alone, and its custom properties are its own.
 
    .. cpp:function:: std::optional<ExpressionInputIndex> published_value_input(std::string_view name) const noexcept
 
@@ -715,6 +733,10 @@ Types
 
       The part's control's inline style (compile_inline), or null: its rules join the cascade at their levels, after the theme's rules of the same level and specificity. Borrowed for the call.
 
+   .. cpp:member:: const CompiledThemeRules* user_rules
+
+      The program's user theme (compile_user), or null: its rules join the cascade at the user levels. Borrowed for the call.
+
    .. cpp:member:: bool forced_high_contrast
 
       Forced high contrast's pass (E1): the part's drawing (its primitive and parameters, its material and recipe fields) comes from the important_inline_style rules alone, every lower level lying under the pass; its presentation (transitions, ambient effect, blend and font) from every matching rule.
@@ -794,6 +816,10 @@ Types
    .. cpp:member:: std::uint64_t inline_serial
 
       The serial of the part's inline style (PartFacts::inline_rules), or 0: the declarations above may belong to it.
+
+   .. cpp:member:: std::uint64_t user_serial
+
+      The serial of the part's user theme (PartFacts::user_rules), or 0, likewise.
 
 .. cpp:namespace:: gui_forms
 
@@ -3777,6 +3803,10 @@ Types
 
       The overlay shadow's layers (owner decision RB-37) for ordinary or high-contrast presentation; empty when the theme casts none.
 
+   .. cpp:function:: std::optional<ImageId> icon_override(std::string_view identifier) const noexcept
+
+      The image a compiled user theme gives the program icon ``identifier`` (its ``icons/<identifier>.png``), held by the theme while it lives; nullopt where it gives none (T3 user themes). Whether the program lets the icon be replaced is the application's (ApplicationResources:: icon).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ThemeBackdropBase final
@@ -3845,6 +3875,10 @@ Types
 
       The application values the application publishes; a package listing another is refused (E606).
 
+   .. cpp:member:: std::span<const IconDeclaration> icons
+
+      The program icons a user theme may replace (ApplicationResources:: icon_declarations); a package compiles no icons.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeCompileResult final
@@ -3907,6 +3941,10 @@ Types
 
       The theme's rules (the cascade, T2 E4): which primitive draws which part. Empty by default: every part keeps the built-in recipe. They are compiled when the theme is made; an invalid rule or declaration is dropped with a diagnostic (Theme::engine().rules().diagnostics()).
 
+   .. cpp:member:: ThemeRuleSet rule_set
+
+      Whether the rules are a program's theme or a user theme's (T3 user themes): a user theme's rules are at the user levels only, and its other fields are unused while it is layered under a program's. Default: ``{ThemeRuleSet::program}``.
+
    .. cpp:member:: ThemeWindowBackdrop window_backdrop
 
       The backdrop request and backplane bases (stage T5). Empty by default: an opaque window, drawn as before.
@@ -3929,6 +3967,10 @@ Types
    .. cpp:function:: explicit ThemeEngine(const ThemeRuleSheet& sheet)
 
       An engine with ``sheet`` compiled against the built-in registry. Invalid rules and declarations are dropped with diagnostics; nothing throws for them.
+
+   .. cpp:function:: ThemeEngine(const ThemeRuleSheet& sheet, ThemeRuleSet set)
+
+      An engine with ``sheet`` compiled as ``set``: a user theme's has no built-in rules and is consulted beside a program theme's (CompiledThemeRules::compile_user).
 
 
    .. rubric:: Properties
@@ -4092,6 +4134,18 @@ Types
    .. cpp:member:: std::string manifest
 
    .. cpp:member:: std::vector<ThemePackageFile> files
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemePackageExport final
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   One of the program's packages as a user theme's files, for export (USER_THEMES.md section 7): its sheet verbatim after an ``@theme`` header of its manifest's version, author, provenance and engine bound, and its ``.png`` resources as the folder's images. A resource of another kind cannot be a user theme's file; it is left out and named in ``omitted``.
+
+   .. cpp:member:: UserThemeFiles files
+
+   .. cpp:member:: std::vector<std::string> omitted
 
 .. cpp:namespace:: gui_forms
 
@@ -4272,6 +4326,38 @@ Types
 
       At most one base per non-opaque backdrop, in any order; held out of line, so the definition stays small. Over a granted non-opaque backdrop the window's backplane is drawn from that backdrop's base, typically a partly clear tint over a material, or clear around a drawn shape over ``transparent``. Without one it is drawn from the window recipe's material, as over ``opaque``, which has no base.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UserThemeFiles final
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   A user theme's files (T3 user themes, notes:planning/stages/ T3-theme-language/USER_THEMES.md): its name, the stem of its main file ``themes/<name>.css``; that file's bytes; and the files of its folder ``themes/<name>/``, each by its path inside the folder, as the host read them. The folder's top-level ``.css`` files are the theme's sub-sheets, its top-level ``.png`` files its image resources (``url("resource:wood.png")``), and ``icons/<identifier>.png`` its icon overrides; nothing else is admitted.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: std::string main_sheet
+
+   .. cpp:member:: std::vector<ThemePackageFile> files
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: UserThemeHeader final
+
+   ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
+
+   The header of a user theme's main file, which makes the file a theme.
+
+   .. cpp:member:: bool present
+
+      Whether the main file opens with one: a file without it is no theme.
+
+   .. cpp:member:: std::string version
+
+   .. cpp:member:: std::string author
+
+   .. cpp:member:: std::string provenance
+
 Enumerations
 ------------
 
@@ -4283,6 +4369,8 @@ Enumerations
 
    .. cpp:enumerator:: built_in
 
+   .. cpp:enumerator:: user_theme
+
    .. cpp:enumerator:: theme_sheet
 
    .. cpp:enumerator:: class_rule
@@ -4290,6 +4378,8 @@ Enumerations
    .. cpp:enumerator:: stable_id_rule
 
    .. cpp:enumerator:: inline_style
+
+   .. cpp:enumerator:: important_user_theme
 
    .. cpp:enumerator:: important_theme_sheet
 
@@ -5101,6 +5191,12 @@ Enumerations
 
    .. cpp:enumerator:: underline
 
+   .. cpp:enumerator:: pencil
+
+   .. cpp:enumerator:: asterisk
+
+   .. cpp:enumerator:: error
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -5413,6 +5509,8 @@ Enumerations
 
    .. cpp:enumerator:: scoped_property_invalid
 
+   .. cpp:enumerator:: user_opacity_raised
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: RuleValueKind
@@ -5500,6 +5598,16 @@ Enumerations
    .. cpp:enumerator:: over_frame_budget
 
    .. cpp:enumerator:: not_paintable
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeRuleSet
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: program
+
+   .. cpp:enumerator:: user
 
 Functions, constants and aliases
 --------------------------------
@@ -6070,6 +6178,10 @@ Functions, constants and aliases
 
    The most frames in an ambient effect's loop (E7r): its time in the period steps through at most this many, or its frame rate's count for one period if fewer, each baked once, the first time it is shown, and shared. Value: ``24U``.
 
+.. cpp:var:: constexpr double user_theme_minimum_opacity
+
+   The least opacity a user theme gives a part (USER_THEMES.md section 8, decision 7), so that no user theme hides a control outright. Value: ``0.5``.
+
 .. cpp:var:: constexpr std::size_t sheet_diagnostic
 
    The rule position of a diagnostic about the sheet itself rather than one of its rules. Value: ``static_cast<std::size_t>(-1)``.
@@ -6232,9 +6344,25 @@ Functions, constants and aliases
 
    Compiles ``package`` with its ``@import`` closure among ``library``'s packages (one cascade: imported sheets first, and the later definition of a colour role or ``@keyframes`` wins) onto the built-in professional theme. Its image resources are loaded into ``images`` and owned by the compiled theme: each is removed from ``images`` when the last theme holding it is released, so replacing or dropping a theme removes its images. Themes compiled through one library that load the same bytes into one registry share one image. A refusal leaves none of its own. The package itself need not be installed. Compiles through one library, and the release of their themes, are not safe to run concurrently.
 
+.. cpp:function:: ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, ImageRegistry& images, const ThemeCompileOptions& options, ThemeRuleSet set, UserThemeHeader* header = nullptr)
+
+   Compiles a user theme as the package its files imply (USER_THEMES.md section 3): its sub-sheets in filename order (byte order of their names) and then its main file, one cascade; an ``@import`` of a sub-sheet (``@import "editor.css";``) places it there instead, and an ``@import`` of another name imports the program's package of that name from ``program``, pinned to the installed one. The main file opens with an ``@theme`` header (refused without, E601); its ``engine`` descriptor bounds the engine (E607). ``set`` chooses the levels: ThemeRuleSet::user for a theme layered under the program's (ApplicationResources::set_user_theme under the layered policy), ThemeRuleSet::program for one replacing it. Images are owned as compile_theme_package's are. ``header``, when given, receives the main file's header once it is read, whether or not the theme then compiles (present false where the main file has none or does not read).
+
+.. cpp:function:: std::vector<ThemePackageExport> export_theme_packages(const ThemeLibrary& library)
+
+   Every package of ``library``, in name order, as export writes it.
+
 .. cpp:function:: ThemeCompileResult compile_installed_theme(std::string_view name, const ThemeLibrary& library, ImageRegistry& images, const ThemeCompileOptions& options)
 
    As compile_theme_package, for the installed package named ``name``; an unknown name is refused (E603).
+
+.. cpp:var:: constexpr std::size_t maximum_user_theme_files
+
+   A user theme's limits (USER_THEMES.md section 2): its folder holds at most 256 files and 16 MiB. Its sheets, with the packages they import, are one closure under the package limits (at most 16 imports, 1 MiB). Value: ``256U``.
+
+.. cpp:var:: constexpr std::size_t maximum_user_theme_bytes
+
+   Value: ``std::size_t{16} * 1024U * 1024U``.
 
 .. cpp:namespace:: gui_forms
 

@@ -382,6 +382,22 @@ Size ToolStrip::measure(Size available) {
     return result;
 }
 
+double ToolStrip::content_length() const {
+    const double scale = effective_text_scale();
+    const bool along_height = vertical();
+    double length = edge_inset * scale * 2.0;
+    if (!status_layout_ && grip_visible_) length += edge_inset * scale + grip_width * scale;
+    if (status_layout_ && sizing_grip_visible_) length += sizing_grip_size * scale;
+    if (!status_layout_) length += end_reserve_ * scale;
+    for (const ToolStripItemSpec& item : items_) {
+        if (!item_visible(item)) continue;
+        double extent = item_size(item).width;
+        if (along_height && item.kind != ToolStripItemKind::separator) extent = vertical_item_extent * scale;
+        length += extent;
+    }
+    return length;
+}
+
 bool ToolStrip::vertical() const noexcept {
     const bool result = orientation_ == Orientation::vertical && !status_layout_;
     return result;

@@ -677,7 +677,9 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
                 window.next_wake().has_value(),
             "hot proximity must start from the committed rest geometry and own one bounded frame lease");
 
-    (*(*split).splitter_control()).on_frame(FrameClock::now() + 45ms);
+    // The grip's paint-gated transition timer advances it: one tick, then a
+    // paint before the next.
+    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + 45ms));
     const SplitSeamSnapshot middle = (*split).splitter_seam_snapshot();
     require(middle.transition_active &&
                 middle.transition_progress > 0.0 &&
@@ -691,7 +693,9 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
                 middle.hit_bounds == resting.hit_bounds,
             "visual interpolation must remain orthogonal to physical seam and proximity geometry");
 
-    (*(*split).splitter_control()).on_frame(FrameClock::now() + 180ms);
+    GripRecordingPainter transition_painter;
+    window.paint(transition_painter);
+    static_cast<void>(window.poll_frame_schedule(FrameClock::now() + 180ms));
     const SplitSeamSnapshot finished = (*split).splitter_seam_snapshot();
     require(!finished.transition_active &&
                 near(finished.transition_progress, 1.0) &&

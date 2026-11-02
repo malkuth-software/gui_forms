@@ -1,0 +1,38 @@
+compiled
+rule 0 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name bulge
+  decl amplitude = expression [0(0.25) 1 0(800) 8 5] fallback 1
+rule 1 theme_sheet type=button part=label
+  label button::part(label)
+  decl primitive = name bulge
+  decl amplitude = expression [0(0) 1.1 0(100) 8 0(1) 9 10] fallback 1
+rule 2 theme_sheet type=button part=glyph
+  label button::part(glyph)
+  decl primitive = name bulge
+  decl amplitude = expression [0(1) 0(0) 1.2 0(1) 8 10 9] fallback 1
+rule 3 theme_sheet type=button part=focus_cue
+  label button::part(focus-cue)
+  decl primitive = name bulge
+  decl amplitude = expression [0(0.2) 0(0.8) 0(0) 0(1) 1.2 19 18] fallback 1
+rule 4 theme_sheet type=button part=face states=:hot
+  label button:hover::part(face)
+  decl primitive = name bulge
+  decl amplitude = expression [1 0(10) 11 0(0.1) 0(0.9) 20] fallback 1
+rule 5 theme_sheet type=button part=face states=:pressed
+  label button:active::part(face)
+  decl primitive = name bulge
+  decl amplitude = expression [1 0(10) 12 1.1 0(1) 13 0(0.2) 20] fallback 1
+rule 6 theme_sheet type=button part=face states=:focused
+  label button:focus::part(face)
+  decl primitive = name bulge
+  decl amplitude = expression [1 0(1) 14 1.1 0(0) 15 1.1 0(2) 16 20] fallback 1
+rule 7 theme_sheet type=button part=face states=:checked
+  label button:checked::part(face)
+  decl primitive = name bulge
+  decl amplitude = expression [2.1] fallback 1
+  decl exponent = expression [3] fallback 2.2
+rule 8 theme_sheet type=track_bar
+  label track-bar
+  decl primitive = name bulge
+  decl amplitude = number 0.75

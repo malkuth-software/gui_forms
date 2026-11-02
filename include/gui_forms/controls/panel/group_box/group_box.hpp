@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <span>
 #include <string>
@@ -12,7 +13,7 @@ public:
     explicit GroupBox(StableId stable_id, std::string text = {});
 
     [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(std::string text);
+    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     [[nodiscard]] FontSpec font() const noexcept { return font_; }
     void set_font(FontSpec font);
     [[nodiscard]] bool use_mnemonic() const noexcept { return use_mnemonic_; }

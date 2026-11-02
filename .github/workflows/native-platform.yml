@@ -371,7 +371,11 @@ jobs:
           ctest --test-dir .build/native-macos-arm64/gui-forms -R '^gui_forms_macos_(exposure|idle_visibility|display_link(_overlay)?|prepared_text_host)_tests$' --output-on-failure
       - name: Audit installed macOS binary minimums
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true')
-        run: python template_harness/harness/audit_macos_minimum.py .build/native-macos-arm64/gui-forms-sdk .build/native-macos-arm64/installed-reference-examples
+        # The localizable-literal plugin runs inside the compiler that loads
+        # it, so it links that compiler's C++ runtime (Homebrew clang's system
+        # libc++), not a bundled one; the audit checks it against the compiler.
+        run: |
+          python template_harness/harness/audit_macos_minimum.py             --compiler "$(command -v clang++)" --compiler-plugin gui_forms_localizable.so             .build/native-macos-arm64/gui-forms-sdk .build/native-macos-arm64/installed-reference-examples
       # Only main saves dependencies: a pull request's copy could be restored
       # by no other ref and held 0.5 GB of the 10 GB.
       - uses: actions/cache/save@v4

@@ -4,6 +4,7 @@
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -36,7 +37,7 @@ struct MenuItemSpec final {
     MenuItemSpec() = default;
     MenuItemSpec(std::string stable_identity, MenuItemKind item_kind,
                  std::shared_ptr<Command> item_command = {},
-                 std::string item_text = {},
+                 GUI_FORMS_LOCALIZABLE(text) std::string item_text = {},
                  std::vector<MenuItemSpec> item_children = {})
         : stable_id(std::move(stable_identity)), kind(item_kind),
           command(std::move(item_command)), text(std::move(item_text)),
@@ -45,7 +46,7 @@ struct MenuItemSpec final {
     std::string stable_id;
     MenuItemKind kind{MenuItemKind::command};
     std::shared_ptr<Command> command;
-    std::string text;
+    GUI_FORMS_LOCALIZABLE(text) std::string text;
     std::vector<MenuItemSpec> children;
     // The row's text is set in the italic style. A presentational bridge:
     // no anatomy state names why a row is set apart (PageStrip's list sets

@@ -87,7 +87,7 @@ A `Control` subclass participates fully. The hooks are `measure` and
 custom containers, see [Layout](../user/layout)); `on_paint(Painter&, Rect)`,
 `on_paint_overlay` and `visual_outsets`; `hit_test_local`; the preview,
 target and bubble pointer, key and drag hooks plus `on_text_input`;
-`on_frame` for scheduled frames; `semantic_descriptor`,
+`semantic_descriptor`,
 `semantic_virtual_children` and `on_semantic_action`; and the attachment
 hooks. A setter on a subclass declares what it dirties with
 `invalidate_declared` ([Update scopes and dirtiness](../user/update-scopes-and-dirtiness)).

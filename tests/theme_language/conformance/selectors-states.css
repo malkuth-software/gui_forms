@@ -1,0 +1,16 @@
+/* forms: selector.state.hover selector.state.active selector.state.focus selector.state.focus-visible selector.state.checked selector.state.indeterminate selector.state.disabled selector.state.enabled selector.state.read-only selector.state.invalid selector.state.open selector.state.default selector.state-function selector.custom-state selector.part-state */
+button:hover { opacity: 0.9 }
+button:active { opacity: 0.9 }
+button:focus { opacity: 0.9 }
+button:focus-visible { opacity: 0.9 }
+button:checked { opacity: 0.9 }
+button:indeterminate { opacity: 0.9 }
+button:disabled { opacity: 0.5 }
+button:enabled { opacity: 1 }
+button:read-only { opacity: 0.9 }
+button:invalid { opacity: 0.9 }
+button:open { opacity: 0.9 }
+button:default { opacity: 0.9 }
+button:state(drag-proximate) { opacity: 0.8 }
+button:state(drop-accepted) { opacity: 0.7 }
+track-bar::part(thumb):active { opacity: 0.6 }

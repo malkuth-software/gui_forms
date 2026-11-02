@@ -5,6 +5,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
 #include "gui_forms/event.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
 
 #include <cstddef>
@@ -59,7 +60,7 @@ public:
     // The picker's accessible name ("Font colour"), with an optional
     // mnemonic. Throws std::invalid_argument for invalid UTF-8.
     [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(std::string text);
+    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
     // The size the picker measures, in logical units at the current text
     // scale.
     [[nodiscard]] Size natural_size() const noexcept;

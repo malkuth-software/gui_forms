@@ -3,6 +3,7 @@
 #include "gui_forms/component.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <memory>
@@ -31,7 +32,7 @@ public:
     // The dialog's title; empty gives the host's own. Windows Forms' dialog
     // has none; the hosts that title their dialog use it.
     [[nodiscard]] const std::string& title() const noexcept { return title_; }
-    void set_title(std::string title);
+    void set_title(GUI_FORMS_LOCALIZABLE(title) std::string title);
     // The chosen color, and before the dialog is shown the one it starts
     // with (Windows Forms' Color; opaque black by default).
     [[nodiscard]] Color color() const noexcept { return color_; }

@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
 
 #include <cstddef>
@@ -37,8 +38,8 @@ public:
     [[nodiscard]] std::span<const std::string> items() const noexcept {
         return items_;
     }
-    void set_items(std::vector<std::string> items);
-    void add_item(std::string item);
+    void set_items(GUI_FORMS_LOCALIZABLE(items) std::vector<std::string> items);
+    void add_item(GUI_FORMS_LOCALIZABLE(items) std::string item);
     [[nodiscard]] std::optional<std::size_t> selected_index() const noexcept {
         return selected_index_;
     }
@@ -47,7 +48,7 @@ public:
     [[nodiscard]] std::string_view placeholder_text() const noexcept {
         return placeholder_;
     }
-    void set_placeholder_text(std::string text);
+    void set_placeholder_text(GUI_FORMS_LOCALIZABLE(placeholder) std::string text);
     [[nodiscard]] bool dropped_down() const noexcept { return dropped_down_; }
     void set_dropped_down(bool dropped_down);
     [[nodiscard]] std::size_t maximum_drop_down_items() const noexcept {

@@ -4,6 +4,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
 
 #include <chrono>
@@ -36,7 +37,7 @@ public:
     // Sets `target`'s tooltip text; empty text removes it. Throws
     // std::invalid_argument for a target that is not a live control attached
     // to this ToolTip's window, or text that is not valid UTF-8.
-    void set_tool_tip(const std::shared_ptr<Control>& target, std::string text);
+    void set_tool_tip(const std::shared_ptr<Control>& target, GUI_FORMS_LOCALIZABLE(tool_tip) std::string text);
     // `target`'s tooltip text, whoever set it.
     [[nodiscard]] std::string tool_tip(const Control& target) const;
     // Clears the text this ToolTip set on `target`: false, changing nothing,
