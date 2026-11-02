@@ -5,6 +5,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <chrono>
@@ -31,11 +32,12 @@ class Window;
 // enabled state says whether the target is disabled. A ToolStrip item with a
 // command supplies that command when `command` is empty.
 struct RibbonToolTipContent final {
-    std::string title{};
-    std::string description{};
+    GUI_FORMS_LOCALIZABLE(tool_tip) std::string title{};
+    GUI_FORMS_LOCALIZABLE(tool_tip) std::string description{};
+    // Generated from the key binding: not translated text.
     std::string shortcut{};
     ImageId image{};
-    std::string disabled_reason{};
+    GUI_FORMS_LOCALIZABLE(tool_tip) std::string disabled_reason{};
     std::string help_topic{};
     std::shared_ptr<Command> command{};
 };

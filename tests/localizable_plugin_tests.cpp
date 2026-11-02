@@ -123,8 +123,12 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
     ToolStripItemSpec save{.stable_id = "tool.save", .text = "Save"};
     save.text = "Save as";
     const ListViewColumn name_column{"name", "Name"};
+    // The shortcut is the key binding's text and stays unmarked.
+    const RibbonToolTipContent paste_tip{.title = "Paste", .description = "Insert the clipboard",
+                                         .shortcut = "Ctrl+V", .disabled_reason = "The clipboard is empty"};
     static_cast<void>(open_item);
     static_cast<void>(name_column);
+    static_cast<void>(paste_tip);
 }
 
 // --- Expectations ---------------------------------------------------------
@@ -172,6 +176,9 @@ const std::vector<Expected>& expected_records() {
         {"text", "Save", exercise_name, self, 1U},
         {"text", "Save as", exercise_name, self, 1U},
         {"header", "Name", exercise_name, self, 1U},
+        {"tool_tip", "Paste", exercise_name, self, 1U},
+        {"tool_tip", "Insert the clipboard", exercise_name, self, 1U},
+        {"tool_tip", "The clipboard is empty", exercise_name, self, 1U},
         {"text", "Static library text", "localizable_units::static_unit", "tests/localizable_plugin_static.cpp", 1U},
         {"title", "Shared library title", "localizable_units::shared_unit", "tests/localizable_plugin_shared.cpp",
          1U},
@@ -181,7 +188,7 @@ const std::vector<Expected>& expected_records() {
 
 // Literals that must not be recorded anywhere.
 constexpr std::string_view not_recorded[] = {
-    "Plain unit text", "Wide caption", "User content", "Unmarked helper", "Built at ",
+    "Plain unit text", "Wide caption", "User content", "Unmarked helper", "Built at ", "Ctrl+V",
 };
 
 std::string variant_name(std::string_view text) {

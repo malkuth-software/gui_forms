@@ -3,7 +3,7 @@ A grid of typed columns over rows the grid owns, virtual rows or a binding sourc
 A data grid view shows rows of cells under a row of column headers, with an
 optional column of row headers at the left. Each `DataGridViewColumn` is a
 text, check box, combo box, button, image or link column with a name, header text,
-width, read-only flag and alignment. An image column's cells hold `ImageId`
+width, read-only flag and cell styles. An image column's cells hold `ImageId`
 values, images of the grid's window, placed by the column's `image_layout`
 (``normal``: at the image's own size, centred and cut at the cell's edges;
 ``stretch``; ``zoom``: as large as fits, its shape kept), and its
@@ -65,6 +65,49 @@ read_only : default ``false``
     Whether no cell of the grid edits, toggles or chooses.
 allow_user_to_resize_columns : default ``true``
     Whether dragging a column header's divider resizes the column.
+allow_user_to_add_rows : default ``true``
+    Whether an unbound or bound grid shows the new row after the last row.
+allow_user_to_delete_rows : default ``true``
+    Whether Delete removes the selected rows.
+default_cell_style
+    The grid's cell style (`DataGridViewCellStyle`), last in every cell's
+    inheritance chain; empty by default.
+rows_default_cell_style
+    The style of every row's cells, before the column's.
+alternating_rows_default_cell_style
+    The style of odd positions' cells, before the rows'.
+column_headers_default_cell_style
+    The column headers' style, before the grid's.
+row_headers_default_cell_style
+    The row headers' style, before the grid's.
+inherited_row_header_style
+    The style row headers draw with: the row headers', then the grid's.
+enable_headers_visual_styles : default ``true``
+    Whether the theme draws the headers, their styles' colours unused.
+grid_color : default none
+    The grid lines' colour, an authored colour (owner decision T4-1).
+background_color : default none
+    The colour where no cell is; the theme's ground stays under the cells.
+border_style : default ``BorderStyle::line``
+    The grid's frame; ``none`` publishes no ``edge`` part.
+cell_border_style : default single
+    Which lines the cells draw: all, vertical, horizontal or none.
+column_headers_border_style : default raised
+    The lines between column headers; ``none`` keeps the resize grips.
+row_headers_border_style : default raised
+    The lines between row headers.
+draw_mode : default ``ItemDrawMode::normal``
+    ``owner_draw`` raises `draw_item_content` for each data cell.
+sorted_column : default none
+    The column the last sort ordered by, while the rows keep its order.
+sort_order : default ``DataGridViewSortDirection::none``
+    That sort's direction.
+clipboard_copy_mode : default ``enable_with_auto_header_text``
+    Which header texts a copy includes, or ``disable``.
+clipboard_content : default none
+    The selection as tab-separated text, one line per row ending ``\r\n``,
+    with the header texts the copy mode includes; none when copying is
+    disabled or nothing is selected.
 first_displayed_row
     The position of the first row shown under the column headers.
     `set_first_displayed_row` scrolls to a position; layout keeps the last
@@ -152,9 +195,23 @@ cell_content_click
     Raised when the user clicks a button cell, an image cell's image or a
     link cell's link, or toggles a check box cell.
 column_header_click
-    Raised when a column header is clicked, with the column's index.
+    Raised when a column header is clicked, with the column's index, before
+    the automatic sort the click makes.
+sort_compare
+    Raised for each comparison a column sort makes, when it has a handler:
+    a handler that sets ``sort_result`` and ``handled`` decides it.
+sorted
+    Raised after a sort ordered the rows.
 column_width_changed
     Raised after a column's width changes, with the column's index.
+cell_formatting
+    Raised when the grid needs a cell's text, with its value and inherited
+    style: a handler may give the text, change the value or the style.
+cell_parsing
+    Raised when an edited text cell stores its text: a handler may give the
+    value.
+draw_item_content
+    Raised in ``owner_draw`` for each data cell painted, to draw its content.
 row_order_mode_changed
     Raised after the virtual rows' order switched mode, with the old and new
     mode, the reason (``row_count``, ``change_rate``, ``policy`` or
@@ -199,10 +256,26 @@ cell_value
     A cell's value. A cell past the rows or columns throws
     `std::out_of_range`.
 cell_text
-    The text a cell shows: numbers in their shortest exact form, a button
-    column's `button_text` for an empty button cell, and an image column's
-    `image_description` for an image cell holding an image (empty otherwise),
-    and a link column's `link_text` for an empty link cell.
+    The text a cell shows: the text a `cell_formatting` handler gives, else
+    the value in its inherited style's format (numbers otherwise in their
+    shortest exact form) or the style's null value for an empty value; a
+    button column's `button_text` for an empty button cell, an image
+    column's `image_description` for an image cell holding an image (empty
+    otherwise), and a link column's `link_text` for an empty link cell.
+set_cell_style
+    Sets a cell's own style, kept by the row's ID; `cell_style` reads it.
+set_row_default_cell_style
+    Sets a row's style, kept by its ID; `row_default_cell_style` reads it.
+set_column_default_cell_style
+    Sets a column's cells' style.
+set_column_header_cell_style
+    Sets a column header's style.
+inherited_cell_style
+    The style a cell draws with: each property from the first of the cell's,
+    its row's, the alternating rows' (odd positions), the rows', its
+    column's and the grid's styles that sets it.
+inherited_column_header_style
+    A column header's style: its own, the column headers', the grid's.
 link_visited
     Whether a link cell's link is visited. A cell past the rows or columns
     throws `std::out_of_range`, and one outside a link column
@@ -218,10 +291,17 @@ set_cell_value
     binding source refuses it.
 sort
     Orders unbound rows stably by a column: empty values first, then
-    booleans, numbers and text. The column shows the sort glyph and the
-    others none; the current cell and the selection stay on their rows.
+    booleans, numbers and text, unless `sort_compare` decides; or by a
+    `DataGridViewRowComparer`. A column sort shows the glyph on that column
+    and makes it `sorted_column`; a comparer's clears every glyph. The
+    current cell and the selection stay on their rows. Raises `sorted`.
     Returns false for virtual or bound rows, or when an edit in progress does
     not commit.
+column_sort_mode
+    A column's `DataGridViewColumnSortMode`: its own, else its kind's
+    default (``automatic`` for text columns, ``not_sortable`` otherwise).
+set_column_sort_mode
+    Sets a column's sort mode, or none for its kind's default.
 set_virtual_rows
     Switches to virtual rows: the application's row IDs in presentation
     order, or a `DataGridViewRowWindowSource` that keeps the order, with
@@ -412,13 +492,15 @@ the row changes (a handler may keep the row), then ``cell_leave``,
 (on the new row), ``cell_enter`` and ``current_cell_changed``. Their
 handlers may not call ``set_current_cell``.
 
-With ``allow_user_to_add_rows`` an unbound or bound grid shows a new row
-after the last; its row header shows a star. The first value the user
+With ``allow_user_to_add_rows``, on by default as in Windows Forms, an
+unbound or bound grid shows a new row after the last; its row header shows
+a star. Turn it off where the rows are fixed. The first value the user
 commits to it adds a row (or a record) with the new row's ID, raising
 ``user_added_row``; Escape, or ``cancel_row_edit``, discards it until the
-current cell leaves it. With ``allow_user_to_delete_rows`` Delete removes
-the selected rows, each after ``user_deleting_row``. The current row's
-header shows a pencil while the row is dirty (``show_editing_icon``).
+current cell leaves it. With ``allow_user_to_delete_rows``, also on by
+default, Delete removes the selected rows, each after ``user_deleting_row``.
+The current row's header shows a pencil while the row is dirty
+(``show_editing_icon``).
 
 ``set_cell_error_text`` and ``set_row_error_text`` give cells and rows error
 text (a bound row also shows its record's errors). It is drawn as the error
@@ -427,10 +509,49 @@ the row header, published as the semantic description, and makes the cell or
 row ``invalid``. The arrow, pencil, star and error glyphs are glyph marks
 (``pencil``, ``asterisk``, ``error``) whose look belongs to the theme.
 
-Not supported yet: cell styles and their inheritance, `LinkBehavior` (the
+Cell styles (`DataGridViewCellStyle`, Windows Forms' DataGridViewCellStyle)
+follow the T4 style mapping. Every property is optional, and one no style
+in a cell's chain sets is the theme's, so an unstyled grid looks like the
+rest of its theme. ``font`` is the content's font; ``alignment`` places it
+across (start, centre, end) and up and down (top, middle, bottom);
+``padding`` replaces the grid's own margins around it; ``format`` formats
+numbers with the invariant fixed formats ``F0`` to ``F12`` (those `Binding`
+accepts); ``null_value`` is shown for an empty value, and typed text equal
+to it stores ``data_source_null_value``. Header styles give the header
+labels their font, alignment and padding. Styles are values: the grid keeps
+a copy. Kept but not drawn yet: ``wrap_mode`` (text stays on one line).
+The colours are authored colours (owner decision T4-1): over the theme's
+ordinary colours, under its important ones, and dropped in high contrast;
+a disabled grid stays greyed. ``back_color`` fills the cell and
+``fore_color`` draws a text, combo box or button cell's text (links keep
+their link colours, check boxes their theme's); while a cell is selected
+the selection colours stand in for them, and an unset one leaves the
+theme's selection look. With `enable_headers_visual_styles` off, the header
+styles' colours paint the headers, their labels and glyphs.
+Raised and sunken cell and header lines draw as the theme's divider, as
+single ones do, where Windows Forms draws bevels. An edit the user did not
+change stores nothing, so a formatted text need not convert back.
+
+Sorting follows Windows Forms. A click on the header of an ``automatic``
+column (a text column's default) sorts unbound rows ascending, then toggles;
+``programmatic`` columns leave the order to the application, and
+``not_sortable`` ones (other kinds' default) only raise
+`column_header_click`. `sort_compare` handlers and comparers may not change
+the rows, columns or values while the sort runs (`std::logic_error`); a
+comparer need not be a consistent order. Replacing the rows ends a sort:
+`sorted_column` becomes none and an automatic column's glyph goes. Ctrl+C
+(Command+C on macOS) and Ctrl+Insert copy `clipboard_content` to the host's
+clipboard as text; ``clipboard_copy_mode`` (default
+``enable_with_auto_header_text``, which adds the row headers in full-row
+selection) chooses the header texts.
+
+Not supported yet: wrapped cell text, the style
+changed events, per-row header cell styles, Custom (advanced) border
+styles, `RowPrePaint` and `RowPostPaint`, `LinkBehavior` (the
 link is always underlined), an image column's default
-image for empty cells and icon values, frozen rows and columns beyond the headers, clipboard copy, sort
-modes (the application sorts, or calls `sort` for unbound rows), automatic
+image for empty cells and icon values, frozen rows and columns beyond the headers, the
+clipboard's HTML and CSV formats, automatic sorting of virtual and bound
+rows (the application sorts them), user column reordering, automatic
 column and row sizing, row height resizing, the new row in virtual mode,
 error text asked of the application (``CellErrorTextNeeded``), and cell
 tool tips.

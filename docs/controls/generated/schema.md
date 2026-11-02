@@ -30,7 +30,7 @@ Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
-Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`.
+Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`.
 
 Recipe families: `window`, `panel`, `card`, `button`, `accent_button`, `command_button`, `choice`, `editor`, `menu_item`, `selection`, `progress`, `tool_tip`, `link`, `visited_link`.
 
@@ -908,6 +908,7 @@ Properties beyond every control's: none.
 
 | Interaction | Payload |
 |---|---|
+| `draw_item_content` | `ItemContentPaint`, by reference |
 | `selection_changed` | none |
 | `current_cell_changed` | `std::optional<DataGridViewCellAddress>` |
 | `cell_begin_edit` | `DataGridViewCellCancelEvent`, by reference |
@@ -933,7 +934,11 @@ Properties beyond every control's: none.
 | `cell_error_text_changed` | `DataGridViewCellEvent` |
 | `row_error_text_changed` | `DataGridViewRowEvent` |
 | `column_header_click` | `std::size_t` |
+| `sort_compare` | `DataGridViewSortCompareEvent`, by reference |
+| `sorted` | none |
 | `column_width_changed` | `std::size_t` |
+| `cell_formatting` | `DataGridViewCellFormattingEvent`, by reference |
+| `cell_parsing` | `DataGridViewCellParsingEvent`, by reference |
 
 ## `choice_group` (ChoiceGroup, control)
 

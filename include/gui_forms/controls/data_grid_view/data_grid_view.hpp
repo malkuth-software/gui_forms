@@ -5,12 +5,14 @@
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.hpp"
 #include "gui_forms/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view_row_order.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/theme/owner_draw/owner_draw.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -47,12 +49,114 @@ enum class DataGridViewColumnKind : std::uint8_t {
 // kept, centred.
 enum class DataGridViewImageLayout : std::uint8_t { normal, stretch, zoom };
 
-// Where a cell's text sits across the cell.
-enum class DataGridViewCellAlignment : std::uint8_t { start, center, end };
+// Where a cell's content sits in the cell (Windows Forms'
+// DataGridViewContentAlignment): at the top, middle or bottom, and at the
+// start, centre or end across, mirrored with the layout direction. Windows
+// Forms' NotSet is an empty optional in DataGridViewCellStyle.
+enum class DataGridViewContentAlignment : std::uint8_t {
+    top_start,
+    top_center,
+    top_end,
+    middle_start,
+    middle_center,
+    middle_end,
+    bottom_start,
+    bottom_center,
+    bottom_end,
+};
+
+// Which lines the cells draw between them (Windows Forms'
+// DataGridViewCellBorderStyle, without Custom). Raised and sunken lines are
+// the same divider parts as single ones and draw as the theme's divider (T4
+// style mapping): a recorded difference from Windows Forms, whose raised and
+// sunken lines are bevels.
+enum class DataGridViewCellBorderStyle : std::uint8_t {
+    single,
+    raised,
+    sunken,
+    none,
+    single_vertical,
+    raised_vertical,
+    sunken_vertical,
+    single_horizontal,
+    raised_horizontal,
+    sunken_horizontal,
+};
+
+// Whether a header band draws the lines between its headers (Windows Forms'
+// DataGridViewHeaderBorderStyle, without Custom); raised and sunken draw as
+// single, as for cells.
+enum class DataGridViewHeaderBorderStyle : std::uint8_t { single, raised, sunken, none };
+
+// A cell style (Windows Forms' DataGridViewCellStyle). Every property is
+// optional: an empty one is "not set" and is taken from the next style in
+// the cell's inheritance chain (see DataGridView::inherited_cell_style);
+// one no style sets is the theme's (T4 style mapping). Styles are values:
+// a grid stores a copy, and changing a style the program holds changes no
+// cell until it is set again.
+//
+// `font` is the content's font. `alignment` places the content: across
+// through the text's alignment, up and down within the cell. `padding`, in
+// logical units at text scale 1, is kept clear around the content in place
+// of the grid's own margins (4 units at the start and end). `wrap_mode` is
+// kept and inherited; wrapped text is not drawn yet (one line, as without
+// it). `format` formats a number value: the invariant fixed formats "F0" to
+// "F12", the formats Binding accepts. `null_value` is shown for an empty
+// value, and typed text equal to it stores `data_source_null_value` (an
+// empty value when that is not set). The colours are authored colours
+// (owner decision T4-1): over the theme's ordinary colours, under its
+// important ones, and not in high contrast. `back_color` fills the cell,
+// `fore_color` draws the text of a text, combo box or button cell (a link
+// keeps its link colours, a check box its theme's), and the selection
+// colours stand in for both while the cell is selected; an unset selection
+// colour leaves the theme's selection look. A disabled grid stays greyed.
+struct DataGridViewCellStyle final {
+    std::optional<FontSpec> font{};
+    std::optional<DataGridViewContentAlignment> alignment{};
+    std::optional<Insets> padding{};
+    std::optional<bool> wrap_mode{};
+    std::optional<std::string> format{};
+    std::optional<BindingValue> null_value{};
+    std::optional<BindingValue> data_source_null_value{};
+    std::optional<Color> back_color{};
+    std::optional<Color> fore_color{};
+    std::optional<Color> selection_back_color{};
+    std::optional<Color> selection_fore_color{};
+
+    friend bool operator==(const DataGridViewCellStyle& left, const DataGridViewCellStyle& right) noexcept {
+        return left.font == right.font && left.alignment == right.alignment && left.padding == right.padding &&
+               left.wrap_mode == right.wrap_mode && left.format == right.format &&
+               left.null_value == right.null_value && left.data_source_null_value == right.data_source_null_value &&
+               left.back_color == right.back_color && left.fore_color == right.fore_color &&
+               left.selection_back_color == right.selection_back_color &&
+               left.selection_fore_color == right.selection_fore_color;
+    }
+};
 
 // The sort glyph a column header shows. The grid draws the glyph; ordering
 // rows is the application's work, or sort() for unbound rows.
 enum class DataGridViewSortDirection : std::uint8_t { none, ascending, descending };
+
+// What a click on a column's header does to the order (Windows Forms'
+// DataGridViewColumnSortMode). automatic sorts unbound rows by the column,
+// ascending first and then toggling, and shows the glyph; programmatic
+// leaves the order and the glyph to the application (sort,
+// set_column_sort_glyph); not_sortable does neither. The click raises
+// column_header_click in every mode, before an automatic sort. A column
+// whose sort_mode is empty takes its kind's Windows Forms default:
+// automatic for a text column, not_sortable for the others.
+enum class DataGridViewColumnSortMode : std::uint8_t { not_sortable, automatic, programmatic };
+
+// Which header texts a copy includes (Windows Forms'
+// DataGridViewClipboardCopyMode). With auto header text, the row headers'
+// texts come along in full-row selection; always includes the visible
+// column and row headers; disable copies nothing.
+enum class DataGridViewClipboardCopyMode : std::uint8_t {
+    disable,
+    enable_with_auto_header_text,
+    enable_without_header_text,
+    enable_always_include_header_text,
+};
 
 // Whether a click or arrow key selects one cell or the whole row.
 enum class DataGridViewSelectionMode : std::uint8_t { cell_select, full_row_select };
@@ -91,7 +195,8 @@ enum class DataGridViewDataErrorContext : std::uint8_t { parsing, commit };
 // One column. `name` is the column's identity: unique within the grid, not
 // empty, and without '.', since a cell's stable ID is its row's ID, '.' and
 // the column's name. `width` and `minimum_width` are logical units at text
-// scale 1.
+// scale 1. `default_cell_style` is the column's cells' style (Windows Forms'
+// DefaultCellStyle) and `header_cell_style` its header's (HeaderCell.Style).
 //
 // `value_kind` is the kind a committed text edit converts to (text by
 // default; a number column takes signed_integer or number). `items` are a
@@ -113,7 +218,7 @@ struct DataGridViewColumn final {
     double width{100.0};
     double minimum_width{20.0};
     bool read_only{};
-    DataGridViewCellAlignment alignment{DataGridViewCellAlignment::start};
+    DataGridViewCellStyle default_cell_style{};
     BindingValueKind value_kind{BindingValueKind::text};
     std::vector<std::string> items{};
     std::string button_text{};
@@ -123,6 +228,8 @@ struct DataGridViewColumn final {
     bool track_visited_state{true};
     std::string data_property_name{};
     DataGridViewSortDirection sort_glyph{DataGridViewSortDirection::none};
+    DataGridViewCellStyle header_cell_style{};
+    std::optional<DataGridViewColumnSortMode> sort_mode{};
 };
 
 // One unbound row. `stable_id` is unique within the grid; an empty ID is
@@ -188,6 +295,73 @@ struct DataGridViewDataErrorEvent final {
     DataGridViewDataErrorContext context{DataGridViewDataErrorContext::parsing};
     std::string formatted_value{};
     bool cancel{true};
+};
+
+// Raised when the grid needs a cell's text (Windows Forms' CellFormatting):
+// to paint and lay it out, for its semantic value, and as the text an edit
+// begins with. `value` is the cell's value and `cell_style` its inherited
+// style. A handler that sets `formatted_value` and `formatting_applied`
+// gives the text; otherwise the grid formats `value`, which the handler may
+// change, with `cell_style`'s format and null value. The style the handler
+// leaves (font, alignment, padding) places and draws the content that
+// time. Handlers must not change the grid; a paint stops at a change.
+struct DataGridViewCellFormattingEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    std::size_t column{};
+    BindingValue value{};
+    DataGridViewCellStyle cell_style{};
+    std::string formatted_value{};
+    bool formatting_applied{};
+};
+
+// Raised when an edited text cell stores its text (Windows Forms'
+// CellParsing), after cell_validating and before the text converts to the
+// column's value kind. `formatted_value` is the typed text and `cell_style`
+// the cell's inherited style. A handler that sets `value` and
+// `parsing_applied` gives the value stored; otherwise text equal to the
+// style's null value stores its data source null value, and other text
+// converts as without the event.
+struct DataGridViewCellParsingEvent final {
+    DataGridViewRowId row_id{};
+    DataGridViewRowPosition row{};
+    std::size_t column{};
+    std::string formatted_value{};
+    DataGridViewCellStyle cell_style{};
+    BindingValue value{};
+    bool parsing_applied{};
+};
+
+// Raised for each comparison while sort(column, direction) orders unbound
+// rows, when it has a handler (Windows Forms' SortCompare). `cell_value1`
+// and `cell_value2` are the two rows' values in `column`, `row_id1` and
+// `row_id2` their IDs and `row1` and `row2` their positions before the
+// sort; all are borrowed for the call. A handler that sets `sort_result`
+// (negative, zero or positive: the first row before, with or after the
+// second, in ascending order) and `handled` decides; otherwise the grid's
+// value order does. A descending sort reverses the result. Handlers may
+// not change the grid's rows, columns or values (std::logic_error).
+struct DataGridViewSortCompareEvent final {
+    std::size_t column{};
+    const BindingValue& cell_value1;
+    const BindingValue& cell_value2;
+    std::string_view row_id1{};
+    std::string_view row_id2{};
+    DataGridViewRowPosition row1{};
+    DataGridViewRowPosition row2{};
+    int sort_result{};
+    bool handled{};
+};
+
+// Orders unbound rows for DataGridView::sort(comparer) (Windows Forms'
+// Sort(IComparer)). compare returns a negative number, zero or a positive
+// number when `left` goes before, with or after `right`. It need not be a
+// consistent order: the grid's merge sort stays within the rows whatever it
+// returns. It may not change the grid (std::logic_error).
+class DataGridViewRowComparer {
+public:
+    virtual ~DataGridViewRowComparer();
+    [[nodiscard]] virtual int compare(const DataGridViewRow& left, const DataGridViewRow& right) const = 0;
 };
 
 // A row an event concerns: its identity and its position when the event is
@@ -303,8 +477,10 @@ public:
     [[nodiscard]] std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const;
     // Throws std::out_of_range for a cell past the rows or columns.
     [[nodiscard]] BindingValue cell_value(DataGridViewRowPosition row, std::size_t column) const;
-    // The text a cell shows: its value as text, a button or link column's
-    // text for an empty button or link cell, an image column's description.
+    // The text a cell shows (Windows Forms' FormattedValue): its value
+    // formatted by cell_formatting or its inherited style's format and null
+    // value, a button or link column's text for an empty button or link
+    // cell, an image column's description. Raises cell_formatting.
     [[nodiscard]] std::string cell_text(DataGridViewRowPosition row, std::size_t column) const;
     // Whether a link cell's link is visited (Windows Forms'
     // DataGridViewLinkCell.LinkVisited). The visited state stays on its row
@@ -319,11 +495,42 @@ public:
     // binding source refuses it.
     bool set_cell_value(DataGridViewRowPosition row, std::size_t column, BindingValue value);
     // Orders unbound rows stably by one column's values (empty values
-    // first, then booleans, numbers and text) and shows the sort glyph on
-    // that column alone. The current cell and the selection stay on their
-    // rows. Returns false, changing nothing, for virtual or bound rows or
-    // when an edit in progress does not commit.
+    // first, then booleans, numbers and text, unless sort_compare decides)
+    // and shows the sort glyph on that column alone; it becomes the sorted
+    // column. The current cell and the selection stay on their rows. Raises
+    // sorted. Returns false, changing nothing, for virtual or bound rows, no
+    // direction, or when an edit in progress does not commit. Throws
+    // std::out_of_range for an unknown column.
     bool sort(std::size_t column, DataGridViewSortDirection direction);
+    // Orders unbound rows stably by `comparer` (borrowed for the call); no
+    // column is then the sorted column and every sort glyph is cleared.
+    // Raises sorted. Returns false as the other sort does.
+    bool sort(const DataGridViewRowComparer& comparer);
+    // The column the last sort ordered by, and its direction; none (and
+    // DataGridViewSortDirection::none) when the rows are not sorted by a
+    // column: before any sort, after sort(comparer), and once the rows or
+    // columns are replaced or the sorted column removed.
+    [[nodiscard]] std::optional<std::size_t> sorted_column() const noexcept { return sorted_column_; }
+    [[nodiscard]] DataGridViewSortDirection sort_order() const noexcept { return sort_order_; }
+    // A column's sort mode, its kind's default when its sort_mode is empty.
+    // Throws std::out_of_range for an unknown column.
+    [[nodiscard]] DataGridViewColumnSortMode column_sort_mode(std::size_t column) const;
+    void set_column_sort_mode(std::size_t column, std::optional<DataGridViewColumnSortMode> mode);
+
+    // -- clipboard -------------------------------------------------------
+    // Ctrl+C (Command+C on macOS) and Ctrl+Insert, while no cell is in
+    // edit, put clipboard_content on the host's clipboard as text.
+    [[nodiscard]] DataGridViewClipboardCopyMode clipboard_copy_mode() const noexcept {
+        return clipboard_copy_mode_;
+    }
+    void set_clipboard_copy_mode(DataGridViewClipboardCopyMode mode);
+    // The selection as text (Windows Forms' GetClipboardContent, its text
+    // format): one line per row with a selected cell, in order, ending
+    // "\r\n"; one tab-separated field per column with a selected cell, the
+    // cell's text (cell_text) where the cell is selected and empty
+    // otherwise; the header texts the copy mode includes first. None when
+    // copying is disabled or no cell is selected.
+    [[nodiscard]] std::optional<std::string> clipboard_content() const;
 
     // Switches to virtual rows: `order` lists the rows' IDs in presentation
     // order, and their values are asked of `provider` by ID. Unbound rows are
@@ -400,7 +607,7 @@ public:
     [[nodiscard]] std::shared_ptr<BindingSource> data_source() const noexcept { return data_source_; }
 
     // -- adding and deleting rows (owner decision B1-2) ------------------
-    // With allow_user_to_add_rows (off by default) unbound and bound grids
+    // With allow_user_to_add_rows (on by default) unbound and bound grids
     // show a new row after the last row (Windows Forms' new row); virtual
     // grids do not. A bound grid shows it while its source allows new
     // records; a read-only grid or one without columns never does. The new
@@ -415,7 +622,7 @@ public:
     void set_allow_user_to_add_rows(bool allow);
     // The new row's position, while it is shown.
     [[nodiscard]] std::optional<DataGridViewRowPosition> new_row_index() const noexcept;
-    // With allow_user_to_delete_rows (off by default) Delete, pressed while no
+    // With allow_user_to_delete_rows (on by default) Delete, pressed while no
     // cell is in edit, deletes the selected rows (selected_rows(), never the
     // new row) of an unbound grid or of a source that allows removal: each
     // raises user_deleting_row, which may keep it, then is removed and raises
@@ -450,6 +657,111 @@ public:
     // (Windows Forms' ShowEditingIcon); on by default.
     [[nodiscard]] bool show_editing_icon() const noexcept { return show_editing_icon_; }
     void set_show_editing_icon(bool show);
+
+    // -- cell styles (T4 style mapping) ----------------------------------
+    // The grid's styles (Windows Forms' DefaultCellStyle,
+    // RowsDefaultCellStyle, AlternatingRowsDefaultCellStyle,
+    // ColumnHeadersDefaultCellStyle and RowHeadersDefaultCellStyle). All are
+    // empty by default: an unstyled grid draws as its theme does. The
+    // setters throw std::invalid_argument for an invalid style (see
+    // set_cell_style) and repaint.
+    [[nodiscard]] const DataGridViewCellStyle& default_cell_style() const noexcept { return default_cell_style_; }
+    void set_default_cell_style(DataGridViewCellStyle style);
+    [[nodiscard]] const DataGridViewCellStyle& rows_default_cell_style() const noexcept {
+        return rows_default_cell_style_;
+    }
+    void set_rows_default_cell_style(DataGridViewCellStyle style);
+    [[nodiscard]] const DataGridViewCellStyle& alternating_rows_default_cell_style() const noexcept {
+        return alternating_rows_default_cell_style_;
+    }
+    void set_alternating_rows_default_cell_style(DataGridViewCellStyle style);
+    [[nodiscard]] const DataGridViewCellStyle& column_headers_default_cell_style() const noexcept {
+        return column_headers_default_cell_style_;
+    }
+    void set_column_headers_default_cell_style(DataGridViewCellStyle style);
+    [[nodiscard]] const DataGridViewCellStyle& row_headers_default_cell_style() const noexcept {
+        return row_headers_default_cell_style_;
+    }
+    void set_row_headers_default_cell_style(DataGridViewCellStyle style);
+    // A column's cells' style and its header's style. Throw std::out_of_range
+    // for an unknown column.
+    void set_column_default_cell_style(std::size_t column, DataGridViewCellStyle style);
+    void set_column_header_cell_style(std::size_t column, DataGridViewCellStyle style);
+    // A row's and a cell's own styles (Windows Forms' Row.DefaultCellStyle
+    // and Cell.Style), kept by row ID for every row source as error text is:
+    // a style ends with its row, when the rows or columns are replaced and
+    // when a column is removed. The getters and setters throw
+    // std::out_of_range past the rows or columns; every style setter throws
+    // std::invalid_argument for a padding that is negative or not finite, a
+    // format other than "F0" to "F12", an alignment outside the enumeration,
+    // or a text value that is not valid UTF-8.
+    [[nodiscard]] DataGridViewCellStyle row_default_cell_style(DataGridViewRowPosition row) const;
+    void set_row_default_cell_style(DataGridViewRowPosition row, DataGridViewCellStyle style);
+    [[nodiscard]] DataGridViewCellStyle cell_style(DataGridViewRowPosition row, std::size_t column) const;
+    void set_cell_style(DataGridViewRowPosition row, std::size_t column, DataGridViewCellStyle style);
+    // The style a cell draws with (Windows Forms' InheritedStyle): each
+    // property from the first style that sets it, in the order the cell's
+    // style, its row's, the alternating rows' (on odd positions), the rows',
+    // its column's, the grid's. Properties none sets stay empty: the
+    // theme's. Throws std::out_of_range past the rows or columns.
+    [[nodiscard]] DataGridViewCellStyle inherited_cell_style(DataGridViewRowPosition row, std::size_t column) const;
+    // A column header's style: its own, the column headers', the grid's.
+    // Throws std::out_of_range for an unknown column.
+    [[nodiscard]] DataGridViewCellStyle inherited_column_header_style(std::size_t column) const;
+    // A row header's style: the row headers', the grid's.
+    [[nodiscard]] DataGridViewCellStyle inherited_row_header_style() const;
+    // With enable_headers_visual_styles (the default) the theme draws the
+    // headers and their styles' colours do not apply, as Windows Forms
+    // ignores them under visual styles (turned off, the header styles'
+    // colours paint the header, its label and its glyph, the selection
+    // colours while selected); their font, alignment and padding
+    // still do.
+    [[nodiscard]] bool enable_headers_visual_styles() const noexcept { return enable_headers_visual_styles_; }
+    void set_enable_headers_visual_styles(bool enable);
+    // The grid lines' colour (Windows Forms' GridColor) and the colour of the
+    // area no cell covers (BackgroundColor); none is the theme's. Both are
+    // authored colours (owner decision T4-1); under the cells the theme's
+    // ground stays.
+    [[nodiscard]] std::optional<Color> grid_color() const noexcept { return grid_color_; }
+    void set_grid_color(std::optional<Color> color);
+    [[nodiscard]] std::optional<Color> background_color() const noexcept { return background_color_; }
+    void set_background_color(std::optional<Color> color);
+
+    // -- borders ---------------------------------------------------------
+    // The grid's frame (Windows Forms' BorderStyle; line by default, as
+    // FixedSingle): none publishes no edge part. sunken (Fixed3D) is the
+    // theme's recess, as line is.
+    [[nodiscard]] BorderStyle border_style() const noexcept { return border_style_; }
+    void set_border_style(BorderStyle style);
+    // Which lines the cells draw (single by default).
+    [[nodiscard]] DataGridViewCellBorderStyle cell_border_style() const noexcept { return cell_border_style_; }
+    void set_cell_border_style(DataGridViewCellBorderStyle style);
+    // The lines between column headers and between row headers (raised by
+    // default, as in Windows Forms). With none a column header keeps its
+    // resize grip.
+    [[nodiscard]] DataGridViewHeaderBorderStyle column_headers_border_style() const noexcept {
+        return column_headers_border_style_;
+    }
+    void set_column_headers_border_style(DataGridViewHeaderBorderStyle style);
+    [[nodiscard]] DataGridViewHeaderBorderStyle row_headers_border_style() const noexcept {
+        return row_headers_border_style_;
+    }
+    void set_row_headers_border_style(DataGridViewHeaderBorderStyle style);
+
+    // -- owner drawing (owner decision W-Q6) -----------------------------
+    // In ItemDrawMode::owner_draw the grid raises draw_item_content for each
+    // data cell it paints (Windows Forms' CellPainting, content only): the
+    // grid paints the cell's selection plate, grid lines, error glyph and
+    // focus cue by role, and the handler paints inside the cell's content
+    // box (the cell less its padding). `index` is the row's position,
+    // `column` the column and `stable_id` the cell's stable ID; `text` and
+    // `font` are those of the cell's default content. Unless a handler sets
+    // `draw_default`, the grid draws none of the cell's content parts (text,
+    // link, image, check box, button); a combo box cell keeps its drop-down
+    // button. Handlers must not change the grid; a paint stops at a change.
+    [[nodiscard]] ItemDrawMode draw_mode() const noexcept { return draw_mode_; }
+    void set_draw_mode(ItemDrawMode mode);
+    [[nodiscard]] Event<ItemContentPaint&>& draw_item_content() noexcept { return draw_item_content_; }
 
     // -- appearance ------------------------------------------------------
     [[nodiscard]] bool column_headers_visible() const noexcept { return column_headers_visible_; }
@@ -628,8 +940,13 @@ public:
     }
     // Raised when a column header is clicked, with the column's index.
     [[nodiscard]] Event<std::size_t>& column_header_click() noexcept { return column_header_click_; }
+    [[nodiscard]] Event<DataGridViewSortCompareEvent&>& sort_compare() noexcept { return sort_compare_; }
+    // Raised after a sort ordered the rows.
+    [[nodiscard]] Event<>& sorted() noexcept { return sorted_; }
     // Raised after a column's width changes, with the column's index.
     [[nodiscard]] Event<std::size_t>& column_width_changed() noexcept { return column_width_changed_; }
+    [[nodiscard]] Event<DataGridViewCellFormattingEvent&>& cell_formatting() noexcept { return cell_formatting_; }
+    [[nodiscard]] Event<DataGridViewCellParsingEvent&>& cell_parsing() noexcept { return cell_parsing_; }
 
     // -- Control ---------------------------------------------------------
     void arrange(Rect final_bounds) override;
@@ -872,6 +1189,16 @@ private:
     void require_cell(DataGridViewRowPosition row, std::size_t column) const;
     void structure_changed();
     void reset_row_state();
+    // Sorting: the comparison sort_compare's handlers decide (a functor
+    // over row indices), the mutation refusal while comparisons run, the
+    // reorder both sorts end with, and the automatic sort of a header click.
+    struct SortCompareOrder;
+    struct SortingScope;
+    void require_not_sorting() const;
+    void apply_row_order(const std::vector<std::size_t>& order);
+    void sort_from_header(std::size_t column);
+    bool copy_selection_to_clipboard();
+    [[nodiscard]] std::string row_header_text(DataGridViewRowPosition row) const;
     void detach_data_source() noexcept;
     void on_source_list_changed(const BindingListChange& change);
     void on_source_position_changed(std::ptrdiff_t position);
@@ -915,18 +1242,48 @@ private:
     [[nodiscard]] double maximum_horizontal_offset(const GridLayout& layout) const noexcept;
     [[nodiscard]] Parts grid_parts(const GridLayout& layout) const;
     [[nodiscard]] RowParts row_parts(DataGridViewRowPosition row, const GridLayout& layout) const;
+    // A cell's formatted content: the text it shows (cell_text) and the style
+    // it draws with, as cell_formatting left them.
+    struct FormattedCell final {
+        std::string text{};
+        DataGridViewCellStyle style{};
+    };
+    [[nodiscard]] FormattedCell formatted_cell(DataGridViewRowPosition row, std::size_t column) const;
+    // The text a cell shows for its formatted text: a button or link
+    // column's text when it is empty, an image column's description.
+    [[nodiscard]] std::string shown_text(DataGridViewRowPosition row, std::size_t column, std::string formatted) const;
+    // The height of one line of text in `font` (already effective), as the
+    // content role sets it.
+    [[nodiscard]] double text_line_height(FontSpec font) const;
+    // A cell's parts, laid out for its formatted content, with that content
+    // and the content box (the cell less its padding) owner drawing paints
+    // in. cell_parts is its parts alone.
+    struct CellLayout final {
+        CellParts parts{};
+        FormattedCell content{};
+        Rect content_box{};
+    };
+    // A style's colours for a part, selected or not; none where the theme's
+    // stand.
+    struct AuthoredColours final {
+        std::optional<Color> background{};
+        std::optional<Color> foreground{};
+    };
+    [[nodiscard]] static AuthoredColours authored_colours(const DataGridViewCellStyle& style, bool selected);
+    [[nodiscard]] CellLayout cell_layout(DataGridViewRowPosition row, std::size_t column,
+                                         const GridLayout& layout) const;
     [[nodiscard]] CellParts cell_parts(DataGridViewRowPosition row, std::size_t column,
                                        const GridLayout& layout) const;
     // A link cell's link within the cell's content area: its text's extent,
-    // placed by the column's alignment and cut at the content area's end,
-    // and its underline, one unit high just below the text's baseline.
+    // placed by the cell's alignment and cut at the content area's end, and
+    // its underline, one unit high just below the text's baseline.
     struct CellLink final {
         Rect text{};
         Rect underline{};
     };
-    // None for another kind of cell or a link cell with no text.
-    [[nodiscard]] std::optional<CellLink> cell_link(DataGridViewRowPosition row, std::size_t column,
-                                                    Rect content) const;
+    // None for empty text or an empty content area.
+    [[nodiscard]] std::optional<CellLink> cell_link(std::string_view text, PartTextAlignment alignment,
+                                                    FontSpec font, Rect content) const;
     // Throws std::out_of_range for a cell past the rows or columns and
     // std::invalid_argument for one outside a link column.
     void require_link_cell(DataGridViewRowPosition row, std::size_t column) const;
@@ -957,8 +1314,13 @@ private:
     [[nodiscard]] std::size_t realized_row_count(const GridLayout& layout) const noexcept;
     [[nodiscard]] std::size_t realized_column_count(const GridLayout& layout) const noexcept;
     void paint_row(Painter& painter, DataGridViewRowPosition row, const GridLayout& layout) const;
-    void paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
-                    const GridLayout& layout) const;
+    // False when a cell_formatting or draw_item_content handler changed the
+    // grid's structure: the paint then stops.
+    [[nodiscard]] bool paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
+                                  const GridLayout& layout);
+    // Throws std::invalid_argument for a style the setters refuse.
+    static void validate_cell_style(const DataGridViewCellStyle& style);
+    void require_column(std::size_t column) const;
     void paint_column_header(Painter& painter, std::size_t column, const GridLayout& layout) const;
     void synchronize_scroll_bars(const GridLayout& layout);
     void on_vertical_scroll(double value);
@@ -1123,16 +1485,51 @@ private:
     bool show_cell_errors_{true};
     bool show_row_errors_{true};
     bool show_editing_icon_{true};
-    // The new row: its ID (empty until it is first shown) and the values it
+    // The new row: its ID (given at construction) and the values it
     // shows, one per column; a row the user added that the current cell has
     // not left yet; and whether add_new_row is adding a record.
     DataGridViewRow new_row_{};
     std::optional<std::string> added_row_{};
     bool adding_row_{};
-    bool allow_add_rows_{};
-    bool allow_delete_rows_{};
+    // Both on by default, as in Windows Forms (owner, 2026-11-01).
+    bool allow_add_rows_{true};
+    bool allow_delete_rows_{true};
     // Counts selection changes, so an operation raises selection_changed once.
     std::uint64_t selection_revision_{};
+    // Counts structure_changed calls, so a paint can tell that a handler it
+    // raised changed the grid.
+    std::uint64_t structure_revision_{};
+    // The last sort by a column, if the rows are still in its order, and
+    // whether sort_compare's handlers are deciding comparisons now.
+    std::optional<std::size_t> sorted_column_{};
+    DataGridViewSortDirection sort_order_{DataGridViewSortDirection::none};
+    bool sorting_{};
+    DataGridViewClipboardCopyMode clipboard_copy_mode_{DataGridViewClipboardCopyMode::enable_with_auto_header_text};
+
+    // Cell styles (T4 style mapping). Rows' and cells' own styles are kept
+    // by row ID, as error text is: one row's cells' styles by column (no
+    // entry for a cell without one), and rows' own styles.
+    DataGridViewCellStyle default_cell_style_{};
+    DataGridViewCellStyle rows_default_cell_style_{};
+    DataGridViewCellStyle alternating_rows_default_cell_style_{};
+    DataGridViewCellStyle column_headers_default_cell_style_{};
+    DataGridViewCellStyle row_headers_default_cell_style_{};
+    using CellStyles = std::unordered_map<std::size_t, DataGridViewCellStyle>;
+    using CellStyleRows = std::unordered_map<std::string, CellStyles, RowIdHash, std::equal_to<>>;
+    using RowStyles = std::unordered_map<std::string, DataGridViewCellStyle, RowIdHash, std::equal_to<>>;
+    CellStyleRows cell_styles_{};
+    RowStyles row_styles_{};
+    bool enable_headers_visual_styles_{true};
+    std::optional<Color> grid_color_{};
+    std::optional<Color> background_color_{};
+    BorderStyle border_style_{BorderStyle::line};
+    DataGridViewCellBorderStyle cell_border_style_{DataGridViewCellBorderStyle::single};
+    DataGridViewHeaderBorderStyle column_headers_border_style_{DataGridViewHeaderBorderStyle::raised};
+    DataGridViewHeaderBorderStyle row_headers_border_style_{DataGridViewHeaderBorderStyle::raised};
+    ItemDrawMode draw_mode_{ItemDrawMode::normal};
+    // The stable ID draw_item_content's handlers borrow, kept for the whole
+    // raise even when a handler replaces the rows.
+    std::string paint_stable_id_{};
 
     EditKind edit_kind_{EditKind::none};
     DataGridViewEditMode edit_mode_{DataGridViewEditMode::edit_on_keystroke_or_f2};
@@ -1164,6 +1561,13 @@ private:
     Event<const DataGridViewRowOrderModeChange&> row_order_mode_changed_{};
     Event<std::size_t> column_header_click_{};
     Event<std::size_t> column_width_changed_{};
+    // Raised from const reads (cell_text, layout, semantics), as the
+    // provider is asked from them; its handlers may not change the grid.
+    mutable Event<DataGridViewCellFormattingEvent&> cell_formatting_{};
+    Event<DataGridViewCellParsingEvent&> cell_parsing_{};
+    Event<DataGridViewSortCompareEvent&> sort_compare_{};
+    Event<> sorted_{};
+    Event<ItemContentPaint&> draw_item_content_{};
     Event<DataGridViewDataErrorEvent&> data_error_{};
     Event<const DataGridViewCellEvent&> cell_validated_{};
     Event<bool> current_cell_dirty_state_changed_{};

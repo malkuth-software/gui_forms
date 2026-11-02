@@ -2,15 +2,15 @@
   "schema": 1,
   "symbols": {
     "gui_forms::ToolTip": {
-      "reviewed": true,
-      "summary": "ToolTip is a nonvisual window-bound provider that tokenizes help text to live controls and coordinates hover/focus/manual presentation through one scheduler-backed state machine. It owns delayed show, reshow, auto-pop, movement tracking, popup revocation, input-transparent overlay composition, configurable maximum width, and exact visibility events.",
+      "reviewed": false,
+      "summary": "ToolTip is the Windows Forms way to set tooltip text and timing over GUI.Forms' own tooltips: it presents nothing itself. set_tool_tip writes the target's Control::tool_tip_text, and the window's single tooltip presenter shows it; the delays, width and policies are the window's ToolTipSettings, shared by every ToolTip of that window.",
       "remarks": [
-        "Maps help text to live controls through tokenized `set_tool_tip`, lookup, removal, and clear operations.",
-        "Initial, reshow, and auto-pop delays, hover/focus enablement, and `show_always` are retained policies; explicit persistent or duration-bounded show and immediate hide are available.",
-        "Presentation is an input-transparent overlay-plane popup anchored to the target or the pointer and repositioned live when the owner moves; a stable semantic `tool_tip` node is published.",
-        "Popup and timer cleanup is synchronous when a mapping, target, provider, or Window goes away. Accessible described-by relations and title/icon/balloon variants remain open."
+        "Writes and clears `Control::tool_tip_text` on live controls of its window, and remembers which targets it set, so that `remove_tool_tip`, `clear` and disposal clear only its own text.",
+        "The timing and policy getters and setters read and write the window's `ToolTipSettings` field by field; the last value set by any ToolTip of the window holds.",
+        "`show` and `hide` drive the window's presenter (`Window::show_tool_tip`) for this ToolTip's targets; `visibility_changed` reports the window's tooltips for those targets.",
+        "Every operation throws `std::logic_error` once the ToolTip is disposed or its window is gone. Title, icon and balloon variants remain open."
       ],
-      "ownership": "A nonvisual `Component`. The application owns it directly or through a `ComponentContainer`; it binds to one live Window and never becomes part of the visual tree. Disposal is synchronous and idempotent and revokes every outstanding callback before teardown.",
+      "ownership": "A nonvisual `Component`. The application owns it directly or through a `ComponentContainer`; it binds to one Window and never becomes part of the visual tree. It observes its targets and never owns them. Disposal clears the text it set and disconnects its window subscription.",
       "threading": "UI-thread affine. Read and mutate on the owning Window's UI thread; wrong-thread mutation is rejected by the Window access guards (`Window::check_access` and `Window::verify_access`). The type is not internally synchronized.",
       "availability": "Renderer-neutral core (`gui_forms_controls`). Available wherever the GUI.Forms core builds: the macOS AppKit host, the Windows Win32 host, and the opt-in Linux X11 host. The public API is not yet stable.",
       "see_also": [
@@ -20,107 +20,107 @@
     },
     "gui_forms::ToolTip::ToolTip|void (Window &)": {
       "reviewed": false,
-      "summary": "Binds a nonvisual tooltip provider to one live Window lifetime and creates its UI-thread scheduler."
+      "summary": "Binds the provider to one live Window and subscribes to that window's tooltip visibility changes."
     },
     "gui_forms::ToolTip::~ToolTip|void () noexcept": {
       "reviewed": false,
-      "summary": "Closes overlays and releases target, timer, popup, and lifetime subscriptions before destruction."
+      "summary": "Disposes the provider: clears the text it set and disconnects its window subscription."
     },
     "gui_forms::ToolTip::set_tool_tip|void (const std::shared_ptr<Control> &, std::string)": {
       "reviewed": false,
-      "summary": "Validates a live target, tokenizes or replaces its help text, installs movement/input subscriptions, and removes empty mappings."
+      "summary": "Writes the target's Control::tool_tip_text and records the target; empty text removes it. Rejects a target that is not a live control of this window, or text that is not valid UTF-8."
     },
     "gui_forms::ToolTip::tool_tip|std::string (const Control &) const": {
       "reviewed": false,
-      "summary": "Returns authored help text for a currently mapped target."
+      "summary": "Returns the target's tooltip text, whoever set it."
     },
-    "gui_forms::ToolTip::remove_tool_tip|bool (const Control &)": {
+    "gui_forms::ToolTip::remove_tool_tip|bool (Control &)": {
       "reviewed": false,
-      "summary": "Disconnects one target mapping and hides it first when it owns the visible or pending tooltip."
+      "summary": "Clears the text this ToolTip set on the target; returns false and changes nothing when it set none there."
     },
     "gui_forms::ToolTip::clear|void ()": {
       "reviewed": false,
-      "summary": "Hides any overlay and disconnects every mapped target."
+      "summary": "Clears the text this ToolTip set on every target."
     },
-    "gui_forms::ToolTip::initial_delay|std::chrono::milliseconds () const noexcept": {
+    "gui_forms::ToolTip::initial_delay|std::chrono::milliseconds () const": {
       "reviewed": false,
-      "summary": "Returns the hover/focus dwell required for a fresh tooltip."
+      "summary": "Returns the window's hover or focus dwell before a fresh tooltip shows (ToolTipSettings)."
     },
     "gui_forms::ToolTip::set_initial_delay|void (std::chrono::milliseconds)": {
       "reviewed": false,
-      "summary": "Validates nonnegative timing and updates future fresh-show scheduling."
+      "summary": "Sets the window's initial delay; a negative delay is rejected, changing nothing."
     },
-    "gui_forms::ToolTip::reshow_delay|std::chrono::milliseconds () const noexcept": {
+    "gui_forms::ToolTip::reshow_delay|std::chrono::milliseconds () const": {
       "reviewed": false,
-      "summary": "Returns the shorter delay admitted after a tooltip was recently hidden."
+      "summary": "Returns the window's shorter delay used soon after a tooltip was hidden (ToolTipSettings)."
     },
     "gui_forms::ToolTip::set_reshow_delay|void (std::chrono::milliseconds)": {
       "reviewed": false,
-      "summary": "Validates nonnegative timing and updates future reshow scheduling."
+      "summary": "Sets the window's reshow delay; a negative delay is rejected, changing nothing."
     },
-    "gui_forms::ToolTip::auto_pop_delay|std::chrono::milliseconds () const noexcept": {
+    "gui_forms::ToolTip::auto_pop_delay|std::chrono::milliseconds () const": {
       "reviewed": false,
-      "summary": "Returns the default visible duration before automatic hiding."
+      "summary": "Returns how long the window shows a tooltip before hiding it (ToolTipSettings)."
     },
     "gui_forms::ToolTip::set_auto_pop_delay|void (std::chrono::milliseconds)": {
       "reviewed": false,
-      "summary": "Validates positive timing and re-arms an active automatic hide."
+      "summary": "Sets the window's auto-pop delay; a negative delay is rejected, changing nothing."
     },
-    "gui_forms::ToolTip::show_on_hover|bool () const noexcept": {
+    "gui_forms::ToolTip::show_on_hover|bool () const": {
       "reviewed": false,
-      "summary": "Reports whether mapped pointer entry may schedule presentation."
+      "summary": "Reports whether pointer hover shows tooltips in the window."
     },
     "gui_forms::ToolTip::set_show_on_hover|void (bool)": {
       "reviewed": false,
-      "summary": "Toggles hover policy and cancels incompatible pending hover work."
+      "summary": "Sets the window's hover policy."
     },
-    "gui_forms::ToolTip::show_on_focus|bool () const noexcept": {
+    "gui_forms::ToolTip::show_on_focus|bool () const": {
       "reviewed": false,
-      "summary": "Reports whether mapped keyboard focus may schedule presentation."
+      "summary": "Reports whether keyboard focus shows tooltips in the window."
     },
     "gui_forms::ToolTip::set_show_on_focus|void (bool)": {
       "reviewed": false,
-      "summary": "Toggles focus policy and cancels incompatible pending focus work."
+      "summary": "Sets the window's focus policy."
     },
-    "gui_forms::ToolTip::show_always|bool () const noexcept": {
+    "gui_forms::ToolTip::show_always|bool () const": {
       "reviewed": false,
-      "summary": "Reports whether inactive-window targets are still eligible for presentation."
+      "summary": "Reports whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled)."
     },
     "gui_forms::ToolTip::set_show_always|void (bool)": {
       "reviewed": false,
-      "summary": "Toggles inactive-window eligibility and re-evaluates current presentation."
+      "summary": "Sets whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled)."
     },
-    "gui_forms::ToolTip::maximum_width|double () const noexcept": {
+    "gui_forms::ToolTip::maximum_width|double () const": {
       "reviewed": false,
-      "summary": "Returns the logical wrapping ceiling used to measure tooltip bubbles."
+      "summary": "Returns the window's tooltip wrapping width."
     },
     "gui_forms::ToolTip::set_maximum_width|void (double)": {
       "reviewed": false,
-      "summary": "Validates a bounded width, then remeasures and repositions any visible bubble."
+      "summary": "Sets the window's tooltip wrapping width; a width outside 80 to 2048 is rejected, changing nothing."
     },
     "gui_forms::ToolTip::show|void (const std::shared_ptr<Control> &)": {
       "reviewed": false,
-      "summary": "Immediately presents a mapped target with either default or caller-supplied duration using the common overlay path."
+      "summary": "Shows the target's tooltip at once, below it, for the auto-pop delay. Rejects a target this ToolTip set no text on."
     },
     "gui_forms::ToolTip::show|void (const std::shared_ptr<Control> &, std::chrono::milliseconds)": {
       "reviewed": false,
-      "summary": "Immediately presents a mapped target with either default or caller-supplied duration using the common overlay path."
+      "summary": "Shows the target's tooltip at once, below it, for `duration` (zero: until hidden). Rejects a target this ToolTip set no text on."
     },
     "gui_forms::ToolTip::hide|void ()": {
       "reviewed": false,
-      "summary": "Cancels pending work and closes the active overlay with a hidden event."
+      "summary": "Closes the window's tooltip when it shows one of this ToolTip's targets."
     },
-    "gui_forms::ToolTip::visible|bool () const noexcept": {
+    "gui_forms::ToolTip::visible|bool () const": {
       "reviewed": false,
-      "summary": "Reports whether both visible target and connected popup lease remain live."
+      "summary": "Reports whether the window's tooltip shows one of this ToolTip's targets."
     },
-    "gui_forms::ToolTip::active_control|std::shared_ptr<Control> () const noexcept": {
+    "gui_forms::ToolTip::active_control|std::shared_ptr<Control> () const": {
       "reviewed": false,
-      "summary": "Returns the target currently owning visible presentation, if any."
+      "summary": "Returns this ToolTip's target whose tooltip the window shows, if any."
     },
     "gui_forms::ToolTip::visibility_changed|Event<const ToolTipEvent &> &() noexcept": {
       "reviewed": false,
-      "summary": "Returns the event published after a tooltip becomes visible or hidden."
+      "summary": "Returns the event that reports the window's tooltips opening and closing for this ToolTip's targets."
     }
   }
 }

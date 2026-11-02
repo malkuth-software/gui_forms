@@ -751,6 +751,10 @@ Types
 
    .. cpp:member:: std::array<const RecipeDeclaration*, recipe_field_count> fields
 
+   .. cpp:member:: std::array<CascadeLevel, recipe_field_count> levels
+
+      The cascade level of each winning declaration's rule, by the same position; built_in where ``fields`` holds null. An authored colour (PartPaint::authored_foreground) stands under the important ones.
+
    .. cpp:member:: bool authored
 
 .. cpp:namespace:: gui_forms
@@ -2817,6 +2821,12 @@ Types
 
       The colour the part shows as its content (design language 8.5; owner decision W-7), such as a colour picker's sample, or none. Only the fill role honours it: a fill with a content colour is painted that colour, flat, in the part's shape (corner_radius, else square), in place of the recipe's material; every other role ignores it. A swatch is therefore a fill inside a well part that frames it. The colour is data, as an image is: it is drawn as given in ordinary and high-contrast presentation alike (the framing well follows the high-contrast recipe, so the sample stays outlined), and when the part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds it, so a disabled swatch shows through its well, edge and label).
 
+   .. cpp:member:: std::optional<Color> authored_background
+
+      The colours an application authored for this part (design language 8.5; owner decision T4-1), or none, such as a DataGridView cell style's BackColor and ForeColor. They stand where an inline style's colours would stand for this one part: over the theme's ordinary declarations, under its important ones, and never in high contrast, where the role's colours stand (§5.8). Unlike the content colour they are a look, not data. - The background: a surface role (and an indicator or glyph without a mark, which paints its ground) paints it flat in place of the material's fills, keeping the material's border, keylines and shadows and the part's shape. A fill with a content colour shows the content colour. A disabled part keeps it. - The foreground: text roles and the caret draw in it, marks are inked with it and rules (keyline, divider, seam) are drawn in it. A disabled part keeps the theme's disabled colours, so disabled stays greyed; a theme text colour declared important stands over it for text. A rule that chooses a primitive for the part at an important level stands over both; a primitive that draws a theme material takes the background in its material's fills, and a primitive's own colour parameters do not read them.
+
+   .. cpp:member:: std::optional<Color> authored_foreground
+
    .. cpp:member:: std::optional<PartKey> key
 
       The part's identity across frames (T2 GIVEN H3-1), or none. A part with a key has a record in its window's engine part table; one without is drawn statically, with no transitions and no cached raster. It is identity, not vocabulary: it changes nothing a part looks like today. Its views are borrowed for the call.
@@ -3482,7 +3492,7 @@ Types
 
    .. cpp:function:: explicit ResolvedControlRecipe(const ControlVisualRecipe& floor) noexcept
 
-   .. cpp:function:: ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored) noexcept
+   .. cpp:function:: ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored, bool important_text = false) noexcept
 
 
    .. rubric:: Properties
@@ -3492,6 +3502,10 @@ Types
    .. cpp:function:: bool authored() const noexcept
 
       Whether a rule's recipe field changed the floor.
+
+   .. cpp:function:: bool important_text() const noexcept
+
+      Whether the text colour was declared at an important level (CascadeLevel::important_user_theme or above), where it stands over a part's authored foreground (owner decision T4-1).
 
 .. cpp:namespace:: gui_forms
 

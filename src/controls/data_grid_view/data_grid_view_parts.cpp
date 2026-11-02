@@ -58,10 +58,94 @@ Rect cell_inside(Rect cell) noexcept {
     return result;
 }
 
-PartTextAlignment text_alignment(DataGridViewCellAlignment alignment) noexcept {
-    if (alignment == DataGridViewCellAlignment::center) return PartTextAlignment::center;
-    if (alignment == DataGridViewCellAlignment::end) return PartTextAlignment::end;
+// The text's alignment across its box for a style's alignment; start when
+// none is set.
+PartTextAlignment text_alignment(std::optional<DataGridViewContentAlignment> alignment) noexcept {
+    if (!alignment) return PartTextAlignment::start;
+    switch (*alignment) {
+    case DataGridViewContentAlignment::top_center:
+    case DataGridViewContentAlignment::middle_center:
+    case DataGridViewContentAlignment::bottom_center:
+        return PartTextAlignment::center;
+    case DataGridViewContentAlignment::top_end:
+    case DataGridViewContentAlignment::middle_end:
+    case DataGridViewContentAlignment::bottom_end:
+        return PartTextAlignment::end;
+    case DataGridViewContentAlignment::top_start:
+    case DataGridViewContentAlignment::middle_start:
+    case DataGridViewContentAlignment::bottom_start:
+        return PartTextAlignment::start;
+    }
+    // Validated styles hold only the enumerators above.
     return PartTextAlignment::start;
+}
+
+// Where a line of text sits up and down in its content box.
+enum class LinePlacement : std::uint8_t { top, middle, bottom };
+
+LinePlacement line_placement(std::optional<DataGridViewContentAlignment> alignment) noexcept {
+    if (!alignment) return LinePlacement::middle;
+    switch (*alignment) {
+    case DataGridViewContentAlignment::top_start:
+    case DataGridViewContentAlignment::top_center:
+    case DataGridViewContentAlignment::top_end:
+        return LinePlacement::top;
+    case DataGridViewContentAlignment::bottom_start:
+    case DataGridViewContentAlignment::bottom_center:
+    case DataGridViewContentAlignment::bottom_end:
+        return LinePlacement::bottom;
+    case DataGridViewContentAlignment::middle_start:
+    case DataGridViewContentAlignment::middle_center:
+    case DataGridViewContentAlignment::middle_end:
+        return LinePlacement::middle;
+    }
+    return LinePlacement::middle;
+}
+
+// The space a style keeps around a cell's content, at `scale`: the style's
+// padding, else the grid's own margins (cell_padding at the start and end).
+Insets content_padding(const DataGridViewCellStyle& style, double scale) noexcept {
+    if (!style.padding) {
+        const Insets margins{cell_padding * scale, 0.0, cell_padding * scale, 0.0};
+        return margins;
+    }
+    const Insets& padding = *style.padding;
+    const Insets scaled{padding.left * scale, padding.top * scale, padding.right * scale, padding.bottom * scale};
+    return scaled;
+}
+
+// `area` less `padding`, never negative.
+Rect padded_rect(Rect area, Insets padding) noexcept {
+    const Rect inner{area.x + padding.left, area.y + padding.top,
+                     std::max(0.0, area.width - padding.left - padding.right),
+                     std::max(0.0, area.height - padding.top - padding.bottom)};
+    return inner;
+}
+
+// The box one line of text takes in `content`: the whole box in the middle
+// (the content role centres the line), else a line at its top or bottom.
+Rect line_box(Rect content, LinePlacement placement, double line_height) noexcept {
+    if (placement == LinePlacement::middle || content.height <= line_height) return content;
+    if (placement == LinePlacement::top) {
+        const Rect top{content.x, content.y, content.width, line_height};
+        return top;
+    }
+    const Rect bottom{content.x, content.y + content.height - line_height, content.width, line_height};
+    return bottom;
+}
+
+bool draws_vertical_lines(DataGridViewCellBorderStyle style) noexcept {
+    return style == DataGridViewCellBorderStyle::single || style == DataGridViewCellBorderStyle::raised ||
+           style == DataGridViewCellBorderStyle::sunken || style == DataGridViewCellBorderStyle::single_vertical ||
+           style == DataGridViewCellBorderStyle::raised_vertical ||
+           style == DataGridViewCellBorderStyle::sunken_vertical;
+}
+
+bool draws_horizontal_lines(DataGridViewCellBorderStyle style) noexcept {
+    return style == DataGridViewCellBorderStyle::single || style == DataGridViewCellBorderStyle::raised ||
+           style == DataGridViewCellBorderStyle::sunken || style == DataGridViewCellBorderStyle::single_horizontal ||
+           style == DataGridViewCellBorderStyle::raised_horizontal ||
+           style == DataGridViewCellBorderStyle::sunken_horizontal;
 }
 
 } // namespace
@@ -209,7 +293,10 @@ DataGridView::Parts DataGridView::grid_parts(const GridLayout& layout) const {
     Parts record;
     record.region = PartGeometry::from_bounds(layout.client);
     record.well = PartGeometry::from_bounds(layout.client);
-    record.edge = PartGeometry::from_bounds(layout.client);
+    // The background colour stands where no cell is; on_paint keeps the
+    // theme's ground under the cells.
+    record.well.authored_background = background_color_;
+    if (border_style_ != BorderStyle::none) record.edge = PartGeometry::from_bounds(layout.client);
     record.column_header_band = PartGeometry::from_bounds(layout.column_header_band);
     record.row_header_band = PartGeometry::from_bounds(layout.row_header_band);
     record.top_left_header = PartGeometry::from_bounds(layout.top_left);
@@ -256,18 +343,44 @@ DataGridView::RowParts DataGridView::row_parts(DataGridViewRowPosition row, cons
                          std::max(0.0, header.height - 1.0)};
         record.row_header_label = visible_part(label, clip);
     }
-    const Rect rule{header.x, header.y + header.height - 1.0, header.width, 1.0};
-    record.row_rule = visible_part(rule, clip);
+    if (row_headers_border_style_ != DataGridViewHeaderBorderStyle::none) {
+        const Rect rule{header.x, header.y + header.height - 1.0, header.width, 1.0};
+        record.row_rule = visible_part(rule, clip);
+    }
+    // Without header visual styles the row header style's colours stand on
+    // the header, its label and its glyph (owner decision T4-1).
+    if (!enable_headers_visual_styles_) {
+        const DataGridViewCellStyle style = inherited_row_header_style();
+        const AuthoredColours colours = authored_colours(style, is_row_selected(row));
+        record.row_header.authored_background = colours.background;
+        record.row_header_label.authored_foreground = colours.foreground;
+        record.row_glyph.authored_foreground = colours.foreground;
+    }
     return record;
 }
 
 DataGridView::CellParts DataGridView::cell_parts(DataGridViewRowPosition row, std::size_t column,
                                                  const GridLayout& layout) const {
-    CellParts record;
+    const CellLayout placed = cell_layout(row, column, layout);
+    return placed.parts;
+}
+
+DataGridView::CellLayout DataGridView::cell_layout(DataGridViewRowPosition row, std::size_t column,
+                                                   const GridLayout& layout) const {
+    CellLayout result;
+    const std::uint64_t revision = structure_revision_;
+    result.content = formatted_cell(row, column);
+    // A formatting handler that changed the grid leaves no parts to lay out.
+    if (structure_revision_ != revision) return result;
+    result.content.text = shown_text(row, column, std::move(result.content.text));
+    const DataGridViewCellStyle& style = result.content.style;
+    CellParts& record = result.parts;
     const Rect clip = layout.data;
     const Rect cell = cell_bounds(row, column, layout);
     const double scale = layout.scale;
     const Rect inside = cell_inside(cell);
+    const Insets padding_insets = content_padding(style, scale);
+    result.content_box = padded_rect(inside, padding_insets);
     record.cell = visible_part(cell, clip);
     record.cell_selection = visible_part(inside, clip);
     record.cell_focus = record.cell_selection;
@@ -303,40 +416,56 @@ DataGridView::CellParts DataGridView::cell_parts(DataGridViewRowPosition row, st
             record.cell_drop_down = visible_part(button, clip);
             record.cell_drop_down_glyph = visible_part(centred_square(button, glyph_size * scale), clip);
         }
-        const Rect content{inside.x + padding, inside.y,
-                           std::max(0.0, inside.width - padding * 2.0 - reserved - error_reserved), inside.height};
-        record.cell_content = visible_part(content, clip);
+        const Rect padded = result.content_box;
+        const Rect content{padded.x, padded.y,
+                           std::max(0.0, padded.width - reserved - error_reserved), padded.height};
+        const FontSpec font = effective_font(style.font.value_or(font_));
+        const LinePlacement placement = line_placement(style.alignment);
+        const double line_height = placement == LinePlacement::middle ? 0.0 : text_line_height(font);
+        const Rect line = line_box(content, placement, line_height);
+        record.cell_content = visible_part(line, clip);
         if (kind == DataGridViewColumnKind::link) {
-            const std::optional<CellLink> link = cell_link(row, column, content);
+            const std::optional<CellLink> link =
+                cell_link(result.content.text, text_alignment(style.alignment), font, line);
             if (link) {
                 record.cell_link = visible_part((*link).text, clip);
                 record.cell_link_underline = visible_part((*link).underline, clip);
             }
         }
     }
-    const Rect vertical_rule{cell.x + cell.width - 1.0, cell.y, 1.0, cell.height};
-    const Rect horizontal_rule{cell.x, cell.y + cell.height - 1.0, cell.width, 1.0};
-    record.cell_vertical_rule = visible_part(vertical_rule, clip);
-    record.cell_horizontal_rule = visible_part(horizontal_rule, clip);
-    return record;
+    if (draws_vertical_lines(cell_border_style_)) {
+        const Rect vertical_rule{cell.x + cell.width - 1.0, cell.y, 1.0, cell.height};
+        record.cell_vertical_rule = visible_part(vertical_rule, clip);
+    }
+    if (draws_horizontal_lines(cell_border_style_)) {
+        const Rect horizontal_rule{cell.x, cell.y + cell.height - 1.0, cell.width, 1.0};
+        record.cell_horizontal_rule = visible_part(horizontal_rule, clip);
+    }
+    // The inherited style's colours (owner decision T4-1): the background
+    // on the selection plate, the foreground on the text a text, combo box
+    // or button cell shows, and the grid colour on the lines. A link keeps
+    // its link colours, and a check box its theme's.
+    const AuthoredColours colours = authored_colours(style, is_cell_selected(row, column));
+    record.cell_selection.authored_background = colours.background;
+    if (kind != DataGridViewColumnKind::link) record.cell_content.authored_foreground = colours.foreground;
+    record.cell_button_label.authored_foreground = colours.foreground;
+    record.cell_vertical_rule.authored_foreground = grid_color_;
+    record.cell_horizontal_rule.authored_foreground = grid_color_;
+    return result;
 }
 
-std::optional<DataGridView::CellLink> DataGridView::cell_link(DataGridViewRowPosition row, std::size_t column,
-                                                              Rect content) const {
-    const DataGridViewColumn& definition = columns_[column];
-    if (definition.kind != DataGridViewColumnKind::link || content.empty()) return std::nullopt;
-    const std::string text = cell_text(row, column);
-    if (text.empty()) return std::nullopt;
+std::optional<DataGridView::CellLink> DataGridView::cell_link(std::string_view text, PartTextAlignment alignment,
+                                                              FontSpec font, Rect content) const {
+    if (content.empty() || text.empty()) return std::nullopt;
     // The link is as wide as its text, measured with the font it is drawn
     // in, and no wider than the content area, which cuts it as it cuts a
     // text cell's text.
-    const FontSpec font = effective_font(font_);
     const ResolvedTextLayout measured = resolve_text_layout_utf8(text, font);
     const double width = std::min(content.width, measured.logical_size.width);
     double x = content.x;
-    if (definition.alignment == DataGridViewCellAlignment::center) {
+    if (alignment == PartTextAlignment::center) {
         x = content.x + (content.width - width) * 0.5;
-    } else if (definition.alignment == DataGridViewCellAlignment::end) {
+    } else if (alignment == PartTextAlignment::end) {
         x = content.x + content.width - width;
     }
     // The baseline is where the content role sets a line of text: its line
@@ -392,22 +521,54 @@ DataGridView::ColumnParts DataGridView::column_parts(std::size_t column, const G
     const double scale = layout.scale;
     record.column_header = visible_part(header, clip);
     const bool sorted = columns_[column].sort_glyph != DataGridViewSortDirection::none;
-    const double reserved = sorted ? sort_glyph_margin * scale + cell_padding * scale : cell_padding * scale;
-    const Rect label{header.x + cell_padding * scale, header.y, std::max(0.0, header.width - cell_padding * scale - reserved),
-                     header.height};
-    record.column_label = visible_part(label, clip);
+    // The header style's padding (else the grid's margins) surrounds the
+    // label; the sort glyph's lane is kept clear at the end.
+    const DataGridViewCellStyle style = inherited_column_header_style(column);
+    const Insets padding = content_padding(style, scale);
+    const double glyph_lane = sorted ? sort_glyph_margin * scale : 0.0;
+    const Rect padded = padded_rect(header, padding);
+    const Rect labelled{padded.x, padded.y, std::max(0.0, padded.width - glyph_lane), padded.height};
+    const LinePlacement placement = line_placement(style.alignment);
+    const double line_height =
+        placement == LinePlacement::middle ? 0.0 : text_line_height(effective_font(style.font.value_or(font_)));
+    record.column_label = visible_part(line_box(labelled, placement, line_height), clip);
     if (sorted) {
         const Rect lane{header.x + header.width - sort_glyph_margin * scale, header.y,
                         sort_glyph_size * scale, header.height};
         record.sort_glyph = visible_part(centred_square(lane, sort_glyph_size * scale), clip);
     }
     const double edge = header.x + header.width;
-    record.column_divider = visible_part({edge - 1.0, header.y, 1.0, header.height}, clip);
+    if (column_headers_border_style_ != DataGridViewHeaderBorderStyle::none) {
+        record.column_divider = visible_part({edge - 1.0, header.y, 1.0, header.height}, clip);
+    }
     if (allow_column_resize_) {
         const double half = grip_half_width * scale;
         record.column_grip = visible_part({edge - half, header.y, half * 2.0, header.height}, clip);
     }
+    // Without header visual styles the header style's colours stand on the
+    // header, its label and its sort glyph (owner decision T4-1).
+    if (!enable_headers_visual_styles_) {
+        const bool selected = column_states(column).contains(AnatomyState::selected);
+        const AuthoredColours colours = authored_colours(style, selected);
+        record.column_header.authored_background = colours.background;
+        record.column_label.authored_foreground = colours.foreground;
+        record.sort_glyph.authored_foreground = colours.foreground;
+    }
     return record;
+}
+
+DataGridView::AuthoredColours DataGridView::authored_colours(const DataGridViewCellStyle& style, bool selected) {
+    // A selected cell or header shows the selection colours; an unset one
+    // leaves the theme's selection look, not the unselected colour.
+    AuthoredColours result;
+    if (selected) {
+        result.background = style.selection_back_color;
+        result.foreground = style.selection_fore_color;
+    } else {
+        result.background = style.back_color;
+        result.foreground = style.fore_color;
+    }
+    return result;
 }
 
 // -- states --------------------------------------------------------------------
@@ -538,13 +699,16 @@ DataGridView::HitResult DataGridView::hit_test(Point local) const {
 void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, const GridLayout& layout) const {
     const RowParts parts = row_parts(row, layout);
     const AnatomyStateSet states = row_states(row);
+    const DataGridViewCellStyle style = inherited_row_header_style();
     PartPaint part;
     part.family = ControlVisualRole::panel;
     part.states = states;
-    part.font = effective_font(font_);
+    part.font = effective_font(style.font.value_or(font_));
     part.role = PartRole::face;
     part.bounds = parts.row_header.bounds;
+    part.authored_background = parts.row_header.authored_background;
     paint_part(painter, *this, part);
+    part.authored_background.reset();
     if (parts.row_glyph.present) {
         // Owner decision B1-3: the arrow, the pencil and the star are glyph
         // marks, their look the theme's (T4).
@@ -555,7 +719,9 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
         part.role = PartRole::glyph;
         part.bounds = parts.row_glyph.bounds;
         part.mark = mark;
+        part.authored_foreground = parts.row_glyph.authored_foreground;
         paint_part(painter, *this, part);
+        part.authored_foreground.reset();
         part.mark = PartMark::none;
     }
     if (parts.row_error.present) {
@@ -569,37 +735,64 @@ void DataGridView::paint_row(Painter& painter, DataGridViewRowPosition row, cons
         part.role = PartRole::label;
         part.bounds = parts.row_header_label.bounds;
         part.text = rows_[row.value].header_text;
+        part.alignment = text_alignment(style.alignment);
+        part.authored_foreground = parts.row_header_label.authored_foreground;
         paint_part(painter, *this, part);
+        part.authored_foreground.reset();
         part.text = {};
+        part.alignment = PartTextAlignment::start;
     }
-    part.role = PartRole::divider;
-    part.bounds = parts.row_rule.bounds;
-    paint_part(painter, *this, part);
+    if (parts.row_rule.present) {
+        part.role = PartRole::divider;
+        part.bounds = parts.row_rule.bounds;
+        paint_part(painter, *this, part);
+    }
 }
 
-void DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
-                              const GridLayout& layout) const {
-    const CellParts parts = cell_parts(row, column, layout);
-    if (!parts.cell.present) return;
+bool DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std::size_t column,
+                              const GridLayout& layout) {
+    const std::uint64_t revision = structure_revision_;
+    const CellLayout placed = cell_layout(row, column, layout);
+    if (structure_revision_ != revision) return false;
+    const CellParts& parts = placed.parts;
+    if (!parts.cell.present) return true;
     const AnatomyStateSet states = cell_states(row, column);
-    const DataGridViewColumn& definition = columns_[column];
+    const DataGridViewCellStyle& style = placed.content.style;
     const bool text_edit = editing_ && edit_kind_ == EditKind::text && is_current_cell(row, column);
     PartPaint part;
     part.states = states;
-    part.font = effective_font(font_);
+    part.font = effective_font(style.font.value_or(font_));
     // The selection plate: transparent at rest in the selection recipe.
     part.family = ControlVisualRole::selection;
     part.role = PartRole::selection;
     part.bounds = parts.cell_selection.bounds;
+    part.authored_background = parts.cell_selection.authored_background;
     paint_part(painter, *this, part);
+    part.authored_background.reset();
     part.family = ControlVisualRole::editor;
-    if (parts.cell_link.present) {
+    // Owner drawing (owner decision W-Q6) replaces the content parts unless
+    // a handler asks for them.
+    bool default_content = true;
+    if (draw_mode_ == ItemDrawMode::owner_draw) {
+        paint_stable_id_ = cell_stable_id(row, column);
+        ItemContentPaint request{.painter = painter,
+                                 .index = row.value,
+                                 .column = column,
+                                 .stable_id = paint_stable_id_,
+                                 .content = Rect::intersection(placed.content_box, layout.data),
+                                 .states = states,
+                                 .font = part.font,
+                                 .text = item_content_text(*this, ControlVisualRole::editor, states)};
+        default_content = raise_item_content_paint(draw_item_content_, request);
+        if (!is_alive() || structure_revision_ != revision) return false;
+    }
+    const std::string& text = placed.content.text;
+    if (default_content && parts.cell_link.present) {
         // A link cell draws its text as a link (owner decision W-Q5): the
         // visited_link family once visited, else link, over the selection
         // plate. The text starts at the link's own start, which the
-        // column's alignment placed. The underline is the glyph role's
+        // cell's alignment placed. The underline is the glyph role's
         // underline mark (owner decision, 2026-10-28).
-        const std::string text = cell_text(row, column);
         part.family = states.contains(visited_state) ? ControlVisualRole::visited_link : ControlVisualRole::link;
         part.role = PartRole::content;
         part.bounds = parts.cell_link.bounds;
@@ -614,17 +807,18 @@ void DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
             part.mark = PartMark::none;
         }
         part.family = ControlVisualRole::editor;
-    } else if (parts.cell_content.present && !text_edit) {
-        const std::string text = cell_text(row, column);
+    } else if (default_content && parts.cell_content.present && !text_edit) {
         part.role = PartRole::content;
         part.bounds = parts.cell_content.bounds;
         part.text = text;
-        part.alignment = text_alignment(definition.alignment);
+        part.alignment = text_alignment(style.alignment);
+        part.authored_foreground = parts.cell_content.authored_foreground;
         paint_part(painter, *this, part);
+        part.authored_foreground.reset();
         part.text = {};
         part.alignment = PartTextAlignment::start;
     }
-    if (parts.cell_image.present) {
+    if (default_content && parts.cell_image.present) {
         // Drawn whole and cut at the cell's edges, so that an image wider
         // than its cell, or one partly scrolled away, keeps its shape.
         const Rect inside = cell_inside(cell_bounds(row, column, layout));
@@ -640,7 +834,7 @@ void DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
             painter.restore();
         }
     }
-    if (parts.cell_check_well.present) {
+    if (default_content && parts.cell_check_well.present) {
         part.family = ControlVisualRole::choice;
         part.role = PartRole::well;
         part.bounds = parts.cell_check_well.bounds;
@@ -654,8 +848,7 @@ void DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
             part.mark = PartMark::none;
         }
     }
-    if (parts.cell_button_face.present) {
-        const std::string text = cell_text(row, column);
+    if (default_content && parts.cell_button_face.present) {
         part.family = ControlVisualRole::button;
         part.role = PartRole::face;
         part.bounds = parts.cell_button_face.bounds;
@@ -664,7 +857,9 @@ void DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
         part.bounds = parts.cell_button_label.bounds;
         part.text = text;
         part.alignment = PartTextAlignment::center;
+        part.authored_foreground = parts.cell_button_label.authored_foreground;
         paint_part(painter, *this, part);
+        part.authored_foreground.reset();
         part.text = {};
         part.alignment = PartTextAlignment::start;
     }
@@ -690,46 +885,65 @@ void DataGridView::paint_cell(Painter& painter, DataGridViewRowPosition row, std
     }
     part.family = ControlVisualRole::panel;
     part.role = PartRole::divider;
-    part.bounds = parts.cell_vertical_rule.bounds;
-    paint_part(painter, *this, part);
-    part.bounds = parts.cell_horizontal_rule.bounds;
-    paint_part(painter, *this, part);
+    if (parts.cell_vertical_rule.present) {
+        part.bounds = parts.cell_vertical_rule.bounds;
+        part.authored_foreground = parts.cell_vertical_rule.authored_foreground;
+        paint_part(painter, *this, part);
+    }
+    if (parts.cell_horizontal_rule.present) {
+        part.bounds = parts.cell_horizontal_rule.bounds;
+        part.authored_foreground = parts.cell_horizontal_rule.authored_foreground;
+        paint_part(painter, *this, part);
+    }
+    part.authored_foreground.reset();
     part.family = ControlVisualRole::editor;
     part.role = PartRole::focus;
     part.bounds = parts.cell_focus.bounds;
     paint_part(painter, *this, part);
+    return true;
 }
 
 void DataGridView::paint_column_header(Painter& painter, std::size_t column, const GridLayout& layout) const {
     const ColumnParts parts = column_parts(column, layout);
+    const DataGridViewCellStyle style = inherited_column_header_style(column);
     PartPaint part;
     part.family = ControlVisualRole::panel;
     part.states = column_states(column);
-    part.font = effective_font(font_);
+    part.font = effective_font(style.font.value_or(font_));
     part.role = PartRole::face;
     part.bounds = parts.column_header.bounds;
+    part.authored_background = parts.column_header.authored_background;
     paint_part(painter, *this, part);
+    part.authored_background.reset();
     if (parts.column_label.present) {
         const DataGridViewColumn& definition = columns_[column];
         part.role = PartRole::label;
         part.bounds = parts.column_label.bounds;
         part.text = definition.header_text;
+        part.alignment = text_alignment(style.alignment);
+        part.authored_foreground = parts.column_label.authored_foreground;
         paint_part(painter, *this, part);
+        part.authored_foreground.reset();
         part.text = {};
+        part.alignment = PartTextAlignment::start;
     }
     if (parts.sort_glyph.present) {
         part.role = PartRole::glyph;
         part.bounds = parts.sort_glyph.bounds;
         part.mark = columns_[column].sort_glyph == DataGridViewSortDirection::ascending ? PartMark::arrow_up
                                                                                         : PartMark::arrow_down;
+        part.authored_foreground = parts.sort_glyph.authored_foreground;
         paint_part(painter, *this, part);
+        part.authored_foreground.reset();
         part.mark = PartMark::none;
     }
     // The grip is the divider's resize hit region; the divider is its visible
     // form, so the grip is published but not drawn.
-    part.role = PartRole::divider;
-    part.bounds = parts.column_divider.bounds;
-    paint_part(painter, *this, part);
+    if (parts.column_divider.present) {
+        part.role = PartRole::divider;
+        part.bounds = parts.column_divider.bounds;
+        paint_part(painter, *this, part);
+    }
 }
 
 void DataGridView::on_paint(Painter& painter, Rect) {
@@ -739,21 +953,40 @@ void DataGridView::on_paint(Painter& painter, Rect) {
     surface.family = ControlVisualRole::editor;
     surface.role = PartRole::well;
     surface.bounds = grid.well.bounds;
+    surface.authored_background = grid.well.authored_background;
     paint_part(painter, *this, surface);
+    surface.authored_background.reset();
     const std::size_t row_end = visible_row_end(layout);
     const std::size_t first_row = std::min(first_row_, row_end);
     const std::size_t first_column = first_visible_column(layout);
     const std::size_t column_end = visible_column_end(layout);
+    if (grid.well.authored_background && first_row < row_end && first_column < column_end) {
+        // Under the cells the well keeps the theme's ground, as Windows
+        // Forms' cells keep their own back colour over BackgroundColor: the
+        // same well painted again, cut to the cells' extent, so that its
+        // border stays where it was.
+        const Rect last = cell_bounds(DataGridViewRowPosition{row_end - 1U}, column_end - 1U, layout);
+        const Rect extent{layout.data.x, layout.data.y, last.x + last.width - layout.data.x,
+                          last.y + last.height - layout.data.y};
+        painter.save();
+        painter.clip_rect(Rect::intersection(extent, layout.data));
+        paint_part(painter, *this, surface);
+        painter.restore();
+    }
     if (!layout.data.empty()) {
         painter.save();
         painter.clip_rect(layout.data);
-        for (std::size_t position = first_row; position < row_end; ++position) {
+        bool unchanged = true;
+        for (std::size_t position = first_row; unchanged && position < row_end; ++position) {
             const DataGridViewRowPosition row{position};
-            for (std::size_t column = first_column; column < column_end; ++column) {
-                paint_cell(painter, row, column, layout);
+            for (std::size_t column = first_column; unchanged && column < column_end; ++column) {
+                unchanged = paint_cell(painter, row, column, layout);
             }
         }
         painter.restore();
+        // A handler changed the grid: the change invalidated it, and the
+        // next paint draws it whole.
+        if (!unchanged) return;
     }
     surface.family = ControlVisualRole::panel;
     surface.role = PartRole::face;
@@ -1119,7 +1352,8 @@ std::vector<DataGridView::Column> DataGridView::realized_columns() const {
 namespace {
 
 // The events DataGridView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 26> data_grid_view_interactions{{
+constexpr std::array<InteractionDeclaration, 31> data_grid_view_interactions{{
+    {.name = "draw_item_content", .payload = "ItemContentPaint", .mutable_payload = true},
     {.name = "selection_changed", .payload = "", .mutable_payload = false},
     {.name = "current_cell_changed", .payload = "std::optional<DataGridViewCellAddress>", .mutable_payload = false},
     {.name = "cell_begin_edit", .payload = "DataGridViewCellCancelEvent", .mutable_payload = true},
@@ -1145,7 +1379,11 @@ constexpr std::array<InteractionDeclaration, 26> data_grid_view_interactions{{
     {.name = "cell_error_text_changed", .payload = "DataGridViewCellEvent", .mutable_payload = false},
     {.name = "row_error_text_changed", .payload = "DataGridViewRowEvent", .mutable_payload = false},
     {.name = "column_header_click", .payload = "std::size_t", .mutable_payload = false},
+    {.name = "sort_compare", .payload = "DataGridViewSortCompareEvent", .mutable_payload = true},
+    {.name = "sorted", .payload = "", .mutable_payload = false},
     {.name = "column_width_changed", .payload = "std::size_t", .mutable_payload = false},
+    {.name = "cell_formatting", .payload = "DataGridViewCellFormattingEvent", .mutable_payload = true},
+    {.name = "cell_parsing", .payload = "DataGridViewCellParsingEvent", .mutable_payload = true},
 }};
 
 } // namespace

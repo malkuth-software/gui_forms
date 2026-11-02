@@ -374,6 +374,12 @@ struct PageDigest final {
 // pixels did not change. The Windows live-surfaces digest is that trace
 // with its pixel format word changed, which reproduces the previous one.
 //
+// The accent button's ordinary plate in windows-professional (T4) starts
+// its gradient darker, so that white text meets 4.5:1 on every stop: on
+// the eleven pages that show an accent button, nineteen gradient fills
+// changed their first colour and nothing else; those pages were recorded
+// again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -384,21 +390,21 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"instrument", 0x41c4dd4c4b26d348ULL},
     {"control-spectrum", 0x88f46e5be00c611dULL},
     {"ranges-and-progress", 0xa87a93119403429fULL},
-    {"containers-and-focus", 0x6453ae1a68f17a79ULL},
-    {"animation-laboratory", 0x72b96622cc60adafULL},
-    {"states-and-diagnostics", 0x1697e027f4f53c89ULL},
+    {"containers-and-focus", 0x79e2f62333231f13ULL},
+    {"animation-laboratory", 0x2d916f4d69ed40b1ULL},
+    {"states-and-diagnostics", 0xe729c775f636e797ULL},
     {"text-and-input", 0x892f83f92dd96c9cULL},
     {"collections-and-popups", 0x4e0133a78d1c777cULL},
     {"values-and-spinners", 0xb23a36f2d606d283ULL},
     {"images-and-drawing", 0x9c31d93ea9b111b4ULL},
     {"tabs-and-pages", 0xa84947b517c23551ULL},
     {"checked-collections", 0xb2b4535e0625614dULL},
-    {"timing-and-tooltips", 0x4dc57e55d62fd598ULL},
-    {"dates-and-calendar", 0x2275cebac384bc28ULL},
-    {"dialogs-and-host-services", 0x3d67afa5c18ad895ULL},
-    {"css-layout-panels", 0x8e36f6f013b42b35ULL},
-    {"retained-layout-panels", 0xd10017f230f19f4dULL},
-    {"dock-and-anchor", 0x5698ac97316ba172ULL},
+    {"timing-and-tooltips", 0xc433483831cbd3a0ULL},
+    {"dates-and-calendar", 0xdbf648a8a44011b2ULL},
+    {"dialogs-and-host-services", 0x29f218d83b9afc85ULL},
+    {"css-layout-panels", 0x070e395e712b6045ULL},
+    {"retained-layout-panels", 0x5cdf1d058bb19b57ULL},
+    {"dock-and-anchor", 0x29f77f1f60f4879eULL},
     {"docking-workspace", 0x0ae60d01ae07f40dULL},
     {"commands-and-menus", 0xad66254dc8c0381dULL},
     {"tree-and-object-views", 0xfd247bc2a83c680fULL},
@@ -406,9 +412,9 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"value-editors", 0x942e403932ba873dULL},
     {"responsive-layouts", 0x11d9d76fcba60db8ULL},
     {"anchored-popups", 0x4b77d8054f5d42ceULL},
-    {"live-surfaces", 0x35e0cb31f519b8d5ULL},
+    {"live-surfaces", 0xf21c5ed0a5c224f3ULL},
     {"typography-and-inspection", 0x4ce9720ec50a2fb0ULL},
-    {"semantic-feedback", 0xd3b585cb78fb8e63ULL},
+    {"semantic-feedback", 0x5b8f39fc82e64f95ULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {

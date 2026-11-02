@@ -72,6 +72,7 @@ public:
     void record_frame_request() noexcept;
     void record_frame_poll(std::uint64_t deadlines_fired,
                            std::uint64_t motion_clock_ticks,
+                           std::uint64_t ui_timer_ticks,
                            std::uint64_t coalesced_requests) noexcept;
     // The motion clock: a move started, a value settled on a frame, a value
     // jumped to its end at once, and the values moving now.

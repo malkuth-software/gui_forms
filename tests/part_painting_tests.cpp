@@ -415,6 +415,101 @@ void content_colors(const Control& control) {
             "a part's geometry record carries its content colour");
 }
 
+// Whether `painter` recorded an operation of `kind` in `color`.
+bool recorded(const RecordingPainter& painter, const char* kind, Color color) {
+    for (const Operation& operation : painter.operations) {
+        if (operation.kind == kind && operation.color == color) return true;
+    }
+    return false;
+}
+
+// Authored colours (owner decision T4-1): a ground paints the background
+// as its material's only fill, keeping its border; text, marks and rules
+// take the foreground; a disabled part's text and marks keep the theme's
+// disabled colours, and a fill with a content colour shows that.
+void authored_colors(const Control& control) {
+    const Color ground = Color::rgba(250, 220, 120);
+    const Color ink = Color::rgba(120, 20, 90);
+    PartPaint face;
+    face.role = PartRole::face;
+    face.family = ControlVisualRole::button;
+    face.bounds = {0.0, 0.0, 60.0, 24.0};
+    RecordingPainter plain_face;
+    paint_part(plain_face, control, face);
+    face.authored_background = ground;
+    RecordingPainter styled_face;
+    paint_part(styled_face, control, face);
+    const bool filled = recorded(styled_face, "fill", ground) || recorded(styled_face, "fill_rounded", ground);
+    require(filled && styled_face.count("stroke") + styled_face.count("stroke_rounded") ==
+                          plain_face.count("stroke") + plain_face.count("stroke_rounded"),
+            "a face paints the authored background as its fill and keeps its border");
+    face.authored_background.reset();
+    face.authored_foreground = ink;
+    RecordingPainter inked_face;
+    paint_part(inked_face, control, face);
+    require(!recorded(inked_face, "fill", ink) && !recorded(inked_face, "fill_rounded", ink),
+            "a face reads no foreground");
+
+    PartPaint label;
+    label.role = PartRole::label;
+    label.family = ControlVisualRole::button;
+    label.bounds = {0.0, 0.0, 60.0, 24.0};
+    label.text = "Cell";
+    label.authored_foreground = ink;
+    label.authored_background = ground;
+    RecordingPainter styled_label;
+    paint_part(styled_label, control, label);
+    const bool grounded = recorded(styled_label, "fill", ground) || recorded(styled_label, "fill_rounded", ground);
+    require(recorded(styled_label, "text", ink) && !grounded,
+            "a label draws in the authored foreground and paints no background");
+    label.states.insert(AnatomyState::disabled);
+    const Theme& theme = control.effective_theme();
+    const ControlVisualContext off = part_visual_context(control, label.states);
+    RecordingPainter disabled_label;
+    paint_part(disabled_label, control, label);
+    require(recorded(disabled_label, "text", theme.resolve(label.family, off).muted_text),
+            "a disabled label keeps the theme's disabled text colour");
+
+    PartPaint check;
+    check.role = PartRole::indicator;
+    check.family = ControlVisualRole::button;
+    check.mark = PartMark::check;
+    check.bounds = {0.0, 0.0, 12.0, 9.0};
+    check.authored_foreground = ink;
+    RecordingPainter inked_check;
+    paint_part(inked_check, control, check);
+    require(inked_check.count("line") == 2U && recorded(inked_check, "line", ink),
+            "a mark is inked with the authored foreground");
+    PartPaint rule;
+    rule.role = PartRole::divider;
+    rule.family = ControlVisualRole::panel;
+    rule.bounds = {0.0, 0.0, 60.0, 1.0};
+    rule.authored_foreground = ink;
+    RecordingPainter inked_rule;
+    paint_part(inked_rule, control, rule);
+    require(inked_rule.operations.size() == 1U && recorded(inked_rule, "line", ink),
+            "a rule is drawn in the authored foreground");
+
+    PartPaint sample;
+    sample.role = PartRole::fill;
+    sample.family = ControlVisualRole::menu_item;
+    sample.bounds = {0.0, 0.0, 12.0, 12.0};
+    sample.content_color = Color::rgba(192, 0, 0);
+    sample.authored_background = ground;
+    RecordingPainter shown;
+    paint_part(shown, control, sample);
+    require(shown.operations.size() == 1U && shown.operations[0].color == *sample.content_color,
+            "a fill with a content colour shows the content colour");
+
+    PartGeometry first = PartGeometry::from_bounds({0.0, 0.0, 10.0, 10.0});
+    PartGeometry second = first;
+    second.authored_background = ground;
+    PartGeometry third = first;
+    third.authored_foreground = ink;
+    require(!(first == second) && !(first == third) && !(second == third),
+            "a part's geometry record carries its authored colours");
+}
+
 // A clear plate: one solid fill with no coverage.
 bool clear_fill(const MaterialFillLayer& fill) noexcept {
     const bool clear = fill.kind == MaterialFillKind::solid && fill.color.alpha == 0U;
@@ -480,8 +575,9 @@ int main() {
     overlay_shadow(*control);
     theme_without_overlay_shadow();
     content_colors(*control);
+    authored_colors(*control);
     families();
     std::cout << "by-role paint path: silent roles, surfaces, cues, marks, text, states, overlay shadow, "
-                 "content colours and families passed\n";
+                 "content colours, authored colours and families passed\n";
     return 0;
 }

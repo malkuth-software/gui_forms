@@ -541,7 +541,62 @@ void paint_content_color(Painter& painter, const PartPaint& part, Color color) {
     painter.fill_rect(part.bounds, color);
 }
 
+// Whether `part` paints a ground: a surface role, or an indicator or glyph
+// without a mark (paint_part_from_recipe paints those as surfaces too).
+bool ground_role(const PartPaint& part) noexcept {
+    if (surface_role(part.role)) return true;
+    const bool marked = part.mark != PartMark::none;
+    const bool ground = (part.role == PartRole::indicator || part.role == PartRole::glyph) && !marked;
+    return ground;
+}
+
+// `recipe` with the part's authored colours in place (owner decision T4-1;
+// PartPaint::authored_background), for one paint: the background as the
+// material's only fill on a ground, and the foreground, unless the part is
+// disabled, as the text, the mark ink or the rule's colour by role. An
+// important text colour (`important_text`) keeps its place.
+void apply_authored_colours(const PartPaint& part, bool disabled, bool important_text,
+                            ControlVisualRecipe& recipe) {
+    if (part.authored_background && ground_role(part)) {
+        recipe.material.fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
+    }
+    if (!part.authored_foreground || disabled) return;
+    const Color ink = *part.authored_foreground;
+    switch (part.role) {
+    case PartRole::caption:
+    case PartRole::label:
+    case PartRole::content:
+    case PartRole::caret:
+        if (!important_text) recipe.text = ink;
+        return;
+    case PartRole::indicator:
+    case PartRole::glyph:
+    case PartRole::disclosure:
+    case PartRole::grip:
+        recipe.glyph = ink;
+        return;
+    case PartRole::keyline:
+    case PartRole::divider:
+    case PartRole::seam:
+        // paint_rule draws in the border's colour, else the muted text's.
+        if (recipe.material.border) {
+            (*recipe.material.border).color = ink;
+        } else {
+            recipe.muted_text = ink;
+        }
+        return;
+    default:
+        // Surfaces, cues, images and the silent roles read no foreground.
+        return;
+    }
+}
+
 } // namespace
+
+bool authored_background_applies(const PartPaint& part) noexcept {
+    const bool applies = part.authored_background.has_value() && ground_role(part);
+    return applies;
+}
 
 ControlVisualContext part_visual_context(const Control& control, AnatomyStateSet states) noexcept {
     const bool hovered = states.contains(AnatomyState::hot);
@@ -617,7 +672,17 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
         paint_overlay_shadow(painter, part, recipe, theme.overlay_shadow(context.high_contrast));
         return;
     }
-    paint_part_from_recipe(painter, part, recipe, context);
+    // Authored colours (owner decision T4-1) stand in a copy of the recipe,
+    // made only for a part that carries them, and never in high contrast.
+    const bool authored = (part.authored_background || part.authored_foreground) && !context.high_contrast;
+    if (authored) {
+        ControlVisualRecipe styled = recipe;
+        const bool disabled = context.surface == ControlSurfaceState::disabled;
+        apply_authored_colours(part, disabled, resolved.important_text(), styled);
+        paint_part_from_recipe(painter, part, styled, context);
+    } else {
+        paint_part_from_recipe(painter, part, recipe, context);
+    }
     if (!part.accent || !surface_role(part.role)) return;
     // Provisional accent (design language §8.5): the ramp colour, which
     // carries its own translucency, laid over the part's material in the

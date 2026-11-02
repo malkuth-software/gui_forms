@@ -183,12 +183,14 @@ void Metrics::record_callback_arbitration_retry(bool limit_hit) noexcept {
 void Metrics::record_frame_request() noexcept { ++values_.scheduled_frame_requests; }
 void Metrics::record_frame_poll(std::uint64_t deadlines_fired,
                                 std::uint64_t motion_clock_ticks,
+                                std::uint64_t ui_timer_ticks,
                                 std::uint64_t coalesced_requests) noexcept {
     if (deadlines_fired != 0 || motion_clock_ticks != 0) {
         ++values_.scheduler_wakes;
     }
     values_.frame_deadlines_fired += deadlines_fired;
     values_.motion_clock_ticks += motion_clock_ticks;
+    values_.ui_timer_ticks += ui_timer_ticks;
     values_.frame_requests_coalesced += coalesced_requests;
 }
 void Metrics::record_motion_started() noexcept {

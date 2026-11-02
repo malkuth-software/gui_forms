@@ -120,6 +120,12 @@ Related types
      - Raised before an edit begins; setting ``cancel`` keeps the cell out of edit.
    * - :cpp:class:`DataGridViewCellEvent <gui_forms::DataGridViewCellEvent>`
      - The cell an event concerns: its row's identity, the row's position when the event is raised (the position it had, for a row just removed), and the column.
+   * - :cpp:class:`DataGridViewCellFormattingEvent <gui_forms::DataGridViewCellFormattingEvent>`
+     - Raised when the grid needs a cell's text (Windows Forms' CellFormatting): to paint and lay it out, for its semantic value, and as the text an edit begins with.
+   * - :cpp:class:`DataGridViewCellParsingEvent <gui_forms::DataGridViewCellParsingEvent>`
+     - Raised when an edited text cell stores its text (Windows Forms' CellParsing), after cell_validating and before the text converts to the column's value kind.
+   * - :cpp:class:`DataGridViewCellStyle <gui_forms::DataGridViewCellStyle>`
+     - A cell style (Windows Forms' DataGridViewCellStyle).
    * - :cpp:class:`DataGridViewCellValidatingEvent <gui_forms::DataGridViewCellValidatingEvent>`
      - Raised before an edited text cell commits, with the text as typed.
    * - :cpp:class:`DataGridViewCellValueProvider <gui_forms::DataGridViewCellValueProvider>`
@@ -132,6 +138,8 @@ Related types
      - One unbound row.
    * - :cpp:class:`DataGridViewRowCancelEvent <gui_forms::DataGridViewRowCancelEvent>`
      - Raised before a row is left or deleted; setting ``cancel`` keeps it.
+   * - :cpp:class:`DataGridViewRowComparer <gui_forms::DataGridViewRowComparer>`
+     - Orders unbound rows for DataGridView::sort(comparer) (Windows Forms' Sort(IComparer)).
    * - :cpp:class:`DataGridViewRowEvent <gui_forms::DataGridViewRowEvent>`
      - A row an event concerns: its identity and its position when the event is raised (the position it had, for a row just removed).
    * - :cpp:class:`DataGridViewRowId <gui_forms::DataGridViewRowId>`
@@ -150,6 +158,8 @@ Related types
      - Raised when the new row becomes current (Windows Forms' DefaultValuesNeeded): ``values`` holds one value per column, empty, for the handler to fill with the values the new row starts with.
    * - :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>`
      - The application side of a virtual grid's window mode (owner decision W-5): the application keeps the rows' order, and the grid asks for the IDs at the positions it shows (plus a margin) instead of holding the whole order.
+   * - :cpp:class:`DataGridViewSortCompareEvent <gui_forms::DataGridViewSortCompareEvent>`
+     - Raised for each comparison while sort(column, direction) orders unbound rows, when it has a handler (Windows Forms' SortCompare).
    * - :cpp:class:`ItemCheckEvent <gui_forms::ItemCheckEvent>`
      - ItemCheckEvent carries item index, current state, and mutable proposed state before a CheckedListBox commit.
    * - :cpp:class:`ListBox::Item <gui_forms::ListBox::Item>`
@@ -893,6 +903,80 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DataGridViewCellFormattingEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Raised when the grid needs a cell's text (Windows Forms' CellFormatting): to paint and lay it out, for its semantic value, and as the text an edit begins with. ``value`` is the cell's value and ``cell_style`` its inherited style. A handler that sets ``formatted_value`` and ``formatting_applied`` gives the text; otherwise the grid formats ``value``, which the handler may change, with ``cell_style``'s format and null value. The style the handler leaves (font, alignment, padding) places and draws the content that time. Handlers must not change the grid; a paint stops at a change.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: BindingValue value
+
+   .. cpp:member:: DataGridViewCellStyle cell_style
+
+   .. cpp:member:: std::string formatted_value
+
+   .. cpp:member:: bool formatting_applied
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellParsingEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Raised when an edited text cell stores its text (Windows Forms' CellParsing), after cell_validating and before the text converts to the column's value kind. ``formatted_value`` is the typed text and ``cell_style`` the cell's inherited style. A handler that sets ``value`` and ``parsing_applied`` gives the value stored; otherwise text equal to the style's null value stores its data source null value, and other text converts as without the event.
+
+   .. cpp:member:: DataGridViewRowId row_id
+
+   .. cpp:member:: DataGridViewRowPosition row
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: std::string formatted_value
+
+   .. cpp:member:: DataGridViewCellStyle cell_style
+
+   .. cpp:member:: BindingValue value
+
+   .. cpp:member:: bool parsing_applied
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellStyle final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   A cell style (Windows Forms' DataGridViewCellStyle). Every property is optional: an empty one is "not set" and is taken from the next style in the cell's inheritance chain (see DataGridView::inherited_cell_style); one no style sets is the theme's (T4 style mapping). Styles are values: a grid stores a copy, and changing a style the program holds changes no cell until it is set again. ``font`` is the content's font. ``alignment`` places the content: across through the text's alignment, up and down within the cell. ``padding``, in logical units at text scale 1, is kept clear around the content in place of the grid's own margins (4 units at the start and end). ``wrap_mode`` is kept and inherited; wrapped text is not drawn yet (one line, as without it). ``format`` formats a number value: the invariant fixed formats "F0" to "F12", the formats Binding accepts. ``null_value`` is shown for an empty value, and typed text equal to it stores ``data_source_null_value`` (an empty value when that is not set). The colours are authored colours (owner decision T4-1): over the theme's ordinary colours, under its important ones, and not in high contrast. ``back_color`` fills the cell, ``fore_color`` draws the text of a text, combo box or button cell (a link keeps its link colours, a check box its theme's), and the selection colours stand in for both while the cell is selected; an unset selection colour leaves the theme's selection look. A disabled grid stays greyed.
+
+   .. cpp:member:: std::optional<FontSpec> font
+
+   .. cpp:member:: std::optional<DataGridViewContentAlignment> alignment
+
+   .. cpp:member:: std::optional<Insets> padding
+
+   .. cpp:member:: std::optional<bool> wrap_mode
+
+   .. cpp:member:: std::optional<std::string> format
+
+   .. cpp:member:: std::optional<BindingValue> null_value
+
+   .. cpp:member:: std::optional<BindingValue> data_source_null_value
+
+   .. cpp:member:: std::optional<Color> back_color
+
+   .. cpp:member:: std::optional<Color> fore_color
+
+   .. cpp:member:: std::optional<Color> selection_back_color
+
+   .. cpp:member:: std::optional<Color> selection_fore_color
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewCellValidatingEvent final
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
@@ -934,7 +1018,7 @@ Related types
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
 
-   One column. ``name`` is the column's identity: unique within the grid, not empty, and without '.', since a cell's stable ID is its row's ID, '.' and the column's name. ``width`` and ``minimum_width`` are logical units at text scale 1. ``value_kind`` is the kind a committed text edit converts to (text by default; a number column takes signed_integer or number). ``items`` are a combo box column's choices and must be empty for other kinds. ``button_text`` is shown on a button cell whose value is empty. An image column's cells hold ImageId values, images of the grid's window, placed by ``image_layout``; ``image_description`` is the text an image cell gives in place of its image (Windows Forms' Description), as its cell text and its semantic name. A link column's cells show their text as a link; ``link_text`` is shown on a link cell whose value is empty (Windows Forms' Text with UseColumnTextForLinkValue). With ``track_visited_state`` a link the user clicks becomes visited (Windows Forms' TrackVisitedState). ``data_property_name`` names the BindingSource field a bound column shows.
+   One column. ``name`` is the column's identity: unique within the grid, not empty, and without '.', since a cell's stable ID is its row's ID, '.' and the column's name. ``width`` and ``minimum_width`` are logical units at text scale 1. ``default_cell_style`` is the column's cells' style (Windows Forms' DefaultCellStyle) and ``header_cell_style`` its header's (HeaderCell.Style). ``value_kind`` is the kind a committed text edit converts to (text by default; a number column takes signed_integer or number). ``items`` are a combo box column's choices and must be empty for other kinds. ``button_text`` is shown on a button cell whose value is empty. An image column's cells hold ImageId values, images of the grid's window, placed by ``image_layout``; ``image_description`` is the text an image cell gives in place of its image (Windows Forms' Description), as its cell text and its semantic name. A link column's cells show their text as a link; ``link_text`` is shown on a link cell whose value is empty (Windows Forms' Text with UseColumnTextForLinkValue). With ``track_visited_state`` a link the user clicks becomes visited (Windows Forms' TrackVisitedState). ``data_property_name`` names the BindingSource field a bound column shows.
 
    .. cpp:member:: std::string name
 
@@ -954,9 +1038,7 @@ Related types
 
    .. cpp:member:: bool read_only
 
-   .. cpp:member:: DataGridViewCellAlignment alignment
-
-      Default: ``{DataGridViewCellAlignment::start}``.
+   .. cpp:member:: DataGridViewCellStyle default_cell_style
 
    .. cpp:member:: BindingValueKind value_kind
 
@@ -983,6 +1065,10 @@ Related types
    .. cpp:member:: DataGridViewSortDirection sort_glyph
 
       Default: ``{DataGridViewSortDirection::none}``.
+
+   .. cpp:member:: DataGridViewCellStyle header_cell_style
+
+   .. cpp:member:: std::optional<DataGridViewColumnSortMode> sort_mode
 
 .. cpp:namespace:: gui_forms
 
@@ -1037,6 +1123,19 @@ Related types
    .. cpp:member:: DataGridViewRowPosition row
 
    .. cpp:member:: bool cancel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DataGridViewRowComparer
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Orders unbound rows for DataGridView::sort(comparer) (Windows Forms' Sort(IComparer)). compare returns a negative number, zero or a positive number when ``left`` goes before, with or after ``right``. It need not be a consistent order: the grid's merge sort stays within the rows whatever it returns. It may not change the grid (std::logic_error).
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual int compare(const DataGridViewRow& left, const DataGridViewRow& right) const = 0
 
 .. cpp:namespace:: gui_forms
 
@@ -1281,6 +1380,32 @@ Related types
    .. cpp:function:: virtual std::optional<DataGridViewRowPosition> row_position(const DataGridViewRowId& row) const = 0
 
       The position of a row in the current order, or none when it is gone.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewSortCompareEvent final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   Raised for each comparison while sort(column, direction) orders unbound rows, when it has a handler (Windows Forms' SortCompare). ``cell_value1`` and ``cell_value2`` are the two rows' values in ``column``, ``row_id1`` and ``row_id2`` their IDs and ``row1`` and ``row2`` their positions before the sort; all are borrowed for the call. A handler that sets ``sort_result`` (negative, zero or positive: the first row before, with or after the second, in ascending order) and ``handled`` decides; otherwise the grid's value order does. A descending sort reverses the result. Handlers may not change the grid's rows, columns or values (std::logic_error).
+
+   .. cpp:member:: std::size_t column
+
+   .. cpp:member:: const BindingValue& cell_value1
+
+   .. cpp:member:: const BindingValue& cell_value2
+
+   .. cpp:member:: std::string_view row_id1
+
+   .. cpp:member:: std::string_view row_id2
+
+   .. cpp:member:: DataGridViewRowPosition row1
+
+   .. cpp:member:: DataGridViewRowPosition row2
+
+   .. cpp:member:: int sort_result
+
+   .. cpp:member:: bool handled
 
 .. cpp:namespace:: gui_forms
 
@@ -2460,15 +2585,43 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: DataGridViewCellAlignment
+.. cpp:enum-class:: DataGridViewCellBorderStyle
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
 
-   .. cpp:enumerator:: start
+   .. cpp:enumerator:: single
 
-   .. cpp:enumerator:: center
+   .. cpp:enumerator:: raised
 
-   .. cpp:enumerator:: end
+   .. cpp:enumerator:: sunken
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: single_vertical
+
+   .. cpp:enumerator:: raised_vertical
+
+   .. cpp:enumerator:: sunken_vertical
+
+   .. cpp:enumerator:: single_horizontal
+
+   .. cpp:enumerator:: raised_horizontal
+
+   .. cpp:enumerator:: sunken_horizontal
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewClipboardCopyMode
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: disable
+
+   .. cpp:enumerator:: enable_with_auto_header_text
+
+   .. cpp:enumerator:: enable_without_header_text
+
+   .. cpp:enumerator:: enable_always_include_header_text
 
 .. cpp:namespace:: gui_forms
 
@@ -2487,6 +2640,42 @@ Enumerations
    .. cpp:enumerator:: image
 
    .. cpp:enumerator:: link
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewColumnSortMode
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: not_sortable
+
+   .. cpp:enumerator:: automatic
+
+   .. cpp:enumerator:: programmatic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewContentAlignment
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: top_start
+
+   .. cpp:enumerator:: top_center
+
+   .. cpp:enumerator:: top_end
+
+   .. cpp:enumerator:: middle_start
+
+   .. cpp:enumerator:: middle_center
+
+   .. cpp:enumerator:: middle_end
+
+   .. cpp:enumerator:: bottom_start
+
+   .. cpp:enumerator:: bottom_center
+
+   .. cpp:enumerator:: bottom_end
 
 .. cpp:namespace:: gui_forms
 
@@ -2513,6 +2702,20 @@ Enumerations
    .. cpp:enumerator:: edit_on_f2
 
    .. cpp:enumerator:: edit_programmatically
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewHeaderBorderStyle
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: single
+
+   .. cpp:enumerator:: raised
+
+   .. cpp:enumerator:: sunken
+
+   .. cpp:enumerator:: none
 
 .. cpp:namespace:: gui_forms
 

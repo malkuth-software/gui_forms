@@ -377,9 +377,11 @@ jobs:
         run: |
           python template_harness/harness/audit_macos_minimum.py             --compiler "$(command -v clang++)" --compiler-plugin gui_forms_localizable.so             .build/native-macos-arm64/gui-forms-sdk .build/native-macos-arm64/installed-reference-examples
       # Only main saves dependencies: a pull request's copy could be restored
-      # by no other ref and held 0.5 GB of the 10 GB.
+      # by no other ref and held 0.5 GB of the 10 GB. Only after every build
+      # and test step above passed (owner, 2026-11-01): a failed run's
+      # partial fetch must never become the entry the next run restores.
       - uses: actions/cache/save@v4
-        if: steps.promotion.outputs.reused != 'true' && (always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.reuse.outputs.reused != 'true' && steps.dependencies.outputs.cache-primary-key != '' && steps.dependencies.outputs.cache-hit != 'true')
+        if: steps.promotion.outputs.reused != 'true' && (success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.reuse.outputs.reused != 'true' && steps.dependencies.outputs.cache-primary-key != '' && steps.dependencies.outputs.cache-hit != 'true')
         with:
           path: |
             gui_forms/third_party/harfbuzz
@@ -404,8 +406,12 @@ jobs:
       # Only main saves object caches: pull requests and merge groups seed
       # from validated archives (ci_promote.py seed), and their per-tree
       # entries evicted the dependency caches from the repository's 10 GB.
+      # Only after the build and its tests passed (owner, 2026-11-01): a
+      # failed build's cache, unevicted, would become the family's newest
+      # entry, which every restore picks and ci_cache prune keeps while it
+      # deletes the last good one.
       - uses: actions/cache/save@v4
-        if: steps.promotion.outputs.reused != 'true' && github.event_name != 'pull_request' && github.event_name != 'merge_group' && (always() && (steps.reuse.outputs.reused == 'true' || (steps.objects.outputs.cache-primary-key != '' && steps.objects.outputs.cache-hit != 'true')))
+        if: steps.promotion.outputs.reused != 'true' && github.event_name != 'pull_request' && github.event_name != 'merge_group' && (success() && (steps.reuse.outputs.reused == 'true' || (steps.objects.outputs.cache-primary-key != '' && steps.objects.outputs.cache-hit != 'true')))
         with:
           path: .ccache
           key: gui-objects-v2-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ steps.inputs.outputs.tree }}

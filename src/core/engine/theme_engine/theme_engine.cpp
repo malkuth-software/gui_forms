@@ -1118,6 +1118,7 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     // rules set in place (EC1), the part's own corner radius and the
     // window's images, for this paint only.
     std::optional<SurfaceMaterial> unkept_material{};
+    std::optional<SurfaceMaterial> authored_ground{};
     const std::optional<ControlVisualRole> material_role =
         (*request.primitive).theme_material(request.parameters, part.family);
     if (material_role) {
@@ -1151,6 +1152,15 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             request.target.material = &authored_material(kept, rules_.serial(), recipe.material, part.bounds,
                                                          relative, resolution, unkept_material,
                                                          (*window).metrics());
+        }
+        // An authored background (owner decision T4-1) stands as the
+        // material's only fill, under an important rule's primitive and
+        // never in high contrast.
+        const bool important = resolution.level >= CascadeLevel::important_user_theme;
+        if (authored_background_applies(part) && !important && !context.high_contrast) {
+            authored_ground.emplace(*request.target.material);
+            (*authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
+            request.target.material = &*authored_ground;
         }
         request.target.corner_radius = part.corner_radius;
         request.target.images = &(*window).image_resources();

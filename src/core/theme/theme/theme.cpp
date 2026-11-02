@@ -485,6 +485,40 @@ void fill_professional_role(ControlRoleRecipes& result, Color top, Color bottom,
     // pass of T2 E4), not authored here.
 }
 
+// Replaces the accent family's plates where fill_professional_role's light
+// state plates sat under the accent's white text (1.0 to 1.3:1, and 3.3:1
+// at the resting gradient's top; T4 phase 1's contrast report): resting,
+// hot and pressed are blues and pending and invalid dark amber and red,
+// each passing 4.5:1 for white text at every gradient position, selected
+// or not. Disabled and deactivated keep their grey plates and dark text.
+void fill_accent_states(ControlRoleRecipes& result) {
+    const Color white = Color::rgba(255, 255, 255);
+    std::array<ControlVisualRecipe, control_surface_state_count>& values = result.ordinary;
+    values[static_cast<std::size_t>(ControlSurfaceState::normal)] =
+        recipe(Color::rgba(46, 112, 190), Color::rgba(31, 100, 177), Color::rgba(20, 75, 145), white);
+    values[static_cast<std::size_t>(ControlSurfaceState::hot)] =
+        recipe(Color::rgba(50, 118, 198), Color::rgba(36, 106, 186), Color::rgba(14, 62, 128), white);
+    values[static_cast<std::size_t>(ControlSurfaceState::pressed)] =
+        recipe(Color::rgba(24, 84, 160), Color::rgba(34, 100, 178), Color::rgba(14, 62, 128), white);
+    values[static_cast<std::size_t>(ControlSurfaceState::pending)] =
+        recipe(Color::rgba(150, 104, 20), Color::rgba(128, 88, 12), Color::rgba(110, 74, 10), white);
+    values[static_cast<std::size_t>(ControlSurfaceState::invalid)] =
+        recipe(Color::rgba(178, 54, 54), Color::rgba(150, 40, 40), Color::rgba(120, 30, 30), white);
+    // A selected (checked) accent button shows the pressed plate in its
+    // active states, with the selection's blue edge.
+    const std::array<ControlSurfaceState, 3> pressed_when_selected{
+        ControlSurfaceState::normal, ControlSurfaceState::hot, ControlSurfaceState::pressed};
+    for (const ControlSurfaceState state : pressed_when_selected) {
+        ControlVisualRecipe& selected = result.selected[static_cast<std::size_t>(state)];
+        selected = values[static_cast<std::size_t>(ControlSurfaceState::pressed)];
+        selected.material.border = MaterialBorder{Color::rgba(57, 117, 178), 1.0};
+    }
+    result.selected[static_cast<std::size_t>(ControlSurfaceState::pending)] =
+        values[static_cast<std::size_t>(ControlSurfaceState::pending)];
+    result.selected[static_cast<std::size_t>(ControlSurfaceState::invalid)] =
+        values[static_cast<std::size_t>(ControlSurfaceState::invalid)];
+}
+
 // Fills `result` with a link family's recipes (owner decision W-Q5): a
 // professional role whose plates are all clear, so that a link draws only
 // its text and underline, with `text` in every enabled state (hover and
@@ -1483,7 +1517,10 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     ControlVisualRecipe authored = floor;
     apply_recipe_fields(fields, authored);
     if (!valid_recipe(authored)) return ResolvedControlRecipe(floor);
-    return ResolvedControlRecipe(floor, std::move(authored));
+    const std::size_t text_position = static_cast<std::size_t>(RecipeField::text);
+    const bool important_text = fields.fields[text_position] != nullptr &&
+                                fields.levels[text_position] >= CascadeLevel::important_user_theme;
+    return ResolvedControlRecipe(floor, std::move(authored), important_text);
 }
 
 ThemeDefinition windows_professional_theme_definition() {
@@ -1510,6 +1547,7 @@ ThemeDefinition windows_professional_theme_definition() {
         Color::rgba(72, 145, 213),
                           Color::rgba(31, 100, 177),
                           Color::rgba(20, 75, 145), Color::rgba(255, 255, 255));
+    fill_accent_states(result.roles[static_cast<std::size_t>(ControlVisualRole::accent_button)]);
     fill_professional_role(result.roles[static_cast<std::size_t>(ControlVisualRole::command_button)],
         Color::rgba(252, 253, 255),
                           Color::rgba(229, 236, 244),

@@ -307,6 +307,8 @@ Related types
 
    .. cpp:member:: std::string shortcut
 
+      Generated from the key binding: not translated text.
+
    .. cpp:member:: ImageId image
 
    .. cpp:member:: std::string disabled_reason

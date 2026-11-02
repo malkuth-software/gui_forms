@@ -316,6 +316,11 @@ struct PartGeometry final {
     // The colour the part shows as its content, or none: a colour swatch's
     // sample (PartPaint::content_color; owner decision W-7).
     std::optional<Color> content_color{};
+    // The colours the application authored for the part, or none
+    // (PartPaint::authored_background and authored_foreground; owner
+    // decision T4-1).
+    std::optional<Color> authored_background{};
+    std::optional<Color> authored_foreground{};
 
     // A part that is present exactly when `bounds` is not empty.
     [[nodiscard]] static constexpr PartGeometry from_bounds(Rect bounds) noexcept {
@@ -329,7 +334,9 @@ struct PartGeometry final {
                                      const PartGeometry& right) noexcept {
         return left.bounds == right.bounds && left.present == right.present &&
                left.states == right.states && left.accent == right.accent &&
-               left.content_color == right.content_color;
+               left.content_color == right.content_color &&
+               left.authored_background == right.authored_background &&
+               left.authored_foreground == right.authored_foreground;
     }
 };
 

@@ -65,12 +65,16 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_readthedocs_build.py
           python3 -B -m unittest discover -s tools -p test_stack_frames.py
           python3 -B -m unittest discover -s tools -p test_workflow_pipelines.py
+          python3 -B -m unittest discover -s tools -p test_workflow_cache_saves.py
           python3 -B -m unittest discover -s tools -p test_control_registry.py
           python3 tools/control_registry.py check
           python3 tools/control_registry.py emit-cpp --check
           python3 -B -m unittest discover -s tools -p test_control_schema.py
           python3 tools/control_schema.py check
           python3 tools/control_schema.py render --check
+          # Stage T4: direct drawing in controls may only fall (manifests/paint_census.json).
+          python3 -B -m unittest discover -s tools -p test_paint_census.py
+          python3 -B tools/paint_census.py check
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
           python3 tools/generate_library_docs.py --check
           python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard stx_vorbis stx_zlib stx_png stx_conv stx_rtf2md fuzz
@@ -500,9 +504,13 @@ jobs:
   # (tools/ci_cache.py prune; notes:planning/BUILD_SIZE_PLAN_2026-10-23.md, step 2).
   # Runs when a saving job failed too, since the others saved. The only job
   # with actions: write.
+  # Prunes only after a push whose saving jobs all passed (owner,
+  # 2026-11-01). The saves are success-only already, so a failed job adds no
+  # entry; skipping the prune as well keeps every family's previous entries
+  # until a green push, so no failure can end with fewer good caches.
   cache-prune:
     needs: [sanitizers, native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64, programs-macos-arm64, programs-linux-x64, programs-linux-arm64, programs-windows-x64]
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
