@@ -5,6 +5,7 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
 #include <vector>
@@ -289,9 +290,15 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
     const Rect surface{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
     const BasicControlStyle& style = effective_theme().basic_style();
-    const ControlVisualRecipe& strip_recipe = effective_theme().resolve(
-        ControlVisualRole::panel, visual_context());
-    paint_surface_material(painter, surface, strip_recipe.material);
+    // The strip's face and each item's plate are parts (the menu_strip
+    // anatomy's `face` and `menu_item`), so a theme's `menu-strip::part(...)`
+    // rules select them; an item is keyed by its stable ID.
+    PartPaint face;
+    face.family = ControlVisualRole::panel;
+    face.role = PartRole::face;
+    face.bounds = surface;
+    face.key = PartKey{"face", {}, {}};
+    paint_part(painter, *this, face);
     painter.draw_line({0.0, std::max(0.0, surface.height - 1.0)},
                       {surface.width, std::max(0.0, surface.height - 1.0)},
                       style.border, 1.0);
@@ -310,11 +317,21 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         const ControlVisualRecipe& item_recipe = effective_theme().resolve(
             ControlVisualRole::menu_item, item_context);
         if (active || hot || selected) {
-            paint_surface_material(
-                painter,
-                {item.x + 1.0, 1.0, item.width - 2.0,
-                 std::max(0.0, item.height - 2.0)},
-                item_recipe.material);
+            // An open item shows pressed, as its recipe context does.
+            AnatomyStateSet plate_states;
+            if (hot) plate_states.insert(AnatomyState::hot);
+            if (active) plate_states.insert(AnatomyState::pressed);
+            if (selected) plate_states.insert(AnatomyState::selected);
+            if (focused_ && hot) plate_states.insert(AnatomyState::focus_visible);
+            if (!items_[index].enabled) plate_states.insert(AnatomyState::disabled);
+            PartPaint plate;
+            plate.family = ControlVisualRole::menu_item;
+            plate.role = PartRole::face;
+            plate.bounds = {item.x + 1.0, 1.0, item.width - 2.0,
+                            std::max(0.0, item.height - 2.0)};
+            plate.states = plate_states;
+            plate.key = PartKey{"menu_item", items_[index].stable_id, index};
+            paint_part(painter, *this, plate);
         }
         const Color ink = item_recipe.text;
         FontSpec font = effective_font(font_);

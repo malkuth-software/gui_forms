@@ -177,19 +177,21 @@ WorstPair worst_between(const FaceSamples& face, const FaceSamples& surround) no
 }
 
 // Which pairs a family gates in a state (see measure_theme_contrast).
-bool gates_boundary(ControlVisualRole family, ControlSurfaceState state) noexcept {
+bool gates_boundary(ControlVisualRole family, ControlSurfaceState state, bool selected) noexcept {
     if (state == ControlSurfaceState::disabled) return false;
+    const bool lit = state == ControlSurfaceState::hot || state == ControlSurfaceState::pressed;
     switch (family) {
     case ControlVisualRole::button:
     case ControlVisualRole::accent_button:
     case ControlVisualRole::choice:
     case ControlVisualRole::editor:
     case ControlVisualRole::card:
-    case ControlVisualRole::tool_tip:
-    case ControlVisualRole::selection: return true;
+    case ControlVisualRole::tool_tip: return true;
+    // A row or item is flat until it is selected, hot or pressed.
+    case ControlVisualRole::selection: return selected || lit;
     case ControlVisualRole::command_button:
     case ControlVisualRole::menu_item:
-        return state == ControlSurfaceState::hot || state == ControlSurfaceState::pressed;
+        return lit;
     case ControlVisualRole::window:
     case ControlVisualRole::panel:
     case ControlVisualRole::progress:
@@ -268,7 +270,7 @@ void measure_recipe(const ControlVisualRecipe& recipe, const ContrastRow& key, b
                     const FaceSamples& surround, std::vector<ContrastRow>& rows) {
     const double text_floor = text_minimum_for(key.state, key.high_contrast);
     const bool disabled = key.state == ControlSurfaceState::disabled;
-    const bool boundary = gates_boundary(key.family, key.state);
+    const bool boundary = gates_boundary(key.family, key.state, key.selected);
     const bool focus = gates_focus(key.family, key.state);
     FaceSamples face{};
     const bool face_known = surround_known && sample_material(recipe.material, surround, face);
@@ -299,8 +301,12 @@ void measure_recipe(const ControlVisualRecipe& recipe, const ContrastRow& key, b
         rows.push_back(measured_row(key, ContrastPair::boundary, worst, non_text_minimum));
     }
     if (focus) {
+        // An authored outline lies outside the control, between the face
+        // and the surround; the house ring is inset inside the face
+        // (paint_focus_ring), so the face is on both its sides.
         const WorstPair inner = worst_over(recipe.focus_ring, face);
-        const WorstPair outer = worst_over(recipe.focus_ring, surround);
+        const WorstPair outer =
+            recipe.authored_focus_outline ? worst_over(recipe.focus_ring, surround) : inner;
         rows.push_back(measured_row(key, ContrastPair::focus_inner, inner, non_text_minimum));
         rows.push_back(measured_row(key, ContrastPair::focus_outer, outer, non_text_minimum));
     }

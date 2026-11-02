@@ -97,10 +97,12 @@ struct ContrastCounts final {
 // selected, then selected), the pairs that apply to that family and state,
 // in ContrastPair order. Disabled controls measure their text only;
 // boundaries are gated for the families that draw a control's own edge
-// (button, accent button, choice, editor, card, tool tip, selection) in
-// every state, and for command buttons and menu items while hot or pressed
-// (flat at rest, design language 12.3); focus is gated for the families a
-// focused control uses.
+// (button, accent button, choice, editor, card, tool tip) in every state,
+// for command buttons and menu items while hot or pressed (flat at rest,
+// design language 12.3), and for selection while selected, hot or pressed
+// (a row is flat until then); focus is gated for the families a focused
+// control uses, against the face and the surround for an authored outline
+// and against the face alone for the house ring, which lies inside it.
 void measure_theme_contrast(const Theme& theme, std::vector<ContrastRow>& rows);
 
 [[nodiscard]] ContrastCounts count_contrast_verdicts(std::span<const ContrastRow> rows) noexcept;

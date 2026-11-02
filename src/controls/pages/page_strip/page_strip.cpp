@@ -1023,7 +1023,11 @@ void PageStrip::on_paint(Painter& painter, Rect) {
     part.family = ControlVisualRole::panel;
     part.role = PartRole::face;
     part.bounds = placed.rail;
+    // Each part is keyed by its anatomy name (and a tab's by its page ID),
+    // so that a theme's `page-strip::part(...)` rules select it.
+    part.key = PartKey{"rail", {}, {}};
     paint_part(painter, *this, part);
+    part.key.reset();
     // Tabs: flat at rest, a plate when hot or selected (the menu-item
     // family, tab_family) until T4 draws Plan Paint's tab stack and the
     // notched document tab (owner decisions DK-40, DK-42). The close button
@@ -1054,6 +1058,7 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         bar.bounds = mark;
         bar.states = {};
         bar.states.insert(AnatomyState::drop_accepted);
+        bar.key = PartKey{"insertion_mark", {}, {}};
         paint_part(painter, *this, bar);
     }
     if (!placed.overflow) return;
@@ -1064,6 +1069,8 @@ void PageStrip::on_paint(Painter& painter, Rect) {
     // The list opens a list of pages: an open down chevron, as a combo
     // box's, rather than the tool strip's overflow mark.
     std::array<PartMark, 3> marks{PartMark::arrow_left, PartMark::arrow_right, PartMark::chevron_down};
+    constexpr std::array<std::string_view, 3> button_names{"scroll_back", "scroll_forward", "list_button"};
+    constexpr std::array<std::string_view, 3> glyph_names{"scroll_back_glyph", "scroll_forward_glyph", "list_glyph"};
     if (!horizontal()) {
         marks[0] = PartMark::arrow_up;
         marks[1] = PartMark::arrow_down;
@@ -1073,10 +1080,12 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         part.states = (*buttons[index]).states;
         part.role = PartRole::actuator;
         part.bounds = (*buttons[index]).bounds;
+        part.key = PartKey{button_names[index], {}, {}};
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = (*glyphs[index]).bounds;
         part.mark = marks[index];
+        part.key = PartKey{glyph_names[index], {}, {}};
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
     }
@@ -1085,9 +1094,11 @@ void PageStrip::on_paint(Painter& painter, Rect) {
         part.role = PartRole::label;
         part.bounds = own.list_count.bounds;
         part.text = placed.list_count_text;
+        part.key = PartKey{"list_count", {}, {}};
         paint_part(painter, *this, part);
         part.text = {};
     }
+    part.key.reset();
 }
 
 // One tab and its parts, in paint order: face, icon, label, the slot's
@@ -1097,9 +1108,13 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
     const Layout& placed = layout();
     const ItemParts parts = tab_parts(position);
     const AnatomyStateSet states = tab_states(position);
+    // The strip's own copy of the page ID: the parts' keys borrow it, and it
+    // stays valid while a handler below changes the set.
+    paint_stable_id_ = (*pages_).record_at(PagePosition{position}).id.value;
     part.states = states;
     part.role = PartRole::face;
     part.bounds = parts.tab.bounds;
+    part.key = PartKey{"tab", paint_stable_id_, {}};
     paint_part(painter, *this, part);
     bool default_content = true;
     if (draw_mode_ == ItemDrawMode::owner_draw && (parts.tab_icon.present || parts.tab_label.present)) {
@@ -1110,7 +1125,6 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         }
         // The handlers see the page ID through the strip's own copy, valid
         // for the whole raise even when one of them changes the set.
-        paint_stable_id_ = (*pages_).record_at(PagePosition{position}).id.value;
         ItemContentPaint request{.painter = painter,
                                  .index = position,
                                  .column = 0U,
@@ -1133,6 +1147,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         const ImageListResolution resolved = (*image_list_).resolve(record.image_key, state, scale);
         part.role = PartRole::icon;
         part.bounds = parts.tab_icon.bounds;
+        part.key = PartKey{"tab_icon", paint_stable_id_, {}};
         part.image = resolved.image;
         paint_part(painter, *this, part);
         part.image = {};
@@ -1140,6 +1155,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
     if (default_content && parts.tab_label.present) {
         part.role = PartRole::label;
         part.bounds = parts.tab_label.bounds;
+        part.key = PartKey{"tab_label", paint_stable_id_, {}};
         part.text = placed.tabs[position].label;
         paint_part(painter, *this, part);
         part.text = {};
@@ -1148,9 +1164,11 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         part.states = parts.tab_close.states;
         part.role = PartRole::actuator;
         part.bounds = parts.tab_close.bounds;
+        part.key = PartKey{"tab_close", paint_stable_id_, {}};
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = parts.tab_close_glyph.bounds;
+        part.key = PartKey{"tab_close_glyph", paint_stable_id_, {}};
         part.mark = PartMark::close;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -1159,9 +1177,11 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         part.states = parts.tab_pin.states;
         part.role = PartRole::actuator;
         part.bounds = parts.tab_pin.bounds;
+        part.key = PartKey{"tab_pin", paint_stable_id_, {}};
         paint_part(painter, *this, part);
         part.role = PartRole::glyph;
         part.bounds = parts.tab_pin_glyph.bounds;
+        part.key = PartKey{"tab_pin_glyph", paint_stable_id_, {}};
         part.mark = PartMark::pin;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -1172,6 +1192,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         // mark (there is no `modified` mark; DK-35 gave the state only).
         part.role = PartRole::glyph;
         part.bounds = parts.tab_modified.bounds;
+        part.key = PartKey{"tab_modified", paint_stable_id_, {}};
         part.mark = PartMark::radio_dot;
         paint_part(painter, *this, part);
         part.mark = PartMark::none;
@@ -1179,11 +1200,14 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
     if (parts.tab_seam.present) {
         part.role = PartRole::seam;
         part.bounds = parts.tab_seam.bounds;
+        part.key = PartKey{"tab_seam", paint_stable_id_, {}};
         paint_part(painter, *this, part);
     }
     part.role = PartRole::focus;
     part.bounds = parts.tab_focus.bounds;
+    part.key = PartKey{"tab_focus", paint_stable_id_, {}};
     paint_part(painter, *this, part);
+    part.key.reset();
     return true;
 }
 

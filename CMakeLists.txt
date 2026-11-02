@@ -179,6 +179,8 @@ add_library(gui_forms_core STATIC
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
+    src/core/theme/gui_forms_theme/gui_forms_theme.cpp
+    src/core/theme/stock_anatomies/stock_anatomies.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
     src/core/theme/part_painting/part_painting.cpp
     src/core/theme/owner_draw/owner_draw.cpp
@@ -2506,6 +2508,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_contrast_tests tests/theme_contrast_tests.cpp)
     target_link_libraries(gui_forms_theme_contrast_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_contrast_tests COMMAND gui_forms_theme_contrast_tests)
+    add_executable(gui_forms_gui_forms_theme_tests tests/gui_forms_theme_tests.cpp)
+    target_link_libraries(gui_forms_gui_forms_theme_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_gui_forms_theme_tests COMMAND gui_forms_gui_forms_theme_tests)
     add_executable(gui_forms_owner_draw_tests tests/owner_draw_tests.cpp)
     target_link_libraries(gui_forms_owner_draw_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_owner_draw_tests COMMAND gui_forms_owner_draw_tests)
@@ -4105,6 +4110,26 @@ if(GUI_FORMS_BUILD_TESTS)
                 src/host/posix/fonts/sealed_pages_posix.cpp)
         endif()
         target_link_libraries(gui_forms_bundled_font_memory_report PRIVATE gui_forms_skia)
+
+        # The specimen sheet (stage T4, phase 2): every stock control of the
+        # Gallery in its states, light, dark and high contrast, scales 1 and 2,
+        # as contact sheets with a hash manifest and pixel contrast. The test
+        # captures the first page twice and requires identical pixels; a full
+        # run is `gui_forms_specimen_sheet --out <directory> --repeat`.
+        if(TARGET gui_forms_gallery_model)
+            if(WIN32)
+                add_executable(gui_forms_specimen_sheet tests/specimen/specimen_sheet.cpp
+                    src/host/windows/fonts/sealed_pages_windows.cpp)
+            else()
+                add_executable(gui_forms_specimen_sheet tests/specimen/specimen_sheet.cpp
+                    src/host/posix/fonts/sealed_pages_posix.cpp)
+            endif()
+            target_include_directories(gui_forms_specimen_sheet PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+            target_compile_definitions(gui_forms_specimen_sheet PRIVATE
+                GUI_FORMS_SPECIMEN_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+            target_link_libraries(gui_forms_specimen_sheet PRIVATE gui_forms_gallery_model gui_forms_skia)
+            add_test(NAME gui_forms_specimen_sheet_tests COMMAND gui_forms_specimen_sheet --smoke)
+        endif()
 
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
