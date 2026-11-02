@@ -1,7 +1,5 @@
 #include "replay_display_chunk.hpp"
-#if defined(GUI_FORMS_PREPARED_TEXT)
 #include "../../text/prepared/prepared_storage.hpp"
-#endif
 
 namespace gui_forms::detail {
 
@@ -10,7 +8,6 @@ namespace {
 // Replays one recorded command onto `painter`.
 void replay_command(const DisplayCommand& command, Painter& painter) {
     switch (command.operation) {
-#if defined(GUI_FORMS_PREPARED_TEXT)
     case DisplayOperation::draw_prepared_text: {
         if (!command.prepared_text || !prepared_authority_current(*command.prepared_text, command.prepared_authority)) {
             throw PreparedTextPaintFailure(PreparedTextStatus::stale);
@@ -23,7 +20,6 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
         }
         return;
     }
-#endif
     case DisplayOperation::save: painter.save(); return;
     case DisplayOperation::restore: painter.restore(); return;
     case DisplayOperation::translate: painter.translate(command.first); return;

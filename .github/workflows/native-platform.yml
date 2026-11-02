@@ -338,7 +338,9 @@ jobs:
           fi
           cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
           cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_linebreak_conformance_tests gui_forms_prepared_text_service_tests gui_forms_prepared_display_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
-          ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|linebreak_conformance|prepared_text_service_tests|prepared_display_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure
+          # In parallel: the two consumer configure tests (about 15 s and 9 s) each
+          # configure into their own build directory.
+          ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|linebreak_conformance|prepared_text_service_tests|prepared_display_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure --parallel 3
       - name: Test Windows DIB ownership and exact brush replay
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Windows' && steps.reuse.outputs.reused != 'true')
         shell: msys2 {0}
@@ -358,7 +360,9 @@ jobs:
           fi
           cmake -S gui_forms -B .build/native-${{ inputs.platform }}/gui-forms -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON -DGUI_FORMS_BUILD_TEXT_MASKS=ON -DGUI_FORMS_BUILD_PREPARED_TEXT=ON -DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON
           cmake --build .build/native-${{ inputs.platform }}/gui-forms --target gui_forms_application_text_consumer gui_forms_text_mask_lifecycle_tests gui_forms_text_mask_native_tests gui_forms_text_mask_wrapping_tests gui_forms_linebreak_conformance_tests gui_forms_prepared_text_service_tests gui_forms_prepared_text_raster_tests gui_forms_prepared_display_tests gui_forms_prepared_text_skia_tests gui_forms_opaque_live_surface_raster_tests gui_forms_prepared_window_input_tests gui_forms_prepared_window_batch_tests gui_forms_prepared_window_shape_tests gui_forms_prepared_window_session_tests --parallel 4
-          ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|linebreak_conformance|prepared_text_(service|raster|skia)_tests|prepared_display_tests|opaque_live_surface_raster_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure
+          # In parallel: the two consumer configure tests (about 15 s and 9 s) each
+          # configure into their own build directory.
+          ctest --test-dir .build/native-${{ inputs.platform }}/gui-forms -R '^gui_forms_(application_text_(consumer|configure_accepted|configure_static_core)|text_mask_(lifecycle|native|wrapping)_tests|linebreak_conformance|prepared_text_(service|raster|skia)_tests|prepared_display_tests|opaque_live_surface_raster_tests|prepared_window_(input|batch|shape|session)_tests)$' --output-on-failure --parallel 3
       - name: Verify Linux prepared frames through X11
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'Linux' && steps.reuse.outputs.reused != 'true')
         run: |

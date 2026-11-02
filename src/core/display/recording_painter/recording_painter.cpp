@@ -1,15 +1,12 @@
 #include "recording_painter.hpp"
-#if defined(GUI_FORMS_PREPARED_TEXT)
 #include "../../text/prepared/prepared_storage.hpp"
 #include <cmath>
 #include <new>
-#endif
 
 #include <stdexcept>
 #include <utility>
 
 namespace gui_forms::detail {
-#if defined(GUI_FORMS_PREPARED_TEXT)
 PreparedTextPaintResult RecordingPainter::draw_prepared_text(const PreparedTextLayout& layout,
     const LayoutAuthority expected, const Point baseline, const Color color) {
     PreparedTextPaintResult result{};
@@ -36,7 +33,6 @@ PreparedTextPaintResult RecordingPainter::draw_prepared_text(const PreparedTextL
     if (!prepared_failure_) prepared_failure_ = result.status;
     return result;
 }
-#endif
 
 void RecordingPainter::save() {
     DisplayCommand command;
@@ -425,9 +421,7 @@ void RecordingPainter::end_group() {
 
 std::shared_ptr<const DisplayChunk> RecordingPainter::finish(
     std::uint64_t generation, PaintPlane plane, Rect logical_bounds) {
-#if defined(GUI_FORMS_PREPARED_TEXT)
     if (prepared_failure_) throw PreparedTextPaintFailure(*prepared_failure_);
-#endif
     if (save_depth_ != 0U) {
         throw std::logic_error("GUI.Forms display chunk has an unbalanced painter save");
     }

@@ -42,9 +42,7 @@ enum class VisualPaintOperation : std::uint8_t {
     // A paint group: `rect` its bounds, `scalar` its opacity.
     begin_group,
     end_group,
-#if defined(GUI_FORMS_PREPARED_TEXT)
     draw_prepared_text,
-#endif
 };
 
 [[nodiscard]] const char* visual_paint_operation_name(

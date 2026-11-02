@@ -500,8 +500,10 @@ if(GUI_FORMS_BUILD_PREPARED_TEXT)
         message(FATAL_ERROR "GUI_FORMS_BUILD_PREPARED_TEXT requires GUI_FORMS_ENABLE_HARFBUZZ_TEXT")
     endif()
     find_package(Threads REQUIRED)
-    target_compile_definitions(gui_forms_core PUBLIC
-        $<BUILD_INTERFACE:GUI_FORMS_PREPARED_TEXT>)
+    # Core and Controls compile the same with or without this option: Painter
+    # always declares draw_prepared_text, and the retained display list always
+    # carries the prepared command, so toggling it adds sources but never
+    # recompiles them. Only the renderer and the hosts see a definition.
     add_library(gui_forms_prepared_text_impl STATIC
         src/render/text/prepared_service.cpp
         src/render/text/prepared_window_shape.cpp
@@ -1014,6 +1016,10 @@ if(GUI_FORMS_ENABLE_SKIA)
         target_sources(gui_forms_skia PRIVATE
             src/render/skia/raster/prepared_skia_frame.cpp)
         target_link_libraries(gui_forms_skia PRIVATE gui_forms_prepared_text_impl)
+        # Public so that every includer of skia_raster.hpp (the hosts,
+        # Application, the raster tests) sees the same SkiaRaster class.
+        target_compile_definitions(gui_forms_skia PUBLIC
+            $<BUILD_INTERFACE:GUI_FORMS_PREPARED_TEXT>)
     endif()
     if(APPLE)
         find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)

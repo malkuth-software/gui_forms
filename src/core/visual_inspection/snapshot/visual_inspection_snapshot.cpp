@@ -572,9 +572,7 @@ const char* visual_paint_operation_name(VisualPaintOperation operation) noexcept
     case VisualPaintOperation::draw_part_raster: return "draw_part_raster";
     case VisualPaintOperation::begin_group: return "begin_group";
     case VisualPaintOperation::end_group: return "end_group";
-#if defined(GUI_FORMS_PREPARED_TEXT)
     case VisualPaintOperation::draw_prepared_text: return "draw_prepared_text";
-#endif
     }
     return "unknown";
 }

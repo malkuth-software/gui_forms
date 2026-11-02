@@ -47,10 +47,8 @@ public:
                                  Color color, const std::shared_ptr<RetainedDrawCache>& cache) override;
     void draw_turned_text_utf8(Point origin, std::string_view text, FontSpec font, Color color,
                                TextOrientation orientation) override;
-#if defined(GUI_FORMS_PREPARED_TEXT)
     [[nodiscard]] PreparedTextPaintResult draw_prepared_text(const PreparedTextLayout& layout,
         const LayoutAuthority expected, const Point baseline, const Color color) override;
-#endif
     [[nodiscard]] Size measure_text_utf8(std::string_view text,
                                          FontSpec font) override;
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
@@ -117,9 +115,7 @@ private:
     // The origin at each save in force, restored by its restore.
     std::vector<Point> saved_origins_;
     TextMetricsProvider* text_metrics_{};
-#if defined(GUI_FORMS_PREPARED_TEXT)
     std::optional<PreparedTextStatus> prepared_failure_{};
-#endif
 };
 
 } // namespace gui_forms::detail
