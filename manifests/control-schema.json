@@ -1915,7 +1915,8 @@
         {"name": "vertical_scroll_bar", "role": "track", "composed_from": "v_scroll_bar", "states": []},
         {"name": "scroll_corner", "role": "face", "composed_from": null, "states": []},
         {"name": "editor", "role": "well", "composed_from": "text_box", "states": []},
-        {"name": "focus", "role": "focus", "composed_from": null, "states": []}
+        {"name": "focus", "role": "focus", "composed_from": null, "states": []},
+        {"name": "column_drop_indicator", "role": "drop", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled", "focused", "focus_visible", "read_only"],
       "custom_states": [],
@@ -2036,6 +2037,7 @@
         {"name": "sort_compare", "payload": "DataGridViewSortCompareEvent", "mutable_payload": true},
         {"name": "sorted", "payload": "", "mutable_payload": false},
         {"name": "column_width_changed", "payload": "std::size_t", "mutable_payload": false},
+        {"name": "column_display_index_changed", "payload": "std::size_t", "mutable_payload": false},
         {"name": "cell_formatting", "payload": "DataGridViewCellFormattingEvent", "mutable_payload": true},
         {"name": "cell_parsing", "payload": "DataGridViewCellParsingEvent", "mutable_payload": true}
       ]

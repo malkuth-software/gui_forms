@@ -53,6 +53,9 @@ gui_forms::DataGridView
          else throws ``std::invalid_argument``. Replacing or removing columns ends
          any edit and clears the selection and current cell.
 
+      **auto_size_columns_mode** : ``DataGridViewAutoSizeColumnsMode``, default ``none``
+         The auto size mode of columns whose own is ``not_set``.
+
       **row_source** : ``DataGridViewRowSource``, default unbound, read-only
          Where the rows come from: :cpp:enumerator:`DataGridViewRowSource::unbound <gui_forms::DataGridViewRowSource::unbound>`,
          ``virtual_rows`` or ``binding_source``.
@@ -193,6 +196,9 @@ gui_forms::DataGridView
 
       **allow_user_to_resize_columns** : ``bool``, default ``true``
          Whether dragging a column header's divider resizes the column.
+
+      **allow_user_to_order_columns** : ``bool``, default ``false``
+         Whether dragging a column header moves the column.
 
       **first_displayed_row** : ``DataGridViewRowPosition``
          The position of the first row shown under the column headers.
@@ -353,6 +359,9 @@ gui_forms::DataGridView
       **column_width_changed** : ``Event<std::size_t>``
          Raised after a column's width changes, with the column's index.
 
+      **column_display_index_changed** : ``Event<std::size_t>``
+         Raised after a column's display index changes, with the column's index.
+
       **cell_formatting** : ``Event<DataGridViewCellFormattingEvent&>``
          Raised when the grid needs a cell's text, with its value and inherited
          style: a handler may give the text, change the value or the style.
@@ -379,6 +388,16 @@ gui_forms::DataGridView
         - Throws std::out_of_range for an index past the end.
       * - :cpp:func:`column_index <gui_forms::DataGridView::column_index>`
         - The position of the column with a name, or none.
+      * - :cpp:func:`column_auto_size_mode <gui_forms::DataGridView::column_auto_size_mode>`
+        - A column's :cpp:enum:`DataGridViewAutoSizeColumnMode <gui_forms::DataGridViewAutoSizeColumnMode>`, the grid's when its own is ``not_set``.
+      * - :cpp:func:`auto_resize_column <gui_forms::DataGridView::auto_resize_column>`
+        - Sizes a column once to its cells or header, raising :cpp:func:`column_width_changed <gui_forms::DataGridView::column_width_changed>`.
+      * - :cpp:func:`auto_resize_columns <gui_forms::DataGridView::auto_resize_columns>`
+        - Sizes every column once.
+      * - :cpp:func:`preferred_cell_width <gui_forms::DataGridView::preferred_cell_width>`
+        - The width a cell asks for: its content, padding and grid line.
+      * - :cpp:func:`preferred_column_header_width <gui_forms::DataGridView::preferred_column_header_width>`
+        - The width a column header asks for, with a sortable column's glyph lane.
       * - :cpp:func:`add_row <gui_forms::DataGridView::add_row>`
         - Appends an unbound row and returns its position.
       * - :cpp:func:`insert_row <gui_forms::DataGridView::insert_row>`
@@ -423,6 +442,10 @@ gui_forms::DataGridView
         - The style a cell draws with: each property from the first of the cell's, its row's, the alternating rows' (odd positions), the rows', its column's and the grid's styles that sets it.
       * - :cpp:func:`inherited_column_header_style <gui_forms::DataGridView::inherited_column_header_style>`
         - A column header's style: its own, the column headers', the grid's.
+      * - :cpp:func:`column_display_index <gui_forms::DataGridView::column_display_index>`
+        - A column's place in the order the grid shows its columns.
+      * - :cpp:func:`column_at_display_index <gui_forms::DataGridView::column_at_display_index>`
+        - The column shown at a display index.
       * - :cpp:func:`is_cell_selected <gui_forms::DataGridView::is_cell_selected>`
         - Whether a cell is selected; in full-row mode, whether its row is.
       * - :cpp:func:`is_row_selected <gui_forms::DataGridView::is_row_selected>`
@@ -447,6 +470,10 @@ gui_forms::DataGridView
         - Closes a combo box cell's choices, ending its edit.
       * - :cpp:func:`set_column_width <gui_forms::DataGridView::set_column_width>`
         - Sets a column's width; an unknown column throws ``std::out_of_range`` and a width below the column's minimum ``std::invalid_argument``.
+      * - :cpp:func:`set_column_auto_size_mode <gui_forms::DataGridView::set_column_auto_size_mode>`
+        - Sets a column's auto size mode.
+      * - :cpp:func:`set_column_fill_weight <gui_forms::DataGridView::set_column_fill_weight>`
+        - Sets a fill column's share of the width the other columns leave.
       * - :cpp:func:`set_column_sort_glyph <gui_forms::DataGridView::set_column_sort_glyph>`
         - Shows an ascending or descending sort glyph on a column header, or none.
       * - :cpp:func:`set_column_read_only <gui_forms::DataGridView::set_column_read_only>`
@@ -475,6 +502,8 @@ gui_forms::DataGridView
         - Sets a row's style, kept by its ID; :cpp:func:`row_default_cell_style <gui_forms::DataGridView::row_default_cell_style>` reads it.
       * - :cpp:func:`set_cell_style <gui_forms::DataGridView::set_cell_style>`
         - Sets a cell's own style, kept by the row's ID; :cpp:func:`cell_style <gui_forms::DataGridView::cell_style>` reads it.
+      * - :cpp:func:`set_column_display_index <gui_forms::DataGridView::set_column_display_index>`
+        - Moves a column to a display index, the columns between shifting by one.
       * - :cpp:func:`set_cell_selected <gui_forms::DataGridView::set_cell_selected>`
         - Selects or deselects a cell (its row in full-row mode).
       * - :cpp:func:`set_row_selected <gui_forms::DataGridView::set_row_selected>`
@@ -638,7 +667,10 @@ gui_forms::DataGridView
    accepts); ``null_value`` is shown for an empty value, and typed text equal
    to it stores ``data_source_null_value``. Header styles give the header
    labels their font, alignment and padding. Styles are values: the grid keeps
-   a copy. Kept but not drawn yet: ``wrap_mode`` (text stays on one line).
+   a copy. ``wrap_mode`` wraps a text cell's text at its width, at the text
+   engine's line-break opportunities and at line ends; the lines sit up and
+   down as a block and are cut at the cell's bottom (rows do not grow to fit
+   them yet). Other kinds and the headers keep one line.
    The colours are authored colours (owner decision T4-1): over the theme's
    ordinary colours, under its important ones, and dropped in high contrast;
    a disabled grid stays greyed. ``back_color`` fills the cell and
@@ -664,14 +696,36 @@ gui_forms::DataGridView
    ``enable_with_auto_header_text``, which adds the row headers in full-row
    selection) chooses the header texts.
 
-   Not supported yet: wrapped cell text, the style
+   Columns size themselves as Windows Forms' do. A column's ``auto_size_mode``
+   (else the grid's :cpp:func:`auto_size_columns_mode <gui_forms::DataGridView::auto_size_columns_mode>`) sizes it to its cells' preferred
+   widths over every row or the rows shown, with or without its header's, to
+   its header alone, or as a ``fill`` column sharing the width the others
+   leave by ``fill_weight``. Automatic widths are applied when the grid lays
+   out, never below ``minimum_width``, without raising :cpp:func:`column_width_changed <gui_forms::DataGridView::column_width_changed>`,
+   and the user cannot resize an auto-sized column (a fill column included,
+   where Windows Forms moves the weights). The cell modes measure every row's
+   formatted cell, so virtual rows ask their provider for each. Rows keep one
+   height.
+
+   Columns have a display order apart from their indices (Windows Forms'
+   DisplayIndex): :cpp:func:`set_column_display_index <gui_forms::DataGridView::set_column_display_index>` moves one, and with
+   :cpp:func:`allow_user_to_order_columns <gui_forms::DataGridView::allow_user_to_order_columns>` the user drags a header, the
+   ``column_drop_indicator`` part showing where it goes; a drag is no header
+   click. What the user sees and walks follows display order: the columns'
+   places, the arrow keys, Tab, Home and End, range selection, the semantic
+   column indices and the clipboard's fields. Cell addresses and events keep
+   column indices. Setting the columns resets the order; an added column goes
+   last.
+
+   Not supported yet: wrapped header text, the style
    changed events, per-row header cell styles, Custom (advanced) border
    styles, ``RowPrePaint`` and ``RowPostPaint``, ``LinkBehavior`` (the
    link is always underlined), an image column's default
    image for empty cells and icon values, frozen rows and columns beyond the headers, the
    clipboard's HTML and CSV formats, automatic sorting of virtual and bound
-   rows (the application sorts them), user column reordering, automatic
-   column and row sizing, row height resizing, the new row in virtual mode,
+   rows (the application sorts them), frozen columns, automatic
+   row sizing and per-row heights, header size modes, row height resizing,
+   the new row in virtual mode,
    error text asked of the application (``CellErrorTextNeeded``), and cell
    tool tips.
 
@@ -743,6 +797,14 @@ gui_forms::DataGridView
    .. cpp:function:: void set_columns(std::vector<DataGridViewColumn> columns)
 
       Sets :cpp:func:`columns <gui_forms::DataGridView::columns>`; see the property's description above.
+
+   .. cpp:function:: DataGridViewAutoSizeColumnsMode auto_size_columns_mode() const noexcept
+
+      The auto size mode of columns whose own is ``not_set``.
+
+   .. cpp:function:: void set_auto_size_columns_mode(DataGridViewAutoSizeColumnsMode mode)
+
+      Sets :cpp:func:`auto_size_columns_mode <gui_forms::DataGridView::auto_size_columns_mode>`; see the property's description above.
 
    .. cpp:function:: DataGridViewRowSource row_source() const noexcept
 
@@ -1045,6 +1107,14 @@ gui_forms::DataGridView
 
       Sets :cpp:func:`allow_user_to_resize_columns <gui_forms::DataGridView::allow_user_to_resize_columns>`; see the property's description above.
 
+   .. cpp:function:: bool allow_user_to_order_columns() const noexcept
+
+      Whether dragging a column header moves the column.
+
+   .. cpp:function:: void set_allow_user_to_order_columns(bool allow)
+
+      Sets :cpp:func:`allow_user_to_order_columns <gui_forms::DataGridView::allow_user_to_order_columns>`; see the property's description above.
+
    .. cpp:function:: DataGridViewRowPosition first_displayed_row() const noexcept
 
       The position of the first row shown under the column headers.
@@ -1261,6 +1331,10 @@ gui_forms::DataGridView
 
       Raised after a column's width changes, with the column's index.
 
+   .. cpp:function:: Event<std::size_t>& column_display_index_changed() noexcept
+
+      Raised after a column's display index changes, with the column's index.
+
    .. cpp:function:: Event<DataGridViewCellFormattingEvent&>& cell_formatting() noexcept
 
       Raised when the grid needs a cell's text, with its value and inherited
@@ -1288,6 +1362,28 @@ gui_forms::DataGridView
    .. cpp:function:: std::optional<std::size_t> column_index(std::string_view name) const noexcept
 
       The position of the column with a name, or none.
+
+   .. cpp:function:: DataGridViewAutoSizeColumnMode column_auto_size_mode(std::size_t column) const
+
+      A column's :cpp:enum:`DataGridViewAutoSizeColumnMode <gui_forms::DataGridViewAutoSizeColumnMode>`, the grid's when its own is
+      ``not_set``.
+
+   .. cpp:function:: void auto_resize_column(std::size_t column, DataGridViewAutoSizeColumnMode mode = DataGridViewAutoSizeColumnMode::all_cells)
+
+      Sizes a column once to its cells or header, raising
+      :cpp:func:`column_width_changed <gui_forms::DataGridView::column_width_changed>`.
+
+   .. cpp:function:: void auto_resize_columns(DataGridViewAutoSizeColumnsMode mode = DataGridViewAutoSizeColumnsMode::all_cells)
+
+      Sizes every column once.
+
+   .. cpp:function:: double preferred_cell_width(DataGridViewRowPosition row, std::size_t column) const
+
+      The width a cell asks for: its content, padding and grid line.
+
+   .. cpp:function:: double preferred_column_header_width(std::size_t column) const
+
+      The width a column header asks for, with a sortable column's glyph lane.
 
    .. cpp:function:: DataGridViewRowPosition add_row(DataGridViewRow row)
 
@@ -1419,6 +1515,14 @@ gui_forms::DataGridView
 
       A column header's style: its own, the column headers', the grid's.
 
+   .. cpp:function:: DataGridViewDisplayIndex column_display_index(std::size_t column) const
+
+      A column's place in the order the grid shows its columns.
+
+   .. cpp:function:: std::size_t column_at_display_index(DataGridViewDisplayIndex display_index) const
+
+      The column shown at a display index.
+
    .. cpp:function:: bool is_cell_selected(DataGridViewRowPosition row, std::size_t column) const
 
       Whether a cell is selected; in full-row mode, whether its row is.
@@ -1472,6 +1576,14 @@ gui_forms::DataGridView
 
       Sets a column's width; an unknown column throws ``std::out_of_range`` and a
       width below the column's minimum ``std::invalid_argument``.
+
+   .. cpp:function:: void set_column_auto_size_mode(std::size_t column, DataGridViewAutoSizeColumnMode mode)
+
+      Sets a column's auto size mode.
+
+   .. cpp:function:: void set_column_fill_weight(std::size_t column, double weight)
+
+      Sets a fill column's share of the width the other columns leave.
 
    .. cpp:function:: void set_column_sort_glyph(std::size_t column, DataGridViewSortDirection direction)
 
@@ -1555,6 +1667,10 @@ gui_forms::DataGridView
    .. cpp:function:: void set_cell_style(DataGridViewRowPosition row, std::size_t column, DataGridViewCellStyle style)
 
       Sets a cell's own style, kept by the row's ID; :cpp:func:`cell_style <gui_forms::DataGridView::cell_style>` reads it.
+
+   .. cpp:function:: void set_column_display_index(std::size_t column, DataGridViewDisplayIndex display_index)
+
+      Moves a column to a display index, the columns between shifting by one.
 
    .. cpp:function:: void set_cell_selected(DataGridViewRowPosition row, std::size_t column, bool selected)
 

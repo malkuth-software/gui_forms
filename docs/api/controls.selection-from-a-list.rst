@@ -134,6 +134,8 @@ Related types
      - One column.
    * - :cpp:class:`DataGridViewDataErrorEvent <gui_forms::DataGridViewDataErrorEvent>`
      - Raised when a value does not reach its cell (Windows Forms' DataError).
+   * - :cpp:class:`DataGridViewDisplayIndex <gui_forms::DataGridViewDisplayIndex>`
+     - A column's place in the order the grid shows its columns (Windows Forms' DisplayIndex), apart from its index in columns(), which never changes with the order.
    * - :cpp:class:`DataGridViewRow <gui_forms::DataGridViewRow>`
      - One unbound row.
    * - :cpp:class:`DataGridViewRowCancelEvent <gui_forms::DataGridViewRowCancelEvent>`
@@ -789,6 +791,10 @@ Related types
 
    .. cpp:member:: PartGeometry focus
 
+   .. cpp:member:: PartGeometry column_drop_indicator
+
+      Where a dragged column header would go: a bar at that column boundary, present only during the drag.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DataGridView::Row final
@@ -951,7 +957,7 @@ Related types
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
 
-   A cell style (Windows Forms' DataGridViewCellStyle). Every property is optional: an empty one is "not set" and is taken from the next style in the cell's inheritance chain (see DataGridView::inherited_cell_style); one no style sets is the theme's (T4 style mapping). Styles are values: a grid stores a copy, and changing a style the program holds changes no cell until it is set again. ``font`` is the content's font. ``alignment`` places the content: across through the text's alignment, up and down within the cell. ``padding``, in logical units at text scale 1, is kept clear around the content in place of the grid's own margins (4 units at the start and end). ``wrap_mode`` is kept and inherited; wrapped text is not drawn yet (one line, as without it). ``format`` formats a number value: the invariant fixed formats "F0" to "F12", the formats Binding accepts. ``null_value`` is shown for an empty value, and typed text equal to it stores ``data_source_null_value`` (an empty value when that is not set). The colours are authored colours (owner decision T4-1): over the theme's ordinary colours, under its important ones, and not in high contrast. ``back_color`` fills the cell, ``fore_color`` draws the text of a text, combo box or button cell (a link keeps its link colours, a check box its theme's), and the selection colours stand in for both while the cell is selected; an unset selection colour leaves the theme's selection look. A disabled grid stays greyed.
+   A cell style (Windows Forms' DataGridViewCellStyle). Every property is optional: an empty one is "not set" and is taken from the next style in the cell's inheritance chain (see DataGridView::inherited_cell_style); one no style sets is the theme's (T4 style mapping). Styles are values: a grid stores a copy, and changing a style the program holds changes no cell until it is set again. ``font`` is the content's font. ``alignment`` places the content: across through the text's alignment, up and down within the cell. ``padding``, in logical units at text scale 1, is kept clear around the content in place of the grid's own margins (4 units at the start and end). ``wrap_mode`` true wraps a text cell's text at the content's width, breaking at the text engine's line-break opportunities and at line ends; the lines are placed up and down as a block, cut at the content's bottom (rows do not grow to fit them). Other kinds and the headers keep one line. ``format`` formats a number value: the invariant fixed formats "F0" to "F12", the formats Binding accepts. ``null_value`` is shown for an empty value, and typed text equal to it stores ``data_source_null_value`` (an empty value when that is not set). The colours are authored colours (owner decision T4-1): over the theme's ordinary colours, under its important ones, and not in high contrast. ``back_color`` fills the cell, ``fore_color`` draws the text of a text, combo box or button cell (a link keeps its link colours, a check box its theme's), and the selection colours stand in for both while the cell is selected; an unset selection colour leaves the theme's selection look. A disabled grid stays greyed.
 
    .. cpp:member:: std::optional<FontSpec> font
 
@@ -1070,6 +1076,14 @@ Related types
 
    .. cpp:member:: std::optional<DataGridViewColumnSortMode> sort_mode
 
+   .. cpp:member:: DataGridViewAutoSizeColumnMode auto_size_mode
+
+      Default: ``{DataGridViewAutoSizeColumnMode::not_set}``.
+
+   .. cpp:member:: double fill_weight
+
+      A fill column's share of the width the other columns leave, against the other fill columns' weights; finite and positive. Default: ``{100.0}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DataGridViewDataErrorEvent final
@@ -1093,6 +1107,16 @@ Related types
    .. cpp:member:: bool cancel
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewDisplayIndex final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   A column's place in the order the grid shows its columns (Windows Forms' DisplayIndex), apart from its index in columns(), which never changes with the order. 0 is the first column shown.
+
+   .. cpp:member:: std::size_t value
 
 .. cpp:namespace:: gui_forms
 
@@ -2582,6 +2606,48 @@ Enumerations
    .. cpp:enumerator:: keyboard_focus
 
    .. cpp:enumerator:: pin
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewAutoSizeColumnMode
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: not_set
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: all_cells_except_header
+
+   .. cpp:enumerator:: all_cells
+
+   .. cpp:enumerator:: displayed_cells_except_header
+
+   .. cpp:enumerator:: displayed_cells
+
+   .. cpp:enumerator:: column_header
+
+   .. cpp:enumerator:: fill
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DataGridViewAutoSizeColumnsMode
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: all_cells_except_header
+
+   .. cpp:enumerator:: all_cells
+
+   .. cpp:enumerator:: displayed_cells_except_header
+
+   .. cpp:enumerator:: displayed_cells
+
+   .. cpp:enumerator:: column_header
+
+   .. cpp:enumerator:: fill
 
 .. cpp:namespace:: gui_forms
 
