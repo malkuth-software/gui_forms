@@ -247,8 +247,19 @@ def class_directive(record: TypeRecord) -> str:
     return f".. cpp:{kind}:: {template}{rest}"
 
 
+# A C function-pointer member, as the C ABI's tables declare their slots:
+# `gf_status (GF_CALL* run)(gf_object root, ...)`. The calling-convention
+# macro is not C++ the domain can parse.
+FUNCTION_POINTER = re.compile(r"^(.+?)\(\s*(?:GF_CALL\s*)?\*\s*([A-Za-z_]\w*)\s*\)\s*(\(.*\))$", re.S)
+
+
 def function_directive(method: Method) -> str:
     signature = clean_signature(method.signature)
+    pointer = FUNCTION_POINTER.match(signature)
+    if pointer:
+        # A data member holding a function, declared as Sphinx's C++ domain
+        # parses it: `void (*name)(parameters)`.
+        return f".. cpp:member:: {pointer.group(1).strip()} (*{pointer.group(2)}){pointer.group(3)}"
     signature = re.sub(r"\bfriend\s+", "", signature)
     signature = re.sub(r"\s*=\s*0\s*$", " = 0", signature)
     return f".. cpp:function:: {signature}"

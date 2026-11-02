@@ -942,9 +942,9 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: void (GF_CALL* invoke)(void* context, gf_event* event)
+   .. cpp:member:: void (*invoke)(void* context, gf_event* event)
 
-   .. cpp:function:: void (GF_CALL* release)(void* context)
+   .. cpp:member:: void (*release)(void* context)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1017,9 +1017,9 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* begin_invoke)(gf_object target, const gf_callback* callback)
+   .. cpp:member:: gf_status (*begin_invoke)(gf_object target, const gf_callback* callback)
 
-   .. cpp:function:: gf_status (GF_CALL* run_pending)(uint64_t* invoked)
+   .. cpp:member:: gf_status (*run_pending)(uint64_t* invoked)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1080,11 +1080,11 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* subscribe)(gf_object source, gf_utf8_view interaction, const gf_callback* callback, gf_subscription* subscription)
+   .. cpp:member:: gf_status (*subscribe)(gf_object source, gf_utf8_view interaction, const gf_callback* callback, gf_subscription* subscription)
 
-   .. cpp:function:: gf_status (GF_CALL* subscribe_property)(gf_object source, gf_utf8_view property, const gf_callback* callback, gf_subscription* subscription)
+   .. cpp:member:: gf_status (*subscribe_property)(gf_object source, gf_utf8_view property, const gf_callback* callback, gf_subscription* subscription)
 
-   .. cpp:function:: gf_status (GF_CALL* disconnect)(gf_subscription subscription)
+   .. cpp:member:: gf_status (*disconnect)(gf_subscription subscription)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1155,19 +1155,19 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* capabilities)(gf_host_capabilities* record)
+   .. cpp:member:: gf_status (*capabilities)(gf_host_capabilities* record)
 
-   .. cpp:function:: gf_status (GF_CALL* platform_name)(char* buffer, uint64_t capacity, uint64_t* required)
+   .. cpp:member:: gf_status (*platform_name)(char* buffer, uint64_t capacity, uint64_t* required)
 
-   .. cpp:function:: gf_status (GF_CALL* set_cursor)(gf_pointer_cursor cursor)
+   .. cpp:member:: gf_status (*set_cursor)(gf_pointer_cursor cursor)
 
-   .. cpp:function:: gf_status (GF_CALL* read_clipboard_text)(char* buffer, uint64_t capacity, uint64_t* required)
+   .. cpp:member:: gf_status (*read_clipboard_text)(char* buffer, uint64_t capacity, uint64_t* required)
 
-   .. cpp:function:: gf_status (GF_CALL* write_clipboard_text)(gf_utf8_view text)
+   .. cpp:member:: gf_status (*write_clipboard_text)(gf_utf8_view text)
 
-   .. cpp:function:: gf_status (GF_CALL* show_dialog)(const gf_dialog_request* request, gf_dialog_result* result)
+   .. cpp:member:: gf_status (*show_dialog)(const gf_dialog_request* request, gf_dialog_result* result)
 
-   .. cpp:function:: gf_status (GF_CALL* dialog_path_at)(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+   .. cpp:member:: gf_status (*dialog_path_at)(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1246,29 +1246,29 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* create)(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object)
+   .. cpp:member:: gf_status (*create)(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object)
 
-   .. cpp:function:: gf_status (GF_CALL* retain)(gf_object object)
+   .. cpp:member:: gf_status (*retain)(gf_object object)
 
-   .. cpp:function:: gf_status (GF_CALL* release)(gf_object object)
+   .. cpp:member:: gf_status (*release)(gf_object object)
 
-   .. cpp:function:: gf_status (GF_CALL* dispose)(gf_object object)
+   .. cpp:member:: gf_status (*dispose)(gf_object object)
 
-   .. cpp:function:: gf_status (GF_CALL* state)(gf_object object, gf_object_state* state)
+   .. cpp:member:: gf_status (*state)(gf_object object, gf_object_state* state)
 
-   .. cpp:function:: gf_status (GF_CALL* type_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
+   .. cpp:member:: gf_status (*type_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
 
-   .. cpp:function:: gf_status (GF_CALL* stable_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
+   .. cpp:member:: gf_status (*stable_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
 
-   .. cpp:function:: gf_status (GF_CALL* insert_child)(gf_object parent, gf_object child, uint64_t index)
+   .. cpp:member:: gf_status (*insert_child)(gf_object parent, gf_object child, uint64_t index)
 
-   .. cpp:function:: gf_status (GF_CALL* remove_child)(gf_object parent, gf_object child)
+   .. cpp:member:: gf_status (*remove_child)(gf_object parent, gf_object child)
 
-   .. cpp:function:: gf_status (GF_CALL* child_count)(gf_object parent, uint64_t* count)
+   .. cpp:member:: gf_status (*child_count)(gf_object parent, uint64_t* count)
 
-   .. cpp:function:: gf_status (GF_CALL* child_at)(gf_object parent, uint64_t index, gf_object* child)
+   .. cpp:member:: gf_status (*child_at)(gf_object parent, uint64_t index, gf_object* child)
 
-   .. cpp:function:: gf_status (GF_CALL* parent)(gf_object object, gf_object* parent)
+   .. cpp:member:: gf_status (*parent)(gf_object object, gf_object* parent)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1295,11 +1295,11 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* get)(gf_object object, gf_utf8_view name, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+   .. cpp:member:: gf_status (*get)(gf_object object, gf_utf8_view name, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
-   .. cpp:function:: gf_status (GF_CALL* set)(gf_object object, gf_utf8_view name, const gf_value* value)
+   .. cpp:member:: gf_status (*set)(gf_object object, gf_utf8_view name, const gf_value* value)
 
-   .. cpp:function:: gf_status (GF_CALL* reset)(gf_object object, gf_utf8_view name)
+   .. cpp:member:: gf_status (*reset)(gf_object object, gf_utf8_view name)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1452,11 +1452,11 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* version)(gf_abi_version_info* info)
+   .. cpp:member:: gf_status (*version)(gf_abi_version_info* info)
 
-   .. cpp:function:: gf_status (GF_CALL* error_detail)(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
+   .. cpp:member:: gf_status (*error_detail)(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
 
-   .. cpp:function:: gf_status (GF_CALL* clear_error)(void)
+   .. cpp:member:: gf_status (*clear_error)(void)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1645,39 +1645,39 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* vocabulary_count)(gf_schema_vocabulary vocabulary, uint64_t* count)
+   .. cpp:member:: gf_status (*vocabulary_count)(gf_schema_vocabulary vocabulary, uint64_t* count)
 
-   .. cpp:function:: gf_status (GF_CALL* vocabulary_at)(gf_schema_vocabulary vocabulary, uint64_t index, gf_utf8_view* name)
+   .. cpp:member:: gf_status (*vocabulary_at)(gf_schema_vocabulary vocabulary, uint64_t index, gf_utf8_view* name)
 
-   .. cpp:function:: gf_status (GF_CALL* type_count)(uint64_t* count)
+   .. cpp:member:: gf_status (*type_count)(uint64_t* count)
 
-   .. cpp:function:: gf_status (GF_CALL* find_type)(gf_utf8_view name, uint64_t* type)
+   .. cpp:member:: gf_status (*find_type)(gf_utf8_view name, uint64_t* type)
 
-   .. cpp:function:: gf_status (GF_CALL* type_at)(uint64_t type, gf_schema_type* record)
+   .. cpp:member:: gf_status (*type_at)(uint64_t type, gf_schema_type* record)
 
-   .. cpp:function:: gf_status (GF_CALL* item_system_at)(uint64_t type, uint64_t system, gf_schema_item_system* record)
+   .. cpp:member:: gf_status (*item_system_at)(uint64_t type, uint64_t system, gf_schema_item_system* record)
 
-   .. cpp:function:: gf_status (GF_CALL* part_at)(uint64_t type, uint64_t system, uint64_t part, gf_schema_part* record)
+   .. cpp:member:: gf_status (*part_at)(uint64_t type, uint64_t system, uint64_t part, gf_schema_part* record)
 
-   .. cpp:function:: gf_status (GF_CALL* state_at)(uint64_t type, uint64_t system, uint64_t part, uint64_t state, gf_utf8_view* name)
+   .. cpp:member:: gf_status (*state_at)(uint64_t type, uint64_t system, uint64_t part, uint64_t state, gf_utf8_view* name)
 
-   .. cpp:function:: gf_status (GF_CALL* custom_state_at)(uint64_t type, uint64_t system, uint64_t state, gf_utf8_view* name)
+   .. cpp:member:: gf_status (*custom_state_at)(uint64_t type, uint64_t system, uint64_t state, gf_utf8_view* name)
 
-   .. cpp:function:: gf_status (GF_CALL* property_at)(uint64_t type, uint64_t property, gf_schema_property* record)
+   .. cpp:member:: gf_status (*property_at)(uint64_t type, uint64_t property, gf_schema_property* record)
 
-   .. cpp:function:: gf_status (GF_CALL* choice_at)(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record)
+   .. cpp:member:: gf_status (*choice_at)(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record)
 
-   .. cpp:function:: gf_status (GF_CALL* interaction_at)(uint64_t type, uint64_t interaction, gf_schema_interaction* record)
+   .. cpp:member:: gf_status (*interaction_at)(uint64_t type, uint64_t interaction, gf_schema_interaction* record)
 
-   .. cpp:function:: gf_status (GF_CALL* engine)(gf_schema_engine* record)
+   .. cpp:member:: gf_status (*engine)(gf_schema_engine* record)
 
-   .. cpp:function:: gf_status (GF_CALL* primitive_at)(uint64_t primitive, gf_schema_primitive* record)
+   .. cpp:member:: gf_status (*primitive_at)(uint64_t primitive, gf_schema_primitive* record)
 
-   .. cpp:function:: gf_status (GF_CALL* primitive_name_at)(uint64_t primitive, gf_schema_primitive_list list, uint64_t index, gf_utf8_view* name)
+   .. cpp:member:: gf_status (*primitive_name_at)(uint64_t primitive, gf_schema_primitive_list list, uint64_t index, gf_utf8_view* name)
 
-   .. cpp:function:: gf_status (GF_CALL* parameter_at)(uint64_t primitive, uint64_t parameter, gf_schema_parameter* record)
+   .. cpp:member:: gf_status (*parameter_at)(uint64_t primitive, uint64_t parameter, gf_schema_parameter* record)
 
-   .. cpp:function:: gf_status (GF_CALL* parameter_choice_at)(uint64_t primitive, uint64_t parameter, uint64_t choice, gf_utf8_view* name)
+   .. cpp:member:: gf_status (*parameter_choice_at)(uint64_t primitive, uint64_t parameter, uint64_t choice, gf_utf8_view* name)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1850,25 +1850,25 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* load)(const gf_theme_package* package, gf_theme_report* report)
+   .. cpp:member:: gf_status (*load)(const gf_theme_package* package, gf_theme_report* report)
 
-   .. cpp:function:: gf_status (GF_CALL* reset)(void)
+   .. cpp:member:: gf_status (*reset)(void)
 
-   .. cpp:function:: gf_status (GF_CALL* install)(const gf_theme_package* package, gf_theme_report* report)
+   .. cpp:member:: gf_status (*install)(const gf_theme_package* package, gf_theme_report* report)
 
-   .. cpp:function:: gf_status (GF_CALL* remove)(gf_utf8_view name, uint32_t* removed)
+   .. cpp:member:: gf_status (*remove)(gf_utf8_view name, uint32_t* removed)
 
-   .. cpp:function:: gf_status (GF_CALL* diagnostic_at)(uint64_t index, gf_theme_diagnostic* record)
+   .. cpp:member:: gf_status (*diagnostic_at)(uint64_t index, gf_theme_diagnostic* record)
 
-   .. cpp:function:: gf_status (GF_CALL* diagnostic_text)(uint64_t index, gf_theme_diagnostic_text text, char* buffer, uint64_t capacity, uint64_t* required)
+   .. cpp:member:: gf_status (*diagnostic_text)(uint64_t index, gf_theme_diagnostic_text text, char* buffer, uint64_t capacity, uint64_t* required)
 
-   .. cpp:function:: gf_status (GF_CALL* theme_id)(char* buffer, uint64_t capacity, uint64_t* required)
+   .. cpp:member:: gf_status (*theme_id)(char* buffer, uint64_t capacity, uint64_t* required)
 
-   .. cpp:function:: gf_status (GF_CALL* publish_value)(gf_utf8_view name, double value)
+   .. cpp:member:: gf_status (*publish_value)(gf_utf8_view name, double value)
 
-   .. cpp:function:: gf_status (GF_CALL* withdraw_value)(gf_utf8_view name)
+   .. cpp:member:: gf_status (*withdraw_value)(gf_utf8_view name)
 
-   .. cpp:function:: gf_status (GF_CALL* published_value)(gf_utf8_view name, double* value, uint32_t* present)
+   .. cpp:member:: gf_status (*published_value)(gf_utf8_view name, double* value, uint32_t* present)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1925,9 +1925,9 @@ Types
 
    .. rubric:: Methods
 
-   .. cpp:function:: gf_status (GF_CALL* run)(gf_object root, const gf_run_options* options)
+   .. cpp:member:: gf_status (*run)(gf_object root, const gf_run_options* options)
 
-   .. cpp:function:: gf_status (GF_CALL* request_close)(gf_object root)
+   .. cpp:member:: gf_status (*request_close)(gf_object root)
 
    .. cpp:member:: uint32_t struct_size
 
