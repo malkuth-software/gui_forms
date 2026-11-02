@@ -304,29 +304,6 @@ jobs:
       - name: Report cache statistics
         if: always()
         run: ccache --show-stats --verbose
-      # Only main saves (pull requests restore main's): per-PR entries evicted
-      # the dependency caches from the repository's 10 GB. The dependencies
-      # are saved after the build, which fetched miniaudio's sources.
-      - uses: actions/cache/save@v4
-        if: always() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.compile.outcome == 'success' && steps.dependencies.outputs.cache-hit != 'true'
-        with:
-          path: |
-            gui_forms/third_party/harfbuzz
-            gui_forms/third_party/freetype
-            gui_forms/third_party/libunibreak
-            .build/native-${{ matrix.platform }}/gui-forms/_deps/gui_forms_miniaudio-src
-          key: ${{ steps.dependencies.outputs.cache-primary-key }}
-      # The saved cache is this build's working set, not every generation up
-      # to CCACHE_MAXSIZE (notes:planning/BUILD_SIZE_PLAN_2026-10-23.md, step 1).
-      # The programs build compiles everything, so the set is complete.
-      - name: Keep only the compiler cache entries this build used
-        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.objects.outputs.cache-hit != 'true'
-        run: python gui_forms/tools/ci_cache.py evict --since "$GUI_FORMS_JOB_START"
-      - uses: actions/cache/save@v4
-        if: always() && github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.compile.outcome == 'success' && steps.objects.outputs.cache-hit != 'true'
-        with:
-          path: .ccache
-          key: ${{ steps.objects.outputs.cache-primary-key }}
       # A pull request or a merge group called from native.yml runs only the
       # tests its native job did not pass on this tree: those of the Gallery,
       # the demoboard and any the native job skipped (tools/native_tests.py).
@@ -370,6 +347,32 @@ jobs:
           else
             ctest "$@"
           fi
+      # The caches are saved after the build and its tests passed, or the tests
+      # were carried from the run that passed them (owner, 2026-11-01): a failed
+      # build's cache must never become the newest entry the next run restores.
+      # Only main saves (pull requests restore main's): per-PR entries evicted
+      # the dependency caches from the repository's 10 GB. The dependencies
+      # are saved after the build, which fetched miniaudio's sources.
+      - uses: actions/cache/save@v4
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.dependencies.outputs.cache-hit != 'true'
+        with:
+          path: |
+            gui_forms/third_party/harfbuzz
+            gui_forms/third_party/freetype
+            gui_forms/third_party/libunibreak
+            .build/native-${{ matrix.platform }}/gui-forms/_deps/gui_forms_miniaudio-src
+          key: ${{ steps.dependencies.outputs.cache-primary-key }}
+      # The saved cache is this build's working set, not every generation up
+      # to CCACHE_MAXSIZE (notes:planning/BUILD_SIZE_PLAN_2026-10-23.md, step 1).
+      # The programs build compiles everything, so the set is complete.
+      - name: Keep only the compiler cache entries this build used
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.objects.outputs.cache-hit != 'true'
+        run: python gui_forms/tools/ci_cache.py evict --since "$GUI_FORMS_JOB_START"
+      - uses: actions/cache/save@v4
+        if: success() && github.event_name != 'pull_request' && github.event_name != 'merge_group' && steps.objects.outputs.cache-hit != 'true'
+        with:
+          path: .ccache
+          key: ${{ steps.objects.outputs.cache-primary-key }}
       # --- package, then install and launch what was packaged -----------------------
       - name: Package the programs
         run: |
