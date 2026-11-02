@@ -1315,6 +1315,10 @@ public:
     // is whether any is set.
     struct RecipeResolution final {
         std::array<const RecipeDeclaration*, recipe_field_count> fields{};
+        // The cascade level of each winning declaration's rule, by the same
+        // position; built_in where `fields` holds null. An authored colour
+        // (PartPaint::authored_foreground) stands under the important ones.
+        std::array<CascadeLevel, recipe_field_count> levels{};
         bool authored{};
     };
 

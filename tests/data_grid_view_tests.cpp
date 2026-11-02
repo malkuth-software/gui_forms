@@ -9,6 +9,7 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include <algorithm>
 #include <cstdint>
 #include <cstdlib>
 #include <iostream>
@@ -170,6 +171,9 @@ std::shared_ptr<DataGridView> make_grid(const char* identity) {
     (*grid).add_row({.stable_id = {"bravo"}, .cells = {BindingValue{std::string("Bravo")}, BindingValue{false},
                                                       BindingValue{std::string("AM")}}});
     (*grid).add_row({.stable_id = {"charlie"}, .cells = {BindingValue{std::string("Charlie")}}});
+    // The tests count the fixture's three rows, so the new row (on by
+    // default) is turned off here; new_row_unbound turns it back on.
+    (*grid).set_allow_user_to_add_rows(false);
     return grid;
 }
 
@@ -260,6 +264,11 @@ struct SetCount final {
     DataGridView* grid{};
     std::size_t count{};
     void operator()() const { (*grid).set_row_count(count); }
+};
+struct SetSortMode final {
+    DataGridView* grid{};
+    DataGridViewColumnSortMode mode{};
+    void operator()() const { (*grid).set_column_sort_mode(0U, mode); }
 };
 struct SetVirtualRows final {
     DataGridView* grid{};
@@ -821,6 +830,9 @@ void unbound_row_identity() {
 void sorting_headers_and_resizing() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.sort");
     static_cast<void>((*grid).set_cell_value(row_at(2U), 0U, BindingValue{std::string("Able")}));
+    // The header click here only raises the event; sort_modes covers the
+    // automatic sort a text column's click makes by default.
+    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     std::vector<std::size_t> header_clicks;
@@ -874,6 +886,9 @@ void bound_rows() {
     std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.bound"));
     (*grid).set_columns({{.name = "name", .header_text = "Name", .data_property_name = "Name"},
                          {.name = "city", .header_text = "City", .data_property_name = "City"}});
+    // The rows counted below are the source's records alone; new_row_bound
+    // covers the new row of a bound grid.
+    (*grid).set_allow_user_to_add_rows(false);
     Window window(grid, {360.0, 160.0});
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
     BindingRecord::FieldMap first;
@@ -1170,7 +1185,7 @@ void link_cells() {
         {.name = "site", .header_text = "Site", .kind = DataGridViewColumnKind::link, .width = 150.0,
          .link_text = "Open"},
         {.name = "plain", .header_text = "Plain", .kind = DataGridViewColumnKind::link, .width = 100.0,
-         .alignment = DataGridViewCellAlignment::end, .track_visited_state = false},
+         .default_cell_style = {.alignment = DataGridViewContentAlignment::middle_end}, .track_visited_state = false},
     });
     Window window(grid, {420.0, 160.0});
     (*grid).add_row({.stable_id = {"alpha"},
@@ -1604,7 +1619,13 @@ void new_row_unbound() {
     std::shared_ptr<DataGridView> grid = make_grid("grid.new-row");
     Window window(grid, {360.0, 200.0});
     window.perform_layout();
-    require(!(*grid).new_row_index() && (*grid).row_count() == 3U, "no new row by default");
+    std::shared_ptr<DataGridView> fresh = make_control<DataGridView>(StableId("grid.new-row.fresh"));
+    require((*fresh).allow_user_to_add_rows() && (*fresh).allow_user_to_delete_rows(),
+            "adding and deleting rows are on by default, as in Windows Forms");
+    (*fresh).set_columns(sample_columns());
+    require((*fresh).row_count() == 1U && (*fresh).new_row_index() == row_at(0U),
+            "a fresh grid with columns shows only the new row");
+    require(!(*grid).new_row_index() && (*grid).row_count() == 3U, "no new row once turned off");
     (*grid).set_allow_user_to_add_rows(true);
     window.perform_layout();
     require((*grid).new_row_index() == row_at(3U) && (*grid).row_count() == 4U,
@@ -1676,6 +1697,7 @@ void deleting_rows() {
     Window window(grid, {360.0, 160.0});
     window.perform_layout();
     require(window.request_focus(grid), "focus");
+    (*grid).set_allow_user_to_delete_rows(false);
     require((*grid).set_current_cell(cell_at(1U, 0U)) && !key(window, PhysicalKey::delete_forward) &&
                 (*grid).row_count() == 3U,
             "Delete does nothing unless deleting is allowed");
@@ -1758,6 +1780,547 @@ void error_text() {
 
 } // namespace
 
+// -- batch 2: styles and formatting ---------------------------------------------
+
+struct SetBadFormat final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_default_cell_style({.format = std::string("N2")}); }
+};
+struct SetNegativePadding final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_cell_style(row_at(0U), 0U, {.padding = Insets{-1.0, 0.0, 0.0, 0.0}}); }
+};
+struct StyleCellPastEnd final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_cell_style(row_at(9U), 0U, {}); }
+};
+
+// Gives "bravo"'s name its own text and puts "alpha"'s name at the top.
+struct FormatNames final {
+    int* calls{};
+    void operator()(DataGridViewCellFormattingEvent& event) const {
+        ++*calls;
+        if (event.column != 0U) return;
+        if (event.row_id.value == "bravo") {
+            event.formatted_value = "B!";
+            event.formatting_applied = true;
+        }
+        if (event.row_id.value == "alpha") event.cell_style.alignment = DataGridViewContentAlignment::top_start;
+    }
+};
+
+// Parses "*" as the text "star".
+struct ParseStar final {
+    void operator()(DataGridViewCellParsingEvent& event) const {
+        if (event.formatted_value != "*") return;
+        event.value = BindingValue{std::string("star")};
+        event.parsing_applied = true;
+    }
+};
+
+struct DrawCells final {
+    std::vector<std::string>* ids{};
+    bool draw_default{};
+    void operator()(ItemContentPaint& item) const {
+        (*ids).emplace_back(item.stable_id);
+        item.draw_default = draw_default;
+    }
+};
+
+// Replaces the grid's columns from inside its paint.
+struct ReplaceColumns final {
+    DataGridView* grid{};
+    int* calls{};
+    void operator()(ItemContentPaint&) const {
+        ++*calls;
+        (*grid).set_columns({{.name = "only", .header_text = "Only"}});
+    }
+};
+
+void cell_styles() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.styles");
+    Window window(grid, {360.0, 200.0});
+    window.perform_layout();
+    const DataGridViewCellStyle empty{};
+    require((*grid).default_cell_style() == empty && (*grid).inherited_cell_style(row_at(0U), 0U) == empty &&
+                (*grid).inherited_column_header_style(0U) == empty,
+            "every style is empty by default: an unstyled grid is the theme's");
+    const FontSpec big{FontRole::content, 15.0, 700, false};
+    (*grid).set_default_cell_style({.font = big, .alignment = DataGridViewContentAlignment::middle_start});
+    (*grid).set_column_default_cell_style(0U, {.alignment = DataGridViewContentAlignment::middle_end});
+    (*grid).set_rows_default_cell_style({.wrap_mode = true});
+    (*grid).set_alternating_rows_default_cell_style({.fore_color = Color{1, 2, 3, 255}});
+    (*grid).set_row_default_cell_style(row_at(2U), {.alignment = DataGridViewContentAlignment::bottom_center});
+    (*grid).set_cell_style(row_at(2U), 0U, {.padding = Insets{10.0, 2.0, 10.0, 2.0}});
+    const DataGridViewCellStyle first = (*grid).inherited_cell_style(row_at(0U), 0U);
+    require(first.font == big && first.alignment == DataGridViewContentAlignment::middle_end &&
+                first.wrap_mode == true && !first.fore_color,
+            "a cell inherits the column's alignment over the grid's, the rows' wrap mode and the grid's font");
+    const DataGridViewCellStyle second = (*grid).inherited_cell_style(row_at(1U), 1U);
+    require(second.fore_color == Color{1, 2, 3, 255} && second.alignment == DataGridViewContentAlignment::middle_start,
+            "odd positions take the alternating rows' style; another column the grid's alignment");
+    const DataGridViewCellStyle third = (*grid).inherited_cell_style(row_at(2U), 0U);
+    require(third.alignment == DataGridViewContentAlignment::bottom_center && third.padding &&
+                (*third.padding).left == 10.0 && (*grid).cell_style(row_at(2U), 0U).padding &&
+                !(*grid).cell_style(row_at(2U), 0U).alignment,
+            "a row's style wins over the column's, a cell's own over its row's");
+    (*grid).set_column_headers_default_cell_style({.alignment = DataGridViewContentAlignment::middle_center});
+    (*grid).set_column_header_cell_style(1U, {.alignment = DataGridViewContentAlignment::middle_end});
+    require((*grid).inherited_column_header_style(0U).alignment == DataGridViewContentAlignment::middle_center &&
+                (*grid).inherited_column_header_style(1U).alignment == DataGridViewContentAlignment::middle_end &&
+                (*grid).inherited_column_header_style(0U).font == big && (*grid).inherited_row_header_style().font == big,
+            "headers inherit their own style, the headers', then the grid's");
+    require(throws<std::invalid_argument>(SetBadFormat{grid.get()}) &&
+                throws<std::invalid_argument>(SetNegativePadding{grid.get()}) &&
+                throws<std::out_of_range>(StyleCellPastEnd{grid.get()}),
+            "a format outside F0 to F12, a negative padding and a cell past the rows are refused");
+
+    // Styles are kept by row ID: they follow their rows and end with them.
+    require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
+                (*grid).row_position(id("charlie")) == row_at(0U) &&
+                (*grid).cell_style(row_at(0U), 0U).padding && (*grid).row_default_cell_style(row_at(0U)).alignment,
+            "sorting moves a row's and a cell's styles with the row");
+    (*grid).remove_row_at(row_at(0U));
+    require(!(*grid).row_default_cell_style(row_at(0U)).alignment, "a removed row's styles end with it");
+
+    // Geometry: padding and alignment place the content part.
+    std::shared_ptr<DataGridView> placed = make_grid("grid.styles.placed");
+    Window placed_window(placed, {360.0, 200.0});
+    (*placed).set_row_height(40.0);
+    placed_window.perform_layout();
+    const std::vector<DataGridView::Cell> before = (*placed).realized_cells();
+    const DataGridView::Cell* plain = find_cell(before, 0U, 0U);
+    require(plain != nullptr && (*plain).parts.cell_content.present, "a text cell's content");
+    const Rect plain_content = (*plain).parts.cell_content.bounds;
+    (*placed).set_cell_style(row_at(0U), 0U, {.alignment = DataGridViewContentAlignment::top_start,
+                                              .padding = Insets{12.0, 3.0, 12.0, 3.0}});
+    placed_window.perform_layout();
+    const std::vector<DataGridView::Cell> after = (*placed).realized_cells();
+    const DataGridView::Cell* styled = find_cell(after, 0U, 0U);
+    require(styled != nullptr && (*styled).parts.cell_content.bounds.x == plain_content.x + 8.0 &&
+                (*styled).parts.cell_content.bounds.y == plain_content.y + 3.0 &&
+                (*styled).parts.cell_content.bounds.height < plain_content.height - 6.0,
+            "padding moves the content in and top alignment gives it one line at the top");
+}
+
+void formatting_and_parsing() {
+    std::shared_ptr<DataGridView> grid = make_control<DataGridView>(StableId("grid.format"));
+    (*grid).set_allow_user_to_add_rows(false);
+    (*grid).set_columns({{.name = "price", .header_text = "Price", .value_kind = BindingValueKind::number},
+                         {.name = "note", .header_text = "Note"}});
+    (*grid).add_row({.stable_id = {"a"}, .cells = {BindingValue{3.14159}, BindingValue{std::string("x")}}});
+    (*grid).add_row({.stable_id = {"b"}, .cells = {BindingValue{}, BindingValue{}}});
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).cell_text(row_at(0U), 0U) == "3.14159", "an unformatted number shows as it is");
+    (*grid).set_column_default_cell_style(0U, {.format = std::string("F2"),
+                                               .null_value = BindingValue{std::string("(none)")},
+                                               .data_source_null_value = BindingValue{-1.0}});
+    require((*grid).cell_text(row_at(0U), 0U) == "3.14" && (*grid).cell_text(row_at(1U), 0U) == "(none)",
+            "the style's fixed format and null value give the cell's text");
+    require(window.request_focus(grid) && (*grid).set_current_cell(cell_at(0U, 0U)) && (*grid).begin_edit() &&
+                (*(*grid).editing_control()).text() == "3.14",
+            "an edit begins with the formatted text");
+    require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{3.14159},
+            "an edit the user did not change stores nothing");
+    require((*grid).set_current_cell(cell_at(1U, 0U)) && (*grid).set_current_cell(cell_at(0U, 0U)) &&
+                (*grid).begin_edit(),
+            "edit the number again");
+    (*(*grid).editing_control()).set_text("(none)");
+    require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 0U) == BindingValue{-1.0},
+            "the null value's text stores the data source null value");
+
+    int formatted = 0;
+    SubscriptionToken format_token = (*grid).cell_formatting().subscribe(FormatNames{&formatted});
+    SubscriptionToken parse_token = (*grid).cell_parsing().subscribe(ParseStar{});
+    require((*grid).cell_text(row_at(0U), 1U) == "x" && formatted > 0, "cell_formatting is raised for cell text");
+    require((*grid).set_current_cell(cell_at(0U, 1U)) && (*grid).begin_edit(), "edit the note");
+    (*(*grid).editing_control()).set_text("*");
+    require((*grid).end_edit() && (*grid).cell_value(row_at(0U), 1U) == BindingValue{std::string("star")},
+            "a cell_parsing handler gives the stored value");
+
+    std::shared_ptr<DataGridView> named = make_grid("grid.format.named");
+    Window named_window(named, {360.0, 200.0});
+    (*named).set_row_height(40.0);
+    named_window.perform_layout();
+    const std::vector<DataGridView::Cell> plain = (*named).realized_cells();
+    const DataGridView::Cell* plain_alpha = find_cell(plain, 0U, 0U);
+    require(plain_alpha != nullptr, "alpha's name");
+    const double plain_height = (*plain_alpha).parts.cell_content.bounds.height;
+    int named_calls = 0;
+    SubscriptionToken named_token = (*named).cell_formatting().subscribe(FormatNames{&named_calls});
+    require((*named).cell_text(row_at(1U), 0U) == "B!", "a handler's formatted value is the cell's text");
+    const std::vector<DataGridView::Cell> cells = (*named).realized_cells();
+    const DataGridView::Cell* alpha = find_cell(cells, 0U, 0U);
+    require(alpha != nullptr && (*alpha).parts.cell_content.bounds.height < plain_height,
+            "the style a handler leaves places the content");
+    CountingPainter painter;
+    (*named).on_paint(painter, (*named).client_rectangle());
+    bool painted_handler_text = false;
+    for (const std::string& drawn : painter.texts) {
+        if (drawn == "B!") painted_handler_text = true;
+    }
+    require(painted_handler_text, "the paint draws the handler's text");
+}
+
+void borders_and_owner_drawing() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.borders");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).border_style() == BorderStyle::line && (*grid).parts().edge.present &&
+                (*grid).cell_border_style() == DataGridViewCellBorderStyle::single &&
+                (*grid).column_headers_border_style() == DataGridViewHeaderBorderStyle::raised,
+            "a grid has a frame, single cell lines and raised header lines by default");
+    (*grid).set_border_style(BorderStyle::none);
+    (*grid).set_cell_border_style(DataGridViewCellBorderStyle::single_vertical);
+    (*grid).set_column_headers_border_style(DataGridViewHeaderBorderStyle::none);
+    (*grid).set_row_headers_border_style(DataGridViewHeaderBorderStyle::none);
+    window.perform_layout();
+    const std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* cell = find_cell(cells, 0U, 0U);
+    const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(!(*grid).parts().edge.present && cell != nullptr && (*cell).parts.cell_vertical_rule.present &&
+                !(*cell).parts.cell_horizontal_rule.present,
+            "no frame, and vertical cell lines alone");
+    require(!columns[0].parts.column_divider.present && columns[0].parts.column_grip.present &&
+                !rows[0].parts.row_rule.present,
+            "header lines go; a column header keeps its resize grip");
+    (*grid).set_cell_border_style(DataGridViewCellBorderStyle::raised);
+    window.perform_layout();
+    const std::vector<DataGridView::Cell> raised = (*grid).realized_cells();
+    const DataGridView::Cell* raised_cell = find_cell(raised, 0U, 0U);
+    require(raised_cell != nullptr && (*raised_cell).parts.cell_vertical_rule.present &&
+                (*raised_cell).parts.cell_horizontal_rule.present,
+            "raised lines are the same dividers as single ones");
+
+    std::vector<std::string> drawn_ids;
+    SubscriptionToken draw_token = (*grid).draw_item_content().subscribe(DrawCells{&drawn_ids, false});
+    (*grid).set_draw_mode(ItemDrawMode::owner_draw);
+    CountingPainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    bool painted_alpha = false;
+    for (const std::string& drawn : painter.texts) {
+        if (drawn == "Alpha") painted_alpha = true;
+    }
+    require(drawn_ids.size() == 12U && drawn_ids[0] == "alpha.name" && !painted_alpha,
+            "owner drawing raises each cell and replaces its content");
+    draw_token.disconnect();
+    drawn_ids.clear();
+    SubscriptionToken default_token = (*grid).draw_item_content().subscribe(DrawCells{&drawn_ids, true});
+    CountingPainter second;
+    (*grid).on_paint(second, (*grid).client_rectangle());
+    bool painted_again = false;
+    for (const std::string& drawn : second.texts) {
+        if (drawn == "Alpha") painted_again = true;
+    }
+    require(painted_again, "draw_default keeps the default content");
+    default_token.disconnect();
+
+    int replaced = 0;
+    SubscriptionToken replace_token = (*grid).draw_item_content().subscribe(ReplaceColumns{grid.get(), &replaced});
+    CountingPainter third;
+    (*grid).on_paint(third, (*grid).client_rectangle());
+    require(replaced == 1 && (*grid).columns().size() == 1U, "a handler that changes the grid stops the paint");
+}
+
+// -- authored colours (owner decision T4-1) ------------------------------------
+
+// Records the colours fills, text and lines are drawn in.
+class ColourPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color color) override { fills.push_back(color); }
+    void fill_rounded_rect(Rect, double, Color color) override { fills.push_back(color); }
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color color, double) override { lines.push_back(color); }
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color color) override { texts.push_back(color); }
+    void draw_image(ImageId, Rect, double) override {}
+
+    std::vector<Color> fills;
+    std::vector<Color> lines;
+    std::vector<Color> texts;
+};
+
+bool contains_colour(const std::vector<Color>& colours, Color wanted) {
+    for (const Color& colour : colours) {
+        if (colour == wanted) return true;
+    }
+    return false;
+}
+
+void authored_colours() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.colours");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    const Color back{250, 240, 200, 255};
+    const Color fore{120, 10, 20, 255};
+    const Color line{10, 130, 40, 255};
+    const Color highlight{20, 30, 160, 255};
+    const Color header_back{60, 60, 60, 255};
+    const Color header_fore{240, 240, 240, 255};
+    const Color empty{200, 200, 220, 255};
+    std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background &&
+                !(*find_cell(cells, 1U, 0U)).parts.cell_content.authored_foreground &&
+                !(*grid).parts().well.authored_background,
+            "an unstyled grid authors no colours");
+
+    (*grid).set_default_cell_style({.back_color = back, .fore_color = fore});
+    (*grid).set_grid_color(line);
+    window.perform_layout();
+    cells = (*grid).realized_cells();
+    const DataGridView::Cell text = *find_cell(cells, 1U, 0U);
+    require(text.parts.cell_selection.authored_background == back &&
+                text.parts.cell_content.authored_foreground == fore &&
+                text.parts.cell_vertical_rule.authored_foreground == line &&
+                text.parts.cell_horizontal_rule.authored_foreground == line,
+            "a cell's background, text and lines take the inherited style's and the grid's colours");
+    require((*find_cell(cells, 1U, 3U)).parts.cell_button_label.authored_foreground == fore,
+            "a button cell's label takes the fore colour");
+    ColourPainter painter;
+    (*grid).on_paint(painter, (*grid).client_rectangle());
+    require(contains_colour(painter.fills, back) && contains_colour(painter.texts, fore) &&
+                contains_colour(painter.lines, line),
+            "the paint fills, writes and rules in the authored colours");
+
+    (*grid).set_cell_selected(row_at(1U), 0U, true);
+    window.perform_layout();
+    cells = (*grid).realized_cells();
+    require(!(*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background,
+            "a selected cell with no selection colour keeps the theme's selection look");
+    (*grid).set_default_cell_style({.back_color = back, .fore_color = fore, .selection_back_color = highlight});
+    window.perform_layout();
+    cells = (*grid).realized_cells();
+    require((*find_cell(cells, 1U, 0U)).parts.cell_selection.authored_background == highlight,
+            "a selected cell shows the selection back colour");
+
+    (*grid).set_column_headers_default_cell_style({.back_color = header_back, .fore_color = header_fore});
+    (*grid).set_row_headers_default_cell_style({.back_color = header_back, .fore_color = header_fore});
+    window.perform_layout();
+    require(!(*grid).realized_columns()[0].parts.column_header.authored_background &&
+                !(*grid).realized_rows()[0].parts.row_header.authored_background,
+            "with header visual styles the theme draws the headers");
+    (*grid).set_enable_headers_visual_styles(false);
+    window.perform_layout();
+    const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
+    const std::vector<DataGridView::Row> rows = (*grid).realized_rows();
+    require(columns[0].parts.column_header.authored_background == header_back &&
+                columns[0].parts.column_label.authored_foreground == header_fore &&
+                rows[0].parts.row_header.authored_background == header_back,
+            "without them the header styles' colours stand on the headers");
+
+    (*grid).set_background_color(empty);
+    window.perform_layout();
+    ColourPainter background;
+    (*grid).on_paint(background, (*grid).client_rectangle());
+    require((*grid).parts().well.authored_background == empty && contains_colour(background.fills, empty),
+            "the background colour fills the area no cell covers");
+}
+
+// -- sorting and the clipboard (batch 3) ---------------------------------------
+
+// Decides every comparison in reverse text order, records what it was
+// asked, and tries a change the grid refuses while it sorts.
+struct ReverseCompare final {
+    DataGridView* grid{};
+    int* calls{};
+    bool* refused{};
+    bool* well_formed{};
+    void operator()(DataGridViewSortCompareEvent& event) const {
+        ++*calls;
+        const std::string first = std::get<std::string>(event.cell_value1);
+        const std::string second = std::get<std::string>(event.cell_value2);
+        if (event.column != 0U || event.row_id1.empty() || event.row_id2.empty() || event.row1 == event.row2) {
+            *well_formed = false;
+        }
+        event.sort_result = second.compare(first);
+        event.handled = true;
+        try {
+            static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("x")}));
+        } catch (const std::logic_error&) {
+            *refused = true;
+        }
+    }
+};
+
+// Orders rows by their IDs, last first.
+class IdDescending final : public DataGridViewRowComparer {
+public:
+    int compare(const DataGridViewRow& left, const DataGridViewRow& right) const override {
+        const int result = right.stable_id.value.compare(left.stable_id.value);
+        return result;
+    }
+};
+
+// Says every row goes first: not an order, which the grid must survive.
+class AlwaysBefore final : public DataGridViewRowComparer {
+public:
+    int compare(const DataGridViewRow&, const DataGridViewRow&) const override { return -1; }
+};
+
+std::vector<std::string> row_ids(const DataGridView& grid) {
+    std::vector<std::string> ids{};
+    for (std::size_t position = 0U; position < grid.row_count(); ++position) {
+        ids.push_back(grid.row_id(row_at(position)).value);
+    }
+    return ids;
+}
+
+void sort_modes() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.sort.modes");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::automatic &&
+                (*grid).column_sort_mode(1U) == DataGridViewColumnSortMode::not_sortable &&
+                (*grid).column_sort_mode(2U) == DataGridViewColumnSortMode::not_sortable &&
+                !(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none,
+            "text columns sort automatically by default, other kinds not at all, and nothing is sorted");
+    int sorted_count = 0;
+    std::vector<std::size_t> header_clicks;
+    SubscriptionToken sorted_token = (*grid).sorted().subscribe(Counter{&sorted_count});
+    SubscriptionToken header_token = (*grid).column_header_click().subscribe(RecordIndex{&header_clicks});
+
+    static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Delta")}));
+    click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
+    require(header_clicks.size() == 1U && sorted_count == 1 && (*grid).sorted_column() == 0U &&
+                (*grid).sort_order() == DataGridViewSortDirection::ascending &&
+                row_ids(*grid) == std::vector<std::string>{"bravo", "charlie", "alpha"} &&
+                (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::ascending,
+            "clicking an automatic column's header sorts ascending and shows the glyph");
+    window.perform_layout();
+    click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
+    require(sorted_count == 2 && (*grid).sort_order() == DataGridViewSortDirection::descending &&
+                row_ids(*grid) == std::vector<std::string>{"alpha", "charlie", "bravo"},
+            "a second click sorts descending");
+    window.perform_layout();
+    click(window, centre(*grid, (*grid).realized_columns()[1].parts.column_label.bounds));
+    require(header_clicks.size() == 3U && sorted_count == 2 && (*grid).sorted_column() == 0U,
+            "a not_sortable column's click raises the event and leaves the order");
+    (*grid).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    require((*grid).column_sort_mode(0U) == DataGridViewColumnSortMode::programmatic,
+            "the sort mode is the column's own once set");
+    click(window, centre(*grid, (*grid).realized_columns()[0].parts.column_label.bounds));
+    require(sorted_count == 2 && row_ids(*grid) == std::vector<std::string>{"alpha", "charlie", "bravo"},
+            "a programmatic column's click leaves the order to the application");
+    (*grid).set_column_sort_mode(1U, DataGridViewColumnSortMode::automatic);
+    require((*grid).sort(1U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == 1U &&
+                row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"},
+            "sort orders by any column whatever its mode: empty, false, true");
+
+    int calls = 0;
+    bool refused = false;
+    bool well_formed = true;
+    {
+        SubscriptionToken compare_token =
+            (*grid).sort_compare().subscribe(ReverseCompare{grid.get(), &calls, &refused, &well_formed});
+        require((*grid).sort(0U, DataGridViewSortDirection::ascending) && calls > 0 && well_formed &&
+                    row_ids(*grid) == std::vector<std::string>{"alpha", "charlie", "bravo"},
+                "sort_compare's handler decides each comparison, given the column, values, IDs and positions");
+        require(refused && (*grid).cell_text(row_at(0U), 0U) == "Delta",
+                "the grid refuses a handler's change while it sorts");
+        require((*grid).sort(0U, DataGridViewSortDirection::descending) &&
+                    row_ids(*grid) == std::vector<std::string>{"bravo", "charlie", "alpha"},
+                "a descending sort reverses the handler's results");
+    }
+    require((*grid).sort(0U, DataGridViewSortDirection::ascending) &&
+                row_ids(*grid) == std::vector<std::string>{"bravo", "charlie", "alpha"},
+            "with the handler gone the grid's value order is back");
+
+    const IdDescending by_id{};
+    require((*grid).sort(by_id) && row_ids(*grid) == std::vector<std::string>{"charlie", "bravo", "alpha"} &&
+                !(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none &&
+                (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::none,
+            "sort(comparer) orders by the comparer and leaves no sorted column or glyph");
+    const AlwaysBefore inconsistent{};
+    require((*grid).sort(inconsistent), "a comparer that is not an order still sorts");
+    std::vector<std::string> ids = row_ids(*grid);
+    std::sort(ids.begin(), ids.end());
+    require(ids == std::vector<std::string>{"alpha", "bravo", "charlie"}, "and the rows are all still there, once");
+
+    (*grid).set_column_sort_mode(0U, std::nullopt);
+    require((*grid).sort(0U, DataGridViewSortDirection::ascending) && (*grid).sorted_column() == 0U,
+            "sorted again");
+    (*grid).clear_rows();
+    require(!(*grid).sorted_column() && (*grid).sort_order() == DataGridViewSortDirection::none &&
+                (*grid).columns()[0].sort_glyph == DataGridViewSortDirection::none,
+            "replacing the rows ends an automatic sort and its glyph");
+    require(throws<std::invalid_argument>(SetSortMode{grid.get(), static_cast<DataGridViewColumnSortMode>(7)}),
+            "a sort mode outside the enumeration is refused");
+}
+
+// A host whose clipboard keeps the last text written.
+class ClipboardServices final : public HostServices {
+public:
+    ClipboardServices() : HostServices(capabilities()) {}
+    ~ClipboardServices() override { shutdown(); }
+    static HostCapabilities capabilities() {
+        HostCapabilities result{};
+        result.platform = "clipboard-fixture";
+        result.available = HostCapability::lifecycle | HostCapability::clipboard;
+        return result;
+    }
+    std::string written{};
+    int writes{};
+
+protected:
+    HostMonitorResult query_monitors_impl() override { return {{HostServiceError::unsupported}, {}}; }
+    HostServiceStatus set_cursor_impl(CursorKind) override { return {}; }
+    HostServiceStatus set_pointer_capture_impl(bool, std::uint64_t) override { return {}; }
+    HostClipboardTextResult read_clipboard_text_impl() override { return {}; }
+    HostServiceStatus write_clipboard_text_impl(std::string_view text) override {
+        written = std::string(text);
+        ++writes;
+        return {};
+    }
+    HostDialogResult show_dialog_impl(const HostDialogRequest&) override { return {}; }
+    HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest&) override { return {HostServiceError::unsupported}; }
+};
+
+void clipboard() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.clipboard");
+    Window window(grid, {360.0, 160.0});
+    ClipboardServices services{};
+    HostSession session(window, ClipboardServices::capabilities(), &services);
+    window.perform_layout();
+    require((*grid).clipboard_copy_mode() == DataGridViewClipboardCopyMode::enable_with_auto_header_text,
+            "copies take header texts automatically by default");
+    (*grid).clear_selection();
+    require(!(*grid).clipboard_content(), "with nothing selected there is nothing to copy");
+    (*grid).set_cell_selected(row_at(0U), 0U, true);
+    (*grid).set_cell_selected(row_at(1U), 2U, true);
+    require((*grid).clipboard_content() == std::string("Alpha\t\r\n\tAM\r\n"),
+            "one line per row and one field per column with a selected cell, empty where unselected");
+    (*grid).set_clipboard_copy_mode(DataGridViewClipboardCopyMode::enable_always_include_header_text);
+    require((*grid).clipboard_content() == std::string("\tName\tMode\r\n\tAlpha\t\r\n\t\tAM\r\n"),
+            "always includes the column headers and the (empty) row headers");
+    (*grid).set_row_headers_visible(false);
+    require((*grid).clipboard_content() == std::string("Name\tMode\r\nAlpha\t\r\n\tAM\r\n"),
+            "hidden row headers are left out");
+    (*grid).set_row_headers_visible(true);
+    (*grid).set_clipboard_copy_mode(DataGridViewClipboardCopyMode::enable_without_header_text);
+    require((*grid).clipboard_content() == std::string("Alpha\t\r\n\tAM\r\n"), "without header text, none");
+    (*grid).set_clipboard_copy_mode(DataGridViewClipboardCopyMode::disable);
+    require(!(*grid).clipboard_content(), "a disabled copy has no content");
+
+    (*grid).set_clipboard_copy_mode(DataGridViewClipboardCopyMode::enable_with_auto_header_text);
+    require(window.request_focus(grid), "the grid takes focus");
+    (*grid).set_selection_mode(DataGridViewSelectionMode::full_row_select);
+    (*grid).clear_selection();
+    (*grid).set_cell_selected(row_at(1U), 0U, true);
+    require(key(window, PhysicalKey::c, Modifier::control) && services.writes == 1 &&
+                services.written == "\tBravo\tfalse\tAM\tTune\r\n",
+            "Ctrl+C copies the selected row, with its header text in full-row selection");
+    require(key(window, PhysicalKey::insert, Modifier::control) && services.writes == 2,
+            "Ctrl+Insert copies too");
+    (*grid).clear_selection();
+    require(!key(window, PhysicalKey::c, Modifier::control) && services.writes == 2,
+            "with nothing selected Ctrl+C is not handled");
+}
+
 int main() {
     columns_and_rows();
     layout_and_parts();
@@ -1780,7 +2343,14 @@ int main() {
     new_row_bound();
     deleting_rows();
     error_text();
+    cell_styles();
+    formatting_and_parsing();
+    borders_and_owner_drawing();
+    sort_modes();
+    clipboard();
+    authored_colours();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
-                 "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells passed\n";
+                 "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
+                 "styles, formatting, borders, owner drawing, sort modes, the clipboard and authored colours passed\n";
     return 0;
 }

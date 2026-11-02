@@ -1483,7 +1483,10 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     ControlVisualRecipe authored = floor;
     apply_recipe_fields(fields, authored);
     if (!valid_recipe(authored)) return ResolvedControlRecipe(floor);
-    return ResolvedControlRecipe(floor, std::move(authored));
+    const std::size_t text_position = static_cast<std::size_t>(RecipeField::text);
+    const bool important_text = fields.fields[text_position] != nullptr &&
+                                fields.levels[text_position] >= CascadeLevel::important_user_theme;
+    return ResolvedControlRecipe(floor, std::move(authored), important_text);
 }
 
 ThemeDefinition windows_professional_theme_definition() {

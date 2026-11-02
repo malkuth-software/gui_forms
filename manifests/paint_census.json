@@ -1,0 +1,259 @@
+{
+  "description": "Direct drawing calls under src/controls/ (tools/paint_census.py); the stage T4 gate is zero stock calls. The census may only fall.",
+  "drawing_methods": [
+    "draw_box_shadow",
+    "draw_image",
+    "draw_image_region",
+    "draw_image_region_sampled",
+    "draw_inset_box_shadow",
+    "draw_line",
+    "draw_live_surface",
+    "draw_part_raster",
+    "draw_part_raster_scaled",
+    "draw_prepared_text",
+    "draw_retained_box_shadow",
+    "draw_retained_text_utf8",
+    "draw_text_utf8",
+    "draw_turned_text_utf8",
+    "fill_image_pattern",
+    "fill_linear_gradient",
+    "fill_linear_gradient_spread",
+    "fill_radial_gradient",
+    "fill_rect",
+    "fill_rounded_rect",
+    "stroke_rect",
+    "stroke_rounded_rect"
+  ],
+  "exempt": {
+    "drawing_surface/drawing_surface.cpp": "draws the application's own drawing (DrawingSurface), not chrome",
+    "easing_preview/easing_preview.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
+    "metrics_view/metrics_view.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
+    "panel/picture_box/picture_box.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
+    "raster_canvas/raster_canvas.cpp": "draws the application's raster (RasterCanvas), not chrome",
+    "typography_specimen/typography_specimen.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme"
+  },
+  "totals": {
+    "stock": {
+      "files": 43,
+      "calls": 380
+    },
+    "exempt": {
+      "files": 6,
+      "calls": 25
+    },
+    "demo": {
+      "files": 3,
+      "calls": 57
+    }
+  },
+  "files": {
+    "basic/basic_control_rendering.cpp": {
+      "category": "stock",
+      "calls": 16
+    },
+    "button_base/button/button.cpp": {
+      "category": "stock",
+      "calls": 8
+    },
+    "button_base/button/drop_down_button/drop_down_button.cpp": {
+      "category": "stock",
+      "calls": 4
+    },
+    "button_base/button_base.cpp": {
+      "category": "stock",
+      "calls": 3
+    },
+    "button_base/check_box/check_box.cpp": {
+      "category": "stock",
+      "calls": 17
+    },
+    "button_base/link_label/link_label.cpp": {
+      "category": "stock",
+      "calls": 2
+    },
+    "button_base/radio_button/radio_button.cpp": {
+      "category": "stock",
+      "calls": 5
+    },
+    "connected_controls/connected_controls.cpp": {
+      "category": "stock",
+      "calls": 3
+    },
+    "drawing_surface/drawing_surface.cpp": {
+      "category": "exempt",
+      "calls": 1
+    },
+    "easing_preview/easing_preview.cpp": {
+      "category": "exempt",
+      "calls": 8
+    },
+    "gallery/pages/live-surfaces.cpp": {
+      "category": "demo",
+      "calls": 2
+    },
+    "gallery/pages/page_context.hpp": {
+      "category": "demo",
+      "calls": 10
+    },
+    "gallery_controls.cpp": {
+      "category": "demo",
+      "calls": 45
+    },
+    "guidance/error_glyph/error_glyph.cpp": {
+      "category": "stock",
+      "calls": 5
+    },
+    "label/label.cpp": {
+      "category": "stock",
+      "calls": 1
+    },
+    "menu/context_menu/context_menu.cpp": {
+      "category": "stock",
+      "calls": 11
+    },
+    "menu/menu_strip/menu_strip.cpp": {
+      "category": "stock",
+      "calls": 5
+    },
+    "metrics_view/metrics_view.cpp": {
+      "category": "exempt",
+      "calls": 5
+    },
+    "panel/breadcrumb_trail/breadcrumb_trail.cpp": {
+      "category": "stock",
+      "calls": 17
+    },
+    "panel/card/card.cpp": {
+      "category": "stock",
+      "calls": 2
+    },
+    "panel/collection_control_utilities.hpp": {
+      "category": "stock",
+      "calls": 5
+    },
+    "panel/color_value_editor/color_value_editor.cpp": {
+      "category": "stock",
+      "calls": 6
+    },
+    "panel/combo_box/combo_box.cpp": {
+      "category": "stock",
+      "calls": 8
+    },
+    "panel/correspondence_view/correspondence_view.cpp": {
+      "category": "stock",
+      "calls": 27
+    },
+    "panel/cut_off_text/cut_off_text_reveal.cpp": {
+      "category": "stock",
+      "calls": 3
+    },
+    "panel/date_time_picker/calendar_popup/calendar_popup.hpp": {
+      "category": "stock",
+      "calls": 16
+    },
+    "panel/date_time_picker/date_time_picker.cpp": {
+      "category": "stock",
+      "calls": 15
+    },
+    "panel/flags_value_editor/flags_value_editor.cpp": {
+      "category": "stock",
+      "calls": 6
+    },
+    "panel/group_box/group_box.cpp": {
+      "category": "stock",
+      "calls": 4
+    },
+    "panel/list_box/checked_list_box/checked_list_box.cpp": {
+      "category": "stock",
+      "calls": 5
+    },
+    "panel/list_box/list_box.cpp": {
+      "category": "stock",
+      "calls": 6
+    },
+    "panel/material_panel/material_panel.cpp": {
+      "category": "stock",
+      "calls": 1
+    },
+    "panel/object_view/object_view.cpp": {
+      "category": "stock",
+      "calls": 34
+    },
+    "panel/panel.cpp": {
+      "category": "stock",
+      "calls": 11
+    },
+    "panel/picture_box/picture_box.cpp": {
+      "category": "exempt",
+      "calls": 1
+    },
+    "panel/property_list/property_list.cpp": {
+      "category": "stock",
+      "calls": 11
+    },
+    "panel/rich_text_box/rich_text_box.cpp": {
+      "category": "stock",
+      "calls": 3
+    },
+    "panel/rich_text_box/rich_text_box_layout.cpp": {
+      "category": "stock",
+      "calls": 10
+    },
+    "panel/text_box/text_box.cpp": {
+      "category": "stock",
+      "calls": 15
+    },
+    "panel/tree_view/tree_view.cpp": {
+      "category": "stock",
+      "calls": 9
+    },
+    "range_control/progress_bar/progress_bar.cpp": {
+      "category": "stock",
+      "calls": 5
+    },
+    "range_control/range_control_rendering.cpp": {
+      "category": "stock",
+      "calls": 25
+    },
+    "range_control/scroll_bar/scroll_bar.cpp": {
+      "category": "stock",
+      "calls": 5
+    },
+    "range_control/track_bar/track_bar.cpp": {
+      "category": "stock",
+      "calls": 6
+    },
+    "raster_canvas/raster_canvas.cpp": {
+      "category": "exempt",
+      "calls": 4
+    },
+    "scrollable_control/container_control/split_container/splitter_grip.cpp": {
+      "category": "stock",
+      "calls": 13
+    },
+    "scrollable_control/container_control/split_container/splitter_panel/splitter_panel.cpp": {
+      "category": "stock",
+      "calls": 1
+    },
+    "scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.cpp": {
+      "category": "stock",
+      "calls": 4
+    },
+    "scrollable_control/scrollable_control.cpp": {
+      "category": "stock",
+      "calls": 14
+    },
+    "text_block/text_block.cpp": {
+      "category": "stock",
+      "calls": 1
+    },
+    "typography_specimen/typography_specimen.cpp": {
+      "category": "exempt",
+      "calls": 6
+    },
+    "visual_inspector_view/visual_inspector_view.cpp": {
+      "category": "stock",
+      "calls": 12
+    }
+  }
+}

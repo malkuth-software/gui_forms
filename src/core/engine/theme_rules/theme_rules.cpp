@@ -2258,7 +2258,9 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
         const CompiledRule& rule = *next;
         if (rule.recipe_fields.empty() || !matches(rule, facts)) continue;
         for (const RecipeDeclaration& declaration : rule.recipe_fields) {
-            result.fields[static_cast<std::size_t>(declaration.field)] = &declaration;
+            const std::size_t position = static_cast<std::size_t>(declaration.field);
+            result.fields[position] = &declaration;
+            result.levels[position] = rule.level;
         }
         result.authored = true;
     }

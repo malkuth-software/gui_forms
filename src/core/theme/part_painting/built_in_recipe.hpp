@@ -13,4 +13,9 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
 // Whether paint_part draws anything in `bounds`: finite and not empty.
 [[nodiscard]] bool part_bounds_paintable(Rect bounds) noexcept;
 
+// Whether `part` paints an authored background (owner decision T4-1): it
+// carries one and its role paints a surface (PartPaint::authored_background).
+// High contrast, which drops it, is the caller's to check.
+[[nodiscard]] bool authored_background_applies(const PartPaint& part) noexcept;
+
 } // namespace gui_forms

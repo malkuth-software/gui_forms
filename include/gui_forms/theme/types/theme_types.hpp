@@ -143,11 +143,13 @@ struct ControlVisualRecipe final {
 class ResolvedControlRecipe final {
 public:
     explicit ResolvedControlRecipe(const ControlVisualRecipe& floor) noexcept : floor_(&floor) {}
-    ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored) noexcept
-        : floor_(&floor), authored_(std::move(authored)) {}
+    ResolvedControlRecipe(const ControlVisualRecipe& floor, ControlVisualRecipe&& authored,
+                          bool important_text = false) noexcept
+        : floor_(&floor), authored_(std::move(authored)), important_text_(important_text) {}
     // The floor is borrowed, so it is never a temporary.
     explicit ResolvedControlRecipe(const ControlVisualRecipe&& floor) = delete;
-    ResolvedControlRecipe(const ControlVisualRecipe&& floor, ControlVisualRecipe&& authored) = delete;
+    ResolvedControlRecipe(const ControlVisualRecipe&& floor, ControlVisualRecipe&& authored,
+                          bool important_text = false) = delete;
 
     [[nodiscard]] const ControlVisualRecipe& recipe() const& noexcept {
         if (authored_) return *authored_;
@@ -156,10 +158,15 @@ public:
     const ControlVisualRecipe& recipe() const&& = delete;
     // Whether a rule's recipe field changed the floor.
     [[nodiscard]] bool authored() const noexcept { return authored_.has_value(); }
+    // Whether the text colour was declared at an important level
+    // (CascadeLevel::important_user_theme or above), where it stands over
+    // a part's authored foreground (owner decision T4-1).
+    [[nodiscard]] bool important_text() const noexcept { return important_text_; }
 
 private:
     const ControlVisualRecipe* floor_;
     std::optional<ControlVisualRecipe> authored_{};
+    bool important_text_{};
 };
 
 inline constexpr std::size_t control_visual_role_count =

@@ -178,6 +178,7 @@ add_library(gui_forms_core STATIC
     src/core/types/painter/painter.cpp
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
+    src/core/theme/contrast/theme_contrast.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
     src/core/theme/part_painting/part_painting.cpp
     src/core/theme/owner_draw/owner_draw.cpp
@@ -2502,6 +2503,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_part_painting_tests tests/part_painting_tests.cpp)
     target_link_libraries(gui_forms_part_painting_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_part_painting_tests COMMAND gui_forms_part_painting_tests)
+    add_executable(gui_forms_theme_contrast_tests tests/theme_contrast_tests.cpp)
+    target_link_libraries(gui_forms_theme_contrast_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_theme_contrast_tests COMMAND gui_forms_theme_contrast_tests)
     add_executable(gui_forms_owner_draw_tests tests/owner_draw_tests.cpp)
     target_link_libraries(gui_forms_owner_draw_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_owner_draw_tests COMMAND gui_forms_owner_draw_tests)

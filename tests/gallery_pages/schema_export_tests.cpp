@@ -164,6 +164,7 @@ void append_vocabulary(std::string& out) {
     names.push_back("text_orientation");
     names.push_back("dock_region");
     names.push_back("content_color");
+    names.push_back("authored_color");
     append_key(out, "    ", "values");
     append_name_list(out, names);
     out += ",\n";

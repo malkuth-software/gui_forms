@@ -124,6 +124,29 @@ struct PartPaint final {
     // part is disabled (T2 GIVEN E2-1: a theme styles only what surrounds
     // it, so a disabled swatch shows through its well, edge and label).
     std::optional<Color> content_color{};
+    // The colours an application authored for this part (design language
+    // 8.5; owner decision T4-1), or none, such as a DataGridView cell
+    // style's BackColor and ForeColor. They stand where an inline style's
+    // colours would stand for this one part: over the theme's ordinary
+    // declarations, under its important ones, and never in high contrast,
+    // where the role's colours stand (§5.8). Unlike the content colour they
+    // are a look, not data.
+    // - The background: a surface role (and an indicator or glyph without a
+    //   mark, which paints its ground) paints it flat in place of the
+    //   material's fills, keeping the material's border, keylines and
+    //   shadows and the part's shape. A fill with a content colour shows
+    //   the content colour. A disabled part keeps it.
+    // - The foreground: text roles and the caret draw in it, marks are
+    //   inked with it and rules (keyline, divider, seam) are drawn in it. A
+    //   disabled part keeps the theme's disabled colours, so disabled stays
+    //   greyed; a theme text colour declared important stands over it for
+    //   text.
+    // A rule that chooses a primitive for the part at an important level
+    // stands over both; a primitive that draws a theme material takes the
+    // background in its material's fills, and a primitive's own colour
+    // parameters do not read them.
+    std::optional<Color> authored_background{};
+    std::optional<Color> authored_foreground{};
     // The part's identity across frames (T2 GIVEN H3-1), or none. A part
     // with a key has a record in its window's engine part table; one without
     // is drawn statically, with no transitions and no cached raster. It is

@@ -1692,6 +1692,12 @@ Related types
 
       The colour the part shows as its content, or none: a colour swatch's sample (PartPaint::content_color; owner decision W-7).
 
+   .. cpp:member:: std::optional<Color> authored_background
+
+      The colours the application authored for the part, or none (PartPaint::authored_background and authored_foreground; owner decision T4-1).
+
+   .. cpp:member:: std::optional<Color> authored_foreground
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: PartGeometryBuffer final

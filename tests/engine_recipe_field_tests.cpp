@@ -368,6 +368,43 @@ void test_label_part() {
     require(second_watch.texts == 1U && second_watch.last == floor.text, "and another control's in the floor's");
 }
 
+// Authored colours (owner decision T4-1) stand at the inline level: over a
+// theme's ordinary text colour, under an important one, and never in high
+// contrast.
+void test_authored_colours() {
+    std::vector<ThemeRule> rules{};
+    ThemeRule ordinary = control_rule("first", "first");
+    ordinary.recipe_fields.push_back(colour_field(RecipeField::text, red));
+    rules.push_back(ordinary);
+    ThemeRule important = control_rule("second", "second");
+    important.level = CascadeLevel::important_theme_sheet;
+    important.recipe_fields.push_back(colour_field(RecipeField::text, red));
+    rules.push_back(important);
+    const std::unique_ptr<Fixture> fixture = make_fixture(rules);
+    Window& window = *(*fixture).window;
+    const Labelled& first = *(*fixture).first;
+    const Labelled& second = *(*fixture).second;
+    PartPaint label = first.label();
+    label.authored_foreground = green;
+    TextWatch over{};
+    paint_part(over, first, label);
+    TextWatch under{};
+    paint_part(under, second, label);
+    require(over.texts == 1U && over.last == green,
+            "an authored foreground stands over a theme's ordinary text colour");
+    require(under.texts == 1U && under.last == red,
+            "and under an important one");
+    PresentationSettings settings = window.presentation_settings();
+    settings.high_contrast = true;
+    window.set_presentation_settings(settings);
+    const ControlVisualContext contrast = first.visual_context();
+    const ControlVisualRecipe& forced = window.theme().resolve(ControlVisualRole::button, contrast);
+    TextWatch high{};
+    paint_part(high, first, label);
+    require(contrast.high_contrast && high.texts == 1U && high.last == forced.text,
+            "high contrast drops the authored foreground for the role's colour");
+}
+
 } // namespace
 
 int main() {
@@ -378,6 +415,7 @@ int main() {
     test_resolve();
     test_states();
     test_label_part();
+    test_authored_colours();
     std::cout << "gui_forms_engine_recipe_field_tests: passed\n";
     return 0;
 }

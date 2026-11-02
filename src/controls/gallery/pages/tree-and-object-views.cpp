@@ -273,7 +273,7 @@ private:
             {.name = "kind", .header_text = "Kind", .kind = DataGridViewColumnKind::combo_box, .width = 130.0,
              .items = kinds},
             {.name = "size", .header_text = "Size", .width = 80.0, .read_only = true,
-             .alignment = DataGridViewCellAlignment::end},
+             .default_cell_style = {.alignment = DataGridViewContentAlignment::middle_end}},
             {.name = "keep", .header_text = "Keep", .kind = DataGridViewColumnKind::check_box, .width = 56.0},
             {.name = "note", .header_text = "Note", .width = 300.0},
             {.name = "open", .header_text = "", .kind = DataGridViewColumnKind::button, .width = 70.0,
