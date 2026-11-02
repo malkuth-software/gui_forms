@@ -546,7 +546,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `drop_down` | actuator | `button` |  |
 | `disclosure` | disclosure |  |  |
 
-States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+States: `normal`, `hot`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
 Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selected_index` (signed_integer), `text` (text).
 

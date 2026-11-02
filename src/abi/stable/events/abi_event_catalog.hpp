@@ -800,6 +800,8 @@ void append_field(EventFields& fields, std::string_view name, const Corresponden
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellAddress& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellCancelEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellCancelEvent& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewCellErrorTextNeededEvent& value);
+void read_field(EventFields& fields, std::string_view name, DataGridViewCellErrorTextNeededEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewCellFormattingEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewCellFormattingEvent& value);
@@ -813,6 +815,8 @@ void append_field(EventFields& fields, std::string_view name, const DataGridView
 void read_field(EventFields& fields, std::string_view name, DataGridViewDataErrorEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowCancelEvent& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowCancelEvent& value);
+void append_field(EventFields& fields, std::string_view name, const DataGridViewRowErrorTextNeededEvent& value);
+void read_field(EventFields& fields, std::string_view name, DataGridViewRowErrorTextNeededEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowEvent& value);
 void append_field(EventFields& fields, std::string_view name, const DataGridViewRowId& value);
 void read_field(EventFields& fields, std::string_view name, DataGridViewRowId& value);
@@ -1157,6 +1161,24 @@ inline void read_field(EventFields& fields, std::string_view name, DataGridViewC
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewCellErrorTextNeededEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "row_id", value.row_id);
+    append_field(fields, "row", value.row);
+    append_field(fields, "column", value.column);
+    append_field(fields, "error_text", value.error_text);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, DataGridViewCellErrorTextNeededEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "row_id", value.row_id);
+    read_field(fields, "row", value.row);
+    read_field(fields, "column", value.column);
+    read_field(fields, "error_text", value.error_text);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const DataGridViewCellEvent& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "row_id", value.row_id);
@@ -1300,6 +1322,22 @@ inline void read_field(EventFields& fields, std::string_view name, DataGridViewR
     read_field(fields, "row_id", value.row_id);
     read_field(fields, "row", value.row);
     read_field(fields, "cancel", value.cancel);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const DataGridViewRowErrorTextNeededEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "row_id", value.row_id);
+    append_field(fields, "row", value.row);
+    append_field(fields, "error_text", value.error_text);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, DataGridViewRowErrorTextNeededEvent& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "row_id", value.row_id);
+    read_field(fields, "row", value.row);
+    read_field(fields, "error_text", value.error_text);
     fields.leave(prefix);
 }
 
@@ -2655,6 +2693,15 @@ inline SubscriptionToken connect_data_grid_view_cell_error_text_changed(Componen
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).cell_error_text_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_cell_error_text_needed(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).cell_error_text_needed(), sink);
     return token;
 }
 
@@ -4080,12 +4127,30 @@ inline SubscriptionToken connect_data_grid_view_row_error_text_changed(Component
     return token;
 }
 
+inline SubscriptionToken connect_data_grid_view_row_error_text_needed(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).row_error_text_needed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_property_list_row_expansion_changed(Component& source, const EventSink& sink) {
     PropertyList* typed = dynamic_cast<PropertyList*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).row_expansion_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_data_grid_view_row_height_changed(Component& source, const EventSink& sink) {
+    DataGridView* typed = dynamic_cast<DataGridView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).row_height_changed(), sink);
     return token;
 }
 
@@ -4747,7 +4812,7 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 259> event_connectors{{
+inline constexpr std::array<EventConnector, 262> event_connectors{{
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
     {"activation_changed", "DockWorkspace", &connect_dock_workspace_activation_changed},
@@ -4775,6 +4840,7 @@ inline constexpr std::array<EventConnector, 259> event_connectors{{
     {"cell_end_edit", "DataGridView", &connect_data_grid_view_cell_end_edit},
     {"cell_enter", "DataGridView", &connect_data_grid_view_cell_enter},
     {"cell_error_text_changed", "DataGridView", &connect_data_grid_view_cell_error_text_changed},
+    {"cell_error_text_needed", "DataGridView", &connect_data_grid_view_cell_error_text_needed},
     {"cell_formatting", "DataGridView", &connect_data_grid_view_cell_formatting},
     {"cell_leave", "DataGridView", &connect_data_grid_view_cell_leave},
     {"cell_parsing", "DataGridView", &connect_data_grid_view_cell_parsing},
@@ -4933,7 +4999,9 @@ inline constexpr std::array<EventConnector, 259> event_connectors{{
     {"row_edit_cancelled", "DataGridView", &connect_data_grid_view_row_edit_cancelled},
     {"row_enter", "DataGridView", &connect_data_grid_view_row_enter},
     {"row_error_text_changed", "DataGridView", &connect_data_grid_view_row_error_text_changed},
+    {"row_error_text_needed", "DataGridView", &connect_data_grid_view_row_error_text_needed},
     {"row_expansion_changed", "PropertyList", &connect_property_list_row_expansion_changed},
+    {"row_height_changed", "DataGridView", &connect_data_grid_view_row_height_changed},
     {"row_leave", "DataGridView", &connect_data_grid_view_row_leave},
     {"row_order_mode_changed", "DataGridView", &connect_data_grid_view_row_order_mode_changed},
     {"row_validated", "DataGridView", &connect_data_grid_view_row_validated},

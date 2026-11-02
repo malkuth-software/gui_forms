@@ -424,10 +424,10 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"ranges-and-progress", 0x64b83d8bf224433dULL},
     {"containers-and-focus", 0x6c48cee0339300d1ULL},
     {"animation-laboratory", 0x542b8d0c21121e6dULL},
-    {"states-and-diagnostics", 0xe3c512597da92c03ULL},
+    {"states-and-diagnostics", 0xa8f61fde123824f9ULL},
     {"text-and-input", 0x7e98b7301c190d6fULL},
     {"collections-and-popups", 0xc5ea7a18af64e3efULL},
-    {"values-and-spinners", 0x5d47033be32d26d2ULL},
+    {"values-and-spinners", 0xa2e2122dcec535baULL},
     {"images-and-drawing", 0x638c11f89b3be0c6ULL},
     {"tabs-and-pages", 0x70e16b01b3d22cdfULL},
     {"checked-collections", 0x4c2aeda56938097aULL},
@@ -445,7 +445,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"responsive-layouts", 0x0165a2122f612232ULL},
     {"anchored-popups", 0x2fa75c97d98572dbULL},
     {"live-surfaces", 0xa03a5dddc0929445ULL},
-    {"typography-and-inspection", 0x2f076774d1c09b05ULL},
+    {"typography-and-inspection", 0x0e5cca0acf8cca3fULL},
     {"semantic-feedback", 0x68026f28dcaf1914ULL},
 }};
 
