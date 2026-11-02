@@ -6342,6 +6342,10 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
+.. cpp:var:: constexpr std::array<std::string_view, 5> part_value_names
+
+   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/theme/theme/theme.hpp>``

@@ -12,7 +12,10 @@ controls table consume. This module has three jobs:
   ``<!-- controls:start -->`` and ``<!-- controls:end -->`` with ``--write``;
 - ``emit-cpp``: write ``demo/gallery_catalog.inc``, the constexpr C++ array the
   GUI.Forms Gallery builds its navigation and page headers from, or prove the
-  committed file is current with ``--check``.
+  committed file is current with ``--check``;
+- ``emit-abi``: write ``src/abi/stable/schema/abi_schema_catalog.hpp``, the
+  C ABI's table of every type with the recipes it describes and creates the
+  type by, or prove the committed file is current with ``--check``.
 
 Standard library only; Python 3.12+.
 """
@@ -39,6 +42,7 @@ SITE_URL: str = "https://gui-forms.readthedocs.io/"
 README_START: str = "<!-- controls:start -->"
 README_END: str = "<!-- controls:end -->"
 GALLERY_CATALOG_PATH: Path = ROOT / "demo" / "gallery_catalog.inc"
+ABI_CATALOG_PATH: Path = ROOT / "src" / "abi" / "stable" / "schema" / "abi_schema_catalog.hpp"
 
 # Fixed WinForms-style by-function categories, in render order.
 CATEGORIES: tuple[str, ...] = (
@@ -510,6 +514,45 @@ def render_gallery_catalog(registry: Registry) -> str:
     return "\n".join(lines)
 
 
+def render_abi_catalog(registry: Registry) -> str:
+    """The C ABI's type catalog (see src/abi/stable/schema/abi_schema_recipes.hpp).
+
+    Records keep registry order, which is the schema's type order. Each entry
+    instantiates the type's describe and create recipes; a type that needs a
+    hand-written recipe fails to compile until abi_schema_recipes.hpp declares one.
+    """
+    headers: list[str] = sorted({record.header for record in registry.records})
+    lines: list[str] = [
+        "// Generated from manifests/controls.json by `python3 tools/control_registry.py emit-abi`.",
+        "// Do not edit; `python3 tools/control_registry.py emit-abi --check` fails when stale.",
+        "// Included only by abi_schema.cpp: every registry type in registry order, with the",
+        "// recipes the C ABI describes and creates it by (abi_schema_recipes.hpp).",
+        "",
+        "#pragma once",
+        "",
+        '#include "abi_schema_recipes.hpp"',
+        "",
+    ]
+    for header in headers:
+        lines.append(f'#include "{header}"')
+    lines.append("")
+    lines.append("#include <array>")
+    lines.append("")
+    lines.append("namespace gui_forms::abi1 {")
+    lines.append("")
+    lines.append(f"inline constexpr std::array<SchemaCatalogEntry, {len(registry.records)}> schema_catalog{{{{")
+    for record in registry.records:
+        lines.append(
+            f"    {{{_cpp_string(record.id)}, {_cpp_string(record.type)}, "
+            f"&describe_type<{record.type}>, &create_type<{record.type}>}},"
+        )
+    lines.append("}};")
+    lines.append("")
+    lines.append("} // namespace gui_forms::abi1")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def render_all(registry: Registry) -> dict[str, str]:
     return {BY_FUNCTION_NAME: render_by_function(registry), ALPHABETICAL_NAME: render_alphabetical(registry)}
 
@@ -579,21 +622,29 @@ def _command_readme_table(args: argparse.Namespace) -> int:
     return 0
 
 
-def _command_emit_cpp(args: argparse.Namespace) -> int:
-    registry: Registry = load_registry(args.registry)
-    content: str = render_gallery_catalog(registry)
-    target: Path = args.out
-    if args.check:
+def _emit(command: str, content: str, target: Path, check: bool) -> int:
+    """Writes content to target, or with check proves the committed file equals it."""
+    if check:
         committed: str = target.read_text(encoding="utf-8") if target.is_file() else ""
         if committed != content:
-            print(f"emit-cpp: {target} is stale; run `python3 tools/control_registry.py emit-cpp`", file=sys.stderr)
+            print(f"{command}: {target} is stale; run `python3 tools/control_registry.py {command}`", file=sys.stderr)
             return 1
-        print(f"emit-cpp: {target} is current")
+        print(f"{command}: {target} is current")
         return 0
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text(content, encoding="utf-8")
+    target.write_text(content, encoding="utf-8", newline="\n")
     print(target.relative_to(ROOT) if target.is_relative_to(ROOT) else target)
     return 0
+
+
+def _command_emit_cpp(args: argparse.Namespace) -> int:
+    registry: Registry = load_registry(args.registry)
+    return _emit("emit-cpp", render_gallery_catalog(registry), args.out, args.check)
+
+
+def _command_emit_abi(args: argparse.Namespace) -> int:
+    registry: Registry = load_registry(args.registry)
+    return _emit("emit-abi", render_abi_catalog(registry), args.out, args.check)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -613,6 +664,11 @@ def build_parser() -> argparse.ArgumentParser:
     emit.add_argument("--out", type=Path, default=GALLERY_CATALOG_PATH, help="output .inc path")
     emit.add_argument("--check", action="store_true", help="fail when the committed .inc is stale")
     emit.set_defaults(run=_command_emit_cpp)
+    emit_abi: argparse.ArgumentParser = subparsers.add_parser(
+        "emit-abi", help="write or check src/abi/stable/schema/abi_schema_catalog.hpp")
+    emit_abi.add_argument("--out", type=Path, default=ABI_CATALOG_PATH, help="output header path")
+    emit_abi.add_argument("--check", action="store_true", help="fail when the committed header is stale")
+    emit_abi.set_defaults(run=_command_emit_abi)
     return parser
 
 

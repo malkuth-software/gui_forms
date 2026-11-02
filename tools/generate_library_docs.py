@@ -141,8 +141,9 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           ("audio",)),
     Group("c-abi", "C ABI",
           "The C function tables for GUI.Forms and GUI.Drawing and the C++ "
-          "convenience wrapper over them.",
-          ("c_api", "drawing_c_api")),
+          "convenience wrapper over them: the stable ABI 1 (gui_forms/c/) and "
+          "the experimental 0.x tables.",
+          ("c", "c_api", "drawing_c_api")),
 )
 
 # Header areas whose types belong beside a stock control rather than on a

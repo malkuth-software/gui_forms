@@ -20,6 +20,7 @@ class ThemeCompileResult;
 class ThemeLibrary;
 class Window;
 struct ThemeCompileOptions;
+struct ThemePackage;
 struct UserThemeFiles;
 struct UserThemeHeader;
 
@@ -118,6 +119,13 @@ public:
     [[nodiscard]] ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program,
                                                         const ThemeCompileOptions& options,
                                                         UserThemeHeader* header = nullptr);
+    // Compiles a program theme package into these resources' registry
+    // (compile_theme_package against `library`), so the theme's images are
+    // images of every window sharing these resources. Selects nothing
+    // (set_theme does); the theme's images live while it does, and a refusal
+    // leaves none. On the UI thread (std::logic_error elsewhere).
+    [[nodiscard]] ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
+                                                           const ThemeCompileOptions& options);
     // The selected user theme, or null.
     [[nodiscard]] const Theme* user_theme() const noexcept { return user_theme_.get(); }
     // The layered user theme's rules, or null where none is layered.

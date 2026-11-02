@@ -1,0 +1,86 @@
+#pragma once
+
+// The control schema as the C ABI serves it (stage C3): every registry type
+// with its parts, states, item systems, properties and interactions, the
+// vocabulary, and the engine's primitives. Built once, on the UI thread, by
+// describing a fresh instance of every type; never changed or freed after,
+// so the text it lends stays valid until the process ends.
+
+#include "gui_forms/c/gf_abi.h"
+
+#include "gui_forms/control.hpp"
+#include "gui_forms/engine.hpp"
+#include "gui_forms/schema.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace gui_forms::abi1 {
+
+struct SchemaChoice final {
+    std::string name;
+    std::int64_t value = 0;
+};
+
+struct SchemaProperty final {
+    std::string name;
+    gf_value_kind kind = GF_VALUE_KIND_NULL;
+    std::string category;
+    // Empty when the property is not an enumeration.
+    std::string enumeration;
+    std::vector<SchemaChoice> choices;
+    gf_schema_property_flags flags = 0U;
+    gf_schema_serialization serialization = GF_SCHEMA_SERIALIZATION_HIDDEN;
+};
+
+struct SchemaInteraction final {
+    std::string name;
+    std::string payload;
+    bool mutable_payload = false;
+};
+
+struct SchemaType final {
+    // Static storage: the generated catalog's literals.
+    std::string_view id;
+    std::string_view type_name;
+    gf_schema_kind kind = GF_SCHEMA_KIND_SERVICE;
+    // A control's anatomy (static storage, see ControlAnatomy); null for a
+    // component or service.
+    const ControlAnatomy* anatomy = nullptr;
+    std::vector<SchemaProperty> properties;
+    std::vector<SchemaInteraction> interactions;
+};
+
+// The number of gf_schema_vocabulary lists.
+inline constexpr std::size_t vocabulary_list_count = 14U;
+
+struct Schema final {
+    std::vector<SchemaType> types;
+    std::array<std::vector<std::string>, vocabulary_list_count> vocabularies;
+    // The builtin registry's primitives, which live in static storage.
+    std::span<const EnginePrimitive* const> primitives;
+};
+
+// The schema, built at the first call. UI thread: the caller holds the UI
+// thread for the call (a schema read binds an unbound library for itself).
+// Throws what building throws, leaving nothing built.
+[[nodiscard]] const Schema& schema();
+
+// The gf_value_kind of a property kind.
+[[nodiscard]] gf_value_kind value_kind_of(BindingValueKind kind) noexcept;
+
+// The registry's types, in the schema's order, without building the schema:
+// how many there are, the index of the one named in any spelling of its id
+// (the count when none is), and a new control of the type at index for
+// objects.create (null when the type is not made from a stable id alone).
+// find_catalog_type throws std::invalid_argument for an empty name.
+[[nodiscard]] std::size_t catalog_type_count() noexcept;
+[[nodiscard]] std::size_t find_catalog_type(std::string_view name);
+[[nodiscard]] Control::Ptr create_catalog_type(std::size_t index, StableId stable_id);
+
+} // namespace gui_forms::abi1

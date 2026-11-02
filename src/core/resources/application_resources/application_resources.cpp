@@ -174,6 +174,13 @@ ThemeCompileResult ApplicationResources::compile_user_theme(const UserThemeFiles
     return result;
 }
 
+ThemeCompileResult ApplicationResources::compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
+                                                              const ThemeCompileOptions& options) {
+    require_access("theme package compilation");
+    ThemeCompileResult result = gui_forms::compile_theme_package(package, library, images_, options);
+    return result;
+}
+
 const CompiledThemeRules* ApplicationResources::user_theme_rules() const noexcept {
     if (user_theme_ == nullptr || user_theme_policy_ != UserThemePolicy::layered) return nullptr;
     return &(*user_theme_).engine().rules();

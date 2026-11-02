@@ -4408,6 +4408,7 @@ endif()
 
 include(cmake/ApplicationText.cmake)
 include(cmake/TextStackExport.cmake)
+include(cmake/CAbi.cmake)
 
 install(FILES cmake/llvm22.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 install(FILES src/core/threading/atomic_pool/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME threadpool_atomic_fast-LICENSE.txt)

@@ -35,6 +35,7 @@
    "areas": ["*"]},
   {"paths": ["docs/library/", "generated/", "examples/", "tools/"], "areas": ["docs"]},
   {"paths": ["tools/font_metrics_differential/"], "areas": ["render"]},
+  {"paths": ["include/gui_forms/c/", "manifests/abi/", "tools/abi_audit.py", "tests/abi/", "src/abi/stable/"], "areas": ["core", "docs"]},
   {"paths": ["src/core/", "src/abi/", "src/runtime/"], "areas": ["core", "codec", "audio", "render", "controls", "host", "docs"]},
   {"paths": ["src/core/semantics/"], "areas": ["core", "codec", "audio", "render", "controls", "host", "docs", "a11y"]},
   {"paths": ["src/core/image/"], "areas": ["codec", "render", "host"]},

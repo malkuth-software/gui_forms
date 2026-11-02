@@ -13536,7 +13536,7 @@
       "kind": "class",
       "header": "gui_forms/resources/application_resources/application_resources.hpp",
       "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-      "line": 71,
+      "line": 72,
       "declaration": "class ApplicationResources final",
       "comment": "",
       "access": "public",
@@ -13560,7 +13560,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 73,
+          "line": 74,
           "page": "gui-forms-applicationresources-applicationresources-void-imageregistrylimits-c31b4a61c8.html"
         },
         {
@@ -13575,7 +13575,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 74,
+          "line": 75,
           "page": "gui-forms-applicationresources-applicationresources-void-2c603ec377.html"
         },
         {
@@ -13596,7 +13596,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 75,
+          "line": 76,
           "page": "gui-forms-applicationresources-applicationresources-void-const-applicationresources-4f6a3c6e26.html"
         },
         {
@@ -13617,7 +13617,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 76,
+          "line": 77,
           "page": "gui-forms-applicationresources-operator-applicationresources-const-applicationresources-15dbce6b3b.html"
         },
         {
@@ -13632,7 +13632,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 78,
+          "line": 79,
           "page": "gui-forms-applicationresources-check-access-bool-const-noexcept-196a1ec773.html"
         },
         {
@@ -13647,7 +13647,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 82,
+          "line": 83,
           "page": "gui-forms-applicationresources-images-const-imageregistry-const-noexcept-78edb2e744.html"
         },
         {
@@ -13662,7 +13662,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 83,
+          "line": 84,
           "page": "gui-forms-applicationresources-theme-const-theme-const-noexcept-db8fe8cd74.html"
         },
         {
@@ -13677,7 +13677,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 84,
+          "line": 85,
           "page": "gui-forms-applicationresources-theme-ptr-std-shared-ptr-const-theme-const-noexcept-f5275f7918.html"
         },
         {
@@ -13698,7 +13698,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 96,
+          "line": 97,
           "page": "gui-forms-applicationresources-set-theme-void-std-shared-ptr-const-theme-570f2d525b.html"
         },
         {
@@ -13713,7 +13713,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 98,
+          "line": 99,
           "page": "gui-forms-applicationresources-program-theme-const-theme-const-noexcept-2ef78b3d15.html"
         },
         {
@@ -13734,7 +13734,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 103,
+          "line": 104,
           "page": "gui-forms-applicationresources-set-user-theme-policy-void-userthemepolicy-6ad26dc98d.html"
         },
         {
@@ -13749,7 +13749,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 104,
+          "line": 105,
           "page": "gui-forms-applicationresources-user-theme-policy-userthemepolicy-const-noexcept-9978c196be.html"
         },
         {
@@ -13770,7 +13770,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 111,
+          "line": 112,
           "page": "gui-forms-applicationresources-set-user-theme-void-std-shared-ptr-const-theme-4c6c632162.html"
         },
         {
@@ -13806,8 +13806,39 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 118,
+          "line": 119,
           "page": "gui-forms-applicationresources-compile-user-theme-themecompileresult-const-userthemefiles-const-themelibrary-c-c4a2a3ae5b.html"
+        },
+        {
+          "id": "gui_forms::ApplicationResources::compile_theme_package|ThemeCompileResult (const ThemePackage &, const ThemeLibrary &, const ThemeCompileOptions &)",
+          "name": "compile_theme_package",
+          "type": "ThemeCompileResult (const ThemePackage &, const ThemeLibrary &, const ThemeCompileOptions &)",
+          "namespace": "gui_forms::ApplicationResources",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "package",
+              "type": "const ThemePackage &",
+              "declaration": "const ThemePackage& package"
+            },
+            {
+              "name": "library",
+              "type": "const ThemeLibrary &",
+              "declaration": "const ThemeLibrary& library"
+            },
+            {
+              "name": "options",
+              "type": "const ThemeCompileOptions &",
+              "declaration": "const ThemeCompileOptions& options"
+            }
+          ],
+          "declaration": "[[nodiscard]] ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library, const ThemeCompileOptions& options)",
+          "comment": "",
+          "header": "gui_forms/resources/application_resources/application_resources.hpp",
+          "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
+          "line": 127,
+          "page": "gui-forms-applicationresources-compile-theme-package-themecompileresult-const-themepackage-const-themelibrary--a5ec5f2336.html"
         },
         {
           "id": "gui_forms::ApplicationResources::user_theme|const Theme *() const noexcept",
@@ -13821,7 +13852,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 122,
+          "line": 130,
           "page": "gui-forms-applicationresources-user-theme-const-theme-const-noexcept-f82c5e3b01.html"
         },
         {
@@ -13836,7 +13867,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 124,
+          "line": 132,
           "page": "gui-forms-applicationresources-user-theme-rules-const-compiledthemerules-const-noexcept-0d3f2e9cbb.html"
         },
         {
@@ -13867,7 +13898,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 131,
+          "line": 139,
           "page": "gui-forms-applicationresources-register-icon-void-std-string-view-imageid-iconoverride-36fab9d50f.html"
         },
         {
@@ -13882,7 +13913,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 134,
+          "line": 142,
           "page": "gui-forms-applicationresources-icon-declarations-std-span-const-icondeclaration-const-noexcept-fcdab886be.html"
         },
         {
@@ -13903,7 +13934,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 140,
+          "line": 148,
           "page": "gui-forms-applicationresources-icon-std-optional-imageid-std-string-view-const-noexcept-7990b2ede9.html"
         },
         {
@@ -13924,7 +13955,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 143,
+          "line": 151,
           "page": "gui-forms-applicationresources-program-icon-std-optional-imageid-std-string-view-const-noexcept-f10074e996.html"
         },
         {
@@ -13939,7 +13970,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 146,
+          "line": 154,
           "page": "gui-forms-applicationresources-window-count-std-size-t-const-noexcept-6e680b4146.html"
         },
         {
@@ -13960,7 +13991,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 151,
+          "line": 159,
           "page": "gui-forms-applicationresources-load-png-imageloadresult-std-span-const-std-byte-a473a4abf4.html"
         },
         {
@@ -13996,7 +14027,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 152,
+          "line": 160,
           "page": "gui-forms-applicationresources-load-bgra32-premultiplied-imageloadresult-std-uint32-t-std-uint32-t-std-uint64--7f3deff1cc.html"
         },
         {
@@ -14022,7 +14053,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 155,
+          "line": 163,
           "page": "gui-forms-applicationresources-replace-png-imageloadresult-imageid-std-span-const-std-byte-652803943d.html"
         },
         {
@@ -14043,7 +14074,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 156,
+          "line": 164,
           "page": "gui-forms-applicationresources-remove-image-bool-imageid-d67bdf1160.html"
         }
       ],
@@ -74322,7 +74353,7 @@
       "kind": "enum",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 83,
+      "line": 90,
       "declaration": "enum class DockShapeRegion : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -74340,7 +74371,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 83,
+          "line": 90,
           "page": "gui-forms-dockshaperegion-top-gui-forms-dockshaperegion-c2450867e8.html"
         },
         {
@@ -74355,7 +74386,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 83,
+          "line": 90,
           "page": "gui-forms-dockshaperegion-bottom-gui-forms-dockshaperegion-0207bc9aa1.html"
         },
         {
@@ -74370,7 +74401,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 83,
+          "line": 90,
           "page": "gui-forms-dockshaperegion-left-gui-forms-dockshaperegion-aa4c669b3a.html"
         },
         {
@@ -74385,7 +74416,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 83,
+          "line": 90,
           "page": "gui-forms-dockshaperegion-right-gui-forms-dockshaperegion-dec5816ea4.html"
         },
         {
@@ -74400,7 +74431,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 83,
+          "line": 90,
           "page": "gui-forms-dockshaperegion-tab-into-gui-forms-dockshaperegion-0443f39ba5.html"
         }
       ],
@@ -109836,7 +109867,7 @@
       "kind": "struct",
       "header": "gui_forms/resources/application_resources/application_resources.hpp",
       "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-      "line": 48,
+      "line": 49,
       "declaration": "struct IconDeclaration final",
       "comment": "",
       "access": "public",
@@ -109854,7 +109885,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 49,
+          "line": 50,
           "page": "gui-forms-icondeclaration-identifier-std-string-20747e87f7.html"
         },
         {
@@ -109869,7 +109900,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 50,
+          "line": 51,
           "page": "gui-forms-icondeclaration-policy-iconoverride-5d6a5fc576.html"
         }
       ],
@@ -109883,7 +109914,7 @@
       "kind": "enum",
       "header": "gui_forms/resources/application_resources/application_resources.hpp",
       "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-      "line": 45,
+      "line": 46,
       "declaration": "enum class IconOverride : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -109901,7 +109932,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 45,
+          "line": 46,
           "page": "gui-forms-iconoverride-overridable-gui-forms-iconoverride-c5f8cad49e.html"
         },
         {
@@ -109916,7 +109947,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 45,
+          "line": 46,
           "page": "gui-forms-iconoverride-fixed-gui-forms-iconoverride-f51688ee41.html"
         }
       ],
@@ -158656,7 +158687,7 @@
       "kind": "enum",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 42,
+      "line": 43,
       "declaration": "enum class PartMark : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -158674,7 +158705,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 43,
+          "line": 44,
           "page": "gui-forms-partmark-none-gui-forms-partmark-0270d6489b.html"
         },
         {
@@ -158689,7 +158720,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 44,
+          "line": 45,
           "page": "gui-forms-partmark-check-gui-forms-partmark-b7fa3950c2.html"
         },
         {
@@ -158704,7 +158735,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 45,
+          "line": 46,
           "page": "gui-forms-partmark-indeterminate-gui-forms-partmark-e3b3bc2333.html"
         },
         {
@@ -158719,7 +158750,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 46,
+          "line": 47,
           "page": "gui-forms-partmark-radio-dot-gui-forms-partmark-a560e3bd46.html"
         },
         {
@@ -158734,7 +158765,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 47,
+          "line": 48,
           "page": "gui-forms-partmark-toggle-knob-gui-forms-partmark-9e45278032.html"
         },
         {
@@ -158749,7 +158780,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 48,
+          "line": 49,
           "page": "gui-forms-partmark-arrow-up-gui-forms-partmark-3e38bd28a5.html"
         },
         {
@@ -158764,7 +158795,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 49,
+          "line": 50,
           "page": "gui-forms-partmark-arrow-down-gui-forms-partmark-8085786197.html"
         },
         {
@@ -158779,7 +158810,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 50,
+          "line": 51,
           "page": "gui-forms-partmark-arrow-left-gui-forms-partmark-edf0863644.html"
         },
         {
@@ -158794,7 +158825,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 51,
+          "line": 52,
           "page": "gui-forms-partmark-arrow-right-gui-forms-partmark-9a32ad725b.html"
         },
         {
@@ -158809,7 +158840,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 52,
+          "line": 53,
           "page": "gui-forms-partmark-chevron-down-gui-forms-partmark-18382d83cd.html"
         },
         {
@@ -158824,7 +158855,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 53,
+          "line": 54,
           "page": "gui-forms-partmark-chevron-right-gui-forms-partmark-a7b620fd3e.html"
         },
         {
@@ -158839,7 +158870,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 54,
+          "line": 55,
           "page": "gui-forms-partmark-close-gui-forms-partmark-4f0f887279.html"
         },
         {
@@ -158854,7 +158885,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 55,
+          "line": 56,
           "page": "gui-forms-partmark-grip-dots-gui-forms-partmark-d895d62692.html"
         },
         {
@@ -158869,7 +158900,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 56,
+          "line": 57,
           "page": "gui-forms-partmark-dialog-launcher-gui-forms-partmark-ddd5104e54.html"
         },
         {
@@ -158884,7 +158915,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 57,
+          "line": 58,
           "page": "gui-forms-partmark-more-gui-forms-partmark-1ba3de7855.html"
         },
         {
@@ -158899,7 +158930,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 58,
+          "line": 59,
           "page": "gui-forms-partmark-overflow-gui-forms-partmark-666903c0f6.html"
         },
         {
@@ -158914,7 +158945,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 59,
+          "line": 60,
           "page": "gui-forms-partmark-customize-gui-forms-partmark-1c5bd89f24.html"
         },
         {
@@ -158929,7 +158960,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 60,
+          "line": 61,
           "page": "gui-forms-partmark-pin-gui-forms-partmark-94f67d9f4f.html"
         },
         {
@@ -158944,7 +158975,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 61,
+          "line": 62,
           "page": "gui-forms-partmark-dock-shape-gui-forms-partmark-d0395e741a.html"
         },
         {
@@ -158959,7 +158990,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 62,
+          "line": 63,
           "page": "gui-forms-partmark-underline-gui-forms-partmark-bd264aebf4.html"
         },
         {
@@ -158974,7 +159005,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 66,
+          "line": 67,
           "page": "gui-forms-partmark-pencil-gui-forms-partmark-6ea3522b6e.html"
         },
         {
@@ -158989,7 +159020,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 67,
+          "line": 68,
           "page": "gui-forms-partmark-asterisk-gui-forms-partmark-b2c50779d4.html"
         },
         {
@@ -159004,7 +159035,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 68,
+          "line": 69,
           "page": "gui-forms-partmark-error-gui-forms-partmark-30cebfe5ad.html"
         },
         {
@@ -159019,7 +159050,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 69,
+          "line": 70,
           "page": "gui-forms-partmark-count-gui-forms-partmark-6bdad524a5.html"
         }
       ],
@@ -159169,7 +159200,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 93,
+      "line": 100,
       "declaration": "struct PartPaint final",
       "comment": "",
       "access": "public",
@@ -159187,7 +159218,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 94,
+          "line": 101,
           "page": "gui-forms-partpaint-role-partrole-be78ab9b1c.html"
         },
         {
@@ -159202,7 +159233,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 95,
+          "line": 102,
           "page": "gui-forms-partpaint-bounds-rect-0c1ec40522.html"
         },
         {
@@ -159217,7 +159248,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 96,
+          "line": 103,
           "page": "gui-forms-partpaint-states-anatomystateset-4840beff27.html"
         },
         {
@@ -159232,7 +159263,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 97,
+          "line": 104,
           "page": "gui-forms-partpaint-family-controlvisualrole-c06d1ab6d0.html"
         },
         {
@@ -159247,7 +159278,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 98,
+          "line": 105,
           "page": "gui-forms-partpaint-mark-partmark-6b4ea71b23.html"
         },
         {
@@ -159262,7 +159293,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 99,
+          "line": 106,
           "page": "gui-forms-partpaint-text-std-string-view-7470d1e0eb.html"
         },
         {
@@ -159277,7 +159308,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 100,
+          "line": 107,
           "page": "gui-forms-partpaint-font-fontspec-3056bd421e.html"
         },
         {
@@ -159292,7 +159323,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 101,
+          "line": 108,
           "page": "gui-forms-partpaint-alignment-parttextalignment-d78176d49a.html"
         },
         {
@@ -159307,7 +159338,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 106,
+          "line": 113,
           "page": "gui-forms-partpaint-orientation-textorientation-a1e9c1af86.html"
         },
         {
@@ -159322,7 +159353,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 108,
+          "line": 115,
           "page": "gui-forms-partpaint-dock-region-dockshaperegion-ff54abd8da.html"
         },
         {
@@ -159337,7 +159368,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 109,
+          "line": 116,
           "page": "gui-forms-partpaint-image-imageid-5db9b0937e.html"
         },
         {
@@ -159352,7 +159383,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 110,
+          "line": 117,
           "page": "gui-forms-partpaint-corner-radius-std-optional-double-561fd26020.html"
         },
         {
@@ -159367,7 +159398,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 114,
+          "line": 121,
           "page": "gui-forms-partpaint-accent-std-optional-accentindex-aff34bc6bb.html"
         },
         {
@@ -159382,7 +159413,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 126,
+          "line": 133,
           "page": "gui-forms-partpaint-content-color-std-optional-color-52ad846448.html"
         },
         {
@@ -159397,7 +159428,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 148,
+          "line": 155,
           "page": "gui-forms-partpaint-authored-background-std-optional-color-1d21500eb0.html"
         },
         {
@@ -159412,7 +159443,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 149,
+          "line": 156,
           "page": "gui-forms-partpaint-authored-foreground-std-optional-color-a4f82999a7.html"
         },
         {
@@ -159427,7 +159458,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 155,
+          "line": 162,
           "page": "gui-forms-partpaint-key-std-optional-partkey-46ae12dd99.html"
         },
         {
@@ -159442,7 +159473,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 161,
+          "line": 168,
           "page": "gui-forms-partpaint-granted-overflow-insets-f3dea1cacb.html"
         }
       ],
@@ -160744,7 +160775,7 @@
       "kind": "enum",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 77,
+      "line": 84,
       "declaration": "enum class PartTextAlignment : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -160762,7 +160793,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 77,
+          "line": 84,
           "page": "gui-forms-parttextalignment-start-gui-forms-parttextalignment-5ae4584334.html"
         },
         {
@@ -160777,7 +160808,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 77,
+          "line": 84,
           "page": "gui-forms-parttextalignment-center-gui-forms-parttextalignment-ed81bfd712.html"
         },
         {
@@ -160792,7 +160823,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 77,
+          "line": 84,
           "page": "gui-forms-parttextalignment-end-gui-forms-parttextalignment-41d2d5a91d.html"
         }
       ],
@@ -235410,7 +235441,7 @@
       "kind": "enum",
       "header": "gui_forms/resources/application_resources/application_resources.hpp",
       "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-      "line": 28,
+      "line": 29,
       "declaration": "enum class UserThemePolicy : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -235428,7 +235459,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 33,
+          "line": 34,
           "page": "gui-forms-userthemepolicy-layered-gui-forms-userthemepolicy-5b7e835727.html"
         },
         {
@@ -235443,7 +235474,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 36,
+          "line": 37,
           "page": "gui-forms-userthemepolicy-replaces-program-sheet-gui-forms-userthemepolicy-0c18a1bfec.html"
         },
         {
@@ -235458,7 +235489,7 @@
           "comment": "",
           "header": "gui_forms/resources/application_resources/application_resources.hpp",
           "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-          "line": 38,
+          "line": 39,
           "page": "gui-forms-userthemepolicy-refused-gui-forms-userthemepolicy-9403e7d6d9.html"
         }
       ],
@@ -252473,7 +252504,7 @@
       "comment": "",
       "header": "gui_forms/resources/application_resources/application_resources.hpp",
       "source": "include/gui_forms/resources/application_resources/application_resources.hpp",
-      "line": 57,
+      "line": 58,
       "page": "gui-forms-icon-identifier-valid-bool-std-string-view-noexcept-bb2dd1158a.html"
     },
     {
@@ -260769,7 +260800,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 205,
+      "line": 212,
       "page": "gui-forms-overlay-shadow-outsets-insets-const-control-noexcept-da19fa30d5.html"
     },
     {
@@ -260883,7 +260914,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 212,
+      "line": 219,
       "page": "gui-forms-paint-part-from-recipe-void-painter-const-partpaint-const-controlvisualrecipe-controlvisualcontext-da92d03958.html"
     },
     {
@@ -260914,7 +260945,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 200,
+      "line": 207,
       "page": "gui-forms-paint-part-void-painter-const-control-const-partpaint-0af0bbb504.html"
     },
     {
@@ -261206,7 +261237,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 75,
+      "line": 76,
       "page": "gui-forms-part-mark-name-std-string-view-partmark-noexcept-58bf94c943.html"
     },
     {
@@ -261274,7 +261305,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 169,
+      "line": 176,
       "page": "gui-forms-part-visual-context-controlvisualcontext-const-control-anatomystateset-noexcept-665c5bca7c.html"
     },
     {
@@ -266960,7 +266991,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 72,
+      "line": 73,
       "page": "gui-forms-part-mark-count-const-std-size-t-092cfbf72a.html"
     },
     {
@@ -267022,6 +267053,21 @@
       "source": "include/gui_forms/engine/part_shape/part_shape.hpp",
       "line": 35,
       "page": "gui-forms-part-shape-names-const-std-array-std-string-view-part-shape-kind-count-1225390202.html"
+    },
+    {
+      "id": "gui_forms::part_value_names|const std::array<std::string_view, 5>",
+      "name": "part_value_names",
+      "type": "const std::array<std::string_view, 5>",
+      "namespace": "gui_forms",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr std::array<std::string_view, 5> part_value_names{ {\"accent_index\", \"text_orientation\", \"dock_region\", \"content_color\", \"authored_color\"}}",
+      "comment": "",
+      "header": "gui_forms/theme/part_painting/part_painting.hpp",
+      "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
+      "line": 81,
+      "page": "gui-forms-part-value-names-const-std-array-std-string-view-5-9b46e35bed.html"
     },
     {
       "id": "gui_forms::pinned_custom_state|const CustomStateDeclaration",
