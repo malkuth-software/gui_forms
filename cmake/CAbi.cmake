@@ -123,6 +123,9 @@ set_target_properties(gui_forms_abi PROPERTIES
     VERSION "${GUI_FORMS_ABI_MAJOR}.${GUI_FORMS_ABI_MINOR}.0"
     SOVERSION "${GUI_FORMS_ABI_MAJOR}"
 )
+# The library links libgui_forms_application privately, so it finds it, and
+# what it needs, beside itself once installed (GUI_FORMS_INSTALLED_LIBRARY_RPATH).
+set_target_properties(gui_forms_abi PROPERTIES INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}")
 if(APPLE)
     target_link_options(gui_forms_abi PRIVATE
         "LINKER:-exported_symbols_list,${_gf_abi_generated}/gf_abi_exports_macos.txt")

@@ -4425,8 +4425,24 @@ if(GUI_FORMS_BUILD_AUDIO)
     include(cmake/Audio.cmake)
 endif()
 
+# An installed shared library finds the shared libraries it needs beside
+# itself: libraries are installed into one directory, and a consumer's own
+# search path covers only the libraries it links directly (a library's
+# private dependencies are found through that library's own RUNPATH, or its
+# LC_RPATH on macOS). Windows finds DLLs beside the program instead.
+if(APPLE)
+    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "@loader_path")
+elseif(UNIX)
+    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "$ORIGIN")
+else()
+    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "")
+endif()
+
 if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
+    # libgui_forms_threading, beside it, when a library loads it privately
+    # (the C ABI library).
+    set_target_properties(gui_forms_application PROPERTIES INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}")
     set_property(TARGET gui_forms_application PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE application)
     set_property(TARGET gui_forms_application APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
 endif()
