@@ -35,7 +35,7 @@
   "totals": {
     "stock": {
       "files": 43,
-      "calls": 380
+      "calls": 378
     },
     "exempt": {
       "files": 6,
@@ -113,7 +113,7 @@
     },
     "menu/menu_strip/menu_strip.cpp": {
       "category": "stock",
-      "calls": 5
+      "calls": 3
     },
     "metrics_view/metrics_view.cpp": {
       "category": "exempt",

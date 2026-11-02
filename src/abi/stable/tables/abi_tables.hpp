@@ -1,0 +1,20 @@
+#pragma once
+
+// The function tables of the C ABI (major 1) beyond the runtime table, one
+// source file each. Each table is a constant with static storage, so
+// gf_abi_get_table can copy it at any time.
+
+#include "gui_forms/c/gf_abi.h"
+
+namespace gui_forms::abi1 {
+
+[[nodiscard]] const gf_objects_table& objects_table() noexcept;
+[[nodiscard]] const gf_properties_table& properties_table() noexcept;
+[[nodiscard]] const gf_events_table& events_table() noexcept;
+[[nodiscard]] const gf_dispatch_table& dispatch_table() noexcept;
+[[nodiscard]] const gf_windows_table& windows_table() noexcept;
+[[nodiscard]] const gf_schema_table& schema_table() noexcept;
+[[nodiscard]] const gf_themes_table& themes_table() noexcept;
+[[nodiscard]] const gf_host_table& host_table() noexcept;
+
+} // namespace gui_forms::abi1

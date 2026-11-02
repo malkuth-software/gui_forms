@@ -1,0 +1,3712 @@
+{
+  "format": 1,
+  "generator": "tools/abi_audit.py extract",
+  "header": "include/gui_forms/c/gf_abi.h",
+  "abi": {
+    "major": 1,
+    "minor": 0
+  },
+  "targets": [
+    "x86_64-w64-windows-gnu",
+    "x86_64-pc-windows-msvc",
+    "x86_64-unknown-linux-gnu",
+    "aarch64-apple-darwin"
+  ],
+  "constants": [
+    {
+      "name": "GF_ABI_MAJOR",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ABI_MINOR",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_STATUS_OK",
+      "value": 0,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_INVALID_ARGUMENT",
+      "value": 1,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_STALE_HANDLE",
+      "value": 2,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_WRONG_HANDLE_KIND",
+      "value": 3,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_WRONG_THREAD",
+      "value": 4,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_DISPOSED",
+      "value": 5,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_BUFFER_TOO_SMALL",
+      "value": 6,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_UNSUPPORTED_VERSION",
+      "value": 7,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_INTERNAL",
+      "value": 8,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_OUT_OF_MEMORY",
+      "value": 9,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_UNSUPPORTED_CAPABILITY",
+      "value": 10,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_NOT_FOUND",
+      "value": 11,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_INVALID_STATE",
+      "value": 12,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_LIMIT_EXCEEDED",
+      "value": 13,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_CANCELLED",
+      "value": 14,
+      "type": "int32"
+    },
+    {
+      "name": "GF_STATUS_REMOVED",
+      "value": 15,
+      "type": "int32"
+    },
+    {
+      "name": "GF_TABLE_RUNTIME",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_OBJECTS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_PROPERTIES",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_EVENTS",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_DISPATCH",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_WINDOWS",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_SCHEMA",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_THEMES",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_TABLE_HOST",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_ABI_ENTRY_SLOT",
+      "value": 4294967295,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OBJECT_STATE_ALIVE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OBJECT_STATE_DISPOSING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OBJECT_STATE_DISPOSED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_NULL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_BOOLEAN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_SIGNED",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_UNSIGNED",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_NUMBER",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_TEXT",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_POINT",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_SIZE",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_RECTANGLE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_INSETS",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_COLOR",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_FONT",
+      "value": 11,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_IMAGE",
+      "value": 12,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_ENUMERATION",
+      "value": 13,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_OBJECT",
+      "value": 14,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_VALUE_KIND_COLLECTION",
+      "value": 15,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_RUN_FLAGS_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_KIND_CONTROL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_KIND_COMPONENT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_KIND_SERVICE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_PART_ROLES",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_STATES",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_CUSTOM_STATES",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_MARKS",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_ENGINE_INPUTS",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_VALUES",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_FAMILIES",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_SEMANTIC_ROLES",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_SEMANTIC_ACTIONS",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_SEMANTIC_STATES",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_SEMANTIC_FIELDS",
+      "value": 10,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_CASCADE_LEVELS",
+      "value": 11,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_EXPRESSION_OPERATIONS",
+      "value": 12,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_VOCABULARY_ENGINE_PROPERTIES",
+      "value": 13,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_NONE",
+      "value": 18446744073709551615,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_SCHEMA_PROPERTY_FLAGS_READABLE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PROPERTY_FLAGS_WRITABLE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PROPERTY_FLAGS_BINDABLE",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PROPERTY_FLAGS_NULLABLE",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_SERIALIZATION_HIDDEN",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_SERIALIZATION_VISIBLE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_SERIALIZATION_CONTENT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PARAMETER_KIND_NUMBER",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PARAMETER_KIND_CHOICE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PARAMETER_KIND_COLOR",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PRIMITIVE_LIST_ROLES",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PRIMITIVE_LIST_STATES_READ",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_PRIMITIVE_LIST_INPUTS_READ",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_PACKAGE_MAXIMUM_FILES",
+      "value": 256,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_PACKAGE_MAXIMUM_BYTES",
+      "value": 16777216,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_MAXIMUM_PUBLISHED_VALUES",
+      "value": 256,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_OUTCOME_APPLIED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_OUTCOME_REFUSED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_SEVERITY_ERROR",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_SEVERITY_WARNING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_DIAGNOSTIC_TEXT_CODE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_DIAGNOSTIC_TEXT_NAME",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_DIAGNOSTIC_TEXT_FILE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_DIAGNOSTIC_TEXT_RULE",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_DIAGNOSTIC_TEXT_PROPERTY",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_THEME_DIAGNOSTIC_TEXT_DETAIL",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_LIFECYCLE",
+      "value": 1,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_SCALE_NOTIFICATIONS",
+      "value": 2,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_MONITOR_GEOMETRY",
+      "value": 4,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_OCCLUSION",
+      "value": 8,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_SCHEDULED_WAKE",
+      "value": 16,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_POINTER_INPUT",
+      "value": 32,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_KEYBOARD_INPUT",
+      "value": 64,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_TEXT_COMPOSITION",
+      "value": 128,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_POINTER_CAPTURE",
+      "value": 256,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_CURSOR",
+      "value": 512,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_CLIPBOARD",
+      "value": 1024,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_TYPED_DRAG_DESTINATION",
+      "value": 2048,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_DIALOGS",
+      "value": 4096,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_MENUS",
+      "value": 8192,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_FONT_DISCOVERY",
+      "value": 16384,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_ACCESSIBILITY",
+      "value": 32768,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_TYPED_DRAG_SOURCE",
+      "value": 65536,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_SOUND_CUES",
+      "value": 131072,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_CLIPBOARD_IMAGES",
+      "value": 262144,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_FRAME_CAPTURE",
+      "value": 524288,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_NOTIFICATION_AREA",
+      "value": 1048576,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_NOTIFICATION_AREA_MESSAGES",
+      "value": 2097152,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_NOTIFICATION_AREA_MENUS",
+      "value": 4194304,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_RUNTIME_WINDOWS",
+      "value": 8388608,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_WINDOW_FRAMES",
+      "value": 16777216,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_SCREEN_POINTER",
+      "value": 33554432,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_WINDOW_AT_POINT",
+      "value": 67108864,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_WINDOW_ORDERING",
+      "value": 134217728,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_TRANSPARENT_WINDOWS",
+      "value": 268435456,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_WINDOW_BACKDROPS",
+      "value": 536870912,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_COMPOSITOR_NOTIFICATIONS",
+      "value": 1073741824,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_PRESENTATION_PREFERENCES",
+      "value": 2147483648,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_ARROW",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_TEXT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_HAND",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_CROSSHAIR",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_RESIZE_HORIZONTAL",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_RESIZE_VERTICAL",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_WAIT",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_FORBIDDEN",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_RESIZE_DIAGONAL_DOWN",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_POINTER_CURSOR_RESIZE_DIAGONAL_UP",
+      "value": 9,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_KIND_MESSAGE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_KIND_OPEN_FILE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_KIND_SAVE_FILE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_KIND_FOLDER",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_KIND_COLOR",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_BUTTONS_OK",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_BUTTONS_OK_CANCEL",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_BUTTONS_YES_NO",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_BUTTONS_YES_NO_CANCEL",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_BUTTONS_RETRY_CANCEL",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_ICON_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_ICON_INFORMATION",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_ICON_WARNING",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_ICON_ERROR",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_MESSAGE_ICON_QUESTION",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_CHOICE_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_CHOICE_OK",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_CHOICE_CANCEL",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_CHOICE_YES",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_CHOICE_NO",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_CHOICE_RETRY",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_FLAGS_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_FLAGS_ALLOW_MULTIPLE",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_FLAGS_CONFIRM_OVERWRITE",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_FLAGS_ALLOW_ALPHA",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_OUTCOME_ACCEPTED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_OUTCOME_CANCELLED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_DIALOG_NO_FILTER",
+      "value": 18446744073709551615,
+      "type": "uint64"
+    }
+  ],
+  "scalars": [
+    {
+      "name": "gf_status",
+      "type": "int32_t"
+    },
+    {
+      "name": "gf_table_id",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_object",
+      "type": "uint64_t"
+    },
+    {
+      "name": "gf_object_state",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_value_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_subscription",
+      "type": "uint64_t"
+    },
+    {
+      "name": "gf_run_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_vocabulary",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_property_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_serialization",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_parameter_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_primitive_list",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_theme_outcome",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_theme_severity",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_theme_diagnostic_text",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_host_capability",
+      "type": "uint64_t"
+    },
+    {
+      "name": "gf_pointer_cursor",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dialog_kind",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_message_buttons",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_message_icon",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dialog_choice",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dialog_flags",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_dialog_outcome",
+      "type": "uint32_t"
+    }
+  ],
+  "callbacks": [],
+  "structs": [
+    {
+      "name": "gf_utf8_view",
+      "kind": "record",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "data",
+          "type": "const char*",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "size",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_abi_version_info",
+      "kind": "extensible",
+      "size": 24,
+      "align": 4,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_major",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "library_major",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "library_minor",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "library_patch",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_error_detail",
+      "kind": "extensible",
+      "size": 24,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "status",
+          "type": "gf_status",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "table_id",
+          "type": "gf_table_id",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "slot_index",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "message_size",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_runtime_table",
+      "kind": "table",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "version",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "info",
+                "type": "gf_abi_version_info*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "error_detail",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "detail",
+                "type": "gf_error_detail*"
+              },
+              {
+                "name": "message_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "message_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "message_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "clear_error",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": []
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_logical_point",
+      "kind": "record",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "x",
+          "type": "double",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "y",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_logical_size",
+      "kind": "record",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "width",
+          "type": "double",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_logical_rect",
+      "kind": "record",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "x",
+          "type": "double",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "y",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_logical_insets",
+      "kind": "record",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "left",
+          "type": "double",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "top",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "right",
+          "type": "double",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "bottom",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_value",
+      "kind": "extensible",
+      "size": 152,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_value_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "boolean",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "color",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "signed_integer",
+          "type": "int64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "unsigned_integer",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "number",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "text",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        },
+        {
+          "name": "point",
+          "type": "gf_logical_point",
+          "offset": 56,
+          "size": 16
+        },
+        {
+          "name": "size",
+          "type": "gf_logical_size",
+          "offset": 72,
+          "size": 16
+        },
+        {
+          "name": "rectangle",
+          "type": "gf_logical_rect",
+          "offset": 88,
+          "size": 32
+        },
+        {
+          "name": "insets",
+          "type": "gf_logical_insets",
+          "offset": 120,
+          "size": 32
+        }
+      ]
+    },
+    {
+      "name": "gf_event",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "cancel",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "sender",
+          "type": "gf_object",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 16,
+          "size": 16
+        },
+        {
+          "name": "payload",
+          "type": "const gf_value*",
+          "offset": 32,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_callback",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "invoke",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "void",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              },
+              {
+                "name": "event",
+                "type": "gf_event*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "release",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "void",
+            "parameters": [
+              {
+                "name": "context",
+                "type": "void*"
+              }
+            ]
+          }
+        },
+        {
+          "name": "context",
+          "type": "void*",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_objects_table",
+      "kind": "table",
+      "size": 104,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "create",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type_name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "stable_id",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "object",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "retain",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "release",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "dispose",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "state",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "state",
+                "type": "gf_object_state*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "type_id",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "stable_id",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "insert_child",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "parent",
+                "type": "gf_object"
+              },
+              {
+                "name": "child",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "remove_child",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "parent",
+                "type": "gf_object"
+              },
+              {
+                "name": "child",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "child_count",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "parent",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "child_at",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "parent",
+                "type": "gf_object"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "child",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "parent",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "parent",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_properties_table",
+      "kind": "table",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "get",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "value",
+                "type": "gf_value*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "set",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "value",
+                "type": "const gf_value*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "reset",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_events_table",
+      "kind": "table",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "subscribe",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "interaction",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "callback",
+                "type": "const gf_callback*"
+              },
+              {
+                "name": "subscription",
+                "type": "gf_subscription*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "subscribe_property",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "source",
+                "type": "gf_object"
+              },
+              {
+                "name": "property",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "callback",
+                "type": "const gf_callback*"
+              },
+              {
+                "name": "subscription",
+                "type": "gf_subscription*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "disconnect",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "subscription",
+                "type": "gf_subscription"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_dispatch_table",
+      "kind": "table",
+      "size": 24,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "begin_invoke",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "target",
+                "type": "gf_object"
+              },
+              {
+                "name": "callback",
+                "type": "const gf_callback*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "run_pending",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "invoked",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_run_options",
+      "kind": "extensible",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_run_flags",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "title",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "width",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "height",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "ready",
+          "type": "const gf_callback*",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "closing",
+          "type": "const gf_callback*",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "closed",
+          "type": "const gf_callback*",
+          "offset": 56,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_windows_table",
+      "kind": "table",
+      "size": 24,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "run",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "root",
+                "type": "gf_object"
+              },
+              {
+                "name": "options",
+                "type": "const gf_run_options*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "request_close",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "root",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_type",
+      "kind": "extensible",
+      "size": 88,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_schema_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "id",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "type_name",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "part_count",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "state_count",
+          "type": "uint64_t",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "custom_state_count",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "item_system_count",
+          "type": "uint64_t",
+          "offset": 64,
+          "size": 8
+        },
+        {
+          "name": "property_count",
+          "type": "uint64_t",
+          "offset": 72,
+          "size": 8
+        },
+        {
+          "name": "interaction_count",
+          "type": "uint64_t",
+          "offset": 80,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_item_system",
+      "kind": "extensible",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "part_count",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "state_count",
+          "type": "uint64_t",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "custom_state_count",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_part",
+      "kind": "extensible",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "role",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "composed_from",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        },
+        {
+          "name": "state_count",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_property",
+      "kind": "extensible",
+      "size": 72,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_value_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "category",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "enumeration",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        },
+        {
+          "name": "choice_count",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "flags",
+          "type": "gf_schema_property_flags",
+          "offset": 64,
+          "size": 4
+        },
+        {
+          "name": "serialization",
+          "type": "gf_schema_serialization",
+          "offset": 68,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_choice",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "value",
+          "type": "int64_t",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_interaction",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "mutable_payload",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "payload",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_engine",
+      "kind": "extensible",
+      "size": 96,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "version_major",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "version_minor",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "operations_per_device_pixel",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "animated_operations_per_frame",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "expression_maximum_operations",
+          "type": "uint64_t",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "expression_maximum_stack",
+          "type": "uint64_t",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "published_values_maximum",
+          "type": "uint64_t",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "transition_maximum_states",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        },
+        {
+          "name": "transition_maximum_per_part",
+          "type": "uint64_t",
+          "offset": 64,
+          "size": 8
+        },
+        {
+          "name": "ambient_maximum_frames_per_second",
+          "type": "double",
+          "offset": 72,
+          "size": 8
+        },
+        {
+          "name": "ambient_maximum_window_fraction",
+          "type": "double",
+          "offset": 80,
+          "size": 8
+        },
+        {
+          "name": "primitive_count",
+          "type": "uint64_t",
+          "offset": 88,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_primitive",
+      "kind": "extensible",
+      "size": 104,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "introduced_major",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "introduced_minor",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "cost_per_device_pixel",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "cost_fixed",
+          "type": "uint32_t",
+          "offset": 16,
+          "size": 4
+        },
+        {
+          "name": "cost_preparation_per_device_pixel",
+          "type": "uint32_t",
+          "offset": 20,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "outsets",
+          "type": "gf_logical_insets",
+          "offset": 40,
+          "size": 32
+        },
+        {
+          "name": "role_count",
+          "type": "uint64_t",
+          "offset": 72,
+          "size": 8
+        },
+        {
+          "name": "state_read_count",
+          "type": "uint64_t",
+          "offset": 80,
+          "size": 8
+        },
+        {
+          "name": "input_read_count",
+          "type": "uint64_t",
+          "offset": 88,
+          "size": 8
+        },
+        {
+          "name": "parameter_count",
+          "type": "uint64_t",
+          "offset": 96,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_parameter",
+      "kind": "extensible",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_schema_parameter_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "minimum",
+          "type": "double",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "maximum",
+          "type": "double",
+          "offset": 32,
+          "size": 8
+        },
+        {
+          "name": "default_number",
+          "type": "double",
+          "offset": 40,
+          "size": 8
+        },
+        {
+          "name": "default_color",
+          "type": "uint32_t",
+          "offset": 48,
+          "size": 4
+        },
+        {
+          "name": "animated",
+          "type": "uint32_t",
+          "offset": 52,
+          "size": 4
+        },
+        {
+          "name": "choice_count",
+          "type": "uint64_t",
+          "offset": 56,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_schema_table",
+      "kind": "table",
+      "size": 144,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "vocabulary_count",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "vocabulary",
+                "type": "gf_schema_vocabulary"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "vocabulary_at",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "vocabulary",
+                "type": "gf_schema_vocabulary"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "type_count",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "find_type",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "type",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "type_at",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_type*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "item_system_at",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "system",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_item_system*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "part_at",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "system",
+                "type": "uint64_t"
+              },
+              {
+                "name": "part",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_part*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "state_at",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "system",
+                "type": "uint64_t"
+              },
+              {
+                "name": "part",
+                "type": "uint64_t"
+              },
+              {
+                "name": "state",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "custom_state_at",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "system",
+                "type": "uint64_t"
+              },
+              {
+                "name": "state",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "property_at",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_property*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "choice_at",
+          "type": "function",
+          "offset": 88,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "choice",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_choice*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "interaction_at",
+          "type": "function",
+          "offset": 96,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "interaction",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_interaction*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "engine",
+          "type": "function",
+          "offset": 104,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "record",
+                "type": "gf_schema_engine*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "primitive_at",
+          "type": "function",
+          "offset": 112,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "primitive",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_primitive*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "primitive_name_at",
+          "type": "function",
+          "offset": 120,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "primitive",
+                "type": "uint64_t"
+              },
+              {
+                "name": "list",
+                "type": "gf_schema_primitive_list"
+              },
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "parameter_at",
+          "type": "function",
+          "offset": 128,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "primitive",
+                "type": "uint64_t"
+              },
+              {
+                "name": "parameter",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_parameter*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "parameter_choice_at",
+          "type": "function",
+          "offset": 136,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "primitive",
+                "type": "uint64_t"
+              },
+              {
+                "name": "parameter",
+                "type": "uint64_t"
+              },
+              {
+                "name": "choice",
+                "type": "uint64_t"
+              },
+              {
+                "name": "name",
+                "type": "gf_utf8_view*"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_bytes_view",
+      "kind": "record",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "data",
+          "type": "const uint8_t*",
+          "offset": 0,
+          "size": 8
+        },
+        {
+          "name": "size",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_theme_file",
+      "kind": "record",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "path",
+          "type": "gf_utf8_view",
+          "offset": 0,
+          "size": 16
+        },
+        {
+          "name": "bytes",
+          "type": "gf_bytes_view",
+          "offset": 16,
+          "size": 16
+        }
+      ]
+    },
+    {
+      "name": "gf_theme_package",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "manifest",
+          "type": "gf_bytes_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "files",
+          "type": "const gf_theme_file*",
+          "offset": 24,
+          "size": 8
+        },
+        {
+          "name": "file_count",
+          "type": "uint64_t",
+          "offset": 32,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_theme_report",
+      "kind": "extensible",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "outcome",
+          "type": "gf_theme_outcome",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "diagnostic_count",
+          "type": "uint64_t",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_theme_diagnostic",
+      "kind": "extensible",
+      "size": 16,
+      "align": 4,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "severity",
+          "type": "gf_theme_severity",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "line",
+          "type": "uint32_t",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "column",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_themes_table",
+      "kind": "table",
+      "size": 88,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "load",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "package",
+                "type": "const gf_theme_package*"
+              },
+              {
+                "name": "report",
+                "type": "gf_theme_report*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "reset",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": []
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "install",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "package",
+                "type": "const gf_theme_package*"
+              },
+              {
+                "name": "report",
+                "type": "gf_theme_report*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "remove",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "removed",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "diagnostic_at",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_theme_diagnostic*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "diagnostic_text",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text",
+                "type": "gf_theme_diagnostic_text"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "theme_id",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "publish_value",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "value",
+                "type": "double"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "withdraw_value",
+          "type": "function",
+          "offset": 72,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "published_value",
+          "type": "function",
+          "offset": 80,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "name",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "value",
+                "type": "double*"
+              },
+              {
+                "name": "present",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_host_capabilities",
+      "kind": "extensible",
+      "size": 16,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "protocol_version",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "available",
+          "type": "gf_host_capability",
+          "offset": 8,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_file_filter",
+      "kind": "record",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "label",
+          "type": "gf_utf8_view",
+          "offset": 0,
+          "size": 16
+        },
+        {
+          "name": "extensions",
+          "type": "const gf_utf8_view*",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "extension_count",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_dialog_request",
+      "kind": "extensible",
+      "size": 136,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "kind",
+          "type": "gf_dialog_kind",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "title",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "message",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "initial_directory",
+          "type": "gf_utf8_view",
+          "offset": 40,
+          "size": 16
+        },
+        {
+          "name": "suggested_name",
+          "type": "gf_utf8_view",
+          "offset": 56,
+          "size": 16
+        },
+        {
+          "name": "default_extension",
+          "type": "gf_utf8_view",
+          "offset": 72,
+          "size": 16
+        },
+        {
+          "name": "filters",
+          "type": "const gf_file_filter*",
+          "offset": 88,
+          "size": 8
+        },
+        {
+          "name": "filter_count",
+          "type": "uint64_t",
+          "offset": 96,
+          "size": 8
+        },
+        {
+          "name": "initial_filter",
+          "type": "uint64_t",
+          "offset": 104,
+          "size": 8
+        },
+        {
+          "name": "buttons",
+          "type": "gf_message_buttons",
+          "offset": 112,
+          "size": 4
+        },
+        {
+          "name": "icon",
+          "type": "gf_message_icon",
+          "offset": 116,
+          "size": 4
+        },
+        {
+          "name": "default_choice",
+          "type": "gf_dialog_choice",
+          "offset": 120,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_dialog_flags",
+          "offset": 124,
+          "size": 4
+        },
+        {
+          "name": "initial_rgba",
+          "type": "uint32_t",
+          "offset": 128,
+          "size": 4
+        },
+        {
+          "name": "reserved",
+          "type": "uint32_t",
+          "offset": 132,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_dialog_result",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "outcome",
+          "type": "gf_dialog_outcome",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "choice",
+          "type": "gf_dialog_choice",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "rgba",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "path_count",
+          "type": "uint64_t",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "chosen_filter",
+          "type": "uint64_t",
+          "offset": 24,
+          "size": 8
+        }
+      ]
+    },
+    {
+      "name": "gf_host_table",
+      "kind": "table",
+      "size": 64,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "capabilities",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "record",
+                "type": "gf_host_capabilities*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "platform_name",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "set_cursor",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "cursor",
+                "type": "gf_pointer_cursor"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "read_clipboard_text",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "write_clipboard_text",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "text",
+                "type": "gf_utf8_view"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "show_dialog",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "request",
+                "type": "const gf_dialog_request*"
+              },
+              {
+                "name": "result",
+                "type": "gf_dialog_result*"
+              }
+            ]
+          },
+          "since": "1.0"
+        },
+        {
+          "name": "dialog_path_at",
+          "type": "function",
+          "offset": 56,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "index",
+                "type": "uint64_t"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.0"
+        }
+      ]
+    }
+  ],
+  "exports": [
+    {
+      "name": "gf_abi_get_table",
+      "returns": "gf_status",
+      "parameters": [
+        {
+          "name": "table_id",
+          "type": "gf_table_id"
+        },
+        {
+          "name": "abi_major",
+          "type": "uint32_t"
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t"
+        },
+        {
+          "name": "table",
+          "type": "void*"
+        },
+        {
+          "name": "table_capacity",
+          "type": "uint64_t"
+        }
+      ]
+    }
+  ]
+}

@@ -9,6 +9,7 @@
 #include "gui_forms/theme.hpp"
 #include "gui_forms/window.hpp"
 #include "application/headless_application.hpp"
+#include "../src/core/theme_language/package/theme_manifest.hpp"
 
 #include <array>
 #include <cstdint>
@@ -247,9 +248,39 @@ void test_runtime_window_shares_the_main_window_resources() {
 }
 } // namespace
 
+// A program theme package compiled through the resources loads its image
+// into their registry, so every sharing window draws it; releasing the theme
+// removes the image, and a refused package leaves none.
+void test_a_package_theme_compiles_into_the_shared_registry() {
+    const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    const std::string sheet = "button::part(face) { background-image: url(\"resource:icon.check\") }";
+    const std::string image(reinterpret_cast<const char*>(one_pixel_png.data()), one_pixel_png.size());
+    ThemePackage package{};
+    package.manifest =
+        "{\"format\": \"gui-forms-theme/1\", \"name\": \"shared\", \"version\": \"1.0.0\", \"engine\": \">=0.3\", "
+        "\"sheet\": {\"path\": \"theme.theme.css\", \"sha256\": \"" +
+        theme_language::package_sha256_hex(theme_language::package_sha256(sheet)) +
+        "\"}, \"resources\": [{\"name\": \"icon.check\", \"path\": \"check.png\", \"sha256\": \"" +
+        theme_language::package_sha256_hex(theme_language::package_sha256(image)) + "\"}]}";
+    package.files.push_back(ThemePackageFile{"check.png", image});
+    package.files.push_back(ThemePackageFile{"theme.theme.css", sheet});
+    const ThemeLibrary library{};
+    const std::size_t before = (*resources).images().image_ids().size();
+    ThemeCompileResult compiled = (*resources).compile_theme_package(package, library, ThemeCompileOptions{});
+    require(compiled.succeeded(), "the package compiles through the resources");
+    require((*resources).images().image_ids().size() == before + 1U, "its image is in the shared registry");
+    package.files.back().bytes = sheet + "\nbutton { opacity: 2 }";
+    const ThemeCompileResult refused = (*resources).compile_theme_package(package, library, ThemeCompileOptions{});
+    require(!refused.succeeded(), "a package whose sheet no longer matches its manifest is refused");
+    require((*resources).images().image_ids().size() == before + 1U, "a refusal leaves no image");
+    compiled = ThemeCompileResult::refused({});
+    require((*resources).images().image_ids().size() == before, "releasing the theme removes its image");
+}
+
 int main() {
     try {
         test_a_window_alone_keeps_its_own_resources();
+        test_a_package_theme_compiles_into_the_shared_registry();
         test_shared_images_and_image_lists();
         test_moved_subtree_keeps_its_images();
         test_runtime_window_shares_the_main_window_resources();

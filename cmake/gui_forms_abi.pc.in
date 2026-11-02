@@ -1,0 +1,9 @@
+prefix=${pcfiledir}/../..
+includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
+libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
+
+Name: gui_forms_abi
+Description: GUI.Forms C ABI, major @GUI_FORMS_ABI_MAJOR@
+Version: @GUI_FORMS_ABI_MAJOR@.@GUI_FORMS_ABI_MINOR@.0
+Cflags: -I${includedir}
+Libs: -L${libdir} -l@GUI_FORMS_ABI_PKGCONFIG_LIBRARY@

@@ -100,6 +100,10 @@ Types
 
       Compiles a user theme into these resources' registry (compile_user_theme), at the levels the policy needs: a user theme's under the layered policy, a program theme's under replaces_program_sheet. ``options.icons`` is replaced by the icons registered here. Selects nothing (set_user_theme does); the theme's images live while it does. Under the refused policy std::logic_error.
 
+   .. cpp:function:: ThemeCompileResult compile_theme_package(const ThemePackage& package, const ThemeLibrary& library, const ThemeCompileOptions& options)
+
+      Compiles a program theme package into these resources' registry (compile_theme_package against ``library``), so the theme's images are images of every window sharing these resources. Selects nothing (set_theme does); the theme's images live while it does, and a refusal leaves none. On the UI thread (std::logic_error elsewhere).
+
    .. cpp:function:: void register_icon(std::string_view identifier, ImageId image, IconOverride policy)
 
       Program icons (T3 user themes). Registers ``image``, an image of these resources, as the icon ``identifier``. std::invalid_argument when the identifier is invalid or already registered, or the image is not one of these resources'; nothing changes then. The image stays the program's: removing it leaves icon() naming an image no longer there.

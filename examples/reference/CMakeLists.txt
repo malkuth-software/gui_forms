@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25)
-project(GUIFormsOwnedEventsReference LANGUAGES CXX)
+project(GUIFormsOwnedEventsReference LANGUAGES C CXX)
 
 find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS Controls)
 add_executable(owned_events owned_events.cpp)
@@ -24,6 +24,14 @@ foreach(example_name IN ITEMS bound_values shared_state collection_state coopera
     add_test(NAME ${example_name} COMMAND ${example_name})
     set_tests_properties(${example_name} PROPERTIES TIMEOUT 15)
 endforeach()
+
+# The C ABI from C11: the CAbi component alone, no C++ target.
+find_package(GUIForms 0.2 CONFIG REQUIRED COMPONENTS CAbi)
+add_executable(c_abi_consumer c_abi_consumer.c)
+set_target_properties(c_abi_consumer PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON NO_SYSTEM_FROM_IMPORTED TRUE)
+target_link_libraries(c_abi_consumer PRIVATE GUIForms::CAbi)
+add_test(NAME c_abi_consumer COMMAND c_abi_consumer)
+set_tests_properties(c_abi_consumer PROPERTIES TIMEOUT 15 PASS_REGULAR_EXPRESSION "C ABI 1[.]")
 
 if(TARGET GUIForms::Application)
     add_executable(collection_gallery collection_gallery.cpp)

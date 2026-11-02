@@ -8,6 +8,7 @@
 #include "../../theme_language/package/theme_header.hpp"
 #include "../../theme_language/package/theme_package.hpp"
 #include "../theme/theme_access.hpp"
+#include "built_in_theme.hpp"
 #include "control_inline_style.hpp"
 #include "theme_image_lease.hpp"
 #include "theme_source_record.hpp"
@@ -1202,6 +1203,39 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
     (*style).theme_bound = bound;
     (*style).rules = CompiledThemeRules::compile_inline(sheet, registry, against);
     std::shared_ptr<const ControlInlineStyle> result(std::move(style));
+    return result;
+}
+
+detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefinition& floor, std::string_view file,
+                                                               std::string_view sheet,
+                                                               std::span<const ControlAnatomy> controls) {
+    BuiltInThemeCompilation result{};
+    const theme_language::ThemeSource source{.file = file, .text = sheet};
+    const PrimitiveRegistry& registry = builtin_primitive_registry();
+    const theme_language::ThemeCompileInput input{.source = source,
+                                                  .registry = registry,
+                                                  .vocabulary = theme_language::SelectorVocabulary{controls}};
+    // The definition is some 100 KB of recipes held out of line; it is
+    // copied once, onto the heap, as compile_closure's is.
+    std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(floor));
+    (*definition).rule_set = ThemeRuleSet::program;
+    theme_language::ThemeCompiler compiler{};
+    theme_language::ThemeDiagnosticList diagnostics{};
+    const theme_language::CompileOutcome outcome = compiler.compile(input, (*definition).rules, diagnostics);
+    result.operations = compiler.work().operations();
+    for (const ThemeDiagnostic& diagnostic : diagnostics.records()) {
+        result.diagnostics.push_back(public_diagnostic(diagnostic));
+    }
+    if (outcome != theme_language::CompileOutcome::compiled) return result;
+    std::shared_ptr<ThemeSourceRecord> record = std::make_shared<ThemeSourceRecord>();
+    (*record).text = std::string(sheet);
+    (*record).file = std::string(file);
+    compiler.append_defined_names((*record).defined_names);
+    std::sort((*record).defined_names.begin(), (*record).defined_names.end());
+    (*record).controls.assign(controls.begin(), controls.end());
+    (*record).requires_engine = current_engine_version;
+    std::shared_ptr<const ThemeSourceRecord> kept(std::move(record));
+    result.theme = ThemeAccess::create_holding(*definition, {}, std::move(kept));
     return result;
 }
 

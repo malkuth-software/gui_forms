@@ -9,6 +9,8 @@
 
 #include "gui_forms/gui_forms.hpp"
 
+#include "../src/controls/text_block/line_wrapping.hpp"
+
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
@@ -2121,6 +2123,282 @@ void authored_colours() {
             "the background colour fills the area no cell covers");
 }
 
+// -- wrapped text (batch 2b) ---------------------------------------------------
+
+// One unit per byte, so a run's width is its length.
+struct ByteWidth final {
+    double operator()(std::string_view run) const { return static_cast<double>(run.size()); }
+};
+
+// The wrapped lines' texts.
+std::vector<std::string> wrap(std::string_view text, const std::vector<LineBreakOpportunity>& opportunities,
+                              double width) {
+    std::vector<line_wrapping_detail::WrappedLine> lines;
+    const ByteWidth measure{};
+    line_wrapping_detail::wrap_lines_greedy(text, std::span<const LineBreakOpportunity>(opportunities), width,
+                                            measure, lines);
+    std::vector<std::string> texts;
+    for (const line_wrapping_detail::WrappedLine& line : lines) {
+        texts.emplace_back(text.substr(line.begin_byte, line.end_byte - line.begin_byte));
+    }
+    return texts;
+}
+
+// The opportunities of `text` with breaks allowed after spaces and
+// mandatory after line ends.
+std::vector<LineBreakOpportunity> simple_opportunities(std::string_view text) {
+    std::vector<LineBreakOpportunity> opportunities(text.size(), LineBreakOpportunity::prohibited);
+    for (std::size_t index = 0U; index < text.size(); ++index) {
+        if (text[index] == ' ') opportunities[index] = LineBreakOpportunity::allowed;
+        if (text[index] == '\n') opportunities[index] = LineBreakOpportunity::mandatory;
+    }
+    return opportunities;
+}
+
+void line_wrapping() {
+    const std::string_view words = "aa bb cc";
+    require(wrap(words, simple_opportunities(words), 5.0) == std::vector<std::string>{"aa bb", "cc"},
+            "lines take the longest run that fits, trailing spaces hung");
+    const std::string_view long_word = "aaaaaaa bb";
+    require(wrap(long_word, simple_opportunities(long_word), 3.0) == std::vector<std::string>{"aaaaaaa", "bb"},
+            "a run with no opportunity overflows on a line of its own");
+    const std::string_view ends = "a\n\nb";
+    require(wrap(ends, simple_opportunities(ends), 100.0) == std::vector<std::string>{"a", "", "b"},
+            "a line end always ends the line, an empty one included");
+    require(wrap(words, {}, 2.0) == std::vector<std::string>{"aa bb cc"},
+            "opportunities of another length leave one line");
+    require(wrap("", {}, 2.0).empty(), "no text has no lines");
+}
+
+void wrapped_cells() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.wrap");
+    Window window(grid, {360.0, 200.0});
+    static_cast<void>((*grid).set_cell_value(row_at(0U), 0U, BindingValue{std::string("Kilo Lima Mike November")}));
+    static_cast<void>((*grid).set_cell_value(row_at(1U), 0U, BindingValue{std::string("Oscar\nPapa")}));
+    window.perform_layout();
+    CountingPainter single;
+    (*grid).on_paint(single, (*grid).client_rectangle());
+    bool whole = false;
+    for (const std::string& drawn : single.texts) {
+        if (drawn == "Kilo Lima Mike November") whole = true;
+    }
+    require(whole, "without wrap_mode the text is one line");
+
+    (*grid).set_column_default_cell_style(0U, {.wrap_mode = true});
+    window.perform_layout();
+    CountingPainter wrapped;
+    (*grid).on_paint(wrapped, (*grid).client_rectangle());
+    std::string joined;
+    std::size_t pieces = 0U;
+    bool oscar = false;
+    bool papa = false;
+    for (const std::string& drawn : wrapped.texts) {
+        if (drawn == "Oscar") oscar = true;
+        if (drawn == "Papa") papa = true;
+        if (drawn.empty() || std::string_view("Kilo Lima Mike November").find(drawn) == std::string_view::npos) {
+            continue;
+        }
+        if (!joined.empty()) joined.push_back(' ');
+        joined.append(drawn);
+        ++pieces;
+    }
+    require(pieces >= 2U && joined == "Kilo Lima Mike November",
+            "with wrap_mode the text is drawn as lines at the column's width, in order");
+    require(oscar && papa, "a line end in the text starts a new line");
+    std::vector<DataGridView::Cell> cells = (*grid).realized_cells();
+    const DataGridView::Cell* first = find_cell(cells, 0U, 0U);
+    const Rect inside = (*first).parts.cell_selection.bounds;
+    require((*first).parts.cell_content.present && (*first).parts.cell_content.bounds.y >= inside.y &&
+                (*first).parts.cell_content.bounds.y + (*first).parts.cell_content.bounds.height <=
+                    inside.y + inside.height + 0.001,
+            "the content part is the lines' box, cut to the cell");
+}
+
+// -- automatic column sizing ---------------------------------------------------
+
+struct SetFillWeight final {
+    DataGridView* grid{};
+    double weight{};
+    void operator()() const { (*grid).set_column_fill_weight(0U, weight); }
+};
+struct ResizeColumnsToFill final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).auto_resize_columns(DataGridViewAutoSizeColumnsMode::fill); }
+};
+
+// The widest preferred width of a column's cells in rows [begin, end), and
+// its header's when `header`, at least the column's minimum.
+double expected_width(const DataGridView& grid, std::size_t column, std::size_t begin, std::size_t end,
+                      bool header) {
+    double widest = header ? grid.preferred_column_header_width(column) : 0.0;
+    for (std::size_t position = begin; position < end; ++position) {
+        widest = std::max(widest, grid.preferred_cell_width(row_at(position), column));
+    }
+    const double result = std::max(grid.columns()[column].minimum_width, widest);
+    return result;
+}
+
+void column_auto_sizing() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.autosize");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require((*grid).auto_size_columns_mode() == DataGridViewAutoSizeColumnsMode::none &&
+                (*grid).column_auto_size_mode(0U) == DataGridViewAutoSizeColumnMode::none &&
+                (*grid).columns()[0].width == 100.0,
+            "columns keep their widths by default");
+    require((*grid).preferred_cell_width(row_at(0U), 1U) > 13.0 &&
+                (*grid).preferred_cell_width(row_at(0U), 0U) > (*grid).preferred_cell_width(row_at(2U), 1U) &&
+                (*grid).preferred_column_header_width(0U) > 0.0,
+            "cells and headers have preferred widths");
+
+    (*grid).set_column_auto_size_mode(0U, DataGridViewAutoSizeColumnMode::all_cells);
+    window.perform_layout();
+    require((*grid).columns()[0].width == expected_width(*grid, 0U, 0U, 3U, true) &&
+                !(*grid).realized_columns()[0].parts.column_grip.present &&
+                (*grid).realized_columns()[1].parts.column_grip.present,
+            "an all-cells column takes its widest cell's width, and the user cannot resize it");
+    const double before = (*grid).columns()[0].width;
+    static_cast<void>((*grid).set_cell_value(
+        row_at(2U), 0U, BindingValue{std::string("Charlie with a much longer name than the others")}));
+    window.perform_layout();
+    require((*grid).columns()[0].width > before &&
+                (*grid).columns()[0].width == expected_width(*grid, 0U, 0U, 3U, true),
+            "a value change sizes the column again");
+
+    (*grid).set_column_auto_size_mode(0U, DataGridViewAutoSizeColumnMode::column_header);
+    window.perform_layout();
+    require((*grid).columns()[0].width ==
+                std::max((*grid).columns()[0].minimum_width, (*grid).preferred_column_header_width(0U)),
+            "a column_header column takes its header's width");
+
+    std::shared_ptr<DataGridView> short_grid = make_grid("grid.autosize.displayed");
+    Window short_window(short_grid, {360.0, 50.0});
+    static_cast<void>((*short_grid).set_cell_value(
+        row_at(2U), 0U, BindingValue{std::string("A row out of view with a much longer name")}));
+    (*short_grid).set_auto_size_columns_mode(DataGridViewAutoSizeColumnsMode::displayed_cells_except_header);
+    short_window.perform_layout();
+    const std::size_t shown = (*short_grid).displayed_row_end().value;
+    require(shown < 3U && (*short_grid).column_auto_size_mode(0U) ==
+                              DataGridViewAutoSizeColumnMode::displayed_cells_except_header &&
+                (*short_grid).columns()[0].width == expected_width(*short_grid, 0U, 0U, shown, false) &&
+                (*short_grid).columns()[0].width < expected_width(*short_grid, 0U, 0U, 3U, false),
+            "a displayed-cells column measures the rows shown, by the grid's default mode");
+
+    (*grid).set_column_auto_size_mode(0U, DataGridViewAutoSizeColumnMode::none);
+    (*grid).set_column_auto_size_mode(2U, DataGridViewAutoSizeColumnMode::fill);
+    (*grid).set_column_auto_size_mode(3U, DataGridViewAutoSizeColumnMode::fill);
+    (*grid).set_column_fill_weight(3U, 300.0);
+    window.perform_layout();
+    const std::span<const DataGridViewColumn> columns = (*grid).columns();
+    const double total = columns[0].width + columns[1].width + columns[2].width + columns[3].width;
+    const Rect data = (*grid).parts().column_header_band.bounds;
+    require(std::abs(total - data.width) < 0.01 && std::abs(columns[3].width - columns[2].width * 3.0) < 0.01,
+            "fill columns share the width the others leave, by weight");
+
+    std::vector<std::size_t> widths;
+    SubscriptionToken width_token = (*grid).column_width_changed().subscribe(RecordIndex{&widths});
+    (*grid).auto_resize_column(1U, DataGridViewAutoSizeColumnMode::all_cells_except_header);
+    require((*grid).columns()[1].width == expected_width(*grid, 1U, 0U, 3U, false) && widths.size() == 1U &&
+                widths[0] == 1U && (*grid).column_auto_size_mode(1U) == DataGridViewAutoSizeColumnMode::none,
+            "auto_resize_column sizes once and raises column_width_changed");
+    require(throws<std::invalid_argument>(SetFillWeight{grid.get(), 0.0}) &&
+                throws<std::invalid_argument>(ResizeColumnsToFill{grid.get()}),
+            "a weight that is not positive and a one-time fill are refused");
+}
+
+// -- column order --------------------------------------------------------------
+
+struct SetDisplayIndexPastEnd final {
+    DataGridView* grid{};
+    void operator()() const { (*grid).set_column_display_index(0U, DataGridViewDisplayIndex{9U}); }
+};
+
+std::vector<std::size_t> display_order(const DataGridView& grid) {
+    std::vector<std::size_t> order;
+    for (std::size_t display = 0U; display < grid.columns().size(); ++display) {
+        order.push_back(grid.column_at_display_index(DataGridViewDisplayIndex{display}));
+    }
+    return order;
+}
+
+void column_order() {
+    std::shared_ptr<DataGridView> grid = make_grid("grid.order");
+    Window window(grid, {360.0, 160.0});
+    window.perform_layout();
+    require(display_order(*grid) == std::vector<std::size_t>{0U, 1U, 2U, 3U} &&
+                (*grid).column_display_index(2U) == DataGridViewDisplayIndex{2U} &&
+                !(*grid).allow_user_to_order_columns(),
+            "columns show in index order, and the user does not reorder them, by default");
+    std::vector<std::size_t> moved;
+    SubscriptionToken moved_token = (*grid).column_display_index_changed().subscribe(RecordIndex{&moved});
+    (*grid).set_column_display_index(0U, DataGridViewDisplayIndex{2U});
+    window.perform_layout();
+    require(display_order(*grid) == std::vector<std::size_t>{1U, 2U, 0U, 3U} &&
+                moved == std::vector<std::size_t>{1U, 2U, 0U},
+            "moving a column shifts the ones between and reports each, in their new order");
+    const std::vector<DataGridView::Column> columns = (*grid).realized_columns();
+    const Rect data = (*grid).parts().column_header_band.bounds;
+    require(columns.size() == 4U && columns[0].index == 1U && columns[2].index == 0U &&
+                columns[0].parts.column_header.bounds.x == data.x &&
+                columns[1].parts.column_header.bounds.x > columns[0].parts.column_header.bounds.x,
+            "the headers are laid out in display order");
+    require(throws<std::out_of_range>(SetDisplayIndexPastEnd{grid.get()}), "a display index past the last is refused");
+
+    require(window.request_focus(grid) && (*grid).current_cell() == cell_at(0U, 1U),
+            "focus makes the first cell shown current");
+    require(key(window, PhysicalKey::right) && (*grid).current_cell() == cell_at(0U, 2U) &&
+                key(window, PhysicalKey::right) && (*grid).current_cell() == cell_at(0U, 0U) &&
+                key(window, PhysicalKey::end) && (*grid).current_cell() == cell_at(0U, 3U) &&
+                key(window, PhysicalKey::home) && (*grid).current_cell() == cell_at(0U, 1U),
+            "Right, End and Home walk the display order");
+    require(key(window, PhysicalKey::tab) && (*grid).current_cell() == cell_at(0U, 2U),
+            "Tab walks the display order");
+    require(key(window, PhysicalKey::right) && key(window, PhysicalKey::left, Modifier::shift) &&
+                key(window, PhysicalKey::left, Modifier::shift) && (*grid).is_cell_selected(row_at(0U), 1U) &&
+                (*grid).is_cell_selected(row_at(0U), 2U) && (*grid).is_cell_selected(row_at(0U), 0U) &&
+                !(*grid).is_cell_selected(row_at(0U), 3U),
+            "a range selects the columns between, as shown");
+    (*grid).clear_selection();
+    (*grid).set_cell_selected(row_at(0U), 0U, true);
+    (*grid).set_cell_selected(row_at(0U), 1U, true);
+    require((*grid).clipboard_content() == std::string("true\tAlpha\r\n"), "copied fields follow the display order");
+    const std::vector<SemanticNode> nodes = (*grid).semantic_virtual_children();
+    require(nodes[0].role == SemanticRole::column_header && nodes[0].name == "On" && nodes[0].column_index == 1U &&
+                nodes[2].name == "Name" && nodes[2].column_index == 3U,
+            "column headers are published in display order with their display indices");
+
+    (*grid).remove_column_at(1U);
+    require(display_order(*grid) == std::vector<std::size_t>{1U, 0U, 2U},
+            "removing a column closes its gap and renumbers the others");
+    (*grid).add_column({.name = "extra", .header_text = "Extra"});
+    require(display_order(*grid) == std::vector<std::size_t>{1U, 0U, 2U, 3U}, "an added column goes last");
+    (*grid).set_columns(sample_columns());
+    require(display_order(*grid) == std::vector<std::size_t>{0U, 1U, 2U, 3U}, "setting the columns resets the order");
+
+    std::shared_ptr<DataGridView> dragged = make_grid("grid.order.drag");
+    Window drag_window(dragged, {360.0, 160.0});
+    drag_window.perform_layout();
+    (*dragged).set_allow_user_to_order_columns(true);
+    std::vector<std::size_t> clicks;
+    SubscriptionToken click_token = (*dragged).column_header_click().subscribe(RecordIndex{&clicks});
+    (*dragged).set_column_sort_mode(0U, DataGridViewColumnSortMode::programmatic);
+    const Point start = centre(*dragged, (*dragged).realized_columns()[0].parts.column_label.bounds);
+    require(drag_window.dispatch_pointer({PointerAction::down, PointerButton::primary, start}),
+            "a header press is taken");
+    static_cast<void>(drag_window.dispatch_pointer({PointerAction::move, PointerButton::none, {start.x + 2.0, start.y}}));
+    require(!(*dragged).parts().column_drop_indicator.present, "a move under 4 units is no drag");
+    static_cast<void>(
+        drag_window.dispatch_pointer({PointerAction::move, PointerButton::none, {start.x + 170.0, start.y}}));
+    require((*dragged).parts().column_drop_indicator.present, "a drag shows where the column will go");
+    static_cast<void>(drag_window.dispatch_pointer({PointerAction::up, PointerButton::primary, {start.x + 170.0, start.y}}));
+    require(display_order(*dragged) == std::vector<std::size_t>{1U, 2U, 0U, 3U} && clicks.empty() &&
+                !(*dragged).parts().column_drop_indicator.present,
+            "the release moves the column, with no header click");
+    click(drag_window, centre(*dragged, (*dragged).realized_columns()[0].parts.column_label.bounds));
+    require(clicks.size() == 1U && clicks[0] == 1U && display_order(*dragged) == std::vector<std::size_t>{1U, 2U, 0U, 3U},
+            "a press and release in place is still a header click");
+}
+
 // -- sorting and the clipboard (batch 3) ---------------------------------------
 
 // Decides every comparison in reverse text order, records what it was
@@ -2349,8 +2627,12 @@ int main() {
     sort_modes();
     clipboard();
     authored_colours();
+    line_wrapping();
+    wrapped_cells();
+    column_auto_sizing();
+    column_order();
     std::cout << "DataGridView: columns, rows, parts, selection, keys, editing, cell kinds, virtual rows, "
                  "row identity, sorting, resizing, binding, scrolling, semantics, image and link cells, "
-                 "styles, formatting, borders, owner drawing, sort modes, the clipboard and authored colours passed\n";
+                 "styles, formatting, borders, owner drawing, sort modes, the clipboard, authored colours, wrapped text, column auto sizing and column order passed\n";
     return 0;
 }

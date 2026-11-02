@@ -119,8 +119,8 @@ void append_name_list(std::string& out, std::span<const std::string_view> names)
 // state, admitted custom state, mark, engine input, value type, recipe
 // family, semantic role, semantic action and semantic node field, in enum
 // order. `none` is the absence of a mark, not a mark, and is left out.
-// Values and node fields have no enum; they are listed here in the order
-// they were admitted.
+// Values and node fields have no enum; they are listed in the order they
+// were admitted.
 void append_vocabulary(std::string& out) {
     std::vector<std::string_view> names;
     out += "  \"vocabulary\": {\n";
@@ -160,11 +160,9 @@ void append_vocabulary(std::string& out) {
     append_name_list(out, names);
     out += ",\n";
     names.clear();
-    names.push_back("accent_index");
-    names.push_back("text_orientation");
-    names.push_back("dock_region");
-    names.push_back("content_color");
-    names.push_back("authored_color");
+    for (const std::string_view value : part_value_names) {
+        names.push_back(value);
+    }
     append_key(out, "    ", "values");
     append_name_list(out, names);
     out += ",\n";

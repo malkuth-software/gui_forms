@@ -854,6 +854,7 @@ Properties beyond every control's: none.
 | `scroll_corner` | face |  |  |
 | `editor` | well | `text_box` |  |
 | `focus` | focus |  |  |
+| `column_drop_indicator` | drop |  |  |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`.
 
@@ -937,6 +938,7 @@ Properties beyond every control's: none.
 | `sort_compare` | `DataGridViewSortCompareEvent`, by reference |
 | `sorted` | none |
 | `column_width_changed` | `std::size_t` |
+| `column_display_index_changed` | `std::size_t` |
 | `cell_formatting` | `DataGridViewCellFormattingEvent`, by reference |
 | `cell_parsing` | `DataGridViewCellParsingEvent`, by reference |
 

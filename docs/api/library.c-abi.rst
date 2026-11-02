@@ -5,7 +5,7 @@
 C ABI
 =====
 
-The C function tables for GUI.Forms and GUI.Drawing and the C++ convenience wrapper over them.
+The C function tables for GUI.Forms and GUI.Drawing and the C++ convenience wrapper over them: the stable ABI 1 (gui_forms/c/) and the experimental 0.x tables.
 
 Types
 -----
@@ -52,18 +52,54 @@ Types
      - gd_size projects floating-point drawing dimensions.
    * - :cpp:class:`gd_string_view <gd_string_view>`
      - gd_string_view is a non-owning bounded drawing-ABI string view with explicit validation before copying.
+   * - :cpp:class:`gf_abi_version_info <gf_abi_version_info>`
+     - gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
    * - :cpp:class:`gf_api_v0 <gf_api_v0>`
      - gf_api_v0 is the size-versioned negotiated function table for generational control ownership, properties, layout/scroll, hierarchy, input, fields, dialogs/services, property proxies, callbacks, host execution, dispatch, and deterministic retirement.
+   * - :cpp:class:`gf_bytes_view <gf_bytes_view>`
+     -  
+   * - :cpp:class:`gf_callback <gf_callback>`
+     -  
+   * - :cpp:class:`gf_dialog_request <gf_dialog_request>`
+     -  
+   * - :cpp:class:`gf_dialog_result <gf_dialog_result>`
+     -  
+   * - :cpp:class:`gf_dispatch_table <gf_dispatch_table>`
+     -  
+   * - :cpp:class:`gf_error_detail <gf_error_detail>`
+     - gf_error_detail is the size-prefixed copy of the calling thread's last failure: status, table, slot and message size.
    * - :cpp:class:`gf_error_view <gf_error_view>`
      - gf_error_view returns the thread-local result code and borrowed bounded diagnostic for the last failed ABI operation.
+   * - :cpp:class:`gf_event <gf_event>`
+     -  
+   * - :cpp:class:`gf_events_table <gf_events_table>`
+     -  
    * - :cpp:class:`gf_field_edit_result <gf_field_edit_result>`
      - gf_field_edit_result reports handled/change state plus resulting directional selection and viewport after one field operation.
+   * - :cpp:class:`gf_file_filter <gf_file_filter>`
+     -  
    * - :cpp:class:`gf_handle <gf_handle>`
      - gf_handle encodes one-based registry slot plus nonzero generation so stale GUI.Forms handles are rejected deterministically.
+   * - :cpp:class:`gf_host_capabilities <gf_host_capabilities>`
+     -  
+   * - :cpp:class:`gf_host_table <gf_host_table>`
+     -  
    * - :cpp:class:`gf_layout_state <gf_layout_state>`
      - gf_layout_state projects suspension depth, deferred status, and requested/committed revisions.
+   * - :cpp:class:`gf_logical_insets <gf_logical_insets>`
+     -  
+   * - :cpp:class:`gf_logical_point <gf_logical_point>`
+     -  
+   * - :cpp:class:`gf_logical_rect <gf_logical_rect>`
+     -  
+   * - :cpp:class:`gf_logical_size <gf_logical_size>`
+     -  
+   * - :cpp:class:`gf_objects_table <gf_objects_table>`
+     -  
    * - :cpp:class:`gf_point <gf_point>`
      - gf_point projects renderer-neutral logical coordinates across the stable C ABI.
+   * - :cpp:class:`gf_properties_table <gf_properties_table>`
+     -  
    * - :cpp:class:`gf_property_callbacks_v1 <gf_property_callbacks_v1>`
      - gf_property_callbacks_v1 is a size-versioned callback table for bounded foreign get/set/reset/serialize/format/parse/edit operations.
    * - :cpp:class:`gf_property_descriptor_v1 <gf_property_descriptor_v1>`
@@ -74,6 +110,30 @@ Types
      - gf_property_value is the tagged scalar/string carrier used by foreign property getters, setters, converters, and editors.
    * - :cpp:class:`gf_rect <gf_rect>`
      - gf_rect projects renderer-neutral logical rectangle geometry across the stable C ABI.
+   * - :cpp:class:`gf_run_options <gf_run_options>`
+     -  
+   * - :cpp:class:`gf_runtime_table <gf_runtime_table>`
+     - gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread.
+   * - :cpp:class:`gf_schema_choice <gf_schema_choice>`
+     -  
+   * - :cpp:class:`gf_schema_engine <gf_schema_engine>`
+     -  
+   * - :cpp:class:`gf_schema_interaction <gf_schema_interaction>`
+     -  
+   * - :cpp:class:`gf_schema_item_system <gf_schema_item_system>`
+     -  
+   * - :cpp:class:`gf_schema_parameter <gf_schema_parameter>`
+     -  
+   * - :cpp:class:`gf_schema_part <gf_schema_part>`
+     -  
+   * - :cpp:class:`gf_schema_primitive <gf_schema_primitive>`
+     -  
+   * - :cpp:class:`gf_schema_property <gf_schema_property>`
+     -  
+   * - :cpp:class:`gf_schema_table <gf_schema_table>`
+     -  
+   * - :cpp:class:`gf_schema_type <gf_schema_type>`
+     -  
    * - :cpp:class:`gf_scroll_axis_state <gf_scroll_axis_state>`
      - gf_scroll_axis_state projects one axis's bounds, viewport, change increments, current/effective maximum, and visibility.
    * - :cpp:class:`gf_scroll_state <gf_scroll_state>`
@@ -82,6 +142,22 @@ Types
      - gf_size projects renderer-neutral logical dimensions across the stable C ABI.
    * - :cpp:class:`gf_string_view <gf_string_view>`
      - gf_string_view is a non-owning bounded byte view; operations validate null/size and UTF-8 rules before copying.
+   * - :cpp:class:`gf_theme_diagnostic <gf_theme_diagnostic>`
+     -  
+   * - :cpp:class:`gf_theme_file <gf_theme_file>`
+     -  
+   * - :cpp:class:`gf_theme_package <gf_theme_package>`
+     -  
+   * - :cpp:class:`gf_theme_report <gf_theme_report>`
+     -  
+   * - :cpp:class:`gf_themes_table <gf_themes_table>`
+     -  
+   * - :cpp:class:`gf_utf8_view <gf_utf8_view>`
+     - gf_utf8_view (C ABI 1) borrows size bytes of UTF-8 text, not terminated; the callee copies what it keeps.
+   * - :cpp:class:`gf_value <gf_value>`
+     -  
+   * - :cpp:class:`gf_windows_table <gf_windows_table>`
+     -  
 
 .. cpp:namespace:: gui_forms::abi0
 
@@ -645,6 +721,26 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_abi_version_info
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_major
+
+   .. cpp:member:: uint32_t abi_minor
+
+   .. cpp:member:: uint32_t library_major
+
+   .. cpp:member:: uint32_t library_minor
+
+   .. cpp:member:: uint32_t library_patch
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_api_v0
 
    ``#include <gui_forms/c_api.h>``
@@ -829,6 +925,126 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_bytes_view
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: const uint8_t* data
+
+   .. cpp:member:: uint64_t size
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_callback
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: void (*invoke)(void* context, gf_event* event)
+
+   .. cpp:member:: void (*release)(void* context)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: void* context
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dialog_request
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_dialog_kind kind
+
+   .. cpp:member:: gf_utf8_view title
+
+   .. cpp:member:: gf_utf8_view message
+
+   .. cpp:member:: gf_utf8_view initial_directory
+
+   .. cpp:member:: gf_utf8_view suggested_name
+
+   .. cpp:member:: gf_utf8_view default_extension
+
+   .. cpp:member:: const gf_file_filter* filters
+
+   .. cpp:member:: uint64_t filter_count
+
+   .. cpp:member:: uint64_t initial_filter
+
+   .. cpp:member:: gf_message_buttons buttons
+
+   .. cpp:member:: gf_message_icon icon
+
+   .. cpp:member:: gf_dialog_choice default_choice
+
+   .. cpp:member:: gf_dialog_flags flags
+
+   .. cpp:member:: uint32_t initial_rgba
+
+   .. cpp:member:: uint32_t reserved
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dialog_result
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_dialog_outcome outcome
+
+   .. cpp:member:: gf_dialog_choice choice
+
+   .. cpp:member:: uint32_t rgba
+
+   .. cpp:member:: uint64_t path_count
+
+   .. cpp:member:: uint64_t chosen_filter
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dispatch_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*begin_invoke)(gf_object target, const gf_callback* callback)
+
+   .. cpp:member:: gf_status (*run_pending)(uint64_t* invoked)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_error_detail
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_error_detail is the size-prefixed copy of the calling thread's last failure: status, table, slot and message size.
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_status status
+
+   .. cpp:member:: gf_table_id table_id
+
+   .. cpp:member:: uint32_t slot_index
+
+   .. cpp:member:: uint64_t message_size
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_error_view
 
    ``#include <gui_forms/c_api.h>``
@@ -838,6 +1054,41 @@ Types
    .. cpp:member:: uint32_t code
 
    .. cpp:member:: gf_string_view message
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_event
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t cancel
+
+   .. cpp:member:: gf_object sender
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: const gf_value* payload
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_events_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*subscribe)(gf_object source, gf_utf8_view interaction, const gf_callback* callback, gf_subscription* subscription)
+
+   .. cpp:member:: gf_status (*subscribe_property)(gf_object source, gf_utf8_view property, const gf_callback* callback, gf_subscription* subscription)
+
+   .. cpp:member:: gf_status (*disconnect)(gf_subscription subscription)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
 
 .. cpp:namespace:: 0
 
@@ -861,6 +1112,18 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_file_filter
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: gf_utf8_view label
+
+   .. cpp:member:: const gf_utf8_view* extensions
+
+   .. cpp:member:: uint64_t extension_count
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_handle
 
    ``#include <gui_forms/c_api.h>``
@@ -870,6 +1133,45 @@ Types
    .. cpp:member:: uint32_t slot
 
    .. cpp:member:: uint32_t generation
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_host_capabilities
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t protocol_version
+
+   .. cpp:member:: gf_host_capability available
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_host_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*capabilities)(gf_host_capabilities* record)
+
+   .. cpp:member:: gf_status (*platform_name)(char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*set_cursor)(gf_pointer_cursor cursor)
+
+   .. cpp:member:: gf_status (*read_clipboard_text)(char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*write_clipboard_text)(gf_utf8_view text)
+
+   .. cpp:member:: gf_status (*show_dialog)(const gf_dialog_request* request, gf_dialog_result* result)
+
+   .. cpp:member:: gf_status (*dialog_path_at)(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
 
 .. cpp:namespace:: 0
 
@@ -889,6 +1191,91 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_logical_insets
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: double left
+
+   .. cpp:member:: double top
+
+   .. cpp:member:: double right
+
+   .. cpp:member:: double bottom
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_logical_point
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_logical_rect
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_logical_size
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_objects_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*create)(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object)
+
+   .. cpp:member:: gf_status (*retain)(gf_object object)
+
+   .. cpp:member:: gf_status (*release)(gf_object object)
+
+   .. cpp:member:: gf_status (*dispose)(gf_object object)
+
+   .. cpp:member:: gf_status (*state)(gf_object object, gf_object_state* state)
+
+   .. cpp:member:: gf_status (*type_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*stable_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*insert_child)(gf_object parent, gf_object child, uint64_t index)
+
+   .. cpp:member:: gf_status (*remove_child)(gf_object parent, gf_object child)
+
+   .. cpp:member:: gf_status (*child_count)(gf_object parent, uint64_t* count)
+
+   .. cpp:member:: gf_status (*child_at)(gf_object parent, uint64_t index, gf_object* child)
+
+   .. cpp:member:: gf_status (*parent)(gf_object object, gf_object* parent)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_point
 
    ``#include <gui_forms/c_api.h>``
@@ -898,6 +1285,25 @@ Types
    .. cpp:member:: double x
 
    .. cpp:member:: double y
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_properties_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*get)(gf_object object, gf_utf8_view name, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*set)(gf_object object, gf_utf8_view name, const gf_value* value)
+
+   .. cpp:member:: gf_status (*reset)(gf_object object, gf_utf8_view name)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
 
 .. cpp:namespace:: 0
 
@@ -1015,6 +1421,296 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_run_options
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_run_flags flags
+
+   .. cpp:member:: gf_utf8_view title
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double height
+
+   .. cpp:member:: const gf_callback* ready
+
+   .. cpp:member:: const gf_callback* closing
+
+   .. cpp:member:: const gf_callback* closed
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_runtime_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*version)(gf_abi_version_info* info)
+
+   .. cpp:member:: gf_status (*error_detail)(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
+
+   .. cpp:member:: gf_status (*clear_error)(void)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_choice
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: int64_t value
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_engine
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t version_major
+
+   .. cpp:member:: uint32_t version_minor
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: uint64_t operations_per_device_pixel
+
+   .. cpp:member:: uint64_t animated_operations_per_frame
+
+   .. cpp:member:: uint64_t expression_maximum_operations
+
+   .. cpp:member:: uint64_t expression_maximum_stack
+
+   .. cpp:member:: uint64_t published_values_maximum
+
+   .. cpp:member:: uint64_t transition_maximum_states
+
+   .. cpp:member:: uint64_t transition_maximum_per_part
+
+   .. cpp:member:: double ambient_maximum_frames_per_second
+
+   .. cpp:member:: double ambient_maximum_window_fraction
+
+   .. cpp:member:: uint64_t primitive_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_interaction
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t mutable_payload
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view payload
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_item_system
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: uint64_t part_count
+
+   .. cpp:member:: uint64_t state_count
+
+   .. cpp:member:: uint64_t custom_state_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_parameter
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_schema_parameter_kind kind
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: double minimum
+
+   .. cpp:member:: double maximum
+
+   .. cpp:member:: double default_number
+
+   .. cpp:member:: uint32_t default_color
+
+   .. cpp:member:: uint32_t animated
+
+   .. cpp:member:: uint64_t choice_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_part
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view role
+
+   .. cpp:member:: gf_utf8_view composed_from
+
+   .. cpp:member:: uint64_t state_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_primitive
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t introduced_major
+
+   .. cpp:member:: uint32_t introduced_minor
+
+   .. cpp:member:: uint32_t cost_per_device_pixel
+
+   .. cpp:member:: uint32_t cost_fixed
+
+   .. cpp:member:: uint32_t cost_preparation_per_device_pixel
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_logical_insets outsets
+
+   .. cpp:member:: uint64_t role_count
+
+   .. cpp:member:: uint64_t state_read_count
+
+   .. cpp:member:: uint64_t input_read_count
+
+   .. cpp:member:: uint64_t parameter_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_property
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_value_kind kind
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view category
+
+   .. cpp:member:: gf_utf8_view enumeration
+
+   .. cpp:member:: uint64_t choice_count
+
+   .. cpp:member:: gf_schema_property_flags flags
+
+   .. cpp:member:: gf_schema_serialization serialization
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*vocabulary_count)(gf_schema_vocabulary vocabulary, uint64_t* count)
+
+   .. cpp:member:: gf_status (*vocabulary_at)(gf_schema_vocabulary vocabulary, uint64_t index, gf_utf8_view* name)
+
+   .. cpp:member:: gf_status (*type_count)(uint64_t* count)
+
+   .. cpp:member:: gf_status (*find_type)(gf_utf8_view name, uint64_t* type)
+
+   .. cpp:member:: gf_status (*type_at)(uint64_t type, gf_schema_type* record)
+
+   .. cpp:member:: gf_status (*item_system_at)(uint64_t type, uint64_t system, gf_schema_item_system* record)
+
+   .. cpp:member:: gf_status (*part_at)(uint64_t type, uint64_t system, uint64_t part, gf_schema_part* record)
+
+   .. cpp:member:: gf_status (*state_at)(uint64_t type, uint64_t system, uint64_t part, uint64_t state, gf_utf8_view* name)
+
+   .. cpp:member:: gf_status (*custom_state_at)(uint64_t type, uint64_t system, uint64_t state, gf_utf8_view* name)
+
+   .. cpp:member:: gf_status (*property_at)(uint64_t type, uint64_t property, gf_schema_property* record)
+
+   .. cpp:member:: gf_status (*choice_at)(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record)
+
+   .. cpp:member:: gf_status (*interaction_at)(uint64_t type, uint64_t interaction, gf_schema_interaction* record)
+
+   .. cpp:member:: gf_status (*engine)(gf_schema_engine* record)
+
+   .. cpp:member:: gf_status (*primitive_at)(uint64_t primitive, gf_schema_primitive* record)
+
+   .. cpp:member:: gf_status (*primitive_name_at)(uint64_t primitive, gf_schema_primitive_list list, uint64_t index, gf_utf8_view* name)
+
+   .. cpp:member:: gf_status (*parameter_at)(uint64_t primitive, uint64_t parameter, gf_schema_parameter* record)
+
+   .. cpp:member:: gf_status (*parameter_choice_at)(uint64_t primitive, uint64_t parameter, uint64_t choice, gf_utf8_view* name)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_schema_type
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_schema_kind kind
+
+   .. cpp:member:: gf_utf8_view id
+
+   .. cpp:member:: gf_utf8_view type_name
+
+   .. cpp:member:: uint64_t part_count
+
+   .. cpp:member:: uint64_t state_count
+
+   .. cpp:member:: uint64_t custom_state_count
+
+   .. cpp:member:: uint64_t item_system_count
+
+   .. cpp:member:: uint64_t property_count
+
+   .. cpp:member:: uint64_t interaction_count
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_scroll_axis_state
 
    ``#include <gui_forms/c_api.h>``
@@ -1092,3 +1788,147 @@ Types
    .. cpp:member:: const char* data
 
    .. cpp:member:: uint64_t size
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_theme_diagnostic
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_theme_severity severity
+
+   .. cpp:member:: uint32_t line
+
+   .. cpp:member:: uint32_t column
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_theme_file
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: gf_utf8_view path
+
+   .. cpp:member:: gf_bytes_view bytes
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_theme_package
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_bytes_view manifest
+
+   .. cpp:member:: const gf_theme_file* files
+
+   .. cpp:member:: uint64_t file_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_theme_report
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_theme_outcome outcome
+
+   .. cpp:member:: uint64_t diagnostic_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_themes_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*load)(const gf_theme_package* package, gf_theme_report* report)
+
+   .. cpp:member:: gf_status (*reset)(void)
+
+   .. cpp:member:: gf_status (*install)(const gf_theme_package* package, gf_theme_report* report)
+
+   .. cpp:member:: gf_status (*remove)(gf_utf8_view name, uint32_t* removed)
+
+   .. cpp:member:: gf_status (*diagnostic_at)(uint64_t index, gf_theme_diagnostic* record)
+
+   .. cpp:member:: gf_status (*diagnostic_text)(uint64_t index, gf_theme_diagnostic_text text, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*theme_id)(char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*publish_value)(gf_utf8_view name, double value)
+
+   .. cpp:member:: gf_status (*withdraw_value)(gf_utf8_view name)
+
+   .. cpp:member:: gf_status (*published_value)(gf_utf8_view name, double* value, uint32_t* present)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_utf8_view
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   gf_utf8_view (C ABI 1) borrows size bytes of UTF-8 text, not terminated; the callee copies what it keeps.
+
+   .. cpp:member:: const char* data
+
+   .. cpp:member:: uint64_t size
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_value
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_value_kind kind
+
+   .. cpp:member:: uint32_t boolean
+
+   .. cpp:member:: uint32_t color
+
+   .. cpp:member:: int64_t signed_integer
+
+   .. cpp:member:: uint64_t unsigned_integer
+
+   .. cpp:member:: double number
+
+   .. cpp:member:: gf_utf8_view text
+
+   .. cpp:member:: gf_logical_point point
+
+   .. cpp:member:: gf_logical_size size
+
+   .. cpp:member:: gf_logical_rect rectangle
+
+   .. cpp:member:: gf_logical_insets insets
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_windows_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*run)(gf_object root, const gf_run_options* options)
+
+   .. cpp:member:: gf_status (*request_close)(gf_object root)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor

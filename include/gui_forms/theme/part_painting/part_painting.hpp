@@ -4,6 +4,7 @@
 #include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
@@ -73,6 +74,12 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 
 // Registered (snake_case) name of a mark, as the schema's vocabulary lists it.
 [[nodiscard]] std::string_view part_mark_name(PartMark mark) noexcept;
+
+// The values admitted to the vocabulary beside states and marks (design
+// language 12.7), as the schema lists them: they have no enum, so this is
+// the order they were admitted in.
+inline constexpr std::array<std::string_view, 5> part_value_names{
+    {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
 

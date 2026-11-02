@@ -65,6 +65,8 @@ read_only : default ``false``
     Whether no cell of the grid edits, toggles or chooses.
 allow_user_to_resize_columns : default ``true``
     Whether dragging a column header's divider resizes the column.
+allow_user_to_order_columns : default ``false``
+    Whether dragging a column header moves the column.
 allow_user_to_add_rows : default ``true``
     Whether an unbound or bound grid shows the new row after the last row.
 allow_user_to_delete_rows : default ``true``
@@ -102,6 +104,8 @@ sorted_column : default none
     The column the last sort ordered by, while the rows keep its order.
 sort_order : default ``DataGridViewSortDirection::none``
     That sort's direction.
+auto_size_columns_mode : default ``none``
+    The auto size mode of columns whose own is ``not_set``.
 clipboard_copy_mode : default ``enable_with_auto_header_text``
     Which header texts a copy includes, or ``disable``.
 clipboard_content : default none
@@ -204,6 +208,8 @@ sorted
     Raised after a sort ordered the rows.
 column_width_changed
     Raised after a column's width changes, with the column's index.
+column_display_index_changed
+    Raised after a column's display index changes, with the column's index.
 cell_formatting
     Raised when the grid needs a cell's text, with its value and inherited
     style: a handler may give the text, change the value or the style.
@@ -302,6 +308,28 @@ column_sort_mode
     default (``automatic`` for text columns, ``not_sortable`` otherwise).
 set_column_sort_mode
     Sets a column's sort mode, or none for its kind's default.
+column_auto_size_mode
+    A column's `DataGridViewAutoSizeColumnMode`, the grid's when its own is
+    ``not_set``.
+set_column_auto_size_mode
+    Sets a column's auto size mode.
+set_column_fill_weight
+    Sets a fill column's share of the width the other columns leave.
+auto_resize_column
+    Sizes a column once to its cells or header, raising
+    `column_width_changed`.
+auto_resize_columns
+    Sizes every column once.
+column_display_index
+    A column's place in the order the grid shows its columns.
+set_column_display_index
+    Moves a column to a display index, the columns between shifting by one.
+column_at_display_index
+    The column shown at a display index.
+preferred_cell_width
+    The width a cell asks for: its content, padding and grid line.
+preferred_column_header_width
+    The width a column header asks for, with a sortable column's glyph lane.
 set_virtual_rows
     Switches to virtual rows: the application's row IDs in presentation
     order, or a `DataGridViewRowWindowSource` that keeps the order, with
@@ -519,7 +547,10 @@ numbers with the invariant fixed formats ``F0`` to ``F12`` (those `Binding`
 accepts); ``null_value`` is shown for an empty value, and typed text equal
 to it stores ``data_source_null_value``. Header styles give the header
 labels their font, alignment and padding. Styles are values: the grid keeps
-a copy. Kept but not drawn yet: ``wrap_mode`` (text stays on one line).
+a copy. ``wrap_mode`` wraps a text cell's text at its width, at the text
+engine's line-break opportunities and at line ends; the lines sit up and
+down as a block and are cut at the cell's bottom (rows do not grow to fit
+them yet). Other kinds and the headers keep one line.
 The colours are authored colours (owner decision T4-1): over the theme's
 ordinary colours, under its important ones, and dropped in high contrast;
 a disabled grid stays greyed. ``back_color`` fills the cell and
@@ -545,14 +576,36 @@ clipboard as text; ``clipboard_copy_mode`` (default
 ``enable_with_auto_header_text``, which adds the row headers in full-row
 selection) chooses the header texts.
 
-Not supported yet: wrapped cell text, the style
+Columns size themselves as Windows Forms' do. A column's ``auto_size_mode``
+(else the grid's `auto_size_columns_mode`) sizes it to its cells' preferred
+widths over every row or the rows shown, with or without its header's, to
+its header alone, or as a ``fill`` column sharing the width the others
+leave by ``fill_weight``. Automatic widths are applied when the grid lays
+out, never below ``minimum_width``, without raising `column_width_changed`,
+and the user cannot resize an auto-sized column (a fill column included,
+where Windows Forms moves the weights). The cell modes measure every row's
+formatted cell, so virtual rows ask their provider for each. Rows keep one
+height.
+
+Columns have a display order apart from their indices (Windows Forms'
+DisplayIndex): `set_column_display_index` moves one, and with
+`allow_user_to_order_columns` the user drags a header, the
+``column_drop_indicator`` part showing where it goes; a drag is no header
+click. What the user sees and walks follows display order: the columns'
+places, the arrow keys, Tab, Home and End, range selection, the semantic
+column indices and the clipboard's fields. Cell addresses and events keep
+column indices. Setting the columns resets the order; an added column goes
+last.
+
+Not supported yet: wrapped header text, the style
 changed events, per-row header cell styles, Custom (advanced) border
 styles, `RowPrePaint` and `RowPostPaint`, `LinkBehavior` (the
 link is always underlined), an image column's default
 image for empty cells and icon values, frozen rows and columns beyond the headers, the
 clipboard's HTML and CSV formats, automatic sorting of virtual and bound
-rows (the application sorts them), user column reordering, automatic
-column and row sizing, row height resizing, the new row in virtual mode,
+rows (the application sorts them), frozen columns, automatic
+row sizing and per-row heights, header size modes, row height resizing,
+the new row in virtual mode,
 error text asked of the application (``CellErrorTextNeeded``), and cell
 tool tips.
 

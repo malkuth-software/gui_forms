@@ -110,6 +110,8 @@ Types
      - The colours of a gloss material, top to bottom.
    * - :cpp:class:`GradientStop <gui_forms::GradientStop>`
      - GradientStop pairs a normalized monotonic offset with a copied color for retained display-list safety.
+   * - :cpp:class:`GuiFormsThemeBuild <gui_forms::GuiFormsThemeBuild>`
+     - The built theme and what building it measured.
    * - :cpp:class:`ImageId <gui_forms::ImageId>`
      - ImageId is the nonzero renderer-neutral identity returned by a Window image registry.
    * - :cpp:class:`ImageVariantRequest <gui_forms::ImageVariantRequest>`
@@ -1668,6 +1670,26 @@ Types
    .. cpp:member:: double offset
 
    .. cpp:member:: Color color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GuiFormsThemeBuild final
+
+   ``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
+
+   The built theme and what building it measured. When the sheet is refused, ``theme`` is the floor alone and ``diagnostics`` says why; the stock sheet compiles with no diagnostics (tests/gui_forms_theme_tests).
+
+   .. cpp:member:: std::shared_ptr<const Theme> theme
+
+   .. cpp:member:: std::vector<ThemeCompileDiagnostic> diagnostics
+
+   .. cpp:member:: std::uint64_t compile_operations
+
+      The compiler's work for the sheet (ThemeCompileWork::operations), a count independent of the machine.
+
+   .. cpp:member:: std::chrono::nanoseconds build_time
+
+      Wall time from the floor's construction to the theme, on the first call's thread: the startup cost decision T4-3 bounds.
 
 .. cpp:namespace:: gui_forms
 
@@ -6304,6 +6326,24 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp>``
+
+.. cpp:function:: ThemeDefinition gui_forms_theme_definition()
+
+   The floor: Plan Paint's action plate for push buttons, the gold active tool for selected ones, recessed wells for entry fields and choices, near-white stock (#F4F4F5) for windows and panels, flat command members at rest, and text colours that meet the contrast gate (4.5:1, 3:1 for disabled text) on every face. Id ``gui-forms``; its rules are empty.
+
+.. cpp:function:: std::string_view gui_forms_light_sheet() noexcept
+
+   The light sheet's source text (``gui-forms/light.css`` in diagnostics): the colour roles of design language §5.4 and the rules for parts the engine paints. Static storage.
+
+.. cpp:function:: const GuiFormsThemeBuild& gui_forms_theme_build()
+
+   The theme, built on the first call (thread-safe; later calls return the same build) and kept for the life of the program.
+
+.. cpp:function:: std::shared_ptr<const Theme> gui_forms_theme()
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/theme/owner_draw/owner_draw.hpp>``
 
 .. cpp:function:: Color item_content_text(const Control& control, ControlVisualRole family, AnatomyStateSet states) noexcept
@@ -6341,6 +6381,18 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t part_mark_count
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
+
+.. cpp:var:: constexpr std::array<std::string_view, 5> part_value_names
+
+   The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/theme/stock_anatomies/stock_anatomies.hpp>``
+
+.. cpp:function:: std::span<const ControlAnatomy> stock_control_anatomies() noexcept
+
+   The anatomies of the stock controls (stage T4, phase 3): every control type of the control schema (``manifests/control-schema.json``), in schema order, generated into the core by ``tools/stock_anatomies.py`` so that a sheet the core compiles may name stock control types, parts and states without the controls library. Static storage: the spans stay valid for the life of the program (ControlAnatomy). An application compiling a theme package passes these, and its own controls' anatomies, as ThemeCompileOptions::controls.
 
 .. cpp:namespace:: gui_forms
 

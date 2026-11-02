@@ -25,6 +25,11 @@ endif()
 if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")
     include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsTextStackTargets.cmake")
 endif()
+# The C ABI (cmake/CAbi.cmake): a shared library with a C header. It links the
+# Application library (one engine per process), so it is installed only with it.
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake" AND TARGET GUIForms::Application)
+    include("${CMAKE_CURRENT_LIST_DIR}/GUIFormsCAbiTargets.cmake")
+endif()
 
 # The localizable-literal Clang plugin, installed with the SDK when it was
 # built (cmake/LocalizablePlugin.cmake): a consumer compiling with Clang 22 is
@@ -48,7 +53,7 @@ set(GUIForms_FONT_DIR "${PACKAGE_PREFIX_DIR}/@CMAKE_INSTALL_DATADIR@/GUIForms/fo
 
 # Components describe installed targets, not the producer's build options.
 # Set these explicitly so REQUIRED COMPONENTS works and missing hosts fail here.
-foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz)
+foreach(_gui_forms_component IN ITEMS Core Controls Drawing Threading Application Audio TextMasks AudioLoopTransport FreeType HarfBuzz CAbi)
     if(TARGET GUIForms::${_gui_forms_component})
         set(GUIForms_${_gui_forms_component}_FOUND TRUE)
     else()
@@ -58,7 +63,7 @@ endforeach()
 foreach(_gui_forms_component IN LISTS GUIForms_FIND_COMPONENTS)
     if(NOT GUIForms_${_gui_forms_component}_FOUND)
         set(GUIForms_NOT_FOUND_MESSAGE
-            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components. Application requires a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; FreeType and HarfBuzz require a build with GUI_FORMS_INSTALL_TEXT_STACK (tools/build_sdk.py --features all builds all four).")
+            "Requested GUIForms component '${_gui_forms_component}' is not installed. Core, Controls, Drawing and Threading are portable components. Application and CAbi require a supported native host build; Audio requires an audio-enabled build; TextMasks requires a native host build with GUI_FORMS_BUILD_TEXT_MASKS; AudioLoopTransport requires an audio build with GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT; FreeType and HarfBuzz require a build with GUI_FORMS_INSTALL_TEXT_STACK (tools/build_sdk.py --features all builds all four).")
     endif()
 endforeach()
 unset(_gui_forms_component)

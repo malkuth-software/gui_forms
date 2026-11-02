@@ -179,6 +179,8 @@ add_library(gui_forms_core STATIC
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
+    src/core/theme/gui_forms_theme/gui_forms_theme.cpp
+    src/core/theme/stock_anatomies/stock_anatomies.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
     src/core/theme/part_painting/part_painting.cpp
     src/core/theme/owner_draw/owner_draw.cpp
@@ -2506,6 +2508,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_contrast_tests tests/theme_contrast_tests.cpp)
     target_link_libraries(gui_forms_theme_contrast_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_contrast_tests COMMAND gui_forms_theme_contrast_tests)
+    add_executable(gui_forms_gui_forms_theme_tests tests/gui_forms_theme_tests.cpp)
+    target_link_libraries(gui_forms_gui_forms_theme_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_gui_forms_theme_tests COMMAND gui_forms_gui_forms_theme_tests)
     add_executable(gui_forms_owner_draw_tests tests/owner_draw_tests.cpp)
     target_link_libraries(gui_forms_owner_draw_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_owner_draw_tests COMMAND gui_forms_owner_draw_tests)
@@ -4106,6 +4111,26 @@ if(GUI_FORMS_BUILD_TESTS)
         endif()
         target_link_libraries(gui_forms_bundled_font_memory_report PRIVATE gui_forms_skia)
 
+        # The specimen sheet (stage T4, phase 2): every stock control of the
+        # Gallery in its states, light, dark and high contrast, scales 1 and 2,
+        # as contact sheets with a hash manifest and pixel contrast. The test
+        # captures the first page twice and requires identical pixels; a full
+        # run is `gui_forms_specimen_sheet --out <directory> --repeat`.
+        if(TARGET gui_forms_gallery_model)
+            if(WIN32)
+                add_executable(gui_forms_specimen_sheet tests/specimen/specimen_sheet.cpp
+                    src/host/windows/fonts/sealed_pages_windows.cpp)
+            else()
+                add_executable(gui_forms_specimen_sheet tests/specimen/specimen_sheet.cpp
+                    src/host/posix/fonts/sealed_pages_posix.cpp)
+            endif()
+            target_include_directories(gui_forms_specimen_sheet PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+            target_compile_definitions(gui_forms_specimen_sheet PRIVATE
+                GUI_FORMS_SPECIMEN_FONT_DIR="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
+            target_link_libraries(gui_forms_specimen_sheet PRIVATE gui_forms_gallery_model gui_forms_skia)
+            add_test(NAME gui_forms_specimen_sheet_tests COMMAND gui_forms_specimen_sheet --smoke)
+        endif()
+
         add_executable(gui_forms_canvas_raster_tests tests/canvas_raster_tests.cpp)
         target_link_libraries(gui_forms_canvas_raster_tests PRIVATE gui_forms_controls gui_forms_skia)
         add_test(NAME gui_forms_canvas_raster_tests COMMAND gui_forms_canvas_raster_tests)
@@ -4400,14 +4425,31 @@ if(GUI_FORMS_BUILD_AUDIO)
     include(cmake/Audio.cmake)
 endif()
 
+# An installed shared library finds the shared libraries it needs beside
+# itself: libraries are installed into one directory, and a consumer's own
+# search path covers only the libraries it links directly (a library's
+# private dependencies are found through that library's own RUNPATH, or its
+# LC_RPATH on macOS). Windows finds DLLs beside the program instead.
+if(APPLE)
+    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "@loader_path")
+elseif(UNIX)
+    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "$ORIGIN")
+else()
+    set(GUI_FORMS_INSTALLED_LIBRARY_RPATH "")
+endif()
+
 if(TARGET gui_forms_application)
     target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
+    # libgui_forms_threading, beside it, when a library loads it privately
+    # (the C ABI library).
+    set_target_properties(gui_forms_application PROPERTIES INSTALL_RPATH "${GUI_FORMS_INSTALLED_LIBRARY_RPATH}")
     set_property(TARGET gui_forms_application PROPERTY INTERFACE_GUI_FORMS_CORE_LINKAGE application)
     set_property(TARGET gui_forms_application APPEND PROPERTY COMPATIBLE_INTERFACE_STRING GUI_FORMS_CORE_LINKAGE)
 endif()
 
 include(cmake/ApplicationText.cmake)
 include(cmake/TextStackExport.cmake)
+include(cmake/CAbi.cmake)
 
 install(FILES cmake/llvm22.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 install(FILES src/core/threading/atomic_pool/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME threadpool_atomic_fast-LICENSE.txt)
@@ -4690,4 +4732,29 @@ endforeach()
 if(GUI_FORMS_BUILD_TESTS)
     include(cmake/TestAreas.cmake)
     gui_forms_label_test_areas(stx_zlib stx_png stx_conv)
+endif()
+
+# No floating-point contraction in first-party code (owner, 2026-11-01): Clang's default
+# fuses a * b + c within an expression where the target has a fused multiply-add, which
+# arm64 always has and the x86-64 baseline never does, so the same source gave different
+# bits on the two. Every target this directory defines gets -ffp-contract=off; the
+# first-party subprojects (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on
+# their own targets. A kernel that wants fusion spells it std::fma, so the choice is
+# visible and gives the same bits everywhere. Third-party code (FreeType, HarfBuzz) keeps
+# its own flags, as do the targets here that compile only third-party sources (md4c,
+# SheenBidi, libunibreak and its conformance driver); miniaudio is compiled inside
+# src/audio/audio.cpp and so takes the flag with it. stx_skia sets -ffp-contract=off on its
+# library itself; its raster pipeline's explicit fused stages (the FMA entries in the FMA
+# log) are a separate matter.
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
+    get_property(gui_forms_first_party_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    list(REMOVE_ITEM gui_forms_first_party_targets gui_forms_md4c gui_forms_bidi
+        gui_forms_linebreak gui_forms_linebreak_conformance_tests)
+    foreach(gui_forms_first_party_target IN LISTS gui_forms_first_party_targets)
+        get_target_property(gui_forms_target_type ${gui_forms_first_party_target} TYPE)
+        if(gui_forms_target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
+            target_compile_options(${gui_forms_first_party_target} PRIVATE
+                $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-ffp-contract=off>)
+        endif()
+    endforeach()
 endif()

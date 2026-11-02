@@ -1,0 +1,5 @@
+# The symbols the GUI.Forms C ABI library exports, one per line. The Linux
+# version script, the macOS exported-symbols list and the Windows module
+# definition are generated from this list (cmake/CAbi.cmake), and
+# `tools/abi_audit.py exports` checks every built library against it.
+gf_abi_get_table

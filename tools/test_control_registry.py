@@ -56,6 +56,15 @@ class RealRegistryTests(unittest.TestCase):
             "demo/gallery_catalog.inc is stale; run `python3 tools/control_registry.py emit-cpp`",
         )
 
+    def test_abi_catalog_matches_committed_output(self) -> None:
+        registry: cr.Registry = cr.load_registry()
+        committed: str = cr.ABI_CATALOG_PATH.read_text(encoding="utf-8")
+        self.assertEqual(
+            committed,
+            cr.render_abi_catalog(registry),
+            "src/abi/stable/schema/abi_schema_catalog.hpp is stale; run `python3 tools/control_registry.py emit-abi`",
+        )
+
     def test_gallery_pages_are_assigned_to_real_records(self) -> None:
         registry: cr.Registry = cr.load_registry()
         assigned: list[cr.ControlRecord] = [record for record in registry.records if record.gallery_page is not None]

@@ -1,4 +1,6 @@
 #include "gui_forms/controls/text_block/text_block.hpp"
+
+#include "line_wrapping.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/text.hpp"
@@ -14,11 +16,6 @@
 
 namespace gui_forms {
 namespace {
-
-// A line holds a run that is at most this much wider than its width:
-// float noise from adding and subtracting padding, well under Chromium's
-// 1/64 px layout unit.
-constexpr double fit_tolerance = 1.0 / 1024.0;
 
 [[nodiscard]] bool collapsible_space(char character) noexcept {
     return character == ' ' || character == '\t' || character == '\n' ||
@@ -293,37 +290,13 @@ double TextBlock::run_width(std::string_view run, FontSpec font) const {
 }
 
 void TextBlock::break_lines(double width, FontSpec font, Workspace& workspace) const {
-    // Greedy, as CSS fills lines: each line takes the longest run up to a
-    // break opportunity that fits, and a run with no opportunity inside it
-    // that is wider than the line overflows on a line of its own
-    // (`overflow-wrap: normal`). Each candidate is shaped whole, so a line
-    // of w words costs w shapings.
-    workspace.lines.clear();
-    const std::string_view text(workspace.collapsed);
-    const std::size_t size = text.size();
-    std::size_t line_begin = 0U;
-    bool has_fit = false;
-    TextLine fitted{};
-    std::size_t fitted_next = 0U;
-    for (std::size_t position = 1U; position <= size; ++position) {
-        const bool last = position == size;
-        if (!last && !may_end_line(workspace.opportunities[position - 1U])) continue;
-        const std::size_t end = content_end(text, line_begin, position);
-        const double run = run_width(text.substr(line_begin, end - line_begin), font);
-        if (!has_fit || run <= width + fit_tolerance) {
-            has_fit = true;
-            fitted = TextLine{line_begin, end, run};
-            fitted_next = position;
-            continue;
-        }
-        workspace.lines.push_back(fitted);
-        line_begin = fitted_next;
-        const std::size_t next_end = content_end(text, line_begin, position);
-        const double next_run = run_width(text.substr(line_begin, next_end - line_begin), font);
-        fitted = TextLine{line_begin, next_end, next_run};
-        fitted_next = position;
-    }
-    if (has_fit) workspace.lines.push_back(fitted);
+    // Greedy, as CSS fills lines (line_wrapping_detail::wrap_lines_greedy,
+    // which DataGridView's wrapped cells share). The collapsed text has no
+    // line ends, so no break is mandatory.
+    const line_wrapping_detail::ControlRunWidth measure{this, font};
+    line_wrapping_detail::wrap_lines_greedy(std::string_view(workspace.collapsed),
+                                            std::span<const LineBreakOpportunity>(workspace.opportunities), width,
+                                            measure, workspace.lines);
 }
 
 double TextBlock::widest_unbreakable_run(const Workspace& workspace, FontSpec font) const {

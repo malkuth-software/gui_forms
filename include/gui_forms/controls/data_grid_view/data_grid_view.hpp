@@ -98,10 +98,13 @@ enum class DataGridViewHeaderBorderStyle : std::uint8_t { single, raised, sunken
 // `font` is the content's font. `alignment` places the content: across
 // through the text's alignment, up and down within the cell. `padding`, in
 // logical units at text scale 1, is kept clear around the content in place
-// of the grid's own margins (4 units at the start and end). `wrap_mode` is
-// kept and inherited; wrapped text is not drawn yet (one line, as without
-// it). `format` formats a number value: the invariant fixed formats "F0" to
-// "F12", the formats Binding accepts. `null_value` is shown for an empty
+// of the grid's own margins (4 units at the start and end). `wrap_mode` true
+// wraps a text cell's text at the content's width, breaking at the text
+// engine's line-break opportunities and at line ends; the lines are placed
+// up and down as a block, cut at the content's bottom (rows do not grow to
+// fit them). Other kinds and the headers keep one line. `format` formats a
+// number value: the invariant fixed formats "F0" to "F12", the formats
+// Binding accepts. `null_value` is shown for an empty
 // value, and typed text equal to it stores `data_source_null_value` (an
 // empty value when that is not set). The colours are authored colours
 // (owner decision T4-1): over the theme's ordinary colours, under its
@@ -146,6 +149,37 @@ enum class DataGridViewSortDirection : std::uint8_t { none, ascending, descendin
 // whose sort_mode is empty takes its kind's Windows Forms default:
 // automatic for a text column, not_sortable for the others.
 enum class DataGridViewColumnSortMode : std::uint8_t { not_sortable, automatic, programmatic };
+
+// How a column's width follows its content (Windows Forms'
+// DataGridViewAutoSizeColumnMode). not_set takes the grid's
+// auto_size_columns_mode; none keeps the width the program or the user set.
+// The cell modes size the column to the widest of its cells' preferred
+// widths (all rows, or the rows shown), with or without its header's;
+// column_header to its header's; fill shares the width the other columns
+// leave by fill_weight. An auto-sized column is never narrower than its
+// minimum_width, and the user cannot resize it.
+enum class DataGridViewAutoSizeColumnMode : std::uint8_t {
+    not_set,
+    none,
+    all_cells_except_header,
+    all_cells,
+    displayed_cells_except_header,
+    displayed_cells,
+    column_header,
+    fill,
+};
+
+// The grid's default for columns whose mode is not_set (Windows Forms'
+// DataGridViewAutoSizeColumnsMode): the same choices less not_set.
+enum class DataGridViewAutoSizeColumnsMode : std::uint8_t {
+    none,
+    all_cells_except_header,
+    all_cells,
+    displayed_cells_except_header,
+    displayed_cells,
+    column_header,
+    fill,
+};
 
 // Which header texts a copy includes (Windows Forms'
 // DataGridViewClipboardCopyMode). With auto header text, the row headers'
@@ -230,6 +264,10 @@ struct DataGridViewColumn final {
     DataGridViewSortDirection sort_glyph{DataGridViewSortDirection::none};
     DataGridViewCellStyle header_cell_style{};
     std::optional<DataGridViewColumnSortMode> sort_mode{};
+    DataGridViewAutoSizeColumnMode auto_size_mode{DataGridViewAutoSizeColumnMode::not_set};
+    // A fill column's share of the width the other columns leave, against
+    // the other fill columns' weights; finite and positive.
+    double fill_weight{100.0};
 };
 
 // One unbound row. `stable_id` is unique within the grid; an empty ID is
@@ -240,6 +278,17 @@ struct DataGridViewRow final {
     std::vector<BindingValue> cells{};
     std::string header_text{};
     bool read_only{};
+};
+
+// A column's place in the order the grid shows its columns (Windows Forms'
+// DisplayIndex), apart from its index in columns(), which never changes
+// with the order. 0 is the first column shown.
+struct DataGridViewDisplayIndex final {
+    std::size_t value{};
+
+    friend bool operator==(const DataGridViewDisplayIndex& left, const DataGridViewDisplayIndex& right) noexcept {
+        return left.value == right.value;
+    }
 };
 
 // A cell by row position and column index, as the rows are presented now.
@@ -442,8 +491,41 @@ public:
     void remove_column_at(std::size_t column);
     [[nodiscard]] std::optional<std::size_t> column_index(std::string_view name) const noexcept;
     // Throws std::out_of_range for an unknown column and std::invalid_argument
-    // for a width that is not finite or below the column's minimum.
+    // for a width that is not finite or below the column's minimum. An
+    // auto-sized column takes its automatic width again at the next layout.
     void set_column_width(std::size_t column, double width);
+
+    // -- automatic column sizing -----------------------------------------
+    // The grid's default auto size mode (none by default). Automatic widths
+    // are applied when the grid lays out: after a change to the values,
+    // rows, columns, styles or text scale, and for the displayed modes after
+    // a scroll. Applying them does not raise column_width_changed. The cell
+    // modes measure every row's cell (each a formatted cell: virtual rows
+    // ask their provider for every row), so they cost a pass over the rows.
+    [[nodiscard]] DataGridViewAutoSizeColumnsMode auto_size_columns_mode() const noexcept {
+        return auto_size_columns_mode_;
+    }
+    void set_auto_size_columns_mode(DataGridViewAutoSizeColumnsMode mode);
+    // A column's mode, the grid's when its own is not_set (Windows Forms'
+    // InheritedAutoSizeMode); never not_set.
+    [[nodiscard]] DataGridViewAutoSizeColumnMode column_auto_size_mode(std::size_t column) const;
+    void set_column_auto_size_mode(std::size_t column, DataGridViewAutoSizeColumnMode mode);
+    // Throws std::invalid_argument for a weight that is not finite and
+    // positive.
+    void set_column_fill_weight(std::size_t column, double weight);
+    // Sizes a column once, as `mode` would (a cell mode or column_header;
+    // Windows Forms' AutoResizeColumn), raising column_width_changed when the
+    // width changes. Throws std::invalid_argument for not_set, none or fill.
+    void auto_resize_column(std::size_t column,
+                            DataGridViewAutoSizeColumnMode mode = DataGridViewAutoSizeColumnMode::all_cells);
+    // Sizes every column once (AutoResizeColumns). Throws
+    // std::invalid_argument for none or fill.
+    void auto_resize_columns(DataGridViewAutoSizeColumnsMode mode = DataGridViewAutoSizeColumnsMode::all_cells);
+    // The width, in logical units at text scale 1, a cell or a column header
+    // asks for: its content, its padding and its grid line (Windows Forms'
+    // GetPreferredWidth).
+    [[nodiscard]] double preferred_cell_width(DataGridViewRowPosition row, std::size_t column) const;
+    [[nodiscard]] double preferred_column_header_width(std::size_t column) const;
     void set_column_sort_glyph(std::size_t column, DataGridViewSortDirection direction);
     void set_column_read_only(std::size_t column, bool read_only);
 
@@ -783,6 +865,31 @@ public:
     [[nodiscard]] bool allow_user_to_resize_columns() const noexcept { return allow_column_resize_; }
     void set_allow_user_to_resize_columns(bool allow);
 
+    // -- column order ------------------------------------------------------
+    // The grid shows its columns in display order: index order once the
+    // columns are set; an added column goes last and a removed one leaves
+    // no gap. Display order rules what the user sees and walks: the
+    // columns' places, Left and Right, Tab, range selection, the semantic
+    // column indices and the clipboard's fields. Column indices (cell
+    // addresses, events) never change with it.
+    [[nodiscard]] DataGridViewDisplayIndex column_display_index(std::size_t column) const;
+    // Moves a column to a display index, the columns between shifting by one
+    // (Windows Forms' DisplayIndex setter), and raises
+    // column_display_index_changed for every column whose display index
+    // changed, in their new order. Throws std::out_of_range for an unknown
+    // column or an index past the last.
+    void set_column_display_index(std::size_t column, DataGridViewDisplayIndex display_index);
+    // The column shown at a display index. Throws std::out_of_range past the
+    // last.
+    [[nodiscard]] std::size_t column_at_display_index(DataGridViewDisplayIndex display_index) const;
+    // Whether the user may drag a column header to a new place (Windows
+    // Forms' AllowUserToOrderColumns; off by default). The drag starts once
+    // the pointer moves 4 units from the press; the column_drop_indicator
+    // part shows where the column will go, and the release moves it without
+    // a header click.
+    [[nodiscard]] bool allow_user_to_order_columns() const noexcept { return allow_column_order_; }
+    void set_allow_user_to_order_columns(bool allow);
+
     // -- scrolling -------------------------------------------------------
     // The position of the first row shown under the column headers.
     [[nodiscard]] DataGridViewRowPosition first_displayed_row() const noexcept {
@@ -945,6 +1052,10 @@ public:
     [[nodiscard]] Event<>& sorted() noexcept { return sorted_; }
     // Raised after a column's width changes, with the column's index.
     [[nodiscard]] Event<std::size_t>& column_width_changed() noexcept { return column_width_changed_; }
+    // Raised after a column's display index changes, with the column's index.
+    [[nodiscard]] Event<std::size_t>& column_display_index_changed() noexcept {
+        return column_display_index_changed_;
+    }
     [[nodiscard]] Event<DataGridViewCellFormattingEvent&>& cell_formatting() noexcept { return cell_formatting_; }
     [[nodiscard]] Event<DataGridViewCellParsingEvent&>& cell_parsing() noexcept { return cell_parsing_; }
 
@@ -980,6 +1091,9 @@ public:
         PartGeometry scroll_corner;
         PartGeometry editor;
         PartGeometry focus;
+        // Where a dragged column header would go: a bar at that column
+        // boundary, present only during the drag.
+        PartGeometry column_drop_indicator;
     };
     struct States final {
         bool normal{};
@@ -1189,6 +1303,17 @@ private:
     void require_cell(DataGridViewRowPosition row, std::size_t column) const;
     void structure_changed();
     void reset_row_state();
+    // Automatic column sizing: the width `mode` gives a column (logical
+    // units; none for none and fill), applied by arrange to every auto-sized
+    // column, fill columns last. values_changed is the invalidation of a
+    // value change, which lays the grid out again when a column sizes by
+    // its cells.
+    [[nodiscard]] std::optional<double> automatic_width(std::size_t column, DataGridViewAutoSizeColumnMode mode,
+                                                        const GridLayout& layout) const;
+    void apply_auto_sizes();
+    void distribute_fill_width();
+    [[nodiscard]] bool column_resizable(std::size_t column) const;
+    void values_changed();
     // Sorting: the comparison sort_compare's handlers decide (a functor
     // over row indices), the mutation refusal while comparisons run, the
     // reorder both sorts end with, and the automatic sort of a header click.
@@ -1234,8 +1359,16 @@ private:
     [[nodiscard]] Rect row_header_bounds(DataGridViewRowPosition row, const GridLayout& layout) const noexcept;
     [[nodiscard]] Rect cell_bounds(DataGridViewRowPosition row, std::size_t column,
                                    const GridLayout& layout) const noexcept;
-    [[nodiscard]] std::size_t first_visible_column(const GridLayout& layout) const noexcept;
-    [[nodiscard]] std::size_t visible_column_end(const GridLayout& layout) const noexcept;
+    // The display indices of the first column shown and one past the last.
+    [[nodiscard]] std::size_t first_visible_display(const GridLayout& layout) const noexcept;
+    [[nodiscard]] std::size_t visible_display_end(const GridLayout& layout) const noexcept;
+    // Display order upkeep: the order reset to index order, a column
+    // appended or removed, and the display index a drag at `x` would give.
+    void reset_display_order();
+    void append_display_column();
+    void remove_display_column(std::size_t column);
+    [[nodiscard]] DataGridViewDisplayIndex order_target_at(double x, const GridLayout& layout) const;
+    void end_column_order();
     [[nodiscard]] std::size_t visible_row_end(const GridLayout& layout) const noexcept;
     [[nodiscard]] std::size_t fully_visible_rows(const GridLayout& layout) const noexcept;
     [[nodiscard]] std::size_t maximum_first_row(const GridLayout& layout) const noexcept;
@@ -1258,10 +1391,23 @@ private:
     // A cell's parts, laid out for its formatted content, with that content
     // and the content box (the cell less its padding) owner drawing paints
     // in. cell_parts is its parts alone.
+    // One wrapped line of a cell's text: a byte range of it (trailing
+    // spaces and line end excluded) and its width.
+    struct WrappedTextLine final {
+        std::size_t begin_byte{};
+        std::size_t end_byte{};
+        double width{};
+    };
+    // A wrapped text cell also has its lines, the box they take (the
+    // content part, before it is cut to the cell) and their line height;
+    // `lines` is empty when the text is not wrapped.
     struct CellLayout final {
         CellParts parts{};
         FormattedCell content{};
         Rect content_box{};
+        std::vector<WrappedTextLine> lines{};
+        Rect lines_box{};
+        double line_height{};
     };
     // A style's colours for a part, selected or not; none where the theme's
     // stand.
@@ -1504,6 +1650,13 @@ private:
     std::optional<std::size_t> sorted_column_{};
     DataGridViewSortDirection sort_order_{DataGridViewSortDirection::none};
     bool sorting_{};
+    DataGridViewAutoSizeColumnsMode auto_size_columns_mode_{DataGridViewAutoSizeColumnsMode::none};
+    // Whether the cell modes' widths need measuring again: set by every
+    // change to the values, rows, columns or styles, cleared by
+    // apply_auto_sizes.
+    bool auto_size_stale_{true};
+    // The text scale the cell modes' widths were measured at.
+    double auto_size_scale_{};
     DataGridViewClipboardCopyMode clipboard_copy_mode_{DataGridViewClipboardCopyMode::enable_with_auto_header_text};
 
     // Cell styles (T4 style mapping). Rows' and cells' own styles are kept
@@ -1548,6 +1701,17 @@ private:
     std::optional<std::size_t> hot_column_{};
     std::optional<std::size_t> pressed_column_{};
     std::optional<std::size_t> resizing_column_{};
+    // Display order: display_order_[display index] is a column index and
+    // display_indices_[column index] its display index; both have one entry
+    // per column.
+    std::vector<std::size_t> display_order_{};
+    std::vector<std::size_t> display_indices_{};
+    bool allow_column_order_{};
+    // A header drag in progress: where the press was, whether it moved far
+    // enough to be a drag, and the display index the column would take.
+    double order_start_x_{};
+    bool ordering_{};
+    std::optional<DataGridViewDisplayIndex> order_target_{};
     double resize_start_x_{};
     double resize_start_width_{};
 
@@ -1561,6 +1725,7 @@ private:
     Event<const DataGridViewRowOrderModeChange&> row_order_mode_changed_{};
     Event<std::size_t> column_header_click_{};
     Event<std::size_t> column_width_changed_{};
+    Event<std::size_t> column_display_index_changed_{};
     // Raised from const reads (cell_text, layout, semantics), as the
     // provider is asked from them; its handlers may not change the grid.
     mutable Event<DataGridViewCellFormattingEvent&> cell_formatting_{};
