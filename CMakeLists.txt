@@ -1289,10 +1289,9 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
             src/host/windows/raster/dib_frame_store.cpp)
         target_compile_definitions(gui_forms_host_windows PRIVATE
             GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1)
+        # With prepared text the window's Skia raster runs its own prepared
+        # frames, published into the DIB store after they commit.
         if(TARGET gui_forms_prepared_text_impl)
-            target_sources(gui_forms_host_windows PRIVATE
-                src/host/windows/raster/prepared_text_compositor.cpp)
-            target_link_libraries(gui_forms_host_windows PRIVATE gui_forms_prepared_text_impl)
             target_compile_definitions(gui_forms_host_windows PRIVATE
                 GUI_FORMS_WINDOWS_PREPARED_TEXT=1)
         endif()
@@ -1300,8 +1299,12 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     if(NOT TARGET gui_forms_text_engine)
         message(FATAL_ERROR "The Win32 host requires GUI_FORMS_ENABLE_HARFBUZZ_TEXT (ADR-004)")
     endif()
+    # Stage SK3: the Win32 host draws with the Skia CPU raster.
+    if(NOT TARGET gui_forms_skia)
+        message(FATAL_ERROR "The Win32 host requires GUI_FORMS_ENABLE_SKIA (stage SK3)")
+    endif()
     target_link_libraries(gui_forms_host_windows
-        PUBLIC gui_forms_core
+        PUBLIC gui_forms_core gui_forms_skia
         PRIVATE gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32
     )
     target_link_libraries(gui_forms_c_api PRIVATE gui_forms_host_windows)
@@ -1318,10 +1321,11 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
             $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
             $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
         target_compile_features(gui_forms_application PUBLIC cxx_std_20)
-        target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_APPLICATION_WINDOWS=1)
+        target_compile_definitions(gui_forms_application PRIVATE
+            GUI_FORMS_APPLICATION_WINDOWS=1 GUI_FORMS_APPLICATION_SKIA=1)
         target_link_libraries(gui_forms_application PRIVATE
             "-Wl,--whole-archive" gui_forms_core gui_drawing_core
-            gui_forms_controls gui_forms_host_windows "-Wl,--no-whole-archive"
+            gui_forms_controls gui_forms_host_windows gui_forms_skia "-Wl,--no-whole-archive"
             gui_forms_text_engine freetype harfbuzz gui_forms_bidi
             user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid comdlg32 shell32)
         target_link_options(gui_forms_application PRIVATE "-Wl,--export-all-symbols")
@@ -2140,7 +2144,7 @@ if(GUI_FORMS_BUILD_TESTS)
                 WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
                 GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1 GUI_FORMS_DIB_LIFECYCLE_TEST=1)
             target_link_libraries(gui_forms_windows_dib_lifecycle_tests PRIVATE
-                gui_forms_core gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
+                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
                 comdlg32 shell32)
             add_test(NAME gui_forms_windows_dib_lifecycle_tests
                      COMMAND gui_forms_windows_dib_lifecycle_tests)
@@ -2164,7 +2168,7 @@ if(GUI_FORMS_BUILD_TESTS)
                 WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00
                 GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1 GUI_FORMS_WINDOWS_TOOLTIP_TEST=1)
             target_link_libraries(gui_forms_windows_tooltip_tests PRIVATE
-                gui_forms_core gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
+                gui_forms_core gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
                 comdlg32 shell32)
             add_test(NAME gui_forms_windows_tooltip_tests
                      COMMAND gui_forms_windows_tooltip_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
@@ -2182,8 +2186,7 @@ if(GUI_FORMS_BUILD_TESTS)
                     src/host/windows/services/windows_notify_icons.cpp
                     src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
                     src/host/windows/raster/dib_frame_store.cpp
-                    src/host/windows/compositor/windows_compositor.cpp
-                    src/host/windows/raster/prepared_text_compositor.cpp)
+                    src/host/windows/compositor/windows_compositor.cpp)
                 target_include_directories(gui_forms_windows_prepared_text_tests PRIVATE
                     include src/host/windows)
                 target_compile_definitions(gui_forms_windows_prepared_text_tests PRIVATE
@@ -2191,7 +2194,7 @@ if(GUI_FORMS_BUILD_TESTS)
                     GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB=1
                     GUI_FORMS_WINDOWS_PREPARED_TEXT=1 GUI_FORMS_WINDOWS_PREPARED_TEXT_TEST=1)
                 target_link_libraries(gui_forms_windows_prepared_text_tests PRIVATE
-                    gui_forms_prepared_text_impl gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
+                    gui_forms_prepared_text_impl gui_forms_skia gui_forms_text_engine user32 gdi32 ole32 oleaut32 oleacc uiautomationcore uuid
                     comdlg32 shell32)
                 add_test(NAME gui_forms_windows_prepared_text_tests
                     COMMAND gui_forms_windows_prepared_text_tests "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
@@ -2374,12 +2377,6 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_controls gui_forms_host_windows)
         add_test(NAME gui_forms_windows_backplane_replay_tests COMMAND gui_forms_windows_backplane_replay_tests
             "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-        add_executable(gui_forms_windows_part_composite_tests tests/windows_part_composite_tests.cpp)
-        target_compile_definitions(gui_forms_windows_part_composite_tests PRIVATE
-            WIN32_LEAN_AND_MEAN NOMINMAX UNICODE _UNICODE _WIN32_WINNT=0x0A00 WINVER=0x0A00)
-        target_link_libraries(gui_forms_windows_part_composite_tests PRIVATE
-            gui_forms_controls gui_forms_host_windows)
-        add_test(NAME gui_forms_windows_part_composite_tests COMMAND gui_forms_windows_part_composite_tests)
         # Stage T5, phase C2's measurement: what DWM composes from a
         # premultiplied client through each documented route. Prints JSON
         # lines (kept in CI's LastTest.log evidence); fails only when it
@@ -4736,14 +4733,14 @@ endif()
 # The targets that compile the red/blue swap loops' replacements link stx_skia::swizzle: the
 # core (material images), the controls (the raster canvas), the CoreGraphics raster, the
 # Windows drawing C API, and the Windows host with the tests that compile windows_host.cpp,
-# the last seven by including it textually.
+# the last six by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
         gui_forms_coregraphics gui_drawing_c_api gui_forms_host_windows
         gui_forms_windows_dib_lifecycle_tests gui_forms_windows_tooltip_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
         gui_forms_windows_control_snapshot_tests gui_forms_windows_damage_rectangles_tests
-        gui_forms_windows_part_composite_tests gui_forms_windows_text_tests)
+        gui_forms_windows_text_tests)
     if(TARGET ${gui_forms_swizzle_target})
         target_link_libraries(${gui_forms_swizzle_target} PRIVATE stx_skia::swizzle)
     endif()

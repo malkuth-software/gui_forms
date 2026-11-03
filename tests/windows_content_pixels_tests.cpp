@@ -2,7 +2,7 @@
 // font color or control highlighting. greyed out, you could say."): a
 // disabled control greys its chrome, the text colour of its labels and its
 // highlighting (edge, well and plates), while its content stays exact (T2
-// GIVEN E2-1 and H1-1). Through the Windows DIB painter, the same control
+// GIVEN E2-1 and H1-1). Through the Windows host's raster, the same control
 // is painted enabled and disabled: its image part and its content colour
 // write their given pixels both times, while its label, its well and its
 // icon (chrome) change.
@@ -21,10 +21,6 @@ using namespace gui_forms;
 namespace {
 
 int failures = 0;
-
-// scene_hash(paint_gradients()) as the DIB painter drew it before its
-// gradient and stroke loops were split by mode.
-constexpr std::uint64_t expected_gradient_hash = 10594508680822220164ULL;
 
 void require(bool condition, const char* message) {
     if (condition) return;
@@ -76,12 +72,12 @@ Scene read_scene(PaintFramebuffer& framebuffer) {
 // - an icon at (8, 0, 2, 2), showing the same picture as the image;
 // - a well, with its edge, at (12, 0, 20, 12);
 // - a label at (34, 0, 30, 24).
-Scene paint_control(const std::shared_ptr<const host::BundledFonts>& fonts, const ImageRegistry& registry,
+Scene paint_control(const std::shared_ptr<gui_forms::detail::BundledFontSet>& fonts, const ImageRegistry& registry,
                     ImageId picture, bool disabled) {
     const std::shared_ptr<Control> control = make_control<Control>(StableId("content"));
-    host::DibPainter host_painter;
+    host::WindowsRaster host_painter;
     host_painter.set_bundled_fonts(fonts);
-    const std::unique_ptr<PaintFramebuffer> framebuffer = host_painter.create_framebuffer({64.0, 24.0}, 1.0);
+    const std::unique_ptr<PaintFramebuffer> framebuffer = host_painter.painter().create_framebuffer({64.0, 24.0}, 1.0);
     Scene scene{};
     if (framebuffer == nullptr || !(*framebuffer).begin(registry, {0.0, 0.0, 64.0, 24.0})) {
         require(false, "the framebuffer begins");
@@ -131,46 +127,6 @@ Scene paint_control(const std::shared_ptr<const host::BundledFonts>& fonts, cons
     return scene;
 }
 
-// The DIB painter's gradient and rounded-stroke paths on a 96 x 48 scene at
-// scale 1: a vertical, a horizontal (reflected), a translucent diagonal and
-// an opaque diagonal linear gradient, a radial gradient, a rounded stroke
-// and a rounded stroke too wide to leave an inside.
-Scene paint_gradients(const ImageRegistry& registry) {
-    host::DibPainter host_painter;
-    const std::unique_ptr<PaintFramebuffer> framebuffer = host_painter.create_framebuffer({96.0, 48.0}, 1.0);
-    Scene scene{};
-    if (framebuffer == nullptr || !(*framebuffer).begin(registry, {0.0, 0.0, 96.0, 48.0})) {
-        require(false, "the gradient framebuffer begins");
-        return scene;
-    }
-    Painter& painter = (*framebuffer).painter();
-    painter.fill_rect({0.0, 0.0, 96.0, 48.0}, Color::rgba(255, 255, 255, 255));
-    const std::array<GradientStop, 2> opaque{GradientStop{0.0, Color::rgba(200, 30, 20, 255)},
-                                             GradientStop{1.0, Color::rgba(20, 60, 210, 255)}};
-    const std::array<GradientStop, 2> translucent{GradientStop{0.0, Color::rgba(10, 150, 40, 255)},
-                                                  GradientStop{1.0, Color::rgba(240, 200, 10, 96)}};
-    painter.fill_linear_gradient({0.0, 0.0, 16.0, 24.0}, {0.0, 2.0}, {0.0, 20.0}, opaque);
-    painter.fill_linear_gradient_spread({16.0, 0.0, 16.0, 24.0}, {18.0, 0.0}, {24.0, 0.0}, opaque,
-                                        GradientSpreadMode::reflect);
-    painter.fill_linear_gradient({32.0, 0.0, 16.0, 24.0}, {32.0, 0.0}, {48.0, 24.0}, translucent);
-    painter.fill_linear_gradient({48.0, 0.0, 16.0, 24.0}, {48.0, 24.0}, {64.0, 0.0}, opaque);
-    painter.fill_radial_gradient({64.0, 0.0, 32.0, 24.0}, {80.0, 12.0}, {14.0, 10.0}, opaque);
-    painter.stroke_rounded_rect({2.0, 26.0, 20.0, 20.0}, 5.0, Color::rgba(90, 20, 140, 255), 2.0);
-    painter.stroke_rounded_rect({26.0, 30.0, 6.0, 6.0}, 2.0, Color::rgba(20, 120, 90, 200), 4.0);
-    (*framebuffer).end();
-    scene = read_scene(*framebuffer);
-    return scene;
-}
-
-// FNV-1a over a scene's pixels.
-std::uint64_t scene_hash(const Scene& scene) {
-    std::uint64_t hash = 1469598103934665603ULL;
-    for (const std::uint32_t pixel : scene.pixels) {
-        hash = (hash ^ pixel) * 1099511628211ULL;
-    }
-    return hash;
-}
-
 } // namespace
 
 int main(int argc, char** argv) {
@@ -178,7 +134,7 @@ int main(int argc, char** argv) {
         std::cerr << "pass the fixture font directory\n";
         return 1;
     }
-    const std::shared_ptr<const host::BundledFonts> fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
+    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
     require(fonts != nullptr, "the fixture fonts load");
 
     // A 2 x 2 opaque picture, premultiplied BGRA rows.
@@ -210,12 +166,6 @@ int main(int argc, char** argv) {
     require(disabled.differs(enabled, 12U, 0U, 32U, 12U), "the disabled control's well and edge change");
     require(disabled.differs(enabled, 8U, 0U, 10U, 2U), "the disabled control's icon keeps its dimming");
 
-    // The gradient and rounded-stroke paths paint the pixels they painted
-    // before their loops were split by mode (E2, 2026-10-28).
-    const Scene gradients = paint_gradients(registry);
-    const std::uint64_t gradient_hash = scene_hash(gradients);
-    std::cout << "gradient scene hash " << gradient_hash << '\n';
-    require(gradient_hash == expected_gradient_hash, "the gradient and rounded-stroke pixels changed");
     if (failures != 0) return 1;
     std::cout << "windows content pixel tests passed\n";
     return 0;

@@ -61,7 +61,7 @@ wait "$gallery_pid"
 trap - EXIT INT TERM
 
 test -s "$capture"
-rg -q '"renderer_name":"Win32 DIB CPU · HarfBuzz/FreeType text · WIC PNG · bundled fonts"' "$log"
+rg -q '"renderer_name":"Win32 DIB · Skia CPU raster · HarfBuzz/FreeType text · owned PNG · bundled fonts"' "$log"
 rg -q '"events_rejected":0' "$log"
 rg -q '"close_requests":1' "$log"
 rg -q '"closed":true' "$log"

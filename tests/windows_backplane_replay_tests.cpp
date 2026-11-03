@@ -1,5 +1,5 @@
 // Stage T5, phase C6's renderer gate on Windows: the backplane replay scene
-// (backplane_replay_scene.hpp) through the Windows DIB painter, with the
+// (backplane_replay_scene.hpp) through the Windows host's raster, with the
 // bundled fonts loaded as the host loads them. The glass over the replayed
 // text must hash as the table says, which Skia checks too
 // (backplane_replay_identity_tests). GUI_FORMS_BACKPLANE_REPLAY_PRINT=1
@@ -42,16 +42,16 @@ int main(int argc, char** argv) {
         std::cerr << "usage: gui_forms_windows_backplane_replay_tests <fonts directory>\n";
         return 2;
     }
-    const std::shared_ptr<const host::BundledFonts> fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
+    const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = host::load_bundled_fonts(std::filesystem::path(argv[1]));
     if (!check(fonts != nullptr, "the bundled fonts load")) return 1;
     const char* const print_value = std::getenv("GUI_FORMS_BACKPLANE_REPLAY_PRINT");
     const bool printing = print_value != nullptr && std::strcmp(print_value, "1") == 0;
     bool passed = true;
     for (std::size_t index = 0U; index < scene::scales.size(); ++index) {
         const double scale = scene::scales[index];
-        host::DibPainter renderer;
+        host::WindowsRaster renderer;
         renderer.set_bundled_fonts(fonts);
-        const std::unique_ptr<scene::SceneWindow> window = scene::make_scene(renderer, scale);
+        const std::unique_ptr<scene::SceneWindow> window = scene::make_scene(renderer.painter(), scale);
         const scene::SceneReading reading = scene::read_scene(*window, scale);
         std::printf("backplane-replay dib %.1f 0x%016llxULL replays=%llu skipped=%llu\n", scale,
                     static_cast<unsigned long long>(reading.hash), static_cast<unsigned long long>(reading.replays),

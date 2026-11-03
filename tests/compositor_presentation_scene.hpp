@@ -17,8 +17,8 @@
 
 // The presented frame of a window by its backdrop grant (stage T5, phase
 // C1; notes:planning/stages/T5-compositor/PLAN.md §3), through a host painter's
-// framebuffer: windows_part_composite_tests for the Windows DIB and
-// part_composite_identity_tests for Skia run the same check.
+// framebuffer: part_composite_identity_tests runs it on the Skia raster,
+// which every host draws with (stage SK3).
 //
 // The theme's window material is a translucent tint, so that the frame shows
 // what it starts from. Each frame first fills its framebuffer with a stale

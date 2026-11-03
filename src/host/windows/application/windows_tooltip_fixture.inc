@@ -36,7 +36,7 @@ struct TooltipHostFixture final {
     }
 
     static void run(const std::filesystem::path& directory) {
-        const std::shared_ptr<const BundledFonts> fonts = load_bundled_fonts(directory);
+        const std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = load_bundled_fonts(directory);
         require(fonts != nullptr, "tooltip fixture fonts available");
         const std::shared_ptr<Control> root = make_control<Control>(StableId("tooltip.fixture"));
         WindowsHostState state(std::make_unique<Window>(root, Size{800.0, 600.0}), {});
