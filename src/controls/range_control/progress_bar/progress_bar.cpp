@@ -4,6 +4,7 @@
 #include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -681,43 +682,46 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
         last_animation_frame_ = FrameClock::now();
     }
     animation_timer_.note_painted();
+    // The track and the fill (one fill part per block in the blocks style)
+    // are parts the theme's engine draws; the fill is the progress family
+    // selected. The animated styles' effects are drawn over the fill.
     const Rect bounds = local_bounds();
-    const ControlVisualRecipe& track_recipe = effective_theme().resolve(
-        ControlVisualRole::progress, visual_context());
-    paint_surface_material(painter, bounds, track_recipe.material);
+    const AnatomyStateSet states = anatomy_states();
+    PartPaint track;
+    track.family = ControlVisualRole::progress;
+    track.role = PartRole::track;
+    track.bounds = bounds;
+    track.states = states;
+    track.key = PartKey{"track", {}, {}};
+    paint_part(painter, *this, track);
     const Rect interior{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                         std::max(0.0, bounds.height - 4.0)};
     const MotionPolicy policy = effective_motion_policy();
     const Rect fill = indicator_bounds();
 
-    const ControlVisualRecipe& fill_recipe = effective_theme().resolve(
-        ControlVisualRole::progress,
-        visual_context(false, false, true, false));
+    PartPaint fill_part;
+    fill_part.family = ControlVisualRole::progress;
+    fill_part.role = PartRole::fill;
+    fill_part.states = states;
+    fill_part.states.insert(AnatomyState::selected);
     if (visual_style_ == ProgressBarVisualStyle::blocks) {
         constexpr double gap = 2.0;
         constexpr double block = 9.0;
         if (orientation() == Orientation::horizontal) {
             for (double x = fill.x; x + block <= fill.x + fill.width; x += block + gap) {
-                paint_surface_material(
-                    painter, {x, fill.y, block, fill.height},
-                    fill_recipe.material);
+                fill_part.bounds = {x, fill.y, block, fill.height};
+                paint_part(painter, *this, fill_part);
             }
         } else {
             for (double y = fill.y + fill.height - block; y >= fill.y; y -= block + gap) {
-                paint_surface_material(
-                    painter, {fill.x, y, fill.width, block},
-                    fill_recipe.material);
+                fill_part.bounds = {fill.x, y, fill.width, block};
+                paint_part(painter, *this, fill_part);
             }
         }
     } else {
-        paint_surface_material(painter, fill, fill_recipe.material);
-    }
-    const bool own_effect = visual_style_ == ProgressBarVisualStyle::pulse ||
-                            visual_style_ == ProgressBarVisualStyle::marching_stripes ||
-                            visual_style_ == ProgressBarVisualStyle::laser_etch;
-    if (!own_effect && fill.height > 3.0 && fill.width > 0.0) {
-        painter.fill_rect({fill.x, fill.y, fill.width, 3.0},
-                          fill_recipe.muted_text);
+        fill_part.bounds = fill;
+        fill_part.key = PartKey{"fill", {}, {}};
+        paint_part(painter, *this, fill_part);
     }
 
     // The effects (design note section 8), drawn over the bar with its

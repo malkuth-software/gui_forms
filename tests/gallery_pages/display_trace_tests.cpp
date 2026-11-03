@@ -426,101 +426,54 @@ struct PageDigest final {
 // Checkpoint 14 recorded the folded tree once; against main only these
 // four pages differ.
 //
-// FD6.2 makes the Gallery's own controls a form document (demo/gallery.form)
-// of registered controls. On every page the command strip is a themed panel
-// (its gradient and edge for the accent bar, rule and flat face), its status
-// badge a picture box beside the status label (the label's text moves left
-// and down by its own padding). basics, values, retained-rows and instrument
-// show group boxes for the Gallery's group frames (the theme's face, edge
-// and caption plate), a material panel for the backplane, a TextBox (its
-// field text at the TextBox's 12 px, where the Gallery drew 13 px), a
-// ListBox for the retained rows (its themed well, selection and rows) and
-// the pages' descriptions name the form document; the instrument's own
-// commands did not change. states-and-diagnostics moves by the control
-// count and the chunks reused, typography-and-inspection by the RuntimeId.
-// Diffed against main's traces nothing else changed; every page was
-// recorded again.
 //
-// FD6.3's framework fixes from the Gallery defect sweep
-// (dev/fd6_review/index.html in the worker's review folder). Every group
-// box fills only inside its frame and strokes the frame in three clipped
-// pieces around its caption (D4), so every page changed. Besides that:
-// LinkLabel underlines end at the measured text (D5: basics,
-// control-spectrum, states-and-diagnostics); short buttons centre their
-// overflowing text block (D6: css-layout-panels, retained-layout-panels,
-// responsive-layouts, commands-and-menus); the styled accent Save button is
-// plain while disabled (D11: commands-and-menus); the TypographySpecimen
-// draws line boxes and reports the first baseline, and the inspector
-// elides, fits its rows above the legend and prints tracking to two
-// decimals (D22-D25, D27: typography-and-inspection). Diffed against the
-// previous traces nothing else changed; every page was recorded again.
-//
-// The sweep's remaining framework fixes: CorrespondenceView cards lay out
-// by measured text and keep the information line off the excerpt box, and
-// the Gallery ledger is 6 units taller (D9: tree-and-object-views); a
-// borderless TextBox draws no frame, so the editable ComboBox loses its
-// nested frame and the up-downs lay field and spin column inside their own
-// border (D12: collections-and-popups, values-and-spinners); TabControl's
-// face covers only the header band (D13: tabs-and-pages); InstrumentRack
-// fields at 11 units inside the module border (D19: value-editors). Diffed
-// against the previous traces only these five pages changed.
-//
-// The sweep's shell fixes: every page is drawn unscaled at its design size
-// in a scrolling viewport (D2; pages with more than two header lines were
-// squeezed vertically), header lines are 16 units apart (D1), the body is
-// as tall as its content (D3) and the sidebar reaches the window's bottom
-// (D20), so every page changed: the sidebar, the viewport and its scroll
-// bar where the page is taller than the viewport, and the header and body
-// positions.
-//
-// typography-and-inspection is a form document (FD6.3): the Toggle overlay
-// button is a standard button with its caption centred (D28; it was a
-// left-aligned command button), and the inspector's REQUESTED row shows the
-// specimen's bounds, which the document sets, where the add_at slot left
-// them zero. Diffed against the previous traces nothing else changed.
-//
-// Rebased onto checkpoint 14: main's own changes reach the sweep's pages.
-// Text is drawn inside a clip of its content box (save, clip_rect, restore
-// around each run), disabled text takes the theme's ink (#76808a), combo
-// box arrows list their rows tip first, MessageBox has its new buttons and
-// the progress bar draws through effect programs. Diffed against the
-// pre-rebase traces nothing else changed; every page was recorded again.
+// Range controls paint through the theme engine (T4 phase 4, range
+// batch): ScrollBar's trough, track, arrow buttons, arrows and thumb,
+// TrackBar's track, fill, ticks and thumb, and ProgressBar's track and
+// fill are parts. The classic sunken troughs and bevelled thumbs (fill_rect
+// and draw_line relief) became the theme's rounded track and thumb
+// materials, the scroll arrows filled arrow marks for chevrons, the ticks
+// rules in the theme's colour, and the progress fill's flat 3-unit top band
+// went. Text did not change. The pages showing range controls were
+// recorded again: live-surfaces, ranges-and-progress, responsive-layouts,
+// retained-layout-panels, timing-and-tooltips, typography-and-inspection,
+// values and values-and-spinners.
 //
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 31> expected_digests{{
-    {"basics", 0x8cae025d2f580545ULL},
-    {"values", 0x8c3a060ed7c5dbc3ULL},
-    {"retained-rows", 0xb57e6e4aac1d3cbaULL},
-    {"instrument", 0x9546605f5ed28ef2ULL},
-    {"control-spectrum", 0x8e0053f2e4499a95ULL},
-    {"ranges-and-progress", 0xa7ab64f1788c9216ULL},
-    {"containers-and-focus", 0xaeb5fea9b08b24c9ULL},
-    {"animation-laboratory", 0x1286961870989036ULL},
-    {"states-and-diagnostics", 0x08ed6e4bf56bb621ULL},
-    {"text-and-input", 0xfda0c520db512216ULL},
-    {"collections-and-popups", 0xffd16e5dfe20dfedULL},
-    {"values-and-spinners", 0xeb220cb7d5f79644ULL},
-    {"images-and-drawing", 0x546c5b629575a286ULL},
-    {"tabs-and-pages", 0xdcb246053d2be837ULL},
-    {"checked-collections", 0x6fcdd13b37adaceaULL},
-    {"timing-and-tooltips", 0x184a0430b361e535ULL},
-    {"dates-and-calendar", 0x6c7fb09ca8ee9ebbULL},
-    {"dialogs-and-host-services", 0xff47cc81cf003f79ULL},
-    {"css-layout-panels", 0x99172189312f6ca0ULL},
-    {"retained-layout-panels", 0x7a8c39ea5460bc8aULL},
-    {"dock-and-anchor", 0x939b63bcfd12a121ULL},
-    {"docking-workspace", 0x3133cf77fa8eabe3ULL},
-    {"commands-and-menus", 0x41bdb133b330f6e1ULL},
-    {"tree-and-object-views", 0x1fe16711a4a1290fULL},
-    {"choices-and-sections", 0xebc94e7a5b78c68aULL},
-    {"value-editors", 0xb14f73990cdb841eULL},
-    {"responsive-layouts", 0xa496bf6fba3489fbULL},
-    {"anchored-popups", 0x3e74fc6ecc04990cULL},
-    {"live-surfaces", 0x3381187885a43d9dULL},
-    {"typography-and-inspection", 0x4711edc357df28e0ULL},
-    {"semantic-feedback", 0x278702ce61956f16ULL},
+    {"basics", 0x5dfa1538c7d69e3aULL},
+    {"values", 0x5f1c72a16c4cadf4ULL},
+    {"retained-rows", 0x27ed378ce92f2bedULL},
+    {"instrument", 0x67605819732a38a9ULL},
+    {"control-spectrum", 0xa887159dc5c4507dULL},
+    {"ranges-and-progress", 0x3c02f55900a05001ULL},
+    {"containers-and-focus", 0x1b93953d394803afULL},
+    {"animation-laboratory", 0xf39ba070e4df9835ULL},
+    {"states-and-diagnostics", 0x1b549780747f0ca2ULL},
+    {"text-and-input", 0xc1cb6c00eb7b01c5ULL},
+    {"collections-and-popups", 0x61c9045226e61fe5ULL},
+    {"values-and-spinners", 0xddb2bf9506036810ULL},
+    {"images-and-drawing", 0x0c3dd9a2a66cd770ULL},
+    {"tabs-and-pages", 0xa209ccb1c28945faULL},
+    {"checked-collections", 0x6e4ed03369763ea7ULL},
+    {"timing-and-tooltips", 0xd87a858a0cdc5adaULL},
+    {"dates-and-calendar", 0x92edabf015cf7c82ULL},
+    {"dialogs-and-host-services", 0x6f0a194e9f5aa642ULL},
+    {"css-layout-panels", 0x32b07d1cccdb6388ULL},
+    {"retained-layout-panels", 0xd3e1aad8006574ebULL},
+    {"dock-and-anchor", 0x619ca1a8c7aec757ULL},
+    {"docking-workspace", 0xacd16d9767569be0ULL},
+    {"commands-and-menus", 0xc87d46ca5c420298ULL},
+    {"tree-and-object-views", 0x576e1eedf0a3eeecULL},
+    {"choices-and-sections", 0x4cda2d6d06c2cb66ULL},
+    {"value-editors", 0xb1376ee8925d95fbULL},
+    {"responsive-layouts", 0x0978cbb1feb1172eULL},
+    {"anchored-popups", 0x4b3b7601384128e1ULL},
+    {"live-surfaces", 0xdbfbacca7a7fe467ULL},
+    {"typography-and-inspection", 0x12ca7b5a49493f65ULL},
+    {"semantic-feedback", 0x9fe60ffccccdb24dULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {

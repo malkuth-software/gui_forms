@@ -3,6 +3,7 @@
 #include "../range_control_rendering.hpp"
 #include "scroll_bar_anatomy.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -287,40 +288,93 @@ Size ScrollBar::measure(Size available) {
             std::min(available.height, preferred.height)};
 }
 
-void ScrollBar::paint_button(Painter& painter, Rect button,
-                             ScrollBarPart part, bool incrementing,
-                             const BasicControlStyle& colors) {
-    paint_thumb(painter, button, colors, pressed_part_ == part);
-    const double cx = button.x + button.width * 0.5;
-    const double cy = button.y + button.height * 0.5;
-    const Color arrow = enabled() ? colors.dark_border : colors.disabled_text;
-    if (orientation() == Orientation::horizontal) {
-        const double direction = incrementing ? 1.0 : -1.0;
-        painter.draw_line({cx - 2.0 * direction, cy - 4.0},
-                          {cx + 2.0 * direction, cy}, arrow, 1.5);
-        painter.draw_line({cx + 2.0 * direction, cy},
-                          {cx - 2.0 * direction, cy + 4.0}, arrow, 1.5);
-    } else {
-        const double direction = incrementing ? 1.0 : -1.0;
-        painter.draw_line({cx - 4.0, cy - 2.0 * direction},
-                          {cx, cy + 2.0 * direction}, arrow, 1.5);
-        painter.draw_line({cx, cy + 2.0 * direction},
-                          {cx + 4.0, cy - 2.0 * direction}, arrow, 1.5);
+namespace {
+
+// `states` with the press moved onto one part: pressed (and captured, for
+// the thumb being dragged) only while `pressed` is true.
+AnatomyStateSet scroll_part_states(AnatomyStateSet states, bool pressed, bool captured) {
+    states.erase(AnatomyState::pressed);
+    states.erase(AnatomyState::captured);
+    if (pressed) {
+        states.erase(AnatomyState::normal);
+        states.insert(AnatomyState::pressed);
     }
+    if (captured) states.insert(AnatomyState::captured);
+    return states;
 }
 
+} // namespace
+
+void ScrollBar::paint_button(Painter& painter, Rect button,
+                             ScrollBarPart part, bool incrementing,
+                             AnatomyStateSet states) {
+    const bool pressed = pressed_part_ == part;
+    const AnatomyStateSet button_states = scroll_part_states(states, pressed, false);
+    PartPaint actuator;
+    actuator.family = ControlVisualRole::button;
+    actuator.role = PartRole::actuator;
+    actuator.bounds = button;
+    actuator.states = button_states;
+    actuator.key = PartKey{incrementing ? "increment_arrow" : "decrement_arrow", {}, {}};
+    paint_part(painter, *this, actuator);
+    // The arrow mark draws half its square's side in rows: an 8-unit square
+    // centred on the button.
+    const bool horizontal = orientation() == Orientation::horizontal;
+    PartPaint arrow;
+    arrow.family = ControlVisualRole::button;
+    arrow.role = PartRole::glyph;
+    if (horizontal) {
+        arrow.mark = incrementing ? PartMark::arrow_right : PartMark::arrow_left;
+    } else {
+        arrow.mark = incrementing ? PartMark::arrow_down : PartMark::arrow_up;
+    }
+    arrow.bounds = {std::floor(button.x + button.width * 0.5) - 4.0,
+                    std::floor(button.y + button.height * 0.5) - 4.0, 8.0, 8.0};
+    arrow.states = button_states;
+    paint_part(painter, *this, arrow);
+}
+
+// The trough under the whole bar, the track between the buttons, the two
+// arrow buttons and the thumb are parts the theme's engine draws; only the
+// pressed part shows pressed. The focus cue rings the thumb.
 void ScrollBar::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const BasicControlStyle& colors = style();
-    const Rect track = track_bounds();
-    painter.fill_rect(bounds, colors.face);
-    paint_sunken(painter, track, colors, colors.face_light);
+    const AnatomyStateSet states = anatomy_states();
+    const AnatomyStateSet rest = scroll_part_states(states, false, false);
+    PartPaint trough;
+    trough.family = ControlVisualRole::panel;
+    trough.role = PartRole::track;
+    trough.bounds = bounds;
+    trough.states = rest;
+    paint_part(painter, *this, trough);
+    PartPaint track;
+    track.family = ControlVisualRole::editor;
+    track.role = PartRole::track;
+    track.bounds = track_bounds();
+    track.states = scroll_part_states(states, pressed_part_ == ScrollBarPart::decrement_track ||
+                                                  pressed_part_ == ScrollBarPart::increment_track,
+                                      false);
+    track.key = PartKey{"track", {}, {}};
+    paint_part(painter, *this, track);
 
     paint_button(painter, decrement_button_bounds(),
-                 ScrollBarPart::decrement_button, false, colors);
+                 ScrollBarPart::decrement_button, false, states);
     paint_button(painter, increment_button_bounds(),
-                 ScrollBarPart::increment_button, true, colors);
-    paint_thumb(painter, thumb_bounds(), colors, focused_ || tracking_thumb_);
+                 ScrollBarPart::increment_button, true, states);
+    PartPaint thumb;
+    thumb.family = ControlVisualRole::button;
+    thumb.role = PartRole::thumb;
+    thumb.bounds = thumb_bounds();
+    thumb.states = scroll_part_states(states, pressed_part_ == ScrollBarPart::thumb, tracking_thumb_);
+    thumb.key = PartKey{"thumb", {}, {}};
+    paint_part(painter, *this, thumb);
+    if (focused_ || tracking_thumb_) {
+        PartPaint focus = thumb;
+        focus.role = PartRole::focus;
+        focus.states.insert(AnatomyState::focus_visible);
+        focus.key = PartKey{"focus", {}, {}};
+        paint_part(painter, *this, focus);
+    }
 }
 
 void ScrollBar::on_pointer(PointerEvent& event) {

@@ -34,8 +34,8 @@
   },
   "totals": {
     "stock": {
-      "files": 36,
-      "calls": 318
+      "files": 32,
+      "calls": 290
     },
     "exempt": {
       "files": 6,
@@ -184,26 +184,10 @@
       "category": "stock",
       "calls": 9
     },
-    "range_control/progress_bar/progress_bar.cpp": {
-      "category": "stock",
-      "calls": 5
-    },
     "range_control/progress_bar/progress_bar_effects.cpp": {
       "category": "stock",
       "calls": 0,
       "effect_calls": 16
-    },
-    "range_control/range_control_rendering.cpp": {
-      "category": "stock",
-      "calls": 12
-    },
-    "range_control/scroll_bar/scroll_bar.cpp": {
-      "category": "stock",
-      "calls": 5
-    },
-    "range_control/track_bar/track_bar.cpp": {
-      "category": "stock",
-      "calls": 6
     },
     "raster_canvas/raster_canvas.cpp": {
       "category": "exempt",

@@ -9,10 +9,6 @@ namespace range_control_detail {
 inline constexpr double track_inset = 10.0;
 
 void require_finite(double value, const char* message);
-void paint_sunken(Painter& painter, Rect bounds,
-                  const BasicControlStyle& style, Color fill);
-void paint_thumb(Painter& painter, Rect bounds,
-                 const BasicControlStyle& style, bool focused);
 
 } // namespace range_control_detail
 } // namespace gui_forms
