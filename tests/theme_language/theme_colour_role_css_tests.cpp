@@ -465,8 +465,9 @@ void test_high_contrast_remap() {
     require(high_contrast_colour(invalid, ColourPosition::edge, normal, false) == red_edge,
             "an invalid role takes the invalid edge");
     require(high_contrast_colour(focus, ColourPosition::edge, normal, false) == cyan &&
-                high_contrast_colour(focus, ColourPosition::edge, ControlSurfaceState::pressed, false) == cyan,
-            "focus takes the hot edge");
+                high_contrast_colour(focus, ColourPosition::edge, ControlSurfaceState::pressed, false) ==
+                    Color::rgba(0, 0, 0),
+            "focus takes the cue colour, and the selection ink on a pressed (inverse) plate");
     require(high_contrast_colour(selection_plate, ColourPosition::fill, normal, false) == white,
             "a selection background is the selected plate");
     const ColourOrigin selection_text = (*recipe_of(second, RecipeField::text)).origin;

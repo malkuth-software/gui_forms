@@ -24,6 +24,10 @@ void require(bool condition, const char* message) {
 }
 
 // -- the hand-authored records, as theme.cpp wrote them before E4 ---------------
+// Since T4 phase 5d a derived record's muted text is its text and its focus
+// ring is the palette's focus cue (cyan; the selection ink on an inverse
+// plate): the hand-authored muted text and ring failed the 7:1 and 3:1
+// gates. reference_high_contrast applies that over the old records.
 
 SurfaceMaterial reference_surface(Color top, Color bottom, Color border, double radius) {
     SurfaceMaterial result;
@@ -70,6 +74,12 @@ StateRecipes reference_high_contrast(double radius) {
         reference_recipe(black, black, Color::rgba(255, 96, 96), white, radius);
     result[at(ControlSurfaceState::disabled)] =
         reference_recipe(black, black, Color::rgba(128, 128, 128), Color::rgba(160, 160, 160), radius);
+    for (std::size_t state = 0; state < control_surface_state_count; ++state) {
+        ControlVisualRecipe& record = result[state];
+        record.muted_text = record.text;
+        const bool inverse = state == at(ControlSurfaceState::pressed);
+        record.focus_ring = inverse ? black : Color::rgba(0, 255, 255);
+    }
     return result;
 }
 
@@ -82,6 +92,8 @@ StateRecipes reference_high_contrast_selected(double radius) {
             reference_surface(Color::rgba(255, 255, 255), Color::rgba(255, 255, 255), state_border, radius);
         selected.text = Color::rgba(0, 0, 0);
         selected.glyph = Color::rgba(0, 0, 0);
+        selected.muted_text = Color::rgba(0, 0, 0);
+        selected.focus_ring = Color::rgba(0, 0, 0);
     }
     return result;
 }

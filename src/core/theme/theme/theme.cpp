@@ -560,34 +560,105 @@ void fill_link_role(ControlRoleRecipes& result, Color text, Color disabled_text)
     }
 }
 
-// GUI.Forms' own high-contrast mode (T2 plan, E4; design language 5.8): a
-// near-colourless palette by surface state. Under the host's own mode the
-// host palette is meant to win; no host reports one to the core yet.
+// GUI.Forms' own high-contrast mode (T2 plan, E4; design language 5.8),
+// from the role model (T4 phase 5d): each colour role's high-contrast pair
+// in one table, and every surface state's palette read from those roles.
+// Under the host's own mode the host palette is meant to win; no host
+// reports one to the core yet.
+struct HighContrastPair final {
+    Color background{};
+    Color foreground{};
+};
+
+constexpr Color high_contrast_black = Color::rgba(0, 0, 0);
+constexpr Color high_contrast_white = Color::rgba(255, 255, 255);
+constexpr Color high_contrast_cyan = Color::rgba(0, 255, 255);
+constexpr Color high_contrast_invalid = Color::rgba(255, 96, 96);
+constexpr Color high_contrast_disabled_ink = Color::rgba(160, 160, 160);
+// Two state colours no colour role names: the pressed edge and the
+// disabled edge.
+constexpr Color high_contrast_pressed_edge = Color::rgba(255, 255, 0);
+constexpr Color high_contrast_disabled_edge = Color::rgba(128, 128, 128);
+
+constexpr HighContrastPair high_contrast_ink{high_contrast_black, high_contrast_white};
+constexpr HighContrastPair high_contrast_inverse{high_contrast_white, high_contrast_black};
+constexpr HighContrastPair high_contrast_plate{high_contrast_black, high_contrast_black};
+constexpr HighContrastPair high_contrast_line{high_contrast_black, high_contrast_white};
+constexpr HighContrastPair high_contrast_cue{high_contrast_black, high_contrast_cyan};
+
+// By ColourRole, in its order. A single role's colour is its foreground;
+// its background is the plate it lies on.
+constexpr std::array<HighContrastPair, colour_role_count> high_contrast_roles{{
+    high_contrast_ink,                                          // ink_on_paper
+    high_contrast_ink,                                          // muted_ink_on_paper
+    high_contrast_ink,                                          // ink_on_soft_paper
+    high_contrast_ink,                                          // ink_on_chrome
+    high_contrast_ink,                                          // ink_on_chrome_low
+    high_contrast_ink,                                          // ink_on_near_white_stock
+    high_contrast_inverse,                                      // selection_ink_on_selection
+    high_contrast_ink,                                          // ink_on_gold
+    high_contrast_inverse,                                      // on_accent_on_accent
+    high_contrast_ink,                                          // signal_on_paper
+    high_contrast_ink,                                          // success_on_paper
+    high_contrast_ink,                                          // pending_ink_on_tint
+    {high_contrast_black, high_contrast_invalid},               // invalid_ink_on_tint
+    {high_contrast_black, high_contrast_disabled_ink},          // disabled_ink_on_chrome
+    {high_contrast_black, high_contrast_disabled_ink},          // disabled_ink_on_paper
+    high_contrast_ink,                                          // phosphor_on_instrument_black
+    high_contrast_ink,                                          // command_link_ink_on_paper
+    high_contrast_plate,                                        // chrome_highlight
+    high_contrast_plate,                                        // chrome
+    high_contrast_plate,                                        // chrome_middle
+    high_contrast_plate,                                        // chrome_low
+    high_contrast_line,                                         // ordinary_line
+    high_contrast_line,                                         // dark_line
+    high_contrast_plate,                                        // shadow
+    high_contrast_cue,                                          // selection_line
+    high_contrast_cue,                                          // focus
+}};
+static_assert(static_cast<std::size_t>(ColourRole::focus) + 1U == colour_role_count,
+              "high_contrast_roles lists every colour role");
+
+HighContrastPair high_contrast_role(ColourRole role) noexcept {
+    const std::size_t index = static_cast<std::size_t>(role);
+    if (index >= colour_role_count) return high_contrast_ink;
+    return high_contrast_roles[index];
+}
+
+// A surface state's palette: its plate, edge, text and focus ring.
 struct HighContrastColours final {
     Color plate{};
     Color edge{};
     Color text{};
+    Color focus{};
 };
 
+// Read from the roles: the chrome plate, the ordinary line, the ink on
+// chrome and the focus cue, unless the state says otherwise.
 HighContrastColours high_contrast_colours(ControlSurfaceState state) noexcept {
-    const Color black = Color::rgba(0, 0, 0);
-    const Color white = Color::rgba(255, 255, 255);
-    // Black plates, white edges and text, unless the state says otherwise.
-    HighContrastColours colours{black, white, white};
+    HighContrastColours colours{high_contrast_role(ColourRole::chrome).foreground,
+                                high_contrast_role(ColourRole::ordinary_line).foreground,
+                                high_contrast_role(ColourRole::ink_on_chrome).foreground,
+                                high_contrast_role(ColourRole::focus).foreground};
     switch (state) {
     case ControlSurfaceState::hot:
     case ControlSurfaceState::pending:
-        colours.edge = Color::rgba(0, 255, 255);
+        colours.edge = high_contrast_role(ColourRole::focus).foreground;
         return colours;
-    case ControlSurfaceState::pressed:
-        colours = HighContrastColours{white, Color::rgba(255, 255, 0), black};
+    case ControlSurfaceState::pressed: {
+        // Pressed is drawn inverse, as a selection, with its ink as the
+        // focus ring (the cue colour does not show on the light plate).
+        const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
+        colours = HighContrastColours{selection.background, high_contrast_pressed_edge, selection.foreground,
+                                      selection.foreground};
         return colours;
+    }
     case ControlSurfaceState::invalid:
-        colours.edge = Color::rgba(255, 96, 96);
+        colours.edge = high_contrast_role(ColourRole::invalid_ink_on_tint).foreground;
         return colours;
     case ControlSurfaceState::disabled:
-        colours.edge = Color::rgba(128, 128, 128);
-        colours.text = Color::rgba(160, 160, 160);
+        colours.edge = high_contrast_disabled_edge;
+        colours.text = high_contrast_role(ColourRole::disabled_ink_on_chrome).foreground;
         return colours;
     case ControlSurfaceState::normal:
     case ControlSurfaceState::deactivated:
@@ -599,11 +670,14 @@ HighContrastColours high_contrast_colours(ControlSurfaceState state) noexcept {
 }
 
 // One state's derived record: the ordinary record's geometry and cues (its
-// corner radii, edge width, focus and default rings, offsets) kept, its
-// material rebuilt as one solid plate inside one solid edge, so that every
-// gradient, image, keyline, per-edge border, shadow and glow is dropped.
+// corner radii, edge width, ring widths and offsets) kept, its material
+// rebuilt as one solid plate inside one solid edge, so that every gradient,
+// image, keyline, per-edge border, shadow and glow is dropped. Its text,
+// glyph and muted text are `text` (high contrast has no quieter tone: muted
+// text must meet 7:1 too), and its focus ring is `focus` (phase 5d: the
+// ordinary ring colours failed the high-contrast gate).
 ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, Color plate, Color edge,
-                                          Color text) {
+                                          Color text, Color focus) {
     ControlVisualRecipe result = ordinary;
     const double edge_width = ordinary.material.border ? (*ordinary.material.border).width : 1.0;
     SurfaceMaterial material{};
@@ -614,6 +688,8 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
     result.material = std::move(material);
     result.text = text;
     result.glyph = text;
+    result.muted_text = text;
+    result.focus_ring = focus;
     return result;
 }
 
@@ -1167,11 +1243,17 @@ Color high_contrast_colour(ColourOrigin origin, ColourPosition position, Control
                            bool selected) noexcept {
     HighContrastColours colours = high_contrast_colours(state);
     if (selected) {
-        colours.plate = Color::rgba(255, 255, 255);
-        colours.text = Color::rgba(0, 0, 0);
+        const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
+        colours.plate = selection.background;
+        colours.text = selection.foreground;
+        colours.focus = selection.foreground;
     }
     if (origin.source != ColourSource::role) return by_position(colours, position);
     const bool foreground = origin.side == ColourRoleSide::foreground;
+    // The roles with a colour of their own take it from the role table; the
+    // ink, chrome and line roles take the state's palette, so that a pressed
+    // or selected part inverts.
+    const HighContrastPair pair = high_contrast_role(origin.role);
     switch (origin.role) {
     case ColourRole::disabled_ink_on_chrome:
     case ColourRole::disabled_ink_on_paper:
@@ -1179,11 +1261,11 @@ Color high_contrast_colour(ColourOrigin origin, ColourPosition position, Control
         return foreground_of(high_contrast_colours(ControlSurfaceState::disabled), position);
     case ColourRole::invalid_ink_on_tint:
         if (!foreground) return colours.plate;
-        return high_contrast_colours(ControlSurfaceState::invalid).edge;
-    case ColourRole::focus:
-    case ColourRole::selection_line: return high_contrast_colours(ControlSurfaceState::hot).edge;
+        return pair.foreground;
+    case ColourRole::focus: return colours.focus;
+    case ColourRole::selection_line: return pair.foreground;
     case ColourRole::selection_ink_on_selection:
-    case ColourRole::on_accent_on_accent: return foreground ? Color::rgba(0, 0, 0) : Color::rgba(255, 255, 255);
+    case ColourRole::on_accent_on_accent: return foreground ? pair.foreground : pair.background;
     case ColourRole::chrome_highlight:
     case ColourRole::chrome:
     case ColourRole::chrome_middle:
@@ -1287,10 +1369,14 @@ ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes) {
         const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
         const HighContrastColours colours = high_contrast_colours(state);
         const ControlVisualRecipe& ordinary = recipes.ordinary[index];
-        recipes.high_contrast[index] = derived_high_contrast(ordinary, colours.plate, colours.edge, colours.text);
-        // Selected: a white plate inside the state's edge, with black text.
+        recipes.high_contrast[index] = derived_high_contrast(ordinary, colours.plate, colours.edge, colours.text,
+                                                             colours.focus);
+        // Selected: the selection's plate inside the state's edge, with its
+        // ink.
+        const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
         recipes.high_contrast_selected[index] =
-            derived_high_contrast(ordinary, Color::rgba(255, 255, 255), colours.edge, Color::rgba(0, 0, 0));
+            derived_high_contrast(ordinary, selection.background, colours.edge, selection.foreground,
+                                  selection.foreground);
     }
     return recipes;
 }

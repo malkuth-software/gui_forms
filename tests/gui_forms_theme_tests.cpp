@@ -157,8 +157,8 @@ std::vector<ContrastRow> presentation_rows(const std::vector<ContrastRow>& rows,
     return result;
 }
 
-// Light (the gate of phase 3) and dark (phase 5): every gated pair meets
-// its minimum.
+// Light (the gate of phase 3), dark and high contrast (phase 5): every
+// gated pair meets its minimum.
 void light_contrast() {
     std::vector<ContrastRow> rows{};
     detail::measure_theme_contrast(*gui_forms_theme(), rows);
@@ -170,6 +170,14 @@ void light_contrast() {
     std::cout << "gui-forms dark contrast: " << dark_counts.passed << " pass, " << dark_counts.failed << " fail, "
               << dark_counts.not_measured << " not measured\n";
     const std::size_t dark_failed = print_failures(dark);
+    // GUI.Forms' own high contrast from the role model (phase 5d): text at
+    // 7:1, as design language 5.8 requires.
+    const std::vector<ContrastRow> forced = presentation_rows(rows, true, false);
+    require(!forced.empty(), "the high-contrast presentation is measured");
+    const ContrastCounts forced_counts = detail::count_contrast_verdicts(forced);
+    std::cout << "gui-forms high contrast: " << forced_counts.passed << " pass, " << forced_counts.failed
+              << " fail, " << forced_counts.not_measured << " not measured\n";
+    const std::size_t forced_failed = print_failures(forced);
     const ContrastCounts counts = detail::count_contrast_verdicts(light);
     std::cout << "gui-forms light contrast: " << counts.passed << " pass, " << counts.failed << " fail, "
               << counts.not_measured << " not measured\n";
@@ -177,6 +185,7 @@ void light_contrast() {
     if (path != nullptr && path[0] != '\0') write_report(rows, path);
     require(failed == 0U, "every gated light pair meets its minimum");
     require(dark_failed == 0U, "every gated dark pair meets its minimum");
+    require(forced_failed == 0U, "every gated high-contrast pair meets its minimum");
 }
 
 // The dark records (phase 5): gui-forms derives them, so a dark context
@@ -346,6 +355,6 @@ int main() {
     light_contrast();
     dark_records();
     sheet_darkened();
-    std::cout << "gui-forms theme: anatomies, first-use compile, round trip, light and dark contrast, dark records and the darkened sheet passed\n";
+    std::cout << "gui-forms theme: anatomies, first-use compile, round trip, light, dark and high contrast, dark records and the darkened sheet passed\n";
     return 0;
 }
