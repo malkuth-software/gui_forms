@@ -44,6 +44,7 @@
 #include "gui_forms/controls/docking/dock_workspace/dock_workspace.hpp"
 #include "gui_forms/controls/drawing_surface/drawing_surface.hpp"
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
+#include "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp"
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
@@ -126,7 +127,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 115> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 116> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -140,6 +141,7 @@ inline constexpr std::array<FormCatalogEntry, 115> form_catalog{{
     {"text_block", "TextBlock", "gui_forms/controls/text_block/text_block.hpp", &add_catalog_type<TextBlock>},
     {"picture_box", "PictureBox", "gui_forms/controls/panel/picture_box/picture_box.hpp", &add_catalog_type<PictureBox>},
     {"progress_bar", "ProgressBar", "gui_forms/controls/range_control/progress_bar/progress_bar.hpp", &add_catalog_type<ProgressBar>},
+    {"sweep_scope", "SweepScope", "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp", &add_catalog_type<SweepScope>},
     {"review_card", "ReviewCard", "gui_forms/controls/panel/card/review_card/review_card.hpp", &add_catalog_type<ReviewCard>},
     {"list_box", "ListBox", "gui_forms/controls/panel/list_box/list_box.hpp", &add_catalog_type<ListBox>},
     {"checked_list_box", "CheckedListBox", "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp", &add_catalog_type<CheckedListBox>},
