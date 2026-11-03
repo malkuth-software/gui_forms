@@ -1363,6 +1363,18 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
     for (ControlRoleRecipes& role : (*theme).definition_.roles) {
         role = derive_high_contrast_recipes(std::move(role));
     }
+    // The dark pass (T4 phase 5): derived when the definition asks for it,
+    // otherwise the ordinary records, so a dark window keeps its colours.
+    const bool derive_dark = definition.dark_variant == ThemeDarkVariant::derived;
+    for (std::size_t index = 0; index < (*theme).definition_.roles.size(); ++index) {
+        ControlRoleRecipes& role = (*theme).definition_.roles[index];
+        if (derive_dark) {
+            role = derive_dark_recipes(std::move(role), static_cast<ControlVisualRole>(index));
+        } else {
+            role.dark = role.ordinary;
+            role.dark_selected = role.selected;
+        }
+    }
     return theme;
 }
 
@@ -1397,6 +1409,9 @@ const ControlVisualRecipe& Theme::resolve(
     if (context.high_contrast) {
         return context.selected ? recipes.high_contrast_selected[state_index]
                                 : recipes.high_contrast[state_index];
+    }
+    if (context.dark) {
+        return context.selected ? recipes.dark_selected[state_index] : recipes.dark[state_index];
     }
     return context.selected ? recipes.selected[state_index]
                             : recipes.ordinary[state_index];

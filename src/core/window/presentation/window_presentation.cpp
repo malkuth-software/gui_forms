@@ -509,6 +509,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
             ? ControlSurfaceState::normal
             : ControlSurfaceState::deactivated;
         backplane_context.high_contrast = presentation_settings_.high_contrast;
+        backplane_context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
         // Over a non-opaque grant, the theme's base for it (stage T5).
         const SurfaceMaterial& backplane = backplane_base(backplane_context);
         // A window granted a non-opaque backdrop (stage T5) starts each

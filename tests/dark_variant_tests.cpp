@@ -86,26 +86,41 @@ constexpr std::array<StudyPair, 34> study_pairs{{
 // The fit: every token's derived colour within `maximum_distance` of the
 // studies' (OKLab), and the root mean square within `maximum_rms`. The
 // studies are sketches, not tokens (rendering reference 6), so the bound
-// is loose; the measured values are printed for the stage record.
+// is loose; the measured values are printed for the stage record. Lines
+// and accent faces are left out of the bound: the contrast gate moved them
+// (lines up to 3:1 against the stock, accent faces down so the focus ring
+// keeps 3:1), and their distance is printed apart.
 constexpr double maximum_distance = 0.13;
 constexpr double maximum_rms = 0.06;
+
+bool moved_by_gate(DarkColourClass kind) noexcept {
+    const bool result = kind == DarkColourClass::line || kind == DarkColourClass::accent_surface;
+    return result;
+}
 
 void study_fit() {
     double sum = 0.0;
     double worst = 0.0;
+    std::size_t fitted = 0U;
+    double gated_worst = 0.0;
     const char* worst_name = "";
     for (const StudyPair& pair : study_pairs) {
         const Color derived = detail::dark_colour(pair.light, pair.kind);
         const double error = distance(derived, pair.dark);
+        if (moved_by_gate(pair.kind)) {
+            if (error > gated_worst) gated_worst = error;
+            continue;
+        }
+        ++fitted;
         sum += error * error;
         if (error > worst) {
             worst = error;
             worst_name = pair.name;
         }
     }
-    const double rms = std::sqrt(sum / static_cast<double>(study_pairs.size()));
-    std::cout << "study fit: " << study_pairs.size() << " tokens, OKLab rms " << rms << ", worst " << worst
-              << " (" << worst_name << ")\n";
+    const double rms = std::sqrt(sum / static_cast<double>(fitted));
+    std::cout << "study fit: " << fitted << " tokens, OKLab rms " << rms << ", worst " << worst << " ("
+              << worst_name << "); lines and accent faces (moved by the gate): worst " << gated_worst << '\n';
     require(worst <= maximum_distance, "every study token lies near its derived colour");
     require(rms <= maximum_rms, "the study tokens fit the rule");
 }
@@ -170,6 +185,55 @@ void contrast_kept() {
     require(detail::contrast_ratio(disabled, disabled_face) >= 3.0, "derived disabled ink meets 3:1");
 }
 
+// A light material darkened as a whole (the rules' fields in place on the
+// light floor): the face by its family, the edge as a line, a white top
+// keyline as a dimmed highlight, a cast shadow as a deeper shade; an
+// accent family's edge is the complement.
+void materials_darken() {
+    SurfaceMaterial material{};
+    material.fills = {MaterialFillLayer::solid(Color::rgba(155, 182, 218))};
+    material.border = MaterialBorder{Color::rgba(73, 108, 159), 1.0};
+    MaterialKeyline top{};
+    top.edge = MaterialEdge::top;
+    top.color = Color::rgba(255, 255, 255, 125);
+    material.keylines = {top};
+    MaterialShadow cast{};
+    cast.color = Color::rgba(24, 56, 97, 56);
+    material.shadows = {cast};
+    SurfaceMaterial dark = material;
+    detail::darken_material(dark, ControlVisualRole::button);
+    require(dark.fills[0].color == detail::dark_colour(Color::rgba(155, 182, 218), DarkColourClass::chrome_surface),
+            "a button face darkens as chrome");
+    require((*dark.border).color == detail::dark_colour(Color::rgba(73, 108, 159), DarkColourClass::line),
+            "an edge darkens as a line");
+    require(dark.keylines[0].color.red == 255 && dark.keylines[0].color.alpha < 125, "a light keyline dims");
+    require(dark.shadows[0].color.red == 0 && dark.shadows[0].color.alpha > 56, "a cast shadow deepens");
+    SurfaceMaterial accent = material;
+    detail::darken_material(accent, ControlVisualRole::accent_button);
+    require((*accent.border).color == detail::phosphor_complement, "an accent's edge is the complement");
+}
+
+void parameters_darken() {
+    ColourOrigin focus{};
+    focus.source = ColourSource::role;
+    focus.role = ColourRole::focus;
+    require(detail::dark_parameter_colour(Color::rgba(27, 39, 51), focus, ControlVisualRole::button) ==
+                detail::phosphor_green,
+            "a focus role becomes the Phosphor green");
+    ColourOrigin literal{};
+    literal.source = ColourSource::literal;
+    const Color ink = detail::dark_parameter_colour(Color::rgba(27, 39, 51), literal, ControlVisualRole::button);
+    require(lightness(ink) > 0.6, "a dark literal becomes light ink");
+    const Color face = detail::dark_parameter_colour(Color::rgba(244, 244, 245), literal, ControlVisualRole::panel);
+    require(lightness(face) < 0.35, "a light literal becomes a dark face");
+    ColourOrigin instrument{};
+    instrument.source = ColourSource::role;
+    instrument.role = ColourRole::phosphor_on_instrument_black;
+    require(detail::dark_parameter_colour(Color::rgba(130, 179, 97), instrument, ControlVisualRole::panel) ==
+                Color::rgba(130, 179, 97),
+            "the instrument's phosphor is kept");
+}
+
 } // namespace
 
 int main() {
@@ -177,6 +241,8 @@ int main() {
     order_kept();
     fixed_colours();
     contrast_kept();
-    std::cout << "dark colour rule: study fit, order, fixed colours and contrast passed\n";
+    materials_darken();
+    parameters_darken();
+    std::cout << "dark colour rule: study fit, order, fixed colours, contrast, materials and parameters passed\n";
     return 0;
 }

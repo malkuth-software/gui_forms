@@ -1,5 +1,10 @@
 #include "dark_variant.hpp"
 
+#include "gui_forms/theme/types/theme_types.hpp"
+
+#include <cstddef>
+#include <optional>
+
 #include <algorithm>
 #include <cmath>
 
@@ -24,9 +29,15 @@ constexpr LightnessMap chrome_surface_map{0.051, 0.304, 0.18, 0.46};
 constexpr LightnessMap stock_surface_map{0.072, 0.177, 0.16, 0.30};
 // Paper (L 1) goes to the studies' #0B0F0C, below every chrome face.
 constexpr LightnessMap well_surface_map{-0.137, 0.300, 0.10, 0.20};
-constexpr LightnessMap accent_surface_map{-0.881, 1.429, 0.30, 0.62};
+// The accent's faces sit below the studies' (at most 0.42 rather than
+// 0.47) so that the Phosphor focus ring keeps 3:1 against them.
+constexpr LightnessMap accent_surface_map{-0.950, 1.400, 0.28, 0.42};
 constexpr LightnessMap ink_map{1.296, -1.077, 0.62, 0.95};
-constexpr LightnessMap line_map{0.638, -0.334, 0.28, 0.52};
+// Light ink keeps its lightness, within the band light text reads in.
+constexpr LightnessMap light_ink_map{0.0, 1.0, 0.88, 0.97};
+// Lines sit above the studies' (0.32 to 0.47) so that a boundary keeps
+// 3:1 against the dark stock (the contrast gate wins over the sketches).
+constexpr LightnessMap line_map{0.800, -0.334, 0.53, 0.62};
 // Disabled ink: the ink map's value times this (the studies' #6F7D66 for
 // #62799A).
 constexpr double disabled_ink_scale = 0.84;
@@ -217,6 +228,8 @@ Color dark_colour(Color light, DarkColourClass kind) noexcept {
         return remapped(source, mapped(accent_surface_map, lightness), accent_hue, true, light.alpha);
     case DarkColourClass::ink:
         return remapped(source, mapped(ink_map, lightness), chrome_ink_hue, false, light.alpha);
+    case DarkColourClass::light_ink:
+        return remapped(source, mapped(light_ink_map, lightness), chrome_ink_hue, false, light.alpha);
     case DarkColourClass::disabled_ink:
         return remapped(source, mapped(ink_map, lightness) * disabled_ink_scale, chrome_ink_hue, false,
                         light.alpha);
@@ -240,3 +253,271 @@ Color dark_colour(Color light, DarkColourClass kind) noexcept {
 }
 
 } // namespace gui_forms::detail
+
+namespace gui_forms {
+
+namespace {
+
+using detail::DarkColourClass;
+
+// The face class a family's plates take (design language 5.8 rule 3): the
+// stock of windows, panels, cards and tooltips; the wells of entry fields,
+// choices and progress tracks (inset stays inset); the accent family; and
+// chrome for every other family.
+DarkColourClass face_class_of(ControlVisualRole family) noexcept {
+    switch (family) {
+    case ControlVisualRole::window:
+    case ControlVisualRole::panel:
+    case ControlVisualRole::card:
+    case ControlVisualRole::tool_tip: return DarkColourClass::stock_surface;
+    case ControlVisualRole::choice:
+    case ControlVisualRole::editor:
+    case ControlVisualRole::progress: return DarkColourClass::well_surface;
+    case ControlVisualRole::accent_button: return DarkColourClass::accent_surface;
+    case ControlVisualRole::button:
+    case ControlVisualRole::command_button:
+    case ControlVisualRole::menu_item:
+    case ControlVisualRole::selection:
+    case ControlVisualRole::link:
+    case ControlVisualRole::visited_link:
+    case ControlVisualRole::count: return DarkColourClass::chrome_surface;
+    }
+    // A family outside the enumeration darkens as chrome.
+    return DarkColourClass::chrome_surface;
+}
+
+// The gold of an active tool (a selected action): hue between these
+// degrees and chroma at least `gold_chroma`. A gold face darkens as the
+// accent family (the complement), as the studies' active tool does.
+constexpr double gold_hue_low = 60.0;
+constexpr double gold_hue_high = 110.0;
+constexpr double gold_chroma = 0.06;
+// The lightness a face is taken to have when it has no opaque colour.
+constexpr double default_face_lightness = 0.9;
+
+double hue_of(const detail::OklabColour& lab) noexcept {
+    const double hue = std::atan2(lab.b, lab.a) * 180.0 / 3.14159265358979323846;
+    const double result = hue < 0.0 ? hue + 360.0 : hue;
+    return result;
+}
+
+bool gold(Color colour) noexcept {
+    const detail::OklabColour lab = detail::oklab_of(colour);
+    const double chroma = std::hypot(lab.a, lab.b);
+    const double hue = hue_of(lab);
+    const bool result = chroma >= gold_chroma && hue >= gold_hue_low && hue <= gold_hue_high;
+    return result;
+}
+
+// The colour a material's face shows first: its first opaque solid colour
+// or gradient stop, if any.
+const Color* first_face_colour(const SurfaceMaterial& material) noexcept {
+    for (const MaterialFillLayer& layer : material.fills) {
+        if (layer.kind == MaterialFillKind::solid && layer.color.alpha == 255) return &layer.color;
+        const bool gradient = layer.kind == MaterialFillKind::linear_gradient ||
+                              layer.kind == MaterialFillKind::radial_gradient ||
+                              layer.kind == MaterialFillKind::conic_gradient;
+        if (!gradient) continue;
+        for (const GradientStop& stop : layer.stops) {
+            if (stop.color.alpha == 255) return &stop.color;
+        }
+    }
+    return nullptr;
+}
+
+// How one recipe's colours darken: its face class, the face's lightness
+// (a translucent layer, keyline or inset shadow lighter than it is a
+// highlight, darker a shade), and its edge class.
+struct DarkRecipePlan final {
+    DarkColourClass face{DarkColourClass::chrome_surface};
+    DarkColourClass edge{DarkColourClass::line};
+    double face_lightness{default_face_lightness};
+};
+
+DarkRecipePlan plan_of(const SurfaceMaterial& material, ControlVisualRole family) noexcept {
+    DarkRecipePlan plan{};
+    plan.face = face_class_of(family);
+    const Color* const face = first_face_colour(material);
+    if (face != nullptr) {
+        plan.face_lightness = detail::oklab_of(*face).lightness;
+        if (gold(*face)) plan.face = DarkColourClass::accent_surface;
+    }
+    if (plan.face == DarkColourClass::accent_surface) plan.edge = DarkColourClass::accent_line;
+    return plan;
+}
+
+// A relief colour's class: lighter than the face, a highlight; otherwise a
+// shade.
+DarkColourClass relief_class(Color colour, const DarkRecipePlan& plan) noexcept {
+    const bool lighter = detail::oklab_of(colour).lightness > plan.face_lightness;
+    const DarkColourClass result = lighter ? DarkColourClass::highlight : DarkColourClass::shade;
+    return result;
+}
+
+// A fill colour's class: an opaque one is the face; a translucent one, a
+// highlight or a shade by its lightness; a screen layer lights, a multiply
+// layer shades.
+DarkColourClass fill_class(Color colour, MaterialBlendMode blend, const DarkRecipePlan& plan) noexcept {
+    if (blend == MaterialBlendMode::screen) return DarkColourClass::highlight;
+    if (blend == MaterialBlendMode::multiply) return DarkColourClass::shade;
+    if (colour.alpha == 255) return plan.face;
+    const DarkColourClass result = relief_class(colour, plan);
+    return result;
+}
+
+void darken_fill(MaterialFillLayer& layer, const DarkRecipePlan& plan) noexcept {
+    switch (layer.kind) {
+    case MaterialFillKind::solid:
+        layer.color = detail::dark_colour(layer.color, fill_class(layer.color, layer.blend, plan));
+        return;
+    case MaterialFillKind::linear_gradient:
+    case MaterialFillKind::radial_gradient:
+    case MaterialFillKind::conic_gradient:
+        for (GradientStop& stop : layer.stops) {
+            stop.color = detail::dark_colour(stop.color, fill_class(stop.color, layer.blend, plan));
+        }
+        return;
+    case MaterialFillKind::image:
+    case MaterialFillKind::procedural: return; // Content, not chrome: kept.
+    default: return; // A kind outside the enumeration is kept as it is.
+    }
+}
+
+void darken_border(std::optional<MaterialBorder>& border, const DarkRecipePlan& plan) noexcept {
+    if (!border) return;
+    (*border).color = detail::dark_colour((*border).color, plan.edge);
+}
+
+void darken_planned(SurfaceMaterial& material, const DarkRecipePlan& plan) noexcept {
+    for (MaterialFillLayer& layer : material.fills) darken_fill(layer, plan);
+    for (MaterialShadow& shadow : material.shadows) {
+        const DarkColourClass kind = shadow.inset ? relief_class(shadow.color, plan) : DarkColourClass::shade;
+        shadow.color = detail::dark_colour(shadow.color, kind);
+    }
+    for (MaterialGlow& glow : material.glows) {
+        glow.color = detail::dark_colour(glow.color, DarkColourClass::highlight);
+    }
+    darken_border(material.border, plan);
+    darken_border(material.border_edges.top, plan);
+    darken_border(material.border_edges.right, plan);
+    darken_border(material.border_edges.bottom, plan);
+    darken_border(material.border_edges.left, plan);
+    for (MaterialKeyline& line : material.keylines) {
+        line.color = detail::dark_colour(line.color, relief_class(line.color, plan));
+    }
+    if (material.drop_shadow) {
+        (*material.drop_shadow).color = detail::dark_colour((*material.drop_shadow).color, DarkColourClass::shade);
+    }
+}
+
+// Text's class: light text on a darker face stays light; disabled text
+// dims; other text inverts as ink.
+DarkColourClass text_class(Color text, const DarkRecipePlan& plan, bool disabled) noexcept {
+    if (disabled) return DarkColourClass::disabled_ink;
+    const bool light = detail::oklab_of(text).lightness > plan.face_lightness;
+    const DarkColourClass result = light ? DarkColourClass::light_ink : DarkColourClass::ink;
+    return result;
+}
+
+ControlVisualRecipe dark_recipe(const ControlVisualRecipe& light, ControlVisualRole family, bool disabled) {
+    const DarkRecipePlan plan = plan_of(light.material, family);
+    ControlVisualRecipe result = light;
+    darken_planned(result.material, plan);
+    result.text = detail::dark_colour(light.text, text_class(light.text, plan, disabled));
+    result.muted_text = detail::dark_colour(light.muted_text, text_class(light.muted_text, plan, disabled));
+    result.glyph = detail::dark_colour(light.glyph, text_class(light.glyph, plan, disabled));
+    result.focus_ring = detail::dark_colour(light.focus_ring, DarkColourClass::cue);
+    result.default_ring = detail::dark_colour(light.default_ring, DarkColourClass::cue);
+    if (result.text_shadow) {
+        ControlTextShadow& shadow = *result.text_shadow;
+        shadow.color = detail::dark_colour(shadow.color, relief_class(shadow.color, plan));
+    }
+    return result;
+}
+
+} // namespace
+
+namespace {
+
+// A role's class (design language 5.4): its background side a face (paper
+// a well, the stock the stock, gold and the accent the accent, other
+// grounds chrome), its foreground side ink; lines, cues, highlights and
+// shades by their own classes.
+DarkColourClass role_class(ColourOrigin origin, ControlVisualRole family) noexcept {
+    const bool foreground = origin.side == ColourRoleSide::foreground;
+    switch (origin.role) {
+    case ColourRole::ink_on_paper:
+    case ColourRole::muted_ink_on_paper:
+    case ColourRole::signal_on_paper:
+    case ColourRole::success_on_paper:
+    case ColourRole::command_link_ink_on_paper:
+        return foreground ? DarkColourClass::ink : DarkColourClass::well_surface;
+    case ColourRole::ink_on_near_white_stock:
+        return foreground ? DarkColourClass::ink : DarkColourClass::stock_surface;
+    case ColourRole::ink_on_gold:
+        return foreground ? DarkColourClass::light_ink : DarkColourClass::accent_surface;
+    case ColourRole::on_accent_on_accent:
+        return foreground ? DarkColourClass::light_ink : DarkColourClass::accent_surface;
+    case ColourRole::disabled_ink_on_chrome:
+        return foreground ? DarkColourClass::disabled_ink : DarkColourClass::chrome_surface;
+    case ColourRole::disabled_ink_on_paper:
+        return foreground ? DarkColourClass::disabled_ink : DarkColourClass::well_surface;
+    case ColourRole::ink_on_soft_paper:
+    case ColourRole::ink_on_chrome:
+    case ColourRole::ink_on_chrome_low:
+    case ColourRole::selection_ink_on_selection:
+    case ColourRole::pending_ink_on_tint:
+    case ColourRole::invalid_ink_on_tint:
+        return foreground ? DarkColourClass::ink : DarkColourClass::chrome_surface;
+    case ColourRole::chrome_highlight: return DarkColourClass::highlight;
+    case ColourRole::chrome:
+    case ColourRole::chrome_middle:
+    case ColourRole::chrome_low: return DarkColourClass::chrome_surface;
+    case ColourRole::ordinary_line: return DarkColourClass::line;
+    case ColourRole::dark_line: return DarkColourClass::deep_line;
+    case ColourRole::shadow: return DarkColourClass::shade;
+    case ColourRole::selection_line:
+    case ColourRole::focus: return DarkColourClass::cue;
+    case ColourRole::phosphor_on_instrument_black:
+    case ColourRole::count:
+    default: break; // Falls to the face class below.
+    }
+    // The instrument's phosphor on black is dark already: its face class
+    // stands for a role outside the enumeration too.
+    return face_class_of(family);
+}
+
+// A literal colour darker than this OKLab lightness is taken as ink.
+constexpr double literal_ink_lightness = 0.5;
+
+} // namespace
+
+namespace detail {
+
+void darken_material(SurfaceMaterial& material, ControlVisualRole family) noexcept {
+    const DarkRecipePlan plan = plan_of(material, family);
+    darken_planned(material, plan);
+}
+
+Color dark_parameter_colour(Color light, ColourOrigin origin, ControlVisualRole family) noexcept {
+    if (origin.source == ColourSource::role) {
+        if (origin.role == ColourRole::phosphor_on_instrument_black) return light;
+        return dark_colour(light, role_class(origin, family));
+    }
+    const bool ink = oklab_of(light).lightness < literal_ink_lightness;
+    const DarkColourClass kind = ink ? DarkColourClass::ink : face_class_of(family);
+    return dark_colour(light, kind);
+}
+
+} // namespace detail
+
+ControlRoleRecipes derive_dark_recipes(ControlRoleRecipes recipes, ControlVisualRole family) {
+    for (std::size_t index = 0; index < control_surface_state_count; ++index) {
+        const bool disabled = index == static_cast<std::size_t>(ControlSurfaceState::disabled);
+        recipes.dark[index] = dark_recipe(recipes.ordinary[index], family, disabled);
+        recipes.dark_selected[index] = dark_recipe(recipes.selected[index], family, disabled);
+    }
+    return recipes;
+}
+
+} // namespace gui_forms

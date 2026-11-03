@@ -64,12 +64,16 @@ struct ControlVisualContext final {
     bool focused{};
     bool defaulted{};
     bool high_contrast{};
+    // The window prefers the dark colour scheme (PresentationSettings::
+    // colour_scheme, stage T4 phase 5). A theme with a derived dark variant
+    // resolves its dark records; high contrast wins over it.
+    bool dark{};
     friend constexpr bool operator==(const ControlVisualContext& left,
                                      const ControlVisualContext& right) noexcept {
         return left.surface == right.surface &&
                left.selected == right.selected && left.focused == right.focused &&
                left.defaulted == right.defaulted &&
-               left.high_contrast == right.high_contrast;
+               left.high_contrast == right.high_contrast && left.dark == right.dark;
     }
 };
 // A text shadow (E9.6, CSS `text-shadow`): the text's glyphs, moved by
@@ -210,6 +214,12 @@ struct ControlRoleRecipes final {
     std::array<ControlVisualRecipe, control_surface_state_count> high_contrast;
     std::array<ControlVisualRecipe, control_surface_state_count>
         high_contrast_selected;
+    // The dark variant's records (stage T4 phase 5): derived from the
+    // ordinary and selected ones when the theme asks for a derived dark
+    // variant (ThemeDefinition::dark_variant), otherwise copies of them.
+    // Theme::create fills them; authored values are replaced.
+    std::array<ControlVisualRecipe, control_surface_state_count> dark;
+    std::array<ControlVisualRecipe, control_surface_state_count> dark_selected;
     friend bool operator==(const ControlRoleRecipes& left,
                            const ControlRoleRecipes& right) noexcept(noexcept(
         left.ordinary == right.ordinary && left.selected == right.selected &&
@@ -218,7 +228,8 @@ struct ControlRoleRecipes final {
         return left.ordinary == right.ordinary &&
                left.selected == right.selected &&
                left.high_contrast == right.high_contrast &&
-               left.high_contrast_selected == right.high_contrast_selected;
+               left.high_contrast_selected == right.high_contrast_selected &&
+               left.dark == right.dark && left.dark_selected == right.dark_selected;
     }
 };
 
@@ -233,6 +244,15 @@ struct ControlRoleRecipes final {
 // Theme::create applies it to every family, so authored high-contrast
 // records are replaced.
 [[nodiscard]] ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes);
+
+// The dark pass (stage T4 phase 5; design language 5.8 rule 3): `recipes`
+// with its dark and dark_selected records derived from its ordinary and
+// selected ones by the dark colour rule, for a family of role `family`.
+// Geometry, cues and structure are kept; every colour is mapped by what it
+// paints (a face by its family: stock, well, chrome or accent; text, lines,
+// cues, highlights and shades by their own rules), so the light stays upper
+// left and inset stays inset.
+[[nodiscard]] ControlRoleRecipes derive_dark_recipes(ControlRoleRecipes recipes, ControlVisualRole family);
 
 // The colour forced high contrast draws in place of one a theme declared
 // (T3 EC4, owner decision D3 of 2026-10-28), for a part in `state`,
@@ -450,6 +470,11 @@ struct ThemeWindowBackdrop final {
     }
 };
 
+// Whether a theme has a dark variant (stage T4 phase 5): none (a dark
+// colour scheme resolves the ordinary records) or derived from the
+// ordinary records by the dark colour rule (derive_dark_recipes).
+enum class ThemeDarkVariant : std::uint8_t { none, derived };
+
 // A theme's whole authored description. Its role recipes are held out of
 // line (ControlRoleTable), so the definition itself is a small value, but
 // copying one still copies every recipe: pass it by reference, and let
@@ -480,6 +505,8 @@ struct ThemeDefinition final {
     // The backdrop request and backplane bases (stage T5). Empty by
     // default: an opaque window, drawn as before.
     ThemeWindowBackdrop window_backdrop{};
+    // The dark variant (stage T4 phase 5). None by default.
+    ThemeDarkVariant dark_variant{ThemeDarkVariant::none};
     friend bool operator==(const ThemeDefinition& left,
                            const ThemeDefinition& right) noexcept(noexcept(
         left.id == right.id && left.compatibility == right.compatibility &&
@@ -491,7 +518,8 @@ struct ThemeDefinition final {
                left.overlay_shadow == right.overlay_shadow &&
                left.high_contrast_overlay_shadow == right.high_contrast_overlay_shadow &&
                left.rules == right.rules && left.rule_set == right.rule_set &&
-               left.window_backdrop == right.window_backdrop;
+               left.window_backdrop == right.window_backdrop &&
+               left.dark_variant == right.dark_variant;
     }
 };
 

@@ -74,6 +74,7 @@ SurfaceRoot::EngineBackplane SurfaceRoot::engine_backplane(Point raster_origin, 
     ControlVisualContext context;
     context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
     context.high_contrast = presentation_settings_.high_contrast;
+    context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
     const SurfaceMaterial& material = backplane_base(context);
     engine_parts_.bake_backplane_material(material, client_size_, region, &image_resources(), image,
                                           paint_leases_completed_);

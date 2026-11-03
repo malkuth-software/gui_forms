@@ -120,24 +120,18 @@ void write_report(const std::vector<ContrastRow>& rows, const char* path) {
         std::snprintf(colours, sizeof(colours), "#%02X%02X%02X\t#%02X%02X%02X\t%.2f", row.foreground.red,
                       row.foreground.green, row.foreground.blue, row.background.red, row.background.green,
                       row.background.blue, row.ratio);
-        out << (row.high_contrast ? "high_contrast" : "ordinary") << '\t' << control_visual_role_name(row.family)
+        const char* const presentation = row.high_contrast ? "high_contrast" : row.dark ? "dark" : "ordinary";
+        out << presentation << '\t' << control_visual_role_name(row.family)
             << '\t' << detail::control_surface_state_name(row.state) << '\t' << (row.selected ? "yes" : "no") << '\t'
             << detail::contrast_pair_name(row.pair) << '\t' << colours << '\t' << row.minimum << '\t'
             << detail::contrast_verdict_name(row.verdict) << '\n';
     }
 }
 
-// Light only: the high-contrast records are still derived from the floor
-// (phase 5 replaces them).
-void light_contrast() {
-    std::vector<ContrastRow> rows{};
-    detail::measure_theme_contrast(*gui_forms_theme(), rows);
-    std::vector<ContrastRow> light{};
-    for (const ContrastRow& row : rows) {
-        if (!row.high_contrast) light.push_back(row);
-    }
+// Prints each failing row of `rows` and returns how many there are.
+std::size_t print_failures(const std::vector<ContrastRow>& rows) {
     std::size_t failed = 0U;
-    for (const ContrastRow& row : light) {
+    for (const ContrastRow& row : rows) {
         if (row.verdict != ContrastVerdict::fail) continue;
         ++failed;
         char line[200]{};
@@ -149,12 +143,67 @@ void light_contrast() {
                       row.background.green, row.background.blue, row.ratio, row.minimum);
         std::cerr << line;
     }
+    return failed;
+}
+
+// The rows of one presentation.
+std::vector<ContrastRow> presentation_rows(const std::vector<ContrastRow>& rows, bool high_contrast, bool dark) {
+    std::vector<ContrastRow> result{};
+    for (const ContrastRow& row : rows) {
+        if (row.high_contrast == high_contrast && row.dark == dark) result.push_back(row);
+    }
+    return result;
+}
+
+// Light (the gate of phase 3) and dark (phase 5): every gated pair meets
+// its minimum.
+void light_contrast() {
+    std::vector<ContrastRow> rows{};
+    detail::measure_theme_contrast(*gui_forms_theme(), rows);
+    const std::vector<ContrastRow> light = presentation_rows(rows, false, false);
+    const std::size_t failed = print_failures(light);
+    const std::vector<ContrastRow> dark = presentation_rows(rows, false, true);
+    require(!dark.empty(), "the derived dark presentation is measured");
+    const ContrastCounts dark_counts = detail::count_contrast_verdicts(dark);
+    std::cout << "gui-forms dark contrast: " << dark_counts.passed << " pass, " << dark_counts.failed << " fail, "
+              << dark_counts.not_measured << " not measured\n";
+    const std::size_t dark_failed = print_failures(dark);
     const ContrastCounts counts = detail::count_contrast_verdicts(light);
     std::cout << "gui-forms light contrast: " << counts.passed << " pass, " << counts.failed << " fail, "
               << counts.not_measured << " not measured\n";
     const char* const path = std::getenv("GUI_FORMS_CONTRAST_REPORT");
     if (path != nullptr && path[0] != '\0') write_report(rows, path);
     require(failed == 0U, "every gated light pair meets its minimum");
+    require(dark_failed == 0U, "every gated dark pair meets its minimum");
+}
+
+// The dark records (phase 5): gui-forms derives them, so a dark context
+// resolves colours unlike the light ones with the same geometry; high
+// contrast wins over dark; a theme without a dark variant resolves its
+// ordinary records in a dark context.
+void dark_records() {
+    const std::shared_ptr<const Theme> theme = gui_forms_theme();
+    ControlVisualContext light{};
+    ControlVisualContext dark{};
+    dark.dark = true;
+    const ControlVisualRecipe& light_button = (*theme).resolve(ControlVisualRole::button, light);
+    const ControlVisualRecipe& dark_button = (*theme).resolve(ControlVisualRole::button, dark);
+    require(!(light_button.text == dark_button.text), "a dark button's text is derived");
+    require(light_button.material.corner_radius == dark_button.material.corner_radius,
+            "a dark button keeps its geometry");
+    require(detail::relative_luminance(dark_button.text) > detail::relative_luminance(light_button.text),
+            "dark text is lighter than light text");
+    ControlVisualContext forced = dark;
+    forced.high_contrast = true;
+    ControlVisualContext forced_light{};
+    forced_light.high_contrast = true;
+    require((*theme).resolve(ControlVisualRole::button, forced) ==
+                (*theme).resolve(ControlVisualRole::button, forced_light),
+            "high contrast wins over dark");
+    const std::shared_ptr<const Theme> professional = Theme::create(windows_professional_theme_definition());
+    require((*professional).resolve(ControlVisualRole::button, dark) ==
+                (*professional).resolve(ControlVisualRole::button, light),
+            "a theme without a dark variant keeps its ordinary records");
 }
 
 } // namespace
@@ -164,6 +213,7 @@ int main() {
     compiled_at_first_use();
     round_trip();
     light_contrast();
-    std::cout << "gui-forms theme: anatomies, first-use compile, round trip and light contrast passed\n";
+    dark_records();
+    std::cout << "gui-forms theme: anatomies, first-use compile, round trip, light and dark contrast and dark records passed\n";
     return 0;
 }

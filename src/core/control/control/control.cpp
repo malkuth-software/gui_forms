@@ -1069,6 +1069,8 @@ ControlVisualContext Control::visual_context(
     result.defaulted = defaulted;
     result.high_contrast = surface_root_ != nullptr &&
                            (*surface_root_).presentation_settings().high_contrast;
+    result.dark = surface_root_ != nullptr &&
+                  (*surface_root_).presentation_settings().colour_scheme == ColourScheme::dark;
     if (!effectively_enabled()) {
         result.surface = ControlSurfaceState::disabled;
     } else if (visual_status_ == ControlVisualStatus::invalid) {

@@ -958,6 +958,12 @@ Types
 
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> high_contrast_selected
 
+   .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark
+
+      The dark variant's records (stage T4 phase 5): derived from the ordinary and selected ones when the theme asks for a derived dark variant (ThemeDefinition::dark_variant), otherwise copies of them. Theme::create fills them; authored values are replaced.
+
+   .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark_selected
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ControlRoleTable final
@@ -1043,6 +1049,10 @@ Types
    .. cpp:member:: bool defaulted
 
    .. cpp:member:: bool high_contrast
+
+   .. cpp:member:: bool dark
+
+      The window prefers the dark colour scheme (PresentationSettings:: colour_scheme, stage T4 phase 5). A theme with a derived dark variant resolves its dark records; high contrast wins over it.
 
 .. cpp:namespace:: gui_forms
 
@@ -4538,6 +4548,10 @@ Types
 
       The backdrop request and backplane bases (stage T5). Empty by default: an opaque window, drawn as before.
 
+   .. cpp:member:: ThemeDarkVariant dark_variant
+
+      The dark variant (stage T4 phase 5). None by default. Default: ``{ThemeDarkVariant::none}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeEngine final
@@ -6246,6 +6260,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ThemeDarkVariant
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: derived
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ThemeDiagnosticSeverity
 
    ``#include <gui_forms/theme/theme_compiler/theme_compiler.hpp>``
@@ -7180,6 +7204,10 @@ Functions, constants and aliases
 .. cpp:function:: ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes)
 
    The forced high-contrast pass (T2 plan, E4; design language 5.8): ``recipes`` with its high_contrast and high_contrast_selected records derived from its ordinary ones. GUI.Forms' own high-contrast mode keeps each state's geometry and cues (corner radius, edge width, focus and default rings, offsets) and rebuilds the material as one solid plate inside one solid edge from a near-colourless palette by state, dropping gradients, images, keylines, per-edge borders and shadows. Selected parts take a white plate and black text inside their state's edge. Theme::create applies it to every family, so authored high-contrast records are replaced.
+
+.. cpp:function:: ControlRoleRecipes derive_dark_recipes(ControlRoleRecipes recipes, ControlVisualRole family)
+
+   The dark pass (stage T4 phase 5; design language 5.8 rule 3): ``recipes`` with its dark and dark_selected records derived from its ordinary and selected ones by the dark colour rule, for a family of role ``family``. Geometry, cues and structure are kept; every colour is mapped by what it paints (a face by its family: stock, well, chrome or accent; text, lines, cues, highlights and shades by their own rules), so the light stays upper left and inset stays inset.
 
 .. cpp:function:: Color high_contrast_colour(ColourOrigin origin, ColourPosition position, ControlSurfaceState state, bool selected) noexcept
 

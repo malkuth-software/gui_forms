@@ -21,6 +21,9 @@
 // (theme_studies_source.html `.t-dark` against `.t-default`); the fit's
 // error is recorded by tests/dark_variant_tests.cpp. Alpha is kept,
 // except that highlights and shades change theirs as stated.
+#include "gui_forms/engine/theme_rules/theme_rules.hpp"
+#include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/theme/types/theme_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
 #include <cstdint>
@@ -39,6 +42,8 @@ enum class DarkColourClass : std::uint8_t {
     accent_surface,
     // Text and glyphs.
     ink,
+    // Light text on a dark face (white on the accent): it stays light.
+    light_ink,
     // Disabled text: the ink rule, dimmed (M104: reduced, still visible).
     disabled_ink,
     // An ordinary edge or divider.
@@ -74,5 +79,20 @@ struct OklabColour final {
 // Deterministic; the result is in the sRGB gamut (chroma is reduced, never
 // lightness or hue, when the mapped colour lies outside it).
 [[nodiscard]] Color dark_colour(Color light, DarkColourClass kind) noexcept;
+
+// `material`, a light material of a part of family `family`, darkened in
+// place by the rule derive_dark_recipes applies to a recipe's material:
+// opaque faces by the family's face class (gold as the accent), edges as
+// lines, and translucent layers, keylines and inset shadows as highlights
+// or shades by their lightness against the face. Images and procedural
+// layers are kept.
+void darken_material(SurfaceMaterial& material, ControlVisualRole family) noexcept;
+
+// A colour parameter of a primitive, declared in light terms, as the dark
+// variant draws it: by its colour role where it names one (a role's
+// background as a face, its foreground as ink, its lines, cues, highlights
+// and shades by their own classes); a literal colour as ink when it is
+// darker than mid-grey and as the family's face otherwise.
+[[nodiscard]] Color dark_parameter_colour(Color light, ColourOrigin origin, ControlVisualRole family) noexcept;
 
 } // namespace gui_forms::detail
