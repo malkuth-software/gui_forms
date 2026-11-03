@@ -513,8 +513,9 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
     require(operation_check_32, "modified keyboard navigation must move focus independently of stable selection");
     ImageRecordingPainter keyboard_short{};
     window.paint(keyboard_short, {0.0, 0.0, 190.0, 170.0});
-    require(keyboard_short.lines.size() >= 40U &&
-                keyboard_short.rounded_strokes.size() == rest.rounded_strokes.size() + 1U,
+    // The keyboard focus is the theme's focus ring, one more rounded stroke
+    // beside the selection plate's edge.
+    require(keyboard_short.rounded_strokes.size() == rest.rounded_strokes.size() + 2U,
             "selection boundary and dotted keyboard focus must remain visibly distinct on separate cells");
 
     const bool operation_check_33 = window.dispatch_key({KeyAction::down, PhysicalKey::left,
@@ -534,7 +535,7 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
         if (!keyboard_inspected_name.empty()) keyboard_inspected_name += ' ';
         keyboard_inspected_name += keyboard_long.texts[index];
     }
-    require(keyboard_long.lines.size() >= 40U &&
+    require(keyboard_long.rounded_strokes.size() >= rest.rounded_strokes.size() + 2U &&
                 keyboard_inspected_name == complete_name,
             "non-truncated hover must not suppress complete-name inspection for the keyboard-focused item");
 

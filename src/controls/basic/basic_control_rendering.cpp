@@ -296,4 +296,15 @@ std::vector<std::string> label_lines(
     return lines;
 }
 
+void paint_theme_cues(Painter& painter, Rect bounds,
+                      const ControlVisualRecipe& recipe,
+                      ControlVisualContext context) {
+    PartPaint cue;
+    cue.bounds = bounds;
+    cue.role = PartRole::preselect;
+    paint_part_from_recipe(painter, cue, recipe, context);
+    cue.role = PartRole::focus;
+    paint_part_from_recipe(painter, cue, recipe, context);
+}
+
 } // namespace gui_forms
