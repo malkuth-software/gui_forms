@@ -87,7 +87,9 @@ The second checks two rules of sections 5 and 9: a function returning a
 borrow of a container or snapshot argument deletes its rvalue overload, and a
 function pointer looked up by name takes its type from the declaration. The
 `sanitizers` CI job runs the whole suite under ASan, UBSan and LSan on Linux
-and fails on any report.
+and fails on any report, but only when requested by hand (owner ruling,
+2026-11-03): the gate is the local sanitized run of every test when a
+checkpoint is folded.
 
 Every build tree keeps a sanitizer tree beside its ordinary one, on every
 platform it builds on:

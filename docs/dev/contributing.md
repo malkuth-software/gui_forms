@@ -66,6 +66,9 @@ rvalue overload, and a function pointer obtained with `GetProcAddress` or
 `static_assert` against it). The `sanitizers` job builds and runs the whole
 suite on Linux under AddressSanitizer, UndefinedBehaviorSanitizer and
 LeakSanitizer (`python tools/ci_build.py --sanitize`); any report fails it.
+It runs only when requested by hand (`workflow_dispatch` with
+`run_sanitizers`); the gate is the local sanitized run of every test when a
+checkpoint is folded.
 
 The same command is the standard local sanitizer tree, kept by every build
 tree on every platform: it builds `.build/native-<host>-<arch>/gui-forms-sanitize`
