@@ -250,6 +250,7 @@ add_library(gui_forms_core STATIC
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
+    src/core/theme/dark_variant/dark_variant.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
@@ -2678,6 +2679,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_contrast_tests tests/theme_contrast_tests.cpp)
     target_link_libraries(gui_forms_theme_contrast_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_contrast_tests COMMAND gui_forms_theme_contrast_tests)
+    add_executable(gui_forms_dark_variant_tests tests/dark_variant_tests.cpp)
+    target_link_libraries(gui_forms_dark_variant_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_dark_variant_tests COMMAND gui_forms_dark_variant_tests)
     add_executable(gui_forms_gui_forms_theme_tests tests/gui_forms_theme_tests.cpp)
     target_link_libraries(gui_forms_gui_forms_theme_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_gui_forms_theme_tests COMMAND gui_forms_gui_forms_theme_tests)
