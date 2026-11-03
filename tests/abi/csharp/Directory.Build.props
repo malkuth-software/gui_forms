@@ -1,0 +1,7 @@
+<Project>
+  <!-- A build tree outside the checkout keeps obj/ out of the sources: ctest
+       passes GfIntermediateRoot, and each project takes a directory under it. -->
+  <PropertyGroup Condition="'$(GfIntermediateRoot)' != ''">
+    <BaseIntermediateOutputPath>$(GfIntermediateRoot)/$(MSBuildProjectName)/</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

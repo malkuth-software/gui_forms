@@ -178,6 +178,45 @@ if(WIN32 AND MINGW)
         VERBATIM)
 endif()
 
+# The conformance kit (stage C8): the C11 checks of ownership, threads,
+# callbacks, events, values, the schema, themes, host services, the control
+# families and the window run, as a static library a consumer links and runs
+# in its own tests (owner decision C-3). Installed with the CAbi component as
+# GUIForms::CAbiConformance and include/gui_forms/c/gf_conformance.h;
+# docs/c-abi/conformance-kit.md says how a product runs it.
+find_package(Threads REQUIRED)
+add_library(gui_forms_abi_conformance_kit STATIC
+    tests/abi/conformance/gf_conformance_bindings.c
+    tests/abi/conformance/gf_conformance_callbacks.c
+    tests/abi/conformance/gf_conformance_create.c
+    tests/abi/conformance/gf_conformance_custom.c
+    tests/abi/conformance/gf_conformance_diagnostics.c
+    tests/abi/conformance/gf_conformance_events.c
+    tests/abi/conformance/gf_conformance_families.c
+    tests/abi/conformance/gf_conformance_kit.c
+    tests/abi/conformance/gf_conformance_ownership.c
+    tests/abi/conformance/gf_conformance_proxies.c
+    tests/abi/conformance/gf_conformance_schema.c
+    tests/abi/conformance/gf_conformance_threads.c
+    tests/abi/conformance/gf_conformance_values.c
+    tests/abi/conformance/gf_conformance_window.c
+    tests/abi/conformance/gf_conformance_themes.c
+    tests/abi/conformance/gf_conformance_host.c)
+set_target_properties(gui_forms_abi_conformance_kit PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
+target_link_libraries(gui_forms_abi_conformance_kit PUBLIC gui_forms_abi)
+if(MINGW)
+    target_link_libraries(gui_forms_abi_conformance_kit PUBLIC winpthread)
+else()
+    target_link_libraries(gui_forms_abi_conformance_kit PUBLIC Threads::Threads)
+endif()
+set_target_properties(gui_forms_abi_conformance_kit PROPERTIES EXPORT_NAME CAbiConformance
+                      OUTPUT_NAME gui_forms_abi_conformance_kit)
+install(TARGETS gui_forms_abi_conformance_kit
+        EXPORT GUIFormsCAbiTargets
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/conformance/gf_conformance.h"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gui_forms/c)
+
 install(TARGETS gui_forms_abi
         EXPORT GUIFormsCAbiTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -216,32 +255,7 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_test(NAME gui_forms_abi_runtime_c11_tests COMMAND gui_forms_abi_runtime_c11_tests)
 
-    # The conformance kit, part 1 (ownership, threads, callbacks, the window
-    # run), as consumers will run it, and the check that it calls every slot.
-    add_library(gui_forms_abi_conformance_kit STATIC
-        tests/abi/conformance/gf_conformance_bindings.c
-        tests/abi/conformance/gf_conformance_callbacks.c
-        tests/abi/conformance/gf_conformance_create.c
-        tests/abi/conformance/gf_conformance_custom.c
-        tests/abi/conformance/gf_conformance_diagnostics.c
-        tests/abi/conformance/gf_conformance_events.c
-        tests/abi/conformance/gf_conformance_families.c
-        tests/abi/conformance/gf_conformance_kit.c
-        tests/abi/conformance/gf_conformance_ownership.c
-        tests/abi/conformance/gf_conformance_proxies.c
-        tests/abi/conformance/gf_conformance_schema.c
-        tests/abi/conformance/gf_conformance_threads.c
-        tests/abi/conformance/gf_conformance_values.c
-        tests/abi/conformance/gf_conformance_window.c
-        tests/abi/conformance/gf_conformance_themes.c
-        tests/abi/conformance/gf_conformance_host.c)
-    set_target_properties(gui_forms_abi_conformance_kit PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
-    target_link_libraries(gui_forms_abi_conformance_kit PUBLIC gui_forms_abi)
-    if(MINGW)
-        target_link_libraries(gui_forms_abi_conformance_kit PUBLIC winpthread)
-    else()
-        target_link_libraries(gui_forms_abi_conformance_kit PUBLIC Threads::Threads)
-    endif()
+    # The kit run in-tree, and the check that it calls every slot.
     add_executable(gui_forms_abi_conformance tests/abi/conformance/gf_conformance_main.c)
     target_link_libraries(gui_forms_abi_conformance PRIVATE gui_forms_abi_conformance_kit)
     add_test(NAME gui_forms_abi_conformance COMMAND gui_forms_abi_conformance)
@@ -322,4 +336,85 @@ if(GUI_FORMS_BUILD_TESTS)
         COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_audit.py exports
             ${_gf_abi_export_arguments})
     set_tests_properties(gui_forms_abi_audit gui_forms_abi_audit_fixtures PROPERTIES TIMEOUT 300)
+
+    # A Visual Studio consumer: MSVC compiles the layout probe and the
+    # reference consumer against the import library and runs them. It runs
+    # where Visual Studio's C++ tools are installed, found through vswhere.
+    if(_gf_abi_msvc_import)
+        set(_gf_abi_vswhere "$ENV{ProgramFiles\(x86\)}/Microsoft Visual Studio/Installer/vswhere.exe")
+        set(_gf_abi_vs_path "")
+        if(EXISTS "${_gf_abi_vswhere}")
+            execute_process(COMMAND "${_gf_abi_vswhere}" -latest -products * -requires
+                                    Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+                            OUTPUT_VARIABLE _gf_abi_vs_path OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+        endif()
+        file(TO_CMAKE_PATH "${_gf_abi_vs_path}" _gf_abi_vs_path)
+        set(_gf_abi_vcvars "${_gf_abi_vs_path}/VC/Auxiliary/Build/vcvars64.bat")
+        if(_gf_abi_vs_path AND EXISTS "${_gf_abi_vcvars}")
+            add_test(NAME gui_forms_abi_msvc_consumer
+                COMMAND ${CMAKE_COMMAND} -DVCVARS=${_gf_abi_vcvars} -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR}
+                    -DIMPORT_LIBRARY=${_gf_abi_msvc_import} -DLIBRARY_DIR=$<TARGET_FILE_DIR:gui_forms_abi>
+                    -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/gf_abi_msvc_consumer
+                    -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/msvc/gf_abi_msvc_consumer.cmake)
+            set_tests_properties(gui_forms_abi_msvc_consumer PROPERTIES TIMEOUT 300)
+        else()
+            message(STATUS "gui_forms_abi_msvc_consumer: no Visual Studio C++ tools; the MSVC consumer test is left out")
+        endif()
+    endif()
+
+    # The generated C# interop and C++ wrappers are current with the manifest,
+    # and the wrappers' slot map is 1:1, on every host.
+    add_test(NAME gui_forms_abi_bindings_current
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_bindings.py csharp --check)
+    add_test(NAME gui_forms_abi_cpp_wrappers_current
+        COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/abi_bindings.py cpp --check)
+
+    # The C++ wrappers against the built library, linking only the ABI.
+    add_executable(gui_forms_abi_cpp_wrappers tests/abi/cpp/gf_abi_cpp_wrappers.cpp)
+    target_link_libraries(gui_forms_abi_cpp_wrappers PRIVATE gui_forms_abi)
+    target_compile_features(gui_forms_abi_cpp_wrappers PRIVATE cxx_std_20)
+    add_test(NAME gui_forms_abi_cpp_wrappers COMMAND gui_forms_abi_cpp_wrappers)
+
+    # The C# interop (bindings/csharp), built offline with the .NET SDK and run
+    # against this library. It runs where a .NET 10 SDK is installed.
+    # The interop targets net10.0, so an older SDK alone leaves the test out.
+    find_program(GUI_FORMS_DOTNET NAMES dotnet HINTS "$ENV{ProgramFiles}/dotnet" "$ENV{DOTNET_ROOT}")
+    set(_gf_abi_dotnet_sdks "")
+    if(GUI_FORMS_DOTNET)
+        execute_process(COMMAND "${GUI_FORMS_DOTNET}" --list-sdks OUTPUT_VARIABLE _gf_abi_dotnet_sdks ERROR_QUIET)
+    endif()
+    if(_gf_abi_dotnet_sdks MATCHES "(^|\n)10\\.")
+        add_test(NAME gui_forms_abi_csharp
+            COMMAND ${CMAKE_COMMAND} -DDOTNET=${GUI_FORMS_DOTNET} -DPYTHON=${Python3_EXECUTABLE}
+                -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DLIBRARY_DIR=$<TARGET_FILE_DIR:gui_forms_abi>
+                -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/gf_abi_csharp
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/csharp/gf_abi_csharp.cmake)
+        set_tests_properties(gui_forms_abi_csharp PROPERTIES TIMEOUT 600)
+    else()
+        message(STATUS "gui_forms_abi_csharp: no .NET 10 SDK; the C# interop test is left out")
+    endif()
+endif()
+
+# The C ABI's verification set, run by `ctest -L c_abi`: every test above, the
+# 0.x C API and registry tests it still keeps building, and the C++ binding
+# and shadow-frame tests its tables stand on. A folding checkpoint runs this
+# label rather than a name pattern, so a new ABI test joins by being listed.
+if(GUI_FORMS_BUILD_TESTS)
+    set(_gf_abi_label_candidates
+        gui_drawing_c_api_c11_tests gui_drawing_raster_c_api_tests
+        gui_forms_c_api_c11_tests gui_forms_c_api_cpp_tests gui_forms_abi_registry_lifetime_tests
+        gui_forms_binding_tests gui_forms_binding_navigator_tests gui_forms_shadow_frames_tests
+        gui_forms_abi_runtime_c11_tests gui_forms_abi_conformance gui_forms_abi_slot_coverage
+        gui_forms_abi_schema_export gui_forms_abi_theme_trace gui_forms_abi_capability_matrix
+        gui_forms_abi_schema_catalog_current gui_forms_abi_event_fields gui_forms_abi_custom_paint
+        gui_forms_abi_event_catalog_current gui_forms_abi_compat_map gui_forms_abi_layout_probe_c11
+        gui_forms_abi_layout_probe_cpp gui_forms_abi_audit gui_forms_abi_layout_probe_current
+        gui_forms_abi_audit_fixtures gui_forms_abi_exports gui_forms_abi_msvc_consumer
+        gui_forms_abi_bindings_current gui_forms_abi_csharp
+        gui_forms_abi_cpp_wrappers_current gui_forms_abi_cpp_wrappers)
+    foreach(_gf_abi_label_test IN LISTS _gf_abi_label_candidates)
+        if(TEST ${_gf_abi_label_test})
+            set_property(TEST ${_gf_abi_label_test} APPEND PROPERTY LABELS c_abi)
+        endif()
+    endforeach()
 endif()

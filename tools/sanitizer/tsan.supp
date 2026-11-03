@@ -1,0 +1,7 @@
+# ThreadSanitizer suppressions for the C ABI's TSan run (tools/abi_tsan.py).
+# Like lsan.supp, only frames inside system libraries may be listed; a race
+# in GUI.Forms code is a defect to fix, never a suppression. Each entry names
+# the host and the report it answers.
+#
+# Format: one `race:`, `mutex:`, `thread:`, `signal:` or
+# `called_from_lib:` rule per line (see the ThreadSanitizer documentation).

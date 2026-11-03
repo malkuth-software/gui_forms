@@ -1,0 +1,99 @@
+// One reference to a library object, released (objects.release) when the
+// owner goes or resets. The ObjectsTable it borrows must outlive it.
+class ObjectReference {
+public:
+    ObjectReference() noexcept : objects_(nullptr), object_(0u) {}
+    ObjectReference(const ObjectsTable& objects, gf_object object) noexcept : objects_(&objects), object_(object) {}
+    ObjectReference(const ObjectReference& other) = delete;
+    ObjectReference& operator=(const ObjectReference& other) = delete;
+    ObjectReference(ObjectReference&& other) noexcept : objects_(other.objects_), object_(other.object_) {
+        other.objects_ = nullptr;
+        other.object_ = 0u;
+    }
+    ObjectReference& operator=(ObjectReference&& other) noexcept {
+        if (this != &other) {
+            (void)(*this).reset();
+            objects_ = other.objects_;
+            object_ = other.object_;
+            other.objects_ = nullptr;
+            other.object_ = 0u;
+        }
+        return *this;
+    }
+    ~ObjectReference() { (void)(*this).reset(); }
+
+    [[nodiscard]] gf_object get() const noexcept { return object_; }
+
+    // Gives the reference to the caller without releasing it.
+    [[nodiscard]] gf_object detach() noexcept {
+        const gf_object detached = object_;
+        objects_ = nullptr;
+        object_ = 0u;
+        return detached;
+    }
+
+    // Releases the reference now; GF_STATUS_OK when there was none. The owner
+    // is empty afterwards whatever release answered.
+    gf_status reset() noexcept {
+        if (objects_ == nullptr || object_ == 0u) {
+            objects_ = nullptr;
+            object_ = 0u;
+            return GF_STATUS_OK;
+        }
+        const gf_status released = (*objects_).release(object_);
+        objects_ = nullptr;
+        object_ = 0u;
+        return released;
+    }
+
+private:
+    const ObjectsTable* objects_;
+    gf_object object_;
+};
+
+// One subscription, disconnected (events.disconnect) when the owner goes or
+// resets. The EventsTable it borrows must outlive it.
+class SubscriptionReference {
+public:
+    SubscriptionReference() noexcept : events_(nullptr), subscription_(0u) {}
+    SubscriptionReference(const EventsTable& events, gf_subscription subscription) noexcept
+        : events_(&events), subscription_(subscription) {}
+    SubscriptionReference(const SubscriptionReference& other) = delete;
+    SubscriptionReference& operator=(const SubscriptionReference& other) = delete;
+    SubscriptionReference(SubscriptionReference&& other) noexcept
+        : events_(other.events_), subscription_(other.subscription_) {
+        other.events_ = nullptr;
+        other.subscription_ = 0u;
+    }
+    SubscriptionReference& operator=(SubscriptionReference&& other) noexcept {
+        if (this != &other) {
+            (void)(*this).reset();
+            events_ = other.events_;
+            subscription_ = other.subscription_;
+            other.events_ = nullptr;
+            other.subscription_ = 0u;
+        }
+        return *this;
+    }
+    ~SubscriptionReference() { (void)(*this).reset(); }
+
+    [[nodiscard]] gf_subscription get() const noexcept { return subscription_; }
+
+    // Disconnects now; GF_STATUS_OK when there was nothing to disconnect. The
+    // owner is empty afterwards whatever disconnect answered.
+    gf_status reset() noexcept {
+        if (events_ == nullptr || subscription_ == 0u) {
+            events_ = nullptr;
+            subscription_ = 0u;
+            return GF_STATUS_OK;
+        }
+        const gf_status disconnected = (*events_).disconnect(subscription_);
+        events_ = nullptr;
+        subscription_ = 0u;
+        return disconnected;
+    }
+
+private:
+    const EventsTable* events_;
+    gf_subscription subscription_;
+};

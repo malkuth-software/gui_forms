@@ -166,6 +166,41 @@ seconds in a normal build too) and timed out once. Rerun a test that fails
 only under parallel load on its own (`ctest --test-dir <dir> -R <name>`)
 before treating it as a finding.
 
+## ThreadSanitizer
+
+The C ABI promises release from any thread, deferred destruction on the UI
+thread, `begin_invoke` from any thread and a thread handover before the first
+window (`gf_abi.h`, "Threads"). ThreadSanitizer checks those promises on
+Linux and macOS. The MinGW runtime on Windows has no ThreadSanitizer, so the
+procedure below does not run there.
+
+```sh
+python3 -B tools/abi_tsan.py [--jobs N] [--tests REGEX]
+```
+
+It configures `.build/native-<host>-<arch>/gui-forms-tsan` with the toolkit's
+usual options and `-fsanitize=thread -fno-omit-frame-pointer` (RelWithDebInfo
+at `-O1 -gline-tables-only`). It then builds only what the tests labelled
+`c_abi` need and runs them with `TSAN_OPTIONS=halt_on_error=1`, so any report
+fails its test. The set is the same as `ctest -L c_abi`, which includes the
+conformance kit's thread checks. Two tests are left out: `gui_forms_abi_csharp`,
+because the .NET host is not instrumented and TSan's runtime must load at
+process start, and the Windows-only `gui_forms_abi_msvc_consumer`.
+
+The flags reach CMake through `CFLAGS`, `CXXFLAGS`, `OBJCXXFLAGS` and `LDFLAGS`
+at the tree's first configure, as for the macOS sanitized tree above. The
+tool refuses a `gui-forms-tsan` tree whose cache lacks `-fsanitize=thread`;
+delete that tree and run again.
+
+`tools/sanitizer/tsan.supp` holds the suppressions. Like `lsan.supp`, it may
+name frames inside system libraries only, each with the host and the report
+it answers. A race in GUI.Forms code is a defect to fix, never a suppression.
+
+To record a run, keep the tool's output and the host (OS version,
+architecture, `clang --version`) with the stage's results in notes
+(`results/`). Record a clean run and every report found and fixed. The C8
+record names the first runs on each host.
+
 ## Windows builds and Wine
 
 Use the native MSYS2 CLANG64 instructions in [Installation](../user/install).
