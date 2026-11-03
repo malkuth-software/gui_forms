@@ -21,8 +21,9 @@
 //
 // Objects: one UiaElement per element a client asks for. It names its node
 // by SemanticElementId (the scope's and the node's runtime IDs; the client
-// root is {0, 0}) and reads a fresh snapshot for every call, so a client
-// never sees a tree older than its call. The client root is the fragment
+// root is {0, 0}) and reads the window's current tree for every call
+// (SemanticSource::snapshot reuses it only while the window is unchanged),
+// so a client never sees a tree older than its call. The client root is the fragment
 // root; its host provider is the window's, so UI Automation merges the
 // window's own properties with these.
 //
@@ -402,9 +403,9 @@ private:
     ~UiaElement() = default;
 
     // Takes a snapshot into `client` and finds this element's node.
-    HRESULT resolve(SemanticNode& client, SemanticLocation& self) noexcept;
+    HRESULT resolve(SemanticTreeRef& client, SemanticLocation& self) noexcept;
     // As resolve, and refuses a node that does not offer `pattern`.
-    HRESULT resolve_pattern(PATTERNID pattern, SemanticNode& client,
+    HRESULT resolve_pattern(PATTERNID pattern, SemanticTreeRef& client,
                             SemanticLocation& self) noexcept;
     // Performs `action` on this element's node, which must offer `pattern`.
     HRESULT act(PATTERNID pattern, SemanticAction action, std::string_view value) noexcept;
@@ -435,10 +436,10 @@ struct PostedInvoke final {
 };
 
 void PostedInvoke::operator()() const {
-    SemanticNode client;
+    SemanticTreeRef client;
     if (!(*source).snapshot(client)) return;
     SemanticLocation location;
-    if (!locate_semantic_element(client, id, location)) return;
+    if (!locate_semantic_element(*client, id, location)) return;
     if (!(*source).perform(location, SemanticAction::press, {})) return;
     if (!UiaClientsAreListening()) return;
     IRawElementProviderSimple* element = make_automation_element(source, id);
@@ -447,13 +448,13 @@ void PostedInvoke::operator()() const {
     (*element).Release();
 }
 
-HRESULT UiaElement::resolve(SemanticNode& client, SemanticLocation& self) noexcept {
+HRESULT UiaElement::resolve(SemanticTreeRef& client, SemanticLocation& self) noexcept {
     if (!(*source_).snapshot(client)) return element_not_available;
-    if (!locate_semantic_element(client, id_, self)) return element_not_available;
+    if (!locate_semantic_element(*client, id_, self)) return element_not_available;
     return S_OK;
 }
 
-HRESULT UiaElement::resolve_pattern(PATTERNID pattern, SemanticNode& client,
+HRESULT UiaElement::resolve_pattern(PATTERNID pattern, SemanticTreeRef& client,
                                     SemanticLocation& self) noexcept {
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -463,7 +464,7 @@ HRESULT UiaElement::resolve_pattern(PATTERNID pattern, SemanticNode& client,
 
 HRESULT UiaElement::act(PATTERNID pattern, SemanticAction action,
                         std::string_view value) noexcept {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(pattern, client, self);
     if (FAILED(status)) return status;
@@ -543,7 +544,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ProviderOptions(ProviderOptions* out) 
 HRESULT STDMETHODCALLTYPE UiaElement::GetPatternProvider(PATTERNID pattern, IUnknown** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -661,11 +662,11 @@ HRESULT UiaElement::property_value(const SemanticNode& client, const SemanticLoc
 HRESULT STDMETHODCALLTYPE UiaElement::GetPropertyValue(PROPERTYID property, VARIANT* out) {
     if (out == nullptr) return E_INVALIDARG;
     VariantInit(out);
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
-    return property_value(client, self, property, out);
+    return property_value(*client, self, property, out);
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::get_HostRawElementProvider(IRawElementProviderSimple** out) {
@@ -681,7 +682,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::Navigate(NavigateDirection direction,
                                                IRawElementProviderFragment** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -695,7 +696,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::Navigate(NavigateDirection direction,
     // The fragment root's parent and siblings are the window's, which UI
     // Automation reaches through the host provider.
     SemanticLocation parent;
-    if (!parent_semantic_location(client, self, parent)) return S_OK;
+    if (!parent_semantic_location(*client, self, parent)) return S_OK;
     if (direction == NavigateDirection_Parent) return fragment_for(parent, out);
     const std::size_t siblings = (*parent.node).children.size();
     if (direction == NavigateDirection_NextSibling && self.index + 1U < siblings) {
@@ -710,7 +711,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::Navigate(NavigateDirection direction,
 HRESULT STDMETHODCALLTYPE UiaElement::GetRuntimeId(SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -736,7 +737,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetRuntimeId(SAFEARRAY** out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_BoundingRectangle(UiaRect* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = UiaRect{0.0, 0.0, 0.0, 0.0};
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -766,7 +767,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetEmbeddedFragmentRoots(SAFEARRAY** out) 
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::SetFocus() {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -795,7 +796,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::ElementProviderFromPoint(double x, double 
                                                                IRawElementProviderFragment** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -812,7 +813,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::ElementProviderFromPoint(double x, double 
 HRESULT STDMETHODCALLTYPE UiaElement::GetFocus(IRawElementProviderFragment** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -823,7 +824,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetFocus(IRawElementProviderFragment** out
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::Invoke() {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_InvokePatternId, client, self);
     if (FAILED(status)) return status;
@@ -848,7 +849,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::Toggle() {
 HRESULT STDMETHODCALLTYPE UiaElement::get_ToggleState(ToggleState* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = ToggleState_Off;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_TogglePatternId, client, self);
     if (FAILED(status)) return status;
@@ -866,7 +867,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::SetValue(LPCWSTR value) {
     } catch (...) {
         return E_OUTOFMEMORY;
     }
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -877,7 +878,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::SetValue(LPCWSTR value) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_Value(BSTR* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -892,7 +893,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Value(BSTR* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_IsReadOnly(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = TRUE;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -904,7 +905,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_IsReadOnly(BOOL* out) {
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::SetValue(double value) {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -924,7 +925,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::SetValue(double value) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_Value(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -935,7 +936,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Value(double* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_Maximum(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -947,7 +948,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Maximum(double* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_Minimum(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -961,7 +962,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Minimum(double* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_LargeChange(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -972,7 +973,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_LargeChange(double* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_SmallChange(double* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0.0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_RangeValuePatternId, client, self);
     if (FAILED(status)) return status;
@@ -981,7 +982,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_SmallChange(double* out) {
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::Expand() {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ExpandCollapsePatternId, client, self);
     if (FAILED(status)) return status;
@@ -992,7 +993,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::Expand() {
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::Collapse() {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ExpandCollapsePatternId, client, self);
     if (FAILED(status)) return status;
@@ -1003,7 +1004,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::Collapse() {
 HRESULT STDMETHODCALLTYPE UiaElement::get_ExpandCollapseState(ExpandCollapseState* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = ExpandCollapseState_Collapsed;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_ExpandCollapsePatternId, client, self);
     if (FAILED(status)) return status;
@@ -1012,7 +1013,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ExpandCollapseState(ExpandCollapseStat
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::Select() {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1023,7 +1024,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::Select() {
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::AddToSelection() {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1034,7 +1035,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::AddToSelection() {
 }
 
 HRESULT STDMETHODCALLTYPE UiaElement::RemoveFromSelection() {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1045,7 +1046,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::RemoveFromSelection() {
 HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelected(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = FALSE;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1056,12 +1057,12 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelected(BOOL* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_SelectionContainer(IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionItemPatternId, client, self);
     if (FAILED(status)) return status;
     SemanticLocation parent;
-    if (!parent_semantic_location(client, self, parent)) return S_OK;
+    if (!parent_semantic_location(*client, self, parent)) return S_OK;
     if (!selection_pattern(*parent.node)) return S_OK;
     *out = make_automation_element(source_, parent.id);
     if (*out == nullptr) return E_OUTOFMEMORY;
@@ -1071,7 +1072,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_SelectionContainer(IRawElementProvider
 HRESULT STDMETHODCALLTYPE UiaElement::GetSelection(SAFEARRAY** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve(client, self);
     if (FAILED(status)) return status;
@@ -1132,7 +1133,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_DocumentRange(ITextRangeProvider** out
 HRESULT STDMETHODCALLTYPE UiaElement::get_SupportedTextSelection(SupportedTextSelection* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = SupportedTextSelection_None;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_TextPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1153,7 +1154,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetCaretRange(BOOL* active, ITextRangeProv
 HRESULT STDMETHODCALLTYPE UiaElement::get_CanSelectMultiple(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = FALSE;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_SelectionPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1164,7 +1165,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_CanSelectMultiple(BOOL* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_IsSelectionRequired(BOOL* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = FALSE;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     return resolve_pattern(UIA_SelectionPatternId, client, self);
 }
@@ -1190,7 +1191,7 @@ bool find_grid_item(const SemanticLocation& at, std::size_t row_index, std::size
 HRESULT STDMETHODCALLTYPE UiaElement::GetItem(int row, int column, IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1209,7 +1210,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::GetItem(int row, int column, IRawElementPr
 HRESULT STDMETHODCALLTYPE UiaElement::get_RowCount(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1221,7 +1222,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_RowCount(int* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnCount(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1233,7 +1234,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnCount(int* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_Row(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridItemPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1245,7 +1246,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Row(int* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_Column(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridItemPatternId, client, self);
     if (FAILED(status)) return status;
@@ -1258,7 +1259,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_Column(int* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_RowSpan(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 1;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     return resolve_pattern(UIA_GridItemPatternId, client, self);
 }
@@ -1266,7 +1267,7 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_RowSpan(int* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnSpan(int* out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = 1;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     return resolve_pattern(UIA_GridItemPatternId, client, self);
 }
@@ -1275,13 +1276,13 @@ HRESULT STDMETHODCALLTYPE UiaElement::get_ColumnSpan(int* out) {
 HRESULT STDMETHODCALLTYPE UiaElement::get_ContainingGrid(IRawElementProviderSimple** out) {
     if (out == nullptr) return E_INVALIDARG;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_pattern(UIA_GridItemPatternId, client, self);
     if (FAILED(status)) return status;
     SemanticLocation at = self;
     SemanticLocation parent;
-    while (parent_semantic_location(client, at, parent)) {
+    while (parent_semantic_location(*client, at, parent)) {
         if (grid_pattern(*parent.node)) {
             *out = make_automation_element(source_, parent.id);
             if (*out == nullptr) return E_OUTOFMEMORY;

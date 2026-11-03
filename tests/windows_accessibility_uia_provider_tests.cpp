@@ -118,8 +118,25 @@ std::string narrow(std::wstring_view text) {
 
 // -- the fixture -------------------------------------------------------------
 
+// The fixture's root, which counts its semantic descriptions: the window
+// asks once for each semantic tree it builds, so the count is the number of
+// trees the providers had built.
+class CountingPanel final : public Panel {
+public:
+    explicit CountingPanel(StableId stable_id) : Panel(std::move(stable_id)) {}
+    // The count to raise; set on the UI thread before the window runs.
+    int* descriptions{};
+
+protected:
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
+        if (descriptions != nullptr) ++*descriptions;
+        SemanticDescriptor descriptor = Panel::semantic_descriptor();
+        return descriptor;
+    }
+};
+
 struct Fixture final {
-    std::shared_ptr<Panel> root;
+    std::shared_ptr<CountingPanel> root;
     std::shared_ptr<Button> button;
     std::shared_ptr<CheckBox> check;
     std::shared_ptr<TextBox> text;
@@ -128,10 +145,13 @@ struct Fixture final {
     std::shared_ptr<TreeView> tree;
     std::shared_ptr<Button> doomed;
     int clicks{};
+    // How many times the root was described (CountingPanel).
+    int root_descriptions{};
 };
 
 std::unique_ptr<Window> make_fixture(Fixture& fixture) {
-    fixture.root = make_control<Panel>(StableId("uia.root"));
+    fixture.root = make_control<CountingPanel>(StableId("uia.root"));
+    (*fixture.root).descriptions = &fixture.root_descriptions;
     fixture.button = make_control<Button>(StableId("uia.button"), "Press me");
     fixture.check = make_control<CheckBox>(StableId("uia.check"), "Check me");
     fixture.text = make_control<TextBox>(StableId("uia.text"));
@@ -200,6 +220,18 @@ struct RemoveDoomed final {
     void operator()() const {
         static_cast<void>((*(*fixture).root).remove_child((*(*fixture).doomed).runtime_id()));
     }
+};
+
+struct ReadDescriptions final {
+    Fixture* fixture{};
+    int* count{};
+    void operator()() const { *count = (*fixture).root_descriptions; }
+};
+
+struct RenameButton final {
+    Fixture* fixture{};
+    std::string text;
+    void operator()() const { (*(*fixture).button).set_text(text); }
 };
 
 struct CloseWindow final {
@@ -352,6 +384,45 @@ void check_root_and_identity(ClientContext& context, IUIAutomation& automation,
     // prefix, so a client sees that prefix and the provider's four parts.
     expect(context, button_id.size() > 4U && check_id.size() > 4U && button_id != check_id,
            "elements carry distinct runtime IDs that end in the provider's four parts");
+}
+
+int read_descriptions(ClientContext& context) {
+    int count = 0;
+    on_ui_thread(context.dispatcher,
+                 std::function<void()>(ReadDescriptions{context.fixture, &count}));
+    return count;
+}
+
+// The providers reuse one semantic tree while the window is unchanged, and
+// build a new one once it changes.
+void check_tree_reuse(ClientContext& context, IUIAutomation& automation,
+                      IUIAutomationElement& window) {
+    ComReference<IUIAutomationElement> button;
+    if (!find_element(automation, window, "uia.button", button)) {
+        expect(context, false, "the button is found for the reuse check");
+        return;
+    }
+    constexpr int reads = 20;
+    const int before = read_descriptions(context);
+    bool named = true;
+    for (int read = 0; read < reads; ++read) {
+        named = named && element_name(*button.get()) == "Press me";
+    }
+    const int built = read_descriptions(context) - before;
+    // An idle window builds one tree for all of them; a second allows one
+    // repaint the host may still owe its first frame. Without reuse each
+    // read builds at least one.
+    expect(context, named && built <= 2,
+           "twenty reads of an unchanged window share its semantic tree (built " +
+               std::to_string(built) + ")");
+    on_ui_thread(context.dispatcher,
+                 std::function<void()>(RenameButton{context.fixture, "Renamed"}));
+    expect(context, element_name(*button.get()) == "Renamed",
+           "a changed window is described again: the button's new name is read");
+    on_ui_thread(context.dispatcher,
+                 std::function<void()>(RenameButton{context.fixture, "Press me"}));
+    expect(context, element_name(*button.get()) == "Press me",
+           "the restored name is read");
 }
 
 void check_invoke(ClientContext& context, IUIAutomation& automation, IUIAutomationElement& window) {
@@ -540,6 +611,7 @@ void run_client_checks(ClientContext& context) {
     GetWindowThreadProcessId(context.hwnd, &owner);
     expect(context, owner == GetCurrentProcessId(), "the window the client reads belongs to this process");
     check_root_and_identity(context, *automation.get(), *window.get());
+    check_tree_reuse(context, *automation.get(), *window.get());
     check_invoke(context, *automation.get(), *window.get());
     check_toggle(context, *automation.get(), *window.get());
     check_value(context, *automation.get(), *window.get());
