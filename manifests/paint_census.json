@@ -34,8 +34,8 @@
   },
   "totals": {
     "stock": {
-      "files": 23,
-      "calls": 173
+      "files": 20,
+      "calls": 145
     },
     "exempt": {
       "files": 6,
@@ -135,18 +135,6 @@
     "panel/picture_box/picture_box.cpp": {
       "category": "exempt",
       "calls": 1
-    },
-    "panel/rich_text_box/rich_text_box.cpp": {
-      "category": "stock",
-      "calls": 3
-    },
-    "panel/rich_text_box/rich_text_box_layout.cpp": {
-      "category": "stock",
-      "calls": 10
-    },
-    "panel/text_box/text_box.cpp": {
-      "category": "stock",
-      "calls": 15
     },
     "range_control/progress_bar/progress_bar_effects.cpp": {
       "category": "stock",

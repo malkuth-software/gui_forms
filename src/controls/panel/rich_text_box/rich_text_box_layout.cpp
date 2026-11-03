@@ -3,6 +3,7 @@
 #include "../text_editing/text_editing_engine.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <array>
@@ -67,11 +68,6 @@ constexpr double subscript_drop = 0.2;
         return 0.0;
     }
     return 0.0;
-}
-
-[[nodiscard]] Color translucent(Color color, std::uint8_t alpha) noexcept {
-    const Color result = Color::rgba(color.red, color.green, color.blue, alpha);
-    return result;
 }
 
 [[nodiscard]] Color rgb_color(MarkdownRgb colour) noexcept {
@@ -581,36 +577,49 @@ std::optional<Rect> RichTextBox::selection_band(const Row& row) const {
 
 void RichTextBox::paint_piece(Painter& painter, const Row& row, const Piece& piece, const RowInks& inks,
                               bool selected) const {
+    // A run is a content part: in the selection's family inside a band,
+    // secondary for markup (dimmed, owner decision 2026-10-28), in its own
+    // colour as an authored foreground (T4-1), or in the link family, whose
+    // underline is the glyph colour's one-unit rule. Underline and strike
+    // are underline marks in the run's family.
     const PieceStyle& set = piece_styles_[piece.style];
-    Color ink = inks.text;
-    Color rule = inks.text;
+    PartPaint text;
+    text.family = ControlVisualRole::editor;
+    text.role = PartRole::content;
+    text.states = inks.states;
+    text.authored_foreground = inks.authored_text;
     if (selected) {
-        ink = inks.selected_text;
-        rule = inks.selected_text;
+        text.family = ControlVisualRole::selection;
+        text.states.insert(AnatomyState::selected);
+        text.authored_foreground = inks.authored_selected_text;
     } else if (set.markup) {
-        // Markup stays visible, dimmed (owner decision 2026-10-28).
-        ink = inks.muted;
-        rule = inks.muted;
+        text.tone = PartTextTone::secondary;
+        text.authored_foreground.reset();
     } else if (set.style.colour) {
-        ink = rgb_color(*set.style.colour);
-        rule = ink;
+        text.authored_foreground = rgb_color(*set.style.colour);
     } else if (set.link) {
-        // The link role; its underline is the glyph colour's one-unit rule.
-        ink = inks.link_text;
-        rule = inks.link_glyph;
+        text.family = ControlVisualRole::link;
+        text.authored_foreground.reset();
     }
     const double baseline = inks.origin.y + row.y + row.baseline - set.rise;
     const double left = inks.origin.x + piece.x;
     const double right = inks.origin.x + boundary_x(row, Utf8Offset(piece.end));
-    const std::string_view run = (*editing_).text().substr(piece.start, piece.end - piece.start);
-    painter.draw_text_utf8({left, baseline}, run, set.font, ink);
+    text.text = (*editing_).text().substr(piece.start, piece.end - piece.start);
+    text.font = set.font;
+    paint_text_part_at(painter, *this, text, {left, baseline}, std::max(0.0, right - left));
+    PartPaint rule;
+    rule.family = text.family;
+    rule.role = PartRole::glyph;
+    rule.mark = PartMark::underline;
+    rule.states = text.states;
+    rule.authored_foreground = text.authored_foreground;
     if (set.style.underline || set.link) {
-        const double y = baseline + 1.5;
-        painter.draw_line({left, y}, {right, y}, rule, 1.0);
+        rule.bounds = {left, baseline + 1.0, std::max(0.0, right - left), 1.0};
+        paint_part(painter, *this, rule);
     }
     if (set.style.strikethrough) {
-        const double y = baseline - set.font.size * 0.3;
-        painter.draw_line({left, y}, {right, y}, ink, 1.0);
+        rule.bounds = {left, baseline - set.font.size * 0.3 - 0.5, std::max(0.0, right - left), 1.0};
+        paint_part(painter, *this, rule);
     }
 }
 
@@ -620,17 +629,13 @@ Rect RichTextBox::paint_rows(Painter& painter) {
     const Rect viewport = text_rectangle();
     const Point offset = scroll_offset();
     const bool themed = !has_background_override() && !has_style_override();
-    const ControlVisualRecipe& editor = effective_theme().resolve(ControlVisualRole::editor,
-        visual_context(false, false, false, focused_));
-    const ControlVisualRecipe& highlight = effective_theme().resolve(ControlVisualRole::selection,
-        visual_context(false, false, true, true));
-    const ControlVisualRecipe& link = effective_theme().resolve(ControlVisualRole::link, visual_context());
-    const RowInks inks{.origin = {text_left_ - offset.x, viewport.y - offset.y},
-                       .text = themed ? editor.text : enabled() ? style().text : style().disabled_text,
-                       .muted = themed ? editor.muted_text : style().disabled_text,
-                       .selected_text = themed ? highlight.text : style().highlight,
-                       .link_text = link.text,
-                       .link_glyph = link.glyph};
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    RowInks inks{.origin = {text_left_ - offset.x, viewport.y - offset.y}, .states = states};
+    if (!themed) {
+        inks.authored_text = style().text;
+        inks.authored_selected_text = style().highlight;
+    }
     painter.save();
     painter.clip_rect(viewport);
     const double code_right = std::max(layout_width_, document_width_);
@@ -639,26 +644,46 @@ Rect RichTextBox::paint_rows(Painter& painter) {
         const Row& row = rows_[index];
         if (row.y - offset.y > viewport.height) break;
         const double top = inks.origin.y + row.y;
+        // Code is shaded by a chip; a run's own background is an authored
+        // ground on a fill (T4-1).
+        PartPaint shade;
+        shade.family = ControlVisualRole::panel;
+        shade.role = PartRole::chip;
+        shade.states = states;
+        shade.corner_radius = 0.0;
         if (row.code_block) {
-            const Rect fill{inks.origin.x - 2.0, top, std::max(0.0, code_right + 4.0), row.height};
-            painter.fill_rect(fill, translucent(inks.muted, 48U));
+            shade.bounds = {inks.origin.x - 2.0, top, std::max(0.0, code_right + 4.0), row.height};
+            paint_part(painter, *this, shade);
         }
         for (const Piece& piece : row.pieces) {
             const PieceStyle& set = piece_styles_[piece.style];
             const double right = boundary_x(row, Utf8Offset(piece.end));
             const Rect fill{inks.origin.x + piece.x, top, std::max(0.0, right - piece.x), row.height};
             if (set.style.background) {
-                painter.fill_rect(fill, rgb_color(*set.style.background));
+                PartPaint ground;
+                ground.family = ControlVisualRole::editor;
+                ground.role = PartRole::fill;
+                ground.bounds = fill;
+                ground.states = states;
+                ground.corner_radius = 0.0;
+                ground.authored_background = rgb_color(*set.style.background);
+                paint_part(painter, *this, ground);
             } else if (set.style.code && !row.code_block) {
-                painter.fill_rect(fill, translucent(inks.muted, 40U));
+                shade.bounds = fill;
+                paint_part(painter, *this, shade);
             }
         }
         std::optional<Rect> band{};
         if (focused_) band = selection_band(row);
         if (band) {
-            const Rect bounds{inks.origin.x + (*band).x, inks.origin.y + (*band).y, (*band).width, (*band).height};
-            if (themed) paint_surface_material(painter, bounds, highlight.material);
-            else painter.fill_rect(bounds, style().accent);
+            PartPaint plate;
+            plate.family = ControlVisualRole::selection;
+            plate.role = PartRole::selection;
+            plate.bounds = {inks.origin.x + (*band).x, inks.origin.y + (*band).y, (*band).width, (*band).height};
+            plate.states = states;
+            plate.states.insert(AnatomyState::selected);
+            if (!themed) plate.authored_background = style().accent;
+            paint_part(painter, *this, plate);
         }
         if (!band) {
             for (const Piece& piece : row.pieces) {
@@ -691,7 +716,14 @@ Rect RichTextBox::paint_rows(Painter& painter) {
         const std::string hint = field_hint_text();
         if (!hint.empty()) {
             const Point baseline{inks.origin.x, inks.origin.y + rows_[0].y + rows_[0].baseline};
-            painter.draw_text_utf8(baseline, hint, effective_font(font_), inks.muted);
+            PartPaint cue;
+            cue.family = ControlVisualRole::editor;
+            cue.role = PartRole::content;
+            cue.tone = PartTextTone::secondary;
+            cue.states = states;
+            cue.text = hint;
+            cue.font = effective_font(font_);
+            paint_text_part_at(painter, *this, cue, baseline, viewport.width);
         }
     }
     Rect caret{};
@@ -700,7 +732,15 @@ Rect RichTextBox::paint_rows(Painter& painter) {
         const double x = inks.origin.x + boundary_x(row, (*editing_).selection().caret);
         const double y = inks.origin.y + row.y;
         caret = {x - 0.5, y, 1.0, row.height};
-        if (caret_visible_) painter.draw_line({x, y}, {x, y + row.height}, inks.text, 1.0);
+        if (caret_visible_) {
+            PartPaint caret_part;
+            caret_part.family = ControlVisualRole::editor;
+            caret_part.role = PartRole::caret;
+            caret_part.bounds = caret;
+            caret_part.states = states;
+            caret_part.authored_foreground = inks.authored_text;
+            paint_part(painter, *this, caret_part);
+        }
     }
     painter.restore();
     const Rect visible = Rect::intersection(caret, viewport);

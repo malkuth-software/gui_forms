@@ -477,6 +477,12 @@ struct PageDigest final {
 // menu bar's labels are clipped to their part (save, clip, restore) at the
 // same origins; commands-and-menus was recorded again.
 //
+// TextBox and RichTextBox paint through the theme engine: wells, text
+// runs, selection, cue text (secondary tone), caret and focus are parts.
+// Runs are clipped to their parts at the same origins and colours; recorded
+// again: dialogs-and-host-services, docking-workspace, semantic-feedback,
+// text-and-input, timing-and-tooltips, value-editors and values-and-spinners.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -496,17 +502,17 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"images-and-drawing", 0x0c3dd9a2a66cd770ULL},
     {"tabs-and-pages", 0xa209ccb1c28945faULL},
     {"checked-collections", 0xa646ca1ff6c83305ULL},
-    {"timing-and-tooltips", 0xd1f664e82eae6b5cULL},
+    {"timing-and-tooltips", 0xd6e2a21a0f8c1d9aULL},
     {"dates-and-calendar", 0x92edabf015cf7c82ULL},
     {"dialogs-and-host-services", 0x6f0a194e9f5aa642ULL},
     {"css-layout-panels", 0x32b07d1cccdb6388ULL},
     {"retained-layout-panels", 0xd3e1aad8006574ebULL},
     {"dock-and-anchor", 0x619ca1a8c7aec757ULL},
-    {"docking-workspace", 0xbbbafabcde662676ULL},
+    {"docking-workspace", 0x6980fbfeaf949969ULL},
     {"commands-and-menus", 0x69375ae139393f45ULL},
     {"tree-and-object-views", 0x7b1d846b7ec11af2ULL},
     {"choices-and-sections", 0x4cda2d6d06c2cb66ULL},
-    {"value-editors", 0xa7e77537b7d54606ULL},
+    {"value-editors", 0x841cf62297b0c92cULL},
     {"responsive-layouts", 0x2107bca451e6a373ULL},
     {"anchored-popups", 0x4b3b7601384128e1ULL},
     {"live-surfaces", 0xdbfbacca7a7fe467ULL},

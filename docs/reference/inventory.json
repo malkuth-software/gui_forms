@@ -218653,7 +218653,7 @@
       "kind": "class",
       "header": "gui_forms/controls/panel/text_box/text_box.hpp",
       "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-      "line": 97,
+      "line": 98,
       "declaration": "class TextBox final : public Panel",
       "comment": "",
       "access": "public",
@@ -218684,7 +218684,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 99,
+          "line": 100,
           "page": "gui-forms-textbox-textbox-void-stableid-std-string-dec341adda.html"
         },
         {
@@ -218699,7 +218699,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 100,
+          "line": 101,
           "page": "gui-forms-textbox-textbox-void-noexcept-956e3c61f3.html"
         },
         {
@@ -218714,7 +218714,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 102,
+          "line": 103,
           "page": "gui-forms-textbox-text-std-string-view-const-noexcept-7c2825605b.html"
         },
         {
@@ -218735,7 +218735,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 103,
+          "line": 104,
           "page": "gui-forms-textbox-set-text-void-std-string-f6f150dc1d.html"
         },
         {
@@ -218750,7 +218750,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 104,
+          "line": 105,
           "page": "gui-forms-textbox-placeholder-text-std-string-view-const-noexcept-0a6f1e9ae8.html"
         },
         {
@@ -218771,7 +218771,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 110,
+          "line": 111,
           "page": "gui-forms-textbox-set-placeholder-text-void-std-string-cfca9b9350.html"
         },
         {
@@ -218786,7 +218786,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 111,
+          "line": 112,
           "page": "gui-forms-textbox-read-only-bool-const-noexcept-a08f567642.html"
         },
         {
@@ -218807,7 +218807,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 112,
+          "line": 113,
           "page": "gui-forms-textbox-set-read-only-void-bool-8fea714464.html"
         },
         {
@@ -218822,7 +218822,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 116,
+          "line": 117,
           "page": "gui-forms-textbox-multiline-bool-const-noexcept-ddc80c0811.html"
         },
         {
@@ -218843,7 +218843,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 117,
+          "line": 118,
           "page": "gui-forms-textbox-set-multiline-void-bool-f2a5ebac5f.html"
         },
         {
@@ -218864,7 +218864,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 120,
+          "line": 121,
           "page": "gui-forms-textbox-set-auto-scroll-void-bool-28cf6a3186.html"
         },
         {
@@ -218885,7 +218885,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 121,
+          "line": 122,
           "page": "gui-forms-textbox-arrange-void-rect-f29e6ba26b.html"
         },
         {
@@ -218900,7 +218900,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 122,
+          "line": 123,
           "page": "gui-forms-textbox-word-wrap-bool-const-noexcept-61ae1ca701.html"
         },
         {
@@ -218921,7 +218921,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 123,
+          "line": 124,
           "page": "gui-forms-textbox-set-word-wrap-void-bool-114076fbc2.html"
         },
         {
@@ -218936,7 +218936,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 124,
+          "line": 125,
           "page": "gui-forms-textbox-newline-sequence-std-string-view-const-noexcept-812ae5776f.html"
         },
         {
@@ -218957,7 +218957,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 125,
+          "line": 126,
           "page": "gui-forms-textbox-set-newline-sequence-void-std-string-1e09f0400b.html"
         },
         {
@@ -218972,7 +218972,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 126,
+          "line": 127,
           "page": "gui-forms-textbox-accepts-tab-bool-const-noexcept-24623d5c10.html"
         },
         {
@@ -218993,7 +218993,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 127,
+          "line": 128,
           "page": "gui-forms-textbox-set-accepts-tab-void-bool-653b9023d6.html"
         },
         {
@@ -219008,7 +219008,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 136,
+          "line": 137,
           "page": "gui-forms-textbox-accepts-enter-bool-const-noexcept-72c8bdb05f.html"
         },
         {
@@ -219029,7 +219029,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 137,
+          "line": 138,
           "page": "gui-forms-textbox-set-accepts-enter-void-bool-a6f8b95b22.html"
         },
         {
@@ -219044,7 +219044,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 145,
+          "line": 146,
           "page": "gui-forms-textbox-accepts-escape-bool-const-noexcept-d969226b29.html"
         },
         {
@@ -219065,7 +219065,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 146,
+          "line": 147,
           "page": "gui-forms-textbox-set-accepts-escape-void-bool-a2869a4b90.html"
         },
         {
@@ -219080,7 +219080,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 149,
+          "line": 150,
           "page": "gui-forms-textbox-maximum-multiline-bytes-const-std-size-t-adf2e99a58.html"
         },
         {
@@ -219095,7 +219095,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 150,
+          "line": 151,
           "page": "gui-forms-textbox-maximum-multiline-line-bytes-const-std-size-t-455d2aa2ff.html"
         },
         {
@@ -219116,7 +219116,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 154,
+          "line": 155,
           "page": "gui-forms-textbox-validate-multiline-text-multilinevalidation-std-string-view-65a26a6688.html"
         },
         {
@@ -219131,7 +219131,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 155,
+          "line": 156,
           "page": "gui-forms-textbox-visual-line-count-std-size-t-9777480816.html"
         },
         {
@@ -219146,7 +219146,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 156,
+          "line": 157,
           "page": "gui-forms-textbox-scroll-offset-point-const-noexcept-b05e691860.html"
         },
         {
@@ -219161,7 +219161,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 161,
+          "line": 162,
           "page": "gui-forms-textbox-maximum-length-std-size-t-const-noexcept-bd2e67bd6c.html"
         },
         {
@@ -219182,7 +219182,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 165,
+          "line": 166,
           "page": "gui-forms-textbox-set-maximum-length-void-std-size-t-523912d510.html"
         },
         {
@@ -219197,7 +219197,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 166,
+          "line": 167,
           "page": "gui-forms-textbox-password-character-char32-t-const-noexcept-5a0a7cddaf.html"
         },
         {
@@ -219218,7 +219218,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 169,
+          "line": 170,
           "page": "gui-forms-textbox-set-password-character-void-char32-t-a788786515.html"
         },
         {
@@ -219233,7 +219233,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 170,
+          "line": 171,
           "page": "gui-forms-textbox-use-system-password-character-bool-const-noexcept-225d31d05f.html"
         },
         {
@@ -219254,7 +219254,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 173,
+          "line": 174,
           "page": "gui-forms-textbox-set-use-system-password-character-void-bool-9a2c4622a7.html"
         },
         {
@@ -219269,7 +219269,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 174,
+          "line": 175,
           "page": "gui-forms-textbox-password-protected-bool-const-noexcept-677d81b6f7.html"
         },
         {
@@ -219284,7 +219284,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 178,
+          "line": 179,
           "page": "gui-forms-textbox-font-fontspec-const-noexcept-444f751e8b.html"
         },
         {
@@ -219305,7 +219305,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 179,
+          "line": 180,
           "page": "gui-forms-textbox-set-font-void-fontspec-b249db66a9.html"
         },
         {
@@ -219320,7 +219320,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 180,
+          "line": 181,
           "page": "gui-forms-textbox-selection-textselection-const-noexcept-efda06b9c6.html"
         },
         {
@@ -219346,7 +219346,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 181,
+          "line": 182,
           "page": "gui-forms-textbox-select-void-utf8offset-utf8offset-5d2cdbbea9.html"
         },
         {
@@ -219361,7 +219361,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 182,
+          "line": 183,
           "page": "gui-forms-textbox-select-all-void-a7dee6ff3c.html"
         },
         {
@@ -219376,7 +219376,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 183,
+          "line": 184,
           "page": "gui-forms-textbox-selected-text-std-string-const-d61e681817.html"
         },
         {
@@ -219391,7 +219391,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 184,
+          "line": 185,
           "page": "gui-forms-textbox-can-undo-bool-const-noexcept-9afab5529c.html"
         },
         {
@@ -219406,7 +219406,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 185,
+          "line": 186,
           "page": "gui-forms-textbox-can-redo-bool-const-noexcept-6bf5cfa06f.html"
         },
         {
@@ -219421,7 +219421,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 186,
+          "line": 187,
           "page": "gui-forms-textbox-undo-bool-b90be79f2a.html"
         },
         {
@@ -219436,7 +219436,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 187,
+          "line": 188,
           "page": "gui-forms-textbox-redo-bool-e5d1cd7053.html"
         },
         {
@@ -219451,7 +219451,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 190,
+          "line": 191,
           "page": "gui-forms-textbox-clear-undo-history-void-5349d99001.html"
         },
         {
@@ -219472,7 +219472,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 191,
+          "line": 192,
           "page": "gui-forms-textbox-replace-selection-bool-std-string-view-1dd2a94221.html"
         },
         {
@@ -219487,7 +219487,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 192,
+          "line": 193,
           "page": "gui-forms-textbox-delete-selection-bool-09e7db80e4.html"
         },
         {
@@ -219502,7 +219502,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 193,
+          "line": 194,
           "page": "gui-forms-textbox-copy-bool-644d165850.html"
         },
         {
@@ -219517,7 +219517,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 194,
+          "line": 195,
           "page": "gui-forms-textbox-cut-bool-94db1cdf5e.html"
         },
         {
@@ -219532,7 +219532,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 195,
+          "line": 196,
           "page": "gui-forms-textbox-paste-bool-b4b2bcb2c4.html"
         },
         {
@@ -219553,7 +219553,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 207,
+          "line": 208,
           "page": "gui-forms-textbox-set-edit-filter-void-delegate-textedit-noexcept-70d9e09bda.html"
         },
         {
@@ -219568,7 +219568,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 214,
+          "line": 215,
           "page": "gui-forms-textbox-auto-complete-mode-autocompletemode-const-noexcept-3a6c87ea24.html"
         },
         {
@@ -219589,7 +219589,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 217,
+          "line": 218,
           "page": "gui-forms-textbox-set-auto-complete-mode-void-autocompletemode-f3ba5a29c5.html"
         },
         {
@@ -219604,7 +219604,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 218,
+          "line": 219,
           "page": "gui-forms-textbox-auto-complete-source-autocompletesource-const-noexcept-4898bf38a8.html"
         },
         {
@@ -219625,7 +219625,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 223,
+          "line": 224,
           "page": "gui-forms-textbox-set-auto-complete-source-void-autocompletesource-00bbd41b95.html"
         },
         {
@@ -219640,7 +219640,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 227,
+          "line": 228,
           "page": "gui-forms-textbox-auto-complete-custom-source-const-std-shared-ptr-autocompletestringcollection-const-noexcept-42d19be08d.html"
         },
         {
@@ -219661,7 +219661,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 230,
+          "line": 231,
           "page": "gui-forms-textbox-set-auto-complete-custom-source-void-std-shared-ptr-autocompletestringcollection-077420a68b.html"
         },
         {
@@ -219676,7 +219676,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 231,
+          "line": 232,
           "page": "gui-forms-textbox-auto-complete-case-sensitive-bool-const-noexcept-d3cc79bd66.html"
         },
         {
@@ -219697,7 +219697,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 234,
+          "line": 235,
           "page": "gui-forms-textbox-set-auto-complete-case-sensitive-void-bool-8480aed613.html"
         },
         {
@@ -219712,7 +219712,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 238,
+          "line": 239,
           "page": "gui-forms-textbox-auto-complete-source-status-hostservicestatus-d19a9490e6.html"
         },
         {
@@ -219733,7 +219733,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 243,
+          "line": 244,
           "page": "gui-forms-textbox-set-auto-complete-anchor-void-const-control-ptr-28b890da16.html"
         },
         {
@@ -219748,7 +219748,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 247,
+          "line": 248,
           "page": "gui-forms-textbox-auto-complete-open-bool-const-noexcept-30ae361935.html"
         },
         {
@@ -219763,7 +219763,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 248,
+          "line": 249,
           "page": "gui-forms-textbox-auto-complete-suggestions-std-span-const-std-string-const-noexcept-6ae44b8e0f.html"
         },
         {
@@ -219778,7 +219778,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 249,
+          "line": 250,
           "page": "gui-forms-textbox-auto-complete-highlighted-std-optional-std-size-t-const-noexcept-309d6cf4c5.html"
         },
         {
@@ -219793,7 +219793,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 252,
+          "line": 253,
           "page": "gui-forms-textbox-close-auto-complete-void-5aef41a505.html"
         },
         {
@@ -219808,7 +219808,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 254,
+          "line": 255,
           "page": "gui-forms-textbox-text-changed-event-const-std-string-noexcept-4c61c3c5e9.html"
         },
         {
@@ -219823,7 +219823,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 257,
+          "line": 258,
           "page": "gui-forms-textbox-selection-changed-event-const-textselection-noexcept-ab9842ba23.html"
         },
         {
@@ -219838,7 +219838,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 262,
+          "line": 263,
           "page": "gui-forms-textbox-committed-event-const-std-string-noexcept-de89b53c8c.html"
         },
         {
@@ -219853,7 +219853,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 267,
+          "line": 268,
           "page": "gui-forms-textbox-cancelled-event-noexcept-1eef3ab595.html"
         },
         {
@@ -219868,7 +219868,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 270,
+          "line": 271,
           "page": "gui-forms-textbox-auto-complete-open-changed-event-bool-noexcept-a8817c530c.html"
         },
         {
@@ -219883,7 +219883,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 277,
+          "line": 278,
           "page": "gui-forms-textbox-auto-complete-accepted-event-const-std-string-noexcept-bef2c7fe4b.html"
         },
         {
@@ -219909,7 +219909,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 281,
+          "line": 282,
           "page": "gui-forms-textbox-on-paint-void-painter-rect-32b0d47ad3.html"
         },
         {
@@ -219930,7 +219930,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 282,
+          "line": 283,
           "page": "gui-forms-textbox-on-pointer-void-pointerevent-c15a8a8cb4.html"
         },
         {
@@ -219951,7 +219951,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 283,
+          "line": 284,
           "page": "gui-forms-textbox-on-key-void-keyevent-9959e4f13e.html"
         },
         {
@@ -219972,7 +219972,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 284,
+          "line": 285,
           "page": "gui-forms-textbox-on-text-input-void-textinputevent-203f933d07.html"
         },
         {
@@ -219993,7 +219993,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 285,
+          "line": 286,
           "page": "gui-forms-textbox-on-focus-changed-void-bool-6fb5991819.html"
         },
         {
@@ -220008,7 +220008,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 286,
+          "line": 287,
           "page": "gui-forms-textbox-semantic-descriptor-semanticdescriptor-const-fd2312dbee.html"
         },
         {
@@ -220029,7 +220029,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 291,
+          "line": 292,
           "page": "gui-forms-textbox-on-semantic-text-layout-semantictextresult-semantictextlayout-fdb23e0d89.html"
         },
         {
@@ -220050,7 +220050,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 292,
+          "line": 293,
           "page": "gui-forms-textbox-on-set-semantic-text-selection-semantictextresult-semantictextselection-e762127b2f.html"
         },
         {
@@ -220076,7 +220076,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 293,
+          "line": 294,
           "page": "gui-forms-textbox-on-semantic-action-bool-semanticaction-std-string-view-794cf4431d.html"
         },
         {
@@ -220091,7 +220091,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 295,
+          "line": 296,
           "page": "gui-forms-textbox-anatomy-const-controlanatomy-const-noexcept-d9f758e0f3.html"
         },
         {
@@ -220106,7 +220106,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 296,
+          "line": 297,
           "page": "gui-forms-textbox-anatomy-states-anatomystateset-const-0df8bcdfc1.html"
         },
         {
@@ -220121,7 +220121,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 319,
+          "line": 320,
           "page": "gui-forms-textbox-parts-parts-const-5d5ebdeed2.html"
         },
         {
@@ -220136,7 +220136,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 320,
+          "line": 321,
           "page": "gui-forms-textbox-states-states-const-6e5e44623a.html"
         },
         {
@@ -220157,7 +220157,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 323,
+          "line": 324,
           "page": "gui-forms-textbox-append-interactions-void-std-vector-interactiondeclaration-const-1f4ca075da.html"
         },
         {
@@ -220172,7 +220172,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 324,
+          "line": 325,
           "page": "gui-forms-textbox-on-scroll-position-changed-void-7ef9ec4645.html"
         },
         {
@@ -220187,7 +220187,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 325,
+          "line": 326,
           "page": "gui-forms-textbox-on-detached-from-window-void-noexcept-a687dde907.html"
         },
         {
@@ -220208,7 +220208,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 326,
+          "line": 327,
           "page": "gui-forms-textbox-publish-part-geometry-void-std-span-partgeometry-const-cf10a03de6.html"
         }
       ],
@@ -220222,7 +220222,7 @@
       "kind": "enum",
       "header": "gui_forms/controls/panel/text_box/text_box.hpp",
       "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-      "line": 151,
+      "line": 152,
       "declaration": "enum class MultilineValidation : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -220240,7 +220240,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 152,
+          "line": 153,
           "page": "gui-forms-textbox-multilinevalidation-valid-gui-forms-textbox-multilinevalidation-cd54e32887.html"
         },
         {
@@ -220255,7 +220255,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 152,
+          "line": 153,
           "page": "gui-forms-textbox-multilinevalidation-invalid-utf8-gui-forms-textbox-multilinevalidation-61dbfe4416.html"
         },
         {
@@ -220270,7 +220270,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 152,
+          "line": 153,
           "page": "gui-forms-textbox-multilinevalidation-document-too-large-gui-forms-textbox-multilinevalidation-db0b11eba9.html"
         },
         {
@@ -220285,7 +220285,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 152,
+          "line": 153,
           "page": "gui-forms-textbox-multilinevalidation-line-too-long-gui-forms-textbox-multilinevalidation-1ed3283406.html"
         }
       ],
@@ -220299,7 +220299,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/text_box/text_box.hpp",
       "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-      "line": 298,
+      "line": 299,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -220317,7 +220317,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 299,
+          "line": 300,
           "page": "gui-forms-textbox-parts-scrollable-scrollablecontrol-parts-6c710a8531.html"
         },
         {
@@ -220332,7 +220332,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 300,
+          "line": 301,
           "page": "gui-forms-textbox-parts-face-partgeometry-7df725a7f1.html"
         },
         {
@@ -220347,7 +220347,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 301,
+          "line": 302,
           "page": "gui-forms-textbox-parts-edge-partgeometry-9fef2d11ae.html"
         },
         {
@@ -220362,7 +220362,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 302,
+          "line": 303,
           "page": "gui-forms-textbox-parts-well-partgeometry-e0f4cb3919.html"
         },
         {
@@ -220377,7 +220377,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 303,
+          "line": 304,
           "page": "gui-forms-textbox-parts-content-partgeometry-0b34f68306.html"
         },
         {
@@ -220392,7 +220392,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 304,
+          "line": 305,
           "page": "gui-forms-textbox-parts-caret-partgeometry-d7e0b099c5.html"
         },
         {
@@ -220407,7 +220407,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 305,
+          "line": 306,
           "page": "gui-forms-textbox-parts-selection-partgeometry-8baa191aa0.html"
         }
       ],
@@ -220421,7 +220421,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/text_box/text_box.hpp",
       "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-      "line": 307,
+      "line": 308,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -220439,7 +220439,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 308,
+          "line": 309,
           "page": "gui-forms-textbox-states-normal-bool-3349c401a7.html"
         },
         {
@@ -220454,7 +220454,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 309,
+          "line": 310,
           "page": "gui-forms-textbox-states-pressed-bool-34dfb24a63.html"
         },
         {
@@ -220469,7 +220469,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 310,
+          "line": 311,
           "page": "gui-forms-textbox-states-captured-bool-4d75903201.html"
         },
         {
@@ -220484,7 +220484,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 311,
+          "line": 312,
           "page": "gui-forms-textbox-states-enabled-bool-4206f943ac.html"
         },
         {
@@ -220499,7 +220499,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 312,
+          "line": 313,
           "page": "gui-forms-textbox-states-disabled-bool-676393be9d.html"
         },
         {
@@ -220514,7 +220514,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 313,
+          "line": 314,
           "page": "gui-forms-textbox-states-focused-bool-32f06a8b95.html"
         },
         {
@@ -220529,7 +220529,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 314,
+          "line": 315,
           "page": "gui-forms-textbox-states-focus-visible-bool-b7de0cc393.html"
         },
         {
@@ -220544,7 +220544,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 315,
+          "line": 316,
           "page": "gui-forms-textbox-states-read-only-bool-b511c7d8a6.html"
         },
         {
@@ -220559,7 +220559,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 316,
+          "line": 317,
           "page": "gui-forms-textbox-states-invalid-bool-1ccc9f0ab3.html"
         },
         {
@@ -220574,7 +220574,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 317,
+          "line": 318,
           "page": "gui-forms-textbox-states-pending-bool-72910bbcf6.html"
         }
       ],
