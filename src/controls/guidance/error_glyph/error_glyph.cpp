@@ -1,7 +1,11 @@
 #include "error_glyph.hpp"
 
 #include "../guidance_utilities.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+
+#include <algorithm>
 
 namespace gui_forms {
 
@@ -9,6 +13,9 @@ ErrorGlyph::ErrorGlyph(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
     set_focusable(false);
     set_cursor(CursorKind::hand);
+    // The glyph shows an error, so the theme draws it in its invalid
+    // recipe.
+    set_visual_status(ControlVisualStatus::invalid);
 }
 
 void ErrorGlyph::set_error(std::string error) {
@@ -57,24 +64,31 @@ void ErrorGlyph::on_paint(Painter& painter, Rect) {
     if (!phase_visible_) return;
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
+    // An icon the program set is an icon part; otherwise the glyph is the
+    // theme's round validation plate with the error mark over it.
+    PartPaint part;
+    part.family = ControlVisualRole::editor;
+    part.bounds = bounds;
     if (icon_) {
-        painter.draw_image(*icon_, bounds);
+        part.role = PartRole::icon;
+        part.image = *icon_;
+        paint_part(painter, *this, part);
         return;
     }
-    painter.draw_box_shadow({1.5, 1.5, bounds.width - 3.0,
-                             bounds.height - 3.0},
-                            7.0, {0.0, 1.0}, 2.0, 0.0,
-                            Color::rgba(35, 28, 24, 72));
-    painter.fill_rounded_rect({1.0, 1.0, bounds.width - 2.0,
-                               bounds.height - 2.0},
-                              7.0, Color::rgba(205, 45, 39));
-    painter.stroke_rounded_rect({1.5, 1.5, bounds.width - 3.0,
-                                 bounds.height - 3.0},
-                                6.5, Color::rgba(128, 22, 19), 1.0);
-    painter.draw_text_utf8(
-        {5.2, 13.0}, "!",
-        effective_font({FontRole::control, 11.0, 700, false}),
-        Color::rgba(255, 255, 255));
+    part.role = PartRole::validation;
+    part.corner_radius = std::min(bounds.width, bounds.height) * 0.5;
+    paint_part(painter, *this, part);
+    part.role = PartRole::glyph;
+    part.mark = PartMark::error;
+    part.corner_radius.reset();
+    part.bounds = {2.0, 2.0, std::max(0.0, bounds.width - 4.0), std::max(0.0, bounds.height - 4.0)};
+    paint_part(painter, *this, part);
+}
+
+Insets ErrorGlyph::visual_outsets() const noexcept {
+    const Insets result = surface_material_visual_outsets(
+        effective_theme().resolve(ControlVisualRole::editor, visual_context()).material);
+    return result;
 }
 
 bool ErrorGlyph::hit_test_local(Point point) const {

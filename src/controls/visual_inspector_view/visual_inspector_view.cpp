@@ -1,4 +1,5 @@
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
@@ -480,9 +481,31 @@ void VisualInspectorOverlay::on_paint(Painter& painter, Rect) {
     const Outlines outlines = current_outlines();
     painted_ = outlines;
     if (!outlines.shown) return;
-    painter.stroke_rect(outlines.visual, inspector_magenta, 2.0);
-    painter.stroke_rect(outlines.arranged, inspector_blue, 2.0);
-    if (!outlines.clip.empty()) painter.stroke_rect(outlines.clip, inspector_gold, 1.0);
+    // The outlines' colours are the legend's data (owner decision W-7), so
+    // each side is a fill part in a content colour, drawn as given.
+    paint_outline(painter, outlines.visual, inspector_magenta, 2.0);
+    paint_outline(painter, outlines.arranged, inspector_blue, 2.0);
+    if (!outlines.clip.empty()) paint_outline(painter, outlines.clip, inspector_gold, 1.0);
+}
+
+// The four sides of a `width`-unit outline centred on `bounds`' edges, as
+// fill parts in `colour`.
+void VisualInspectorOverlay::paint_outline(Painter& painter, Rect bounds, Color colour, double width) const {
+    const double half = width * 0.5;
+    const std::array<Rect, 4> sides{{
+        {bounds.x - half, bounds.y - half, bounds.width + width, width},
+        {bounds.x - half, bounds.bottom() - half, bounds.width + width, width},
+        {bounds.x - half, bounds.y + half, width, std::max(0.0, bounds.height - width)},
+        {bounds.right() - half, bounds.y + half, width, std::max(0.0, bounds.height - width)},
+    }};
+    PartPaint side;
+    side.family = ControlVisualRole::panel;
+    side.role = PartRole::fill;
+    side.content_color = colour;
+    for (const Rect& edge : sides) {
+        side.bounds = edge;
+        paint_part(painter, *this, side);
+    }
 }
 
 bool VisualInspectorOverlay::hit_test_local(Point) const { return false; }

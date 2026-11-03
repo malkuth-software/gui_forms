@@ -195,8 +195,9 @@ bool Panel::paint_depends_on_size() const noexcept {
     return !invariant;
 }
 
+// An authored background keeps the material's border and shadows (T4-1),
+// so the outsets are the material's either way.
 Insets Panel::visual_outsets() const noexcept {
-    if (face_colour() || style_override_) return {};
     return surface_material_visual_outsets(
         effective_theme().resolve(visual_role_, visual_context()).material);
 }

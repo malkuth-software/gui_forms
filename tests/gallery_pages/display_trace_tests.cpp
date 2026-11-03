@@ -501,6 +501,12 @@ struct PageDigest final {
 // line box (save, clip, restore) at the same origin and colour. Every page
 // was recorded again.
 //
+// ErrorGlyph is the theme's round validation plate (the invalid recipe)
+// with the error mark; ColorValueEditor's swatch is a framing well with
+// content fills (the checkerboard and the value); FlagsValueEditor's
+// drop-down is the combo box's parts. Recorded again: timing-and-tooltips
+// and value-editors.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
