@@ -2,11 +2,15 @@
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cstdint>
+#include <span>
 #include <stdexcept>
+#include <string>
+#include <string_view>
 
 namespace gui_forms::collection_detail {
 
@@ -61,12 +65,17 @@ inline Rect fit_image_rect(Rect bounds, Size source) noexcept {
             bounds.y + (bounds.height - height) * 0.5, width, height};
 }
 
-inline void draw_emphasized_text(Painter& painter, Point origin,
-                                 std::string_view text,
-                                 std::span<const std::string> terms,
-                                 FontSpec font, Color foreground, Color mark) {
-    if (terms.empty() || text.empty()) {
-        painter.draw_text_utf8(origin, text, font, foreground);
+// Draws `text` at `origin` (on its baseline) as `run`'s text parts, each
+// match of a term (ASCII case-folded, the longest at a position) on a
+// selection part behind it (owner decision, 2026-11-02). `run` supplies the
+// family, role, states, tone and font; its text and bounds are replaced.
+inline void paint_emphasized_text(Painter& painter, const Control& control, Point origin,
+                                  std::string_view text, std::span<const std::string> terms,
+                                  PartPaint run) {
+    if (text.empty()) return;
+    if (terms.empty()) {
+        run.text = text;
+        paint_text_part_at(painter, control, run, origin, 0.0);
         return;
     }
     const std::string folded = fold_ascii(text);
@@ -85,21 +94,31 @@ inline void draw_emphasized_text(Painter& painter, Point origin,
             }
         }
         if (next == std::string::npos || next >= text.size()) {
-            const std::string_view tail = text.substr(cursor);
-            painter.draw_text_utf8({x, origin.y}, tail, font, foreground);
+            run.text = text.substr(cursor);
+            run.measured_text.reset();
+            paint_text_part_at(painter, control, run, {x, origin.y}, 0.0);
             break;
         }
         if (next > cursor) {
-            const std::string_view prefix = text.substr(cursor, next - cursor);
-            painter.draw_text_utf8({x, origin.y}, prefix, font, foreground);
-            x += painter.measure_text_utf8(prefix, font).width;
+            run.text = text.substr(cursor, next - cursor);
+            const Size prefix = painter.measure_text_utf8(run.text, run.font);
+            run.measured_text = prefix;
+            paint_text_part_at(painter, control, run, {x, origin.y}, prefix.width);
+            x += prefix.width;
         }
-        const std::string_view emphasized = text.substr(next, length);
-        const double width = painter.measure_text_utf8(emphasized, font).width;
-        painter.fill_rect({x - 1.0, origin.y - font.size,
-                           width + 2.0, font.size + 3.0}, mark);
-        painter.draw_text_utf8({x, origin.y}, emphasized, font, foreground);
-        x += width;
+        run.text = text.substr(next, length);
+        const Size emphasized = painter.measure_text_utf8(run.text, run.font);
+        PartPaint highlight;
+        highlight.family = ControlVisualRole::selection;
+        highlight.role = PartRole::selection;
+        highlight.bounds = {x - 1.0, origin.y - run.font.size, emphasized.width + 2.0,
+                            run.font.size + 3.0};
+        highlight.states = run.states;
+        highlight.states.insert(AnatomyState::selected);
+        paint_part(painter, control, highlight);
+        run.measured_text = emphasized;
+        paint_text_part_at(painter, control, run, {x, origin.y}, emphasized.width);
+        x += emphasized.width;
         cursor = next + length;
     }
 }

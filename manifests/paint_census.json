@@ -34,8 +34,8 @@
   },
   "totals": {
     "stock": {
-      "files": 28,
-      "calls": 201
+      "files": 25,
+      "calls": 187
     },
     "exempt": {
       "files": 6,
@@ -108,17 +108,9 @@
       "category": "stock",
       "calls": 2
     },
-    "panel/collection_control_utilities.hpp": {
-      "category": "stock",
-      "calls": 5
-    },
     "panel/color_value_editor/color_value_editor.cpp": {
       "category": "stock",
       "calls": 6
-    },
-    "panel/correspondence_view/correspondence_view.cpp": {
-      "category": "stock",
-      "calls": 7
     },
     "panel/cut_off_text/cut_off_text_reveal.cpp": {
       "category": "stock",
@@ -143,10 +135,6 @@
     "panel/material_panel/material_panel.cpp": {
       "category": "stock",
       "calls": 1
-    },
-    "panel/object_view/object_view.cpp": {
-      "category": "stock",
-      "calls": 2
     },
     "panel/panel.cpp": {
       "category": "stock",

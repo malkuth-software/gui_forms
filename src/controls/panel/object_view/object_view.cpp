@@ -996,9 +996,13 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 const std::string display_secondary = elide_text_end(
                     painter, item.secondary_text, secondary,
                     std::max(0.0, cell.width - 10.0));
-                painter.draw_text_utf8(
-                    {cell.x + 5.0, cell.y + cell.height - 5.0},
-                    display_secondary, secondary, style().disabled_text);
+                PartPaint secondary_text = text;
+                secondary_text.tone = PartTextTone::secondary;
+                secondary_text.text = display_secondary;
+                secondary_text.font = secondary;
+                paint_text_part_at(painter, *this, secondary_text,
+                                   {cell.x + 5.0, cell.y + cell.height - 5.0},
+                                   std::max(0.0, cell.width - 10.0));
             }
         } else {
             const Rect glyph_bounds{cell.x + 6.0, cell.y + 3.0, 24.0,
@@ -1031,9 +1035,12 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 const std::string display_secondary = elide_text_end(
                     painter, item.secondary_text, font,
                     std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
-                painter.draw_text_utf8(
-                    {secondary_x, cell.y + cell.height * .5 + 4.0},
-                    display_secondary, font, style().disabled_text);
+                PartPaint secondary_text = text;
+                secondary_text.tone = PartTextTone::secondary;
+                secondary_text.text = display_secondary;
+                paint_text_part_at(painter, *this, secondary_text,
+                                   {secondary_x, cell.y + cell.height * .5 + 4.0},
+                                   std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
             }
             PartPaint rule;
             rule.family = ControlVisualRole::editor;

@@ -78,10 +78,17 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
 // the order they were admitted in.
-inline constexpr std::array<std::string_view, 5> part_value_names{
-    {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color"}};
+inline constexpr std::array<std::string_view, 6> part_value_names{
+    {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color",
+     "text_tone"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
+
+// A text part's tone (design language §8.5; owner decision 2026-11-02): an
+// ordinary text is drawn in the recipe's text colour, a secondary one (an
+// item's secondary line, a shortcut, a column of metadata, a hint) in its
+// muted ink. Disabled text of either tone is the theme's disabled text.
+enum class PartTextTone : std::uint8_t { ordinary, secondary };
 
 // The region the dock_shape mark fills (design language §8.5; owner
 // decision DK-35, question J2): a drop on that side of a pane splits it and
@@ -111,6 +118,9 @@ struct PartPaint final {
     // width; `alignment` then runs from the end reading starts at (the
     // bottom for bottom_to_top, the top for top_to_bottom).
     TextOrientation orientation{TextOrientation::horizontal};
+    // The text's tone: ordinary text in the recipe's text colour, secondary
+    // text in its muted ink. Read only with `text`.
+    PartTextTone tone{PartTextTone::ordinary};
     // The region the dock_shape mark fills.
     DockShapeRegion dock_region{DockShapeRegion::tab_into};
     ImageId image{};

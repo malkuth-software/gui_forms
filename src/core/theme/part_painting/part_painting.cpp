@@ -606,7 +606,10 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::label:
     case PartRole::content:
     case PartRole::caret:
-        if (!important_text) recipe.text = ink;
+        if (!important_text) {
+            recipe.text = ink;
+            recipe.muted_text = ink;
+        }
         return;
     case PartRole::indicator:
     case PartRole::glyph:
@@ -820,7 +823,10 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::content:
         // The recipe is resolved in the disabled state, so its text is the
         // theme's own disabled text (owner ruling, 2026-11-02).
-        paint_text(painter, part, recipe.text);
+        // A secondary text is drawn in the muted ink; disabled text of either
+        // tone is the disabled recipe's text.
+        paint_text(painter, part,
+                   part.tone == PartTextTone::secondary && !disabled ? recipe.muted_text : recipe.text);
         return;
     case PartRole::icon:
         if (part.image.value != 0U) painter.draw_image(part.image, part.bounds, disabled ? 0.45 : 1.0);

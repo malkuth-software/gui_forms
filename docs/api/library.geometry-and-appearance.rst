@@ -3358,6 +3358,10 @@ Types
 
       The text's reading direction (§8.5; owner decision DK-35, J4). A turned label lies along the part's height, its line centred across the width; ``alignment`` then runs from the end reading starts at (the bottom for bottom_to_top, the top for top_to_bottom). Default: ``{TextOrientation::horizontal}``.
 
+   .. cpp:member:: PartTextTone tone
+
+      The text's tone: ordinary text in the recipe's text colour, secondary text in its muted ink. Read only with ``text``. Default: ``{PartTextTone::ordinary}``.
+
    .. cpp:member:: DockShapeRegion dock_region
 
       The region the dock_shape mark fills. Default: ``{DockShapeRegion::tab_into}``.
@@ -5902,6 +5906,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: PartTextTone
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   .. cpp:enumerator:: ordinary
+
+   .. cpp:enumerator:: secondary
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PatternGeneration
 
    ``#include <gui_forms/engine/part_table/engine_part_table.hpp>``
@@ -7093,7 +7107,7 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 5> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 6> part_value_names
 
    The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
 
