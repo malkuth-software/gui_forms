@@ -6,7 +6,6 @@
 #include <memory>
 #include <string>
 #include <string_view>
-#include <variant>
 
 namespace gui_forms::detail {
 
@@ -18,35 +17,24 @@ namespace gui_forms::detail {
 // not apply. It ignores the pointer, so the row under it keeps the hover
 // and the clicks.
 
-// The reveal painted as the owner's themed parts: a face of `family` in
-// `states`, then the text as its content part (ListView rows).
-struct ThemedRevealPaint final {
+// The reveal painted as the owner's parts: a face of `family` in `states`,
+// then the text as its content part.
+struct RevealPaint final {
     ControlVisualRole family{ControlVisualRole::selection};
     AnatomyStateSet states{};
 };
 
-// The reveal painted in plain colours (TreeView rows, which paint so).
-struct PlainRevealPaint final {
-    Color face{};
-    Color border{};
-    Color text{};
-};
-
-using RevealPaint = std::variant<ThemedRevealPaint, PlainRevealPaint>;
-
 // One cut-off text, in window coordinates. `key` names the item (and
 // column) it belongs to: a reveal with the key of the one showing is the
 // same reveal. `row` is the item's face, whose top and height the reveal
-// takes; `cell` is where the owner drew the text, cut off; `baseline` is
-// the text's baseline from the row's top for plain paint (themed paint
-// places the text as its content part does).
+// takes; `cell` is where the owner drew the text, cut off; the text is
+// placed in it as a content part places its text.
 struct CutOffText final {
     std::string key{};
     Rect row{};
     Rect cell{};
     std::string text{};
     FontSpec font{};
-    double baseline{};
     RevealPaint paint{};
 };
 

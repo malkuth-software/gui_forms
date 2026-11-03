@@ -236,17 +236,19 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
     }
     const FontSpec font = effective_font(font_);
     const bool selected = item.stable_id == selected_id_;
-    detail::PlainRevealPaint paint{};
-    paint.face = selected ? (focused_ ? style().accent : style().accent_light) : style().face_light;
-    paint.border = style().dark_border;
-    paint.text = !item.enabled ? style().disabled_text : selected && focused_ ? style().highlight : style().text;
+    // The reveal shows under the pointer, so its row is hot, as the row's
+    // own plate is.
+    detail::RevealPaint paint{};
+    paint.family = ControlVisualRole::selection;
+    paint.states.insert(AnatomyState::hot);
+    if (selected) paint.states.insert(AnatomyState::selected);
+    if (!item.enabled) paint.states.insert(AnatomyState::disabled);
     detail::CutOffText revealed{};
     revealed.key = item.stable_id;
     revealed.row = {bounds.x + left - 2.0, bounds.y + y, clip_right - left + 2.0, row_height};
     revealed.cell = {bounds.x + left, bounds.y + y, clip_right - left, row_height};
     revealed.text = item.text;
     revealed.font = font;
-    revealed.baseline = std::max(font.size, row_height * 0.5 + 4.0);
     revealed.paint = paint;
     static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
 }

@@ -34,38 +34,28 @@ public:
 // cell's position within it. `text_bounds_` is in the face's coordinates.
 class CutOffTextFace final : public Control {
 public:
-    CutOffTextFace(StableId stable_id, std::string text, FontSpec font, Rect text_bounds, double baseline,
-                   RevealPaint paint)
+    CutOffTextFace(StableId stable_id, std::string text, FontSpec font, Rect text_bounds, RevealPaint paint)
         : Control(std::move(stable_id)), text_(std::move(text)), font_(font), text_bounds_(text_bounds),
-          baseline_(baseline), paint_(std::move(paint)) {
+          paint_(paint) {
         set_paint_plane(PaintPlane::overlay);
         set_focusable(false);
     }
 
     void on_paint(Painter& painter, Rect) override {
         const Rect arranged = arranged_bounds();
-        const Rect bounds{0.0, 0.0, arranged.width, arranged.height};
-        if (const ThemedRevealPaint* themed = std::get_if<ThemedRevealPaint>(&paint_)) {
-            PartPaint face;
-            face.role = PartRole::face;
-            face.family = (*themed).family;
-            face.states = (*themed).states;
-            face.bounds = bounds;
-            paint_part(painter, *this, face);
-            PartPaint content = face;
-            content.role = PartRole::content;
-            content.bounds = text_bounds_;
-            content.text = text_;
-            content.font = font_;
-            content.alignment = PartTextAlignment::start;
-            paint_part(painter, *this, content);
-            return;
-        }
-        const PlainRevealPaint& plain = std::get<PlainRevealPaint>(paint_);
-        painter.fill_rect(bounds, plain.face);
-        const Rect edge{0.5, 0.5, std::max(0.0, bounds.width - 1.0), std::max(0.0, bounds.height - 1.0)};
-        painter.stroke_rect(edge, plain.border, 1.0);
-        painter.draw_text_utf8({text_bounds_.x, baseline_}, text_, font_, plain.text);
+        PartPaint face;
+        face.role = PartRole::face;
+        face.family = paint_.family;
+        face.states = paint_.states;
+        face.bounds = {0.0, 0.0, arranged.width, arranged.height};
+        paint_part(painter, *this, face);
+        PartPaint content = face;
+        content.role = PartRole::content;
+        content.bounds = text_bounds_;
+        content.text = text_;
+        content.font = font_;
+        content.alignment = PartTextAlignment::start;
+        paint_part(painter, *this, content);
     }
 
     [[nodiscard]] bool hit_test_local(Point) const override { return false; }
@@ -82,7 +72,6 @@ private:
     std::string text_;
     FontSpec font_;
     Rect text_bounds_;
-    double baseline_;
     RevealPaint paint_;
 };
 
@@ -115,7 +104,7 @@ bool CutOffTextRevealer::reveal(const std::shared_ptr<Control>& owner, CutOffTex
     std::shared_ptr<Control> layer = make_control<CutOffTextLayer>(StableId(prefix + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     std::shared_ptr<CutOffTextFace> face = make_control<CutOffTextFace>(
-        StableId(prefix + ".face"), std::move(text.text), text.font, text_bounds, text.baseline, std::move(text.paint));
+        StableId(prefix + ".face"), std::move(text.text), text.font, text_bounds, text.paint);
     (*face).set_requested_bounds(face_bounds);
     (*layer).add_child(face);
     PopupToken token = (*host).open_popup(owner, layer);

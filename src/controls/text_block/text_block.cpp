@@ -1,4 +1,5 @@
 #include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "line_wrapping.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
@@ -418,14 +419,21 @@ void TextBlock::on_paint(Painter& painter, Rect) {
     static_cast<void>(content_size(content_width, workspace_));
     const FontSpec font = effective_font((*this).font());
     const LineBoxMetrics metrics = line_metrics(font);
-    const Color color = foreground();
+    // Each line is a label part placed by its baseline, in the theme's text
+    // (disabled text while disabled) or the authored foreground (T4-1).
     const std::string_view text(workspace_.collapsed);
+    PartPaint part;
+    part.family = ControlVisualRole::panel;
+    part.role = PartRole::label;
+    part.font = font;
+    part.authored_foreground = foreground_override_;
     for (std::size_t index = 0U; index < workspace_.lines.size(); ++index) {
         const TextLine& line = workspace_.lines[index];
         const double top = inset.top + static_cast<double>(index) * metrics.height;
         const Point origin{client.x + inset.left + line_x(line, content_width),
                            snap_text_baseline(client.y + top + metrics.baseline)};
-        painter.draw_text_utf8(origin, text.substr(line.begin_byte, line.end_byte - line.begin_byte), font, color);
+        part.text = text.substr(line.begin_byte, line.end_byte - line.begin_byte);
+        paint_text_part_at(painter, *this, part, origin, line.width);
     }
 }
 

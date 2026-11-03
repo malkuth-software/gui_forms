@@ -496,6 +496,11 @@ struct PageDigest final {
 // pair, the check box and the value's text (clipped to its line box) are
 // parts; dates-and-calendar was recorded again.
 //
+// Label and TextBlock lines are label parts placed by their baselines, in
+// the theme's text or the authored foreground; each line is clipped to its
+// line box (save, clip, restore) at the same origin and colour. Every page
+// was recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.

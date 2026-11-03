@@ -1,4 +1,5 @@
 #include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../basic/basic_control_rendering.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
@@ -569,12 +570,19 @@ Label::TextLayout Label::layout_label_text(const std::string_view text,
     return layout;
 }
 
+// Each line is a label part placed by its baseline, in the theme's text
+// (disabled text while disabled) or the authored foreground (T4-1).
 void Label::paint_label_text(Painter& painter, const std::string_view text) const {
     const FontSpec font = effective_font((*this).font());
     const TextLayout layout = layout_label_text(text, &painter);
-    const Color color = foreground();
+    PartPaint line;
+    line.family = ControlVisualRole::panel;
+    line.role = PartRole::label;
+    line.font = font;
+    line.authored_foreground = foreground_override_;
     for (std::size_t index = 0; index < layout.lines.size(); ++index) {
-        painter.draw_text_utf8(layout.origins[index], layout.lines[index], font, color);
+        line.text = layout.lines[index];
+        paint_text_part_at(painter, *this, line, layout.origins[index], layout.widths[index]);
     }
 }
 
