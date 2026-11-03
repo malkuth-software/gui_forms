@@ -851,6 +851,17 @@ void ObjectView::arrange(const Rect final_bounds) {
 // for the folder's tab and the page's band and marks: the colours are the
 // item kind's own, as a swatch's are. A disabled item's well is disabled
 // and its colour the face's.
+// The keyboard focus cue around an item, a details row or a header cell:
+// the theme's focus ring.
+void ObjectView::paint_focus_ring_part(Painter& painter, Rect bounds) const {
+    PartPaint ring;
+    ring.family = ControlVisualRole::editor;
+    ring.role = PartRole::focus;
+    ring.bounds = bounds;
+    ring.states.insert(AnatomyState::focus_visible);
+    paint_part(painter, *this, ring);
+}
+
 void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
                              bool item_enabled) const {
     const Color base = !item_enabled ? style().face
@@ -1050,9 +1061,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
             rule.states = states;
             paint_part(painter, *this, rule);
         }
-        if (active && window() && (*window()).focus_cue_visible()) {
-            paint_focus(painter, cell, style().text);
-        }
+        if (active && window() && (*window()).focus_cue_visible()) paint_focus_ring_part(painter, cell);
         painter.restore();
     }
     const std::optional<std::size_t> inspection = hovered_truncated
@@ -1799,7 +1808,7 @@ void ObjectView::paint_details(Painter& painter) {
             arrow.states = states;
             paint_part(painter, *this, arrow);
         }
-        if (focused_ && header_focused_ && focused_column_ == index) paint_focus(painter, cell, style().text);
+        if (focused_ && header_focused_ && focused_column_ == index) paint_focus_ring_part(painter, cell);
         painter.restore();
     }
     PartPaint header_rule;
@@ -1867,7 +1876,7 @@ void ObjectView::paint_details(Painter& painter) {
             painter.restore();
         }
         if (focused_ && !header_focused_ && item.stable_id == focused_id_ && window() && (*window()).focus_cue_visible()) {
-            paint_focus(painter, row, style().text);
+            paint_focus_ring_part(painter, row);
         }
     }
     painter.restore();

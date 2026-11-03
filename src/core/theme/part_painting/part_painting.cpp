@@ -113,15 +113,15 @@ void paint_rule(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe
     }
 }
 
-// The preselect (default) ring, inside the part's bounds.
-void paint_preselect(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe) {
+// The preselect (default) ring, inside the part's bounds, following a
+// surface whose corners have `radius`.
+void paint_preselect(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe, double radius) {
     const double width = recipe.default_width;
     if (width <= 0.0 || bounds.width <= width * 2.0 || bounds.height <= width * 2.0) return;
     const double inset = width * 0.5;
     const Rect ring{bounds.x + inset, bounds.y + inset,
                     bounds.width - inset * 2.0, bounds.height - inset * 2.0};
-    painter.stroke_rounded_rect(ring, std::max(0.0, recipe.material.corner_radius - inset),
-                                recipe.default_ring, width);
+    painter.stroke_rounded_rect(ring, std::max(0.0, radius - inset), recipe.default_ring, width);
 }
 
 // One side of a dotted ring: `count` square dots `width` across, the first
@@ -161,19 +161,20 @@ void paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) 
 }
 
 // The focus ring: the recipe's authored outline outside the bounds, or the
-// house ring inset inside them; dotted when the recipe says so.
-void paint_focus_ring(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe) {
+// house ring inset inside them; dotted when the recipe says so. It follows a
+// surface whose corners have `corner_radius`.
+void paint_focus_ring(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe, double corner_radius) {
     if (recipe.focus_width <= 0.0 || bounds.width <= 8.0 || bounds.height <= 8.0) return;
     Rect ring{};
     double radius = 0.0;
     if (recipe.authored_focus_outline) {
         const double outset = recipe.focus_offset + recipe.focus_width * 0.5;
         ring = Rect{bounds.x - outset, bounds.y - outset, bounds.width + outset * 2.0, bounds.height + outset * 2.0};
-        radius = std::max(0.0, recipe.material.corner_radius + outset);
+        radius = std::max(0.0, corner_radius + outset);
     } else {
         const double inset = std::max(3.0, recipe.default_width + 1.0);
         ring = Rect{bounds.x + inset, bounds.y + inset, bounds.width - inset * 2.0, bounds.height - inset * 2.0};
-        radius = std::max(0.0, recipe.material.corner_radius - inset);
+        radius = std::max(0.0, corner_radius - inset);
     }
     if (ring.empty()) return;
     if (recipe.dotted_focus) {
@@ -843,10 +844,10 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         paint_mark(painter, part, recipe);
         return;
     case PartRole::focus:
-        if (context.focused) paint_focus_ring(painter, part.bounds, recipe);
+        if (context.focused) paint_focus_ring(painter, part.bounds, recipe, part_corner_radius(part, recipe));
         return;
     case PartRole::preselect:
-        if (context.defaulted) paint_preselect(painter, part.bounds, recipe);
+        if (context.defaulted) paint_preselect(painter, part.bounds, recipe, part_corner_radius(part, recipe));
         return;
     }
     // A role outside the enumeration paints nothing.

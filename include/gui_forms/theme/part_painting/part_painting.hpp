@@ -124,6 +124,8 @@ struct PartPaint final {
     // The region the dock_shape mark fills.
     DockShapeRegion dock_region{DockShapeRegion::tab_into};
     ImageId image{};
+    // A focus or preselect ring follows the same shape: a connected
+    // segment's square corners, for one.
     std::optional<double> corner_radius{};
     // The part's position in the theme's accent ramp (§8.5), or none. A
     // surface part with an accent is tinted from the ramp over its

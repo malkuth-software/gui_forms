@@ -34,8 +34,8 @@
   },
   "totals": {
     "stock": {
-      "files": 11,
-      "calls": 65
+      "files": 10,
+      "calls": 49
     },
     "exempt": {
       "files": 6,
@@ -51,10 +51,6 @@
     }
   },
   "files": {
-    "basic/basic_control_rendering.cpp": {
-      "category": "stock",
-      "calls": 16
-    },
     "connected_controls/connected_controls.cpp": {
       "category": "stock",
       "calls": 3

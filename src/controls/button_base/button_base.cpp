@@ -983,12 +983,19 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     } else {
         paint_connected_surface_material(
             painter, visual_bounds, recipe.material, connection_topology_);
-        ControlVisualRecipe cue_recipe = recipe;
         // Connection shapes the physical stock only. Focus/default ownership is
-        // still per control, so use a square per-segment cue instead of implying
-        // that the whole joined instrument owns one focus identity.
-        if (connection_topology_) cue_recipe.material.corner_radius = 0.0;
-        paint_theme_cues(painter, visual_bounds, cue_recipe, context);
+        // still per control, so a joined segment's cues are square rather
+        // than implying that the whole joined instrument owns one focus
+        // identity. The default ring first, then the focus ring over it.
+        PartPaint cue;
+        cue.family = role;
+        cue.bounds = visual_bounds;
+        cue.states = states;
+        if (connection_topology_) cue.corner_radius = 0.0;
+        cue.role = PartRole::preselect;
+        paint_part(painter, *this, cue);
+        cue.role = PartRole::focus;
+        paint_part(painter, *this, cue);
     }
     const Point offset = context.surface == ControlSurfaceState::pressed
         ? recipe.pressed_content_offset : Point{};
