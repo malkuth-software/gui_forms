@@ -127,11 +127,32 @@ VisualInspectionOptions view_options() {
     return options;
 }
 
+// The semantic value shows no resolved text, so it is not resolved (that
+// shapes every text operation in the window).
+VisualInspectionOptions semantic_options() {
+    VisualInspectionOptions options = view_options();
+    options.include_resolved_text = false;
+    return options;
+}
+
 VisualInspectionOptions overlay_options() {
     VisualInspectionOptions options;
     options.maximum_controls = 16'384U;
     options.include_display_operations = false;
     return options;
+}
+
+// The semantic value: the target's identity, state, arranged bounds,
+// effective clip and operation counts, from one inspection of the window.
+std::string inspected_value(Window& owner, const std::string& target_stable_id) {
+    const VisualInspectionSnapshot snapshot =
+        owner.visual_inspection_snapshot(semantic_options());
+    const VisualControlInspection* target = snapshot.find(target_stable_id);
+    if (target == nullptr) return "Target not found: " + target_stable_id;
+    return (*target).stable_id + "; " + state_text(*target) + "; arranged " +
+           rect_text((*target).layout.arranged_bounds) + "; effective clip " +
+           rect_text((*target).layout.effective_clip) + "; " +
+           operation_summary(*target);
 }
 
 // What the view draws below its title: the target's rows, or one message
@@ -236,10 +257,14 @@ void VisualInspectorView::set_target_stable_id(std::string stable_id) {
     require_mutable();
     if (target_stable_id_ == stable_id) return;
     target_stable_id_ = std::move(stable_id);
+    semantic_value_.reset();
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
 }
 
-void VisualInspectorView::refresh() { invalidate(Dirty::paint | Dirty::semantics); }
+void VisualInspectorView::refresh() {
+    semantic_value_.reset();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
 
 bool VisualInspectorView::refresh_if_changed() {
     // An occluded window paints nothing; the first poll after it shows again
@@ -303,17 +328,39 @@ void VisualInspectorView::on_paint(Painter& painter, Rect) {
         effective_font({FontRole::content, 9.0, 400, false}), inspector_muted);
 }
 
+VisualInspectorView::SemanticValueKey VisualInspectorView::semantic_value_key(const Window& owner) {
+    SemanticValueKey key;
+    key.content_revision = owner.paint_lease_snapshot().content_revision;
+    key.display_generation = owner.metrics_snapshot().display_generation;
+    const Control::Ptr focused = owner.focused_control();
+    if (focused) key.focused = (*focused).runtime_id();
+    const Control::Ptr pressed = owner.pressed_control();
+    if (pressed) key.pressed = (*pressed).runtime_id();
+    const Control::Ptr captured = owner.captured_control();
+    if (captured) key.captured = (*captured).runtime_id();
+    key.window_active = owner.active();
+    return key;
+}
+
+bool VisualInspectorView::same_key(const SemanticValueKey& left,
+                                   const SemanticValueKey& right) noexcept {
+    return left.content_revision == right.content_revision &&
+           left.display_generation == right.display_generation &&
+           left.focused == right.focused && left.pressed == right.pressed &&
+           left.captured == right.captured && left.window_active == right.window_active;
+}
+
 std::string VisualInspectorView::accessible_value() const {
     Window* owner = window();
     if (owner == nullptr) return "Detached";
-    const VisualInspectionSnapshot snapshot =
-        (*owner).visual_inspection_snapshot(view_options());
-    const VisualControlInspection* target = snapshot.find(target_stable_id_);
-    if (target == nullptr) return "Target not found: " + target_stable_id_;
-    return (*target).stable_id + "; " + state_text(*target) + "; arranged " +
-           rect_text((*target).layout.arranged_bounds) + "; effective clip " +
-           rect_text((*target).layout.effective_clip) + "; " +
-           operation_summary(*target);
+    if (semantic_value_ && same_key((*semantic_value_).key, semantic_value_key(*owner))) {
+        return (*semantic_value_).value;
+    }
+    // The key is read after the inspection, which may lay the window out
+    // first and so move its revision.
+    std::string value = inspected_value(*owner, target_stable_id_);
+    semantic_value_ = SemanticValue{semantic_value_key(*owner), value};
+    return value;
 }
 
 SemanticDescriptor VisualInspectorView::semantic_descriptor() const {
