@@ -25,7 +25,7 @@ int main() {
         image.height = static_cast<int>(raster.pixel_height());
         image.row_bytes = raster.row_bytes();
         image.bytes = static_cast<const std::uint8_t*>(raster.pixels());
-        if (image.bytes == nullptr || !edge_snapping::check_scene(image, scale, 0)) return 1;
+        if (image.bytes == nullptr || !edge_snapping::check_scene(image, scale)) return 1;
     }
     std::cout << "gui_forms_skia_edge_snapping_tests: all tests passed\n";
     return 0;

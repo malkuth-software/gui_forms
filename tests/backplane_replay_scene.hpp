@@ -34,9 +34,11 @@ inline constexpr std::array<double, 3> scales{1.0, 1.5, 2.0};
 inline constexpr Size window_size{240.0, 100.0};
 inline constexpr Rect glass_rect{10.0, 10.0, 220.0, 80.0};
 
-// Expected FNV-1a hashes of the glass raster's rows, [scale]; recorded
-// through the Windows DIB painter (Windows x64, 2026-10-26) and checked
-// against the Skia raster on macOS and Linux.
+// Expected FNV-1a hashes of the glass raster's rows, [scale], from
+// SkiaRaster, the one CPU painter. First recorded through the Windows DIB
+// painter (Windows x64, 2026-10-26) and checked against SkiaRaster on macOS
+// and Linux; re-recorded through SkiaRaster on Windows x64 (clang 22.1.8),
+// 2026-11-02 (SK5), unchanged.
 inline constexpr std::array<std::uint64_t, 3> expected{
     0x14e91c188a71dda6ULL,
     0xe31497238996ea16ULL,
