@@ -73,6 +73,17 @@ constexpr wchar_t tooltip_class_name[] = L"GUIForms.ToolTip.v1";
 constexpr UINT_PTR scheduler_timer = 1;
 constexpr UINT_PTR modal_live_surface_timer = 2;
 constexpr UINT live_surface_period_milliseconds = 16;
+// The live frame clock's cadence when the display's composition timing is
+// unavailable: 60 Hz, in milliseconds per thousand frames.
+constexpr LONGLONG live_clock_fallback_millihertz = 60'000;
+#if !defined(CREATE_WAITABLE_TIMER_HIGH_RESOLUTION)
+#define CREATE_WAITABLE_TIMER_HIGH_RESOLUTION 0x00000002
+#endif
+
+// DwmGetCompositionTimingInfo, loaded at run time like the compositor's DWM
+// functions, so that the host starts where dwmapi is absent; the module stays
+// loaded for the life of the process.
+using DwmCompositionTimingFunction = HRESULT(WINAPI*)(HWND, DWM_TIMING_INFO*);
 constexpr UINT managed_dispatch_message = WM_APP + 0x41U;
 constexpr UINT render_dispatch_message = WM_APP + 0x42U;
 constexpr std::size_t maximum_automation_command = 4096;
@@ -1174,10 +1185,23 @@ public:
         presentation.contract_version = paint_contract_version;
         presentation.extensions.partial_present = true;
         (*model_).declare_presentation(presentation);
+        // A high-resolution timer keeps the live clock's deadlines to well
+        // under a millisecond; an ordinary one rounds them to the system
+        // timer resolution (15.6 ms by default), which beats against the
+        // display's refresh.
         live_frame_clock_ = CreateWaitableTimerExW(
-            nullptr, nullptr, 0, TIMER_ALL_ACCESS);
+            nullptr, nullptr, CREATE_WAITABLE_TIMER_HIGH_RESOLUTION, TIMER_ALL_ACCESS);
         if (live_frame_clock_ == nullptr) {
-            live_frame_clock_ = CreateWaitableTimerW(nullptr, FALSE, nullptr);
+            live_frame_clock_ = CreateWaitableTimerExW(
+                nullptr, nullptr, 0, TIMER_ALL_ACCESS);
+        }
+        LARGE_INTEGER frequency{};
+        QueryPerformanceFrequency(&frequency);
+        qpc_frequency_ = frequency.QuadPart;
+        const HMODULE dwm = LoadLibraryW(L"dwmapi.dll");
+        if (dwm != nullptr) {
+            dwm_composition_timing_ = reinterpret_cast<DwmCompositionTimingFunction>(
+                reinterpret_cast<void*>(GetProcAddress(dwm, "DwmGetCompositionTimingInfo")));
         }
     }
 
@@ -1375,9 +1399,13 @@ public:
         return live_frame_clock_;
     }
 
+    // The live clock fired: a live frame is due, and the clock is armed for
+    // the next refresh while live presentations remain (the drain cancels it
+    // when none do).
     void mark_live_frame_due() noexcept {
         ++live_clock_signals_;
         live_frame_due_ = true;
+        if (live_clock_armed_) arm_live_clock();
     }
 
     LRESULT message(UINT message, WPARAM wparam, LPARAM lparam) {
@@ -2030,18 +2058,53 @@ private:
         }
         const bool needs_live_clock = (*model_).has_live_surface_presentations();
         if (needs_live_clock && !live_clock_armed_) {
-            LARGE_INTEGER first_due{};
-            first_due.QuadPart = -static_cast<LONGLONG>(
-                live_surface_period_milliseconds) * 10'000LL;
-            live_clock_armed_ = live_frame_clock_ != nullptr &&
-                SetWaitableTimer(live_frame_clock_, &first_due,
-                    live_surface_period_milliseconds, nullptr, nullptr,
-                    FALSE) != FALSE;
+            arm_live_clock();
         } else if (!needs_live_clock && live_clock_armed_) {
             CancelWaitableTimer(live_frame_clock_);
             live_clock_armed_ = false;
             live_frame_due_ = false;
+            live_clock_deadline_ = 0;
         }
+    }
+
+    // Arms the live frame clock once, for the next deadline at a fixed phase
+    // of the display's refresh: half a refresh period after the compositor's
+    // vertical blank, as far as can be from the moment it samples window
+    // content, so that each refresh takes exactly one live frame and none is
+    // shown twice or skipped. A deadline is never less than half a period
+    // after the previous one, so one refresh never fires twice. Without the
+    // composition timing (no compositor, or a desktop it does not compose)
+    // the deadlines keep a 60 Hz cadence from the previous one.
+    void arm_live_clock() noexcept {
+        live_clock_armed_ = false;
+        if (live_frame_clock_ == nullptr || qpc_frequency_ <= 0) return;
+        LARGE_INTEGER now{};
+        QueryPerformanceCounter(&now);
+        LONGLONG period = qpc_frequency_ * 1000 / live_clock_fallback_millihertz;
+        LONGLONG anchor = live_clock_deadline_ != 0 ? live_clock_deadline_ : now.QuadPart;
+        DWM_TIMING_INFO timing{};
+        timing.cbSize = sizeof(timing);
+        if (dwm_composition_timing_ != nullptr &&
+            dwm_composition_timing_(nullptr, &timing) == S_OK &&
+            timing.qpcRefreshPeriod > 0U && timing.qpcVBlank > 0U) {
+            period = static_cast<LONGLONG>(timing.qpcRefreshPeriod);
+            anchor = static_cast<LONGLONG>(timing.qpcVBlank) + period / 2;
+        }
+        LONGLONG earliest = now.QuadPart + 1;
+        if (live_clock_deadline_ != 0) {
+            earliest = (std::max)(earliest, live_clock_deadline_ + period / 2);
+        }
+        // The first deadline at or after `earliest` in the anchor's phase.
+        LONGLONG offset = (earliest - anchor) % period;
+        if (offset < 0) offset += period;
+        const LONGLONG deadline = offset == 0 ? earliest : earliest + (period - offset);
+        // Relative due times are in 100 ns units, negative.
+        const LONGLONG hundreds = (deadline - now.QuadPart) * 10'000'000LL / qpc_frequency_;
+        LARGE_INTEGER due{};
+        due.QuadPart = -(std::max)(hundreds, static_cast<LONGLONG>(1));
+        live_clock_armed_ = SetWaitableTimer(live_frame_clock_, &due, 0, nullptr, nullptr,
+                                             FALSE) != FALSE;
+        if (live_clock_armed_) live_clock_deadline_ = deadline;
     }
 
     void request_render_wake() noexcept {
@@ -2240,6 +2303,7 @@ private:
         if (!(*model_).has_live_surface_presentations() && live_clock_armed_) {
             CancelWaitableTimer(live_frame_clock_);
             live_clock_armed_ = false;
+            live_clock_deadline_ = 0;
         }
         if (updates.empty() || hwnd_ == nullptr) return;
 #if defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
@@ -2888,6 +2952,12 @@ private:
     bool presentation_pending_{};
     HANDLE live_frame_clock_{};
     bool live_clock_armed_{};
+    // The live clock's armed deadline in QueryPerformanceCounter ticks (0
+    // when it is not armed), the counter's frequency, and the compositor's
+    // timing query (null without dwmapi).
+    LONGLONG live_clock_deadline_{};
+    LONGLONG qpc_frequency_{};
+    DwmCompositionTimingFunction dwm_composition_timing_{};
     bool live_frame_due_{};
     std::uint64_t live_clock_signals_{};
     std::uint64_t live_presentation_drains_{};
