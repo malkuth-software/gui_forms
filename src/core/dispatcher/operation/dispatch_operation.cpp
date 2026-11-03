@@ -47,7 +47,7 @@ std::exception_ptr DispatchOperation::exception() const noexcept {
     return (*work_).fault;
 }
 
-void DispatchOperation::wait_and_rethrow() const {
+DispatchOperationState DispatchOperation::wait_terminal() const {
     if (!work_) {
         throw std::logic_error(
             "GUI.Forms cannot wait for an invalid dispatch operation");
@@ -60,7 +60,11 @@ void DispatchOperation::wait_and_rethrow() const {
         (*work_).state.wait(observed, std::memory_order_acquire);
         observed = (*work_).state.load(std::memory_order_acquire);
     }
-    const DispatchOperationState final_state = state();
+    return observed;
+}
+
+void DispatchOperation::wait_and_rethrow() const {
+    const DispatchOperationState final_state = wait_terminal();
     if (final_state == DispatchOperationState::completed) return;
     if (final_state == DispatchOperationState::faulted) {
         const std::exception_ptr fault = exception();

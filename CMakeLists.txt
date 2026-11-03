@@ -314,6 +314,7 @@ add_library(gui_forms_core STATIC
     src/core/display/replay/replay_display_chunk.cpp
     src/core/dispatcher/operation/dispatch_operation.cpp
     src/core/dispatcher/state/post_dispatch.cpp
+    src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
     src/core/window/dispatcher/window_dispatcher.cpp

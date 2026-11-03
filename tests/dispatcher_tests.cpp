@@ -871,6 +871,150 @@ void test_wake_removal_waits_for_a_wake_under_way() {
     window.shutdown_dispatcher();
 }
 
+// -- WindowDispatcher: a handle that outlives its window -------------------------
+//
+// The UI Automation Gallery client (windows_accessibility_uia_gallery_tests)
+// once called Window::invoke from its thread after the host had destroyed
+// the window, a heap use after free. These cases reproduce that order
+// deterministically, with no host or contention: the handle reports the
+// closed window and touches nothing of it.
+
+struct HandleInvokeRecord final {
+    std::atomic<bool> ran{false};
+    std::atomic<bool> returned{false};
+    DispatchInvokeResult result{DispatchInvokeResult::completed};
+};
+
+class MarkRan final {
+public:
+    explicit MarkRan(std::atomic<bool>& ran) noexcept : ran_(ran) {}
+    void operator()() const { ran_.store(true, std::memory_order_release); }
+
+private:
+    std::atomic<bool>& ran_;
+};
+
+// Invokes through the handle once from its own thread and records the result.
+class HandleInvokeWorker final {
+public:
+    HandleInvokeWorker(WindowDispatcher dispatcher, HandleInvokeRecord& record) noexcept
+        : dispatcher_(std::move(dispatcher)), record_(record) {}
+
+    void operator()() const {
+        record_.result = dispatcher_.invoke(MarkRan(record_.ran));
+        record_.returned.store(true, std::memory_order_release);
+    }
+
+private:
+    WindowDispatcher dispatcher_;
+    HandleInvokeRecord& record_;
+};
+
+// From its own thread, after the window is gone: invoke, begin_invoke and
+// window_alive all answer without touching the window.
+struct GoneWindowAnswers final {
+    DispatchInvokeResult invoked{DispatchInvokeResult::completed};
+    DispatchOperationState posted{DispatchOperationState::invalid};
+    bool alive{true};
+    std::atomic<bool> ran{false};
+};
+
+class GoneWindowWorker final {
+public:
+    GoneWindowWorker(WindowDispatcher dispatcher, GoneWindowAnswers& answers) noexcept
+        : dispatcher_(std::move(dispatcher)), answers_(answers) {}
+
+    void operator()() const {
+        answers_.invoked = dispatcher_.invoke(MarkRan(answers_.ran));
+        const DispatchOperation operation = dispatcher_.begin_invoke(MarkRan(answers_.ran));
+        answers_.posted = operation.state();
+        answers_.alive = dispatcher_.window_alive();
+    }
+
+private:
+    WindowDispatcher dispatcher_;
+    GoneWindowAnswers& answers_;
+};
+
+class HandlePending final {
+public:
+    explicit HandlePending(Window& window) noexcept : window_(window) {}
+    bool operator()() const { return window_.dispatcher_snapshot().pending == 1U; }
+
+private:
+    Window& window_;
+};
+
+void test_window_dispatcher_outlives_its_window() {
+    // A live window: marshalled and inline calls complete.
+    {
+        std::shared_ptr<Control> root = make_control<Control>(StableId("dispatcher.handle.live"));
+        Window window(root, {200.0, 100.0});
+        host::HeadlessHost host(window);
+        const WindowDispatcher dispatcher = window.dispatcher();
+        HandleInvokeRecord marshalled;
+        std::thread worker(HandleInvokeWorker(dispatcher, marshalled));
+        require_eventually(HandlePending(window), "the handle's worker Invoke was not queued");
+        const DispatchDrainResult turn = host.pump_dispatcher();
+        worker.join();
+        std::atomic<bool> inline_ran{false};
+        const DispatchInvokeResult inline_result = dispatcher.invoke(MarkRan(inline_ran));
+        require(turn.invoked == 1U && marshalled.result == DispatchInvokeResult::completed &&
+                    marshalled.ran.load(std::memory_order_acquire) &&
+                    inline_result == DispatchInvokeResult::completed &&
+                    inline_ran.load(std::memory_order_acquire) && dispatcher.window_alive(),
+                "a live window's handle runs marshalled and inline work");
+        window.shutdown_dispatcher();
+    }
+
+    // Work waiting when the window closes and is destroyed: the waiter
+    // returns window_gone and the callback never runs.
+    WindowDispatcher kept;
+    HandleInvokeRecord waiting;
+    std::thread waiter;
+    {
+        std::shared_ptr<Control> root = make_control<Control>(StableId("dispatcher.handle.closing"));
+        std::unique_ptr<Window> window = std::make_unique<Window>(root, Size{200.0, 100.0});
+        std::unique_ptr<host::HeadlessHost> host = std::make_unique<host::HeadlessHost>(*window);
+        kept = (*window).dispatcher();
+        waiter = std::thread(HandleInvokeWorker(kept, waiting));
+        require_eventually(HandlePending(*window), "the waiting Invoke was not queued");
+        // The host's close order: shut the dispatcher down, then the host,
+        // then the window.
+        (*window).shutdown_dispatcher();
+        host.reset();
+        window.reset();
+    }
+    waiter.join();
+    require(waiting.returned.load(std::memory_order_acquire) &&
+                waiting.result == DispatchInvokeResult::window_gone &&
+                !waiting.ran.load(std::memory_order_acquire),
+            "work waiting when the window closes returns window_gone and does not run");
+
+    // After the window is destroyed: from another thread (the client's
+    // order that freed memory before) and from the UI thread.
+    GoneWindowAnswers answers;
+    std::thread late(GoneWindowWorker(kept, answers));
+    late.join();
+    std::atomic<bool> ui_ran{false};
+    const DispatchInvokeResult ui_result = kept.invoke(MarkRan(ui_ran));
+    require(answers.invoked == DispatchInvokeResult::window_gone &&
+                answers.posted == DispatchOperationState::cancelled && !answers.alive &&
+                !answers.ran.load(std::memory_order_acquire) &&
+                ui_result == DispatchInvokeResult::window_gone && !ui_ran.load(std::memory_order_acquire),
+            "a destroyed window's handle reports window_gone and runs nothing");
+
+    // An empty handle is a programming error.
+    const WindowDispatcher empty;
+    bool refused = false;
+    try {
+        static_cast<void>(empty.invoke(do_nothing));
+    } catch (const std::logic_error&) {
+        refused = true;
+    }
+    require(refused && !empty.window_alive(), "an empty handle refuses to post");
+}
+
 } // namespace
 
 int main() {
@@ -886,6 +1030,7 @@ int main() {
         test_dispatch_order_against_input_timer_layout_and_paint();
         test_bounds_and_shutdown_revocation();
         test_wake_removal_waits_for_a_wake_under_way();
+        test_window_dispatcher_outlives_its_window();
         std::cout << "dispatcher-tests=pass\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

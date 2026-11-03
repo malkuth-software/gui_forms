@@ -42,6 +42,10 @@ public:
 private:
     friend class Window;
     friend class Control;
+    friend class WindowDispatcher;
+    // Waits without pumping until the work is completed, cancelled or
+    // faulted, and returns that state.
+    [[nodiscard]] DispatchOperationState wait_terminal() const;
     void wait_and_rethrow() const;
     std::shared_ptr<detail::DispatchWork> work_;
 };

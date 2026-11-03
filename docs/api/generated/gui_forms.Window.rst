@@ -143,6 +143,9 @@ gui_forms::Window
          The opposite of :cpp:func:`check_access <gui_forms::Window::check_access>`: whether the caller must post work with
          :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>` or :cpp:func:`invoke <gui_forms::Window::invoke>` instead of touching the window directly.
 
+      **dispatcher** : ``WindowDispatcher``, read-only
+         A handle to this window's dispatcher that any thread may keep and post through after the window has closed (WindowDispatcher).
+
       **dispatcher_snapshot** : ``DispatcherSnapshot``, read-only
          Counters of the posted-work queue: posted, invoked, cancelled and
          faulted callbacks, pending work and wake-ups.
@@ -781,6 +784,10 @@ gui_forms::Window
 
       The opposite of :cpp:func:`check_access <gui_forms::Window::check_access>`: whether the caller must post work with
       :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>` or :cpp:func:`invoke <gui_forms::Window::invoke>` instead of touching the window directly.
+
+   .. cpp:function:: WindowDispatcher dispatcher() const
+
+      A handle to this window's dispatcher that any thread may keep and post through after the window has closed (WindowDispatcher).
 
    .. cpp:function:: DispatcherSnapshot dispatcher_snapshot() const noexcept
 
