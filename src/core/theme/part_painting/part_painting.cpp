@@ -698,7 +698,70 @@ bool part_bounds_paintable(Rect bounds) noexcept {
     return result;
 }
 
+namespace {
+
+// The strips a pointed face's nose is cut into: each is clipped to the
+// nose's height at its leading edge, so the nose is a bounded staircase
+// whose outline the edge rules then draw.
+constexpr std::size_t pointed_face_strips = 9U;
+
+// The nose length of a pointed part, within its bounds (zero when none).
+double pointed_length(const PartPaint& part) noexcept {
+    if (!part.point || !surface_role(part.role)) return 0.0;
+    const double length = std::clamp(*part.point, 0.0, std::max(0.0, part.bounds.width));
+    return length;
+}
+
+// A pointed part (PartPaint::point): the whole part painted once clipped
+// to its body and once to each strip of its nose, so whatever draws the
+// part (a primitive or the built-in recipe) is cut to the shape; then the
+// nose's two edges in the material's border colour.
+void paint_pointed_part(Painter& painter, const Control& control, const PartPaint& part, double length) {
+    PartPaint whole = part;
+    whole.point.reset();
+    const Rect bounds = part.bounds;
+    const double shoulder = bounds.x + bounds.width - length;
+    painter.save();
+    painter.clip_rect({bounds.x, bounds.y, bounds.width - length, bounds.height});
+    paint_part(painter, control, whole);
+    painter.restore();
+    for (std::size_t strip = 0U; strip < pointed_face_strips; ++strip) {
+        const double left = length * static_cast<double>(strip) / static_cast<double>(pointed_face_strips);
+        const double right = length * static_cast<double>(strip + 1U) / static_cast<double>(pointed_face_strips);
+        const double inset = bounds.height * 0.5 * left / length;
+        painter.save();
+        painter.clip_rect({shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0});
+        paint_part(painter, control, whole);
+        painter.restore();
+    }
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
+    if (!recipe.material.border) return;
+    const Color edge = (*recipe.material.border).color;
+    const Point tip{bounds.x + bounds.width - 0.5, bounds.y + bounds.height * 0.5};
+    painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);
+    painter.draw_line(tip, {shoulder, bounds.y + bounds.height - 0.5}, edge, 1.0);
+}
+
+} // namespace
+
+bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
+    if (!bounds.contains(position)) return false;
+    const double half_height = bounds.height * 0.5;
+    if (point <= 0.0 || half_height <= 0.0) return true;
+    const double tip = std::min(point, bounds.width);
+    const double distance = std::abs(position.y - bounds.y - half_height);
+    const double edge = bounds.x + bounds.width - tip * distance / half_height;
+    const bool inside = position.x <= edge;
+    return inside;
+}
+
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
+    const double length = pointed_length(part);
+    if (length > 0.0 && paintable(part.bounds)) {
+        paint_pointed_part(painter, control, part, length);
+        return;
+    }
     const Theme& theme = control.effective_theme();
     // The control's authored colours (Control::set_back_color and
     // set_fore_color) under the part's own: its own background fills every

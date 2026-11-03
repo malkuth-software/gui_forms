@@ -162,6 +162,7 @@ private:
     void activate_visible(std::size_t index);
     void normalize_active();
     void paint_raised(Painter& painter);
+    [[nodiscard]] double raised_point(Rect bounds) const noexcept;
 
     std::vector<BreadcrumbSegment> segments_{};
     std::vector<VisibleItem> visible_items_{};

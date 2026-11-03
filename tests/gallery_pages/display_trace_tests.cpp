@@ -507,6 +507,11 @@ struct PageDigest final {
 // drop-down is the combo box's parts. Recorded again: timing-and-tooltips
 // and value-editors.
 //
+// The raised breadcrumb's segments are button faces in the engine's pointed
+// shape (the current one selected, the edit terminal an accent button), with
+// label and focus parts; hit testing uses the same shape. Recorded again:
+// tree-and-object-views.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.

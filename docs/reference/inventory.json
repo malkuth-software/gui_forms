@@ -164244,8 +164244,23 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 127,
+          "line": 129,
           "page": "gui-forms-partpaint-corner-radius-std-optional-double-561fd26020.html"
+        },
+        {
+          "id": "gui_forms::PartPaint::point|std::optional<double>",
+          "name": "point",
+          "type": "std::optional<double>",
+          "namespace": "gui_forms::PartPaint",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "std::optional<double> point{}",
+          "comment": "",
+          "header": "gui_forms/theme/part_painting/part_painting.hpp",
+          "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
+          "line": 135,
+          "page": "gui-forms-partpaint-point-std-optional-double-9de80e7b8a.html"
         },
         {
           "id": "gui_forms::PartPaint::accent|std::optional<AccentIndex>",
@@ -164259,7 +164274,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 131,
+          "line": 139,
           "page": "gui-forms-partpaint-accent-std-optional-accentindex-aff34bc6bb.html"
         },
         {
@@ -164274,7 +164289,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 143,
+          "line": 151,
           "page": "gui-forms-partpaint-content-color-std-optional-color-52ad846448.html"
         },
         {
@@ -164289,7 +164304,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 165,
+          "line": 173,
           "page": "gui-forms-partpaint-authored-background-std-optional-color-1d21500eb0.html"
         },
         {
@@ -164304,7 +164319,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 166,
+          "line": 174,
           "page": "gui-forms-partpaint-authored-foreground-std-optional-color-a4f82999a7.html"
         },
         {
@@ -164319,7 +164334,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 172,
+          "line": 180,
           "page": "gui-forms-partpaint-key-std-optional-partkey-46ae12dd99.html"
         },
         {
@@ -164334,7 +164349,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 178,
+          "line": 186,
           "page": "gui-forms-partpaint-granted-overflow-insets-f3dea1cacb.html"
         },
         {
@@ -164349,7 +164364,7 @@
           "comment": "",
           "header": "gui_forms/theme/part_painting/part_painting.hpp",
           "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-          "line": 183,
+          "line": 191,
           "page": "gui-forms-partpaint-measured-text-std-optional-size-631f2ca43a.html"
         }
       ],
@@ -273387,7 +273402,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 243,
+      "line": 256,
       "page": "gui-forms-overlay-shadow-outsets-insets-const-control-noexcept-da19fa30d5.html"
     },
     {
@@ -273501,7 +273516,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 250,
+      "line": 263,
       "page": "gui-forms-paint-part-from-recipe-void-painter-const-partpaint-const-controlvisualrecipe-controlvisualcontext-da92d03958.html"
     },
     {
@@ -273532,7 +273547,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 227,
+      "line": 235,
       "page": "gui-forms-paint-part-void-painter-const-control-const-partpaint-0af0bbb504.html"
     },
     {
@@ -273646,7 +273661,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 237,
+      "line": 245,
       "page": "gui-forms-paint-text-part-at-void-painter-const-control-partpaint-point-double-bd71d53c60.html"
     },
     {
@@ -273954,7 +273969,7 @@
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
-      "line": 191,
+      "line": 199,
       "page": "gui-forms-part-visual-context-controlvisualcontext-const-control-anatomystateset-noexcept-665c5bca7c.html"
     },
     {
@@ -274251,6 +274266,37 @@
       "source": "include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp",
       "line": 129,
       "page": "gui-forms-plan-dock-drop-targets-void-const-docklayout-const-docksubject-docknodeid-rect-std-span-const-dockdr-d523c6dd52.html"
+    },
+    {
+      "id": "gui_forms::pointed_face_contains|bool (Rect, double, Point) noexcept",
+      "name": "pointed_face_contains",
+      "type": "bool (Rect, double, Point) noexcept",
+      "namespace": "gui_forms",
+      "kind": "FunctionDecl",
+      "access": "public",
+      "parameters": [
+        {
+          "name": "bounds",
+          "type": "Rect",
+          "declaration": "Rect bounds"
+        },
+        {
+          "name": "point",
+          "type": "double",
+          "declaration": "double point"
+        },
+        {
+          "name": "position",
+          "type": "Point",
+          "declaration": "Point position"
+        }
+      ],
+      "declaration": "[[nodiscard]] bool pointed_face_contains(Rect bounds, double point, Point position) noexcept",
+      "comment": "",
+      "header": "gui_forms/theme/part_painting/part_painting.hpp",
+      "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
+      "line": 251,
+      "page": "gui-forms-pointed-face-contains-bool-rect-double-point-noexcept-def5c447b8.html"
     },
     {
       "id": "gui_forms::property_collection_items|std::span<const BindingValue> (const PropertyCollectionValue &) noexcept",
@@ -279901,19 +279947,19 @@
       "page": "gui-forms-part-shape-names-const-std-array-std-string-view-part-shape-kind-count-1225390202.html"
     },
     {
-      "id": "gui_forms::part_value_names|const std::array<std::string_view, 6>",
+      "id": "gui_forms::part_value_names|const std::array<std::string_view, 7>",
       "name": "part_value_names",
-      "type": "const std::array<std::string_view, 6>",
+      "type": "const std::array<std::string_view, 7>",
       "namespace": "gui_forms",
       "kind": "VarDecl",
       "access": "public",
       "parameters": [],
-      "declaration": "inline constexpr std::array<std::string_view, 6> part_value_names{ {\"accent_index\", \"text_orientation\", \"dock_region\", \"content_color\", \"authored_color\", \"text_tone\"}}",
+      "declaration": "inline constexpr std::array<std::string_view, 7> part_value_names{ {\"accent_index\", \"text_orientation\", \"dock_region\", \"content_color\", \"authored_color\", \"text_tone\", \"pointed_face\"}}",
       "comment": "",
       "header": "gui_forms/theme/part_painting/part_painting.hpp",
       "source": "include/gui_forms/theme/part_painting/part_painting.hpp",
       "line": 81,
-      "page": "gui-forms-part-value-names-const-std-array-std-string-view-6-195b0a5883.html"
+      "page": "gui-forms-part-value-names-const-std-array-std-string-view-7-d8a706f97f.html"
     },
     {
       "id": "gui_forms::pinned_custom_state|const CustomStateDeclaration",

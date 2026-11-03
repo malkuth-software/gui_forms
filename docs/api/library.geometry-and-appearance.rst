@@ -3370,6 +3370,12 @@ Types
 
    .. cpp:member:: std::optional<double> corner_radius
 
+      A focus or preselect ring follows the same shape: a connected segment's square corners, for one.
+
+   .. cpp:member:: std::optional<double> point
+
+      A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
+
    .. cpp:member:: std::optional<AccentIndex> accent
 
       The part's position in the theme's accent ramp (§8.5), or none. A surface part with an accent is tinted from the ramp over its material; text and mark roles ignore it.
@@ -7095,6 +7101,10 @@ Functions, constants and aliases
 
    A text part (label, caption or content) placed by its baseline, as controls that lay out text by baseline draw it: ``part``'s bounds become its line box with the text starting at ``origin`` (a point on the baseline), at least ``width`` wide and never narrower than the text, and paint_part draws it. The line box is the one paint_part centres text in, so the text lands on ``origin`` exactly. A part without text draws nothing. A part that carries its text's measurement (PartPaint::measured_text) is not measured again.
 
+.. cpp:function:: bool pointed_face_contains(Rect bounds, double point, Point position) noexcept
+
+   Whether ``position`` lies in the pointed face of ``bounds`` whose nose is ``point`` units long (PartPaint::point): inside the bounds and left of the nose's edges. A point of zero or less is the whole rectangle.
+
 .. cpp:function:: Insets overlay_shadow_outsets(const Control& control) noexcept
 
    How far ``control``'s theme's overlay shadow reaches outside the casting surface's rect, in the control's presentation (ordinary or high contrast). Zero on every side when the theme casts none.
@@ -7107,7 +7117,7 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 6> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 7> part_value_names
 
    The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
 

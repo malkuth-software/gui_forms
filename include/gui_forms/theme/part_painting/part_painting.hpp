@@ -78,9 +78,9 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
 // the order they were admitted in.
-inline constexpr std::array<std::string_view, 6> part_value_names{
+inline constexpr std::array<std::string_view, 7> part_value_names{
     {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color",
-     "text_tone"}};
+     "text_tone", "pointed_face"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
 
@@ -127,6 +127,12 @@ struct PartPaint final {
     // A focus or preselect ring follows the same shape: a connected
     // segment's square corners, for one.
     std::optional<double> corner_radius{};
+    // A pointed face (design language §8.5; owner decision 2026-11-02): the
+    // surface's trailing end is a nose this many units long, its tip at the
+    // middle of the right edge, as a raised breadcrumb segment's. Only
+    // surface roles read it; none is a rectangle. Hit testing uses the same
+    // shape (pointed_face_contains).
+    std::optional<double> point{};
     // The part's position in the theme's accent ramp (§8.5), or none. A
     // surface part with an accent is tinted from the ramp over its
     // material; text and mark roles ignore it.
@@ -238,6 +244,11 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
 // not measured again.
 void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
                         double width);
+
+// Whether `position` lies in the pointed face of `bounds` whose nose is
+// `point` units long (PartPaint::point): inside the bounds and left of the
+// nose's edges. A point of zero or less is the whole rectangle.
+[[nodiscard]] bool pointed_face_contains(Rect bounds, double point, Point position) noexcept;
 
 // How far `control`'s theme's overlay shadow reaches outside the casting
 // surface's rect, in the control's presentation (ordinary or high
