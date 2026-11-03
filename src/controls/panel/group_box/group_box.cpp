@@ -4,6 +4,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "group_box_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
@@ -77,38 +78,46 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     const std::string caption = caption_text();
     const double caption_height = std::max(16.0, font.size + 4.0);
     const double rule_y = std::max(10.5, caption_height * 0.66);
-    // The face fills the frame only: above the rule the parent's ground
-    // shows, as in Windows Forms (sweep defect D4: a full-width band of
-    // the group's colour sat above its frame).
-    painter.fill_rect({0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)}, background());
-    // The frame, broken behind the caption: stroked three times, clipped
-    // to the left of the caption, to its right, and below it, so the
-    // frame's pixels elsewhere are unchanged and nothing has to paint the
-    // parent's colour back over the rule.
-    const Rect frame{0.5, rule_y, std::max(0.0, bounds.width - 1.0),
-                     std::max(0.0, bounds.height - rule_y - 0.5)};
-    if (caption.empty()) {
-        painter.stroke_rect(frame, style().border, 1.0);
-        return;
+    // The frame is keylines broken by the caption, and the caption a part,
+    // drawn by the theme's engine; a background override supplies a ground
+    // under them (T4-1), and without one the parent shows through. The
+    // ground fills the frame only: above the rule the parent's ground
+    // shows, as in Windows Forms (sweep defect D4).
+    if (has_background_override() || has_style_override()) {
+        PartPaint ground;
+        ground.family = ControlVisualRole::panel;
+        ground.role = PartRole::fill;
+        ground.bounds = {0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)};
+        ground.corner_radius = 0.0;
+        ground.authored_background = background();
+        paint_part(painter, *this, ground);
     }
-    const Rect caption_box = caption_bounds();
-    const double gap_right = caption_box.x + caption_box.width;
-    const double caption_bottom = caption_box.y + caption_box.height;
-    const std::array<Rect, 3> frame_pieces{{
-        {0.0, 0.0, caption_box.x, bounds.height},
-        {gap_right, 0.0, std::max(0.0, bounds.width - gap_right), bounds.height},
-        {caption_box.x, caption_bottom, caption_box.width, std::max(0.0, bounds.height - caption_bottom)},
+    const Rect gap = caption_bounds();
+    const double top = rule_y - 0.5;
+    const double right = std::max(0.0, bounds.width - 1.0);
+    const double bottom = std::max(top, bounds.height - 1.0);
+    const double gap_right = gap.x + gap.width;
+    const std::array<Rect, 5> sides{{
+        {0.0, top, std::max(0.0, gap.x), 1.0},
+        {gap_right, top, std::max(0.0, bounds.width - gap_right), 1.0},
+        {0.0, bottom, bounds.width, 1.0},
+        {0.0, top, 1.0, std::max(0.0, bounds.height - top)},
+        {right, top, 1.0, std::max(0.0, bounds.height - top)},
     }};
-    for (const Rect& piece : frame_pieces) {
-        painter.save();
-        painter.clip_rect(piece);
-        painter.stroke_rect(frame, style().border, 1.0);
-        painter.restore();
+    PartPaint rule;
+    rule.family = ControlVisualRole::panel;
+    rule.role = PartRole::keyline;
+    for (const Rect& side : sides) {
+        rule.bounds = side;
+        paint_part(painter, *this, rule);
     }
-    painter.draw_text_utf8({13.0, std::max(font.size, rule_y + font.size * 0.36)},
-                           caption, font,
-                           effectively_enabled() ? style().text
-                                                 : style().disabled_text);
+    PartPaint label;
+    label.family = ControlVisualRole::panel;
+    label.role = PartRole::caption;
+    label.text = caption;
+    label.font = font;
+    paint_text_part_at(painter, *this, label, {13.0, std::max(font.size, rule_y + font.size * 0.36)},
+                       std::max(0.0, gap_right - 13.0));
 }
 
 bool GroupBox::mnemonic_matches(char32_t character) const noexcept {

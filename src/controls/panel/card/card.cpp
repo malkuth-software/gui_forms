@@ -1,5 +1,6 @@
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "card_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
@@ -225,18 +226,27 @@ void Card::on_paint(Painter& painter, Rect local_damage) {
     }
     const Rect arranged = committed_arranged_bounds();
     const Rect bounds{0.0, 0.0, arranged.width, arranged.height};
-    const ControlVisualContext context = current_context();
-    const ControlVisualRecipe& recipe = effective_theme().resolve(
-        ControlVisualRole::card, context);
-    paint_surface_material(painter, bounds, recipe.material);
-    if (context.focused && recipe.focus_width > 0.0 &&
-        bounds.width > 8.0 && bounds.height > 8.0) {
-        const double inset = 3.0;
-        painter.stroke_rounded_rect(
-            {inset, inset, bounds.width - inset * 2.0,
-             bounds.height - inset * 2.0},
-            std::max(0.0, recipe.material.corner_radius - inset),
-            recipe.focus_ring, recipe.focus_width);
+    // The card's face and focus ring are parts the theme's engine draws, hot,
+    // pressed and selected as the card is.
+    AnatomyStateSet states{};
+    if (hovered_) states.insert(AnatomyState::hot);
+    if (pressed_) states.insert(AnatomyState::pressed);
+    if (selected_) states.insert(AnatomyState::selected);
+    PartPaint face;
+    face.family = ControlVisualRole::card;
+    face.role = PartRole::face;
+    face.bounds = bounds;
+    face.states = states;
+    face.key = PartKey{"face", {}, {}};
+    paint_part(painter, *this, face);
+    if (focused_ && bounds.width > 8.0 && bounds.height > 8.0) {
+        PartPaint ring;
+        ring.family = ControlVisualRole::card;
+        ring.role = PartRole::focus;
+        ring.bounds = {2.5, 2.5, bounds.width - 5.0, bounds.height - 5.0};
+        ring.states = states;
+        ring.states.insert(AnatomyState::focus_visible);
+        paint_part(painter, *this, ring);
     }
 }
 

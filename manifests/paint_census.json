@@ -34,8 +34,8 @@
   },
   "totals": {
     "stock": {
-      "files": 20,
-      "calls": 145
+      "files": 13,
+      "calls": 96
     },
     "exempt": {
       "files": 6,
@@ -96,10 +96,6 @@
       "category": "stock",
       "calls": 11
     },
-    "panel/card/card.cpp": {
-      "category": "stock",
-      "calls": 2
-    },
     "panel/color_value_editor/color_value_editor.cpp": {
       "category": "stock",
       "calls": 6
@@ -120,17 +116,9 @@
       "category": "stock",
       "calls": 6
     },
-    "panel/group_box/group_box.cpp": {
-      "category": "stock",
-      "calls": 4
-    },
     "panel/material_panel/material_panel.cpp": {
       "category": "stock",
       "calls": 1
-    },
-    "panel/panel.cpp": {
-      "category": "stock",
-      "calls": 11
     },
     "panel/picture_box/picture_box.cpp": {
       "category": "exempt",
@@ -144,22 +132,6 @@
     "raster_canvas/raster_canvas.cpp": {
       "category": "exempt",
       "calls": 4
-    },
-    "scrollable_control/container_control/split_container/splitter_grip.cpp": {
-      "category": "stock",
-      "calls": 13
-    },
-    "scrollable_control/container_control/split_container/splitter_panel/splitter_panel.cpp": {
-      "category": "stock",
-      "calls": 1
-    },
-    "scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.cpp": {
-      "category": "stock",
-      "calls": 4
-    },
-    "scrollable_control/scrollable_control.cpp": {
-      "category": "stock",
-      "calls": 14
     },
     "text_block/text_block.cpp": {
       "category": "stock",

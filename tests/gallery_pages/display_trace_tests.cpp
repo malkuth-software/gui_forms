@@ -483,6 +483,14 @@ struct PageDigest final {
 // again: dialogs-and-host-services, docking-workspace, semantic-feedback,
 // text-and-input, timing-and-tooltips, value-editors and values-and-spinners.
 //
+// Panel, GroupBox, Card, SplitterPanel, TableLayoutPanelCompat, the
+// scrollable control's scroll bars and SplitterGrip paint through the theme
+// engine. A panel with an authored background is the theme's face with that
+// ground and keeps the material's border (T4-1), as a theme-coloured panel
+// already did; GroupBox's border runs as keylines broken behind its caption
+// in place of a plate under it; the scroll bars are the ScrollBar's track,
+// buttons, arrow marks and thumb. Every page was recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.

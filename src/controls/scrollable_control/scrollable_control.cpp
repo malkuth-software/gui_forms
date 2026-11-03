@@ -2,6 +2,7 @@
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "scrolling_utilities.hpp"
 #include "scrollable_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
@@ -745,45 +746,52 @@ void ScrollableControl::axis_properties_changed(
     if (previous_position != scroll_position_) on_scroll_position_changed();
 }
 
+// An axis is a scroll bar's parts, drawn by the theme's engine as ScrollBar
+// draws them: the trough, two arrow buttons with arrow marks and the thumb,
+// all disabled when the axis is.
 void ScrollableControl::paint_axis(Painter& painter,
                                    ScrollOrientation orientation,
                                    const AxisGeometry& geometry) const {
     if (geometry.bar.empty()) return;
-    const BasicControlStyle& style = effective_theme().basic_style();
     const ScrollProperties& axis = orientation == ScrollOrientation::horizontal
         ? horizontal_scroll_ : vertical_scroll_;
-    painter.fill_rect(geometry.bar, style.face);
-    painter.stroke_rect(geometry.bar, style.border, 1.0);
-    painter.fill_rect(geometry.first_button, style.face_light);
-    painter.fill_rect(geometry.last_button, style.face_light);
-    painter.stroke_rect(geometry.first_button, style.border, 1.0);
-    painter.stroke_rect(geometry.last_button, style.border, 1.0);
-    painter.fill_rect(geometry.thumb,
-                      axis.enabled_ ? style.accent_light : style.face);
-    painter.stroke_rect(geometry.thumb,
-                        axis.enabled_ ? style.dark_border : style.border, 1.0);
-    const FontSpec font = effective_font(
-        {FontRole::control, 8.0, 700, false});
-    const Color glyph = axis.enabled_ ? style.text : style.disabled_text;
-    if (orientation == ScrollOrientation::horizontal) {
-        painter.draw_text_utf8(
-            {geometry.first_button.x + 5.0,
-             geometry.first_button.y + geometry.first_button.height * 0.5 + 3.0},
-            "‹", font, glyph);
-        painter.draw_text_utf8(
-            {geometry.last_button.x + 5.0,
-             geometry.last_button.y + geometry.last_button.height * 0.5 + 3.0},
-            "›", font, glyph);
-    } else {
-        painter.draw_text_utf8(
-            {geometry.first_button.x + 4.0,
-             geometry.first_button.y + geometry.first_button.height * 0.5 + 3.0},
-            "▲", font, glyph);
-        painter.draw_text_utf8(
-            {geometry.last_button.x + 4.0,
-             geometry.last_button.y + geometry.last_button.height * 0.5 + 3.0},
-            "▼", font, glyph);
+    AnatomyStateSet states{};
+    if (!axis.enabled_) states.insert(AnatomyState::disabled);
+    PartPaint trough;
+    trough.family = ControlVisualRole::panel;
+    trough.role = PartRole::track;
+    trough.bounds = geometry.bar;
+    trough.states = states;
+    paint_part(painter, *this, trough);
+    const bool horizontal = orientation == ScrollOrientation::horizontal;
+    const std::array<Rect, 2> buttons{{geometry.first_button, geometry.last_button}};
+    for (std::size_t index = 0U; index < buttons.size(); ++index) {
+        const Rect button = buttons[index];
+        if (button.empty()) continue;
+        PartPaint actuator;
+        actuator.family = ControlVisualRole::button;
+        actuator.role = PartRole::actuator;
+        actuator.bounds = button;
+        actuator.states = states;
+        paint_part(painter, *this, actuator);
+        // An 8-unit square holds the arrow's four rows.
+        const double center_x = std::floor(button.x + button.width * 0.5);
+        const double center_y = std::floor(button.y + button.height * 0.5);
+        PartPaint arrow;
+        arrow.family = ControlVisualRole::button;
+        arrow.role = PartRole::glyph;
+        arrow.mark = horizontal ? (index == 0U ? PartMark::arrow_left : PartMark::arrow_right)
+                                : (index == 0U ? PartMark::arrow_up : PartMark::arrow_down);
+        arrow.bounds = {center_x - 4.0, center_y - 4.0, 8.0, 8.0};
+        arrow.states = states;
+        paint_part(painter, *this, arrow);
     }
+    PartPaint thumb;
+    thumb.family = ControlVisualRole::button;
+    thumb.role = PartRole::thumb;
+    thumb.bounds = geometry.thumb;
+    thumb.states = states;
+    paint_part(painter, *this, thumb);
 }
 
 void ScrollableControl::on_paint_overlay(Painter& painter, Rect) {
@@ -792,12 +800,13 @@ void ScrollableControl::on_paint_overlay(Painter& painter, Rect) {
     paint_axis(painter, ScrollOrientation::vertical,
                axis_geometry(ScrollOrientation::vertical));
     if (hscroll() && vscroll()) {
-        const BasicControlStyle& style = effective_theme().basic_style();
-        const Rect corner{viewport_rectangle_.width,
-                          viewport_rectangle_.height,
-                          scrollbar_thickness_, scrollbar_thickness_};
-        painter.fill_rect(corner, style.face);
-        painter.stroke_rect(corner, style.border, 1.0);
+        PartPaint corner;
+        corner.family = ControlVisualRole::panel;
+        corner.role = PartRole::face;
+        corner.bounds = {viewport_rectangle_.width, viewport_rectangle_.height,
+                         scrollbar_thickness_, scrollbar_thickness_};
+        corner.corner_radius = 0.0;
+        paint_part(painter, *this, corner);
     }
 }
 
