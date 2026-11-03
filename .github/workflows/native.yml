@@ -116,6 +116,7 @@ jobs:
           python3 -B tools/abi_bindings.py csharp --check
           python3 -B tools/abi_bindings.py cpp --check
           python3 -B tools/abi_compat_map.py --strict
+          python3 tools/control_registry.py emit-forms --check
           python3 -B -m unittest discover -s tools -p test_control_schema.py
           python3 tools/control_schema.py check
           python3 tools/control_schema.py render --check

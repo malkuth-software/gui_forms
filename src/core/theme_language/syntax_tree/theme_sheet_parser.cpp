@@ -2,11 +2,16 @@
 // ThemeSyntaxTree. The grammar's own depth is fixed (sheet, at-rule block,
 // rule block, declaration), so each level is a function; only groups, the
 // parentheses, brackets and functions inside preludes and values, nest as
-// deep as the input says, and those are walked with an explicit stack.
+// deep as the input says, and those are walked with an explicit stack. A
+// form document's objects (stage FD) also nest as deep as the input says:
+// one loop walks them, their blocks on the same explicit stack.
 
 #include "theme_syntax_tree.hpp"
 
+#include "gui_forms/control/stable_id/stable_id.hpp"
+
 #include <array>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -82,6 +87,18 @@ private:
     void parse_rule_list_block(SyntaxNodeKind child_kind);
     void parse_declaration_block(bool in_keyframes);
     void parse_declaration(bool in_keyframes);
+    // A form document (stage FD): its objects, walked by one loop.
+    void parse_form_document();
+    // At an identifier inside an object's block: a declaration, a style
+    // block or a nested object. Returns the object's node when one opened.
+    [[nodiscard]] std::optional<std::uint32_t> parse_object_item(std::size_t& declarations);
+    // At an object's first token: opens its node and its block. Returns the
+    // node, or nothing after an error.
+    [[nodiscard]] std::optional<std::uint32_t> open_object();
+    // Whether the prelude tokens [first, end), trimmed, are a type and a
+    // stable ID; reports the offending token otherwise.
+    [[nodiscard]] bool object_prelude_valid(TokenRange prelude);
+    void parse_style_block();
 
     // Scanning.
     [[nodiscard]] ItemEnd scan_to_item_end();
@@ -130,6 +147,12 @@ private:
     // Whether the declarations being read are an inline style's leading
     // ones, which the end of the text may end.
     bool inline_declarations_{};
+    // A form document's open objects, innermost last: each one's node, and
+    // the declarations read in its block so far. Each holds an entry of
+    // open_, so there are never more than it holds.
+    std::array<std::uint32_t, maximum_nesting_depth> object_nodes_{};
+    std::array<std::size_t, maximum_nesting_depth> object_declarations_{};
+    std::size_t objects_{};
     ParseOutcome outcome_{ParseOutcome::tree_complete};
 };
 
@@ -151,12 +174,15 @@ ParseOutcome SheetParser::run() {
     // Each node but the sheet owns two significant tokens once complete;
     // the nodes open when a parse stops (at most one per grammar level) may
     // own one.
-    const std::size_t open_levels = 4U;
+    // A form document's objects add one open node each.
+    const std::size_t open_levels = form_ == ThemeSheetForm::form_document ? maximum_nesting_depth + 3U : 4U;
     tree_.nodes.reserve(significant / 2U + 1U + open_levels);
 
     const std::uint32_t root = open_node(SyntaxNodeKind::sheet, 0U);
     if (form_ == ThemeSheetForm::inline_style) {
         parse_inline_style();
+    } else if (form_ == ThemeSheetForm::form_document) {
+        parse_form_document();
     } else {
         while (!stopped()) {
             skip_trivia();
@@ -560,6 +586,226 @@ void SheetParser::parse_declaration(bool in_keyframes) {
     // whitespace after it is the rule's.
     const TokenRange spanned = trimmed(first, next_);
     close_node(node, spanned.end.value);
+}
+
+void SheetParser::parse_form_document() {
+    while (!stopped()) {
+        skip_trivia();
+        if (at_end()) {
+            if (objects_ != 0U) {
+                fail_at_end(DiagnosticCode::unbalanced_block, open_[depth_ - 1U].opener, "not closed");
+            }
+            break;
+        }
+        const TokenKind kind = tokens_[next_].kind;
+        if (kind == TokenKind::right_brace) {
+            if (objects_ == 0U) {
+                fail_at_token(DiagnosticCode::unbalanced_block, next_, "no opening");
+                break;
+            }
+            pop();
+            ++next_;
+            --objects_;
+            close_node(object_nodes_[objects_], next_);
+            continue;
+        }
+        if (kind == TokenKind::at_keyword) {
+            fail_at_token(DiagnosticCode::nesting_not_admitted, next_, clipped_theme_detail(token_text(next_)));
+            break;
+        }
+        if (kind == TokenKind::semicolon && objects_ != 0U) {
+            // An empty declaration, as CSS admits.
+            ++next_;
+            continue;
+        }
+        if (kind != TokenKind::ident) {
+            const DiagnosticCode code =
+                closes_group(kind) ? DiagnosticCode::unbalanced_block : DiagnosticCode::unexpected_token;
+            const std::string detail = closes_group(kind) ? std::string("no opening")
+                                                          : std::string(token_kind_name(kind));
+            fail_at_token(code, next_, detail);
+            break;
+        }
+        std::optional<std::uint32_t> opened{};
+        if (objects_ == 0U) {
+            opened = open_object();
+        } else {
+            opened = parse_object_item(object_declarations_[objects_ - 1U]);
+        }
+        if (!opened) continue;
+        object_nodes_[objects_] = *opened;
+        object_declarations_[objects_] = 0U;
+        ++objects_;
+    }
+    // The objects a stop leaves open end where it stopped.
+    while (objects_ != 0U) {
+        --objects_;
+        close_node(object_nodes_[objects_], next_);
+    }
+}
+
+std::optional<std::uint32_t> SheetParser::parse_object_item(std::size_t& declarations) {
+    // The token after the identifier tells the item: a ':' a declaration,
+    // a '{' a style block, anything else an object's stable ID.
+    std::uint32_t after = next_ + 1U;
+    while (after < limit_ && is_trivia(tokens_[after].kind)) ++after;
+    const TokenKind following = after < limit_ ? tokens_[after].kind : TokenKind::whitespace;
+    if (following == TokenKind::colon) {
+        ++declarations;
+        if (declarations > maximum_declarations_per_rule) {
+            fail_at_token(DiagnosticCode::too_many_declarations, next_, std::to_string(maximum_declarations_per_rule));
+            return std::nullopt;
+        }
+        parse_declaration(false);
+        return std::nullopt;
+    }
+    if (following == TokenKind::left_brace && equals_ascii_folded(token_text(next_), "style")) {
+        parse_style_block();
+        return std::nullopt;
+    }
+    return open_object();
+}
+
+std::optional<std::uint32_t> SheetParser::open_object() {
+    const std::uint32_t first = next_;
+    ++rules_;
+    if (rules_ > maximum_rules) {
+        fail_at_token(DiagnosticCode::too_many_rules, first, std::to_string(maximum_rules));
+        return std::nullopt;
+    }
+    const std::uint32_t node = open_node(SyntaxNodeKind::object_rule, first);
+    const ItemEnd end = scan_to_item_end();
+    if (end == ItemEnd::left_brace) {
+        const TokenRange prelude = trimmed(first, next_);
+        tree_.nodes[node].content = prelude;
+        if (object_prelude_valid(prelude) && push(next_)) {
+            ++next_;
+            return node;
+        }
+    } else if (end == ItemEnd::semicolon) {
+        // `name;` or `a b;`: neither a declaration nor an object.
+        const DiagnosticCode code =
+            objects_ == 0U ? DiagnosticCode::declaration_outside_rule : DiagnosticCode::unexpected_token;
+        fail_at_token(code, objects_ == 0U ? first : next_, objects_ == 0U ? std::string() : std::string("semicolon"));
+    } else if (end == ItemEnd::right_brace) {
+        if (objects_ == 0U) {
+            fail_at_token(DiagnosticCode::unbalanced_block, next_, "no opening");
+        } else {
+            fail_at_token(DiagnosticCode::unexpected_token, next_, "right_brace");
+        }
+    } else if (end == ItemEnd::end_of_sheet) {
+        fail_at_end_of_sheet();
+    }
+    close_node(node, next_);
+    return std::nullopt;
+}
+
+bool SheetParser::object_prelude_valid(TokenRange prelude) {
+    // The type: one identifier, then trivia.
+    const std::uint32_t type = prelude.first.value;
+    if (tokens_[type].kind != TokenKind::ident) {
+        fail_at_token(DiagnosticCode::unexpected_token, type, std::string(token_kind_name(tokens_[type].kind)));
+        return false;
+    }
+    const std::uint32_t after_type = type + 1U;
+    if (after_type == prelude.end.value || !is_trivia(tokens_[after_type].kind)) {
+        const std::uint32_t at = after_type == prelude.end.value ? next_ : after_type;
+        fail_at_token(DiagnosticCode::unexpected_token, at, "expected stable id");
+        return false;
+    }
+    // The stable ID: the tokens after the trivia, written without any,
+    // whose bytes follow the stable ID rule.
+    const TokenRange identity = trimmed(after_type, prelude.end.value);
+    for (std::uint32_t index = identity.first.value; index < identity.end.value; ++index) {
+        if (is_trivia(tokens_[index].kind)) {
+            fail_at_token(DiagnosticCode::unexpected_token, index + 1U,
+                          std::string(token_kind_name(tokens_[index + 1U].kind)));
+            return false;
+        }
+    }
+    const Token& first = tokens_[identity.first.value];
+    const Token& last = tokens_[identity.end.value - 1U];
+    const std::size_t stop = static_cast<std::size_t>(last.offset.value) + last.length.value;
+    const std::string_view written = text_.substr(first.offset.value, stop - first.offset.value);
+    if (!valid_stable_id(written)) {
+        fail_at_token(DiagnosticCode::unexpected_token, identity.first.value, clipped_theme_detail(written));
+        return false;
+    }
+    return true;
+}
+
+void SheetParser::parse_style_block() {
+    const std::uint32_t node = open_node(SyntaxNodeKind::style_block, next_);
+    tree_.nodes[node].content = TokenRange{TokenIndex{next_}, TokenIndex{next_ + 1U}};
+    ++next_;
+    skip_trivia();
+    if (!push(next_)) {
+        close_node(node, next_);
+        return;
+    }
+    ++next_;
+    // Empty declarations before the first, as CSS admits.
+    skip_trivia();
+    while (!at_end() && tokens_[next_].kind == TokenKind::semicolon) {
+        ++next_;
+        skip_trivia();
+    }
+    if (!at_end() && tokens_[next_].kind == TokenKind::ident) {
+        // The object's own declarations: a rule whose selector, empty, is
+        // the object, ended by the first block or the closing '}'.
+        ++rules_;
+        const std::uint32_t rule = open_node(SyntaxNodeKind::style_rule, next_);
+        tree_.nodes[rule].content = TokenRange{TokenIndex{next_}, TokenIndex{next_}};
+        std::size_t declarations = 0U;
+        while (!stopped()) {
+            skip_trivia();
+            if (at_end()) break;
+            const TokenKind kind = tokens_[next_].kind;
+            if (kind == TokenKind::semicolon) {
+                ++next_;
+                continue;
+            }
+            if (kind != TokenKind::ident) break;
+            ++declarations;
+            if (declarations > maximum_declarations_per_rule) {
+                fail_at_token(DiagnosticCode::too_many_declarations, next_,
+                              std::to_string(maximum_declarations_per_rule));
+                break;
+            }
+            parse_declaration(false);
+        }
+        close_node(rule, trimmed(tree_.nodes[rule].tokens.first.value, next_).end.value);
+    }
+    // Then the part and state blocks, the object's selector implied, to the
+    // block's '}'.
+    while (!stopped()) {
+        skip_trivia();
+        if (at_end()) {
+            fail_at_end(DiagnosticCode::unbalanced_block, open_[depth_ - 1U].opener, "not closed");
+            break;
+        }
+        const TokenKind kind = tokens_[next_].kind;
+        if (kind == TokenKind::right_brace) {
+            pop();
+            ++next_;
+            break;
+        }
+        if (kind == TokenKind::at_keyword) {
+            fail_at_token(DiagnosticCode::nesting_not_admitted, next_, clipped_theme_detail(token_text(next_)));
+            break;
+        }
+        if (kind == TokenKind::ident) {
+            // A declaration after a block.
+            fail_at_token(DiagnosticCode::declaration_outside_rule, next_, {});
+            break;
+        }
+        if (closes_group(kind)) {
+            fail_at_token(DiagnosticCode::unbalanced_block, next_, "no opening");
+            break;
+        }
+        parse_rule(SyntaxNodeKind::style_rule, false);
+    }
+    close_node(node, next_);
 }
 
 ItemEnd SheetParser::scan_to_item_end() {

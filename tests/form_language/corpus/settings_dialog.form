@@ -1,0 +1,40 @@
+/* A settings dialog: properties, handler references, tab order and an
+   inline style with part and state blocks. */
+form settings.dialog {
+  text: "Settings";
+  size: 480 320;
+  accept-button: settings.ok;
+  cancel-button: settings.cancel;
+
+  group settings.general {
+    text: "General";
+    tab-index: 0;
+    check-box settings.general.autosave {
+      text: "Save automatically";
+      checked: true;
+      tab-index: 0;
+      on-checked-changed: autosave_changed;
+    }
+    text-box settings.general.name {
+      text: "Untitled";
+      tab-index: 1;
+      on-text-changed: name_changed;
+      style {
+        min-width: 160px;
+        ::part(face):focus { border-color: role(accent); }
+      }
+    }
+  }
+
+  button settings.ok {
+    text: "OK";
+    tab-index: 1;
+    on-click: accept;
+    style {
+      font-weight: 700;
+      :hover { opacity: 0.9; }
+      ::part(face):pressed { scale: 0.98; }
+    }
+  }
+  button settings.cancel { text: "Cancel"; tab-index: 2; on-click: dismiss; }
+}

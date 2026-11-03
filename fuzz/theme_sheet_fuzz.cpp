@@ -294,6 +294,24 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
         theme_language::parse_theme_sheet(source, again, lines, again_tree, again_diagnostics);
     if (reparsed != parsed || again_tree.nodes != tree.nodes) fail("parsing is repeatable");
     if (!same_records(diagnostics.records(), again_diagnostics.records())) fail("diagnostics are repeatable");
+
+    // The same tokens as a form document (stage FD): the same structural
+    // invariants.
+    theme_language::ThemeDiagnosticList form_diagnostics{};
+    theme_language::ThemeSyntaxTree form_tree{};
+    const theme_language::ParseOutcome form_parsed = theme_language::parse_theme_sheet(
+        source, buffer, lines, form_tree, form_diagnostics, theme_language::ThemeSheetForm::form_document);
+    if (form_parsed == theme_language::ParseOutcome::tree_complete && has_invalid) {
+        fail("an invalid token stops a form parse");
+    }
+    const std::size_t form_errors_admitted = form_parsed == theme_language::ParseOutcome::stopped_at_error ? 1U : 0U;
+    if (form_diagnostics.error_count() != form_errors_admitted) fail("a stopped form parse reports one error");
+    if (!contents_within_nodes(form_tree)) fail("form contents lie within their nodes");
+    std::string form_written{};
+    const theme_language::WriteOutcome form_write =
+        theme_language::write_theme_sheet(form_tree, buffer, source.text, form_written);
+    if (form_write != theme_language::WriteOutcome::written) fail("the form tree nests");
+    if (form_written != source.text) fail("the form tree writes back the document's bytes");
     if (parsed == theme_language::ParseOutcome::tree_complete) {
         read_values(source, buffer, lines, tree);
         read_media(source, buffer, tree);

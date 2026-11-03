@@ -6,9 +6,13 @@ namespace gui_forms::theme_language {
 
 namespace {
 
-// Nodes nest at most this deep: the sheet, an at-rule, a rule and a
-// declaration.
-constexpr std::size_t maximum_node_depth = 4U;
+// Nodes nest at most this deep. A theme sheet nests four deep (the sheet,
+// an at-rule, a rule and a declaration). In a form document every object
+// and style block holds one entry of the parser's explicit stack, so the
+// deepest node is the sheet, objects and a style block filling the stack,
+// the style block's unbraced rule of leading declarations, and a
+// declaration: three more than the stack.
+constexpr std::size_t maximum_node_depth = maximum_nesting_depth + 3U;
 
 // The bytes of tokens [first, end), which lie contiguously in the text.
 // Returns false when the tokens do not lie within the text.
@@ -36,6 +40,8 @@ std::string_view syntax_node_kind_name(SyntaxNodeKind kind) noexcept {
     case SyntaxNodeKind::style_rule: return "style_rule";
     case SyntaxNodeKind::keyframe_block: return "keyframe_block";
     case SyntaxNodeKind::declaration: return "declaration";
+    case SyntaxNodeKind::object_rule: return "object_rule";
+    case SyntaxNodeKind::style_block: return "style_block";
     }
     return "unknown";
 }

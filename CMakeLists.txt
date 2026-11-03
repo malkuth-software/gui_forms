@@ -104,6 +104,14 @@ option(GUI_FORMS_ENABLE_HARFBUZZ_TEXT
        "Build the pinned HarfBuzz/FreeType text engine"
        ${GUI_FORMS_HARFBUZZ_TEXT_DEFAULT})
 option(GUI_FORMS_BUILD_FUZZERS "Build libFuzzer entry points" OFF)
+# Stage FD5: the program that generates a form document's C++ header; the SDK
+# installs it. A cross build has no host to run it on.
+if(CMAKE_CROSSCOMPILING)
+    set(GUI_FORMS_FORM_COMPILER_DEFAULT OFF)
+else()
+    set(GUI_FORMS_FORM_COMPILER_DEFAULT ON)
+endif()
+option(GUI_FORMS_BUILD_FORM_COMPILER "Build and install the form compiler" ${GUI_FORMS_FORM_COMPILER_DEFAULT})
 option(GUI_FORMS_BUILD_BENCHMARKS "Build measurement harnesses" OFF)
 option(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK "Build the renderer-neutral D1 measurement harness" OFF)
 option(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE "Build the private text shaping diagnostic" OFF)
@@ -325,6 +333,10 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/tokenizer/theme_tokenizer.cpp
     src/core/theme_language/syntax_tree/theme_syntax_tree.cpp
     src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
+    src/core/form_language/form_model/form_model.cpp
+    src/core/form_language/form_loader/form_loader.cpp
+    src/core/form_language/form_editor/form_editor.cpp
+    src/core/form_language/form_generator/form_generator.cpp
     src/core/theme_language/selector/theme_selector.cpp
     src/core/theme_language/custom_properties/theme_custom_properties.cpp
     src/core/theme_language/value/theme_value.cpp
@@ -875,6 +887,29 @@ target_include_directories(gui_forms_controls PUBLIC
 target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core)
 set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
+
+if(GUI_FORMS_BUILD_FORM_COMPILER)
+    # The form compiler (stage FD5): a form document's C++ header, generated
+    # with the loader's parser, model and registry schema.
+    add_executable(gui_forms_form_compiler
+        tools/form_compiler/form_compiler.cpp
+        tools/form_compiler/form_catalog.cpp
+    )
+    target_link_libraries(gui_forms_form_compiler PRIVATE gui_forms_controls)
+    set_target_properties(gui_forms_form_compiler PROPERTIES EXPORT_NAME form_compiler)
+    add_executable(GUIForms::form_compiler ALIAS gui_forms_form_compiler)
+    # Its own export set, so a build without it installs no reference to it.
+    install(TARGETS gui_forms_form_compiler EXPORT GUIFormsFormCompilerTargets
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(EXPORT GUIFormsFormCompilerTargets
+            FILE GUIFormsFormCompilerTargets.cmake
+            NAMESPACE GUIForms::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+endif()
+# gui_forms_add_form(): form documents generated at build time, here and for
+# SDK consumers.
+include(cmake/GUIFormsForms.cmake)
+install(FILES cmake/GUIFormsForms.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
 add_library(gui_forms_c_api SHARED
     src/abi/c_api.cpp
@@ -2747,6 +2782,8 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_executable(gui_forms_owned_event_lab tools/owned_event_lab.cpp)
     target_link_libraries(gui_forms_owned_event_lab PRIVATE gui_forms_core)
+    add_executable(gui_forms_property_capability_lab tools/property_capability_lab.cpp)
+    target_link_libraries(gui_forms_property_capability_lab PRIVATE gui_forms_controls)
 
     add_executable(gui_forms_delegate_event_tests tests/delegate_event_tests.cpp)
     target_link_libraries(gui_forms_delegate_event_tests PRIVATE gui_forms_core)
@@ -2845,6 +2882,52 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_syntax_tests tests/theme_language/theme_syntax_tests.cpp)
     target_link_libraries(gui_forms_theme_syntax_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_syntax_tests COMMAND gui_forms_theme_syntax_tests)
+    add_executable(gui_forms_form_syntax_tests tests/form_language/form_syntax_tests.cpp)
+    target_link_libraries(gui_forms_form_syntax_tests PRIVATE gui_forms_core)
+    target_compile_definitions(gui_forms_form_syntax_tests PRIVATE
+        GUI_FORMS_FORM_CORPUS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/corpus")
+    add_test(NAME gui_forms_form_syntax_tests COMMAND gui_forms_form_syntax_tests)
+    add_executable(gui_forms_form_model_tests tests/form_language/form_model_tests.cpp)
+    target_link_libraries(gui_forms_form_model_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_model_tests COMMAND gui_forms_form_model_tests)
+    add_executable(gui_forms_form_loader_tests tests/form_language/form_loader_tests.cpp)
+    target_link_libraries(gui_forms_form_loader_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_loader_tests COMMAND gui_forms_form_loader_tests)
+    add_executable(gui_forms_form_editor_tests tests/form_language/form_editor_tests.cpp)
+    target_link_libraries(gui_forms_form_editor_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_editor_tests COMMAND gui_forms_form_editor_tests)
+    add_executable(gui_forms_form_generator_tests tests/form_language/form_generator_tests.cpp
+        tools/form_compiler/form_catalog.cpp)
+    target_link_libraries(gui_forms_form_generator_tests PRIVATE gui_forms_controls)
+    target_compile_definitions(gui_forms_form_generator_tests PRIVATE
+        GUI_FORMS_FORM_GENERATED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated")
+    add_test(NAME gui_forms_form_generator_tests COMMAND gui_forms_form_generator_tests)
+    if(TARGET gui_forms_form_compiler)
+        # The program end to end: the golden header is current, and a
+        # document it cannot spell is refused with a located E812.
+        add_test(NAME gui_forms_form_compiler_tests
+            COMMAND gui_forms_form_compiler
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated/sample_dialog.form
+                --class SampleDialogForm --namespace form_generated --check
+                --output ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated/sample_dialog_form.hpp)
+        add_test(NAME gui_forms_form_compiler_refusal_tests
+            COMMAND gui_forms_form_compiler
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated/refused_dialog.form
+                --class RefusedForm --check --output refused_dialog_form.hpp)
+        set_tests_properties(gui_forms_form_compiler_refusal_tests PROPERTIES
+            PASS_REGULAR_EXPRESSION "E812 form_generation_refused: refused-ok")
+        # gui_forms_add_form end to end: a header generated at build time,
+        # naming an application type.
+        add_executable(gui_forms_form_application_type_tests
+            tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp)
+        target_link_libraries(gui_forms_form_application_type_tests PRIVATE gui_forms_controls)
+        target_include_directories(gui_forms_form_application_type_tests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
+        gui_forms_add_form(gui_forms_form_application_type_tests tests/form_language/generated/note_dialog.form
+            CLASS NoteDialogForm NAMESPACE form_generated
+            TYPES "note_card,form_generated::NoteCard,user_control,generated/note_card.hpp")
+        add_test(NAME gui_forms_form_application_type_tests COMMAND gui_forms_form_application_type_tests)
+    endif()
 
     add_executable(gui_forms_theme_selector_tests tests/theme_language/theme_selector_tests.cpp)
     target_link_libraries(gui_forms_theme_selector_tests PRIVATE gui_forms_core)

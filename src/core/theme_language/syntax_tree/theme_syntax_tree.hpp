@@ -64,13 +64,26 @@ enum class SyntaxNodeKind : std::uint8_t {
     // `<property>: <value> [!important] [;]`. The property is the node's
     // first token. Content: the value, without `!important`.
     declaration,
+    // A form document's object (stage FD): `<type> <stable-id> { ... }`,
+    // its block holding declarations (properties, and `on-<interaction>:
+    // <handler>;` handler references), objects and style blocks, in any
+    // order (the form model, FD2, admits one style block). Content: the prelude; its first token is the
+    // type, and its last token run, written without whitespace, is the
+    // stable ID.
+    object_rule,
+    // `style { ... }` in a form object: the object's inline style (P9) in
+    // a block. Its leading declarations become a style rule whose
+    // selector is empty, then come its part and state blocks. Content: the
+    // `style` keyword.
+    style_block,
 };
 
 [[nodiscard]] std::string_view syntax_node_kind_name(SyntaxNodeKind kind) noexcept;
 
 // Node flags.
-// What a text is: a theme sheet, or a control's inline style (P9).
-enum class ThemeSheetForm : std::uint8_t { sheet, inline_style };
+// What a text is: a theme sheet, a control's inline style (P9), or a form
+// document (stage FD, a `.form` file).
+enum class ThemeSheetForm : std::uint8_t { sheet, inline_style, form_document };
 
 // A declaration followed by `!important`.
 inline constexpr std::uint8_t syntax_flag_important = 0x01U;
@@ -135,6 +148,18 @@ enum class ParseOutcome : std::uint8_t {
 // (`::part(face):hover { ... }`). The declarations become a style rule
 // whose selector is empty; the end of the text may end the last one. No
 // at-rule is admitted (E206), and a declaration after a block is E203.
+//
+// A form document (ThemeSheetForm::form_document, stage FD) is a list of
+// object rules (SyntaxNodeKind::object_rule), each `<type> <stable-id> {`
+// then declarations, nested objects and style blocks in any order, then
+// `}`. Objects nest as deep as the explicit stack admits
+// (maximum_nesting_depth, E504), each counting toward maximum_rules and
+// its own declarations toward maximum_declarations_per_rule. A prelude
+// that is not one type identifier, then trivia, then a stable ID
+// (valid_stable_id) written without whitespace is E201 at its offending
+// token; an at-rule anywhere is E206; a declaration outside every object
+// is E203. What the types, properties and handlers mean is the form
+// model's to check (FD2), not the parser's.
 [[nodiscard]] ParseOutcome parse_theme_sheet(const ThemeSource& source, const ThemeTokenBuffer& tokens,
                                              const LineStartTable& lines, ThemeSyntaxTree& tree,
                                              ThemeDiagnosticList& diagnostics,

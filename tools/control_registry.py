@@ -15,7 +15,10 @@ controls table consume. This module has three jobs:
   committed file is current with ``--check``;
 - ``emit-abi``: write ``src/abi/stable/schema/abi_schema_catalog.hpp``, the
   C ABI's table of every type with the recipes it describes and creates the
-  type by, or prove the committed file is current with ``--check``.
+  type by, or prove the committed file is current with ``--check``;
+- ``emit-forms``: write ``tools/form_compiler/form_compiler_catalog.hpp``, the
+  form compiler's table of every type with its C++ class and header, or prove
+  the committed file is current with ``--check``.
 
 Standard library only; Python 3.12+.
 """
@@ -43,6 +46,7 @@ README_START: str = "<!-- controls:start -->"
 README_END: str = "<!-- controls:end -->"
 GALLERY_CATALOG_PATH: Path = ROOT / "demo" / "gallery_catalog.inc"
 ABI_CATALOG_PATH: Path = ROOT / "src" / "abi" / "stable" / "schema" / "abi_schema_catalog.hpp"
+FORMS_CATALOG_PATH: Path = ROOT / "tools" / "form_compiler" / "form_compiler_catalog.hpp"
 
 # Fixed WinForms-style by-function categories, in render order.
 CATEGORIES: tuple[str, ...] = (
@@ -553,6 +557,45 @@ def render_abi_catalog(registry: Registry) -> str:
     return "\n".join(lines)
 
 
+def render_forms_catalog(registry: Registry) -> str:
+    """The form compiler's type catalog (see tools/form_compiler/form_catalog.hpp).
+
+    Records keep registry order. Each entry names the type's C++ class and
+    public header for generated code, and instantiates the recipe that adds
+    the type to the form schema when it can be made alone.
+    """
+    headers: list[str] = sorted({record.header for record in registry.records})
+    lines: list[str] = [
+        "// Generated from manifests/controls.json by `python3 tools/control_registry.py emit-forms`.",
+        "// Do not edit; `python3 tools/control_registry.py emit-forms --check` fails when stale.",
+        "// Included only by form_catalog.cpp: every registry type in registry order, with its",
+        "// C++ class, its public header and the recipe that adds it to the form schema.",
+        "",
+        "#pragma once",
+        "",
+        '#include "form_catalog.hpp"',
+        "",
+    ]
+    for header in headers:
+        lines.append(f'#include "{header}"')
+    lines.append("")
+    lines.append("#include <array>")
+    lines.append("")
+    lines.append("namespace gui_forms::form_compiler {")
+    lines.append("")
+    lines.append(f"inline constexpr std::array<FormCatalogEntry, {len(registry.records)}> form_catalog{{{{")
+    for record in registry.records:
+        lines.append(
+            f"    {{{_cpp_string(record.id)}, {_cpp_string(record.type)}, {_cpp_string(record.header)}, "
+            f"&add_catalog_type<{record.type}>}},"
+        )
+    lines.append("}};")
+    lines.append("")
+    lines.append("} // namespace gui_forms::form_compiler")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def render_all(registry: Registry) -> dict[str, str]:
     return {BY_FUNCTION_NAME: render_by_function(registry), ALPHABETICAL_NAME: render_alphabetical(registry)}
 
@@ -647,6 +690,11 @@ def _command_emit_abi(args: argparse.Namespace) -> int:
     return _emit("emit-abi", render_abi_catalog(registry), args.out, args.check)
 
 
+def _command_emit_forms(args: argparse.Namespace) -> int:
+    registry: Registry = load_registry(args.registry)
+    return _emit("emit-forms", render_forms_catalog(registry), args.out, args.check)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--registry", type=Path, default=REGISTRY_PATH, help="path to controls.json")
@@ -669,6 +717,11 @@ def build_parser() -> argparse.ArgumentParser:
     emit_abi.add_argument("--out", type=Path, default=ABI_CATALOG_PATH, help="output header path")
     emit_abi.add_argument("--check", action="store_true", help="fail when the committed header is stale")
     emit_abi.set_defaults(run=_command_emit_abi)
+    emit_forms: argparse.ArgumentParser = subparsers.add_parser(
+        "emit-forms", help="write or check tools/form_compiler/form_compiler_catalog.hpp")
+    emit_forms.add_argument("--out", type=Path, default=FORMS_CATALOG_PATH, help="output header path")
+    emit_forms.add_argument("--check", action="store_true", help="fail when the committed header is stale")
+    emit_forms.set_defaults(run=_command_emit_forms)
     return parser
 
 

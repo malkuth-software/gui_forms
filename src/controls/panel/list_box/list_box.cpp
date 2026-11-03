@@ -2,6 +2,8 @@
 #include "list_box_anatomy.hpp"
 
 #include "../input_control_utilities.hpp"
+#include "../text_items_property.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -31,6 +33,34 @@ ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     set_paint_plane(PaintPlane::control);
     set_border_style(BorderStyle::sunken);
     set_focusable(true);
+    PropertyRegistration items_registration;
+    items_registration.descriptor = text_items_property::descriptor("Ordered text items the list shows.");
+    items_registration.get =
+        detail::BoundMemberFunction<BindingValue (ListBox::*)() const>(*this, &ListBox::items_property_value);
+    items_registration.set =
+        detail::BoundMemberFunction<void (ListBox::*)(const BindingValue&)>(*this, &ListBox::set_items_property);
+    items_registration.reset = detail::BoundMemberFunction<void (ListBox::*)()>(*this, &ListBox::reset_items_property);
+    items_registration.should_serialize = detail::BoundMemberFunction<bool (ListBox::*)() const noexcept>(
+        *this, &ListBox::should_serialize_items_property);
+    define_bindable_property(std::move(items_registration));
+}
+
+BindingValue ListBox::items_property_value() const {
+    BindingValue value = text_items_property::value_of(items_);
+    return value;
+}
+
+void ListBox::set_items_property(const BindingValue& value) {
+    std::vector<std::string> items = text_items_property::items_of(value, "ListBox");
+    set_items(std::move(items));
+}
+
+void ListBox::reset_items_property() {
+    set_items({});
+}
+
+bool ListBox::should_serialize_items_property() const noexcept {
+    return !items_.empty();
 }
 
 void ListBox::set_items(std::vector<std::string> items) {
