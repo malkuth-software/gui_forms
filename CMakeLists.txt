@@ -93,6 +93,8 @@ if(WIN32 AND NOT MSVC)
     add_link_options(-static)
 endif()
 include(CMakePackageConfigHelpers)
+# stx_auxlib::simd, the process-wide SIMD level stx_conv selects its kernels by.
+include(cmake/StxAuxlib.cmake)
 add_subdirectory(stx_zlib)
 add_subdirectory(stx_png)
 add_subdirectory(stx_conv)
