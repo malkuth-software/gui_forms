@@ -1,4 +1,5 @@
-// Exercise the private native painter in the same translation unit.
+// Exercise the Windows host's raster (stage SK3: the Skia CPU painter behind
+// the window's DIB) and its clipboard images in the same translation unit.
 #include "gui_forms/canvas.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
@@ -39,13 +40,13 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     const Size size{180, 150};
     Window window(canvas, size);
     window.perform_layout();
-    host::DibPainter tiled;
+    host::WindowsRaster tiled;
     require(tiled.resize(size, scale));
     require(tiled.synchronize_images(window.image_resources()));
     DamageRegion damage;
     damage.add({0, 0, size.width, size.height});
     tiled.begin_frame();
-    require(window.paint(tiled).has_value());
+    require(window.paint(tiled.painter()).has_value());
 
     if (edited) {
         (*bitmap).set_pixel(511, 511, gui_drawing::Color::from_name("red"));
@@ -53,19 +54,19 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
         require((*canvas).synchronize_bitmap());
         require(tiled.synchronize_images(window.image_resources()));
         tiled.begin_frame();
-        require(window.paint(tiled).has_value());
+        require(window.paint(tiled.painter()).has_value());
     
     }
     const gui_drawing::ImageSnapshot snapshot = (*bitmap).snapshot();
     ImageRegistry registry;
     const ImageLoadResult loaded = registry.load_bgra32_premultiplied(1025, 1025, snapshot.row_bytes(), snapshot.pixels());
     require(bool(loaded));
-    host::DibPainter reference;
+    host::WindowsRaster reference;
     require(reference.resize(size, scale));
     require(reference.synchronize_images(registry));
     reference.begin_frame();
-    reference.fill_rect({0, 0, size.width, size.height}, Color::rgba(23, 37, 51));
-    reference.draw_image_region_sampled(loaded.image, {0, 0, 1025, 1025},
+    reference.painter().fill_rect({0, 0, size.width, size.height}, Color::rgba(23, 37, 51));
+    reference.painter().draw_image_region_sampled(loaded.image, {0, 0, 1025, 1025},
         {-470.3 * zoom, -480.7 * zoom, 1025 * zoom, 1025 * zoom}, sampling, 1);
 
     require(tiled.save_bmp(L"canvas_tiled_test.bmp"));
@@ -90,32 +91,6 @@ void compare(ImageSampling sampling, double zoom, double scale, bool edited) {
     std::cout << "sampling=" << int(sampling) << " zoom=" << zoom << " scale=" << scale
               << " edited=" << edited << " max_channel_error=" << maximum << " differences=" << differences << '\n';
     require(maximum <= 1);
-}
-void disclosure_render() {
-    const std::shared_ptr<DropDownButton> button = make_control<DropDownButton>(
-        StableId("dropdown"), "Rotate", DropDownButtonMode::menu);
-    Window window(button, {120, 40});
-    window.perform_layout();
-    host::DibPainter painter;
-    require(painter.resize({120, 40}, 1));
-    painter.begin_frame();
-    require(window.paint(painter).has_value());
-    require(painter.save_bmp(L"windows-dropdown-test.bmp"));
-    std::ifstream stream("windows-dropdown-test.bmp", std::ios::binary);
-    const std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(stream)), {});
-    require(bytes.size() >= 54 + 120 * 40 * 4);
-    const std::size_t pixel_offset = bytes[10] | (bytes[11] << 8) | (bytes[12] << 16) | (bytes[13] << 24);
-    // GDI paints the seven, five, three, one pixel scanlines of the filled
-    // indicator in the same text color as the control foreground.
-    const Color color = (*button).style().text;
-    for (int row = 0; row < 4; ++row) {
-        for (int column = 0; column < 7 - row * 2; ++column) {
-            const int x = 109 + row + column, y = 19 + row;
-            const std::size_t offset = pixel_offset + (static_cast<std::size_t>(y) * 120 + x) * 4;
-            require(offset + 3 < bytes.size());
-            require(bytes[offset] == color.blue && bytes[offset + 1] == color.green && bytes[offset + 2] == color.red);
-        }
-    }
 }
 // The clipboard is one per desktop: copies of this test running at the same
 // time (a parallel ctest, other checkouts on the machine) would replace each
@@ -240,17 +215,16 @@ void clipboard_images() {
     require(DestroyWindow(owner));
 }
 
-#include "support/windows_shape_reference.hpp"
 #include "support/edge_snapping_scene.hpp"
 
-// Owner decision L-Q8 on the DIB painter: each box edge rounds to the
+// Owner decision L-Q8 on the window's raster: each box edge rounds to the
 // nearest device pixel, so neighbours share an edge (support/edge_snapping_scene.hpp).
 void edge_snapping_scene() {
     for (const double scale : edge_snapping::scales) {
-        host::DibPainter painter;
+        host::WindowsRaster painter;
         require(painter.resize(edge_snapping::scene_size, scale));
         painter.begin_frame();
-        edge_snapping::paint_scene(painter);
+        edge_snapping::paint_scene(painter.painter());
         require(painter.save_bmp(L"edge-snapping.bmp"));
         std::ifstream file("edge-snapping.bmp", std::ios::binary);
         const std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(file)), {});
@@ -269,11 +243,9 @@ void edge_snapping_scene() {
 
 int main() {
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-    shape_scanline_equivalence();
     edge_snapping_scene();
     clipboard_files();
     clipboard_images();
-    disclosure_render();
     for (ImageSampling sampling : {ImageSampling::nearest, ImageSampling::linear})
         for (double zoom : {1.0 / 64, 0.1, 0.25, 1.0, 1.25, 3.1})
             for (double scale : {1.0, 1.5, 2.0})

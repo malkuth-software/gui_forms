@@ -3,11 +3,11 @@ name: Codec fuzz smoke
 # a cheap build check that surfaces broken contracts quickly. It is not a
 # certificate and never runs on the owner's machine (owner revision of
 # decision 6A, 2026-10-20). The deterministic malformed-input sweeps in the
-# normal suite and the whole-suite sanitizer job carry the evidence.
+# normal suite and the sanitized local run at checkpoint fold time carry the evidence.
 on:
   # Weekly backstop and manual runs only (owner, 2026-10-29): the owned codecs passed their
-  # differential and fuzz gates long ago, and the normal suite and the sanitizer job carry
-  # the deterministic malformed-input sweeps on every change.
+  # differential and fuzz gates long ago, and the normal suite (on every change) and the
+  # sanitized local run at checkpoint fold time carry the deterministic malformed-input sweeps.
   schedule:
     - cron: '37 4 * * 6'
   workflow_dispatch:

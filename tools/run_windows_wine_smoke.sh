@@ -61,7 +61,7 @@ trap - EXIT INT TERM
 
 test "$(rg -c '"automation":"click".*"handled":true' "$log")" -eq 6
 rg -q '"automation":"capture","saved":true' "$log"
-rg -q '"renderer_name":"Win32 DIB CPU · HarfBuzz/FreeType text · WIC PNG · bundled fonts"' "$log"
+rg -q '"renderer_name":"Win32 DIB · Skia CPU raster · HarfBuzz/FreeType text · owned PNG · bundled fonts"' "$log"
 rg -q '"events_rejected":0' "$log"
 rg -q '"close_requests":1' "$log"
 rg -q '"closed":true' "$log"

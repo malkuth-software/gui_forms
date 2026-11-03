@@ -147,17 +147,34 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
         // A disabled link keeps the theme's disabled text (T4-1).
         if (enabled()) recipe.text = visited_ ? colors.visited_link : colors.link;
     }
-    recipe.glyph = recipe.text;
     const Color foreground = recipe.text;
     const double baseline = text_baseline();
-    painter.draw_text_utf8({2.0, baseline}, display_text(), font(), foreground);
+    // The label part centres its line box on its bounds, so the bounds are
+    // that box, placed on the baseline. The text and the underline are
+    // drawn in the link's colour as authored colour (T4-1): a disabled link
+    // takes the theme's disabled ink.
+    const std::string display = display_text();
+    const FontSpec text_font = font();
+    const Size measured = painter.measure_text_utf8(display, text_font);
+    const double box_height = std::max(measured.height, text_font.size * 1.2);
+    const double box_ascent = std::max(text_font.size, box_height * 0.82);
+    PartPaint label;
+    label.role = PartRole::label;
+    label.family = family;
+    label.states = states;
+    label.text = display;
+    label.font = text_font;
+    label.bounds = {2.0, baseline - box_ascent, std::max(measured.width, bounds.width - 2.0), box_height};
+    label.authored_foreground = foreground;
+    paint_part(painter, *this, label);
     PartPaint underline;
     underline.role = PartRole::glyph;
     underline.family = family;
     underline.mark = PartMark::underline;
     underline.states = states;
     underline.bounds = {2.0, baseline + 1.5, underline_width(), 1.0};
-    paint_part_from_recipe(painter, underline, recipe, context);
+    underline.authored_foreground = foreground;
+    paint_part(painter, *this, underline);
     if (focus_cue_visible()) {
         paint_focus(painter, bounds, foreground);
     }

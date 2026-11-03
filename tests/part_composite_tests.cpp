@@ -3,7 +3,7 @@
 // arithmetic, weighted by the part's opacity and the clip; the retained
 // Painter command keeps the raster, replays it unchanged and is inspectable.
 // The cross-host byte identity of the composite is checked by
-// part_composite_identity_tests (Skia) and windows_part_composite_tests.
+// part_composite_identity_tests on the Skia raster every host draws with.
 
 #include "../src/core/text/composite/text_composite.hpp"
 

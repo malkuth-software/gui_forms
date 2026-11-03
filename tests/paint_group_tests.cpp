@@ -5,7 +5,7 @@
 // chunk that begins them with their saves balanced, and are inspectable.
 // A minimal painter without isolation clips a group to its bounds and draws
 // nothing at opacity 0. The pixels groups make are checked on every host by
-// windows_part_composite_tests and part_composite_identity_tests.
+// part_composite_identity_tests.
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/visual_inspection.hpp"

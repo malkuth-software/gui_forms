@@ -1227,13 +1227,6 @@
       "reason": "four bytes; the byte order picks each lane"
     },
     {
-      "path": "src/host/windows/application/windows_host.cpp",
-      "function": "gui_forms::host::DibPainter::draw_group_line",
-      "condition": "length_squared > 0.0",
-      "decision": "keep",
-      "reason": "guards a division per pixel; a hoisted reciprocal would change the rounding, and a split would duplicate the coverage body"
-    },
-    {
       "path": "src/host/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp",
       "function": "gui_forms::host::Implementation::allocate_compatibility_handle",
       "condition": "sizeof(std::uintptr_t) >= sizeof(std::uint64_t)",

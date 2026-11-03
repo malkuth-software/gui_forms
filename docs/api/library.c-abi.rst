@@ -16,10 +16,22 @@ Types
 
    * - :cpp:class:`Api <gui_forms::abi0::Api>`
      - Api negotiates ABI 0.4 once, retains the immutable function table, and translates thread-local C diagnostics into typed C++ exceptions.
+   * - :cpp:class:`BindingsTable <gui_forms::abi::BindingsTable>`
+     - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
    * - :cpp:class:`Control <gui_forms::abi0::Control>`
      - The abi0::Control wrapper gives a generational C handle deterministic RAII retain/release, value-like copying, move transfer, bounded strings, and exception translation without becoming a retained visual object.
+   * - :cpp:class:`ControlsTable <gui_forms::abi::ControlsTable>`
+     - gf_controls_table, negotiated as GF_TABLE_CONTROLS.
+   * - :cpp:class:`CustomControlsTable <gui_forms::abi::CustomControlsTable>`
+     - gf_custom_controls_table, negotiated as GF_TABLE_CUSTOM_CONTROLS.
+   * - :cpp:class:`DiagnosticsTable <gui_forms::abi::DiagnosticsTable>`
+     - gf_diagnostics_table, negotiated as GF_TABLE_DIAGNOSTICS.
+   * - :cpp:class:`DispatchTable <gui_forms::abi::DispatchTable>`
+     - gf_dispatch_table, negotiated as GF_TABLE_DISPATCH.
    * - :cpp:class:`Error <gui_forms::abi0::Error>`
      - Error carries the exact C ABI result code alongside a conventional C++ runtime-error message.
+   * - :cpp:class:`EventsTable <gui_forms::abi::EventsTable>`
+     - gf_events_table, negotiated as GF_TABLE_EVENTS.
    * - :cpp:class:`gd_api_v0 <gd_api_v0>`
      - gd_api_v0 is the size-versioned negotiated function table for drawing object ownership, transforms, paths, regions, brushes, pens, fonts, text, images, bitmap locks/edits/damage, recording/replay, native interop, and raster publication.
    * - :cpp:class:`gd_bitmap_damage_summary <gd_bitmap_damage_summary>`
@@ -206,6 +218,32 @@ Types
      -  
    * - :cpp:class:`gf_windows_table <gf_windows_table>`
      -  
+   * - :cpp:class:`HostTable <gui_forms::abi::HostTable>`
+     - gf_host_table, negotiated as GF_TABLE_HOST.
+   * - :cpp:class:`ObjectReference <gui_forms::abi::ObjectReference>`
+     - One reference to a library object, released (objects.release) when the owner goes or resets.
+   * - :cpp:class:`ObjectsTable <gui_forms::abi::ObjectsTable>`
+     - gf_objects_table, negotiated as GF_TABLE_OBJECTS.
+   * - :cpp:class:`PopupsTable <gui_forms::abi::PopupsTable>`
+     - gf_popups_table, negotiated as GF_TABLE_POPUPS.
+   * - :cpp:class:`PropertiesTable <gui_forms::abi::PropertiesTable>`
+     - gf_properties_table, negotiated as GF_TABLE_PROPERTIES.
+   * - :cpp:class:`PropertyGridTable <gui_forms::abi::PropertyGridTable>`
+     - gf_property_grid_table, negotiated as GF_TABLE_PROPERTY_GRID.
+   * - :cpp:class:`RuntimeTable <gui_forms::abi::RuntimeTable>`
+     - gf_runtime_table, negotiated as GF_TABLE_RUNTIME.
+   * - :cpp:class:`SchemaTable <gui_forms::abi::SchemaTable>`
+     - gf_schema_table, negotiated as GF_TABLE_SCHEMA.
+   * - :cpp:class:`SubscriptionReference <gui_forms::abi::SubscriptionReference>`
+     - One subscription, disconnected (events.disconnect) when the owner goes or resets.
+   * - :cpp:class:`TextEditingTable <gui_forms::abi::TextEditingTable>`
+     - gf_text_editing_table, negotiated as GF_TABLE_TEXT_EDITING.
+   * - :cpp:class:`ThemesTable <gui_forms::abi::ThemesTable>`
+     - gf_themes_table, negotiated as GF_TABLE_THEMES.
+   * - :cpp:class:`WindowsPaintEndpointTable <gui_forms::abi::WindowsPaintEndpointTable>`
+     - gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
+   * - :cpp:class:`WindowsTable <gui_forms::abi::WindowsTable>`
+     - gf_windows_table, negotiated as GF_TABLE_WINDOWS.
 
 .. cpp:namespace:: gui_forms::abi0
 
@@ -229,6 +267,59 @@ Types
    .. rubric:: Methods
 
    .. cpp:function:: void throw_last(gf_result result) const
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: BindingsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: BindingsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_bindings_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(BindingsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static BindingsTable adopt(const gf_bindings_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status bind(const gf_binding_arguments* arguments, gf_object* binding) const noexcept
+
+   .. cpp:function:: gf_status unbind(gf_object binding) const noexcept
+
+   .. cpp:function:: gf_status read_value(gf_object binding, uint32_t* updated) const noexcept
+
+   .. cpp:function:: gf_status write_value(gf_object binding, uint32_t* updated) const noexcept
+
+   .. cpp:function:: gf_status add_record(gf_object source, const gf_binding_record* record, uint64_t* index) const noexcept
+
+   .. cpp:function:: gf_status insert_record(gf_object source, uint64_t index, const gf_binding_record* record) const noexcept
+
+   .. cpp:function:: gf_status remove_record(gf_object source, uint64_t index, uint32_t* removed) const noexcept
+
+   .. cpp:function:: gf_status clear_records(gf_object source) const noexcept
+
+   .. cpp:function:: gf_status position(gf_object source, int64_t* position, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status current_field(gf_object source, gf_utf8_view field, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status set_position(gf_object source, int64_t position, uint32_t* moved) const noexcept
+
+   .. cpp:function:: gf_status set_current_field(gf_object source, gf_utf8_view field, const gf_value* value, uint32_t* accepted) const noexcept
 
 .. cpp:namespace:: gui_forms::abi0
 
@@ -291,6 +382,154 @@ Types
 
    .. cpp:function:: void dispose()
 
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ControlsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_controls_table, negotiated as GF_TABLE_CONTROLS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ControlsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_controls_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ControlsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ControlsTable adopt(const gf_controls_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status suspend_layout(gf_object object) const noexcept
+
+   .. cpp:function:: gf_status resume_layout(gf_object object, uint32_t perform_layout) const noexcept
+
+   .. cpp:function:: gf_status perform_layout(gf_object object) const noexcept
+
+   .. cpp:function:: gf_status layout_state(gf_object object, gf_layout_transaction* state) const noexcept
+
+   .. cpp:function:: gf_status window_bounds(gf_object object, gf_logical_rect* bounds) const noexcept
+
+   .. cpp:function:: gf_status pointer_capture(gf_object object, uint32_t* captured) const noexcept
+
+   .. cpp:function:: gf_status scroll_state(gf_object object, gf_scroll_snapshot* state) const noexcept
+
+   .. cpp:function:: gf_status scroll_into_view(gf_object object, gf_object child) const noexcept
+
+   .. cpp:function:: gf_status invalidate(gf_object object, const gf_logical_rect* damage) const noexcept
+
+   .. cpp:function:: gf_status set_pointer_capture(gf_object object, uint32_t captured) const noexcept
+
+   .. cpp:function:: gf_status set_scroll_axis(gf_object object, gf_scroll_orientation orientation, const gf_scroll_axis* axis) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: CustomControlsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_custom_controls_table, negotiated as GF_TABLE_CUSTOM_CONTROLS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: CustomControlsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_custom_controls_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(CustomControlsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static CustomControlsTable adopt(const gf_custom_controls_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status create(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object) const noexcept
+
+   .. cpp:function:: gf_status notify_changed(gf_object object, uint64_t index) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: DiagnosticsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_diagnostics_table, negotiated as GF_TABLE_DIAGNOSTICS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DiagnosticsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_diagnostics_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(DiagnosticsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static DiagnosticsTable adopt(const gf_diagnostics_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status shadow_frames(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required, gf_shadow_stack_info* info) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: DispatchTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_dispatch_table, negotiated as GF_TABLE_DISPATCH.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DispatchTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_dispatch_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(DispatchTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static DispatchTable adopt(const gf_dispatch_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status begin_invoke(gf_object target, const gf_callback* callback) const noexcept
+
+   .. cpp:function:: gf_status run_pending(uint64_t* invoked) const noexcept
+
 .. cpp:namespace:: gui_forms::abi0
 
 .. cpp:class:: Error final : public std::runtime_error
@@ -308,6 +547,45 @@ Types
    .. rubric:: Properties
 
    .. cpp:function:: gf_result result() const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: EventsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_events_table, negotiated as GF_TABLE_EVENTS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: EventsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_events_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(EventsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static EventsTable adopt(const gf_events_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status subscribe(gf_object source, gf_utf8_view interaction, const gf_callback* callback, gf_subscription* subscription) const noexcept
+
+   .. cpp:function:: gf_status subscribe_property(gf_object source, gf_utf8_view property, const gf_callback* callback, gf_subscription* subscription) const noexcept
+
+   .. cpp:function:: gf_status disconnect(gf_subscription subscription) const noexcept
+
+   .. cpp:function:: gf_status write_field(gf_event* event, uint64_t field, const gf_value* value) const noexcept
+
+   .. cpp:function:: gf_status field_element(const gf_event* event, uint64_t field, uint64_t index, gf_value* element) const noexcept
 
 .. cpp:namespace:: 0
 
@@ -2535,3 +2813,562 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: HostTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_host_table, negotiated as GF_TABLE_HOST.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: HostTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_host_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(HostTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static HostTable adopt(const gf_host_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status capabilities(gf_host_capabilities* record) const noexcept
+
+   .. cpp:function:: gf_status platform_name(char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status read_clipboard_text(char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status write_clipboard_text(gf_utf8_view text) const noexcept
+
+   .. cpp:function:: gf_status show_dialog(const gf_dialog_request* request, gf_dialog_result* result) const noexcept
+
+   .. cpp:function:: gf_status dialog_path_at(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status set_cursor(gf_pointer_cursor cursor) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ObjectReference
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   One reference to a library object, released (objects.release) when the owner goes or resets. The ObjectsTable it borrows must outlive it.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ObjectReference() noexcept
+
+   .. cpp:function:: ObjectReference(const ObjectsTable& objects, gf_object object) noexcept
+
+   .. cpp:function:: ObjectReference(ObjectReference&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: gf_object get() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: gf_object detach() noexcept
+
+      Gives the reference to the caller without releasing it.
+
+   .. cpp:function:: gf_status reset() noexcept
+
+      Releases the reference now; GF_STATUS_OK when there was none. The owner is empty afterwards whatever release answered.
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ObjectsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_objects_table, negotiated as GF_TABLE_OBJECTS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ObjectsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_objects_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ObjectsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ObjectsTable adopt(const gf_objects_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status create(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object) const noexcept
+
+   .. cpp:function:: gf_status retain(gf_object object) const noexcept
+
+   .. cpp:function:: gf_status release(gf_object object) const noexcept
+
+   .. cpp:function:: gf_status dispose(gf_object object) const noexcept
+
+   .. cpp:function:: gf_status state(gf_object object, gf_object_state* state) const noexcept
+
+   .. cpp:function:: gf_status type_id(gf_object object, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status stable_id(gf_object object, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status insert_child(gf_object parent, gf_object child, uint64_t index) const noexcept
+
+   .. cpp:function:: gf_status remove_child(gf_object parent, gf_object child) const noexcept
+
+   .. cpp:function:: gf_status child_count(gf_object parent, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status child_at(gf_object parent, uint64_t index, gf_object* child) const noexcept
+
+   .. cpp:function:: gf_status parent(gf_object object, gf_object* parent) const noexcept
+
+   .. cpp:function:: gf_status create_with(gf_utf8_view type_name, gf_utf8_view stable_id, const gf_create_arguments* arguments, gf_object* object) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: PopupsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_popups_table, negotiated as GF_TABLE_POPUPS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PopupsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_popups_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(PopupsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static PopupsTable adopt(const gf_popups_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status open_popup(gf_object owner, gf_object popup) const noexcept
+
+   .. cpp:function:: gf_status close_popup(gf_object popup) const noexcept
+
+   .. cpp:function:: gf_status show_tool_tip(gf_object tool_tip, gf_object target, uint64_t duration_ms) const noexcept
+
+   .. cpp:function:: gf_status hide_tool_tip(gf_object tool_tip) const noexcept
+
+   .. cpp:function:: gf_status set_tool_tip(gf_object tool_tip, gf_object target, gf_utf8_view text) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: PropertiesTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_properties_table, negotiated as GF_TABLE_PROPERTIES.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PropertiesTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_properties_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(PropertiesTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static PropertiesTable adopt(const gf_properties_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status get(gf_object object, gf_utf8_view name, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status set(gf_object object, gf_utf8_view name, const gf_value* value) const noexcept
+
+   .. cpp:function:: gf_status reset(gf_object object, gf_utf8_view name) const noexcept
+
+   .. cpp:function:: gf_status element_at(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: PropertyGridTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_property_grid_table, negotiated as GF_TABLE_PROPERTY_GRID.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PropertyGridTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_property_grid_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(PropertyGridTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static PropertyGridTable adopt(const gf_property_grid_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status select_objects(gf_object grid, const gf_object* objects, uint64_t count) const noexcept
+
+   .. cpp:function:: gf_status refresh(gf_object grid) const noexcept
+
+   .. cpp:function:: gf_status try_set_text(gf_object grid, gf_utf8_view name, gf_utf8_view text, uint32_t* accepted) const noexcept
+
+   .. cpp:function:: gf_status reset_property(gf_object grid, gf_utf8_view name, uint32_t* reset) const noexcept
+
+   .. cpp:function:: gf_status activate_editor(gf_object grid, gf_utf8_view name, uint32_t* activated) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: RuntimeTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_runtime_table, negotiated as GF_TABLE_RUNTIME.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: RuntimeTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_runtime_table& c_table() const noexcept
+
+   .. cpp:function:: gf_status clear_error() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(RuntimeTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static RuntimeTable adopt(const gf_runtime_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status version(gf_abi_version_info* info) const noexcept
+
+   .. cpp:function:: gf_status error_detail(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: SchemaTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_schema_table, negotiated as GF_TABLE_SCHEMA.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: SchemaTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_schema_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(SchemaTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static SchemaTable adopt(const gf_schema_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status vocabulary_count(gf_schema_vocabulary vocabulary, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status vocabulary_at(gf_schema_vocabulary vocabulary, uint64_t index, gf_utf8_view* name) const noexcept
+
+   .. cpp:function:: gf_status type_count(uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status find_type(gf_utf8_view name, uint64_t* type) const noexcept
+
+   .. cpp:function:: gf_status type_at(uint64_t type, gf_schema_type* record) const noexcept
+
+   .. cpp:function:: gf_status item_system_at(uint64_t type, uint64_t system, gf_schema_item_system* record) const noexcept
+
+   .. cpp:function:: gf_status part_at(uint64_t type, uint64_t system, uint64_t part, gf_schema_part* record) const noexcept
+
+   .. cpp:function:: gf_status state_at(uint64_t type, uint64_t system, uint64_t part, uint64_t state, gf_utf8_view* name) const noexcept
+
+   .. cpp:function:: gf_status custom_state_at(uint64_t type, uint64_t system, uint64_t state, gf_utf8_view* name) const noexcept
+
+   .. cpp:function:: gf_status property_at(uint64_t type, uint64_t property, gf_schema_property* record) const noexcept
+
+   .. cpp:function:: gf_status choice_at(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record) const noexcept
+
+   .. cpp:function:: gf_status interaction_at(uint64_t type, uint64_t interaction, gf_schema_interaction* record) const noexcept
+
+   .. cpp:function:: gf_status engine(gf_schema_engine* record) const noexcept
+
+   .. cpp:function:: gf_status primitive_at(uint64_t primitive, gf_schema_primitive* record) const noexcept
+
+   .. cpp:function:: gf_status primitive_name_at(uint64_t primitive, gf_schema_primitive_list list, uint64_t index, gf_utf8_view* name) const noexcept
+
+   .. cpp:function:: gf_status parameter_at(uint64_t primitive, uint64_t parameter, gf_schema_parameter* record) const noexcept
+
+   .. cpp:function:: gf_status parameter_choice_at(uint64_t primitive, uint64_t parameter, uint64_t choice, gf_utf8_view* name) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: SubscriptionReference
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   One subscription, disconnected (events.disconnect) when the owner goes or resets. The EventsTable it borrows must outlive it.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: SubscriptionReference() noexcept
+
+   .. cpp:function:: SubscriptionReference(const EventsTable& events, gf_subscription subscription) noexcept
+
+   .. cpp:function:: SubscriptionReference(SubscriptionReference&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: gf_subscription get() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: gf_status reset() noexcept
+
+      Disconnects now; GF_STATUS_OK when there was nothing to disconnect. The owner is empty afterwards whatever disconnect answered.
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: TextEditingTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_text_editing_table, negotiated as GF_TABLE_TEXT_EDITING.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TextEditingTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_text_editing_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(TextEditingTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static TextEditingTable adopt(const gf_text_editing_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status select(gf_object object, uint64_t anchor, uint64_t caret) const noexcept
+
+   .. cpp:function:: gf_status selection(gf_object object, uint64_t* anchor, uint64_t* caret) const noexcept
+
+   .. cpp:function:: gf_status grapheme_boundary(gf_object object, uint64_t position, int32_t direction, uint64_t* boundary) const noexcept
+
+   .. cpp:function:: gf_status replace_range(gf_object object, uint64_t start, uint64_t length, gf_utf8_view replacement, uint32_t* changed) const noexcept
+
+   .. cpp:function:: gf_status undo(gf_object object, uint32_t* changed) const noexcept
+
+   .. cpp:function:: gf_status redo(gf_object object, uint32_t* changed) const noexcept
+
+   .. cpp:function:: gf_status clear_undo_history(gf_object object) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: ThemesTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_themes_table, negotiated as GF_TABLE_THEMES.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ThemesTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_themes_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(ThemesTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static ThemesTable adopt(const gf_themes_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status load(const gf_theme_package* package, gf_theme_report* report) const noexcept
+
+   .. cpp:function:: gf_status reset() const noexcept
+
+   .. cpp:function:: gf_status install(const gf_theme_package* package, gf_theme_report* report) const noexcept
+
+   .. cpp:function:: gf_status remove(gf_utf8_view name, uint32_t* removed) const noexcept
+
+   .. cpp:function:: gf_status diagnostic_at(uint64_t index, gf_theme_diagnostic* record) const noexcept
+
+   .. cpp:function:: gf_status diagnostic_text(uint64_t index, gf_theme_diagnostic_text text, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status theme_id(char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status publish_value(gf_utf8_view name, double value) const noexcept
+
+   .. cpp:function:: gf_status withdraw_value(gf_utf8_view name) const noexcept
+
+   .. cpp:function:: gf_status published_value(gf_utf8_view name, double* value, uint32_t* present) const noexcept
+
+   .. cpp:function:: gf_status load_image(const uint8_t* bytes, uint64_t size, uint64_t* image) const noexcept
+
+   .. cpp:function:: gf_status remove_image(uint64_t image) const noexcept
+
+   .. cpp:function:: gf_status load_pixels(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes, uint64_t* image) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: WindowsPaintEndpointTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: WindowsPaintEndpointTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_windows_paint_endpoint_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(WindowsPaintEndpointTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static WindowsPaintEndpointTable adopt(const gf_windows_paint_endpoint_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status acquire(gf_object control, uint32_t width, uint32_t height, gf_paint_endpoint* endpoint, uint64_t* compatibility_handle) const noexcept
+
+   .. cpp:function:: gf_status configure(gf_paint_endpoint endpoint, uint32_t width, uint32_t height) const noexcept
+
+   .. cpp:function:: gf_status touch(gf_paint_endpoint endpoint, uint32_t explicit_boundary) const noexcept
+
+   .. cpp:function:: gf_status drain(gf_paint_endpoint endpoint) const noexcept
+
+   .. cpp:function:: gf_status snapshot(gf_paint_endpoint endpoint, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status submit_bgra(uint64_t compatibility_handle, uint32_t width, uint32_t height, uint64_t row_bytes, const uint8_t* pixels) const noexcept
+
+   .. cpp:function:: gf_status release(gf_paint_endpoint endpoint) const noexcept
+
+   .. cpp:function:: gf_status get_dc(uint64_t compatibility_handle, uint64_t* device_context) const noexcept
+
+   .. cpp:function:: gf_status release_dc(uint64_t compatibility_handle, uint64_t device_context) const noexcept
+
+   .. cpp:function:: gf_status publish_dc(uint64_t device_context) const noexcept
+
+   .. cpp:function:: gf_status begin_write(uint64_t device_context, gf_paint_write_lease* lease) const noexcept
+
+   .. cpp:function:: gf_status end_write(gf_paint_write_lease lease, uint32_t publish) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: WindowsTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>``
+
+   gf_windows_table, negotiated as GF_TABLE_WINDOWS.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: WindowsTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_windows_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(WindowsTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static WindowsTable adopt(const gf_windows_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status run(gf_object window_or_root, const gf_run_options* options) const noexcept
+
+   .. cpp:function:: gf_status request_close(gf_object window_or_root) const noexcept
+
+   .. cpp:function:: gf_status create(gf_object root, gf_object* window) const noexcept

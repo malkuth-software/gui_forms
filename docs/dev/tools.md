@@ -70,7 +70,8 @@ template_harness, checked out beside this repository at the commit
   `python3 -B tools/check_state_machines.py --root . --build-dir <tree> --gate --changed-from origin/main`
 
 `tools/sanitizer/lsan.supp`
-: LeakSanitizer suppressions for the `sanitizers` CI job: system libraries
+: LeakSanitizer suppressions for sanitized runs (local trees and the
+  `sanitizers` CI job, which runs only when requested): system libraries
   only, never a first-party frame.
 
 `tools/house_policy_check/`
@@ -201,8 +202,8 @@ Unit tests for the scripts
 
 These run inside the workflows and are rarely run by hand:
 `ci_reuse.py` and `ci_promote.py` reuse or promote validation of an identical
-tree; `ci_tree_receipt.py` and `release_tests.py` let the docs, Sanitizers
-and programs jobs carry an earlier run of the same tree; `compiler_identity.py`, `cache_manifest.py`, `publish_cache.py` and
+tree; `ci_tree_receipt.py` and `release_tests.py` let the docs and
+programs jobs carry an earlier run of the same tree; `compiler_identity.py`, `cache_manifest.py`, `publish_cache.py` and
 `prune_cache_releases.py` describe, publish and prune the compiler-cache
 pre-releases; `macos_runtime_manifest.py` and `prove_macos_runtime_restore.py`
 check the published macOS runtime payload; `publication_version.py` and

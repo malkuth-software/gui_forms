@@ -1,4 +1,5 @@
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/diagnostic_controls.hpp"
 #include "gui_forms/window.hpp"
@@ -879,7 +880,14 @@ void test_link_families() {
     require(painted_link_color(*link) == defaults.visited_link,
             "a visited link must keep the default visited colour");
     (*link).set_enabled(false);
-    require(painted_link_color(*link) == defaults.disabled_text, "a disabled link must keep the disabled text colour");
+    // A disabled link is a disabled label part: the theme's disabled ink,
+    // the muted text of its family in the disabled state (T4 phase 4).
+    AnatomyStateSet disabled_states;
+    disabled_states.insert(AnatomyState::disabled);
+    const ControlVisualContext disabled_context = part_visual_context(*link, disabled_states);
+    const Color disabled_ink =
+        (*link).effective_theme().resolve(ControlVisualRole::visited_link, disabled_context).muted_text;
+    require(painted_link_color(*link) == disabled_ink, "a disabled link must take the theme's disabled ink");
     (*link).set_enabled(true);
 
     const std::unique_ptr<ThemeDefinition> held_definition = test_support::professional_definition();

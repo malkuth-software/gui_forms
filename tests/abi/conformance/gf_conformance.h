@@ -2,10 +2,12 @@
 #define GUI_FORMS_TESTS_ABI_GF_CONFORMANCE_H
 
 /*
- * The GUI.Forms C ABI conformance kit, part 1: ownership, threads,
- * callbacks and the window run. A consumer links the installed CAbi and runs
- * the kit in its own tests (owner decision C-3); the library's own tests run
- * it in-tree. The kit uses only gf_abi.h and pthreads.
+ * The GUI.Forms C ABI conformance kit: ownership, threads, callbacks, events,
+ * values, the schema, themes, host services, the control families and the
+ * window run. A consumer links the installed GUIForms::CAbiConformance
+ * (installed as gui_forms/c/gf_conformance.h) and runs the kit in its own
+ * tests (owner decision C-3; docs/c-abi/conformance-kit.md); the library's
+ * own tests run it in-tree. The kit uses only gf_abi.h and pthreads.
  */
 
 #include "gui_forms/c/gf_abi.h"

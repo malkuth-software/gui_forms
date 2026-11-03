@@ -34,8 +34,8 @@
   },
   "totals": {
     "stock": {
-      "files": 41,
-      "calls": 349
+      "files": 36,
+      "calls": 331
     },
     "exempt": {
       "files": 6,
@@ -50,22 +50,6 @@
     "basic/basic_control_rendering.cpp": {
       "category": "stock",
       "calls": 16
-    },
-    "button_base/button/button.cpp": {
-      "category": "stock",
-      "calls": 8
-    },
-    "button_base/button/drop_down_button/drop_down_button.cpp": {
-      "category": "stock",
-      "calls": 4
-    },
-    "button_base/button_base.cpp": {
-      "category": "stock",
-      "calls": 3
-    },
-    "button_base/link_label/link_label.cpp": {
-      "category": "stock",
-      "calls": 2
     },
     "connected_controls/connected_controls.cpp": {
       "category": "stock",
@@ -126,10 +110,6 @@
     "panel/color_value_editor/color_value_editor.cpp": {
       "category": "stock",
       "calls": 6
-    },
-    "panel/combo_box/combo_box.cpp": {
-      "category": "stock",
-      "calls": 1
     },
     "panel/correspondence_view/correspondence_view.cpp": {
       "category": "stock",

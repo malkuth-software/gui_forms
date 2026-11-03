@@ -206,11 +206,20 @@ protected:
     // button shares.
     [[nodiscard]] AnatomyStateSet button_anatomy_states() const;
     [[nodiscard]] std::string display_text() const;
-    void paint_button_frame(Painter& painter, Rect bounds, bool default_cue) const;
-    void paint_button_text(Painter& painter, Rect bounds,
-                           std::string_view text) const;
+    // How a button's content is inked: the theme family and anatomy states
+    // its label and icon parts are drawn in, and the authored text colour,
+    // or none (owner decision T4-1: it stands while the button is enabled
+    // and outside forced high contrast).
+    struct ButtonContentInk final {
+        ControlVisualRole family{ControlVisualRole::button};
+        AnatomyStateSet states{};
+        std::optional<Color> authored{};
+    };
+    // The image and the text lines laid out in `bounds`, drawn as the icon
+    // part and one label part per line through the theme's engine,
+    // displaced by `offset`.
     void paint_button_content(Painter& painter, Rect bounds,
-                              std::string_view text, Color foreground,
+                              std::string_view text, const ButtonContentInk& ink,
                               Point offset = {}, bool selected = false,
                               bool command_alignment = false) const;
     // The colours a style override gives a themed button's face and text
@@ -219,11 +228,6 @@ protected:
         Color face{};
         Color text{};
     };
-    // Whether the button paints its style override's own frame: only an
-    // overridden button with per-control recipes or a connection, which the
-    // engine's parts do not shape. Every other button paints themed, an
-    // override supplying its authored colours.
-    [[nodiscard]] bool paints_override_frame() const noexcept;
     // The face, cues and content of a themed push-style button. With a
     // style override, `authored` (by default the override's face and text)
     // colours the face and the enabled text.

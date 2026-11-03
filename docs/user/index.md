@@ -12,6 +12,7 @@ install
 download
 first-window
 consume-the-sdk
+c-abi-conformance-kit
 ```
 
 ```{toctree}

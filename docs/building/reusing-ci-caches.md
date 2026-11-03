@@ -97,7 +97,6 @@ instead of repeating them, and every job still passes under its own name:
 |---|---|---|
 | native | `ci_promote.py lookup`, `ci_reuse.py lookup` | promotes or restores the tested archive |
 | programs | `release_tests.py merged` | copies the pull request's programs ctest receipt; builds, packages and smoke tests under its own version; runs no tests |
-| Sanitizers | `ci_tree_receipt.py lookup --kind sanitize` | builds and tests nothing |
 | docs | `ci_tree_receipt.py lookup --kind docs` | builds nothing |
 
 `release_tests.py merged` takes the merge commit's second parent as the pull
@@ -110,7 +109,7 @@ it covers: the tests not in the validated list of the tree's native job,
 which passed the rest. A release tag carries `main`'s receipt the same way
 (`release_tests.py find`), comment and all.
 
-`ci_tree_receipt.py` records, for each passing docs and Sanitizers job, a
+`ci_tree_receipt.py` records, for each passing docs job (and Sanitizers job, when one is requested by hand), a
 receipt artifact `gui-tree-<kind>-<tree>`: the tree, the revision checked
 out, the run, what it covered (for the sanitizers, `ci_build.py`'s build
 record: `everything`, `selected` or `nothing`) and, for a job that carried
@@ -118,13 +117,16 @@ one, the run it carried. A lookup accepts only an older `native.yml` run of
 this repository, not a fork's, whose job of that name succeeded, whose
 artifact digest and receipt match this tree and run, and whose head has the
 tree or whose recorded revision merges its head (`merge_of_head`). A pull
-request's Sanitizers run covers only the tests its changed paths can affect,
-and the push to `main` accepts that: the sanitizers need to run only on new
-code. A failed lookup runs the job.
+request's docs run is carried by the push to `main` the same way. A failed
+lookup runs the job. The Sanitizers job no longer runs on pull requests,
+pushes, merge groups or the schedule (owner ruling, 2026-11-03): it runs the
+whole suite only when requested by hand (`workflow_dispatch` with
+`run_sanitizers`), and the local sanitized run at checkpoint fold time is the
+gate.
 
 The daily scheduled run on `main` (03:41 UTC) carries nothing: the native
-jobs validate afresh (`force_validation`), and the programs, Sanitizers and
-docs jobs build and test everything. It is the backstop for the two rules
+jobs validate afresh (`force_validation`), and the programs and docs jobs
+build and test everything. It is the backstop for the two rules
 the carried results rely on, `native_tests.py`'s name match and
 `change_selection.py`'s selection, and it publishes nothing. It has its own
 concurrency group, so it and a push to `main` never cancel each other.

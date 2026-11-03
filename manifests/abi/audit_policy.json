@@ -1,6 +1,6 @@
 {
   "format": 1,
   "mode": "report",
-  "baseline": null,
+  "baseline": "manifests/abi/baseline/gf_abi-0.5.json",
   "breaks": []
 }

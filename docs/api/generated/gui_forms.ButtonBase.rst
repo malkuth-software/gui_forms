@@ -583,23 +583,11 @@ gui_forms::ButtonBase
 
       *Protected.*
 
-   .. cpp:function:: void paint_button_frame(Painter& painter, Rect bounds, bool default_cue) const
+   .. cpp:function:: void paint_button_content(Painter& painter, Rect bounds, std::string_view text, const ButtonContentInk& ink, Point offset = {}, bool selected = false, bool command_alignment = false) const
 
       *Protected.*
 
-   .. cpp:function:: void paint_button_text(Painter& painter, Rect bounds, std::string_view text) const
-
-      *Protected.*
-
-   .. cpp:function:: void paint_button_content(Painter& painter, Rect bounds, std::string_view text, Color foreground, Point offset = {}, bool selected = false, bool command_alignment = false) const
-
-      *Protected.*
-
-   .. cpp:function:: bool paints_override_frame() const noexcept
-
-      *Protected.*
-
-      Whether the button paints its style override's own frame: only an overridden button with per-control recipes or a connection, which the engine's parts do not shape. Every other button paints themed, an override supplying its authored colours.
+      The image and the text lines laid out in ``bounds``, drawn as the icon part and one label part per line through the theme's engine, displaced by ``offset``.
 
    .. cpp:function:: void paint_themed_button(Painter& painter, Rect bounds, ControlVisualRole role, bool default_cue, bool command_alignment = false, bool selected = false, std::optional<AuthoredButtonColours> authored = {}) const
 

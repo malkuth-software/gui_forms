@@ -10,8 +10,8 @@ on:
   # carries its validation, receipts and programs tests.
   merge_group:
   # The daily full run on main reuses nothing: every native job validates
-  # afresh, and the programs, Sanitizers and docs jobs build and test
-  # everything. It is the backstop for what a push to main carries from the
+  # afresh, and the programs and docs jobs build and test everything.
+  # (The Sanitizers job runs only when requested by hand; see its comment.) It is the backstop for what a push to main carries from the
   # merged pull request's run (tools/release_tests.py, tools/ci_tree_receipt.py):
   # the name match of tools/native_tests.py and the change selection of
   # tools/change_selection.py. It publishes nothing.
@@ -25,6 +25,10 @@ on:
         default: false
       package_windows_toolchain:
         description: Install and package a new Windows toolchain when none is published for the harness's windows_toolchain.json
+        type: boolean
+        default: false
+      run_sanitizers:
+        description: Run the whole suite under ASan, UBSan and LSan (the Sanitizers job runs only when requested)
         type: boolean
         default: false
 permissions:
@@ -70,6 +74,13 @@ jobs:
           python3 tools/control_registry.py check
           python3 tools/control_registry.py emit-cpp --check
           python3 tools/control_registry.py emit-abi --check
+          # Stage C: the C ABI's generated C# interop and C++ wrappers (with the
+          # wrappers' 1:1 slot map) and the 0.x compatibility map. The audit
+          # against the 0.5 baseline runs in every native build's ctest
+          # (gui_forms_abi_audit), with the pinned clang.
+          python3 -B tools/abi_bindings.py csharp --check
+          python3 -B tools/abi_bindings.py cpp --check
+          python3 -B tools/abi_compat_map.py --strict
           python3 -B -m unittest discover -s tools -p test_control_schema.py
           python3 tools/control_schema.py check
           python3 tools/control_schema.py render --check
@@ -142,13 +153,17 @@ jobs:
           path: .ci/tree-receipt/receipt.json
           retention-days: 30
   # House style section 1: memory errors and undefined behaviour are defects,
-  # tests included. The suite (on a pull request, the tests its changes can
-  # affect) runs under AddressSanitizer, UndefinedBehaviorSanitizer and
-  # LeakSanitizer; any report stops its test and fails the job. Make it a
-  # required check on main (branch protection).
+  # tests included. The whole suite runs under AddressSanitizer,
+  # UndefinedBehaviorSanitizer and LeakSanitizer; any report stops its test
+  # and fails the job. Owner ruling (2026-11-03): the sanitizers do not run
+  # remotely unless someone requests a run by hand (workflow_dispatch with
+  # run_sanitizers; one planned at 1.0). Pull requests, pushes, merge groups
+  # and the schedule skip this job, and it is not a required check. The gate
+  # is the local sanitized run of every test at checkpoint fold time.
   sanitizers:
     name: Sanitizers (Linux, ASan + UBSan + LSan)
     needs: house-style
+    if: github.event_name == 'workflow_dispatch' && inputs.run_sanitizers
     runs-on: ubuntu-24.04
     timeout-minutes: 120
     env:
@@ -174,21 +189,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      # A push to main is the commit of the merge group that tested it (or,
-      # merged without the queue, has the tree of the up-to-date pull request
-      # it merges), whose run passed this job on the tests its changed paths
-      # can affect (owner's choice, 2026-10-23: the sanitizers need to run
-      # only on new code). A merge group with its pull request's tree carries
-      # that run's receipt the same way. The job then carries that run's receipt, builds and tests
-      # nothing, and passes under its own name (tools/ci_tree_receipt.py). The
-      # daily schedule looks up nothing and runs the whole suite, the backstop
-      # for tools/change_selection.py.
-      - name: Find an earlier run that passed this tree
-        id: receipt
-        if: github.event_name != 'schedule'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python template_harness/harness/ci_tree_receipt.py lookup --kind sanitize --job "Sanitizers (Linux, ASan + UBSan + LSan)"
+      # A requested run looks up no earlier receipt and runs the whole suite;
+      # the later `steps.receipt` conditions always hold.
       # The Ubuntu mirror is sometimes slow (7-11 minutes for 30 MB), so the
       # downloaded Ubuntu packages are kept in an Actions cache, refreshed once
       # per runner image; only main saves it (harness/install_linux_ci_packages.sh).
@@ -516,7 +518,7 @@ jobs:
   # entry; skipping the prune as well keeps every family's previous entries
   # until a green push, so no failure can end with fewer good caches.
   cache-prune:
-    needs: [sanitizers, native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64, programs-macos-arm64, programs-linux-x64, programs-linux-arm64, programs-windows-x64]
+    needs: [native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64, programs-macos-arm64, programs-linux-x64, programs-linux-arm64, programs-windows-x64]
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10

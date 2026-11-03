@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The C ABI's C# interop: the files under Generated/ come from
+       manifests/abi/gf_abi.json through tools/abi_bindings.py; the rest is the
+       hand-written ownership, callback and failure layer. No package
+       references: it builds offline from the SDK alone. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- No IsAotCompatible or trim analyzers yet: they pull the ILLink package,
+         and the build stays offline until a pinned package source is admitted.
+         The layer is AOT-shaped regardless (blittable, DisableRuntimeMarshalling,
+         LibraryImport, function pointers). -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- The generated names are the C names, so the interop reads 1:1 against the header. -->
+    <NoWarn>$(NoWarn);CS8981;IDE1006</NoWarn>
+    <RootNamespace>GuiForms.Interop</RootNamespace>
+  </PropertyGroup>
+</Project>

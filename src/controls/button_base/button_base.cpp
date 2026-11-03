@@ -567,34 +567,11 @@ Rect ButtonBase::local_bounds() const noexcept {
     return {0.0, 0.0, arranged.width, arranged.height};
 }
 
-void ButtonBase::paint_button_frame(Painter& painter, Rect bounds,
-                                    bool default_cue) const {
-    const BasicControlStyle& colors = style();
-    paint_relief(painter, bounds, colors, pressed_visual());
-    if (default_cue && bounds.width > 2.0 && bounds.height > 2.0) {
-        painter.stroke_rect({0.5, 0.5, bounds.width - 1.0, bounds.height - 1.0},
-                            colors.accent, 1.0);
-    }
-    if (focus_cue_visible()) {
-        paint_focus(painter, bounds, colors.text);
-    }
-}
-
 bool ButtonBase::focus_cue_visible() const noexcept {
     if (!focused_) return false;
     Window* owner = window();
     return owner == nullptr || (*owner).focused_control().get() != this ||
            (*owner).focus_cue_visible();
-}
-
-void ButtonBase::paint_button_text(Painter& painter, Rect bounds,
-                                   std::string_view text) const {
-    const BasicControlStyle& colors = style();
-    const double offset = pressed_visual() ? 1.0 : 0.0;
-    paint_button_content(painter, bounds, text,
-                         effectively_enabled() ? colors.text
-                                               : colors.disabled_text,
-                         {offset, offset});
 }
 
 ImageListResolution ButtonBase::resolved_button_image(bool selected) const noexcept {
@@ -734,7 +711,7 @@ ButtonBase::ContentLayout ButtonBase::published_content_layout(
 }
 
 void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
-                                      std::string_view text, Color foreground,
+                                      std::string_view text, const ButtonContentInk& ink,
                                       Point offset, bool selected,
                                       bool command_alignment) const {
     const Rect content = content_box(bounds, command_alignment);
@@ -753,13 +730,17 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
 
     if (layout.image.has_value() && !image_rect.empty()) {
         const ImageListResolution image = resolved_button_image(selected);
-        const double opacity = !effectively_enabled() &&
-                image.resolved_state != ImageVisualState::disabled
-            ? 0.45 : 1.0;
-        painter.draw_image(image.image,
-                           {image_rect.x + offset.x, image_rect.y + offset.y,
-                            image_rect.width, image_rect.height},
-                           opacity);
+        // The icon role dims a disabled button's image; an image list's own
+        // disabled image is already the disabled look, so it is drawn as
+        // given, in the image role.
+        const bool authored_disabled = image.resolved_state == ImageVisualState::disabled;
+        PartPaint icon;
+        icon.family = ink.family;
+        icon.role = authored_disabled ? PartRole::image : PartRole::icon;
+        icon.image = image.image;
+        icon.bounds = {image_rect.x + offset.x, image_rect.y + offset.y, image_rect.width, image_rect.height};
+        if (!effectively_enabled()) icon.states.insert(AnatomyState::disabled);
+        paint_part(painter, *this, icon);
     }
     if (layout.text.has_value() && !text_rect.empty()) {
         for (std::size_t index = 0; index < lines.size(); ++index) {
@@ -774,10 +755,22 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
                        text_alignment_ == ContentAlignment::bottom_right) {
                 x += text_rect.width - measured.width;
             }
-            painter.draw_text_utf8(
-                {x + offset.x, text_rect.y + offset.y + static_cast<double>(index) * line_height +
-                    std::max(font.size, line_height * 0.82)},
-                lines[index], font, foreground);
+            // The label part centres its line box on its bounds, so the
+            // bounds are that box, placed to keep the layout's baseline.
+            const double box_height = std::max(measured.height, font.size * 1.2);
+            const double box_ascent = std::max(font.size, box_height * 0.82);
+            const double baseline = text_rect.y + offset.y + static_cast<double>(index) * line_height +
+                                    std::max(font.size, line_height * 0.82);
+            const double right = std::max(x + measured.width, text_rect.x + text_rect.width);
+            PartPaint label;
+            label.family = ink.family;
+            label.role = PartRole::label;
+            label.states = ink.states;
+            label.text = lines[index];
+            label.font = font;
+            label.bounds = {x + offset.x, baseline - box_ascent, right - x, box_height};
+            label.authored_foreground = ink.authored;
+            paint_part(painter, *this, label);
         }
     }
 }
@@ -892,12 +885,6 @@ ButtonBase::States ButtonBase::states() const {
     return record;
 }
 
-bool ButtonBase::paints_override_frame() const noexcept {
-    const bool shaped_elsewhere = visual_recipes_override_.has_value() || connection_topology_.has_value();
-    const bool override_frame = style_override_.has_value() && shaped_elsewhere;
-    return override_frame;
-}
-
 void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
                                      ControlVisualRole role,
                                      bool default_cue,
@@ -917,16 +904,16 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
         authored = AuthoredButtonColours{(*style_override_).face, (*style_override_).text};
     }
     const bool engine_drawn = !visual_recipes_override_ && !connection_topology_;
+    // The face, the cues and the content are parts the theme's engine draws,
+    // so a theme's `::part(face)`, `::part(label)` and `::part(focus)` rules
+    // select them; the states give the recipe context above.
+    AnatomyStateSet states;
+    if (hovered_) states.insert(AnatomyState::hot);
+    if (pressed_visual()) states.insert(AnatomyState::pressed);
+    if (selected) states.insert(AnatomyState::selected);
+    if (focus_cue_visible()) states.insert(AnatomyState::focus_visible);
+    if (default_cue) states.insert(AnatomyState::preselect);
     if (engine_drawn) {
-        // The face and the cues are parts the theme's engine draws, so a
-        // theme's `::part(face)` and `::part(focus)` rules select them; the
-        // states give the recipe context above.
-        AnatomyStateSet states;
-        if (hovered_) states.insert(AnatomyState::hot);
-        if (pressed_visual()) states.insert(AnatomyState::pressed);
-        if (selected) states.insert(AnatomyState::selected);
-        if (focus_cue_visible()) states.insert(AnatomyState::focus_visible);
-        if (default_cue) states.insert(AnatomyState::preselect);
         PartPaint face;
         face.family = role;
         face.role = PartRole::face;
@@ -962,8 +949,16 @@ void ButtonBase::paint_themed_button(Painter& painter, Rect bounds,
     const Point offset = context.surface == ControlSurfaceState::pressed
         ? recipe.pressed_content_offset : Point{};
     // Authored text stands while the button is enabled; a disabled button
-    // keeps the theme's disabled ink (T4-1).
-    const Color ink = authored && effectively_enabled() ? (*authored).text : recipe.text;
+    // keeps the theme's disabled ink (T4-1). Per-control recipes give their
+    // own text colour the same way.
+    ButtonContentInk ink;
+    ink.family = role;
+    ink.states = states;
+    if (authored) {
+        ink.authored = (*authored).text;
+    } else if (!engine_drawn) {
+        ink.authored = recipe.text;
+    }
     const std::string display = display_text();
     paint_button_content(painter, visual_bounds, display, ink, offset, selected,
                          command_alignment);
@@ -1000,17 +995,10 @@ Insets ButtonBase::resolved_visual_outsets(
 
 void ButtonBase::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const std::string display = display_text();
-    if (paints_override_frame()) {
-        paint_button_frame(painter, bounds, false);
-        paint_button_text(painter, bounds, display);
-    } else {
-        paint_themed_button(painter, bounds, ControlVisualRole::button, false);
-    }
+    paint_themed_button(painter, bounds, ControlVisualRole::button, false);
 }
 
 Insets ButtonBase::visual_outsets() const noexcept {
-    if (paints_override_frame()) return {};
     const ControlVisualContext context = visual_context(
         hovered_, pressed_visual(), false, focus_cue_visible(), false);
     return resolved_visual_outsets(ControlVisualRole::button, context);
