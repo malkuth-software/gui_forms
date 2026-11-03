@@ -191,7 +191,7 @@ void marks_and_text(const Control& control) {
         theme.resolve(ControlVisualRole::button, part_visual_context(control, label.states));
     for (const Operation& operation : unavailable.operations) {
         if (operation.kind == "text") {
-            require(operation.color == disabled.muted_text, "an unavailable label uses the muted colour");
+            require(operation.color == disabled.text, "an unavailable label uses the theme's disabled text colour");
         }
     }
 }
@@ -467,7 +467,7 @@ void authored_colors(const Control& control) {
     const ControlVisualContext off = part_visual_context(control, label.states);
     RecordingPainter disabled_label;
     paint_part(disabled_label, control, label);
-    require(recorded(disabled_label, "text", theme.resolve(label.family, off).muted_text),
+    require(recorded(disabled_label, "text", theme.resolve(label.family, off).text),
             "a disabled label keeps the theme's disabled text colour");
 
     PartPaint check;
@@ -566,10 +566,10 @@ void control_colors() {
     require(recorded(inherited_label, "text", ink), "a label draws in an inherited foreground");
     label.states.insert(AnatomyState::disabled);
     const ControlVisualContext off = part_visual_context(*child, label.states);
-    const Color muted = (*child).effective_theme().resolve(label.family, off).muted_text;
+    const Color disabled_text = (*child).effective_theme().resolve(label.family, off).text;
     RecordingPainter disabled_label;
     paint_part(disabled_label, *child, label);
-    require(recorded(disabled_label, "text", muted) && !recorded(disabled_label, "text", ink),
+    require(recorded(disabled_label, "text", disabled_text) && !recorded(disabled_label, "text", ink),
             "a disabled label keeps the theme's disabled text under a control's foreground");
 
     (*child).clear_back_color();

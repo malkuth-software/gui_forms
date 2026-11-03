@@ -439,11 +439,19 @@ struct PageDigest final {
 // retained-layout-panels, timing-and-tooltips, typography-and-inspection,
 // values and values-and-spinners.
 //
+// Disabled labels take the theme's own disabled text (owner ruling,
+// 2026-11-02, superseding the part path's muted ink): the recipe resolved
+// in the disabled state gives the text colour. The 18 disabled labels on
+// basics, commands-and-menus, control-spectrum, docking-workspace,
+// responsive-layouts, states-and-diagnostics, text-and-input,
+// timing-and-tooltips, value-editors and values-and-spinners returned to
+// #848f99 from #76808a; those pages were recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 31> expected_digests{{
-    {"basics", 0x5dfa1538c7d69e3aULL},
+    {"basics", 0xf326169232ec1038ULL},
     {"values", 0x5f1c72a16c4cadf4ULL},
     {"retained-rows", 0x27ed378ce92f2bedULL},
     {"instrument", 0x67605819732a38a9ULL},
@@ -454,22 +462,22 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"states-and-diagnostics", 0x1b549780747f0ca2ULL},
     {"text-and-input", 0xc1cb6c00eb7b01c5ULL},
     {"collections-and-popups", 0x61c9045226e61fe5ULL},
-    {"values-and-spinners", 0xddb2bf9506036810ULL},
+    {"values-and-spinners", 0xfb002e041bf3d9faULL},
     {"images-and-drawing", 0x0c3dd9a2a66cd770ULL},
     {"tabs-and-pages", 0xa209ccb1c28945faULL},
     {"checked-collections", 0x6e4ed03369763ea7ULL},
-    {"timing-and-tooltips", 0xd87a858a0cdc5adaULL},
+    {"timing-and-tooltips", 0xd1f664e82eae6b5cULL},
     {"dates-and-calendar", 0x92edabf015cf7c82ULL},
     {"dialogs-and-host-services", 0x6f0a194e9f5aa642ULL},
     {"css-layout-panels", 0x32b07d1cccdb6388ULL},
     {"retained-layout-panels", 0xd3e1aad8006574ebULL},
     {"dock-and-anchor", 0x619ca1a8c7aec757ULL},
-    {"docking-workspace", 0xacd16d9767569be0ULL},
-    {"commands-and-menus", 0xc87d46ca5c420298ULL},
+    {"docking-workspace", 0xbbbafabcde662676ULL},
+    {"commands-and-menus", 0x44c80bb2c30865c8ULL},
     {"tree-and-object-views", 0x576e1eedf0a3eeecULL},
     {"choices-and-sections", 0x4cda2d6d06c2cb66ULL},
-    {"value-editors", 0xb1376ee8925d95fbULL},
-    {"responsive-layouts", 0x0978cbb1feb1172eULL},
+    {"value-editors", 0x2e8f2ab65d8a655fULL},
+    {"responsive-layouts", 0xd383deacd67a2f02ULL},
     {"anchored-popups", 0x4b3b7601384128e1ULL},
     {"live-surfaces", 0xdbfbacca7a7fe467ULL},
     {"typography-and-inspection", 0x12ca7b5a49493f65ULL},

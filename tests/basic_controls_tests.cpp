@@ -886,13 +886,13 @@ void test_link_families() {
     require(painted_link_color(*link) == defaults.visited_link,
             "a visited link must keep the default visited colour");
     (*link).set_enabled(false);
-    // A disabled link is a disabled label part: the theme's disabled ink,
-    // the muted text of its family in the disabled state (T4 phase 4).
+    // A disabled link is a disabled label part: the theme's own disabled text,
+    // the text of its family in the disabled state (owner ruling, 2026-11-02).
     AnatomyStateSet disabled_states;
     disabled_states.insert(AnatomyState::disabled);
     const ControlVisualContext disabled_context = part_visual_context(*link, disabled_states);
     const Color disabled_ink =
-        (*link).effective_theme().resolve(ControlVisualRole::visited_link, disabled_context).muted_text;
+        (*link).effective_theme().resolve(ControlVisualRole::visited_link, disabled_context).text;
     require(painted_link_color(*link) == disabled_ink, "a disabled link must take the theme's disabled ink");
     (*link).set_enabled(true);
 
