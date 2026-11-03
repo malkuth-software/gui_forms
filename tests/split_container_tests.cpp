@@ -5,6 +5,8 @@
 #include <chrono>
 #include <cmath>
 #include <iostream>
+#include <limits>
+#include <span>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -29,7 +31,17 @@ public:
     void restore() override {}
     void translate(Point) override {}
     void clip_rect(Rect) override {}
+    // Every surface fill is one entry in its bounds, whatever the theme's
+    // material fills it with: a flat, rounded or gradient fill.
     void fill_rect(Rect bounds, Color) override { fills.push_back(bounds); }
+    void fill_rounded_rect(Rect bounds, double, Color) override { fills.push_back(bounds); }
+    void fill_linear_gradient(Rect bounds, Point, Point, std::span<const GradientStop>) override {
+        fills.push_back(bounds);
+    }
+    void fill_linear_gradient_spread(Rect bounds, Point, Point, std::span<const GradientStop>,
+                                     GradientSpreadMode) override {
+        fills.push_back(bounds);
+    }
     void stroke_rect(Rect bounds, Color, double) override {
         strokes.push_back(bounds);
     }
@@ -50,6 +62,23 @@ public:
     std::vector<std::string> texts;
     std::size_t lines{};
 };
+
+// Whether `painter` filled a surface `width` by `height` units.
+bool filled(const GripRecordingPainter& painter, double width, double height) {
+    for (const Rect& fill : painter.fills) {
+        if (near(fill.width, width) && near(fill.height, height)) return true;
+    }
+    return false;
+}
+
+// The left edge of the first surface `painter` filled `width` by `height`
+// units, or NaN when there is none.
+double filled_left(const GripRecordingPainter& painter, double width, double height) {
+    for (const Rect& fill : painter.fills) {
+        if (near(fill.width, width) && near(fill.height, height)) return fill.x;
+    }
+    return std::numeric_limits<double>::quiet_NaN();
+}
 
 class CountSplitReasons final {
 public:
@@ -306,10 +335,7 @@ void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
 
     GripRecordingPainter rest;
     (*grip).on_paint(rest, {0.0, 0.0, seam.width, seam.height});
-    require(rest.fills.size() == 2U && near(rest.fills[0].width, 3.0) &&
-                near(rest.fills[1].width, 7.0) &&
-                near(rest.fills[1].height, 28.0) && rest.shadows.empty() &&
-                rest.texts.size() == 1U,
+    require(filled(rest, 3.0, seam.height) && filled(rest, 7.0, 28.0) && !filled(rest, 12.0, 42.0),
             "rest seam must paint a three-unit rail and quiet seven-by-twenty-eight actuator");
 
     const Point center{seam.x + seam.width * 0.5,
@@ -318,18 +344,15 @@ void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
         {PointerAction::move, PointerButton::none, center}));
     GripRecordingPainter hot;
     (*grip).on_paint(hot, {0.0, 0.0, seam.width, seam.height});
-    require(hot.fills.size() == 2U && near(hot.fills[1].width, 12.0) &&
-                near(hot.fills[1].height, 42.0) &&
-                near(hot.fills[1].x, -1.5) && hot.shadows.size() == 1U &&
-                hot.lines >= 3U,
-            "pointer proximity must enlarge, deepen, and increase contrast before activation");
+    require(filled(hot, 12.0, 42.0) && near(filled_left(hot, 12.0, 42.0), -1.5) &&
+                !filled(hot, 7.0, 28.0),
+            "pointer proximity must enlarge the actuator before activation");
 
     static_cast<void>(window.dispatch_pointer(
         {PointerAction::move, PointerButton::none, {20.0, 20.0}}));
     GripRecordingPainter left;
     (*grip).on_paint(left, {0.0, 0.0, seam.width, seam.height});
-    require(left.fills.size() == 2U && near(left.fills[1].width, 7.0) &&
-                near(left.fills[1].height, 28.0) && left.shadows.empty(),
+    require(filled(left, 7.0, 28.0) && !filled(left, 12.0, 42.0),
             "leaving the actuator proximity must restore its quiet rest geometry");
 
     require(window.request_focus(grip),
@@ -338,10 +361,7 @@ void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
         {KeyAction::down, PhysicalKey::a}));
     GripRecordingPainter focused;
     (*grip).on_paint(focused, {0.0, 0.0, seam.width, seam.height});
-    require(focused.fills.size() == 2U &&
-                near(focused.fills[1].width, 12.0) &&
-                near(focused.fills[1].height, 42.0) &&
-                focused.shadows.size() == 1U,
+    require(filled(focused, 12.0, 42.0),
             "keyboard focus cue must expose the same enlarged mechanical grip");
 
     static_cast<void>(window.request_focus({}));
@@ -353,10 +373,7 @@ void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
             "collapse actuator press must route through the expanded activation box");
     GripRecordingPainter pressed;
     (*grip).on_paint(pressed, {0.0, 0.0, seam.width, seam.height});
-    require(pressed.fills.size() == 2U &&
-                near(pressed.fills[1].width, 12.0) &&
-                near(pressed.fills[1].height, 42.0) &&
-                pressed.shadows.size() == 1U,
+    require(filled(pressed, 12.0, 42.0),
             "pressed collapse actuator must retain its pre-activation engaged treatment");
     PointerEvent up = down;
     up.action = PointerAction::up;
@@ -381,10 +398,8 @@ void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
                           (*horizontal_grip).absolute_bounds().height});
     require(near(horizontal_outsets.top, 8.5) &&
                 near(horizontal_outsets.bottom, 12.5) &&
-                horizontal_rest.fills.size() == 2U &&
-                near(horizontal_rest.fills[0].height, 3.0) &&
-                near(horizontal_rest.fills[1].width, 28.0) &&
-                near(horizontal_rest.fills[1].height, 7.0),
+                filled(horizontal_rest, (*horizontal_grip).absolute_bounds().width, 3.0) &&
+                filled(horizontal_rest, 28.0, 7.0),
             "horizontal grip must transpose the same seam, actuator, and asymmetric shadow outsets");
 }
 

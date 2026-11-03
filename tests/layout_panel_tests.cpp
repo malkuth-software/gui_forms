@@ -572,6 +572,12 @@ void test_table_border_paint_is_public_geometry() {
     (*table).set_column_count(2U);
     (*table).set_row_count(2U);
     (*table).set_cell_border_style(TableCellBorderStyle::inset);
+    // Tracks with extent, so every rule has length: a rule of no length is
+    // not drawn.
+    (*table).set_column_style(0U, {TableSizeMode::percent, 50.0});
+    (*table).set_column_style(1U, {TableSizeMode::percent, 50.0});
+    (*table).set_row_style(0U, {TableSizeMode::percent, 50.0});
+    (*table).set_row_style(1U, {TableSizeMode::percent, 50.0});
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{100.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();

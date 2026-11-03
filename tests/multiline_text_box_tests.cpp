@@ -79,7 +79,12 @@ public:
     void restore() override {}
     void translate(Point) override {}
     void clip_rect(const Rect bounds) override { clips.push_back(bounds); }
+    // A scroll bar's track is a flat or gradient fill, as the theme draws it.
     void fill_rect(const Rect bounds, Color) override { fills.push_back(bounds); }
+    void fill_linear_gradient_spread(const Rect bounds, Point, Point, std::span<const GradientStop>,
+                                     GradientSpreadMode) override {
+        fills.push_back(bounds);
+    }
     void stroke_rect(Rect, Color, double) override {}
     void draw_line(Point, Point, Color, double) override {}
     void draw_image(ImageId, Rect, double) override {}
@@ -576,13 +581,18 @@ public:
     void restore() override {}
     void translate(Point) override {}
     void clip_rect(Rect) override {}
-    void fill_rect(Rect, Color) override {}
-    void stroke_rect(Rect, Color, double) override {}
-    void draw_line(const Point first, const Point last, Color, double) override {
+    // The caret is a fill at most two units wide and taller than it is wide,
+    // as the theme draws it; it is recorded as the line down its middle,
+    // where the stroke it replaced was centred.
+    void fill_rect(const Rect bounds, Color) override {
+        if (bounds.width > 2.0 || bounds.height <= bounds.width) return;
         ++lines;
-        start = first;
-        end = last;
+        const double middle = bounds.x + bounds.width * 0.5;
+        start = {middle, bounds.y};
+        end = {middle, bounds.y + bounds.height};
     }
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
     void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
     void draw_image(ImageId, Rect, double) override {}
     std::size_t lines{0};
