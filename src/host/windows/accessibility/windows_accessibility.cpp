@@ -20,11 +20,13 @@
 // MSAA publication (stage A).
 //
 // Objects: one MsaaElement per object a client asks for. Each names its
-// node by SemanticElementId and reads a fresh snapshot for every call, so a
-// client never sees a tree older than the call, and an object whose node has
-// gone answers CO_E_OBJNOTCONNECTED. Children are full objects (get_accChild
-// returns an IDispatch); a positive child ID in a VARIANT also reaches child
-// `id` of the object, for clients that use simple-element addressing.
+// node by SemanticElementId and reads the window's current tree for every
+// call (SemanticSource::snapshot reuses it only while the window is
+// unchanged), so a client never sees a tree older than the call, and an
+// object whose node has gone answers CO_E_OBJNOTCONNECTED. Children are full
+// objects (get_accChild returns an IDispatch); a positive child ID in a
+// VARIANT also reaches child `id` of the object, for clients that use
+// simple-element addressing.
 //
 // Ownership: an element holds a shared reference to its window's
 // SemanticSource and nothing else; COM reference counting (atomic, as COM
@@ -218,17 +220,17 @@ const wchar_t* default_action_verb(const SemanticNode& node) noexcept {
 // Takes the window's client tree and, when a tree was announced before and
 // a UI Automation client listens, raises the events for the change from it;
 // then keeps the new tree as the one announced. A failed snapshot keeps the
-// old one.
+// old one, and a reused tree is the one announced, with nothing to raise.
 void publish_automation_tree(const std::shared_ptr<SemanticSource>& source) noexcept {
     SemanticSource& state = *source;
     try {
-        SemanticNode current;
+        SemanticTreeRef current;
         if (!state.snapshot(current)) return;
-        if (state.announced && UiaClientsAreListening()) {
-            raise_automation_events(source, state.published, current);
+        if (current == state.published) return;
+        if (state.published && UiaClientsAreListening()) {
+            raise_automation_events(source, *state.published, *current);
         }
         state.published = std::move(current);
-        state.announced = true;
     } catch (...) {
     }
 }
@@ -282,10 +284,10 @@ private:
     ~MsaaElement() = default;
 
     // Takes a snapshot into `client` and finds this object's node.
-    HRESULT resolve_self(SemanticNode& client, SemanticLocation& self) noexcept;
+    HRESULT resolve_self(SemanticTreeRef& client, SemanticLocation& self) noexcept;
     // As resolve_self, then the node `child` names: this object's node for
     // CHILDID_SELF, else its child `child.lVal` (counting from one).
-    HRESULT resolve(const VARIANT& child, SemanticNode& client, SemanticLocation& target) noexcept;
+    HRESULT resolve(const VARIANT& child, SemanticTreeRef& client, SemanticLocation& target) noexcept;
     // A new object for the located node, returned as IDispatch.
     HRESULT object_for(const SemanticLocation& location, IDispatch** out) noexcept;
     // The VARIANT a navigation result takes: VT_I4 CHILDID_SELF for this
@@ -299,13 +301,13 @@ private:
     SemanticElementId id_;
 };
 
-HRESULT MsaaElement::resolve_self(SemanticNode& client, SemanticLocation& self) noexcept {
+HRESULT MsaaElement::resolve_self(SemanticTreeRef& client, SemanticLocation& self) noexcept {
     if (!(*source_).snapshot(client)) return CO_E_OBJNOTCONNECTED;
-    if (!locate_semantic_element(client, id_, self)) return CO_E_OBJNOTCONNECTED;
+    if (!locate_semantic_element(*client, id_, self)) return CO_E_OBJNOTCONNECTED;
     return S_OK;
 }
 
-HRESULT MsaaElement::resolve(const VARIANT& child, SemanticNode& client,
+HRESULT MsaaElement::resolve(const VARIANT& child, SemanticTreeRef& client,
                              SemanticLocation& target) noexcept {
     if (child.vt != VT_I4) return E_INVALIDARG;
     SemanticLocation self;
@@ -346,7 +348,7 @@ HRESULT MsaaElement::text_property(const VARIANT& child, BSTR* out,
                                    TextProperty property) noexcept {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -409,7 +411,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::Invoke(DISPID, REFIID, LCID, WORD, DISPPA
 HRESULT STDMETHODCALLTYPE MsaaElement::get_accParent(IDispatch** out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_self(client, self);
     if (FAILED(status)) return status;
@@ -419,14 +421,14 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accParent(IDispatch** out) {
                                          reinterpret_cast<void**>(out));
     }
     SemanticLocation parent;
-    if (!parent_semantic_location(client, self, parent)) return CO_E_OBJNOTCONNECTED;
+    if (!parent_semantic_location(*client, self, parent)) return CO_E_OBJNOTCONNECTED;
     return object_for(parent, out);
 }
 
 HRESULT STDMETHODCALLTYPE MsaaElement::get_accChildCount(LONG* out) {
     if (out == nullptr) return E_POINTER;
     *out = 0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_self(client, self);
     if (FAILED(status)) return status;
@@ -438,7 +440,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accChild(VARIANT child, IDispatch** o
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
     if (child.vt == VT_I4 && child.lVal == CHILDID_SELF) return E_INVALIDARG;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -460,7 +462,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accDescription(VARIANT child, BSTR* o
 HRESULT STDMETHODCALLTYPE MsaaElement::get_accRole(VARIANT child, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -473,7 +475,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accRole(VARIANT child, VARIANT* out) 
 HRESULT STDMETHODCALLTYPE MsaaElement::get_accState(VARIANT child, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -499,7 +501,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accKeyboardShortcut(VARIANT child, BS
 HRESULT STDMETHODCALLTYPE MsaaElement::get_accFocus(VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_self(client, self);
     if (FAILED(status)) return status;
@@ -511,7 +513,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accFocus(VARIANT* out) {
 HRESULT STDMETHODCALLTYPE MsaaElement::get_accSelection(VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_self(client, self);
     if (FAILED(status)) return status;
@@ -523,7 +525,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accSelection(VARIANT* out) {
 HRESULT STDMETHODCALLTYPE MsaaElement::get_accDefaultAction(VARIANT child, BSTR* out) {
     if (out == nullptr) return E_POINTER;
     *out = nullptr;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -538,7 +540,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::get_accDefaultAction(VARIANT child, BSTR*
 HRESULT STDMETHODCALLTYPE MsaaElement::accSelect(LONG flags, VARIANT child) {
     const LONG supported = SELFLAG_TAKEFOCUS | SELFLAG_TAKESELECTION;
     if (flags == 0 || (flags & ~supported) != 0) return E_INVALIDARG;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -548,7 +550,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accSelect(LONG flags, VARIANT child) {
     }
     if ((flags & SELFLAG_TAKESELECTION) != 0) {
         // The focus action may have changed the tree; select reads it again.
-        SemanticNode current;
+        SemanticTreeRef current;
         SemanticLocation selected;
         const HRESULT again = resolve(child, current, selected);
         if (FAILED(again)) return again;
@@ -565,7 +567,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accLocation(LONG* x, LONG* y, LONG* width
     *y = 0;
     *width = 0;
     *height = 0;
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -583,7 +585,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accLocation(LONG* x, LONG* y, LONG* width
 HRESULT STDMETHODCALLTYPE MsaaElement::accNavigate(LONG direction, VARIANT start, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation from;
     const HRESULT status = resolve(start, client, from);
     if (FAILED(status)) return status;
@@ -595,7 +597,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accNavigate(LONG direction, VARIANT start
     }
     if (direction != NAVDIR_NEXT && direction != NAVDIR_PREVIOUS) return S_FALSE;
     SemanticLocation parent;
-    if (!parent_semantic_location(client, from, parent)) return S_FALSE;
+    if (!parent_semantic_location(*client, from, parent)) return S_FALSE;
     const std::size_t siblings = (*parent.node).children.size();
     if (direction == NAVDIR_NEXT && from.index + 1U < siblings) {
         return variant_for(child_location(parent, from.index + 1U), out);
@@ -609,7 +611,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accNavigate(LONG direction, VARIANT start
 HRESULT STDMETHODCALLTYPE MsaaElement::accHitTest(LONG x, LONG y, VARIANT* out) {
     if (out == nullptr) return E_POINTER;
     VariantInit(out);
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     const HRESULT status = resolve_self(client, self);
     if (FAILED(status)) return status;
@@ -624,7 +626,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::accHitTest(LONG x, LONG y, VARIANT* out) 
 }
 
 HRESULT STDMETHODCALLTYPE MsaaElement::accDoDefaultAction(VARIANT child) {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -640,7 +642,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::put_accName(VARIANT, BSTR) {
 }
 
 HRESULT STDMETHODCALLTYPE MsaaElement::put_accValue(VARIANT child, BSTR value) {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation target;
     const HRESULT status = resolve(child, client, target);
     if (FAILED(status)) return status;
@@ -676,8 +678,7 @@ void WindowsAccessibility::detach() noexcept {
     }
     source.model = nullptr;
     source.hwnd = nullptr;
-    source.published = SemanticNode{};
-    source.announced = false;
+    source.release_trees();
 }
 
 LRESULT WindowsAccessibility::object(WPARAM parameter) noexcept {
@@ -743,16 +744,20 @@ void WindowsAccessibility::notify(double scale) noexcept {
     if (source.model == nullptr || (!source.observed && !source.automation_observed)) return;
     if ((*source.model).semantic_generation() == source.generation) return;
     try {
-        const SemanticSnapshot snapshot = (*source.model).semantic_snapshot();
-        if (snapshot.generation == source.generation) return;
-        source.generation = snapshot.generation;
+        // The tree is the source's current one, which the UI Automation
+        // publication below reuses.
+        SemanticTreeRef tree;
+        if (!source.snapshot(tree)) return;
+        const std::uint64_t generation = source.current_key.semantic_generation;
+        if (generation == source.generation) return;
+        source.generation = generation;
         if (source.automation_observed) publish_automation_tree(source_);
         if (!source.observed) return;
         NotifyWinEvent(EVENT_OBJECT_REORDER, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
         NotifyWinEvent(EVENT_OBJECT_VALUECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
         NotifyWinEvent(EVENT_OBJECT_STATECHANGE, source.hwnd, OBJID_CLIENT, CHILDID_SELF);
         std::uint64_t focused = 0U;
-        for (const SemanticNode& root : snapshot.roots) {
+        for (const SemanticNode& root : (*tree).children) {
             const SemanticLocation root_at = client_location(root);
             SemanticLocation found;
             if (find_state_location(root_at, SemanticState::focused, found)) {

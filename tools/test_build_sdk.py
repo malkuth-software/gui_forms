@@ -89,7 +89,8 @@ class ConfigureOptionTests(unittest.TestCase):
         self.assertEqual(every[:len(default)], default)
         self.assertEqual(definitions(every[len(default):]), {
             "GUI_FORMS_BUILD_TEXT_MASKS": "ON", "GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT": "ON",
-            "GUI_FORMS_INSTALL_TEXT_STACK": "ON"})
+            "GUI_FORMS_INSTALL_TEXT_STACK": "ON", "GUI_FORMS_BUILD_GALLERY_MODEL": "ON",
+            "GUI_FORMS_INSTALL_GALLERY_MODEL": "ON"})
         self.assertNotIn("-DGUI_FORMS_BUILD_PREPARED_TEXT=ON", every)
 
     def test_the_default_features_add_nothing(self) -> None:

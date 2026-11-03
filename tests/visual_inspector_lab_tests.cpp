@@ -32,6 +32,49 @@ public:
     void draw_image(ImageId, Rect, double) override {}
 };
 
+// The readout's semantic value is reused while the window is unchanged and
+// recomputed when the target changes: its bounds, its enabled state, or the
+// target itself.
+std::string readout_value(Window& window) {
+    const Control::Ptr readout = window.find("visual-inspector.readout");
+    require(readout != nullptr, "the lab has its visual state readout");
+    const std::string value = (*readout).semantic_descriptor().value;
+    return value;
+}
+
+void test_readout_value_follows_its_target(Window& window) {
+    window.perform_layout();
+    const std::string first = readout_value(window);
+    const std::string again = readout_value(window);
+    require(first == again && first.find("visual-inspector.specimen-card; ") == 0U,
+            "an unchanged window gives the readout the same value");
+
+    const Control::Ptr card = window.find("visual-inspector.specimen-card");
+    require(card != nullptr, "the lab has its specimen card");
+    const Rect bounds = (*card).requested_bounds();
+    (*card).set_requested_bounds(Rect{bounds.x + 7.0, bounds.y, bounds.width, bounds.height});
+    window.perform_layout();
+    const std::string moved = readout_value(window);
+    require(moved != first, "moving the target changes the readout's value");
+
+    (*card).set_enabled(false);
+    const std::string disabled = readout_value(window);
+    require(disabled.find("disabled") != std::string::npos,
+            "disabling the target shows in the readout's value");
+    (*card).set_enabled(true);
+    (*card).set_requested_bounds(bounds);
+    window.perform_layout();
+    require(readout_value(window) == first, "restoring the target restores the readout's value");
+
+    const std::shared_ptr<VisualInspectorView> readout =
+        std::dynamic_pointer_cast<VisualInspectorView>(window.find("visual-inspector.readout"));
+    require(readout != nullptr, "the readout is a VisualInspectorView");
+    (*readout).set_target_stable_id("visual-inspector.specimen-button");
+    require(readout_value(window).find("visual-inspector.specimen-button; ") == 0U,
+            "a new target gives the readout a new value");
+    (*readout).set_target_stable_id("visual-inspector.specimen-card");
+}
+
 } // namespace
 
 int main() {
@@ -100,6 +143,7 @@ int main() {
         const FrameTime second_poll = first_poll + std::chrono::milliseconds(1100);
         static_cast<void>((*window).poll_frame_schedule(second_poll));
         require((*window).needs_frame(), "a poll after the target changed must repaint the inspector");
+        test_readout_value_follows_its_target(*window);
         std::cout << "gui_forms_visual_inspector_lab_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

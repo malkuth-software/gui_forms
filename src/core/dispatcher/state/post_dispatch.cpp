@@ -14,7 +14,8 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
                                 Control::WeakPtr owner,
                                 bool requires_owner,
                                 std::function<void()> callback,
-                                bool synchronous) {
+                                bool synchronous,
+                                bool refuse_when_closed) {
     if (!callback) {
         throw std::invalid_argument("GUI.Forms BeginInvoke requires a callback");
     }
@@ -26,7 +27,13 @@ DispatchOperation post_dispatch(const std::shared_ptr<DispatcherState>& state,
     std::shared_ptr<DispatchWork> work;
     {
         std::scoped_lock lock((*state).mutex);
-        if (!(*state).accepting && (*state).closing) {
+        // A closed window: its dispatcher shut down, or its teardown began
+        // (which removes the host wake, so marshalled work could never run).
+        // WindowDispatcher asks for the refusal in both cases; Window's own
+        // posts are refused only once a teardown has shut the dispatcher
+        // down, and throw below otherwise.
+        const bool closed = !(*state).accepting || (*state).closing;
+        if ((refuse_when_closed && closed) || (!(*state).accepting && (*state).closing)) {
             // The teardown refusal: an operation that is already cancelled
             // and holds no callback. The callback is released with this
             // call's argument.

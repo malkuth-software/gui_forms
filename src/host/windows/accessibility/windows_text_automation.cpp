@@ -34,11 +34,11 @@ const IID iid_gui_forms_text_range = {
 
 // -- one call's view of the text --------------------------------------------
 
-// A text node as one call reads it: the snapshot, the node's location in it
-// (which borrows `client`, so a TextRead is filled in place and never
-// moved), the node's layout, and scratch storage for unit boundaries.
+// A text node as one call reads it: the shared snapshot, the node's location
+// in it (which borrows the tree `client` keeps alive), the node's layout,
+// and scratch storage for unit boundaries.
 struct TextRead final {
-    SemanticNode client;
+    SemanticTreeRef client;
     SemanticLocation self;
     SemanticTextLayout layout;
     std::vector<Utf8Offset> boundaries;
@@ -50,7 +50,7 @@ struct TextRead final {
 // layout. Throws std::bad_alloc when memory runs out.
 HRESULT read_text(SemanticSource& source, SemanticElementId id, TextRead& read) {
     if (!source.snapshot(read.client)) return element_not_available;
-    if (!locate_semantic_element(read.client, id, read.self)) return element_not_available;
+    if (!locate_semantic_element(*read.client, id, read.self)) return element_not_available;
     if (read.self.parent == nullptr || !text_pattern(*read.self.node)) return invalid_operation;
     if (source.model == nullptr) return element_not_available;
     const RuntimeId control{(*read.self.node).runtime_id};

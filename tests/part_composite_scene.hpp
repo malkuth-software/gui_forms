@@ -30,7 +30,10 @@ inline constexpr Size scene_size{120.0, 48.0};
 inline constexpr Size part_size{40.0, 28.0};
 
 // Expected FNV-1a hashes of the raster's rows in RGBA order, [case][scale],
-// produced by the Windows DIB painter (Windows x64, clang 22), 2026-10-20.
+// from SkiaRaster, the one CPU painter. First recorded through the Windows
+// DIB painter (Windows x64, clang 22), 2026-10-20; re-recorded through
+// SkiaRaster on Windows x64 (clang 22.1.8), 2026-11-02 (SK5), unchanged.
+// Every host checks this one table.
 // GUI_FORMS_PART_COMPOSITE_PRINT=1 prints the observed table instead.
 inline constexpr std::array<std::array<std::uint64_t, 3>, 5> expected{{
     {0x76930cce6775bc50ULL, 0xf84b6b81bb71753bULL, 0x8909e0d61d0afca7ULL},
@@ -106,7 +109,10 @@ inline constexpr std::array<const char*, 9> group_case_names{"isolated",     "ne
                                                              "refused",      "translated",  "overlap"};
 
 // Expected FNV-1a hashes of the raster's rows in RGBA order, [case][scale],
-// produced by the Windows DIB painter (Windows x64, clang 22), 2026-10-21.
+// from SkiaRaster, the one CPU painter. First recorded through the Windows
+// DIB painter (Windows x64, clang 22), 2026-10-21; re-recorded through
+// SkiaRaster on Windows x64 (clang 22.1.8), 2026-11-02 (SK5), unchanged.
+// Every host checks this one table.
 // GUI_FORMS_PART_COMPOSITE_PRINT=1 prints the observed table instead.
 inline constexpr std::array<std::array<std::uint64_t, 3>, 9> expected_groups{{
     {0xbbdc19788bd13499ULL, 0x6c3059a7826c9bb9ULL, 0x776795552a69caadULL},

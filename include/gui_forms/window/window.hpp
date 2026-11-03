@@ -531,6 +531,9 @@ public:
     // execute inline; worker calls require an installed running host wake seam.
     void invoke(std::function<void()> callback);
     void invoke(const Control::Ptr& owner, std::function<void()> callback);
+    // A handle to this window's dispatcher that any thread may keep and post
+    // through after the window has closed (WindowDispatcher).
+    [[nodiscard]] WindowDispatcher dispatcher() const;
     [[nodiscard]] DispatchDrainResult drain_posted_work(
         std::size_t maximum_callbacks = maximum_callbacks_per_dispatch_turn);
     [[nodiscard]] DispatcherSnapshot dispatcher_snapshot() const noexcept;

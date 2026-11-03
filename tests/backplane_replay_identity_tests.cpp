@@ -1,6 +1,6 @@
 // Stage T5, phase C6's renderer gate through the Skia raster: the backplane
 // replay scene (backplane_replay_scene.hpp), with Carlito registered as the
-// content face, against the table the Windows DIB painter checks
+// content face, against the table the Windows host's raster also checks
 // (windows_backplane_replay_tests). GUI_FORMS_BACKPLANE_REPLAY_PRINT=1
 // prints the observed hashes instead of checking them.
 #include "gui_forms/gui_forms.hpp"

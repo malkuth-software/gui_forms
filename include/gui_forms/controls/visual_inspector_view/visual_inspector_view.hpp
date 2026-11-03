@@ -68,6 +68,31 @@ private:
     };
     AnimationTimer poll_timer_;
     [[nodiscard]] std::string accessible_value() const;
+    // The window state a semantic value was computed in. Hover is not in it:
+    // the window publishes no hovered control, and a hover change that
+    // repaints nothing leaves the value as it was until the next repaint
+    // (a polling view repaints itself when its rows change).
+    struct SemanticValueKey final {
+        std::uint64_t content_revision{};
+        std::uint64_t display_generation{};
+        RuntimeId focused{};
+        RuntimeId pressed{};
+        RuntimeId captured{};
+        bool window_active{};
+    };
+    struct SemanticValue final {
+        SemanticValueKey key;
+        std::string value;
+    };
+    // A UI Automation client reads an element through many calls, each of
+    // which takes a semantic snapshot, and the value needs a whole-window
+    // visual inspection; the value is reused while its key holds. Written
+    // only on the UI thread, from semantic_descriptor (hence mutable), and
+    // dropped by refresh and a new target.
+    [[nodiscard]] static SemanticValueKey semantic_value_key(const Window& owner);
+    [[nodiscard]] static bool same_key(const SemanticValueKey& left,
+                                       const SemanticValueKey& right) noexcept;
+    mutable std::optional<SemanticValue> semantic_value_;
     std::string target_stable_id_;
     // The rows on_paint last drew, as one key (empty before the first paint).
     std::string painted_content_;

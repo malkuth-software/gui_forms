@@ -52,6 +52,8 @@ MANIFEST_NAME: str = "SDK_MANIFEST.json"
 #   GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT  GUIForms::AudioLoopTransport (inside Audio)
 #   GUI_FORMS_INSTALL_TEXT_STACK          GUIForms::FreeType and GUIForms::HarfBuzz, the
 #                                         pinned static libraries and their headers
+#   GUI_FORMS_INSTALL_GALLERY_MODEL       GUIForms::GalleryModel, the Gallery model the
+#                                         programs repository builds the Gallery from
 # The default already builds Audio with the stx Vorbis decoder, the
 # HarfBuzz/FreeType text engine and the host's Application. Left out of
 # "all": GUI_FORMS_BUILD_PREPARED_TEXT, a development interface that is not
@@ -62,7 +64,8 @@ MANIFEST_NAME: str = "SDK_MANIFEST.json"
 FEATURE_SETS: dict[str, tuple[str, ...]] = {
     "default": (),
     "all": ("-DGUI_FORMS_BUILD_TEXT_MASKS=ON", "-DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON",
-            "-DGUI_FORMS_INSTALL_TEXT_STACK=ON"),
+            "-DGUI_FORMS_INSTALL_TEXT_STACK=ON", "-DGUI_FORMS_BUILD_GALLERY_MODEL=ON",
+            "-DGUI_FORMS_INSTALL_GALLERY_MODEL=ON"),
 }
 
 
