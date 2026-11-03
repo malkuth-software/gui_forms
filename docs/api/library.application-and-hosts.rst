@@ -89,6 +89,8 @@ Related types
      - HostColorDialogResult carries accepted/cancelled outcome and portable RGBA.
    * - :cpp:class:`HostCompositorEvent <gui_forms::HostCompositorEvent>`
      - The host's compositor and preference state (stage T5): reported once after attach and again whenever it changes (capability compositor_notifications).
+   * - :cpp:class:`HostDialogHelpEvent <gui_forms::HostDialogHelpEvent>`
+     - The user asked for help in an open message dialog: its Help button, or F1.
    * - :cpp:class:`HostDialogRequest <gui_forms::HostDialogRequest>`
      - HostDialogRequest binds a unique request ID and portable owner stable ID to one typed dialog variant.
    * - :cpp:class:`HostDialogResult <gui_forms::HostDialogResult>`
@@ -707,6 +709,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostDialogHelpEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>``
+
+   The user asked for help in an open message dialog: its Help button, or F1. The dialog stays open.
+
+   .. cpp:member:: std::uint64_t request_id
+
+   .. cpp:member:: bool keyboard_initiated
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostDialogRequest final
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -900,6 +914,16 @@ Related types
    .. cpp:member:: HostDialogChoice default_choice
 
       Default: ``{HostDialogChoice::ok}``.
+
+   .. cpp:member:: bool right_align
+
+      Windows Forms' MessageBoxOptions: the text aligned to the right, and read right to left (with the caption and the box mirrored where the host can). Presentation only: an adapter that cannot honour one shows the box as without it (see show_message_box).
+
+   .. cpp:member:: bool rtl_reading
+
+   .. cpp:member:: bool help_button
+
+      Windows Forms' displayHelpButton: a Help button after the set's buttons. Pressing it, or F1 where the host's dialog takes it, reports a HostDialogHelpEvent and leaves the dialog open.
 
 .. cpp:namespace:: gui_forms
 
@@ -1126,6 +1150,10 @@ Related types
 
       Raised on the UI thread for each user action on a live tray icon.
 
+   .. cpp:function:: Event<const HostDialogHelpEvent&>& dialog_help_requested() noexcept
+
+      Raised on the UI thread when the user asks for help in an open message dialog (its Help button, or F1 where the host's dialog takes it), with the dialog's request identity; the dialog stays open. Handlers run inside the host's modal loop: they may open other windows but cannot close the dialog.
+
    .. cpp:function:: Event<const HostModalTransition&>& modal_changed() noexcept
 
       Returns the ordered modal enter/leave event consumed by HostSession.
@@ -1194,6 +1222,10 @@ Related types
       Capability notification_area_menus. Shows a native menu at the icon and returns when it closes, as show_dialog does.
 
    .. cpp:function:: bool tray_icon_live(HostTrayIconId icon_id) const noexcept
+
+   .. cpp:function:: bool publish_dialog_help(const HostDialogHelpEvent& event)
+
+      Adapters report a help request in an open dialog here. Dropped (false) off the UI thread, after shutdown, and for a request that is not an open dialog's.
 
    .. cpp:function:: HostServiceStatus apply_window_backdrop(WindowBackdrop backdrop)
 
@@ -3009,6 +3041,16 @@ Enumerations
 
    .. cpp:enumerator:: retry
 
+   .. cpp:enumerator:: abort
+
+   .. cpp:enumerator:: ignore
+
+   .. cpp:enumerator:: try_again
+
+   .. cpp:enumerator:: continue_
+
+   .. cpp:enumerator:: help
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostDialogOutcome
@@ -3090,6 +3132,10 @@ Enumerations
    .. cpp:enumerator:: yes_no_cancel
 
    .. cpp:enumerator:: retry_cancel
+
+   .. cpp:enumerator:: abort_retry_ignore
+
+   .. cpp:enumerator:: cancel_try_continue
 
 .. cpp:namespace:: gui_forms
 

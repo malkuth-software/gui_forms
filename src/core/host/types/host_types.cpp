@@ -220,6 +220,11 @@ const char* host_dialog_choice_name(HostDialogChoice choice) noexcept {
     case HostDialogChoice::yes: return "yes";
     case HostDialogChoice::no: return "no";
     case HostDialogChoice::retry: return "retry";
+    case HostDialogChoice::abort: return "abort";
+    case HostDialogChoice::ignore: return "ignore";
+    case HostDialogChoice::try_again: return "try_again";
+    case HostDialogChoice::continue_: return "continue";
+    case HostDialogChoice::help: return "help";
     }
     return "unknown";
 }

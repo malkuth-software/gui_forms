@@ -35,6 +35,14 @@ bool HelpProvider::FocusedHelpAccelerator::operator()() const {
     return provider != nullptr && (*provider).request_focused_help();
 }
 
+class HelpProvider::WindowFallback final : public gui_forms::detail::WindowHelpFallback {
+public:
+    explicit WindowFallback(HelpProvider& owner) noexcept : provider(&owner) {}
+    bool offer_window_help(HelpRequestEvent& request) override { return (*provider).offer_window_help(request); }
+
+    HelpProvider* provider{};
+};
+
 HelpProvider::HelpProvider(Window& window)
     : window_lifetime_(window.lifetime_),
       provider_id_(next_help_provider_id.fetch_add(1U)) {
@@ -42,6 +50,8 @@ HelpProvider::HelpProvider(Window& window)
     accelerator_ = std::make_unique<AcceleratorHolder>(window.register_accelerator(
         *this, KeyGesture{PhysicalKey::f1, Modifier::none},
         FocusedHelpAccelerator{this}));
+    window_fallback_ = std::make_unique<WindowFallback>(*this);
+    window.add_help_fallback(*window_fallback_);
 }
 
 HelpProvider::~HelpProvider() {
@@ -49,6 +59,11 @@ HelpProvider::~HelpProvider() {
         try {
             dispose();
         } catch (...) {
+            // Disposal refused off the UI thread: the window still must not
+            // offer help to a destroyed provider.
+            if (Window* owner = bound_window(); owner != nullptr && window_fallback_) {
+                (*owner).remove_help_fallback(*window_fallback_);
+            }
             accelerator_.reset();
             entries_.clear();
         }
@@ -251,6 +266,29 @@ bool HelpProvider::request_help(const std::shared_ptr<Control>& target,
     return request.handled;
 }
 
+// The window's own help request, offered after its handlers and the
+// providers created earlier: this provider's namespace, and the root's
+// mapping where it has one.
+bool HelpProvider::offer_window_help(HelpRequestEvent& request) {
+    if (!is_alive()) return false;
+    HelpRequestEvent offered = request;
+    offered.help_namespace = help_namespace_;
+    Window* owner = bound_window();
+    const std::shared_ptr<Control> root = owner != nullptr ? (*owner).root() : nullptr;
+    const Entry* entry = root ? find_entry(*root) : nullptr;
+    if (entry != nullptr && entry_effective(*entry)) {
+        offered.help_string = (*entry).help_string;
+        offered.keyword = (*entry).keyword;
+        offered.navigator = (*entry).navigator;
+    }
+    ++request_count_;
+    help_requested_.emit(offered);
+    if (!offered.handled) return false;
+    ++handled_request_count_;
+    request.handled = true;
+    return true;
+}
+
 bool HelpProvider::request_focused_help() {
     Window* owner = bound_window();
     if (!owner) return false;
@@ -309,6 +347,9 @@ void HelpProvider::on_dispose() noexcept {
     }
     entries_.clear();
     accelerator_.reset();
+    if (Window* owner = bound_window(); owner != nullptr && window_fallback_) {
+        (*owner).remove_help_fallback(*window_fallback_);
+    }
     tag_.reset();
     window_lifetime_.reset();
 }

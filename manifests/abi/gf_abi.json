@@ -4,7 +4,7 @@
   "header": "include/gui_forms/c/gf_abi.h",
   "abi": {
     "major": 1,
-    "minor": 0
+    "minor": 1
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -20,7 +20,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 0,
+      "value": 1,
       "type": "uint32"
     },
     {
@@ -490,6 +490,46 @@
     },
     {
       "name": "GF_SCHEMA_PRIMITIVE_LIST_INPUTS_READ",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_TIME_MODEL_STATIC_POSE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_TIME_MODEL_TRANSITION",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_INPUT_NONE",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_INPUT_POINTER",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_INPUT_POINTER_AND_KEYS",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_FLAGS_VERIFIED",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY",
       "value": 2,
       "type": "uint32"
     },
@@ -1112,6 +1152,18 @@
     },
     {
       "name": "gf_schema_primitive_list",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_effect_time_model",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_effect_input",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_schema_effect_flags",
       "type": "uint32_t"
     },
     {
@@ -2481,6 +2533,38 @@
       ]
     },
     {
+      "name": "gf_schema_interaction",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "mutable_payload",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "payload",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        }
+      ]
+    },
+    {
       "name": "gf_run_options",
       "kind": "extensible",
       "size": 64,
@@ -2539,7 +2623,7 @@
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 32,
+      "size": 56,
       "align": 8,
       "fields": [
         {
@@ -2609,6 +2693,62 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "interaction_count",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "interaction_at",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "interaction",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_interaction*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "request_help",
+          "type": "function",
+          "offset": 48,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "handled",
+                "type": "uint32_t*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
@@ -2857,38 +2997,6 @@
       ]
     },
     {
-      "name": "gf_schema_interaction",
-      "kind": "extensible",
-      "size": 40,
-      "align": 8,
-      "fields": [
-        {
-          "name": "struct_size",
-          "type": "uint32_t",
-          "offset": 0,
-          "size": 4
-        },
-        {
-          "name": "mutable_payload",
-          "type": "uint32_t",
-          "offset": 4,
-          "size": 4
-        },
-        {
-          "name": "name",
-          "type": "gf_utf8_view",
-          "offset": 8,
-          "size": 16
-        },
-        {
-          "name": "payload",
-          "type": "gf_utf8_view",
-          "offset": 24,
-          "size": 16
-        }
-      ]
-    },
-    {
       "name": "gf_schema_engine",
       "kind": "extensible",
       "size": 96,
@@ -3123,9 +3231,95 @@
       ]
     },
     {
+      "name": "gf_schema_effect",
+      "kind": "extensible",
+      "size": 112,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "time_model",
+          "type": "gf_schema_effect_time_model",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "name",
+          "type": "gf_utf8_view",
+          "offset": 8,
+          "size": 16
+        },
+        {
+          "name": "parent",
+          "type": "gf_utf8_view",
+          "offset": 24,
+          "size": 16
+        },
+        {
+          "name": "engine_version",
+          "type": "uint32_t",
+          "offset": 40,
+          "size": 4
+        },
+        {
+          "name": "input",
+          "type": "gf_schema_effect_input",
+          "offset": 44,
+          "size": 4
+        },
+        {
+          "name": "cost_fixed",
+          "type": "uint32_t",
+          "offset": 48,
+          "size": 4
+        },
+        {
+          "name": "cost_per_device_pixel",
+          "type": "uint32_t",
+          "offset": 52,
+          "size": 4
+        },
+        {
+          "name": "setup_cost",
+          "type": "uint32_t",
+          "offset": 56,
+          "size": 4
+        },
+        {
+          "name": "flags",
+          "type": "gf_schema_effect_flags",
+          "offset": 60,
+          "size": 4
+        },
+        {
+          "name": "state_budget",
+          "type": "uint64_t",
+          "offset": 64,
+          "size": 8
+        },
+        {
+          "name": "frames_per_second",
+          "type": "double",
+          "offset": 72,
+          "size": 8
+        },
+        {
+          "name": "outsets",
+          "type": "gf_logical_insets",
+          "offset": 80,
+          "size": 32
+        }
+      ]
+    },
+    {
       "name": "gf_schema_table",
       "kind": "table",
-      "size": 144,
+      "size": 160,
       "align": 8,
       "fields": [
         {
@@ -3543,6 +3737,42 @@
             ]
           },
           "since": "1.0"
+        },
+        {
+          "name": "effect_count",
+          "type": "function",
+          "offset": 144,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "effect_at",
+          "type": "function",
+          "offset": 152,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "effect",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_effect*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },

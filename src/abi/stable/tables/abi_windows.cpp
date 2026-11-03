@@ -2,6 +2,7 @@
 // gf_abi.h.
 
 #include "abi_tables.hpp"
+#include "abi_records.hpp"
 
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
@@ -19,6 +20,7 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::abi1 {
 namespace {
@@ -26,6 +28,9 @@ namespace {
 constexpr SlotIdentity run_slot{GF_TABLE_WINDOWS, 0U};
 constexpr SlotIdentity request_close_slot{GF_TABLE_WINDOWS, 1U};
 constexpr SlotIdentity create_slot{GF_TABLE_WINDOWS, 2U};
+constexpr SlotIdentity interaction_count_slot{GF_TABLE_WINDOWS, 3U};
+constexpr SlotIdentity interaction_at_slot{GF_TABLE_WINDOWS, 4U};
+constexpr SlotIdentity request_help_slot{GF_TABLE_WINDOWS, 5U};
 
 // The 1.0 size of gf_run_options: a caller passes at least this much.
 constexpr std::uint32_t run_options_size_1_0 = 64U;
@@ -329,12 +334,99 @@ gf_status GF_CALL windows_create(gf_object root, gf_object* window) noexcept {
     }
 }
 
+// The interactions every window raises (Window::append_interactions). Their
+// names and payloads are static strings, so the views interaction_at hands
+// out stay valid while the library is loaded.
+std::vector<InteractionDeclaration> window_interactions() {
+    std::vector<InteractionDeclaration> interactions;
+    Window::append_interactions(interactions);
+    return interactions;
+}
+
+gf_status GF_CALL windows_interaction_count(std::uint64_t* count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(interaction_count_slot.table_id, interaction_count_slot.slot_index);
+        if (count == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, interaction_count_slot, "interaction_count needs a count output");
+        }
+        const std::vector<InteractionDeclaration> interactions = window_interactions();
+        *count = static_cast<std::uint64_t>(interactions.size());
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(interaction_count_slot);
+    }
+}
+
+gf_status GF_CALL windows_interaction_at(std::uint64_t interaction, gf_schema_interaction* record) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(interaction_at_slot.table_id, interaction_at_slot.slot_index);
+        const gf_status valid = check_record(record, interaction_at_slot);
+        if (valid != GF_STATUS_OK) {
+            return valid;
+        }
+        const std::vector<InteractionDeclaration> interactions = window_interactions();
+        if (interaction >= interactions.size()) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, interaction_at_slot, "the index is past the end of its list");
+        }
+        const InteractionDeclaration& held = interactions[static_cast<std::size_t>(interaction)];
+        gf_schema_interaction complete{};
+        complete.struct_size = sizeof(gf_schema_interaction);
+        complete.mutable_payload = held.mutable_payload ? 1U : 0U;
+        complete.name = gf_utf8_view{held.name.data(), held.name.size()};
+        complete.payload = gf_utf8_view{held.payload.data(), held.payload.size()};
+        write_record(complete, record);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(interaction_at_slot);
+    }
+}
+
+// Raises a created or running window's help request, not keyboard-initiated.
+gf_status request_window_help(gf_object window, std::uint32_t* handled) {
+    if (handled == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, request_help_slot, "request_help needs a handled output");
+    }
+    const gf_status entered = registry().enter_ui(request_help_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window, request_help_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, request_help_slot, "request_help takes a window");
+    }
+    Window* const held = (*handle).window();
+    if (!(*handle).is_alive() || held == nullptr) {
+        return fail(GF_STATUS_DISPOSED, request_help_slot, "the window has been disposed or has closed");
+    }
+    const bool answered = (*held).request_help(false);
+    *handled = answered ? 1U : 0U;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_request_help(gf_object window, std::uint32_t* handled) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(request_help_slot.table_id, request_help_slot.slot_index);
+        const gf_status requested = request_window_help(window, handled);
+        return requested;
+    } catch (...) {
+        return fail_with_current_exception(request_help_slot);
+    }
+}
+
 constexpr gf_windows_table table{
     .struct_size = sizeof(gf_windows_table),
     .abi_minor = GF_ABI_MINOR,
     .run = &windows_run,
     .request_close = &windows_request_close,
     .create = &windows_create,
+    .interaction_count = &windows_interaction_count,
+    .interaction_at = &windows_interaction_at,
+    .request_help = &windows_request_help,
 };
 
 } // namespace

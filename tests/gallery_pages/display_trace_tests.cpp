@@ -412,53 +412,50 @@ struct PageDigest final {
 // relief lines to the theme's rounded well and button in the override's
 // background. Those three pages were recorded again.
 //
-// Button content, LinkLabel text, ComboBox text and DropDownButton's arrow
-// paint through the theme engine (T4 phase 4, the batch's last stock
-// calls): each text line is a label part, the image an icon part, the
-// arrow a disclosure part; overridden buttons with per-control recipes or
-// a connection lose the classic relief frame for the themed path. On every
-// page each label now sits in its part's save, clip and restore (1095 of
-// each) at an unchanged origin; the disabled themed buttons' labels (16,
-// such as Unavailable, Undo, Redo, Delete) take the part path's disabled
-// ink, #848f99 for #76808a; an empty ComboBox no longer draws an empty
-// string; the drop-down arrows draw the same rows, tip first. Every page
-// was recorded again.
+// W's MessageBox gaps (Abort/Retry/Ignore, Cancel/Try Again/Continue and
+// the Help button) give dialogs-and-host-services six message buttons
+// where it had four: they are narrower, labelled by their buttons alone
+// ("OK/Cancel" for "Warning · OK/Cancel"), and the two new ones follow;
+// states-and-diagnostics (1366 controls) and typography-and-inspection
+// (#1405, generation 1082, 1382 controls) move by those two controls.
+// Diffed against main's traces nothing else changed; those three pages
+// were recorded again.
 //
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 31> expected_digests{{
-    {"basics", 0x5dfa1538c7d69e3aULL},
-    {"values", 0xb086beb80d937686ULL},
-    {"retained-rows", 0x27ed378ce92f2bedULL},
-    {"instrument", 0x67605819732a38a9ULL},
-    {"control-spectrum", 0xa887159dc5c4507dULL},
-    {"ranges-and-progress", 0xa866011e20ce9166ULL},
-    {"containers-and-focus", 0x1b93953d394803afULL},
-    {"animation-laboratory", 0xf39ba070e4df9835ULL},
-    {"states-and-diagnostics", 0xb337c5f21d779ac9ULL},
-    {"text-and-input", 0xc1cb6c00eb7b01c5ULL},
-    {"collections-and-popups", 0x61c9045226e61fe5ULL},
-    {"values-and-spinners", 0x5912a1b921789e0bULL},
-    {"images-and-drawing", 0x0c3dd9a2a66cd770ULL},
-    {"tabs-and-pages", 0xa209ccb1c28945faULL},
-    {"checked-collections", 0x6e4ed03369763ea7ULL},
-    {"timing-and-tooltips", 0x7e57846a41f189d3ULL},
-    {"dates-and-calendar", 0x92edabf015cf7c82ULL},
-    {"dialogs-and-host-services", 0xa1ca609017ab0e0dULL},
-    {"css-layout-panels", 0x32b07d1cccdb6388ULL},
-    {"retained-layout-panels", 0x6520ea3d5e065f97ULL},
-    {"dock-and-anchor", 0x619ca1a8c7aec757ULL},
-    {"docking-workspace", 0xacd16d9767569be0ULL},
-    {"commands-and-menus", 0xc87d46ca5c420298ULL},
-    {"tree-and-object-views", 0x576e1eedf0a3eeecULL},
-    {"choices-and-sections", 0x4cda2d6d06c2cb66ULL},
-    {"value-editors", 0xb1376ee8925d95fbULL},
-    {"responsive-layouts", 0x27ed242094c239b2ULL},
-    {"anchored-popups", 0x4b3b7601384128e1ULL},
-    {"live-surfaces", 0xdbfbacca7a7fe467ULL},
-    {"typography-and-inspection", 0xc14c40655690658eULL},
-    {"semantic-feedback", 0x9fe60ffccccdb24dULL},
+    {"basics", 0x90bb349431563af2ULL},
+    {"values", 0xbb4905f0d13fa1fdULL},
+    {"retained-rows", 0xeaac0b7007c0dc4eULL},
+    {"instrument", 0x9175d9af67d4c1cfULL},
+    {"control-spectrum", 0x707a9a903373c445ULL},
+    {"ranges-and-progress", 0xdd9d5756cdabbaaeULL},
+    {"containers-and-focus", 0x6c48cee0339300d1ULL},
+    {"animation-laboratory", 0x542b8d0c21121e6dULL},
+    {"states-and-diagnostics", 0x79cc956266b428b7ULL},
+    {"text-and-input", 0x7e98b7301c190d6fULL},
+    {"collections-and-popups", 0xc5ea7a18af64e3efULL},
+    {"values-and-spinners", 0xa2e2122dcec535baULL},
+    {"images-and-drawing", 0x638c11f89b3be0c6ULL},
+    {"tabs-and-pages", 0x70e16b01b3d22cdfULL},
+    {"checked-collections", 0x4c2aeda56938097aULL},
+    {"timing-and-tooltips", 0xdec1abb7511851f6ULL},
+    {"dates-and-calendar", 0x6d237c1f3f462e4cULL},
+    {"dialogs-and-host-services", 0x7bfb0001ef249505ULL},
+    {"css-layout-panels", 0x1481013d6683373bULL},
+    {"retained-layout-panels", 0x8affcbbf0ac3f3a5ULL},
+    {"dock-and-anchor", 0x1dfb92ebe158d490ULL},
+    {"docking-workspace", 0x61e086ed3a9f1c6bULL},
+    {"commands-and-menus", 0x90d7dd6d7df9085dULL},
+    {"tree-and-object-views", 0xf438014e8b43f0c1ULL},
+    {"choices-and-sections", 0xbe17ba0824754a9fULL},
+    {"value-editors", 0xa9cc9e42a5872cc3ULL},
+    {"responsive-layouts", 0x0165a2122f612232ULL},
+    {"anchored-popups", 0x2fa75c97d98572dbULL},
+    {"live-surfaces", 0xa03a5dddc0929445ULL},
+    {"typography-and-inspection", 0xc5649d9b37ab3111ULL},
+    {"semantic-feedback", 0x68026f28dcaf1914ULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {

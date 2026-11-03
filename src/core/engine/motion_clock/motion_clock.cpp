@@ -10,6 +10,7 @@
 #include <limits>
 #include <optional>
 #include <stdexcept>
+#include <utility>
 
 namespace gui_forms {
 
@@ -42,20 +43,15 @@ bool MotionClock::ambient_suppressed() const noexcept {
 
 void MotionClock::enlist_ambient(std::uint32_t part_slot, std::uint32_t part_generation, FrameInterval interval) {
     for (AmbientRecord& existing : ambient_) {
-        if (existing.live && existing.part_slot == part_slot && existing.part_generation == part_generation) {
+        if (existing.live && existing.control_address == nullptr && existing.part_slot == part_slot &&
+            existing.part_generation == part_generation) {
             existing.interval = interval;
             return;
         }
     }
-    // Room and the request first, so that nothing below fails.
-    std::size_t free = ambient_.size();
-    for (std::size_t index = 0; index < ambient_.size(); ++index) {
-        if (!ambient_[index].live) free = index;
-    }
-    if (free == ambient_.size()) ambient_.reserve(ambient_.size() + 1U);
-    if (!request_.connected()) request_ = (*window_).request_motion_frames(now() + motion_frame_interval);
-    if (free == ambient_.size()) ambient_.emplace_back();
+    const std::size_t free = ambient_place();
     AmbientRecord& made = ambient_[free];
+    made = AmbientRecord{};
     made.part_slot = part_slot;
     made.part_generation = part_generation;
     made.interval = interval;
@@ -67,9 +63,89 @@ void MotionClock::enlist_ambient(std::uint32_t part_slot, std::uint32_t part_gen
     align_to_ambient();
 }
 
+std::size_t MotionClock::ambient_place() {
+    // Room and the request first, so that nothing after fails.
+    std::size_t free = ambient_.size();
+    for (std::size_t index = 0; index < ambient_.size(); ++index) {
+        if (!ambient_[index].live && !ambient_[index].parked) free = index;
+    }
+    if (free == ambient_.size()) ambient_.reserve(ambient_.size() + 1U);
+    if (!request_.connected()) request_ = (*window_).request_motion_frames(now() + motion_frame_interval);
+    if (free == ambient_.size()) ambient_.emplace_back();
+    return free;
+}
+
+bool MotionClock::enlist_control_ambient(Control& control, FrameInterval interval) {
+    if (ambient_suppressed()) return false;
+    std::optional<std::size_t> parked{};
+    for (std::size_t index = 0; index < ambient_.size(); ++index) {
+        AmbientRecord& existing = ambient_[index];
+        if (existing.control_address != &control) continue;
+        if (existing.live) {
+            existing.interval = interval;
+            return false;
+        }
+        if (existing.parked) parked = index;
+    }
+    std::weak_ptr<Control> observed = control.weak_from_this();
+    if (observed.expired()) {
+        throw std::logic_error("GUI.Forms ambient control must be held by a shared pointer");
+    }
+    // A parked record is reused in place; it is no longer parked.
+    const std::size_t place = parked ? *parked : ambient_place();
+    if (parked && !request_.connected()) request_ = (*window_).request_motion_frames(now() + motion_frame_interval);
+    AmbientRecord& made = ambient_[place];
+    made = AmbientRecord{};
+    made.control = std::move(observed);
+    made.control_address = &control;
+    made.interval = interval;
+    made.next = now() + interval;
+    made.seen = none_seen;
+    made.live = true;
+    ambient_live_ = ambient_live_ + 1U;
+    align_to_ambient();
+    return true;
+}
+
+void MotionClock::withdraw_control_ambient(const Control& control) noexcept {
+    for (AmbientRecord& existing : ambient_) {
+        if (existing.control_address != &control) continue;
+        if (existing.live) ambient_live_ = ambient_live_ - 1U;
+        existing = AmbientRecord{};
+    }
+    disarm_when_idle();
+}
+
+bool MotionClock::control_ambient(const Control& control) const noexcept {
+    for (const AmbientRecord& existing : ambient_) {
+        if (existing.live && existing.control_address == &control) return true;
+    }
+    return false;
+}
+
+void MotionClock::repaint_parked() {
+    for (AmbientRecord& existing : ambient_) {
+        if (!existing.parked) continue;
+        const std::shared_ptr<Control> control = existing.control.lock();
+        existing = AmbientRecord{};
+        if (control && (*control).attached_window() == window_) (*control).invalidate(Dirty::paint);
+    }
+}
+
+bool MotionClock::control_ambient_frame(AmbientRecord& effect, FrameTime now) {
+    const std::shared_ptr<Control> control = effect.control.lock();
+    if (!control || !(*control).is_alive() || (*control).attached_window() != window_) return false;
+    const bool shown = (*control).on_ambient_frame(now);
+    if (shown) (*window_).metrics().record_effect_ambient_frame();
+    return shown;
+}
+
 void MotionClock::withdraw_ambient(std::uint32_t part_slot, std::uint32_t part_generation) noexcept {
     for (AmbientRecord& existing : ambient_) {
-        if (!existing.live || existing.part_slot != part_slot || existing.part_generation != part_generation) continue;
+        if (!existing.live || existing.control_address != nullptr || existing.part_slot != part_slot ||
+            existing.part_generation != part_generation) {
+            continue;
+        }
         existing.live = false;
         ambient_live_ = ambient_live_ - 1U;
     }
@@ -81,7 +157,13 @@ void MotionClock::stop_ambient(bool repaint) {
         if (!existing.live) continue;
         existing.live = false;
         ambient_live_ = ambient_live_ - 1U;
-        if (repaint) (*window_).repaint_engine_part(existing.part_slot, existing.part_generation);
+        if (existing.control_address == nullptr) {
+            if (repaint) (*window_).repaint_engine_part(existing.part_slot, existing.part_generation);
+            continue;
+        }
+        existing.parked = true;
+        const std::shared_ptr<Control> control = existing.control.lock();
+        if (repaint && control && (*control).attached_window() == window_) (*control).invalidate(Dirty::paint);
     }
     disarm_when_idle();
 }
@@ -91,9 +173,11 @@ void MotionClock::advance_ambient(FrameTime now) {
     for (std::size_t index = 0; index < ambient_.size(); ++index) {
         AmbientRecord& effect = ambient_[index];
         if (!effect.live || effect.next > now) continue;
-        const bool shown = (*window_).engine_ambient_frame(effect.part_slot, effect.part_generation, effect.seen);
+        const bool shown = effect.control_address != nullptr
+            ? control_ambient_frame(effect, now)
+            : (*window_).engine_ambient_frame(effect.part_slot, effect.part_generation, effect.seen);
         if (!shown) {
-            effect.live = false;
+            effect = AmbientRecord{};
             ambient_live_ = ambient_live_ - 1U;
             continue;
         }
@@ -307,6 +391,7 @@ void MotionClock::finish_all(MotionStepCause cause) {
 }
 
 void MotionClock::release_owner(const Control& owner) noexcept {
+    withdraw_control_ambient(owner);
     if (moving_ == 0U) return;
     for (std::size_t index = 0; index < slots_.size(); ++index) {
         Record& record = slots_[index];

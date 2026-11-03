@@ -55,12 +55,25 @@ class NotifyIcon;
 class BindingContext;
 class LiveSurface;
 class PaintFramebuffer;
+struct HelpRequestEvent;
 namespace detail {
 struct LiveSurfaceIdleWake;
 class PopupAttachment;
 class AcceleratorAttachment;
 class RecordingPainter;
 class ToolTipPresenter;
+class MessageBoxHelpRoute;
+
+// What a window offers the help requests no handler of its own took
+// (Window::request_help): each HelpProvider of the window is one, offered in
+// the order the providers were created. True when it handled the request.
+class WindowHelpFallback {
+public:
+    virtual bool offer_window_help(HelpRequestEvent& request) = 0;
+
+protected:
+    ~WindowHelpFallback() {}
+};
 }
 
 class PopupToken final {
@@ -602,6 +615,30 @@ public:
     [[nodiscard]] Event<const FocusedControlChange&>& focused_control_changed() noexcept {
         return focused_control_changed_;
     }
+    // Help asked of the window as a whole, as Windows Forms raises
+    // HelpRequested on a message box's owner form: the Help button of a
+    // message box the window owns, or F1 while it is open
+    // (show_message_box). The request names the root control, at the
+    // window's centre, with no help string, keyword or namespace. When no
+    // handler sets `handled`, the window's HelpProviders are offered it in
+    // the order they were created, each raising its own help_requested with
+    // its namespace and the root's mapping where it has one, until one
+    // handles it (the order F1 takes from a control to its provider).
+    // Handlers run while the box is open: they may open other windows but
+    // cannot close the box.
+    [[nodiscard]] Event<HelpRequestEvent&>& help_requested() noexcept { return help_requested_; }
+    // The interactions a window raises, by the name of their event accessor,
+    // appended in declaration order: the window events the C ABI subscribes
+    // by name (stage C, tools/abi_event_catalog.py). Window is not a
+    // Component, so this mirrors Component::append_interactions without
+    // being virtual. Every window raises the same ones, so it is static and
+    // may run on any thread.
+    static void append_interactions(std::vector<InteractionDeclaration>& interactions);
+    // Raises the window's help request, as a message box's Help button or
+    // F1 does: true when a handler or a provider handled it. UI thread. A
+    // handler may dispose a provider, which is then not offered the
+    // request, or destroy the window, which ends the offers.
+    bool request_help(bool keyboard_initiated = false);
     // Browser-style focus-visible modality: keyboard and semantic navigation
     // expose a cue; primary-pointer focus suppresses it without losing focus.
     [[nodiscard]] bool focus_cue_visible() const noexcept {
@@ -918,6 +955,11 @@ private:
     friend class RibbonToolTip;
     friend class ErrorProvider;
     friend class HelpProvider;
+    friend class detail::MessageBoxHelpRoute;
+    // Called by HelpProvider: its fallback joins the window's help offers on
+    // construction and leaves them on disposal.
+    void add_help_fallback(detail::WindowHelpFallback& fallback);
+    void remove_help_fallback(const detail::WindowHelpFallback& fallback) noexcept;
     friend class ImageList;
     friend class ApplicationResources;
     // Called by ApplicationResources for every window sharing it.
@@ -1413,6 +1455,10 @@ private:
     std::uint64_t captured_pointer_id_{};
     Event<const PointerCaptureChange&> pointer_capture_changed_;
     Event<const FocusedControlChange&> focused_control_changed_;
+    Event<HelpRequestEvent&> help_requested_;
+    // The window's HelpProviders' fallbacks, in creation order; each
+    // provider removes its own on disposal.
+    std::vector<detail::WindowHelpFallback*> help_fallbacks_;
     Event<const ControlAvailabilityChange&> control_availability_changed_;
     PopupList popups_;
     AcceleratorList accelerators_;

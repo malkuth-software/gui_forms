@@ -101,6 +101,25 @@ using gui_forms::render::SkiaRaster;
 - (void)filterChanged:(NSPopUpButton*)sender;
 @end
 
+// An NSAlert's delegate for its Help button: reports the open alert's help
+// request and keeps it open. The services outlive the alert's modal run.
+@interface GuiFormsAlertHelp : NSObject <NSAlertDelegate>
+@property(nonatomic, assign) gui_forms::HostServices* services;
+@property(nonatomic, assign) std::uint64_t requestId;
+- (BOOL)alertShowHelp:(NSAlert*)alert;
+@end
+
+@implementation GuiFormsAlertHelp
+- (BOOL)alertShowHelp:(NSAlert*)alert {
+    (void)alert;
+    gui_forms::HostDialogHelpEvent event{};
+    event.request_id = self.requestId;
+    event.keyboard_initiated = false;
+    static_cast<void>((*self.services).publish_dialog_help(event));
+    return YES;
+}
+@end
+
 @implementation GuiFormsFileFilterSwitch
 - (void)filterChanged:(NSPopUpButton*)sender {
     const NSInteger index = sender.indexOfSelectedItem;
@@ -549,6 +568,29 @@ protected:
                     buttons = {{@"Retry", HostDialogChoice::retry},
                                {@"Cancel", HostDialogChoice::cancel}};
                     break;
+                case HostMessageButtons::abort_retry_ignore:
+                    buttons = {{@"Abort", HostDialogChoice::abort},
+                               {@"Retry", HostDialogChoice::retry},
+                               {@"Ignore", HostDialogChoice::ignore}};
+                    break;
+                case HostMessageButtons::cancel_try_continue:
+                    buttons = {{@"Cancel", HostDialogChoice::cancel},
+                               {@"Try Again", HostDialogChoice::try_again},
+                               {@"Continue", HostDialogChoice::continue_}};
+                    break;
+                }
+                // right_align and rtl_reading: an NSAlert is laid out in the
+                // system's own direction, so the box shows as without them.
+                // Help: the alert's own help button (macOS has no F1 help);
+                // it cannot be the default button.
+                // Held to the end of the run: the alert's delegate is weak.
+                __attribute__((objc_precise_lifetime)) GuiFormsAlertHelp* help = nil;
+                if (payload.help_button) {
+                    help = [[GuiFormsAlertHelp alloc] init];
+                    help.services = this;
+                    help.requestId = request.request_id;
+                    alert.showsHelp = YES;
+                    alert.delegate = help;
                 }
                 NSButton* defaultButton = nil;
                 NSButton* cancelButton = nil;

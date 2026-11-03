@@ -295,6 +295,16 @@ gui_forms::Window
          event afterwards. A :cpp:class:`DockSite <gui_forms::DockSite>` follows it to keep its workspace's active
          panel.
 
+      **help_requested** : ``Event<HelpRequestEvent&>``
+         Raised when help is asked of the window as a whole, as Windows Forms
+         raises ``HelpRequested`` on a message box's owner form: the Help button of
+         a message box the window owns, or F1 while one is open, or
+         :cpp:func:`request_help <gui_forms::Window::request_help>`. The :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>` names the root control, at the
+         window's centre. When no handler sets ``handled``, the window's
+         :cpp:class:`HelpProvider <gui_forms::HelpProvider>` objects are offered it in creation order until one handles it.
+         Handlers run while the box is open: they may open other windows but
+         cannot close it.
+
       **dialog_result_changed** : ``Event<DialogResult>``
          Raised after :cpp:func:`dialog_result <gui_forms::Window::dialog_result>` changes, with the new result.
 
@@ -406,6 +416,10 @@ gui_forms::Window
         - The frontmost control eligible for input at a point in window coordinates, searching open popups first, or null.
       * - :cpp:func:`request_focus <gui_forms::Window::request_focus>`
         - Moves keyboard focus to a control, or clears it with null.
+      * - :cpp:func:`append_interactions <gui_forms::Window::append_interactions>`
+        - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
+      * - :cpp:func:`request_help <gui_forms::Window::request_help>`
+        - Raises the window's help request, as a message box's Help button or F1 does: :cpp:func:`help_requested <gui_forms::Window::help_requested>`, then the window's providers in creation order.
       * - :cpp:func:`validate_control <gui_forms::Window::validate_control>`
         - Raises ``Control::validating`` and, if it is not cancelled, ``Control::validated`` on a control, and returns whether it was valid.
       * - :cpp:func:`validate_children <gui_forms::Window::validate_children>`
@@ -981,6 +995,17 @@ gui_forms::Window
       event afterwards. A :cpp:class:`DockSite <gui_forms::DockSite>` follows it to keep its workspace's active
       panel.
 
+   .. cpp:function:: Event<HelpRequestEvent&>& help_requested() noexcept
+
+      Raised when help is asked of the window as a whole, as Windows Forms
+      raises ``HelpRequested`` on a message box's owner form: the Help button of
+      a message box the window owns, or F1 while one is open, or
+      :cpp:func:`request_help <gui_forms::Window::request_help>`. The :cpp:class:`HelpRequestEvent <gui_forms::HelpRequestEvent>` names the root control, at the
+      window's centre. When no handler sets ``handled``, the window's
+      :cpp:class:`HelpProvider <gui_forms::HelpProvider>` objects are offered it in creation order until one handles it.
+      Handlers run while the box is open: they may open other windows but
+      cannot close it.
+
    .. cpp:function:: Event<DialogResult>& dialog_result_changed() noexcept
 
       Raised after :cpp:func:`dialog_result <gui_forms::Window::dialog_result>` changes, with the new result.
@@ -1223,6 +1248,18 @@ gui_forms::Window
       if the control is not focusable or not eligible for input, lies outside
       the active focus scope, or validation of the control losing focus
       refused the move.
+
+   .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
+
+      The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py). Window is not a Component, so this mirrors Component::append_interactions without being virtual. Every window raises the same ones, so it is static and may run on any thread.
+
+   .. cpp:function:: bool request_help(bool keyboard_initiated = false)
+
+      Raises the window's help request, as a message box's Help button or F1
+      does: :cpp:func:`help_requested <gui_forms::Window::help_requested>`, then the window's providers in creation order.
+      Returns true when a handler or a provider handled it. A handler may
+      dispose a provider, which is then skipped, or destroy the window, which
+      ends the offers.
 
    .. cpp:function:: bool validate_control(const Control::Ptr& control, Control* destination = nullptr, bool bulk = false)
 

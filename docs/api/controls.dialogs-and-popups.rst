@@ -69,7 +69,7 @@ Related types
    * - :cpp:class:`MessageBoxRefused <gui_forms::MessageBoxRefused>`
      - A message box that was not shown: the host's refusal, never HostServiceError::none.
    * - :cpp:class:`MessageBoxRequest <gui_forms::MessageBoxRequest>`
-     - The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon and the default button.
+     - The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon, the default button and the options.
    * - :cpp:class:`MessageBoxResult <gui_forms::MessageBoxResult>`
      - What show_message_box returns: either the box closed, with the chosen button, or it was not shown, with the reason.
    * - :cpp:class:`RibbonToolTipContent <gui_forms::RibbonToolTipContent>`
@@ -243,7 +243,7 @@ Related types
 
    ``#include <gui_forms/components/message_box/message_box.hpp>``
 
-   The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon and the default button.
+   The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon, the default button and the options.
 
    .. cpp:member:: std::string text
 
@@ -260,6 +260,14 @@ Related types
    .. cpp:member:: MessageBoxDefaultButton default_button
 
       Default: ``{MessageBoxDefaultButton::button1}``.
+
+   .. cpp:member:: MessageBoxOptions options
+
+      Default: ``{MessageBoxOptions::none}``.
+
+   .. cpp:member:: bool display_help_button
+
+      Windows Forms' displayHelpButton: a Help button after the buttons.
 
 .. cpp:namespace:: gui_forms
 
@@ -608,6 +616,20 @@ Enumerations
 
    .. cpp:enumerator:: button3
 
+   .. cpp:enumerator:: button4
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MessageBoxOptions
+
+   ``#include <gui_forms/components/message_box/message_box.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: right_align
+
+   .. cpp:enumerator:: rtl_reading
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: PopupDismissReason
@@ -709,9 +731,11 @@ Functions, constants and aliases
 
 ``#include <gui_forms/components/message_box/message_box.hpp>``
 
+.. cpp:function:: constexpr bool has_message_box_option(MessageBoxOptions options, MessageBoxOptions option) noexcept
+
 .. cpp:function:: MessageBoxResult show_message_box(Window& owner, const MessageBoxRequest& request)
 
-   Shows a message box over ``owner``, modally, and returns when it closes (Windows Forms' MessageBox.Show). The host draws the box (owner decision W-Q3): MessageBoxW on Windows, NSAlert on macOS, and a dialog of GUI.Forms controls on X11, through the window's HostServices (capability ``dialogs``). TaskDialog stays the themed, richer dialog drawn in the window. The result is the chosen button. A box the user closes without choosing (Escape or the title bar's close button) returns cancel, or ok for a box whose only button is OK, as in Windows Forms; a Yes/No box the host closes without a choice returns none. Without a host or without ``dialogs`` the result is refused, with HostServiceError::unsupported. Throws std::invalid_argument for text or a caption that is not valid UTF-8, contains NUL or is longer than HostServices::maximum_dialog_text_bytes, and for an unknown button set, icon or default button; throws std::logic_error off the window's UI thread.
+   Shows a message box over ``owner``, modally, and returns when it closes (Windows Forms' MessageBox.Show). The host draws the box (owner decision W-Q3): MessageBoxW on Windows, NSAlert on macOS, and a dialog of GUI.Forms controls on X11, through the window's HostServices (capability ``dialogs``). TaskDialog stays the themed, richer dialog drawn in the window. The result is the chosen button. A box the user closes without choosing (Escape or the title bar's close button) returns cancel, or ok for a box whose only button is OK, as in Windows Forms; a Yes/No or Abort, Retry, Ignore box, which the user cannot close without choosing, returns none when the host closes it. The options are presentation: Windows honours both; on X11 either aligns the text to the right; macOS lays its alerts out in the system's own direction and shows the box as without them. Help: the Help button, or F1 while the box is open (with or without the button; macOS has no F1 help, so there only the button asks), raises the owner window's help_requested and then offers the request to its HelpProviders (Window::request_help); the box stays open. Its handlers run inside the host's modal loop: they may open other windows but cannot close the box. When a handler destroys the owner window or disposes a provider, later requests skip what is gone and the box still returns its result. An exception from a help handler is held and thrown by show_message_box once the box has closed. Without a host or without ``dialogs`` the result is refused, with HostServiceError::unsupported. Throws std::invalid_argument for text or a caption that is not valid UTF-8, contains NUL or is longer than HostServices::maximum_dialog_text_bytes, and for an unknown button set, icon, default button or option; throws std::logic_error off the window's UI thread.
 
 .. cpp:namespace:: gui_forms
 

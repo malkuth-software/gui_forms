@@ -21,6 +21,7 @@ using gui_forms::abi::ObjectsTable;
 using gui_forms::abi::PropertiesTable;
 using gui_forms::abi::RuntimeTable;
 using gui_forms::abi::SubscriptionReference;
+using gui_forms::abi::WindowsTable;
 
 int failures = 0;
 
@@ -127,6 +128,35 @@ void subscription_reference(const ObjectsTable& objects, const EventsTable& even
     require(counts.invocations == 1u, "a disconnected callback does not run");
 }
 
+// The window slots added in 1.1: served by this library, and answering
+// GF_STATUS_UNSUPPORTED_VERSION from a table a 1.0 library served.
+void window_slots(const ObjectsTable& objects, const WindowsTable& windows) {
+    std::uint64_t count = 0u;
+    require(windows.interaction_count(&count) == GF_STATUS_OK && count == 7u, "a window raises seven interactions");
+    gf_schema_interaction interaction{};
+    interaction.struct_size = static_cast<std::uint32_t>(sizeof(interaction));
+    require(windows.interaction_at(0u, &interaction) == GF_STATUS_OK && interaction.name.size > 0u,
+            "interaction_at through the wrapper");
+
+    gf_object root_made = 0u;
+    require(objects.create(text_view("Panel"), text_view("cpp.window"), &root_made) == GF_STATUS_OK,
+            "create a window root");
+    const ObjectReference root(objects, root_made);
+    gf_object window_made = 0u;
+    require(windows.create(root.get(), &window_made) == GF_STATUS_OK, "create a window");
+    const ObjectReference window(objects, window_made);
+    std::uint32_t handled = 9u;
+    require(windows.request_help(window.get(), &handled) == GF_STATUS_OK && handled == 0u,
+            "an unanswered help request");
+
+    gf_windows_table older_table = windows.c_table();
+    older_table.struct_size = static_cast<std::uint32_t>(offsetof(gf_windows_table, interaction_count));
+    const WindowsTable older = WindowsTable::adopt(older_table);
+    require(older.interaction_count(&count) == GF_STATUS_UNSUPPORTED_VERSION &&
+                older.request_help(window.get(), &handled) == GF_STATUS_UNSUPPORTED_VERSION,
+            "a 1.0 windows table serves none of the 1.1 slots");
+}
+
 } // namespace
 
 int main() {
@@ -134,14 +164,17 @@ int main() {
     ObjectsTable objects;
     EventsTable events;
     PropertiesTable properties;
+    WindowsTable windows;
     if (RuntimeTable::negotiate(runtime) != GF_STATUS_OK || ObjectsTable::negotiate(objects) != GF_STATUS_OK ||
-        EventsTable::negotiate(events) != GF_STATUS_OK || PropertiesTable::negotiate(properties) != GF_STATUS_OK) {
+        EventsTable::negotiate(events) != GF_STATUS_OK || PropertiesTable::negotiate(properties) != GF_STATUS_OK ||
+        WindowsTable::negotiate(windows) != GF_STATUS_OK) {
         std::cerr << "FAIL: the tables did not negotiate\n";
         return 1;
     }
     negotiation(runtime);
     object_reference(objects);
     subscription_reference(objects, events, properties);
+    window_slots(objects, windows);
     if (failures != 0) {
         std::cerr << failures << " checks failed\n";
         return 1;

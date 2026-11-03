@@ -279,6 +279,8 @@ add_library(gui_forms_core STATIC
     src/core/engine/theme_rules/built_in_rules.cpp
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
+    src/core/engine/effect_canvas/effect_canvas.cpp
+    src/core/engine/effect_registry/effect_registry.cpp
     src/core/surface_material/colour_matrix/colour_matrix.cpp
     src/core/surface_material/material_fill_layer/material_fill_layer.cpp
     src/core/surface_material/presets/material_presets.cpp
@@ -754,6 +756,7 @@ add_library(gui_forms_controls STATIC
     src/controls/menu/context_menu/context_menu.cpp
     src/controls/menu/menu_strip/menu_strip.cpp
     src/controls/tool_strip/tool_strip.cpp
+    src/controls/tool_strip/strip_merge.cpp
     src/controls/pages/navigation_pane/navigation_pane.cpp
     src/controls/quick_access_toolbar/quick_access_toolbar.cpp
     src/controls/quick_access_toolbar/ribbon_state.cpp
@@ -867,9 +870,13 @@ add_library(gui_forms_controls STATIC
     src/controls/guidance/help_provider/help_provider.cpp
     src/controls/panel/material_panel/material_panel.cpp
     src/controls/range_control/range_control_rendering.cpp
+    src/controls/range_control/progress_bar/progress_bar_effects.cpp
     src/controls/range_control/range_control.cpp
     src/controls/range_control/track_bar/track_bar.cpp
     src/controls/range_control/progress_bar/progress_bar.cpp
+    src/controls/instruments/sweep_scope/sweep_scope.cpp
+    src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+    src/controls/built_in_effect_registry/built_in_effect_registry.cpp
     src/controls/range_control/scroll_bar/scroll_bar.cpp
     src/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.cpp
     src/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.cpp
@@ -887,6 +894,11 @@ target_include_directories(gui_forms_controls PUBLIC
 target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core)
 set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
+# The files that register effect programs, verified by the plugin's effect
+# pass (cmake/LocalizablePlugin.cmake, gui_forms_verify_effects).
+gui_forms_verify_effects(gui_forms_controls
+    SOURCES src/controls/range_control/progress_bar/progress_bar_effects.cpp
+            src/controls/instruments/sweep_scope/sweep_scope_effects.cpp)
 
 if(GUI_FORMS_BUILD_FORM_COMPILER)
     # The form compiler (stage FD5): a form document's C++ header, generated
@@ -2646,6 +2658,40 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_user_layer_tests tests/theme_user_layer_tests.cpp)
     target_link_libraries(gui_forms_theme_user_layer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_user_layer_tests COMMAND gui_forms_theme_user_layer_tests)
+    add_executable(gui_forms_effect_program_tests tests/effect_program_tests.cpp)
+    target_link_libraries(gui_forms_effect_program_tests PRIVATE gui_forms_controls)
+    if(GUI_FORMS_EFFECTS_VERIFIED)
+        target_compile_definitions(gui_forms_effect_program_tests PRIVATE GUI_FORMS_EFFECT_TEST_VERIFIED)
+    endif()
+    add_test(NAME gui_forms_effect_program_tests COMMAND gui_forms_effect_program_tests)
+    # The effect pass itself: each case under tests/effect_pass is an object
+    # library outside `all`, compiled by its test with the plugin (or, for
+    # `unverified`, without it), its diagnostics matched against the
+    # `// expect:` line at the head of the case. The tests run the build tool
+    # in this tree, so they take the tree's lock one at a time.
+    if(GUI_FORMS_EFFECTS_VERIFIED)
+        set(_gf_effect_cases
+            passes while_loop unbounded_for loop_variable_written recursion virtual_call function_pointer
+            allocation global_write cmath_call opaque_call pointer_state oversized_state over_budget unverified)
+        foreach(_gf_case IN LISTS _gf_effect_cases)
+            set(_gf_case_target gui_forms_effect_case_${_gf_case})
+            add_library(${_gf_case_target} OBJECT EXCLUDE_FROM_ALL tests/effect_pass/${_gf_case}.cpp)
+            # For the usage requirements only: with Ninja an object library's
+            # compiles do not wait for the libraries it links.
+            target_link_libraries(${_gf_case_target} PRIVATE gui_forms_controls)
+            if(_gf_case STREQUAL "unverified")
+                target_compile_definitions(${_gf_case_target} PRIVATE GUI_FORMS_EFFECTS_UNVERIFIED)
+            else()
+                gui_forms_compile_with_localizable_plugin(${_gf_case_target})
+            endif()
+            add_test(NAME gui_forms_effect_pass_${_gf_case}
+                     COMMAND ${CMAKE_COMMAND} -DBUILD_DIR=${CMAKE_BINARY_DIR} -DTARGET=${_gf_case_target}
+                             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/tests/effect_pass/${_gf_case}.cpp
+                             -DOBJECT_DIR=CMakeFiles/${_gf_case_target}.dir
+                             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_effect_pass.cmake)
+            set_tests_properties(gui_forms_effect_pass_${_gf_case} PROPERTIES RESOURCE_LOCK gui_forms_build_tree)
+        endforeach()
+    endif()
     add_executable(gui_forms_motion_clock_tests tests/motion_clock_tests.cpp)
     target_link_libraries(gui_forms_motion_clock_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_motion_clock_tests COMMAND gui_forms_motion_clock_tests)
@@ -3201,6 +3247,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_tool_strip_tests tests/tool_strip_tests.cpp)
     target_link_libraries(gui_forms_tool_strip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_tool_strip_tests COMMAND gui_forms_tool_strip_tests)
+    add_executable(gui_forms_strip_merge_tests tests/strip_merge_tests.cpp)
+    target_link_libraries(gui_forms_strip_merge_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_strip_merge_tests COMMAND gui_forms_strip_merge_tests)
+    add_executable(gui_forms_sweep_scope_tests tests/sweep_scope_tests.cpp)
+    target_link_libraries(gui_forms_sweep_scope_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_sweep_scope_tests COMMAND gui_forms_sweep_scope_tests)
     add_executable(gui_forms_event_payload_lifetime_tests tests/event_payload_lifetime_tests.cpp)
     target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_event_payload_lifetime_tests COMMAND gui_forms_event_payload_lifetime_tests)

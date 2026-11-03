@@ -20,6 +20,11 @@
 
 namespace gui_forms {
 
+namespace detail {
+struct ToolStripMergeHistory;
+class StripMergeAccess;
+}
+
 // The kinds of item a ToolStrip shows (Windows Forms' ToolStripButton,
 // ToolStripLabel, ToolStripSeparator, ToolStripDropDownButton,
 // ToolStripSplitButton, ToolStripComboBox, ToolStripTextBox and
@@ -92,6 +97,10 @@ struct ToolStripItemSpec final {
     bool spring{};
     std::vector<std::string> choices{};
     double width{};
+    // How the item joins another strip when its strip merges (MergeAction,
+    // merge_strips), and its position there; none matches by text only.
+    MergeAction merge_action{MergeAction::append};
+    std::optional<std::size_t> merge_index{};
 };
 
 // A click on an item, after any command it carries has executed.
@@ -150,6 +159,10 @@ public:
     // Whether the grip is shown at the strip's start.
     [[nodiscard]] bool grip_visible() const noexcept { return grip_visible_; }
     void set_grip_visible(bool visible);
+    // Whether the strip takes part in merging, as source or target
+    // (Windows Forms' AllowMerge; merge_strips). On by default.
+    [[nodiscard]] bool allow_merge() const noexcept { return allow_merge_; }
+    void set_allow_merge(bool allow);
     [[nodiscard]] FontSpec font() const noexcept { return font_; }
     void set_font(FontSpec font);
     // Horizontal strips run left to right; vertical strips run top to bottom
@@ -286,6 +299,9 @@ protected:
     [[nodiscard]] Parts strip_parts() const;
 
 private:
+    friend class detail::StripMergeAccess;
+    // set_items' work; a merge may leave a drop-down's menu empty.
+    void apply_items(std::vector<ToolStripItemSpec> items, bool merged);
     // Which part of an item a point or a press is on.
     enum class ItemZone : std::uint8_t { none, main, arrow };
     struct ItemState final {
@@ -342,6 +358,9 @@ private:
     bool sizing_grip_visible_{};
     FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
     double end_reserve_{};
+    bool allow_merge_{true};
+    // The merges into this strip, oldest first; none until the first.
+    std::unique_ptr<detail::ToolStripMergeHistory> merge_history_{};
     SubscriptionToken popup_invoked_{};
     SubscriptionToken popup_changed_{};
     // One per item command, so a command's enabled, visible, text or

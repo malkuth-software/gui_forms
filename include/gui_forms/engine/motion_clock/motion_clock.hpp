@@ -65,6 +65,15 @@ inline constexpr FrameInterval motion_frame_interval = std::chrono::milliseconds
 // its last frame (the part is no longer shown) is dropped, so an effect can
 // never keep a window painting by itself. finish_all and cancel drop every
 // effect too; finish_all repaints each part once, at its static pose.
+//
+// A control hosting an effect program (a progress bar's stripes or bubbles)
+// enlists itself the same way (enlist_control_ambient): on each frame due,
+// its on_ambient_frame advances and invalidates it, and a control that was
+// not painted since its last frame is dropped. The clock observes it: one
+// that died or left the window is dropped unasked. finish_all and stop
+// park the controls (each repaints once, at its still pose, under
+// finish_all); repaint_parked repaints them when ambient motion may resume,
+// and their paints enlist them again.
 class MotionClock final {
 public:
     explicit MotionClock(Window& window) noexcept;
@@ -88,8 +97,22 @@ public:
     // Whether ambient effects are stopped: as suppressed(), or the
     // application's motion switch off (PresentationSettings::ambient_motion).
     [[nodiscard]] bool ambient_suppressed() const noexcept;
-    // Ambient effects running on the clock now.
+    // Ambient effects running on the clock now (parts' and controls').
     [[nodiscard]] std::size_t ambient_count() const noexcept { return ambient_live_; }
+
+    // A control's ambient effect, its frames at least `interval` apart (see
+    // the class comment). Returns true when the control was not enlisted
+    // (its effect's time starts now), false when it was (the interval is
+    // replaced). Nothing is enlisted, and false returned, while ambient
+    // motion is suppressed. If the record's place or the frame request
+    // cannot be made, the exception propagates and nothing changes. The
+    // control must be held by a shared pointer and attached to this clock's
+    // window.
+    bool enlist_control_ambient(Control& control, FrameInterval interval);
+    // Ends the control's ambient effect, if any (parked too). Never fails.
+    void withdraw_control_ambient(const Control& control) noexcept;
+    // Whether the control is enlisted now.
+    [[nodiscard]] bool control_ambient(const Control& control) const noexcept;
 
 private:
     friend class MotionValue;
@@ -120,7 +143,11 @@ private:
     void enlist_ambient(std::uint32_t part_slot, std::uint32_t part_generation, FrameInterval interval);
     void withdraw_ambient(std::uint32_t part_slot, std::uint32_t part_generation) noexcept;
     // Drops every ambient effect; with `repaint`, each part repaints once.
+    // Controls are parked (see the class comment).
     void stop_ambient(bool repaint);
+    // Repaints the parked controls once and forgets them: ambient motion
+    // may resume, and each one's paint enlists it again.
+    void repaint_parked();
 
     // For Window.
     // The frame at `now`: advances every value (see the event order), then
@@ -145,17 +172,27 @@ private:
     // One ambient effect: its part's record, its frame interval, when its
     // next frame is due, and the paint its last frame was answered by
     // (none_seen before its first frame).
+    // A control's effect has `control` set (observed, with its address for
+    // lookup) and no part; `parked` marks one stopped until repaint_parked.
     struct AmbientRecord final {
         std::uint32_t part_slot{};
         std::uint32_t part_generation{};
+        std::weak_ptr<Control> control{};
+        const Control* control_address{};
         FrameInterval interval{};
         FrameTime next{};
         std::uint64_t seen{};
         bool live{};
+        bool parked{};
     };
     static constexpr std::uint64_t none_seen = ~std::uint64_t{0};
 
     void advance_ambient(FrameTime now);
+    // A free ambient record's index (one is made, reserved first, when none
+    // is free); the frame request is armed. Changes nothing on failure.
+    std::size_t ambient_place();
+    // One control's frame: whether it is still shown.
+    [[nodiscard]] bool control_ambient_frame(AmbientRecord& effect, FrameTime now);
     // While only ambient effects run, moves the request's next frame to the
     // earliest effect's.
     void align_to_ambient() noexcept;

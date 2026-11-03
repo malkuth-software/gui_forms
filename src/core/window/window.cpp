@@ -1,4 +1,5 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/window.hpp"
 #include "tool_tips/tool_tip_presenter.hpp"
 #include "gui_forms/host/services/host_services.hpp"
@@ -14,6 +15,7 @@
 #include "../theme/theme_compiler/control_inline_style.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <cmath>
 #include <cstdio>
@@ -315,6 +317,19 @@ struct RecordingMark final {
         painter = previous_painter;
     }
 };
+
+// The events a window raises through the C ABI (Window::append_interactions),
+// in declaration order. The rest of Window's events stay C++-only until a
+// consumer needs them; declaring one later is a minor ABI addition.
+constexpr std::array<InteractionDeclaration, 7> window_interactions{{
+    {.name = "active_changed", .payload = "bool", .mutable_payload = false},
+    {.name = "backdrop_changed", .payload = "WindowBackdropGrant", .mutable_payload = false},
+    {.name = "dialog_result_changed", .payload = "DialogResult", .mutable_payload = false},
+    {.name = "focused_control_changed", .payload = "FocusedControlChange", .mutable_payload = false},
+    {.name = "help_requested", .payload = "HelpRequestEvent", .mutable_payload = true},
+    {.name = "presentation_changed", .payload = "PresentationSettings", .mutable_payload = false},
+    {.name = "theme_changed", .payload = "Theme", .mutable_payload = false},
+}};
 
 } // namespace
 
@@ -647,6 +662,50 @@ Control::Ptr Window::hit_test(Point position) {
             pass + 1U == maximum_semantic_snapshot_passes);
     }
     return {};
+}
+
+// --- Help asked of the window ----------------------------------------------
+
+void Window::append_interactions(std::vector<InteractionDeclaration>& interactions) {
+    interactions.insert(interactions.end(), window_interactions.begin(), window_interactions.end());
+}
+
+bool Window::request_help(bool keyboard_initiated) {
+    verify_access("Window::request_help");
+    HelpRequestEvent request{};
+    const Control::Ptr root_control = root();
+    if (root_control) {
+        request.target_stable_id = std::string((*root_control).stable_id().value());
+        const Rect bounds = (*root_control).absolute_bounds();
+        request.position = {bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
+    }
+    request.keyboard_initiated = keyboard_initiated;
+    // A handler may destroy the window: nothing of it is read once its
+    // lifetime says it is gone.
+    const std::weak_ptr<detail::WindowLifetime> watched = lifetime_;
+    help_requested_.emit(request);
+    if (request.handled) return true;
+    // Offered to a copy, skipping a provider a handler disposed meanwhile.
+    const std::vector<detail::WindowHelpFallback*> offered = help_fallbacks_;
+    for (detail::WindowHelpFallback* const fallback : offered) {
+        const std::shared_ptr<detail::WindowLifetime> alive = watched.lock();
+        if (!alive || (*alive).window == nullptr) break;
+        const bool registered = std::find(help_fallbacks_.begin(), help_fallbacks_.end(), fallback) !=
+                                help_fallbacks_.end();
+        if (!registered) continue;
+        if ((*fallback).offer_window_help(request)) return true;
+    }
+    return request.handled;
+}
+
+void Window::add_help_fallback(detail::WindowHelpFallback& fallback) {
+    help_fallbacks_.push_back(&fallback);
+}
+
+void Window::remove_help_fallback(const detail::WindowHelpFallback& fallback) noexcept {
+    const std::vector<detail::WindowHelpFallback*>::iterator found =
+        std::find(help_fallbacks_.begin(), help_fallbacks_.end(), &fallback);
+    if (found != help_fallbacks_.end()) help_fallbacks_.erase(found);
 }
 
 bool Window::request_focus(const Control::Ptr& control) {

@@ -12,6 +12,7 @@
 
 #include <memory>
 #include <string_view>
+#include <vector>
 
 namespace gui_forms::abi1 {
 
@@ -32,6 +33,12 @@ public:
     [[nodiscard]] std::unique_ptr<Window> take_for_run() noexcept;
     // The run has ended and destroyed the window: the handle is disposed.
     void end_run() noexcept;
+
+    // The window's interactions (Window::append_interactions), which
+    // events.subscribe takes by name on this handle; none once the window
+    // is gone. Subscriptions end when the window is destroyed, with their
+    // callbacks released once each.
+    void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
 private:
     // Destroys a window the handle still owns.

@@ -332,6 +332,8 @@ UINT message_button_style(HostMessageButtons buttons) noexcept {
     case HostMessageButtons::yes_no: return MB_YESNO;
     case HostMessageButtons::yes_no_cancel: return MB_YESNOCANCEL;
     case HostMessageButtons::retry_cancel: return MB_RETRYCANCEL;
+    case HostMessageButtons::abort_retry_ignore: return MB_ABORTRETRYIGNORE;
+    case HostMessageButtons::cancel_try_continue: return MB_CANCELTRYCONTINUE;
     }
     // A button set outside the enumeration shows OK alone.
     return MB_OK;
@@ -350,23 +352,56 @@ UINT message_icon_style(HostMessageIcon icon) noexcept {
     return 0U;
 }
 
+// The number of buttons of a set, as MessageBoxW shows them.
+std::size_t message_button_count(HostMessageButtons buttons) noexcept {
+    if (buttons == HostMessageButtons::ok) return 1U;
+    const bool three = buttons == HostMessageButtons::yes_no_cancel ||
+                       buttons == HostMessageButtons::abort_retry_ignore ||
+                       buttons == HostMessageButtons::cancel_try_continue;
+    return three ? 3U : 2U;
+}
+
+// The default choice's place among the set's buttons, as MessageBoxW counts
+// them, with Help after the set's buttons: the second for No, the cancel of
+// OK/Cancel and Retry/Cancel, Retry of Abort/Retry/Ignore and Try Again; the
+// third for the cancel of Yes/No/Cancel, Ignore and Continue; else the
+// first.
+UINT message_default_style(const HostMessageDialogRequest& request) noexcept {
+    const HostMessageButtons buttons = request.buttons;
+    const HostDialogChoice choice = request.default_choice;
+    std::size_t position = 0U;
+    if (choice == HostDialogChoice::help) {
+        position = message_button_count(buttons);
+    } else {
+        const bool third = (buttons == HostMessageButtons::yes_no_cancel && choice == HostDialogChoice::cancel) ||
+                           (buttons == HostMessageButtons::abort_retry_ignore && choice == HostDialogChoice::ignore) ||
+                           (buttons == HostMessageButtons::cancel_try_continue &&
+                            choice == HostDialogChoice::continue_);
+        const bool cancel_second =
+            buttons == HostMessageButtons::ok_cancel || buttons == HostMessageButtons::retry_cancel;
+        const bool second = (cancel_second && choice == HostDialogChoice::cancel) || choice == HostDialogChoice::no ||
+                            (buttons == HostMessageButtons::abort_retry_ignore && choice == HostDialogChoice::retry) ||
+                            choice == HostDialogChoice::try_again;
+        if (third) position = 2U;
+        else if (second) position = 1U;
+    }
+    if (position == 3U) return MB_DEFBUTTON4;
+    if (position == 2U) return MB_DEFBUTTON3;
+    if (position == 1U) return MB_DEFBUTTON2;
+    return MB_DEFBUTTON1;
+}
+
 UINT native_message_style(const HostMessageDialogRequest& request) noexcept {
     UINT style = MB_APPLMODAL;
     style |= message_button_style(request.buttons);
     style |= message_icon_style(request.icon);
-    const bool second =
-        (request.buttons == HostMessageButtons::ok_cancel &&
-         request.default_choice == HostDialogChoice::cancel) ||
-        (request.buttons == HostMessageButtons::yes_no &&
-         request.default_choice == HostDialogChoice::no) ||
-        (request.buttons == HostMessageButtons::yes_no_cancel &&
-         request.default_choice == HostDialogChoice::no) ||
-        (request.buttons == HostMessageButtons::retry_cancel &&
-         request.default_choice == HostDialogChoice::cancel);
-    const bool third = request.buttons == HostMessageButtons::yes_no_cancel &&
-                       request.default_choice == HostDialogChoice::cancel;
-    if (third) style |= MB_DEFBUTTON3;
-    else if (second) style |= MB_DEFBUTTON2;
+    style |= message_default_style(request);
+    if (request.right_align) style |= MB_RIGHT;
+    if (request.rtl_reading) style |= MB_RTLREADING;
+    // MB_HELP: the Help button sends WM_HELP to the owner; F1 does so with
+    // or without it (DefWindowProc passes a top-level window's WM_HELP to
+    // its owner).
+    if (request.help_button) style |= MB_HELP;
     return style;
 }
 
@@ -386,6 +421,10 @@ HostDialogResult native_message_dialog(HWND owner, std::uint64_t request_id,
     case IDYES: value.choice = HostDialogChoice::yes; break;
     case IDNO: value.choice = HostDialogChoice::no; break;
     case IDRETRY: value.choice = HostDialogChoice::retry; break;
+    case IDABORT: value.choice = HostDialogChoice::abort; break;
+    case IDIGNORE: value.choice = HostDialogChoice::ignore; break;
+    case IDTRYAGAIN: value.choice = HostDialogChoice::try_again; break;
+    case IDCONTINUE: value.choice = HostDialogChoice::continue_; break;
     default:
         return {{HostServiceError::backend_failure}, request_id,
                 HostMessageDialogResult{}};
@@ -1425,6 +1464,11 @@ public:
         case WM_THEMECHANGED:
         case WM_DWMCOMPOSITIONCHANGED:
             if (detail::windows_compositor_message(message, wparam, lparam)) report_compositor_state();
+            break;
+        case WM_HELP:
+            // A message box this window owns asks for help (its Help button
+            // or F1); the box stays open.
+            if (services_.publish_message_help()) return TRUE;
             break;
         case WM_ACTIVATEAPP:
             // Sent to every top-level window of the thread; the windowing

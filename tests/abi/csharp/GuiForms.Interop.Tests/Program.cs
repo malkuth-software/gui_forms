@@ -135,6 +135,51 @@ internal static unsafe class Program
         Abi.check(Abi.events.disconnect(subscription));
     }
 
+    // A window's help_requested (since 1.1) through a thunk that sets handled.
+    private static void answering_handler(gf_event* @event)
+    {
+        for (ulong index = 0; index < @event->field_count; ++index)
+        {
+            gf_event_field* field = &@event->fields[index];
+            ReadOnlySpan<byte> name = new ReadOnlySpan<byte>(field->name.data, checked((int)field->name.size));
+            if (name.EndsWith("handled"u8))
+            {
+                gf_value handled = default;
+                handled.struct_size = (uint)sizeof(gf_value);
+                handled.kind = Constants.GF_VALUE_KIND_BOOLEAN;
+                handled.boolean = 1u;
+                Abi.check_status(Abi.events.write_field(@event, index, &handled));
+            }
+        }
+    }
+
+    private static void window_help()
+    {
+        ulong count = 0;
+        Abi.check(Abi.windows.interaction_count(&count));
+        expect(count == 7u, "a window raises seven interactions");
+        using ObjectHandle root = ObjectHandle.create("Panel"u8, "csharp.window"u8);
+        gf_object made = 0;
+        Abi.check(Abi.windows.create(root.value, &made));
+        using ObjectHandle window = ObjectHandle.adopt(made);
+        gf_callback callback = Callbacks.to_native(answering_handler);
+        gf_subscription subscription = 0;
+        gf_status subscribed;
+        fixed (byte* name = "help_requested"u8)
+        {
+            subscribed = Abi.events.subscribe(window.value, Utf8.view(name, 14), &callback, &subscription);
+        }
+        if (subscribed != Constants.GF_STATUS_OK)
+        {
+            Callbacks.free_unregistered(callback);
+        }
+        Abi.check(subscribed);
+        uint handled = 0;
+        Abi.check(Abi.windows.request_help(window.value, &handled));
+        expect(handled == 1u, "a C# help_requested handler answers the window's help request");
+        Abi.check(Abi.events.disconnect(subscription));
+    }
+
     private static void posted_thunk()
     {
         using ObjectHandle label = ObjectHandle.create("label"u8, "csharp.posted"u8);
@@ -169,6 +214,7 @@ internal static unsafe class Program
         ownership();
         refusal();
         event_thunk();
+        window_help();
         posted_thunk();
         Console.WriteLine(failures == 0 ? "gui_forms_abi_csharp: all checks passed" :
                                           $"gui_forms_abi_csharp: {failures} checks failed");

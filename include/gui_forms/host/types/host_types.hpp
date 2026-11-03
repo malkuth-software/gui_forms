@@ -249,12 +249,17 @@ enum class HostDialogOutcome : std::uint8_t {
     cancelled,
 };
 
+// A message box's buttons, each set in its order on Windows: OK; OK,
+// Cancel; Yes, No; Yes, No, Cancel; Retry, Cancel; Abort, Retry, Ignore;
+// Cancel, Try Again, Continue.
 enum class HostMessageButtons : std::uint8_t {
     ok,
     ok_cancel,
     yes_no,
     yes_no_cancel,
     retry_cancel,
+    abort_retry_ignore,
+    cancel_try_continue,
 };
 
 enum class HostMessageIcon : std::uint8_t {
@@ -272,6 +277,15 @@ enum class HostDialogChoice : std::uint8_t {
     yes,
     no,
     retry,
+    abort,
+    ignore,
+    try_again,
+    // `continue` is a keyword.
+    continue_,
+    // A message dialog's Help button, only ever as the default choice of a
+    // request with help_button: pressing it asks for help and never closes
+    // the dialog, so it is never a result.
+    help,
 };
 
 struct HostFileDialogFilter final {
@@ -292,6 +306,23 @@ struct HostMessageDialogRequest final {
     HostMessageButtons buttons{HostMessageButtons::ok};
     HostMessageIcon icon{HostMessageIcon::none};
     HostDialogChoice default_choice{HostDialogChoice::ok};
+    // Windows Forms' MessageBoxOptions: the text aligned to the right, and
+    // read right to left (with the caption and the box mirrored where the
+    // host can). Presentation only: an adapter that cannot honour one shows
+    // the box as without it (see show_message_box).
+    bool right_align{};
+    bool rtl_reading{};
+    // Windows Forms' displayHelpButton: a Help button after the set's
+    // buttons. Pressing it, or F1 where the host's dialog takes it, reports
+    // a HostDialogHelpEvent and leaves the dialog open.
+    bool help_button{};
+};
+
+// The user asked for help in an open message dialog: its Help button, or
+// F1. The dialog stays open.
+struct HostDialogHelpEvent final {
+    std::uint64_t request_id{};
+    bool keyboard_initiated{};
 };
 
 struct HostOpenFileDialogRequest final {

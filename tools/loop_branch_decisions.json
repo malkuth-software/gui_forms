@@ -464,18 +464,11 @@
       "reason": "runs once, on the matching item, then returns"
     },
     {
-      "path": "src/controls/range_control/range_control_rendering.cpp",
-      "function": "gui_forms::range_control_detail::paint_progress_laser",
-      "condition": "orientation == Orientation::horizontal",
+      "path": "src/controls/range_control/progress_bar/progress_bar_effects.cpp",
+      "function": "gui_forms::run",
+      "condition": "!parent.vertical",
       "decision": "keep",
-      "reason": "a few flames and sparks; reduced motion and orientation shape each one"
-    },
-    {
-      "path": "src/controls/range_control/range_control_rendering.cpp",
-      "function": "gui_forms::range_control_detail::paint_progress_laser",
-      "condition": "reduced",
-      "decision": "keep",
-      "reason": "a few flames and sparks; reduced motion and orientation shape each one"
+      "reason": "the laser's few lobes and sparks; orientation swaps each one's axes"
     },
     {
       "path": "src/controls/range_control/track_bar/track_bar.cpp",

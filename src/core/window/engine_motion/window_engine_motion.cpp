@@ -46,6 +46,7 @@ void Window::repaint_engine_part(std::uint32_t slot, std::uint32_t generation) {
 }
 
 void Window::resume_engine_ambient() {
+    motion_clock_.repaint_parked();
     EngineDamage damage{};
     for (std::size_t slot = 0; slot < engine_parts_.slot_count(); ++slot) {
         const EnginePartRecord* const record = engine_parts_.record_in_slot(slot);

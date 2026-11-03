@@ -42,6 +42,11 @@ struct DialogClose final {
   DialogState *state;
   void operator()() const;
 };
+// F1 in a message dialog asks for help, as its Help button does.
+struct DialogHelpKey final {
+  DialogState *state;
+  bool operator()() const;
+};
 struct Entry final {
   std::filesystem::path path;
   bool directory{};
@@ -95,6 +100,15 @@ struct DialogState final {
     tokens.push_back(
         (*control).clicked().subscribe(ButtonAction{this, action}));
     return control;
+  }
+  // The dialog's help request (its Help button, or F1); it stays open.
+  void help(bool keyboard_initiated) {
+    if (!owner.services)
+      return;
+    HostDialogHelpEvent event{};
+    event.request_id = request.request_id;
+    event.keyboard_initiated = keyboard_initiated;
+    static_cast<void>((*owner.services).publish_dialog_help(event));
   }
   void finish(HostDialogChoice choice) {
     result.payload = HostMessageDialogResult{choice == HostDialogChoice::cancel
@@ -265,6 +279,10 @@ struct DialogState final {
   }
 };
 void ButtonAction::operator()(ButtonBase &) const {
+  if (action == 50) {
+    (*state).help(false);
+    return;
+  }
   if (action >= 100) {
     (*state).finish(static_cast<HostDialogChoice>(action - 100));
     return;
@@ -295,6 +313,10 @@ void EnterPath::operator()(const std::string &) const {
   (*state).refresh((*(*state).location).text());
 }
 void DialogClose::operator()() const { (*state).done = true; }
+bool DialogHelpKey::operator()() const {
+  (*state).help(true);
+  return true;
+}
 std::shared_ptr<Label> label(DialogState &state, const char *id,
                              std::string text, Rect bounds) {
   const std::shared_ptr<Label> control =
@@ -304,6 +326,17 @@ std::shared_ptr<Label> label(DialogState &state, const char *id,
   (*control).set_bounds(bounds);
   (*state.root).add_child(control);
   return control;
+}
+// A message box button's text: the choice's name in title case, with
+// Windows' wording for Try Again.
+std::string choice_label(HostDialogChoice choice) {
+  if (choice == HostDialogChoice::try_again)
+    return "Try Again";
+  std::string text = host_dialog_choice_name(choice);
+  if (!text.empty())
+    text[0] =
+        static_cast<char>(std::toupper(static_cast<unsigned char>(text[0])));
+  return text;
 }
 struct ModalScope final {
   NativeWindow &owner;
@@ -331,8 +364,9 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     entry.options.title = (*message).title;
     entry.options.initial_size = {560, 250};
     entry.options.minimum_size = entry.options.initial_size;
-    static_cast<void>(label(state, "host.dialog.message", (*message).message,
-                            {22, 20, 516, 164}));
+    const std::shared_ptr<Label> message_label =
+        label(state, "host.dialog.message", (*message).message,
+              {22, 20, 516, 164});
     std::vector<HostDialogChoice> choices;
     switch ((*message).buttons) {
     case HostMessageButtons::ok:
@@ -351,18 +385,36 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     case HostMessageButtons::retry_cancel:
       choices = {HostDialogChoice::retry, HostDialogChoice::cancel};
       break;
+    case HostMessageButtons::abort_retry_ignore:
+      choices = {HostDialogChoice::abort, HostDialogChoice::retry,
+                 HostDialogChoice::ignore};
+      break;
+    case HostMessageButtons::cancel_try_continue:
+      choices = {HostDialogChoice::cancel, HostDialogChoice::try_again,
+                 HostDialogChoice::continue_};
+      break;
     }
+    // Help follows the set's buttons; it asks for help and stays open.
+    if ((*message).help_button)
+      choices.push_back(HostDialogChoice::help);
+    // Either option aligns the text to the right; the dialog's controls
+    // have no right-to-left reading order of their own.
+    if ((*message).right_align || (*message).rtl_reading)
+      (*message_label).set_alignment(HorizontalAlignment::far);
     for (std::size_t i = 0; i < choices.size(); ++i) {
       const HostDialogChoice choice = choices[i];
       std::string name = host_dialog_choice_name(choice);
+      const std::string text = choice_label(choice);
       if (!name.empty())
         name[0] = static_cast<char>(
             std::toupper(static_cast<unsigned char>(name[0])));
+      const int action =
+          choice == HostDialogChoice::help ? 50 : 100 + static_cast<int>(choice);
       const std::shared_ptr<Button> button =
-          state.button("host.dialog.choice." + name, name,
+          state.button("host.dialog.choice." + name, text,
                        {538.0 - static_cast<double>(choices.size() - i) * 110.0,
                         200, 100, 32},
-                       100 + static_cast<int>(choice));
+                       action);
       if (choice == (*message).default_choice)
         state.accept_button = button;
       if (choice == HostDialogChoice::cancel)
@@ -496,12 +548,19 @@ HostDialogResult retained_dialog(NativeWindow &owner,
   if (state.name)
     state.tokens.push_back(
         (*state.name).committed().subscribe(EnterName{&state}));
+  AcceleratorToken help_key;
+  if (message != nullptr)
+    help_key = (*entry.model)
+                   .register_accelerator(
+                       *state.root, KeyGesture{PhysicalKey::f1, Modifier::none},
+                       DialogHelpKey{&state});
   const ModalScope modal(owner);
   state.native = owner.runtime.add(std::move(entry), owner.xid);
   if (state.name)
     static_cast<void>((*(*state.native).entry.model).request_focus(state.name));
   while (!state.done && !owner.closed)
     owner.runtime.step();
+  help_key.disconnect();
   (*state.native).close(HostCloseReason::application, true);
   for (std::size_t i = 0; i < owner.runtime.windows.size(); ++i)
     if (owner.runtime.windows[i] == state.native) {

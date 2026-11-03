@@ -200,6 +200,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     tests/abi/conformance/gf_conformance_threads.c
     tests/abi/conformance/gf_conformance_values.c
     tests/abi/conformance/gf_conformance_window.c
+    tests/abi/conformance/gf_conformance_window_events.c
     tests/abi/conformance/gf_conformance_themes.c
     tests/abi/conformance/gf_conformance_host.c)
 set_target_properties(gui_forms_abi_conformance_kit PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED YES)
@@ -375,24 +376,18 @@ if(GUI_FORMS_BUILD_TESTS)
     target_compile_features(gui_forms_abi_cpp_wrappers PRIVATE cxx_std_20)
     add_test(NAME gui_forms_abi_cpp_wrappers COMMAND gui_forms_abi_cpp_wrappers)
 
-    # The C# interop (bindings/csharp), built offline with the .NET SDK and run
-    # against this library. It runs where a .NET 10 SDK is installed.
-    # The interop targets net10.0, so an older SDK alone leaves the test out.
+    # The C# interop (bindings/csharp), built offline with the host's .NET SDK
+    # and run against this library. Owner ruling (2026-11-02): the test uses a
+    # preinstalled SDK of version 10 or later and otherwise skips with a
+    # notice in the log; nothing is downloaded or installed for it.
     find_program(GUI_FORMS_DOTNET NAMES dotnet HINTS "$ENV{ProgramFiles}/dotnet" "$ENV{DOTNET_ROOT}")
-    set(_gf_abi_dotnet_sdks "")
-    if(GUI_FORMS_DOTNET)
-        execute_process(COMMAND "${GUI_FORMS_DOTNET}" --list-sdks OUTPUT_VARIABLE _gf_abi_dotnet_sdks ERROR_QUIET)
-    endif()
-    if(_gf_abi_dotnet_sdks MATCHES "(^|\n)10\\.")
-        add_test(NAME gui_forms_abi_csharp
-            COMMAND ${CMAKE_COMMAND} -DDOTNET=${GUI_FORMS_DOTNET} -DPYTHON=${Python3_EXECUTABLE}
-                -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DLIBRARY_DIR=$<TARGET_FILE_DIR:gui_forms_abi>
-                -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/gf_abi_csharp
-                -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/csharp/gf_abi_csharp.cmake)
-        set_tests_properties(gui_forms_abi_csharp PROPERTIES TIMEOUT 600)
-    else()
-        message(STATUS "gui_forms_abi_csharp: no .NET 10 SDK; the C# interop test is left out")
-    endif()
+    add_test(NAME gui_forms_abi_csharp
+        COMMAND ${CMAKE_COMMAND} -DDOTNET=${GUI_FORMS_DOTNET} -DPYTHON=${Python3_EXECUTABLE}
+            -DSOURCE_DIR=${CMAKE_CURRENT_SOURCE_DIR} -DLIBRARY_DIR=$<TARGET_FILE_DIR:gui_forms_abi>
+            -DWORK_DIR=${CMAKE_CURRENT_BINARY_DIR}/gf_abi_csharp
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/tests/abi/csharp/gf_abi_csharp.cmake)
+    set_tests_properties(gui_forms_abi_csharp PROPERTIES TIMEOUT 600
+                         SKIP_REGULAR_EXPRESSION "gui_forms_abi_csharp: SKIPPED")
 endif()
 
 # The C ABI's verification set, run by `ctest -L c_abi`: every test above, the

@@ -19,6 +19,8 @@ Labels, images, progress and review cards.
      - A box that displays one image from its window's image registry.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
      - A bar that shows how far an operation has progressed.
+   * - :cpp:class:`SweepScope <gui_forms::SweepScope>`
+     - A read-only scope that draws a level as a trace on a graticule.
    * - :cpp:class:`ReviewCard <gui_forms::ReviewCard>`
      - A card that presents one review record: a title, a summary and a verdict.
 
@@ -29,6 +31,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.TextBlock
    generated/gui_forms.PictureBox
    generated/gui_forms.ProgressBar
+   generated/gui_forms.SweepScope
    generated/gui_forms.ReviewCard
 
 Related types
@@ -48,10 +51,30 @@ Related types
      -  
    * - :cpp:class:`ProgressBarAnimationAppearance <gui_forms::ProgressBarAnimationAppearance>`
      - ProgressBarAnimationAppearance is the validated value object for stripe width, gap, angle, and opacity used by painter-neutral progress animation.
+   * - :cpp:class:`ProgressBubbles <gui_forms::ProgressBubbles>`
+     - Bubbles rising in the filled length; each that reaches the top breaks into a puff of steam rising into the top outset and fading.
+   * - :cpp:class:`ProgressLaser <gui_forms::ProgressLaser>`
+     - The laser etch: phase bands over the fill, a glowing edge, and a burning front with flickering lobes and short sparks (ProgressBarVisualStyle:: laser_etch).
+   * - :cpp:class:`ProgressPulse <gui_forms::ProgressPulse>`
+     - A soft luminance band sweeping along the fill (ProgressBarVisualStyle:: pulse).
+   * - :cpp:class:`ProgressStripes <gui_forms::ProgressStripes>`
+     - Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
+   * - :cpp:class:`ProgressWovenStripes <gui_forms::ProgressWovenStripes>`
+     - Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them.
    * - :cpp:class:`ReviewRecord <gui_forms::ReviewRecord>`
      - ReviewRecord owns the stable author, timestamp, score/status, title, body, and metadata projected by ReviewCard.
+   * - :cpp:class:`RisingBody <gui_forms::RisingBody>`
+     - One bubble rising in the fill, or one puff of steam rising above the bar.
+   * - :cpp:class:`ScopeSweep <gui_forms::ScopeSweep>`
+     - The trace (a rise from the lower left to a peak above the level's place, and a fall to the right edge) and the sweep line crossing the plot once a period.
+   * - :cpp:class:`SweepScope::Parts <gui_forms::SweepScope::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`SweepScope::States <gui_forms::SweepScope::States>`
+     -  
    * - :cpp:class:`TextBlock::Parts <gui_forms::TextBlock::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
+   * - :cpp:class:`WovenStripe <gui_forms::WovenStripe>`
+     - One woven stripe: warp (along the bar) or weft (across it), where it lies, how wide, which colour and the fraction at which it weaves in.
 
 .. cpp:namespace:: gui_forms
 
@@ -155,6 +178,113 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: ProgressBubbles final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   Bubbles rising in the filled length; each that reaches the top breaks into a puff of steam rising into the top outset and fading. With pointer input granted, a press in the fill releases a bubble there.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<ProgressBar>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = ProgressBar
+
+   .. cpp:member:: constexpr std::size_t maximum_bubbles
+
+      Default: ``24U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_puffs
+
+      Default: ``16U``.
+
+   .. cpp:member:: constexpr double steam_outset
+
+      Default: ``14.0``.
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ProgressLaser final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   The laser etch: phase bands over the fill, a glowing edge, and a burning front with flickering lobes and short sparks (ProgressBarVisualStyle:: laser_etch).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<ProgressBar>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = ProgressBar
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ProgressPulse final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   A soft luminance band sweeping along the fill (ProgressBarVisualStyle:: pulse).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<ProgressBar>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = ProgressBar
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ProgressStripes final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   Marching diagonal stripes over the fill (ProgressBarVisualStyle:: marching_stripes and the moving-stripes overlay).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<ProgressBar>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = ProgressBar
+
+   .. cpp:member:: constexpr std::size_t maximum_stripes
+
+      Default: ``1024U``.
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ProgressWovenStripes final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   Randomly woven stripes (owner amendment, 2026-11-02): setup chooses which stripes exist, where and in what order at random; run weaves each in as the fraction passes its threshold, and shimmers them. Setup stores the stripes in their drawing order (under, along, over), so run draws them in one pass with each stripe's weave and glint computed once. The effect pass bounds run at 3,772 operations (48 passes of about 78: a smoothstep 10, a sine 40, a fade 6, a stroke 6, the arithmetic and the pass's 2), under the 6,000 budget; three layer passes cost 11,851. Setup, with the ordering's three passes over 48, is bounded at 4,210, within its 8,000.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void setup(const EffectView<ProgressBar>& parent, const EffectSetup& setup)
+
+   .. cpp:function:: void run(const EffectView<ProgressBar>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = ProgressBar
+
+   .. cpp:member:: constexpr std::size_t maximum_stripes
+
+      Default: ``48U``.
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ReviewRecord final
 
    ``#include <gui_forms/controls/panel/card/review_card/review_card.hpp>``
@@ -175,6 +305,83 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: RisingBody final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   One bubble rising in the fill, or one puff of steam rising above the bar.
+
+   .. cpp:member:: Point position
+
+   .. cpp:member:: double radius
+
+   .. cpp:member:: double speed
+
+   .. cpp:member:: double age
+
+   .. cpp:member:: double life
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: ScopeSweep final
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp>``
+
+   The trace (a rise from the lower left to a peak above the level's place, and a fall to the right edge) and the sweep line crossing the plot once a period.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void run(const EffectView<SweepScope>& parent, const EffectFrame& frame, EffectCanvas& canvas)
+
+   .. cpp:type:: parent_type = SweepScope
+
+   .. cpp:member:: constexpr double trace_width
+
+      Default: ``2.0``.
+
+   .. cpp:member:: constexpr double sweep_width
+
+      Default: ``1.0``.
+
+   .. cpp:member:: constexpr EffectDeclaration declaration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SweepScope::Parts final
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). The plot is the well the trace is drawn in; the graticule its ruled lines; the indicator the level's trace; the activity the band the sweep line crosses (the plot: its phase is the effect's state).
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry caption
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry graticule
+
+   .. cpp:member:: PartGeometry indicator
+
+   .. cpp:member:: PartGeometry activity
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SweepScope::States final
+
+   ``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp>``
+
+   .. cpp:member:: bool normal
+
+   .. cpp:member:: bool enabled
+
+   .. cpp:member:: bool disabled
+
+   .. cpp:member:: bool reduced_motion
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TextBlock::Parts final
 
    ``#include <gui_forms/controls/text_block/text_block.hpp>``
@@ -184,6 +391,24 @@ Related types
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: WovenStripe final
+
+   ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+   One woven stripe: warp (along the bar) or weft (across it), where it lies, how wide, which colour and the fraction at which it weaves in.
+
+   .. cpp:member:: double offset
+
+   .. cpp:member:: double width
+
+   .. cpp:member:: double threshold
+
+   .. cpp:member:: std::uint32_t weft
+
+   .. cpp:member:: std::uint32_t shade
 
 Enumerations
 ------------
@@ -317,3 +542,22 @@ Enumerations
    .. cpp:enumerator:: center
 
    .. cpp:enumerator:: far
+
+Functions, constants and aliases
+--------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/instruments/sweep_scope/sweep_scope_effects.hpp>``
+
+.. cpp:function:: void register_sweep_scope_effects(EffectRegistry& registry)
+
+   Adds the sweep scope's effects to ``registry``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
+
+.. cpp:function:: void register_progress_bar_effects(EffectRegistry& registry)
+
+   Adds the progress bar's effects to ``registry``.

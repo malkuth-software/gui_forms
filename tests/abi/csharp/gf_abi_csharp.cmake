@@ -3,14 +3,42 @@
 # source, no package references), and runs it against the built library. Run
 # with cmake -P from ctest.
 #
-# Inputs (-D): DOTNET (the dotnet program), PYTHON, SOURCE_DIR (the gui_forms
-# checkout), LIBRARY_DIR (the directory holding the DLL and the libraries it
-# loads), WORK_DIR (scratch: obj/, bin/ and the empty package source).
-foreach(required DOTNET PYTHON SOURCE_DIR LIBRARY_DIR WORK_DIR)
+# Skips (the test's SKIP_REGULAR_EXPRESSION) with a notice when the host has
+# no .NET SDK of version 10 or later: nothing is downloaded or installed.
+#
+# Inputs (-D): DOTNET (the dotnet program, or a -NOTFOUND value), PYTHON,
+# SOURCE_DIR (the gui_forms checkout), LIBRARY_DIR (the directory holding the
+# DLL and the libraries it loads), WORK_DIR (scratch: obj/, bin/ and the empty
+# package source).
+foreach(required PYTHON SOURCE_DIR LIBRARY_DIR WORK_DIR)
     if(NOT DEFINED ${required})
         message(FATAL_ERROR "gf_abi_csharp: ${required} is not set")
     endif()
 endforeach()
+
+# The host's SDKs: one of major 10 or later builds the net10.0 projects.
+set(sdk_found FALSE)
+set(sdk_list "")
+if(DOTNET AND EXISTS "${DOTNET}")
+    execute_process(COMMAND "${DOTNET}" --list-sdks OUTPUT_VARIABLE sdk_list ERROR_QUIET)
+    string(REPLACE "\n" ";" sdk_lines "${sdk_list}")
+    foreach(sdk_line IN LISTS sdk_lines)
+        if(sdk_line MATCHES "^([0-9]+)\\.")
+            if(CMAKE_MATCH_1 GREATER_EQUAL 10)
+                set(sdk_found TRUE)
+            endif()
+        endif()
+    endforeach()
+endif()
+if(NOT sdk_found)
+    string(STRIP "${sdk_list}" sdk_list)
+    if(sdk_list STREQUAL "")
+        set(sdk_list "none")
+    endif()
+    message(STATUS "gui_forms_abi_csharp: SKIPPED: no .NET SDK 10 or later on this host (found: ${sdk_list}); "
+                   "nothing is downloaded or installed")
+    return()
+endif()
 
 execute_process(COMMAND "${PYTHON}" -B "${SOURCE_DIR}/tools/abi_bindings.py" csharp --check
                 RESULT_VARIABLE check_result)

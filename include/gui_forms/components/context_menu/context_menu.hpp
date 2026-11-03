@@ -33,6 +33,25 @@ enum class MenuOpenMode : std::uint8_t { keyboard, pointer };
 // Declarative presentation of shared command authority. Command state is
 // snapshotted immediately before the menu opens; one invocation still flows
 // through Command::execute regardless of pointer, keyboard, or semantic input.
+// How an item of a strip merged into another strip joins it (Windows Forms'
+// MergeAction; merge_strips). A source item is matched in the target's
+// collection at its own level by text (ASCII case-insensitive), else by its
+// merge_index as a position.
+enum class MergeAction : std::uint8_t {
+    // Moves to the end of the target's collection; no match is needed.
+    append,
+    // With a merge_index, moves into the target's collection
+    // at merge_index (at the end when past it).
+    insert,
+    // Takes the matched item's place; the matched item leaves the target.
+    replace,
+    // The matched item leaves the target; the source item stays.
+    remove,
+    // Stays; when both it and the matched item have menus, its menu's items
+    // merge into the matched item's menu.
+    match_only,
+};
+
 struct MenuItemSpec final {
     MenuItemSpec() = default;
     MenuItemSpec(std::string stable_identity, MenuItemKind item_kind,
@@ -52,6 +71,10 @@ struct MenuItemSpec final {
     // no anatomy state names why a row is set apart (PageStrip's list sets
     // the pages it does not show in italic, owner decision DK-42, PT6).
     bool italic{};
+    // How the item joins another strip's menu when its strip merges
+    // (MergeAction), and its position there; none matches by text only.
+    MergeAction merge_action{MergeAction::append};
+    std::optional<std::size_t> merge_index{};
 };
 
 struct MenuItemInvocation final {

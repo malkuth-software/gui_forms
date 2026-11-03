@@ -153,6 +153,11 @@ struct MetricsSnapshot {
     // window on an everyday surface (counted when the refusal begins).
     std::uint64_t engine_ambient_frames{};
     std::uint64_t engine_ambient_refusals{};
+    // Effect programs (design note section 7): ambient frames that advanced
+    // a control's effects, and effects registered unverified in this
+    // process (effect_load_diagnostics, read when the snapshot is taken).
+    std::uint64_t effect_ambient_frames{};
+    std::uint64_t effects_unverified{};
     // Parts a primitive refused to draw (E8c, EnginePrimitive::accepts),
     // such as a material whose bake would exceed its bound: drawn by the
     // built-in recipe instead. Counted when a keyed part's refusal begins,

@@ -57,6 +57,9 @@ gui_forms::MenuStrip
          move when their weight changes. An invalid font throws
          ``std::invalid_argument``. Changing it closes an open menu.
 
+      **allow_merge** : ``bool``
+         Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
       **active_index** : ``std::optional<std::size_t>``, default ``std::nullopt``, read-only
          The index in :cpp:func:`items <gui_forms::MenuStrip::items>` of the menu that is open, or no value.
 
@@ -249,6 +252,12 @@ gui_forms::MenuStrip
    .. cpp:function:: void set_font(FontSpec font)
 
       Sets :cpp:func:`font <gui_forms::MenuStrip::font>`; see the property's description above.
+
+   .. cpp:function:: bool allow_merge() const noexcept
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+   .. cpp:function:: void set_allow_merge(bool allow)
 
    .. cpp:function:: std::optional<std::size_t> active_index() const noexcept
 

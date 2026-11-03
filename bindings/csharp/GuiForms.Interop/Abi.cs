@@ -18,6 +18,7 @@ public static unsafe class Abi
     private static gf_events_table events_table;
     private static gf_dispatch_table dispatch_table;
     private static gf_diagnostics_table diagnostics_table;
+    private static gf_windows_table windows_table;
 
     public static gf_runtime_table runtime => tables().runtime;
     public static gf_objects_table objects => tables().objects;
@@ -25,6 +26,7 @@ public static unsafe class Abi
     public static gf_events_table events => tables().events;
     public static gf_dispatch_table dispatch => tables().dispatch;
     public static gf_diagnostics_table diagnostics => tables().diagnostics;
+    public static gf_windows_table windows => tables().windows;
 
     private readonly struct Tables
     {
@@ -34,9 +36,11 @@ public static unsafe class Abi
         public readonly gf_events_table events;
         public readonly gf_dispatch_table dispatch;
         public readonly gf_diagnostics_table diagnostics;
+        public readonly gf_windows_table windows;
 
         public Tables(gf_runtime_table runtime, gf_objects_table objects, gf_properties_table properties,
-                      gf_events_table events, gf_dispatch_table dispatch, gf_diagnostics_table diagnostics)
+                      gf_events_table events, gf_dispatch_table dispatch, gf_diagnostics_table diagnostics,
+                      gf_windows_table windows)
         {
             this.runtime = runtime;
             this.objects = objects;
@@ -44,6 +48,7 @@ public static unsafe class Abi
             this.events = events;
             this.dispatch = dispatch;
             this.diagnostics = diagnostics;
+            this.windows = windows;
         }
     }
 
@@ -60,16 +65,18 @@ public static unsafe class Abi
                 negotiate(Exports.get_events_table(out gf_events_table events), "events");
                 negotiate(Exports.get_dispatch_table(out gf_dispatch_table dispatch), "dispatch");
                 negotiate(Exports.get_diagnostics_table(out gf_diagnostics_table diagnostics), "diagnostics");
+                negotiate(Exports.get_windows_table(out gf_windows_table windows), "windows");
                 runtime_table = runtime;
                 objects_table = objects;
                 properties_table = properties;
                 events_table = events;
                 dispatch_table = dispatch;
                 diagnostics_table = diagnostics;
+                windows_table = windows;
                 negotiated = true;
             }
             return new Tables(runtime_table, objects_table, properties_table, events_table, dispatch_table,
-                              diagnostics_table);
+                              diagnostics_table, windows_table);
         }
     }
 

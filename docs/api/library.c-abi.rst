@@ -164,6 +164,8 @@ Types
      - gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread.
    * - :cpp:class:`gf_schema_choice <gf_schema_choice>`
      -  
+   * - :cpp:class:`gf_schema_effect <gf_schema_effect>`
+     -  
    * - :cpp:class:`gf_schema_engine <gf_schema_engine>`
      -  
    * - :cpp:class:`gf_schema_interaction <gf_schema_interaction>`
@@ -2189,6 +2191,38 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_schema_effect
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_schema_effect_time_model time_model
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view parent
+
+   .. cpp:member:: uint32_t engine_version
+
+   .. cpp:member:: gf_schema_effect_input input
+
+   .. cpp:member:: uint32_t cost_fixed
+
+   .. cpp:member:: uint32_t cost_per_device_pixel
+
+   .. cpp:member:: uint32_t setup_cost
+
+   .. cpp:member:: gf_schema_effect_flags flags
+
+   .. cpp:member:: uint64_t state_budget
+
+   .. cpp:member:: double frames_per_second
+
+   .. cpp:member:: gf_logical_insets outsets
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_schema_engine
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -2389,6 +2423,10 @@ Types
    .. cpp:member:: gf_status (*parameter_at)(uint64_t primitive, uint64_t parameter, gf_schema_parameter* record)
 
    .. cpp:member:: gf_status (*parameter_choice_at)(uint64_t primitive, uint64_t parameter, uint64_t choice, gf_utf8_view* name)
+
+   .. cpp:member:: gf_status (*effect_count)(uint64_t* count)
+
+   .. cpp:member:: gf_status (*effect_at)(uint64_t effect, gf_schema_effect* record)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2810,6 +2848,12 @@ Types
 
    .. cpp:member:: gf_status (*create)(gf_object root, gf_object* window)
 
+   .. cpp:member:: gf_status (*interaction_count)(uint64_t* count)
+
+   .. cpp:member:: gf_status (*interaction_at)(uint64_t interaction, gf_schema_interaction* record)
+
+   .. cpp:member:: gf_status (*request_help)(gf_object window, uint32_t* handled)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3158,6 +3202,10 @@ Types
 
    .. cpp:function:: gf_status parameter_choice_at(uint64_t primitive, uint64_t parameter, uint64_t choice, gf_utf8_view* name) const noexcept
 
+   .. cpp:function:: gf_status effect_count(uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status effect_at(uint64_t effect, gf_schema_effect* record) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: SubscriptionReference
@@ -3372,3 +3420,9 @@ Types
    .. cpp:function:: gf_status request_close(gf_object window_or_root) const noexcept
 
    .. cpp:function:: gf_status create(gf_object root, gf_object* window) const noexcept
+
+   .. cpp:function:: gf_status interaction_count(uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status interaction_at(uint64_t interaction, gf_schema_interaction* record) const noexcept
+
+   .. cpp:function:: gf_status request_help(gf_object window, uint32_t* handled) const noexcept

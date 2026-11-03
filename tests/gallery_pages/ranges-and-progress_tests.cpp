@@ -17,10 +17,13 @@ void test_ranges_and_progress(gui_forms::Window& window) {
         window.find("gallery.ranges.scroll.vertical"));
     const std::shared_ptr<gui_forms::Label> shared = std::dynamic_pointer_cast<Label>(
         window.find("gallery.ranges.shared"));
-    require(slider && progress && horizontal_scroll && vertical_scroll && shared,
+    std::shared_ptr<gui_forms::SweepScope> scope = std::dynamic_pointer_cast<SweepScope>(
+        window.find("gallery.ranges.scope"));
+    require(slider && progress && horizontal_scroll && vertical_scroll && shared && scope,
             "range proving controls must retain public slider, progress, and scrollbar types");
     require((*slider).value() == 52.0 && (*progress).value() == 52.0 &&
                 (*horizontal_scroll).value() == 52.0 && (*vertical_scroll).value() == 52.0 &&
+                (*scope).value() == 52.0 &&
                 (*shared).text().find("level = 52") != std::string::npos,
             "every range control must start from the one bound Value<double>");
     const Rect track = (*slider).absolute_bounds();
@@ -57,7 +60,7 @@ void test_ranges_and_progress(gui_forms::Window& window) {
     // A programmatic state change reaches every bound control and the state
     // observer, but synthesizes no input event.
     (*progress).set_value(40.0);
-    require((*slider).value() == 40.0 && (*vertical_scroll).value() == 40.0 &&
+    require((*slider).value() == 40.0 && (*vertical_scroll).value() == 40.0 && (*scope).value() == 40.0 &&
                 (*shared).text().find("level = 40") != std::string::npos &&
                 (*shared).text().find("horizontal ScrollBar") != std::string::npos,
             "a programmatic set_value must propagate through the Value without a new input report");

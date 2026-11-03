@@ -1,6 +1,9 @@
 #include "gui_forms/controls/range_control/progress_bar/progress_bar.hpp"
 
 #include "../range_control_rendering.hpp"
+#include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -12,9 +15,115 @@
 namespace gui_forms {
 using namespace range_control_detail;
 
+namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> effect_input_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "effect_input_kind", {{"none", 0}, {"pointer", 1}, {"pointer_and_keys", 2}}, false});
+    return value;
+}
+
+} // namespace
+
 ProgressBar::ProgressBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(false);
+
+    // The effect properties (effect programs, design note section 7).
+    PropertyDescriptor effect;
+    effect.name = "effect";
+    effect.kind = BindingValueKind::text;
+    effect.category = "Appearance";
+    effect.description = "The registered effect program drawn over the bar; empty takes the visual style's own.";
+    effect.default_value = BindingValue{std::string{}};
+    effect.invalidation_effects = Dirty::paint | Dirty::semantics;
+    effect.bindable = false;
+    define_bindable_property({
+        std::move(effect),
+        detail::BoundMemberFunction<BindingValue (ProgressBar::*)() const>(*this,
+                                                                           &ProgressBar::effect_property_value),
+        detail::BoundMemberFunction<void (ProgressBar::*)(const BindingValue&)>(
+            *this, &ProgressBar::set_effect_property_value),
+        {}, {}, {}, {}});
+
+    PropertyDescriptor effect_seed;
+    effect_seed.name = "effect_seed";
+    effect_seed.kind = BindingValueKind::unsigned_integer;
+    effect_seed.category = "Appearance";
+    effect_seed.description = "The effect's seed; null derives it from the stable ID and the effect's name.";
+    effect_seed.invalidation_effects = Dirty::paint;
+    effect_seed.bindable = false;
+    effect_seed.nullable = true;
+    define_bindable_property({
+        std::move(effect_seed),
+        detail::BoundMemberFunction<BindingValue (ProgressBar::*)() const>(
+            *this, &ProgressBar::effect_seed_property_value),
+        detail::BoundMemberFunction<void (ProgressBar::*)(const BindingValue&)>(
+            *this, &ProgressBar::set_effect_seed_property_value),
+        {}, {}, {}, {}});
+
+    PropertyDescriptor effect_input;
+    effect_input.name = "effect_input";
+    effect_input.kind = BindingValueKind::enumeration;
+    effect_input.category = "Behavior";
+    effect_input.description = "The input the bar grants its effect: none, the pointer, or the pointer and keys.";
+    effect_input.default_value = BindingValue{PropertyEnumValue{"effect_input_kind", "none", 0}};
+    effect_input.invalidation_effects = Dirty::paint;
+    effect_input.bindable = false;
+    effect_input.enumeration = effect_input_enum();
+    define_bindable_property({
+        std::move(effect_input),
+        detail::EnumerationPropertyGetter<ProgressBar, EffectInputKind>(*this, &ProgressBar::effect_input,
+                                                                         effect_input_enum()),
+        detail::EnumerationPropertySetter<ProgressBar, EffectInputKind>(*this, &ProgressBar::set_effect_input),
+        {}, {}, {}});
+}
+
+BindingValue ProgressBar::effect_property_value() const {
+    return BindingValue{effect_};
+}
+
+void ProgressBar::set_effect_property_value(const BindingValue& value) {
+    set_effect(std::get<std::string>(value));
+}
+
+BindingValue ProgressBar::effect_seed_property_value() const {
+    if (!effect_seed_) return BindingValue{};
+    return BindingValue{*effect_seed_};
+}
+
+void ProgressBar::set_effect_seed_property_value(const BindingValue& value) {
+    if (std::holds_alternative<std::monostate>(value)) {
+        set_effect_seed(std::nullopt);
+        return;
+    }
+    set_effect_seed(std::get<std::uint64_t>(value));
+}
+
+void ProgressBar::set_effect_input(EffectInputKind input) {
+    require_mutable();
+    if (input == effect_input_) return;
+    effect_input_ = input;
+    invalidate(Dirty::paint);
+}
+
+void ProgressBar::on_pointer(PointerEvent& event) {
+    if (effect_input_ == EffectInputKind::none || effect_instance_.entry() == nullptr) return;
+    EffectInputEvent input{};
+    if (event.action == PointerAction::move) {
+        input.kind = EffectInputEventKind::pointer_moved;
+    } else if (event.action == PointerAction::down) {
+        input.kind = EffectInputEventKind::pointer_pressed;
+    } else if (event.action == PointerAction::up) {
+        input.kind = EffectInputEventKind::pointer_released;
+    } else {
+        return;
+    }
+    // The part is the bar's bounds: part-local is the bar's local space.
+    const Rect absolute = absolute_bounds();
+    input.position = Point{event.position.x - absolute.x, event.position.y - absolute.y};
+    if (effect_instance_.queue_input(input, effect_input_)) invalidate(animated_extent());
 }
 
 void ProgressBar::set_visual_style(ProgressBarVisualStyle style_value) {
@@ -24,6 +133,7 @@ void ProgressBar::set_visual_style(ProgressBarVisualStyle style_value) {
     }
     visual_style_ = style_value;
     animation_phase_ = 0.0;
+    sync_effects(FrameClock::now());
     update_animation_registration();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -33,6 +143,7 @@ void ProgressBar::set_overlay_style(ProgressBarOverlayStyle style_value) {
     if (overlay_style_ == style_value) return;
     overlay_style_ = style_value;
     animation_phase_ = 0.0;
+    sync_effects(FrameClock::now());
     update_animation_registration();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -142,16 +253,144 @@ void ProgressBar::set_animation_period(FrameInterval period) {
 
 bool ProgressBar::animated_style() const noexcept {
     return visual_style_ == ProgressBarVisualStyle::marquee ||
-           visual_style_ == ProgressBarVisualStyle::pulse ||
-           visual_style_ == ProgressBarVisualStyle::marching_stripes ||
-           visual_style_ == ProgressBarVisualStyle::laser_etch ||
-           overlay_style_ == ProgressBarOverlayStyle::moving_stripes;
+           effect_instance_.entry() != nullptr ||
+           overlay_instance_.entry() != nullptr;
+}
+
+std::string_view ProgressBar::resolved_effect() const noexcept {
+    if (!effect_.empty()) return effect_;
+    if (visual_style_ == ProgressBarVisualStyle::marching_stripes) {
+        return ProgressStripes::declaration.name;
+    }
+    if (visual_style_ == ProgressBarVisualStyle::pulse) {
+        return ProgressPulse::declaration.name;
+    }
+    if (visual_style_ == ProgressBarVisualStyle::laser_etch) {
+        return ProgressLaser::declaration.name;
+    }
+    return {};
+}
+
+namespace {
+
+// The registered progress-bar effect named `name`, or null.
+const EffectEntry* progress_bar_effect(std::string_view name) noexcept {
+    if (name.empty()) return nullptr;
+    const EffectEntry* const entry = built_in_effect_registry().find(name);
+    if (entry == nullptr || (*entry).parent != EffectView<ProgressBar>::parent_name) {
+        return nullptr;
+    }
+    return entry;
+}
+
+// Attaches `wanted` to `instance` unless it holds it already, or detaches
+// it when nothing is wanted.
+void sync_instance(EffectInstance& instance, const EffectEntry* wanted,
+                   std::uint64_t seed, FrameTime now) {
+    if (wanted == nullptr) {
+        instance.detach();
+        return;
+    }
+    if (instance.entry() == wanted) return;
+    instance.attach(*wanted, seed, now);
+}
+
+} // namespace
+
+void ProgressBar::sync_effects(FrameTime now) {
+    const EffectEntry* const effect = progress_bar_effect(resolved_effect());
+    const bool overlay = overlay_style_ == ProgressBarOverlayStyle::moving_stripes &&
+                         visual_style_ != ProgressBarVisualStyle::marching_stripes;
+    const EffectEntry* const stripes =
+        overlay ? progress_bar_effect(ProgressStripes::declaration.name) : nullptr;
+    const std::string_view id = stable_id().value();
+    const std::uint64_t effect_seed = effect != nullptr
+        ? effect_seed_.value_or(effect_default_seed(id, (*(*effect).declaration).name))
+        : 0U;
+    const std::uint64_t stripes_seed =
+        effect_seed_.value_or(effect_default_seed(id, ProgressStripes::declaration.name));
+    sync_instance(effect_instance_, effect, effect_seed, now);
+    sync_instance(overlay_instance_, stripes, stripes_seed, now);
+}
+
+void ProgressBar::set_effect(std::string name) {
+    require_mutable();
+    if (name == effect_) return;
+    effect_ = std::move(name);
+    effect_instance_.detach();
+    sync_effects(FrameClock::now());
+    update_animation_registration();
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ProgressBar::set_effect_seed(std::optional<std::uint64_t> seed) {
+    require_mutable();
+    if (seed == effect_seed_) return;
+    effect_seed_ = seed;
+    // A new seed is a new arrangement: the effects start again.
+    effect_instance_.detach();
+    overlay_instance_.detach();
+    sync_effects(FrameClock::now());
+    invalidate(Dirty::paint);
+}
+
+Insets ProgressBar::visual_outsets() const noexcept {
+    const EffectEntry* const entry = effect_instance_.entry();
+    if (entry == nullptr) return Insets{};
+    const Insets outsets = (*(*entry).declaration).outsets;
+    return outsets;
+}
+
+bool ProgressBar::effects_move() const noexcept {
+    const MotionPolicy policy = effective_motion_policy();
+    const bool attached = effect_instance_.entry() != nullptr || overlay_instance_.entry() != nullptr;
+    return attached && animation_enabled_ && policy.active() && !policy.reduced;
+}
+
+void ProgressBar::update_effect_ambient(bool painting) {
+    if (window() == nullptr) return;
+    MotionClock& clock = (*window()).motion_clock();
+    if (!effects_move()) {
+        clock.withdraw_control_ambient(*this);
+        return;
+    }
+    if (!painting && !clock.control_ambient(*this)) return;
+    // At the effects' declared rate (the faster of the two, when both run).
+    double rate = 0.0;
+    if (effect_instance_.entry() != nullptr) {
+        rate = (*(*effect_instance_.entry()).declaration).frames_per_second;
+    }
+    if (overlay_instance_.entry() != nullptr) {
+        rate = std::max(rate, (*(*overlay_instance_.entry()).declaration).frames_per_second);
+    }
+    const FrameInterval interval =
+        std::chrono::ceil<FrameInterval>(std::chrono::duration<double>(1.0 / rate));
+    const bool started = clock.enlist_control_ambient(*this, interval);
+    if (!started) return;
+    // Motion starts or resumes: the effects' time restarts, with no
+    // catch-up for the pause.
+    const FrameTime now = clock.now();
+    effect_instance_.rebase(now);
+    overlay_instance_.rebase(now);
+    effect_paints_seen_ = ~std::uint64_t{0};
+}
+
+bool ProgressBar::on_ambient_frame(FrameTime now) {
+    if (effect_paints_ == effect_paints_seen_) return false;
+    effect_paints_seen_ = effect_paints_;
+    static_cast<void>(effect_instance_.advance(now));
+    static_cast<void>(overlay_instance_.advance(now));
+    invalidate(animated_extent());
+    return true;
 }
 
 void ProgressBar::update_animation_registration() {
+    update_effect_ambient(false);
     const MotionPolicy policy = effective_motion_policy();
+    // The marquee runs on the bar's own timer (ADR-016); the effects on the
+    // motion clock.
     if (window() == nullptr || !animation_enabled_ || !policy.active() ||
-        !animated_style()) {
+        visual_style_ != ProgressBarVisualStyle::marquee) {
         animation_timer_.stop();
         return;
     }
@@ -175,6 +414,10 @@ FrameInterval ProgressBar::animation_interval() const noexcept {
         travel = interior.width + std::max(8.0, interior.width * animation_appearance_.pulse_extent);
     } else if (visual_style_ == ProgressBarVisualStyle::laser_etch) {
         travel = std::max(animation_appearance_.laser_phase_pitch, 24.0);
+    } else {
+        // The other styles move only by their stripes (below), or by an
+        // effect whose interval is clamped after.
+        travel = 0.0;
     }
     if (visual_style_ == ProgressBarVisualStyle::marching_stripes ||
         overlay_style_ == ProgressBarOverlayStyle::moving_stripes) {
@@ -212,15 +455,15 @@ AnimationTickResult ProgressBar::on_animation_tick(FrameTime now) {
 
 Rect ProgressBar::animated_extent() const noexcept {
     const Rect fill = indicator_bounds();
-    if (visual_style_ != ProgressBarVisualStyle::pulse ||
-        overlay_style_ == ProgressBarOverlayStyle::moving_stripes) {
-        return fill;
-    }
-    const MotionPolicy policy = effective_motion_policy();
-    const double presented_phase = policy.presentation_phase(animation_phase_);
-    const Rect band = progress_luminance_band(
-        fill, animation_appearance_.pulse_extent, presented_phase);
-    const Rect extent = Rect::intersection(band, fill);
+    const Insets outsets = visual_outsets();
+    if (outsets == Insets{}) return fill;
+    // An effect drawing outside the bar (steam) may move anywhere in its
+    // layer.
+    const Rect bounds = local_bounds();
+    const Rect layer{bounds.x - outsets.left, bounds.y - outsets.top,
+                     bounds.width + outsets.left + outsets.right,
+                     bounds.height + outsets.top + outsets.bottom};
+    const Rect extent = Rect::united(fill, layer);
     return extent;
 }
 
@@ -265,6 +508,8 @@ void ProgressBar::advance_animation(FrameTime now) {
     if (animation_phase_ < 0.0) {
         animation_phase_ += 1.0;
     }
+    static_cast<void>(effect_instance_.advance(now));
+    static_cast<void>(overlay_instance_.advance(now));
 }
 
 Size ProgressBar::measure(Size available) {
@@ -407,7 +652,6 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     const Rect interior{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                         std::max(0.0, bounds.height - 4.0)};
     const MotionPolicy policy = effective_motion_policy();
-    const double presented_phase = policy.presentation_phase(animation_phase_);
     const Rect fill = indicator_bounds();
 
     const ControlVisualRecipe& fill_recipe = effective_theme().resolve(
@@ -432,35 +676,50 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     } else {
         paint_surface_material(painter, fill, fill_recipe.material);
     }
-    if (fill.width > 0.0 && fill.height > 0.0) {
-        if (visual_style_ == ProgressBarVisualStyle::pulse) {
-            paint_progress_luminance(
-                painter, fill, animation_appearance_.luminance_color,
-                animation_appearance_.pulse_extent, presented_phase);
-        } else if (visual_style_ == ProgressBarVisualStyle::marching_stripes) {
-            paint_progress_stripes(
-                painter, fill, animation_appearance_.stripe_color,
-                stripe_width_, animation_enabled_ ? presented_phase : 0.0);
-        } else if (visual_style_ == ProgressBarVisualStyle::laser_etch) {
-            paint_progress_laser(
-                painter, fill, interior, orientation(), animation_appearance_,
-                presented_phase, policy.reduced);
-        } else if (fill.height > 3.0) {
-            painter.fill_rect({fill.x, fill.y, fill.width, 3.0},
-                              fill_recipe.muted_text);
-        }
+    const bool own_effect = visual_style_ == ProgressBarVisualStyle::pulse ||
+                            visual_style_ == ProgressBarVisualStyle::marching_stripes ||
+                            visual_style_ == ProgressBarVisualStyle::laser_etch;
+    if (!own_effect && fill.height > 3.0 && fill.width > 0.0) {
+        painter.fill_rect({fill.x, fill.y, fill.width, 3.0},
+                          fill_recipe.muted_text);
     }
-    if (overlay_style_ == ProgressBarOverlayStyle::moving_stripes &&
-        visual_style_ != ProgressBarVisualStyle::marching_stripes &&
-        fill.width > 0.0 && fill.height > 0.0) {
-        paint_progress_stripes(
-            painter, fill, animation_appearance_.stripe_color, stripe_width_,
-            animation_enabled_ ? presented_phase : 0.0);
-    }
+
+    // The effects (design note section 8), drawn over the bar with its
+    // whole bounds as their part; still while animation is off or motion
+    // is reduced.
+    sync_effects(FrameClock::now());
+    if (effect_instance_.entry() == nullptr && overlay_instance_.entry() == nullptr) return;
+    // A paint after the clock dropped the effects (the bar was hidden)
+    // enlists them again.
+    effect_paints_ = effect_paints_ + 1U;
+    update_effect_ambient(true);
+    const double speed = policy.speed_scale();
+    const double period = std::chrono::duration<double>(animation_period_).count();
+    EffectView<ProgressBar> view{};
+    view.fraction = normalized_value();
+    view.interior = interior;
+    view.fill = fill;
+    view.vertical = orientation() == Orientation::vertical;
+    view.appearance = animation_appearance_;
+    view.stripe_width = stripe_width_;
+    view.period_seconds = speed > 0.0 ? period / speed : period;
+    const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();
+    const bool still = !animation_enabled_ || policy.reduced || suppressed;
+    const double scale = window() != nullptr ? (*window()).scale() : 1.0;
+    effect_instance_.paint(painter, bounds, scale, still, view);
+    overlay_instance_.paint(painter, bounds, scale, still, view);
 }
 
-bool ProgressBar::hit_test_local(Point) const {
-    return false;
+bool ProgressBar::hit_test_local(Point local_point) const {
+    // Pointer input reaches the bar only while it grants it to an effect
+    // that takes it; otherwise the pointer passes through, as before.
+    const EffectEntry* const entry = effect_instance_.entry();
+    if (effect_input_ == EffectInputKind::none || entry == nullptr ||
+        (*(*entry).declaration).input == EffectInputKind::none) {
+        return false;
+    }
+    const bool inside = local_bounds().contains(local_point);
+    return inside;
 }
 
 SemanticDescriptor ProgressBar::semantic_descriptor() const {

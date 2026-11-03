@@ -68,7 +68,7 @@ extern "C" {
 
 /* The ABI version this header describes. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 0u
+#define GF_ABI_MINOR 1u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -597,6 +597,17 @@ typedef struct gf_dispatch_table {
 typedef uint32_t gf_run_flags;
 #define GF_RUN_FLAGS_NONE 0u
 
+/* An interaction: payload spells the handler's argument types ("ButtonBase",
+ * "std::size_t, CheckState"; empty for none); mutable_payload is 1 when a
+ * handler may change an argument, as a cancellable validation's. The
+ * schema table lists a type's in it, and the windows table a window's. */
+typedef struct gf_schema_interaction {
+    uint32_t struct_size;
+    uint32_t mutable_payload;
+    gf_utf8_view name;
+    gf_utf8_view payload;
+} gf_schema_interaction;
+
 /*
  * How to run a window. width and height are the client size in logical
  * units; zero keeps the default. ready, closing and closed may each be null;
@@ -627,6 +638,14 @@ typedef struct gf_run_options {
  * stay alive but unbound, and refuse what needs the window. Disposing a
  * window that has not run destroys it; during its run, disposing it only
  * stops new components binding to it.
+ *
+ * A window raises interactions as a component does (since 1.1):
+ * events.subscribe takes their names on the window object, and
+ * interaction_count and interaction_at list them (active_changed,
+ * backdrop_changed, dialog_result_changed, focused_control_changed,
+ * help_requested, presentation_changed, theme_changed). Its subscriptions
+ * end when the window is destroyed, each callback released once on the UI
+ * thread; a disposed window refuses new ones with GF_STATUS_DISPOSED.
  */
 typedef struct gf_windows_table {
     uint32_t struct_size;
@@ -646,6 +665,20 @@ typedef struct gf_windows_table {
      * destroyed. GF_STATUS_INVALID_STATE when root has a parent or a
      * window. */
     gf_status (GF_CALL* create)(gf_object root, gf_object* window);
+    /* The number of interactions a window raises (since 1.1). Needs no
+     * window or engine, since every window raises the same ones; any thread. */
+    gf_status (GF_CALL* interaction_count)(uint64_t* count);
+    /* Interaction index (below interaction_count) as a schema record, the
+     * form schema.interaction_at gives a type's (since 1.1); any thread.
+     * The views stay valid while the library is loaded.
+     * GF_STATUS_INVALID_ARGUMENT past the end. */
+    gf_status (GF_CALL* interaction_at)(uint64_t interaction, gf_schema_interaction* record);
+    /* Raises the window's help request as a message box's Help button does
+     * (Window::request_help, not keyboard-initiated): its help_requested handlers run, then its
+     * help providers are offered it until one handles it. handled receives
+     * 1 when a handler or provider handled it, else 0 (since 1.1). UI thread.
+     * GF_STATUS_DISPOSED once the window is gone. */
+    gf_status (GF_CALL* request_help)(gf_object window, uint32_t* handled);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -769,16 +802,6 @@ typedef struct gf_schema_choice {
     int64_t value;
 } gf_schema_choice;
 
-/* An interaction: payload spells the handler's argument types ("ButtonBase",
- * "std::size_t, CheckState"; empty for none); mutable_payload is 1 when a
- * handler may change an argument, as a cancellable validation's. */
-typedef struct gf_schema_interaction {
-    uint32_t struct_size;
-    uint32_t mutable_payload;
-    gf_utf8_view name;
-    gf_utf8_view payload;
-} gf_schema_interaction;
-
 /* The theme engine this library implements: its version, the budgets a
  * theme is checked against, and how many primitives it registers. */
 typedef struct gf_schema_engine {
@@ -832,6 +855,51 @@ typedef struct gf_schema_parameter {
     uint64_t choice_count;
 } gf_schema_parameter;
 
+/* gf_schema_effect_time_model: what drives an effect program. A static
+ * pose runs on a geometry or state change only; a transition effect follows
+ * its part's transition; an ambient effect is ticked on the motion clock. */
+typedef uint32_t gf_schema_effect_time_model;
+#define GF_SCHEMA_EFFECT_TIME_MODEL_STATIC_POSE 0u
+#define GF_SCHEMA_EFFECT_TIME_MODEL_TRANSITION 1u
+#define GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT 2u
+
+/* gf_schema_effect_input: the most input an effect program may take, when
+ * its host grants it. */
+typedef uint32_t gf_schema_effect_input;
+#define GF_SCHEMA_EFFECT_INPUT_NONE 0u
+#define GF_SCHEMA_EFFECT_INPUT_POINTER 1u
+#define GF_SCHEMA_EFFECT_INPUT_POINTER_AND_KEYS 2u
+
+/* gf_schema_effect_flags: an effect program's facts, as bits. VERIFIED: the
+ * gui_forms Clang plugin's effect pass checked its bounds when this library
+ * was built (an unverified effect still runs, metered). SETUP_ON_GEOMETRY:
+ * its setup runs again when its part's geometry changes. */
+typedef uint32_t gf_schema_effect_flags;
+#define GF_SCHEMA_EFFECT_FLAGS_VERIFIED 1u
+#define GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY 2u
+
+/* An effect program the library registers (since 1.1): its name, as a
+ * control's effect property takes it; parent, the schema id of the type
+ * that hosts it; the engine version that introduced it; its declared costs
+ * in operations (cost_fixed and cost_per_device_pixel a frame, setup_cost
+ * once); the most bytes its state may take; its ambient frame rate; and the
+ * device-independent outsets its drawing may reach beyond its part. */
+typedef struct gf_schema_effect {
+    uint32_t struct_size;
+    gf_schema_effect_time_model time_model;
+    gf_utf8_view name;
+    gf_utf8_view parent;
+    uint32_t engine_version;
+    gf_schema_effect_input input;
+    uint32_t cost_fixed;
+    uint32_t cost_per_device_pixel;
+    uint32_t setup_cost;
+    gf_schema_effect_flags flags;
+    uint64_t state_budget;
+    double frames_per_second;
+    gf_logical_insets outsets;
+} gf_schema_effect;
+
 /*
  * GF_TABLE_SCHEMA: the control schema (stage T1) and the engine it themes,
  * as manifests/control-schema.json records them. Types are numbered from
@@ -873,6 +941,11 @@ typedef struct gf_schema_table {
                                       gf_schema_parameter* record);
     gf_status (GF_CALL* parameter_choice_at)(uint64_t primitive, uint64_t parameter,
                                              uint64_t choice, gf_utf8_view* name);
+    /* The number of effect programs the library registers (since 1.1). */
+    gf_status (GF_CALL* effect_count)(uint64_t* count);
+    /* Effect index (below effect_count), in registration order (since
+     * 1.1). GF_STATUS_INVALID_ARGUMENT past the end. */
+    gf_status (GF_CALL* effect_at)(uint64_t effect, gf_schema_effect* record);
 } gf_schema_table;
 
 /* Borrowed bytes: size bytes at data. data may be null only when size is

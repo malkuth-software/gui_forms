@@ -849,6 +849,13 @@ public:
     // layout or hit testing. Parents still clip descendants to their client
     // rectangle. The compositor uses these outsets for damage and replay.
     [[nodiscard]] virtual Insets visual_outsets() const noexcept;
+    // One ambient frame of the window's motion clock, for a control that
+    // enlisted itself (MotionClock::enlist_control_ambient): advance what
+    // moves to `now` and invalidate what it covers. Return false when the
+    // control was not painted since its last frame (it is no longer shown):
+    // the clock then drops it, so a control can never keep a window
+    // painting by itself. The default returns false.
+    virtual bool on_ambient_frame(FrameTime now);
     [[nodiscard]] virtual bool hit_test_local(Point local_point) const;
 
     virtual void on_pointer_preview(PointerEvent& event);

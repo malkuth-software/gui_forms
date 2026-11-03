@@ -225,6 +225,70 @@ void append_parameters(std::string& out, std::uint64_t primitive, std::uint64_t 
     out += count == 0U ? "]" : "\n        ]";
 }
 
+// The names manifests/control-schema.json spells the effect constants with.
+std::string_view effect_time_model_name(gf_schema_effect_time_model model) {
+    if (model == GF_SCHEMA_EFFECT_TIME_MODEL_STATIC_POSE) return "static_pose";
+    if (model == GF_SCHEMA_EFFECT_TIME_MODEL_TRANSITION) return "transition";
+    if (model == GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT) return "ambient";
+    throw std::runtime_error("effect_at reported an unknown time model " + std::to_string(model));
+}
+
+std::string_view effect_input_name(gf_schema_effect_input input) {
+    if (input == GF_SCHEMA_EFFECT_INPUT_NONE) return "none";
+    if (input == GF_SCHEMA_EFFECT_INPUT_POINTER) return "pointer";
+    if (input == GF_SCHEMA_EFFECT_INPUT_POINTER_AND_KEYS) return "pointer_and_keys";
+    throw std::runtime_error("effect_at reported an unknown input " + std::to_string(input));
+}
+
+// engine.effects: the effect programs, one per line in registration order
+// (effect_count and effect_at, since 1.1). The manifest leaves out whether
+// the plugin verified each, since that depends on the build.
+void append_effects(std::string& out) {
+    std::uint64_t count = 0;
+    require_ok(tables.schema.effect_count(&count), "effect_count");
+    append_key(out, "    ", "effects");
+    out += '[';
+    for (std::uint64_t index = 0; index < count; ++index) {
+        gf_schema_effect effect{};
+        effect.struct_size = sizeof(effect);
+        require_ok(tables.schema.effect_at(index, &effect), "effect_at");
+        const bool setup_on_geometry = (effect.flags & GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY) != 0U;
+        out += index == 0U ? "\n      {" : ",\n      {";
+        out += "\"name\": ";
+        append_json_string(out, text_of(effect.name));
+        out += ", \"parent\": ";
+        append_json_string(out, text_of(effect.parent));
+        out += ", \"time_model\": ";
+        append_json_string(out, effect_time_model_name(effect.time_model));
+        out += ", \"engine_version\": ";
+        append_unsigned(out, effect.engine_version);
+        out += ", \"cost\": {\"fixed\": ";
+        append_unsigned(out, effect.cost_fixed);
+        out += ", \"per_device_pixel\": ";
+        append_unsigned(out, effect.cost_per_device_pixel);
+        out += "}, \"setup_cost\": ";
+        append_unsigned(out, effect.setup_cost);
+        out += ", \"setup_on_geometry\": ";
+        append_bool(out, setup_on_geometry);
+        out += ", \"state_budget\": ";
+        append_unsigned(out, effect.state_budget);
+        out += ", \"frames_per_second\": ";
+        append_number(out, effect.frames_per_second);
+        out += ", \"outsets\": [";
+        append_number(out, effect.outsets.left);
+        out += ", ";
+        append_number(out, effect.outsets.top);
+        out += ", ";
+        append_number(out, effect.outsets.right);
+        out += ", ";
+        append_number(out, effect.outsets.bottom);
+        out += "], \"input\": ";
+        append_json_string(out, effect_input_name(effect.input));
+        out += '}';
+    }
+    out += count == 0U ? "]" : "\n    ]";
+}
+
 void append_engine(std::string& out) {
     gf_schema_engine engine{};
     engine.struct_size = sizeof(engine);
@@ -314,7 +378,8 @@ void append_engine(std::string& out) {
     append_number(out, engine.ambient_maximum_frames_per_second);
     out += ", \"maximum_window_fraction\": ";
     append_number(out, engine.ambient_maximum_window_fraction);
-    out += '}';
+    out += "},\n";
+    append_effects(out);
     out += "\n  },\n";
 }
 

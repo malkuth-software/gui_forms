@@ -348,8 +348,10 @@ void check_reader() {
         out.pop_back();
     }
     std::vector<std::byte> foreign = table("Ready");
+    // The section is shared with the effect verification records (type
+    // 0x47464c02): a GUIForms note of another type is skipped, not refused.
     foreign[8] = std::byte{0x02};
-    require(!parse_localizable_tables(foreign, out), "a note of another type");
+    require(parse_localizable_tables(foreign, out) && out.size() == 2U, "a note of another type is skipped");
     std::vector<std::byte> huge = table("Ready");
     // The description (the record count first) follows the 12-byte header
     // and the 12-byte padded name.

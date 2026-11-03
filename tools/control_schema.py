@@ -294,6 +294,61 @@ def _motion_findings(transitions: object, ambient: object) -> list[str]:
     return findings
 
 
+_EFFECT_TIME_MODELS: frozenset[str] = frozenset({"static_pose", "transition", "ambient"})
+_EFFECT_INPUTS: frozenset[str] = frozenset({"none", "pointer", "pointer_and_keys"})
+
+
+def _effect_findings(effects: object, type_ids: Sequence[str]) -> list[str]:
+    """The effect programs (design note section 7): each once by a snake_case
+    name, hosted by a schema type, with a known time model and input,
+    non-negative integer costs, a positive state budget and frame rate, and
+    four non-negative outsets."""
+    if not isinstance(effects, list):
+        return ["engine: no effects list (the effect programs)"]
+    findings: list[str] = []
+    names: list[str] = []
+    effect: object
+    for effect in effects:
+        if not isinstance(effect, dict):
+            findings.append(f"engine: effects: {effect!r} is not a record")
+            continue
+        name: str = str(effect.get("name"))
+        names.append(name)
+        label: str = f"engine: effect {name!r}"
+        if not _SNAKE.fullmatch(name):
+            findings.append(f"{label} is not snake_case")
+        if str(effect.get("parent")) not in type_ids:
+            findings.append(f"{label}: parent {effect.get('parent')!r} is not a schema type")
+        if effect.get("time_model") not in _EFFECT_TIME_MODELS:
+            findings.append(f"{label}: unknown time model {effect.get('time_model')!r}")
+        if effect.get("input") not in _EFFECT_INPUTS:
+            findings.append(f"{label}: unknown input {effect.get('input')!r}")
+        cost: object = effect.get("cost")
+        counts: list[object] = [effect.get("engine_version"), effect.get("setup_cost")]
+        if isinstance(cost, dict):
+            counts.extend([cost.get("fixed"), cost.get("per_device_pixel")])
+        else:
+            findings.append(f"{label} has no cost record")
+        if not all(isinstance(count, int) and not isinstance(count, bool) and count >= 0 for count in counts):
+            findings.append(f"{label}: a version or cost is not a non-negative integer")
+        budget: object = effect.get("state_budget")
+        if not isinstance(budget, int) or isinstance(budget, bool) or budget <= 0:
+            findings.append(f"{label}: state_budget {budget!r} is not positive")
+        rate: object = effect.get("frames_per_second")
+        if not isinstance(rate, (int, float)) or isinstance(rate, bool) or not float(rate) > 0:
+            findings.append(f"{label}: frames_per_second {rate!r} is not positive")
+        if not isinstance(effect.get("setup_on_geometry"), bool):
+            findings.append(f"{label}: setup_on_geometry is not a boolean")
+        outsets: object = effect.get("outsets")
+        if not (isinstance(outsets, list) and len(outsets) == 4 and
+                all(isinstance(side, (int, float)) and not isinstance(side, bool) and float(side) >= 0
+                    for side in outsets)):
+            findings.append(f"{label}: outsets {outsets!r} are not four non-negative numbers")
+    if len(set(names)) != len(names):
+        findings.append("engine: effects repeat a name")
+    return findings
+
+
 def _expression_findings(expressions: object) -> list[str]:
     """The bounded expressions (T2 E5): a positive operation budget and stack
     bound, and the operations by snake_case name, each once."""
@@ -345,6 +400,8 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
                 if not _SNAKE.fullmatch(str(name)):
                     findings.append(f"vocabulary: {key} name {name!r} is not snake_case")
     findings.extend(_engine_findings(schema.get("engine"), vocabulary))
+    engine: object = schema.get("engine")
+    findings.extend(_effect_findings(engine.get("effects") if isinstance(engine, dict) else None, schema_ids))
     by_id: dict[str, control_registry.ControlRecord] = {record.id: record for record in registry.records}
     for record in types:
         identity: str = str(record.get("id"))
