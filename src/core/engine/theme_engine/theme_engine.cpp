@@ -6,6 +6,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window/window.hpp"
 #include "../../theme/part_painting/built_in_recipe.hpp"
+#include "../../theme/dark_variant/dark_variant.hpp"
 #include "../../theme/theme/forced_high_contrast.hpp"
 
 #include <algorithm>
@@ -25,6 +26,13 @@
 
 namespace gui_forms {
 namespace {
+
+// Whether `theme` derives its dark variant (T4 phase 5): its rules are then
+// written in light terms and darkened by rule in a dark window.
+bool derives_dark(const Theme& theme) noexcept {
+    const bool result = theme.definition().dark_variant == ThemeDarkVariant::derived;
+    return result;
+}
 
 bool animated(const PrimitiveDescriptor& descriptor) noexcept {
     for (const PrimitiveParameterDeclaration& parameter : descriptor.parameters) {
@@ -872,6 +880,17 @@ ThemeEngine::PartPlan ThemeEngine::plan(const Control& control, const PartPaint&
                 high_contrast_colour(result.resolution.parameter_origins[index], ColourPosition::fill,
                                      context.surface, context.selected);
         }
+    } else if (context.dark && derives_dark(control.effective_theme())) {
+        // The dark variant (T4 phase 5): a theme that derives it writes its
+        // rules in light terms, and each colour parameter darkens by rule.
+        const PrimitiveDescriptor& described = (*result.resolution.primitive).descriptor();
+        for (std::size_t index = 0; index < result.resolution.parameters.count; ++index) {
+            if (index >= described.parameters.size()) break;
+            if (described.parameters[index].kind != PrimitiveParameterKind::colour) continue;
+            PrimitiveParameterValue& value = result.resolution.parameters.values[index];
+            value.colour =
+                detail::dark_parameter_colour(value.colour, result.resolution.parameter_origins[index], part.family);
+        }
     }
     const double scale = (*window).scale();
     result.scale = DeviceScale{scale};
@@ -1137,6 +1156,28 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             unkept_material.emplace();
             assemble_material(recipe.material, forced.fields, Size{part.bounds.width, part.bounds.height}, relative,
                               *unkept_material);
+            (*window).metrics().record_engine_material_assembly();
+            request.target.material = &*unkept_material;
+        } else if (resolution.materials_authored && context.dark && derives_dark(control.effective_theme())) {
+            // The dark variant (T4 phase 5): the rules' fields in place on
+            // the light recipe's material, then the whole darkened by rule,
+            // for this paint only.
+            ControlVisualContext light_context = context;
+            light_context.dark = false;
+            const Theme& theme = control.effective_theme();
+            const ControlVisualRecipe& light = theme.resolve(*material_role, light_context);
+            MaterialAssemblyContext relative{};
+            if (material_fields_read_em(resolution.materials)) {
+                relative.em = text_role_em(control, resolved_text_role(control, resolution.font));
+            }
+            if (material_fields_read_current_colour(resolution.materials)) {
+                const ResolvedControlRecipe text = theme.resolve(control, part.family, light_context, part.states);
+                relative.current_colour = text.recipe().text;
+            }
+            unkept_material.emplace();
+            assemble_material(light.material, resolution.materials, Size{part.bounds.width, part.bounds.height},
+                              relative, *unkept_material);
+            detail::darken_material(*unkept_material, *material_role);
             (*window).metrics().record_engine_material_assembly();
             request.target.material = &*unkept_material;
         } else if (resolution.materials_authored) {
