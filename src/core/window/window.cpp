@@ -3459,6 +3459,7 @@ void Window::paint_recursive(const Control::Ptr& control,
         if (rebuild) {
             (*control).clear_dirty(Dirty::paint);
             detail::RecordingPainter recorder(text_metrics_provider_);
+            recorder.inherit_caches((*control).display_chunk_);
             // Declared after the recorder it names, so it is destroyed
             // first and the mark never outlives it.
             const RecordingMark mark{recording_control_, recording_painter_, recording_control_,
