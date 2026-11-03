@@ -1,12 +1,11 @@
-foreach(required IN ITEMS CORE_LIBRARY SKIA_ADAPTER COREGRAPHICS_ADAPTER
+foreach(required IN ITEMS CORE_LIBRARY SKIA_ADAPTER
                           BENCHMARK_BINARY PUBLIC_INCLUDE_DIRECTORY SKIA_ARCHIVE)
     if(NOT DEFINED ${required})
         message(FATAL_ERROR "${required} is required")
     endif()
 endforeach()
 
-foreach(path IN ITEMS "${CORE_LIBRARY}" "${SKIA_ADAPTER}"
-                      "${COREGRAPHICS_ADAPTER}" "${BENCHMARK_BINARY}"
+foreach(path IN ITEMS "${CORE_LIBRARY}" "${SKIA_ADAPTER}" "${BENCHMARK_BINARY}"
                       "${SKIA_ARCHIVE}")
     if(NOT EXISTS "${path}")
         message(FATAL_ERROR "Renderer audit input is absent: ${path}")
@@ -29,19 +28,6 @@ foreach(pattern IN ITEMS "Sk[A-Z]" "_CG[A-Za-z]" "_CT[A-Za-z]"
             "Renderer-free core contains forbidden renderer/platform symbol: ${pattern}")
     endif()
 endforeach()
-
-execute_process(
-    COMMAND nm -gU "${COREGRAPHICS_ADAPTER}"
-    RESULT_VARIABLE cg_nm_result
-    OUTPUT_VARIABLE cg_symbols
-    ERROR_VARIABLE cg_nm_error
-)
-if(NOT cg_nm_result EQUAL 0)
-    message(FATAL_ERROR "nm failed for CoreGraphics adapter: ${cg_nm_error}")
-endif()
-if(cg_symbols MATCHES "Sk[A-Z]")
-    message(FATAL_ERROR "CoreGraphics comparison adapter contains a Skia symbol")
-endif()
 
 file(GLOB_RECURSE public_headers
     "${PUBLIC_INCLUDE_DIRECTORY}/*.h"
@@ -75,12 +61,11 @@ endforeach()
 
 file(SIZE "${CORE_LIBRARY}" core_bytes)
 file(SIZE "${SKIA_ADAPTER}" skia_adapter_bytes)
-file(SIZE "${COREGRAPHICS_ADAPTER}" coregraphics_adapter_bytes)
 file(SIZE "${SKIA_ARCHIVE}" skia_archive_bytes)
 file(SIZE "${BENCHMARK_BINARY}" benchmark_bytes)
 
 set(report
-"renderer_boundary_audit=passed\ncore_bytes=${core_bytes}\nskia_adapter_bytes=${skia_adapter_bytes}\ncoregraphics_adapter_bytes=${coregraphics_adapter_bytes}\nskia_archive_bytes=${skia_archive_bytes}\nbenchmark_bytes=${benchmark_bytes}\ndependencies:\n${dependencies}")
+"renderer_boundary_audit=passed\ncore_bytes=${core_bytes}\nskia_adapter_bytes=${skia_adapter_bytes}\nskia_archive_bytes=${skia_archive_bytes}\nbenchmark_bytes=${benchmark_bytes}\ndependencies:\n${dependencies}")
 if(DEFINED OUTPUT_FILE)
     file(WRITE "${OUTPUT_FILE}" "${report}")
 endif()

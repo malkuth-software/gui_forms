@@ -1101,25 +1101,6 @@ if(GUI_FORMS_ENABLE_SKIA)
     )
 endif()
 
-if(APPLE)
-    find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
-    find_library(GUI_FORMS_COREGRAPHICS CoreGraphics REQUIRED)
-    find_library(GUI_FORMS_CORETEXT CoreText REQUIRED)
-    add_library(gui_forms_coregraphics STATIC
-        src/render/coregraphics/raster/coregraphics_raster.cpp
-    )
-    target_include_directories(gui_forms_coregraphics PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/render/coregraphics/raster
-    )
-    target_link_libraries(gui_forms_coregraphics
-        PUBLIC gui_forms_core
-        PRIVATE
-            ${GUI_FORMS_COREFOUNDATION}
-            ${GUI_FORMS_COREGRAPHICS}
-            ${GUI_FORMS_CORETEXT}
-    )
-endif()
-
 if(GUI_FORMS_ENABLE_MACOS_HOST)
     enable_language(OBJCXX)
     find_library(GUI_FORMS_APPKIT AppKit REQUIRED)
@@ -1984,10 +1965,9 @@ if(TARGET gui_forms_application)
 endif()
 
 if(GUI_FORMS_BUILD_BENCHMARKS)
-    if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_coregraphics OR
-       NOT TARGET gui_forms_gallery_model)
+    if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
         message(FATAL_ERROR
-            "The current M2d renderer comparison requires macOS, Skia, CoreGraphics, and the Gallery model")
+            "The renderer benchmark requires macOS, Skia, and the Gallery model")
     endif()
     add_executable(gui_forms_renderer_benchmark
         benchmarks/renderer_benchmark.cpp
@@ -1999,13 +1979,11 @@ if(GUI_FORMS_BUILD_BENCHMARKS)
     target_link_libraries(gui_forms_renderer_benchmark PRIVATE
         gui_forms_gallery_model
         gui_forms_skia
-        gui_forms_coregraphics
     )
     add_custom_target(gui_forms_renderer_boundary_audit
         COMMAND ${CMAKE_COMMAND}
             -DCORE_LIBRARY=$<TARGET_FILE:gui_forms_core>
             -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
-            -DCOREGRAPHICS_ADAPTER=$<TARGET_FILE:gui_forms_coregraphics>
             -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
             -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
             -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia>
@@ -3738,17 +3716,15 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_layered_material_lab_tests
                  COMMAND gui_forms_layered_material_lab_tests)
 
-        if(APPLE AND TARGET gui_forms_skia AND TARGET gui_forms_coregraphics)
+        if(TARGET gui_forms_skia)
             add_executable(gui_forms_layered_material_raster_tests
                 tests/layered_material_raster_tests.cpp)
             target_include_directories(gui_forms_layered_material_raster_tests PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/demo
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/render/coregraphics/raster)
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster)
             target_link_libraries(gui_forms_layered_material_raster_tests PRIVATE
                 gui_forms_layered_material_lab_model
-                gui_forms_skia
-                gui_forms_coregraphics)
+                gui_forms_skia)
             add_test(NAME gui_forms_layered_material_raster_tests
                      COMMAND gui_forms_layered_material_raster_tests)
         endif()
@@ -4192,36 +4168,12 @@ if(GUI_FORMS_BUILD_TESTS)
                  COMMAND gui_drawing_raster_c_api_tests)
     endif()
 
-    if(TARGET gui_forms_coregraphics)
-        add_executable(gui_forms_coregraphics_smoke
-            src/render/coregraphics/coregraphics_raster_smoke.cpp
-        )
-        target_compile_definitions(gui_forms_coregraphics_smoke PRIVATE
-            GUI_FORMS_TEST_CONTROL_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf"
-        )
-        target_link_libraries(gui_forms_coregraphics_smoke PRIVATE
-            gui_forms_coregraphics
-        )
-        add_test(NAME gui_forms_coregraphics_smoke
-                 COMMAND gui_forms_coregraphics_smoke)
-
-        add_executable(gui_forms_coregraphics_raster_edge_snapping_tests
-            tests/coregraphics_raster_edge_snapping_tests.cpp)
-        target_include_directories(gui_forms_coregraphics_raster_edge_snapping_tests PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/render/coregraphics/raster)
-        target_link_libraries(gui_forms_coregraphics_raster_edge_snapping_tests PRIVATE
-            gui_forms_coregraphics)
-        add_test(NAME gui_forms_coregraphics_raster_edge_snapping_tests
-                 COMMAND gui_forms_coregraphics_raster_edge_snapping_tests)
-    endif()
-
     if(TARGET gui_forms_renderer_benchmark)
         add_test(
             NAME gui_forms_renderer_boundary_audit
             COMMAND ${CMAKE_COMMAND}
                 -DCORE_LIBRARY=$<TARGET_FILE:gui_forms_core>
                 -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
-                -DCOREGRAPHICS_ADAPTER=$<TARGET_FILE:gui_forms_coregraphics>
                 -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
                 -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
                 -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia>
@@ -4731,11 +4683,10 @@ if(gui_forms_font_programs)
 endif()
 
 # The targets that compile the red/blue swap loops' replacements link stx_skia::swizzle: the
-# core (material images), the controls (the raster canvas), the CoreGraphics raster, the
-# Windows drawing C API, and the Windows host with the tests that compile windows_host.cpp,
-# the last six by including it textually.
+# core (material images), the controls (the raster canvas), the Windows drawing C API, and
+# the Windows host with the tests that compile windows_host.cpp, the last six by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
-        gui_forms_coregraphics gui_drawing_c_api gui_forms_host_windows
+        gui_drawing_c_api gui_forms_host_windows
         gui_forms_windows_dib_lifecycle_tests gui_forms_windows_tooltip_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests

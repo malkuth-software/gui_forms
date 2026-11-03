@@ -1,4 +1,3 @@
-#include "coregraphics_raster.hpp"
 #include "gallery.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "skia_raster.hpp"
@@ -578,9 +577,6 @@ int main(int argc, char** argv) {
 
         gui_forms::render::SkiaRaster skia;
         run_renderer("skia-cpu", skia, regular_font, bold_font,
-                     output_directory, records);
-        gui_forms::render::CoreGraphicsRaster core_graphics;
-        run_renderer("coregraphics-cpu", core_graphics, regular_font, bold_font,
                      output_directory, records);
         return 0;
     } catch (const std::exception& error) {
