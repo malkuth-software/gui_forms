@@ -202,7 +202,7 @@ const ControlAnatomy& Button::anatomy() const noexcept {
 
 Button::Parts Button::button_parts() const {
     // Paint passes the selection to the image lookup only on the themed path.
-    const bool layout_selected = !paints_override_frame() && selected_;
+    const bool layout_selected = selected_;
     const bool command_alignment = visual_style_ == ButtonVisualStyle::command;
     const ButtonBase::Parts base = push_button_parts(layout_selected, command_alignment);
     Parts record;
@@ -246,72 +246,21 @@ Button::States Button::states() const {
 
 void Button::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const std::string display = display_text();
-    if (!paints_override_frame()) {
-        const ControlVisualRole role = button_visual_role(visual_style_);
-        // An overridden accent button keeps its accent face and paper text;
-        // the other styles take the override's face and text.
-        std::optional<AuthoredButtonColours> authored{};
-        if (has_style_override()) {
-            const BasicControlStyle& colours = style();
-            const bool accent = visual_style_ == ButtonVisualStyle::accent;
-            const bool flat = visual_style_ == ButtonVisualStyle::flat;
-            const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
-            const Color text = accent ? colours.paper : colours.text;
-            authored = AuthoredButtonColours{face, text};
-        }
-        paint_themed_button(painter, bounds, role, default_button_,
-                            visual_style_ == ButtonVisualStyle::command,
-                            selected_, authored);
-        return;
+    const ControlVisualRole role = button_visual_role(visual_style_);
+    // An overridden accent button keeps its accent face and paper text; the
+    // other styles take the override's face and text.
+    std::optional<AuthoredButtonColours> authored{};
+    if (has_style_override()) {
+        const BasicControlStyle& colours = style();
+        const bool accent = visual_style_ == ButtonVisualStyle::accent;
+        const bool flat = visual_style_ == ButtonVisualStyle::flat;
+        const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
+        const Color text = accent ? colours.paper : colours.text;
+        authored = AuthoredButtonColours{face, text};
     }
-    switch (visual_style_) {
-    case ButtonVisualStyle::standard:
-        paint_button_frame(painter, bounds, default_button_);
-        paint_button_text(painter, bounds, display);
-        return;
-    case ButtonVisualStyle::flat:
-        painter.fill_rect(bounds, pressed_visual() ? style().accent_light
-                                                   : style().face_light);
-        if (flat_border_width_ > 0.0) {
-            const double inset = flat_border_width_ * 0.5;
-            painter.stroke_rect(
-                {inset, inset,
-                 std::max(0.0, bounds.width - flat_border_width_),
-                 std::max(0.0, bounds.height - flat_border_width_)},
-                default_button_ ? style().accent : style().border,
-                flat_border_width_);
-        }
-        paint_button_text(painter, bounds, display);
-        return;
-    case ButtonVisualStyle::accent: {
-        const Color fill = pressed_visual() ? style().link : style().accent;
-        painter.fill_rect(bounds, fill);
-        painter.draw_line({0.0, 0.0}, {bounds.width - 1.0, 0.0},
-                          style().accent_light, 1.0);
-        painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0),
-                             std::max(0.0, bounds.height - 1.0)},
-                            style().dark_border, 1.0);
-        const double offset = pressed_visual() ? 1.0 : 0.0;
-        paint_button_content(painter, bounds, display,
-                             effectively_enabled() ? style().paper : style().disabled_text,
-                             {offset, offset});
-        return;
-    }
-    case ButtonVisualStyle::command:
-        painter.fill_rect(bounds, pressed_visual() ? style().accent_light
-                                                   : style().face);
-        painter.fill_rect({0.0, 0.0, 4.0, bounds.height}, style().accent);
-        painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0),
-                             std::max(0.0, bounds.height - 1.0)},
-                            style().border, 1.0);
-        paint_button_content(painter, bounds, display,
-                             effectively_enabled() ? style().text : style().disabled_text,
-                             {}, false, true);
-        return;
-    }
-    // A style outside the enumeration paints nothing.
-    return;
+    paint_themed_button(painter, bounds, role, default_button_,
+                        visual_style_ == ButtonVisualStyle::command,
+                        selected_, authored);
 }
 
 SemanticDescriptor Button::semantic_descriptor() const {
@@ -321,7 +270,6 @@ SemanticDescriptor Button::semantic_descriptor() const {
 }
 
 Insets Button::visual_outsets() const noexcept {
-    if (paints_override_frame()) return {};
     const ControlVisualRole role = button_visual_role(visual_style_);
     const ControlVisualContext context = visual_context(
         hovered_visual(), pressed_visual(), selected_, focus_cue_visible(),

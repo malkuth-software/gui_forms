@@ -341,12 +341,13 @@ void CheckBox::on_paint(Painter& painter, Rect) {
         indicator.key = PartKey{"indicator", {}, {}};
         paint_part(painter, *this, indicator);
     }
-    const ControlVisualContext context = part_visual_context(*this, states);
-    const ControlVisualRecipe& recipe = effective_theme().resolve(ControlVisualRole::choice, context);
-    const Color text = ink && effectively_enabled() ? *ink : recipe.text;
     const Rect content{box.x + box.width + 1.0, 0.0,
                        std::max(0.0, bounds.width - box.x - box.width - 1.0), bounds.height};
-    paint_button_content(painter, content, display_text(), text, {}, checked());
+    ButtonContentInk content_ink;
+    content_ink.family = ControlVisualRole::choice;
+    content_ink.states = states;
+    content_ink.authored = ink;
+    paint_button_content(painter, content, display_text(), content_ink, {}, checked());
     PartPaint focus;
     focus.family = ControlVisualRole::choice;
     focus.role = PartRole::focus;

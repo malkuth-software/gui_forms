@@ -852,14 +852,23 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     const ControlVisualRecipe& editor_recipe = effective_theme().resolve(ControlVisualRole::editor, context);
     Color text_ink = selected_index_ ? editor_recipe.text : editor_recipe.muted_text;
     if (ink && effectively_enabled() && selected_index_) text_ink = *ink;
+    // The content part centres its line box on its bounds, so the bounds are
+    // that box on the field's baseline, ending left of the button.
     const FontSpec font = effective_font(font_);
-    painter.save();
-    painter.clip_rect({5.0, 2.0,
-                       std::max(0.0, bounds.width - button_width - 8.0),
-                       std::max(0.0, bounds.height - 4.0)});
-    painter.draw_text_utf8({7.0, std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0)},
-                           text, font, text_ink);
-    painter.restore();
+    const Size measured = painter.measure_text_utf8(text, font);
+    const double box_height = std::max(measured.height, font.size * 1.2);
+    const double box_ascent = std::max(font.size, box_height * 0.82);
+    const double baseline = std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0);
+    PartPaint content;
+    content.family = ControlVisualRole::editor;
+    content.role = PartRole::content;
+    content.states = states;
+    content.text = text;
+    content.font = font;
+    content.bounds = {7.0, baseline - box_ascent, std::max(0.0, bounds.width - button_width - 10.0), box_height};
+    content.authored_foreground = text_ink;
+    content.key = PartKey{"content", {}, {}};
+    paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
         PartPaint ring;
         ring.family = ControlVisualRole::editor;

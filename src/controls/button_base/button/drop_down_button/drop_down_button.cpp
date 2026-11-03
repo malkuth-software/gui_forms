@@ -1,4 +1,5 @@
 #include "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <array>
@@ -207,30 +208,43 @@ void DropDownButton::on_paint(Painter& painter, const Rect local_damage) {
     const bool bottom = edge_ == DropDownButtonEdge::bottom;
     const double extent = std::min(drop_down_width_, bottom ? bounds.height : bounds.width);
     const double start = (bottom ? bounds.height : bounds.width) - extent;
-    const Color foreground = effectively_enabled() ? style().text : style().disabled_text;
+    // The split's divider, the arrow and the open seam are parts the theme's
+    // engine draws in the button's anatomy states; a style override inks the
+    // arrow (T4-1).
+    const AnatomyStateSet states = anatomy_states();
+    std::optional<Color> ink{};
+    if (has_style_override()) ink = style().text;
     if (mode_ == DropDownButtonMode::split && start > 0.0 &&
         (hovered_visual() || pressed_visual() || drop_down_open_)) {
-        if (bottom) {
-            painter.draw_line({3.0, start}, {std::max(3.0, bounds.width - 3.0), start}, style().border, 1.0);
-        } else {
-            painter.draw_line({start, 3.0}, {start, std::max(3.0, bounds.height - 3.0)}, style().border, 1.0);
-        }
+        PartPaint divider;
+        divider.family = ControlVisualRole::button;
+        divider.role = PartRole::divider;
+        divider.states = states;
+        divider.bounds = bottom ? Rect{3.0, start - 0.5, std::max(0.0, bounds.width - 6.0), 1.0}
+                                : Rect{start - 0.5, 3.0, 1.0, std::max(0.0, bounds.height - 6.0)};
+        paint_part(painter, *this, divider);
     }
     const double center_x = bottom ? bounds.width * 0.5 : start + extent * 0.5;
     const double center_y = (bottom ? start + extent * 0.5 : bounds.height * 0.5) +
         (pressed_visual() || drop_down_open_ ? 1.0 : 0.0);
-    // A filled, pixel-aligned 7 x 4 triangle remains legible in the GDI host
-    // and does not depend on diagonal line endpoint or pen rounding rules.
-    const double left = std::floor(center_x) - 3.0;
-    const double top = std::floor(center_y) - 1.0;
-    for (int row = 0; row < 4; ++row) {
-        painter.fill_rect({left + row, top + row, 7.0 - row * 2.0, 1.0}, foreground);
-    }
+    // The 7 x 4 arrow. The arrow mark draws half its square's side in rows,
+    // so the square is 8 units, placed to put the rows where they were.
+    PartPaint disclosure;
+    disclosure.family = ControlVisualRole::button;
+    disclosure.role = PartRole::disclosure;
+    disclosure.mark = PartMark::arrow_down;
+    disclosure.states = states;
+    disclosure.bounds = {std::floor(center_x) - 4.0, std::floor(center_y) - 4.0, 8.0, 8.0};
+    disclosure.authored_foreground = ink;
+    disclosure.key = PartKey{"disclosure", {}, {}};
+    paint_part(painter, *this, disclosure);
     if (drop_down_open_) {
-        painter.draw_line({1.0, std::max(0.0, bounds.height - 2.0)},
-                          {std::max(1.0, bounds.width - 1.0),
-                           std::max(0.0, bounds.height - 2.0)},
-                          style().dark_border, 2.0);
+        PartPaint seam;
+        seam.family = ControlVisualRole::button;
+        seam.role = PartRole::seam;
+        seam.states = states;
+        seam.bounds = {1.0, std::max(0.0, bounds.height - 3.0), std::max(0.0, bounds.width - 2.0), 2.0};
+        paint_part(painter, *this, seam);
     }
 }
 
