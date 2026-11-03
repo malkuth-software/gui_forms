@@ -802,6 +802,40 @@ bool semantic_has_action(const SemanticNode& node, SemanticAction action) {
 
 } // namespace
 
+// What the published accessibility tree was built from. The semantic
+// generation moves with every semantic invalidation (focus, text, enabled,
+// visibility, bounds requests, attach and detach, focus scopes), but an
+// arrangement that moves a control without such an invalidation of its own
+// only advances the content revision, and the elements keep each node's
+// bounds. The display generation moves when a control is painted again, in
+// case a node describes what was painted (as the Windows tree's key does).
+// The elements convert their window-local bounds to the screen when read,
+// so window moves and scale changes need no entry here.
+struct MacAccessibilityTreeKey final {
+    std::uint64_t semantic_generation{0};
+    std::uint64_t content_revision{0};
+    std::uint64_t display_generation{0};
+};
+
+static bool operator==(const MacAccessibilityTreeKey& left,
+                       const MacAccessibilityTreeKey& right) noexcept {
+    const bool equal = left.semantic_generation == right.semantic_generation &&
+                       left.content_revision == right.content_revision &&
+                       left.display_generation == right.display_generation;
+    return equal;
+}
+
+// The key `window` gives now; builds no snapshot. metrics_snapshot copies
+// the metrics record, including its renderer-name string (at most one small
+// allocation), since Window has no narrower reader of the display generation.
+static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window) {
+    MacAccessibilityTreeKey key;
+    key.semantic_generation = window.semantic_generation();
+    key.content_revision = window.paint_lease_snapshot().content_revision;
+    key.display_generation = window.metrics_snapshot().display_generation;
+    return key;
+}
+
 @class GUIFormsAccessibilityElement;
 @class GUIFormsView;
 
@@ -860,7 +894,9 @@ bool semantic_has_action(const SemanticNode& node, SemanticAction action) {
     NSPanel* _tooltipPanel;
     NSTimer* _tooltipTimer;
     std::uint64_t _lastSemanticGeneration;
-    std::uint64_t _accessibilityCacheGeneration;
+    // The key the cached accessibility children were built under; read only
+    // while _semanticAccessibilityChildren is not nil.
+    MacAccessibilityTreeKey _accessibilityCacheKey;
     // Whether the last published tree held a live region: a semantic change
     // then republishes the tree at once, so that a changed announcement is
     // posted when it changes rather than when a client next reads.
@@ -1846,7 +1882,7 @@ void post_perform_close(NSWindow* window) {
         _nextHostSequence = 1;
         _hostAttached = NO;
         _lastSemanticGeneration = 0;
-        _accessibilityCacheGeneration = 0;
+        _accessibilityCacheKey = MacAccessibilityTreeKey{};
         _nativeCallbackFaults = 0;
         _initialHostOccluded = YES;
         _scheduledWakeCount = 0;
@@ -2125,11 +2161,16 @@ void post_perform_close(NSWindow* window) {
 
 - (NSArray*)accessibilityChildren {
     if (!_model) return @[];
-    const gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
-    if (_semanticAccessibilityChildren != nil &&
-        _accessibilityCacheGeneration == snapshot.generation) {
+    // Every client query lands here; build a snapshot only when the key has
+    // moved since the cached children were built.
+    const MacAccessibilityTreeKey before = read_accessibility_tree_key(*_model);
+    if (_semanticAccessibilityChildren != nil && _accessibilityCacheKey == before) {
         return _semanticAccessibilityChildren;
     }
+    const gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
+    // The snapshot lays the window out first, which can move the key; the
+    // children describe the window as it is after that layout.
+    const MacAccessibilityTreeKey after = read_accessibility_tree_key(*_model);
     NSMutableArray* result = [[NSMutableArray alloc]
         initWithCapacity:snapshot.roots.size()];
     bool live_region = false;
@@ -2150,7 +2191,7 @@ void post_perform_close(NSWindow* window) {
     _semanticAccessibilityElements = next;
     _semanticAccessibilityElementsByStableId = byStableId;
     _semanticAccessibilityChildren = [result copy];
-    _accessibilityCacheGeneration = snapshot.generation;
+    _accessibilityCacheKey = after;
     return _semanticAccessibilityChildren;
 }
 
@@ -2412,7 +2453,7 @@ void post_perform_close(NSWindow* window) {
         if (semanticGeneration != _lastSemanticGeneration) {
             _lastSemanticGeneration = semanticGeneration;
             _semanticAccessibilityChildren = nil;
-            _accessibilityCacheGeneration = 0;
+            _accessibilityCacheKey = MacAccessibilityTreeKey{};
             // Republishing posts a changed live region's announcement, and
             // a text node's changed value or selection, now.
             if (_publishesLiveRegion == YES || _publishesTextRanges == YES) {
