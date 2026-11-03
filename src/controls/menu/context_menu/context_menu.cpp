@@ -218,33 +218,46 @@ struct ContextMenu::Impl final {
             const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                               committed_arranged_bounds().height};
             const BasicControlStyle style;
+            // The separator rule, the hot plate, the check or radio mark,
+            // the label and the submenu chevron are menu item parts the
+            // theme's engine draws; a row is hot while hot or focused and
+            // disabled with its item.
+            AnatomyStateSet states{};
+            if (hot_ || focused_) states.insert(AnatomyState::hot);
+            if (!enabled_item()) states.insert(AnatomyState::disabled);
             if (item_.kind == MenuItemKind::separator) {
-                painter.draw_line({30.0, bounds.height * .5},
-                                  {std::max(31.0, bounds.width - 7.0),
-                                   bounds.height * .5},
-                                  style.border, 1.0);
+                PartPaint rule;
+                rule.family = ControlVisualRole::menu_item;
+                rule.role = PartRole::divider;
+                rule.bounds = {30.0, bounds.height * .5 - 0.5,
+                               std::max(1.0, bounds.width - 37.0), 1.0};
+                paint_part(painter, *this, rule);
                 return;
             }
             if (hot_ || focused_) {
-                painter.fill_rect({2.0, 1.0, std::max(0.0, bounds.width - 4.0),
-                                   std::max(0.0, bounds.height - 2.0)},
-                                  enabled_item() ? style.accent_light
-                                                 : style.face_light);
-                painter.stroke_rect({2.5, 1.5, std::max(0.0, bounds.width - 5.0),
-                                     std::max(0.0, bounds.height - 3.0)},
-                                    enabled_item() ? style.border
-                                                   : style.face, 1.0);
+                PartPaint plate;
+                plate.family = ControlVisualRole::menu_item;
+                plate.role = PartRole::face;
+                plate.bounds = {2.0, 1.0, std::max(0.0, bounds.width - 4.0),
+                                std::max(0.0, bounds.height - 2.0)};
+                plate.states = states;
+                paint_part(painter, *this, plate);
             }
-            const Color ink = menu_ink(item_, style);
             if ((item_.kind == MenuItemKind::check ||
                  item_.kind == MenuItemKind::radio) && item_.command_state.checked) {
+                PartPaint mark;
+                mark.family = ControlVisualRole::menu_item;
+                mark.role = PartRole::indicator;
+                mark.states = states;
+                mark.states.insert(AnatomyState::checked);
                 if (item_.kind == MenuItemKind::check) {
-                    painter.draw_line({8.0, 14.0}, {12.0, 18.0}, ink, 1.8);
-                    painter.draw_line({12.0, 18.0}, {20.0, 8.0}, ink, 1.8);
+                    mark.mark = PartMark::check;
+                    mark.bounds = {7.0, 6.0, 14.0, 14.0};
                 } else {
-                    painter.stroke_rect({9.5, 8.5, 11.0, 11.0}, ink, 1.0);
-                    painter.fill_rect({13.0, 12.0, 5.0, 5.0}, ink);
+                    mark.mark = PartMark::radio_dot;
+                    mark.bounds = {9.0, 8.0, 12.0, 12.0};
                 }
+                paint_part(painter, *this, mark);
             }
             const FontSpec font = effective_font({FontRole::control, 11.0,
                                 static_cast<std::uint16_t>(
@@ -252,22 +265,43 @@ struct ContextMenu::Impl final {
                                 item_.italic, 0.12});
             const double baseline = std::max(font.size,
                                               bounds.height * 0.5 + font.size * 0.35);
-            painter.draw_text_utf8({30.0, baseline},
-                                   menu_display_text(item_.text), font, ink);
+            const std::string display_text = menu_display_text(item_.text);
+            PartPaint label;
+            label.family = ControlVisualRole::menu_item;
+            label.role = PartRole::label;
+            label.states = states;
+            label.text = display_text;
+            label.font = font;
+            // A destructive command's red ink, provisionally an authored
+            // colour until the theme has a text tone for it (asked).
+            if (item_.command_state.destructive) label.authored_foreground = menu_ink(item_, style);
+            paint_text_part_at(painter, *this, label, {30.0, baseline},
+                               std::max(0.0, bounds.width - 30.0));
             if (!item_.command_state.shortcut.empty()) {
                 const FontSpec shortcut_font = effective_font(
                     {FontRole::content, 10.0, 400, false});
                 const Size size = painter.measure_text_utf8(
                     item_.command_state.shortcut, shortcut_font);
-                painter.draw_text_utf8(
-                    {std::max(34.0, bounds.width - size.width - 25.0), baseline},
-                    item_.command_state.shortcut, shortcut_font,
-                    enabled_item() ? style.disabled_text : style.face);
+                PartPaint shortcut;
+                shortcut.family = ControlVisualRole::menu_item;
+                shortcut.role = PartRole::label;
+                shortcut.tone = PartTextTone::secondary;
+                shortcut.states = states;
+                shortcut.text = item_.command_state.shortcut;
+                shortcut.font = shortcut_font;
+                shortcut.measured_text = size;
+                paint_text_part_at(painter, *this, shortcut,
+                                   {std::max(34.0, bounds.width - size.width - 25.0), baseline},
+                                   size.width);
             }
             if (item_.kind == MenuItemKind::submenu) {
-                const double x = bounds.width - 13.0;
-                painter.draw_line({x - 3.0, 9.0}, {x + 1.0, 14.0}, ink, 1.2);
-                painter.draw_line({x + 1.0, 14.0}, {x - 3.0, 19.0}, ink, 1.2);
+                PartPaint chevron;
+                chevron.family = ControlVisualRole::menu_item;
+                chevron.role = PartRole::disclosure;
+                chevron.mark = PartMark::chevron_right;
+                chevron.bounds = {bounds.width - 18.0, 10.0, 8.0, 8.0};
+                chevron.states = states;
+                paint_part(painter, *this, chevron);
             }
         }
 

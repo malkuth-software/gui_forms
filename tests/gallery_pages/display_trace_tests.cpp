@@ -472,6 +472,11 @@ struct PageDigest final {
 // rail and state word take accent indices (pinned 0, stale 1) and the
 // unavailable state (offline). tree-and-object-views was recorded again.
 //
+// ContextMenu and MenuStrip paint through the theme engine: bands, plates,
+// labels, shortcuts (secondary tone), marks and separators are parts. The
+// menu bar's labels are clipped to their part (save, clip, restore) at the
+// same origins; commands-and-menus was recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -498,7 +503,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"retained-layout-panels", 0xd3e1aad8006574ebULL},
     {"dock-and-anchor", 0x619ca1a8c7aec757ULL},
     {"docking-workspace", 0xbbbafabcde662676ULL},
-    {"commands-and-menus", 0x44c80bb2c30865c8ULL},
+    {"commands-and-menus", 0x69375ae139393f45ULL},
     {"tree-and-object-views", 0x7b1d846b7ec11af2ULL},
     {"choices-and-sections", 0x4cda2d6d06c2cb66ULL},
     {"value-editors", 0xa7e77537b7d54606ULL},

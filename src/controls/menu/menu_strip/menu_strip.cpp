@@ -302,7 +302,6 @@ void MenuStrip::set_hot(std::optional<std::size_t> index) {
 void MenuStrip::on_paint(Painter& painter, Rect) {
     const Rect surface{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
-    const BasicControlStyle& style = effective_theme().basic_style();
     // The strip's face and each item's plate are parts (the menu_strip
     // anatomy's `face` and `menu_item`), so a theme's `menu-strip::part(...)`
     // rules select them; an item is keyed by its stable ID.
@@ -312,9 +311,11 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
     face.bounds = surface;
     face.key = PartKey{"face", {}, {}};
     paint_part(painter, *this, face);
-    painter.draw_line({0.0, std::max(0.0, surface.height - 1.0)},
-                      {surface.width, std::max(0.0, surface.height - 1.0)},
-                      style.border, 1.0);
+    PartPaint rule;
+    rule.family = ControlVisualRole::panel;
+    rule.role = PartRole::divider;
+    rule.bounds = {0.0, std::max(0.0, surface.height - 1.5), surface.width, 1.0};
+    paint_part(painter, *this, rule);
     const std::vector<Rect> bounds = item_bounds();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!items_[index].visible) continue;
@@ -322,21 +323,14 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         const bool active = active_index_ == index;
         const bool hot = hot_index_ == index;
         const bool selected = selected_item_id_ == items_[index].stable_id;
-        ControlVisualContext item_context =
-            visual_context(hot, active, selected, focused_ && hot);
-        if (!items_[index].enabled) {
-            item_context.surface = ControlSurfaceState::disabled;
-        }
-        const ControlVisualRecipe& item_recipe = effective_theme().resolve(
-            ControlVisualRole::menu_item, item_context);
+        // An open item shows pressed.
+        AnatomyStateSet plate_states;
+        if (hot) plate_states.insert(AnatomyState::hot);
+        if (active) plate_states.insert(AnatomyState::pressed);
+        if (selected) plate_states.insert(AnatomyState::selected);
+        if (focused_ && hot) plate_states.insert(AnatomyState::focus_visible);
+        if (!items_[index].enabled) plate_states.insert(AnatomyState::disabled);
         if (active || hot || selected) {
-            // An open item shows pressed, as its recipe context does.
-            AnatomyStateSet plate_states;
-            if (hot) plate_states.insert(AnatomyState::hot);
-            if (active) plate_states.insert(AnatomyState::pressed);
-            if (selected) plate_states.insert(AnatomyState::selected);
-            if (focused_ && hot) plate_states.insert(AnatomyState::focus_visible);
-            if (!items_[index].enabled) plate_states.insert(AnatomyState::disabled);
             PartPaint plate;
             plate.family = ControlVisualRole::menu_item;
             plate.role = PartRole::face;
@@ -346,29 +340,33 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
             plate.key = PartKey{"menu_item", items_[index].stable_id, index};
             paint_part(painter, *this, plate);
         }
-        const Color ink = item_recipe.text;
         FontSpec font = effective_font(font_);
         if (active || selected) {
             font.weight = std::max<std::uint16_t>(font.weight, 700U);
         }
-        painter.draw_text_utf8({item.x + item_padding_ *
-                                             effective_text_scale(),
-                                item.y + std::max(font.size,
-                                    item.height * 0.5 + font.size * 0.35)},
-                               use_mnemonic_
-                                   ? menu_display_text(items_[index].text)
-                                   : items_[index].text,
-                               font, ink);
+        const std::string text = use_mnemonic_ ? menu_display_text(items_[index].text)
+                                               : items_[index].text;
+        const double text_x = item.x + item_padding_ * effective_text_scale();
+        PartPaint label;
+        label.family = ControlVisualRole::menu_item;
+        label.role = PartRole::label;
+        label.states = plate_states;
+        label.text = text;
+        label.font = font;
+        paint_text_part_at(painter, *this, label,
+                           {text_x, item.y + std::max(font.size, item.height * 0.5 + font.size * 0.35)},
+                           std::max(0.0, item.x + item.width - text_x));
     }
     if (focused_ && !active_index_ && hot_index_) {
         const Rect item = bounds[*hot_index_];
-        painter.stroke_rect({item.x + 2.5, 2.5, item.width - 5.0,
-                             std::max(0.0, item.height - 5.0)},
-                            effective_theme().resolve(
-                                ControlVisualRole::menu_item,
-                                visual_context(true, false, false, true))
-                                .focus_ring,
-                            1.0);
+        PartPaint ring;
+        ring.family = ControlVisualRole::menu_item;
+        ring.role = PartRole::focus;
+        ring.bounds = {item.x + 2.0, 2.0, std::max(0.0, item.width - 4.0),
+                       std::max(0.0, item.height - 4.0)};
+        ring.states.insert(AnatomyState::hot);
+        ring.states.insert(AnatomyState::focus_visible);
+        paint_part(painter, *this, ring);
     }
 }
 
