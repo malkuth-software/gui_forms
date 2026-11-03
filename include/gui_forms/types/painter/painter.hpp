@@ -91,7 +91,7 @@ public:
     // state in force at end_group (transform, clips, saves) must be the one
     // at its begin_group. Within a retained display chunk every group ends in
     // the chunk that begins it; the recorder refuses a chunk left unbalanced.
-    // The recording, Skia and Windows DIB painters isolate; each keeps one
+    // The recording and Skia painters isolate; each keeps one
     // reusable scratch image per nesting level, grown to the largest clipped
     // bounds it has met and released with the painter. The base
     // implementation is a minimal painter's fallback without isolation:
@@ -162,7 +162,7 @@ public:
     // the measured width of the text becomes its height. `horizontal` draws
     // as draw_text_utf8. The base implementation is a minimal painter's
     // fallback that draws the run horizontally from `origin`, unturned; the
-    // recording, Windows DIB and Skia painters turn it.
+    // recording and Skia painters turn it.
     virtual void draw_turned_text_utf8(Point origin, std::string_view text, FontSpec font,
                                        Color color, TextOrientation orientation);
     // Text controls need the same metrics used by the painter for caret hit
@@ -205,7 +205,7 @@ public:
     //
     // A raster made for another display scale than the painter's is not
     // drawn: the engine rasterizes a part for the scale it is shown at. The
-    // base implementation draws nothing; the recording, Skia and Windows DIB
+    // base implementation draws nothing; the recording and Skia
     // painters override it. A null raster draws nothing.
     virtual void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin,
                                   double opacity = 1.0);

@@ -25,37 +25,62 @@ struct DibHostFixture final {
     static void require(bool condition, const char* message) {
         if (!condition) throw std::runtime_error(message);
     }
+    // Commits the raster's open frame into its DIB front through a memory DC
+    // standing for the window, as one whole-surface frame.
+    static void commit_offscreen(WindowsRaster& raster, const int width, const int height) {
+        HDC target = CreateCompatibleDC(nullptr);
+        require(target != nullptr, "offscreen target created");
+        const RECT whole{0, 0, width, height};
+        const bool committed = raster.commit_frame(target, whole, PaintReceipt{1U, 1U});
+        DeleteDC(target);
+        require(committed, "offscreen frame committed");
+    }
+    // An opaque live frame of one colour, premultiplied BGRA8.
+    static void fill_opaque(const std::span<std::byte> bytes, const std::byte blue,
+                            const std::byte green, const std::byte red) {
+        for (std::size_t index = 0U; index + 3U < bytes.size(); index += 4U) {
+            bytes[index] = blue;
+            bytes[index + 1U] = green;
+            bytes[index + 2U] = red;
+            bytes[index + 3U] = std::byte{0xff};
+        }
+    }
+    // A live frame reaches the DIB exactly: the painter draws it, and the
+    // copy into the DIB converts nothing (SK2, SK3).
     static void live_format_pixels() {
+        constexpr LiveSurfacePixelFormat format = LiveSurfacePixelFormat::bgra32_premultiplied_srgb;
+        const std::shared_ptr<LiveSurface> surface = LiveSurface::create(
+            {.width = 2U, .height = 2U, .pixel_format = format, .opaque = true});
+        require(static_cast<bool>(surface), "format surface allocated");
+        LiveSurfaceWriteLease write = (*surface).try_acquire_write();
+        require(static_cast<bool>(write), "format write acquired");
+        fill_opaque(write.pixels(), std::byte{0x25}, std::byte{0x67}, std::byte{0xd3});
+        require(write.publish() != 0U, "format frame published");
         {
-            constexpr LiveSurfacePixelFormat format = LiveSurfacePixelFormat::bgra32_premultiplied_srgb;
-            DibPainter raster{};
+            WindowsRaster raster{};
             require(raster.resize({6.0, 4.0}, 1.0), "format DIB allocated");
             require(raster.begin_frame(), "format DIB begun");
-            const std::shared_ptr<LiveSurface> surface = LiveSurface::create(
-                {.width = 2U, .height = 2U, .pixel_format = format, .opaque = true});
-            require(static_cast<bool>(surface), "format surface allocated");
-            LiveSurfaceWriteLease write = (*surface).try_acquire_write();
-            require(static_cast<bool>(write), "format write acquired");
-            const std::span<std::byte> bytes = write.pixels();
-            for (std::size_t index = 0U; index < bytes.size(); index += 4U) {
-                bytes[index] = std::byte{0x25};
-                bytes[index + 1U] = std::byte{0x67};
-                bytes[index + 2U] = std::byte{0xd3};
-                bytes[index + 3U] = std::byte{0xff};
-            }
-            require(write.publish() != 0U, "format frame published");
-            raster.fill_rect({0.0, 0.0, 6.0, 4.0}, Color::rgba(0, 255, 0));
-            raster.save();
-            raster.clip_rect({2.0, 1.0, 1.0, 2.0});
-            raster.draw_live_surface(surface, {1.0, 1.0, 2.0, 2.0}, 1.0);
-            raster.restore();
-            require(raster.pixels_[8] == 0xffd36725U && raster.pixels_[14] == 0xffd36725U,
+            render::SkiaRaster& painter = raster.painter();
+            painter.fill_rect({0.0, 0.0, 6.0, 4.0}, Color::rgba(0, 255, 0));
+            painter.save();
+            painter.clip_rect({2.0, 1.0, 1.0, 2.0});
+            painter.draw_live_surface(surface, {1.0, 1.0, 2.0, 2.0}, 1.0);
+            painter.restore();
+            commit_offscreen(raster, 6, 4);
+            const detail::DibFrontView front = raster.frames_.front();
+            require(front.pixels[8] == 0xffd36725U && front.pixels[14] == 0xffd36725U,
                     "1:1 DIB copy preserves exact BGRA color and alpha");
-            require((raster.pixels_[7] & 0x00ffffffU) == 0x0000ff00U, "DIB copy respects clip");
-            raster.draw_live_surface(surface, {0.0, 0.0, 6.0, 4.0}, 1.0);
-            require(GdiFlush() != FALSE, "scaled DIB draw flushed");
+            require((front.pixels[7] & 0x00ffffffU) == 0x0000ff00U, "DIB copy respects clip");
+        }
+        {
+            WindowsRaster raster{};
+            require(raster.resize({6.0, 4.0}, 1.0), "scaled DIB allocated");
+            require(raster.begin_frame(), "scaled DIB begun");
+            raster.painter().draw_live_surface(surface, {0.0, 0.0, 6.0, 4.0}, 1.0);
+            commit_offscreen(raster, 6, 4);
+            const detail::DibFrontView front = raster.frames_.front();
             for (std::size_t index = 0U; index < 24U; ++index) {
-                require((raster.pixels_[index] & 0x00ffffffU) == 0x00d36725U, "StretchDIBits preserves the colour");
+                require((front.pixels[index] & 0x00ffffffU) == 0x00d36725U, "a scaled live frame keeps its colour");
             }
         }
     }
@@ -71,8 +96,7 @@ struct DibHostFixture final {
         require(std::equal(pixels.begin(), pixels.end(), front.pixels.begin()), "host front pixels changed");
     }
     static void exercise(WindowsHostState& state, DibFixtureControl& control, const LiveSurfacePixelFormat format) {
-        require(state.raster_.memory_dc_ == state.raster_.metrics_dc_ &&
-                state.raster_.metrics_dc_ != nullptr, "metrics context unavailable before first paint");
+        require(!state.raster_.frames_.has_front(), "a front exists before the first paint");
         request_paint(state);
         const PaintLeaseSnapshot initial = (*state.model_).paint_lease_snapshot();
         require(initial.presented_revision != 0, "initial Window receipt not accepted");
@@ -121,12 +145,12 @@ struct DibHostFixture final {
         request_paint(state);
 
         std::shared_ptr<LiveSurface> surface = LiveSurface::create({.width = 4U, .height = 4U, .pixel_format = format,
-            .buffer_count = 2U});
+            .buffer_count = 2U, .opaque = true});
         require(static_cast<bool>(surface), "live surface allocation");
         LiveSurfaceWriteLease write = (*surface).try_acquire_write();
         require(static_cast<bool>(write), "live write lease");
         const std::span<std::byte> bytes = write.pixels();
-        std::fill(bytes.begin(), bytes.end(), std::byte{0x55});
+        fill_opaque(bytes, std::byte{0x55}, std::byte{0x55}, std::byte{0x55});
         const std::uint64_t published_generation = write.publish();
         require(published_generation != 0, "live publish");
         control.surface = surface;
@@ -149,7 +173,7 @@ struct DibHostFixture final {
             LiveSurfaceWriteLease recycled = (*surface).try_acquire_write();
             require(static_cast<bool>(recycled), "live native read lease retained");
             const std::span<std::byte> recycled_bytes = recycled.pixels();
-            std::fill(recycled_bytes.begin(), recycled_bytes.end(), std::byte{0x77});
+            fill_opaque(recycled_bytes, std::byte{0x77}, std::byte{0x77}, std::byte{0x77});
             const std::uint64_t recycled_generation = recycled.publish();
             require(recycled_generation != 0, "recycled live publish");
         }
@@ -202,14 +226,14 @@ struct DibHostFixture final {
     // the DIB otherwise presents every pixel opaque. The frame is painted
     // over a stale opaque colour, standing for the previous frame.
     static std::uint32_t frame_alpha_pixel(Window& model, bool kept) {
-        DibPainter raster{};
+        WindowsRaster raster{};
         require(raster.resize({40.0, 30.0}, 1.0), "frame alpha DIB allocated");
         raster.set_frame_alpha(kept);
         require(raster.begin_frame(), "frame alpha DIB begun");
-        raster.fill_rect({0.0, 0.0, 40.0, 30.0}, Color::rgba(250, 0, 0, 255));
-        require(model.paint(raster, Rect{0.0, 0.0, 40.0, 30.0}).has_value(), "frame alpha window painted");
-        require(GdiFlush() != FALSE, "frame alpha DIB flushed");
-        const std::uint32_t pixel = raster.pixels_[15U * 40U + 20U];
+        raster.painter().fill_rect({0.0, 0.0, 40.0, 30.0}, Color::rgba(250, 0, 0, 255));
+        require(model.paint(raster.painter(), Rect{0.0, 0.0, 40.0, 30.0}).has_value(), "frame alpha window painted");
+        commit_offscreen(raster, 40, 30);
+        const std::uint32_t pixel = raster.frames_.front().pixels[15U * 40U + 20U];
         return pixel;
     }
     static void frame_alpha() {

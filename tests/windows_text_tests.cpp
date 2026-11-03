@@ -15,21 +15,21 @@ static void require_text(bool condition, const char* message) {
 }
 
 // The bundled faces, loaded as the host loads them (ADR-004).
-static std::shared_ptr<const host::BundledFonts> fixture_fonts;
+static std::shared_ptr<gui_forms::detail::BundledFontSet> fixture_fonts;
 
 static void check_caption(const std::string& text, double scale, std::uint16_t weight) {
-    host::DibPainter painter;
+    host::WindowsRaster painter;
     require_text(painter.resize({240, 32}, scale), "DIB allocation failed");
     painter.set_bundled_fonts(fixture_fonts);
     const FontSpec font{FontRole::control, 14, weight, false, 0.05};
-    const ResolvedTextLayout layout = painter.resolve_text_layout_utf8(text, font);
+    const ResolvedTextLayout layout = painter.painter().resolve_text_layout_utf8(text, font);
     std::cout << text << " scale=" << scale << " weight=" << weight
               << " width=" << layout.logical_size.width << " status=" << int(layout.status) << std::endl;
     require_text(layout.status == TextResolutionStatus::exact, "Fallback-only caption rejected");
     require_text(layout.logical_size.width > 0 && layout.logical_size.height > 0,
                  "Caption has empty layout");
     require_text(!layout.primary_family.empty() && !layout.runs.empty(), "Font provenance missing");
-    const Size direct = painter.measure_text_utf8(text, font);
+    const Size direct = painter.painter().measure_text_utf8(text, font);
     require_text(std::abs(layout.logical_size.width - direct.width) < 0.01,
                  "Retained and direct widths differ");
     const std::shared_ptr<Button> button = make_control<Button>(StableId("caption"), text);
@@ -39,10 +39,10 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     style.text = Color::rgba(255, 0, 255);
     (*button).set_style(style);
     Window window(button, {240, 32});
-    window.set_text_metrics_provider(&painter);
+    window.set_text_metrics_provider(&painter.painter());
     window.perform_layout();
     painter.begin_frame();
-    require_text(window.paint(painter).has_value(), "Retained caption did not paint");
+    require_text(window.paint(painter.painter()).has_value(), "Retained caption did not paint");
     require_text(painter.save_bmp(L"windows-text-test.bmp"), "Capture failed");
     if (text == "Главная" && scale == 1.5 && weight == 700) {
         require_text(painter.save_bmp(L"windows-russian-tab.bmp"), "Russian evidence capture failed");
@@ -50,12 +50,12 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     std::ifstream stream("windows-text-test.bmp", std::ios::binary);
     const std::vector<unsigned char> bytes((std::istreambuf_iterator<char>(stream)), {});
     stream.close();
-    host::DibPainter fresh;
+    host::WindowsRaster fresh;
     require_text(fresh.resize({240, 32}, scale), "Fresh DIB allocation failed");
     fresh.set_bundled_fonts(fixture_fonts);
     fresh.begin_frame();
     (*button).invalidate(Dirty::paint);
-    require_text(window.paint(fresh).has_value(), "Cold caption did not paint");
+    require_text(window.paint(fresh.painter()).has_value(), "Cold caption did not paint");
     GdiFlush();
     require_text(fresh.save_bmp(L"windows-text-cold.bmp"), "Cold capture failed");
     std::ifstream cold_stream("windows-text-cold.bmp", std::ios::binary);
@@ -74,18 +74,21 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     std::filesystem::remove("windows-text-test.bmp");
 }
 
-// ADR-004: Windows text is byte-identical to macOS and Linux. The DIB
-// painter clips damage to one rectangle, so the region case is not drawn.
+// ADR-004: Windows text is byte-identical to macOS and Linux. The region
+// case needs a damage region, which a framebuffer frame does not take.
 static void check_cross_platform_identity() {
     bool mismatch = false;
     for (std::size_t kind = 0; kind < text_identity::cases.size(); ++kind) {
         if (text_identity::cases[kind] == text_identity::Case::damage_region) continue;
         for (std::size_t scale = 0; scale < text_identity::scales.size(); ++scale) {
-            host::DibPainter painter;
+            host::WindowsRaster painter;
             painter.set_bundled_fonts(fixture_fonts);
             const std::unique_ptr<PaintFramebuffer> framebuffer =
-                painter.create_framebuffer(text_identity::scene_size, text_identity::scales[scale]);
+                painter.painter().create_framebuffer(text_identity::scene_size, text_identity::scales[scale]);
             require_text(framebuffer != nullptr, "Identity framebuffer allocation failed");
+            const ImageRegistry images{};
+            const Rect whole{0.0, 0.0, text_identity::scene_size.width, text_identity::scene_size.height};
+            require_text((*framebuffer).begin(images, whole), "Identity framebuffer did not begin");
             text_identity::paint_scene((*framebuffer).painter(), text_identity::cases[kind]);
             (*framebuffer).end();
             const std::uint8_t* const bytes = reinterpret_cast<const std::uint8_t*>((*framebuffer).pixels().data());
@@ -101,16 +104,18 @@ static void check_cross_platform_identity() {
     require_text(!mismatch, "Windows text differs from the cross-platform expectation");
 }
 
-// Turned text (owner decision DK-35, J4): the DIB painter draws a run
+// Turned text (owner decision DK-35, J4): the window's raster draws a run
 // turned a quarter about its origin, its ink taller than wide and on the
 // side of the baseline the glyph tops face.
 static void check_turned_text() {
     const FontSpec font{FontRole::control, 14, 400, false, 0.0};
     for (const TextOrientation orientation : {TextOrientation::bottom_to_top, TextOrientation::top_to_bottom}) {
-        host::DibPainter painter;
+        host::WindowsRaster painter;
         painter.set_bundled_fonts(fixture_fonts);
-        const std::unique_ptr<PaintFramebuffer> framebuffer = painter.create_framebuffer({80, 200}, 1.0);
+        const std::unique_ptr<PaintFramebuffer> framebuffer = painter.painter().create_framebuffer({80, 200}, 1.0);
         require_text(framebuffer != nullptr, "Turned-text framebuffer allocation failed");
+        const ImageRegistry images{};
+        require_text((*framebuffer).begin(images, {0, 0, 80, 200}), "Turned-text framebuffer did not begin");
         Painter& target = (*framebuffer).painter();
         target.fill_rect({0, 0, 80, 200}, Color::rgba(255, 255, 255));
         const bool up = orientation == TextOrientation::bottom_to_top;
@@ -143,31 +148,31 @@ static void check_turned_text() {
 static void check_cache_lifetime() {
     const DWORD before = GetGuiResources(GetCurrentProcess(), GR_GDIOBJECTS);
     {
-        host::DibPainter painter;
+        host::WindowsRaster painter;
         require_text(painter.resize({320, 80}, 1.0), "Cache test DIB allocation failed");
         painter.set_bundled_fonts(fixture_fonts);
         const FontSpec font{FontRole::content, 13, 400, false, 0.0};
-        const ResolvedTextLayout original = painter.resolve_text_layout_utf8("File Manager", font);
+        const ResolvedTextLayout original = painter.painter().resolve_text_layout_utf8("File Manager", font);
         for (int index = 0; index < 520; ++index) {
-            require_text(painter.resolve_text_layout_utf8("Folder " + std::to_string(index), font).status ==
+            require_text(painter.painter().resolve_text_layout_utf8("Folder " + std::to_string(index), font).status ==
                          TextResolutionStatus::exact, "Text cache rollover lost coverage");
         }
-        require_text(painter.resolve_text_layout_utf8("File Manager", font).logical_size.width ==
+        require_text(painter.painter().resolve_text_layout_utf8("File Manager", font).logical_size.width ==
                      original.logical_size.width, "Text cache rollover changed width");
         for (int size = 8; size < 80; ++size) {
             FontSpec varied = font;
             varied.size = size;
-            require_text(painter.resolve_text_layout_utf8("Files", varied).status ==
+            require_text(painter.painter().resolve_text_layout_utf8("Files", varied).status ==
                          TextResolutionStatus::exact, "Bounded font cache fallback failed");
         }
         for (const double scale : {1.5, 2.0, 1.0}) {
             painter.resize({320, 80}, scale);
-            host::DibPainter fresh;
+            host::WindowsRaster fresh;
             fresh.resize({320, 80}, scale);
             fresh.set_bundled_fonts(fixture_fonts);
             const FontSpec varied{FontRole::control, 14, 700, false, 0.5};
-            const ResolvedTextLayout reused = painter.resolve_text_layout_utf8("Файл 日本語", varied);
-            const ResolvedTextLayout expected = fresh.resolve_text_layout_utf8("Файл 日本語", varied);
+            const ResolvedTextLayout reused = painter.painter().resolve_text_layout_utf8("Файл 日本語", varied);
+            const ResolvedTextLayout expected = fresh.painter().resolve_text_layout_utf8("Файл 日本語", varied);
             require_text(reused.status == expected.status && reused.logical_size.width == expected.logical_size.width,
                          "DPI change reused stale text metrics");
         }
@@ -178,7 +183,7 @@ static void check_cache_lifetime() {
 }
 
 static void benchmark_captions() {
-    host::DibPainter painter;
+    host::WindowsRaster painter;
     require_text(painter.resize({1340, 850}, 1.0), "DIB allocation failed");
     painter.set_bundled_fonts(fixture_fonts);
     const FontSpec font{FontRole::content, 13, 400, false, 0.0};
@@ -188,9 +193,9 @@ static void benchmark_captions() {
             painter.begin_frame();
             for (int index = 0; index < 100; ++index) {
                 const std::string caption = "File Manager folder " + std::to_string(index);
-                const ResolvedTextLayout layout = painter.resolve_text_layout_utf8(caption, font);
+                const ResolvedTextLayout layout = painter.painter().resolve_text_layout_utf8(caption, font);
                 require_text(layout.status == TextResolutionStatus::exact, "Benchmark text unavailable");
-                painter.draw_text_utf8({double(index % 5 * 260), double(index / 5 * 35 + 20)},
+                painter.painter().draw_text_utf8({double(index % 5 * 260), double(index / 5 * 35 + 20)},
                                       caption, font, Color::rgba(20, 30, 40));
             }
         }

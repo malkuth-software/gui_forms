@@ -22,31 +22,6 @@ protected:
 };
 
 struct PreparedHostFixture final {
-    static void verify_frame_authority_bound(DibPainter& painter) {
-        painter.clear_prepared_frame();
-        for (std::uint64_t index = 64; index != 0; --index) {
-            std::shared_ptr<gui_forms::detail::PreparedTextStorage> storage = std::make_shared<gui_forms::detail::PreparedTextStorage>();
-            (*storage).authority = {index, 1};
-            const PreparedTextStatus retained = painter.retain_prepared_frame(storage);
-            prepared_test::require(retained == PreparedTextStatus::success, "frame authority capacity");
-        }
-        prepared_test::require(painter.prepared_frame_count_ == 64, "exact frame authority bound");
-        for (std::size_t index = 0; index < 64; ++index) {
-            prepared_test::require((*painter.prepared_frame_[index]).authority.session == index + 1U,
-                "frame authority global lock order");
-        }
-        std::shared_ptr<gui_forms::detail::PreparedTextStorage> extra = std::make_shared<gui_forms::detail::PreparedTextStorage>();
-        (*extra).authority = {65, 1};
-        PreparedTextStatus status = painter.retain_prepared_frame(extra);
-        prepared_test::require(status == PreparedTextStatus::budget_exceeded, "65th frame authority refused");
-        (*extra).authority = {1, 1};
-        status = painter.retain_prepared_frame(extra);
-        prepared_test::require(status == PreparedTextStatus::success && painter.prepared_frame_count_ == 64, "duplicate authority shares entry");
-        (*extra).authority.epoch = 2;
-        status = painter.retain_prepared_frame(extra);
-        prepared_test::require(status == PreparedTextStatus::stale, "one frame cannot mix authority epochs");
-        painter.clear_prepared_frame();
-    }
     static void request_paint(WindowsHostState& state) {
         InvalidateRect(state.hwnd_, nullptr, FALSE);
         SendMessageW(state.hwnd_, WM_PAINT, 0, 0);
@@ -62,7 +37,6 @@ struct PreparedHostFixture final {
     }
     static void exercise(WindowsHostState& state, PreparedFixtureControl& control,
         PreparedTextService& service, PreparedTextSession& session, const EncodedFontLease& bank) {
-        verify_frame_authority_bound(state.raster_);
         const PreparedTextKey key = prepared_test::make_key(service, bank, "Prepared", 16, state.scale_);
         prepared_test::prepare(service, session, key, "Prepared", control.layout);
         control.invalidate(Dirty::paint);
@@ -104,8 +78,8 @@ struct PreparedHostFixture final {
         const detail::DibFrameKey before_direct = state.raster_.frames_.front_key();
         const bool begun = state.raster_.begin_frame();
         prepared_test::require(begun, "direct candidate begins");
-        const PreparedTextPaintResult staged = state.raster_.draw_prepared_text(control.layout, control.layout.authority(), {8, 32}, {0, 0, 0, 255});
-        prepared_test::require(staged.disposition == PreparedTextPaintDisposition::staged, "DIB reports staged, not presented");
+        const PreparedTextPaintResult staged = state.raster_.painter().draw_prepared_text(control.layout, control.layout.authority(), {8, 32}, {0, 0, 0, 255});
+        prepared_test::require(staged.disposition == PreparedTextPaintDisposition::staged, "the raster reports staged, not presented");
         session.cancel();
         HDC dc = GetDC(state.hwnd_);
         prepared_test::require(dc != nullptr, "direct commit DC");

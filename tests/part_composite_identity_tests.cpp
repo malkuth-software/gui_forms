@@ -11,8 +11,8 @@
 
 // The theme engine's composite through the Skia raster (T2 plan, E2b;
 // GUI_FORMS_PART_COMPOSITE_PRINT=1 prints the observed hashes instead of
-// checking them). The Windows DIB painter checks the same table in
-// windows_part_composite_tests.
+// checking them). Every host draws with this raster (stage SK3), so the
+// table is checked on each.
 namespace {
 using namespace gui_forms;
 namespace scene = gui_forms::part_composite_identity;

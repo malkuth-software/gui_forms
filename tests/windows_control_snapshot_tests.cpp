@@ -1,4 +1,4 @@
-// Window::snapshot_control on the Windows host's CPU raster (DibPainter, the
+// Window::snapshot_control on the Windows host's CPU raster (the Skia raster, the
 // raster the host presents): a snapshot at scale 1 matches, pixel for pixel,
 // the same control painted by the window itself; at scale 0.5 it is half
 // the size.
@@ -33,11 +33,11 @@ void matches_direct_paint() {
     (*root).add_child(card);
     const Size size{200.0, 120.0};
     // Declared before the window that borrows it, so it outlives the window.
-    host::DibPainter host_raster;
+    host::WindowsRaster host_raster;
     require(host_raster.resize(size, 1.0), "the raster sizes");
     Window window(root, size);
     window.perform_layout();
-    window.set_framebuffer_painter(&host_raster);
+    window.set_framebuffer_painter(&host_raster.painter());
 
     // The window's own paint, into a framebuffer of the same raster.
     const std::unique_ptr<PaintFramebuffer> direct = window.create_framebuffer(size, 1.0);

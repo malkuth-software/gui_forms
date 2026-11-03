@@ -2589,7 +2589,7 @@ Types
 
    .. cpp:function:: virtual void begin_group(const PaintGroup& group)
 
-      Paint groups (see PaintGroup). begin_group and end_group pair like save and restore and nest like them, up to maximum_paint_group_depth: the state in force at end_group (transform, clips, saves) must be the one at its begin_group. Within a retained display chunk every group ends in the chunk that begins it; the recorder refuses a chunk left unbalanced. The recording, Skia and Windows DIB painters isolate; each keeps one reusable scratch image per nesting level, grown to the largest clipped bounds it has met and released with the painter. The base implementation is a minimal painter's fallback without isolation: save() and clip_rect(bounds), then restore().
+      Paint groups (see PaintGroup). begin_group and end_group pair like save and restore and nest like them, up to maximum_paint_group_depth: the state in force at end_group (transform, clips, saves) must be the one at its begin_group. Within a retained display chunk every group ends in the chunk that begins it; the recorder refuses a chunk left unbalanced. The recording and Skia painters isolate; each keeps one reusable scratch image per nesting level, grown to the largest clipped bounds it has met and released with the painter. The base implementation is a minimal painter's fallback without isolation: save() and clip_rect(bounds), then restore().
 
    .. cpp:function:: virtual void end_group()
 
@@ -2649,7 +2649,7 @@ Types
 
    .. cpp:function:: virtual void draw_turned_text_utf8(Point origin, std::string_view text, FontSpec font, Color color, TextOrientation orientation)
 
-      One line of text turned a quarter about ``origin`` (see TextOrientation). ``origin`` is the start of the baseline, as for draw_text_utf8; the run advances up the surface (bottom_to_top) or down it (top_to_bottom), so the measured width of the text becomes its height. ``horizontal`` draws as draw_text_utf8. The base implementation is a minimal painter's fallback that draws the run horizontally from ``origin``, unturned; the recording, Windows DIB and Skia painters turn it.
+      One line of text turned a quarter about ``origin`` (see TextOrientation). ``origin`` is the start of the baseline, as for draw_text_utf8; the run advances up the surface (bottom_to_top) or down it (top_to_bottom), so the measured width of the text becomes its height. ``horizontal`` draws as draw_text_utf8. The base implementation is a minimal painter's fallback that draws the run horizontally from ``origin``, unturned; the recording and Skia painters turn it.
 
    .. cpp:function:: virtual Size measure_text_utf8(std::string_view text, FontSpec font)
 
@@ -2665,7 +2665,7 @@ Types
 
    .. cpp:function:: virtual void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double opacity = 1.0)
 
-      Composites one of the theme engine's part rasters (T2 plan, E2; GIVEN A2-2 and C1-1). ``origin`` is the raster's top-left corner in logical units; the painter places the raster's first pixel on the device pixel nearest to it, one raster pixel per device pixel, so the part is device-aligned and never resampled. ``opacity`` in [0, 1] is the part's opacity, one multiplier on its whole composite. The blend is the shared premultiplied source-over (detail::composite_part_raster) under the current clip, so every host writes the same bytes. A raster made for another display scale than the painter's is not drawn: the engine rasterizes a part for the scale it is shown at. The base implementation draws nothing; the recording, Skia and Windows DIB painters override it. A null raster draws nothing.
+      Composites one of the theme engine's part rasters (T2 plan, E2; GIVEN A2-2 and C1-1). ``origin`` is the raster's top-left corner in logical units; the painter places the raster's first pixel on the device pixel nearest to it, one raster pixel per device pixel, so the part is device-aligned and never resampled. ``opacity`` in [0, 1] is the part's opacity, one multiplier on its whole composite. The blend is the shared premultiplied source-over (detail::composite_part_raster) under the current clip, so every host writes the same bytes. A raster made for another display scale than the painter's is not drawn: the engine rasterizes a part for the scale it is shown at. The base implementation draws nothing; the recording and Skia painters override it. A null raster draws nothing.
 
    .. cpp:function:: virtual void draw_part_raster_scaled(const std::shared_ptr<const PartRaster>& raster, Rect destination, double opacity = 1.0)
 

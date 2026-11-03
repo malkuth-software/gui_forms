@@ -1,10 +1,12 @@
 // Stage DP on the Windows raster: painting two distant damage rectangles
 // changes pixels only inside them, and the painted area is their sum.
-// Exercises the private DIB painter in the same translation unit.
+// Exercises the Windows host's raster in the same translation unit.
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
 #include "../src/host/windows/application/windows_host.cpp"
 
+#include <algorithm>
+#include <cmath>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -73,11 +75,11 @@ int main() {
     Window window(root, size);
     window.perform_layout();
 
-    host::DibPainter painter;
+    host::WindowsRaster painter;
     expect(painter.resize(size, 1.0), "the raster is allocated");
     expect(painter.synchronize_images(window.image_resources()), "images synchronize");
     painter.begin_frame();
-    expect(window.paint(painter).has_value(), "the first frame paints");
+    expect(window.paint(painter.painter()).has_value(), "the first frame paints");
     static_cast<void>(window.take_damage());
     expect(painter.save_bmp(L"dp_before.bmp"), "the first frame saves");
 
@@ -90,7 +92,7 @@ int main() {
 
     const MetricsSnapshot before = window.metrics_snapshot();
     painter.begin_frame();
-    expect(window.paint(painter, rectangles).has_value(), "the rectangle set paints");
+    expect(window.paint(painter.painter(), rectangles).has_value(), "the rectangle set paints");
     const MetricsSnapshot after = window.metrics_snapshot();
     expect(painter.save_bmp(L"dp_after.bmp"), "the second frame saves");
 
@@ -127,6 +129,50 @@ int main() {
     const double difference = painted - expected_area;
     expect(difference < 1.0e-6 && difference > -1.0e-6, "painted area equals the rectangles' sum");
     expect(bounding > painted * 10.0, "the bounding box would have cost far more");
+
+    // Partial present: the two rectangles reach a 32-bit target, copied
+    // straight from the raster (stage SK3), and no other target pixel moves.
+    BITMAPINFO target_info{};
+    target_info.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    target_info.bmiHeader.biWidth = static_cast<LONG>(width);
+    target_info.bmiHeader.biHeight = -static_cast<LONG>(height);
+    target_info.bmiHeader.biPlanes = 1;
+    target_info.bmiHeader.biBitCount = 32;
+    target_info.bmiHeader.biCompression = BI_RGB;
+    HDC target = CreateCompatibleDC(nullptr);
+    std::uint32_t* target_pixels = nullptr;
+    HBITMAP target_bitmap = CreateDIBSection(target, &target_info, DIB_RGB_COLORS,
+                                             reinterpret_cast<void**>(&target_pixels), nullptr, 0);
+    expect(target != nullptr && target_bitmap != nullptr && target_pixels != nullptr, "the present target exists");
+    if (target != nullptr && target_bitmap != nullptr && target_pixels != nullptr) {
+        const HGDIOBJ previous = SelectObject(target, target_bitmap);
+        constexpr std::uint32_t sentinel = 0x00abcdefU;
+        std::fill_n(target_pixels, width * height, sentinel);
+        for (std::size_t index = 0; index < rectangles.size(); ++index) {
+            const Rect rect = rectangles[index];
+            const RECT device{static_cast<LONG>(std::floor(rect.x)), static_cast<LONG>(std::floor(rect.y)),
+                              static_cast<LONG>(std::ceil(rect.right())), static_cast<LONG>(std::ceil(rect.bottom()))};
+            expect(painter.present(target, device), "a damaged rectangle presents");
+        }
+        expect(GdiFlush() != FALSE, "the present flushes");
+        std::size_t copied_wrong = 0;
+        std::size_t moved_outside = 0;
+        for (std::size_t y = 0; y < height; ++y) {
+            for (std::size_t x = 0; x < width; ++x) {
+                const std::size_t index = y * width + x;
+                const bool inside = inside_any(static_cast<double>(x) + 0.5, static_cast<double>(y) + 0.5, rectangles);
+                const std::uint32_t shown = target_pixels[index] & 0x00ffffffU;
+                if (inside && shown != (second[index] & 0x00ffffffU)) ++copied_wrong;
+                if (!inside && target_pixels[index] != sentinel) ++moved_outside;
+            }
+        }
+        std::cout << "present copied_wrong=" << copied_wrong << " moved_outside=" << moved_outside << '\n';
+        expect(copied_wrong == 0U, "the presented rectangles hold the raster's pixels");
+        expect(moved_outside == 0U, "no target pixel outside the rectangles changes");
+        SelectObject(target, previous);
+    }
+    if (target_bitmap != nullptr) DeleteObject(target_bitmap);
+    if (target != nullptr) DeleteDC(target);
     std::cout << "gui_forms_windows_damage_rectangles_tests: all tests passed\n";
     return EXIT_SUCCESS;
 #endif
