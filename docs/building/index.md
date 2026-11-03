@@ -71,6 +71,22 @@ Native host tests that open real windows run in CI on each platform. On a
 development machine without a display, configure with the host option off
 and the renderer-free tests still cover the retained engine.
 
+Tests that need the desktop foreground (native windows that take focus,
+capture or activation, and the UI Automation and MSAA clients) carry the
+`foreground` label and the `desktop_foreground` resource lock, so one ctest
+run never runs two at once. Two ctest runs on one desktop still can: where
+several builds share a machine, run the foreground tests under a machine-wide
+lock and the rest without it:
+
+```text
+python -B <lock tool> -- ctest --test-dir build -L foreground
+ctest --test-dir build -LE foreground
+```
+
+Or configure with `GUI_FORMS_FOREGROUND_LAUNCHER` set to the lock tool's
+command, as a CMake list (CMake 3.29 or later), and each foreground test runs
+under it. CI leaves it empty: each runner has a desktop of its own.
+
 ## Sanitized test runs
 
 `python3 -B tools/ci_build.py --sanitize [--tests REGEX]` is the standard
