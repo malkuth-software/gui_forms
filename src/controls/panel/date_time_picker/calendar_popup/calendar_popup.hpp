@@ -29,9 +29,9 @@ public:
 
     CalendarPopup(StableId stable_id, DateTimeValue selected,
                   DateTimeValue minimum, DateTimeValue maximum,
-                  DateTimeFormatProvider provider, BasicControlStyle style)
+                  DateTimeFormatProvider provider)
         : Control(std::move(stable_id)), selected_(selected), minimum_(minimum),
-          maximum_(maximum), provider_(std::move(provider)), style_(style),
+          maximum_(maximum), provider_(std::move(provider)),
           display_year_(selected.year), display_month_(selected.month) {
         set_paint_plane(PaintPlane::overlay);
         set_focusable(true);
@@ -40,88 +40,11 @@ public:
     [[nodiscard]] Event<DateTimeValue>& committed() noexcept { return committed_; }
     [[nodiscard]] Event<>& cancelled() noexcept { return cancelled_; }
 
-    void on_paint(Painter& painter, Rect) override {
-        const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
-                          committed_arranged_bounds().height};
-        const double s = effective_text_scale();
-        painter.fill_rect({3.0 * s, 3.0 * s,
-                           std::max(0.0, bounds.width - 3.0 * s),
-                           std::max(0.0, bounds.height - 3.0 * s)},
-                          Color::rgba(30, 41, 50, 70));
-        const Rect body{0.0, 0.0, std::max(0.0, bounds.width - 3.0 * s),
-                        std::max(0.0, bounds.height - 3.0 * s)};
-        painter.fill_rect(body, style_.paper);
-        painter.stroke_rect({0.5, 0.5, std::max(0.0, body.width - 1.0),
-                             std::max(0.0, body.height - 1.0)},
-                            style_.dark_border, 1.0);
-        painter.fill_rect({1.0, 1.0, std::max(0.0, body.width - 2.0), 38.0 * s},
-                          Color::rgba(43, 79, 111));
-        const std::string title = provider_.month_names[display_month_ - 1U] +
-                                  " " + std::to_string(display_year_);
-        painter.draw_text_utf8({74.0 * s, 25.0 * s}, title,
-                               effective_font({FontRole::control, 12.0, 700, false}),
-                               Color::rgba(255, 255, 255));
-        const Color previous_color = can_change_month(-1)
-            ? Color::rgba(235, 242, 247) : Color::rgba(111, 137, 157);
-        const Color next_color = can_change_month(1)
-            ? Color::rgba(235, 242, 247) : Color::rgba(111, 137, 157);
-        painter.draw_line({18.0 * s, 20.0 * s}, {23.0 * s, 15.0 * s}, previous_color, 1.5);
-        painter.draw_line({18.0 * s, 20.0 * s}, {23.0 * s, 25.0 * s}, previous_color, 1.5);
-        painter.draw_line({body.width - 19.0 * s, 20.0 * s},
-                          {body.width - 24.0 * s, 15.0 * s},
-                          next_color, 1.5);
-        painter.draw_line({body.width - 19.0 * s, 20.0 * s},
-                          {body.width - 24.0 * s, 25.0 * s},
-                          next_color, 1.5);
-
-        constexpr std::array<std::string_view, 7> narrow_days{
-            "S", "M", "T", "W", "T", "F", "S"};
-        for (std::size_t column = 0U; column < 7U; ++column) {
-            painter.draw_text_utf8({(13.0 + static_cast<double>(column) * 39.0) * s,
-                                    58.0 * s},
-                                   narrow_days[column],
-                                   effective_font({FontRole::control, 10.0, 700, false}),
-                                   style_.disabled_text);
-        }
-        const std::array<DateTimeValue, 42> dates = cell_dates();
-        for (std::size_t cell = 0U; cell < dates.size(); ++cell) {
-            const Rect cell_bounds =
-                calendar_detail::month_grid_cell_bounds(calendar_popup_grid, cell, s);
-            const DateTimeValue date = dates[cell];
-            const bool in_range = civil_in_range(date, minimum_, maximum_);
-            const bool in_month = date.month == display_month_ &&
-                                  date.year == display_year_;
-            const bool selected = date.year == selected_.year &&
-                                  date.month == selected_.month &&
-                                  date.day == selected_.day;
-            if (selected) {
-                painter.fill_rect(cell_bounds, style_.accent);
-            } else if (hovered_cell_ == cell && in_range) {
-                painter.fill_rect(cell_bounds, style_.accent_light);
-            }
-            painter.draw_text_utf8(
-                {cell_bounds.x + (date.day < 10U ? 12.0 : 8.0) * s,
-                 cell_bounds.y + 17.0 * s}, std::to_string(date.day),
-                effective_font({FontRole::content, 11.0,
-                 static_cast<std::uint16_t>(selected ? 700U : 400U), false}),
-                selected ? style_.highlight
-                         : !in_range || !in_month ? style_.disabled_text
-                                                  : style_.text);
-            if (focused_ && selected) {
-                painter.stroke_rect({cell_bounds.x + 1.5, cell_bounds.y + 1.5,
-                                     cell_bounds.width - 3.0,
-                                     cell_bounds.height - 3.0},
-                                    style_.highlight, 1.0);
-            }
-        }
-        painter.draw_line({8.0 * s, 231.0 * s},
-                          {body.width - 8.0 * s, 231.0 * s},
-                          style_.border, 1.0);
-        painter.draw_text_utf8({10.0 * s, 248.0 * s},
-                               "Arrows move · Enter selects · Esc cancels",
-                               effective_font({FontRole::content, 9.0, 400, false}),
-                               style_.disabled_text);
-    }
+    // The popup's face, its overlay shadow, month title, month arrows,
+    // weekday names, day plates and numbers, rule and hint are parts the
+    // theme's engine draws (calendar_popup.cpp).
+    void on_paint(Painter& painter, Rect) override;
+    [[nodiscard]] Insets visual_outsets() const noexcept override;
 
     void on_pointer(PointerEvent& event) override {
         if (!eligible_for_input()) return;
@@ -361,7 +284,6 @@ private:
     DateTimeValue minimum_;
     DateTimeValue maximum_;
     DateTimeFormatProvider provider_;
-    BasicControlStyle style_;
     std::int32_t display_year_;
     std::uint8_t display_month_;
     std::optional<std::size_t> hovered_cell_;

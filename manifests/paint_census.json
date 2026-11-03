@@ -34,8 +34,8 @@
   },
   "totals": {
     "stock": {
-      "files": 13,
-      "calls": 96
+      "files": 11,
+      "calls": 65
     },
     "exempt": {
       "files": 6,
@@ -103,14 +103,6 @@
     "panel/cut_off_text/cut_off_text_reveal.cpp": {
       "category": "stock",
       "calls": 3
-    },
-    "panel/date_time_picker/calendar_popup/calendar_popup.hpp": {
-      "category": "stock",
-      "calls": 16
-    },
-    "panel/date_time_picker/date_time_picker.cpp": {
-      "category": "stock",
-      "calls": 15
     },
     "panel/flags_value_editor/flags_value_editor.cpp": {
       "category": "stock",

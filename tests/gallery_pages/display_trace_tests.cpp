@@ -491,6 +491,11 @@ struct PageDigest final {
 // in place of a plate under it; the scroll bars are the ScrollBar's track,
 // buttons, arrow marks and thumb. Every page was recorded again.
 //
+// DateTimePicker and its calendar popup paint through the theme engine: the
+// drop-down button, divider and arrow mark (as the combo box's), the up-down
+// pair, the check box and the value's text (clipped to its line box) are
+// parts; dates-and-calendar was recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
