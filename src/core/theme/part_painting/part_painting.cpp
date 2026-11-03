@@ -532,7 +532,8 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
 // (top_to_bottom), so its line box is centred across the width.
 void paint_text(Painter& painter, const PartPaint& part, Color color) {
     if (part.text.empty()) return;
-    const Size measured = painter.measure_text_utf8(part.text, part.font);
+    const Size measured = part.measured_text ? *part.measured_text
+                                             : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
     const bool turned = part.orientation != TextOrientation::horizontal;
@@ -718,12 +719,14 @@ void paint_text_part_at(Painter& painter, const Control& control, PartPaint part
                         double width) {
     if (part.text.empty()) return;
     // The line box paint_text centres the text in: its height and ascent.
-    const Size measured = painter.measure_text_utf8(part.text, part.font);
+    const Size measured = part.measured_text ? *part.measured_text
+                                             : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
     part.alignment = PartTextAlignment::start;
     part.orientation = TextOrientation::horizontal;
     part.bounds = {origin.x, origin.y - ascent, std::max(width, measured.width), line_height};
+    part.measured_text = measured;
     paint_part(painter, control, part);
 }
 

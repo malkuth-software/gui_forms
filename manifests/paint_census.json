@@ -35,7 +35,7 @@
   "totals": {
     "stock": {
       "files": 28,
-      "calls": 259
+      "calls": 201
     },
     "exempt": {
       "files": 6,
@@ -102,7 +102,7 @@
     },
     "panel/breadcrumb_trail/breadcrumb_trail.cpp": {
       "category": "stock",
-      "calls": 17
+      "calls": 11
     },
     "panel/card/card.cpp": {
       "category": "stock",
@@ -118,7 +118,7 @@
     },
     "panel/correspondence_view/correspondence_view.cpp": {
       "category": "stock",
-      "calls": 27
+      "calls": 7
     },
     "panel/cut_off_text/cut_off_text_reveal.cpp": {
       "category": "stock",
@@ -146,7 +146,7 @@
     },
     "panel/object_view/object_view.cpp": {
       "category": "stock",
-      "calls": 34
+      "calls": 2
     },
     "panel/panel.cpp": {
       "category": "stock",

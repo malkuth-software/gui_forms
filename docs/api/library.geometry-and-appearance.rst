@@ -3388,6 +3388,10 @@ Types
 
       How far past ``bounds`` the control lets the part be drawn when a theme scales it (T2 GIVEN D5-1, E8), in logical units. The presentational scale grows the part about its centre only as far as this allows: with none granted, the default, a part never grows. Layout and the part's hit region ignore it.
 
+   .. cpp:member:: std::optional<Size> measured_text
+
+      The text's measurement in ``font``, when the caller has already made it (paint_text_part_at does), so the text is not measured again; none otherwise. A cache, not vocabulary: it changes nothing drawn, and a caller that sets it must have measured exactly ``text`` in ``font``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: PartRaster final
@@ -7075,7 +7079,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin, double width)
 
-   A text part (label, caption or content) placed by its baseline, as controls that lay out text by baseline draw it: ``part``'s bounds become its line box with the text starting at ``origin`` (a point on the baseline), at least ``width`` wide and never narrower than the text, and paint_part draws it. The line box is the one paint_part centres text in, so the text lands on ``origin`` exactly. A part without text draws nothing.
+   A text part (label, caption or content) placed by its baseline, as controls that lay out text by baseline draw it: ``part``'s bounds become its line box with the text starting at ``origin`` (a point on the baseline), at least ``width`` wide and never narrower than the text, and paint_part draws it. The line box is the one paint_part centres text in, so the text lands on ``origin`` exactly. A part without text draws nothing. A part that carries its text's measurement (PartPaint::measured_text) is not measured again.
 
 .. cpp:function:: Insets overlay_shadow_outsets(const Control& control) noexcept
 

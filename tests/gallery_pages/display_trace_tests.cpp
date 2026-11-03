@@ -460,6 +460,12 @@ struct PageDigest final {
 // collections-and-popups, responsive-layouts, tree-and-object-views,
 // value-editors and values-and-spinners.
 //
+// ObjectView, CorrespondenceView and the plain BreadcrumbTrail paint
+// through the theme engine (lists batch, second part): plates, text,
+// rules, header band, sort arrows and focus rings are parts, and the item
+// glyphs are a framing well with content fills. Text keeps its place and
+// takes the theme's text; tree-and-object-views was recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -487,7 +493,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"dock-and-anchor", 0x619ca1a8c7aec757ULL},
     {"docking-workspace", 0xbbbafabcde662676ULL},
     {"commands-and-menus", 0x44c80bb2c30865c8ULL},
-    {"tree-and-object-views", 0xc5d85aedab3a2259ULL},
+    {"tree-and-object-views", 0x147b657252f87f65ULL},
     {"choices-and-sections", 0x4cda2d6d06c2cb66ULL},
     {"value-editors", 0xa7e77537b7d54606ULL},
     {"responsive-layouts", 0x2107bca451e6a373ULL},

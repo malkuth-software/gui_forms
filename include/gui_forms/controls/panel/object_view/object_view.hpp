@@ -285,7 +285,8 @@ private:
         std::size_t item{};
         std::size_t column{};
         double width{};
-        double measured_width{};
+        // The elided text's measurement in the details font.
+        Size measured{};
         bool header{};
         bool valid{};
         std::string text{};

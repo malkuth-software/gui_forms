@@ -5,6 +5,7 @@
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <vector>
 #include <string>
@@ -189,11 +190,12 @@ std::vector<std::string> wrap_complete_name(Painter& painter,
     return lines;
 }
 
-void paint_complete_name_inspection(Painter& painter,
+// The bubble is a tool tip's face and its lines are its label parts, drawn
+// by the theme's engine for `control`.
+void paint_complete_name_inspection(Painter& painter, const Control& control,
                                     const ObjectViewItem& item,
                                     Rect anchor, Rect viewport,
-                                    FontSpec authored_font,
-                                    const BasicControlStyle& style) {
+                                    FontSpec authored_font) {
     if (item.name.empty() || viewport.width <= 20.0 || viewport.height <= 20.0) {
         return;
     }
@@ -228,22 +230,20 @@ void paint_complete_name_inspection(Painter& painter,
                    std::max(viewport.y + 4.0,
                             viewport.y + viewport.height - bubble_height - 4.0));
     const Rect bubble{x, y, bubble_width, bubble_height};
-    const std::array<GradientStop, 2U> stops{
-        GradientStop{0.0, style.paper},
-        GradientStop{1.0, style.face_light}};
-    painter.fill_linear_gradient(
-        bubble, {bubble.x, bubble.y}, {bubble.x, bubble.y + bubble.height},
-        stops);
-    painter.draw_inset_box_shadow(
-        bubble, 0.0, {0.0, 1.0}, 2.0, 0.0,
-        collection_detail::with_alpha(style.dark_border, 52));
-    painter.stroke_rect({bubble.x + .5, bubble.y + .5,
-                         bubble.width - 1.0, bubble.height - 1.0},
-                        style.dark_border, 1.0);
+    PartPaint face;
+    face.family = ControlVisualRole::tool_tip;
+    face.role = PartRole::face;
+    face.bounds = bubble;
+    paint_part(painter, control, face);
     double baseline = bubble.y + 6.0 + line_height * .82;
     for (const std::string& line : lines) {
-        painter.draw_text_utf8({bubble.x + 8.0, baseline}, line,
-                               inspection_font, style.text);
+        PartPaint label;
+        label.family = ControlVisualRole::tool_tip;
+        label.role = PartRole::label;
+        label.text = line;
+        label.font = inspection_font;
+        paint_text_part_at(painter, control, label, {bubble.x + 8.0, baseline},
+                           std::max(0.0, bubble.width - 16.0));
         baseline += line_height;
     }
 }
@@ -688,11 +688,16 @@ bool ObjectView::paint_item_image(
     if (!resolved) return false;
     const Rect destination = fit_image_rect(
         destination_bounds, resolved.source_size);
-    painter.draw_image(
-        resolved.image, destination,
-        !item.enabled &&
-                resolved.resolved_state != ImageVisualState::disabled
-            ? 0.45 : 1.0);
+    // The icon role dims a disabled item's image; an image list's own
+    // disabled image is drawn as given.
+    PartPaint icon;
+    icon.family = ControlVisualRole::editor;
+    icon.role = resolved.resolved_state == ImageVisualState::disabled ? PartRole::image
+                                                                       : PartRole::icon;
+    icon.image = resolved.image;
+    icon.bounds = destination;
+    if (!item.enabled) icon.states.insert(AnatomyState::disabled);
+    paint_part(painter, *this, icon);
     return true;
 }
 
@@ -841,9 +846,13 @@ void ObjectView::arrange(const Rect final_bounds) {
     clear_details_cache();
 }
 
+// A glyph is a well (the folder's body or the page) with the glyph's colour
+// or the paper as its ground, framed by the theme's edge, and content fills
+// for the folder's tab and the page's band and marks: the colours are the
+// item kind's own, as a swatch's are. A disabled item's well is disabled
+// and its colour the face's.
 void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
                              bool item_enabled) const {
-    const Color border = item_enabled ? style().dark_border : style().disabled_text;
     const Color base = !item_enabled ? style().face
         : glyph == ObjectGlyph::folder ? Color::rgba(79, 137, 196)
         : glyph == ObjectGlyph::image ? Color::rgba(83, 154, 119)
@@ -851,32 +860,50 @@ void ObjectView::paint_glyph(Painter& painter, Rect b, ObjectGlyph glyph,
         : glyph == ObjectGlyph::archive ? Color::rgba(190, 135, 61)
         : glyph == ObjectGlyph::code ? Color::rgba(67, 132, 135)
         : Color::rgba(107, 126, 158);
+    AnatomyStateSet states{};
+    if (!item_enabled) states.insert(AnatomyState::disabled);
+    PartPaint well;
+    well.family = ControlVisualRole::editor;
+    well.role = PartRole::well;
+    well.states = states;
+    well.corner_radius = 0.0;
+    PartPaint fill;
+    fill.family = ControlVisualRole::editor;
+    fill.role = PartRole::fill;
+    fill.states = states;
     if (glyph == ObjectGlyph::folder) {
-        painter.fill_rect({b.x + 3.0, b.y + 9.0, b.width - 6.0, b.height - 12.0}, base);
-        painter.fill_rect({b.x + 7.0, b.y + 4.0, b.width * .42, 8.0},
-                          with_alpha(style().highlight, 180));
-        painter.fill_rect({b.x + 5.0, b.y + 12.0, b.width - 10.0, 3.0},
-                          with_alpha(style().highlight, 130));
-        painter.stroke_rect({b.x + 3.5, b.y + 9.5, b.width - 7.0, b.height - 13.0},
-                            border, 1.0);
+        well.bounds = {b.x + 3.0, b.y + 9.0, b.width - 6.0, b.height - 12.0};
+        well.authored_background = base;
+        paint_part(painter, *this, well);
+        fill.bounds = {b.x + 7.0, b.y + 4.0, b.width * .42, 5.0};
+        fill.content_color = with_alpha(style().highlight, 180);
+        paint_part(painter, *this, fill);
+        fill.bounds = {b.x + 5.0, b.y + 12.0, b.width - 10.0, 3.0};
+        fill.content_color = with_alpha(style().highlight, 130);
+        paint_part(painter, *this, fill);
         return;
     }
-    painter.fill_rect({b.x + 7.0, b.y + 2.0, b.width - 14.0, b.height - 4.0},
-                      style().paper);
-    painter.fill_rect({b.x + 7.0, b.y + 2.0, b.width - 14.0, 7.0}, base);
-    painter.stroke_rect({b.x + 7.5, b.y + 2.5, b.width - 15.0, b.height - 5.0},
-                        border, 1.0);
+    well.bounds = {b.x + 7.0, b.y + 2.0, b.width - 14.0, b.height - 4.0};
+    well.authored_background = style().paper;
+    paint_part(painter, *this, well);
+    fill.bounds = {b.x + 8.0, b.y + 3.0, b.width - 16.0, 6.0};
+    fill.content_color = base;
+    paint_part(painter, *this, fill);
     if (glyph == ObjectGlyph::image) {
-        painter.fill_rect({b.x + 12.0, b.y + 14.0, b.width - 24.0, b.height - 22.0},
-                          with_alpha(base, 120));
+        fill.bounds = {b.x + 12.0, b.y + 14.0, b.width - 24.0, b.height - 22.0};
+        fill.content_color = with_alpha(base, 120);
+        paint_part(painter, *this, fill);
     } else if (glyph == ObjectGlyph::audio) {
-        painter.draw_line({b.x + 15.0, b.y + b.height * .65},
-                          {b.x + b.width - 14.0, b.y + b.height * .35}, base, 3.0);
+        // A sound bar across the page where the stroke rose.
+        fill.bounds = {b.x + 15.0, b.y + b.height * .5 - 1.5, b.width - 29.0, 3.0};
+        fill.content_color = base;
+        paint_part(painter, *this, fill);
     } else {
-        painter.fill_rect({b.x + 12.0, b.y + 16.0, b.width - 24.0, 2.0},
-                          style().border);
-        painter.fill_rect({b.x + 12.0, b.y + 22.0, b.width - 29.0, 2.0},
-                          style().border);
+        fill.content_color = style().border;
+        fill.bounds = {b.x + 12.0, b.y + 16.0, b.width - 24.0, 2.0};
+        paint_part(painter, *this, fill);
+        fill.bounds = {b.x + 12.0, b.y + 22.0, b.width - 29.0, 2.0};
+        paint_part(painter, *this, fill);
     }
 }
 
@@ -896,6 +923,12 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
         (top_row_ + visible_row_count() + 1U) * columns());
     std::optional<std::size_t> hovered_truncated;
     std::optional<std::size_t> focused_truncated;
+    // Plates, item text and row rules are parts the theme's engine draws; an
+    // item is hot under the pointer, selected when selected and disabled
+    // with its item. A style override supplies the plates' grounds (T4-1).
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    const bool overridden = has_style_override();
     const Color selected_fill = focused_ ? style().accent_light : with_alpha(style().accent_light, 190);
     for (std::size_t index = first; index < end; ++index) {
         const ObjectViewItem& item = items_[index];
@@ -906,19 +939,26 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                            std::max(0.0, cell.height - 2.0)});
         const bool selected = is_selected(item.stable_id);
         const bool active = focused_ && item.stable_id == focused_id_;
-        if (selected) {
-            painter.fill_rect({cell.x + 1.0, cell.y + 1.0,
-                               cell.width - 2.0, cell.height - 2.0},
-                              selected_fill);
-            painter.stroke_rect({cell.x + 1.5, cell.y + 1.5,
-                                 std::max(0.0, cell.width - 3.0),
-                                 std::max(0.0, cell.height - 3.0)},
-                                style().accent, 1.0);
+        const bool hovered = hovered_index_ == index;
+        AnatomyStateSet item_states = states;
+        if (hovered) item_states.insert(AnatomyState::hot);
+        if (selected) item_states.insert(AnatomyState::selected);
+        if (!item.enabled) item_states.insert(AnatomyState::disabled);
+        if (selected || hovered) {
+            PartPaint plate;
+            plate.family = ControlVisualRole::selection;
+            plate.role = PartRole::selection;
+            plate.bounds = {cell.x + 1.0, cell.y + 1.0, std::max(0.0, cell.width - 2.0),
+                            std::max(0.0, cell.height - 2.0)};
+            plate.states = item_states;
+            if (overridden) plate.authored_background = selected ? selected_fill : style().face_light;
+            paint_part(painter, *this, plate);
         }
-        else if (hovered_index_ == index) {
-            painter.fill_rect({cell.x + 1.0, cell.y + 1.0,
-                               cell.width - 2.0, cell.height - 2.0}, style().face_light);
-        }
+        PartPaint text;
+        text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
+        text.role = PartRole::content;
+        text.states = item_states;
+        text.font = font;
         if (view_mode_ == ObjectViewMode::icons) {
             const double glyph_width = std::min(46.0, cell.width - 18.0);
             const Rect glyph_bounds{cell.x + (cell.width - glyph_width) * .5,
@@ -933,12 +973,12 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 font.size * 1.2,
                 painter.measure_text_utf8("Ag", font).height);
             double baseline = cell.y + std::max(57.0, 47.0 + font.size);
-            const Color label_colour = item.enabled ? style().text : style().disabled_text;
             for (const std::string& line : label.lines) {
                 const Size measured = painter.measure_text_utf8(line, font);
                 const double text_x = cell.x +
                     std::max(4.0, (cell.width - measured.width) * .5);
-                painter.draw_text_utf8({text_x, baseline}, line, font, label_colour);
+                text.text = line;
+                paint_text_part_at(painter, *this, text, {text_x, baseline}, measured.width);
                 baseline += line_height;
             }
             if (label.truncated) {
@@ -977,10 +1017,9 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                     (paint_secondary ? 8.0 : 0.0));
             const std::string display_name = elide_text_end(
                 painter, item.name, font, name_width);
-            painter.draw_text_utf8(
-                {cell.x + 38.0, cell.y + cell.height * .5 + 4.0},
-                display_name, font,
-                item.enabled ? style().text : style().disabled_text);
+            text.text = display_name;
+            paint_text_part_at(painter, *this, text,
+                               {cell.x + 38.0, cell.y + cell.height * .5 + 4.0}, name_width);
             const bool name_truncated = display_name != item.name;
             if (name_truncated) {
                 if (hovered_index_ == index) hovered_truncated = index;
@@ -996,9 +1035,13 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                     {secondary_x, cell.y + cell.height * .5 + 4.0},
                     display_secondary, font, style().disabled_text);
             }
-            painter.draw_line({cell.x + 2.0, cell.y + cell.height - 1.0},
-                              {cell.x + cell.width - 2.0, cell.y + cell.height - 1.0},
-                              with_alpha(style().border, 80), 1.0);
+            PartPaint rule;
+            rule.family = ControlVisualRole::editor;
+            rule.role = PartRole::divider;
+            rule.bounds = {cell.x + 2.0, cell.y + cell.height - 1.5,
+                           std::max(0.0, cell.width - 4.0), 1.0};
+            rule.states = states;
+            paint_part(painter, *this, rule);
         }
         if (active && window() && (*window()).focus_cue_visible()) {
             paint_focus(painter, cell, style().text);
@@ -1009,8 +1052,8 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
         ? hovered_truncated : focused_truncated;
     if (inspection && *inspection < items_.size()) {
         paint_complete_name_inspection(
-            painter, items_[*inspection], item_bounds(*inspection), bounds,
-            font, style());
+            painter, *this, items_[*inspection], item_bounds(*inspection), bounds,
+            font);
     }
     painter.restore();
 }
@@ -1657,7 +1700,7 @@ const std::string& ObjectView::details_text(Painter& painter,
     ++details_paint_work_.text_preparations;
     details_detail::elide_to_width(painter, text, font, width, cached.text);
     const Size measured = painter.measure_text_utf8(cached.text, font);
-    cached.measured_width = measured.width;
+    cached.measured = measured;
     cached.valid = true;
     return cached.text;
 }
@@ -1693,7 +1736,20 @@ void ObjectView::paint_details(Painter& painter) {
     std::size_t cache_slot = 0U;
     painter.save();
     painter.clip_rect({4.0, 2.0, std::max(0.0, bounds.width - 8.0), std::max(0.0, bounds.height - 4.0)});
-    painter.fill_rect({4.0, 2.0, viewport_right - 4.0, header}, style().face);
+    // The header band, column labels, separators and sort arrows, the row
+    // plates and the cells' text are parts the theme's engine draws. A row is
+    // hot under the pointer, selected when selected and disabled with its
+    // item; an unavailable cell's text is unavailable. A style override
+    // supplies the plates' grounds (T4-1).
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    const bool overridden = has_style_override();
+    PartPaint band;
+    band.family = ControlVisualRole::panel;
+    band.role = PartRole::face;
+    band.bounds = {4.0, 2.0, std::max(0.0, viewport_right - 4.0), header};
+    band.states = states;
+    paint_part(painter, *this, band);
     for (std::size_t visible = 0U; visible < visible_count; ++visible) {
         const std::size_t index = visible_columns[visible];
         const ObjectDetailsColumn& column = details_columns_[index];
@@ -1702,23 +1758,49 @@ void ObjectView::paint_details(Painter& painter) {
         const double reserved = sorted ? 22.0 : 12.0;
         const std::string& label = details_text(painter, cache_slot, 0U, index, true,
             column.label, std::max(0.0, cell.width - reserved), font);
+        const Size label_measured = details_cache_[cache_slot].measured;
         ++cache_slot;
         painter.save();
         painter.clip_rect(cell);
-        painter.draw_text_utf8({cell.x + 6.0, cell.y + cell.height * .5 + font.size * .35}, label, font, style().text);
-        painter.draw_line({cell.x + cell.width - 1.0, cell.y + 3.0},
-            {cell.x + cell.width - 1.0, cell.y + cell.height - 3.0}, style().border, 1.0);
+        PartPaint caption;
+        caption.family = ControlVisualRole::panel;
+        caption.role = PartRole::label;
+        caption.states = states;
+        caption.text = label;
+        caption.font = font;
+        caption.measured_text = label_measured;
+        paint_text_part_at(painter, *this, caption,
+                           {cell.x + 6.0, cell.y + cell.height * .5 + font.size * .35},
+                           std::max(0.0, cell.width - reserved));
+        PartPaint separator;
+        separator.family = ControlVisualRole::panel;
+        separator.role = PartRole::divider;
+        separator.bounds = {cell.x + cell.width - 1.5, cell.y + 3.0, 1.0,
+                            std::max(0.0, cell.height - 6.0)};
+        separator.states = states;
+        paint_part(painter, *this, separator);
         if (sorted) {
-            const double center = cell.x + cell.width - 10.0;
-            const double y = cell.y + cell.height * .5;
-            const double direction = details_sort_.direction == ObjectSortDirection::ascending ? -3.0 : 3.0;
-            painter.draw_line({center - 3.0, y - direction}, {center, y + direction}, style().text, 1.0);
-            painter.draw_line({center, y + direction}, {center + 3.0, y - direction}, style().text, 1.0);
+            // An 8-unit square holds the arrow's four rows.
+            const double center = std::floor(cell.x + cell.width - 10.0);
+            const double y = std::floor(cell.y + cell.height * .5);
+            PartPaint arrow;
+            arrow.family = ControlVisualRole::panel;
+            arrow.role = PartRole::glyph;
+            arrow.mark = details_sort_.direction == ObjectSortDirection::ascending ? PartMark::arrow_up
+                                                                                  : PartMark::arrow_down;
+            arrow.bounds = {center - 4.0, y - 4.0, 8.0, 8.0};
+            arrow.states = states;
+            paint_part(painter, *this, arrow);
         }
         if (focused_ && header_focused_ && focused_column_ == index) paint_focus(painter, cell, style().text);
         painter.restore();
     }
-    painter.draw_line({4.0, 2.0 + header}, {viewport_right, 2.0 + header}, style().border, 1.0);
+    PartPaint header_rule;
+    header_rule.family = ControlVisualRole::panel;
+    header_rule.role = PartRole::divider;
+    header_rule.bounds = {4.0, 1.5 + header, std::max(0.0, viewport_right - 4.0), 1.0};
+    header_rule.states = states;
+    paint_part(painter, *this, header_rule);
     painter.clip_rect({4.0, 2.0 + header, viewport_right - 4.0, std::max(0.0, bounds.height - header - 4.0)});
     const Color selected_row_fill = focused_ ? style().accent_light : with_alpha(style().accent_light, 190);
     for (std::size_t item_index_value = first; item_index_value < end; ++item_index_value) {
@@ -1727,10 +1809,20 @@ void ObjectView::paint_details(Painter& painter) {
         if (row.y >= bounds.height - 2.0) break;
         ++details_paint_work_.rows;
         const bool selected = is_selected(item.stable_id);
-        if (selected) {
-            painter.fill_rect(row, selected_row_fill);
-            painter.stroke_rect({row.x + .5, row.y + .5, std::max(0.0, row.width - 1.0), row.height - 1.0}, style().accent, 1.0);
-        } else if (hovered_index_ == item_index_value) painter.fill_rect(row, style().face_light);
+        const bool hovered = hovered_index_ == item_index_value;
+        AnatomyStateSet row_states = states;
+        if (hovered) row_states.insert(AnatomyState::hot);
+        if (selected) row_states.insert(AnatomyState::selected);
+        if (!item.enabled) row_states.insert(AnatomyState::disabled);
+        if (selected || hovered) {
+            PartPaint plate;
+            plate.family = ControlVisualRole::selection;
+            plate.role = PartRole::selection;
+            plate.bounds = row;
+            plate.states = row_states;
+            if (overridden) plate.authored_background = selected ? selected_row_fill : style().face_light;
+            paint_part(painter, *this, plate);
+        }
         for (std::size_t visible = 0U; visible < visible_count; ++visible) {
             const std::size_t index = visible_columns[visible];
             const ObjectDetailsColumn& column = details_columns_[index];
@@ -1750,10 +1842,21 @@ void ObjectView::paint_details(Painter& painter) {
             }
             double origin = cell.x + left_padding;
             if (column.alignment == ObjectColumnAlignment::right) {
-                origin = std::max(origin, cell.x + cell.width - 6.0 - details_cache_[text_slot].measured_width);
+                origin = std::max(origin, cell.x + cell.width - 6.0 - details_cache_[text_slot].measured.width);
             }
-            const Color color = item.enabled && value.availability == ObjectCellAvailability::available ? style().text : style().disabled_text;
-            painter.draw_text_utf8({origin, cell.y + cell.height * .5 + font.size * .35}, text, font, color);
+            PartPaint content;
+            content.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
+            content.role = PartRole::content;
+            content.states = row_states;
+            if (value.availability != ObjectCellAvailability::available) {
+                content.states.insert(AnatomyState::unavailable);
+            }
+            content.text = text;
+            content.font = font;
+            content.measured_text = details_cache_[text_slot].measured;
+            paint_text_part_at(painter, *this, content,
+                               {origin, cell.y + cell.height * .5 + font.size * .35},
+                               std::max(0.0, cell.x + cell.width - 6.0 - origin));
             painter.restore();
         }
         if (focused_ && !header_focused_ && item.stable_id == focused_id_ && window() && (*window()).focus_cue_visible()) {

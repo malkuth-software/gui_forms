@@ -56,7 +56,9 @@ public:
         strokes.push_back(bounds);
         paint_order.push_back('S');
     }
-    void stroke_rounded_rect(Rect, double, Color, double) override {}
+    void stroke_rounded_rect(Rect bounds, double, Color, double) override {
+        rounded_strokes.push_back(bounds);
+    }
     void fill_linear_gradient(Rect, Point, Point,
                               std::span<const GradientStop>) override {
         paint_order.push_back('G');
@@ -82,6 +84,8 @@ public:
     std::vector<double> opacities{};
     std::vector<Rect> fills{};
     std::vector<Rect> strokes{};
+    // The theme engine's part edges (selection plates, wells, tool tips).
+    std::vector<Rect> rounded_strokes{};
     std::vector<std::string> texts{};
     std::vector<FontSpec> fonts{};
     std::vector<Point> text_origins{};
@@ -472,8 +476,11 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
         if (!inspected_name.empty()) inspected_name += ' ';
         inspected_name += hovered.texts[index];
     }
-    const Rect inspection_border = hovered.strokes.back();
-    require(inspected_name == complete_name && hovered.strokes.size() == 3U &&
+    // The inspection surface is a tool tip part, its edge the last one drawn.
+    require(hovered.rounded_strokes.size() > rest.rounded_strokes.size(),
+            "hovered truncated item must draw one inspection surface");
+    const Rect inspection_border = hovered.rounded_strokes.back();
+    require(inspected_name == complete_name &&
                 inspection_border.x >= 4.0 &&
                 inspection_border.x + inspection_border.width <= 186.0 &&
                 inspection_border.y >= 4.0 &&
@@ -492,7 +499,9 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
         {PointerAction::leave, PointerButton::none, {189.0, 169.0}}));
     ImageRecordingPainter pointer_focused{};
     window.paint(pointer_focused, {0.0, 0.0, 190.0, 170.0});
-    require(pointer_focused.lines.empty() && pointer_focused.strokes.size() == 3U,
+    // The selection plate adds one part edge to the glyph wells' edges.
+    require(pointer_focused.lines.empty() &&
+                pointer_focused.rounded_strokes.size() == rest.rounded_strokes.size() + 1U,
             "pointer focus must preserve the selection boundary without masquerading as keyboard focus");
 
     const bool operation_check_30 = window.dispatch_key({KeyAction::down, PhysicalKey::right,
@@ -505,7 +514,7 @@ void test_object_label_wrapping_focus_and_full_name_inspection() {
     ImageRecordingPainter keyboard_short{};
     window.paint(keyboard_short, {0.0, 0.0, 190.0, 170.0});
     require(keyboard_short.lines.size() >= 40U &&
-                keyboard_short.strokes.size() == 3U,
+                keyboard_short.rounded_strokes.size() == rest.rounded_strokes.size() + 1U,
             "selection boundary and dotted keyboard focus must remain visibly distinct on separate cells");
 
     const bool operation_check_33 = window.dispatch_key({KeyAction::down, PhysicalKey::left,

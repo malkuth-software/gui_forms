@@ -3,6 +3,7 @@
 #include "../collection_control_utilities.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <vector>
 #include <string>
@@ -351,38 +352,41 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         font.size, committed_arranged_bounds().height * 0.5 + font.size * 0.34));
     painter.save();
     painter.clip_rect(local_bounds());
-
-    // Paint every overlapping face before its shared chevron edge. Drawing a
+    // Each segment's face and label, the chevrons between segments and the
+    // active segment's focus ring are parts the theme's engine draws. A
+    // segment is a command button's face, hot under the pointer or while
+    // active; the edit terminal is an accent button's. A disabled segment's
+    // parts are disabled.
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    // Paint every overlapping face before its shared chevron. Drawing a
     // joint inside this loop lets the next face erase that joint because each
     // successor deliberately overlaps the preceding face by edge_overlap_.
     for (std::size_t index = 0; index < visible_items_.size(); ++index) {
         const VisibleItem& item = visible_items_[index];
         const bool active = focused_ && visible_stable_id(item) == active_id_;
         const bool hovered = hovered_visible_ == index;
-        Color face = style().paper;
-        Color foreground = style().text;
+        AnatomyStateSet item_states = states;
+        if (hovered || active) item_states.insert(AnatomyState::hot);
+        ControlVisualRole family = ControlVisualRole::command_button;
         std::string_view text{};
         if (item.kind == VisibleKind::edit) {
-            const Color terminal_top = hovered || active
-                ? style().accent_light
-                : style().accent;
-            const std::array<GradientStop, 2> stops{{
-                {0.0, terminal_top}, {1.0, style().dark_border}}};
-            painter.fill_linear_gradient(
-                item.bounds, {item.bounds.x, item.bounds.y},
-                {item.bounds.x, item.bounds.y + item.bounds.height}, stops);
-            foreground = style().highlight;
+            family = ControlVisualRole::accent_button;
             text = "./";
         } else if (item.kind == VisibleKind::overflow) {
-            face = hovered ? style().face_light : style().face;
             text = "…";
         } else {
             const BreadcrumbSegment& segment = segments_[item.segment_index];
-            if (!segment.enabled) foreground = style().disabled_text;
-            if (hovered || active) face = style().face_light;
+            if (!segment.enabled) item_states.insert(AnatomyState::disabled);
             text = segment.text;
         }
-        if (item.kind != VisibleKind::edit) painter.fill_rect(item.bounds, face);
+        PartPaint face;
+        face.family = family;
+        face.role = PartRole::face;
+        face.bounds = item.bounds;
+        face.states = item_states;
+        face.corner_radius = 0.0;
+        paint_part(painter, *this, face);
         FontSpec item_font = font;
         if (item.kind == VisibleKind::edit ||
             (item.kind == VisibleKind::segment &&
@@ -395,31 +399,43 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
             ? item.bounds.x + 9.0
             : item.bounds.x + std::max(0.0,
                 (item.bounds.width - text_width) * 0.5);
-        painter.draw_text_utf8(
-            {text_x, baseline}, text, item_font, foreground);
+        PartPaint label;
+        label.family = family;
+        label.role = PartRole::label;
+        label.states = item_states;
+        label.text = text;
+        label.font = item_font;
+        paint_text_part_at(painter, *this, label, {text_x, baseline},
+                           std::max(0.0, item.bounds.x + item.bounds.width - text_x));
     }
 
-    // Shared edges and focus rings are the foreground geometry of the one
+    // Chevrons and focus rings are the foreground geometry of the one
     // continuous location instrument, so no later face may cover them.
     for (std::size_t index = 0; index < visible_items_.size(); ++index) {
         const VisibleItem& item = visible_items_[index];
         const bool active = focused_ && visible_stable_id(item) == active_id_;
         if (index + 1U < visible_items_.size()) {
-            const double edge_x = item.bounds.x + item.bounds.width - edge_overlap_;
-            const double middle = item.bounds.y + item.bounds.height * 0.5;
-            painter.draw_line({edge_x, item.bounds.y + 2.0},
-                              {edge_x + edge_overlap_ - 1.0, middle},
-                              style().dark_border, 1.0);
-            painter.draw_line({edge_x + edge_overlap_ - 1.0, middle},
-                              {edge_x, item.bounds.y + item.bounds.height - 2.0},
-                              style().highlight, 1.0);
+            // An 8-unit square on the overlap holds the chevron.
+            const double edge_x = std::floor(item.bounds.x + item.bounds.width - edge_overlap_ * 0.5);
+            const double middle = std::floor(item.bounds.y + item.bounds.height * 0.5);
+            PartPaint chevron;
+            chevron.family = ControlVisualRole::command_button;
+            chevron.role = PartRole::disclosure;
+            chevron.mark = PartMark::chevron_right;
+            chevron.bounds = {edge_x - 4.0, middle - 4.0, 8.0, 8.0};
+            chevron.states = states;
+            paint_part(painter, *this, chevron);
         }
         if (active) {
-            painter.stroke_rect(
-                {item.bounds.x + 2.5, item.bounds.y + 2.5,
-                 std::max(0.0, item.bounds.width - 5.0),
-                 std::max(0.0, item.bounds.height - 5.0)},
-                style().accent, 1.0);
+            PartPaint ring;
+            ring.family = ControlVisualRole::command_button;
+            ring.role = PartRole::focus;
+            ring.bounds = {item.bounds.x + 2.0, item.bounds.y + 2.0,
+                           std::max(0.0, item.bounds.width - 4.0),
+                           std::max(0.0, item.bounds.height - 4.0)};
+            ring.states = states;
+            ring.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, ring);
         }
     }
     painter.restore();

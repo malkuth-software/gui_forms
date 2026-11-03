@@ -166,6 +166,11 @@ struct PartPaint final {
     // with none granted, the default, a part never grows. Layout and the
     // part's hit region ignore it.
     Insets granted_overflow{};
+    // The text's measurement in `font`, when the caller has already made it
+    // (paint_text_part_at does), so the text is not measured again; none
+    // otherwise. A cache, not vocabulary: it changes nothing drawn, and a
+    // caller that sets it must have measured exactly `text` in `font`.
+    std::optional<Size> measured_text{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,
@@ -217,6 +222,8 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
 // baseline), at least `width` wide and never narrower than the text, and
 // paint_part draws it. The line box is the one paint_part centres text in,
 // so the text lands on `origin` exactly. A part without text draws nothing.
+// A part that carries its text's measurement (PartPaint::measured_text) is
+// not measured again.
 void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
                         double width);
 
