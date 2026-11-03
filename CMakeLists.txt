@@ -2391,6 +2391,23 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_drawing_trace_equivalence_tests
              COMMAND gui_drawing_trace_equivalence_tests)
 
+    # Public headers name no renderer or platform type; comments may
+    # (cmake/check_public_header_tokens.cmake). The fixtures prove a comment
+    # passes and a token in code fails.
+    add_test(NAME gui_forms_public_header_tokens
+             COMMAND ${CMAKE_COMMAND} -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_public_header_tokens.cmake)
+    add_test(NAME gui_forms_public_header_tokens_comments_pass
+             COMMAND ${CMAKE_COMMAND}
+                     -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/public_header_tokens/comments_only
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_public_header_tokens.cmake)
+    add_test(NAME gui_forms_public_header_tokens_code_fails
+             COMMAND ${CMAKE_COMMAND}
+                     -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/public_header_tokens/in_code
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_public_header_tokens.cmake)
+    set_tests_properties(gui_forms_public_header_tokens_code_fails PROPERTIES
+        PASS_REGULAR_EXPRESSION "exposes renderer/platform token: CGContext")
+
     add_test(
         NAME gui_drawing_renderer_boundary_audit
         COMMAND ${CMAKE_COMMAND}

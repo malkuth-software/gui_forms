@@ -29,19 +29,7 @@ foreach(pattern IN ITEMS "Sk[A-Z]" "_CG[A-Za-z]" "_CT[A-Za-z]"
     endif()
 endforeach()
 
-file(GLOB_RECURSE public_headers
-    "${PUBLIC_INCLUDE_DIRECTORY}/*.h"
-    "${PUBLIC_INCLUDE_DIRECTORY}/*.hpp")
-foreach(header IN LISTS public_headers)
-    file(READ "${header}" header_text)
-    foreach(pattern IN ITEMS "Sk[A-Z]" "CoreGraphics" "CGContext"
-                             "CoreText" "AppKit" "NSView" "Metal")
-        if(header_text MATCHES "${pattern}")
-            message(FATAL_ERROR
-                "Public header ${header} exposes renderer/platform token: ${pattern}")
-        endif()
-    endforeach()
-endforeach()
+include("${CMAKE_CURRENT_LIST_DIR}/check_public_header_tokens.cmake")
 
 execute_process(
     COMMAND otool -L "${BENCHMARK_BINARY}"
