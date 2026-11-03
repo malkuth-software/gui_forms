@@ -233,8 +233,20 @@ private:
 
 // -- the client ---------------------------------------------------------------
 
+// Runs `work` on the UI thread through the window's dispatcher handle. The
+// window may close under the client (its host destroys it); the handle then
+// reports window_gone and the client stops with that failure instead of
+// touching the destroyed window. The work itself runs only while the window
+// lives, so it may use the window.
+void on_ui_thread(const WindowDispatcher& dispatcher, std::function<void()> work) {
+    if (dispatcher.invoke(std::move(work)) == DispatchInvokeResult::window_gone) {
+        throw std::runtime_error("the window closed before the client finished");
+    }
+}
+
 struct ClientContext final {
-    Window* window{};
+    // The client thread reaches the window only through this handle.
+    WindowDispatcher dispatcher;
     Fixture* fixture{};
     HWND hwnd{};
     std::function<void()> request_close;
@@ -244,7 +256,7 @@ struct ClientContext final {
 
 ModelState read_model(ClientContext& context) {
     ModelState state;
-    (*context.window).invoke(std::function<void()>(ReadModel{context.fixture, &state}));
+    on_ui_thread(context.dispatcher, std::function<void()>(ReadModel{context.fixture, &state}));
     return state;
 }
 
@@ -458,7 +470,7 @@ void check_selection(ClientContext& context, IUIAutomation& automation, IUIAutom
     ComReference<IUIAutomationElement> element;
     ComReference<IUIAutomationTextPattern> text;
     if (!text_pattern_of(context, automation, window, "uiatext.single", element, text)) return;
-    (*context.window).invoke(std::function<void()>(SelectSingle{context.fixture, 1U, 6U}));
+    on_ui_thread(context.dispatcher, std::function<void()>(SelectSingle{context.fixture, 1U, 6U}));
     expect(context, selection_text(*text.get()) == L"afé",
            "GetSelection returns the model's selection");
     ComReference<IUIAutomationTextPattern2> text2;
@@ -545,9 +557,9 @@ void check_events(ClientContext& context, IUIAutomation& automation, IUIAutomati
     const HRESULT added_changed = automation.AddAutomationEventHandler(
         UIA_Text_TextChangedEventId, element.get(), TreeScope_Element, nullptr, changed);
     expect(context, SUCCEEDED(added_selection) && SUCCEEDED(added_changed), "the event handlers are added");
-    (*context.window).invoke(std::function<void()>(SelectSingle{context.fixture, 0U, 2U}));
+    on_ui_thread(context.dispatcher, std::function<void()>(SelectSingle{context.fixture, 0U, 2U}));
     expect(context, wait_for_events(*selection), "a selection change raises TextSelectionChanged");
-    (*context.window).invoke(std::function<void()>(SetSingleText{context.fixture, "Changed"}));
+    on_ui_thread(context.dispatcher, std::function<void()>(SetSingleText{context.fixture, "Changed"}));
     expect(context, wait_for_events(*changed), "a text change raises TextChanged");
     static_cast<void>(automation.RemoveAllEventHandlers());
     (*selection).Release();
@@ -560,7 +572,7 @@ void check_stale(ClientContext& context, IUIAutomation& automation, IUIAutomatio
     if (!text_pattern_of(context, automation, window, "uiatext.doomed", element, text)) return;
     ComReference<IUIAutomationTextRange> document;
     require(SUCCEEDED((*text.get()).get_DocumentRange(document.receive())), "a document range");
-    (*context.window).invoke(std::function<void()>(RemoveDoomed{context.fixture}));
+    on_ui_thread(context.dispatcher, std::function<void()>(RemoveDoomed{context.fixture}));
     expect(context, !read_model(context).doomed_attached, "the text box left the window");
     BstrText read;
     expect(context, (*document.get()).GetText(-1, read.receive()) ==
@@ -600,7 +612,8 @@ struct ClientThread final {
         }
         if (SUCCEEDED(initialized)) CoUninitialize();
         try {
-            (*(*context).window).invoke(std::function<void()>(CloseWindow{&(*context).request_close}));
+            // A window that closed already needs no close.
+            static_cast<void>((*context).dispatcher.invoke(std::function<void()>(CloseWindow{&(*context).request_close})));
         } catch (const std::exception& error) {
             (*context).failures.push_back(std::string("closing the window: ") + error.what());
         }
@@ -635,7 +648,7 @@ int main() {
         Fixture fixture;
         std::unique_ptr<Window> window = make_fixture(fixture);
         ClientContext context;
-        context.window = window.get();
+        context.dispatcher = (*window).dispatcher();
         context.fixture = &fixture;
         std::thread client;
         host::WindowsHostOptions options;

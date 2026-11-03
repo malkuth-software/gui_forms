@@ -1483,13 +1483,27 @@ struct ActionJob final {
 
 struct ClientRun final {
     Report* report{};
+    // The window, for the work the client runs on the UI thread; the client
+    // thread itself reaches the window only through `dispatcher`.
     Window* window{};
+    WindowDispatcher dispatcher;
     HWND hwnd{};
     // The Gallery, or off_tree_page for the off-tree fixture.
     std::string_view window_kind;
     const std::vector<ActionJob>* jobs{};
     std::function<void()> request_close;
 };
+
+// Runs `work` on the UI thread through the window's dispatcher handle. The
+// window may close under the client (its host destroys it); the handle then
+// reports window_gone and the client stops with that failure instead of
+// touching the destroyed window. The work itself runs only while the window
+// lives, so it may use the window.
+void on_ui_thread(const WindowDispatcher& dispatcher, std::function<void()> work) {
+    if (dispatcher.invoke(std::move(work)) == DispatchInvokeResult::window_gone) {
+        throw std::runtime_error("the window closed before the client finished");
+    }
+}
 
 // The element at a path of child positions below the window element (only
 // GUI.Forms children at the window level).
@@ -1535,10 +1549,10 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
     result.page = candidate.page;
     result.stable_id = candidate.stable_id;
     PageExpectation shown;
-    (*run.window).invoke(std::function<void()>(PreparePage{run.window, run.hwnd, candidate.page, &shown}));
+    on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, candidate.page, &shown}));
     if (!shown.shown) throw std::runtime_error("a Gallery page cannot be selected: " + candidate.page);
     ActionState state;
-    (*run.window).invoke(std::function<void()>(BeginAction{run.window, &candidate, &state}));
+    on_ui_thread(run.dispatcher, std::function<void()>(BeginAction{run.window, &candidate, &state}));
     if (!state.node) {
         result.outcome = ActionOutcome::lost;
         result.evidence = "the node is not in the tree when its page is shown again";
@@ -1548,7 +1562,7 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
     const std::size_t baseline_roots = state.before.roots.size();
     std::vector<std::size_t> path;
     bool found = false;
-    (*run.window).invoke(std::function<void()>(FindCandidatePath{run.window, &candidate, &path, &found}));
+    on_ui_thread(run.dispatcher, std::function<void()>(FindCandidatePath{run.window, &candidate, &path, &found}));
     ElementReference element;
     if (found) element = element_at(walker, window_element, path);
     if (element.get() == nullptr) {
@@ -1562,34 +1576,34 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
     result.call = pattern_call_name(call);
     const HRESULT status = call_pattern(*element.get(), call);
     // Work an Invoke posted runs on the UI thread before this.
-    (*run.window).invoke(std::function<void()>(DoNothing{}));
+    on_ui_thread(run.dispatcher, std::function<void()>(DoNothing{}));
     if (status != S_OK) {
         result.outcome = ActionOutcome::refused;
         result.evidence = "HRESULT " + hresult_text(status);
-        (*run.window).invoke(std::function<void()>(ReleaseSubscriptions{&state}));
-        (*run.window).invoke(std::function<void()>(ClosePopups{run.window, baseline_roots}));
+        on_ui_thread(run.dispatcher, std::function<void()>(ReleaseSubscriptions{&state}));
+        on_ui_thread(run.dispatcher, std::function<void()>(ClosePopups{run.window, baseline_roots}));
         (*run.report).actions.push_back(std::move(result));
         return;
     }
     bool reversible = false;
-    (*run.window).invoke(std::function<void()>(EndAction{run.window, &candidate, &state, &result, &reversible}));
+    on_ui_thread(run.dispatcher, std::function<void()>(EndAction{run.window, &candidate, &state, &result, &reversible}));
     if (reversible) {
         // The element is found again: the action may have rebuilt the tree.
         std::vector<std::size_t> again_path;
         bool again_found = false;
-        (*run.window).invoke(
+        on_ui_thread(run.dispatcher, 
             std::function<void()>(FindCandidatePath{run.window, &candidate, &again_path, &again_found}));
         ElementReference again;
         if (again_found) again = element_at(walker, window_element, again_path);
         bool restored = false;
         if (again.get() != nullptr && call_pattern(*again.get(), undo_call(call)) == S_OK) {
             const SemanticNode before = *state.node;
-            (*run.window).invoke(std::function<void()>(CheckRestored{run.window, &candidate, &before, &restored}));
+            on_ui_thread(run.dispatcher, std::function<void()>(CheckRestored{run.window, &candidate, &before, &restored}));
         }
         result.evidence += restored ? ", then restored" : ", but not restored";
         if (!restored) result.outcome = ActionOutcome::unobserved;
     }
-    (*run.window).invoke(std::function<void()>(ClosePopups{run.window, baseline_roots}));
+    on_ui_thread(run.dispatcher, std::function<void()>(ClosePopups{run.window, baseline_roots}));
     (*run.report).actions.push_back(std::move(result));
 }
 
@@ -1598,7 +1612,7 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
 void compare_page(ClientRun& run, IUIAutomation& automation, IUIAutomationTreeWalker& walker,
                   IUIAutomationElement& window_element, std::string_view page) {
     PageExpectation expectation;
-    (*run.window).invoke(std::function<void()>(PreparePage{run.window, run.hwnd, page, &expectation, true}));
+    on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, page, &expectation, true}));
     if (!expectation.shown) throw std::runtime_error("a Gallery page cannot be selected: " + std::string(page));
     PageWalk walk{automation, walker, *run.report, page, expectation, {}};
     compare_element(walk, window_element, expectation.client, true);
@@ -1631,9 +1645,9 @@ void check_stale_element(ClientRun& run, IUIAutomationTreeWalker& walker,
     const std::string_view first = gallery::gallery_pages[0].id;
     const std::string_view second = gallery::gallery_pages[1].id;
     PageExpectation later;
-    (*run.window).invoke(std::function<void()>(PreparePage{run.window, run.hwnd, second, &later}));
+    on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, second, &later}));
     PageExpectation shown;
-    (*run.window).invoke(std::function<void()>(PreparePage{run.window, run.hwnd, first, &shown}));
+    on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, first, &shown}));
     std::vector<std::size_t> path;
     std::string stable_id;
     if (!path_to_unshared_control(shown.client, later.client, path, stable_id)) {
@@ -1649,7 +1663,7 @@ void check_stale_element(ClientRun& run, IUIAutomationTreeWalker& walker,
     BstrOwner before;
     const HRESULT live = (*kept.get()).get_CurrentName(before.receive());
     PageExpectation replaced;
-    (*run.window).invoke(std::function<void()>(PreparePage{run.window, run.hwnd, second, &replaced}));
+    on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, second, &replaced}));
     BstrOwner after;
     const HRESULT stale = (*kept.get()).get_CurrentName(after.receive());
     if (FAILED(live) || stale != static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE)) {
@@ -1716,7 +1730,8 @@ struct ClientThread final {
         }
         if (SUCCEEDED(initialized)) CoUninitialize();
         try {
-            (*state.window).invoke(std::function<void()>(CloseWindow{&state.request_close}));
+            // A window that closed already needs no close.
+            static_cast<void>(state.dispatcher.invoke(std::function<void()>(CloseWindow{&state.request_close})));
         } catch (const std::exception& error) {
             (*state.report).failure += std::string(" closing the window: ") + error.what();
         }
@@ -1734,6 +1749,7 @@ struct HostReady final {
                     std::function<void()>, std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         (*run).request_close = std::move(request_close);
+        (*run).dispatcher = (*(*run).window).dispatcher();
         (*run).hwnd = test_support::own_gui_forms_window(test_support::process_title_wide(fixture_title_utf8).c_str());
         if ((*run).hwnd == nullptr) {
             (*(*run).report).failure = "the window's native handle does not exist";

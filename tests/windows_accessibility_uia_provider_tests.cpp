@@ -209,8 +209,20 @@ struct CloseWindow final {
 
 // -- the client ---------------------------------------------------------------
 
+// Runs `work` on the UI thread through the window's dispatcher handle. The
+// window may close under the client (its host destroys it); the handle then
+// reports window_gone and the client stops with that failure instead of
+// touching the destroyed window. The work itself runs only while the window
+// lives, so it may use the window.
+void on_ui_thread(const WindowDispatcher& dispatcher, std::function<void()> work) {
+    if (dispatcher.invoke(std::move(work)) == DispatchInvokeResult::window_gone) {
+        throw std::runtime_error("the window closed before the client finished");
+    }
+}
+
 struct ClientContext final {
-    Window* window{};
+    // The client thread reaches the window only through this handle.
+    WindowDispatcher dispatcher;
     Fixture* fixture{};
     HWND hwnd{};
     std::function<void()> request_close;
@@ -232,7 +244,7 @@ struct ClientContext final {
 
 ModelState read_model(ClientContext& context) {
     ModelState state;
-    (*context.window).invoke(std::function<void()>(ReadModel{context.fixture, &state}));
+    on_ui_thread(context.dispatcher, std::function<void()>(ReadModel{context.fixture, &state}));
     return state;
 }
 
@@ -491,7 +503,7 @@ void check_stale_element(ClientContext& context, IUIAutomation& automation,
     }
     ComReference<IUIAutomationInvokePattern> invoke;
     expect(context, pattern(*doomed.get(), UIA_InvokePatternId, invoke), "it offers Invoke");
-    (*context.window).invoke(std::function<void()>(RemoveDoomed{context.fixture}));
+    on_ui_thread(context.dispatcher, std::function<void()>(RemoveDoomed{context.fixture}));
     expect(context, !read_model(context).doomed_attached, "the button left the window");
     BstrText name;
     const HRESULT read = (*doomed.get()).get_CurrentName(name.receive());
@@ -589,7 +601,8 @@ struct ClientThread final {
         }
         if (SUCCEEDED(initialized)) CoUninitialize();
         try {
-            (*(*context).window).invoke(std::function<void()>(CloseWindow{&(*context).request_close}));
+            // A window that closed already needs no close.
+            static_cast<void>((*context).dispatcher.invoke(std::function<void()>(CloseWindow{&(*context).request_close})));
         } catch (const std::exception& error) {
             (*context).failures.push_back(std::string("closing the window: ") + error.what());
         }
@@ -658,11 +671,12 @@ struct DecoyClose final {
 // then closes the decoy's window through the UI thread.
 struct DecoyWait final {
     HANDLE done{};
-    Window* window{};
+    WindowDispatcher dispatcher;
     std::function<void()>* request_close{};
     void operator()() const {
         static_cast<void>(WaitForSingleObject(done, 120000U));
-        (*window).invoke(std::function<void()>(DecoyClose{request_close}));
+        // A decoy window that closed already needs no close.
+        static_cast<void>(dispatcher.invoke(std::function<void()>(DecoyClose{request_close})));
     }
 };
 
@@ -678,7 +692,7 @@ struct DecoyReady final {
                     std::function<void()>, std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         *request_close = std::move(close);
-        *waiter = std::thread(DecoyWait{done, window, request_close});
+        *waiter = std::thread(DecoyWait{done, (*window).dispatcher(), request_close});
         SetEvent(ready);
     }
 };
@@ -773,7 +787,7 @@ void run_fixture_window(ClientContext& context) {
     Fixture fixture;
     std::unique_ptr<Window> window = make_fixture(fixture);
     SubscriptionToken clicked = (*fixture.button).clicked().subscribe(CountClick{&fixture.clicks});
-    context.window = window.get();
+    context.dispatcher = (*window).dispatcher();
     context.fixture = &fixture;
     std::thread client;
     host::WindowsHostOptions options;
@@ -783,7 +797,7 @@ void run_fixture_window(ClientContext& context) {
     options.host_ready = HostReady{&context, &client};
     const int exit_code = host::run_windows(std::move(window), std::move(options));
     if (client.joinable()) client.join();
-    context.window = nullptr;
+    context.dispatcher = WindowDispatcher();
     context.fixture = nullptr;
     require(exit_code == 0, "the fixture window did not run");
 }
