@@ -4,6 +4,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <vector>
 #include <string>
@@ -934,14 +935,16 @@ void PropertyList::arrange(Rect final_bounds) {
     (*impl_).arrange_editors();
 }
 
+// The face, each group's header band, rule, expander and title, each row's
+// expander, name, read-only value, validation message and separator rule,
+// and the scroll thumb are parts the theme's engine draws. A disabled row's
+// parts are disabled and a validation message is invalid. A background
+// override supplies the face's ground (T4-1).
 void PropertyList::on_paint(Painter& painter, Rect) {
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
-    const BasicControlStyle style;
     const double s = effective_text_scale();
     const double group_height = (*impl_).group_extent();
-    const FontSpec group_glyph = effective_font((*impl_).font_overridden
-        ? (*impl_).font : FontSpec{FontRole::control, 8.5, 600, false});
     FontSpec group_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::control, 8.5, 700, false, 0.24});
     group_font.weight = std::max<std::uint16_t>(group_font.weight, 700U);
@@ -950,25 +953,54 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     const FontSpec value_font = effective_font((*impl_).font);
     const FontSpec validation_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::content, 8.5, 600, false});
-    painter.fill_rect(bounds, background());
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    // An expander is a square of this side centred where its glyph sat.
+    const double expander_side = 10.0 * s;
+    PartPaint face;
+    face.family = ControlVisualRole::panel;
+    face.role = PartRole::face;
+    face.bounds = bounds;
+    face.states = states;
+    if (has_background_override()) face.authored_background = background();
+    face.key = PartKey{"face", {}, {}};
+    paint_part(painter, *this, face);
     double y = (*impl_).header_height - (*impl_).scroll_offset;
     for (std::size_t group_index = 0;
          group_index < (*impl_).groups.size(); ++group_index) {
         const PropertyGroupSpec& group = (*impl_).groups[group_index];
-        painter.fill_rect({0.0, y, bounds.width, group_height},
-                          Color::rgba(216, 224, 236));
-        painter.draw_line({0.0, y + group_height - 1.0},
-                          {bounds.width, y + group_height - 1.0},
-                          style.border, 1.0);
+        PartPaint header;
+        header.family = ControlVisualRole::panel;
+        header.role = PartRole::face;
+        header.bounds = {0.0, y, bounds.width, group_height};
+        header.states = states;
+        paint_part(painter, *this, header);
+        PartPaint rule;
+        rule.family = ControlVisualRole::panel;
+        rule.role = PartRole::divider;
+        rule.bounds = {0.0, y + group_height - 1.0, bounds.width, 1.0};
+        rule.states = states;
+        paint_part(painter, *this, rule);
         const double group_baseline = y + std::max(group_font.size,
                                                     group_height * 0.5 +
                                                         group_font.size * 0.35);
-        painter.draw_text_utf8({7.0 * s, group_baseline},
-                               group.expanded ? "▼" : "▶",
-                               group_glyph, style.text);
-        painter.draw_text_utf8({22.0 * s, group_baseline}, group.title,
-                               group_font,
-                               style.text);
+        PartPaint group_expander;
+        group_expander.family = ControlVisualRole::panel;
+        group_expander.role = PartRole::disclosure;
+        group_expander.mark = group.expanded ? PartMark::chevron_down : PartMark::chevron_right;
+        group_expander.bounds = {6.0 * s, y + (group_height - expander_side) * 0.5,
+                                 expander_side, expander_side};
+        group_expander.states = states;
+        if (group.expanded) group_expander.states.insert(AnatomyState::open);
+        paint_part(painter, *this, group_expander);
+        PartPaint title;
+        title.family = ControlVisualRole::panel;
+        title.role = PartRole::caption;
+        title.states = states;
+        title.text = group.title;
+        title.font = group_font;
+        paint_text_part_at(painter, *this, title, {22.0 * s, group_baseline},
+                           std::max(0.0, bounds.width - 22.0 * s));
         y += group_height;
         if (!group.expanded) continue;
         for (const Impl::RowState& row_state : (*impl_).rows) {
@@ -983,38 +1015,66 @@ void PropertyList::on_paint(Painter& painter, Rect) {
                                     row_state.value_bounds.y - (*impl_).scroll_offset,
                                     row_state.value_bounds.width,
                                     row_state.value_bounds.height};
+            AnatomyStateSet row_states = states;
+            if (!row.enabled) row_states.insert(AnatomyState::disabled);
+            const double name_baseline = name.y + std::max(15.0 * s, name_font.size);
             if (row.expandable) {
-                painter.draw_text_utf8({std::max(2.0 * s, name.x - 13.0 * s),
-                                        name.y + std::max(15.0 * s, name_font.size)},
-                    row.expanded ? "▼" : "▶", group_glyph, style.text);
+                PartPaint row_expander;
+                row_expander.family = ControlVisualRole::editor;
+                row_expander.role = PartRole::disclosure;
+                row_expander.mark = row.expanded ? PartMark::chevron_down : PartMark::chevron_right;
+                row_expander.bounds = {std::max(2.0 * s, name.x - 13.0 * s),
+                                       name_baseline - name_font.size * 0.35 - expander_side * 0.5,
+                                       expander_side, expander_side};
+                row_expander.states = row_states;
+                if (row.expanded) row_expander.states.insert(AnatomyState::open);
+                paint_part(painter, *this, row_expander);
             }
-            painter.draw_text_utf8({name.x, name.y + std::max(15.0 * s, name_font.size)}, row.name,
-                                   name_font, style.disabled_text);
+            PartPaint name_part;
+            name_part.family = ControlVisualRole::editor;
+            name_part.role = PartRole::label;
+            name_part.states = row_states;
+            name_part.text = row.name;
+            name_part.font = name_font;
+            paint_text_part_at(painter, *this, name_part, {name.x, name_baseline}, name.width);
             if (row.editor == PropertyEditorKind::read_only) {
-                painter.draw_text_utf8({value_bounds.x,
-                                        value_bounds.y + std::max(15.0 * s, value_font.size)},
-                    row.value, value_font,
-                    row.enabled ? style.text : style.disabled_text);
+                PartPaint value;
+                value.family = ControlVisualRole::editor;
+                value.role = PartRole::content;
+                value.states = row_states;
+                value.text = row.value;
+                value.font = value_font;
+                paint_text_part_at(painter, *this, value,
+                                   {value_bounds.x,
+                                    value_bounds.y + std::max(15.0 * s, value_font.size)},
+                                   value_bounds.width);
             }
             if (!row.validation_message.empty()) {
                 const Rect validation{row_state.validation_bounds.x,
                     row_state.validation_bounds.y - (*impl_).scroll_offset,
                     row_state.validation_bounds.width,
                     row_state.validation_bounds.height};
-                painter.draw_text_utf8({validation.x,
-                                        validation.y + std::max(13.0 * s, validation_font.size)},
-                    "! " + row.validation_message,
-                    validation_font,
-                    Color::rgba(151, 45, 43));
+                PartPaint message;
+                message.family = ControlVisualRole::editor;
+                message.role = PartRole::content;
+                message.states = row_states;
+                message.states.insert(AnatomyState::invalid);
+                message.text = "! " + row.validation_message;
+                message.font = validation_font;
+                paint_text_part_at(painter, *this, message,
+                                   {validation.x,
+                                    validation.y + std::max(13.0 * s, validation_font.size)},
+                                   validation.width);
             }
-            painter.draw_line({property_padding * s,
-                               row_state.row_bounds.y + row_state.row_bounds.height -
-                                   (*impl_).scroll_offset - 1.0},
-                              {std::max(property_padding * s,
-                                        bounds.width - property_padding * s),
-                               row_state.row_bounds.y + row_state.row_bounds.height -
-                                   (*impl_).scroll_offset - 1.0},
-                              Color::rgba(211, 219, 229), 1.0);
+            PartPaint separator;
+            separator.family = ControlVisualRole::editor;
+            separator.role = PartRole::divider;
+            separator.bounds = {property_padding * s,
+                                row_state.row_bounds.y + row_state.row_bounds.height -
+                                    (*impl_).scroll_offset - 1.0,
+                                std::max(0.0, bounds.width - 2.0 * property_padding * s), 1.0};
+            separator.states = states;
+            paint_part(painter, *this, separator);
             y += row_state.row_bounds.height;
         }
     }
@@ -1024,8 +1084,12 @@ void PropertyList::on_paint(Painter& painter, Rect) {
         const double maximum = (*impl_).content_height - bounds.height;
         const double thumb_y = maximum <= 0.0 ? 0.0 :
             (bounds.height - thumb_height) * (*impl_).scroll_offset / maximum;
-        painter.fill_rect({std::max(0.0, bounds.width - 4.0), thumb_y,
-                           3.0, thumb_height}, style.border);
+        PartPaint thumb;
+        thumb.family = ControlVisualRole::panel;
+        thumb.role = PartRole::thumb;
+        thumb.bounds = {std::max(0.0, bounds.width - 4.0), thumb_y, 3.0, thumb_height};
+        thumb.states = states;
+        paint_part(painter, *this, thumb);
     }
 }
 

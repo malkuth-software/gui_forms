@@ -211,6 +211,15 @@ struct PartPaint final {
 // role but a well.
 void paint_part(Painter& painter, const Control& control, const PartPaint& part);
 
+// A text part (label, caption or content) placed by its baseline, as
+// controls that lay out text by baseline draw it: `part`'s bounds become
+// its line box with the text starting at `origin` (a point on the
+// baseline), at least `width` wide and never narrower than the text, and
+// paint_part draws it. The line box is the one paint_part centres text in,
+// so the text lands on `origin` exactly. A part without text draws nothing.
+void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
+                        double width);
+
 // How far `control`'s theme's overlay shadow reaches outside the casting
 // surface's rect, in the control's presentation (ordinary or high
 // contrast). Zero on every side when the theme casts none.

@@ -1,5 +1,6 @@
 #include "gui_forms/controls/panel/list_box/checked_list_box/checked_list_box.hpp"
 #include "../list_box_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/window.hpp"
@@ -183,20 +184,37 @@ void CheckedListBox::paint_row_adornment(Painter& painter, std::size_t index,
                                  std::max(8.0, row.height - 8.0));
     const double x = row.x + 5.0;
     const double y = row.y + (row.height - size) * 0.5;
-    const Color paper = selected && focused ? style().highlight : style().paper;
-    const Color mark = selected && focused ? style().accent : style().accent;
-    painter.fill_rect({x, y, size, size}, paper);
-    painter.stroke_rect({x + 0.5, y + 0.5, size - 1.0, size - 1.0},
-                        style().dark_border, 1.0);
-    if (check_states_[index] == CheckState::checked) {
-        painter.draw_line({x + 3.0, y + size * 0.52},
-                          {x + size * 0.44, y + size - 3.0}, mark, 2.0);
-        painter.draw_line({x + size * 0.44, y + size - 3.0},
-                          {x + size - 2.5, y + 2.5}, mark, 2.0);
-    } else if (check_states_[index] == CheckState::indeterminate) {
-        painter.fill_rect({x + 3.0, y + size * 0.5 - 1.5,
-                           std::max(0.0, size - 6.0), 3.0}, mark);
+    // The row's check box: a choice well and its mark, as parts the theme's
+    // engine draws; a style override supplies the well's ground and the
+    // mark's ink (T4-1).
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    if (selected) states.insert(AnatomyState::selected);
+    PartPaint well;
+    well.family = ControlVisualRole::choice;
+    well.role = PartRole::well;
+    well.bounds = {x, y, size, size};
+    well.states = states;
+    well.corner_radius = 2.0;
+    if (has_style_override()) well.authored_background = selected && focused ? style().highlight : style().paper;
+    paint_part(painter, *this, well);
+    const CheckState state = check_states_[index];
+    if (state == CheckState::unchecked) return;
+    PartPaint mark;
+    mark.family = ControlVisualRole::choice;
+    mark.role = PartRole::indicator;
+    mark.states = states;
+    if (has_style_override()) mark.authored_foreground = style().accent;
+    if (state == CheckState::checked) {
+        mark.mark = PartMark::check;
+        mark.states.insert(AnatomyState::checked);
+        mark.bounds = {x + 2.0, y + 1.5, std::max(0.0, size - 3.5), std::max(0.0, size - 3.5)};
+    } else {
+        mark.mark = PartMark::indeterminate;
+        mark.states.insert(AnatomyState::indeterminate);
+        mark.bounds = {x + 3.0, y + size * 0.5 - 1.5, std::max(0.0, size - 6.0), 3.0};
     }
+    paint_part(painter, *this, mark);
 }
 
 std::vector<SemanticNode> CheckedListBox::semantic_virtual_children() const {

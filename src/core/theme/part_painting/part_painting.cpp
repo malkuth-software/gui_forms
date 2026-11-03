@@ -714,6 +714,19 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     theme.engine().paint(painter, control, coloured);
 }
 
+void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
+                        double width) {
+    if (part.text.empty()) return;
+    // The line box paint_text centres the text in: its height and ascent.
+    const Size measured = painter.measure_text_utf8(part.text, part.font);
+    const double line_height = std::max(measured.height, part.font.size * 1.2);
+    const double ascent = std::max(part.font.size, line_height * 0.82);
+    part.alignment = PartTextAlignment::start;
+    part.orientation = TextOrientation::horizontal;
+    part.bounds = {origin.x, origin.y - ascent, std::max(width, measured.width), line_height};
+    paint_part(painter, control, part);
+}
+
 void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part) {
     if (!paintable(part.bounds)) return;
     const ControlVisualContext context = part_visual_context(control, part.states);
