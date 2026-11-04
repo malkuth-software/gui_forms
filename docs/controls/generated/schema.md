@@ -2991,7 +2991,7 @@ Interactions: none.
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `title` (text).
 
 Interactions beyond every control's: none.
 
