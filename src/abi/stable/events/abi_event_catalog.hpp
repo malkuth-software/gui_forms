@@ -544,6 +544,15 @@ struct EnumerationChoices<MaterialLinearGeometry> {
 };
 
 template <>
+struct EnumerationChoices<MaterialReflectionSource> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"face", static_cast<std::int64_t>(MaterialReflectionSource::face)},
+        {"backplane", static_cast<std::int64_t>(MaterialReflectionSource::backplane)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<Modifier> {
     static constexpr bool flags = true;
     static constexpr std::array<EnumerationChoice, 5> choices{{
@@ -1927,6 +1936,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     append_field(fields, "reach", value.reach);
     append_field(fields, "start_opacity", value.start_opacity);
     append_field(fields, "end_opacity", value.end_opacity);
+    append_field(fields, "source", value.source);
     fields.leave(prefix);
 }
 

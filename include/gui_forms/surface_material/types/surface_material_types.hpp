@@ -134,30 +134,41 @@ struct MaterialKeyline final {
                left.width == right.width && left.inset == right.inset;
     }
 };
-// A reflection (stage T5, C7; owner T5-Q14, T5-Q15): the part's finished
-// face within its box (fills, borders, keylines, glows, filters and mask, as
-// the engine baked them; text is not reflected), mirrored about the box's
-// `edge`, `gap` logical units beyond it, for `reach` units, faded by a
-// linear opacity from `start_opacity` next to the edge to `end_opacity` at
-// the far end. gap + reach is at most SurfaceMaterial::
-// maximum_reflection_reach, within the part's granted overflow; reach is
-// above 0 and both opacities lie in [0, 1]. The reflection is composited
-// beneath what the face drew past that edge (its outer shadows and glows).
-// The engine's material primitive draws it, and omits it under high
-// contrast and reduced transparency (T5-Q16); the built-in path,
-// paint_surface_material, draws none.
+// What a reflection copies (stage T5, PLAN.md §4.4).
+enum class MaterialReflectionSource : std::uint8_t {
+    // The part's finished face within its box (fills, borders, keylines,
+    // glows, filters and mask, as the engine baked them; text is not
+    // reflected, owner T5-Q14).
+    face,
+    // The window's backplane under the box, as glass samples it (the
+    // backplane plane alone, never other controls). A part in the backplane
+    // plane, or a window that lends no backplane, draws no reflection.
+    backplane,
+};
+// A reflection (stage T5, C7; owner T5-Q14, T5-Q15): `source` within the
+// part's box, mirrored about the box's `edge`, `gap` logical units beyond
+// it, for `reach` units, faded by a linear opacity from `start_opacity`
+// next to the edge to `end_opacity` at the far end. gap + reach is at most
+// SurfaceMaterial::maximum_reflection_reach, within the part's granted
+// overflow; reach is above 0 and both opacities lie in [0, 1]. The
+// reflection is composited beneath what the face drew past that edge (its
+// outer shadows and glows). The engine's material primitive draws it, and
+// omits it under high contrast and reduced transparency (T5-Q16); the
+// built-in path, paint_surface_material, draws none.
 struct MaterialReflection final {
     MaterialEdge edge{MaterialEdge::bottom};
     double gap{};
     double reach{8.0};
     double start_opacity{0.5};
     double end_opacity{};
+    MaterialReflectionSource source{MaterialReflectionSource::face};
     friend constexpr bool operator==(const MaterialReflection& left,
                                      const MaterialReflection& right) noexcept {
         return left.edge == right.edge && left.gap == right.gap &&
                left.reach == right.reach &&
                left.start_opacity == right.start_opacity &&
-               left.end_opacity == right.end_opacity;
+               left.end_opacity == right.end_opacity &&
+               left.source == right.source;
     }
 };
 struct MaterialBorderEdges final {

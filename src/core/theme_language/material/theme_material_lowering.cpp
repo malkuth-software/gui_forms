@@ -1803,6 +1803,17 @@ bool MaterialReader::lower_reflection() {
     std::size_t opacity_count = 0U;
     for (std::size_t index = next(0U); index < whole.end; index = next(index)) {
         const ValueComponent& component = value_.components[index];
+        // The source keyword, last: the backplane under the box.
+        if (keyword(index, "backplane")) {
+            if (next(index) != whole.end) {
+                return fail(DiagnosticCode::value_syntax, component.token, "backplane last");
+            }
+            reflection.source = MaterialReflectionSource::backplane;
+            continue;
+        }
+        if (component.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        }
         if (component.kind != ValueComponentKind::number) {
             return fail(DiagnosticCode::value_wrong_kind, component.token, "a length or an opacity");
         }

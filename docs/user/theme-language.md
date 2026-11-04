@@ -127,8 +127,9 @@ only material fields selects the `material` primitive.
 | text | `color`, `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,
-filters and mask; not its text) about one edge into the space past it:
-`reflection: none | <edge> [<gap> [<reach>]] [<start> [<end>]]`. The edge is
+filters and mask; not its text), or with `backplane` the window's backplane
+under the part (as glass samples it), about one edge into the space past it:
+`reflection: none | <edge> [<gap> [<reach>]] [<start> [<end>]] [backplane]`. The edge is
 `above`, `below`, `left` or `right` (as in `-webkit-box-reflect`); the gap
 and the reach are lengths (0, and the rest of the 8 units a reflection may
 reach, by default), and together at most 8 units; the start and end are the
@@ -136,7 +137,8 @@ opacity next to the edge and at the far end, numbers or percentages (0.5 and
 0 by default). A unitless 0 is a length until an opacity has been read, so
 `below 0 6px 1 0` is a gap of 0. The reflection is drawn beneath what the
 face draws past that edge, and is omitted under high contrast and reduced
-transparency. For example, `reflection: below 1px 6px 40% 0`.
+transparency. A part drawn in the backplane plane reflects no backplane.
+For example, `reflection: below 1px 6px 40% 0` or `reflection: below 6px 30% backplane`.
 
 `inherit` is admitted on `color` and `font` only; `initial` means the
 built-in recipe's value. `clip-path`, `rotate`, `transform`, text

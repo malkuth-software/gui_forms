@@ -4,3 +4,4 @@ button::part(label) { background-image: url("resource:tile.quadrant"); backgroun
 button::part(glyph) { mask-image: linear-gradient(black, transparent) }
 track-bar { mask-image: url("resource:mask.dots") }
 button::part(face) { reflection: below 1px 6px 60% 0 }
+track-bar::part(thumb) { reflection: right 0 4px 0.3 backplane }

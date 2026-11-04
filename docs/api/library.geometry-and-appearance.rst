@@ -187,7 +187,7 @@ Types
    * - :cpp:class:`MaterialKeyline <gui_forms::MaterialKeyline>`
      - One ordered physical keyline.
    * - :cpp:class:`MaterialReflection <gui_forms::MaterialReflection>`
-     - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): the part's finished face within its box (fills, borders, keylines, glows, filters and mask, as the engine baked them; text is not reflected), mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
+     - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
      - MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
    * - :cpp:class:`MediaCondition <gui_forms::MediaCondition>`
@@ -2745,7 +2745,7 @@ Types
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
 
-   A reflection (stage T5, C7; owner T5-Q14, T5-Q15): the part's finished face within its box (fills, borders, keylines, glows, filters and mask, as the engine baked them; text is not reflected), mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end. gap + reach is at most SurfaceMaterial:: maximum_reflection_reach, within the part's granted overflow; reach is above 0 and both opacities lie in [0, 1]. The reflection is composited beneath what the face drew past that edge (its outer shadows and glows). The engine's material primitive draws it, and omits it under high contrast and reduced transparency (T5-Q16); the built-in path, paint_surface_material, draws none.
+   A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end. gap + reach is at most SurfaceMaterial::maximum_reflection_reach, within the part's granted overflow; reach is above 0 and both opacities lie in [0, 1]. The reflection is composited beneath what the face drew past that edge (its outer shadows and glows). The engine's material primitive draws it, and omits it under high contrast and reduced transparency (T5-Q16); the built-in path, paint_surface_material, draws none.
 
    .. cpp:member:: MaterialEdge edge
 
@@ -2762,6 +2762,10 @@ Types
       Default: ``{0.5}``.
 
    .. cpp:member:: double end_opacity
+
+   .. cpp:member:: MaterialReflectionSource source
+
+      Default: ``{MaterialReflectionSource::face}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5645,6 +5649,16 @@ Enumerations
    .. cpp:enumerator:: endpoints
 
    .. cpp:enumerator:: css_angle
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialReflectionSource
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: face
+
+   .. cpp:enumerator:: backplane
 
 .. cpp:namespace:: gui_forms
 

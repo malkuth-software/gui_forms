@@ -287,6 +287,7 @@ std::string material_text(const MaterialDeclaration& declaration) {
         const MaterialReflection& reflection = *declaration.reflection;
         text += " reflection edge=" + std::to_string(static_cast<unsigned int>(reflection.edge)) + " opacities=" +
                 number_text(reflection.start_opacity) + "," + number_text(reflection.end_opacity);
+        if (reflection.source == MaterialReflectionSource::backplane) text += " source=backplane";
     }
     if (declaration.number != 0.0) text += " number=" + number_text(declaration.number);
     if (declaration.relative) text += " relative";

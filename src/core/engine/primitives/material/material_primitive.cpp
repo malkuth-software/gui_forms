@@ -1326,15 +1326,25 @@ std::int64_t nearest_pixel(double value) noexcept {
     return pixel;
 }
 
-Unit load_unit(const PartRasterView& destination, std::size_t offset) noexcept {
-    const Unit unit{static_cast<double>(destination.pixels[offset + 2U]) / 255.0,
-                    static_cast<double>(destination.pixels[offset + 1U]) / 255.0,
-                    static_cast<double>(destination.pixels[offset]) / 255.0,
-                    static_cast<double>(destination.pixels[offset + 3U]) / 255.0};
+Unit load_unit(std::span<const std::uint8_t> pixels, std::size_t offset) noexcept {
+    const Unit unit{static_cast<double>(pixels[offset + 2U]) / 255.0,
+                    static_cast<double>(pixels[offset + 1U]) / 255.0,
+                    static_cast<double>(pixels[offset]) / 255.0,
+                    static_cast<double>(pixels[offset + 3U]) / 255.0};
     return unit;
 }
 
-// Mirrors the finished face within the box about the reflection's edge into
+// The pixels a reflection copies (MaterialReflection::source): the
+// destination itself for the face, or the backplane image lent with the
+// target, whose pixel (x + margin, y + margin) lies under destination pixel
+// (x, y). Borrowed for the pass.
+struct ReflectionSource final {
+    std::span<const std::uint8_t> pixels{};
+    std::size_t row_bytes{};
+    std::uint32_t margin{};
+};
+
+// Mirrors the source within the box about the reflection's edge into
 // the destination past it (MaterialReflection), in device pixels: the box's
 // edges rounded to the nearest pixel boundary, the gap and the reach
 // rounded to whole pixels. Line k past the gap (a row for the top and
@@ -1343,9 +1353,10 @@ Unit load_unit(const PartRasterView& destination, std::size_t offset) noexcept {
 // reflection's linear ramp has at the line's centre, beneath what is
 // already drawn there. Lines past the destination or past the box's far
 // side are not drawn. It reads pixels inside the box only and writes pixels
-// outside it only, so it never reads its own writes.
+// outside it only, so it never reads its own writes. A backplane source
+// covers the destination grown by its margin (PrimitiveTarget::backplane).
 void apply_reflection(const MaterialReflection& reflection, const Rect& box, double scale,
-                      const PartRasterView& destination) noexcept {
+                      const ReflectionSource& source_pixels, const PartRasterView& destination) noexcept {
     const std::int64_t width = static_cast<std::int64_t>(destination.extent.width);
     const std::int64_t height = static_cast<std::int64_t>(destination.extent.height);
     const std::int64_t left = std::clamp<std::int64_t>(nearest_pixel(box.x), 0, width);
@@ -1394,14 +1405,15 @@ void apply_reflection(const MaterialReflection& reflection, const Rect& box, dou
             const std::int64_t source_y = rows ? source : along;
             const std::int64_t target_x = rows ? along : target;
             const std::int64_t target_y = rows ? target : along;
-            const std::size_t read = static_cast<std::size_t>(source_y) * destination.row_bytes +
-                                     static_cast<std::size_t>(source_x) * part_raster_bytes_per_pixel;
+            const std::size_t read_y = static_cast<std::size_t>(source_y) + source_pixels.margin;
+            const std::size_t read_x = static_cast<std::size_t>(source_x) + source_pixels.margin;
+            const std::size_t read = read_y * source_pixels.row_bytes + read_x * part_raster_bytes_per_pixel;
             const std::size_t write = static_cast<std::size_t>(target_y) * destination.row_bytes +
                                       static_cast<std::size_t>(target_x) * part_raster_bytes_per_pixel;
-            const Unit face = load_unit(destination, read);
+            const Unit face = load_unit(source_pixels.pixels, read);
             if (face.alpha <= 0.0) continue;
             Unit reflected{face.red * opacity, face.green * opacity, face.blue * opacity, face.alpha * opacity};
-            blend_over(reflected, load_unit(destination, write));
+            blend_over(reflected, load_unit(destination.pixels, write));
             store(destination, write, reflected);
         }
     }
@@ -1732,6 +1744,11 @@ AxisReach axis_reach(const SurfaceMaterial& material, const PrimitiveTarget& tar
     // A reflection (T5 C7) about the top or bottom edge copies the rows
     // within its reach of that edge, so those rows stay whole along the down
     // axis; one about the left or right edge likewise the columns.
+    // One of the backplane differs with where the part lies, so it varies
+    // along both axes.
+    if (material.reflection && (*material.reflection).source == MaterialReflectionSource::backplane) {
+        reach.varies = true;
+    }
     if (material.reflection) {
         const MaterialReflection& reflection = *material.reflection;
         const bool rows = reflection.edge == MaterialEdge::top || reflection.edge == MaterialEdge::bottom;
@@ -1962,7 +1979,27 @@ void bake_material(const SurfaceMaterial& authored, const PrimitiveTarget& targe
     bake_look(look, images, destination);
     apply_part_filters(material, target, destination);
     apply_mask(look, images, destination);
-    if (material.reflection) apply_reflection(*material.reflection, look.box, target.scale.value, destination);
+    if (material.reflection) {
+        const MaterialReflection& reflection = *material.reflection;
+        ReflectionSource source{destination.pixels, destination.row_bytes, 0U};
+        const bool from_backplane = reflection.source == MaterialReflectionSource::backplane;
+        // The backplane image as lent covers the destination grown by its
+        // margin; one of any other size is not this destination's, and a
+        // window that lends none leaves no reflection.
+        bool drawn = !from_backplane;
+        if (from_backplane && target.backplane != nullptr) {
+            const PartRaster& backplane = *target.backplane;
+            const std::uint64_t grown = std::uint64_t{target.backplane_margin} * 2U;
+            const bool covers = std::uint64_t{backplane.extent().width} == destination.extent.width + grown &&
+                                std::uint64_t{backplane.extent().height} == destination.extent.height + grown;
+            if (covers) {
+                const std::size_t row_bytes = backplane.row_bytes();
+                source = ReflectionSource{backplane.pixels(), row_bytes, target.backplane_margin};
+                drawn = true;
+            }
+        }
+        if (drawn) apply_reflection(reflection, look.box, target.scale.value, source, destination);
+    }
 }
 
 void bake_material_region(const SurfaceMaterial& authored, const PrimitiveTarget& target, Point device_origin,

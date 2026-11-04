@@ -682,11 +682,13 @@ void test_reflection_lowering() {
         std::string_view sheet;
         MaterialReflection reflection;
     };
-    const std::array<Lowered, 4> lowered{{
+    const std::array<Lowered, 5> lowered{{
         {"#pad::part(face) { reflection: below 1px 6px 60% 0 }", MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0}},
         {"#pad::part(face) { reflection: above }", MaterialReflection{MaterialEdge::top, 0.0, 8.0, 0.5, 0.0}},
         {"#pad::part(face) { reflection: left 2px 0.25 }", MaterialReflection{MaterialEdge::left, 2.0, 6.0, 0.25, 0.0}},
         {"#pad::part(face) { reflection: right 0 3px 1 0.5 }", MaterialReflection{MaterialEdge::right, 0.0, 3.0, 1.0, 0.5}},
+        {"#pad::part(face) { reflection: below 2px 40% backplane }",
+         MaterialReflection{MaterialEdge::bottom, 2.0, 6.0, 0.4, 0.0, MaterialReflectionSource::backplane}},
     }};
     for (const Lowered& entry : lowered) {
         const Compilation compiled = compile(entry.sheet);
@@ -701,7 +703,9 @@ void test_reflection_lowering() {
 }
 
 void test_refusals() {
-    const std::array<Refusal, 76> refusals{{
+    const std::array<Refusal, 78> refusals{{
+        {"#a { reflection: below backplane 1px }", DiagnosticCode::value_syntax},
+        {"#a { reflection: below 1px mirror }", DiagnosticCode::keyword_unknown},
         {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},
         {"#a { reflection: below 9px }", DiagnosticCode::value_out_of_range},
         {"#a { reflection: sideways }", DiagnosticCode::keyword_unknown},

@@ -86,7 +86,9 @@ bool valid_material_reflection(const MaterialReflection& reflection) noexcept {
                          reflection.reach > 0.0 &&
                          reflection.gap + reflection.reach <= SurfaceMaterial::maximum_reflection_reach;
     const bool opacities = unit_interval(reflection.start_opacity) && unit_interval(reflection.end_opacity);
-    return edge_known && lengths && opacities;
+    const bool source_known = static_cast<std::uint8_t>(reflection.source) <=
+                              static_cast<std::uint8_t>(MaterialReflectionSource::backplane);
+    return edge_known && lengths && opacities && source_known;
 }
 
 bool valid_corner(double radius) noexcept {

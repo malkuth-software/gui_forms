@@ -389,7 +389,10 @@ void append_material(std::ostringstream& output,
         append_json_string(output, material_edge_name(reflection.edge));
         output << ",\"gap\":" << reflection.gap << ",\"reach\":" << reflection.reach
                << ",\"start_opacity\":" << reflection.start_opacity
-               << ",\"end_opacity\":" << reflection.end_opacity << '}';
+               << ",\"end_opacity\":" << reflection.end_opacity << ",\"source\":";
+        const bool backplane = reflection.source == MaterialReflectionSource::backplane;
+        append_json_string(output, backplane ? "backplane" : "face");
+        output << '}';
     }
     output << '}';
 }

@@ -1193,12 +1193,22 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
         request.target.material = &overlay;
         request.target.images = &(*window).image_resources();
     }
-    // Glass borrows the backplane image under its raster, grown by the
-    // margin its blur reads, for this paint only. Its raster depends on
-    // where it lies, so it is never shared as a keyframe.
+    // A material that reflects the backplane (stage T5, PLAN.md §4.4)
+    // reads it under its own box only, so at a margin of 0; like glass, a
+    // part in the backplane plane would read itself, so it reads nothing.
+    const SurfaceMaterial* const lent = request.target.material;
+    const bool reflects_backplane =
+        primitive_draws && !samples_backplane && lent != nullptr && (*lent).reflection &&
+        (*(*lent).reflection).source == MaterialReflectionSource::backplane &&
+        (*place.painted_by).paint_plane() != PaintPlane::backplane;
+    if (record && reflects_backplane) (*window).note_engine_backplane_reader(*record, true);
+    // Glass, and a backplane reflection, borrow the backplane image under
+    // the raster, grown by the margin they read, for this paint only. Their
+    // raster depends on where it lies, so it is never shared as a keyframe.
     Window::EngineBackplane backplane{};
-    const std::optional<std::uint32_t> margin =
-        samples_backplane ? (*request.primitive).backplane_margin(request.parameters, decided.scale) : std::nullopt;
+    std::optional<std::uint32_t> margin{};
+    if (samples_backplane) margin = (*request.primitive).backplane_margin(request.parameters, decided.scale);
+    if (reflects_backplane) margin = 0U;
     if (margin) {
         const Point raster_origin{place.window_origin.x + shown.bounds.x - descriptor.outsets.left,
                                   place.window_origin.y + shown.bounds.y - descriptor.outsets.top};
