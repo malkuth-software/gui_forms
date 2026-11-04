@@ -38,13 +38,10 @@ NON_CODE: re.Pattern[str] = re.compile(
     re.S)
 NOT_NEWLINE: re.Pattern[str] = re.compile(r'[^\n]')
 
-# Files whose bare asserts another lane is replacing (C ABI worker, S2.1).
-# A listed file that is already clean fails as stale, so the entry goes
-# when the fix lands.
-PENDING: dict[str, str] = {
-    'tests/live_surface_tests.cpp': 'C ABI lane S2.1',
-    'tests/windows_live_surface_endpoint_tests.cpp': 'C ABI lane S2.1',
-}
+# Files whose bare asserts another lane is replacing. None now: S2.1
+# replaced the live surface tests' asserts. A listed file that is already
+# clean fails as stale, so an entry goes when its fix lands.
+PENDING: dict[str, str] = {}
 
 
 def code_only(text: str) -> str:

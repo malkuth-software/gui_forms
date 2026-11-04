@@ -6,4 +6,4 @@
 # -DGUI_FORMS_STX_PREFIX=<dir> uses a prefix already installed.
 [stx]
 repository = "malkuth-software/stx"
-commit = "24a6a8eeffa3bb360a046d4fd19bdb7e06433bc5"
+commit = "58b882011a0866e18b045baebf4c0bcb0b1a7602"
