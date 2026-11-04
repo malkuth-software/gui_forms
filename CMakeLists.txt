@@ -2607,10 +2607,6 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_host_image_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_host_image_tests COMMAND gui_forms_host_image_tests)
 
-    add_executable(gui_forms_inflate_tests tests/compression/inflate_tests.cpp)
-    target_link_libraries(gui_forms_inflate_tests PRIVATE gui_forms_core)
-    add_test(NAME gui_forms_inflate_tests COMMAND gui_forms_inflate_tests)
-
     # The deflate contract harness's standalone inputs, in the normal suite.
     add_executable(gui_forms_deflate_fuzz_tests fuzz/deflate_fuzz.cpp)
     target_link_libraries(gui_forms_deflate_fuzz_tests PRIVATE stx_zlib::stx_zlib)
@@ -2621,10 +2617,6 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_inflate_protocol_tests PRIVATE gui_forms_core)
     target_compile_definitions(gui_forms_inflate_protocol_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
     add_test(NAME gui_forms_inflate_protocol_tests COMMAND gui_forms_inflate_protocol_tests)
-
-    add_executable(gui_forms_png_decoder_tests tests/image/png_decoder_tests.cpp)
-    target_link_libraries(gui_forms_png_decoder_tests PRIVATE gui_forms_core)
-    add_test(NAME gui_forms_png_decoder_tests COMMAND gui_forms_png_decoder_tests)
 
     add_executable(gui_forms_png_pixels_tests tests/image/png_pixels_tests.cpp)
     target_link_libraries(gui_forms_png_pixels_tests PRIVATE gui_forms_core)
@@ -4516,9 +4508,10 @@ if(GUI_FORMS_BUILD_FUZZERS)
         GUI_FORMS_HAS_LIBFUZZER_RUNTIME
     )
     unset(CMAKE_REQUIRED_FLAGS)
+    # The inflate and PNG decode harnesses are stx's (stx_zlib/fuzz, stx_png/fuzz).
     add_executable(gui_forms_inflate_fuzz
-        fuzz/inflate_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_inflate_fuzz PRIVATE include ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/fuzz/inflate_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
+    target_include_directories(gui_forms_inflate_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
     target_compile_options(gui_forms_inflate_fuzz PRIVATE
         -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
     target_link_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=address,undefined)
@@ -4526,7 +4519,7 @@ if(GUI_FORMS_BUILD_FUZZERS)
         target_compile_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=fuzzer)
         target_link_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=fuzzer)
     else()
-        target_compile_definitions(gui_forms_inflate_fuzz PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
+        target_compile_definitions(gui_forms_inflate_fuzz PRIVATE STX_ZLIB_FUZZ_STANDALONE=1)
     endif()
 
     add_executable(gui_forms_inflate_protocol_fuzz
@@ -4556,7 +4549,7 @@ if(GUI_FORMS_BUILD_FUZZERS)
     endif()
 
     add_executable(gui_forms_png_decode_fuzz
-        fuzz/png_decode_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/src/decoder.cpp
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/fuzz/png_decode_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/src/decoder.cpp
         ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/src/encoder.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/deflate.cpp
         ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
     target_include_directories(gui_forms_png_decode_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/include ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
@@ -4567,7 +4560,7 @@ if(GUI_FORMS_BUILD_FUZZERS)
         target_compile_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=fuzzer)
         target_link_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=fuzzer)
     else()
-        target_compile_definitions(gui_forms_png_decode_fuzz PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
+        target_compile_definitions(gui_forms_png_decode_fuzz PRIVATE STX_PNG_FUZZ_STANDALONE=1)
     endif()
 
     add_executable(gui_forms_png_registry_fuzz

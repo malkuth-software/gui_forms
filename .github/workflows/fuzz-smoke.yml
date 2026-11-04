@@ -61,7 +61,7 @@ jobs:
           git -C oracle checkout --detach FETCH_HEAD
           python3 - <<'PY'
           import hashlib, json, pathlib, sys
-          manifest = json.loads(pathlib.Path('tests/compression/oracle_sha256.json').read_text())
+          manifest = json.loads(pathlib.Path('stx/stx_zlib/tests/oracle_sha256.json').read_text())
           for name, expected in manifest['files'].items():
               actual = hashlib.sha256((pathlib.Path('oracle') / name).read_bytes()).hexdigest()
               if actual != expected:
@@ -72,7 +72,7 @@ jobs:
           set -eu
           flags="-std=c++20 -O1 -g -fsanitize=fuzzer,address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer -Iinclude -Istx/stx_zlib/include"
           case "${{ matrix.target }}" in
-            inflate) clang++ $flags fuzz/inflate_fuzz.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp -o smoke ;;
+            inflate) clang++ $flags stx/stx_zlib/fuzz/inflate_fuzz.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp -o smoke ;;
             inflate_oracle_*)
               mode=""
               if [ "${{ matrix.target }}" = inflate_oracle_strict ]; then mode=-DINFLATE_STRICT; fi
@@ -81,7 +81,7 @@ jobs:
                 clang -O1 -g -fsanitize=address,undefined -fno-omit-frame-pointer $mode -Ioracle -c oracle/$name.c -o $name.o
                 objects="$objects $name.o"
               done
-              clang++ $flags -Ioracle -DGUI_FORMS_INFLATE_ORACLE=1 fuzz/inflate_fuzz.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp $objects -o smoke ;;
+              clang++ $flags -Ioracle -DSTX_ZLIB_INFLATE_ORACLE=1 stx/stx_zlib/fuzz/inflate_fuzz.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp $objects -o smoke ;;
             inflate_protocol) clang++ $flags fuzz/inflate_protocol_fuzz.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp -o smoke ;;
             deflate) clang++ $flags fuzz/deflate_fuzz.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp stx/stx_zlib/src/deflate.cpp -o smoke ;;
             rtf2md_markdown) clang++ $flags -Istx/stx_rtf2md/include -Istx/stx_rtf2md/src stx/stx_rtf2md/fuzz/markdown_round_trip_fuzz.cpp \
@@ -93,7 +93,7 @@ jobs:
                    stx/stx_rtf2md/src/markdown_inline.cpp stx/stx_rtf2md/src/markdown_reader.cpp stx/stx_rtf2md/src/markdown_writer.cpp \
                    stx/stx_rtf2md/src/rtf_reader.cpp stx/stx_rtf2md/src/rtf_writer.cpp -o smoke ;;
             conv) clang++ $flags -Istx/stx_conv/include stx/stx_conv/fuzz/conv_fuzz.cpp stx/stx_conv/src/plan.cpp stx/stx_conv/src/profile.cpp stx/stx_conv/src/image.cpp -o smoke ;;
-            png_decode) clang++ $flags -Istx/stx_png/include fuzz/png_decode_fuzz.cpp stx/stx_png/src/decoder.cpp stx/stx_png/src/encoder.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp stx/stx_zlib/src/deflate.cpp -o smoke ;;
+            png_decode) clang++ $flags -Istx/stx_png/include stx/stx_png/fuzz/png_decode_fuzz.cpp stx/stx_png/src/decoder.cpp stx/stx_png/src/encoder.cpp stx/stx_zlib/src/inflate.cpp stx/stx_zlib/src/checksum.cpp stx/stx_zlib/src/deflate.cpp -o smoke ;;
           esac
       - name: Run the smoke
         env:
@@ -103,7 +103,7 @@ jobs:
           set -eu
           mkdir -p corpus failures
           case "${{ matrix.target }}" in
-            inflate*) cp fuzz/corpus/inflate/* corpus/ ;;
+            inflate*) cp stx/stx_zlib/fuzz/corpus/inflate/* corpus/ ;;
             rtf2md_rtf) cp stx/stx_rtf2md/tests/corpus/*.rtf corpus/ ;;
           esac
           seed=20261020
