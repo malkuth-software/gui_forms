@@ -85,6 +85,14 @@ ThemeCompileResult refusal(const ThemeDiagnostic& problem) {
     return ThemeCompileResult::refused(std::move(diagnostics));
 }
 
+// Whether a rule of `sheet` holds only under `prefers-color-scheme: dark`.
+bool sheet_has_dark_rules(const ThemeRuleSheet& sheet) noexcept {
+    for (const ThemeRule& rule : sheet.rules) {
+        if (rule.media.dark_scheme == true) return true;
+    }
+    return false;
+}
+
 ThemeDiagnostic problem_of(DiagnosticCode code, std::string file, std::string detail) {
     ThemeDiagnostic problem{};
     problem.code = code;
@@ -360,7 +368,8 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
                                                   .resources = names,
                                                   .images = loaded,
                                                   .requires_engine = requires_engine,
-                                                  .user_theme = set == ThemeRuleSet::user};
+                                                  .user_theme = set == ThemeRuleSet::user,
+                                                  .system_colours = options.system_colours};
     std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(windows_professional_theme_definition()));
     (*definition).rule_set = set;
     theme_language::ThemeCompiler compiler{};
@@ -374,6 +383,14 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
         found.push_back(public_diagnostic(placed));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return ThemeCompileResult::refused(std::move(found));
+    // A program theme with rules for the dark scheme but no dark variant
+    // (T4 theme variants): a dark window shows GUI.Forms' own dark theme,
+    // so the rules apply nowhere. A user theme is layered, and has none.
+    const bool dark_declared = (*definition).rules.colour_schemes && (*(*definition).rules.colour_schemes).dark;
+    if (set == ThemeRuleSet::program && !dark_declared && sheet_has_dark_rules((*definition).rules)) {
+        found.push_back(public_diagnostic(
+            problem_of(DiagnosticCode::scheme_rules_without_variant, sheet_file(root), "color-scheme: light dark")));
+    }
     (*definition).id = std::string(id);
     // The source the theme keeps for inline styles compiled against it
     // (P12b).
@@ -469,7 +486,7 @@ bool read_user_sheet(const UserSheet& sheet, std::string_view theme, std::span<c
     theme_language::ThemeSyntaxTree tree{};
     theme_language::ThemeDiagnosticList diagnostics{};
     const theme_language::TokenizeOutcome tokenized =
-        theme_language::tokenize_theme_sheet(source, tokens, lines, diagnostics);
+        theme_language::tokenize_theme_sheet(source, tokens, lines, diagnostics, theme_language::NameEscapes::in_names);
     if (tokenized == theme_language::TokenizeOutcome::tokens_cover_sheet && diagnostics.error_count() == 0U) {
         static_cast<void>(theme_language::parse_theme_sheet(source, tokens, lines, tree, diagnostics));
     }

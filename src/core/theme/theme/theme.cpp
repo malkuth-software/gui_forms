@@ -1465,7 +1465,14 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
         throw std::invalid_argument(
             "theme window backdrop needs a valid request, no opaque base and valid base materials");
     }
+    const ColourSchemeSet schemes =
+        definition.rules.colour_schemes ? *definition.rules.colour_schemes : definition.colour_schemes;
+    if (!schemes.light && !schemes.dark) {
+        throw std::invalid_argument("theme must have a light or a dark variant");
+    }
     std::unique_ptr<Theme> theme(new Theme(definition));
+    // A sheet's `color-scheme` is the theme's (T4 theme variants).
+    (*theme).definition_.colour_schemes = schemes;
     // The forced high-contrast pass: every family's high-contrast records
     // are derived from its ordinary ones, replacing whatever was authored.
     // It reads only the roles, so the engine compiled from the rules stands.

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/resources/image_registry/image_registry.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -98,6 +99,23 @@ public:
     // The program's own theme: theme() but while a user theme replaces it.
     [[nodiscard]] const Theme& program_theme() const noexcept { return *program_theme_; }
 
+    // Whether the windows follow the host's light or dark preference (T4
+    // theme variants): off by default, so a program keeps the scheme it
+    // sets in each window's PresentationSettings::colour_scheme. On, each
+    // window takes the scheme its host reports (capability
+    // presentation_preferences; light where the host reports none) now and
+    // at each later report. A window whose theme has no variant for its
+    // scheme shows GUI.Forms' own theme in it (Window::theme_fallback).
+    void set_automatic_colour_scheme(bool automatic);
+    [[nodiscard]] bool automatic_colour_scheme() const noexcept { return automatic_colour_scheme_; }
+    // The host's colour hints as a window last reported them (T4 theme
+    // variants), which compile_theme_package and compile_user_theme pass to
+    // the sheets' env() where the options give none. Empty before any.
+    [[nodiscard]] const SystemColourHints& system_colour_hints() const noexcept { return system_colour_hints_; }
+    // Whether the warning W403 `theme_variant_missing` has been written for
+    // `theme_id` in `scheme` by these resources' windows.
+    [[nodiscard]] bool theme_variant_missing_reported(std::string_view theme_id, ColourScheme scheme) const noexcept;
+
     // User themes (T3), chosen before the program's first window: once a
     // window shares these resources, both are std::logic_error. The
     // default policy is layered.
@@ -169,6 +187,11 @@ private:
     void require_access(const char* operation) const;
     void attach(Window& window);
     void detach(Window& window) noexcept;
+    // A window shows the fallback for `theme` in `scheme`: writes W403
+    // to the log the first time for that theme and scheme.
+    void note_theme_variant_missing(const Theme& theme, ColourScheme scheme);
+    // A window's host reported `hints` (Window::set_compositor_state).
+    void note_system_colour_hints(const SystemColourHints& hints) noexcept { system_colour_hints_ = hints; }
     // Window's consumer-scoped operations reach the registry directly.
     [[nodiscard]] ImageRegistry& registry() noexcept { return images_; }
 
@@ -180,6 +203,15 @@ private:
     std::shared_ptr<const Theme> program_theme_;
     std::shared_ptr<const Theme> user_theme_{};
     UserThemePolicy user_theme_policy_{UserThemePolicy::layered};
+    bool automatic_colour_scheme_{};
+    SystemColourHints system_colour_hints_{};
+    // The (theme, scheme) pairs W403 was written for. Bounded by the themes
+    // the program makes, two schemes each.
+    struct VariantReport final {
+        std::string theme_id{};
+        ColourScheme scheme{ColourScheme::dark};
+    };
+    std::vector<VariantReport> variant_reports_{};
     // The registered icons and, at the same positions, their images.
     // Bounded by the icons the program registers.
     std::vector<IconDeclaration> icons_{};

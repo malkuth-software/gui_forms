@@ -60,7 +60,8 @@ std::string CompositorState::to_json() const {
     }
     output << "},\"transparency_enabled\":" << (transparency_enabled ? "true" : "false")
            << ",\"reduced_transparency\":" << (reduced_transparency ? "true" : "false")
-           << ",\"high_contrast\":" << (high_contrast ? "true" : "false") << '}';
+           << ",\"high_contrast\":" << (high_contrast ? "true" : "false")
+           << ",\"dark_scheme\":" << (dark_scheme ? "true" : "false") << '}';
     return output.str();
 }
 

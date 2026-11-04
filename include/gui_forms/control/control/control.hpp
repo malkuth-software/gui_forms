@@ -470,7 +470,22 @@ public:
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const;
     [[nodiscard]] double snap_text_baseline(double logical_baseline) const noexcept;
+    // The theme the control is drawn in: the nearest override on the
+    // control or an ancestor, else its window's application theme, else the
+    // default theme; but GUI.Forms' own theme where that theme has no
+    // variant for the window's colour scheme (T4 theme variants).
     [[nodiscard]] const Theme& effective_theme() const noexcept;
+    // Whether the control is drawn in GUI.Forms' own theme in place of the
+    // theme it was given (effective_theme): its back_color, fore_color,
+    // authored surface material and parts' authored colours are then not
+    // applied, since they were chosen against the other theme. They apply
+    // again when that theme is shown.
+    [[nodiscard]] bool application_colours_suspended() const noexcept;
+    // Whether back_color or fore_color has been set on this control, which
+    // writes the warning W404 `inline_colour` once for each (T4 theme
+    // variants, stage A: colour belongs in the theme).
+    [[nodiscard]] bool back_color_warned() const noexcept { return back_color_warned_; }
+    [[nodiscard]] bool fore_color_warned() const noexcept { return fore_color_warned_; }
     // The attached window's key map (Window::key_map), or the PC
     // convention's while detached. A control asks it whether a key event is
     // a named keyboard command instead of naming the keys itself.
@@ -1116,6 +1131,11 @@ private:
     // The theme the control takes without its own override: its parent's,
     // else its window's, else the default theme.
     [[nodiscard]] const Theme& inherited_theme() const noexcept;
+    // The theme the control was given, before any fallback: the nearest
+    // override, else the window's application theme, else the default.
+    [[nodiscard]] const Theme& chosen_theme() const noexcept;
+    // Writes W404 for `property` of this control.
+    void warn_inline_colour(std::string_view property) const;
     // P12b: compiles again, against `theme`, each inline style of this
     // subtree that defines custom properties and was compiled against
     // another theme, appending each to `restyles` uninstalled; a control
@@ -1289,6 +1309,8 @@ private:
     std::optional<SurfaceMaterial> authored_surface_material_;
     std::optional<Color> back_color_;
     std::optional<Color> fore_color_;
+    bool back_color_warned_{};
+    bool fore_color_warned_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
     std::string accessible_name_;

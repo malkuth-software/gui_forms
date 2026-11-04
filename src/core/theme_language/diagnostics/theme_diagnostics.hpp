@@ -241,6 +241,23 @@ enum class DiagnosticCode : std::uint16_t {
     // under a theme with rules of its own, reported once per window; the
     // file names the control (`inline:<control>`).
     inline_with_theme = 1401,
+    // A sheet with `@media (prefers-color-scheme: dark)` rules that does not
+    // declare a dark variant (`:root { color-scheme: light dark }`): a
+    // window in the dark scheme shows GUI.Forms' own dark theme instead,
+    // so those rules apply nowhere (T4 theme variants). Reported once.
+    scheme_rules_without_variant = 1402,
+    // A window in a colour scheme its theme has no variant for, shown in
+    // GUI.Forms' own theme in that scheme (Window::theme_fallback):
+    // reported once per theme and scheme by the application's resources;
+    // the file names the theme (`theme:<id>`), the detail the missing
+    // scheme and the fallback.
+    theme_variant_missing = 1403,
+    // A colour set on a control rather than in the theme (back_color,
+    // fore_color): applied, but not recommended practice, since a theme's
+    // variants cannot adapt it (T4 theme variants, stage A). Reported once
+    // per control and property; the file names the control
+    // (`inline:<control>`), the property the property.
+    inline_colour = 1404,
     // W5xx icons (user themes, USER_THEMES.md section 6): a user theme's
     // `icons/<identifier>.png` naming no program icon, or one the program
     // marks fixed, or an image the rules refuse (not decoding, over 1024 by

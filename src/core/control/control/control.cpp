@@ -6,6 +6,8 @@
 #include "gui_forms/window.hpp"
 #include "../../display/chunk/display_chunk.hpp"
 #include "../../theme/theme_compiler/control_inline_style.hpp"
+#include "../../theme_language/diagnostics/theme_diagnostics.hpp"
+#include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 
 #include <algorithm>
 #include <array>
@@ -804,8 +806,37 @@ double Control::snap_text_baseline(double logical_baseline) const noexcept {
 }
 
 const Theme& Control::effective_theme() const noexcept {
+    const Theme& chosen = chosen_theme();
+    if (surface_root_ == nullptr || chosen.supports((*surface_root_).presentation_settings().colour_scheme)) {
+        return chosen;
+    }
+    // GUI.Forms' own theme has both variants; it lives for the program.
+    const Theme& fallback = *gui_forms_theme_build().theme;
+    return fallback;
+}
+
+const Theme& Control::chosen_theme() const noexcept {
     if (theme_override_) return *theme_override_;
-    return inherited_theme();
+    if (const Ptr visual_parent = parent_.lock()) return (*visual_parent).chosen_theme();
+    if (surface_root_ != nullptr) return (*surface_root_).application_theme();
+    return *default_theme();
+}
+
+bool Control::application_colours_suspended() const noexcept {
+    if (surface_root_ == nullptr) return false;
+    const bool suspended = !chosen_theme().supports((*surface_root_).presentation_settings().colour_scheme);
+    return suspended;
+}
+
+void Control::warn_inline_colour(std::string_view property) const {
+    theme_language::ThemeDiagnostic warning{};
+    warning.code = theme_language::DiagnosticCode::inline_colour;
+    warning.file = "inline:" + std::string(stable_id().value());
+    warning.property = std::string(property);
+    warning.detail = "set the colour in the theme, with a light and a dark variant";
+    theme_language::ThemeDiagnosticList list{};
+    list.add(std::move(warning));
+    theme_language::write_theme_diagnostics(list, stderr);
 }
 
 const Theme& Control::inherited_theme() const noexcept {
@@ -921,6 +952,10 @@ void Control::clear_authored_surface_material() {
 void Control::set_back_color(Color color) {
     require_mutable();
     if (back_color_ == color) return;
+    if (!back_color_warned_) {
+        back_color_warned_ = true;
+        warn_inline_colour("back_color");
+    }
     back_color_ = color;
     invalidate_subtree(Dirty::paint);
 }
@@ -935,6 +970,10 @@ void Control::clear_back_color() {
 void Control::set_fore_color(Color color) {
     require_mutable();
     if (fore_color_ == color) return;
+    if (!fore_color_warned_) {
+        fore_color_warned_ = true;
+        warn_inline_colour("fore_color");
+    }
     fore_color_ = color;
     invalidate_subtree(Dirty::paint);
 }
@@ -2882,12 +2921,12 @@ void Control::report_opaque_cover(const Painter& painter, const Rect local) cons
 void Control::paint_back_color(Painter& painter, Rect bounds) const {
     if (!back_color_) return;
     const bool high_contrast = surface_root_ != nullptr && (*surface_root_).presentation_settings().high_contrast;
-    if (high_contrast) return;
+    if (high_contrast || application_colours_suspended()) return;
     painter.fill_rect(bounds, *back_color_);
 }
 
 void Control::paint_authored_surface(Painter& painter, Rect bounds) const {
-    if (authored_surface_material_) {
+    if (authored_surface_material_ && !application_colours_suspended()) {
         paint_surface_material(painter, bounds, *authored_surface_material_);
     }
 }

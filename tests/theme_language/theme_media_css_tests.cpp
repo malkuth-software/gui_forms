@@ -392,7 +392,7 @@ bool pad_recipe_authored(const PadWindow& held) {
 
 void test_light_and_dark() {
     const std::shared_ptr<const Theme> theme =
-        theme_from(":root { ink-on-paper: #f0f0f0 on #101010 } #pad { opacity: 0.75 } "
+        theme_from(":root { color-scheme: light dark; ink-on-paper: #f0f0f0 on #101010 } #pad { opacity: 0.75 } "
                    "@media (prefers-color-scheme: dark) { #pad { opacity: 0.5; color: role(ink-on-paper) } }");
     const std::unique_ptr<PadWindow> held = make_pad_window(theme, 1.0);
     Window& window = *(*held).window;

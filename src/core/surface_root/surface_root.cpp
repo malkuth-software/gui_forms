@@ -18,7 +18,10 @@ SurfaceRoot::SurfaceRoot(Control::Ptr root, Size client_size, std::shared_ptr<Ap
       root_(std::move(root)), client_size_(client_size),
       theme_(resources ? (*resources).theme_ptr() : default_theme()),
       resources_(std::move(resources)),
-      lifetime_(std::make_shared<detail::WindowLifetime>()) {}
+      lifetime_(std::make_shared<detail::WindowLifetime>()) {
+    // A theme with no light variant shows GUI.Forms' own light theme.
+    if (resources_) theme_ = scheme_theme((*resources_).theme_ptr());
+}
 
 bool SurfaceRoot::check_access() const noexcept {
     return std::this_thread::get_id() == root_thread_;

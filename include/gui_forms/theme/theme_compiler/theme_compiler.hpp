@@ -102,6 +102,12 @@ struct ThemeCompileOptions final {
     // The program icons a user theme may replace (ApplicationResources::
     // icon_declarations); a package compiles no icons.
     std::span<const IconDeclaration> icons{};
+    // The host's colour hints the sheets' env() reads (T4 theme variants),
+    // as compiled: a theme compiled again reads new hints. Empty, every
+    // env() reads its fallback. ApplicationResources::compile_theme_package
+    // and compile_user_theme pass the resources' (system_colour_hints)
+    // where these are empty.
+    SystemColourHints system_colours{};
 };
 
 // What setting a control's inline style gave (Control::set_inline_style):

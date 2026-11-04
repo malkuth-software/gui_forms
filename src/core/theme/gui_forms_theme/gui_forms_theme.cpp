@@ -491,6 +491,7 @@ ThemeDefinition gui_forms_theme_definition() {
     fill_link_family(result.roles[role_index(ControlVisualRole::visited_link)], result.compatibility.visited_link);
     // The dark variant, derived by rule (T4 phase 5; design language 5.8).
     result.dark_variant = ThemeDarkVariant::derived;
+    result.colour_schemes = ColourSchemeSet{.light = true, .dark = true};
     return result;
 }
 

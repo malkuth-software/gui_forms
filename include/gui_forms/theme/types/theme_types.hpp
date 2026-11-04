@@ -512,6 +512,12 @@ struct ThemeDefinition final {
     ThemeWindowBackdrop window_backdrop{};
     // The dark variant (stage T4 phase 5). None by default.
     ThemeDarkVariant dark_variant{ThemeDarkVariant::none};
+    // The colour schemes the theme has variants for (T4 theme variants):
+    // light alone by default. A window in a scheme its theme lacks shows
+    // GUI.Forms' own theme in that scheme (Window::theme_fallback). A
+    // sheet declaring `color-scheme` (rules.colour_schemes) replaces it
+    // when the theme is made.
+    ColourSchemeSet colour_schemes{};
     friend bool operator==(const ThemeDefinition& left,
                            const ThemeDefinition& right) noexcept(noexcept(
         left.id == right.id && left.compatibility == right.compatibility &&
@@ -524,7 +530,7 @@ struct ThemeDefinition final {
                left.high_contrast_overlay_shadow == right.high_contrast_overlay_shadow &&
                left.rules == right.rules && left.rule_set == right.rule_set &&
                left.window_backdrop == right.window_backdrop &&
-               left.dark_variant == right.dark_variant;
+               left.dark_variant == right.dark_variant && left.colour_schemes == right.colour_schemes;
     }
 };
 

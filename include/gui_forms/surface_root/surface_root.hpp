@@ -390,7 +390,19 @@ public:
     [[nodiscard]] Event<const PresentationSettings&>& presentation_changed() noexcept {
         return presentation_changed_;
     }
+    // The theme the window shows: its resources' theme (application_theme)
+    // when that has a variant for the window's colour scheme, else
+    // GUI.Forms' own theme in that scheme (theme_fallback; T4 theme
+    // variants). A scheme change that changes it raises theme_changed
+    // after presentation_changed.
     [[nodiscard]] const Theme& theme() const noexcept { return *theme_; }
+    // The theme the application chose (ApplicationResources::theme),
+    // shown or not; the default theme without resources.
+    [[nodiscard]] const Theme& application_theme() const noexcept;
+    // The fallback in force, or none while the window shows the
+    // application's theme. Each (theme, scheme) is warned once per
+    // resources (W403 theme_variant_missing).
+    [[nodiscard]] const std::optional<ThemeFallback>& theme_fallback() const noexcept { return theme_fallback_; }
     // The rules of the user theme layered under every theme of these
     // resources (ApplicationResources::user_theme_rules), or null.
     [[nodiscard]] const CompiledThemeRules* user_theme_rules() const noexcept;
@@ -948,7 +960,21 @@ private:
     friend class ImageList;
     friend class ApplicationResources;
     // Called by ApplicationResources for every window sharing it.
+    // Shows `theme`, the resources' theme, or the fallback for the window's
+    // scheme (scheme_theme).
     void apply_theme(const std::shared_ptr<const Theme>& theme);
+    // The theme to show for `application` in the window's colour scheme:
+    // `application` where it has the variant, else GUI.Forms' own theme,
+    // noting theme_fallback_ (and the resources' warning) either way.
+    [[nodiscard]] std::shared_ptr<const Theme> scheme_theme(const std::shared_ptr<const Theme>& application);
+    // Makes `shown` the window's theme: no cached raster stands, the
+    // backdrop follows it, every control is remeasured, and theme_changed
+    // is raised. Nothing where it is already shown.
+    void show_theme(const std::shared_ptr<const Theme>& shown);
+    // The application's switch for following the host's colour scheme
+    // changed (ApplicationResources::set_automatic_colour_scheme): on, the
+    // window takes the scheme the host last reported.
+    void follow_host_colour_scheme(bool automatic);
     // Called by ApplicationResources before a theme change (P12b): the
     // inline styles of the window's root and popups compiled again against
     // `theme` (Control::collect_inline_restyles).
@@ -1402,6 +1428,12 @@ private:
     double backplane_framebuffer_scale_{};
     Event<const PresentationSettings&> presentation_changed_;
     std::shared_ptr<const Theme> theme_;
+    // Set while theme_ is GUI.Forms' own in place of the application's.
+    std::optional<ThemeFallback> theme_fallback_{};
+    // The colour scheme the host last reported (CompositorState::
+    // dark_scheme, capability presentation_preferences); light before any
+    // report and where the host reports none.
+    ColourScheme host_colour_scheme_{ColourScheme::light};
     Event<const Theme&> theme_changed_;
     Event<bool> active_changed_;
     bool active_{true};

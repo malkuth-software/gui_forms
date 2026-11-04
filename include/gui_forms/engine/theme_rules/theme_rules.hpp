@@ -8,6 +8,7 @@
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
 
 #include <array>
 #include <cstddef>
@@ -998,10 +999,14 @@ struct ThemeRuleSheet final {
     EngineVersion requires_engine{current_engine_version};
     std::vector<ThemeRule> rules{};
     std::vector<std::string> published_values{};
+    // The colour schemes the sheet declares (`:root { color-scheme: ... }`,
+    // T4 theme variants), or none where it declares none. Theme::create
+    // takes a declared set as the theme's (ThemeDefinition::colour_schemes).
+    std::optional<ColourSchemeSet> colour_schemes{};
 
     friend bool operator==(const ThemeRuleSheet& left, const ThemeRuleSheet& right) noexcept {
         return left.requires_engine == right.requires_engine && left.rules == right.rules &&
-               left.published_values == right.published_values;
+               left.published_values == right.published_values && left.colour_schemes == right.colour_schemes;
     }
 };
 

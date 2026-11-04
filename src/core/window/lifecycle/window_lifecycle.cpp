@@ -1,4 +1,5 @@
 #include "gui_forms/window.hpp"
+#include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "../../dispatcher/state/dispatcher_state.hpp"
@@ -237,6 +238,7 @@ void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
         !settings.ambient_motion && presentation_settings_.ambient_motion;
     const bool transparency_switched =
         settings.reduced_transparency != presentation_settings_.reduced_transparency;
+    const bool scheme_switched = settings.colour_scheme != presentation_settings_.colour_scheme;
     presentation_settings_ = settings;
     // Transient overlays own geometry resolved for the opening text metrics.
     // A text-scale transition dismisses them deterministically; reopening
@@ -266,6 +268,37 @@ void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
     presentation_changed_.emit(presentation_settings_);
     // High contrast and reduced transparency withdraw a backdrop (stage T5).
     refresh_backdrop();
+    // The theme for the new scheme: the application's where it has the
+    // variant, else GUI.Forms' own (T4 theme variants). A handler above may
+    // have changed the scheme again; the scheme in force decides.
+    if (scheme_switched && resources_) show_theme(scheme_theme((*resources_).theme_ptr()));
+}
+
+const Theme& SurfaceRoot::application_theme() const noexcept {
+    if (!resources_) return *default_theme();
+    const Theme& chosen = (*resources_).theme();
+    return chosen;
+}
+
+std::shared_ptr<const Theme> SurfaceRoot::scheme_theme(const std::shared_ptr<const Theme>& application) {
+    const ColourScheme scheme = presentation_settings_.colour_scheme;
+    if ((*application).supports(scheme)) {
+        theme_fallback_.reset();
+        return application;
+    }
+    std::shared_ptr<const Theme> fallback = gui_forms_theme();
+    theme_fallback_ = ThemeFallback{.theme_id = std::string((*application).id()),
+                                    .missing = scheme,
+                                    .fallback_id = std::string((*fallback).id())};
+    (*resources_).note_theme_variant_missing(*application, scheme);
+    return fallback;
+}
+
+void SurfaceRoot::follow_host_colour_scheme(bool automatic) {
+    if (!automatic || presentation_settings_.colour_scheme == host_colour_scheme_) return;
+    PresentationSettings settings = presentation_settings_;
+    settings.colour_scheme = host_colour_scheme_;
+    set_presentation_settings(settings);
 }
 
 const CompiledThemeRules* SurfaceRoot::user_theme_rules() const noexcept {
@@ -281,8 +314,12 @@ void SurfaceRoot::set_theme(std::shared_ptr<const Theme> theme) {
 }
 
 void SurfaceRoot::apply_theme(const std::shared_ptr<const Theme>& theme) {
-    if (theme_ == theme) return;
-    theme_ = theme;
+    show_theme(scheme_theme(theme));
+}
+
+void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
+    if (theme_ == shown) return;
+    theme_ = shown;
     // Another theme draws parts differently: no cached part raster is
     // current.
     engine_parts_.invalidate_rasters();

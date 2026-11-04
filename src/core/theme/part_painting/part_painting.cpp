@@ -757,6 +757,17 @@ bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
 }
 
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
+    // Drawn in GUI.Forms' own theme in place of the application's (T4
+    // theme variants): colours chosen against the other theme are not
+    // applied, the part's own included.
+    const bool suspended = control.application_colours_suspended();
+    if (suspended && (part.authored_background || part.authored_foreground)) {
+        PartPaint plain = part;
+        plain.authored_background.reset();
+        plain.authored_foreground.reset();
+        paint_part(painter, control, plain);
+        return;
+    }
     const double length = pointed_length(part);
     if (length > 0.0 && paintable(part.bounds)) {
         paint_pointed_part(painter, control, part, length);
@@ -767,10 +778,10 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     // set_fore_color) under the part's own: its own background fills every
     // ground, an inherited one every ground but a well.
     std::optional<Color> background = part.authored_background;
-    if (!background) background = control.back_color();
-    if (!background && part.role != PartRole::well) background = control.ambient_back_color();
+    if (!background && !suspended) background = control.back_color();
+    if (!background && !suspended && part.role != PartRole::well) background = control.ambient_back_color();
     std::optional<Color> foreground = part.authored_foreground;
-    if (!foreground) foreground = control.ambient_fore_color();
+    if (!foreground && !suspended) foreground = control.ambient_fore_color();
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint(painter, control, part);

@@ -352,9 +352,18 @@ private:
     // One `:root` block's declarations, recorded under media_ when
     // `record` (a block no media query lowers is only checked).
     [[nodiscard]] bool collect_palette_block(std::size_t rule_index, bool record);
+    // `color-scheme` in the palette's block (T4 theme variants): `light`,
+    // `dark` or both, written once each in any order, into
+    // sheet_.colour_schemes; false after an error (another word, or the
+    // declaration under `@media`).
+    [[nodiscard]] bool lower_colour_scheme(const SyntaxNode& node);
     // Whether the style rule's selector is `:root` alone: the palette's
     // block, collected before the rules.
     [[nodiscard]] bool selects_root(std::size_t rule_index) const noexcept;
+    // Whether every escaped name is in a style rule's selector (owner
+    // 2026-11-04: escapes name stable IDs and classes); reports the first
+    // that is not (E105) and gives false then.
+    [[nodiscard]] bool escapes_in_selectors_only();
     // Whether a definition is the palette's, or holds everywhere as the
     // palette's do (NameVariation::global_declaration, P12b).
     [[nodiscard]] bool palette_scope(const CustomPropertyDefinition& definition) const noexcept;
@@ -586,12 +595,14 @@ CompilePass::CompilePass(const ThemeCompileInput& input, ThemeRuleSheet& sheet, 
 
 CompileOutcome CompilePass::run() {
     work_ = ThemeCompileWork{};
-    const TokenizeOutcome tokenized = tokenize_theme_sheet(input_.source, tokens_, lines_, diagnostics_);
+    const TokenizeOutcome tokenized =
+        tokenize_theme_sheet(input_.source, tokens_, lines_, diagnostics_, NameEscapes::in_names);
     work_.tokens = tokens_.tokens.size();
     if (tokenized != TokenizeOutcome::tokens_cover_sheet) return CompileOutcome::refused;
     const ParseOutcome parsed = parse_theme_sheet(input_.source, tokens_, lines_, tree_, diagnostics_, input_.form);
     work_.nodes = tree_.nodes.size();
     if (parsed != ParseOutcome::tree_complete) return CompileOutcome::refused;
+    if (!escapes_in_selectors_only()) return CompileOutcome::refused;
     newer_engine_ = current_engine_version < input_.requires_engine;
     substitution_.clear_theme_read();
     segment_node_ = 0U;
@@ -1586,6 +1597,39 @@ bool CompilePass::next_palette_choice() noexcept {
     return false;
 }
 
+bool CompilePass::escapes_in_selectors_only() {
+    const std::vector<Token>& tokens = tokens_.tokens;
+    std::size_t escaped = tokens.size();
+    for (std::size_t index = 0U; index < tokens.size() && escaped == tokens.size(); ++index) {
+        if ((tokens[index].flags & token_flag_escaped) != 0U) escaped = index;
+    }
+    if (escaped == tokens.size()) return true;
+    // The style rules' selectors, in token order (the tree is in source
+    // order, a rule's prelude before its block and its nested rules).
+    std::size_t token = escaped;
+    for (const SyntaxNode& node : tree_.nodes) {
+        if (node.kind != SyntaxNodeKind::style_rule) continue;
+        while (token < tokens.size() && token < node.content.first.value) {
+            if ((tokens[token].flags & token_flag_escaped) != 0U) {
+                report(DiagnosticCode::escape_not_admitted, static_cast<std::uint32_t>(token),
+                       "an escape outside a selector");
+                return false;
+            }
+            ++token;
+        }
+        if (token < node.content.end.value) token = node.content.end.value;
+    }
+    while (token < tokens.size()) {
+        if ((tokens[token].flags & token_flag_escaped) != 0U) {
+            report(DiagnosticCode::escape_not_admitted, static_cast<std::uint32_t>(token),
+                   "an escape outside a selector");
+            return false;
+        }
+        ++token;
+    }
+    return true;
+}
+
 bool CompilePass::selects_root(std::size_t rule_index) const noexcept {
     // An inline style has no palette: `:root` there is a selector.
     if (input_.form == ThemeSheetForm::inline_style) return false;
@@ -1646,6 +1690,38 @@ bool CompilePass::collect_palette() {
     return true;
 }
 
+bool CompilePass::lower_colour_scheme(const SyntaxNode& node) {
+    const std::uint32_t property = node.tokens.first.value;
+    if (!media_condition_unconditional(media_)) {
+        report(DiagnosticCode::value_form_not_admitted, property, "color-scheme under @media");
+        return false;
+    }
+    ColourSchemeSet declared{.light = false, .dark = false};
+    std::size_t words = 0U;
+    for (std::uint32_t index = node.content.first.value; index < node.content.end.value; ++index) {
+        const Token& token = tokens_.tokens[index];
+        if (token.kind == TokenKind::whitespace || token.kind == TokenKind::comment) continue;
+        const std::string_view word = token_text(index);
+        const bool light = token.kind == TokenKind::ident && equals_ascii_folded(word, "light");
+        const bool dark = token.kind == TokenKind::ident && equals_ascii_folded(word, "dark");
+        const bool repeated = (light && declared.light) || (dark && declared.dark);
+        if ((!light && !dark) || repeated) {
+            // `normal`, `only` and every other word are outside the language.
+            report(DiagnosticCode::keyword_unknown, index, clipped_theme_detail(word));
+            return false;
+        }
+        if (light) declared.light = true;
+        if (dark) declared.dark = true;
+        words = words + 1U;
+    }
+    if (words == 0U) {
+        report(DiagnosticCode::value_syntax, property, "color-scheme: light | dark | light dark");
+        return false;
+    }
+    sheet_.colour_schemes = declared;
+    return true;
+}
+
 bool CompilePass::collect_palette_block(std::size_t rule_index, bool record) {
     const SyntaxNode& rule = tree_.nodes[rule_index];
     rule_ = clipped_theme_detail(range_text(rule.content));
@@ -1659,6 +1735,11 @@ bool CompilePass::collect_palette_block(std::size_t rule_index, bool record) {
         if ((node.flags & syntax_flag_important) != 0U) {
             report(DiagnosticCode::value_form_not_admitted, property, "!important in the palette");
             return false;
+        }
+        if (folded_ == "color-scheme") {
+            if (!record) continue;
+            if (!lower_colour_scheme(node)) return false;
+            continue;
         }
         const std::optional<ColourRole> role = colour_role_from_name(folded_);
         if (!role) {
@@ -1930,6 +2011,11 @@ bool CompilePass::lower_declaration(const SyntaxNode& node, PropertyClass kind, 
     }
     // The parameters of a dropped primitive go with it.
     if (!selection.selects && selection.dropped) return true;
+    if (folded_ == "color-scheme") {
+        // A theme's variants are the sheet's whole (T4 theme variants).
+        report(DiagnosticCode::property_not_admitted, property, "color-scheme outside :root");
+        return true;
+    }
     report(DiagnosticCode::unknown_property, property, property_);
     return true;
 }
@@ -2988,6 +3074,7 @@ bool CompilePass::read_value(const SyntaxNode& node) {
     context.resources = input_.resources;
     context.palette = reading_palette_ ? nullptr : &palette_.in_use;
     context.bare_side = bare_side_;
+    context.system_colours = &input_.system_colours;
     const SubstitutionInput substitution{.source = input_.source,
                                          .tokens = tokens_,
                                          .table = custom_properties_,
@@ -3111,6 +3198,7 @@ CompileOutcome ThemeCompiler::compile(const ThemeCompileInput& input, ThemeRuleS
     sheet.rules.clear();
     sheet.published_values.clear();
     sheet.requires_engine = current_engine_version;
+    sheet.colour_schemes.reset();
     CompilePass pass(input, sheet, diagnostics, tokens_, lines_, tree_, custom_properties_, selectors_, substitution_,
                      reader_, lowered_selectors_, substituted_, value_, parameter_names_, declarations_, materials_,
                      material_lowering_, material_fields_, recipe_fields_, motion_, media_queries_, palette_,
@@ -3120,6 +3208,7 @@ CompileOutcome ThemeCompiler::compile(const ThemeCompileInput& input, ThemeRuleS
         sheet.rules.clear();
         sheet.published_values.clear();
         sheet.requires_engine = current_engine_version;
+        sheet.colour_schemes.reset();
     }
     return outcome;
 }

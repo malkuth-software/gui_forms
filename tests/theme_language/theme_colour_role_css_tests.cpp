@@ -337,7 +337,7 @@ Color text_of(const ThemeRule& rule) {
 
 void test_conditional_palettes() {
     constexpr std::string_view two =
-        ":root { ink-on-paper: #111111 on #ffffff } "
+        ":root { color-scheme: light dark; ink-on-paper: #111111 on #ffffff } "
         "@media (prefers-color-scheme: dark) { :root { ink-on-paper: #eeeeee on #000000 } } ";
     const Compilation switched = compile(std::string(two) + "#a { color: role(ink-on-paper) } #b { opacity: 0.5 }");
     require(compiled_clean(switched) && switched.sheet.rules.size() == 3U, "a rule reading a varying role is copied");
@@ -385,7 +385,7 @@ void test_conditional_palettes() {
             "a later unconditional declaration replaces the conditional ones");
 
     const Compilation listed = compile(
-        ":root { ink-on-paper: #111111 on #ffffff } "
+        ":root { color-scheme: light dark; ink-on-paper: #111111 on #ffffff } "
         "@media (prefers-color-scheme: dark), (forced-colors: active) { :root { ink-on-paper: #eeeeee on #000000 } } "
         "#a { color: role(ink-on-paper) }");
     require(compiled_clean(listed) && listed.sheet.rules.size() == 3U && listed.sheet.rules[1].media == dark() &&
@@ -494,7 +494,7 @@ public:
 
 void test_light_and_dark_palette() {
     const Compilation compiled = compile(
-        ":root { ink-on-paper: #111111 on #ffffff } "
+        ":root { color-scheme: light dark; ink-on-paper: #111111 on #ffffff } "
         "@media (prefers-color-scheme: dark) { :root { ink-on-paper: #eeeeee on #000000 } } "
         "#pad { color: role(ink-on-paper) }");
     require(compiled_clean(compiled), "the palette sheet compiles");

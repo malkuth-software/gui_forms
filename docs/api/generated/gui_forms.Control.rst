@@ -124,6 +124,14 @@ gui_forms::Control
          The theme in use: the nearest :cpp:func:`theme_override <gui_forms::Control::theme_override>` on this control or an
          ancestor, else the window's theme, else the default theme.
 
+      **application_colours_suspended** : ``bool``, read-only
+         Whether the control is drawn in GUI.Forms' own theme in place of the theme it was given (effective_theme): its back_color, fore_color, authored surface material and parts' authored colours are then not applied, since they were chosen against the other theme. They apply again when that theme is shown.
+
+      **back_color_warned** : ``bool``, read-only
+         Whether back_color or fore_color has been set on this control, which writes the warning W404 ``inline_colour`` once for each (T4 theme variants, stage A: colour belongs in the theme).
+
+      **fore_color_warned** : ``bool``, read-only
+
       **effective_key_map** : ``KeyMap``, read-only
          The attached window's key map (Window::key_map), or the PC convention's while detached. A control asks it whether a key event is a named keyboard command instead of naming the keys itself.
 
@@ -789,6 +797,16 @@ gui_forms::Control
 
       The theme in use: the nearest :cpp:func:`theme_override <gui_forms::Control::theme_override>` on this control or an
       ancestor, else the window's theme, else the default theme.
+
+   .. cpp:function:: bool application_colours_suspended() const noexcept
+
+      Whether the control is drawn in GUI.Forms' own theme in place of the theme it was given (effective_theme): its back_color, fore_color, authored surface material and parts' authored colours are then not applied, since they were chosen against the other theme. They apply again when that theme is shown.
+
+   .. cpp:function:: bool back_color_warned() const noexcept
+
+      Whether back_color or fore_color has been set on this control, which writes the warning W404 ``inline_colour`` once for each (T4 theme variants, stage A: colour belongs in the theme).
+
+   .. cpp:function:: bool fore_color_warned() const noexcept
 
    .. cpp:function:: const KeyMap& effective_key_map() const noexcept
 

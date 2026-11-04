@@ -270,11 +270,12 @@ constexpr std::array<ExpressionFunctionName, 15> expression_functions{{
 
 // CSS functions outside the language (E405): the other colour spaces, the
 // other math functions, and the functions that read outside the sheet.
-constexpr std::array<std::string_view, 37> refused_functions{{
+// `env()` is admitted for the host's colour hints alone (colour_from_env).
+constexpr std::array<std::string_view, 36> refused_functions{{
     "hwb",   "lab",       "lch",     "oklab",   "oklch",   "color",      "light-dark", "device-cmyk",
     "round", "mod",       "rem",     "sin",     "cos",     "tan",        "asin",       "acos",
     "atan",  "atan2",     "pow",     "sqrt",    "hypot",   "log",        "exp",        "abs",
-    "sign",  "calc-size", "attr",    "env",     "if",      "image",      "image-set",  "cross-fade",
+    "sign",  "calc-size", "attr",    "if",      "image",   "image-set",  "cross-fade",
     "element", "paint",   "counter", "counters", "symbols",
 }};
 
@@ -455,6 +456,10 @@ private:
     [[nodiscard]] bool colour_from_hsl(std::uint32_t function);
     [[nodiscard]] bool colour_from_mix(std::uint32_t function);
     [[nodiscard]] bool colour_from_role(std::uint32_t function);
+    // `env(system-accent, <colour>)` or `env(system-highlight, <colour>)`
+    // (T4 theme variants): the host's hint where the context gives one,
+    // else the fallback colour, which is required.
+    [[nodiscard]] bool colour_from_env(std::uint32_t function);
     [[nodiscard]] bool read_mix_item(const ChildList& children, std::size_t first, std::size_t end,
                                      std::uint32_t function, MixItem& item);
     void replace_with_colour(std::uint32_t function, Color colour);
@@ -677,6 +682,7 @@ bool ValuePass::close_function() {
     if (equals_ascii_folded(name, "hsl") || equals_ascii_folded(name, "hsla")) return colour_from_hsl(function);
     if (equals_ascii_folded(name, "color-mix")) return colour_from_mix(function);
     if (equals_ascii_folded(name, "role")) return colour_from_role(function);
+    if (equals_ascii_folded(name, "env")) return colour_from_env(function);
     return true;
 }
 
@@ -1021,6 +1027,42 @@ bool ValuePass::colour_from_role(std::uint32_t function) {
     origin.role = *role;
     origin.side = side;
     value_.components.back().origin = origin;
+    return true;
+}
+
+bool ValuePass::colour_from_env(std::uint32_t function) {
+    const std::uint32_t token = value_.components[function].token;
+    ChildList children{};
+    if (!children_of(function, children)) return false;
+    bool shaped = children.count == 3U;
+    if (shaped) {
+        const ValueComponent& named = value_.components[children.index[0]];
+        const ValueComponent& separator = value_.components[children.index[1]];
+        shaped = named.kind == ValueComponentKind::keyword && separator.kind == ValueComponentKind::comma;
+    }
+    std::optional<Color> fallback{};
+    if (shaped) {
+        const ValueComponent& written = value_.components[children.index[2]];
+        if (written.kind == ValueComponentKind::colour) fallback = written.colour;
+        if (written.kind == ValueComponentKind::keyword) fallback = named_colour(written.text);
+    }
+    if (!shaped || !fallback) {
+        report(DiagnosticCode::value_syntax, token, "env(system-accent | system-highlight, <colour>)");
+        return false;
+    }
+    const ValueComponent& named = value_.components[children.index[0]];
+    const bool accent = equals_ascii_folded(named.text, "system-accent");
+    const bool highlight = equals_ascii_folded(named.text, "system-highlight");
+    if (!accent && !highlight) {
+        report(DiagnosticCode::keyword_unknown, named.token, clipped_theme_detail(named.text));
+        return false;
+    }
+    std::optional<Color> hint{};
+    if (context_.system_colours != nullptr) {
+        hint = accent ? (*context_.system_colours).accent : (*context_.system_colours).highlight;
+    }
+    const Color colour = hint ? *hint : *fallback;
+    replace_with_colour(function, colour);
     return true;
 }
 

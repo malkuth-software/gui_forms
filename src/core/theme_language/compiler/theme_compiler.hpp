@@ -83,6 +83,9 @@ struct ThemeCompileInput final {
     // at `important_user_theme` for its `!important` declarations, its
     // selectors ordered by specificity within the level.
     bool user_theme{};
+    // The host's colour hints, which env() reads when the sheet is
+    // compiled (T4 theme variants); empty, every env() reads its fallback.
+    SystemColourHints system_colours{};
 };
 
 // One stretch of an inline style's text copied into a sheet by

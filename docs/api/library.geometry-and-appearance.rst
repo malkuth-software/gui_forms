@@ -4394,6 +4394,10 @@ Types
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
 
+   .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
+
+      Whether the theme has a variant for ``scheme`` (T4 theme variants): its colour_schemes, which its sheet's ``color-scheme`` sets.
+
    .. cpp:function:: Color accent(AccentIndex index) const noexcept
 
       The ramp colour for an accent index; an index past the end of the ramp wraps around it.
@@ -4478,6 +4482,10 @@ Types
 
       The program icons a user theme may replace (ApplicationResources:: icon_declarations); a package compiles no icons.
 
+   .. cpp:member:: SystemColourHints system_colours
+
+      The host's colour hints the sheets' env() reads (T4 theme variants), as compiled: a theme compiled again reads new hints. Empty, every env() reads its fallback. ApplicationResources::compile_theme_package and compile_user_theme pass the resources' (system_colour_hints) where these are empty.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeCompileResult final
@@ -4551,6 +4559,10 @@ Types
    .. cpp:member:: ThemeDarkVariant dark_variant
 
       The dark variant (stage T4 phase 5). None by default. Default: ``{ThemeDarkVariant::none}``.
+
+   .. cpp:member:: ColourSchemeSet colour_schemes
+
+      The colour schemes the theme has variants for (T4 theme variants): light alone by default. A window in a scheme its theme lacks shows GUI.Forms' own theme in that scheme (Window::theme_fallback). A sheet declaring ``color-scheme`` (rules.colour_schemes) replaces it when the theme is made.
 
 .. cpp:namespace:: gui_forms
 
@@ -4821,6 +4833,10 @@ Types
    .. cpp:member:: std::vector<ThemeRule> rules
 
    .. cpp:member:: std::vector<std::string> published_values
+
+   .. cpp:member:: std::optional<ColourSchemeSet> colour_schemes
+
+      The colour schemes the sheet declares (``:root { color-scheme: ... }``, T4 theme variants), or none where it declares none. Theme::create takes a declared set as the theme's (ThemeDefinition::colour_schemes).
 
 .. cpp:namespace:: gui_forms
 

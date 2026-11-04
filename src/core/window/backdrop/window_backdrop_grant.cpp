@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "../popup/popup_attachment.hpp"
 
 #include <stdexcept>
@@ -39,6 +40,12 @@ void SurfaceRoot::set_compositor_state(const CompositorState& state, bool host_p
         if (state.reduced_transparency != previous.reduced_transparency) {
             settings.reduced_transparency = state.reduced_transparency;
         }
+        // The host's light or dark preference and colour hints (T4 theme
+        // variants): the scheme is taken only while the application
+        // follows the host (ApplicationResources::automatic_colour_scheme).
+        host_colour_scheme_ = state.dark_scheme ? ColourScheme::dark : ColourScheme::light;
+        (*resources_).note_system_colour_hints(state.system_colours);
+        if ((*resources_).automatic_colour_scheme()) settings.colour_scheme = host_colour_scheme_;
     }
     if (settings == presentation_settings_) {
         refresh_backdrop();

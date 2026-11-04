@@ -5,6 +5,35 @@ Generated from `manifests/winforms-divergences.json` by
 documented observable behaviour of Windows Forms, not its internals or timings, and
 records every difference here with its reason and the decision behind it.
 
+## Application
+
+### dark mode
+
+| | |
+|---|---|
+| Windows Forms | Dark mode follows Application.SetColorMode (.NET 9 and later): SystemColors are replaced by a dark system palette. |
+| GUI.Forms | Dark mode is a theme variant. A theme declares color-scheme: light dark. ApplicationResources::set_automatic_colour_scheme, off by default, follows the host's preference. A theme with no dark variant is shown as GUI.Forms' own dark theme, with warning W403. |
+| Reason | Themes are the single home of colour; the fallback gives every application a working dark mode without per-control colours (owner 2026-11-04). |
+| Decision | owner, 2026-11-04 |
+
+### default colours (SystemColors)
+
+| | |
+|---|---|
+| Windows Forms | A control's default colours are SystemColors (Control, ControlText, Window, Highlight), read from the system. |
+| GUI.Forms | A control's default colours come from the application's theme. The system's accent and highlight colours are only hints, which a theme can read with env(system-accent, ...) and env(system-highlight, ...) or ignore. |
+| Reason | Colour belongs to the theme, so that one theme looks the same on every host (T4 theme variants). |
+| Decision | owner, 2026-11-04 |
+
+### high contrast (Windows contrast themes)
+
+| | |
+|---|---|
+| Windows Forms | Under a Windows contrast theme, controls paint with SystemColors, which take the contrast theme's palette. |
+| GUI.Forms | Windows' contrast palette is not taken. GUI.Forms switches to its own high-contrast mode, with its own palette, swapped in at paint time. |
+| Reason | The owner judged the host contrast palettes unreliable; GUI.Forms' own palette meets its 7:1 contrast gate in every state (T4 D2). |
+| Decision | owner, 2026-11-04 |
+
 ## CheckBox
 
 ### back_color
@@ -15,6 +44,17 @@ records every difference here with its reason and the decision behind it.
 | GUI.Forms | The control's own back_color also fills the check box's square. |
 | Reason | Stage T4's Control colours work: a control's back colour is the fill of its own surfaces, the square included, so one colour themes the whole control. |
 | Decision | coordinator, 2026-11-02 |
+
+## Control
+
+### back_color, fore_color
+
+| | |
+|---|---|
+| Windows Forms | BackColor and ForeColor apply in every presentation and are ordinary practice. |
+| GUI.Forms | They apply under the application's theme, and the first time each is set on a control it writes the warning W404 inline_colour. While a window shows GUI.Forms' own theme as a fallback for a missing dark or light variant, they are suspended. |
+| Reason | A colour set on a control cannot adapt to a theme's light and dark variants, and painting a light-mode colour over the dark fallback breaks the look. Colour belongs in theme rules (T4 theme variants, stage A). |
+| Decision | owner, 2026-11-04 |
 
 ## DataGridView
 

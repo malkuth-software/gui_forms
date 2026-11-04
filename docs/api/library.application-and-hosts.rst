@@ -357,6 +357,14 @@ Related types
 
    .. cpp:member:: bool high_contrast
 
+   .. cpp:member:: bool dark_scheme
+
+      The host's colour-scheme preference (T4 theme variants): dark where the user chose dark applications; false where the host has no such setting. A window follows it only while its application's automatic colour scheme is on (ApplicationResources::set_automatic_colour_scheme).
+
+   .. cpp:member:: SystemColourHints system_colours
+
+      The host's accent and text-selection colours, empty where it reports none: hints a theme's env() may read (SystemColourHints).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: CursorCapabilities final

@@ -87,6 +87,14 @@ control types, parts and states.
   colour. A literal colour in a text or edge position (`color`, borders,
   outlines) is a warning: forced high contrast can only replace it by its
   position.
+- **System colours:** `env(system-accent, <colour>)` and
+  `env(system-highlight, <colour>)` read the host's accent and
+  text-selection colours as hints, in any colour position. The fallback
+  colour is required, and is read where the host reports none or the
+  theme is compiled without hints. A hint is read when the theme is
+  compiled (`ThemeCompileOptions::system_colours`;
+  `ApplicationResources::compile_theme_package` passes the hints its
+  windows last reported). GUI.Forms' own theme reads neither.
 - **Expressions:** `calc()`, `clamp()`, `min()`, `max()`, and the engine's
   `mix()`, `smoothstep()`, `choose()`, `less()`, `less-equal()`,
   `greater()`, `greater-equal()`, `equal()`, `not-equal()`, `state()` and
@@ -170,6 +178,38 @@ animation stops.
 applies the block for each query. Media types other than `all` and `screen`,
 `not`, `only` and `or` are errors; an unknown feature is a warning that
 skips the block. The conditions are evaluated per window.
+
+## Colour schemes
+
+A theme declares the colour schemes it has variants for on `:root`:
+`:root { color-scheme: light dark; }`, or `light` or `dark` alone. A theme
+that declares nothing is light only. The rules for one scheme are written
+under `@media (prefers-color-scheme: dark)` (or `light`); unconditioned
+rules hold in both, so a dark variant writes only what differs. Any other
+word (`normal`, `only`) and `color-scheme` under `@media` are errors;
+`color-scheme` outside `:root` is a warning that drops it, and a sheet with
+dark rules but no dark variant is warned (W402
+`scheme_rules_without_variant`), since those rules then apply nowhere.
+
+A window whose scheme its theme has no variant for shows GUI.Forms' own
+theme (`gui-forms`) in that scheme instead: `Window::theme_fallback()` says
+so, the warning W403 `theme_variant_missing` is written once per theme and
+scheme, and the colours the application set on its controls (`back_color`,
+`fore_color`, authored surfaces and parts' colours) are suspended, since
+they were chosen against the other theme. Switching back shows the
+application's theme and its colours again; `theme_changed` is raised each
+time. High contrast uses GUI.Forms' own high-contrast palette in either
+case.
+
+The window's scheme is the application's choice
+(`PresentationSettings::colour_scheme`) unless the application turns on
+`ApplicationResources::set_automatic_colour_scheme(true)`, when every
+window follows the host's light or dark preference (capability
+`presentation_preferences`; light where the host reports none).
+
+Colour belongs in the theme: setting `back_color` or `fore_color` on a
+control still applies, for compatibility, but writes the warning W404
+`inline_colour` once per control and property.
 
 ## Inline styles
 

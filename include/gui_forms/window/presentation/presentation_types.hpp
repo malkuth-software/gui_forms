@@ -1,12 +1,15 @@
 #pragma once
 
 #include "gui_forms/types.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
 
 #include <compare>
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
+#include <string_view>
 
 namespace gui_forms {
 
@@ -14,13 +17,21 @@ class LiveSurface;
 
 // Presentation preferences are logical UI policy and remain independent from
 // the native/device pixel scale.
-// The colour scheme a window prefers (T3 EC3): light unless the
-// application, or a host that reports one, says dark. A theme reads it
-// through `@media (prefers-color-scheme: ...)`; it changes no built-in
-// recipe.
-enum class ColourScheme : std::uint8_t {
-    light,
-    dark,
+// A window showing GUI.Forms' own theme because its theme has no variant
+// for the window's colour scheme (Window::theme_fallback, T4 theme
+// variants): the application's theme, the scheme it lacks, and the theme
+// shown instead (`gui-forms` in that scheme). Colours the application set
+// on its controls are suspended while it holds (Control::
+// application_colours_suspended).
+struct ThemeFallback final {
+    std::string theme_id{};
+    ColourScheme missing{ColourScheme::dark};
+    std::string fallback_id{};
+
+    friend bool operator==(const ThemeFallback& left, const ThemeFallback& right) noexcept {
+        return left.theme_id == right.theme_id && left.missing == right.missing &&
+               left.fallback_id == right.fallback_id;
+    }
 };
 
 struct PresentationSettings final {

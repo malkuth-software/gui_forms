@@ -72,6 +72,42 @@
       "reason": "An empty menu has nothing to choose; showing it would be a dead end.",
       "source": "coordinator",
       "date": "2026-11-03"
+    },
+    {
+      "control": "Application",
+      "member": "dark mode",
+      "winforms": "Dark mode follows Application.SetColorMode (.NET 9 and later): SystemColors are replaced by a dark system palette.",
+      "gui_forms": "Dark mode is a theme variant. A theme declares color-scheme: light dark. ApplicationResources::set_automatic_colour_scheme, off by default, follows the host's preference. A theme with no dark variant is shown as GUI.Forms' own dark theme, with warning W403.",
+      "reason": "Themes are the single home of colour; the fallback gives every application a working dark mode without per-control colours (owner 2026-11-04).",
+      "source": "owner",
+      "date": "2026-11-04"
+    },
+    {
+      "control": "Application",
+      "member": "default colours (SystemColors)",
+      "winforms": "A control's default colours are SystemColors (Control, ControlText, Window, Highlight), read from the system.",
+      "gui_forms": "A control's default colours come from the application's theme. The system's accent and highlight colours are only hints, which a theme can read with env(system-accent, ...) and env(system-highlight, ...) or ignore.",
+      "reason": "Colour belongs to the theme, so that one theme looks the same on every host (T4 theme variants).",
+      "source": "owner",
+      "date": "2026-11-04"
+    },
+    {
+      "control": "Application",
+      "member": "high contrast (Windows contrast themes)",
+      "winforms": "Under a Windows contrast theme, controls paint with SystemColors, which take the contrast theme's palette.",
+      "gui_forms": "Windows' contrast palette is not taken. GUI.Forms switches to its own high-contrast mode, with its own palette, swapped in at paint time.",
+      "reason": "The owner judged the host contrast palettes unreliable; GUI.Forms' own palette meets its 7:1 contrast gate in every state (T4 D2).",
+      "source": "owner",
+      "date": "2026-11-04"
+    },
+    {
+      "control": "Control",
+      "member": "back_color, fore_color",
+      "winforms": "BackColor and ForeColor apply in every presentation and are ordinary practice.",
+      "gui_forms": "They apply under the application's theme, and the first time each is set on a control it writes the warning W404 inline_colour. While a window shows GUI.Forms' own theme as a fallback for a missing dark or light variant, they are suspended.",
+      "reason": "A colour set on a control cannot adapt to a theme's light and dark variants, and painting a light-mode colour over the dark fallback breaks the look. Colour belongs in theme rules (T4 theme variants, stage A).",
+      "source": "owner",
+      "date": "2026-11-04"
     }
   ]
 }
