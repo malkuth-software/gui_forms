@@ -318,7 +318,7 @@ struct RecordingMark final {
     }
 };
 
-// The events a window raises through the C ABI (Window::append_interactions),
+// The events a window raises through the C ABI (SurfaceRoot::append_interactions),
 // in declaration order. The rest of Window's events stay C++-only until a
 // consumer needs them; declaring one later is a minor ABI addition.
 constexpr std::array<InteractionDeclaration, 7> window_interactions{{
@@ -333,7 +333,7 @@ constexpr std::array<InteractionDeclaration, 7> window_interactions{{
 
 } // namespace
 
-void Window::FocusChangePublication::operator()() const {
+void SurfaceRoot::FocusChangePublication::operator()() const {
     if (!control ||
         (focused ? !(*window).eligible(control)
                  : (!(*control).is_alive() || (*control).window_ != window))) {
@@ -352,17 +352,17 @@ void Window::FocusChangePublication::operator()() const {
     }
 }
 
-void Window::FocusScopePublication::operator()() const {
+void SurfaceRoot::FocusScopePublication::operator()() const {
     if (!owner || !(*owner).is_alive() || (*owner).window_ != window) return;
     (*window).focus_scope_changed_.emit(change);
 }
 
-void Window::PointerCapturePublication::operator()() const {
+void SurfaceRoot::PointerCapturePublication::operator()() const {
     if (!owner || !(*owner).is_alive() || (*owner).window_ != window) return;
     (*window).pointer_capture_changed_.emit(change);
 }
 
-void Window::ControlAvailabilityPublication::operator()() const {
+void SurfaceRoot::ControlAvailabilityPublication::operator()() const {
     if (!control || !(*control).is_alive() || (*control).window_ != window) {
         return;
     }
@@ -370,7 +370,7 @@ void Window::ControlAvailabilityPublication::operator()() const {
 }
 
 template <typename InputEvent>
-void Window::DeferredInputVisitor::operator()(InputEvent&& event) const {
+void SurfaceRoot::DeferredInputVisitor::operator()(InputEvent&& event) const {
     using EventType =
         std::remove_cv_t<std::remove_reference_t<InputEvent>>;
     if constexpr (std::is_same_v<EventType, PointerEvent>) {
@@ -391,12 +391,12 @@ void Window::DeferredInputVisitor::operator()(InputEvent&& event) const {
 }
 
 
-ImageLoadResult Window::load_png(std::span<const std::byte> encoded) {
+ImageLoadResult SurfaceRoot::load_png(std::span<const std::byte> encoded) {
     require_root_thread("PNG resource load");
     return (*resources_).load_png(encoded);
 }
 
-ImageLoadResult Window::load_bgra32_premultiplied(
+ImageLoadResult SurfaceRoot::load_bgra32_premultiplied(
     std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes,
     std::span<const std::byte> pixels) {
     require_root_thread("BGRA resource load");
@@ -404,7 +404,7 @@ ImageLoadResult Window::load_bgra32_premultiplied(
         width, height, row_bytes, pixels);
 }
 
-ImageLoadResult Window::replace_png(ImageId image,
+ImageLoadResult SurfaceRoot::replace_png(ImageId image,
                                     std::span<const std::byte> encoded) {
     require_root_thread("PNG resource replacement");
     // Repaints every window sharing the registry, this one included.
@@ -412,12 +412,12 @@ ImageLoadResult Window::replace_png(ImageId image,
     return result;
 }
 
-void Window::repaint_for_image_replacement() {
+void SurfaceRoot::repaint_for_image_replacement() {
     add_damage_all_planes({0.0, 0.0, client_size_.width, client_size_.height});
     touch_paint();
 }
 
-void Window::repaint_for_image_removal() {
+void SurfaceRoot::repaint_for_image_removal() {
     // The unscoped removal API cannot know which retained display chunks
     // reference this generational ID. Conservatively retire all cached paint
     // chunks so a dead ImageId is never replayed into any renderer. Scoped
@@ -425,7 +425,7 @@ void Window::repaint_for_image_removal() {
     mark_subtree_dirty(*root_, Dirty::paint | Dirty::semantics);
 }
 
-ImageLoadResult Window::replace_bgra32_premultiplied(
+ImageLoadResult SurfaceRoot::replace_bgra32_premultiplied(
     ImageId image, std::uint32_t width, std::uint32_t height,
     std::uint64_t row_bytes, std::span<const std::byte> pixels,
     Control& consumer) {
@@ -442,7 +442,7 @@ ImageLoadResult Window::replace_bgra32_premultiplied(
     return result;
 }
 
-ImageLoadResult Window::update_bgra32_premultiplied(
+ImageLoadResult SurfaceRoot::update_bgra32_premultiplied(
     ImageId image, std::uint32_t width, std::uint32_t height,
     std::uint64_t row_bytes, std::span<const std::byte> pixels,
     Control& consumer) {
@@ -459,7 +459,7 @@ ImageLoadResult Window::update_bgra32_premultiplied(
     return result;
 }
 
-ImageLoadResult Window::patch_bgra32_premultiplied(
+ImageLoadResult SurfaceRoot::patch_bgra32_premultiplied(
     ImageId image, std::uint32_t x, std::uint32_t y,
     std::uint32_t width, std::uint32_t height,
     std::uint64_t source_row_bytes, std::span<const std::byte> pixels,
@@ -477,7 +477,7 @@ ImageLoadResult Window::patch_bgra32_premultiplied(
     return result;
 }
 
-ImageLoadResult Window::replace_png(ImageId image,
+ImageLoadResult SurfaceRoot::replace_png(ImageId image,
                                     std::span<const std::byte> encoded,
                                     Control& consumer) {
     require_root_thread("scoped PNG resource replacement");
@@ -492,7 +492,7 @@ ImageLoadResult Window::replace_png(ImageId image,
     return result;
 }
 
-bool Window::remove_image(ImageId image) {
+bool SurfaceRoot::remove_image(ImageId image) {
     require_root_thread("PNG resource removal");
     // Retires the paint of every window sharing the registry.
     const bool removed = (*resources_).remove_image(image);
@@ -500,7 +500,7 @@ bool Window::remove_image(ImageId image) {
 }
 
 
-AcceleratorToken Window::register_accelerator(
+AcceleratorToken SurfaceRoot::register_accelerator(
     Component& owner, KeyGesture gesture, std::function<bool()> callback,
     AcceleratorOptions options) {
     require_root_thread("accelerator registration");
@@ -509,13 +509,13 @@ AcceleratorToken Window::register_accelerator(
             "accelerator requires a live owner, physical key, and callback");
     }
     std::shared_ptr<gui_forms::detail::AcceleratorAttachment> attachment = std::make_shared<detail::AcceleratorAttachment>(
-        *this, owner, gesture, std::move(callback), options);
+        as_window(), owner, gesture, std::move(callback), options);
     accelerators_.push_back(attachment);
     owner.own_revocable(attachment);
     return AcceleratorToken(std::move(attachment));
 }
 
-void Window::close_accelerator(
+void SurfaceRoot::close_accelerator(
     detail::AcceleratorAttachment& accelerator) noexcept {
     AcceleratorList::iterator found = accelerators_.begin();
     while (found != accelerators_.end() &&
@@ -527,13 +527,13 @@ void Window::close_accelerator(
     accelerators_.erase(found);
 }
 
-bool Window::offer_accelerators(const KeyEvent& event) {
+bool SurfaceRoot::offer_accelerators(const KeyEvent& event) {
     require_root_thread("accelerator offer");
     const bool taken = dispatch_accelerator(event, false);
     return taken;
 }
 
-bool Window::dispatch_accelerator(const KeyEvent& event, bool preemptive) {
+bool SurfaceRoot::dispatch_accelerator(const KeyEvent& event, bool preemptive) {
     if (event.action != KeyAction::down) return false;
     const AcceleratorList snapshot = accelerators_;
     for (AcceleratorList::const_reverse_iterator iterator = snapshot.rbegin();
@@ -550,7 +550,7 @@ bool Window::dispatch_accelerator(const KeyEvent& event, bool preemptive) {
     return false;
 }
 
-PopupToken Window::open_popup(const Control::Ptr& owner,
+PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
                               const Control::Ptr& popup,
                               PopupOptions options) {
     require_root_thread("popup attachment");
@@ -572,13 +572,13 @@ PopupToken Window::open_popup(const Control::Ptr& owner,
     // overlay. Keep it as a separate retained root while still registering the
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
     attach_subtree(popup, {});
-    std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = std::make_shared<detail::PopupAttachment>(*this, owner, popup);
+    std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = std::make_shared<detail::PopupAttachment>(as_window(), owner, popup);
     popups_.push_back(attachment);
     (*owner).own_revocable(attachment);
     return PopupToken(std::move(attachment));
 }
 
-void Window::close_popup(detail::PopupAttachment& popup) noexcept {
+void SurfaceRoot::close_popup(detail::PopupAttachment& popup) noexcept {
     PopupList::iterator found = popups_.begin();
     while (found != popups_.end() && (*found).get() != &popup) {
         ++found;
@@ -610,7 +610,7 @@ void Window::close_popup(detail::PopupAttachment& popup) noexcept {
     }
 }
 
-void Window::close_popups_for_subtree(const Control::Ptr& control) noexcept {
+void SurfaceRoot::close_popups_for_subtree(const Control::Ptr& control) noexcept {
     std::vector<std::shared_ptr<detail::PopupAttachment>> closing;
     for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
         if (contains_control(control, (*popup).owner())) {
@@ -624,13 +624,13 @@ void Window::close_popups_for_subtree(const Control::Ptr& control) noexcept {
 
 
 
-Control::Ptr Window::find(std::string_view stable_id) const {
+Control::Ptr SurfaceRoot::find(std::string_view stable_id) const {
     const StableIdMap::const_iterator found =
         stable_ids_.find(std::string(stable_id));
     return found == stable_ids_.end() ? Control::Ptr{} : (*found).second.lock();
 }
 
-Control::Ptr Window::hit_test(Point position) {
+Control::Ptr SurfaceRoot::hit_test(Point position) {
     require_root_thread("hit test");
     for (std::uint32_t pass = 0U;
          pass < maximum_semantic_snapshot_passes; ++pass) {
@@ -659,12 +659,12 @@ Control::Ptr Window::hit_test(Point position) {
 
 // --- Help asked of the window ----------------------------------------------
 
-void Window::append_interactions(std::vector<InteractionDeclaration>& interactions) {
+void SurfaceRoot::append_interactions(std::vector<InteractionDeclaration>& interactions) {
     interactions.insert(interactions.end(), window_interactions.begin(), window_interactions.end());
 }
 
-bool Window::request_help(bool keyboard_initiated) {
-    verify_access("Window::request_help");
+bool SurfaceRoot::request_help(bool keyboard_initiated) {
+    verify_access("SurfaceRoot::request_help");
     HelpRequestEvent request{};
     const Control::Ptr root_control = root();
     if (root_control) {
@@ -691,17 +691,17 @@ bool Window::request_help(bool keyboard_initiated) {
     return request.handled;
 }
 
-void Window::add_help_fallback(detail::WindowHelpFallback& fallback) {
+void SurfaceRoot::add_help_fallback(detail::WindowHelpFallback& fallback) {
     help_fallbacks_.push_back(&fallback);
 }
 
-void Window::remove_help_fallback(const detail::WindowHelpFallback& fallback) noexcept {
+void SurfaceRoot::remove_help_fallback(const detail::WindowHelpFallback& fallback) noexcept {
     const std::vector<detail::WindowHelpFallback*>::iterator found =
         std::find(help_fallbacks_.begin(), help_fallbacks_.end(), &fallback);
     if (found != help_fallbacks_.end()) help_fallbacks_.erase(found);
 }
 
-bool Window::request_focus(const Control::Ptr& control) {
+bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     require_root_thread("focus mutation");
     if (control && (!eligible(control) || !(*control).focusable_)) {
         return false;
@@ -750,14 +750,14 @@ bool Window::request_focus(const Control::Ptr& control) {
         focused_.reset();
         (*previous).publish_change(
             static_cast<const void*>(&(*previous).focus_observed_),
-            FocusChangePublication{this, previous, false});
+            FocusChangePublication{&as_window(), previous, false});
     }
     if (control && eligible(control) && (*control).focusable_) {
         focused_ = control;
         remember_region_focus(control);
         (*control).publish_change(
             static_cast<const void*>(&(*control).focus_observed_),
-            FocusChangePublication{this, control, true});
+            FocusChangePublication{&as_window(), control, true});
     }
     metrics_.record_focus_transition();
     FocusedControlChange moved{};
@@ -772,7 +772,7 @@ bool Window::request_focus(const Control::Ptr& control) {
     return true;
 }
 
-void Window::set_focus_cue_visible(bool visible) {
+void SurfaceRoot::set_focus_cue_visible(bool visible) {
     if (focus_cue_visible_ == visible) return;
     const Control::Ptr focused = focused_.lock();
     if (focused && (*focused).is_alive() &&
@@ -790,7 +790,7 @@ void Window::set_focus_cue_visible(bool visible) {
     }
 }
 
-void Window::set_accept_button(const Control::Ptr& control) {
+void SurfaceRoot::set_accept_button(const Control::Ptr& control) {
     require_root_thread("accept button mutation");
     if (control && ((*control).attached_window() != this || !(*control).is_alive() ||
                     !(*control).supports_dialog_command())) {
@@ -809,7 +809,7 @@ void Window::set_accept_button(const Control::Ptr& control) {
     accept_button_ = control;
 }
 
-void Window::set_cancel_button(const Control::Ptr& control) {
+void SurfaceRoot::set_cancel_button(const Control::Ptr& control) {
     require_root_thread("cancel button mutation");
     if (control && ((*control).attached_window() != this || !(*control).is_alive() ||
                     !(*control).supports_dialog_command())) {
@@ -827,14 +827,14 @@ void Window::set_cancel_button(const Control::Ptr& control) {
     cancel_button_ = control;
 }
 
-DialogKeySnapshot Window::dialog_key_snapshot() const noexcept {
+DialogKeySnapshot SurfaceRoot::dialog_key_snapshot() const noexcept {
     return {mnemonic_attempts_, mnemonics_handled_, accept_attempts_,
             accept_handled_, cancel_attempts_, cancel_handled_,
             dialog_command_rejections_, mnemonic_candidates_,
             mnemonic_collisions_, mnemonic_cycles_};
 }
 
-void Window::set_dialog_result(DialogResult result) {
+void SurfaceRoot::set_dialog_result(DialogResult result) {
     require_root_thread("dialog result mutation");
     switch (result) {
     case DialogResult::none:
@@ -855,14 +855,14 @@ void Window::set_dialog_result(DialogResult result) {
     dialog_result_changed_.emit(dialog_result_);
 }
 
-bool Window::tab_order_less(const Control::Ptr& left,
+bool SurfaceRoot::tab_order_less(const Control::Ptr& left,
                             const Control::Ptr& right) noexcept {
     if (!left) return false;
     if (!right) return true;
     return (*left).tab_index() < (*right).tab_index();
 }
 
-void Window::collect_focus_candidates(const Control::Ptr& control,
+void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
                                       ControlList& result,
                                       bool focusable_only) const {
     if (!control || !eligible(control)) return;
@@ -877,7 +877,7 @@ void Window::collect_focus_candidates(const Control::Ptr& control,
     }
 }
 
-void Window::collect_mnemonic_candidates(const Control::Ptr& control,
+void SurfaceRoot::collect_mnemonic_candidates(const Control::Ptr& control,
                                          const Control::Ptr& root,
                                          char32_t character,
                                          ControlList& result) const {
@@ -895,7 +895,7 @@ void Window::collect_mnemonic_candidates(const Control::Ptr& control,
     }
 }
 
-bool Window::move_focus_after(const Control::Ptr& origin) {
+bool SurfaceRoot::move_focus_after(const Control::Ptr& origin) {
     require_root_thread("mnemonic focus traversal");
     if (!origin || (*origin).attached_window() != this) return false;
     const Control::Ptr scope = active_focus_scope_root();
@@ -915,7 +915,7 @@ bool Window::move_focus_after(const Control::Ptr& origin) {
     return false;
 }
 
-bool Window::validate_command_activation(const Control::Ptr& destination) {
+bool SurfaceRoot::validate_command_activation(const Control::Ptr& destination) {
     require_root_thread("dialog command activation");
     if (!destination || !eligible(destination) ||
         !focus_allowed_by_active_scope(destination)) return false;
@@ -939,7 +939,7 @@ bool Window::validate_command_activation(const Control::Ptr& destination) {
     return accepted || mode == AutoValidate::enable_allow_focus_change;
 }
 
-bool Window::dispatch_mnemonic(char32_t character) {
+bool SurfaceRoot::dispatch_mnemonic(char32_t character) {
     ++mnemonic_attempts_;
     const Control::Ptr scope = active_focus_scope_root();
     const Control::Ptr start = scope ? scope : root_;
@@ -989,7 +989,7 @@ bool Window::dispatch_mnemonic(char32_t character) {
     return false;
 }
 
-bool Window::dispatch_dialog_button(bool accept) {
+bool SurfaceRoot::dispatch_dialog_button(bool accept) {
     std::uint64_t& attempts = accept ? accept_attempts_ : cancel_attempts_;
     std::uint64_t& handled = accept ? accept_handled_ : cancel_handled_;
     ++attempts;
@@ -1008,7 +1008,7 @@ bool Window::dispatch_dialog_button(bool accept) {
     return true;
 }
 
-bool Window::dispatch_dialog_key(const KeyEvent& event) {
+bool SurfaceRoot::dispatch_dialog_key(const KeyEvent& event) {
     if (event.action != KeyAction::down || event.repeat) return false;
     const bool alt = has_modifier(event.modifiers, Modifier::alt);
     const bool control = has_modifier(event.modifiers, Modifier::control);
@@ -1029,7 +1029,7 @@ bool Window::dispatch_dialog_key(const KeyEvent& event) {
     return false;
 }
 
-bool Window::validate_control(const Control::Ptr& control,
+bool SurfaceRoot::validate_control(const Control::Ptr& control,
                               Control* destination, bool bulk) {
     require_root_thread("control validation");
     if (!control || !eligible(control)) return true;
@@ -1050,7 +1050,7 @@ bool Window::validate_control(const Control::Ptr& control,
     return accepted;
 }
 
-bool Window::validate_children(const Control::Ptr& container,
+bool SurfaceRoot::validate_children(const Control::Ptr& container,
                                ValidationConstraints constraints) {
     require_root_thread("child validation");
     if (!container || !eligible(container)) return true;
@@ -1080,7 +1080,7 @@ bool Window::validate_children(const Control::Ptr& container,
     return accepted;
 }
 
-void Window::validate_children_recursive(
+void SurfaceRoot::validate_children_recursive(
     const Control::Ptr& parent, const Control::Ptr& container,
     ValidationConstraints constraints, bool& accepted) {
     const std::vector<Control::Ptr> children(
@@ -1128,14 +1128,14 @@ void Window::validate_children_recursive(
     }
 }
 
-ValidationSnapshot Window::validation_snapshot() const noexcept {
+ValidationSnapshot SurfaceRoot::validation_snapshot() const noexcept {
     return {validation_attempts_, validation_succeeded_, validation_cancelled_,
             validation_focus_moves_blocked_,
             validation_reentrant_requests_rejected_,
             validation_bulk_controls_visited_, validating_};
 }
 
-bool Window::validate_focus_transition(const Control::Ptr& previous,
+bool SurfaceRoot::validate_focus_transition(const Control::Ptr& previous,
                                        const Control::Ptr& destination,
                                        AutoValidate mode) {
     std::unordered_set<const Control*> destination_ancestors;
@@ -1162,7 +1162,7 @@ bool Window::validate_focus_transition(const Control::Ptr& previous,
     return accepted;
 }
 
-FocusScopeId Window::begin_focus_scope(const Control::Ptr& root,
+FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
                                        const Control::Ptr& preferred_focus,
                                        FocusScopeOptions options) {
     require_root_thread("focus-scope entry");
@@ -1250,12 +1250,12 @@ FocusScopeId Window::begin_focus_scope(const Control::Ptr& root,
     return state.id;
 }
 
-bool Window::end_focus_scope(FocusScopeId scope,
+bool SurfaceRoot::end_focus_scope(FocusScopeId scope,
                              FocusScopeCloseReason reason) {
     return end_focus_scope(scope, reason, {});
 }
 
-bool Window::end_focus_scope(FocusScopeId scope,
+bool SurfaceRoot::end_focus_scope(FocusScopeId scope,
                              FocusScopeCloseReason reason,
                              const Control::Ptr& notification_owner) {
     require_root_thread("focus-scope exit");
@@ -1323,14 +1323,14 @@ bool Window::end_focus_scope(FocusScopeId scope,
         (*notification_owner).publish_change(
             static_cast<const void*>(notification_key.get()),
             FocusScopePublication{
-                this, notification_owner, notification_key, change});
+                &as_window(), notification_owner, notification_key, change});
     } else {
         focus_scope_changed_.emit(change);
     }
     return true;
 }
 
-std::size_t Window::focus_scope_depth() const noexcept {
+std::size_t SurfaceRoot::focus_scope_depth() const noexcept {
     std::size_t depth = 0U;
     for (const FocusScopeState& state : focus_scopes_) {
         depth += state.active ? 1U : 0U;
@@ -1338,7 +1338,7 @@ std::size_t Window::focus_scope_depth() const noexcept {
     return depth;
 }
 
-Control::Ptr Window::active_focus_scope_root() const noexcept {
+Control::Ptr SurfaceRoot::active_focus_scope_root() const noexcept {
     for (FocusScopeList::const_reverse_iterator current = focus_scopes_.rbegin();
          current != focus_scopes_.rend();
          ++current) {
@@ -1349,7 +1349,7 @@ Control::Ptr Window::active_focus_scope_root() const noexcept {
     return {};
 }
 
-bool Window::focus_allowed_by_active_scope(
+bool SurfaceRoot::focus_allowed_by_active_scope(
     const Control::Ptr& control) const noexcept {
     for (FocusScopeList::const_reverse_iterator current = focus_scopes_.rbegin();
          current != focus_scopes_.rend();
@@ -1365,14 +1365,14 @@ bool Window::focus_allowed_by_active_scope(
     return true;
 }
 
-std::vector<Control::Ptr> Window::focus_candidates(
+std::vector<Control::Ptr> SurfaceRoot::focus_candidates(
     const Control::Ptr& scope_root) const {
     ControlList result;
     collect_focus_candidates(scope_root, result, true);
     return result;
 }
 
-bool Window::move_focus(bool forward) {
+bool SurfaceRoot::move_focus(bool forward) {
     require_root_thread("focus traversal");
     const Control::Ptr scope_root = active_focus_scope_root();
     ControlList candidates =
@@ -1398,7 +1398,7 @@ bool Window::move_focus(bool forward) {
     return request_focus(candidates[index]);
 }
 
-void Window::set_focus_regions(std::vector<Control::Ptr> regions) {
+void SurfaceRoot::set_focus_regions(std::vector<Control::Ptr> regions) {
     require_root_thread("focus region mutation");
     for (std::size_t index = 0; index < regions.size(); ++index) {
         const Control::Ptr& region = regions[index];
@@ -1423,7 +1423,7 @@ void Window::set_focus_regions(std::vector<Control::Ptr> regions) {
     focus_regions_.swap(next);
 }
 
-std::vector<Control::Ptr> Window::focus_regions() const {
+std::vector<Control::Ptr> SurfaceRoot::focus_regions() const {
     std::vector<Control::Ptr> regions;
     regions.reserve(focus_regions_.size());
     for (const FocusRegion& entry : focus_regions_) {
@@ -1433,7 +1433,7 @@ std::vector<Control::Ptr> Window::focus_regions() const {
     return regions;
 }
 
-bool Window::add_focus_region(const Control::Ptr& region) {
+bool SurfaceRoot::add_focus_region(const Control::Ptr& region) {
     require_root_thread("focus region mutation");
     if (!region || !(*region).is_alive() || (*region).attached_window() != this) return false;
     for (const FocusRegion& entry : focus_regions_) {
@@ -1449,7 +1449,7 @@ bool Window::add_focus_region(const Control::Ptr& region) {
     return true;
 }
 
-void Window::remember_region_focus(const Control::Ptr& control) {
+void SurfaceRoot::remember_region_focus(const Control::Ptr& control) {
     for (FocusRegion& entry : focus_regions_) {
         const Control::Ptr region = entry.region.lock();
         if (region && region_holds(*region, *control)) entry.remembered = control;
@@ -1458,7 +1458,7 @@ void Window::remember_region_focus(const Control::Ptr& control) {
 
 // Focuses the region's remembered control while it is still inside the
 // region and can take focus, or else the region's first Tab stop.
-bool Window::focus_into_region(FocusRegion& entry) {
+bool SurfaceRoot::focus_into_region(FocusRegion& entry) {
     const Control::Ptr region = entry.region.lock();
     if (!region || !(*region).is_alive() || (*region).attached_window() != this || !eligible(region)) {
         return false;
@@ -1474,7 +1474,7 @@ bool Window::focus_into_region(FocusRegion& entry) {
     return false;
 }
 
-bool Window::move_focus_region(bool forward) {
+bool SurfaceRoot::move_focus_region(bool forward) {
     require_root_thread("focus region traversal");
     if (!focus_scopes_.empty() || focus_regions_.empty()) return false;
     const std::size_t count = focus_regions_.size();
@@ -1506,7 +1506,7 @@ bool Window::move_focus_region(bool forward) {
     return false;
 }
 
-void Window::capture_pointer(const Control::Ptr& control, std::uint64_t pointer_id) {
+void SurfaceRoot::capture_pointer(const Control::Ptr& control, std::uint64_t pointer_id) {
     require_root_thread("pointer capture");
     if (control && !eligible(control)) {
         throw std::logic_error("GUI.Forms cannot capture pointer to a foreign control");
@@ -1514,12 +1514,12 @@ void Window::capture_pointer(const Control::Ptr& control, std::uint64_t pointer_
     change_pointer_capture(control, pointer_id == 0 ? 1 : pointer_id, false);
 }
 
-void Window::release_pointer() {
+void SurfaceRoot::release_pointer() {
     require_root_thread("pointer capture release");
     change_pointer_capture({}, 0, false);
 }
 
-void Window::change_pointer_capture(const Control::Ptr& control,
+void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
                                     std::uint64_t pointer_id,
                                     bool revoked) {
     const Control::Ptr previous = captured_.lock();
@@ -1546,13 +1546,13 @@ void Window::change_pointer_capture(const Control::Ptr& control,
     if (publication_owner) {
         (*publication_owner).publish_change(
             static_cast<const void*>(&pointer_capture_changed_),
-            PointerCapturePublication{this, publication_owner, change});
+            PointerCapturePublication{&as_window(), publication_owner, change});
     } else {
         pointer_capture_changed_.emit(change);
     }
 }
 
-bool Window::dispatch_pointer(PointerEvent event) {
+bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
     require_root_thread("pointer dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "pointer", 0U);
     if (in_paint_) {
@@ -1697,7 +1697,7 @@ bool Window::dispatch_pointer(PointerEvent event) {
     return event.handled;
 }
 
-bool Window::dispatch_key(KeyEvent event) {
+bool SurfaceRoot::dispatch_key(KeyEvent event) {
     require_root_thread("key dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
     if (in_paint_) {
@@ -1711,7 +1711,7 @@ bool Window::dispatch_key(KeyEvent event) {
     return handled;
 }
 
-bool Window::route_key(KeyEvent event) {
+bool SurfaceRoot::route_key(KeyEvent event) {
     metrics_.record_input();
     if (event.action == KeyAction::down) {
         set_focus_cue_visible(true);
@@ -1779,7 +1779,7 @@ bool Window::route_key(KeyEvent event) {
     return event.handled;
 }
 
-bool Window::dispatch_text(TextInputEvent event) {
+bool SurfaceRoot::dispatch_text(TextInputEvent event) {
     require_root_thread("text dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "text", 0U);
     if (in_paint_) {
@@ -1795,7 +1795,7 @@ bool Window::dispatch_text(TextInputEvent event) {
     return event.handled;
 }
 
-DeferredInputSnapshot Window::deferred_input_snapshot() const noexcept {
+DeferredInputSnapshot SurfaceRoot::deferred_input_snapshot() const noexcept {
     return {deferred_inputs_.size(), maximum_deferred_inputs,
             deferred_inputs_received_, deferred_inputs_delivered_,
             deferred_input_moves_coalesced_,
@@ -1805,7 +1805,7 @@ DeferredInputSnapshot Window::deferred_input_snapshot() const noexcept {
             draining_deferred_input_};
 }
 
-bool Window::defer_input(DeferredInput input) {
+bool SurfaceRoot::defer_input(DeferredInput input) {
     if (gui_forms::PointerEvent* pointer = std::get_if<PointerEvent>(&input);
         pointer && (*pointer).action == PointerAction::move &&
         !deferred_inputs_.empty()) {
@@ -1841,15 +1841,15 @@ bool Window::defer_input(DeferredInput input) {
     return true;
 }
 
-void Window::schedule_deferred_input_drain() noexcept {
+void SurfaceRoot::schedule_deferred_input_drain() noexcept {
     if (deferred_inputs_.empty() || deferred_input_drain_queued_ ||
         draining_deferred_input_ || in_paint_) {
         return;
     }
     deferred_input_drain_queued_ = true;
     try {
-        const detail::BoundMemberFunction<void (Window::*)()> drain(
-            *this, &Window::drain_deferred_input);
+        const detail::BoundMemberFunction<void (SurfaceRoot::*)()> drain(
+            *this, &SurfaceRoot::drain_deferred_input);
         deferred_input_drain_operation_ = begin_invoke(drain);
     } catch (...) {
         deferred_input_drain_queued_ = false;
@@ -1859,7 +1859,7 @@ void Window::schedule_deferred_input_drain() noexcept {
     }
 }
 
-void Window::drain_deferred_input() {
+void SurfaceRoot::drain_deferred_input() {
     require_root_thread("deferred input drain");
     deferred_input_drain_operation_ = {};
     deferred_input_drain_queued_ = false;
@@ -1875,7 +1875,7 @@ void Window::drain_deferred_input() {
         DeferredInput input = std::move(deferred_inputs_.front());
         deferred_inputs_.pop_front();
         try {
-            std::visit(DeferredInputVisitor{this}, std::move(input));
+            std::visit(DeferredInputVisitor{&as_window()}, std::move(input));
             ++deferred_inputs_delivered_;
         } catch (...) {
             ++deferred_input_faults_;
@@ -1888,7 +1888,7 @@ void Window::drain_deferred_input() {
     if (first_fault) std::rethrow_exception(first_fault);
 }
 
-void Window::abandon_deferred_input() noexcept {
+void SurfaceRoot::abandon_deferred_input() noexcept {
     static_cast<void>(deferred_input_drain_operation_.cancel());
     deferred_input_drain_operation_ = {};
     deferred_inputs_abandoned_ += deferred_inputs_.size();
@@ -1896,7 +1896,7 @@ void Window::abandon_deferred_input() noexcept {
     deferred_input_drain_queued_ = false;
 }
 
-void Window::abandon_deferred_drag() noexcept {
+void SurfaceRoot::abandon_deferred_drag() noexcept {
     const std::size_t before = deferred_inputs_.size();
     std::deque<DeferredInput>::iterator input = deferred_inputs_.begin();
     while (input != deferred_inputs_.end()) {
@@ -1914,7 +1914,7 @@ void Window::abandon_deferred_drag() noexcept {
     }
 }
 
-Control::Ptr Window::drop_target_at(Point position) {
+Control::Ptr SurfaceRoot::drop_target_at(Point position) {
     for (Control::Ptr target = hit_test(position); target; target = (*target).parent()) {
         if (eligible(target) && (*target).allow_drop()) {
             return target;
@@ -1923,7 +1923,7 @@ Control::Ptr Window::drop_target_at(Point position) {
     return {};
 }
 
-DragDispatchResult Window::route_drag(const Control::Ptr& target, DragEvent event) {
+DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent event) {
     DragDispatchResult result;
     if (!target || !eligible(target) || !(*target).allow_drop()) {
         return result;
@@ -1966,7 +1966,7 @@ DragDispatchResult Window::route_drag(const Control::Ptr& target, DragEvent even
     return result;
 }
 
-void Window::merge_drag_route(DragDispatchResult& aggregate,
+void SurfaceRoot::merge_drag_route(DragDispatchResult& aggregate,
                               const Control::Ptr& target,
                               DragEvent event) {
     const DragDispatchResult current = route_drag(target, std::move(event));
@@ -1976,7 +1976,7 @@ void Window::merge_drag_route(DragDispatchResult& aggregate,
     }
 }
 
-void Window::leave_drag_target(const DragEvent& event,
+void SurfaceRoot::leave_drag_target(const DragEvent& event,
                                DragDispatchResult& aggregate) {
     const Control::Ptr previous = drag_target_.lock();
     if (previous) {
@@ -1989,7 +1989,7 @@ void Window::leave_drag_target(const DragEvent& event,
     drag_target_.reset();
 }
 
-DragDispatchResult Window::dispatch_drag(DragEvent event) {
+DragDispatchResult SurfaceRoot::dispatch_drag(DragEvent event) {
     require_root_thread("drag dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "drag", 0U);
     if (in_paint_) {
@@ -2064,17 +2064,18 @@ DragDispatchResult Window::dispatch_drag(DragEvent event) {
     return aggregate;
 }
 
-void Window::cancel_drag() noexcept {
+void SurfaceRoot::cancel_drag() noexcept {
     drag_target_.reset();
     drag_session_id_ = 0;
     drag_last_accepted_effect_ = DragEffect::none;
     abandon_deferred_drag();
 }
 
-void Window::attach_subtree_state(const Control::Ptr& control,
+void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
                                   const Control::WeakPtr& parent,
                                   ControlList& attached) {
-    (*control).window_ = this;
+    (*control).window_ = &as_window();
+    (*control).surface_root_ = this;
     {
         std::scoped_lock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_ = dispatcher_state_;
@@ -2087,7 +2088,7 @@ void Window::attach_subtree_state(const Control::Ptr& control,
     }
 }
 
-void Window::detach_subtree_state(const Control::Ptr& control,
+void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
                                   ControlList& detached) {
     (*control).lifecycle_notification_ = true;
     detached.push_back(control);
@@ -2097,8 +2098,9 @@ void Window::detach_subtree_state(const Control::Ptr& control,
     // So do its motion values: they jump to their ends, without listeners.
     motion_clock_.release_owner(*control);
     erase_containing_block_entries((*control).runtime_id());
-    (*control).on_detaching_from_window(*this);
+    (*control).on_detaching_from_window(as_window());
     (*control).window_ = nullptr;
+    (*control).surface_root_ = nullptr;
     {
         std::scoped_lock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_.reset();
@@ -2108,7 +2110,7 @@ void Window::detach_subtree_state(const Control::Ptr& control,
     }
 }
 
-bool Window::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
+bool SurfaceRoot::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
                                      std::vector<ThemeCompileDiagnostic>& diagnostics) const {
     if (root_ && !(*root_).theme_override_) {
         if (!(*root_).collect_inline_restyles(theme, restyles, diagnostics)) return false;
@@ -2121,11 +2123,11 @@ bool Window::collect_inline_restyles(const Theme& theme, std::vector<detail::Inl
     return true;
 }
 
-void Window::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles) {
+void SurfaceRoot::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles) {
     Control::commit_inline_restyles(restyles);
 }
 
-void Window::attach_subtree(const Control::Ptr& control, const Control::WeakPtr& parent) {
+void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::WeakPtr& parent) {
     require_root_thread("visual-tree attachment");
     register_subtree(control);
     ControlList controls;
@@ -2148,6 +2150,7 @@ void Window::attach_subtree(const Control::Ptr& control, const Control::WeakPtr&
         for (ControlList::reverse_iterator current = controls.rbegin();
              current != controls.rend(); ++current) {
             (*(*current)).window_ = nullptr;
+            (*(*current)).surface_root_ = nullptr;
             {
                 std::scoped_lock lock((*(*current)).dispatcher_mutex_);
                 (*(*current)).dispatcher_state_.reset();
@@ -2177,7 +2180,7 @@ void Window::attach_subtree(const Control::Ptr& control, const Control::WeakPtr&
     mark_subtree_dirty(*control, invalidation::visual_tree);
 }
 
-void Window::detach_subtree(const Control::Ptr& control) {
+void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     require_root_thread("visual-tree detachment");
     clear_dialog_targets_for_subtree(control);
     close_popups_for_subtree(control);
@@ -2206,7 +2209,7 @@ void Window::detach_subtree(const Control::Ptr& control) {
     update_display_cache_metrics();
 }
 
-void Window::dispose_subtree(const Control::Ptr& control) noexcept {
+void SurfaceRoot::dispose_subtree(const Control::Ptr& control) noexcept {
     clear_dialog_targets_for_subtree(control);
     if (control == root_) {
         abandon_deferred_input();
@@ -2254,7 +2257,7 @@ void Window::dispose_subtree(const Control::Ptr& control) noexcept {
     update_display_cache_metrics();
 }
 
-void Window::clear_dialog_targets_for_subtree(
+void SurfaceRoot::clear_dialog_targets_for_subtree(
     const Control::Ptr& control) noexcept {
     if (!control) return;
     if (Control::Ptr accept = accept_button_.lock();
@@ -2267,7 +2270,7 @@ void Window::clear_dialog_targets_for_subtree(
     if (contains_control(control, cancel_button_.lock())) cancel_button_.reset();
 }
 
-void Window::revoke_interaction_for_subtree(const Control::Ptr& control,
+void SurfaceRoot::revoke_interaction_for_subtree(const Control::Ptr& control,
                                             bool notify_focus) {
     Control::Ptr focused = focused_.lock();
     if (contains_control(control, focused)) {
@@ -2277,7 +2280,7 @@ void Window::revoke_interaction_for_subtree(const Control::Ptr& control,
         if (notify_focus && focused && (*focused).is_alive()) {
             (*focused).publish_change(
                 static_cast<const void*>(&(*focused).focus_observed_),
-                FocusChangePublication{this, focused, false});
+                FocusChangePublication{&as_window(), focused, false});
         }
     }
     if (contains_control(control, captured_.lock())) {
@@ -2295,7 +2298,7 @@ void Window::revoke_interaction_for_subtree(const Control::Ptr& control,
     }
 }
 
-void Window::close_focus_scopes_for_subtree(const Control::Ptr& control) {
+void SurfaceRoot::close_focus_scopes_for_subtree(const Control::Ptr& control) {
     std::vector<FocusScopeId> closing;
     closing.reserve(focus_scopes_.size());
     for (const FocusScopeState& state : focus_scopes_) {
@@ -2309,7 +2312,7 @@ void Window::close_focus_scopes_for_subtree(const Control::Ptr& control) {
     }
 }
 
-void Window::revoke_focus_scopes_for_subtree(
+void SurfaceRoot::revoke_focus_scopes_for_subtree(
     const Control::Ptr& control) noexcept {
     std::size_t closed = 0;
     FocusScopeList::iterator state = focus_scopes_.begin();
@@ -2328,14 +2331,14 @@ void Window::revoke_focus_scopes_for_subtree(
     }
 }
 
-void Window::on_eligibility_changed(const Control::Ptr& control) {
+void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
     close_popups_for_subtree(control);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
 }
 
-void Window::on_hit_test_transparency_changed(const Control::Ptr& control) {
+void SurfaceRoot::on_hit_test_transparency_changed(const Control::Ptr& control) {
     require_root_thread("hit-test transparency mutation");
     if (!control) return;
     if (contains_control(control, captured_.lock())) {
@@ -2349,7 +2352,7 @@ void Window::on_hit_test_transparency_changed(const Control::Ptr& control) {
     if (contains_control(control, drag_target_.lock())) cancel_drag();
 }
 
-void Window::set_pointer_over(Control& control, bool over) {
+void SurfaceRoot::set_pointer_over(Control& control, bool over) {
     if (control.pointer_over_ == over) return;
     control.pointer_over_ = over;
     const std::span<const AnatomyState> declared = control.anatomy().states;
@@ -2357,13 +2360,13 @@ void Window::set_pointer_over(Control& control, bool over) {
     if (reads_hot) control.invalidate(Dirty::paint);
 }
 
-void Window::forget_hover() noexcept {
+void SurfaceRoot::forget_hover() noexcept {
     const Control::Ptr previous_hover = hovered_.lock();
     if (previous_hover) (*previous_hover).pointer_over_ = false;
     hovered_.reset();
 }
 
-void Window::publish_control_availability(Control& control) {
+void SurfaceRoot::publish_control_availability(Control& control) {
     require_root_thread("control availability publication");
     if (!control.is_alive() || control.window_ != this) return;
     const ControlAvailabilityChange change{
@@ -2372,10 +2375,10 @@ void Window::publish_control_availability(Control& control) {
     const std::shared_ptr<gui_forms::Control> retained = control.shared_from_this();
     control.publish_change(
         static_cast<const void*>(&control_availability_changed_),
-        ControlAvailabilityPublication{this, retained, change});
+        ControlAvailabilityPublication{&as_window(), retained, change});
 }
 
-void Window::collect_subtree_registration(
+void SurfaceRoot::collect_subtree_registration(
     const Control::Ptr& control, ControlList& controls,
     std::unordered_set<std::string>& local_ids) {
         if (!(*control).is_alive()) {
@@ -2391,7 +2394,7 @@ void Window::collect_subtree_registration(
         }
 }
 
-void Window::register_subtree(const Control::Ptr& control) {
+void SurfaceRoot::register_subtree(const Control::Ptr& control) {
     ControlList controls;
     std::unordered_set<std::string> local_ids;
     collect_subtree_registration(control, controls, local_ids);
@@ -2400,14 +2403,14 @@ void Window::register_subtree(const Control::Ptr& control) {
     }
 }
 
-void Window::unregister_subtree(const Control::Ptr& control) {
+void SurfaceRoot::unregister_subtree(const Control::Ptr& control) {
     stable_ids_.erase(std::string((*control).stable_id_.value()));
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
         unregister_subtree(child);
     }
 }
 
-void Window::mark_dirty(Control& control, Dirty requested_dirty) {
+void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
     require_root_thread("dirty mutation");
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
@@ -2462,7 +2465,7 @@ void Window::mark_dirty(Control& control, Dirty requested_dirty) {
     }
 }
 
-void Window::mark_paint_dirty(Control& control, Rect local_damage) {
+void SurfaceRoot::mark_paint_dirty(Control& control, Rect local_damage) {
     require_root_thread("localized paint mutation");
     if (control.window_ != this) {
         throw std::invalid_argument(
@@ -2487,7 +2490,7 @@ void Window::mark_paint_dirty(Control& control, Rect local_damage) {
     metrics_.record_dirty_mark(window_damage.area());
 }
 
-void Window::mark_child_layout_slot(Control& control) {
+void SurfaceRoot::mark_child_layout_slot(Control& control) {
     require_root_thread("child layout-slot mutation");
     constexpr Dirty effects = Dirty::arrange | Dirty::hit_test |
                               Dirty::semantics | Dirty::accessibility;
@@ -2504,7 +2507,7 @@ void Window::mark_child_layout_slot(Control& control) {
     if (semantic_generation_ == 0U) ++semantic_generation_;
 }
 
-SemanticSnapshot Window::semantic_snapshot() {
+SemanticSnapshot SurfaceRoot::semantic_snapshot() {
     require_root_thread("semantic snapshot");
     if (in_semantic_snapshot_) {
         throw std::logic_error("GUI.Forms rejects recursive semantic snapshots");
@@ -2536,7 +2539,7 @@ SemanticSnapshot Window::semantic_snapshot() {
             // Focus held by unexposed controls at the top of the tree has no
             // node above it to belong to.
             HiddenFocus unowned;
-            append_semantic_nodes(root, root == scoped ? (*root).parent().get() : nullptr, this, focused, snapshot.roots,
+            append_semantic_nodes(root, root == scoped ? (*root).parent().get() : nullptr, &as_window(), focused, snapshot.roots,
                                   snapshot.node_count, unowned);
         }
         if (generation == semantic_generation_) {
@@ -2549,7 +2552,7 @@ SemanticSnapshot Window::semantic_snapshot() {
         "GUI.Forms semantic snapshot did not converge within four passes");
 }
 
-bool Window::perform_semantic_action(std::string_view stable_id,
+bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
                                      SemanticAction action,
                                      std::string_view value) {
     require_root_thread("semantic action");
@@ -2605,7 +2608,7 @@ bool Window::perform_semantic_action(std::string_view stable_id,
     return (*control).on_semantic_action(action, value);
 }
 
-bool Window::perform_semantic_action(RuntimeId control_id,
+bool SurfaceRoot::perform_semantic_action(RuntimeId control_id,
                                      std::string_view virtual_child,
                                      SemanticAction action,
                                      std::string_view value) {
@@ -2632,7 +2635,7 @@ bool Window::perform_semantic_action(RuntimeId control_id,
     return claimed;
 }
 
-SemanticTextResult Window::semantic_text_layout(RuntimeId control_id, SemanticTextLayout& layout) {
+SemanticTextResult SurfaceRoot::semantic_text_layout(RuntimeId control_id, SemanticTextLayout& layout) {
     require_root_thread("semantic text layout");
     layout.clear();
     if (in_paint_) return SemanticTextResult::during_paint;
@@ -2643,7 +2646,7 @@ SemanticTextResult Window::semantic_text_layout(RuntimeId control_id, SemanticTe
     return result;
 }
 
-SemanticTextResult Window::set_semantic_text_selection(RuntimeId control_id, SemanticTextSelection selection) {
+SemanticTextResult SurfaceRoot::set_semantic_text_selection(RuntimeId control_id, SemanticTextSelection selection) {
     require_root_thread("semantic text selection");
     if (in_paint_) return SemanticTextResult::during_paint;
     const Control::Ptr control = find_runtime_control(control_id);
@@ -2653,7 +2656,7 @@ SemanticTextResult Window::set_semantic_text_selection(RuntimeId control_id, Sem
     return result;
 }
 
-Control::Ptr Window::find_runtime_control(RuntimeId control) const {
+Control::Ptr SurfaceRoot::find_runtime_control(RuntimeId control) const {
     ControlList pending{root_};
     pending.reserve(1U + popups_.size());
     for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
@@ -2672,7 +2675,7 @@ Control::Ptr Window::find_runtime_control(RuntimeId control) const {
     return {};
 }
 
-bool Window::semantic_scope_reaches(const Control::Ptr& control) const {
+bool SurfaceRoot::semantic_scope_reaches(const Control::Ptr& control) const {
     const Control::Ptr scoped = focus_allowed_by_active_scope(root_) ? Control::Ptr{} : active_focus_scope_root();
     if (!scoped || contains_control(scoped, control)) return true;
     for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
@@ -2681,7 +2684,7 @@ bool Window::semantic_scope_reaches(const Control::Ptr& control) const {
     return false;
 }
 
-void Window::apply_subtree_dirty(Control& control, Dirty requested_dirty,
+void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
                                  double& requested_damage_area) {
     control.add_dirty(requested_dirty);
     control.subtree_dirty_ |= requested_dirty;
@@ -2708,7 +2711,7 @@ void Window::apply_subtree_dirty(Control& control, Dirty requested_dirty,
     }
 }
 
-void Window::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
+void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     require_root_thread("subtree dirty mutation");
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
@@ -2755,7 +2758,7 @@ void Window::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     }
 }
 
-void Window::change_paint_plane(Control& control, PaintPlane plane) {
+void SurfaceRoot::change_paint_plane(Control& control, PaintPlane plane) {
     require_root_thread("paint-plane mutation");
     const Rect bounds = paint_damage_bounds_of(control);
     add_damage_all_planes(bounds);
@@ -2765,7 +2768,7 @@ void Window::change_paint_plane(Control& control, PaintPlane plane) {
     update_display_cache_metrics();
 }
 
-void Window::add_damage(Rect damage, PaintPlane plane) {
+void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
     // Damage outside the client area can never be painted. Recording it
     // would also keep the plane pending forever, because a paint retires a
     // plane only when its painted bounds contain the pending bounds.
@@ -2782,13 +2785,13 @@ void Window::add_damage(Rect damage, PaintPlane plane) {
     if (plane == PaintPlane::backplane) damage_backplane_readers(&damage);
 }
 
-void Window::add_damage_all_planes(Rect damage) {
+void SurfaceRoot::add_damage_all_planes(Rect damage) {
     for (std::size_t index = 0; index < paint_plane_count; ++index) {
         add_damage(damage, static_cast<PaintPlane>(index));
     }
 }
 
-void Window::request_paint_wake() noexcept {
+void SurfaceRoot::request_paint_wake() noexcept {
     if (paint_wake_pending_) {
         ++paint_wakes_coalesced_;
         return;
@@ -2806,7 +2809,7 @@ void Window::request_paint_wake() noexcept {
     }
 }
 
-void Window::acknowledge_paint_wake_if_damage_drained() noexcept {
+void SurfaceRoot::acknowledge_paint_wake_if_damage_drained() noexcept {
     bool damage_remains = false;
     for (const DamageRegion& damage : plane_damage_) {
         if (!damage.empty()) {
@@ -2817,14 +2820,14 @@ void Window::acknowledge_paint_wake_if_damage_drained() noexcept {
     if (!damage_remains) paint_wake_pending_ = false;
 }
 
-void Window::touch_paint() noexcept {
+void SurfaceRoot::touch_paint() noexcept {
     ++content_revision_;
     if (content_revision_ == 0U) ++content_revision_;
     if (in_paint_) dirty_after_render_ = true;
     request_paint_wake();
 }
 
-PaintLeaseState Window::paint_lease_state() const noexcept {
+PaintLeaseState SurfaceRoot::paint_lease_state() const noexcept {
     if (in_paint_) {
         const PaintLeaseState rendering = dirty_after_render_
             ? PaintLeaseState::rendering_dirty
@@ -2841,14 +2844,14 @@ PaintLeaseState Window::paint_lease_state() const noexcept {
     return PaintLeaseState::clean;
 }
 
-void Window::add_subtree_damage(const Control::Ptr& control) {
+void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     add_damage_all_planes(paint_damage_bounds_of(*control));
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
         add_subtree_damage(child);
     }
 }
 
-void Window::ensure_layout(bool read_barrier) {
+void SurfaceRoot::ensure_layout(bool read_barrier) {
     require_root_thread("layout");
     if (!(*root_).is_alive()) {
         layout_dirty_ = false;
@@ -2946,7 +2949,7 @@ void Window::ensure_layout(bool read_barrier) {
 }
 
 
-std::vector<Control::Ptr> Window::route_to(const Control::Ptr& target) const {
+std::vector<Control::Ptr> SurfaceRoot::route_to(const Control::Ptr& target) const {
     std::vector<Control::Ptr> route;
     for (Control::Ptr current = target; current; current = (*current).parent()) {
         route.push_back(current);
@@ -2955,7 +2958,7 @@ std::vector<Control::Ptr> Window::route_to(const Control::Ptr& target) const {
     return route;
 }
 
-Control::Ptr Window::hit_test_recursive(const Control::Ptr& control,
+Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
                                         Point window_position) const {
     if (!eligible(control) || (*control).window_ != this) {
         return {};
@@ -2997,7 +3000,7 @@ Control::Ptr Window::hit_test_recursive(const Control::Ptr& control,
         ? control : Control::Ptr{};
 }
 
-void Window::measure_dirty_recursive(const Control::Ptr& control,
+void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
                                      Size available,
                                      std::uint64_t& visited_nodes,
                                      std::uint64_t& callbacks) {
@@ -3055,7 +3058,7 @@ void Window::measure_dirty_recursive(const Control::Ptr& control,
     }
 }
 
-void Window::arrange_dirty_recursive(const Control::Ptr& control,
+void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                                      Rect final_bounds,
                                      std::uint64_t& visited_nodes,
                                      std::uint64_t& callbacks) {
@@ -3115,7 +3118,7 @@ void Window::arrange_dirty_recursive(const Control::Ptr& control,
     }
 }
 
-bool Window::has_runnable_layout_dirty(
+bool SurfaceRoot::has_runnable_layout_dirty(
     const Control::Ptr& control) const noexcept {
     if (!control || (*control).layout_suspend_depth_ != 0U ||
         !has_dirty((*control).subtree_dirty_, Dirty::layout)) {
@@ -3128,7 +3131,7 @@ bool Window::has_runnable_layout_dirty(
     return false;
 }
 
-bool Window::has_any_runnable_layout_dirty() const noexcept {
+bool SurfaceRoot::has_any_runnable_layout_dirty() const noexcept {
     if (has_runnable_layout_dirty(root_)) return true;
     for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
         if (has_runnable_layout_dirty((*popup).popup())) return true;
@@ -3136,7 +3139,7 @@ bool Window::has_any_runnable_layout_dirty() const noexcept {
     return false;
 }
 
-bool Window::has_popup_layout_dirty() const noexcept {
+bool SurfaceRoot::has_popup_layout_dirty() const noexcept {
     for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
         const Control::Ptr overlay = (*popup).popup();
         if (overlay && has_dirty((*overlay).subtree_dirty_, Dirty::layout)) {
@@ -3146,7 +3149,7 @@ bool Window::has_popup_layout_dirty() const noexcept {
     return false;
 }
 
-void Window::mark_layout_ancestors(Control& control) noexcept {
+void SurfaceRoot::mark_layout_ancestors(Control& control) noexcept {
     Control::Ptr ancestor = control.parent();
     while (ancestor) {
         Control::Ptr placing_parent = (*ancestor).parent();
@@ -3165,12 +3168,12 @@ void Window::mark_layout_ancestors(Control& control) noexcept {
     }
 }
 
-void Window::clear_layout_diagnostics() noexcept {
+void SurfaceRoot::clear_layout_diagnostics() noexcept {
     layout_diagnostics_.clear();
     dropped_layout_diagnostics_ = 0U;
 }
 
-void Window::record_layout_diagnostic(LayoutDiagnostic diagnostic) {
+void SurfaceRoot::record_layout_diagnostic(LayoutDiagnostic diagnostic) {
     if (layout_diagnostics_.size() >= maximum_layout_diagnostics) {
         ++dropped_layout_diagnostics_;
         return;
@@ -3178,7 +3181,7 @@ void Window::record_layout_diagnostic(LayoutDiagnostic diagnostic) {
     layout_diagnostics_.push_back(std::move(diagnostic));
 }
 
-void Window::note_containing_block(const Control& child, const Control& ancestor) {
+void SurfaceRoot::note_containing_block(const Control& child, const Control& ancestor) {
     const RuntimeId resolved = ancestor.runtime_id();
     const std::uint64_t key = child.runtime_id().value;
     const std::unordered_map<std::uint64_t, RuntimeId>::iterator found = containing_block_resolutions_.find(key);
@@ -3198,14 +3201,14 @@ void Window::note_containing_block(const Control& child, const Control& ancestor
     record_layout_diagnostic(std::move(diagnostic));
 }
 
-std::size_t Window::containing_block_dependent_count(RuntimeId watched) const noexcept {
+std::size_t SurfaceRoot::containing_block_dependent_count(RuntimeId watched) const noexcept {
     const std::unordered_map<std::uint64_t, ContainingBlockWatch>::const_iterator found =
         containing_block_watches_.find(watched.value);
     if (found == containing_block_watches_.end()) return 0U;
     return (*found).second.dependents.size();
 }
 
-void Window::withdraw_containing_block_dependent(RuntimeId watched, RuntimeId dependent) noexcept {
+void SurfaceRoot::withdraw_containing_block_dependent(RuntimeId watched, RuntimeId dependent) noexcept {
     const std::unordered_map<std::uint64_t, ContainingBlockWatch>::iterator watch =
         containing_block_watches_.find(watched.value);
     if (watch == containing_block_watches_.end()) return;
@@ -3219,7 +3222,7 @@ void Window::withdraw_containing_block_dependent(RuntimeId watched, RuntimeId de
     if (dependents.empty() && !(*watch).second.overflowed) containing_block_watches_.erase(watch);
 }
 
-void Window::set_containing_block_dependencies(Control& dependent, std::span<const RuntimeId> watched) {
+void SurfaceRoot::set_containing_block_dependencies(Control& dependent, std::span<const RuntimeId> watched) {
     const RuntimeId id = dependent.runtime_id();
     const std::unordered_map<std::uint64_t, std::vector<RuntimeId>>::iterator found =
         containing_block_paths_.find(id.value);
@@ -3247,7 +3250,7 @@ void Window::set_containing_block_dependencies(Control& dependent, std::span<con
     }
 }
 
-void Window::mark_subtree_arrange(Control& control) noexcept {
+void SurfaceRoot::mark_subtree_arrange(Control& control) noexcept {
     constexpr Dirty effects = Dirty::arrange | Dirty::hit_test;
     control.dirty_ |= effects;
     control.subtree_dirty_ |= effects;
@@ -3256,7 +3259,7 @@ void Window::mark_subtree_arrange(Control& control) noexcept {
     }
 }
 
-void Window::mark_containing_block_dependents(Control& watched) {
+void SurfaceRoot::mark_containing_block_dependents(Control& watched) {
     const std::unordered_map<std::uint64_t, ContainingBlockWatch>::const_iterator found =
         containing_block_watches_.find(watched.runtime_id().value);
     if (found == containing_block_watches_.end()) return;
@@ -3290,7 +3293,7 @@ void Window::mark_containing_block_dependents(Control& watched) {
     hit_test_dirty_ = true;
 }
 
-void Window::erase_containing_block_entries(RuntimeId control) noexcept {
+void SurfaceRoot::erase_containing_block_entries(RuntimeId control) noexcept {
     if (containing_block_resolutions_.empty() && containing_block_paths_.empty() &&
         containing_block_watches_.empty()) {
         return;
@@ -3304,7 +3307,7 @@ void Window::erase_containing_block_entries(RuntimeId control) noexcept {
     containing_block_paths_.erase(found);
 }
 
-void Window::note_suspended_layout_request(Control& control) noexcept {
+void SurfaceRoot::note_suspended_layout_request(Control& control) noexcept {
     for (Control* current = &control; current != nullptr;) {
         if ((*current).layout_suspend_depth_ != 0U) {
             (*current).layout_deferred_ = true;
@@ -3318,7 +3321,7 @@ void Window::note_suspended_layout_request(Control& control) noexcept {
     }
 }
 
-void Window::commit_layout_requests_recursive(
+void SurfaceRoot::commit_layout_requests_recursive(
     const Control::Ptr& control) noexcept {
     if (!control || (*control).layout_suspend_depth_ != 0U) return;
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
@@ -3332,7 +3335,7 @@ void Window::commit_layout_requests_recursive(
     }
 }
 
-Dirty Window::recompute_subtree_dirty(const Control::Ptr& control) noexcept {
+Dirty SurfaceRoot::recompute_subtree_dirty(const Control::Ptr& control) noexcept {
     Dirty summary = (*control).dirty_;
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
         summary |= recompute_subtree_dirty(child);
@@ -3341,7 +3344,7 @@ Dirty Window::recompute_subtree_dirty(const Control::Ptr& control) noexcept {
     return summary;
 }
 
-void Window::clear_layout_dirty_subtree(const Control::Ptr& control) noexcept {
+void SurfaceRoot::clear_layout_dirty_subtree(const Control::Ptr& control) noexcept {
     (*control).clear_dirty(Dirty::layout | Dirty::hit_test);
     (*control).clear_subtree_dirty(Dirty::layout | Dirty::hit_test);
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
@@ -3349,7 +3352,7 @@ void Window::clear_layout_dirty_subtree(const Control::Ptr& control) noexcept {
     }
 }
 
-void Window::clear_paint_dirty_subtree(const Control::Ptr& control) noexcept {
+void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcept {
     (*control).clear_dirty(Dirty::paint);
     (*control).clear_subtree_dirty(Dirty::paint);
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
@@ -3357,7 +3360,7 @@ void Window::clear_paint_dirty_subtree(const Control::Ptr& control) noexcept {
     }
 }
 
-bool Window::find_paint_cover(const Control::Ptr& control, const Rect damage, const PaintPlane plane,
+bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Rect damage, const PaintPlane plane,
                               std::vector<Control::Ptr>& path) const {
     if (!(*control).is_alive() || (*control).window_ != this || !(*control).visible_ ||
         (*control).layout_collapsed_) {
@@ -3398,7 +3401,7 @@ bool Window::find_paint_cover(const Control::Ptr& control, const Rect damage, co
     return true;
 }
 
-void Window::paint_from_cover(const std::span<const Control::Ptr> path,
+void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
                               Painter& painter,
                               const Rect damage,
                               const PaintPlane plane,
@@ -3447,14 +3450,14 @@ void Window::paint_from_cover(const std::span<const Control::Ptr> path,
     }
 }
 
-Rect Window::absolute_child_viewport_of(const Control& control) const {
+Rect SurfaceRoot::absolute_child_viewport_of(const Control& control) const {
     const Rect bounds = absolute_bounds_of(control);
     const Rect local = control.child_viewport_rectangle();
     const Rect viewport{bounds.x + local.x, bounds.y + local.y, local.width, local.height};
     return viewport;
 }
 
-void Window::summarize_subtree_paint(Control& control) const noexcept {
+void SurfaceRoot::summarize_subtree_paint(Control& control) const noexcept {
     Dirty paint_summary = control.dirty_ & Dirty::paint;
     for (const std::shared_ptr<gui_forms::Control>& child : control.children_) {
         paint_summary |= (*child).subtree_dirty_ & Dirty::paint;
@@ -3462,7 +3465,7 @@ void Window::summarize_subtree_paint(Control& control) const noexcept {
     control.subtree_dirty_ = without_dirty(control.subtree_dirty_, Dirty::paint) | paint_summary;
 }
 
-void Window::paint_recursive(const Control::Ptr& control,
+void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              Painter& painter,
                              Rect window_damage,
                              PaintPlane plane,
@@ -3581,7 +3584,7 @@ void Window::paint_recursive(const Control::Ptr& control,
     summarize_subtree_paint(*control);
 }
 
-std::uint64_t Window::display_cache_entries(const Control::Ptr& control) const noexcept {
+std::uint64_t SurfaceRoot::display_cache_entries(const Control::Ptr& control) const noexcept {
     std::uint64_t entries = (*control).display_chunk_ ? 1U : 0U;
     for (const std::shared_ptr<gui_forms::Control>& child : (*control).children_) {
         entries += display_cache_entries(child);
@@ -3589,7 +3592,7 @@ std::uint64_t Window::display_cache_entries(const Control::Ptr& control) const n
     return entries;
 }
 
-void Window::update_display_cache_metrics() noexcept {
+void SurfaceRoot::update_display_cache_metrics() noexcept {
     std::uint64_t entries = root_ ? display_cache_entries(root_) : 0U;
     for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
         if (const Control::Ptr overlay = (*popup).popup()) {
@@ -3599,7 +3602,7 @@ void Window::update_display_cache_metrics() noexcept {
     metrics_.set_display_cache(entries, display_generation_);
 }
 
-void Window::compact_frame_requests() noexcept {
+void SurfaceRoot::compact_frame_requests() noexcept {
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
         if ((*request).kind == detail::FrameRequestKind::ui_timer ||
             (*request).kind == detail::FrameRequestKind::motion_clock ||
@@ -3621,7 +3624,7 @@ void Window::compact_frame_requests() noexcept {
     }
 }
 
-Rect Window::absolute_bounds_of(const Control& control) const {
+Rect SurfaceRoot::absolute_bounds_of(const Control& control) const {
     Rect result = control.arranged_bounds_;
     for (Control::Ptr ancestor = control.parent(); ancestor;
          ancestor = (*ancestor).parent()) {
@@ -3631,7 +3634,7 @@ Rect Window::absolute_bounds_of(const Control& control) const {
     return result;
 }
 
-Rect Window::visual_bounds_of(const Control& control, Insets outsets) const {
+Rect SurfaceRoot::visual_bounds_of(const Control& control, Insets outsets) const {
     outsets = {bounded_visual_outset(outsets.left),
                bounded_visual_outset(outsets.top),
                bounded_visual_outset(outsets.right),
@@ -3642,13 +3645,13 @@ Rect Window::visual_bounds_of(const Control& control, Insets outsets) const {
             bounds.height + outsets.top + outsets.bottom};
 }
 
-Rect Window::paint_damage_bounds_of(const Control& control) const {
+Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
     return Rect::united(
         visual_bounds_of(control, control.effective_visual_outsets()),
         visual_bounds_of(control, control.last_painted_visual_outsets_));
 }
 
-bool Window::eligible(const Control::Ptr& control) const noexcept {
+bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {
     return control && (*control).window_ == this && (*control).eligible_for_input();
 }
 

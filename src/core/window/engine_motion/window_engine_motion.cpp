@@ -6,7 +6,7 @@
 
 namespace gui_forms {
 
-void Window::engine_part_moved(PartRecordHandle handle, bool settled) {
+void SurfaceRoot::engine_part_moved(PartRecordHandle handle, bool settled) {
     EnginePartRecord* const record = engine_parts_.record(handle);
     if (record == nullptr) return;
     EngineDamage damage{};
@@ -14,15 +14,15 @@ void Window::engine_part_moved(PartRecordHandle handle, bool settled) {
     if (settled) (*record).motion_unsettled = (*record).motion && (*(*record).motion).moving();
 }
 
-void Window::run_engine_ambient(PartRecordHandle handle, FrameInterval interval) {
+void SurfaceRoot::run_engine_ambient(PartRecordHandle handle, FrameInterval interval) {
     motion_clock_.enlist_ambient(handle.slot, handle.generation, interval);
 }
 
-void Window::stop_engine_ambient(PartRecordHandle handle) noexcept {
+void SurfaceRoot::stop_engine_ambient(PartRecordHandle handle) noexcept {
     motion_clock_.withdraw_ambient(handle.slot, handle.generation);
 }
 
-bool Window::engine_ambient_frame(std::uint32_t slot, std::uint32_t generation, std::uint64_t& seen) {
+bool SurfaceRoot::engine_ambient_frame(std::uint32_t slot, std::uint32_t generation, std::uint64_t& seen) {
     const PartRecordHandle handle{slot, generation};
     const EnginePartRecord* const record = engine_parts_.record(handle);
     if (record == nullptr || !(*record).ambient) return false;
@@ -37,7 +37,7 @@ bool Window::engine_ambient_frame(std::uint32_t slot, std::uint32_t generation, 
     return true;
 }
 
-void Window::repaint_engine_part(std::uint32_t slot, std::uint32_t generation) {
+void SurfaceRoot::repaint_engine_part(std::uint32_t slot, std::uint32_t generation) {
     const PartRecordHandle handle{slot, generation};
     const EnginePartRecord* const record = engine_parts_.record(handle);
     if (record == nullptr) return;
@@ -45,7 +45,7 @@ void Window::repaint_engine_part(std::uint32_t slot, std::uint32_t generation) {
     static_cast<void>(damage_engine_part(*record, damage));
 }
 
-void Window::resume_engine_ambient() {
+void SurfaceRoot::resume_engine_ambient() {
     motion_clock_.repaint_parked();
     EngineDamage damage{};
     for (std::size_t slot = 0; slot < engine_parts_.slot_count(); ++slot) {

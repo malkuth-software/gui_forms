@@ -112,7 +112,7 @@ struct PendingInspectionNode final {
 
 } // namespace
 
-VisualInspectionSnapshot Window::visual_inspection_snapshot(
+VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
     VisualInspectionOptions options) {
     require_root_thread("visual inspection snapshot");
     if (options.maximum_controls == 0U ||

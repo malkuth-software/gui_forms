@@ -2,13 +2,13 @@
 
 namespace gui_forms {
 
-class Window;
+class SurfaceRoot;
 
 // Move-only ownership token for one Window update-depth level. Closing the
 // token balances the transaction and may trigger the bounded retained flush.
 class UpdateScope final {
 public:
-    explicit UpdateScope(Window& window) noexcept : window_(&window) {}
+    explicit UpdateScope(SurfaceRoot& root) noexcept : window_(&root) {}
     ~UpdateScope();
     UpdateScope(UpdateScope&& other) noexcept;
     UpdateScope& operator=(UpdateScope&& other) noexcept;
@@ -27,7 +27,7 @@ public:
     void abandon() noexcept;
 
 private:
-    Window* window_{};
+    SurfaceRoot* window_{};
 };
 
 } // namespace gui_forms

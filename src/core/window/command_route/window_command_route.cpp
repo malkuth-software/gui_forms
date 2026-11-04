@@ -23,7 +23,7 @@ public:
     CommandRouteDepthHold& operator=(const CommandRouteDepthHold&) = delete;
 };
 
-// The slot of a single-target stage in Window::command_targets_.
+// The slot of a single-target stage in SurfaceRoot::command_targets_.
 std::size_t command_target_slot(CommandRouteStage stage) {
     switch (stage) {
     case CommandRouteStage::active_panel: return 0U;
@@ -70,21 +70,21 @@ CommandRouteMatch find_command_handler(const Window& window, std::string_view co
 
 } // namespace
 
-void Window::set_command_target(CommandRouteStage stage, const std::shared_ptr<CommandTarget>& target) {
+void SurfaceRoot::set_command_target(CommandRouteStage stage, const std::shared_ptr<CommandTarget>& target) {
     require_root_thread("command target");
     const std::size_t slot = command_target_slot(stage);
     command_targets_[slot] = target;
 }
 
-std::shared_ptr<CommandTarget> Window::command_target(CommandRouteStage stage) const {
+std::shared_ptr<CommandTarget> SurfaceRoot::command_target(CommandRouteStage stage) const {
     const std::size_t slot = command_target_slot(stage);
     std::shared_ptr<CommandTarget> target = command_targets_[slot].lock();
     return target;
 }
 
-CommandRouteResult Window::resolve_command(std::string_view command_id) const {
+CommandRouteResult SurfaceRoot::resolve_command(std::string_view command_id) const {
     CommandRouteResult result{};
-    const CommandRouteMatch match = find_command_handler(*this, command_id);
+    const CommandRouteMatch match = find_command_handler(as_window(), command_id);
     if (!match.target) return result;
     result.outcome = CommandRouteOutcome::handled;
     result.stage = match.stage;
@@ -92,14 +92,14 @@ CommandRouteResult Window::resolve_command(std::string_view command_id) const {
     return result;
 }
 
-CommandRouteResult Window::route_command(const CommandInvocation& invocation) {
+CommandRouteResult SurfaceRoot::route_command(const CommandInvocation& invocation) {
     require_root_thread("command routing");
     CommandRouteResult result{};
     if (command_route_depth >= maximum_command_route_depth) {
         result.outcome = CommandRouteOutcome::refused;
         return result;
     }
-    const CommandRouteMatch match = find_command_handler(*this, invocation.command_id);
+    const CommandRouteMatch match = find_command_handler(as_window(), invocation.command_id);
     if (!match.target) return result;
     result.outcome = CommandRouteOutcome::handled;
     result.stage = match.stage;

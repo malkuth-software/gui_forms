@@ -28,10 +28,7 @@ Window::Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_li
 
 Window::Window(Control::Ptr root, Size client_size,
                std::shared_ptr<ApplicationResources> resources)
-    : root_(std::move(root)), client_size_(client_size),
-      theme_(resources ? (*resources).theme_ptr() : default_theme()),
-      resources_(std::move(resources)),
-      lifetime_(std::make_shared<detail::WindowLifetime>()) {
+    : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
     tool_tip_presenter_ = std::make_unique<detail::ToolTipPresenter>(*this);
     initialize_cursor_identity();
     (*lifetime_).window = this;
@@ -97,7 +94,10 @@ Window::~Window() {
     (*lifetime_).window = nullptr;
 }
 
-void Window::shutdown_dispatcher() noexcept {
+// Here, where every type the root owns is complete.
+SurfaceRoot::~SurfaceRoot() = default;
+
+void SurfaceRoot::shutdown_dispatcher() noexcept {
     // Input deferred during a paint would be drained by posted work the
     // close cancels: abandon it first, on the window's own thread only.
     if (check_access()) {
@@ -143,7 +143,7 @@ void Window::resize(Size client_size) {
 // that axis. Those controls, and only those, are marked for measure. The
 // reached set contains each reached control's ancestors, so their subtree
 // flags already cover it.
-void Window::mark_resized_measure(Control& control, bool width_reaches, bool height_reaches) {
+void SurfaceRoot::mark_resized_measure(Control& control, bool width_reaches, bool height_reaches) {
     // add_dirty advances the measure generation, so a reached control's
     // cached measure answers (measure_for_layout) are not answered again.
     control.add_dirty(Dirty::measure);
@@ -177,7 +177,7 @@ void Window::set_scale(double scale) {
     }
 }
 
-void Window::set_presentation_settings(PresentationSettings settings) {
+void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
     require_root_thread("presentation settings mutation");
     if (!std::isfinite(settings.text_scale) ||
         settings.text_scale < 0.5 || settings.text_scale > 4.0) {
@@ -238,19 +238,19 @@ void Window::set_presentation_settings(PresentationSettings settings) {
     refresh_backdrop();
 }
 
-const CompiledThemeRules* Window::user_theme_rules() const noexcept {
+const CompiledThemeRules* SurfaceRoot::user_theme_rules() const noexcept {
     const CompiledThemeRules* const rules = (*resources_).user_theme_rules();
     return rules;
 }
 
-void Window::set_theme(std::shared_ptr<const Theme> theme) {
+void SurfaceRoot::set_theme(std::shared_ptr<const Theme> theme) {
     require_root_thread("theme mutation");
     if (!theme) throw std::invalid_argument("window theme may not be null");
     // Every window sharing the resources takes the theme, this one included.
     (*resources_).set_theme(std::move(theme));
 }
 
-void Window::apply_theme(const std::shared_ptr<const Theme>& theme) {
+void SurfaceRoot::apply_theme(const std::shared_ptr<const Theme>& theme) {
     if (theme_ == theme) return;
     theme_ = theme;
     // Another theme draws parts differently: no cached part raster is
@@ -282,7 +282,7 @@ void Window::apply_theme(const std::shared_ptr<const Theme>& theme) {
     theme_changed_.emit(*emitted);
 }
 
-void Window::set_active(bool active) {
+void SurfaceRoot::set_active(bool active) {
     require_root_thread("activation mutation");
     if (active_ == active) return;
     if (!active && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
@@ -301,18 +301,18 @@ void Window::set_active(bool active) {
 
 // Nothing a control shows depends on the key map yet (no control displays a
 // command's keys), so changing it invalidates nothing.
-void Window::set_key_bindings(std::shared_ptr<KeyBindings> bindings) {
+void SurfaceRoot::set_key_bindings(std::shared_ptr<KeyBindings> bindings) {
     require_root_thread("key binding mutation");
     if (!bindings) throw std::invalid_argument("GUI.Forms window key bindings may not be null");
     key_bindings_ = std::move(bindings);
 }
 
-void Window::rebind_key_command(KeyCommand command, KeyBinding binding) {
+void SurfaceRoot::rebind_key_command(KeyCommand command, KeyBinding binding) {
     require_root_thread("key binding mutation");
     (*key_bindings_).rebind(command, binding);
 }
 
-void Window::restore_key_command(KeyCommand command) {
+void SurfaceRoot::restore_key_command(KeyCommand command) {
     require_root_thread("key binding mutation");
     (*key_bindings_).restore(command);
 }
@@ -322,29 +322,29 @@ void Window::install_host_key_map(const KeyMap& defaults) {
     static_cast<void>((*key_bindings_).seed(defaults));
 }
 
-void Window::set_text_scale(double text_scale) {
+void SurfaceRoot::set_text_scale(double text_scale) {
     PresentationSettings settings = presentation_settings_;
     settings.text_scale = text_scale;
     set_presentation_settings(settings);
 }
 
-UpdateScope Window::begin_update() {
+UpdateScope SurfaceRoot::begin_update() {
     require_root_thread("update scope");
     ++update_depth_;
     metrics_.enter_update_scope();
     return UpdateScope(*this);
 }
 
-void Window::perform_layout() {
+void SurfaceRoot::perform_layout() {
     require_root_thread("layout");
     ensure_layout(false);
 }
 
-void Window::flush() {
+void SurfaceRoot::flush() {
     require_root_thread("flush");
     ensure_layout(false);
 }
-void Window::leave_update_scope() {
+void SurfaceRoot::leave_update_scope() {
     require_root_thread("update scope close");
     if (update_depth_ == 0) {
         throw std::logic_error("GUI.Forms update scope underflow");
@@ -354,7 +354,7 @@ void Window::leave_update_scope() {
     flush_if_outermost();
 }
 
-void Window::flush_if_outermost() {
+void SurfaceRoot::flush_if_outermost() {
     if (update_depth_ == 0) {
         ensure_layout(false);
     }

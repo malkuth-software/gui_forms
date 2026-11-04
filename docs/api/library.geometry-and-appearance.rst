@@ -2820,7 +2820,7 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit MotionClock(Window& window) noexcept
+   .. cpp:function:: explicit MotionClock(SurfaceRoot& root) noexcept
 
 
    .. rubric:: Properties

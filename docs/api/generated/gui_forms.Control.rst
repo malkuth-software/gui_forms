@@ -1702,6 +1702,12 @@ gui_forms::Control
 
       *Protected.*
 
+   .. cpp:function:: SurfaceRoot* surface_root() const noexcept
+
+      *Protected.*
+
+      The surface root whose control table holds this control; null while detached. Set and cleared together with window().
+
    .. cpp:function:: void set_tool_tip_presentation(ToolTipPresentation presentation) noexcept
 
       *Protected.*

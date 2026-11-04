@@ -14,7 +14,7 @@
 
 namespace gui_forms {
 
-MotionClock::MotionClock(Window& window) noexcept : window_(&window) {}
+MotionClock::MotionClock(SurfaceRoot& root) noexcept : window_(&root) {}
 
 MotionClock::~MotionClock() {
     cancel();

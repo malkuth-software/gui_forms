@@ -109,7 +109,7 @@ Related types
 
 .. cpp:struct:: AcceleratorOptions final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active popup/focus scopes retain first refusal.
 
@@ -121,7 +121,7 @@ Related types
 
 .. cpp:class:: AcceleratorToken final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
 
@@ -154,7 +154,7 @@ Related types
 
 .. cpp:struct:: ControlAvailabilityChange final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change.
 
@@ -170,7 +170,7 @@ Related types
 
 .. cpp:struct:: ControlSnapshot final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    A control subtree's picture (Window::snapshot_control): the registered image, the logical size it covers and its pixels per logical unit.
 
@@ -188,7 +188,7 @@ Related types
 
 .. cpp:struct:: DeferredInputSnapshot final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    DeferredInputSnapshot preserves the route, transformed event, and target identity required to resume deferred input safely.
 
@@ -222,7 +222,7 @@ Related types
 
 .. cpp:struct:: DialogKeySnapshot final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    DialogKeySnapshot reports mnemonic/default/cancel attempts and outcomes plus candidate, collision, cycle, and rejection counts.
 
@@ -384,7 +384,7 @@ Related types
 
 .. cpp:struct:: FocusedControlChange final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    Focus moved from one control to another (or to or from none) through request_focus. ``previous_id`` and ``current_id`` are zero for none; ``stable_id`` is the newly focused control's, or empty.
 
@@ -398,7 +398,7 @@ Related types
 
 .. cpp:struct:: FocusScopeChange final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    FocusScopeChange publishes exact scope/root identity, depth, close reason, direction, and restoration outcome.
 
@@ -422,7 +422,7 @@ Related types
 
 .. cpp:struct:: FocusScopeId final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    FocusScopeId is a nonzero monotonically assigned transient-containment identity.
 
@@ -432,7 +432,7 @@ Related types
 
 .. cpp:struct:: FocusScopeOptions final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    FocusScopeOptions independently controls containment, prior-focus restoration, and first-descendant focus on open.
 
@@ -515,7 +515,7 @@ Related types
 
 .. cpp:struct:: KeyGesture final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
 
@@ -605,7 +605,7 @@ Related types
 
 .. cpp:struct:: PointerCaptureChange final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    PointerCaptureChange carries capture state, runtime/stable control identity, and pointer identity to host services.
 
@@ -621,7 +621,7 @@ Related types
 
 .. cpp:struct:: PopupOptions final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    PopupOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment.
 
@@ -633,7 +633,7 @@ Related types
 
 .. cpp:class:: PopupToken final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    PopupToken is a move-only revocation handle for one Window-owned retained overlay root; dropping or disconnecting it closes the overlay through the same ordered state machine.
 
@@ -910,7 +910,7 @@ Related types
 
 .. cpp:struct:: ValidationSnapshot final
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    ValidationSnapshot reports attempts, outcomes, focus blocks, reentrancy rejection, bulk visits, and active transaction state.
 
@@ -1034,7 +1034,7 @@ Enumerations
 
 .. cpp:enum-class:: FocusScopeCloseReason
 
-   ``#include <gui_forms/window/window.hpp>``
+   ``#include <gui_forms/surface_root/surface_root.hpp>``
 
    .. cpp:enumerator:: explicit_close
 
@@ -1237,6 +1237,18 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/surface_root/surface_root.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_deferred_inputs
+
+   Value: ``1024U``.
+
+.. cpp:var:: constexpr std::size_t maximum_focus_scope_depth
+
+   Value: ``32U``.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/window/presentation/input_settings.hpp>``
 
 .. cpp:var:: constexpr std::uint32_t default_double_click_milliseconds
@@ -1254,15 +1266,3 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::uint32_t paint_contract_version
 
    The presentation availability record (stage DP; notes:planning/ PAINT_PIPELINE_AVAILABILITY.md, M11h-P4 / M12-P4). The baseline contract (coherent latest-state presentation: mutation may outpace rendering and rendering may outpace presentation, with no unbounded queue and no incomplete frame visible) is reported as a version, never as a capability: a host that cannot meet it fails attachment. Only optional extensions are reported as available or not, and only truthfully. Version 2 (2026-10-13) adds damage-preserving partial present to the contract: the host presents the bounded rectangle set it paints, not their union. Value: ``2U``.
-
-.. cpp:namespace:: gui_forms
-
-``#include <gui_forms/window/window.hpp>``
-
-.. cpp:var:: constexpr std::size_t maximum_deferred_inputs
-
-   Value: ``1024U``.
-
-.. cpp:var:: constexpr std::size_t maximum_focus_scope_depth
-
-   Value: ``32U``.

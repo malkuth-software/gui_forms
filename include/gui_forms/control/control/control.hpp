@@ -40,6 +40,7 @@
 namespace gui_forms {
 
 class Window;
+class SurfaceRoot;
 class Control;
 class ContainerControl;
 class CommandTarget;
@@ -998,6 +999,9 @@ protected:
     // focused and focus-visible. Overrides start from this and add their own.
     [[nodiscard]] AnatomyStateSet base_anatomy_states() const;
     [[nodiscard]] Window* window() const noexcept { return window_; }
+    // The surface root whose control table holds this control; null while
+    // detached. Set and cleared together with window().
+    [[nodiscard]] SurfaceRoot* surface_root() const noexcept { return surface_root_; }
     // Chooses where this type's tooltip shows (ToolTipPresentation); bubble
     // by default. Call it from the constructor, or when the control changes
     // what it is (a ComboBox gaining or losing its edit field).
@@ -1207,6 +1211,7 @@ private:
     WeakPtr parent_;
     ChildList children_;
     Window* window_{};
+    SurfaceRoot* surface_root_{};
     // Atomic shared_ptr free functions make BeginInvoke safe to acquire from a
     // worker while the UI thread attaches or detaches this control.
     mutable std::mutex dispatcher_mutex_;

@@ -1999,9 +1999,9 @@
       }
     },
     "SurfaceRoot": {
-      "status": "OBSERVED: threaded sub-surfaces stage S1.1 (thread identity, dispatcher and metrics moved out of Window); Windows build and focused tests pass",
+      "status": "OBSERVED: threaded sub-surfaces stages S1.1 (thread identity, dispatcher and metrics) and S1.2 (the control root, in place) moved out of Window; Windows build and focused tests pass",
       "method_scope": "all",
-      "summary": "SurfaceRoot is the root of one retained control tree and the thread that owns it: the thread identity every mutation is checked against, the bounded dispatcher queue that thread drains, and the structured metrics its work reports into. Window is a SurfaceRoot presented through a native host; stage S1 moves the rest of the control-root part of Window here.",
+      "summary": "SurfaceRoot is the root of one retained control tree and the thread that owns it: the thread identity every mutation is checked against, the bounded dispatcher queue that thread drains, and the structured metrics its work reports into. Since stage S1.2 it also holds the control tree with its layout, focus, input, painting, popups, accelerators, tooltips and command routing. Window is a SurfaceRoot presented through a native host and adds only the host binding: resizing and scale, the cursor, the presentation declaration and the live-surface presentation queue.",
       "methods": {
         "check_access": "Compares the caller with the root's immutable thread affinity.",
         "verify_access": "Throws a named wrong-thread failure and records its metric when access is invalid.",
@@ -2013,23 +2013,9 @@
         "set_dispatch_wake_handler": "Installs or removes the host wake primitive, immediately wakes queued work, and refuses removal while a synchronous waiter exists.",
         "metrics_snapshot": "Returns structured retained layout/paint/input/semantic/resource activity metrics.",
         "metrics": "Returns mutable structured instrumentation for internal coordinated emitters.",
-        "reset_activity_metrics": "Resets interval activity counters without erasing lifetime/identity state."
-      }
-    },
-    "Window": {
-      "status": "OBSERVED: bundle 007 retained-window hierarchy and lifecycle/dispatcher split; M4 macOS and MinGW builds, focused tests, and Screen Sharing pass",
-      "method_scope": "all",
-      "capture": "captures/native_window_host.png",
-      "capture_note": "M4 Screen Sharing crop of the real AppKit-hosted Complete Showcase after the lifecycle, dispatcher, host-session, and native-service split.",
-      "summary": "Window is GUI.Forms' portable retained-root coordinator. It owns exact tree identity, update/layout/paint transactions, damage and presentation receipts, live layers, frame requests, UI-thread dispatch, resources, focus/validation/dialog keys, pointer/drag/deferred input, popups and accelerators, metrics, and semantic projection; native adapters reach it only through the host session and wake seams.",
-      "methods": {
-        "Window": "Constructs one retained root on the creating UI thread, creates bounded dispatcher/frame lifetime state, attaches the tree, and seeds complete initial damage; copying is prohibited because identity and native attachment are singular.",
-        "~Window": "Revokes wakes, deferred input, dispatch work, accelerators, popups, focus scopes, frame requests, and retained attachment in dependency order before retiring the shared lifetime token.",
-        "operator=": "Is deleted so retained identity, UI-thread affinity, leases, and native-host association cannot be duplicated.",
+        "reset_activity_metrics": "Resets interval activity counters without erasing lifetime/identity state.",
         "root": "Returns the singular retained root owned for the Window lifetime.",
         "client_size": "Returns logical client extent independent of device scale.",
-        "resize": "Validates nonnegative logical extent, advances the surface epoch, damages the old extent, and invalidates root and overlay geometry.",
-        "set_scale": "Validates a finite positive device scale, advances the surface epoch, and conservatively invalidates all retained roots.",
         "scale": "Returns native device-pixel scale without conflating it with presentation text scale.",
         "presentation_settings": "Returns logical text-scale, contrast, motion, and sound preferences.",
         "set_presentation_settings": "Validates bounded text scale, dismisses geometry-sensitive transients when it changes, invalidates retained presentation, and publishes one committed event.",
@@ -2049,9 +2035,6 @@
         "paint": "Acquires the exclusive revision/epoch lease, applies bounded layout, replays damaged retained planes, produces an exact receipt only for a coherent current result, and defers reentrant input/paint.",
         "notify_presented": "Validates an exact receipt or uses the synchronous compatibility receipt, advances presentation metrics only in order, and rejects duplicates or retired epochs.",
         "paint_lease_snapshot": "Returns revision, epoch, lease, wake, deferral, and receipt counters plus current lease state.",
-        "queue_live_surface_presentation": "Registers or refreshes one attached control's durable producer surface without converting producer publication into retained repaint callbacks.",
-        "take_live_surface_presentations": "Samples registered live surfaces into immutable geometry/clip placements for native composition and retires dead registrations.",
-        "has_live_surface_presentations": "Reports whether durable live-layer registrations keep a native display clock relevant.",
         "take_damage": "Moves pending aggregate or named-plane damage to the host and acknowledges the paint wake when every plane drains.",
         "needs_frame": "Reports retained damage or due scheduled work without polling controls.",
         "next_wake": "Returns the earliest eligible frame/timer deadline, respecting occlusion.",
@@ -2175,6 +2158,23 @@
         "dispatch_mnemonic": "Builds and cycles stable mnemonic candidates while accounting collisions and scope containment.",
         "dispatch_dialog_button": "Validates and performs the configured accept or cancel button through normal semantic press behavior.",
         "clear_dialog_targets_for_subtree": "Clears accept/cancel references owned by a departing subtree."
+      }
+    },
+    "Window": {
+      "status": "OBSERVED: bundle 007 retained-window hierarchy and lifecycle/dispatcher split; M4 macOS and MinGW builds, focused tests, and Screen Sharing pass",
+      "method_scope": "all",
+      "capture": "captures/native_window_host.png",
+      "capture_note": "M4 Screen Sharing crop of the real AppKit-hosted Complete Showcase after the lifecycle, dispatcher, host-session, and native-service split.",
+      "summary": "Window is GUI.Forms' portable retained-root coordinator. It owns exact tree identity, update/layout/paint transactions, damage and presentation receipts, live layers, frame requests, UI-thread dispatch, resources, focus/validation/dialog keys, pointer/drag/deferred input, popups and accelerators, metrics, and semantic projection; native adapters reach it only through the host session and wake seams.",
+      "methods": {
+        "Window": "Constructs one retained root on the creating UI thread, creates bounded dispatcher/frame lifetime state, attaches the tree, and seeds complete initial damage; copying is prohibited because identity and native attachment are singular.",
+        "~Window": "Revokes wakes, deferred input, dispatch work, accelerators, popups, focus scopes, frame requests, and retained attachment in dependency order before retiring the shared lifetime token.",
+        "operator=": "Is deleted so retained identity, UI-thread affinity, leases, and native-host association cannot be duplicated.",
+        "resize": "Validates nonnegative logical extent, advances the surface epoch, damages the old extent, and invalidates root and overlay geometry.",
+        "set_scale": "Validates a finite positive device scale, advances the surface epoch, and conservatively invalidates all retained roots.",
+        "queue_live_surface_presentation": "Registers or refreshes one attached control's durable producer surface without converting producer publication into retained repaint callbacks.",
+        "take_live_surface_presentations": "Samples registered live surfaces into immutable geometry/clip placements for native composition and retires dead registrations.",
+        "has_live_surface_presentations": "Reports whether durable live-layer registrations keep a native display clock relevant."
       }
     },
     "UpdateScope": {

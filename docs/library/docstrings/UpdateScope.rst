@@ -10,8 +10,8 @@ any group of related changes, such as filling a form or applying a theme.
 
 Parameters
 ----------
-window
-    The window whose scope the token closes. Do not construct a token this
+root
+    The surface root (usually a `Window`) whose scope the token closes. Do not construct a token this
     way: it does not open a scope, so closing it would close one that
     `Window::begin_update` opened elsewhere. Always obtain tokens from
     `Window::begin_update`.

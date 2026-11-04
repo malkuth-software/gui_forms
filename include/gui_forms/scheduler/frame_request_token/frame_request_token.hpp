@@ -22,6 +22,7 @@ public:
 
 private:
     friend class Window;
+    friend class SurfaceRoot;
     explicit FrameRequestToken(std::shared_ptr<detail::Revocable> revocable);
 
     std::shared_ptr<detail::Revocable> revocable_;

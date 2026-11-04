@@ -165,6 +165,7 @@ public:
 
 private:
     friend class Window;
+    friend class SurfaceRoot;
     void require_access(const char* operation) const;
     void attach(Window& window);
     void detach(Window& window) noexcept;

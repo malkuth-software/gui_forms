@@ -14,6 +14,7 @@ namespace gui_forms {
 
 class Control;
 class Window;
+class SurfaceRoot;
 
 // Where a clock reads the time a motion starts. Steady-clock time unless a
 // source is installed: tests install one so that motion is sampled from a
@@ -76,7 +77,7 @@ inline constexpr FrameInterval motion_frame_interval = std::chrono::milliseconds
 // and their paints enlist them again.
 class MotionClock final {
 public:
-    explicit MotionClock(Window& window) noexcept;
+    explicit MotionClock(SurfaceRoot& root) noexcept;
     ~MotionClock();
     MotionClock(const MotionClock&) = delete;
     MotionClock& operator=(const MotionClock&) = delete;
@@ -117,6 +118,7 @@ public:
 private:
     friend class MotionValue;
     friend class Window;
+    friend class SurfaceRoot;
 
     struct Record final {
         MotionValue* value{};
@@ -197,7 +199,8 @@ private:
     // earliest effect's.
     void align_to_ambient() noexcept;
 
-    Window* window_;
+    // The root whose motion this clock advances; it owns the clock.
+    SurfaceRoot* window_;
     const MotionTimeSource* time_source_{};
     std::vector<AmbientRecord> ambient_;
     std::size_t ambient_live_{};

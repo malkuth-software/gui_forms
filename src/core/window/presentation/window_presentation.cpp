@@ -99,7 +99,7 @@ bool copy_framebuffer_bgra(PaintFramebuffer& framebuffer, std::vector<std::byte>
 }
 } // namespace detail
 
-void Window::set_framebuffer_painter(Painter* const painter) {
+void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
     require_root_thread("set_framebuffer_painter");
     framebuffer_painter_ = painter;
     // The backplane replay's framebuffer belongs to the previous renderer.
@@ -110,7 +110,7 @@ void Window::set_framebuffer_painter(Painter* const painter) {
 // Four stages: validate the request; record the subtree's planes into one
 // display chunk; replay that chunk into an offscreen framebuffer; copy the
 // pixels into the image registry as premultiplied BGRA.
-std::optional<ControlSnapshot> Window::snapshot_control(const Control::Ptr& control, const double scale) {
+std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr& control, const double scale) {
     require_root_thread("snapshot_control");
     if (in_paint_ || framebuffer_painter_ == nullptr || !control) return std::nullopt;
     if (!(*control).is_alive() || (*control).window_ != this || !(*control).effectively_visible()) return std::nullopt;
@@ -163,7 +163,7 @@ std::optional<ControlSnapshot> Window::snapshot_control(const Control::Ptr& cont
     return snapshot;
 }
 
-bool Window::release_control_snapshot(ImageId image) {
+bool SurfaceRoot::release_control_snapshot(ImageId image) {
     require_root_thread("release_control_snapshot");
     // The repainting removal: a stamp that showed the picture may still be
     // in a retained chunk.
@@ -171,7 +171,7 @@ bool Window::release_control_snapshot(ImageId image) {
     return removed;
 }
 
-std::unique_ptr<PaintFramebuffer> Window::create_framebuffer(const Size logical_size, const double scale) {
+std::unique_ptr<PaintFramebuffer> SurfaceRoot::create_framebuffer(const Size logical_size, const double scale) {
     require_root_thread("create_framebuffer");
     std::unique_ptr<PaintFramebuffer> result{};
     if (framebuffer_painter_ != nullptr) {
@@ -180,7 +180,7 @@ std::unique_ptr<PaintFramebuffer> Window::create_framebuffer(const Size logical_
     return result;
 }
 
-void Window::collect_paint_checkpoints(
+void SurfaceRoot::collect_paint_checkpoints(
     const Control::Ptr& control, PaintControlCheckpointList& checkpoints) {
     if (!control) return;
     checkpoints.push_back({control, (*control).display_chunk_});
@@ -189,7 +189,7 @@ void Window::collect_paint_checkpoints(
     }
 }
 
-void Window::abandon_paint(std::uint64_t generation_before) {
+void SurfaceRoot::abandon_paint(std::uint64_t generation_before) {
     for (const PaintControlCheckpoint& checkpoint : paint_checkpoints_) {
         if (!checkpoint.control || !(*checkpoint.control).is_alive()) continue;
         (*checkpoint.control).display_chunk_ = checkpoint.chunk;
@@ -215,21 +215,21 @@ void Window::abandon_paint(std::uint64_t generation_before) {
     }
 }
 
-Rect Window::plane_paint_bounds(std::size_t index, Rect rectangle,
+Rect SurfaceRoot::plane_paint_bounds(std::size_t index, Rect rectangle,
                                 bool explicit_request) const {
     if (explicit_request) return rectangle;
     const Rect plane = Rect::intersection(plane_damage_[index].bounds(), rectangle);
     return plane;
 }
 
-bool Window::has_plane_damage() const noexcept {
+bool SurfaceRoot::has_plane_damage() const noexcept {
     for (const DamageRegion& damage : plane_damage_) {
         if (!damage.empty()) return true;
     }
     return false;
 }
 
-bool Window::paint_pending() const noexcept {
+bool SurfaceRoot::paint_pending() const noexcept {
     if (dirty_after_render_) return true;
     const bool damaged = has_plane_damage();
     return damaged;
@@ -292,7 +292,7 @@ bool covered_by(Rect pending, std::span<const Rect> painted) noexcept {
 
 } // namespace
 
-void Window::note_inline_with_theme(const Control& control) {
+void SurfaceRoot::note_inline_with_theme(const Control& control) {
     if (inline_with_theme_reported_) return;
     inline_with_theme_reported_ = true;
     theme_language::ThemeDiagnostic warning{};
@@ -303,7 +303,7 @@ void Window::note_inline_with_theme(const Control& control) {
     theme_language::write_theme_diagnostics(list, stderr);
 }
 
-std::optional<PartRecordHandle> Window::note_engine_part(const Control& control, const PartKey& key,
+std::optional<PartRecordHandle> SurfaceRoot::note_engine_part(const Control& control, const PartKey& key,
                                                          AnatomyStateSet states) {
     const PartRecordAcquisition acquired = engine_parts_.acquire(control.stable_id().value(), key);
     if (acquired.created) metrics_.record_engine_part_created(key.index_fallback(), engine_parts_.record_count());
@@ -318,19 +318,19 @@ std::optional<PartRecordHandle> Window::note_engine_part(const Control& control,
     return acquired.handle;
 }
 
-PartRasterResult Window::engine_part_raster(PartRecordHandle handle, const PartRasterRequest& request) {
+PartRasterResult SurfaceRoot::engine_part_raster(PartRecordHandle handle, const PartRasterRequest& request) {
     const PartRasterResult result = engine_parts_.raster_for(handle, request, paint_leases_completed_);
     // A procedural pattern it asked for is generated in an idle frame (E10).
     if (engine_parts_.patterns_waiting()) arm_engine_idle();
     return result;
 }
 
-void Window::engine_queue_keyframe(const PartRasterRequest& request) {
+void SurfaceRoot::engine_queue_keyframe(const PartRasterRequest& request) {
     engine_parts_.queue_idle_keyframe(request);
     if (engine_parts_.idle_keyframes_waiting()) arm_engine_idle();
 }
 
-void Window::arm_engine_idle() {
+void SurfaceRoot::arm_engine_idle() {
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& scheduled : frame_requests_) {
         if ((*scheduled).connected() && (*scheduled).kind == detail::FrameRequestKind::engine_idle) return;
     }
@@ -343,13 +343,13 @@ void Window::arm_engine_idle() {
     metrics_.record_frame_request();
 }
 
-PartRasterResult Window::engine_unkeyed_raster(const PartRasterRequest& request) {
+PartRasterResult SurfaceRoot::engine_unkeyed_raster(const PartRasterRequest& request) {
     const PartRasterResult result = engine_parts_.raster_without_record(request, paint_leases_completed_);
     if (engine_parts_.patterns_waiting()) arm_engine_idle();
     return result;
 }
 
-void Window::paint_backplane_rectangle(detail::RecordingPainter& candidate, const Rect rectangle,
+void SurfaceRoot::paint_backplane_rectangle(detail::RecordingPainter& candidate, const Rect rectangle,
                                        const SurfaceMaterial& backplane, const bool starts_clear) {
     const Rect window_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     candidate.save();
@@ -368,7 +368,7 @@ void Window::paint_backplane_rectangle(detail::RecordingPainter& candidate, cons
     candidate.restore();
 }
 
-std::size_t Window::covering_plane(const Rect rectangle, const bool explicit_request,
+std::size_t SurfaceRoot::covering_plane(const Rect rectangle, const bool explicit_request,
                                    std::vector<Control::Ptr>& path) const {
     for (std::size_t index = paint_plane_count; index > 0U; --index) {
         const std::size_t plane_index = index - 1U;
@@ -382,7 +382,7 @@ std::size_t Window::covering_plane(const Rect rectangle, const bool explicit_req
     return paint_plane_count;
 }
 
-void Window::paint_plane_rectangle(Painter& candidate, const std::size_t index, const Rect rectangle,
+void SurfaceRoot::paint_plane_rectangle(Painter& candidate, const std::size_t index, const Rect rectangle,
                                    const bool explicit_request, std::vector<Control::Ptr>& path,
                                    std::uint64_t& visited_nodes, std::uint64_t& painted_controls,
                                    std::uint64_t& consumed_invalidations, std::uint64_t& chunks_rebuilt,
@@ -401,13 +401,13 @@ void Window::paint_plane_rectangle(Painter& candidate, const std::size_t index, 
                     consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
 }
 
-void Window::note_opaque_cover(const Control& control, const Painter& painter, const Rect local) noexcept {
+void SurfaceRoot::note_opaque_cover(const Control& control, const Painter& painter, const Rect local) noexcept {
     const Painter* const recorder = recording_painter_;
     if (recording_control_ != &control || recorder != &painter) return;
     (*recording_painter_).mark_opaque_cover(local);
 }
 
-std::optional<PaintReceipt> Window::paint(Painter& painter,
+std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           Rect requested_damage) {
     // One rectangle: the request, or else the bounds of all damage.
     if (!requested_damage.empty()) {
@@ -424,7 +424,7 @@ std::optional<PaintReceipt> Window::paint(Painter& painter,
     return paint_rectangles(painter, bounds, false);
 }
 
-std::optional<PaintReceipt> Window::paint(Painter& painter,
+std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           std::span<const Rect> requested_damage) {
     if (!requested_damage.empty()) {
         return paint_rectangles(painter, requested_damage, true);
@@ -437,7 +437,7 @@ std::optional<PaintReceipt> Window::paint(Painter& painter,
     return paint_rectangles(painter, pending, false);
 }
 
-std::optional<PaintReceipt> Window::paint_rectangles(
+std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
     Painter& painter, std::span<const Rect> rectangles, bool explicit_request) {
     require_root_thread("paint");
     if (in_paint_) {
@@ -638,7 +638,7 @@ std::optional<PaintReceipt> Window::paint_rectangles(
     return PaintReceipt{lease_revision, lease_epoch};
 }
 
-bool Window::notify_presented(PaintReceipt receipt,
+bool SurfaceRoot::notify_presented(PaintReceipt receipt,
                               std::uint64_t duration_nanoseconds) {
     const PresentedArea unreported;
     return notify_presented(receipt, duration_nanoseconds, unreported);
@@ -652,7 +652,7 @@ void Window::notify_live_presented(std::uint64_t duration_nanoseconds,
                                  presented.rectangles);
 }
 
-bool Window::notify_presented(PaintReceipt receipt,
+bool SurfaceRoot::notify_presented(PaintReceipt receipt,
                               std::uint64_t duration_nanoseconds,
                               PresentedArea presented) {
     require_root_thread("paint presentation release");
@@ -674,7 +674,7 @@ bool Window::notify_presented(PaintReceipt receipt,
     return true;
 }
 
-void Window::notify_presented(std::uint64_t duration_nanoseconds) {
+void SurfaceRoot::notify_presented(std::uint64_t duration_nanoseconds) {
     static_cast<void>(notify_presented(
         PaintReceipt{rendered_revision_, surface_epoch_}, duration_nanoseconds));
 }
@@ -720,7 +720,7 @@ std::string PresentationAvailability::to_json() const {
     return json;
 }
 
-PaintLeaseSnapshot Window::paint_lease_snapshot() const noexcept {
+PaintLeaseSnapshot SurfaceRoot::paint_lease_snapshot() const noexcept {
     return {paint_lease_state(), content_revision_, rendered_revision_,
             presented_revision_, surface_epoch_, paint_leases_started_,
             paint_leases_completed_, paint_leases_abandoned_,
@@ -989,7 +989,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
     return result;
 }
 
-void Window::set_paint_wake_handler(std::function<void()> wake) {
+void SurfaceRoot::set_paint_wake_handler(std::function<void()> wake) {
     require_root_thread("paint wake-handler mutation");
     paint_wake_handler_ = std::move(wake);
     paint_wake_pending_ = false;
@@ -998,7 +998,7 @@ void Window::set_paint_wake_handler(std::function<void()> wake) {
     }
 }
 
-DamageRegion Window::take_damage() {
+DamageRegion SurfaceRoot::take_damage() {
     require_root_thread("damage mutation");
     // Hosts request damage before entering their native paint transaction.
     // Commit layout first so geometry changes discovered during arrange are
@@ -1016,7 +1016,7 @@ DamageRegion Window::take_damage() {
     return result;
 }
 
-DamageRegion Window::take_damage(PaintPlane plane) {
+DamageRegion SurfaceRoot::take_damage(PaintPlane plane) {
     require_root_thread("plane damage mutation");
     if (!is_valid_paint_plane(plane)) {
         throw std::invalid_argument("invalid paint plane");
