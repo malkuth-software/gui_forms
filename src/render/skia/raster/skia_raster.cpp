@@ -120,6 +120,21 @@ SkRRect to_sk_rrect(Rect rect, double radius) noexcept {
     return SkRRect::MakeRectXY(to_sk_rect(rect), bounded, bounded);
 }
 
+// Each radius held within half the shorter side, as to_sk_rrect holds one.
+SkRRect to_sk_rrect_corners(Rect rect, PaintCornerRadii radii) noexcept {
+    const double limit = std::max(0.0, std::min(rect.width, rect.height) * 0.5);
+    const std::array<double, 4> written{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    // Skia's order: upper-left, upper-right, lower-right, lower-left.
+    std::array<SkVector, 4> corners{};
+    for (std::size_t index = 0U; index < corners.size(); ++index) {
+        const SkScalar bounded = static_cast<SkScalar>(std::clamp(written[index], 0.0, limit));
+        corners[index] = SkVector::Make(bounded, bounded);
+    }
+    SkRRect result;
+    result.setRectRadii(to_sk_rect(rect), corners.data());
+    return result;
+}
+
 struct SkGradientData final {
     std::vector<SkColor4f> colors;
     std::vector<float> positions;
@@ -1035,6 +1050,27 @@ void SkiaRaster::clip_rounded_rect(Rect rect, double radius) {
             (*state).rounded = true;
             (*state).rounded_rect = device;
             (*state).radius = std::max(0.0, radius) * static_cast<double>(matrix.getScaleX());
+            if (!(*state).rect.intersect(device)) (*state).rect.setEmpty();
+        }
+    }
+}
+
+void SkiaRaster::clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) {
+    if (SkCanvas* canvas = (*impl_).canvas()) {
+        (*canvas).clipRRect(to_sk_rrect_corners(rect, radii), SkClipOp::kIntersect, true);
+        if (Impl::TextClipState* const state = (*impl_).current_text_clip(*canvas)) {
+            // The text clip keeps one radius: the per-corner clip is kept as
+            // its bounds rounded by the largest radius, so glyphs never pass
+            // outside the exact clip (they may lose pixels at a corner whose
+            // radius is smaller).
+            const SkMatrix matrix = (*canvas).getTotalMatrix();
+            const SkRect device = matrix.mapRect(to_sk_rect(rect));
+            const double largest = std::max(std::max(radii.top_left, radii.top_right),
+                                            std::max(radii.bottom_right, radii.bottom_left));
+            if ((*state).rounded && !(*state).rect.intersect((*state).rounded_rect)) (*state).rect.setEmpty();
+            (*state).rounded = true;
+            (*state).rounded_rect = device;
+            (*state).radius = std::max(0.0, largest) * static_cast<double>(matrix.getScaleX());
             if (!(*state).rect.intersect(device)) (*state).rect.setEmpty();
         }
     }

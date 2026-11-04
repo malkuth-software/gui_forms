@@ -1,5 +1,6 @@
 #include "gui_forms/gui_forms.hpp"
 #include "../src/core/display/recording_painter/recording_painter.hpp"
+#include "../src/core/display/replay/replay_display_chunk.hpp"
 
 #include <array>
 #include <cstdlib>
@@ -413,6 +414,42 @@ void test_recorded_covers_follow_the_painter_state() {
             "a mark inside a save, under a clip or translation, or before a copy group must be dropped");
 }
 
+// Keeps the per-corner rounded clips it is given.
+class CornerClipPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override {
+        boxes.push_back(rect);
+        corners.push_back(radii);
+    }
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+
+    std::vector<Rect> boxes;
+    std::vector<PaintCornerRadii> corners;
+};
+
+void test_a_per_corner_clip_replays_its_radii() {
+    detail::RecordingPainter recorder;
+    const Rect box{1.0, 2.0, 30.0, 12.0};
+    const PaintCornerRadii radii{1.0, 2.0, 3.0, 4.0};
+    recorder.save();
+    recorder.clip_rounded_rect_corners(box, radii);
+    recorder.fill_rect(box, face_color);
+    recorder.restore();
+    const std::shared_ptr<const detail::DisplayChunk> chunk = recorder.finish(1U, PaintPlane::control, box);
+    CornerClipPainter replayed;
+    static_cast<void>(detail::replay_display_chunk(*chunk, replayed));
+    require(replayed.boxes == std::vector<Rect>{box} && replayed.corners == std::vector<PaintCornerRadii>{radii},
+            "a per-corner rounded clip must replay with each corner's radius in place");
+}
+
 } // namespace
 
 int main() {
@@ -428,6 +465,7 @@ int main() {
         test_a_cover_lost_during_paint_restores_what_it_skipped();
         test_a_nested_cover_starts_the_paint_and_later_siblings_follow();
         test_recorded_covers_follow_the_painter_state();
+        test_a_per_corner_clip_replays_its_radii();
         std::cout << "gui_forms_display_chunk_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {

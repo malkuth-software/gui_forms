@@ -303,10 +303,13 @@ public:
     // for the part at `part` (logical, in the painter's coordinates) at
     // display `scale`. Runs setup first when due. `still` draws the still
     // pose and consumes no ticks. `view` must be the effect's parent's view.
+    // `shape` is the part's shape, which EffectCanvas::clip_part_shape
+    // clips to; by default a plain rectangle.
     template <typename Parent>
-    void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view) {
+    void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view,
+               PartShape shape = PartShape{}) {
         if (entry_ == nullptr || (*entry_).parent != EffectView<Parent>::parent_name) return;
-        paint_view(painter, part, scale, still, &view);
+        paint_view(painter, part, scale, still, &view, shape);
     }
 
     // The colours the next frames are given (EffectFrame::colours); the
@@ -320,7 +323,7 @@ public:
     [[nodiscard]] const EffectCanvasMeter& last_meter() const noexcept { return last_meter_; }
 
 private:
-    void paint_view(Painter& painter, Rect part, double scale, bool still, const void* view);
+    void paint_view(Painter& painter, Rect part, double scale, bool still, const void* view, PartShape shape);
 
     const EffectEntry* entry_{};
     std::unique_ptr<std::byte, effect_detail::StorageRelease> storage_{};

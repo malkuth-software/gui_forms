@@ -216,6 +216,8 @@ Types
      - Where a clock reads the time a motion starts.
    * - :cpp:class:`MotionValue <gui_forms::MotionValue>`
      - One value.
+   * - :cpp:class:`PaintCornerRadii <gui_forms::PaintCornerRadii>`
+     - A rounded rectangle's four corner radii, in the rectangle's units: top-left, top-right, bottom-right and bottom-left.
    * - :cpp:class:`Painter <gui_forms::Painter>`
      - Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
    * - :cpp:class:`PaintGroup <gui_forms::PaintGroup>`
@@ -1279,9 +1281,9 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel) noexcept
+   .. cpp:function:: EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel, PartCornerRadii corners = {}) noexcept
 
-      A canvas over ``painter`` for a part of ``part`` logical size whose origin is the painter's current origin, with ``outsets`` around it, at display ``scale``, and a budget of ``per_device_pixel`` operations for each device pixel of the part and its outsets. The painter must already be clipped to the part and its outsets and translated to the part's origin (the host does both); the canvas leaves its save depth as it found it.
+      A canvas over ``painter`` for a part of ``part`` logical size whose origin is the painter's current origin, with ``outsets`` around it, at display ``scale``, and a budget of ``per_device_pixel`` operations for each device pixel of the part and its outsets. The painter must already be clipped to the part and its outsets and translated to the part's origin (the host does both); the canvas leaves its save depth as it found it. ``corners`` are the part's shape's corner radii (clip_part_shape).
 
 
    .. rubric:: Properties
@@ -1332,6 +1334,10 @@ Types
       Narrows the clip to ``rect`` (in the current offset's coordinates).
 
    .. cpp:function:: void translate(Point offset) noexcept
+
+   .. cpp:function:: void clip_part_shape() noexcept
+
+      Narrows the clip to the part's own shape (EP-6): its box with the corners its host gives it (EffectInstance::paint), so an effect drawn over a rounded part stays inside its corners. It gives up the outsets until the next restore.
 
 .. cpp:namespace:: gui_forms
 
@@ -1580,9 +1586,9 @@ Types
 
       Takes one pointer event the hosting control received, at ``position`` in the control's coordinates, for a part whose origin there is ``part_origin``: converts it to part-local units, queues a move, press or release under the grant (queue_input), and updates the standing pointer state (EffectFrame::pointer) for every action, enter and leave setting ``inside``. Does nothing without an effect, a grant and an effect declaring pointer input. Returns whether the effect's frame changed (an event queued or the state moved), when the host repaints the effect's extent. Never fails.
 
-   .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view)
+   .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view, PartShape shape = PartShape{})
 
-      Runs the effect's frame over ``painter``, whose origin is the parent's, for the part at ``part`` (logical, in the painter's coordinates) at display ``scale``. Runs setup first when due. ``still`` draws the still pose and consumes no ticks. ``view`` must be the effect's parent's view.
+      Runs the effect's frame over ``painter``, whose origin is the parent's, for the part at ``part`` (logical, in the painter's coordinates) at display ``scale``. Runs setup first when due. ``still`` draws the still pose and consumes no ticks. ``view`` must be the effect's parent's view. ``shape`` is the part's shape, which EffectCanvas::clip_part_shape clips to; by default a plain rectangle.
 
 .. cpp:namespace:: gui_forms
 
@@ -3219,6 +3225,22 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PaintCornerRadii final
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   A rounded rectangle's four corner radii, in the rectangle's units: top-left, top-right, bottom-right and bottom-left. A painter draws each at most half the rectangle's shorter side.
+
+   .. cpp:member:: double top_left
+
+   .. cpp:member:: double top_right
+
+   .. cpp:member:: double bottom_right
+
+   .. cpp:member:: double bottom_left
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: Painter : public TextMetricsProvider
 
    ``#include <gui_forms/types/painter/painter.hpp>``
@@ -3253,6 +3275,10 @@ Types
    .. cpp:function:: virtual void clip_rounded_rect(Rect rect, double radius)
 
       Rich geometry has deterministic renderer-neutral fallbacks so a minimal host stays coherent. Recording and production raster painters override these operations to preserve the authored material exactly.
+
+   .. cpp:function:: virtual void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii)
+
+      Narrows the clip to ``rect`` with each corner rounded by its own radius (EP-6: an effect clipped to its part's shape). The fallback rounds every corner by the largest of the four, so it never shows more than the exact clip at a corner.
 
    .. cpp:function:: virtual void fill_rect(Rect rect, Color color) = 0
 

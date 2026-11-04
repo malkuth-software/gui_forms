@@ -97,6 +97,7 @@ public:
     void translate(Point offset) override;
     void clip_rect(Rect rect) override;
     void clip_rounded_rect(Rect rect, double radius) override;
+    void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override;
     void fill_rect(Rect rect, Color color) override;
     void fill_rounded_rect(Rect rect, double radius, Color color) override;
     void stroke_rect(Rect rect, Color color, double width) override;

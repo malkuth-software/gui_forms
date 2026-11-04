@@ -50,6 +50,10 @@ public:
     void restore() override { restores = restores + 1; }
     void translate(Point offset) override { translations.push_back(offset); }
     void clip_rect(Rect bounds) override { clips.push_back(bounds); }
+    void clip_rounded_rect_corners(Rect bounds, PaintCornerRadii radii) override {
+        corner_boxes.push_back(bounds);
+        corner_clips.push_back(radii);
+    }
     void fill_rect(Rect, Color) override { rects = rects + 1; }
     void fill_rounded_rect(Rect, double, Color) override { rounded = rounded + 1; }
     void stroke_rect(Rect, Color, double) override { stroked = stroked + 1; }
@@ -88,6 +92,8 @@ public:
     std::vector<Rect> clips{};
     std::vector<Point> radial_centers{};
     std::vector<Point> line_starts{};
+    std::vector<Rect> corner_boxes{};
+    std::vector<PaintCornerRadii> corner_clips{};
 };
 
 const FrameTime start{std::chrono::seconds(1000)};
@@ -968,6 +974,63 @@ void pointer_record() {
     require(granted.pointer() == EffectPointer{}, "withdrawing the grant forgets the pointer");
 }
 
+// A test effect that moves its origin, clips to its part's shape and fills
+// the part.
+class ShapeProbe final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_shape_probe",
+        .cost = {.fixed = 100U, .per_device_pixel = 1U},
+        .state_budget = 8U,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame& frame, EffectCanvas& canvas) {
+        canvas.save();
+        canvas.translate(Point{5.0, 0.0});
+        canvas.clip_part_shape();
+        canvas.fill_rect(Rect{0.0, 0.0, frame.part.width, frame.part.height}, Color::rgba(1, 2, 3, 255));
+        canvas.restore();
+    }
+};
+
+const EffectEntry& shape_probe_entry() {
+    static const EffectEntry entry = make_effect_entry<ShapeProbe>();
+    return entry;
+}
+
+// clip_part_shape (EP-6): the canvas clips to the part's box with the
+// corners its host gives it, each clamped to half the shorter side, in the
+// painter's coordinates after the effect's own translation; with no shape
+// the part is a plain rectangle.
+void part_shape_clip() {
+    const EffectView<ProgressBar> view = bar_view(0.5);
+    EffectInstance instance;
+    instance.attach(shape_probe_entry(), 1U, start);
+    PartShape rounded{};
+    rounded.corner_radius = 6.0;
+    RecordingPainter even;
+    instance.paint(even, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view, rounded);
+    require(even.corner_clips.size() == 1U && even.corner_boxes[0] == Rect{-5.0, 0.0, 200.0, 20.0},
+            "the shape clip is the part's box, moved by the effect's translation");
+    const PaintCornerRadii sixes{6.0, 6.0, 6.0, 6.0};
+    require(even.corner_clips[0] == sixes, "a rounded part gives every corner its radius");
+    require(even.saves == even.restores, "the shape clip is undone by the effect's restore");
+
+    PartShape differing{};
+    differing.per_corner = true;
+    differing.corners = PartCornerRadii{30.0, 0.0, 4.0, 2.0};
+    RecordingPainter uneven;
+    instance.paint(uneven, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view, differing);
+    const PaintCornerRadii clamped{10.0, 0.0, 4.0, 2.0};
+    require(uneven.corner_clips.size() == 1U && uneven.corner_clips[0] == clamped,
+            "per-corner radii reach the clip, each clamped to half the shorter side");
+
+    RecordingPainter plain;
+    instance.paint(plain, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(plain.corner_clips.size() == 1U && plain.corner_clips[0] == PaintCornerRadii{},
+            "with no shape the part is a plain rectangle");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -984,6 +1047,7 @@ int main() {
     themes_select_effects();
     effects_take_colour_roles();
     pointer_record();
+    part_shape_clip();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
                  "properties and input, themes selecting effects\n";

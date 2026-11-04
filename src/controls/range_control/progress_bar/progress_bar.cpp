@@ -766,6 +766,17 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     track.states = states;
     track.key = PartKey{"track", {}, {}};
     paint_part(painter, *this, track);
+    const ControlVisualRecipe& track_recipe = effective_theme().resolve(
+        ControlVisualRole::progress, visual_context());
+    // The track was painted as a part above; this is its shape, which an
+    // effect's clip_part_shape follows.
+    PartShape track_shape{};
+    track_shape.corner_radius = track_recipe.material.corner_radius;
+    if (track_recipe.material.corner_radii.has_value()) {
+        const MaterialCornerRadii& radii = *track_recipe.material.corner_radii;
+        track_shape.per_corner = true;
+        track_shape.corners = PartCornerRadii{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    }
     const Rect interior{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                         std::max(0.0, bounds.height - 4.0)};
     const MotionPolicy policy = effective_motion_policy();
@@ -828,8 +839,8 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();
     const bool still = !animation_enabled_ || policy.reduced || suppressed;
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;
-    effect_instance_.paint(painter, bounds, scale, still, view);
-    overlay_instance_.paint(painter, bounds, scale, still, view);
+    effect_instance_.paint(painter, bounds, scale, still, view, track_shape);
+    overlay_instance_.paint(painter, bounds, scale, still, view, track_shape);
 }
 
 bool ProgressBar::hit_test_local(Point local_point) const {

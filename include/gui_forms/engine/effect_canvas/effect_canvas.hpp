@@ -25,6 +25,7 @@
 // painter for the frame and is discarded with it.
 
 #include "gui_forms/engine/effect/effect.hpp"
+#include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -72,8 +73,9 @@ public:
     // pixel of the part and its outsets. The painter must already be clipped
     // to the part and its outsets and translated to the part's origin (the
     // host does both); the canvas leaves its save depth as it found it.
-    EffectCanvas(Painter& painter, Size part, Insets outsets, double scale,
-                 std::uint32_t per_device_pixel) noexcept;
+    // `corners` are the part's shape's corner radii (clip_part_shape).
+    EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel,
+                 PartCornerRadii corners = {}) noexcept;
     ~EffectCanvas();
     EffectCanvas(const EffectCanvas&) = delete;
     EffectCanvas& operator=(const EffectCanvas&) = delete;
@@ -117,6 +119,12 @@ public:
     void clip_rect(Rect rect) noexcept;
     GUI_FORMS_EFFECT_VOCABULARY(2, 0)
     void translate(Point offset) noexcept;
+    // Narrows the clip to the part's own shape (EP-6): its box with the
+    // corners its host gives it (EffectInstance::paint), so an effect drawn
+    // over a rounded part stays inside its corners. It gives up the
+    // outsets until the next restore.
+    GUI_FORMS_EFFECT_VOCABULARY(6, 0)
+    void clip_part_shape() noexcept;
 
     // For the host: what the frame charged and refused.
     [[nodiscard]] const EffectCanvasMeter& meter() const noexcept { return meter_; }
@@ -137,6 +145,8 @@ private:
 
     Painter& painter_;
     double scale_;
+    Size part_;
+    PartCornerRadii corners_;
     std::array<Level, maximum_effect_save_depth + 1U> levels_{};
     std::size_t depth_{};
     std::size_t painter_saves_{};

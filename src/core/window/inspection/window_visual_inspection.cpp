@@ -20,6 +20,7 @@ VisualPaintOperation public_operation(detail::DisplayOperation operation) {
     case Private::translate: return VisualPaintOperation::translate;
     case Private::clip_rect: return VisualPaintOperation::clip_rect;
     case Private::clip_rounded_rect:
+    case Private::clip_rounded_rect_corners:
         return VisualPaintOperation::clip_rounded_rect;
     case Private::fill_rect: return VisualPaintOperation::fill_rect;
     case Private::fill_rounded_rect:

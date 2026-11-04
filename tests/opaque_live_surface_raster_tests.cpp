@@ -207,6 +207,23 @@ void filtering_and_rounded_clip(const LiveSurfacePixelFormat format) {
     require(pixel(raster, 0U, 0U) == red && pixel(raster, 4U, 4U) == blue, "rounded clip preserved");
     const std::array<unsigned, 4> edge = pixel(raster, 2U, 0U);
     require(edge[0] > 0U && edge[2] > 0U, "antialiased clip edge blends coverage");
+    // A per-corner rounded clip (EP-6): square top-left and bottom-right
+    // corners, the other two rounded by half the side.
+    raster.begin_frame(damage);
+    raster.fill_rect({0.0, 0.0, 8.0, 8.0}, Color::rgba(255, 0, 0));
+    raster.save();
+    PaintCornerRadii radii{};
+    radii.top_right = 4.0;
+    radii.bottom_left = 4.0;
+    raster.clip_rounded_rect_corners({0.0, 0.0, 8.0, 8.0}, radii);
+    raster.fill_rect({0.0, 0.0, 8.0, 8.0}, Color::rgba(0, 0, 255));
+    raster.restore();
+    raster.end_frame();
+    require(pixel(raster, 0U, 0U) == blue && pixel(raster, 7U, 7U) == blue,
+            "a per-corner clip keeps its square corners");
+    require(pixel(raster, 7U, 0U) == red && pixel(raster, 0U, 7U) == red,
+            "a per-corner clip rounds its rounded corners");
+    require(pixel(raster, 4U, 4U) == blue, "a per-corner clip keeps its interior");
 }
 
 class SolidControl final : public Control {

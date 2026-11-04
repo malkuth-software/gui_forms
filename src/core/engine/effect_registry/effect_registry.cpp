@@ -414,7 +414,8 @@ bool EffectInstance::note_pointer(const PointerEvent& event, Point part_origin) 
     return changed;
 }
 
-void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool still, const void* view) {
+void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool still, const void* view,
+                                PartShape shape) {
     const EffectDeclaration& declaration = *(*entry_).declaration;
     if (!part.finite() || part.empty() || !(scale > 0.0) || !std::isfinite(scale)) return;
     const Size size{part.width, part.height};
@@ -454,7 +455,8 @@ void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool 
     painter.clip_rect(layer);
     painter.translate(Point{part.x, part.y});
     {
-        EffectCanvas canvas(painter, size, outsets, scale, declaration.cost.per_device_pixel);
+        const PartCornerRadii corners = part_corner_radii(shape, Rect{0.0, 0.0, size.width, size.height});
+        EffectCanvas canvas(painter, size, outsets, scale, declaration.cost.per_device_pixel, corners);
         (*(*entry_).run)(state_, view, frame, canvas);
         last_meter_ = canvas.meter();
     }

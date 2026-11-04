@@ -30,8 +30,8 @@ std::span<const GradientStop> live_stops(const EffectGradient& gradient) noexcep
 } // namespace
 
 EffectCanvas::EffectCanvas(Painter& painter, Size part, Insets outsets, double scale,
-                           std::uint32_t per_device_pixel) noexcept
-    : painter_(painter), scale_(scale) {
+                           std::uint32_t per_device_pixel, PartCornerRadii corners) noexcept
+    : painter_(painter), scale_(scale), part_(part), corners_(corners) {
     const Rect layer{-outsets.left, -outsets.top, part.width + outsets.left + outsets.right,
                      part.height + outsets.top + outsets.bottom};
     levels_[0].clip = layer;
@@ -194,6 +194,26 @@ void EffectCanvas::clip_rect(Rect rect) noexcept {
         level.painter_saved = true;
     }
     painter_.clip_rect(rect);
+}
+
+void EffectCanvas::clip_part_shape() noexcept {
+    Level& level = levels_[depth_];
+    const Rect part{0.0, 0.0, part_.width, part_.height};
+    level.clip = Rect::intersection(level.clip, part);
+    if (!level.painter_saved) {
+        painter_.save();
+        painter_saves_ = painter_saves_ + 1U;
+        level.painter_saved = true;
+    }
+    // The part's box in the painter's current coordinates, which the
+    // canvas's offset has moved.
+    const Rect box{-level.offset.x, -level.offset.y, part_.width, part_.height};
+    PaintCornerRadii radii{};
+    radii.top_left = corners_.top_left;
+    radii.top_right = corners_.top_right;
+    radii.bottom_right = corners_.bottom_right;
+    radii.bottom_left = corners_.bottom_left;
+    painter_.clip_rounded_rect_corners(box, radii);
 }
 
 void EffectCanvas::translate(Point offset) noexcept {

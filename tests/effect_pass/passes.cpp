@@ -58,6 +58,11 @@ void Accepted::run(const View& parent, const gui_forms::EffectFrame& frame, gui_
     // reading them is free.
     canvas.fill_rect({0.0, 0.0, 2.0, 2.0}, frame.colours.primary);
     canvas.fill_rect({2.0, 0.0, 2.0, 2.0}, frame.colours.secondary);
+    // Clipping to the part's shape is a fixed-cost call.
+    canvas.save();
+    canvas.clip_part_shape();
+    canvas.fill_rect({0.0, 0.0, 2.0, 2.0}, frame.colours.primary);
+    canvas.restore();
     // So is the standing pointer (EffectFrame::pointer).
     if (frame.pointer.inside) {
         canvas.fill_rect({frame.pointer.position.x, frame.pointer.position.y, 1.0, 1.0}, frame.colours.primary);

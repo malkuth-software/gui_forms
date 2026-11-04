@@ -115,6 +115,11 @@ public:
     // host stays coherent.  Recording and production raster painters override
     // these operations to preserve the authored material exactly.
     virtual void clip_rounded_rect(Rect rect, double radius);
+    // Narrows the clip to `rect` with each corner rounded by its own radius
+    // (EP-6: an effect clipped to its part's shape). The fallback rounds
+    // every corner by the largest of the four, so it never shows more
+    // than the exact clip at a corner.
+    virtual void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii);
     virtual void fill_rect(Rect rect, Color color) = 0;
     virtual void fill_rounded_rect(Rect rect, double radius, Color color);
     virtual void stroke_rect(Rect rect, Color color, double width) = 0;
