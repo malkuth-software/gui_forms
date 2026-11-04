@@ -77,6 +77,8 @@ gui_forms::Window
         - Called by a host when it attaches this window (stage DP).
       * - :cpp:func:`queue_live_surface_presentation <gui_forms::Window::queue_live_surface_presentation>`
         -  
+      * - :cpp:func:`require_live_surface_content <gui_forms::Window::require_live_surface_content>`
+        - Content pairing (stage S2, design note section 6): the surface registered for ``control`` must next show a frame published with a content tag of at least ``content_tag``.
       * - :cpp:func:`take_live_surface_presentations <gui_forms::Window::take_live_surface_presentations>`
         - Returns surfaces with a new generation or a changed placement (destination, clip or crossing overlays).
       * - :cpp:func:`set_scale <gui_forms::Window::set_scale>`
@@ -265,6 +267,10 @@ gui_forms::Window
       Called by a host when it attaches this window (stage DP). Throws std::invalid_argument when the declared contract version is older than paint_contract_version, or claims version 2 or later without partial present: such a host fails attachment rather than presenting in a degraded mode.
 
    .. cpp:function:: bool queue_live_surface_presentation(const Control::Ptr& control, std::shared_ptr<LiveSurface> surface)
+
+   .. cpp:function:: bool require_live_surface_content(const Control::Ptr& control, std::uint64_t content_tag)
+
+      Content pairing (stage S2, design note section 6): the surface registered for ``control`` must next show a frame published with a content tag of at least ``content_tag``. Until one is published, the next present tick keeps the previous frame on screen (a pairing wait); the tick after presents the newest frame unpaired. Tags only grow: a lower one is ignored. False when ``control`` has no registration.
 
    .. cpp:function:: std::vector<LiveSurfacePresentation> take_live_surface_presentations(bool include_unchanged = false, bool* publication_changed = nullptr)
 

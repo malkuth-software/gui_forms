@@ -107,6 +107,10 @@ public:
     // One live-surface frame copied to the screen.
     void record_live_present(std::uint64_t duration_nanoseconds, std::uint64_t device_pixels,
                              std::uint64_t rectangles) noexcept;
+    // One present tick a live surface waited for its required content.
+    void record_live_pairing_wait() noexcept;
+    // One live frame presented although older than its required content.
+    void record_live_unpaired_presentation() noexcept;
     void set_renderer(std::string_view name, bool cpu_only);
     // Whether the window's renderer replayed its last backplane image
     // whole (stage T5, C6; owner decision T5-Q13).

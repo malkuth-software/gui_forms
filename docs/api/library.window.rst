@@ -570,6 +570,10 @@ Related types
 
       True when this window last presented the surface at the same destination, clip and overlays. A host whose raster still holds that presentation may then copy only the surface's presentation region (LiveSurface::acquire_for_presentation). False means copy all of clip.
 
+   .. cpp:member:: bool paired
+
+      False when the frame is older than the content the window requires of the surface (Window::require_live_surface_content) and is presented anyway, one present tick after the window waited for it. Default: ``{true}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: PaintLeaseSnapshot final

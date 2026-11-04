@@ -158,8 +158,12 @@ in today's rasters). `retained_pixels_presented` and
 `live_frames_presented`, `live_pixels_presented`,
 `live_rectangles_presented` and `live_present_duration_nanoseconds` count
 live-surface frames: one per surface per new frame, with the fragments its
-clip is cut into around overlays as its rectangles. When one present copies
-both, the duration is split by the pixels each copied. The present durations
+clip is cut into around overlays as its rectangles. A surface the window
+pairs with content (`Window::require_live_surface_content`) counts
+`live_pairing_waits` for each present tick it kept its previous frame while
+its newest one was older than that content, and
+`live_unpaired_presentations` for each such frame presented anyway at the
+next tick. When one present copies both, the duration is split by the pixels each copied. The present durations
 cover painting and composing as well as the copy; `screen_copy_nanoseconds`
 counts only the copy to the screen (pixel conversion and the native copy),
 retained and live together, so the copy itself compares across hosts. Divide by `frames_presented` or `live_frames_presented`

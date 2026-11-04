@@ -1301,6 +1301,10 @@ Types
 
       Returns the newest publication's damage from acquire_latest, or the invalid region taken by acquire_for_presentation, clipped to surface bounds.
 
+   .. cpp:function:: std::uint64_t content_tag() const noexcept
+
+      The producer's label given at publish (LiveSurfaceWriteLease::publish).
+
    .. cpp:function:: std::span<const std::byte> pixels() const noexcept
 
       Returns a const byte span whose lifetime is protected by the retained shared buffer.
@@ -1336,6 +1340,10 @@ Types
    .. cpp:member:: bool carries_previous_frame
 
       True between reconfigure and the first publication of the new epoch, while acquire_latest()/acquire_for_presentation() return the previous epoch's last frame (at its own size) instead of nothing.
+
+   .. cpp:member:: std::uint64_t content_tag
+
+      The content tag of the frame acquire_latest() returns (the carried frame's while carries_previous_frame); zero when there is none.
 
 .. cpp:namespace:: gui_forms
 
@@ -1411,7 +1419,7 @@ Types
 
       Returns the mutable candidate byte span; these bytes remain invisible until publish succeeds.
 
-   .. cpp:function:: std::uint64_t publish(Rect damage = {})
+   .. cpp:function:: std::uint64_t publish(Rect damage = {}, std::uint64_t content_tag = 0U)
 
       Validates epoch, slot, and buffer identity under the mutex, clips/defaults damage, advances generation, releases producer ownership, then invokes copied best-effort wakes outside the mutex.
 

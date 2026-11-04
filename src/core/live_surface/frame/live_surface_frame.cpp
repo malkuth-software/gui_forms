@@ -8,9 +8,10 @@ namespace gui_forms {
 
 LiveSurfaceFrame::LiveSurfaceFrame(
     std::shared_ptr<const detail::LiveSurfaceBuffer> buffer,
-    std::uint64_t epoch, std::uint64_t generation, Rect damage) noexcept
+    std::uint64_t epoch, std::uint64_t generation, Rect damage,
+    std::uint64_t content_tag) noexcept
     : buffer_(std::move(buffer)), epoch_(epoch), generation_(generation),
-      damage_(damage) {}
+      damage_(damage), content_tag_(content_tag) {}
 
 std::uint32_t LiveSurfaceFrame::width() const noexcept {
     return buffer_ ? (*buffer_).description.width : 0U;

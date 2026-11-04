@@ -266,6 +266,12 @@ void Metrics::record_live_present(std::uint64_t duration, std::uint64_t device_p
     values_.live_rectangles_presented += rectangles;
     values_.live_present_duration_nanoseconds += duration;
 }
+void Metrics::record_live_pairing_wait() noexcept {
+    ++values_.live_pairing_waits;
+}
+void Metrics::record_live_unpaired_presentation() noexcept {
+    ++values_.live_unpaired_presentations;
+}
 void Metrics::set_renderer(std::string_view name, bool cpu_only) {
     values_.renderer_name.assign(name);
     values_.cpu_only = cpu_only;

@@ -49,6 +49,14 @@ public:
 
     [[nodiscard]] bool queue_live_surface_presentation(
         const Control::Ptr& control, std::shared_ptr<LiveSurface> surface);
+    // Content pairing (stage S2, design note section 6): the surface
+    // registered for `control` must next show a frame published with a
+    // content tag of at least `content_tag`. Until one is published, the next
+    // present tick keeps the previous frame on screen (a pairing wait); the
+    // tick after presents the newest frame unpaired. Tags only grow: a lower
+    // one is ignored. False when `control` has no registration.
+    bool require_live_surface_content(const Control::Ptr& control,
+                                      std::uint64_t content_tag);
     // Returns surfaces with a new generation or a changed placement
     // (destination, clip or crossing overlays). Failed native batches request
     // unchanged generations too, with current visibility and overlay clips;
@@ -96,6 +104,10 @@ private:
         LiveSurfaceWakeConnection idle_wake{};
         std::uint64_t observed_epoch{};
         std::uint64_t observed_generation{};
+        // Pairing: the least content tag the next presented frame must
+        // carry, and whether the present tick before already waited for it.
+        std::uint64_t required_content_tag{};
+        bool pairing_waited{};
     };
     using LiveSurfaceRegistrationMap =
         std::unordered_map<std::uint64_t, LiveSurfaceRegistration>;

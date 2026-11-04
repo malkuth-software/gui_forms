@@ -40,18 +40,21 @@ public:
         return generation_;
     }
     [[nodiscard]] Rect damage() const noexcept { return damage_; }
+    // The producer's label given at publish (LiveSurfaceWriteLease::publish).
+    [[nodiscard]] std::uint64_t content_tag() const noexcept { return content_tag_; }
     [[nodiscard]] std::span<const std::byte> pixels() const noexcept;
 
 private:
     friend class LiveSurface;
     LiveSurfaceFrame(std::shared_ptr<const detail::LiveSurfaceBuffer> buffer,
                      std::uint64_t epoch, std::uint64_t generation,
-                     Rect damage) noexcept;
+                     Rect damage, std::uint64_t content_tag) noexcept;
 
     std::shared_ptr<const detail::LiveSurfaceBuffer> buffer_;
     std::uint64_t epoch_{};
     std::uint64_t generation_{};
     Rect damage_{};
+    std::uint64_t content_tag_{};
 };
 
 } // namespace gui_forms
