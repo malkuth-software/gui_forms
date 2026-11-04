@@ -246,6 +246,9 @@ gui_forms::SurfaceRoot
 
       **dropped_layout_diagnostics** : ``std::uint64_t``, read-only
 
+      **control_table** : ``detail::ControlTable``, read-only
+         The control table (property-capabilities study, decision 6), for inspection: each attached control's slot, the controls touched since the last settle and the containers' resize registrations. Borrowed from this root.
+
       **containing_block_watch_count** : ``std::size_t``, read-only
 
       **containing_block_subtree_arranges** : ``std::uint64_t``, read-only
@@ -781,6 +784,10 @@ gui_forms::SurfaceRoot
       Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
 
    .. cpp:function:: std::uint64_t dropped_layout_diagnostics() const noexcept
+
+   .. cpp:function:: const detail::ControlTable& control_table() const& noexcept
+
+      The control table (property-capabilities study, decision 6), for inspection: each attached control's slot, the controls touched since the last settle and the containers' resize registrations. Borrowed from this root.
 
    .. cpp:function:: std::size_t containing_block_watch_count() const noexcept
 

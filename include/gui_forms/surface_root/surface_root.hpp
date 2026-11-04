@@ -807,6 +807,12 @@ public:
     [[nodiscard]] std::span<const LayoutDiagnostic> layout_diagnostics() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_layout_diagnostics() const noexcept { return dropped_layout_diagnostics_; }
     void clear_layout_diagnostics() noexcept;
+    // The control table (property-capabilities study, decision 6), for
+    // inspection: each attached control's slot, the controls touched since
+    // the last settle and the containers' resize registrations. Borrowed
+    // from this root.
+    [[nodiscard]] const detail::ControlTable& control_table() const& noexcept { return control_table_; }
+    [[nodiscard]] const detail::ControlTable& control_table() const&& = delete;
     // Containing-block dependencies (PLAN section 3.3), for inspection: how
     // many containers resolved an absolutely positioned child's containing
     // block through `watched` (the block's control, or one between it and
@@ -1196,6 +1202,10 @@ private:
     void mark_dirty(Control& control, Dirty dirty);
     void mark_paint_dirty(Control& control, Rect local_damage);
     void mark_subtree_dirty(Control& control, Dirty dirty);
+    // Processes the controls touched since the last settle and clears their
+    // table bits. Called before every read of settled state: a layout pass,
+    // a paint, taking damage, hit testing and a semantic snapshot.
+    void settle_dirty();
     // Marks for measure the controls a client-size change reaches (see
     // Window::resize): `control`, and below it each child whose parent
     // requests no extent on a changed axis.
@@ -1500,6 +1510,13 @@ private:
     // The theme engine's records of this window's keyed parts. A control's
     // records are released when it leaves the window.
     EnginePartTable engine_parts_;
+    // One slot per attached control (property-capabilities study, decisions
+    // 6 and 11): the controls touched since the last settle, by kind, and the
+    // containers' resize registrations. A slot is assigned at attach and
+    // released at detach.
+    detail::ControlTable control_table_;
+    // settle_dirty's index storage, reused across settles.
+    std::vector<std::uint32_t> settle_indices_;
     // Reports into the base's metrics, which outlive it.
     MotionClock motion_clock_{*this};
     // The values the application publishes for the engine, in publication

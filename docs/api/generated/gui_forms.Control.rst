@@ -318,6 +318,9 @@ gui_forms::Control
       **subtree_dirty** : ``Dirty``, read-only
          The invalidation flags pending on this control or any descendant.
 
+      **surface_slot** : ``detail::ControlSlot``, read-only
+         This control's slot in its surface root's control table, for inspection (SurfaceRoot::control_table); unassigned while detached.
+
       **paint_plane** : ``PaintPlane``, default ``PaintPlane::control``
          The compositing plane the control paints into. Panels use
          :cpp:enumerator:`PaintPlane::backplane <gui_forms::PaintPlane::backplane>`.
@@ -1128,6 +1131,10 @@ gui_forms::Control
    .. cpp:function:: Dirty subtree_dirty() const noexcept
 
       The invalidation flags pending on this control or any descendant.
+
+   .. cpp:function:: detail::ControlSlot surface_slot() const noexcept
+
+      This control's slot in its surface root's control table, for inspection (SurfaceRoot::control_table); unassigned while detached.
 
    .. cpp:function:: PaintPlane paint_plane() const noexcept
 

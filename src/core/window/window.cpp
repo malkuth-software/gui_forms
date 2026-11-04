@@ -2084,6 +2084,10 @@ void SurfaceRoot::cancel_drag() noexcept {
 void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
                                   const Control::WeakPtr& parent,
                                   ControlList& attached) {
+    // Listed first, so that a failure past this point is undone by the
+    // caller's rollback of `attached`.
+    attached.push_back(control);
+    (*control).surface_slot_ = control_table_.assign(*control);
     (*control).window_ = presenting_window_;
     (*control).surface_root_ = this;
     {
@@ -2092,7 +2096,6 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     }
     (*control).parent_ = parent;
     (*control).lifecycle_notification_ = true;
-    attached.push_back(control);
     for (const Control::Ptr& child : (*control).children_) {
         attach_subtree_state(child, control, attached);
     }
@@ -2111,6 +2114,8 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     (*control).on_detaching_from_window(*this);
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
+    control_table_.release((*control).surface_slot_);
+    (*control).surface_slot_ = {};
     {
         std::scoped_lock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_.reset();
@@ -2141,13 +2146,13 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
     require_root_thread("visual-tree attachment");
     register_subtree(control);
     ControlList controls;
-    attach_subtree_state(control, parent, controls);
-    // The theme in effect may have changed with the window or the parent
-    // (P12b).
-    for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
     ControlList notified;
     in_lifecycle_notification_ = true;
     try {
+        attach_subtree_state(control, parent, controls);
+        // The theme in effect may have changed with the window or the parent
+        // (P12b).
+        for (const Control::Ptr& current : controls) (*current).refresh_inline_style();
         for (const Control::Ptr& current : controls) {
             notified.push_back(current);
             if ((*current).authored_surface_material_) {
@@ -2161,6 +2166,8 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
              current != controls.rend(); ++current) {
             (*(*current)).window_ = nullptr;
             (*(*current)).surface_root_ = nullptr;
+            control_table_.release((*(*current)).surface_slot_);
+            (*(*current)).surface_slot_ = {};
             {
                 std::scoped_lock lock((*(*current)).dispatcher_mutex_);
                 (*(*current)).dispatcher_state_.reset();
@@ -2427,6 +2434,7 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
     }
     control.add_dirty(requested_dirty);
     control.subtree_dirty_ |= requested_dirty;
+    control_table_.touch(control.surface_slot_, requested_dirty);
     metrics_.record_mutation();
 
     if (has_dirty(requested_dirty, Dirty::layout)) {
@@ -2486,6 +2494,7 @@ void SurfaceRoot::mark_paint_dirty(Control& control, Rect local_damage) {
 
     control.dirty_ |= Dirty::paint;
     control.subtree_dirty_ |= Dirty::paint;
+    control_table_.touch(control.surface_slot_, Dirty::paint);
     for (Control::Ptr ancestor = control.parent(); ancestor;
          ancestor = (*ancestor).parent()) {
         (*ancestor).subtree_dirty_ |= Dirty::paint;
@@ -2505,6 +2514,7 @@ void SurfaceRoot::mark_child_layout_slot(Control& control) {
     constexpr Dirty effects = Dirty::arrange | Dirty::hit_test |
                               Dirty::semantics | Dirty::accessibility;
     control.dirty_ |= effects;
+    control_table_.touch(control.surface_slot_, effects);
     note_suspended_layout_request(control);
     control.subtree_dirty_ |= effects;
     for (Control::Ptr ancestor = control.parent(); ancestor;
@@ -2728,6 +2738,8 @@ void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     }
     double requested_damage_area = 0.0;
     apply_subtree_dirty(control, requested_dirty, requested_damage_area);
+    // The subtree's root stands for the subtree in the table.
+    control_table_.touch(control.surface_slot_, requested_dirty);
     for (Control::Ptr ancestor = control.parent(); ancestor;
          ancestor = (*ancestor).parent()) {
         (*ancestor).subtree_dirty_ |= requested_dirty;
@@ -2893,8 +2905,20 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     }
 }
 
+void SurfaceRoot::settle_dirty() {
+    // The bookkeeping of a touch (ancestor marks, damage, generations) is
+    // still done at the write; settling drains the table's bits so that they
+    // name the controls touched since the previous read.
+    for (std::size_t kind = 0U; kind < detail::dirty_kind_count; ++kind) {
+        settle_indices_.clear();
+        static_cast<void>(control_table_.take(static_cast<detail::DirtyKind>(kind), settle_indices_));
+    }
+    settle_indices_.clear();
+}
+
 void SurfaceRoot::ensure_layout(bool read_barrier) {
     require_root_thread("layout");
+    settle_dirty();
     if (!(*root_).is_alive()) {
         layout_dirty_ = false;
         hit_test_dirty_ = false;

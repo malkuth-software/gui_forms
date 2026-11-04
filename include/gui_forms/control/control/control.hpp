@@ -1,4 +1,5 @@
 #pragma once
+#include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
 #include "gui_forms/anatomy.hpp"
@@ -730,6 +731,9 @@ public:
 
     [[nodiscard]] Dirty dirty() const noexcept { return dirty_; }
     [[nodiscard]] Dirty subtree_dirty() const noexcept { return subtree_dirty_; }
+    // This control's slot in its surface root's control table, for
+    // inspection (SurfaceRoot::control_table); unassigned while detached.
+    [[nodiscard]] detail::ControlSlot surface_slot() const noexcept { return surface_slot_; }
     [[nodiscard]] PaintPlane paint_plane() const noexcept { return paint_plane_; }
     void set_paint_plane(PaintPlane plane);
     [[nodiscard]] std::optional<DisplayChunkInfo> display_chunk_info() const noexcept;
@@ -1221,6 +1225,10 @@ private:
     ChildList children_;
     Window* window_{};
     SurfaceRoot* surface_root_{};
+    // This control's slot in its surface root's control table while it is
+    // attached (assigned and released with surface_root_); unassigned
+    // otherwise.
+    detail::ControlSlot surface_slot_{};
     // Atomic shared_ptr free functions make BeginInvoke safe to acquire from a
     // worker while the UI thread attaches or detaches this control.
     mutable std::mutex dispatcher_mutex_;

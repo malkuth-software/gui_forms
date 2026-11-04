@@ -409,6 +409,7 @@ void SurfaceRoot::note_opaque_cover(const Control& control, const Painter& paint
 
 std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           Rect requested_damage) {
+    settle_dirty();
     // One rectangle: the request, or else the bounds of all damage.
     if (!requested_damage.empty()) {
         const std::array<Rect, 1> request{requested_damage};
@@ -426,6 +427,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
 
 std::optional<PaintReceipt> SurfaceRoot::paint(Painter& painter,
                                           std::span<const Rect> requested_damage) {
+    settle_dirty();
     if (!requested_damage.empty()) {
         return paint_rectangles(painter, requested_damage, true);
     }
