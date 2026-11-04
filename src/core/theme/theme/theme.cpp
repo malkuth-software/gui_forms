@@ -1365,13 +1365,17 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
 } // namespace detail
 
 ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family) {
-    // A container's children paint over its plate in their own states, so a
-    // container never inverts (T4 phase 5e: a pressed or toggled card's
-    // white plate hid its children's white text): pressed keeps the plain
-    // plate and ink inside the pressed edge, and selected the state's
-    // palette inside the selection line.
+    // Families whose text does not lie on a plate of their own never invert
+    // (T4 phase 5e): a container's children paint over its plate in their
+    // own states (a pressed or toggled card's white plate hid its
+    // children's white text), a choice's label lies on its parent's ground
+    // (a checked check box's black ink lay on black), and an editor's text
+    // lies on its well, which does not invert (a pressed combo box's).
+    // Pressed keeps the plain plate and ink inside the pressed edge, and
+    // selected the state's palette inside the selection line.
     const bool container = family == ControlVisualRole::window || family == ControlVisualRole::panel ||
-                           family == ControlVisualRole::card;
+                           family == ControlVisualRole::card || family == ControlVisualRole::choice ||
+                           family == ControlVisualRole::editor;
     const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
     for (std::size_t index = 0; index < control_surface_state_count; ++index) {
         const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);

@@ -240,11 +240,13 @@ struct ControlRoleRecipes final {
 // default rings, offsets) and rebuilds the material as one solid plate
 // inside one solid edge from a near-colourless palette by state, dropping
 // gradients, images, keylines, per-edge borders and shadows. Selected parts
-// take a white plate and black text inside their state's edge; a container
-// family's (window, panel, card) never inverts, since its children paint
-// over its plate in their own states: pressed keeps the plain plate inside
-// the pressed edge, and selected the state's plate inside the selection
-// line. Theme::create applies it to every family (`family`), so authored
+// take a white plate and black text inside their state's edge; a family
+// whose text does not lie on a plate of its own (window, panel and card,
+// whose children paint over the plate in their own states; choice, whose
+// label lies on its parent's ground; editor, whose text lies on its well)
+// never inverts: pressed keeps the
+// plain plate inside the pressed edge, and selected the state's plate inside
+// the selection line. Theme::create applies it to every family (`family`), so authored
 // high-contrast records are replaced.
 [[nodiscard]] ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family);
 

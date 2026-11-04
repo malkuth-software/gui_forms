@@ -48996,7 +48996,7 @@
       "kind": "class",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 286,
+      "line": 288,
       "declaration": "class ControlRoleTable final",
       "comment": "",
       "access": "public",
@@ -49014,7 +49014,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 288,
+          "line": 290,
           "page": "gui-forms-controlroletable-families-std-array-controlrolerecipes-control-visual-role-count-86c05e0501.html"
         },
         {
@@ -49029,7 +49029,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 291,
+          "line": 293,
           "page": "gui-forms-controlroletable-controlroletable-void-1f4459ae01.html"
         },
         {
@@ -49050,7 +49050,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 292,
+          "line": 294,
           "page": "gui-forms-controlroletable-controlroletable-void-const-controlroletable-641fd808ae.html"
         },
         {
@@ -49071,7 +49071,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 295,
+          "line": 297,
           "page": "gui-forms-controlroletable-operator-controlroletable-const-controlroletable-606737eeb6.html"
         },
         {
@@ -49092,7 +49092,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 301,
+          "line": 303,
           "page": "gui-forms-controlroletable-operator-controlrolerecipes-std-size-t-noexcept-730a5d0a96.html"
         },
         {
@@ -49113,7 +49113,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 302,
+          "line": 304,
           "page": "gui-forms-controlroletable-operator-const-controlrolerecipes-std-size-t-const-noexcept-1ef7587e86.html"
         },
         {
@@ -49128,7 +49128,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 305,
+          "line": 307,
           "page": "gui-forms-controlroletable-size-std-size-t-noexcept-d7c9980dcd.html"
         },
         {
@@ -49143,7 +49143,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 306,
+          "line": 308,
           "page": "gui-forms-controlroletable-begin-families-iterator-noexcept-b62de0b982.html"
         },
         {
@@ -49158,7 +49158,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 307,
+          "line": 309,
           "page": "gui-forms-controlroletable-end-families-iterator-noexcept-ead447a101.html"
         },
         {
@@ -49173,7 +49173,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 308,
+          "line": 310,
           "page": "gui-forms-controlroletable-begin-families-const-iterator-const-noexcept-ab0e94dc05.html"
         },
         {
@@ -49188,7 +49188,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 309,
+          "line": 311,
           "page": "gui-forms-controlroletable-end-families-const-iterator-const-noexcept-3bbf88ae8c.html"
         }
       ],
@@ -225811,7 +225811,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 436,
+      "line": 438,
       "declaration": "struct ThemeBackdropBase final",
       "comment": "",
       "access": "public",
@@ -225829,7 +225829,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 437,
+          "line": 439,
           "page": "gui-forms-themebackdropbase-backdrop-windowbackdrop-2b17bfe913.html"
         },
         {
@@ -225844,7 +225844,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 438,
+          "line": 440,
           "page": "gui-forms-themebackdropbase-material-surfacematerial-f2b56e9465.html"
         }
       ],
@@ -226367,7 +226367,7 @@
       "kind": "enum",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 479,
+      "line": 481,
       "declaration": "enum class ThemeDarkVariant : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -226385,7 +226385,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 479,
+          "line": 481,
           "page": "gui-forms-themedarkvariant-none-gui-forms-themedarkvariant-799effa442.html"
         },
         {
@@ -226400,7 +226400,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 479,
+          "line": 481,
           "page": "gui-forms-themedarkvariant-derived-gui-forms-themedarkvariant-cc279ea4ef.html"
         }
       ],
@@ -226414,7 +226414,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 485,
+      "line": 487,
       "declaration": "struct ThemeDefinition final",
       "comment": "",
       "access": "public",
@@ -226432,7 +226432,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 486,
+          "line": 488,
           "page": "gui-forms-themedefinition-id-std-string-e55be3fa93.html"
         },
         {
@@ -226447,7 +226447,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 487,
+          "line": 489,
           "page": "gui-forms-themedefinition-compatibility-basiccontrolstyle-cfe1670213.html"
         },
         {
@@ -226462,7 +226462,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 488,
+          "line": 490,
           "page": "gui-forms-themedefinition-roles-controlroletable-ce26ddfb4a.html"
         },
         {
@@ -226477,7 +226477,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 489,
+          "line": 491,
           "page": "gui-forms-themedefinition-structure-themestructuretokens-6d8a3e9909.html"
         },
         {
@@ -226492,7 +226492,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 491,
+          "line": 493,
           "page": "gui-forms-themedefinition-accent-ramp-std-vector-color-160a57a984.html"
         },
         {
@@ -226507,7 +226507,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 494,
+          "line": 496,
           "page": "gui-forms-themedefinition-overlay-shadow-std-vector-materialshadow-5997768287.html"
         },
         {
@@ -226522,7 +226522,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 498,
+          "line": 500,
           "page": "gui-forms-themedefinition-high-contrast-overlay-shadow-std-vector-materialshadow-31f2f49239.html"
         },
         {
@@ -226537,7 +226537,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 503,
+          "line": 505,
           "page": "gui-forms-themedefinition-rules-themerulesheet-b1c126dd98.html"
         },
         {
@@ -226552,7 +226552,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 507,
+          "line": 509,
           "page": "gui-forms-themedefinition-rule-set-themeruleset-a6fdf2db3f.html"
         },
         {
@@ -226567,7 +226567,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 510,
+          "line": 512,
           "page": "gui-forms-themedefinition-window-backdrop-themewindowbackdrop-31a8d77351.html"
         },
         {
@@ -226582,7 +226582,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 512,
+          "line": 514,
           "page": "gui-forms-themedefinition-dark-variant-themedarkvariant-7c0313215b.html"
         }
       ],
@@ -227122,7 +227122,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 337,
+      "line": 339,
       "declaration": "struct ThemeGeometryTokens final",
       "comment": "",
       "access": "public",
@@ -227140,7 +227140,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 338,
+          "line": 340,
           "page": "gui-forms-themegeometrytokens-compact-control-height-double-c1d2ad44ce.html"
         },
         {
@@ -227155,7 +227155,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 339,
+          "line": 341,
           "page": "gui-forms-themegeometrytokens-control-height-double-57d81b4288.html"
         },
         {
@@ -227170,7 +227170,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 340,
+          "line": 342,
           "page": "gui-forms-themegeometrytokens-large-control-height-double-c96f9f17a1.html"
         },
         {
@@ -227185,7 +227185,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 341,
+          "line": 343,
           "page": "gui-forms-themegeometrytokens-minimum-touch-target-double-07fcd8238d.html"
         },
         {
@@ -227200,7 +227200,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 342,
+          "line": 344,
           "page": "gui-forms-themegeometrytokens-splitter-width-double-12ed5712ae.html"
         },
         {
@@ -227215,7 +227215,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 343,
+          "line": 345,
           "page": "gui-forms-themegeometrytokens-splitter-hit-width-double-2d1cdcdeb9.html"
         },
         {
@@ -227230,7 +227230,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 344,
+          "line": 346,
           "page": "gui-forms-themegeometrytokens-navigation-extent-double-00e822e1bd.html"
         },
         {
@@ -227245,7 +227245,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 345,
+          "line": 347,
           "page": "gui-forms-themegeometrytokens-navigation-minimum-double-f9ae84e2e0.html"
         },
         {
@@ -227260,7 +227260,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 346,
+          "line": 348,
           "page": "gui-forms-themegeometrytokens-content-minimum-double-6386e75bfd.html"
         },
         {
@@ -227275,7 +227275,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 347,
+          "line": 349,
           "page": "gui-forms-themegeometrytokens-compact-breakpoint-double-5f3b57de5d.html"
         }
       ],
@@ -227498,7 +227498,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 377,
+      "line": 379,
       "declaration": "struct ThemeMotionTokens final",
       "comment": "",
       "access": "public",
@@ -227516,7 +227516,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 378,
+          "line": 380,
           "page": "gui-forms-thememotiontokens-quick-std-chrono-milliseconds-b970dcd977.html"
         },
         {
@@ -227531,7 +227531,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 379,
+          "line": 381,
           "page": "gui-forms-thememotiontokens-standard-std-chrono-milliseconds-e4370bec5a.html"
         },
         {
@@ -227546,7 +227546,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 380,
+          "line": 382,
           "page": "gui-forms-thememotiontokens-emphasized-std-chrono-milliseconds-30eb1997e5.html"
         },
         {
@@ -227561,7 +227561,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 381,
+          "line": 383,
           "page": "gui-forms-thememotiontokens-busy-cycle-std-chrono-milliseconds-97551cbafb.html"
         }
       ],
@@ -228159,7 +228159,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 321,
+      "line": 323,
       "declaration": "struct ThemeSpacingTokens final",
       "comment": "",
       "access": "public",
@@ -228177,7 +228177,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 322,
+          "line": 324,
           "page": "gui-forms-themespacingtokens-micro-double-cb0cf2d038.html"
         },
         {
@@ -228192,7 +228192,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 323,
+          "line": 325,
           "page": "gui-forms-themespacingtokens-xsmall-double-3cc2dfedec.html"
         },
         {
@@ -228207,7 +228207,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 324,
+          "line": 326,
           "page": "gui-forms-themespacingtokens-small-double-fad68847ae.html"
         },
         {
@@ -228222,7 +228222,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 325,
+          "line": 327,
           "page": "gui-forms-themespacingtokens-medium-double-b2f1d2cac9.html"
         },
         {
@@ -228237,7 +228237,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 326,
+          "line": 328,
           "page": "gui-forms-themespacingtokens-large-double-c5a406d168.html"
         },
         {
@@ -228252,7 +228252,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 327,
+          "line": 329,
           "page": "gui-forms-themespacingtokens-xlarge-double-ad9d30fe16.html"
         },
         {
@@ -228267,7 +228267,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 328,
+          "line": 330,
           "page": "gui-forms-themespacingtokens-section-double-aeacc6e1eb.html"
         }
       ],
@@ -228281,7 +228281,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 390,
+      "line": 392,
       "declaration": "struct ThemeStructureTokens final",
       "comment": "",
       "access": "public",
@@ -228299,7 +228299,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 391,
+          "line": 393,
           "page": "gui-forms-themestructuretokens-spacing-themespacingtokens-d8c36737ed.html"
         },
         {
@@ -228314,7 +228314,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 392,
+          "line": 394,
           "page": "gui-forms-themestructuretokens-geometry-themegeometrytokens-3f6fb94230.html"
         },
         {
@@ -228329,7 +228329,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 393,
+          "line": 395,
           "page": "gui-forms-themestructuretokens-typography-themetypographytokens-21877559de.html"
         },
         {
@@ -228344,7 +228344,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 394,
+          "line": 396,
           "page": "gui-forms-themestructuretokens-motion-thememotiontokens-4cde589768.html"
         }
       ],
@@ -228358,7 +228358,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 362,
+      "line": 364,
       "declaration": "struct ThemeTypographyTokens final",
       "comment": "",
       "access": "public",
@@ -228376,7 +228376,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 363,
+          "line": 365,
           "page": "gui-forms-themetypographytokens-control-fontspec-daed9c76f4.html"
         },
         {
@@ -228391,7 +228391,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 364,
+          "line": 366,
           "page": "gui-forms-themetypographytokens-field-fontspec-29164b3707.html"
         },
         {
@@ -228406,7 +228406,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 365,
+          "line": 367,
           "page": "gui-forms-themetypographytokens-caption-fontspec-73c6dd8961.html"
         },
         {
@@ -228421,7 +228421,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 366,
+          "line": 368,
           "page": "gui-forms-themetypographytokens-heading-fontspec-d3bd93fda6.html"
         },
         {
@@ -228436,7 +228436,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 367,
+          "line": 369,
           "page": "gui-forms-themetypographytokens-title-fontspec-88bb3b46b9.html"
         },
         {
@@ -228451,7 +228451,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 368,
+          "line": 370,
           "page": "gui-forms-themetypographytokens-monospace-fontspec-19ab11bd46.html"
         }
       ],
@@ -228465,7 +228465,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 449,
+      "line": 451,
       "declaration": "struct ThemeWindowBackdrop final",
       "comment": "",
       "access": "public",
@@ -228483,7 +228483,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 454,
+          "line": 456,
           "page": "gui-forms-themewindowbackdrop-request-windowbackdroprequest-3d0bd3301c.html"
         },
         {
@@ -228498,7 +228498,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 461,
+          "line": 463,
           "page": "gui-forms-themewindowbackdrop-bases-std-vector-themebackdropbase-cd30bff17c.html"
         },
         {
@@ -228519,7 +228519,7 @@
           "comment": "",
           "header": "gui_forms/theme/types/theme_types.hpp",
           "source": "include/gui_forms/theme/types/theme_types.hpp",
-          "line": 464,
+          "line": 466,
           "page": "gui-forms-themewindowbackdrop-base-for-const-surfacematerial-windowbackdrop-const-noexcept-d2b8c4c162.html"
         }
       ],
@@ -262325,7 +262325,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 258,
+      "line": 260,
       "page": "gui-forms-derive-dark-recipes-controlrolerecipes-controlrolerecipes-controlvisualrole-35c2901cc0.html"
     },
     {
@@ -262351,7 +262351,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 249,
+      "line": 251,
       "page": "gui-forms-derive-high-contrast-recipes-controlrolerecipes-controlrolerecipes-controlvisualrole-9430944658.html"
     },
     {
@@ -264350,7 +264350,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 274,
+      "line": 276,
       "page": "gui-forms-high-contrast-colour-color-colourorigin-colourposition-controlsurfacestate-bool-noexcept-5755e8eb3f.html"
     },
     {
@@ -267755,7 +267755,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 311,
+      "line": 313,
       "page": "gui-forms-operator-bool-const-gui-forms-controlroletable-const-gui-forms-controlroletable-noexcept-noexcept-st-270fc0d602.html",
       "associated_type": "gui_forms::ControlRoleTable"
     },
@@ -271967,7 +271967,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 440,
+      "line": 442,
       "page": "gui-forms-operator-bool-const-gui-forms-themebackdropbase-const-gui-forms-themebackdropbase-noexcept-11d286d659.html",
       "associated_type": "gui_forms::ThemeBackdropBase"
     },
@@ -271994,7 +271994,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 513,
+      "line": 515,
       "page": "gui-forms-operator-bool-const-gui-forms-themedefinition-const-gui-forms-themedefinition-noexcept-noexcept-left-dc83cd3d5e.html",
       "associated_type": "gui_forms::ThemeDefinition"
     },
@@ -272021,7 +272021,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 348,
+      "line": 350,
       "page": "gui-forms-operator-bool-const-gui-forms-themegeometrytokens-const-gui-forms-themegeometrytokens-noexcept-24bef04ec7.html",
       "associated_type": "gui_forms::ThemeGeometryTokens"
     },
@@ -272048,7 +272048,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 382,
+      "line": 384,
       "page": "gui-forms-operator-bool-const-gui-forms-thememotiontokens-const-gui-forms-thememotiontokens-noexcept-b3a5cdfdb5.html",
       "associated_type": "gui_forms::ThemeMotionTokens"
     },
@@ -272129,7 +272129,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 329,
+      "line": 331,
       "page": "gui-forms-operator-bool-const-gui-forms-themespacingtokens-const-gui-forms-themespacingtokens-noexcept-ae37abb2a2.html",
       "associated_type": "gui_forms::ThemeSpacingTokens"
     },
@@ -272156,7 +272156,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 395,
+      "line": 397,
       "page": "gui-forms-operator-bool-const-gui-forms-themestructuretokens-const-gui-forms-themestructuretokens-noexcept-3c797fb682.html",
       "associated_type": "gui_forms::ThemeStructureTokens"
     },
@@ -272183,7 +272183,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 369,
+      "line": 371,
       "page": "gui-forms-operator-bool-const-gui-forms-themetypographytokens-const-gui-forms-themetypographytokens-noexcept-abd5ebb4f6.html",
       "associated_type": "gui_forms::ThemeTypographyTokens"
     },
@@ -272210,7 +272210,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 471,
+      "line": 473,
       "page": "gui-forms-operator-bool-const-gui-forms-themewindowbackdrop-const-gui-forms-themewindowbackdrop-noexcept-b8ef748a47.html",
       "associated_type": "gui_forms::ThemeWindowBackdrop"
     },
@@ -274490,7 +274490,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 407,
+      "line": 409,
       "page": "gui-forms-provisional-accent-ramp-std-vector-color-dcdcfda301.html"
     },
     {
@@ -274505,7 +274505,7 @@
       "comment": "",
       "header": "gui_forms/theme/types/theme_types.hpp",
       "source": "include/gui_forms/theme/types/theme_types.hpp",
-      "line": 424,
+      "line": 426,
       "page": "gui-forms-provisional-overlay-shadow-std-vector-materialshadow-cee0df69e6.html"
     },
     {

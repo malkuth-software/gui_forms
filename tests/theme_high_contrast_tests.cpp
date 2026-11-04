@@ -111,8 +111,9 @@ void derived_records_match_the_authored_ones() {
         StateRecipes expected_selected = reference_high_contrast_selected(radius);
         const ControlVisualRole visual = static_cast<ControlVisualRole>(family);
         if (visual == ControlVisualRole::window || visual == ControlVisualRole::panel ||
-            visual == ControlVisualRole::card) {
-            // A container never inverts (phase 5e): pressed is the plain
+            visual == ControlVisualRole::card || visual == ControlVisualRole::choice ||
+            visual == ControlVisualRole::editor) {
+            // A container, a choice or an editor never inverts (phase 5e): pressed is the plain
             // record inside the pressed edge, selected the state's record
             // inside the selection line.
             ControlVisualRecipe& pressed = expected[at(ControlSurfaceState::pressed)];
