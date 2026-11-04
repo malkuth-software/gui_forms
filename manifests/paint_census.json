@@ -30,7 +30,7 @@
     "metrics_view/metrics_view.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/picture_box/picture_box.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "raster_canvas/raster_canvas.cpp": "draws the application's raster (RasterCanvas), not chrome",
-    "typography_specimen/typography_specimen.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme"
+    "typography_specimen/typography_specimen.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme; its line boxes are diagnostic inspection content (as VisualInspectorView's, owner-agreed exemption)"
   },
   "totals": {
     "stock": {
@@ -39,11 +39,11 @@
     },
     "exempt": {
       "files": 6,
-      "calls": 25
+      "calls": 26
     },
     "demo": {
-      "files": 3,
-      "calls": 57
+      "files": 2,
+      "calls": 12
     },
     "effect": {
       "files": 2,
@@ -74,10 +74,6 @@
     "gallery/pages/page_context.hpp": {
       "category": "demo",
       "calls": 10
-    },
-    "gallery_controls.cpp": {
-      "category": "demo",
-      "calls": 45
     },
     "guidance/error_glyph/error_glyph.cpp": {
       "category": "stock",
@@ -235,7 +231,7 @@
     },
     "typography_specimen/typography_specimen.cpp": {
       "category": "exempt",
-      "calls": 6
+      "calls": 7
     },
     "visual_inspector_view/visual_inspector_view.cpp": {
       "category": "stock",
