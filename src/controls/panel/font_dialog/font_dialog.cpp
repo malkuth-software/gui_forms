@@ -225,6 +225,7 @@ void FontDialog::on_size_changed(double size) {
 void FontDialog::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("FontDialog font specification is invalid");
+    set_font_from_code(true);
     font_ = font;
     selection_ = normalized(font);
     show_selection();

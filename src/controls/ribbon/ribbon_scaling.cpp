@@ -194,7 +194,7 @@ void Ribbon::set_document_minimum_height(double height) {
 double Ribbon::text_width(std::string_view text) const {
     if (text.empty()) return 0.0;
     ++counters_.text_measurements;
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8(text, effective_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8(text, text_font(font_));
     return metrics.logical_size.width;
 }
 

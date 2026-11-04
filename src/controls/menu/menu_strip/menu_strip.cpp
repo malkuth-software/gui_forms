@@ -185,6 +185,7 @@ void MenuStrip::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("MenuStrip font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) return;
     close();
     font_ = font;
@@ -210,7 +211,7 @@ Size MenuStrip::measure(Size available) {
 }
 
 double MenuStrip::preferred_height() const {
-    FontSpec font = effective_font(font_);
+    FontSpec font = text_font(font_);
     font.weight = std::max<std::uint16_t>(font.weight, 700U);
     const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", font);
     const double text_scale = effective_text_scale();
@@ -221,7 +222,7 @@ double MenuStrip::preferred_height() const {
 
 std::vector<Rect> MenuStrip::item_bounds() const {
     std::vector<Rect> result(items_.size());
-    const FontSpec normal_font = effective_font(font_);
+    const FontSpec normal_font = text_font(font_);
     FontSpec selected_font = normal_font;
     selected_font.weight = std::max<std::uint16_t>(selected_font.weight, 700U);
     const double scale = effective_text_scale();
@@ -340,7 +341,7 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
             plate.key = PartKey{"menu_item", items_[index].stable_id, index};
             paint_part(painter, *this, plate);
         }
-        FontSpec font = effective_font(font_);
+        FontSpec font = text_font(font_);
         if (active || selected) {
             font.weight = std::max<std::uint16_t>(font.weight, 700U);
         }
@@ -665,7 +666,7 @@ void MenuStrip::publish_realized_item_geometry(std::size_t item,
     const Rect bounds = item_bounds()[index];
     const bool emphasised = active_index_ == index ||
                             selected_item_id_ == items_[index].stable_id;
-    FontSpec font = effective_font(font_);
+    FontSpec font = text_font(font_);
     if (emphasised) {
         font.weight = std::max<std::uint16_t>(font.weight, 700U);
     }

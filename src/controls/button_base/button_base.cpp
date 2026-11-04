@@ -317,6 +317,7 @@ void ButtonBase::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("Button font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) {
         return;
     }
@@ -567,7 +568,7 @@ void ButtonBase::set_expanded_state(std::optional<bool> expanded) {
 
 Size ButtonBase::measure(Size available) {
     const Rect requested = requested_bounds();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const std::string display = display_text();
     const std::vector<std::string_view> lines = button_text_lines(display);
     double text_width = 0.0;
@@ -737,7 +738,7 @@ ButtonBase::ContentLayout ButtonBase::published_content_layout(
         ContentLayout empty;
         return empty;
     }
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const std::string display = display_text();
     const std::vector<std::string_view> lines = button_text_lines(display);
     std::vector<Size> line_sizes(lines.size());
@@ -760,7 +761,7 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
                                       bool command_alignment) const {
     const Rect content = content_box(bounds, command_alignment);
     if (content.empty()) return;
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const std::vector<std::string_view> lines = button_text_lines(text);
     std::vector<Size> line_sizes(lines.size());
     for (std::size_t index = 0; index < lines.size(); ++index) {

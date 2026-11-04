@@ -216,6 +216,7 @@ void PageStrip::set_mnemonics_enabled(bool enabled) {
 void PageStrip::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("PageStrip font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     widths_frozen_ = false;
@@ -294,7 +295,7 @@ void PageStrip::on_selection_changed(const PageSelectionChange& change) {
 // height of a top strip is the tab width of a side strip.
 Size PageStrip::measure(Size available) {
     const double scale = effective_text_scale();
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", effective_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
     const double preferred = std::max(strip_height * scale, metrics.logical_size.height + 10.0 * scale);
     if (!horizontal()) {
         const Size side{.width = std::min(available.width, preferred), .height = available.height};
@@ -376,7 +377,7 @@ const PageStrip::Layout& PageStrip::layout() const {
 // smaller to show and keeps its label.
 void PageStrip::measure_tabs() const {
     const double scale = effective_text_scale();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const bool images = image_list_ && (*image_list_).is_alive();
     const double minimum = item_widths_.minimum * scale;
     const double maximum = item_widths_.maximum * scale;
@@ -642,7 +643,7 @@ void PageStrip::layout_shrink() const {
     // Overflow: the list button at the strip's end, sized for the largest
     // count it can show so it does not move as the count changes.
     layout_.overflow = true;
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const std::string widest = std::to_string(count - pinned);
     const double count_width = resolve_text_layout_utf8(widest, font).logical_size.width;
     const double list_width = (list_padding * 2.0 + count_glyph_gap + glyph_size) * scale + count_width;
@@ -1019,7 +1020,7 @@ AnatomyStateSet PageStrip::button_states(Zone zone) const {
 void PageStrip::on_paint(Painter& painter, Rect) {
     const Layout& placed = layout();
     PartPaint part{};
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.family = ControlVisualRole::panel;
     part.role = PartRole::face;
     part.bounds = placed.rail;

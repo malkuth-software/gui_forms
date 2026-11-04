@@ -864,6 +864,7 @@ void PropertyList::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("PropertyList font specification is invalid");
     }
+    set_font_from_code(true);
     if ((*impl_).font_overridden && (*impl_).font == font) return;
     (*impl_).font = font;
     (*impl_).font_overridden = true;
@@ -950,7 +951,7 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     group_font.weight = std::max<std::uint16_t>(group_font.weight, 700U);
     const FontSpec name_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::content, 9.5, 600, false});
-    const FontSpec value_font = effective_font((*impl_).font);
+    const FontSpec value_font = text_font((*impl_).font);
     const FontSpec validation_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::content, 8.5, 600, false});
     AnatomyStateSet states = anatomy_states();

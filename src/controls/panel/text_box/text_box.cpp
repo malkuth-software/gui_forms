@@ -334,6 +334,7 @@ void TextBox::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("TextBox font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) {
         return;
     }
@@ -426,7 +427,7 @@ double TextBox::boundary_x(Utf8Offset offset) const noexcept {
         layout_positions_.size() != layout_offsets_.size() ||
         layout_text_scale_ != effective_text_scale()) {
         const GraphemeIndex index = (*editing_).store().grapheme_index(offset);
-        const FontSpec font = effective_font(font_);
+        const FontSpec font = text_font(font_);
         const double grapheme_count = static_cast<double>(index.value());
         const double position = grapheme_count * font.size * 0.55;
         return position;
@@ -460,7 +461,7 @@ std::string TextBox::display_text() const {
 }
 
 void TextBox::rebuild_multiline_rows(const double width) {
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     // Device-pixel rounding can change logical advances/ascent while the
     // provider address, authored font and logical viewport remain unchanged.
     const Window* owner = window();
@@ -708,7 +709,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
     const double width = viewport.width;
     const double height = viewport.height;
     const Point offset = scroll_offset();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     // Text runs, selection bands, the cue and the caret are parts the
     // theme's engine draws (text_part_template); a style or background
     // override supplies the text's ink and the band's ground (T4-1).
@@ -793,7 +794,7 @@ Utf8Offset TextBox::position_at(double local_x) const noexcept {
     if (layout_positions_.empty() ||
         layout_positions_.size() != layout_offsets_.size() ||
         layout_text_scale_ != effective_text_scale()) {
-        const FontSpec font = effective_font(font_);
+        const FontSpec font = text_font(font_);
         const std::size_t grapheme = std::min(
             static_cast<std::size_t>(std::lround(content_x /
                                                   (font.size * 0.55))),
@@ -851,7 +852,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         retain_caret_damage(caret_bounds, text_clip);
         return;
     }
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double right = std::max(text_left_, bounds.width - 4.0);
     const double viewport = std::max(0.0, right - text_left_);
     const std::string presented = display_text();
@@ -1214,7 +1215,7 @@ void TextBox::retain_caret_damage(const Rect line_bounds, const Rect clip) {
     CaretDamage candidate{};
     candidate.rectangle = damage;
     candidate.bounds = local_bounds();
-    candidate.font = effective_font(font_);
+    candidate.font = text_font(font_);
     candidate.selection = (*editing_).selection();
     candidate.scroll = scroll_offset();
     candidate.provider = (*owner).text_metrics_provider();
@@ -1230,7 +1231,7 @@ bool TextBox::caret_damage_current() const {
         has_dirty(dirty(), Dirty::measure | Dirty::arrange | Dirty::paint)) return false;
     const Point scroll = scroll_offset();
     const bool current = caret_damage_.bounds == local_bounds() &&
-        caret_damage_.font == effective_font(font_) &&
+        caret_damage_.font == text_font(font_) &&
         caret_damage_.selection == (*editing_).selection() && caret_damage_.scroll == scroll &&
         caret_damage_.provider == (*owner).text_metrics_provider() &&
         caret_damage_.revision == (*editing_).store().revision() && caret_damage_.scale == (*owner).scale();
@@ -1455,7 +1456,7 @@ void TextBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
                 record.caret = PartGeometry::from_bounds(Rect::intersection(caret, viewport));
             } else {
                 // The union of the selected rows' highlights, as paint draws them.
-                const FontSpec font = effective_font(font_);
+                const FontSpec font = text_font(font_);
                 Rect united{};
                 bool any = false;
                 for (std::size_t index = 0; index < visual_lines_.size(); ++index) {

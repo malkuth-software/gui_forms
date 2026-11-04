@@ -463,6 +463,10 @@ gui_forms::Control
         - Makes the control its parent's backmost child.
       * - :cpp:func:`effective_font <gui_forms::Control::effective_font>`
         - Scales an authored font's size and letter spacing by :cpp:func:`effective_text_scale <gui_forms::Control::effective_text_scale>`.
+      * - :cpp:func:`text_font <gui_forms::Control::text_font>`
+        - The control's primary text font (T4 fonts, owner ruling of 2026-11-04), scaled as effective_font: ``own``, the font the control holds, with its theme's font fields over it (Theme::resolve_font), unless code set the font (set_font_from_code), since inline code wins.
+      * - :cpp:func:`resolved_text_font <gui_forms::Control::resolved_text_font>`
+        - The primary text font before the text scale, with where each field came from.
       * - :cpp:func:`resolve_text_layout_utf8 <gui_forms::Control::resolve_text_layout_utf8>`
         - Resolves an already-effective FontSpec (normally from effective_font) through the attached terminal provider without applying text scale a second time.
       * - :cpp:func:`fill_line_break_opportunities_utf8 <gui_forms::Control::fill_line_break_opportunities_utf8>`
@@ -1352,6 +1356,14 @@ gui_forms::Control
       Scales an authored font's size and letter spacing by
       :cpp:func:`effective_text_scale <gui_forms::Control::effective_text_scale>`.
 
+   .. cpp:function:: FontSpec text_font(FontSpec own) const noexcept
+
+      The control's primary text font (T4 fonts, owner ruling of 2026-11-04), scaled as effective_font: ``own``, the font the control holds, with its theme's font fields over it (Theme::resolve_font), unless code set the font (set_font_from_code), since inline code wins. Controls take it for the text a theme styles, for measurement and painting alike; their fixed secondary fonts take effective_font. The result is cached against the theme, the window's media facts and the control's rules, so a call costs a comparison once resolved.
+
+   .. cpp:function:: ResolvedFont resolved_text_font(FontSpec own) const noexcept
+
+      The primary text font before the text scale, with where each field came from.
+
    .. cpp:function:: ResolvedTextLayout resolve_text_layout_utf8(std::string_view utf8, FontSpec effective) const
 
       Resolves an already-effective FontSpec (normally from effective_font) through the attached terminal provider without applying text scale a second time.
@@ -1687,6 +1699,12 @@ gui_forms::Control
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*
+
+   .. cpp:function:: void set_font_from_code(bool from_code) noexcept
+
+      *Protected.*
+
+      Whether code set the control's primary font (T4 fonts): a control's set_font marks it, after validating the font, and a clear_font that returns to the control's default unmarks it. Marked, text_font is ``own`` scaled, whatever the theme declares.
 
    .. cpp:function:: void report_opaque_cover(const Painter& painter, Rect local) const noexcept
 

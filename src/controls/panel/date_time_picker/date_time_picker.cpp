@@ -150,6 +150,7 @@ void DateTimePicker::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("DateTimePicker font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
@@ -191,7 +192,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     const AnatomyStateSet states = anatomy_states();
     std::optional<Color> ink{};
     if (style_authored_) ink = style_.text;
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double button_width = std::min(24.0, bounds.width);
     const double button_x = std::max(0.0, bounds.width - button_width);
     const double button_height = std::max(0.0, bounds.height - 2.0);

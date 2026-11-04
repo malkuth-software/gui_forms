@@ -286,6 +286,8 @@ Types
      - Rect is a half-open logical rectangle with finite/empty checks, containment, exact intersection, and bounding union operations.
    * - :cpp:class:`ResolvedControlRecipe <gui_forms::ResolvedControlRecipe>`
      - A control's recipe for one role and state (T3 P6f): the theme's built-in recipe (the floor, Theme::resolve(role, context), borrowed from the theme) or, when the theme's rules set a recipe field for the control (RecipeField), the floor's copy with those fields in place, which this value owns.
+   * - :cpp:class:`ResolvedFont <gui_forms::ResolvedFont>`
+     - A control's primary text font as resolved (Theme::resolve_font, Control::resolved_text_font), before the window's text scale: the font the control holds with the theme's font fields over it.
    * - :cpp:class:`RetainedDrawCache <gui_forms::RetainedDrawCache>`
      -  
    * - :cpp:class:`RetainedDrawMemo <gui_forms::RetainedDrawMemo>`
@@ -4118,7 +4120,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text and outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``.
+   One recipe field's declared value. ``initial`` is CSS's ``initial``: the floor's value, and the declaration still wins over those beneath it; its value members are not read. Otherwise, by field: - text and outline_colour: ``colour``; - outline_style: ``outline_style``; - outline_width (0 to maximum_recipe_outline_width) and outline_offset (within ±maximum_recipe_outline_offset): ``number``, in logical units; - text_shadow: ``shadowed``, false for none; its ``shadow_offset``, ``shadow_blur`` (the shadows' blur-radius convention) and ``colour``; - font_family: ``font_role``; font_style: ``italic``; - font_size (in logical units, with em_lengths in the control's own font size), font_weight and letter_spacing (logical units, with em_lengths in the resolved size): ``number``.
 
    .. cpp:member:: RecipeField field
 
@@ -4155,6 +4157,12 @@ Types
    .. cpp:member:: bool current_colour
 
       Whether ``colour`` is CSS's currentcolor: the control's text colour.
+
+   .. cpp:member:: FontRole font_role
+
+      Default: ``{FontRole::control}``.
+
+   .. cpp:member:: bool italic
 
 .. cpp:namespace:: gui_forms
 
@@ -4227,6 +4235,22 @@ Types
    .. cpp:function:: bool important_text() const noexcept
 
       Whether the text colour was declared at an important level (CascadeLevel::important_user_theme or above), where it stands over a part's authored foreground (owner decision T4-1).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ResolvedFont final
+
+   ``#include <gui_forms/theme/theme/theme.hpp>``
+
+   A control's primary text font as resolved (Theme::resolve_font, Control::resolved_text_font), before the window's text scale: the font the control holds with the theme's font fields over it. ``levels`` says, per FontField, the cascade level of the rule that set the field (built_in where none did, the control's own value). ``from_code`` is set where code set the font (set_font): inline code, which wins over every theme field, so no level applies.
+
+   .. cpp:member:: FontSpec font
+
+   .. cpp:member:: std::array<CascadeLevel, font_field_count> levels
+
+   .. cpp:member:: std::array<bool, font_field_count> themed
+
+   .. cpp:member:: bool from_code
 
 .. cpp:namespace:: gui_forms
 
@@ -4537,6 +4561,10 @@ Types
    .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states) const
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
+   .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept
+
+      ``control``'s primary text font (T4 fonts): ``own``, the font it holds, with the font fields (RecipeField::font_family to letter_spacing) of the theme's rules matching it at rest in place: no part, the region role, and the states of a default ControlVisualContext. Forced high contrast keeps them: they are not colours. An em size is of ``own``'s size, an em spacing of the resolved size. Where the fields make no font valid_font_spec admits, or a size outside minimum_rule_font_size to maximum_rule_font_size, it is ``own`` with no field themed.
 
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 
@@ -5590,6 +5618,24 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FontField
+
+   ``#include <gui_forms/theme/theme/theme.hpp>``
+
+   .. cpp:enumerator:: family
+
+   .. cpp:enumerator:: size
+
+   .. cpp:enumerator:: weight
+
+   .. cpp:enumerator:: style
+
+   .. cpp:enumerator:: letter_spacing
+
+   .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FontRole
 
    ``#include <gui_forms/types/paint_types/paint_types.hpp>``
@@ -6277,6 +6323,16 @@ Enumerations
    .. cpp:enumerator:: outline_offset
 
    .. cpp:enumerator:: text_shadow
+
+   .. cpp:enumerator:: font_family
+
+   .. cpp:enumerator:: font_size
+
+   .. cpp:enumerator:: font_weight
+
+   .. cpp:enumerator:: font_style
+
+   .. cpp:enumerator:: letter_spacing
 
    .. cpp:enumerator:: count
 
@@ -7191,6 +7247,22 @@ Functions, constants and aliases
 
    Value: ``16.0``.
 
+.. cpp:var:: constexpr double minimum_rule_font_size
+
+   What a font field admits (T4 fonts): a size of 4 to 96 logical units once its em part is resolved, a weight of 100 to 900, and a letter spacing valid_font_spec admits at the size. Value: ``4.0``.
+
+.. cpp:var:: constexpr double maximum_rule_font_size
+
+   Value: ``96.0``.
+
+.. cpp:var:: constexpr double minimum_rule_font_weight
+
+   Value: ``100.0``.
+
+.. cpp:var:: constexpr double maximum_rule_font_weight
+
+   Value: ``900.0``.
+
 .. cpp:var:: constexpr std::uint32_t custom_property_undefined
 
    One rule. ``label`` names it in diagnostics (T3: its source position). ``requires_engine``, when set, is the engine version the rule needs, in place of its sheet's. Its transitions and its ambient effect cascade as declarations do: for each property, the transition of the last matching rule that declares one (for a parameter, among the rules selecting the part's primitive), and the ambient effect of the last matching rule that declares one. Its material fields (EC1) cascade the same way, each on its own, from every matching rule, whatever primitive it selects: they change a part only where its primitive draws a theme material. Its recipe fields (RecipeField) cascade the same way for the control as a whole. ``specificity``, when set, is the rule's specificity in place of the one its selector gives (T3 engine change EC2): a rule expanded from CSS's ``:is()`` takes its most specific argument's. A class or stable-ID rule with a given specificity then needs a class or an ID in it rather than in its selector; an inline style still needs its selector's stable ID. Custom properties defined in more than one place (T3 P12, EC7; owner decision of 2026-10-29), resolved per part when the theme loads: each definition of such a name is a scoped definition of the rule that declares it, at the rule's level, selector and media; and a rule that reads such names is lowered once per combination of their candidate definitions, each copy holding the combination as its conditions. A part's winning definition of a name is the last matching one in ascending precedence, or none; a copy applies to a part only where every condition names the part's winner. A name defined once is substituted when the theme loads, and is not scoped. Names are written with their ``--``; a definition is identified by a number unique in the sheet. Value: ``0xFFFF'FFFFU``.
@@ -7426,6 +7498,10 @@ Functions, constants and aliases
 .. cpp:function:: ThemeDefinition windows_professional_theme_definition()
 
 .. cpp:function:: std::shared_ptr<const Theme> default_theme()
+
+.. cpp:var:: constexpr std::size_t font_field_count
+
+   Value: ``static_cast<std::size_t>(FontField::count)``.
 
 .. cpp:namespace:: gui_forms
 

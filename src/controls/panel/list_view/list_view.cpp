@@ -908,6 +908,7 @@ void ListView::set_draw_mode(ItemDrawMode mode) {
 void ListView::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("ListView font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     if (label_editor_) (*label_editor_).set_font(font_);
@@ -1157,7 +1158,7 @@ void ListView::store_top_line(const Layout& placed, std::size_t line) {
 // -- layout ------------------------------------------------------------------
 
 double ListView::text_line_height() const {
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", effective_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
     return metrics.logical_size.height;
 }
 
@@ -1589,7 +1590,7 @@ void ListView::paint_column(Painter& painter, const Layout& placed, std::size_t 
     const ColumnParts parts = column_parts(placed, column, cell);
     const AnatomyStateSet states = column_states(column);
     PartPaint part;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.states = states;
     // Header cells are flat at rest and show a plate when hot or pressed:
     // the menu_item family's look.
@@ -1634,7 +1635,7 @@ bool ListView::paint_item(Painter& painter, const Layout& placed, std::size_t in
     const ItemParts parts = item_parts(placed, index, cell);
     const AnatomyStateSet states = item_states(index, item.checked);
     PartPaint part;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.states = states;
     part.family = ControlVisualRole::selection;
     part.role = PartRole::face;
@@ -1751,7 +1752,7 @@ bool ListView::paint_tile_lines(Painter& painter, const Layout& placed, std::siz
     const std::size_t lines = tile_line_count(item, columns_.size(), placed.tile_lines);
     const Rect first = parts.text.bounds;
     PartPaint part;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.states = states;
     part.family = ControlVisualRole::selection;
     part.role = PartRole::content;
@@ -1790,7 +1791,7 @@ void ListView::paint_group(Painter& painter, const Layout& placed, std::size_t b
     const GroupParts parts = group_parts(placed, band, placed.viewport);
     const std::size_t group = placed.bands[band].group;
     PartPaint part;
-    FontSpec font = effective_font(font_);
+    FontSpec font = text_font(font_);
     font.weight = 700;
     part.font = font;
     if (!effectively_enabled()) part.states.insert(AnatomyState::disabled);
@@ -2035,7 +2036,7 @@ void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point l
     revealed.row = {absolute.x + row_left, absolute.y + cell.y, std::max(0.0, row_right - row_left), cell.height};
     revealed.cell = {absolute.x + text_cell.x, absolute.y + text_cell.y, text_cell.width, text_cell.height};
     revealed.text = std::string(text);
-    revealed.font = effective_font(font_);
+    revealed.font = text_font(font_);
     revealed.paint = detail::RevealPaint{.family = ControlVisualRole::selection, .states = states};
     static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
 }

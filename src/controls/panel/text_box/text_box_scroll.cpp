@@ -60,7 +60,7 @@ void TextBox::set_multiline_scroll(Point position) {
 void TextBox::ensure_multiline_layout() {
     const Rect bounds = local_bounds();
     const Size client{bounds.width, bounds.height};
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const Window* owner = window();
     const double scale = owner == nullptr ? 1.0 : (*owner).scale();
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();

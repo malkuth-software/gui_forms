@@ -95,7 +95,7 @@ struct SpanStartsAfter final {
 } // namespace
 
 RichTextBox::LineBlock RichTextBox::line_block(Utf8Range range, std::size_t& block_cursor) const {
-    const FontSpec body = effective_font(font_);
+    const FontSpec body = text_font(font_);
     LineBlock result{.font = body};
     const std::vector<MarkdownBlock>& blocks = document_.blocks;
     const std::size_t start = range.start.value();
@@ -344,7 +344,7 @@ void RichTextBox::place_row(const RowRequest& request, double& y) {
 }
 
 void RichTextBox::rebuild_rows(double width) {
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const Window* owner = window();
     const double scale = owner == nullptr ? 1.0 : (*owner).scale();
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
@@ -403,7 +403,7 @@ void RichTextBox::set_scroll(Point position) {
 void RichTextBox::ensure_layout() {
     const Rect bounds = local_bounds();
     const Size client{bounds.width, bounds.height};
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const Window* owner = window();
     const double scale = owner == nullptr ? 1.0 : (*owner).scale();
     const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
@@ -569,7 +569,7 @@ std::optional<Rect> RichTextBox::selection_band(const Row& row) const {
     const double left = boundary_x(row, selection.start());
     double right = boundary_x(row, selection.end());
     if (selection.end().value() > row.offsets.back()) {
-        right += std::max(3.0, effective_font(font_).size * 0.35);
+        right += std::max(3.0, text_font(font_).size * 0.35);
     }
     const Rect band{left, row.y, std::max(0.0, right - left), row.height};
     return band;
@@ -722,7 +722,7 @@ Rect RichTextBox::paint_rows(Painter& painter) {
             cue.tone = PartTextTone::secondary;
             cue.states = states;
             cue.text = hint;
-            cue.font = effective_font(font_);
+            cue.font = text_font(font_);
             paint_text_part_at(painter, *this, cue, baseline, viewport.width);
         }
     }

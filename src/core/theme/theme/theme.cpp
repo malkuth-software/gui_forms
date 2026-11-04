@@ -1659,6 +1659,54 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     return result;
 }
 
+ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noexcept {
+    ResolvedFont result{};
+    result.font = own;
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = control.anatomy().control_id;
+    facts.stable_id = control.stable_id().value();
+    facts.classes = control.classes();
+    facts.inline_rules = control.inline_style_rules();
+    facts.states = visual_context_states(ControlVisualContext{});
+    const Window* const window = control.attached_window();
+    if (window != nullptr) facts.media = window_media_facts(*window);
+    if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    const CompiledThemeRules::RecipeResolution fields = engine_.rules().resolve_recipe_fields(facts);
+    if (!fields.authored) return result;
+    ResolvedFont themed = result;
+    const std::size_t first = static_cast<std::size_t>(RecipeField::font_family);
+    for (std::size_t index = 0U; index < font_field_count; ++index) {
+        const RecipeField field = static_cast<RecipeField>(first + index);
+        const RecipeDeclaration* const declaration = set_recipe_field(fields, field);
+        if (declaration == nullptr) continue;
+        themed.themed[index] = true;
+        themed.levels[index] = fields.levels[first + index];
+    }
+    // The size before the spacing, whose em is the resolved size.
+    const RecipeDeclaration* const family = set_recipe_field(fields, RecipeField::font_family);
+    if (family != nullptr) themed.font.role = (*family).font_role;
+    const RecipeDeclaration* const size = set_recipe_field(fields, RecipeField::font_size);
+    if (size != nullptr) {
+        double resolved = (*size).number;
+        if (!(*size).em_lengths.empty()) resolved += (*size).em_lengths[0] * own.size;
+        themed.font.size = resolved;
+    }
+    const RecipeDeclaration* const weight = set_recipe_field(fields, RecipeField::font_weight);
+    if (weight != nullptr) themed.font.weight = static_cast<std::uint16_t>((*weight).number);
+    const RecipeDeclaration* const style = set_recipe_field(fields, RecipeField::font_style);
+    if (style != nullptr) themed.font.italic = (*style).italic;
+    const RecipeDeclaration* const spacing = set_recipe_field(fields, RecipeField::letter_spacing);
+    if (spacing != nullptr) {
+        double resolved = (*spacing).number;
+        if (!(*spacing).em_lengths.empty()) resolved += (*spacing).em_lengths[0] * themed.font.size;
+        themed.font.letter_spacing = resolved;
+    }
+    const bool sized =
+        themed.font.size >= minimum_rule_font_size && themed.font.size <= maximum_rule_font_size;
+    if (!sized || !valid_font_spec(themed.font)) return result;
+    return themed;
+}
+
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
                                      AnatomyStateSet states) const {
     const ControlVisualRecipe& floor = resolve(role, context);

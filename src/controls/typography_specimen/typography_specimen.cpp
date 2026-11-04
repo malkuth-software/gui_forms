@@ -147,6 +147,7 @@ void TypographySpecimen::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("TypographySpecimen font is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
@@ -174,11 +175,11 @@ void TypographySpecimen::set_wrap_text(bool wrap) {
 }
 
 ResolvedTextLayout TypographySpecimen::resolved_layout() const {
-    return resolve_text_layout_utf8(text_, effective_font(font_));
+    return resolve_text_layout_utf8(text_, text_font(font_));
 }
 
 Size TypographySpecimen::measure(Size available) {
-    const FontSpec effective = effective_font(font_);
+    const FontSpec effective = text_font(font_);
     const ControlLineResolver resolve{*this, effective};
     const std::vector<std::string> lines = wrap_lines(
         text_, std::max(0.0, available.width - 20.0), wrap_text_, resolve);
@@ -202,7 +203,7 @@ Size TypographySpecimen::measure(Size available) {
 
 void TypographySpecimen::on_paint(Painter& painter, Rect) {
     const Rect bounds = client_rectangle();
-    const FontSpec effective = effective_font(font_);
+    const FontSpec effective = text_font(font_);
     const PainterLineResolver resolve{painter, effective};
     const std::vector<std::string> lines = wrap_lines(
         text_, std::max(0.0, bounds.width - 20.0), wrap_text_, resolve);

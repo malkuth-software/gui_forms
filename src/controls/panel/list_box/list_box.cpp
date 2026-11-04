@@ -288,6 +288,7 @@ void ListBox::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("ListBox font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
@@ -348,7 +349,7 @@ void ListBox::on_paint(Painter& painter, Rect) {
     if (has_background_override() || overridden) well.authored_background = background();
     well.key = PartKey{"well", {}, {}};
     paint_part(painter, *this, well);
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double row_height = item_height_ * effective_text_scale();
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
@@ -663,7 +664,7 @@ ListBox::ItemParts ListBox::list_item_parts(std::size_t item) const {
     const double y = 2.0 + static_cast<double>(item) * row_height;
     const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
     const std::size_t index = realized_item_index(item);
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const ResolvedTextLayout text = resolve_text_layout_utf8(items_[index], font);
     const double label_left = row_text_left();
     const double label_width = std::min(text.logical_size.width,

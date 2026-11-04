@@ -1802,6 +1802,7 @@ void DataGridView::reset_row_height_at(DataGridViewRowPosition row) {
 void DataGridView::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("DataGridView font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     if (editor_) (*editor_).set_font(font_);

@@ -134,6 +134,7 @@ only material fields selects the `material` primitive.
 | presentation | `opacity`, `scale`, `translate` |
 | effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; the control checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
+| fonts | `font-family` (`control`, `content`, `monospace`), `font-size` (4px to 96px, or em of the control's own size), `font-weight` (`normal`, `bold`, 100 to 900), `font-style` (`normal`, `italic`), `letter-spacing` (`normal`, px or em) |
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,
 filters and mask; not its text), or with `backplane` the window's backplane
@@ -150,7 +151,20 @@ transparency. A part drawn in the backplane plane reflects no backplane.
 For example, `reflection: below 1px 6px 40% 0` or `reflection: below 6px 30% backplane`.
 
 `inherit` is admitted on `color` and `font` only; `initial` means the
-built-in recipe's value. `clip-path`, `rotate`, `transform`, text
+built-in recipe's value.
+
+The font properties style a control's own text, the font it holds; its
+fixed secondary text keeps its fonts. `font-family` names one of the
+bundled faces by its role, never a host font, so a family name, a generic
+family or a list is an error. They belong to rules that match a control:
+a rule naming a part, or a state such as `:hover`, may not declare them,
+since a font is a layout input and states change without a layout. They
+may differ by colour scheme under `@media (prefers-color-scheme: dark)`.
+A font set in code (`set_font`) wins over the theme's. A change of the
+resolved font measures the control again. `font-variant`, `font-stretch`,
+`line-height` and the rest of CSS typography are warnings.
+
+`clip-path`, `rotate`, `transform`, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are
 warnings: geometry and layout belong to the engine and to forms.
 

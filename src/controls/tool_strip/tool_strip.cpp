@@ -370,6 +370,7 @@ void ToolStrip::set_end_reserve(double logical_width) {
 void ToolStrip::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("ToolStrip font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -379,7 +380,7 @@ void ToolStrip::set_font(FontSpec font) {
 
 Size ToolStrip::measure(Size available) {
     const double scale = effective_text_scale();
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", effective_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
     const double preferred = std::max(strip_height * scale, metrics.logical_size.height + 10.0 * scale);
     if (!vertical()) {
         const Size result{.width = available.width, .height = std::min(available.height, preferred)};
@@ -446,7 +447,7 @@ Size ToolStrip::item_size(const ToolStripItemSpec& item) const {
     if (shows_image) width += image_size * scale;
     if (shows_image && shows_text) width += image_text_gap * scale;
     if (shows_text) {
-        const ResolvedTextLayout label = resolve_text_layout_utf8(text, effective_font(font_));
+        const ResolvedTextLayout label = resolve_text_layout_utf8(text, text_font(font_));
         width += label.logical_size.width;
     }
     if (item.kind == ToolStripItemKind::drop_down_button) width += drop_down_arrow_width * scale;
@@ -610,7 +611,7 @@ ToolStrip::ItemParts ToolStrip::item_parts(std::size_t index, Rect bounds) const
         x += side + image_text_gap * scale;
     }
     if (shows_text) {
-        const ResolvedTextLayout measured = resolve_text_layout_utf8(text, effective_font(font_));
+        const ResolvedTextLayout measured = resolve_text_layout_utf8(text, text_font(font_));
         const Rect label{x, bounds.y, measured.logical_size.width, bounds.height};
         parts.item_label = PartGeometry::from_bounds(Rect::intersection(label, content));
     }
@@ -677,7 +678,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     // unchanged while the strip paints.
     PartPaint part;
     part.family = ControlVisualRole::menu_item;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     if (parts.item_face.present) {
         part.role = PartRole::face;
         part.bounds = parts.item_face.bounds;

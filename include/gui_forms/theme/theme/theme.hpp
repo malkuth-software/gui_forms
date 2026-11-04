@@ -4,7 +4,9 @@
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
 
+#include <array>
 #include <cstddef>
+#include <cstdint>
 
 #include <memory>
 #include <optional>
@@ -16,6 +18,30 @@ namespace gui_forms {
 
 class Control;
 namespace detail { class ThemeImageLease; struct ThemeAccess; struct ThemeSourceRecord; }
+
+// The fields of a control's primary text font a theme may set (T4 fonts),
+// in RecipeField's order from font_family.
+enum class FontField : std::uint8_t { family, size, weight, style, letter_spacing, count };
+inline constexpr std::size_t font_field_count = static_cast<std::size_t>(FontField::count);
+
+// A control's primary text font as resolved (Theme::resolve_font,
+// Control::resolved_text_font), before the window's text scale: the font
+// the control holds with the theme's font fields over it. `levels` says,
+// per FontField, the cascade level of the rule that set the field
+// (built_in where none did, the control's own value). `from_code` is set
+// where code set the font (set_font): inline code, which wins over every
+// theme field, so no level applies.
+struct ResolvedFont final {
+    FontSpec font{};
+    std::array<CascadeLevel, font_field_count> levels{};
+    std::array<bool, font_field_count> themed{};
+    bool from_code{};
+
+    friend bool operator==(const ResolvedFont& left, const ResolvedFont& right) noexcept {
+        return left.font == right.font && left.levels == right.levels && left.themed == right.themed &&
+               left.from_code == right.from_code;
+    }
+};
 
 class Theme final {
 public:
@@ -48,6 +74,15 @@ public:
                                                 ControlVisualContext context) const;
     [[nodiscard]] ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role,
                                                 ControlVisualContext context, AnatomyStateSet states) const;
+    // `control`'s primary text font (T4 fonts): `own`, the font it holds,
+    // with the font fields (RecipeField::font_family to letter_spacing) of
+    // the theme's rules matching it at rest in place: no part, the region
+    // role, and the states of a default ControlVisualContext. Forced high
+    // contrast keeps them: they are not colours. An em size is of `own`'s
+    // size, an em spacing of the resolved size. Where the fields make no
+    // font valid_font_spec admits, or a size outside minimum_rule_font_size
+    // to maximum_rule_font_size, it is `own` with no field themed.
+    [[nodiscard]] ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept;
     [[nodiscard]] const ThemeDefinition& definition() const noexcept {
         return definition_;
     }

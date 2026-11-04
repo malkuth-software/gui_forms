@@ -248,6 +248,7 @@ void CorrespondenceView::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("CorrespondenceView font is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
@@ -576,7 +577,7 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
 
 CorrespondenceView::CorrespondenceCardFonts CorrespondenceView::card_fonts() const {
     CorrespondenceCardFonts fonts;
-    const FontSpec title = effective_font(font_);
+    const FontSpec title = text_font(font_);
     fonts.title = {title.role, title.size, 700, title.italic, title.letter_spacing};
     fonts.secondary = effective_font({font_.role, std::max(8.0, font_.size - 2.0), 400, false});
     fonts.metric = effective_font({FontRole::content, std::max(12.0, font_.size + 5.0), 700, false});

@@ -1,0 +1,6 @@
+/* forms: property.font-family property.font-size property.font-weight property.font-style property.letter-spacing */
+button { font-family: content; font-size: 13px; font-weight: bold; font-style: italic; letter-spacing: 0.05em }
+#field { font-family: Monospace; font-size: 1.25em; font-weight: 600; font-style: normal; letter-spacing: normal }
+@media (prefers-color-scheme: dark) { button { font-weight: 300; letter-spacing: 1px } }
+button:hover { font-size: 14px }
+button::part(label) { font-weight: bold }

@@ -967,6 +967,7 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
 void walk_recipe_lengths(RecipeDeclaration& declaration, LengthWalk& walk) {
     const RecipeField field = declaration.field;
     if (field == RecipeField::outline_width || field == RecipeField::outline_offset) walk.visit(declaration.number);
+    if (field == RecipeField::font_size || field == RecipeField::letter_spacing) walk.visit(declaration.number);
     if (field != RecipeField::text_shadow) return;
     walk.visit(declaration.shadow_offset.x);
     walk.visit(declaration.shadow_offset.y);
@@ -1674,7 +1675,8 @@ bool in_range(double value, double minimum, double maximum) noexcept {
 }
 
 constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
-    "text", "outline_style", "outline_colour", "outline_width", "outline_offset", "text_shadow",
+    "text",        "outline_style", "outline_colour", "outline_width",  "outline_offset", "text_shadow",
+    "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing",
 };
 
 } // namespace
@@ -1687,6 +1689,11 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::outline_width:
     case RecipeField::outline_offset:
     case RecipeField::text_shadow:
+    case RecipeField::font_family:
+    case RecipeField::font_size:
+    case RecipeField::font_weight:
+    case RecipeField::font_style:
+    case RecipeField::letter_spacing:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1718,6 +1725,18 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
         const bool blurred = in_range(declaration.shadow_blur, 0.0, maximum_text_shadow_blur);
         return placed && blurred;
     }
+    case RecipeField::font_family:
+        return declaration.font_role == FontRole::control || declaration.font_role == FontRole::content ||
+               declaration.font_role == FontRole::monospace;
+    // A size's pixels are 0 where it is in em; the em part is checked when
+    // the control's font resolves.
+    case RecipeField::font_size: return in_range(declaration.number, 0.0, maximum_rule_font_size);
+    case RecipeField::font_weight:
+        return in_range(declaration.number, minimum_rule_font_weight, maximum_rule_font_weight) &&
+               std::floor(declaration.number) == declaration.number;
+    case RecipeField::font_style: return true;
+    case RecipeField::letter_spacing:
+        return in_range(declaration.number, -maximum_rule_font_size * 0.25, maximum_rule_font_size);
     case RecipeField::count: break;
     // A value outside the enumeration names no field, so it is invalid.
     default: break;

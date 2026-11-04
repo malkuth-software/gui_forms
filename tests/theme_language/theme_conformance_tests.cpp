@@ -318,6 +318,11 @@ std::string recipe_text(const RecipeDeclaration& declaration) {
     text += " colour=" + colour_text(declaration.colour);
     text += " number=" + number_text(declaration.number);
     text += " outline=" + std::to_string(static_cast<unsigned int>(declaration.outline_style));
+    // The font fields' own values (T4 fonts): the bundled role and the style.
+    if (declaration.field == RecipeField::font_family) {
+        text += " role=" + std::to_string(static_cast<unsigned int>(declaration.font_role));
+    }
+    if (declaration.field == RecipeField::font_style && declaration.italic) text += " italic";
     if (declaration.shadowed) {
         text += " shadow(" + number_text(declaration.shadow_offset.x) + " " + number_text(declaration.shadow_offset.y) +
                 " " + number_text(declaration.shadow_blur) + ")";

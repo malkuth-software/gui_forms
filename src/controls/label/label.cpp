@@ -239,6 +239,7 @@ void Label::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("Label font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_override_ && *font_override_ == font) {
         return;
     }
@@ -250,6 +251,7 @@ void Label::clear_font() {
     require_mutable();
     if (!font_override_) return;
     font_override_.reset();
+    set_font_from_code(false);
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
@@ -420,7 +422,7 @@ Size Label::measure_intrinsic(const LayoutConstraint& constraint) {
     double content_width_limit = practical_unbounded_extent;
     if (kind == AvailableExtentKind::min_content) {
         const std::string text = display_text();
-        content_width_limit = widest_unbreakable_segment(text, effective_font((*this).font()));
+        content_width_limit = widest_unbreakable_segment(text, text_font((*this).font()));
     }
     Size measured = measure_wrapped_text(content_width_limit, available);
     // A container that lays the label out at this width hands it back as a
@@ -471,7 +473,7 @@ Size Label::measure_wrapped_text(const double content_width_limit,
                                  const Size available) const {
     const Rect requested = requested_bounds();
     const std::string text = display_text();
-    const FontSpec font = effective_font((*this).font());
+    const FontSpec font = text_font((*this).font());
     const TextWidthResolver resolve{LabelWidth{*this, font}};
     std::vector<std::string> lines = label_lines(
         text, font, content_width_limit, text_wrapping_, resolve, maximum_lines_);
@@ -513,7 +515,7 @@ std::string Label::display_text() const {
 Label::TextLayout Label::layout_label_text(const std::string_view text,
                                            Painter* painter) const {
     const Rect arranged = committed_arranged_bounds();
-    const FontSpec font = effective_font((*this).font());
+    const FontSpec font = text_font((*this).font());
     const TextWidthResolver resolve = painter != nullptr
         ? TextWidthResolver{PainterLabelWidth{*painter, font}}
         : TextWidthResolver{LabelWidth{*this, font}};
@@ -573,7 +575,7 @@ Label::TextLayout Label::layout_label_text(const std::string_view text,
 // Each line is a label part placed by its baseline, in the theme's text
 // (disabled text while disabled) or the authored foreground (T4-1).
 void Label::paint_label_text(Painter& painter, const std::string_view text) const {
-    const FontSpec font = effective_font((*this).font());
+    const FontSpec font = text_font((*this).font());
     const TextLayout layout = layout_label_text(text, &painter);
     PartPaint line;
     line.family = ControlVisualRole::panel;
