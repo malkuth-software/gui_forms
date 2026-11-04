@@ -393,7 +393,7 @@ public:
     void set_tag(std::any tag);
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
-    [[nodiscard]] bool attached() const noexcept { return window_ != nullptr; }
+    [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
 
     void add_child(Ptr child);
     [[nodiscard]] Ptr remove_child(RuntimeId child);
@@ -450,6 +450,9 @@ public:
     void bring_to_front();
     void send_to_back();
     [[nodiscard]] Window* attached_window() const noexcept { return window_; }
+    // The surface root whose table holds this control (null while detached).
+    // Inside a sub-surface attached_window() is null and this is not.
+    [[nodiscard]] SurfaceRoot* attached_surface_root() const noexcept { return surface_root_; }
     // Resolves the authored font against the attached window's presentation
     // text scale. Custom controls should use this for both measurement and
     // painting so text, wrapping, hit geometry, and carets remain coherent.
@@ -1093,7 +1096,7 @@ protected:
     virtual void on_attachment_committed() noexcept;
     // Last noexcept callback while the former Window is still available.
     // Controls use it to retire window-owned resources before detachment.
-    virtual void on_detaching_from_window(Window& former_window) noexcept;
+    virtual void on_detaching_from_window(SurfaceRoot& former_window) noexcept;
     virtual void on_detached_from_window() noexcept;
     // Derived disposal hooks that retain child controls must finish through
     // this base implementation; it owns the mutation-free child detach path.

@@ -168,7 +168,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
         PendingInspectionNode current = std::move(pending.back());
         pending.pop_back();
         const Control::Ptr& control = current.control;
-        if (!control || !(*control).is_alive() || (*control).window_ != this) {
+        if (!control || !(*control).is_alive() || (*control).surface_root_ != this) {
             continue;
         }
         ++snapshot.total_controls;
@@ -279,7 +279,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
         for (ControlList::const_reverse_iterator iterator = children.rbegin();
              iterator != children.rend(); ++iterator) {
             const Control::Ptr& child = *iterator;
-            if (!child || !(*child).is_alive() || (*child).window_ != this ||
+            if (!child || !(*child).is_alive() || (*child).surface_root_ != this ||
                 (*child).parent_.lock().get() != control.get()) {
                 continue;
             }

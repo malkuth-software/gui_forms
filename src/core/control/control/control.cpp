@@ -771,8 +771,8 @@ void Control::define_structural_property(
 Control::~Control() = default;
 
 double Control::effective_text_scale() const noexcept {
-    return window_ != nullptr
-        ? (*window_).presentation_settings().text_scale
+    return surface_root_ != nullptr
+        ? (*surface_root_).presentation_settings().text_scale
         : 1.0;
 }
 
@@ -785,22 +785,22 @@ FontSpec Control::effective_font(FontSpec authored) const noexcept {
 
 ResolvedTextLayout Control::resolve_text_layout_utf8(
     std::string_view utf8, FontSpec effective) const {
-    return window_ != nullptr
-        ? (*window_).resolve_text_layout_utf8(utf8, effective)
+    return surface_root_ != nullptr
+        ? (*surface_root_).resolve_text_layout_utf8(utf8, effective)
         : estimate_text_layout_utf8(utf8, effective);
 }
 
 TextResolutionStatus Control::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const {
-    if (window_ == nullptr) return estimate_line_break_opportunities_utf8(utf8, opportunities);
+    if (surface_root_ == nullptr) return estimate_line_break_opportunities_utf8(utf8, opportunities);
     const TextResolutionStatus status =
-        (*window_).fill_line_break_opportunities_utf8(utf8, opportunities);
+        (*surface_root_).fill_line_break_opportunities_utf8(utf8, opportunities);
     return status;
 }
 
 double Control::snap_text_baseline(double logical_baseline) const noexcept {
     return gui_forms::snap_text_baseline(
-        logical_baseline, window_ != nullptr ? (*window_).scale() : 1.0);
+        logical_baseline, surface_root_ != nullptr ? (*surface_root_).scale() : 1.0);
 }
 
 const Theme& Control::effective_theme() const noexcept {
@@ -812,14 +812,14 @@ const Theme& Control::inherited_theme() const noexcept {
     if (const Ptr visual_parent = parent_.lock()) {
         return (*visual_parent).effective_theme();
     }
-    if (window_ != nullptr) return (*window_).theme();
+    if (surface_root_ != nullptr) return (*surface_root_).theme();
     return *default_theme();
 }
 
 const KeyMap& Control::effective_key_map() const noexcept {
     // Made once, on first use; never modified.
     static const KeyMap detached_key_map = pc_key_map();
-    if (window_ != nullptr) return (*window_).key_map();
+    if (surface_root_ != nullptr) return (*surface_root_).key_map();
     return detached_key_map;
 }
 
@@ -1032,11 +1032,11 @@ void Control::clear_owned_decorations() {
 
 void Control::validate_authored_surface_material_images(
     const SurfaceMaterial& material) const {
-    if (window_ == nullptr) return;
+    if (surface_root_ == nullptr) return;
     for (const MaterialFillLayer& fill : material.fills) {
         if (fill.kind != MaterialFillKind::image) continue;
         const std::optional<ImageResourceView> resource =
-            (*window_).image_resources().find(fill.image);
+            (*surface_root_).image_resources().find(fill.image);
         if (!resource ||
             static_cast<double>((*resource).metadata.width) !=
                 fill.image_pixel_size.width ||
@@ -1067,8 +1067,8 @@ ControlVisualContext Control::visual_context(
     result.selected = selected;
     result.focused = focused;
     result.defaulted = defaulted;
-    result.high_contrast = window_ != nullptr &&
-                           (*window_).presentation_settings().high_contrast;
+    result.high_contrast = surface_root_ != nullptr &&
+                           (*surface_root_).presentation_settings().high_contrast;
     if (!effectively_enabled()) {
         result.surface = ControlSurfaceState::disabled;
     } else if (visual_status_ == ControlVisualStatus::invalid) {
@@ -1079,7 +1079,7 @@ ControlVisualContext Control::visual_context(
         result.surface = ControlSurfaceState::pressed;
     } else if (hovered) {
         result.surface = ControlSurfaceState::hot;
-    } else if (window_ != nullptr && !(*window_).active()) {
+    } else if (surface_root_ != nullptr && !(*surface_root_).active()) {
         result.surface = ControlSurfaceState::deactivated;
     }
     return result;
@@ -1239,7 +1239,7 @@ std::optional<BindingValue> Control::property_value(std::string_view name) const
     if (!is_alive()) {
         throw std::logic_error("GUI.Forms cannot query a disposed control property");
     }
-    if (window_) (*window_).require_root_thread("control property query");
+    if (surface_root_) (*surface_root_).require_root_thread("control property query");
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(registered_name(name));
     if (found == bindable_properties_.end() ||
@@ -1321,7 +1321,7 @@ bool Control::should_serialize_property(std::string_view name) const {
         throw std::logic_error(
             "GUI.Forms cannot inspect a disposed control property");
     }
-    if (window_) (*window_).require_root_thread("control property inspection");
+    if (surface_root_) (*surface_root_).require_root_thread("control property inspection");
     const std::string canonical = registered_name(name);
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(canonical);
@@ -1348,8 +1348,8 @@ PropertyValueOrigin Control::property_value_origin(
         throw std::logic_error(
             "GUI.Forms cannot inspect a disposed control property");
     }
-    if (window_) {
-        (*window_).require_root_thread("control property origin inspection");
+    if (surface_root_) {
+        (*surface_root_).require_root_thread("control property origin inspection");
     }
     const std::string canonical = registered_name(name);
     const BindablePropertyMap::const_iterator found =
@@ -1503,7 +1503,7 @@ void validate_insets(Insets value, const char* message) {
 void Control::add_child(Ptr child) {
     require_mutable();
     if (lifecycle_notification_ ||
-        (window_ != nullptr && (*window_).in_lifecycle_notification_)) {
+        (surface_root_ != nullptr && (*surface_root_).in_lifecycle_notification_)) {
         throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
     }
     if (!child) {
@@ -1515,9 +1515,9 @@ void Control::add_child(Ptr child) {
     if (!(*child).is_alive()) {
         throw std::logic_error("GUI.Forms cannot attach a disposed control");
     }
-    if ((*child).window_) {
-        (*(*child).window_).require_root_thread("visual-tree mutation");
-        if ((*(*child).window_).in_lifecycle_notification_) {
+    if ((*child).surface_root_) {
+        (*(*child).surface_root_).require_root_thread("visual-tree mutation");
+        if ((*(*child).surface_root_).in_lifecycle_notification_) {
             throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
         }
     }
@@ -1529,12 +1529,12 @@ void Control::add_child(Ptr child) {
     if ((*child).parent().get() == this) {
         return;
     }
-    if ((*child).window_ && (*child).window_ != window_) {
+    if ((*child).surface_root_ && (*child).surface_root_ != surface_root_) {
         throw std::logic_error("GUI.Forms control belongs to another window");
     }
     if (Ptr previous_parent = (*child).parent()) {
         static_cast<void>((*previous_parent).remove_child((*child).runtime_id()));
-    } else if ((*child).window_) {
+    } else if ((*child).surface_root_) {
         throw std::logic_error("GUI.Forms cannot reparent another window root");
     }
     if (!(*child).is_alive()) {
@@ -1545,9 +1545,9 @@ void Control::add_child(Ptr child) {
     (*child).layout_slot_.reset();
     (*child).anchor_reference_.reset();
     children_.push_back(child);
-    if (window_) {
+    if (surface_root_) {
         try {
-            (*window_).attach_subtree(child, weak_from_this());
+            (*surface_root_).attach_subtree(child, weak_from_this());
         } catch (...) {
             children_.pop_back();
             (*child).parent_.reset();
@@ -1560,7 +1560,7 @@ void Control::add_child(Ptr child) {
 Control::Ptr Control::remove_child(RuntimeId child_id) {
     require_mutable();
     if (lifecycle_notification_ ||
-        (window_ != nullptr && (*window_).in_lifecycle_notification_)) {
+        (surface_root_ != nullptr && (*surface_root_).in_lifecycle_notification_)) {
         throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
     }
     ChildList::iterator found = children_.begin();
@@ -1572,8 +1572,8 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
         return {};
     }
     Ptr removed = *found;
-    if (window_) {
-        (*window_).detach_subtree(removed);
+    if (surface_root_) {
+        (*surface_root_).detach_subtree(removed);
     }
     ChildList::iterator current = children_.begin();
     while (current != children_.end() &&
@@ -1588,8 +1588,8 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
     }
     (*removed).layout_slot_.reset();
     (*removed).anchor_reference_.reset();
-    if (window_) {
-        static_cast<void>((*window_).recompute_subtree_dirty((*window_).root_));
+    if (surface_root_) {
+        static_cast<void>((*surface_root_).recompute_subtree_dirty((*surface_root_).root_));
     }
     invalidate_declared(invalidation::visual_tree);
     return removed;
@@ -1631,7 +1631,7 @@ std::optional<std::size_t> Control::child_index(RuntimeId child_id) const noexce
 void Control::clear_children() {
     require_mutable();
     if (lifecycle_notification_ ||
-        (window_ != nullptr && (*window_).in_lifecycle_notification_)) {
+        (surface_root_ != nullptr && (*surface_root_).in_lifecycle_notification_)) {
         throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
     }
     while (!children_.empty()) {
@@ -1735,8 +1735,8 @@ void Control::set_child_layout(const Ptr& child, Rect bounds) {
     }
     if ((*child).layout_slot_ == bounds) return;
     (*child).layout_slot_ = bounds;
-    if (window_ != nullptr) {
-        (*window_).mark_child_layout_slot(*child);
+    if (surface_root_ != nullptr) {
+        (*surface_root_).mark_child_layout_slot(*child);
     } else {
         constexpr Dirty effects = Dirty::arrange | Dirty::hit_test |
                                   Dirty::semantics | Dirty::accessibility;
@@ -1750,15 +1750,15 @@ void Control::set_child_layout(const Ptr& child, Rect bounds) {
 }
 
 void Control::note_containing_block(const Control& child, const Control& ancestor) {
-    if (window_ != nullptr) (*window_).note_containing_block(child, ancestor);
+    if (surface_root_ != nullptr) (*surface_root_).note_containing_block(child, ancestor);
 }
 
 void Control::set_containing_block_dependencies(std::span<const RuntimeId> watched) {
-    if (window_ != nullptr) (*window_).set_containing_block_dependencies(*this, watched);
+    if (surface_root_ != nullptr) (*surface_root_).set_containing_block_dependencies(*this, watched);
 }
 
 void Control::notify_positioning_changed(const Control& child) {
-    if (window_ == nullptr) return;
+    if (surface_root_ == nullptr) return;
     // The child places its own absolute children against a new box, and
     // the containers that resolved through it re-resolve. The window marks
     // below the child, which it needs mutable; the child is found among
@@ -1767,7 +1767,7 @@ void Control::notify_positioning_changed(const Control& child) {
     for (const Ptr& candidate : children_) {
         if (candidate.get() != &child) continue;
         (*candidate).invalidate(Dirty::arrange);
-        (*window_).mark_containing_block_dependents(*candidate);
+        (*surface_root_).mark_containing_block_dependents(*candidate);
         return;
     }
 }
@@ -1821,7 +1821,7 @@ void Control::set_dock(DockStyle dock) {
     dock_ = dock;
     anchor_reference_.reset();
     if (dock_ == DockStyle::none) {
-        if (const Ptr owner = parent(); owner && (*owner).window_ != nullptr &&
+        if (const Ptr owner = parent(); owner && (*owner).surface_root_ != nullptr &&
             ((*owner).arranged_bounds_.width > 0.0 ||
              (*owner).arranged_bounds_.height > 0.0) &&
             (arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0)) {
@@ -1843,7 +1843,7 @@ void Control::set_anchor(AnchorStyles anchor) {
     anchor_ = anchor;
     anchor_reference_.reset();
     if (dock_ == DockStyle::none) {
-        if (const Ptr owner = parent(); owner && (*owner).window_ != nullptr &&
+        if (const Ptr owner = parent(); owner && (*owner).surface_root_ != nullptr &&
             ((*owner).arranged_bounds_.width > 0.0 ||
              (*owner).arranged_bounds_.height > 0.0) &&
             (arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0)) {
@@ -1886,8 +1886,8 @@ Size Control::get_preferred_size(Size proposed) {
 }
 
 Rect Control::arranged_bounds() const {
-    if (window_) {
-        (*window_).ensure_layout(true);
+    if (surface_root_) {
+        (*surface_root_).ensure_layout(true);
     }
     return arranged_bounds_;
 }
@@ -1916,8 +1916,8 @@ void Control::resume_layout(bool perform_pending_layout) {
         !layout_deferred_) {
         return;
     }
-    if (window_ != nullptr) {
-        (*window_).ensure_layout(false);
+    if (surface_root_ != nullptr) {
+        (*surface_root_).ensure_layout(false);
     }
 }
 
@@ -1932,8 +1932,8 @@ void Control::perform_layout() {
     layout_deferred_ = true;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test |
                Dirty::semantics | Dirty::accessibility);
-    if (window_ != nullptr && layout_suspend_depth_ == 0U) {
-        (*window_).ensure_layout(false);
+    if (surface_root_ != nullptr && layout_suspend_depth_ == 0U) {
+        (*surface_root_).ensure_layout(false);
     }
 }
 
@@ -1943,9 +1943,9 @@ LayoutTransactionState Control::layout_transaction_state() const noexcept {
 }
 
 Rect Control::absolute_bounds() const {
-    if (window_) {
-        (*window_).ensure_layout(true);
-        return (*window_).absolute_bounds_of(*this);
+    if (surface_root_) {
+        (*surface_root_).ensure_layout(true);
+        return (*surface_root_).absolute_bounds_of(*this);
     }
     Rect result = arranged_bounds_;
     for (Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
@@ -1994,7 +1994,7 @@ Control::Ptr Control::get_child_at_point(
         throw std::invalid_argument(
             "GUI.Forms GetChildAtPointSkip contains unknown flags");
     }
-    if (window_ != nullptr) (*window_).ensure_layout(true);
+    if (surface_root_ != nullptr) (*surface_root_).ensure_layout(true);
     if (!child_viewport_rectangle().contains(client_point)) return {};
     for (ChildList::const_reverse_iterator current = children_.rbegin();
          current != children_.rend();
@@ -2072,14 +2072,14 @@ void Control::set_visible(bool visible) {
         return;
     }
     visible_ = visible;
-    if (window_ && !visible) {
-        (*window_).on_eligibility_changed(shared_from_this());
+    if (surface_root_ && !visible) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) {
         return;
     }
     invalidate_subtree(invalidation::visibility);
-    if (window_) (*window_).publish_control_availability(*this);
+    if (surface_root_) (*surface_root_).publish_control_availability(*this);
     if (!is_alive()) return;
     publish_change(visible_changed_, visible_);
 }
@@ -2090,14 +2090,14 @@ void Control::set_enabled(bool enabled) {
         return;
     }
     enabled_ = enabled;
-    if (window_ && !enabled) {
-        (*window_).on_eligibility_changed(shared_from_this());
+    if (surface_root_ && !enabled) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) {
         return;
     }
     invalidate_declared(invalidation::enabled);
-    if (window_) (*window_).publish_control_availability(*this);
+    if (surface_root_) (*surface_root_).publish_control_availability(*this);
     if (!is_alive()) return;
     publish_change(enabled_changed_, enabled_);
 }
@@ -2108,8 +2108,8 @@ void Control::set_focusable(bool focusable) {
         return;
     }
     focusable_ = focusable;
-    if (window_ && !focusable) {
-        (*window_).on_eligibility_changed(shared_from_this());
+    if (surface_root_ && !focusable) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) {
         return;
@@ -2154,8 +2154,8 @@ void Control::set_allow_drop(bool allow_drop) {
         return;
     }
     allow_drop_ = allow_drop;
-    if (window_ && !allow_drop) {
-        (*window_).on_eligibility_changed(shared_from_this());
+    if (surface_root_ && !allow_drop) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) {
         return;
@@ -2167,8 +2167,8 @@ void Control::set_hit_test_transparent(bool transparent) {
     require_mutable();
     if (hit_test_transparent_ == transparent) return;
     hit_test_transparent_ = transparent;
-    if (window_ && transparent) {
-        (*window_).on_hit_test_transparency_changed(shared_from_this());
+    if (surface_root_ && transparent) {
+        (*surface_root_).on_hit_test_transparency_changed(shared_from_this());
     }
     if (!is_alive()) return;
     invalidate(Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
@@ -2324,7 +2324,7 @@ void Control::set_tool_tip_text(std::string text) {
         }
     }
     publish_change(tool_tip_text_changed_, tool_tip_text_);
-    if (window_ != nullptr) (*window_).tool_tip_text_changed(*this);
+    if (surface_root_ != nullptr) (*surface_root_).tool_tip_text_changed(*this);
 }
 
 std::string Control::field_hint_text() const {
@@ -2377,26 +2377,26 @@ bool Control::effectively_enabled() const noexcept {
 }
 
 bool Control::eligible_for_input() const noexcept {
-    return window_ != nullptr && !initialization_blocked() &&
+    return surface_root_ != nullptr && !initialization_blocked() &&
            effectively_visible() && effectively_enabled();
 }
 
 void Control::set_pointer_capture(bool captured) {
     require_mutable();
-    if (window_ == nullptr) {
+    if (surface_root_ == nullptr) {
         if (!captured) return;
         throw std::logic_error(
             "GUI.Forms pointer capture requires an attached control");
     }
     if (captured) {
-        (*window_).capture_pointer(shared_from_this());
-    } else if ((*window_).captured_control().get() == this) {
-        (*window_).release_pointer();
+        (*surface_root_).capture_pointer(shared_from_this());
+    } else if ((*surface_root_).captured_control().get() == this) {
+        (*surface_root_).release_pointer();
     }
 }
 
 bool Control::has_pointer_capture() const noexcept {
-    return window_ != nullptr && (*window_).captured_control().get() == this;
+    return surface_root_ != nullptr && (*surface_root_).captured_control().get() == this;
 }
 
 void Control::set_paint_plane(PaintPlane plane) {
@@ -2407,8 +2407,8 @@ void Control::set_paint_plane(PaintPlane plane) {
     if (paint_plane_ == plane) {
         return;
     }
-    if (window_) {
-        (*window_).change_paint_plane(*this, plane);
+    if (surface_root_) {
+        (*surface_root_).change_paint_plane(*this, plane);
         return;
     }
     paint_plane_ = plane;
@@ -2432,8 +2432,8 @@ void Control::invalidate(Dirty requested_dirty) {
         pending_initialization_dirty_ |= requested_dirty;
         return;
     }
-    if (window_) {
-        (*window_).mark_dirty(*this, requested_dirty);
+    if (surface_root_) {
+        (*surface_root_).mark_dirty(*this, requested_dirty);
         return;
     }
     add_dirty(requested_dirty);
@@ -2469,8 +2469,8 @@ void Control::invalidate(Rect local_damage) {
         pending_initialization_dirty_ |= Dirty::paint;
         return;
     }
-    if (window_) {
-        (*window_).mark_paint_dirty(*this, local_damage);
+    if (surface_root_) {
+        (*surface_root_).mark_paint_dirty(*this, local_damage);
         return;
     }
     dirty_ |= Dirty::paint;
@@ -2494,8 +2494,8 @@ void Control::invalidate_subtree(Dirty requested_dirty) {
         pending_initialization_subtree_ = true;
         return;
     }
-    if (window_) {
-        (*window_).mark_subtree_dirty(*this, requested_dirty);
+    if (surface_root_) {
+        (*surface_root_).mark_subtree_dirty(*this, requested_dirty);
         return;
     }
     apply_subtree_dirty(*this, requested_dirty);
@@ -2539,8 +2539,8 @@ void Control::invalidate_declared(Dirty declared_effects) {
         invalidate(declared_effects);
         return;
     }
-    if (window_) {
-        (*window_).metrics_.record_undeclared_mutation();
+    if (surface_root_) {
+        (*surface_root_).metrics_.record_undeclared_mutation();
     }
 #ifndef NDEBUG
     throw std::logic_error("GUI.Forms mutation has no declared invalidation effects");
@@ -2552,8 +2552,8 @@ void Control::invalidate_declared(Dirty declared_effects) {
 void Control::begin_init() {
     require_mutable();
     ++initialization_depth_;
-    if (initialization_depth_ == 1U && window_ != nullptr) {
-        (*window_).on_eligibility_changed(shared_from_this());
+    if (initialization_depth_ == 1U && surface_root_ != nullptr) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
     }
 }
 
@@ -2657,7 +2657,7 @@ Size Control::measure(Size available) {
 
 Size Control::measure_for_layout(const LayoutConstraint& constraint) {
     // The cache is UI-thread state, like the tree the answer reads.
-    if (window_ != nullptr) (*window_).require_root_thread("layout measurement");
+    if (surface_root_ != nullptr) (*surface_root_).require_root_thread("layout measurement");
     if (!valid_layout_constraint(constraint)) {
         throw std::invalid_argument(
             "GUI.Forms layout constraint extents must be finite and nonnegative");
@@ -2665,19 +2665,19 @@ Size Control::measure_for_layout(const LayoutConstraint& constraint) {
     const std::uint64_t generation = measure_generation_;
     for (const MeasureCacheEntry& entry : measure_cache_) {
         if (entry.generation == generation && entry.constraint == constraint) {
-            if (window_ != nullptr) (*window_).metrics().record_measure_cache_hit();
+            if (surface_root_ != nullptr) (*surface_root_).metrics().record_measure_cache_hit();
             const Size cached = entry.result;
             return cached;
         }
     }
-    if (window_ != nullptr) {
-        const std::uint64_t pass = (*window_).layout_pass_sequence_;
+    if (surface_root_ != nullptr) {
+        const std::uint64_t pass = (*surface_root_).layout_pass_sequence_;
         if (measure_pass_sequence_ != pass) {
             measure_pass_sequence_ = pass;
             measure_pass_callbacks_ = 0U;
         }
         ++measure_pass_callbacks_;
-        (*window_).metrics().record_measure_cache_miss(measure_pass_callbacks_);
+        (*surface_root_).metrics().record_measure_cache_miss(measure_pass_callbacks_);
     }
     Size measured = measure_intrinsic(constraint);
     bool clamped = false;
@@ -2689,7 +2689,7 @@ Size Control::measure_for_layout(const LayoutConstraint& constraint) {
         measured.height = 0.0;
         clamped = true;
     }
-    if (clamped && window_ != nullptr) (*window_).metrics().record_layout_measure_clamp();
+    if (clamped && surface_root_ != nullptr) (*surface_root_).metrics().record_layout_measure_clamp();
     // A callback that invalidated this control made its own answer stale.
     if (measure_generation_ != generation || !is_alive()) return measured;
     std::size_t slot = 0U;
@@ -2851,7 +2851,7 @@ std::vector<Control::Ptr> Control::snapshot_layout_children() const {
 
 bool Control::is_current_layout_child(const Ptr& child) const noexcept {
     return child && (*child).is_alive() && (*child).parent_.lock().get() == this &&
-           (*child).window_ == window_;
+           (*child).surface_root_ == surface_root_;
 }
 
 void Control::set_child_layout_collapsed(const Ptr& child, bool collapsed) {
@@ -2861,12 +2861,12 @@ void Control::set_child_layout_collapsed(const Ptr& child, bool collapsed) {
     }
     if ((*child).layout_collapsed_ == collapsed) return;
     (*child).layout_collapsed_ = collapsed;
-    if (collapsed && (*child).window_ != nullptr) {
-        (*(*child).window_).on_eligibility_changed(child);
+    if (collapsed && (*child).surface_root_ != nullptr) {
+        (*(*child).surface_root_).on_eligibility_changed(child);
     }
     (*child).invalidate_subtree(invalidation::visibility);
-    if ((*child).window_ != nullptr && (*child).is_alive()) {
-        (*(*child).window_).publish_control_availability(*child);
+    if ((*child).surface_root_ != nullptr && (*child).is_alive()) {
+        (*(*child).surface_root_).publish_control_availability(*child);
     }
 }
 
@@ -2874,12 +2874,12 @@ void Control::on_paint(Painter&, Rect) {}
 void Control::on_paint_overlay(Painter&, Rect) {}
 
 void Control::report_opaque_cover(const Painter& painter, const Rect local) const noexcept {
-    if (window_ != nullptr) (*window_).note_opaque_cover(*this, painter, local);
+    if (surface_root_ != nullptr) (*surface_root_).note_opaque_cover(*this, painter, local);
 }
 
 void Control::paint_back_color(Painter& painter, Rect bounds) const {
     if (!back_color_) return;
-    const bool high_contrast = window_ != nullptr && (*window_).presentation_settings().high_contrast;
+    const bool high_contrast = surface_root_ != nullptr && (*surface_root_).presentation_settings().high_contrast;
     if (high_contrast) return;
     painter.fill_rect(bounds, *back_color_);
 }
@@ -3002,7 +3002,7 @@ void Control::collect_mnemonic_candidates(const Ptr& control,
                      &Control::tab_order_less);
     for (const Ptr& child : retained) {
         if (!child || (*child).parent().get() != control.get() ||
-            (*child).window_ != (*control).window_) {
+            (*child).surface_root_ != (*control).surface_root_) {
             continue;
         }
         collect_mnemonic_candidates(child, character, candidates);
@@ -3014,13 +3014,13 @@ bool Control::prepare_command_activation() {
         !effectively_enabled()) {
         return false;
     }
-    return window_ == nullptr ||
-           (*window_).validate_command_activation(shared_from_this());
+    return surface_root_ == nullptr ||
+           (*surface_root_).validate_command_activation(shared_from_this());
 }
 
 bool Control::focus_next_after_self() {
-    return window_ != nullptr &&
-           (*window_).move_focus_after(shared_from_this());
+    return surface_root_ != nullptr &&
+           (*surface_root_).move_focus_after(shared_from_this());
 }
 
 bool Control::perform_dialog_command() { return false; }
@@ -3066,8 +3066,8 @@ std::vector<SemanticNode> Control::semantic_virtual_children() const {
 }
 
 bool Control::on_semantic_action(SemanticAction action, std::string_view) {
-    if (action == SemanticAction::focus && window_ != nullptr && focusable_) {
-        return (*window_).request_focus(shared_from_this());
+    if (action == SemanticAction::focus && surface_root_ != nullptr && focusable_) {
+        return (*surface_root_).request_focus(shared_from_this());
     }
     return false;
 }
@@ -3236,11 +3236,11 @@ AnatomyStateSet Control::base_anatomy_states() const {
         states.insert(AnatomyState::disabled);
     }
     if (pointer_over_) states.insert(AnatomyState::hot);
-    if (window_ != nullptr) {
-        const Ptr focused = (*window_).focused_control();
+    if (surface_root_ != nullptr) {
+        const Ptr focused = (*surface_root_).focused_control();
         if (focused.get() == this) {
             states.insert(AnatomyState::focused);
-            if ((*window_).focus_cue_visible()) {
+            if ((*surface_root_).focus_cue_visible()) {
                 states.insert(AnatomyState::focus_visible);
             }
         }
@@ -3250,7 +3250,7 @@ AnatomyStateSet Control::base_anatomy_states() const {
 
 void Control::on_attached_to_window() {}
 void Control::on_attachment_committed() noexcept {}
-void Control::on_detaching_from_window(Window&) noexcept {}
+void Control::on_detaching_from_window(SurfaceRoot&) noexcept {}
 void Control::on_detached_from_window() noexcept {}
 
 void Control::clear_dirty(Dirty cleared) noexcept {
@@ -3335,18 +3335,18 @@ void Control::require_mutable() const {
     if (!is_alive()) {
         throw std::logic_error("GUI.Forms cannot mutate a disposed control");
     }
-    if (window_) {
-        (*window_).require_root_thread("control mutation");
+    if (surface_root_) {
+        (*surface_root_).require_root_thread("control mutation");
     }
 }
 
 void Control::verify_dispose_thread() {
     if (lifecycle_notification_ ||
-        (window_ != nullptr && (*window_).in_lifecycle_notification_)) {
+        (surface_root_ != nullptr && (*surface_root_).in_lifecycle_notification_)) {
         throw std::logic_error("GUI.Forms cannot dispose a control during lifecycle notification");
     }
-    if (window_) {
-        (*window_).require_root_thread("control disposal");
+    if (surface_root_) {
+        (*surface_root_).require_root_thread("control disposal");
     }
 }
 
@@ -3367,8 +3367,8 @@ void Control::on_dispose() noexcept {
     validating_.disconnect_all();
     validated_.disconnect_all();
     Ptr self = weak_from_this().lock();
-    if (window_ && self) {
-        (*window_).dispose_subtree(self);
+    if (surface_root_ && self) {
+        (*surface_root_).dispose_subtree(self);
     } else if (std::shared_ptr<gui_forms::Control> visual_parent = parent_.lock()) {
         ChildList::iterator found = (*visual_parent).children_.begin();
         while (found != (*visual_parent).children_.end() &&

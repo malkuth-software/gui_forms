@@ -112,6 +112,9 @@ gui_forms::Control
       **attached_window** : ``Window*``, read-only
          The window whose tree contains this control, or null.
 
+      **attached_surface_root** : ``SurfaceRoot*``, read-only
+         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+
       **effective_text_scale** : ``double``, read-only
          The attached window's presentation text scale, or 1 when detached.
          :cpp:func:`effective_font <gui_forms::Control::effective_font>` applies it to a font; custom controls use the result for
@@ -768,6 +771,10 @@ gui_forms::Control
    .. cpp:function:: Window* attached_window() const noexcept
 
       The window whose tree contains this control, or null.
+
+   .. cpp:function:: SurfaceRoot* attached_surface_root() const noexcept
+
+      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
 
    .. cpp:function:: double effective_text_scale() const noexcept
 
@@ -1847,7 +1854,7 @@ gui_forms::Control
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_detaching_from_window(Window& former_window) noexcept
+   .. cpp:function:: virtual void on_detaching_from_window(SurfaceRoot& former_window) noexcept
 
       *Protected.*
 

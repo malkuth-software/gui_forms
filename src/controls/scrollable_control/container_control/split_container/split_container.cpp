@@ -586,7 +586,7 @@ bool SplitContainer::on_semantic_action(SemanticAction action,
     return ContainerControl::on_semantic_action(action, value);
 }
 
-void SplitContainer::on_detaching_from_window(Window& former_window) noexcept {
+void SplitContainer::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     cancel_splitter_interaction(false);
     static_cast<SplitterGrip&>(*splitter_).reset_interaction();
     ContainerControl::on_detaching_from_window(former_window);

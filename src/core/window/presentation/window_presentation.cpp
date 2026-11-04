@@ -113,7 +113,7 @@ void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
 std::optional<ControlSnapshot> SurfaceRoot::snapshot_control(const Control::Ptr& control, const double scale) {
     require_root_thread("snapshot_control");
     if (in_paint_ || framebuffer_painter_ == nullptr || !control) return std::nullopt;
-    if (!(*control).is_alive() || (*control).window_ != this || !(*control).effectively_visible()) return std::nullopt;
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).effectively_visible()) return std::nullopt;
     if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return std::nullopt;
     const Rect bounds = absolute_bounds_of(*control);
     if (bounds.empty() || !bounds.finite()) return std::nullopt;
@@ -566,7 +566,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         // Window-owned popup roots are composited after all application
         // content, in opening order and independently of consumer layout.
         for (const Control::Ptr& overlay : popup_roots) {
-            if (!overlay || !(*overlay).is_alive() || (*overlay).window_ != this) {
+            if (!overlay || !(*overlay).is_alive() || (*overlay).surface_root_ != this) {
                 continue;
             }
             for (std::size_t index = 0; index < paint_plane_count; ++index) {
@@ -734,7 +734,7 @@ bool Window::queue_live_surface_presentation(
     const Control::Ptr& control, std::shared_ptr<LiveSurface> surface) {
     require_root_thread("live-surface presentation");
     if (!control || !surface || !(*control).is_alive() ||
-        (*control).window_ != this) {
+        (*control).surface_root_ != this) {
         return false;
     }
     std::pair<
@@ -798,7 +798,7 @@ void Window::set_live_surface_idle_waiting(const bool waiting) {
 
 void Window::collect_visible_overlay_rectangles(
     const Control::Ptr& control, std::vector<Rect>& rectangles) const {
-    if (!control || !(*control).is_alive() || (*control).window_ != this ||
+    if (!control || !(*control).is_alive() || (*control).surface_root_ != this ||
         !(*control).effectively_visible()) {
         return;
     }
@@ -863,7 +863,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
              live_surface_registrations_.begin();
          iterator != live_surface_registrations_.end();) {
         const Control::Ptr control = (*iterator).second.control.lock();
-        if (!control || !(*control).is_alive() || (*control).window_ != this ||
+        if (!control || !(*control).is_alive() || (*control).surface_root_ != this ||
             !(*iterator).second.surface) {
             iterator = live_surface_registrations_.erase(iterator);
             continue;
@@ -900,7 +900,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         for (Control::Ptr ancestor = (*control).parent();
              ancestor && valid && !clip.empty();
              ancestor = (*ancestor).parent()) {
-            if (!(*ancestor).is_alive() || (*ancestor).window_ != this ||
+            if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this ||
                 !(*ancestor).visible_) {
                 valid = false;
                 break;

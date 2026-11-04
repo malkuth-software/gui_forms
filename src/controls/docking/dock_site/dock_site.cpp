@@ -760,7 +760,7 @@ void DockSite::on_attachment_committed() noexcept {
     }
 }
 
-void DockSite::on_detaching_from_window(Window& former_window) noexcept {
+void DockSite::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     close_flyout(DockFlyoutCause::programmatic);
     close_navigator();
     close_position_menu();

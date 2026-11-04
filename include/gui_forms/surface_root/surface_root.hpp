@@ -882,10 +882,6 @@ protected:
 private:
     friend class Window;
     friend class SurfaceRoot;
-    // Every root is a Window until stage S2 adds sub-surfaces: the view of
-    // this root as the Window that controls and collaborators still name.
-    [[nodiscard]] Window& as_window() noexcept;
-    [[nodiscard]] const Window& as_window() const noexcept;
     // std::logic_error naming `operation`, counted as a wrong-thread
     // rejection, off the root's thread.
     void require_root_thread(std::string_view operation);
@@ -1109,32 +1105,32 @@ private:
         std::vector<std::shared_ptr<detail::AcceleratorAttachment>>;
 
     struct FocusChangePublication final {
-        Window* window{};
+        SurfaceRoot* root{};
         Control::Ptr control;
         bool focused{};
         void operator()() const;
     };
     struct FocusScopePublication final {
-        Window* window{};
+        SurfaceRoot* root{};
         Control::Ptr owner;
         std::shared_ptr<unsigned char> identity;
         FocusScopeChange change;
         void operator()() const;
     };
     struct PointerCapturePublication final {
-        Window* window{};
+        SurfaceRoot* root{};
         Control::Ptr owner;
         PointerCaptureChange change;
         void operator()() const;
     };
     struct ControlAvailabilityPublication final {
-        Window* window{};
+        SurfaceRoot* root{};
         Control::Ptr control;
         ControlAvailabilityChange change;
         void operator()() const;
     };
     struct DeferredInputVisitor final {
-        Window* window{};
+        SurfaceRoot* root{};
         template <typename InputEvent>
         void operator()(InputEvent&& event) const;
     };
@@ -1517,6 +1513,10 @@ private:
     std::uint64_t frame_request_cancellations_{};
     bool in_frame_poll_{};
     std::shared_ptr<detail::WindowLifetime> lifetime_;
+    // The Window this root is, set first by Window's constructor; null for a
+    // root presented some other way (a sub-surface, stage S2). Attached
+    // controls copy it into Control::window(); nothing else reads it.
+    Window* presenting_window_{};
     std::uint64_t update_depth_{};
     bool layout_dirty_{true};
     bool hit_test_dirty_{true};

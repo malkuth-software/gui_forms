@@ -20,14 +20,6 @@ SurfaceRoot::SurfaceRoot(Control::Ptr root, Size client_size, std::shared_ptr<Ap
       resources_(std::move(resources)),
       lifetime_(std::make_shared<detail::WindowLifetime>()) {}
 
-Window& SurfaceRoot::as_window() noexcept {
-    return static_cast<Window&>(*this);
-}
-
-const Window& SurfaceRoot::as_window() const noexcept {
-    return static_cast<const Window&>(*this);
-}
-
 bool SurfaceRoot::check_access() const noexcept {
     return std::this_thread::get_id() == root_thread_;
 }

@@ -43,7 +43,7 @@ struct CommandRouteMatch final {
     CommandRouteStage stage{CommandRouteStage::focused_route};
 };
 
-CommandRouteMatch find_command_handler(const Window& window, std::string_view command_id) {
+CommandRouteMatch find_command_handler(const SurfaceRoot& window, std::string_view command_id) {
     CommandRouteMatch match{};
     if (command_id.empty()) return match;
     Control::Ptr control = window.focused_control();
@@ -84,7 +84,7 @@ std::shared_ptr<CommandTarget> SurfaceRoot::command_target(CommandRouteStage sta
 
 CommandRouteResult SurfaceRoot::resolve_command(std::string_view command_id) const {
     CommandRouteResult result{};
-    const CommandRouteMatch match = find_command_handler(as_window(), command_id);
+    const CommandRouteMatch match = find_command_handler(*this, command_id);
     if (!match.target) return result;
     result.outcome = CommandRouteOutcome::handled;
     result.stage = match.stage;
@@ -99,7 +99,7 @@ CommandRouteResult SurfaceRoot::route_command(const CommandInvocation& invocatio
         result.outcome = CommandRouteOutcome::refused;
         return result;
     }
-    const CommandRouteMatch match = find_command_handler(as_window(), invocation.command_id);
+    const CommandRouteMatch match = find_command_handler(*this, invocation.command_id);
     if (!match.target) return result;
     result.outcome = CommandRouteOutcome::handled;
     result.stage = match.stage;

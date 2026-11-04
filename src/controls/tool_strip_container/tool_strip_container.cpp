@@ -647,7 +647,7 @@ void ToolStripContainer::finish_settling() noexcept {
     }
 }
 
-void ToolStripContainer::release_picture(Window& host) noexcept {
+void ToolStripContainer::release_picture(SurfaceRoot& host) noexcept {
     if (!drag_.picture) return;
     // A release that fails (allocation while marking the repaint) leaves
     // the image to the window's end.
@@ -1029,7 +1029,7 @@ void ToolStripContainer::paint_drag_layer(Painter& painter) {
     paint_part(painter, *this, part);
 }
 
-void ToolStripContainer::on_detaching_from_window(Window& former_window) noexcept {
+void ToolStripContainer::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     capture_token_.disconnect();
     static_cast<void>(capture_check_.cancel());
     // The stamp's picture is the former window's image.

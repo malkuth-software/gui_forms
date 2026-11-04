@@ -35,7 +35,7 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
             continue;
         }
         const std::shared_ptr<gui_forms::Control> target = (*request).target.lock();
-        if (!target || !(*target).is_alive() || (*target).window_ != this ||
+        if (!target || !(*target).is_alive() || (*target).surface_root_ != this ||
             !(*target).effectively_visible()) {
             continue;
         }
@@ -49,7 +49,7 @@ std::optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
 FrameRequestToken SurfaceRoot::schedule_paint(const Control::Ptr& control,
                                          FrameTime deadline) {
     require_root_thread("frame deadline scheduling");
-    if (!control || !(*control).is_alive() || (*control).window_ != this) {
+    if (!control || !(*control).is_alive() || (*control).surface_root_ != this) {
         throw std::logic_error("GUI.Forms frame deadline requires an attached control");
     }
     compact_frame_requests();
@@ -193,7 +193,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             continue;
         }
         const std::shared_ptr<gui_forms::Control> target = (*request).target.lock();
-        if (!target || !(*target).is_alive() || (*target).window_ != this) {
+        if (!target || !(*target).is_alive() || (*target).surface_root_ != this) {
             (*request).disconnect();
             continue;
         }

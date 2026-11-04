@@ -250,7 +250,7 @@ void CommandBar::on_attached_to_window() {
     Panel::on_attached_to_window();
     install_shortcuts();
 }
-void CommandBar::on_detaching_from_window(Window& former_window) noexcept {
+void CommandBar::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     clear_shortcuts();
     Panel::on_detaching_from_window(former_window);
 }

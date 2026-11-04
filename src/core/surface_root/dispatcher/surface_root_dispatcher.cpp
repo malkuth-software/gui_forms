@@ -63,7 +63,7 @@ void SurfaceRoot::invoke(const Control::Ptr& owner,
         throw std::invalid_argument("GUI.Forms Invoke requires a callback");
     }
     if (check_access()) {
-        if (!(*owner).is_alive() || (*owner).window_ != this) {
+        if (!(*owner).is_alive() || (*owner).surface_root_ != this) {
             throw std::logic_error(
                 "GUI.Forms owned Invoke requires an attached live control");
         }
@@ -112,7 +112,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
 
         const Control::Ptr owner = (*work).owner.lock();
         if ((*work).requires_owner &&
-            (!owner || !(*owner).is_alive() || (*owner).window_ != this)) {
+            (!owner || !(*owner).is_alive() || (*owner).surface_root_ != this)) {
             (*work).callback = {};
             (*work).state.store(DispatchOperationState::cancelled,
                               std::memory_order_release);

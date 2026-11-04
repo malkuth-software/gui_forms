@@ -107,9 +107,9 @@ bool cover_spans(const Rect cover, const Rect damage, const double scale, const 
 
 [[nodiscard]] bool current_semantic_identity(
     const Control::Ptr& control, const Control* expected_parent,
-    const Window* owner) noexcept {
+    const SurfaceRoot* owner) noexcept {
     return control && (*control).is_alive() &&
-           (*control).attached_window() == owner &&
+           (*control).attached_surface_root() == owner &&
            (*control).parent().get() == expected_parent;
 }
 
@@ -185,7 +185,7 @@ void note_hidden_subtree(const Control::Ptr& control, const Control::Ptr& focuse
 // takes the focus of its own hidden controls and reports nothing upward.
 void append_semantic_nodes(const Control::Ptr& control,
                            const Control* expected_parent,
-                           const Window* owner,
+                           const SurfaceRoot* owner,
                            const Control::Ptr& focused,
                            std::vector<SemanticNode>& destination,
                            std::size_t& count,
@@ -275,14 +275,14 @@ bool dispatch_semantic_child_action(Control::Ptr control,
                                     std::string_view value) {
     if (!control || !(*control).effectively_visible() ||
         !(*control).effectively_enabled()) return false;
-    Window* const owner = (*control).attached_window();
+    SurfaceRoot* const owner = (*control).attached_surface_root();
     if ((*control).on_semantic_child_action(stable_id, action, value)) return true;
-    if (!(*control).is_alive() || (*control).attached_window() != owner) return false;
+    if (!(*control).is_alive() || (*control).attached_surface_root() != owner) return false;
     const std::vector<Control::Ptr> children((*control).children().begin(),
                                              (*control).children().end());
     for (const Control::Ptr& child : children) {
         if (!child || !(*child).is_alive() || (*child).parent() != control ||
-            (*child).attached_window() != owner) {
+            (*child).attached_surface_root() != owner) {
             continue;
         }
         if (dispatch_semantic_child_action(child, stable_id, action, value)) return true;
@@ -335,38 +335,38 @@ constexpr std::array<InteractionDeclaration, 7> window_interactions{{
 
 void SurfaceRoot::FocusChangePublication::operator()() const {
     if (!control ||
-        (focused ? !(*window).eligible(control)
-                 : (!(*control).is_alive() || (*control).window_ != window))) {
+        (focused ? !(*root).eligible(control)
+                 : (!(*control).is_alive() || (*control).surface_root_ != root))) {
         return;
     }
-    (*window).metrics_.record_callback_emitted();
+    (*root).metrics_.record_callback_emitted();
     (*control).on_focus_changed(focused);
     if ((*control).is_alive()) {
         (*control).focus_observed_.emit(focused);
     }
     if (!(*control).is_alive()) return;
-    if (!focused || (*window).eligible(control)) {
+    if (!focused || (*root).eligible(control)) {
         (*control).invalidate(invalidation::focus);
     } else {
-        (*window).focused_.reset();
+        (*root).focused_.reset();
     }
 }
 
 void SurfaceRoot::FocusScopePublication::operator()() const {
-    if (!owner || !(*owner).is_alive() || (*owner).window_ != window) return;
-    (*window).focus_scope_changed_.emit(change);
+    if (!owner || !(*owner).is_alive() || (*owner).surface_root_ != root) return;
+    (*root).focus_scope_changed_.emit(change);
 }
 
 void SurfaceRoot::PointerCapturePublication::operator()() const {
-    if (!owner || !(*owner).is_alive() || (*owner).window_ != window) return;
-    (*window).pointer_capture_changed_.emit(change);
+    if (!owner || !(*owner).is_alive() || (*owner).surface_root_ != root) return;
+    (*root).pointer_capture_changed_.emit(change);
 }
 
 void SurfaceRoot::ControlAvailabilityPublication::operator()() const {
-    if (!control || !(*control).is_alive() || (*control).window_ != window) {
+    if (!control || !(*control).is_alive() || (*control).surface_root_ != root) {
         return;
     }
-    (*window).control_availability_changed_.emit(change);
+    (*root).control_availability_changed_.emit(change);
 }
 
 template <typename InputEvent>
@@ -374,18 +374,18 @@ void SurfaceRoot::DeferredInputVisitor::operator()(InputEvent&& event) const {
     using EventType =
         std::remove_cv_t<std::remove_reference_t<InputEvent>>;
     if constexpr (std::is_same_v<EventType, PointerEvent>) {
-        static_cast<void>((*window).dispatch_pointer(std::move(event)));
+        static_cast<void>((*root).dispatch_pointer(std::move(event)));
     } else if constexpr (std::is_same_v<EventType, KeyEvent>) {
-        static_cast<void>((*window).dispatch_key(std::move(event)));
+        static_cast<void>((*root).dispatch_key(std::move(event)));
     } else if constexpr (std::is_same_v<EventType, TextInputEvent>) {
-        static_cast<void>((*window).dispatch_text(std::move(event)));
+        static_cast<void>((*root).dispatch_text(std::move(event)));
     } else if constexpr (std::is_same_v<EventType, DragEvent>) {
-        static_cast<void>((*window).dispatch_drag(std::move(event)));
+        static_cast<void>((*root).dispatch_drag(std::move(event)));
     } else if (event.owner.value != 0U) {
-        static_cast<void>((*window).perform_semantic_action(
+        static_cast<void>((*root).perform_semantic_action(
             event.owner, event.stable_id, event.action, event.value));
     } else {
-        static_cast<void>((*window).perform_semantic_action(
+        static_cast<void>((*root).perform_semantic_action(
             event.stable_id, event.action, event.value));
     }
 }
@@ -430,7 +430,7 @@ ImageLoadResult SurfaceRoot::replace_bgra32_premultiplied(
     std::uint64_t row_bytes, std::span<const std::byte> pixels,
     Control& consumer) {
     require_root_thread("scoped BGRA resource replacement");
-    if (consumer.window_ != this) {
+    if (consumer.surface_root_ != this) {
         throw std::invalid_argument(
             "scoped BGRA replacement requires an attached consumer");
     }
@@ -447,7 +447,7 @@ ImageLoadResult SurfaceRoot::update_bgra32_premultiplied(
     std::uint64_t row_bytes, std::span<const std::byte> pixels,
     Control& consumer) {
     require_root_thread("scoped live BGRA resource update");
-    if (consumer.window_ != this) {
+    if (consumer.surface_root_ != this) {
         throw std::invalid_argument(
             "scoped live BGRA update requires an attached consumer");
     }
@@ -465,7 +465,7 @@ ImageLoadResult SurfaceRoot::patch_bgra32_premultiplied(
     std::uint64_t source_row_bytes, std::span<const std::byte> pixels,
     Control& consumer, Rect local_damage) {
     require_root_thread("scoped BGRA resource patch");
-    if (consumer.window_ != this) {
+    if (consumer.surface_root_ != this) {
         throw std::invalid_argument(
             "scoped BGRA patch requires an attached consumer");
     }
@@ -481,7 +481,7 @@ ImageLoadResult SurfaceRoot::replace_png(ImageId image,
                                     std::span<const std::byte> encoded,
                                     Control& consumer) {
     require_root_thread("scoped PNG resource replacement");
-    if (consumer.window_ != this) {
+    if (consumer.surface_root_ != this) {
         throw std::invalid_argument(
             "scoped PNG replacement requires an attached consumer");
     }
@@ -509,7 +509,7 @@ AcceleratorToken SurfaceRoot::register_accelerator(
             "accelerator requires a live owner, physical key, and callback");
     }
     std::shared_ptr<gui_forms::detail::AcceleratorAttachment> attachment = std::make_shared<detail::AcceleratorAttachment>(
-        as_window(), owner, gesture, std::move(callback), options);
+        *this, owner, gesture, std::move(callback), options);
     accelerators_.push_back(attachment);
     owner.own_revocable(attachment);
     return AcceleratorToken(std::move(attachment));
@@ -554,7 +554,7 @@ PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
                               const Control::Ptr& popup,
                               PopupOptions options) {
     require_root_thread("popup attachment");
-    const bool owner_available = owner && (*owner).window_ == this &&
+    const bool owner_available = owner && (*owner).surface_root_ == this &&
         (*owner).is_alive() && (*owner).effectively_visible() &&
         (!options.require_enabled_owner || (*owner).effectively_enabled());
     if (!owner_available) {
@@ -563,7 +563,7 @@ PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
                 ? "GUI.Forms popup requires an enabled, visible attached owner"
                 : "GUI.Forms passive popup requires a visible attached owner");
     }
-    if (!popup || (*popup).window_ != nullptr || (*popup).parent() || !(*popup).is_alive()) {
+    if (!popup || (*popup).surface_root_ != nullptr || (*popup).parent() || !(*popup).is_alive()) {
         throw std::logic_error("GUI.Forms popup must be a live detached root");
     }
     // Popups are window overlays, not children in the consumer's layout
@@ -572,7 +572,7 @@ PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
     // overlay. Keep it as a separate retained root while still registering the
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
     attach_subtree(popup, {});
-    std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = std::make_shared<detail::PopupAttachment>(as_window(), owner, popup);
+    std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = std::make_shared<detail::PopupAttachment>(*this, owner, popup);
     popups_.push_back(attachment);
     (*owner).own_revocable(attachment);
     return PopupToken(std::move(attachment));
@@ -592,7 +592,7 @@ void SurfaceRoot::close_popup(detail::PopupAttachment& popup) noexcept {
     const Control::Ptr overlay = (*attachment).popup();
     (*attachment).revoke(false);
     popups_.erase(found);
-    if (overlay && !(*overlay).parent() && (*overlay).window_ == this &&
+    if (overlay && !(*overlay).parent() && (*overlay).surface_root_ == this &&
         overlay != root_ && !in_lifecycle_notification_) {
         try {
             detach_subtree(overlay);
@@ -602,7 +602,7 @@ void SurfaceRoot::close_popup(detail::PopupAttachment& popup) noexcept {
     const detail::BoundMemberFunction<
         void (detail::PopupAttachment::*)()> publish_closed(
             *attachment, &detail::PopupAttachment::publish_closed);
-    if (owner && (*owner).is_alive() && (*owner).window_ == this) {
+    if (owner && (*owner).is_alive() && (*owner).surface_root_ == this) {
         (*owner).publish_change(
             static_cast<const void*>(&(*attachment).closed()), publish_closed);
     } else {
@@ -644,7 +644,7 @@ Control::Ptr SurfaceRoot::hit_test(Point position) {
              popup != popup_roots.rend();
              ++popup) {
             if (const Control::Ptr& overlay = *popup;
-                overlay && (*overlay).is_alive() && (*overlay).window_ == this) {
+                overlay && (*overlay).is_alive() && (*overlay).surface_root_ == this) {
                 target = hit_test_recursive(overlay, position);
                 if (target) break;
             }
@@ -738,7 +738,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     }
     // Validation handlers may dispose, detach, hide, or disable either end.
     // Re-evaluate both endpoints before publishing any focus notification.
-    if (previous && (!(*previous).is_alive() || (*previous).attached_window() != this)) {
+    if (previous && (!(*previous).is_alive() || (*previous).surface_root() != this)) {
         previous.reset();
         focused_.reset();
     }
@@ -750,14 +750,14 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         focused_.reset();
         (*previous).publish_change(
             static_cast<const void*>(&(*previous).focus_observed_),
-            FocusChangePublication{&as_window(), previous, false});
+            FocusChangePublication{this, previous, false});
     }
     if (control && eligible(control) && (*control).focusable_) {
         focused_ = control;
         remember_region_focus(control);
         (*control).publish_change(
             static_cast<const void*>(&(*control).focus_observed_),
-            FocusChangePublication{&as_window(), control, true});
+            FocusChangePublication{this, control, true});
     }
     metrics_.record_focus_transition();
     FocusedControlChange moved{};
@@ -776,23 +776,23 @@ void SurfaceRoot::set_focus_cue_visible(bool visible) {
     if (focus_cue_visible_ == visible) return;
     const Control::Ptr focused = focused_.lock();
     if (focused && (*focused).is_alive() &&
-        (*focused).attached_window() == this) {
+        (*focused).surface_root() == this) {
         add_damage_all_planes(paint_damage_bounds_of(*focused));
     }
     focus_cue_visible_ = visible;
     if (focused && (*focused).is_alive() &&
-        (*focused).attached_window() == this) {
+        (*focused).surface_root() == this) {
         (*focused).on_focus_cue_changed(visible);
     }
     if (focused && (*focused).is_alive() &&
-        (*focused).attached_window() == this) {
+        (*focused).surface_root() == this) {
         (*focused).invalidate(Dirty::paint);
     }
 }
 
 void SurfaceRoot::set_accept_button(const Control::Ptr& control) {
     require_root_thread("accept button mutation");
-    if (control && ((*control).attached_window() != this || !(*control).is_alive() ||
+    if (control && ((*control).attached_surface_root() != this || !(*control).is_alive() ||
                     !(*control).supports_dialog_command())) {
         throw std::invalid_argument(
             "GUI.Forms accept button must be a live dialog command in its Window");
@@ -811,14 +811,14 @@ void SurfaceRoot::set_accept_button(const Control::Ptr& control) {
 
 void SurfaceRoot::set_cancel_button(const Control::Ptr& control) {
     require_root_thread("cancel button mutation");
-    if (control && ((*control).attached_window() != this || !(*control).is_alive() ||
+    if (control && ((*control).attached_surface_root() != this || !(*control).is_alive() ||
                     !(*control).supports_dialog_command())) {
         throw std::invalid_argument(
             "GUI.Forms cancel button must be a live dialog command in its Window");
     }
     if (control) {
         (*control).assign_cancel_dialog_result();
-        if ((*control).attached_window() != this || !(*control).is_alive() ||
+        if ((*control).attached_surface_root() != this || !(*control).is_alive() ||
             !(*control).supports_dialog_command()) {
             throw std::logic_error(
                 "GUI.Forms cancel button became unavailable during assignment");
@@ -897,7 +897,7 @@ void SurfaceRoot::collect_mnemonic_candidates(const Control::Ptr& control,
 
 bool SurfaceRoot::move_focus_after(const Control::Ptr& origin) {
     require_root_thread("mnemonic focus traversal");
-    if (!origin || (*origin).attached_window() != this) return false;
+    if (!origin || (*origin).surface_root() != this) return false;
     const Control::Ptr scope = active_focus_scope_root();
     const Control::Ptr traversal_root = scope ? scope : root_;
     if (!contains_control(traversal_root, origin)) return false;
@@ -1087,7 +1087,7 @@ void SurfaceRoot::validate_children_recursive(
         (*parent).children().begin(), (*parent).children().end());
     for (const Control::Ptr& child : children) {
         if (!child || !(*child).is_alive() ||
-            (*child).attached_window() != this ||
+            (*child).attached_surface_root() != this ||
             (*child).parent() != parent) continue;
         bool selected = true;
         if (has_validation_constraint(
@@ -1116,7 +1116,7 @@ void SurfaceRoot::validate_children_recursive(
             else ++validation_cancelled_;
             accepted = valid && accepted;
         }
-        if (!(*child).is_alive() || (*child).attached_window() != this ||
+        if (!(*child).is_alive() || (*child).attached_surface_root() != this ||
             (*child).parent() != parent) {
             continue;
         }
@@ -1151,7 +1151,7 @@ bool SurfaceRoot::validate_focus_transition(const Control::Ptr& previous,
     for (Control::Ptr current = previous;
          current && !destination_ancestors.contains(current.get());
          current = (*current).parent()) {
-        if (!(*current).is_alive() || (*current).attached_window() != this) break;
+        if (!(*current).is_alive() || (*current).surface_root() != this) break;
         ++validation_attempts_;
         const bool valid = (*current).perform_validation(destination.get(), false);
         if (valid) ++validation_succeeded_;
@@ -1315,7 +1315,7 @@ bool SurfaceRoot::end_focus_scope(FocusScopeId scope,
     change.close_reason = reason;
     change.restored_focus = restored;
     if (notification_owner && (*notification_owner).is_alive() &&
-        (*notification_owner).window_ == this) {
+        (*notification_owner).surface_root_ == this) {
         // Scope closure is an identity-bearing stream, not a scalar property.
         // Preserve every nested scope transition rather than coalescing all
         // Window scope notifications under one Event address.
@@ -1323,7 +1323,7 @@ bool SurfaceRoot::end_focus_scope(FocusScopeId scope,
         (*notification_owner).publish_change(
             static_cast<const void*>(notification_key.get()),
             FocusScopePublication{
-                &as_window(), notification_owner, notification_key, change});
+                this, notification_owner, notification_key, change});
     } else {
         focus_scope_changed_.emit(change);
     }
@@ -1402,7 +1402,7 @@ void SurfaceRoot::set_focus_regions(std::vector<Control::Ptr> regions) {
     require_root_thread("focus region mutation");
     for (std::size_t index = 0; index < regions.size(); ++index) {
         const Control::Ptr& region = regions[index];
-        if (!region || !(*region).is_alive() || (*region).attached_window() != this) {
+        if (!region || !(*region).is_alive() || (*region).surface_root() != this) {
             throw std::invalid_argument("GUI.Forms focus regions must be attached to this Window");
         }
         for (std::size_t other = 0; other < index; ++other) {
@@ -1435,7 +1435,7 @@ std::vector<Control::Ptr> SurfaceRoot::focus_regions() const {
 
 bool SurfaceRoot::add_focus_region(const Control::Ptr& region) {
     require_root_thread("focus region mutation");
-    if (!region || !(*region).is_alive() || (*region).attached_window() != this) return false;
+    if (!region || !(*region).is_alive() || (*region).surface_root() != this) return false;
     for (const FocusRegion& entry : focus_regions_) {
         const Control::Ptr existing = entry.region.lock();
         if (!existing) continue;
@@ -1460,12 +1460,12 @@ void SurfaceRoot::remember_region_focus(const Control::Ptr& control) {
 // region and can take focus, or else the region's first Tab stop.
 bool SurfaceRoot::focus_into_region(FocusRegion& entry) {
     const Control::Ptr region = entry.region.lock();
-    if (!region || !(*region).is_alive() || (*region).attached_window() != this || !eligible(region)) {
+    if (!region || !(*region).is_alive() || (*region).surface_root() != this || !eligible(region)) {
         return false;
     }
     const Control::Ptr remembered = entry.remembered.lock();
     const bool remembered_usable = remembered && (*remembered).is_alive() &&
-        (*remembered).attached_window() == this && region_holds(*region, *remembered);
+        (*remembered).surface_root() == this && region_holds(*region, *remembered);
     if (remembered_usable && request_focus(remembered)) return true;
     const ControlList candidates = focus_candidates(region);
     for (const Control::Ptr& candidate : candidates) {
@@ -1546,7 +1546,7 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     if (publication_owner) {
         (*publication_owner).publish_change(
             static_cast<const void*>(&pointer_capture_changed_),
-            PointerCapturePublication{&as_window(), publication_owner, change});
+            PointerCapturePublication{this, publication_owner, change});
     } else {
         pointer_capture_changed_.emit(change);
     }
@@ -1875,7 +1875,7 @@ void SurfaceRoot::drain_deferred_input() {
         DeferredInput input = std::move(deferred_inputs_.front());
         deferred_inputs_.pop_front();
         try {
-            std::visit(DeferredInputVisitor{&as_window()}, std::move(input));
+            std::visit(DeferredInputVisitor{this}, std::move(input));
             ++deferred_inputs_delivered_;
         } catch (...) {
             ++deferred_input_faults_;
@@ -2074,7 +2074,7 @@ void SurfaceRoot::cancel_drag() noexcept {
 void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
                                   const Control::WeakPtr& parent,
                                   ControlList& attached) {
-    (*control).window_ = &as_window();
+    (*control).window_ = presenting_window_;
     (*control).surface_root_ = this;
     {
         std::scoped_lock lock((*control).dispatcher_mutex_);
@@ -2098,7 +2098,7 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     // So do its motion values: they jump to their ends, without listeners.
     motion_clock_.release_owner(*control);
     erase_containing_block_entries((*control).runtime_id());
-    (*control).on_detaching_from_window(as_window());
+    (*control).on_detaching_from_window(*this);
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
     {
@@ -2186,7 +2186,7 @@ void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     close_popups_for_subtree(control);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
-    if ((*control).window_ != this) {
+    if ((*control).surface_root_ != this) {
         return;
     }
     const Rect old_bounds = absolute_bounds_of(*control);
@@ -2280,7 +2280,7 @@ void SurfaceRoot::revoke_interaction_for_subtree(const Control::Ptr& control,
         if (notify_focus && focused && (*focused).is_alive()) {
             (*focused).publish_change(
                 static_cast<const void*>(&(*focused).focus_observed_),
-                FocusChangePublication{&as_window(), focused, false});
+                FocusChangePublication{this, focused, false});
         }
     }
     if (contains_control(control, captured_.lock())) {
@@ -2368,14 +2368,14 @@ void SurfaceRoot::forget_hover() noexcept {
 
 void SurfaceRoot::publish_control_availability(Control& control) {
     require_root_thread("control availability publication");
-    if (!control.is_alive() || control.window_ != this) return;
+    if (!control.is_alive() || control.surface_root_ != this) return;
     const ControlAvailabilityChange change{
         control.runtime_id(), std::string(control.stable_id().value()),
         control.effectively_visible(), control.effectively_enabled()};
     const std::shared_ptr<gui_forms::Control> retained = control.shared_from_this();
     control.publish_change(
         static_cast<const void*>(&control_availability_changed_),
-        ControlAvailabilityPublication{&as_window(), retained, change});
+        ControlAvailabilityPublication{this, retained, change});
 }
 
 void SurfaceRoot::collect_subtree_registration(
@@ -2467,7 +2467,7 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
 
 void SurfaceRoot::mark_paint_dirty(Control& control, Rect local_damage) {
     require_root_thread("localized paint mutation");
-    if (control.window_ != this) {
+    if (control.surface_root_ != this) {
         throw std::invalid_argument(
             "localized paint mutation requires an attached control");
     }
@@ -2532,14 +2532,14 @@ SemanticSnapshot SurfaceRoot::semantic_snapshot() {
             if (!scoped || contains_control(scoped, (*popup).owner())) { roots.push_back((*popup).popup()); }
         }
         for (const Control::Ptr& root : roots) {
-            if (!root || !(*root).is_alive() || (*root).window_ != this ||
+            if (!root || !(*root).is_alive() || (*root).surface_root_ != this ||
                 (root != scoped && (*root).parent())) {
                 continue;
             }
             // Focus held by unexposed controls at the top of the tree has no
             // node above it to belong to.
             HiddenFocus unowned;
-            append_semantic_nodes(root, root == scoped ? (*root).parent().get() : nullptr, &as_window(), focused, snapshot.roots,
+            append_semantic_nodes(root, root == scoped ? (*root).parent().get() : nullptr, this, focused, snapshot.roots,
                                   snapshot.node_count, unowned);
         }
         if (generation == semantic_generation_) {
@@ -2600,7 +2600,7 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
         // control's subtree, so focus is still refused where nothing there
         // can take it.
         const bool handled = (*control).on_semantic_action(action, value);
-        if (!handled || !(*control).is_alive() || (*control).window_ != this) return false;
+        if (!handled || !(*control).is_alive() || (*control).surface_root_ != this) return false;
         const Control::Ptr now_focused = focused_.lock();
         const bool inside = contains_control(control, now_focused);
         return inside;
@@ -2665,7 +2665,7 @@ Control::Ptr SurfaceRoot::find_runtime_control(RuntimeId control) const {
     while (!pending.empty()) {
         const Control::Ptr current = pending.back();
         pending.pop_back();
-        if (!current || !(*current).is_alive() || (*current).window_ != this) continue;
+        if (!current || !(*current).is_alive() || (*current).surface_root_ != this) continue;
         if ((*current).runtime_id() == control) return current;
         const std::span<const Control::Ptr> children = (*current).children();
         for (std::size_t index = 0; index < children.size(); ++index) {
@@ -2960,7 +2960,7 @@ std::vector<Control::Ptr> SurfaceRoot::route_to(const Control::Ptr& target) cons
 
 Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
                                         Point window_position) const {
-    if (!eligible(control) || (*control).window_ != this) {
+    if (!eligible(control) || (*control).surface_root_ != this) {
         return {};
     }
     Control* const retained_parent = (*control).parent_.lock().get();
@@ -2969,7 +2969,7 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
         return {};
     }
     const Rect local_child_viewport = (*control).child_viewport_rectangle();
-    if (!(*control).is_alive() || (*control).window_ != this ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this ||
         (*control).parent_.lock().get() != retained_parent) {
         return {};
     }
@@ -2983,11 +2983,11 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
              child != children.rend(); ++child) {
             if (!*child || !(*(*child)).is_alive() ||
                 (*(*child)).parent_.lock().get() != control.get() ||
-                (*(*child)).window_ != this) {
+                (*(*child)).surface_root_ != this) {
                 continue;
             }
             if (Control::Ptr target = hit_test_recursive(*child, window_position)) {
-                if (!(*target).is_alive() || (*target).window_ != this) continue;
+                if (!(*target).is_alive() || (*target).surface_root_ != this) continue;
                 return target;
             }
         }
@@ -2995,7 +2995,7 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
     const Point local{window_position.x - bounds.x, window_position.y - bounds.y};
     const bool hit = !(*control).hit_test_transparent_ &&
                      (*control).hit_test_local(local);
-    return hit && eligible(control) && (*control).window_ == this &&
+    return hit && eligible(control) && (*control).surface_root_ == this &&
             (*control).parent_.lock().get() == retained_parent
         ? control : Control::Ptr{};
 }
@@ -3024,12 +3024,12 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
     for (const std::shared_ptr<gui_forms::Control>& child : retained) {
         if (!child || !(*child).is_alive() ||
             (*child).parent_.lock().get() != control.get() ||
-            (*child).window_ != this) {
+            (*child).surface_root_ != this) {
             continue;
         }
         measure_dirty_recursive(child, child_available, visited_nodes, callbacks);
     }
-    if (!(*control).is_alive() || (*control).window_ != this) return;
+    if (!(*control).is_alive() || (*control).surface_root_ != this) return;
     if (has_dirty((*control).dirty_, Dirty::measure)) {
         (*control).clear_dirty(Dirty::measure);
         // A parent that asks its children its own questions while arranging
@@ -3054,7 +3054,7 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
             throw;
         }
         ++callbacks;
-        if (!(*control).is_alive() || (*control).window_ != this) return;
+        if (!(*control).is_alive() || (*control).surface_root_ != this) return;
     }
 }
 
@@ -3086,7 +3086,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             throw;
         }
         ++callbacks;
-        if (!(*control).is_alive() || (*control).window_ != this) return;
+        if (!(*control).is_alive() || (*control).surface_root_ != this) return;
         // The containers below whose absolutely positioned children were
         // placed against this control's box arrange in this same descent.
         if (!containing_block_watches_.empty() && (*control).arranged_bounds_ != old_arranged) {
@@ -3109,7 +3109,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
     for (const std::shared_ptr<gui_forms::Control>& child : retained) {
         if (!child || !(*child).is_alive() ||
             (*child).parent_.lock().get() != control.get() ||
-            (*child).window_ != this) {
+            (*child).surface_root_ != this) {
             continue;
         }
         arrange_dirty_recursive(
@@ -3276,7 +3276,7 @@ void SurfaceRoot::mark_containing_block_dependents(Control& watched) {
     // subtree marks from it up to the root, let the descent reach it.
     for (const ContainingBlockDependent& entry : watch.dependents) {
         const Control::Ptr dependent = entry.control.lock();
-        if (!dependent || !(*dependent).is_alive() || (*dependent).window_ != this) continue;
+        if (!dependent || !(*dependent).is_alive() || (*dependent).surface_root_ != this) continue;
         (*dependent).dirty_ |= effects;
         (*dependent).subtree_dirty_ |= effects;
         note_suspended_layout_request(*dependent);
@@ -3362,7 +3362,7 @@ void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcep
 
 bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Rect damage, const PaintPlane plane,
                               std::vector<Control::Ptr>& path) const {
-    if (!(*control).is_alive() || (*control).window_ != this || !(*control).visible_ ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible_ ||
         (*control).layout_collapsed_) {
         return false;
     }
@@ -3373,7 +3373,7 @@ bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Rect damag
         for (std::size_t index = children.size(); index > 0U; --index) {
             const Control::Ptr& child = children[index - 1U];
             if (!child || !(*child).is_alive() || (*child).parent_.lock().get() != control.get() ||
-                (*child).window_ != this) {
+                (*child).surface_root_ != this) {
                 continue;
             }
             const std::size_t depth = path.size();
@@ -3436,13 +3436,13 @@ void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
         if (child != children.end()) ++child;
         for (; child != children.end(); ++child) {
             if (!*child || !(**child).is_alive() || (**child).parent_.lock().get() != ancestor.get() ||
-                (**child).window_ != this) {
+                (**child).surface_root_ != this) {
                 continue;
             }
             paint_recursive(*child, painter, level_damage[level], plane, visited_nodes, painted_controls,
                             consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
         }
-        if (!(*ancestor).is_alive() || (*ancestor).window_ != this ||
+        if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this ||
             (*ancestor).parent_.lock().get() != retained_parents[level - 1U]) {
             continue;
         }
@@ -3476,7 +3476,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              std::uint64_t& chunks_reused,
                              std::uint64_t& commands_replayed) {
     ++visited_nodes;
-    if (!(*control).is_alive() || (*control).window_ != this ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this ||
         !(*control).visible_ || (*control).layout_collapsed_) {
         clear_paint_dirty_subtree(control);
         return;
@@ -3484,14 +3484,14 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
     Control* const retained_parent = (*control).parent_.lock().get();
     const Rect bounds = absolute_bounds_of(*control);
     const Insets current_outsets = (*control).effective_visual_outsets();
-    if (!(*control).is_alive() || (*control).window_ != this ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this ||
         (*control).parent_.lock().get() != retained_parent) {
         return;
     }
     const Rect visual_bounds = visual_bounds_of(*control, current_outsets);
     const Rect paint_intersection = Rect::intersection(visual_bounds, window_damage);
     const Rect local_child_viewport = (*control).child_viewport_rectangle();
-    if (!(*control).is_alive() || (*control).window_ != this ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this ||
         (*control).parent_.lock().get() != retained_parent) {
         return;
     }
@@ -3527,12 +3527,12 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                 recorder, logical_bounds,
                 OwnerDecorationLayer::before_content);
             (*control).on_paint(recorder, logical_bounds);
-            if (!(*control).is_alive() || (*control).window_ != this ||
+            if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
                 return;
             }
             (*control).on_paint_overlay(recorder, logical_bounds);
-            if (!(*control).is_alive() || (*control).window_ != this ||
+            if (!(*control).is_alive() || (*control).surface_root_ != this ||
                 (*control).parent_.lock().get() != retained_parent) {
                 return;
             }
@@ -3567,7 +3567,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         for (const std::shared_ptr<gui_forms::Control>& child : children) {
             if (!child || !(*child).is_alive() ||
                 (*child).parent_.lock().get() != control.get() ||
-                (*child).window_ != this) {
+                (*child).surface_root_ != this) {
                 continue;
             }
             paint_recursive(child, painter, child_intersection, plane, visited_nodes,
@@ -3576,7 +3576,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         }
     }
 
-    if (!(*control).is_alive() || (*control).window_ != this ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this ||
         (*control).parent_.lock().get() != retained_parent) {
         return;
     }
@@ -3610,7 +3610,7 @@ void SurfaceRoot::compact_frame_requests() noexcept {
             continue;
         }
         const std::shared_ptr<gui_forms::Control> target = (*request).target.lock();
-        if (!target || !(*target).is_alive() || (*target).window_ != this) {
+        if (!target || !(*target).is_alive() || (*target).surface_root_ != this) {
             (*request).disconnect();
         }
     }
@@ -3652,7 +3652,7 @@ Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
 }
 
 bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {
-    return control && (*control).window_ == this && (*control).eligible_for_input();
+    return control && (*control).surface_root_ == this && (*control).eligible_for_input();
 }
 
 

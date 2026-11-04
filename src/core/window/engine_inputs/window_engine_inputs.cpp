@@ -105,7 +105,7 @@ void SurfaceRoot::note_engine_pointer(const PointerEvent& event) {
 
 bool SurfaceRoot::damage_engine_part(const EnginePartRecord& record, EngineDamage& damage) {
     const Control::Ptr recorded_by = find(record.painted_by);
-    if (!recorded_by || (*recorded_by).window_ != this || !(*recorded_by).is_alive()) return false;
+    if (!recorded_by || (*recorded_by).surface_root_ != this || !(*recorded_by).is_alive()) return false;
     const Rect extent = Rect::intersection(record.extent, (*recorded_by).client_rectangle());
     if (extent.empty()) return false;
     (*recorded_by).invalidate(extent);
@@ -135,7 +135,7 @@ void SurfaceRoot::damage_backplane_readers(const Rect* damage) {
         if (record == nullptr || !(*record).reads_backplane) continue;
         if (damage != nullptr) {
             const Control::Ptr recorded_by = find((*record).painted_by);
-            if (!recorded_by || (*recorded_by).window_ != this) continue;
+            if (!recorded_by || (*recorded_by).surface_root_ != this) continue;
             const Rect bounds = absolute_bounds_of(*recorded_by);
             const Rect extent{bounds.x + (*record).extent.x, bounds.y + (*record).extent.y, (*record).extent.width,
                               (*record).extent.height};

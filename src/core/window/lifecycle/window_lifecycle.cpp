@@ -29,6 +29,7 @@ Window::Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_li
 Window::Window(Control::Ptr root, Size client_size,
                std::shared_ptr<ApplicationResources> resources)
     : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
+    presenting_window_ = this;
     tool_tip_presenter_ = std::make_unique<detail::ToolTipPresenter>(*this);
     initialize_cursor_identity();
     (*lifetime_).window = this;
