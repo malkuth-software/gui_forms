@@ -788,6 +788,9 @@ std::unique_ptr<ThemeDefinition> colour_role_theme() {
     std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
     ThemeDefinition& definition = *held;
     definition.id = "effect-colours";
+    // The theme has a dark variant (T4 theme variants); without one, a dark
+    // window shows GUI.Forms' own theme and these rules never apply.
+    definition.colour_schemes = ColourSchemeSet{.light = true, .dark = true};
     ColourOrigin focus{};
     focus.source = ColourSource::role;
     focus.role = ColourRole::focus;
