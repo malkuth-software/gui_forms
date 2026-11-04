@@ -48,15 +48,10 @@ if(GUI_FORMS_AUDIO_VORBIS_BACKEND STREQUAL "stb")
     unset(_gui_vorbis_patched)
 elseif(GUI_FORMS_AUDIO_VORBIS_BACKEND STREQUAL "stx")
     # Keep standalone codec test/oracle/fuzz settings out of the audio build.
-    function(gui_forms_add_stx_vorbis)
-        set(STX_VORBIS_TESTS OFF)
-        set(STX_VORBIS_REFERENCE OFF)
-        set(STX_VORBIS_FUZZ OFF)
-        set(STX_VORBIS_SANITIZERS OFF)
-        add_subdirectory("${_gui_audio_root}/stx_vorbis" "${CMAKE_CURRENT_BINARY_DIR}/stx-vorbis")
-    endfunction()
-    gui_forms_add_stx_vorbis()
-    set_target_properties(stx_vorbis_decode PROPERTIES EXCLUDE_FROM_ALL TRUE)
+    # stx_vorbis::stx_vorbis_stb comes from the stx prefix (cmake/Stx.cmake).
+    if(NOT TARGET stx_vorbis::stx_vorbis_stb)
+        message(FATAL_ERROR "the stx prefix has no stx_vorbis (GUI_FORMS_AUDIO_VORBIS_BACKEND=stx)")
+    endif()
 else()
     message(FATAL_ERROR "GUI_FORMS_AUDIO_VORBIS_BACKEND must be stb or stx")
 endif()
@@ -131,9 +126,9 @@ if(GUI_FORMS_AUDIO_VORBIS_BACKEND STREQUAL "stb")
     # Preserve the full upstream source and its Alternative A MIT notice verbatim.
     install(FILES "${gui_forms_miniaudio_SOURCE_DIR}/extras/stb_vorbis.c" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 else()
-    install(FILES "${_gui_audio_root}/stx_vorbis/LICENSE"
+    install(FILES "${GUI_FORMS_STX_PREFIX_DIR}/share/licenses/stx_vorbis/LICENSE"
         DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_vorbis-LICENSE.txt)
-    # stx_vorbis compiles BFFT's BODFT sources (stx_vorbis/third_party/bfft).
-    install(FILES "${_gui_audio_root}/stx_vorbis/third_party/bfft/LICENSE"
+    # stx_vorbis compiles BFFT's BODFT sources (its third_party/bfft).
+    install(FILES "${GUI_FORMS_STX_PREFIX_DIR}/share/licenses/stx_vorbis/BFFT-LICENSE.txt"
         DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME bfft-LICENSE.txt)
 endif()

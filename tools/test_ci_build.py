@@ -36,7 +36,7 @@ class GalleryOptionTests(unittest.TestCase):
 
 CHECKOUT: Path = Path(__file__).resolve().parents[1]
 FIRST_PARTY_DIRECTORIES: tuple[str, ...] = ('include', 'src', 'demo', 'tests', 'examples',
-                                            'file_manager_demoboard', 'stx_vorbis')
+                                            'file_manager_demoboard')
 SOURCE_SUFFIXES: tuple[str, ...] = ('.c', '.cc', '.cpp', '.h', '.hpp', '.inc', '.m', '.mm')
 
 

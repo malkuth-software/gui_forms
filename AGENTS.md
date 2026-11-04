@@ -74,8 +74,8 @@ Before committing, run the spelling check over everything you touched; the
 finding:
 
 ```text
-python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard stx_vorbis stx_zlib stx_png stx_conv fuzz
-python3 -B tools/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard stx_vorbis
+python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
+python3 -B tools/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard
 python3 -B tools/check_stx_skia_style.py
 ```
 
@@ -320,7 +320,7 @@ files in this chat. On `STOP`, the owner will use a Daybreak sibling. Do not
 start further reviews without the owner's request. Preserve each review
 directory before changing the harness. Its source snapshots, oracle digests
 and logs identify exactly what was reviewed. The
-independent installed-consumer fixture is `stx_zlib/tests/installed`; test a
+independent installed-consumer fixture is `stx_zlib/tests/installed` in malkuth-software/stx; test a
 relocated prefix with the same LLVM toolchain and sanitizer mode as its archive.
 
 For the exact match-index algorithm comparison (no memory review is run):
