@@ -70,6 +70,16 @@ void run(void* state, const void* view, const EffectFrame& frame, EffectCanvas& 
     effect.run(*static_cast<const View*>(view), frame, canvas);
 }
 
+// Releases an EffectInstance's state storage, allocated at `alignment`.
+// Declared at namespace scope, complete before EffectInstance uses it: a
+// nested class with a default member initializer is not default
+// constructible until its enclosing class is complete, which libstdc++'s
+// unique_ptr default constructor requires.
+struct StorageRelease final {
+    std::size_t alignment{};
+    void operator()(std::byte* storage) const noexcept;
+};
+
 } // namespace effect_detail
 
 // The generated table entry of one effect type. Its state must fit the
@@ -212,15 +222,10 @@ public:
     [[nodiscard]] const EffectCanvasMeter& last_meter() const noexcept { return last_meter_; }
 
 private:
-    struct StorageRelease final {
-        std::size_t alignment{};
-        void operator()(std::byte* storage) const noexcept;
-    };
-
     void paint_view(Painter& painter, Rect part, double scale, bool still, const void* view);
 
     const EffectEntry* entry_{};
-    std::unique_ptr<std::byte, StorageRelease> storage_{};
+    std::unique_ptr<std::byte, effect_detail::StorageRelease> storage_{};
     void* state_{};
     std::uint64_t seed_{};
     // Time: ticks are counted from `origin_`; `counted_` of them have been

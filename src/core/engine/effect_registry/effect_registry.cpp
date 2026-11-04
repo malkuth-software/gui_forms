@@ -184,7 +184,7 @@ std::size_t EffectRegistry::unverified_count() const noexcept {
     return unverified;
 }
 
-void EffectInstance::StorageRelease::operator()(std::byte* storage) const noexcept {
+void effect_detail::StorageRelease::operator()(std::byte* storage) const noexcept {
     ::operator delete(storage, std::align_val_t(alignment));
 }
 
@@ -198,7 +198,8 @@ void EffectInstance::attach(const EffectEntry& entry, std::uint64_t seed, FrameT
     // storage ends the state's lifetime.
     std::byte* const storage =
         static_cast<std::byte*>(::operator new(entry.size, std::align_val_t(entry.alignment)));
-    storage_ = std::unique_ptr<std::byte, StorageRelease>(storage, StorageRelease{entry.alignment});
+    storage_ = std::unique_ptr<std::byte, effect_detail::StorageRelease>(
+        storage, effect_detail::StorageRelease{entry.alignment});
     state_ = (*entry.construct)(storage);
     entry_ = &entry;
     seed_ = seed;
