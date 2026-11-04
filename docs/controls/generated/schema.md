@@ -490,7 +490,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selection_mode` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -533,7 +533,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`, `checked`, `indeterminate`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selection_mode` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -569,7 +569,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `hot`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selected_index` (signed_integer), `text` (text).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `drop_down_filter` (enumeration), `drop_down_style` (enumeration), `items` (collection), `placeholder_text` (text), `selected_index` (signed_integer), `text` (text).
 
 | Interaction | Payload |
 |---|---|

@@ -19,6 +19,26 @@
 namespace gui_forms {
 using namespace input_control_detail;
 
+namespace {
+
+// The ComboBoxStyle and ComboBoxFilter enumerations, numbered as declared.
+// Static storage; any thread may read them.
+std::shared_ptr<const PropertyEnumDescriptor> combo_box_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "combo_box_style", {{"drop_down_list", 0}, {"drop_down", 1}}, false});
+    return value;
+}
+
+std::shared_ptr<const PropertyEnumDescriptor> combo_box_filter_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "combo_box_filter", {{"none", 0}, {"prefix", 1}, {"substring", 2}}, false});
+    return value;
+}
+
+} // namespace
+
 ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
     auto_complete_custom_source_ = std::make_shared<AutoCompleteStringCollection>();
     list_items_source_ = std::make_shared<AutoCompleteStringCollection>();
@@ -91,6 +111,54 @@ ComboBox::ComboBox(StableId stable_id) : Panel(std::move(stable_id)) {
         bool (ComboBox::*)() const noexcept>(
             *this, &ComboBox::should_serialize_text_property);
     define_bindable_property(std::move(text_registration));
+
+    // What a form document sets besides the items (stage FD6.3). None
+    // raises a change event.
+    PropertyDescriptor placeholder;
+    placeholder.name = "placeholder_text";
+    placeholder.kind = BindingValueKind::text;
+    placeholder.category = "Appearance";
+    placeholder.description = "The hint the field shows while no item is selected and no text is typed.";
+    placeholder.default_value = BindingValue{std::string{}};
+    placeholder.invalidation_effects = Dirty::paint | Dirty::semantics;
+    placeholder.bindable = false;
+    define_bindable_property({
+        std::move(placeholder),
+        detail::BindingMemberGetter<ComboBox, std::string>(*this, &ComboBox::placeholder_),
+        detail::DirectPropertySetter<ComboBox, std::string>(*this, &ComboBox::set_placeholder_text),
+        {}, {}, {}});
+
+    PropertyDescriptor style_descriptor;
+    style_descriptor.name = "drop_down_style";
+    style_descriptor.kind = BindingValueKind::enumeration;
+    style_descriptor.category = "Appearance";
+    style_descriptor.description = "Whether the field takes text (drop_down) or shows the selected item (drop_down_list).";
+    style_descriptor.default_value = BindingValue{PropertyEnumValue{"combo_box_style", "drop_down_list", 0}};
+    style_descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    style_descriptor.bindable = false;
+    style_descriptor.enumeration = combo_box_style_enum();
+    define_bindable_property({
+        std::move(style_descriptor),
+        detail::EnumerationPropertyGetter<ComboBox, ComboBoxStyle>(
+            *this, &ComboBox::drop_down_style, combo_box_style_enum()),
+        detail::EnumerationPropertySetter<ComboBox, ComboBoxStyle>(*this, &ComboBox::set_drop_down_style),
+        {}, {}, {}});
+
+    PropertyDescriptor filter_descriptor;
+    filter_descriptor.name = "drop_down_filter";
+    filter_descriptor.kind = BindingValueKind::enumeration;
+    filter_descriptor.category = "Behavior";
+    filter_descriptor.description = "Which items a drop_down field's list shows as the user types.";
+    filter_descriptor.default_value = BindingValue{PropertyEnumValue{"combo_box_filter", "none", 0}};
+    filter_descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    filter_descriptor.bindable = false;
+    filter_descriptor.enumeration = combo_box_filter_enum();
+    define_bindable_property({
+        std::move(filter_descriptor),
+        detail::EnumerationPropertyGetter<ComboBox, ComboBoxFilter>(
+            *this, &ComboBox::drop_down_filter, combo_box_filter_enum()),
+        detail::EnumerationPropertySetter<ComboBox, ComboBoxFilter>(*this, &ComboBox::set_drop_down_filter),
+        {}, {}, {}});
 }
 
 BindingValue ComboBox::items_property_value() const {

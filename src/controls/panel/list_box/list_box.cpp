@@ -4,6 +4,7 @@
 #include "../input_control_utilities.hpp"
 #include "../text_items_property.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -26,6 +27,15 @@ struct SelectionOutsideItemCount final {
     }
 };
 
+// The ListSelectionMode enumeration, numbered as declared. Static storage;
+// any thread may read it.
+std::shared_ptr<const PropertyEnumDescriptor> list_selection_mode_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_selection_mode", {{"one", 0}, {"multiple_extended", 1}}, false});
+    return value;
+}
+
 } // namespace
 using namespace input_control_detail;
 
@@ -43,6 +53,24 @@ ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     items_registration.should_serialize = detail::BoundMemberFunction<bool (ListBox::*)() const noexcept>(
         *this, &ListBox::should_serialize_items_property);
     define_bindable_property(std::move(items_registration));
+
+    // What a form document sets besides the items (stage FD6.3); it raises
+    // no change event.
+    PropertyDescriptor mode;
+    mode.name = "selection_mode";
+    mode.kind = BindingValueKind::enumeration;
+    mode.category = "Behavior";
+    mode.description = "One selected item, or an extended selection with Shift and Ctrl.";
+    mode.default_value = BindingValue{PropertyEnumValue{"list_selection_mode", "one", 0}};
+    mode.invalidation_effects = Dirty::paint | Dirty::semantics;
+    mode.bindable = false;
+    mode.enumeration = list_selection_mode_enum();
+    define_bindable_property({
+        std::move(mode),
+        detail::EnumerationPropertyGetter<ListBox, ListSelectionMode>(
+            *this, &ListBox::selection_mode, list_selection_mode_enum()),
+        detail::EnumerationPropertySetter<ListBox, ListSelectionMode>(*this, &ListBox::set_selection_mode),
+        {}, {}, {}});
 }
 
 BindingValue ListBox::items_property_value() const {
