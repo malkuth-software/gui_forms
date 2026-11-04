@@ -360,6 +360,19 @@ enum class PartBlend : std::uint8_t { normal, multiply, screen };
 // beyond them is shown. The forced high-contrast pass draws no blend.
 inline constexpr std::string_view blend_property = "blend";
 
+// The effect a part draws (effect programs, design note section 7): a
+// declaration of this property whose value is a registered effect's name
+// (snake_case, as EffectDeclaration::name spells it) selects that effect
+// for the part, and the name `none` (effect_none_name) selects none. Like
+// blend it is no atom and no primitive parameter, and a rule that declares
+// it needs no primitive; the last matching rule that declares it wins. The
+// rules check only the name's form: the control hosting the part checks
+// the effect against its registry when it attaches it (the effect's parent
+// type, its budget and its verification record), and a refused effect
+// leaves the part to its primitive alone (EffectSelectionOutcome).
+inline constexpr std::string_view effect_property = "effect";
+inline constexpr std::string_view effect_none_name = "none";
+
 // The text roles (T3 P8c, owner decision D5 of 2026-10-28): the theme's
 // typography tokens (ThemeTypographyTokens) a part's text takes, `ui`
 // being the controls' own (`control`). A part's em is its role's size
@@ -1082,6 +1095,10 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // A font declaration whose value is not a text role's name or
     // `inherit` (P8c).
     font_invalid,
+    // An effect declaration (effect_property) whose value is not a name
+    // of lowercase ASCII letters, digits and '_', the first a letter, of at
+    // most maximum_effect_name_length characters.
+    effect_invalid,
     // A published value's name is invalid, repeats an earlier one or is
     // past maximum_published_values. The diagnostic, of the sheet rather
     // than a rule, names it in `property`; its position stays, and reads as
@@ -1305,6 +1322,11 @@ public:
         // The part's font (font_property, P8c): the last matching rule's,
         // else the ui role.
         FontDeclaration font{};
+        // The part's effect (effect_property): the last matching rule's
+        // name, which belongs to the compiled rules, and whether any rule
+        // declared one; `none` is declared with an empty name.
+        std::string_view effect{};
+        bool effect_declared{};
         // The winning declaration of each material field (EC1), by the
         // field's position, or null where no matching rule sets it; they
         // belong to the compiled rules. `materials_authored` is whether any
@@ -1404,6 +1426,8 @@ private:
         std::optional<AmbientEffect> ambient{};
         std::optional<PartBlend> blend{};
         std::optional<FontDeclaration> font{};
+        // The rule's effect name (effect_property); empty for `none`.
+        std::optional<std::string> effect{};
         MediaCondition media{};
         // Checked material fields, at most one per field.
         std::vector<MaterialDeclaration> materials{};
@@ -1458,6 +1482,9 @@ private:
     // diagnostic.
     static void add_blend(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                           const RuleDeclaration& declaration, CompiledRule& compiled);
+    // A rule's effect declaration, checked likewise.
+    static void add_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                           const RuleDeclaration& declaration, CompiledRule& compiled);
     // A rule's font declaration (P8c), checked likewise.
     static void add_font(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                          const RuleDeclaration& declaration, CompiledRule& compiled);

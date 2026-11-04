@@ -108,6 +108,8 @@ Types
      - The engine's deterministic generator (owner amendment, 2026-11-02): a counter-based hash of (seed, stream, counter), SplitMix64's finalizer over their mix, with no host randomness and no hidden state beyond the counter in this value.
    * - :cpp:class:`EffectRegistry <gui_forms::EffectRegistry>`
      -  
+   * - :cpp:class:`EffectSelection <gui_forms::EffectSelection>`
+     - What a control's effect selection came to, kept by the control for diagnostics: the name asked for (a copy, empty for none), who asked and the verdict.
    * - :cpp:class:`EffectSetup <gui_forms::EffectSetup>`
      - What ``setup`` is given: once when the effect is instantiated on a part, and again on a geometry change if the effect declares setup_on_geometry.
    * - :cpp:class:`EngineExpression <gui_forms::EngineExpression>`
@@ -882,6 +884,12 @@ Types
 
       The part's font (font_property, P8c): the last matching rule's, else the ui role.
 
+   .. cpp:member:: std::string_view effect
+
+      The part's effect (effect_property): the last matching rule's name, which belongs to the compiled rules, and whether any rule declared one; ``none`` is declared with an empty name.
+
+   .. cpp:member:: bool effect_declared
+
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> materials
 
       The winning declaration of each material field (EC1), by the field's position, or null where no matching rule sets it; they belong to the compiled rules. ``materials_authored`` is whether any is set.
@@ -1550,6 +1558,10 @@ Types
 
    .. cpp:member:: std::uint64_t unverified
 
+   .. cpp:member:: std::uint64_t refused
+
+      Selections the load checks refused (note_effect_refused).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: EffectRandom final
@@ -1617,6 +1629,24 @@ Types
       The entry registered under ``name``, or null.
 
    .. cpp:function:: const EffectEntry& at(std::size_t index) const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectSelection final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   What a control's effect selection came to, kept by the control for diagnostics: the name asked for (a copy, empty for none), who asked and the verdict.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: EffectSelectionSource source
+
+      Default: ``{EffectSelectionSource::none}``.
+
+   .. cpp:member:: EffectSelectionOutcome outcome
+
+      Default: ``{EffectSelectionOutcome::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -5304,6 +5334,38 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: EffectSelectionOutcome
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   .. cpp:enumerator:: selected
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: unknown_effect
+
+   .. cpp:enumerator:: parent_mismatch
+
+   .. cpp:enumerator:: over_frame_budget
+
+   .. cpp:enumerator:: unverified
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EffectSelectionSource
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: application
+
+   .. cpp:enumerator:: style
+
+   .. cpp:enumerator:: theme
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: EffectTimeModel
 
    ``#include <gui_forms/engine/effect/effect.hpp>``
@@ -6200,6 +6262,8 @@ Enumerations
 
    .. cpp:enumerator:: font_invalid
 
+   .. cpp:enumerator:: effect_invalid
+
    .. cpp:enumerator:: published_value_invalid
 
    .. cpp:enumerator:: material_field_invalid
@@ -6443,6 +6507,8 @@ Functions, constants and aliases
 
    The generated table entry of one effect type. Its state must fit the budget it declares, and that budget the toolkit's maximum.
 
+.. cpp:function:: bool effect_name_valid(std::string_view name) noexcept
+
 .. cpp:function:: const EffectRegistry& built_in_effect_registry()
 
    The registry of the toolkit's own effects, filled on first use (defined with the controls that host them).
@@ -6453,6 +6519,22 @@ Functions, constants and aliases
 
 .. cpp:function:: EffectLoadDiagnostics effect_load_diagnostics() noexcept
 
+.. cpp:function:: std::string_view effect_selection_source_name(EffectSelectionSource source) noexcept
+
+.. cpp:function:: std::string_view effect_selection_outcome_name(EffectSelectionOutcome outcome) noexcept
+
+.. cpp:function:: EffectSelectionOutcome check_effect_selection(const EffectRegistry& registry, std::string_view name, EffectSelectionSource source, std::string_view parent, Size part, double scale, const EffectEntry*& entry) noexcept
+
+   The load checks for the effect ``name``, asked for by ``source``, on a part of a control whose effect parent is ``parent`` (EffectView<P>::parent_name), ``part`` logical units in size at display ``scale``. Sets ``entry`` to the registered entry when the outcome is ``selected``, else to null. An empty name is ``none``. Never fails.
+
+.. cpp:function:: void note_effect_refused(const EffectSelection& selection) noexcept
+
+   Counts one refused selection (an outcome other than ``selected`` and ``none``) in effect_load_diagnostics; the first in the process also writes one line to stderr naming the effect, who asked and why. A control calls it once per change of its selection, not once per paint. Any thread.
+
+.. cpp:var:: constexpr std::size_t maximum_effect_name_length
+
+   Whether ``name`` may name an effect: snake_case (lowercase ASCII letters, digits and single '_'s, the first a letter, the last not '_'), at most maximum_effect_name_length characters, and not effect_none_name's ``none``, which themes write for no effect. Value: ``64U``.
+
 .. cpp:var:: constexpr std::size_t maximum_registered_effects
 
    The most effect types one registry holds. Value: ``64U``.
@@ -6460,6 +6542,10 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_effect_outset
 
    The farthest an effect may draw outside its part, in logical units. Value: ``64.0``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_effect_operations_per_frame
+
+   The most operations one effect frame may cost on its part: the bound an animated primitive's part has (maximum_animated_operations_per_frame, GIVEN F1-1). Value: ``4'000'000U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6896,6 +6982,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::string_view blend_property
 
    The engine's blend property (E9.6): a declaration of this name, whose value is the name ``normal``, ``multiply`` or ``screen``, draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it multiplies or screens what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
+
+.. cpp:var:: constexpr std::string_view effect_property
+
+   The effect a part draws (effect programs, design note section 7): a declaration of this property whose value is a registered effect's name (snake_case, as EffectDeclaration::name spells it) selects that effect for the part, and the name ``none`` (effect_none_name) selects none. Like blend it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The rules check only the name's form: the control hosting the part checks the effect against its registry when it attaches it (the effect's parent type, its budget and its verification record), and a refused effect leaves the part to its primitive alone (EffectSelectionOutcome). Value: ``"effect"``.
+
+.. cpp:var:: constexpr std::string_view effect_none_name
+
+   Value: ``"none"``.
 
 .. cpp:var:: constexpr std::size_t text_role_count
 

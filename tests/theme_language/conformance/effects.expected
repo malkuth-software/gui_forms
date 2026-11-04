@@ -1,0 +1,10 @@
+compiled
+rule 0 theme_sheet type=track_bar part=track
+  label track-bar::part(track)
+  decl effect = name progress_woven_stripes
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  decl effect = name none
+rule 2 theme_sheet type=button part=label
+  label button::part(label)
+  decl effect = name none

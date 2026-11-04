@@ -109,7 +109,7 @@ enum class CompileOutcome : std::uint8_t {
 // One kind of lowered declaration, for the cascade's last-wins rule within
 // a rule: a later declaration of the same kind (and parameter) replaces an
 // earlier one.
-enum class LoweredKind : std::uint8_t { parameter, opacity, scale, translate, blend, font };
+enum class LoweredKind : std::uint8_t { parameter, opacity, scale, translate, blend, font, effect };
 
 // A rule's declaration once lowered, kept until the rule's last
 // declaration is read: the engine records it becomes, at most two

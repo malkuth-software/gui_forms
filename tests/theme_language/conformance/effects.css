@@ -1,0 +1,4 @@
+/* forms: property.effect property.effect-none */
+track-bar::part(track) { effect: progress-woven-stripes }
+button::part(face) { effect: none }
+button::part(label) { effect: initial }

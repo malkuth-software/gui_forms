@@ -5,6 +5,9 @@
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -294,25 +297,51 @@ bool ProgressBar::animated_style() const noexcept {
            overlay_instance_.entry() != nullptr;
 }
 
-std::string_view ProgressBar::resolved_effect() const noexcept {
-    if (!effect_.empty()) return effect_;
+ProgressBar::RequestedEffect ProgressBar::requested_effect() const noexcept {
+    RequestedEffect requested{};
+    if (!effect_.empty()) {
+        requested.name = effect_;
+        requested.source = EffectSelectionSource::application;
+        return requested;
+    }
+    requested.source = EffectSelectionSource::style;
     if (visual_style_ == ProgressBarVisualStyle::marching_stripes) {
-        return ProgressStripes::declaration.name;
+        requested.name = ProgressStripes::declaration.name;
+        return requested;
     }
     if (visual_style_ == ProgressBarVisualStyle::pulse) {
-        return ProgressPulse::declaration.name;
+        requested.name = ProgressPulse::declaration.name;
+        return requested;
     }
     if (visual_style_ == ProgressBarVisualStyle::laser_etch) {
-        return ProgressLaser::declaration.name;
+        requested.name = ProgressLaser::declaration.name;
+        return requested;
     }
-    return {};
+    // The theme's effect for the part the effect draws over: the fill, or
+    // the activity band while marquee (publish_part_geometry). A bar in no
+    // window, or with no paintable bounds, has no theme effect yet; its
+    // next paint asks again.
+    requested.source = EffectSelectionSource::none;
+    if (attached_window() == nullptr) return requested;
+    const bool marquee = visual_style_ == ProgressBarVisualStyle::marquee;
+    PartPaint part{};
+    part.role = marquee ? PartRole::activity : PartRole::fill;
+    part.bounds = local_bounds();
+    part.states = anatomy_states();
+    part.family = ControlVisualRole::progress;
+    part.key = PartKey{.part = marquee ? std::string_view{"activity"} : std::string_view{"fill"}};
+    const ThemeEngine::PartPlan plan = effective_theme().engine().plan(*this, part);
+    if (!plan.resolution.effect_declared) return requested;
+    requested.name = plan.resolution.effect;
+    requested.source = EffectSelectionSource::theme;
+    return requested;
 }
 
 namespace {
 
-// The registered progress-bar effect named `name`, or null.
+// The registered progress-bar effect named `name`, or null (the overlay's
+// stripes, which only the overlay style asks for).
 const EffectEntry* progress_bar_effect(std::string_view name) noexcept {
-    if (name.empty()) return nullptr;
     const EffectEntry* const entry = built_in_effect_registry().find(name);
     if (entry == nullptr || (*entry).parent != EffectView<ProgressBar>::parent_name) {
         return nullptr;
@@ -335,7 +364,23 @@ void sync_instance(EffectInstance& instance, const EffectEntry* wanted,
 } // namespace
 
 void ProgressBar::sync_effects(FrameTime now) {
-    const EffectEntry* const effect = progress_bar_effect(resolved_effect());
+    const RequestedEffect requested = requested_effect();
+    const Rect bounds = local_bounds();
+    const double scale = window() != nullptr ? (*window()).scale() : 1.0;
+    const EffectEntry* effect = nullptr;
+    const EffectSelectionOutcome outcome =
+        check_effect_selection(built_in_effect_registry(), requested.name, requested.source,
+                               EffectView<ProgressBar>::parent_name, Size{bounds.width, bounds.height}, scale, effect);
+    const bool changed = outcome != effect_selection_.outcome || requested.source != effect_selection_.source ||
+                         requested.name != effect_selection_.name;
+    if (changed) {
+        effect_selection_.name = std::string{requested.name};
+        effect_selection_.source = requested.source;
+        effect_selection_.outcome = outcome;
+        if (outcome != EffectSelectionOutcome::selected && outcome != EffectSelectionOutcome::none) {
+            note_effect_refused(effect_selection_);
+        }
+    }
     const bool overlay = overlay_style_ == ProgressBarOverlayStyle::moving_stripes &&
                          visual_style_ != ProgressBarVisualStyle::marching_stripes;
     const EffectEntry* const stripes =

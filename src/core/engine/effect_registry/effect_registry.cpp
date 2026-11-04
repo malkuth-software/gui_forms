@@ -5,6 +5,7 @@
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>
@@ -92,6 +93,7 @@ std::uint64_t fnv1a(std::span<const std::byte> bytes) noexcept {
 // The process's registration counts (effect_load_diagnostics).
 std::atomic<std::uint64_t> registered_effects{0U};
 std::atomic<std::uint64_t> unverified_effects{0U};
+std::atomic<std::uint64_t> refused_effects{0U};
 
 // The most bytes of an effect's name the load diagnostic prints; a longer
 // name is cut there, so the printed length always fits printf's int.
@@ -119,7 +121,80 @@ EffectLoadDiagnostics effect_load_diagnostics() noexcept {
     EffectLoadDiagnostics result{};
     result.registered = registered_effects.load(std::memory_order_relaxed);
     result.unverified = unverified_effects.load(std::memory_order_relaxed);
+    result.refused = refused_effects.load(std::memory_order_relaxed);
     return result;
+}
+
+bool effect_name_valid(std::string_view name) noexcept {
+    if (name.size() > maximum_effect_name_length || name == effect_none_name) return false;
+    const bool valid = snake_case(name);
+    return valid;
+}
+
+static_assert(maximum_effect_operations_per_frame == maximum_animated_operations_per_frame,
+              "an effect's frame is bounded as an animated primitive's part is");
+
+std::string_view effect_selection_source_name(EffectSelectionSource source) noexcept {
+    switch (source) {
+    case EffectSelectionSource::none: return "none";
+    case EffectSelectionSource::application: return "application";
+    case EffectSelectionSource::style: return "style";
+    case EffectSelectionSource::theme: return "theme";
+    }
+    return "none";
+}
+
+std::string_view effect_selection_outcome_name(EffectSelectionOutcome outcome) noexcept {
+    switch (outcome) {
+    case EffectSelectionOutcome::selected: return "selected";
+    case EffectSelectionOutcome::none: return "none";
+    case EffectSelectionOutcome::unknown_effect: return "unknown_effect";
+    case EffectSelectionOutcome::parent_mismatch: return "parent_mismatch";
+    case EffectSelectionOutcome::over_frame_budget: return "over_frame_budget";
+    case EffectSelectionOutcome::unverified: return "unverified";
+    }
+    return "none";
+}
+
+EffectSelectionOutcome check_effect_selection(const EffectRegistry& registry, std::string_view name,
+                                              EffectSelectionSource source, std::string_view parent, Size part,
+                                              double scale, const EffectEntry*& entry) noexcept {
+    entry = nullptr;
+    if (name.empty() || source == EffectSelectionSource::none) return EffectSelectionOutcome::none;
+    const EffectEntry* const found = registry.find(name);
+    if (found == nullptr) return EffectSelectionOutcome::unknown_effect;
+    if ((*found).parent != parent) return EffectSelectionOutcome::parent_mismatch;
+    const EffectDeclaration& declaration = *(*found).declaration;
+    // The frame's cost over the part and its outsets in device pixels, in
+    // double: a part's logical size and the scale are finite and bounded,
+    // and the comparison only needs to know whether the bound is passed.
+    const Insets outsets = declaration.outsets;
+    const double width = std::max(0.0, part.width + outsets.left + outsets.right) * scale;
+    const double height = std::max(0.0, part.height + outsets.top + outsets.bottom) * scale;
+    const double pixels = std::ceil(width) * std::ceil(height);
+    const double cost = static_cast<double>(declaration.cost.fixed) +
+                        static_cast<double>(declaration.cost.per_device_pixel) * pixels;
+    if (!(cost <= static_cast<double>(maximum_effect_operations_per_frame))) {
+        return EffectSelectionOutcome::over_frame_budget;
+    }
+    if (source == EffectSelectionSource::theme && !(*found).verified) return EffectSelectionOutcome::unverified;
+    entry = found;
+    return EffectSelectionOutcome::selected;
+}
+
+void note_effect_refused(const EffectSelection& selection) noexcept {
+    const std::uint64_t before = refused_effects.fetch_add(1U, std::memory_order_relaxed);
+    if (before != 0U) return;
+    const std::size_t reported_bytes = selection.name.size() < maximum_reported_name_bytes
+                                           ? selection.name.size()
+                                           : maximum_reported_name_bytes;
+    const std::string_view source = effect_selection_source_name(selection.source);
+    const std::string_view outcome = effect_selection_outcome_name(selection.outcome);
+    std::fprintf(stderr,
+                 "GUI.Forms: effect program %.*s, selected by the %.*s, is refused (%.*s): the part draws its "
+                 "primitive alone (further refusals are counted, not reported)\n",
+                 static_cast<int>(reported_bytes), selection.name.data(), static_cast<int>(source.size()),
+                 source.data(), static_cast<int>(outcome.size()), outcome.data());
 }
 
 bool effect_verification_recorded(std::string_view name, std::size_t state_size,
@@ -140,7 +215,7 @@ bool effect_verification_recorded(std::string_view name, std::size_t state_size,
 
 EffectRegistrationOutcome EffectRegistry::add(const EffectEntry& entry) noexcept {
     const EffectDeclaration* const declaration = entry.declaration;
-    if (declaration == nullptr || !snake_case((*declaration).name)) {
+    if (declaration == nullptr || !effect_name_valid((*declaration).name)) {
         return EffectRegistrationOutcome::name_not_snake_case;
     }
     if (entry.parent.empty() || entry.run == nullptr || entry.construct == nullptr) {

@@ -143,6 +143,8 @@ property.box-shadow-inset	shadows-opacity-filters
 property.clip-path	not-admitted
 property.color	transforms-text
 property.conic-gradient	fills
+property.effect	effects
+property.effect-none	effects
 property.filter-blur	shadows-opacity-filters
 property.filter-colour	shadows-opacity-filters
 property.filter-drop-shadow	shadows-opacity-filters

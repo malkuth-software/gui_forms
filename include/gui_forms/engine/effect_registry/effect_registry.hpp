@@ -27,6 +27,7 @@
 #include <cstdint>
 #include <memory>
 #include <new>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
@@ -102,9 +103,17 @@ template <typename Effect>
     return entry;
 }
 
+// Whether `name` may name an effect: snake_case (lowercase ASCII letters,
+// digits and single '_'s, the first a letter, the last not '_'), at most
+// maximum_effect_name_length characters, and not effect_none_name's
+// `none`, which themes write for no effect.
+inline constexpr std::size_t maximum_effect_name_length = 64U;
+[[nodiscard]] bool effect_name_valid(std::string_view name) noexcept;
+
 enum class EffectRegistrationOutcome : std::uint8_t {
     registered,
     registry_full,
+    // The name is not one effect_name_valid admits.
     name_not_snake_case,
     duplicate_name,
     no_parent,
@@ -155,8 +164,73 @@ private:
 struct EffectLoadDiagnostics final {
     std::uint64_t registered{};
     std::uint64_t unverified{};
+    // Selections the load checks refused (note_effect_refused).
+    std::uint64_t refused{};
 };
 [[nodiscard]] EffectLoadDiagnostics effect_load_diagnostics() noexcept;
+
+// Who asked for the effect a control attaches to a part, in the order the
+// control consults them (design note section 7): the application, by name
+// (the control's `effect` property); the control's own visual style; the
+// theme, by the part's `effect` declaration (effect_property).
+enum class EffectSelectionSource : std::uint8_t { none, application, style, theme };
+
+// The load checks' verdict on one selection (design note section 7). Any
+// outcome but `selected` and `none` leaves the part to its primitive alone.
+enum class EffectSelectionOutcome : std::uint8_t {
+    selected,
+    // Nothing asked for an effect, or the theme declared `none`.
+    none,
+    // No effect is registered under the name.
+    unknown_effect,
+    // The effect is registered for another parent type.
+    parent_mismatch,
+    // Its frame cost, its fixed operations plus its per-pixel operations
+    // over the part and its outsets at the display scale, passes
+    // maximum_effect_operations_per_frame.
+    over_frame_budget,
+    // A theme named an effect the plugin's effect pass did not verify. An
+    // application may attach an unverified effect (and is warned at
+    // registration); a theme may not.
+    unverified,
+};
+
+[[nodiscard]] std::string_view effect_selection_source_name(EffectSelectionSource source) noexcept;
+[[nodiscard]] std::string_view effect_selection_outcome_name(EffectSelectionOutcome outcome) noexcept;
+
+// The most operations one effect frame may cost on its part: the bound an
+// animated primitive's part has (maximum_animated_operations_per_frame,
+// GIVEN F1-1).
+inline constexpr std::uint64_t maximum_effect_operations_per_frame = 4'000'000U;
+
+// What a control's effect selection came to, kept by the control for
+// diagnostics: the name asked for (a copy, empty for none), who asked and
+// the verdict.
+struct EffectSelection final {
+    std::string name{};
+    EffectSelectionSource source{EffectSelectionSource::none};
+    EffectSelectionOutcome outcome{EffectSelectionOutcome::none};
+
+    friend bool operator==(const EffectSelection& left, const EffectSelection& right) noexcept {
+        return left.name == right.name && left.source == right.source && left.outcome == right.outcome;
+    }
+};
+
+// The load checks for the effect `name`, asked for by `source`, on a part
+// of a control whose effect parent is `parent` (EffectView<P>::parent_name),
+// `part` logical units in size at display `scale`. Sets `entry` to the
+// registered entry when the outcome is `selected`, else to null. An empty
+// name is `none`. Never fails.
+[[nodiscard]] EffectSelectionOutcome check_effect_selection(const EffectRegistry& registry, std::string_view name,
+                                                            EffectSelectionSource source, std::string_view parent,
+                                                            Size part, double scale,
+                                                            const EffectEntry*& entry) noexcept;
+
+// Counts one refused selection (an outcome other than `selected` and
+// `none`) in effect_load_diagnostics; the first in the process also writes
+// one line to stderr naming the effect, who asked and why. A control calls
+// it once per change of its selection, not once per paint. Any thread.
+void note_effect_refused(const EffectSelection& selection) noexcept;
 
 // What advancing an instance's time did.
 struct EffectAdvance final {

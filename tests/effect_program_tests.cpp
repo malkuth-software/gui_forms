@@ -17,6 +17,8 @@
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/gui_forms.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include "../src/core/text/localizable/gui_forms_notes.hpp"
 
@@ -613,6 +615,159 @@ void effect_properties_and_input() {
     require(ignored.circles == after.circles, "without a grant a press reaches no effect");
 }
 
+// A theme whose rules give a progress bar's fill the effect `fill` and its
+// activity band the effect `activity` (effect_property), each skipped when
+// empty; a class rule `calm` declares none for the fill.
+std::unique_ptr<ThemeDefinition> effect_theme(std::string_view fill, std::string_view activity) {
+    std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    ThemeDefinition& definition = *held;
+    definition.id = "effect-programs";
+    if (!fill.empty()) {
+        ThemeRule rule{};
+        rule.label = "progress-bar::part(fill)";
+        rule.selector.control_type = "progress_bar";
+        rule.selector.part = "fill";
+        rule.declarations.push_back(RuleDeclaration::choice_value(effect_property, fill));
+        definition.rules.rules.push_back(rule);
+    }
+    if (!activity.empty()) {
+        ThemeRule rule{};
+        rule.label = "progress-bar::part(activity)";
+        rule.selector.control_type = "progress_bar";
+        rule.selector.part = "activity";
+        rule.declarations.push_back(RuleDeclaration::choice_value(effect_property, activity));
+        definition.rules.rules.push_back(rule);
+    }
+    ThemeRule calm{};
+    calm.label = "progress-bar.calm::part(fill)";
+    calm.selector.control_type = "progress_bar";
+    calm.selector.classes.push_back("calm");
+    calm.selector.part = "fill";
+    calm.declarations.push_back(RuleDeclaration::choice_value(effect_property, effect_none_name));
+    definition.rules.rules.push_back(calm);
+    return held;
+}
+
+// Themes select effects by name (design note section 7): a rule's effect
+// declaration gives a part its effect; the application's name and the
+// visual style's own come first; `none` selects none; the load checks
+// refuse an unknown name, another parent's effect, a frame over the bound
+// and (for a theme) an unverified effect, leaving the part to its
+// primitive with a counted, structured diagnostic; and a malformed name is
+// the rules' own diagnostic.
+void themes_select_effects() {
+    std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.themed"));
+    (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    (*bar).set_value(50.0);
+    Window window(bar, {200.0, 40.0});
+    window.set_theme(Theme::create(*effect_theme("progress_woven_stripes", "progress_pulse")));
+    window.perform_layout();
+    RecordingPainter first;
+    (*bar).on_paint(first, {0.0, 0.0, 200.0, 20.0});
+    const EffectEntry& woven = built_in("progress_woven_stripes");
+    if (woven.verified) {
+        require((*bar).effect_instance().entry() == &woven &&
+                    (*bar).effect_selection().source == EffectSelectionSource::theme &&
+                    (*bar).effect_selection().outcome == EffectSelectionOutcome::selected &&
+                    (*bar).effect_selection().name == "progress_woven_stripes",
+                "the theme's effect for the fill draws over a continuous bar");
+    } else {
+        require((*bar).effect_instance().entry() == nullptr &&
+                    (*bar).effect_selection().outcome == EffectSelectionOutcome::unverified,
+                "a theme may not select an unverified effect: the fill draws its primitive alone");
+    }
+    (*bar).set_visual_style(ProgressBarVisualStyle::laser_etch);
+    require((*bar).effect_instance().entry() == &built_in("progress_laser") &&
+                (*bar).effect_selection().source == EffectSelectionSource::style,
+            "the visual style's own effect comes before the theme's");
+    (*bar).set_effect("progress_bubbles");
+    require((*bar).effect_instance().entry() == &built_in("progress_bubbles") &&
+                (*bar).effect_selection().source == EffectSelectionSource::application,
+            "the application's effect comes first");
+    (*bar).set_effect("");
+    (*bar).set_visual_style(ProgressBarVisualStyle::marquee);
+    RecordingPainter marquee;
+    (*bar).on_paint(marquee, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_selection().source == EffectSelectionSource::theme &&
+                (*bar).effect_selection().name == "progress_pulse",
+            "while marquee the theme's effect for the activity band applies");
+    (*bar).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*bar).add_class("calm");
+    RecordingPainter calm;
+    (*bar).on_paint(calm, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_instance().entry() == nullptr &&
+                (*bar).effect_selection().source == EffectSelectionSource::theme &&
+                (*bar).effect_selection().outcome == EffectSelectionOutcome::none,
+            "a more specific rule's none selects no effect");
+
+    const std::uint64_t refused = effect_load_diagnostics().refused;
+    std::shared_ptr<ProgressBar> unknown = make_control<ProgressBar>(StableId("effects.unknown"));
+    (*unknown).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    Window unknown_window(unknown, {200.0, 40.0});
+    unknown_window.set_theme(Theme::create(*effect_theme("no_such_effect", "scope_sweep")));
+    unknown_window.perform_layout();
+    RecordingPainter unknown_paint;
+    (*unknown).on_paint(unknown_paint, {0.0, 0.0, 200.0, 20.0});
+    require((*unknown).effect_instance().entry() == nullptr &&
+                (*unknown).effect_selection().outcome == EffectSelectionOutcome::unknown_effect &&
+                effect_load_diagnostics().refused == refused + 1U,
+            "an unknown effect is refused and counted, and the fill draws its primitive alone");
+    RecordingPainter unknown_again;
+    (*unknown).on_paint(unknown_again, {0.0, 0.0, 200.0, 20.0});
+    require(effect_load_diagnostics().refused == refused + 1U, "a refusal is counted once, not once per paint");
+    (*unknown).set_visual_style(ProgressBarVisualStyle::marquee);
+    RecordingPainter other_parent;
+    (*unknown).on_paint(other_parent, {0.0, 0.0, 200.0, 20.0});
+    require((*unknown).effect_selection().outcome == EffectSelectionOutcome::parent_mismatch &&
+                (*unknown).effect_instance().entry() == nullptr,
+            "another parent type's effect is refused");
+
+    const EffectEntry* entry = &woven;
+    require(check_effect_selection(built_in_effect_registry(), "progress_pulse", EffectSelectionSource::application,
+                                   EffectView<ProgressBar>::parent_name, Size{200.0, 20.0}, 1.0,
+                                   entry) == EffectSelectionOutcome::selected &&
+                entry == &built_in("progress_pulse"),
+            "the load checks select a fitting effect");
+    // progress_pulse costs 400 + 4 per device pixel: a million pixels pass
+    // the 4,000,000 bound.
+    require(check_effect_selection(built_in_effect_registry(), "progress_pulse", EffectSelectionSource::application,
+                                   EffectView<ProgressBar>::parent_name, Size{1000.0, 1000.0}, 1.0,
+                                   entry) == EffectSelectionOutcome::over_frame_budget &&
+                entry == nullptr,
+            "an effect whose frame passes the operations bound at the part's size is refused");
+    require(check_effect_selection(built_in_effect_registry(), "", EffectSelectionSource::theme,
+                                   EffectView<ProgressBar>::parent_name, Size{200.0, 20.0}, 1.0,
+                                   entry) == EffectSelectionOutcome::none,
+            "an empty name is none");
+
+    require(effect_name_valid("progress_pulse") && !effect_name_valid("none") && !effect_name_valid("Pulse") &&
+                !effect_name_valid("pulse__band") && !effect_name_valid(std::string(65U, 'a')),
+            "an effect's name is snake_case, at most 64 characters, and not none");
+    ThemeRuleSheet sheet{};
+    ThemeRule malformed{};
+    malformed.label = "malformed";
+    malformed.selector.control_type = "progress_bar";
+    malformed.declarations.push_back(RuleDeclaration::choice_value(effect_property, "Not-An-Effect"));
+    sheet.rules.push_back(malformed);
+    ThemeRule twice{};
+    twice.label = "twice";
+    twice.selector.control_type = "progress_bar";
+    twice.declarations.push_back(RuleDeclaration::choice_value(effect_property, "progress_pulse"));
+    twice.declarations.push_back(RuleDeclaration::choice_value(effect_property, "progress_laser"));
+    sheet.rules.push_back(twice);
+    const CompiledThemeRules compiled = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    bool invalid = false;
+    bool duplicate = false;
+    for (const RuleDiagnostic& diagnostic : compiled.diagnostics()) {
+        if (diagnostic.kind == RuleDiagnosticKind::effect_invalid && diagnostic.label == "malformed") invalid = true;
+        if (diagnostic.kind == RuleDiagnosticKind::duplicate_declaration && diagnostic.label == "twice") {
+            duplicate = true;
+        }
+    }
+    require(invalid && duplicate && compiled.rule_count() == 1U,
+            "a malformed name is effect_invalid and drops its rule; a second effect declaration is a duplicate");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -626,8 +781,9 @@ int main() {
     progress_bar_hosting();
     progress_bar_on_the_motion_clock();
     effect_properties_and_input();
+    themes_select_effects();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
-                 "properties and input\n";
+                 "properties and input, themes selecting effects\n";
     return 0;
 }

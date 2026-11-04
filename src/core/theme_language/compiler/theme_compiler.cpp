@@ -8,6 +8,8 @@
 
 #include "theme_compiler.hpp"
 
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cmath>
@@ -105,6 +107,9 @@ enum class PropertyClass : std::uint8_t {
     isolation,
     // `font` (P8c): the part's text role.
     font,
+    // `effect`: the effect program the part draws (effect programs, design
+    // note section 7).
+    effect,
     // A material property (P6b): its fields are lowered by the material
     // lowering.
     material,
@@ -128,6 +133,7 @@ enum class PropertyClass : std::uint8_t {
     if (name == "mix-blend-mode") return PropertyClass::blend;
     if (name == "isolation") return PropertyClass::isolation;
     if (name == font_property) return PropertyClass::font;
+    if (name == effect_property) return PropertyClass::effect;
     if (material_property(name)) return PropertyClass::material;
     if (transition_property(name)) return PropertyClass::transition;
     if (animation_property(name)) return PropertyClass::animation;
@@ -442,6 +448,9 @@ private:
     // `font: <role>` (P8c, D6): the part's text role, or `inherit`, the
     // parent control's (D7).
     [[nodiscard]] bool lower_font(const SyntaxNode& node);
+    // `effect`: a registered effect's name in kebab case, `none`, or
+    // `initial` (none).
+    [[nodiscard]] bool lower_effect(const SyntaxNode& node);
     // Reports material_lowering_'s problem; true where the declaration is
     // only dropped.
     [[nodiscard]] bool report_material_problem();
@@ -1988,6 +1997,7 @@ bool CompilePass::lower_declaration(const SyntaxNode& node, PropertyClass kind, 
     case PropertyClass::isolation: return lower_keyword_property(node, kind);
     case PropertyClass::material: return lower_material(node);
     case PropertyClass::font: return lower_font(node);
+    case PropertyClass::effect: return lower_effect(node);
     case PropertyClass::transition: return lower_transition(node);
     case PropertyClass::animation: return lower_animation(node);
     case PropertyClass::later:
@@ -2326,6 +2336,51 @@ bool CompilePass::lower_font(const SyntaxNode& node) {
     LoweredDeclaration lowered{};
     lowered.kind = LoweredKind::font;
     lowered.declaration = RuleDeclaration::choice_value(font_property, name);
+    add_lowered(std::move(lowered));
+    return true;
+}
+
+bool CompilePass::lower_effect(const SyntaxNode& node) {
+    parameter_names_.clear();
+    if (!read_value(node)) return false;
+    const ValueComponent& first = value_.components[0];
+    const WideKeyword wide = wide_keyword();
+    if (wide == WideKeyword::outside) {
+        report(DiagnosticCode::value_form_not_admitted, first.token, clipped_theme_detail(first.text));
+        return false;
+    }
+    // A part inherits no effect from its control.
+    if (wide == WideKeyword::inherit) {
+        report(DiagnosticCode::value_wrong_kind, first.token, "an effect's name or none");
+        return false;
+    }
+    // `initial` is none: a part no rule gives an effect draws none.
+    std::string name{effect_none_name};
+    if (wide == WideKeyword::none) {
+        if (drop_unknown_function()) return true;
+        if (value_.components.size() != 1U) {
+            report(DiagnosticCode::value_form_not_admitted, value_.components[1].token,
+                   "effect takes one effect's name alone");
+            return false;
+        }
+        if (!keyword_of(first, "an effect's name")) return false;
+        fold_ascii(first.text, folded_);
+        if (folded_ != effect_none_name) {
+            // The registry is the control's: the rules check the name's
+            // form only, and the control checks the effect when it
+            // attaches it.
+            name = registered_name_from_kebab(folded_);
+            if (!effect_name_valid(name)) {
+                const DiagnosticCode code =
+                    newer_engine_ ? DiagnosticCode::keyword_from_newer_engine : DiagnosticCode::keyword_unknown;
+                report(code, first.token, clipped_theme_detail(first.text));
+                return newer_engine_;
+            }
+        }
+    }
+    LoweredDeclaration lowered{};
+    lowered.kind = LoweredKind::effect;
+    lowered.declaration = RuleDeclaration::choice_value(effect_property, name);
     add_lowered(std::move(lowered));
     return true;
 }
@@ -3003,7 +3058,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     const std::size_t selections = lowered.declarations.size();
     for (LoweredDeclaration& declaration : declarations_) {
         const bool declared = declaration.kind == LoweredKind::parameter || declaration.kind == LoweredKind::blend ||
-                              declaration.kind == LoweredKind::font;
+                              declaration.kind == LoweredKind::font || declaration.kind == LoweredKind::effect;
         if (declared) {
             lowered.declarations.push_back(std::move(declaration.declaration));
             continue;

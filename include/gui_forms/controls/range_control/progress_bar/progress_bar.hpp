@@ -104,9 +104,12 @@ public:
     // The effect program drawn over the bar (effect programs, design note
     // §7), by registered name. Empty (the default) selects the visual
     // style's own: progress_stripes for marching_stripes, progress_pulse
-    // for pulse, progress_laser for laser_etch, none for the rest. A name
-    // no registered progress-bar effect has draws no effect. The
-    // moving-stripes overlay draws progress_stripes over any other effect.
+    // for pulse, progress_laser for laser_etch; for the other styles, the
+    // effect the theme declares for the bar's fill part (its activity part
+    // while marquee), if any (effect_property). A name no registered
+    // progress-bar effect has, or one the load checks refuse, draws no
+    // effect (effect_selection says why). The moving-stripes overlay draws
+    // progress_stripes over any other effect.
     [[nodiscard]] const std::string& effect() const noexcept { return effect_; }
     void set_effect(std::string name);
     // The seed of the bar's effects. None (the default) derives it from the
@@ -120,6 +123,10 @@ public:
     // a key grant delivers nothing.
     [[nodiscard]] EffectInputKind effect_input() const noexcept { return effect_input_; }
     void set_effect_input(EffectInputKind input);
+    // What the bar's last effect selection came to: the name asked for,
+    // who asked (the application, the visual style or the theme) and the
+    // load checks' verdict.
+    [[nodiscard]] const EffectSelection& effect_selection() const noexcept { return effect_selection_; }
     // The selected effect's instance (empty for none): its counters and
     // state checksum, for diagnostics and tests.
     [[nodiscard]] const EffectInstance& effect_instance() const noexcept { return effect_instance_; }
@@ -181,8 +188,16 @@ private:
     [[nodiscard]] bool animated_style() const noexcept;
     // The fill (determinate styles) or the moving activity band (marquee).
     [[nodiscard]] Rect indicator_bounds() const noexcept;
-    // The registered name of the effect drawn over the bar, or empty.
-    [[nodiscard]] std::string_view resolved_effect() const noexcept;
+    // The effect asked for, and who asked: the name borrows effect_, a
+    // static name or the window theme's compiled rules, and is used before
+    // any of them can change.
+    struct RequestedEffect final {
+        std::string_view name{};
+        EffectSelectionSource source{EffectSelectionSource::none};
+    };
+    // The effect the application, the visual style or the theme asks for,
+    // in that order, or none.
+    [[nodiscard]] RequestedEffect requested_effect() const noexcept;
     // Attaches the effects the style and the effect name select, when they
     // changed, their time starting at `now`; detaches those no longer
     // selected.
@@ -222,6 +237,9 @@ private:
     // owns its state; both are released with the bar.
     EffectInstance effect_instance_;
     EffectInstance overlay_instance_;
+    // The main effect's last selection, kept for effect_selection(); a
+    // change to a refusal is noted once (note_effect_refused).
+    EffectSelection effect_selection_{};
     // Paints of the bar, and the count its last ambient frame saw: a frame
     // finding them equal finds the bar no longer shown.
     std::uint64_t effect_paints_{};
