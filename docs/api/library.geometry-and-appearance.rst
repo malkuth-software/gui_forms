@@ -7201,9 +7201,9 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_control_state_recipes(const ControlStateRecipes& value) noexcept
 
-.. cpp:function:: ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes)
+.. cpp:function:: ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family)
 
-   The forced high-contrast pass (T2 plan, E4; design language 5.8): ``recipes`` with its high_contrast and high_contrast_selected records derived from its ordinary ones. GUI.Forms' own high-contrast mode keeps each state's geometry and cues (corner radius, edge width, focus and default rings, offsets) and rebuilds the material as one solid plate inside one solid edge from a near-colourless palette by state, dropping gradients, images, keylines, per-edge borders and shadows. Selected parts take a white plate and black text inside their state's edge. Theme::create applies it to every family, so authored high-contrast records are replaced.
+   The forced high-contrast pass (T2 plan, E4; design language 5.8): ``recipes`` with its high_contrast and high_contrast_selected records derived from its ordinary ones. GUI.Forms' own high-contrast mode keeps each state's geometry and cues (corner radius, edge width, focus and default rings, offsets) and rebuilds the material as one solid plate inside one solid edge from a near-colourless palette by state, dropping gradients, images, keylines, per-edge borders and shadows. Selected parts take a white plate and black text inside their state's edge; a container family's (window, panel, card) never inverts, since its children paint over its plate in their own states: pressed keeps the plain plate inside the pressed edge, and selected the state's plate inside the selection line. Theme::create applies it to every family (``family``), so authored high-contrast records are replaced.
 
 .. cpp:function:: ControlRoleRecipes derive_dark_recipes(ControlRoleRecipes recipes, ControlVisualRole family)
 

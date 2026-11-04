@@ -107,8 +107,24 @@ void derived_records_match_the_authored_ones() {
     for (std::size_t family = 0; family < control_visual_role_count; ++family) {
         const ControlRoleRecipes& role = definition.roles[family];
         const double radius = role.ordinary[at(ControlSurfaceState::normal)].material.corner_radius;
-        const StateRecipes expected = reference_high_contrast(radius);
-        const StateRecipes expected_selected = reference_high_contrast_selected(radius);
+        StateRecipes expected = reference_high_contrast(radius);
+        StateRecipes expected_selected = reference_high_contrast_selected(radius);
+        const ControlVisualRole visual = static_cast<ControlVisualRole>(family);
+        if (visual == ControlVisualRole::window || visual == ControlVisualRole::panel ||
+            visual == ControlVisualRole::card) {
+            // A container never inverts (phase 5e): pressed is the plain
+            // record inside the pressed edge, selected the state's record
+            // inside the selection line.
+            ControlVisualRecipe& pressed = expected[at(ControlSurfaceState::pressed)];
+            pressed = reference_recipe(Color::rgba(0, 0, 0), Color::rgba(0, 0, 0), Color::rgba(255, 255, 0),
+                                       Color::rgba(255, 255, 255), radius);
+            pressed.muted_text = pressed.text;
+            pressed.focus_ring = Color::rgba(0, 255, 255);
+            for (std::size_t state = 0; state < control_surface_state_count; ++state) {
+                expected_selected[state] = expected[state];
+                (*expected_selected[state].material.border).color = Color::rgba(0, 255, 255);
+            }
+        }
         for (std::size_t state = 0; state < control_surface_state_count; ++state) {
             require(role.high_contrast[state] == expected[state],
                     "every family's derived high-contrast record equals the hand-authored one");
@@ -155,7 +171,7 @@ void the_pass_keeps_geometry_and_drops_effects() {
                 (*derived.material.border).color == Color::rgba(0, 255, 255),
             "and draws one solid plate in one solid edge, without shadows or keylines");
     require(derived.text == Color::rgba(255, 255, 255), "an authored high-contrast record is replaced");
-    const ControlRoleRecipes direct = derive_high_contrast_recipes(card);
+    const ControlRoleRecipes direct = derive_high_contrast_recipes(card, ControlVisualRole::card);
     require(direct.high_contrast[at(ControlSurfaceState::hot)] == derived,
             "derive_high_contrast_recipes is the pass Theme::create applies");
 }

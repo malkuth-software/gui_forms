@@ -240,10 +240,13 @@ struct ControlRoleRecipes final {
 // default rings, offsets) and rebuilds the material as one solid plate
 // inside one solid edge from a near-colourless palette by state, dropping
 // gradients, images, keylines, per-edge borders and shadows. Selected parts
-// take a white plate and black text inside their state's edge.
-// Theme::create applies it to every family, so authored high-contrast
-// records are replaced.
-[[nodiscard]] ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes);
+// take a white plate and black text inside their state's edge; a container
+// family's (window, panel, card) never inverts, since its children paint
+// over its plate in their own states: pressed keeps the plain plate inside
+// the pressed edge, and selected the state's plate inside the selection
+// line. Theme::create applies it to every family (`family`), so authored
+// high-contrast records are replaced.
+[[nodiscard]] ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family);
 
 // The dark pass (stage T4 phase 5; design language 5.8 rule 3): `recipes`
 // with its dark and dark_selected records derived from its ordinary and

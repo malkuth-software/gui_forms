@@ -1364,16 +1364,35 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
 
 } // namespace detail
 
-ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes) {
+ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family) {
+    // A container's children paint over its plate in their own states, so a
+    // container never inverts (T4 phase 5e: a pressed or toggled card's
+    // white plate hid its children's white text): pressed keeps the plain
+    // plate and ink inside the pressed edge, and selected the state's
+    // palette inside the selection line.
+    const bool container = family == ControlVisualRole::window || family == ControlVisualRole::panel ||
+                           family == ControlVisualRole::card;
+    const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
     for (std::size_t index = 0; index < control_surface_state_count; ++index) {
         const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        const HighContrastColours colours = high_contrast_colours(state);
+        HighContrastColours colours = high_contrast_colours(state);
+        if (container && state == ControlSurfaceState::pressed) {
+            const HighContrastColours plain = high_contrast_colours(ControlSurfaceState::normal);
+            colours.plate = plain.plate;
+            colours.text = plain.text;
+            colours.focus = plain.focus;
+        }
         const ControlVisualRecipe& ordinary = recipes.ordinary[index];
         recipes.high_contrast[index] = derived_high_contrast(ordinary, colours.plate, colours.edge, colours.text,
                                                              colours.focus);
+        if (container) {
+            const Color line = high_contrast_role(ColourRole::selection_line).foreground;
+            recipes.high_contrast_selected[index] =
+                derived_high_contrast(ordinary, colours.plate, line, colours.text, colours.focus);
+            continue;
+        }
         // Selected: the selection's plate inside the state's edge, with its
         // ink.
-        const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
         recipes.high_contrast_selected[index] =
             derived_high_contrast(ordinary, selection.background, colours.edge, selection.foreground,
                                   selection.foreground);
@@ -1446,8 +1465,9 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
     // The forced high-contrast pass: every family's high-contrast records
     // are derived from its ordinary ones, replacing whatever was authored.
     // It reads only the roles, so the engine compiled from the rules stands.
-    for (ControlRoleRecipes& role : (*theme).definition_.roles) {
-        role = derive_high_contrast_recipes(std::move(role));
+    for (std::size_t index = 0; index < (*theme).definition_.roles.size(); ++index) {
+        ControlRoleRecipes& role = (*theme).definition_.roles[index];
+        role = derive_high_contrast_recipes(std::move(role), static_cast<ControlVisualRole>(index));
     }
     // The dark pass (T4 phase 5): derived when the definition asks for it,
     // otherwise the ordinary records, so a dark window keeps its colours.
