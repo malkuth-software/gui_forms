@@ -14,8 +14,12 @@
 // pattern call and placement (a control's own node, an item of a control,
 // an item with no control above it) through the pattern that action belongs
 // to (Invoke, Toggle, SelectionItem, ExpandCollapse, or SetFocus when focus
-// is the only action) and observes the change in the semantic tree, in a
-// fresh window per page; the adapter's path depends only on those three.
+// is the only action) and observes the change in the semantic tree, in the
+// window that compared the pages (one whose change is not seen runs again
+// alone in a fresh window); the adapter's path depends only on those three.
+// Every page but live_page is read from one cache request for its whole
+// raw subtree; that page, TextPattern ranges, parent links, the
+// tab-to-panel targets and the stale element are read live, a call each.
 // It checks that an element of a page that was replaced answers
 // UIA_E_ELEMENTNOTAVAILABLE. Which node every registry control publishes
 // and each control type's default action are checked headless by
@@ -82,6 +86,11 @@ constexpr std::string_view host_services_page = "dialogs-and-host-services";
 // The fixture window holding the registry controls the Gallery does not
 // attach to its root tree, compared and acted on like a Gallery page.
 constexpr std::string_view off_tree_page = "off-tree-controls";
+
+// The page the client reads live, every property and pattern state its
+// own call; every other page is read from one cache request. It holds
+// items, nested scopes and most pattern kinds.
+constexpr std::string_view live_page = "tree-and-object-views";
 
 // The most popups the client closes with Escape after an action.
 constexpr int maximum_popup_closes = 4;
@@ -587,6 +596,9 @@ struct Report final {
     std::size_t controller_relations{};
     std::string stale_check;
     std::string failure;
+    // Actions run again alone in a fresh window after their change was not
+    // seen in the shared one.
+    std::size_t reruns{};
     bool completed{};
 };
 
@@ -598,6 +610,8 @@ struct PageWalk final {
     std::string_view page;
     const PageExpectation& expectation;
     std::set<std::vector<int>> runtime_ids;
+    // Whether the page is read from its cache (one request) or live.
+    bool cached{};
 };
 
 void add_mismatch(PageWalk& walk, const ExpectedNode& expected, std::string_view field,
@@ -778,172 +792,473 @@ void compare_text(PageWalk& walk, IUIAutomationTextPattern& text, const Expected
     }
 }
 
-void compare_patterns(PageWalk& walk, IUIAutomationElement& element, const ExpectedNode& expected,
-                      bool& matched) {
-    const ExpectedPatterns& patterns = expected.patterns;
-    const SemanticNode& node = expected.node;
-    struct Offer final {
-        PATTERNID id;
-        bool wanted;
-        const char* name;
+// The patterns the client looks for on every element, in this order: the
+// pattern, the property that says whether it is offered (what a cached read
+// uses) and its name in a mismatch.
+struct PatternOffer final {
+    PATTERNID pattern;
+    PROPERTYID available;
+    const char* name;
+};
+
+constexpr std::size_t offer_count = 10;
+constexpr std::array<PatternOffer, offer_count> pattern_offers{{
+    {UIA_InvokePatternId, UIA_IsInvokePatternAvailablePropertyId, "Invoke pattern"},
+    {UIA_TogglePatternId, UIA_IsTogglePatternAvailablePropertyId, "Toggle pattern"},
+    {UIA_SelectionItemPatternId, UIA_IsSelectionItemPatternAvailablePropertyId, "SelectionItem pattern"},
+    {UIA_SelectionPatternId, UIA_IsSelectionPatternAvailablePropertyId, "Selection pattern"},
+    {UIA_RangeValuePatternId, UIA_IsRangeValuePatternAvailablePropertyId, "RangeValue pattern"},
+    {UIA_ValuePatternId, UIA_IsValuePatternAvailablePropertyId, "Value pattern"},
+    {UIA_ExpandCollapsePatternId, UIA_IsExpandCollapsePatternAvailablePropertyId, "ExpandCollapse pattern"},
+    {UIA_GridPatternId, UIA_IsGridPatternAvailablePropertyId, "Grid pattern"},
+    {UIA_GridItemPatternId, UIA_IsGridItemPatternAvailablePropertyId, "GridItem pattern"},
+    {UIA_TextPatternId, UIA_IsTextPatternAvailablePropertyId, "Text pattern"},
+}};
+
+// Indices into pattern_offers.
+enum class Offered : std::uint8_t {
+    invoke, toggle, selection_item, selection, range_value, value, expand_collapse, grid, grid_item, text
+};
+
+// Whether a node expects each of pattern_offers, in its order.
+std::array<bool, offer_count> wanted_offers(const ExpectedPatterns& patterns) noexcept {
+    const std::array<bool, offer_count> wanted{
+        patterns.invoke, patterns.toggle, patterns.selection_item, patterns.selection, patterns.range_value,
+        patterns.value, patterns.expand_collapse, patterns.grid, patterns.grid_item, patterns.text,
     };
-    const std::array<Offer, 10> table{{
-        {UIA_InvokePatternId, patterns.invoke, "Invoke pattern"},
-        {UIA_TogglePatternId, patterns.toggle, "Toggle pattern"},
-        {UIA_SelectionItemPatternId, patterns.selection_item, "SelectionItem pattern"},
-        {UIA_SelectionPatternId, patterns.selection, "Selection pattern"},
-        {UIA_RangeValuePatternId, patterns.range_value, "RangeValue pattern"},
-        {UIA_ValuePatternId, patterns.value, "Value pattern"},
-        {UIA_ExpandCollapsePatternId, patterns.expand_collapse, "ExpandCollapse pattern"},
-        {UIA_GridPatternId, patterns.grid, "Grid pattern"},
-        {UIA_GridItemPatternId, patterns.grid_item, "GridItem pattern"},
-        {UIA_TextPatternId, patterns.text, "Text pattern"},
-    }};
-    for (const Offer& offer : table) {
-        const bool offered = offers(element, offer.id);
-        if (offered != offer.wanted) {
-            add_mismatch(walk, expected, offer.name, bool_text(offer.wanted), bool_text(offered), matched);
-        }
+    return wanted;
+}
+
+// The properties a cached page reads, all in one cache request. The base
+// properties, then the pattern-state properties; the offers' are added from
+// pattern_offers.
+constexpr std::array<PROPERTYID, 32> cached_properties{
+    UIA_ControlTypePropertyId, UIA_NamePropertyId, UIA_AutomationIdPropertyId, UIA_HelpTextPropertyId,
+    UIA_FrameworkIdPropertyId, UIA_IsEnabledPropertyId, UIA_IsKeyboardFocusablePropertyId,
+    UIA_HasKeyboardFocusPropertyId, UIA_IsOffscreenPropertyId, UIA_BoundingRectanglePropertyId,
+    UIA_PositionInSetPropertyId, UIA_SizeOfSetPropertyId, UIA_LevelPropertyId, UIA_AccessKeyPropertyId,
+    UIA_IsDialogPropertyId, UIA_LiveSettingPropertyId, UIA_RuntimeIdPropertyId, UIA_ControllerForPropertyId,
+    UIA_ToggleToggleStatePropertyId, UIA_ExpandCollapseExpandCollapseStatePropertyId,
+    UIA_SelectionItemIsSelectedPropertyId, UIA_ValueValuePropertyId, UIA_RangeValueValuePropertyId,
+    UIA_RangeValueMinimumPropertyId, UIA_RangeValueMaximumPropertyId, UIA_RangeValueSmallChangePropertyId,
+    UIA_RangeValueLargeChangePropertyId, UIA_SelectionCanSelectMultiplePropertyId, UIA_GridRowCountPropertyId,
+    UIA_GridColumnCountPropertyId, UIA_GridItemRowPropertyId, UIA_GridItemColumnPropertyId,
+};
+
+// What the client reads from one element, live (Current* reads and pattern
+// objects, one call each, carried to the UI thread) or from the page's
+// cache (filled by one request per page). A pattern's state is read only
+// when the node expects the pattern and the element offers it.
+struct ElementReading final {
+    CONTROLTYPEID control_type{};
+    std::string name;
+    std::string automation_id;
+    std::string help_text;
+    std::wstring framework;
+    std::string framework_name;
+    std::string access_key;
+    bool enabled{};
+    bool focusable{};
+    bool focused{};
+    bool offscreen{true};
+    RECT bounds{};
+    int position_in_set{};
+    int size_of_set{};
+    int level{};
+    bool dialog{};
+    int live_setting{};
+    std::vector<int> runtime_id;
+    std::array<bool, offer_count> offered{};
+    ToggleState toggle_state{ToggleState_Indeterminate};
+    ExpandCollapseState expand_state{ExpandCollapseState_LeafNode};
+    bool selected{};
+    std::string value;
+    double range_value{};
+    double range_minimum{};
+    double range_maximum{};
+    double small_change{};
+    double large_change{};
+    bool can_select_multiple{};
+    int row_count{};
+    int column_count{};
+    int row{-1};
+    int column{-1};
+};
+
+bool offered(const ElementReading& reading, Offered which) noexcept {
+    const bool is_offered = reading.offered[static_cast<std::size_t>(which)];
+    return is_offered;
+}
+
+// One VARIANT, cleared when the owner goes.
+class VariantOwner final {
+public:
+    VariantOwner() noexcept { VariantInit(&value_); }
+    ~VariantOwner() { VariantClear(&value_); }
+    VariantOwner(const VariantOwner&) = delete;
+    VariantOwner& operator=(const VariantOwner&) = delete;
+
+    [[nodiscard]] VARIANT* receive() noexcept {
+        VariantClear(&value_);
+        return &value_;
+    }
+    [[nodiscard]] const VARIANT& value() const noexcept { return value_; }
+
+private:
+    VARIANT value_{};
+};
+
+// Reads one cached property into `value`; a failed read leaves it VT_EMPTY.
+void cached_value(IUIAutomationElement& element, PROPERTYID property, VariantOwner& value) {
+    const HRESULT status = element.GetCachedPropertyValue(property, value.receive());
+    if (FAILED(status)) static_cast<void>(value.receive());
+}
+
+int cached_integer(IUIAutomationElement& element, PROPERTYID property) {
+    VariantOwner value;
+    cached_value(element, property, value);
+    const int result = value.value().vt == VT_I4 ? value.value().lVal : 0;
+    return result;
+}
+
+bool cached_boolean(IUIAutomationElement& element, PROPERTYID property) {
+    VariantOwner value;
+    cached_value(element, property, value);
+    const bool result = value.value().vt == VT_BOOL && value.value().boolVal == VARIANT_TRUE;
+    return result;
+}
+
+double cached_double(IUIAutomationElement& element, PROPERTYID property) {
+    VariantOwner value;
+    cached_value(element, property, value);
+    const double result = value.value().vt == VT_R8 ? value.value().dblVal : 0.0;
+    return result;
+}
+
+std::string cached_string(IUIAutomationElement& element, PROPERTYID property) {
+    VariantOwner value;
+    cached_value(element, property, value);
+    if (value.value().vt != VT_BSTR || value.value().bstrVal == nullptr) return std::string();
+    const BSTR text = value.value().bstrVal;
+    const UINT length = SysStringLen(text);
+    if (length == 0U) return std::string();
+    const int bytes = WideCharToMultiByte(CP_UTF8, 0, text, static_cast<int>(length), nullptr, 0, nullptr, nullptr);
+    if (bytes <= 0) throw std::runtime_error("a UI Automation string does not convert to UTF-8");
+    std::string result(static_cast<std::size_t>(bytes), '\0');
+    static_cast<void>(WideCharToMultiByte(CP_UTF8, 0, text, static_cast<int>(length), result.data(), bytes,
+                                          nullptr, nullptr));
+    return result;
+}
+
+// The cached runtime ID: a VT_ARRAY of VT_I4.
+std::vector<int> cached_runtime_id(IUIAutomationElement& element) {
+    std::vector<int> parts;
+    VariantOwner value;
+    cached_value(element, UIA_RuntimeIdPropertyId, value);
+    if (value.value().vt != (VT_ARRAY | VT_I4) || value.value().parray == nullptr) return parts;
+    SAFEARRAY* array = value.value().parray;
+    LONG lower = 0;
+    LONG upper = -1;
+    SafeArrayGetLBound(array, 1, &lower);
+    SafeArrayGetUBound(array, 1, &upper);
+    for (LONG index = lower; index <= upper; ++index) {
+        int part = 0;
+        SafeArrayGetElement(array, &index, &part);
+        parts.push_back(part);
+    }
+    return parts;
+}
+
+// Reads `element` live: each Current* property and pattern state is its
+// own call.
+void read_live(IUIAutomationElement& element, const ExpectedPatterns& patterns, ElementReading& reading) {
+    static_cast<void>(element.get_CurrentControlType(&reading.control_type));
+    BstrOwner name;
+    static_cast<void>(element.get_CurrentName(name.receive()));
+    reading.name = name.utf8();
+    BstrOwner id;
+    static_cast<void>(element.get_CurrentAutomationId(id.receive()));
+    reading.automation_id = id.utf8();
+    BstrOwner help;
+    static_cast<void>(element.get_CurrentHelpText(help.receive()));
+    reading.help_text = help.utf8();
+    BstrOwner framework;
+    static_cast<void>(element.get_CurrentFrameworkId(framework.receive()));
+    reading.framework = framework.wide();
+    reading.framework_name = framework.utf8();
+    BOOL enabled = FALSE;
+    BOOL focusable = FALSE;
+    BOOL focused = FALSE;
+    BOOL offscreen = TRUE;
+    static_cast<void>(element.get_CurrentIsEnabled(&enabled));
+    static_cast<void>(element.get_CurrentIsKeyboardFocusable(&focusable));
+    static_cast<void>(element.get_CurrentHasKeyboardFocus(&focused));
+    static_cast<void>(element.get_CurrentIsOffscreen(&offscreen));
+    reading.enabled = enabled == TRUE;
+    reading.focusable = focusable == TRUE;
+    reading.focused = focused == TRUE;
+    reading.offscreen = offscreen == TRUE;
+    static_cast<void>(element.get_CurrentBoundingRectangle(&reading.bounds));
+    reading.position_in_set = integer_property(element, UIA_PositionInSetPropertyId);
+    reading.size_of_set = integer_property(element, UIA_SizeOfSetPropertyId);
+    reading.level = integer_property(element, UIA_LevelPropertyId);
+    BstrOwner key;
+    static_cast<void>(element.get_CurrentAccessKey(key.receive()));
+    reading.access_key = key.utf8();
+    reading.dialog = boolean_property(element, UIA_IsDialogPropertyId);
+    reading.live_setting = integer_property(element, UIA_LiveSettingPropertyId);
+    reading.runtime_id = runtime_id(element);
+    for (std::size_t index = 0; index < offer_count; ++index) {
+        reading.offered[index] = offers(element, pattern_offers[index].pattern);
     }
     ComReference<IUIAutomationTogglePattern> toggle;
     if (patterns.toggle && element_pattern(element, UIA_TogglePatternId, toggle)) {
-        ToggleState state = ToggleState_Indeterminate;
-        static_cast<void>((*toggle.get()).get_CurrentToggleState(&state));
-        if (state != expected_toggle_state(node)) {
-            add_mismatch(walk, expected, "ToggleState",
-                         std::to_string(static_cast<int>(expected_toggle_state(node))),
-                         std::to_string(static_cast<int>(state)), matched);
-        }
+        static_cast<void>((*toggle.get()).get_CurrentToggleState(&reading.toggle_state));
     }
     ComReference<IUIAutomationExpandCollapsePattern> expand;
     if (patterns.expand_collapse && element_pattern(element, UIA_ExpandCollapsePatternId, expand)) {
-        ExpandCollapseState state = ExpandCollapseState_LeafNode;
-        static_cast<void>((*expand.get()).get_CurrentExpandCollapseState(&state));
-        if (state != expected_expand_state(node)) {
-            add_mismatch(walk, expected, "ExpandCollapseState",
-                         std::to_string(static_cast<int>(expected_expand_state(node))),
-                         std::to_string(static_cast<int>(state)), matched);
-        }
+        static_cast<void>((*expand.get()).get_CurrentExpandCollapseState(&reading.expand_state));
     }
     ComReference<IUIAutomationSelectionItemPattern> item;
     if (patterns.selection_item && element_pattern(element, UIA_SelectionItemPatternId, item)) {
         BOOL selected = FALSE;
         static_cast<void>((*item.get()).get_CurrentIsSelected(&selected));
-        if ((selected == TRUE) != expected_selected(node)) {
-            add_mismatch(walk, expected, "IsSelected", bool_text(expected_selected(node)),
-                         bool_text(selected == TRUE), matched);
-        }
+        reading.selected = selected == TRUE;
     }
     ComReference<IUIAutomationValuePattern> value;
     if (patterns.value && element_pattern(element, UIA_ValuePatternId, value)) {
         BstrOwner text;
         static_cast<void>((*value.get()).get_CurrentValue(text.receive()));
-        if (text.utf8() != node.value) {
-            add_mismatch(walk, expected, "Value", node.value, text.utf8(), matched);
-        }
-    }
-    ComReference<IUIAutomationTextPattern> text;
-    if (patterns.text && element_pattern(element, UIA_TextPatternId, text)) {
-        compare_text(walk, *text.get(), expected, matched);
+        reading.value = text.utf8();
     }
     ComReference<IUIAutomationRangeValuePattern> range;
     if (patterns.range_value && element_pattern(element, UIA_RangeValuePatternId, range)) {
-        double current = 0.0;
-        double minimum = 0.0;
-        double maximum = 0.0;
-        static_cast<void>((*range.get()).get_CurrentValue(&current));
-        static_cast<void>((*range.get()).get_CurrentMinimum(&minimum));
-        static_cast<void>((*range.get()).get_CurrentMaximum(&maximum));
-        const double wanted = *node.numeric_value;
-        const double wanted_minimum = node.minimum_value ? *node.minimum_value : wanted;
-        const double wanted_maximum = node.maximum_value ? *node.maximum_value : wanted;
-        if (current != wanted || minimum != wanted_minimum || maximum != wanted_maximum) {
-            add_mismatch(walk, expected, "RangeValue",
-                         std::to_string(wanted) + " in [" + std::to_string(wanted_minimum) + ", " +
-                             std::to_string(wanted_maximum) + "]",
-                         std::to_string(current) + " in [" + std::to_string(minimum) + ", " +
-                             std::to_string(maximum) + "]",
-                         matched);
-        }
-        // The steps (12.13); zero for a node that publishes none.
-        double small = 0.0;
-        double large = 0.0;
-        static_cast<void>((*range.get()).get_CurrentSmallChange(&small));
-        static_cast<void>((*range.get()).get_CurrentLargeChange(&large));
-        const double wanted_small = node.small_step.value_or(0.0);
-        const double wanted_large = node.large_step.value_or(0.0);
-        if (small != wanted_small || large != wanted_large) {
-            add_mismatch(walk, expected, "SmallChange/LargeChange",
-                         std::to_string(wanted_small) + "/" + std::to_string(wanted_large),
-                         std::to_string(small) + "/" + std::to_string(large), matched);
-        }
+        static_cast<void>((*range.get()).get_CurrentValue(&reading.range_value));
+        static_cast<void>((*range.get()).get_CurrentMinimum(&reading.range_minimum));
+        static_cast<void>((*range.get()).get_CurrentMaximum(&reading.range_maximum));
+        static_cast<void>((*range.get()).get_CurrentSmallChange(&reading.small_change));
+        static_cast<void>((*range.get()).get_CurrentLargeChange(&reading.large_change));
     }
     ComReference<IUIAutomationSelectionPattern> selection;
     if (patterns.selection && element_pattern(element, UIA_SelectionPatternId, selection)) {
         BOOL multiple = FALSE;
         static_cast<void>((*selection.get()).get_CurrentCanSelectMultiple(&multiple));
-        const bool wanted = has_semantic_state(node.states, SemanticState::multiselectable);
-        if ((multiple == TRUE) != wanted) {
-            add_mismatch(walk, expected, "CanSelectMultiple", bool_text(wanted), bool_text(multiple == TRUE),
-                         matched);
-        }
+        reading.can_select_multiple = multiple == TRUE;
     }
     ComReference<IUIAutomationGridPattern> grid;
     if (patterns.grid && element_pattern(element, UIA_GridPatternId, grid)) {
-        int rows = 0;
-        int columns = 0;
-        static_cast<void>((*grid.get()).get_CurrentRowCount(&rows));
-        static_cast<void>((*grid.get()).get_CurrentColumnCount(&columns));
-        const int wanted_rows = static_cast<int>(*node.row_count);
-        const int wanted_columns = static_cast<int>(*node.column_count);
-        if (rows != wanted_rows || columns != wanted_columns) {
-            add_mismatch(walk, expected, "RowCount/ColumnCount",
-                         std::to_string(wanted_rows) + "/" + std::to_string(wanted_columns),
-                         std::to_string(rows) + "/" + std::to_string(columns), matched);
-        }
+        static_cast<void>((*grid.get()).get_CurrentRowCount(&reading.row_count));
+        static_cast<void>((*grid.get()).get_CurrentColumnCount(&reading.column_count));
     }
     ComReference<IUIAutomationGridItemPattern> grid_item;
     if (patterns.grid_item && element_pattern(element, UIA_GridItemPatternId, grid_item)) {
-        int row = -1;
-        int column = -1;
-        static_cast<void>((*grid_item.get()).get_CurrentRow(&row));
-        static_cast<void>((*grid_item.get()).get_CurrentColumn(&column));
+        static_cast<void>((*grid_item.get()).get_CurrentRow(&reading.row));
+        static_cast<void>((*grid_item.get()).get_CurrentColumn(&reading.column));
+    }
+}
+
+// Reads `element` from its cache, which the page's one request filled with
+// cached_properties and the offers' properties.
+void read_cached(IUIAutomationElement& element, const ExpectedPatterns& patterns, ElementReading& reading) {
+    static_cast<void>(element.get_CachedControlType(&reading.control_type));
+    BstrOwner name;
+    static_cast<void>(element.get_CachedName(name.receive()));
+    reading.name = name.utf8();
+    BstrOwner id;
+    static_cast<void>(element.get_CachedAutomationId(id.receive()));
+    reading.automation_id = id.utf8();
+    BstrOwner help;
+    static_cast<void>(element.get_CachedHelpText(help.receive()));
+    reading.help_text = help.utf8();
+    BstrOwner framework;
+    static_cast<void>(element.get_CachedFrameworkId(framework.receive()));
+    reading.framework = framework.wide();
+    reading.framework_name = framework.utf8();
+    BOOL enabled = FALSE;
+    BOOL focusable = FALSE;
+    BOOL focused = FALSE;
+    BOOL offscreen = TRUE;
+    static_cast<void>(element.get_CachedIsEnabled(&enabled));
+    static_cast<void>(element.get_CachedIsKeyboardFocusable(&focusable));
+    static_cast<void>(element.get_CachedHasKeyboardFocus(&focused));
+    static_cast<void>(element.get_CachedIsOffscreen(&offscreen));
+    reading.enabled = enabled == TRUE;
+    reading.focusable = focusable == TRUE;
+    reading.focused = focused == TRUE;
+    reading.offscreen = offscreen == TRUE;
+    static_cast<void>(element.get_CachedBoundingRectangle(&reading.bounds));
+    reading.position_in_set = cached_integer(element, UIA_PositionInSetPropertyId);
+    reading.size_of_set = cached_integer(element, UIA_SizeOfSetPropertyId);
+    reading.level = cached_integer(element, UIA_LevelPropertyId);
+    BstrOwner key;
+    static_cast<void>(element.get_CachedAccessKey(key.receive()));
+    reading.access_key = key.utf8();
+    reading.dialog = cached_boolean(element, UIA_IsDialogPropertyId);
+    reading.live_setting = cached_integer(element, UIA_LiveSettingPropertyId);
+    reading.runtime_id = cached_runtime_id(element);
+    for (std::size_t index = 0; index < offer_count; ++index) {
+        reading.offered[index] = cached_boolean(element, pattern_offers[index].available);
+    }
+    if (patterns.toggle && offered(reading, Offered::toggle)) {
+        reading.toggle_state = static_cast<ToggleState>(cached_integer(element, UIA_ToggleToggleStatePropertyId));
+    }
+    if (patterns.expand_collapse && offered(reading, Offered::expand_collapse)) {
+        const int state = cached_integer(element, UIA_ExpandCollapseExpandCollapseStatePropertyId);
+        reading.expand_state = static_cast<ExpandCollapseState>(state);
+    }
+    if (patterns.selection_item && offered(reading, Offered::selection_item)) {
+        reading.selected = cached_boolean(element, UIA_SelectionItemIsSelectedPropertyId);
+    }
+    if (patterns.value && offered(reading, Offered::value)) {
+        reading.value = cached_string(element, UIA_ValueValuePropertyId);
+    }
+    if (patterns.range_value && offered(reading, Offered::range_value)) {
+        reading.range_value = cached_double(element, UIA_RangeValueValuePropertyId);
+        reading.range_minimum = cached_double(element, UIA_RangeValueMinimumPropertyId);
+        reading.range_maximum = cached_double(element, UIA_RangeValueMaximumPropertyId);
+        reading.small_change = cached_double(element, UIA_RangeValueSmallChangePropertyId);
+        reading.large_change = cached_double(element, UIA_RangeValueLargeChangePropertyId);
+    }
+    if (patterns.selection && offered(reading, Offered::selection)) {
+        reading.can_select_multiple = cached_boolean(element, UIA_SelectionCanSelectMultiplePropertyId);
+    }
+    if (patterns.grid && offered(reading, Offered::grid)) {
+        reading.row_count = cached_integer(element, UIA_GridRowCountPropertyId);
+        reading.column_count = cached_integer(element, UIA_GridColumnCountPropertyId);
+    }
+    if (patterns.grid_item && offered(reading, Offered::grid_item)) {
+        reading.row = cached_integer(element, UIA_GridItemRowPropertyId);
+        reading.column = cached_integer(element, UIA_GridItemColumnPropertyId);
+    }
+}
+
+// The cache request a cached page is read with: every property above, the
+// raw view, the whole subtree.
+ComReference<IUIAutomationCacheRequest> make_cache_request(IUIAutomation& automation) {
+    ComReference<IUIAutomationCacheRequest> request;
+    if (FAILED(automation.CreateCacheRequest(request.receive())) || request.get() == nullptr) {
+        throw std::runtime_error("UI Automation creates no cache request");
+    }
+    IUIAutomationCacheRequest& cache = *request.get();
+    for (const PROPERTYID property : cached_properties) static_cast<void>(cache.AddProperty(property));
+    for (const PatternOffer& offer : pattern_offers) static_cast<void>(cache.AddProperty(offer.available));
+    ComReference<IUIAutomationCondition> raw;
+    if (FAILED(automation.get_RawViewCondition(raw.receive())) || raw.get() == nullptr) {
+        throw std::runtime_error("UI Automation has no raw view condition");
+    }
+    if (FAILED(cache.put_TreeFilter(raw.get())) || FAILED(cache.put_TreeScope(TreeScope_Subtree))) {
+        throw std::runtime_error("the cache request does not take the raw view's subtree");
+    }
+    return request;
+}
+
+void compare_patterns(PageWalk& walk, IUIAutomationElement& element, const ElementReading& reading,
+                      const ExpectedNode& expected, bool& matched) {
+    const ExpectedPatterns& patterns = expected.patterns;
+    const SemanticNode& node = expected.node;
+    const std::array<bool, offer_count> wanted_offer = wanted_offers(patterns);
+    for (std::size_t index = 0; index < offer_count; ++index) {
+        if (reading.offered[index] != wanted_offer[index]) {
+            add_mismatch(walk, expected, pattern_offers[index].name, bool_text(wanted_offer[index]),
+                         bool_text(reading.offered[index]), matched);
+        }
+    }
+    if (patterns.toggle && offered(reading, Offered::toggle) &&
+        reading.toggle_state != expected_toggle_state(node)) {
+        add_mismatch(walk, expected, "ToggleState", std::to_string(static_cast<int>(expected_toggle_state(node))),
+                     std::to_string(static_cast<int>(reading.toggle_state)), matched);
+    }
+    if (patterns.expand_collapse && offered(reading, Offered::expand_collapse) &&
+        reading.expand_state != expected_expand_state(node)) {
+        add_mismatch(walk, expected, "ExpandCollapseState",
+                     std::to_string(static_cast<int>(expected_expand_state(node))),
+                     std::to_string(static_cast<int>(reading.expand_state)), matched);
+    }
+    if (patterns.selection_item && offered(reading, Offered::selection_item) &&
+        reading.selected != expected_selected(node)) {
+        add_mismatch(walk, expected, "IsSelected", bool_text(expected_selected(node)), bool_text(reading.selected),
+                     matched);
+    }
+    if (patterns.value && offered(reading, Offered::value) && reading.value != node.value) {
+        add_mismatch(walk, expected, "Value", node.value, reading.value, matched);
+    }
+    // TextPattern's ranges are always read live: they are objects, not
+    // properties a cache holds.
+    ComReference<IUIAutomationTextPattern> text;
+    if (patterns.text && offered(reading, Offered::text) && element_pattern(element, UIA_TextPatternId, text)) {
+        compare_text(walk, *text.get(), expected, matched);
+    }
+    if (patterns.range_value && offered(reading, Offered::range_value)) {
+        const double wanted = *node.numeric_value;
+        const double wanted_minimum = node.minimum_value ? *node.minimum_value : wanted;
+        const double wanted_maximum = node.maximum_value ? *node.maximum_value : wanted;
+        if (reading.range_value != wanted || reading.range_minimum != wanted_minimum ||
+            reading.range_maximum != wanted_maximum) {
+            add_mismatch(walk, expected, "RangeValue",
+                         std::to_string(wanted) + " in [" + std::to_string(wanted_minimum) + ", " +
+                             std::to_string(wanted_maximum) + "]",
+                         std::to_string(reading.range_value) + " in [" + std::to_string(reading.range_minimum) +
+                             ", " + std::to_string(reading.range_maximum) + "]",
+                         matched);
+        }
+        // The steps (12.13); zero for a node that publishes none.
+        const double wanted_small = node.small_step.value_or(0.0);
+        const double wanted_large = node.large_step.value_or(0.0);
+        if (reading.small_change != wanted_small || reading.large_change != wanted_large) {
+            add_mismatch(walk, expected, "SmallChange/LargeChange",
+                         std::to_string(wanted_small) + "/" + std::to_string(wanted_large),
+                         std::to_string(reading.small_change) + "/" + std::to_string(reading.large_change),
+                         matched);
+        }
+    }
+    if (patterns.selection && offered(reading, Offered::selection)) {
+        const bool wanted = has_semantic_state(node.states, SemanticState::multiselectable);
+        if (reading.can_select_multiple != wanted) {
+            add_mismatch(walk, expected, "CanSelectMultiple", bool_text(wanted),
+                         bool_text(reading.can_select_multiple), matched);
+        }
+    }
+    if (patterns.grid && offered(reading, Offered::grid)) {
+        const int wanted_rows = static_cast<int>(*node.row_count);
+        const int wanted_columns = static_cast<int>(*node.column_count);
+        if (reading.row_count != wanted_rows || reading.column_count != wanted_columns) {
+            add_mismatch(walk, expected, "RowCount/ColumnCount",
+                         std::to_string(wanted_rows) + "/" + std::to_string(wanted_columns),
+                         std::to_string(reading.row_count) + "/" + std::to_string(reading.column_count), matched);
+        }
+    }
+    if (patterns.grid_item && offered(reading, Offered::grid_item)) {
         // UI Automation counts from zero; the tree from one.
         const int wanted_row = static_cast<int>(*node.row_index) - 1;
         const int wanted_column = static_cast<int>(*node.column_index) - 1;
-        if (row != wanted_row || column != wanted_column) {
-            add_mismatch(walk, expected, "Row/Column",
-                         std::to_string(wanted_row) + "/" + std::to_string(wanted_column),
-                         std::to_string(row) + "/" + std::to_string(column), matched);
+        if (reading.row != wanted_row || reading.column != wanted_column) {
+            add_mismatch(walk, expected, "Row/Column", std::to_string(wanted_row) + "/" + std::to_string(wanted_column),
+                         std::to_string(reading.row) + "/" + std::to_string(reading.column), matched);
         }
     }
 }
 
 // The stage A properties (12.13): Level, AccessKey ("Alt+" and the
 // mnemonic), IsDialog and LiveSetting (polite for a live region).
-void compare_vocabulary_properties(PageWalk& walk, IUIAutomationElement& element, const ExpectedNode& expected,
+void compare_vocabulary_properties(PageWalk& walk, const ElementReading& reading, const ExpectedNode& expected,
                                    bool& matched) {
     const SemanticNode& node = expected.node;
-    const int level = integer_property(element, UIA_LevelPropertyId);
     const int wanted_level = node.level ? static_cast<int>(*node.level) : 0;
-    if (level != wanted_level) {
-        add_mismatch(walk, expected, "Level", std::to_string(wanted_level), std::to_string(level), matched);
+    if (reading.level != wanted_level) {
+        add_mismatch(walk, expected, "Level", std::to_string(wanted_level), std::to_string(reading.level), matched);
     }
-    BstrOwner key;
-    static_cast<void>(element.get_CurrentAccessKey(key.receive()));
     const std::string wanted_key = node.access_key.empty() ? std::string{} : "Alt+" + node.access_key;
-    if (key.utf8() != wanted_key) {
-        add_mismatch(walk, expected, "AccessKey", wanted_key, key.utf8(), matched);
+    if (reading.access_key != wanted_key) {
+        add_mismatch(walk, expected, "AccessKey", wanted_key, reading.access_key, matched);
     }
-    const bool dialog = boolean_property(element, UIA_IsDialogPropertyId);
     const bool wanted_dialog = node.role == SemanticRole::dialog;
-    if (dialog != wanted_dialog) {
-        add_mismatch(walk, expected, "IsDialog", bool_text(wanted_dialog), bool_text(dialog), matched);
+    if (reading.dialog != wanted_dialog) {
+        add_mismatch(walk, expected, "IsDialog", bool_text(wanted_dialog), bool_text(reading.dialog), matched);
     }
-    const int live = integer_property(element, UIA_LiveSettingPropertyId);
     const int wanted_live = node.role == SemanticRole::live_region ? static_cast<int>(Polite) : 0;
-    if (live != wanted_live) {
-        add_mismatch(walk, expected, "LiveSetting", std::to_string(wanted_live), std::to_string(live), matched);
+    if (reading.live_setting != wanted_live) {
+        add_mismatch(walk, expected, "LiveSetting", std::to_string(wanted_live),
+                     std::to_string(reading.live_setting), matched);
     }
 }
 
@@ -963,7 +1278,12 @@ void compare_controller(PageWalk& walk, IUIAutomationElement& element, const Exp
     // A hidden page's panel is not in the tree, and no relation is published.
     const bool present = !panel.empty() && holds_control(walk.expectation.client, panel);
     ComReference<IUIAutomationElementArray> controlled;
-    const HRESULT status = element.get_CurrentControllerFor(controlled.receive());
+    HRESULT status = S_OK;
+    if (walk.cached) {
+        status = element.get_CachedControllerFor(controlled.receive());
+    } else {
+        status = element.get_CurrentControllerFor(controlled.receive());
+    }
     int count = 0;
     if (SUCCEEDED(status) && controlled.get() != nullptr) {
         static_cast<void>((*controlled.get()).get_Length(&count));
@@ -1031,6 +1351,27 @@ void consider_candidate(PageWalk& walk, const ExpectedNode& expected) {
     walk.report.candidates[key] = std::move(candidate);
 }
 
+// The cached children of `element`, in order: on the window element only
+// the GUI.Forms ones (the host's non-client parts are the system's).
+std::vector<ElementReference> cached_children(IUIAutomationElement& element, bool window_level) {
+    std::vector<ElementReference> children;
+    ComReference<IUIAutomationElementArray> array;
+    if (FAILED(element.GetCachedChildren(array.receive())) || array.get() == nullptr) return children;
+    int length = 0;
+    static_cast<void>((*array.get()).get_Length(&length));
+    for (int index = 0; index < length; ++index) {
+        ElementReference child;
+        if (FAILED((*array.get()).GetElement(index, child.receive())) || child.get() == nullptr) continue;
+        if (window_level) {
+            BstrOwner framework;
+            const HRESULT read = (*child.get()).get_CachedFrameworkId(framework.receive());
+            if (FAILED(read) || framework.wide() != framework_id) continue;
+        }
+        children.push_back(std::move(child));
+    }
+    return children;
+}
+
 // Compares one element with its expected node, then descends. `window`
 // says that `element` is the window element, whose node is the client.
 void compare_element(PageWalk& walk, IUIAutomationElement& element, const ExpectedNode& expected,
@@ -1039,60 +1380,47 @@ void compare_element(PageWalk& walk, IUIAutomationElement& element, const Expect
     bool matched = true;
     const SemanticNode& node = expected.node;
     if (!window) {
-        CONTROLTYPEID type = 0;
-        static_cast<void>(element.get_CurrentControlType(&type));
+        ElementReading reading;
+        if (walk.cached) {
+            read_cached(element, expected.patterns, reading);
+        } else {
+            read_live(element, expected.patterns, reading);
+        }
         const CONTROLTYPEID wanted = expected_control_type(node.role);
-        if (type != wanted) {
+        if (reading.control_type != wanted) {
             add_mismatch(walk, expected, "ControlType", std::to_string(static_cast<int>(wanted)),
-                         std::to_string(static_cast<int>(type)), matched);
+                         std::to_string(static_cast<int>(reading.control_type)), matched);
         }
-        BstrOwner name;
-        static_cast<void>(element.get_CurrentName(name.receive()));
-        if (name.utf8() != node.name) add_mismatch(walk, expected, "Name", node.name, name.utf8(), matched);
-        BstrOwner id;
-        static_cast<void>(element.get_CurrentAutomationId(id.receive()));
-        if (id.utf8() != node.stable_id) {
-            add_mismatch(walk, expected, "AutomationId", node.stable_id, id.utf8(), matched);
+        if (reading.name != node.name) add_mismatch(walk, expected, "Name", node.name, reading.name, matched);
+        if (reading.automation_id != node.stable_id) {
+            add_mismatch(walk, expected, "AutomationId", node.stable_id, reading.automation_id, matched);
         }
-        BstrOwner help;
-        static_cast<void>(element.get_CurrentHelpText(help.receive()));
-        if (help.utf8() != node.description) {
-            add_mismatch(walk, expected, "HelpText", node.description, help.utf8(), matched);
+        if (reading.help_text != node.description) {
+            add_mismatch(walk, expected, "HelpText", node.description, reading.help_text, matched);
         }
-        BstrOwner framework;
-        static_cast<void>(element.get_CurrentFrameworkId(framework.receive()));
-        if (framework.wide() != framework_id) {
-            add_mismatch(walk, expected, "FrameworkId", "GUI.Forms", framework.utf8(), matched);
+        if (reading.framework != framework_id) {
+            add_mismatch(walk, expected, "FrameworkId", "GUI.Forms", reading.framework_name, matched);
         }
-        BOOL enabled = FALSE;
-        BOOL focusable = FALSE;
-        BOOL focused = FALSE;
-        BOOL offscreen = TRUE;
-        static_cast<void>(element.get_CurrentIsEnabled(&enabled));
-        static_cast<void>(element.get_CurrentIsKeyboardFocusable(&focusable));
-        static_cast<void>(element.get_CurrentHasKeyboardFocus(&focused));
-        static_cast<void>(element.get_CurrentIsOffscreen(&offscreen));
         const bool wanted_enabled = has_semantic_state(node.states, SemanticState::enabled);
         const bool wanted_focusable = has_semantic_state(node.states, SemanticState::focusable);
         const bool wanted_focused = has_semantic_state(node.states, SemanticState::focused);
         const bool wanted_offscreen = !has_semantic_state(node.states, SemanticState::visible);
-        if ((enabled == TRUE) != wanted_enabled) {
-            add_mismatch(walk, expected, "IsEnabled", bool_text(wanted_enabled), bool_text(enabled == TRUE), matched);
+        if (reading.enabled != wanted_enabled) {
+            add_mismatch(walk, expected, "IsEnabled", bool_text(wanted_enabled), bool_text(reading.enabled), matched);
         }
-        if ((focusable == TRUE) != wanted_focusable) {
+        if (reading.focusable != wanted_focusable) {
             add_mismatch(walk, expected, "IsKeyboardFocusable", bool_text(wanted_focusable),
-                         bool_text(focusable == TRUE), matched);
+                         bool_text(reading.focusable), matched);
         }
-        if ((focused == TRUE) != wanted_focused) {
-            add_mismatch(walk, expected, "HasKeyboardFocus", bool_text(wanted_focused), bool_text(focused == TRUE),
+        if (reading.focused != wanted_focused) {
+            add_mismatch(walk, expected, "HasKeyboardFocus", bool_text(wanted_focused), bool_text(reading.focused),
                          matched);
         }
-        if ((offscreen == TRUE) != wanted_offscreen) {
-            add_mismatch(walk, expected, "IsOffscreen", bool_text(wanted_offscreen), bool_text(offscreen == TRUE),
+        if (reading.offscreen != wanted_offscreen) {
+            add_mismatch(walk, expected, "IsOffscreen", bool_text(wanted_offscreen), bool_text(reading.offscreen),
                          matched);
         }
-        RECT bounds{};
-        static_cast<void>(element.get_CurrentBoundingRectangle(&bounds));
+        const RECT& bounds = reading.bounds;
         const double scale = walk.expectation.scale;
         LONG left = walk.expectation.origin.x + device_coordinate(node.bounds.x, scale);
         LONG top = walk.expectation.origin.y + device_coordinate(node.bounds.y, scale);
@@ -1114,8 +1442,8 @@ void compare_element(PageWalk& walk, IUIAutomationElement& element, const Expect
                                    bounds.bottom - bounds.top),
                          matched);
         }
-        const int position = integer_property(element, UIA_PositionInSetPropertyId);
-        const int size = integer_property(element, UIA_SizeOfSetPropertyId);
+        const int position = reading.position_in_set;
+        const int size = reading.size_of_set;
         const bool positioned = node.position_in_set.has_value() && node.set_size.has_value();
         const int wanted_position = positioned ? static_cast<int>(*node.position_in_set) : 0;
         const int wanted_size = positioned ? static_cast<int>(*node.set_size) : 0;
@@ -1127,10 +1455,10 @@ void compare_element(PageWalk& walk, IUIAutomationElement& element, const Expect
                          std::to_string(wanted_position) + "/" + std::to_string(wanted_size),
                          std::to_string(position) + "/" + std::to_string(size), matched);
         }
-        compare_patterns(walk, element, expected, matched);
-        compare_vocabulary_properties(walk, element, expected, matched);
+        compare_patterns(walk, element, reading, expected, matched);
+        compare_vocabulary_properties(walk, reading, expected, matched);
         if (node.role == SemanticRole::tab) compare_controller(walk, element, expected, matched);
-        const std::vector<int> identity = runtime_id(element);
+        const std::vector<int>& identity = reading.runtime_id;
         if (identity.empty() || !walk.runtime_ids.insert(identity).second) {
             add_mismatch(walk, expected, "RuntimeId", "unique", identity.empty() ? "none" : "repeated",
                          matched);
@@ -1148,8 +1476,14 @@ void compare_element(PageWalk& walk, IUIAutomationElement& element, const Expect
         }
         consider_candidate(walk, expected);
     }
-    const std::vector<ElementReference> children = element_children(walk, element, window, nullptr);
+    std::vector<ElementReference> children;
+    if (walk.cached) {
+        children = cached_children(element, window);
+    } else {
+        children = element_children(walk, element, window, nullptr);
+    }
     if (children.size() != expected.children.size()) {
+        // The trace walks again live, whichever way the page was read.
         std::string trace;
         static_cast<void>(element_children(walk, element, window, &trace));
         std::string wanted = std::to_string(expected.children.size()) + ":";
@@ -1161,7 +1495,9 @@ void compare_element(PageWalk& walk, IUIAutomationElement& element, const Expect
     const std::size_t walked = std::min(children.size(), expected.children.size());
     for (std::size_t index = 0; index < walked; ++index) {
         IUIAutomationElement& child = *children[index].get();
-        // The parent link leads back to this element.
+        // The parent link leads back to this element. It is read live on
+        // every page: a cache holds the walk's own structure, not the
+        // provider's parent navigation.
         ElementReference parent;
         BOOL same = FALSE;
         const HRESULT read = walk.walker.GetParentElement(&child, parent.receive());
@@ -1606,14 +1942,25 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
 }
 
 // Compares one page: the UI thread shows it and builds the expectation,
-// then the client walks the window element.
+// then the client walks the window element, live on live_page and from one
+// cache request (the whole raw subtree) on every other.
 void compare_page(ClientRun& run, IUIAutomation& automation, IUIAutomationTreeWalker& walker,
-                  IUIAutomationElement& window_element, std::string_view page) {
+                  IUIAutomationCacheRequest& cache_request, IUIAutomationElement& window_element,
+                  std::string_view page) {
     PageExpectation expectation;
     on_ui_thread(run.dispatcher, std::function<void()>(PreparePage{run.window, run.hwnd, page, &expectation, true}));
     if (!expectation.shown) throw std::runtime_error("a Gallery page cannot be selected: " + std::string(page));
-    PageWalk walk{automation, walker, *run.report, page, expectation, {}};
-    compare_element(walk, window_element, expectation.client, true);
+    const bool cached = page != live_page;
+    ElementReference cached_window;
+    if (cached) {
+        const HRESULT built = window_element.BuildUpdatedCache(&cache_request, cached_window.receive());
+        if (FAILED(built) || cached_window.get() == nullptr) {
+            throw std::runtime_error("the page " + std::string(page) + " is not cached: " + hresult_text(built));
+        }
+    }
+    IUIAutomationElement& root = cached ? *cached_window.get() : window_element;
+    PageWalk walk{automation, walker, *run.report, page, expectation, {}, cached};
+    compare_element(walk, root, expectation.client, true);
     ++(*run.report).pages;
 }
 
@@ -1670,6 +2017,27 @@ void check_stale_element(ClientRun& run, IUIAutomationTreeWalker& walker,
     }
 }
 
+// The candidates acted on in one window: the Gallery's in Gallery page
+// order (`window_kind` empty), or the off-tree fixture's. Within a page, in
+// key order.
+void append_page_jobs(const Report& report, std::string_view page, std::vector<ActionJob>& jobs) {
+    for (const std::pair<const std::string, ActionCandidate>& entry : report.candidates) {
+        if (entry.second.page == page) jobs.push_back(ActionJob{&entry.first, &entry.second});
+    }
+}
+
+std::vector<ActionJob> window_jobs(const Report& report, std::string_view window_kind) {
+    std::vector<ActionJob> jobs;
+    if (window_kind == off_tree_page) {
+        append_page_jobs(report, off_tree_page, jobs);
+        return jobs;
+    }
+    for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
+        append_page_jobs(report, page.id, jobs);
+    }
+    return jobs;
+}
+
 void run_client(ClientRun& run) {
     ComReference<IUIAutomation> automation;
     const HRESULT created = CoCreateInstance(CLSID_CUIAutomation, nullptr, CLSCTX_INPROC_SERVER,
@@ -1697,14 +2065,19 @@ void run_client(ClientRun& run) {
         for (const ActionJob& job : *run.jobs) perform_job(run, *walker.get(), *window_element.get(), job);
         return;
     }
+    const ComReference<IUIAutomationCacheRequest> cache_request = make_cache_request(*automation.get());
+    IUIAutomationCacheRequest& cache = *cache_request.get();
     if (run.window_kind == off_tree_page) {
-        compare_page(run, *automation.get(), *walker.get(), *window_element.get(), off_tree_page);
-        return;
+        compare_page(run, *automation.get(), *walker.get(), cache, *window_element.get(), off_tree_page);
+    } else {
+        for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
+            compare_page(run, *automation.get(), *walker.get(), cache, *window_element.get(), page.id);
+        }
+        check_stale_element(run, *walker.get(), *window_element.get());
     }
-    for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
-        compare_page(run, *automation.get(), *walker.get(), *window_element.get(), page.id);
-    }
-    check_stale_element(run, *walker.get(), *window_element.get());
+    // The comparison found the candidates; this window performs them.
+    const std::vector<ActionJob> jobs = window_jobs(*run.report, run.window_kind);
+    for (const ActionJob& job : jobs) perform_job(run, *walker.get(), *window_element.get(), job);
 }
 
 struct CloseWindow final {
@@ -1818,31 +2191,26 @@ void run_window(Report& report, std::string_view window_kind, const std::vector<
     if (!report.completed) throw std::runtime_error("the client did not complete");
 }
 
-// Performs every candidate of `page` in one fresh window; one whose change
-// was not seen runs again alone in a fresh window, and that result stands
-// (A-W1's rule: an earlier action's effects can hide a later one's).
-void perform_page_actions(Report& report, std::string_view page) {
-    std::vector<ActionJob> jobs;
-    for (const std::pair<const std::string, ActionCandidate>& entry : report.candidates) {
-        if (entry.second.page != page) continue;
-        jobs.push_back(ActionJob{&entry.first, &entry.second});
-    }
-    if (jobs.empty()) return;
-    std::string_view window_kind;
-    if (page == off_tree_page) window_kind = off_tree_page;
+// Runs one window of `window_kind`, which compares its pages and then
+// performs its candidates page by page; one whose change was not seen runs
+// again alone in a fresh window, and that result stands (A-W1's rule: an
+// earlier action's effects can hide a later one's).
+void run_window_kind(Report& report, std::string_view window_kind) {
     const std::size_t first = report.actions.size();
-    run_window(report, window_kind, &jobs);
+    run_window(report, window_kind, nullptr);
+    const std::vector<ActionJob> jobs = window_jobs(report, window_kind);
     for (std::size_t index = 0; index < jobs.size(); ++index) {
         if (report.actions[first + index].outcome == ActionOutcome::changed) continue;
         const ActionResult& batched = report.actions[first + index];
         std::string first_try = std::string(outcome_name(batched.outcome));
         if (!batched.evidence.empty()) first_try += ", " + batched.evidence;
         const std::vector<ActionJob> alone{jobs[index]};
+        ++report.reruns;
         run_window(report, window_kind, &alone);
         ActionResult isolated = std::move(report.actions.back());
         report.actions.pop_back();
         if (!isolated.evidence.empty()) isolated.evidence += "; ";
-        isolated.evidence += "alone in a fresh window, after \"" + first_try + "\" in the page's window";
+        isolated.evidence += "alone in a fresh window, after \"" + first_try + "\" in the shared window";
         report.actions[first + index] = std::move(isolated);
     }
 }
@@ -1856,7 +2224,8 @@ void print_report(const Report& report) {
         std::cout << "| " << entry.first << " | " << tally.own_nodes << " | " << tally.item_nodes << " | "
                   << tally.matched << " | " << tally.mismatched << " |\n";
     }
-    std::cout << "default actions (" << report.actions.size() << "):\n";
+    std::cout << "default actions (" << report.actions.size() << ", " << report.reruns
+              << " run again alone in a fresh window):\n";
     for (const ActionResult& action : report.actions) {
         std::cout << "  " << action.key << " [" << action.page << " " << action.stable_id << "] " << action.call
                   << ": " << outcome_name(action.outcome);
@@ -1876,12 +2245,8 @@ void print_report(const Report& report) {
 int main() {
     try {
         Report report;
-        run_window(report, std::string_view(), nullptr);
-        run_window(report, off_tree_page, nullptr);
-        for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
-            perform_page_actions(report, page.id);
-        }
-        perform_page_actions(report, off_tree_page);
+        run_window_kind(report, std::string_view());
+        run_window_kind(report, off_tree_page);
         print_report(report);
         std::size_t failed_actions = 0;
         for (const ActionResult& action : report.actions) {

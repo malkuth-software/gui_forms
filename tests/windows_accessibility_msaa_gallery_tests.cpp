@@ -10,8 +10,9 @@
 // placement (a control's own node, an item of a control, an item with no
 // control above it) through accDoDefaultAction (or, for a node whose only
 // action is focus, accSelect with SELFLAG_TAKEFOCUS) and observes the
-// resulting change in the semantic tree, in a fresh window per page; the
-// adapter's path depends only on those three. Which node every registry
+// resulting change in the semantic tree, in the window that compared the
+// pages (one whose change is not seen runs again alone in a fresh window);
+// the adapter's path depends only on those three. Which node every registry
 // control publishes and each control type's default action are checked
 // headless by semantic_gallery_tests.cpp.
 //
@@ -473,6 +474,9 @@ struct Report final {
     // A retained object of a control that is gone once the window closes.
     AccessibleReference retained;
     std::string failure;
+    // Actions run again alone in a fresh window after their change was not
+    // seen in the shared one.
+    std::size_t reruns{};
     bool completed{};
 };
 
@@ -1052,7 +1056,8 @@ void print_report(const Report& report) {
         std::cout << "| " << entry.first << " | " << tally.own_nodes << " | " << tally.item_nodes
                   << " | " << tally.matched << " | " << tally.mismatched << " |\n";
     }
-    std::cout << "default actions (" << report.actions.size() << "):\n";
+    std::cout << "default actions (" << report.actions.size() << ", " << report.reruns
+              << " run again alone in a fresh window):\n";
     for (const ActionResult& action : report.actions) {
         std::cout << "  " << action.key << " [" << action.page << " " << action.stable_id
                   << "] " << action.verb << ": " << outcome_name(action.outcome);
@@ -1118,10 +1123,32 @@ struct ActionJob final {
     const ActionCandidate* candidate;
 };
 
+// The candidates acted on in one window: the Gallery's in Gallery page
+// order (`window_kind` empty), or the off-tree fixture's. Within a page, in
+// key order.
+void append_page_jobs(const Report& report, std::string_view page, std::vector<ActionJob>& jobs) {
+    for (const std::pair<const std::string, ActionCandidate>& entry : report.candidates) {
+        if (entry.second.page == page) jobs.push_back(ActionJob{&entry.first, &entry.second});
+    }
+}
+
+std::vector<ActionJob> window_jobs(const Report& report, std::string_view window_kind) {
+    std::vector<ActionJob> jobs;
+    if (window_kind == off_tree_page) {
+        append_page_jobs(report, off_tree_page, jobs);
+        return jobs;
+    }
+    for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
+        append_page_jobs(report, page.id, jobs);
+    }
+    return jobs;
+}
+
 // Runs the client once the host has attached the Gallery and its
 // accessibility publisher, on the UI thread, then asks the host to close.
-// Without jobs it compares every page; with them, it performs each job's
-// action in turn in this fresh window, appending one result per job.
+// Without jobs it compares every page, then performs the candidates the
+// comparison found; with them, it performs only each job's action in turn
+// in this fresh window. Either way it appends one result per action.
 struct HostReady final {
     Report* report;
     Window* window;
@@ -1131,6 +1158,7 @@ struct HostReady final {
 
     void run(Window& window) const;
     void compare_pages(Window& window, HWND hwnd, double scale, POINT origin) const;
+    void retain_object(Window& window, HWND hwnd) const;
     void compare_page(Window& window, HWND hwnd, double scale, POINT origin,
                       std::string_view page) const;
 
@@ -1156,11 +1184,15 @@ void HostReady::run(Window& window) const {
     const double scale = dpi == 0U ? 1.0 : std::max(1.0, dpi / 96.0);
     POINT origin{};
     ClientToScreen(hwnd, &origin);
+    const std::vector<ActionJob>* acted = jobs;
+    std::vector<ActionJob> found;
     if (jobs == nullptr) {
         compare_pages(window, hwnd, scale, origin);
-        return;
+        // The comparison found the candidates; this window performs them.
+        found = window_jobs(*report, window_kind);
+        acted = &found;
     }
-    for (const ActionJob& job : *jobs) {
+    for (const ActionJob& job : *acted) {
         const ActionCandidate& candidate = *job.candidate;
         if (!show_page(window, candidate.page)) {
             throw std::runtime_error("a Gallery page cannot be selected: " + candidate.page);
@@ -1168,6 +1200,7 @@ void HostReady::run(Window& window) const {
         window.perform_layout();
         (*report).actions.push_back(perform_candidate(window, hwnd, *job.key, candidate));
     }
+    if (jobs == nullptr && window_kind != off_tree_page) retain_object(window, hwnd);
 }
 
 void HostReady::compare_page(Window& window, HWND hwnd, double scale, POINT origin,
@@ -1193,7 +1226,10 @@ void HostReady::compare_pages(Window& window, HWND hwnd, double scale, POINT ori
     for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
         compare_page(window, hwnd, scale, origin, page.id);
     }
-    // Keep one object whose control dies with the window.
+}
+
+// Keeps one object whose control dies with the window.
+void HostReady::retain_object(Window& window, HWND hwnd) const {
     gallery::select_gallery_page(window, gallery::gallery_pages[0].id);
     window.perform_layout();
     AccessibleReference root = window_root(hwnd);
@@ -1227,24 +1263,18 @@ void run_gallery(Report& report, std::string_view window_kind,
     if (!report.completed) throw std::runtime_error("the client did not complete");
 }
 
-// Performs every candidate of `page` in one fresh window. An action whose
-// change was not seen may have met an earlier action's effects (a closed
-// panel, a popup still open); it runs again alone in a fresh window, and
-// that result stands.
-void perform_page_actions(Report& report, std::string_view page) {
-    std::vector<ActionJob> jobs;
-    for (const std::pair<const std::string, ActionCandidate>& entry : report.candidates) {
-        if (entry.second.page != page) continue;
-        jobs.push_back(ActionJob{&entry.first, &entry.second});
-    }
-    if (jobs.empty()) return;
-    std::string_view window_kind;
-    if (page == off_tree_page) window_kind = off_tree_page;
+// Runs one window of `window_kind`, which compares its pages and then
+// performs its candidates page by page. An action whose change was not seen
+// may have met an earlier action's effects (a closed panel, a popup still
+// open); it runs again alone in a fresh window, and that result stands.
+void run_window_kind(Report& report, std::string_view window_kind) {
     const std::size_t first = report.actions.size();
-    run_gallery(report, window_kind, &jobs);
+    run_gallery(report, window_kind, nullptr);
+    const std::vector<ActionJob> jobs = window_jobs(report, window_kind);
     for (std::size_t index = 0; index < jobs.size(); ++index) {
         if (report.actions[first + index].outcome == ActionOutcome::changed) continue;
         const std::vector<ActionJob> alone{jobs[index]};
+        ++report.reruns;
         run_gallery(report, window_kind, &alone);
         ActionResult isolated = std::move(report.actions.back());
         report.actions.pop_back();
@@ -1259,14 +1289,8 @@ void perform_page_actions(Report& report, std::string_view page) {
 int main() {
     try {
         Report report;
-        run_gallery(report, std::string_view(), nullptr);
-        run_gallery(report, off_tree_page, nullptr);
-        // One fresh window per page's actions, in Gallery page order, then
-        // the off-tree fixture's.
-        for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
-            perform_page_actions(report, page.id);
-        }
-        perform_page_actions(report, off_tree_page);
+        run_window_kind(report, std::string_view());
+        run_window_kind(report, off_tree_page);
         print_report(report);
         // After the window is gone a retained object is disconnected.
         if (report.retained.get() == nullptr) throw std::runtime_error("no object was retained");
