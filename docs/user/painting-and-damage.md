@@ -137,6 +137,26 @@ what lies beneath. On macOS a live-only redraw can omit retained painting
 entirely when the existing raster is valid and opaque clips cover every
 damaged device pixel. Presents copy that format to the screen as it is.
 
+## Sub-surfaces
+
+A `SubSurfaceHost` puts a control subtree on a thread of its own. The host
+hands its `SubSurfaceContent` to a `SubSurfaceThread`, which builds the tree
+there in a `SubSurface` (a surface root like the window, with its own dirty
+structure, layout, paint and dispatcher) and publishes each paint into a
+live surface the window composes over the host's region. The window's tree
+sees only the host: the sub-surface's paints never damage it.
+
+The sub-surface is sized in device pixels (the region's size times the
+window scale, rounded outward), so the window copies its frames and never
+scales them. It produces nothing before the first size, and each change of
+device size or scale opens a new content epoch: the host sends a new
+`SubSurfaceConfiguration`, asks the window to pair the region with a frame of
+that epoch, and schedules a present itself. Configurations coalesce (the
+newest wins). Work for the sub-surface is posted through
+`SubSurfaceHost::dispatcher`; its controls see no `Window`. When the host
+leaves its window the thread is stopped and joined, and the tree is released
+on its own thread.
+
 ## Reading the counters
 
 `MetricsSnapshot` carries `paint_passes`, `controls_painted`,

@@ -903,9 +903,27 @@ protected:
     // Not virtual: a root is destroyed as what it is, never through this
     // base. The owner's destructor detaches the tree first.
     ~SurfaceRoot();
+    // The surface side of a resize (Window::resize, SubSurface::apply_size):
+    // validates the size (std::invalid_argument when negative, changing
+    // nothing), then stores it, opens a new surface epoch and damages and
+    // marks what it touched. False, changing nothing, for the same size.
+    // Root thread; the caller checks it.
+    bool resize_surface(Size client_size);
+    // The surface side of a scale change (Window::set_scale,
+    // SubSurface::apply_scale): validates it (std::invalid_argument unless
+    // finite and positive), then stores it, opens a new surface epoch and
+    // marks the whole tree. False, changing nothing, for the same scale.
+    bool set_surface_scale(double scale);
+    // The owner's teardown of the tree, on the root's thread: stops paint
+    // and host wakes, tells the controls everything (popups, accelerators,
+    // focus scopes, the motion clock and frame requests go; the tree is
+    // detached) while the dispatcher still accepts their posts, then shuts
+    // the dispatcher down, cancelling what they posted.
+    void release_tree() noexcept;
 
 private:
     friend class Window;
+    friend class SubSurface;
     friend class SurfaceRoot;
     // std::logic_error naming `operation`, counted as a wrong-thread
     // rejection, off the root's thread.
@@ -1275,7 +1293,7 @@ private:
     // Marks for measure the controls a client-size change reaches (see
     // Window::resize): `control`, and below it each child whose parent
     // requests no extent on a changed axis.
-    // The surface side of a client resize, called by Window::resize: damages
+    // The surface side of a client resize, called by resize_surface: damages
     // the exposed strips and edge bands (or the whole window when its base
     // depends on its size), marks the root's layout slot and the measure the
     // new size reaches.

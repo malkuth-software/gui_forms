@@ -89,7 +89,7 @@ Types
    * - :cpp:class:`OklchGamutMapping <gui_drawing::OklchGamutMapping>`
      - OklchGamutMapping preserves requested and deterministic 24-iteration chroma-reduced OKLCH plus its committed sRGB conversion.
    * - :cpp:class:`PaintFramebuffer <gui_forms::PaintFramebuffer>`
-     - UI-thread-owned offscreen instance of the host's renderer.
+     - Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer).
    * - :cpp:class:`PathElement <gui_drawing::PathElement>`
      - PathElement is the closed storage record for one retained figure/path verb and its relevant points, bounds, and angles.
    * - :cpp:class:`PathGradientBrush <gui_drawing::PathGradientBrush>`
@@ -1556,7 +1556,7 @@ Types
 
    ``#include <gui_forms/paint_framebuffer.hpp>``
 
-   UI-thread-owned offscreen instance of the host's renderer. Pixels are premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in memory order, the one format of every surface and raster. The buffer survives begin/end; callers may restore cached pixels before drawing damage. A painter and pixel span are borrowed only for this object's lifetime.
+   Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer). One thread uses it at a time: the maker, or the one it hands it to whole, which then alone uses and destroys it (a sub-surface's thread, SubSurfaceConfiguration). Pixels are premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in memory order, the one format of every surface and raster. The buffer survives begin/end; callers may restore cached pixels before drawing damage. A painter and pixel span are borrowed only for this object's lifetime.
 
 
    .. rubric:: Extension points

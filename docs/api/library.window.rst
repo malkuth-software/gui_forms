@@ -98,6 +98,18 @@ Related types
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`SubSurface <gui_forms::SubSurface>`
+     - A SurfaceRoot whose output is a LiveSurface and whose host is a control of its parent window (design note section 2).
+   * - :cpp:class:`SubSurfaceConfiguration <gui_forms::SubSurfaceConfiguration>`
+     - The state both sides agree on in one visible frame (design note section 6), sent by the parent with each content epoch.
+   * - :cpp:class:`SubSurfaceContent <gui_forms::SubSurfaceContent>`
+     - What a sub-surface shows (stage S2, threaded sub-surfaces design note section 2).
+   * - :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>`
+     - The parent's control for one threaded sub-surface (stage S2, design note section 2): it occupies the region, owns the sub-surface's thread, sizes and reconfigures it, and composes its LiveSurface into the window.
+   * - :cpp:class:`SubSurfaceStatistics <gui_forms::SubSurfaceStatistics>`
+     - Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
+   * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
+     - The parent's side of one sub-surface: owns its thread (owner decision 9, the library's thread) and the channel the two sides share.
    * - :cpp:class:`SystemColourHints <gui_forms::SystemColourHints>`
      - The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour.
    * - :cpp:class:`ThemeFallback <gui_forms::ThemeFallback>`
@@ -883,6 +895,216 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: SubSurface final : public SurfaceRoot
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   A SurfaceRoot whose output is a LiveSurface and whose host is a control of its parent window (design note section 2). Made, run and destroyed by a SubSurfaceThread on the thread it owns; every member is that thread's (SurfaceRoot::check_access). Controls inside see window() null.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> resources)
+
+      Binds the root to the calling thread and attaches ``root``, which must be alive and without a parent (std::invalid_argument or std::logic_error otherwise). ``resources`` must be made on this thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void apply_size(Size logical_size)
+
+      The agreed size and scale of a configuration: the surface side of Window::resize and Window::set_scale. Root thread only.
+
+   .. cpp:function:: void apply_scale(double scale)
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SubSurfaceConfiguration final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   The state both sides agree on in one visible frame (design note section 6), sent by the parent with each content epoch. Move-only: the framebuffer goes with it.
+
+   .. cpp:member:: std::uint64_t content_epoch
+
+      Grows with every configuration the parent sends; each frame the sub-surface publishes at this configuration carries it as its LiveSurface content tag.
+
+   .. cpp:member:: Size logical_size
+
+      The region's logical size and the window scale.
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::uint32_t pixel_width
+
+      The device size: ceil(logical_size * scale) on each axis, the size of the framebuffer and of the LiveSurface (resize rule 2: composition is a copy, never a scale).
+
+   .. cpp:member:: std::uint32_t pixel_height
+
+   .. cpp:member:: bool opaque
+
+      Every pixel the sub-surface publishes has alpha 255.
+
+   .. cpp:member:: std::unique_ptr<PaintFramebuffer> framebuffer
+
+      Made by the parent on its own thread (SurfaceRoot::create_framebuffer) at the device size, and owned from then on by the sub-surface's thread, which alone uses and destroys it. Null keeps the previous framebuffer; a sub-surface without one lays out but publishes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceContent
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   What a sub-surface shows (stage S2, threaded sub-surfaces design note section 2). The parent hands one to a SubSurfaceThread, which moves it to the sub-surface's thread; it is called and destroyed there, so the controls it makes are created on, owned by and released on that thread.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual Control::Ptr build_root() = 0
+
+      Called once, on the sub-surface's thread, before the first configuration is applied: the root control of the sub-surface's tree, made on that thread. A null root or an exception stops the sub-surface as failed (SubSurfaceState::failed).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceHost final : public Control
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
+
+   The parent's control for one threaded sub-surface (stage S2, design note section 2): it occupies the region, owns the sub-surface's thread, sizes and reconfigures it, and composes its LiveSurface into the window. On the window's dirty structure it is one control; the sub-surface's frames never mark the window's tree. UI thread, like every control of its window. Life: the content starts on its own thread the first time the host is attached to a Window with a non-empty size (nothing is produced before the first agreed size, resize rule 5), and stops when the host leaves the window: the thread releases the content and is joined. A host that is attached again shows nothing until it is given content again.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit SubSurfaceHost(StableId stable_id)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool opaque() const noexcept
+
+   .. cpp:function:: bool started() const noexcept
+
+      Whether the sub-surface's thread exists (started and not stopped).
+
+   .. cpp:function:: SubSurfaceState state() const
+
+      The thread's state; stopped while there is none.
+
+   .. cpp:function:: SubSurfaceStatistics statistics() const
+
+   .. cpp:function:: WindowDispatcher dispatcher() const
+
+      Posts to the sub-surface's thread (SubSurfaceThread::dispatcher); empty while it is not running.
+
+   .. cpp:function:: std::uint64_t content_epoch() const noexcept
+
+      The content epoch of the newest configuration sent (design note section 6); zero before the first.
+
+   .. cpp:function:: std::shared_ptr<LiveSurface> live_surface() const noexcept
+
+      The surface the sub-surface publishes into; null before it started.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque)
+
+      The content to show and whether it covers its whole region with opaque pixels (the window then copies its frames instead of blending, resize rule 2). A running sub-surface is stopped and joined first. Null content stops it and leaves the region empty.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: void arrange(Rect final_bounds) override
+
+      Arranges as any control, then reconfigures the sub-surface when its device size or scale changed.
+
+   .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
+
+      Composes the newest frame into the region (Painter::draw_live_surface).
+
+   .. cpp:function:: void on_attached_to_window() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_detaching_from_window(SurfaceRoot& former_window) noexcept override
+
+      *Protected.*
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SubSurfaceStatistics final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
+
+   .. cpp:member:: std::uint64_t configurations_received
+
+   .. cpp:member:: std::uint64_t configurations_coalesced
+
+      Configurations replaced by a newer one before the thread applied them (newest wins: resize rule 3).
+
+   .. cpp:member:: std::uint64_t configurations_applied
+
+   .. cpp:member:: std::uint64_t surface_reconfigures
+
+      LiveSurface reconfigures: device-size changes (resize cost A).
+
+   .. cpp:member:: std::uint64_t frames_published
+
+   .. cpp:member:: std::uint64_t publish_retries
+
+      Paints whose frame waited because every LiveSurface buffer was held; the damage is published with the next frame.
+
+   .. cpp:member:: std::uint64_t published_content_epoch
+
+      The content epoch of the newest published frame.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceThread final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   The parent's side of one sub-surface: owns its thread (owner decision 9, the library's thread) and the channel the two sides share. Made, used and destroyed on the parent's thread. Nothing crosses but the configurations, the stop request and the published frames (house style 8).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content, std::shared_ptr<LiveSurface> surface, std::shared_ptr<const Theme> theme, std::unique_ptr<PaintFramebuffer> text_measure)
+
+      Starts the thread. It makes ApplicationResources of its own showing ``theme``, calls content.build_root(), makes a SubSurface of the root, and waits for the first configuration: it produces nothing before the first agreed size (resize rule 5). It publishes into ``surface``, reconfiguring it whenever the device size changes. ``text_measure``, if not null, is a framebuffer made by the parent whose painter measures the sub-surface's text for its whole life (any size; one pixel will do); without one, text is measured by the estimate. Null content, surface or theme is std::invalid_argument; a thread the system refuses is std::system_error.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: WindowDispatcher dispatcher() const
+
+      Posts to the sub-surface's thread. Empty (posting throws, as an empty WindowDispatcher does) until the state is running; any thread may keep the handle after the sub-surface stopped, and posts then fail as posts to a closed window do.
+
+   .. cpp:function:: SubSurfaceState state() const
+
+   .. cpp:function:: std::string failure() const
+
+      What the content threw, for state failed; empty otherwise.
+
+   .. cpp:function:: SubSurfaceStatistics statistics() const
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void configure(SubSurfaceConfiguration configuration)
+
+      Hands the sub-surface a new configuration and wakes it. Only the newest unapplied one is kept (configurations_coalesced counts the others). An epoch not above the last one sent is std::invalid_argument; after stop() the configuration is released and nothing changes.
+
+   .. cpp:function:: void stop() noexcept
+
+      Revokes the sub-surface (it publishes no frame from now on), asks its loop to stop, and joins the thread: the loop finishes its current flush, releases its tree on its own thread and exits (design note section 9). Idempotent.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SystemColourHints final
 
    ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
@@ -1170,6 +1392,20 @@ Enumerations
    .. cpp:enumerator:: paint_pass
 
    .. cpp:enumerator:: posted_callback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SubSurfaceState
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   .. cpp:enumerator:: starting
+
+   .. cpp:enumerator:: running
+
+   .. cpp:enumerator:: stopped
+
+   .. cpp:enumerator:: failed
 
 Functions, constants and aliases
 --------------------------------

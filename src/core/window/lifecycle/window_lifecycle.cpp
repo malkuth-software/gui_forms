@@ -67,6 +67,12 @@ Window::~Window() {
     // raises nothing while it shuts down.
     if (tool_tip_presenter_) (*tool_tip_presenter_).shutdown();
     invalidate_cursor_interaction(CursorError::closing);
+    release_tree();
+    (*resources_).detach(*this);
+    (*lifetime_).window = nullptr;
+}
+
+void SurfaceRoot::release_tree() noexcept {
     paint_wake_handler_ = {};
     paint_wake_pending_ = false;
     abandon_deferred_input();
@@ -94,8 +100,6 @@ Window::~Window() {
         detach_subtree(root_);
     }
     shutdown_dispatcher();
-    (*resources_).detach(*this);
-    (*lifetime_).window = nullptr;
 }
 
 // Here, where every type the root owns is complete.
@@ -112,11 +116,16 @@ void SurfaceRoot::shutdown_dispatcher() noexcept {
 
 void Window::resize(Size client_size) {
     require_root_thread("window resize");
+    if (!resize_surface(client_size)) return;
+    invalidate_cursor_interaction(CursorError::stale_metrics);
+}
+
+bool SurfaceRoot::resize_surface(Size client_size) {
     if (client_size.width < 0.0 || client_size.height < 0.0) {
         throw std::invalid_argument("GUI.Forms client size may not be negative");
     }
     if (client_size_ == client_size) {
-        return;
+        return false;
     }
     // Pending touches place their damage in the client area they were made
     // in.
@@ -126,7 +135,6 @@ void Window::resize(Size client_size) {
     const bool width_changed = client_size_.width != client_size.width;
     const bool height_changed = client_size_.height != client_size.height;
     client_size_ = client_size;
-    invalidate_cursor_interaction(CursorError::stale_metrics);
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     apply_client_resize(old_bounds, new_bounds, width_changed, height_changed);
@@ -135,6 +143,7 @@ void Window::resize(Size client_size) {
             mark_subtree_dirty(*overlay, invalidation::bounds);
         }
     }
+    return true;
 }
 
 // The surface side of a client resize (Window::resize is its host entry):
@@ -193,14 +202,18 @@ void SurfaceRoot::mark_resized_measure(Control& control, bool width_reaches, boo
 
 void Window::set_scale(double scale) {
     require_root_thread("scale mutation");
+    if (!set_surface_scale(scale)) return;
+    invalidate_cursor_interaction(CursorError::stale_metrics);
+}
+
+bool SurfaceRoot::set_surface_scale(double scale) {
     if (!std::isfinite(scale) || scale <= 0.0) {
         throw std::invalid_argument("GUI.Forms scale must be finite and positive");
     }
     if (scale_ == scale) {
-        return;
+        return false;
     }
     scale_ = scale;
-    invalidate_cursor_interaction(CursorError::stale_metrics);
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
@@ -209,6 +222,7 @@ void Window::set_scale(double scale) {
             mark_subtree_dirty(*overlay, invalidation::conservative_subtree);
         }
     }
+    return true;
 }
 
 void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {

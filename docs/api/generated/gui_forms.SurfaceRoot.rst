@@ -1315,3 +1315,24 @@ gui_forms::SurfaceRoot
    .. cpp:function:: SemanticTextResult set_semantic_text_selection(RuntimeId control, SemanticTextSelection selection)
 
       Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move. Refused as semantic_text_layout refuses, and also for a control outside the active focus scope (outside_focus_scope) or an offset off a grapheme boundary (off_boundary); a refusal changes nothing. A done change reaches hosts through the next snapshot's text_selection field.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: bool resize_surface(Size client_size)
+
+      *Protected.*
+
+      The surface side of a resize (Window::resize, SubSurface::apply_size): validates the size (std::invalid_argument when negative, changing nothing), then stores it, opens a new surface epoch and damages and marks what it touched. False, changing nothing, for the same size. Root thread; the caller checks it.
+
+   .. cpp:function:: bool set_surface_scale(double scale)
+
+      *Protected.*
+
+      The surface side of a scale change (Window::set_scale, SubSurface::apply_scale): validates it (std::invalid_argument unless finite and positive), then stores it, opens a new surface epoch and marks the whole tree. False, changing nothing, for the same scale.
+
+   .. cpp:function:: void release_tree() noexcept
+
+      *Protected.*
+
+      The owner's teardown of the tree, on the root's thread: stops paint and host wakes, tells the controls everything (popups, accelerators, focus scopes, the motion clock and frame requests go; the tree is detached) while the dispatcher still accepts their posts, then shuts the dispatcher down, cancelling what they posted.

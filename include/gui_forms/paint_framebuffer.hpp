@@ -8,7 +8,10 @@
 namespace gui_forms {
 class ImageRegistry;
 
-// UI-thread-owned offscreen instance of the host's renderer. Pixels are
+// Offscreen instance of the host's renderer, made on the UI thread
+// (SurfaceRoot::create_framebuffer). One thread uses it at a time: the
+// maker, or the one it hands it to whole, which then alone uses and
+// destroys it (a sub-surface's thread, SubSurfaceConfiguration). Pixels are
 // premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in
 // memory order, the one format of every surface and raster. The buffer
 // survives begin/end; callers may restore cached pixels before drawing damage.
