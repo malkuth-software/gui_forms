@@ -1233,6 +1233,33 @@ double median_bake_nanoseconds(const SurfaceMaterial& material, const ImageRegis
     return samples[4];
 }
 
+// The median, over 101 interleaved pairs of bakes on a 240-unit square
+// part at scale 1, of how much longer `measured` takes than `reference`.
+// Pairing keeps a busy machine's drift out of a small difference.
+double median_paired_difference_nanoseconds(const SurfaceMaterial& reference, const SurfaceMaterial& measured) {
+    const Size logical{240.0, 240.0};
+    TestRaster reference_raster = make_raster(logical, 1.0);
+    TestRaster measured_raster = make_raster(logical, 1.0);
+    PrimitiveTarget reference_target = target_for(logical, 1.0, &reference, nullptr);
+    PrimitiveTarget measured_target = target_for(logical, 1.0, &measured, nullptr);
+    require(valid_surface_material(reference) && valid_surface_material(measured), "the paired materials are valid");
+    const PartRasterView reference_view = reference_raster.view();
+    const PartRasterView measured_view = measured_raster.view();
+    std::array<double, 101> differences{};
+    for (double& difference : differences) {
+        const std::chrono::steady_clock::time_point first = std::chrono::steady_clock::now();
+        engine_primitives::bake_material(reference, reference_target, reference_view);
+        const std::chrono::steady_clock::time_point second = std::chrono::steady_clock::now();
+        engine_primitives::bake_material(measured, measured_target, measured_view);
+        const std::chrono::steady_clock::time_point third = std::chrono::steady_clock::now();
+        const double reference_time = std::chrono::duration<double, std::nano>(second - first).count();
+        const double measured_time = std::chrono::duration<double, std::nano>(third - second).count();
+        difference = measured_time - reference_time;
+    }
+    std::sort(differences.begin(), differences.end());
+    return differences[50];
+}
+
 // A size × size premultiplied BGRA image of opaque noise.
 std::vector<std::byte> noise_pixels(std::size_t size) {
     std::vector<std::byte> pixels(size * size * 4U);
@@ -1328,6 +1355,11 @@ void measure() {
     linear_masked.mask = MaterialFillLayer::linear(Point{0.0, 0.0}, Point{0.0, 1.0}, two, 2U);
     SurfaceMaterial image_masked = base;
     image_masked.mask = MaterialFillLayer::stretched_image(small_image.image, Size{64.0, 64.0});
+    // A reflection (T5, C7) at its dearest: the whole reach of 8 past the
+    // bottom edge, every line drawn; charged per reflected pixel, of which
+    // there are 8 lines of the 240-pixel box's width.
+    SurfaceMaterial reflected = base;
+    reflected.reflection = MaterialReflection{MaterialEdge::bottom, 0.0, SurfaceMaterial::maximum_reflection_reach, 1.0, 1.0};
 
     const double per_pixel_solid = (median_bake_nanoseconds(solid, nullptr) - base_time) / pixels;
     const double per_pixel_linear = (median_bake_nanoseconds(linear, nullptr) - base_time) / pixels;
@@ -1354,6 +1386,11 @@ void measure() {
         (median_bake_nanoseconds(solid_masked, nullptr) - base_time) / pixels - per_pixel_solid;
     const double per_pixel_mask_linear = (median_bake_nanoseconds(linear_masked, nullptr) - base_time) / pixels;
     const double per_pixel_mask_image = (median_bake_nanoseconds(image_masked, &registry) - base_time) / pixels;
+    // Paired, against the solid layer measured the same way, because the
+    // pass touches only the reach's lines and is small beside the noise.
+    const double reflected_pixels = SurfaceMaterial::maximum_reflection_reach * 240.0;
+    const double per_pixel_reflection = median_paired_difference_nanoseconds(base, reflected) / reflected_pixels;
+    const double per_pixel_solid_paired = median_paired_difference_nanoseconds(base, solid) / pixels;
 
     // Time per pixel, then the weight it suggests: the ratio to a solid
     // layer's, times the solid layer's weight.
@@ -1380,6 +1417,7 @@ void measure() {
     print_measure("mask", per_pixel_mask, per_pixel_solid);
     print_measure("mask_linear_measured", per_pixel_mask_linear, per_pixel_solid);
     print_measure("mask_image_measured", per_pixel_mask_image, per_pixel_solid);
+    print_measure("reflection", per_pixel_reflection, per_pixel_solid_paired);
 }
 
 // -- surface finish and mask (E9.6) -------------------------------------------------

@@ -1558,6 +1558,16 @@ std::uint64_t corner_pixels(const MaterialLook& look, DeviceExtent extent) noexc
     return pixels;
 }
 
+// The pixels a reflection's pass may write, at most: its reach in device
+// pixels, rounded up, times the destination's side along its edge (which
+// includes the outsets, so it bounds the box's side).
+std::uint64_t reflected_pixels(const MaterialReflection& reflection, double scale, DeviceExtent extent) noexcept {
+    const bool rows = reflection.edge == MaterialEdge::top || reflection.edge == MaterialEdge::bottom;
+    const std::uint64_t along = rows ? std::uint64_t{extent.width} : std::uint64_t{extent.height};
+    const std::uint64_t lines = static_cast<std::uint64_t>(std::ceil(reflection.reach * scale));
+    return lines * along;
+}
+
 } // namespace
 
 BakeEffort material_bake_effort(const SurfaceMaterial& authored, const PrimitiveTarget& target, double outset,
@@ -1591,13 +1601,14 @@ BakeEffort material_bake_effort(const SurfaceMaterial& authored, const Primitive
     if (material.colour_filter) per_pixel = per_pixel + weights.colour_filter;
     if (material.drop_shadow) per_pixel = per_pixel + weights.drop_shadow;
     if (material.filter_blur > 0.0) per_pixel = per_pixel + weights.filter_blur;
-    if (material.reflection) per_pixel = per_pixel + weights.reflection;
     if (std::any_of(material.fills.begin(), material.fills.end(), &blends_apart)) {
         per_pixel = per_pixel + weights.fill_blend;
     }
     const std::uint64_t pixels = std::uint64_t{extent.width} * extent.height;
     const std::uint64_t corners = corner_pixels(resolve_look(material, target, outset, shape), extent);
-    const BakeEffort effort{pixels * per_pixel + corners * weights.outer_corner};
+    const std::uint64_t reflected =
+        material.reflection ? reflected_pixels(*material.reflection, target.scale.value, extent) : std::uint64_t{0};
+    const BakeEffort effort{pixels * per_pixel + corners * weights.outer_corner + reflected * weights.reflection};
     return effort;
 }
 
