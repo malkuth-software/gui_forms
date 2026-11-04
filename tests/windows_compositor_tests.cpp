@@ -271,11 +271,14 @@ void check_state(GateContext& gate) {
 }
 
 void request_for(GateContext& gate, GateStep step) {
-    WindowBackdropRequest request = WindowBackdropRequest::preferring(WindowBackdrop::opaque);
+    WindowBackdropRequest request{};
     if (step == GateStep::material) {
         request = WindowBackdropRequest::with_fallback(WindowBackdrop::window_material, WindowBackdrop::transparent);
     } else if (step == GateStep::transparent) {
         request = WindowBackdropRequest::preferring(WindowBackdrop::transparent);
+    } else {
+        // The opaque step, and any later one: withdraw the backdrop.
+        request = WindowBackdropRequest::preferring(WindowBackdrop::opaque);
     }
     static_cast<void>((*gate.model).request_backdrop(request));
 }
@@ -293,10 +296,23 @@ void read_step(GateContext& gate) {
     }
     const WindowBackdropGrant grant = (*gate.model).backdrop_grant();
     const bool hits_window = WindowFromPoint(centre) == gate.window;
+    // What DWM applied (stage gate, PLAN.md §6): the system backdrop type
+    // as read back, -1 where the attribute does not exist (before build
+    // 22621), and the extended frame bounds in screen pixels.
+    DWORD backdrop_type = 0U;
+    const HRESULT type_read = DwmGetWindowAttribute(gate.window, DWMWA_SYSTEMBACKDROP_TYPE, &backdrop_type,
+                                                    sizeof(backdrop_type));
+    const long applied_type = SUCCEEDED(type_read) ? static_cast<long>(backdrop_type) : -1L;
+    RECT frame{};
+    const HRESULT frame_read = DwmGetWindowAttribute(gate.window, DWMWA_EXTENDED_FRAME_BOUNDS, &frame, sizeof(frame));
+    if (FAILED(frame_read)) frame = RECT{};
     std::printf("{\"gate\":\"windows_compositor\",\"step\":\"%s\",\"granted\":\"%s\",\"reason\":\"%s\","
-                "\"clear\":[%d,%d,%d],\"clear_hits_window\":%s}\n",
+                "\"clear\":[%d,%d,%d],\"clear_hits_window\":%s,\"dwm_backdrop_type\":%ld,"
+                "\"extended_frame\":[%ld,%ld,%ld,%ld]}\n",
                 step_name(gate.step), window_backdrop_name(grant.granted), window_backdrop_reason_name(grant.reason),
-                colour.red, colour.green, colour.blue, hits_window ? "true" : "false");
+                colour.red, colour.green, colour.blue, hits_window ? "true" : "false", applied_type,
+                static_cast<long>(frame.left), static_cast<long>(frame.top), static_cast<long>(frame.right),
+                static_cast<long>(frame.bottom));
     gate.readings = gate.readings + 1U;
     if (!hits_window) fail(gate, "a clear pixel still hits the window (no click-through)");
     const bool green = near_rgb(colour, backdrop_rgb[0], backdrop_rgb[1], backdrop_rgb[2]);

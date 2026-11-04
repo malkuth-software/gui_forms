@@ -1656,6 +1656,17 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_layered_material_lab_model PUBLIC
         gui_forms_controls)
 
+    # Stage T5's compositor lab (phase C8): a declared window with glass,
+    # reflections and the backdrop named by --backdrop.
+    add_library(gui_forms_compositor_lab_model STATIC
+        demo/compositor_lab.cpp
+    )
+    target_include_directories(gui_forms_compositor_lab_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+    )
+    target_link_libraries(gui_forms_compositor_lab_model PUBLIC
+        gui_forms_controls)
+
     add_library(gui_forms_custom_chrome_lab_model STATIC
         demo/custom_chrome_lab.cpp
     )
@@ -1778,6 +1789,24 @@ if(GUI_FORMS_BUILD_GALLERY)
             MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Layered Material Fidelity Lab"
+        )
+
+        add_executable(gui_forms_compositor_lab MACOSX_BUNDLE
+            src/host/macos/compositor_lab_main.mm
+            ${GUI_FORMS_GALLERY_FONTS}
+            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_compositor_lab PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_compositor_lab PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_compositor_lab PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Compositor Lab"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.compositor-lab"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Compositor Lab"
         )
 
         add_executable(gui_forms_custom_chrome_lab MACOSX_BUNDLE
@@ -1916,6 +1945,17 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Layered Material Fidelity Lab"
         )
 
+        add_executable(gui_forms_compositor_lab_windows
+            src/host/windows/compositor_lab_main.cpp
+        )
+        target_link_libraries(gui_forms_compositor_lab_windows PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_compositor_lab_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Compositor Lab"
+        )
+
         add_executable(gui_forms_custom_chrome_lab_windows
             src/host/windows/custom_chrome_lab_main.cpp
         )
@@ -2028,6 +2068,17 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_gallery_linux PROPERTIES
             OUTPUT_NAME "gui-forms-gallery"
+        )
+
+        add_executable(gui_forms_compositor_lab_linux
+            src/host/linux/compositor_lab_main.cpp
+        )
+        target_link_libraries(gui_forms_compositor_lab_linux PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_compositor_lab_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-compositor-lab"
         )
 
         # The X11 host discovers bundled faces in <executable dir>/fonts (or
@@ -4035,6 +4086,21 @@ if(GUI_FORMS_BUILD_TESTS)
             add_test(NAME gui_forms_layered_material_raster_tests
                      COMMAND gui_forms_layered_material_raster_tests)
         endif()
+    endif()
+
+    if(TARGET gui_forms_compositor_lab_model AND TARGET gui_forms_skia)
+        # The lab in each compositor state, drawn on the Skia raster every
+        # host presents with: grants, fallbacks and the frame's alpha.
+        add_executable(gui_forms_compositor_lab_tests
+            tests/compositor_lab_tests.cpp)
+        target_include_directories(gui_forms_compositor_lab_tests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/demo
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster)
+        target_link_libraries(gui_forms_compositor_lab_tests PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_skia)
+        add_test(NAME gui_forms_compositor_lab_tests
+                 COMMAND gui_forms_compositor_lab_tests)
     endif()
 
     if(TARGET gui_forms_custom_chrome_lab_model)
