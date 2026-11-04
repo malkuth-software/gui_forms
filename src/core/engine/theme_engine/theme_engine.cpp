@@ -1119,6 +1119,7 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     // window's images, for this paint only.
     std::optional<SurfaceMaterial> unkept_material{};
     std::optional<SurfaceMaterial> authored_ground{};
+    std::optional<SurfaceMaterial> unreflected{};
     const std::optional<ControlVisualRole> material_role =
         (*request.primitive).theme_material(request.parameters, part.family);
     if (material_role) {
@@ -1161,6 +1162,15 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             authored_ground.emplace(*request.target.material);
             (*authored_ground).fills.assign(1U, MaterialFillLayer::solid(*part.authored_background));
             request.target.material = &*authored_ground;
+        }
+        // A reflection is omitted under high contrast and under reduced
+        // transparency (stage T5, PLAN.md §4.5, T5-Q16), for this paint only.
+        const bool reflections_omitted =
+            context.high_contrast || (*window).presentation_settings().reduced_transparency;
+        if (reflections_omitted && (*request.target.material).reflection) {
+            unreflected.emplace(*request.target.material);
+            (*unreflected).reflection.reset();
+            request.target.material = &*unreflected;
         }
         request.target.corner_radius = part.corner_radius;
         request.target.images = &(*window).image_resources();

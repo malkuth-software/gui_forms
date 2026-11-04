@@ -675,8 +675,38 @@ struct Refusal final {
     DiagnosticCode code{};
 };
 
+// `reflection` (stage T5, C7): the edge, up to two lengths and up to two
+// opacities, with their defaults.
+void test_reflection_lowering() {
+    struct Lowered final {
+        std::string_view sheet;
+        MaterialReflection reflection;
+    };
+    const std::array<Lowered, 4> lowered{{
+        {"#pad::part(face) { reflection: below 1px 6px 60% 0 }", MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0}},
+        {"#pad::part(face) { reflection: above }", MaterialReflection{MaterialEdge::top, 0.0, 8.0, 0.5, 0.0}},
+        {"#pad::part(face) { reflection: left 2px 0.25 }", MaterialReflection{MaterialEdge::left, 2.0, 6.0, 0.25, 0.0}},
+        {"#pad::part(face) { reflection: right 0 3px 1 0.5 }", MaterialReflection{MaterialEdge::right, 0.0, 3.0, 1.0, 0.5}},
+    }};
+    for (const Lowered& entry : lowered) {
+        const Compilation compiled = compile(entry.sheet);
+        const MaterialDeclaration* const declaration = field_of(only_rule(compiled, entry.sheet), MaterialField::reflection);
+        require(declaration != nullptr && (*declaration).reflection && *(*declaration).reflection == entry.reflection,
+                std::string("the reflection lowers: ") + std::string(entry.sheet));
+    }
+    const std::string_view none_sheet = "#pad::part(face) { reflection: none }";
+    const Compilation none = compile(none_sheet);
+    const MaterialDeclaration* const cleared = field_of(only_rule(none, none_sheet), MaterialField::reflection);
+    require(cleared != nullptr && !(*cleared).reflection, "reflection: none clears it");
+}
+
 void test_refusals() {
-    const std::array<Refusal, 71> refusals{{
+    const std::array<Refusal, 76> refusals{{
+        {"#a { reflection: below 4px 6px }", DiagnosticCode::value_out_of_range},
+        {"#a { reflection: below 9px }", DiagnosticCode::value_out_of_range},
+        {"#a { reflection: sideways }", DiagnosticCode::keyword_unknown},
+        {"#a { reflection: below 1px 2px 3px }", DiagnosticCode::value_syntax},
+        {"#a { reflection: below 0.5 1px }", DiagnosticCode::value_syntax},
         {"#a { background-image: "
          "linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), "
          "linear-gradient(red, blue), linear-gradient(red, blue), linear-gradient(red, blue), "
@@ -1143,6 +1173,7 @@ int main() {
     test_recipe_lowering();
     test_filter_lowering();
     test_image_lowering();
+    test_reflection_lowering();
     test_refusals();
     test_gate();
     if (failures != 0) {

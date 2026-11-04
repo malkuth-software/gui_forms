@@ -70,6 +70,7 @@ enum class MaterialProperty : std::uint8_t {
     glow,
     glow_placement,
     mask_image,
+    reflection,
     surface_finish,
     color,
     outline,

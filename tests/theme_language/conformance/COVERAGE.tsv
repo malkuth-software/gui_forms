@@ -160,6 +160,7 @@ property.outline-offset	borders
 property.primitive	transforms-text
 property.procedural	fills
 property.radial-gradient	fills
+property.reflection	finish-light-images-masks
 property.repeating-gradient	fills
 property.rotate	not-admitted
 property.scale	transforms-text

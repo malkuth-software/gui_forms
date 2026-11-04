@@ -317,7 +317,8 @@ constexpr std::array<std::string_view, material_field_count> material_field_name
     "drop_shadow",
     "filter_blur",
     "finish",
-    "mask"};
+    "mask",
+    "reflection"};
 
 // The edge fields: four edges of three fields each, from border_top_style.
 constexpr std::size_t first_edge_field = static_cast<std::size_t>(MaterialField::border_top_style);
@@ -376,6 +377,7 @@ ColourPosition material_field_colour_position(MaterialField field) noexcept {
     case MaterialField::filter_blur:
     case MaterialField::finish:
     case MaterialField::mask:
+    case MaterialField::reflection:
     case MaterialField::count:
     default: return ColourPosition::none;
     }
@@ -417,6 +419,7 @@ void apply_material_declaration(const MaterialDeclaration& declaration, SurfaceM
     case MaterialField::filter_blur: material.filter_blur = declaration.number; return;
     case MaterialField::finish: material.finish = declaration.number; return;
     case MaterialField::mask: material.mask = declaration.mask; return;
+    case MaterialField::reflection: material.reflection = declaration.reflection; return;
     case MaterialField::border_top_style:
     case MaterialField::border_top_width:
     case MaterialField::border_top_colour:
@@ -949,6 +952,11 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
         walk.visit(shadow.offset.x);
         walk.visit(shadow.offset.y);
         walk.visit(shadow.blur_radius);
+    }
+    if (declaration.reflection) {
+        MaterialReflection& reflection = *declaration.reflection;
+        walk.visit(reflection.gap);
+        walk.visit(reflection.reach);
     }
 }
 

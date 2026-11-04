@@ -927,6 +927,7 @@ void append_field(EventFields& fields, std::string_view name, const MaterialDrop
 void append_field(EventFields& fields, std::string_view name, const MaterialFillLayer& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialGlow& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialKeyline& value);
+void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value);
 void append_field(EventFields& fields, std::string_view name, const MenuItemInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuStripInvocation& value);
@@ -1919,6 +1920,16 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "edge", value.edge);
+    append_field(fields, "gap", value.gap);
+    append_field(fields, "reach", value.reach);
+    append_field(fields, "start_opacity", value.start_opacity);
+    append_field(fields, "end_opacity", value.end_opacity);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "offset", value.offset);
@@ -2363,6 +2374,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Surfa
     append_field(fields, "filter_blur", value.filter_blur);
     append_field(fields, "finish", value.finish);
     append_field(fields, "mask", value.mask);
+    append_field(fields, "reflection", value.reflection);
     fields.leave(prefix);
 }
 

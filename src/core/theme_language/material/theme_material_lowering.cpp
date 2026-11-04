@@ -36,7 +36,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 46> material_properties{{
+constexpr std::array<NamedMaterialProperty, 47> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -81,6 +81,7 @@ constexpr std::array<NamedMaterialProperty, 46> material_properties{{
     {.name = "outline-offset", .property = MaterialProperty::outline_offset},
     {.name = "outline-style", .property = MaterialProperty::outline_style},
     {.name = "outline-width", .property = MaterialProperty::outline_width},
+    {.name = "reflection", .property = MaterialProperty::reflection},
     {.name = "surface-finish", .property = MaterialProperty::surface_finish},
     {.name = "text-shadow", .property = MaterialProperty::text_shadow},
 }};
@@ -361,6 +362,7 @@ private:
     bool lower_glows();
     bool lower_glow_placements();
     bool lower_mask();
+    bool lower_reflection();
     [[nodiscard]] bool outline_style_word(std::size_t index) const noexcept;
     bool read_outline_style(std::size_t index, RecipeOutlineStyle& style);
     bool read_outline_width(std::size_t index, double& width);
@@ -1765,6 +1767,79 @@ bool MaterialReader::lower_mask() {
     return true;
 }
 
+// `reflection` (stage T5, C7): none, or the edge to mirror about (CSS
+// -webkit-box-reflect's above, below, left or right), then up to two
+// lengths, the gap and the reach (0 and the rest of SurfaceMaterial::
+// maximum_reflection_reach by default), then up to two opacities, a number
+// or a percentage each, next to the edge and at the far end (0.5 and 0 by
+// default). A unitless 0 is a length until an opacity has been read.
+bool MaterialReader::lower_reflection() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::reflection;
+    const ComponentRange whole{0U, value_.components.size()};
+    if (count(whole) == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    MaterialReflection reflection{};
+    if (keyword(0U, "above")) {
+        reflection.edge = MaterialEdge::top;
+    } else if (keyword(0U, "below")) {
+        reflection.edge = MaterialEdge::bottom;
+    } else if (keyword(0U, "left")) {
+        reflection.edge = MaterialEdge::left;
+    } else if (keyword(0U, "right")) {
+        reflection.edge = MaterialEdge::right;
+    } else {
+        const ValueComponent& first = value_.components[0];
+        if (first.kind == ValueComponentKind::keyword) {
+            return fail(DiagnosticCode::keyword_unknown, first.token, clipped_theme_detail(first.text));
+        }
+        return fail(DiagnosticCode::value_wrong_kind, first.token, "none, above, below, left or right");
+    }
+    std::array<double, 2> lengths{};
+    std::size_t length_count = 0U;
+    std::array<double, 2> opacities{};
+    std::size_t opacity_count = 0U;
+    for (std::size_t index = next(0U); index < whole.end; index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        if (component.kind != ValueComponentKind::number) {
+            return fail(DiagnosticCode::value_wrong_kind, component.token, "a length or an opacity");
+        }
+        const bool zero = component.unit == ValueUnit::none && component.number == 0.0;
+        const bool length_unit = component.unit == ValueUnit::px || component.unit == ValueUnit::em;
+        const bool is_length = length_unit || (zero && opacity_count == 0U && length_count < lengths.size());
+        if (is_length) {
+            if (opacity_count > 0U || length_count == lengths.size()) {
+                return fail(DiagnosticCode::value_syntax, component.token, "two lengths, then two opacities");
+            }
+            BoxLength length{};
+            if (!read_length(index, false, false, length)) return false;
+            lengths[length_count] = length.units;
+            length_count = length_count + 1U;
+            continue;
+        }
+        const bool plain = component.unit == ValueUnit::none;
+        const bool percent = component.unit == ValueUnit::percent;
+        if (!plain && !percent) return fail(DiagnosticCode::value_wrong_kind, component.token, "a length or an opacity");
+        if (opacity_count == opacities.size()) {
+            return fail(DiagnosticCode::value_syntax, component.token, "at most two opacities");
+        }
+        opacities[opacity_count] = percent ? component.number / 100.0 : component.number;
+        opacity_count = opacity_count + 1U;
+    }
+    if (length_count > 0U) reflection.gap = lengths[0];
+    reflection.reach = length_count > 1U ? lengths[1] : SurfaceMaterial::maximum_reflection_reach - reflection.gap;
+    if (opacity_count > 0U) reflection.start_opacity = opacities[0];
+    if (opacity_count > 1U) reflection.end_opacity = opacities[1];
+    SurfaceMaterial checked{};
+    checked.reflection = reflection;
+    if (!valid_surface_material(checked)) return fail(DiagnosticCode::value_out_of_range, start_, "a reflection");
+    declaration.reflection = reflection;
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
 // -- the properties ---------------------------------------------------------------
 
 bool MaterialReader::lower_background_colour() {
@@ -2198,6 +2273,7 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::glow: static_cast<void>(lower_glows()); return;
     case MaterialProperty::glow_placement: static_cast<void>(lower_glow_placements()); return;
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
+    case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
     case MaterialProperty::color: static_cast<void>(lower_text_colour()); return;
     case MaterialProperty::outline: static_cast<void>(lower_outline()); return;
@@ -2301,6 +2377,7 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::glow: fields.push_back(MaterialField::glows); return;
     case MaterialProperty::glow_placement: fields.push_back(MaterialField::glow_placements); return;
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
+    case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
     case MaterialProperty::color:
     case MaterialProperty::outline:

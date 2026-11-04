@@ -112,7 +112,7 @@ combinations of definitions it reads.
 ## Properties
 
 Property names are CSS's where CSS has the property, and engine-named
-otherwise (`shape`, `surface-finish`, `glow`). `primitive: <name>` selects a
+otherwise (`shape`, `surface-finish`, `glow`, `reflection`). `primitive: <name>` selects a
 drawing primitive for the part and its parameters are then properties by
 their registered names (`primitive: bulge; amplitude: 0.5`); a rule declaring
 only material fields selects the `material` primitive.
@@ -121,10 +121,22 @@ only material fields selects the `material` primitive.
 |---|---|
 | fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `shape` |
-| shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish` |
+| shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
 | text | `color`, `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
+
+`reflection` mirrors the part's finished face (its fills, borders, glows,
+filters and mask; not its text) about one edge into the space past it:
+`reflection: none | <edge> [<gap> [<reach>]] [<start> [<end>]]`. The edge is
+`above`, `below`, `left` or `right` (as in `-webkit-box-reflect`); the gap
+and the reach are lengths (0, and the rest of the 8 units a reflection may
+reach, by default), and together at most 8 units; the start and end are the
+opacity next to the edge and at the far end, numbers or percentages (0.5 and
+0 by default). A unitless 0 is a length until an opacity has been read, so
+`below 0 6px 1 0` is a gap of 0. The reflection is drawn beneath what the
+face draws past that edge, and is omitted under high contrast and reduced
+transparency. For example, `reflection: below 1px 6px 40% 0`.
 
 `inherit` is admitted on `color` and `font` only; `initial` means the
 built-in recipe's value. `clip-path`, `rotate`, `transform`, text

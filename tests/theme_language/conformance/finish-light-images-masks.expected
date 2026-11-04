@@ -20,3 +20,7 @@ rule 3 theme_sheet type=track_bar
   label track-bar
   decl primitive = name material
   material mask mask colours=[#000000ff]
+rule 4 theme_sheet type=button part=face
+  label button::part(face)
+  decl primitive = name material
+  material reflection reflection edge=2 opacities=0.6,0 lengths=[1 6] colours=[#000000ff]

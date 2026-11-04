@@ -99,6 +99,10 @@ struct MaterialEffortWeights final {
     // raster, past evaluating the mask, which is charged as a fill of its
     // kind.
     std::uint32_t mask{};
+    // Per device pixel of the destination, for a reflection (stage T5, C7):
+    // its copy of at most its reach of lines, charged over the whole
+    // destination, as the mask's pass is.
+    std::uint32_t reflection{};
 };
 
 // The weights' relative sizes come from the quiet-machine measurements of
@@ -130,6 +134,7 @@ inline constexpr MaterialEffortWeights material_effort_weights{
     .filter_blur = 240U,
     .fill_blend = 140U,
     .mask = 55U,
+    .reflection = 55U,
 };
 
 } // namespace gui_forms::engine_primitives

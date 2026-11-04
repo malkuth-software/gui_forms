@@ -596,6 +596,7 @@ enum class MaterialField : std::uint8_t {
     filter_blur,
     finish,
     mask,
+    reflection,
     count,
 };
 
@@ -635,7 +636,8 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 // - colour_filter: `colour_filter`; drop_shadow: `drop_shadow`, empty for
 //   none; mask: `mask`, empty for none, and `gradients`, empty or one
 //   entry, the mask's authored gradient as for a fill layer;
-// - filter_blur and finish: `number`.
+// - filter_blur and finish: `number`;
+// - reflection: `reflection`, empty for none (stage T5, C7).
 // `initial`, set, is CSS's `initial`: the field keeps the floor's value,
 // and the declaration still wins over those beneath it; its value members
 // are not read.
@@ -661,6 +663,7 @@ struct MaterialDeclaration final {
     MaterialColourFilter colour_filter{};
     std::optional<MaterialDropShadow> drop_shadow{};
     std::optional<MaterialFillLayer> mask{};
+    std::optional<MaterialReflection> reflection{};
     // Where the declaration's colours came from (EC4).
     ColourOrigin origin{};
     // Its lengths in em (T3 P8c, owner decision D4): empty, or one
@@ -684,7 +687,8 @@ struct MaterialDeclaration final {
                left.colour == right.colour && left.keylines == right.keylines &&
                left.number == right.number && left.relative == right.relative &&
                left.colour_filter == right.colour_filter && left.drop_shadow == right.drop_shadow &&
-               left.mask == right.mask && left.origin == right.origin && left.em_lengths == right.em_lengths &&
+               left.mask == right.mask && left.reflection == right.reflection && left.origin == right.origin &&
+               left.em_lengths == right.em_lengths &&
                left.current_colours == right.current_colours;
     }
 };
@@ -695,7 +699,7 @@ struct MaterialDeclaration final {
 // authored gradient's centre, radii and stop positions (their units); the
 // image positions' and the image sizes' units; each shadow's offset, blur
 // and spread; each glow's blur and spread; each keyline's width and inset;
-// the drop shadow's offset and blur.
+// the drop shadow's offset and blur; the reflection's gap and reach.
 void material_declaration_lengths(const MaterialDeclaration& declaration, std::vector<double>& lengths);
 // Sets the lengths of `declaration` from `lengths`, in that order; a length
 // past the end of `lengths` is kept.

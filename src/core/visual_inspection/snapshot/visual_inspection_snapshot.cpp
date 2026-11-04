@@ -382,6 +382,15 @@ void append_material(std::ostringstream& output,
         output << ",\"mask\":";
         append_fill(output, *material.mask);
     }
+    // A reflection (T5 C7), likewise only when set.
+    if (material.reflection) {
+        const MaterialReflection& reflection = *material.reflection;
+        output << ",\"reflection\":{\"edge\":";
+        append_json_string(output, material_edge_name(reflection.edge));
+        output << ",\"gap\":" << reflection.gap << ",\"reach\":" << reflection.reach
+               << ",\"start_opacity\":" << reflection.start_opacity
+               << ",\"end_opacity\":" << reflection.end_opacity << '}';
+    }
     output << '}';
 }
 

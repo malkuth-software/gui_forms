@@ -186,6 +186,8 @@ Types
      -  
    * - :cpp:class:`MaterialKeyline <gui_forms::MaterialKeyline>`
      - One ordered physical keyline.
+   * - :cpp:class:`MaterialReflection <gui_forms::MaterialReflection>`
+     - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): the part's finished face within its box (fills, borders, keylines, glows, filters and mask, as the engine baked them; text is not reflected), mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
      - MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
    * - :cpp:class:`MediaCondition <gui_forms::MediaCondition>`
@@ -2448,7 +2450,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -2495,6 +2497,8 @@ Types
    .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
 
    .. cpp:member:: std::optional<MaterialFillLayer> mask
+
+   .. cpp:member:: std::optional<MaterialReflection> reflection
 
    .. cpp:member:: ColourOrigin origin
 
@@ -2734,6 +2738,30 @@ Types
       Default: ``{1.0}``.
 
    .. cpp:member:: double inset
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: MaterialReflection final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A reflection (stage T5, C7; owner T5-Q14, T5-Q15): the part's finished face within its box (fills, borders, keylines, glows, filters and mask, as the engine baked them; text is not reflected), mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end. gap + reach is at most SurfaceMaterial:: maximum_reflection_reach, within the part's granted overflow; reach is above 0 and both opacities lie in [0, 1]. The reflection is composited beneath what the face drew past that edge (its outer shadows and glows). The engine's material primitive draws it, and omits it under high contrast and reduced transparency (T5-Q16); the built-in path, paint_surface_material, draws none.
+
+   .. cpp:member:: MaterialEdge edge
+
+      Default: ``{MaterialEdge::bottom}``.
+
+   .. cpp:member:: double gap
+
+   .. cpp:member:: double reach
+
+      Default: ``{8.0}``.
+
+   .. cpp:member:: double start_opacity
+
+      Default: ``{0.5}``.
+
+   .. cpp:member:: double end_opacity
 
 .. cpp:namespace:: gui_forms
 
@@ -4244,6 +4272,10 @@ Types
 
       The farthest the part filters reach outside the box, in logical units: the drop shadow's larger offset component plus 1.5 × its blur, plus 1.5 × the filter blur. The engine material's outsets hold it. Default: ``8.0``.
 
+   .. cpp:member:: constexpr double maximum_reflection_reach
+
+      The farthest a reflection reaches outside the box, gap and reach together, in logical units (T5-Q15: the blur and glow cap). Default: ``8.0``.
+
    .. cpp:member:: std::vector<MaterialFillLayer> fills
 
    .. cpp:member:: std::vector<MaterialShadow> shadows
@@ -4279,6 +4311,10 @@ Types
    .. cpp:member:: std::optional<MaterialFillLayer> mask
 
       An alpha mask (E9.6, CSS ``mask-image``): a solid, gradient or image fill whose alpha, times its opacity for an image, multiplies the whole finished part, its shadows and glows included; outside the box it extends at its edge value, so that a shadow fades with the face beside it. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
+
+   .. cpp:member:: std::optional<MaterialReflection> reflection
+
+      A reflection of the finished face (MaterialReflection), drawn after the mask; none by default.
 
 .. cpp:namespace:: gui_forms
 
@@ -5526,6 +5562,8 @@ Enumerations
 
    .. cpp:enumerator:: mask
 
+   .. cpp:enumerator:: reflection
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -6657,7 +6695,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void material_declaration_lengths(const MaterialDeclaration& declaration, std::vector<double>& lengths)
 
-   The lengths of ``declaration`` in logical units, into ``lengths`` (cleared first), in a fixed order: its number where it is a length (a border width, a corner's radius that is not relative, the filter's blur); each authored gradient's centre, radii and stop positions (their units); the image positions' and the image sizes' units; each shadow's offset, blur and spread; each glow's blur and spread; each keyline's width and inset; the drop shadow's offset and blur.
+   The lengths of ``declaration`` in logical units, into ``lengths`` (cleared first), in a fixed order: its number where it is a length (a border width, a corner's radius that is not relative, the filter's blur); each authored gradient's centre, radii and stop positions (their units); the image positions' and the image sizes' units; each shadow's offset, blur and spread; each glow's blur and spread; each keyline's width and inset; the drop shadow's offset and blur; the reflection's gap and reach.
 
 .. cpp:function:: void set_material_declaration_lengths(MaterialDeclaration& declaration, std::span<const double> lengths) noexcept
 

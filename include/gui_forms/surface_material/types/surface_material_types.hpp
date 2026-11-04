@@ -134,6 +134,32 @@ struct MaterialKeyline final {
                left.width == right.width && left.inset == right.inset;
     }
 };
+// A reflection (stage T5, C7; owner T5-Q14, T5-Q15): the part's finished
+// face within its box (fills, borders, keylines, glows, filters and mask, as
+// the engine baked them; text is not reflected), mirrored about the box's
+// `edge`, `gap` logical units beyond it, for `reach` units, faded by a
+// linear opacity from `start_opacity` next to the edge to `end_opacity` at
+// the far end. gap + reach is at most SurfaceMaterial::
+// maximum_reflection_reach, within the part's granted overflow; reach is
+// above 0 and both opacities lie in [0, 1]. The reflection is composited
+// beneath what the face drew past that edge (its outer shadows and glows).
+// The engine's material primitive draws it, and omits it under high
+// contrast and reduced transparency (T5-Q16); the built-in path,
+// paint_surface_material, draws none.
+struct MaterialReflection final {
+    MaterialEdge edge{MaterialEdge::bottom};
+    double gap{};
+    double reach{8.0};
+    double start_opacity{0.5};
+    double end_opacity{};
+    friend constexpr bool operator==(const MaterialReflection& left,
+                                     const MaterialReflection& right) noexcept {
+        return left.edge == right.edge && left.gap == right.gap &&
+               left.reach == right.reach &&
+               left.start_opacity == right.start_opacity &&
+               left.end_opacity == right.end_opacity;
+    }
+};
 struct MaterialBorderEdges final {
     std::optional<MaterialBorder> top;
     std::optional<MaterialBorder> right;
@@ -165,6 +191,9 @@ struct SurfaceMaterial final {
     // units: the drop shadow's larger offset component plus 1.5 × its blur,
     // plus 1.5 × the filter blur. The engine material's outsets hold it.
     static constexpr double maximum_filter_reach = 8.0;
+    // The farthest a reflection reaches outside the box, gap and reach
+    // together, in logical units (T5-Q15: the blur and glow cap).
+    static constexpr double maximum_reflection_reach = 8.0;
     std::vector<MaterialFillLayer> fills{
         MaterialFillLayer::solid(Color::rgba(255, 255, 255))};
     std::vector<MaterialShadow> shadows;
@@ -201,6 +230,9 @@ struct SurfaceMaterial final {
     // beside it. The engine's material primitive draws it; the built-in
     // path, paint_surface_material, draws the material unmasked.
     std::optional<MaterialFillLayer> mask;
+    // A reflection of the finished face (MaterialReflection), drawn after
+    // the mask; none by default.
+    std::optional<MaterialReflection> reflection;
     [[nodiscard]] static SurfaceMaterial from_parts(
         const MaterialFillLayer* fills, std::size_t fill_count,
         const MaterialShadow* shadows, std::size_t shadow_count,
@@ -227,7 +259,7 @@ struct SurfaceMaterial final {
         left.colour_filter == right.colour_filter &&
         left.drop_shadow == right.drop_shadow &&
         left.filter_blur == right.filter_blur && left.finish == right.finish &&
-        left.mask == right.mask)) {
+        left.mask == right.mask && left.reflection == right.reflection)) {
         return left.fills == right.fills && left.shadows == right.shadows &&
                left.glows == right.glows &&
                left.border == right.border &&
@@ -238,7 +270,8 @@ struct SurfaceMaterial final {
                left.colour_filter == right.colour_filter &&
                left.drop_shadow == right.drop_shadow &&
                left.filter_blur == right.filter_blur &&
-               left.finish == right.finish && left.mask == right.mask;
+               left.finish == right.finish && left.mask == right.mask &&
+               left.reflection == right.reflection;
     }
 };
 

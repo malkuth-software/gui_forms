@@ -71,6 +71,24 @@ double filter_reach(const SurfaceMaterial& material) noexcept {
     return reach;
 }
 
+bool unit_interval(double value) noexcept {
+    const bool inside = std::isfinite(value) && value >= 0.0 && value <= 1.0;
+    return inside;
+}
+
+// A reflection (T5 C7): a known edge, a gap of zero or more and a reach
+// above zero that together stay within SurfaceMaterial::
+// maximum_reflection_reach, and opacities in [0, 1].
+bool valid_material_reflection(const MaterialReflection& reflection) noexcept {
+    const bool edge_known =
+        static_cast<std::uint8_t>(reflection.edge) <= static_cast<std::uint8_t>(MaterialEdge::left);
+    const bool lengths = std::isfinite(reflection.gap) && std::isfinite(reflection.reach) && reflection.gap >= 0.0 &&
+                         reflection.reach > 0.0 &&
+                         reflection.gap + reflection.reach <= SurfaceMaterial::maximum_reflection_reach;
+    const bool opacities = unit_interval(reflection.start_opacity) && unit_interval(reflection.end_opacity);
+    return edge_known && lengths && opacities;
+}
+
 bool valid_corner(double radius) noexcept {
     return std::isfinite(radius) && radius >= 0.0 && radius <= 4096.0;
 }
@@ -938,6 +956,7 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         const MaterialFillLayer& mask = *material.mask;
         if (mask.kind == MaterialFillKind::procedural || !valid_fill_layer(mask)) return false;
     }
+    if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
     return true;
 }
 
@@ -1038,6 +1057,15 @@ void paint_surface_material(Painter& painter, Rect bounds,
 
 Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept {
     Insets result = box_shadow_visual_outsets(material.shadows);
+    // A reflection (T5 C7) reaches past its one edge.
+    if (material.reflection) {
+        const MaterialReflection& reflection = *material.reflection;
+        const double reach = reflection.gap + reflection.reach;
+        if (reflection.edge == MaterialEdge::top) result.top = std::max(result.top, reach);
+        if (reflection.edge == MaterialEdge::right) result.right = std::max(result.right, reach);
+        if (reflection.edge == MaterialEdge::bottom) result.bottom = std::max(result.bottom, reach);
+        if (reflection.edge == MaterialEdge::left) result.left = std::max(result.left, reach);
+    }
     for (const MaterialGlow& glow : material.glows) {
         // An over glow lies within the box.
         if (glow.placement != MaterialGlowPlacement::under) continue;
@@ -1054,7 +1082,10 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return false;
     if (material.corner_radius != 0.0 || material.corner_radii) return false;
     if (!(surface_material_visual_outsets(material) == Insets{})) return false;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask) return false;
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+        material.reflection) {
+        return false;
+    }
     for (const MaterialFillLayer& fill : material.fills) {
         const bool opaque = fill.kind == MaterialFillKind::solid && fill.color.alpha == 255U &&
             fill.opacity == 1.0 && fill.blend == MaterialBlendMode::normal;
@@ -1196,6 +1227,7 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::filter_blur:
         case MaterialField::finish:
         case MaterialField::mask:
+        case MaterialField::reflection:
         case MaterialField::count:
         default: break; // Not drawn under the pass.
         }

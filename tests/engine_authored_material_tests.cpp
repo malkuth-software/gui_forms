@@ -136,7 +136,7 @@ void test_field_names() {
         "keylines",      "corner_top_left", "corner_top_right", "corner_bottom_right", "corner_bottom_left",
         "colour_filter",
         "drop_shadow",   "filter_blur",       "finish",
-        "mask"};
+        "mask",          "reflection"};
     for (std::size_t index = 0U; index < material_field_count; ++index) {
         require(material_field_name(static_cast<MaterialField>(index)) == expected[index],
                 "each material field has its name, in enum order");

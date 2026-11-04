@@ -391,6 +391,14 @@ void mask_image(const FeatureSampleInputs& inputs, ThemeDefinition& definition) 
     draw_material(definition, material, "mask_image");
 }
 
+// A reflection (stage T5, C7) below the face: 1 unit of gap, 6 of reach,
+// fading from 0.6 to 0.
+void reflection_below(const FeatureSampleInputs&, ThemeDefinition& definition) {
+    SurfaceMaterial material = lit_face();
+    material.reflection = MaterialReflection{MaterialEdge::bottom, 1.0, 6.0, 0.6, 0.0};
+    draw_material(definition, material, "reflection_below");
+}
+
 // -- light: glass's colour filter and the sheen ------------------------------------
 
 // Glass over a backplane of a gradient, the button recipe's colour filter
@@ -579,6 +587,7 @@ constexpr EngineFeatureSample samples[] = {
     {"mask_solid", "material", PartRole::face, Drive::rest, mask_solid},
     {"mask_linear", "material", PartRole::face, Drive::rest, mask_linear},
     {"mask_image", "material", PartRole::face, Drive::rest, mask_image},
+    {"reflection_below", "material", PartRole::face, Drive::rest, reflection_below},
     {"glass_colour_filter", "glass", PartRole::region, Drive::rest, glass_colour_filter},
     {"sheen_at_pointer", "sheen", PartRole::sheen, Drive::pointer, sheen_at_pointer},
     {"motion_timed_easings", "material", PartRole::face, Drive::hot_motion, motion_timed_easings},
