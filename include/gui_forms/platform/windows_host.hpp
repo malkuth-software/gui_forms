@@ -31,6 +31,10 @@ struct WindowsHostOptions final {
     // When set, the window is created at this logical size instead of
     // initial_size.
     std::optional<Size> capture_size{};
+    // A fixed device scale (1.0 = 96 dpi) instead of the monitor's, for
+    // captures and tests that need one scale whatever the display; 0 follows
+    // the monitor and its DPI changes.
+    double scale_override{};
     bool print_metrics_on_close{true};
     bool automation_enabled{};
     bool close_after_launch_for_testing{};

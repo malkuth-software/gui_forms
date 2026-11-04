@@ -1,8 +1,9 @@
-#include "../demo/gallery_dml.hpp"
 #include "../demo/gallery.hpp"
+#include "../demo/gallery_instrument.hpp"
 #include "../demo/gallery_model.hpp"
 #include "../src/controls/gallery_controls.hpp"
 
+#include <array>
 #include <cstdlib>
 #include <iostream>
 #include <string>
@@ -11,6 +12,20 @@
 #include <vector>
 
 namespace {
+
+// The stable IDs demo/gallery.form declares below gallery.root.
+constexpr std::array<std::string_view, 37> gallery_form_ids{
+    "gallery.command-strip", "gallery.command.reset", "gallery.command.diagnostics",
+    "gallery.command.status-badge", "gallery.command.status", "gallery.backplane",
+    "gallery.basics-group", "gallery.intro", "gallery.text-input", "gallery.default-button",
+    "gallery.disabled-button", "gallery.checkbox", "gallery.radio.classic", "gallery.radio.quiet",
+    "gallery.checkbox.indeterminate", "gallery.link", "gallery.lifecycle-card",
+    "gallery.lifecycle-title", "gallery.lifecycle-status", "gallery.values-group",
+    "gallery.slider", "gallery.progress", "gallery.value-label", "gallery.collection-group",
+    "gallery.collection", "gallery.instrument-group", "gallery.instrument", "gallery.diagnostics",
+    "gallery.diagnostics.about", "gallery.diagnostics.renderer", "gallery.diagnostics.controls",
+    "gallery.diagnostics.layout", "gallery.diagnostics.paint", "gallery.diagnostics.input",
+    "gallery.diagnostics.flush", "gallery.diagnostics.present", "gallery.diagnostics.font"};
 
 void expect(bool condition, std::string_view message)
 {
@@ -123,9 +138,6 @@ int main()
     using gui_forms::gallery::GalleryModel;
     using gui_forms::gallery::StyleMode;
 
-    expect(gui_forms::gallery::dml::ids_are_unique(), "DML stable IDs must be unique");
-    expect(gui_forms::gallery::dml::parents_resolve(), "DML parents must resolve");
-
     GalleryModel gallery;
     expect(gallery.state().precise_updates, "checkbox begins checked");
     expect(gallery.activate("gallery.checkbox"), "checkbox accepts activation");
@@ -164,8 +176,15 @@ int main()
     expect(gallery.state().slider_value == 42.0, "reset restores linked values");
 
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
-    expect((*window).metrics_snapshot().control_count > gui_forms::gallery::dml::gallery_nodes.size(),
-           "compiled DML population reaches the retained window beside the registry-driven shell");
+    bool every_form_id_resolves = true;
+    for (const std::string_view id : gallery_form_ids) {
+        if ((*window).find(id) == nullptr) {
+            std::cerr << "unresolved Gallery ID " << id << '\n';
+            every_form_id_resolves = false;
+        }
+    }
+    expect(every_form_id_resolves && (*window).metrics_snapshot().control_count > gallery_form_ids.size(),
+           "the form document's controls reach the retained window beside the registry-driven shell");
     expect(gui_forms::gallery::selected_gallery_page(*window) == "control-spectrum" &&
                (*window).find("gallery.page.basics") != nullptr &&
                (*window).find("gallery.surface.basics") != nullptr,
@@ -200,9 +219,8 @@ int main()
            "Gallery status badge is owned and bounded by the core PNG registry");
     expect(!(*(*window).find("gallery.diagnostics")).visible(),
            "diagnostics begin hidden");
-    for (const gui_forms::gallery::dml::NodeSpec& node :
-         gui_forms::gallery::dml::gallery_nodes) {
-        const gui_forms::Control::Ptr control = (*window).find(node.id);
+    for (const std::string_view id : gallery_form_ids) {
+        const gui_forms::Control::Ptr control = (*window).find(id);
         if (control == nullptr || !(*control).effectively_visible()) {
             continue;
         }
@@ -290,22 +308,26 @@ int main()
                                     disabled_point});
     expect((*window).focused_control() != disabled, "disabled control cannot receive focus");
     // A disabled control is transparent to hit testing, so the press lands on
-    // the page body beneath it; the body records the one pass-through
+    // the group box holding it; the group box records the one pass-through
     // activation and the disabled button records none.
     const gui_forms::Control::Ptr beneath = (*window).hit_test(disabled_point);
     expect(beneath != nullptr && beneath != disabled &&
-               (*beneath).stable_id().value() == "gallery.body.basics",
-           "disabled control passes the press through to the page body");
+               (*beneath).stable_id().value() == "gallery.basics-group",
+           "disabled control passes the press through to its group box");
     expect((*window).metrics_snapshot().activations == activations_before_disabled + 1U,
            "disabled control cannot activate");
 
     click(*window, "gallery.text-input");
+    const std::shared_ptr<gui_forms::TextBox> text_input = std::dynamic_pointer_cast<gui_forms::TextBox>(
+        (*window).find("gallery.text-input"));
+    expect(text_input != nullptr && (*window).focused_control() == text_input,
+           "a click focuses the Gallery text box");
+    const gui_forms::Utf8Offset text_end((*text_input).text().size());
+    (*text_input).select(text_end, text_end);
     expect((*window).dispatch_text({" retained", false, -1, 0, false}),
            "focused text input accepts committed UTF-8 text");
-    const std::shared_ptr<gui_forms::gallery::GalleryControl> text_input = std::dynamic_pointer_cast<gui_forms::gallery::GalleryControl>(
-        (*window).find("gallery.text-input"));
-    expect((*text_input).display_text() == "Edit this text retained",
-           "text edit survives event dispatch in application state");
+    expect((*text_input).text() == "Edit this text retained",
+           "text edit survives event dispatch in the retained text box");
 
     expect(gui_forms::gallery::select_gallery_page(*window, "values"),
            "values page selects by stable id");
@@ -313,7 +335,7 @@ int main()
         (*window).find("gallery.slider"));
     const std::shared_ptr<gui_forms::ProgressBar> progress = std::dynamic_pointer_cast<gui_forms::ProgressBar>(
         (*window).find("gallery.progress"));
-    const std::shared_ptr<gui_forms::gallery::GalleryControl> instrument = std::dynamic_pointer_cast<gui_forms::gallery::GalleryControl>(
+    const std::shared_ptr<gui_forms::gallery::Instrument> instrument = std::dynamic_pointer_cast<gui_forms::gallery::Instrument>(
         (*window).find("gallery.instrument"));
     const gui_forms::Rect slider_bounds = (*slider).absolute_bounds();
     const gui_forms::Point near_end {slider_bounds.x + slider_bounds.width - 11.0,
@@ -333,18 +355,27 @@ int main()
 
     expect(gui_forms::gallery::select_gallery_page(*window, "retained-rows"),
            "retained rows page selects before row interaction");
-    click(*window, "gallery.collection.gamma");
-    const std::shared_ptr<gui_forms::gallery::GalleryControl> gamma = std::dynamic_pointer_cast<gui_forms::gallery::GalleryControl>(
-        (*window).find("gallery.collection.gamma"));
-    const std::shared_ptr<gui_forms::gallery::GalleryControl> alpha = std::dynamic_pointer_cast<gui_forms::gallery::GalleryControl>(
-        (*window).find("gallery.collection.alpha"));
-    expect((*gamma).selected() && !(*alpha).selected(),
+    const std::shared_ptr<gui_forms::ListBox> collection = std::dynamic_pointer_cast<gui_forms::ListBox>(
+        (*window).find("gallery.collection"));
+    expect(collection != nullptr && (*collection).selected_index() == std::optional<std::size_t>{0U} &&
+               (*collection).item_stable_id(2U) == "gallery.collection.gamma",
+           "the collection begins on its alpha row and names its rows by stable ID");
+    // The third row (gamma), below the list's 2-pixel frame.
+    const gui_forms::Rect collection_bounds = (*collection).absolute_bounds();
+    const gui_forms::Point gamma_point{collection_bounds.x + collection_bounds.width * 0.5,
+                                       collection_bounds.y + 2.0 + (*collection).item_height() * 2.5};
+    (void)(*window).dispatch_pointer({gui_forms::PointerAction::down,
+                                    gui_forms::PointerButton::primary, gamma_point});
+    (void)(*window).dispatch_pointer({gui_forms::PointerAction::up,
+                                    gui_forms::PointerButton::primary, gamma_point});
+    expect((*collection).selected_index() == std::optional<std::size_t>{2U} &&
+               (*collection).selected_indices().size() == 1U,
            "retained list row selection is exclusive");
 
     gui_forms::DragEvent drag;
     drag.action = gui_forms::DragAction::enter;
     drag.session_id = 41;
-    drag.position = center_of(gamma);
+    drag.position = gamma_point;
     drag.allowed_effects = gui_forms::DragEffect::copy;
     drag.items = {gui_forms::DragFileListData{{"/captures/live.iq"}}};
     expect((*window).dispatch_drag(drag).accepted_effect == gui_forms::DragEffect::copy,

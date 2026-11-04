@@ -1,7 +1,6 @@
 #pragma once
 
 #include "../context/gallery_context.hpp"
-#include "gallery_dml.hpp"
 #include "gui_forms/gui_forms.hpp"
 
 #include <memory>
@@ -10,10 +9,14 @@
 
 namespace gui_forms::gallery {
 
-// One direct child of the declared `gallery.root`: the registry-driven shell
-// mounts each of them (command strip, compiled-DML pages, diagnostics overlay).
+// One direct child of the document's `gallery.root`: the registry-driven
+// shell mounts each of them (command strip, compiled pages, diagnostics
+// overlay). A page mount names the Gallery page (demo/gallery_page_specs.hpp)
+// whose body shows it at `size`; the others have no page.
 struct GalleryMount final {
-    const dml::NodeSpec* specification{};
+    std::string_view id{};
+    std::string_view page{};
+    Size size{};
     Control::Ptr control;
 };
 
@@ -24,8 +27,8 @@ struct GalleryTree final {
     [[nodiscard]] Control::Ptr mount(std::string_view id) const;
 };
 
-// Instantiates every compiled-DML node except the declared boundary
-// `gallery.root`; the shell owns placement of the returned mounts.
+// Makes the controls demo/gallery.form describes and takes the mounts out of
+// the declared boundary `gallery.root`; the shell owns their placement.
 [[nodiscard]] GalleryTree build_gallery_tree();
 
 } // namespace gui_forms::gallery

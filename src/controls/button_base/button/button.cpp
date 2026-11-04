@@ -247,12 +247,15 @@ Button::States Button::states() const {
 void Button::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const ControlVisualRole role = button_visual_role(visual_style_);
-    // An overridden accent button keeps its accent face and paper text; the
-    // other styles take the override's face and text.
+    // An overridden accent button keeps its accent face and paper text while
+    // enabled; disabled, it takes the override's face and disabled text, as
+    // the theme's disabled accent plate does (sweep defect D11: a disabled
+    // accent kept its fill). The other styles take the override's face and
+    // text.
     std::optional<AuthoredButtonColours> authored{};
     if (has_style_override()) {
         const BasicControlStyle& colours = style();
-        const bool accent = visual_style_ == ButtonVisualStyle::accent;
+        const bool accent = visual_style_ == ButtonVisualStyle::accent && effectively_enabled();
         const bool flat = visual_style_ == ButtonVisualStyle::flat;
         const Color face = accent ? colours.accent : flat ? colours.face_light : colours.face;
         const Color text = accent ? colours.paper : colours.text;

@@ -674,14 +674,17 @@ void TabControl::arrange(Rect final_bounds) {
     }
 }
 
-// The control paints its face and the display the pages sit on; the strip,
-// a child, paints the tabs. The display is a card's surface until stage T4
-// gives the tab page its own material.
+// The control paints its face, the band behind the tabs, and the display
+// the pages sit on; the strip, a child, paints the tabs. The display is a
+// card's surface until stage T4 gives the tab page its own material. The
+// face covers the header band only (sweep defect D13: a face over the whole
+// control drew its square frame around the display's rounded corners,
+// leaving notches there).
 void TabControl::on_paint(Painter& painter, Rect) {
     PartPaint part{};
     part.family = ControlVisualRole::panel;
     part.role = PartRole::face;
-    part.bounds = client_rectangle();
+    part.bounds = header_bounds();
     paint_part(painter, *this, part);
     part.family = ControlVisualRole::card;
     part.bounds = display_bounds();
@@ -881,9 +884,8 @@ void TabControl::publish_part_geometry(std::span<PartGeometry> geometry) const {
     Parts record{};
     record.scrollable = scrollable_parts();
 
-    const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
-                      committed_arranged_bounds().height};
-    record.face = PartGeometry::from_bounds(bounds);
+    // The band behind the tabs.
+    record.face = PartGeometry::from_bounds(header_bounds());
     // The paper area the pages sit on.
     record.display = PartGeometry::from_bounds(display_bounds());
     write_parts(anatomy(), scrollable_detail::part_fields, record.scrollable, geometry);

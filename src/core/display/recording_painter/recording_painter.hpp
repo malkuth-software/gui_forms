@@ -95,8 +95,36 @@ public:
     // composites over it and leaves it opaque.
     void mark_opaque_cover(Rect rect) noexcept;
 
+    // Lets this recording keep the renderer caches of `previous`, the chunk
+    // it replaces: the k-th horizontal text command recorded takes the cache
+    // of the previous chunk's k-th horizontal text command when both draw
+    // the same text in the same font, and the k-th box shadow takes the
+    // previous k-th box shadow's cache when every parameter matches. A
+    // control repainted every frame (an animation) then shapes and
+    // rasterizes its unchanged text, and blurs its unchanged shadows, once
+    // rather than every frame. Called before the first command; the
+    // recording holds `previous` until it is destroyed. The two chunks share
+    // a cache only on the window's UI thread, and the old chunk is retired
+    // when this one replaces it.
+    void inherit_caches(std::shared_ptr<const DisplayChunk> previous);
+
 private:
+    // The cache the command `recorded` may take from the previous chunk
+    // (inherit_caches): the one of the previous command at `ordinal` in
+    // `previous_indices` when it matches, else null. Advances `ordinal`.
+    [[nodiscard]] std::shared_ptr<RetainedDrawCache> inherited_cache(
+        const DisplayCommand& recorded, const std::vector<std::size_t>& previous_indices,
+        std::size_t& ordinal) const;
+
     std::vector<DisplayCommand> commands_;
+    // inherit_caches: the replaced chunk, the indices of its horizontal text
+    // and box-shadow commands in recording order, and how many of each this
+    // recording has recorded so far.
+    std::shared_ptr<const DisplayChunk> previous_;
+    std::vector<std::size_t> previous_text_;
+    std::vector<std::size_t> previous_shadows_;
+    std::size_t text_ordinal_{};
+    std::size_t shadow_ordinal_{};
     std::uint64_t save_depth_{};
     Point origin_{};
     // A clip outside any save, which stays in force to the end.

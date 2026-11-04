@@ -1563,6 +1563,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         ${gui_forms_gallery_page_sources}
         demo/gallery.cpp
         demo/gallery_model.cpp
+        demo/gallery_instrument.cpp
+        demo/gallery_parts.cpp
     )
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/demo>
@@ -1575,6 +1577,24 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+    # The Gallery's own controls (FD6.2): demo/gallery.form, compiled into
+    # gallery_form.hpp; gallery_context.hpp includes it, so its directory is
+    # public.
+    if(NOT GUI_FORMS_BUILD_FORM_COMPILER)
+        message(FATAL_ERROR "The Gallery needs the form compiler: its own controls are "
+                            "demo/gallery.form (set GUI_FORMS_BUILD_FORM_COMPILER=ON)")
+    endif()
+    gui_forms_add_form(gui_forms_gallery_model demo/gallery.form
+        CLASS GalleryDocument NAMESPACE gui_forms::gallery
+        TYPES
+            "gallery_lifecycle_card,gui_forms::gallery::LifecycleCard,user_control,gallery_parts.hpp"
+            "gallery_collection,gui_forms::gallery::CollectionList,list_box,gallery_parts.hpp"
+            "gallery_instrument,gui_forms::gallery::Instrument,user_control,gallery_instrument.hpp")
+    # The pages converted to form documents (FD6.3), one class each.
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/typography-and-inspection.form
+        CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages)
+    target_include_directories(gui_forms_gallery_model PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
     # literals are the first table a translator reads.
     gui_forms_compile_with_localizable_plugin(gui_forms_gallery_model)
@@ -3618,6 +3638,11 @@ if(GUI_FORMS_BUILD_TESTS)
     )
     target_link_libraries(gui_forms_semantic_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_semantic_tests COMMAND gui_forms_semantic_tests)
+    # The semantic halves of the UI Automation provider and text tests'
+    # checks, on the same fixtures, headless (no host, no foreground).
+    add_executable(gui_forms_semantic_fixture_tests tests/semantic_fixture_tests.cpp)
+    target_link_libraries(gui_forms_semantic_fixture_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_semantic_fixture_tests COMMAND gui_forms_semantic_fixture_tests)
 
     # The localizable-literal plugin, dogfooded: a unit with the plugin, one
     # without it, a static and a shared library with it. Without the plugin
@@ -3843,6 +3868,15 @@ if(GUI_FORMS_BUILD_TESTS)
                 -DEXPECTED_SYMBOL=gd_get_api_v0
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_linux_c_api_exports.cmake
         )
+    endif()
+
+    # The semantic half of the Windows MSAA and UI Automation Gallery
+    # clients' checks (registry coverage, identities, and one default
+    # action per control type and role by each client's rules), headless.
+    if(TARGET gui_forms_gallery_model)
+        add_executable(gui_forms_semantic_gallery_tests tests/semantic_gallery_tests.cpp)
+        target_link_libraries(gui_forms_semantic_gallery_tests PRIVATE gui_forms_gallery_model)
+        add_test(NAME gui_forms_semantic_gallery_tests COMMAND gui_forms_semantic_gallery_tests)
     endif()
 
     if(TARGET gui_forms_gallery_model)

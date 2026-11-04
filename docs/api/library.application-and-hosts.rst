@@ -2730,6 +2730,10 @@ Related types
 
       When set, the window is created at this logical size instead of initial_size.
 
+   .. cpp:member:: double scale_override
+
+      A fixed device scale (1.0 = 96 dpi) instead of the monitor's, for captures and tests that need one scale whatever the display; 0 follows the monitor and its DPI changes.
+
    .. cpp:member:: bool print_metrics_on_close
 
       Default: ``{true}``.

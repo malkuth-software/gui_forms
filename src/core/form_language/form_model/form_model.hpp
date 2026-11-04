@@ -22,9 +22,10 @@
 // - color: one hash of three, four, six or eight hexadecimal digits;
 // - enumeration: one choice, or for a flags enumeration one or more
 //   choices separated by whitespace;
-// - font (owner decision FD6-3): `<role> <size> <weight> [italic]`, the
-//   role control, content or monospace, a positive size, a weight from 1
-//   to 1000 (`font: control 12 700 italic;`);
+// - font (owner decision FD6-3): `<role> <size> <weight> [italic]
+//   [spacing <n>]`, the role control, content or monospace, a positive
+//   size, a weight from 1 to 1000, a letter spacing in logical pixels
+//   (`font: control 12 700 italic;`, `font: control 12 700 spacing 0.24;`);
 // - collection (owner decision FD6-4): one or more strings, for a property
 //   whose default is a text collection (`items: "AM" "FM";`);
 // - image, object and other collections: not yet expressible (E999).

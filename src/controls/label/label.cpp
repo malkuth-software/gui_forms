@@ -49,6 +49,13 @@ std::shared_ptr<const PropertyEnumDescriptor> vertical_alignment_enum() {
     return value;
 }
 
+std::shared_ptr<const PropertyEnumDescriptor> text_wrapping_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "text_wrapping", {{"no_wrap", 0}, {"word", 1}}, false});
+    return value;
+}
+
 } // namespace
 
 Label::Label(StableId stable_id, std::string text)
@@ -138,6 +145,21 @@ Label::Label(StableId stable_id, std::string text)
         detail::EnumerationPropertyGetter<Label, VerticalAlignment>(*this, &Label::vertical_alignment,
                                                                     vertical_alignment_enum()),
         detail::EnumerationPropertySetter<Label, VerticalAlignment>(*this, &Label::set_vertical_alignment),
+        {}, {}, {}});
+
+    PropertyDescriptor text_wrapping;
+    text_wrapping.name = "text_wrapping";
+    text_wrapping.kind = BindingValueKind::enumeration;
+    text_wrapping.category = "Layout";
+    text_wrapping.description = "Whether the text wraps at word boundaries: no_wrap or word.";
+    text_wrapping.default_value = BindingValue{PropertyEnumValue{"text_wrapping", "no_wrap", 0}};
+    text_wrapping.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    text_wrapping.bindable = false;
+    text_wrapping.enumeration = text_wrapping_enum();
+    define_bindable_property({
+        std::move(text_wrapping),
+        detail::EnumerationPropertyGetter<Label, TextWrapping>(*this, &Label::text_wrapping, text_wrapping_enum()),
+        detail::EnumerationPropertySetter<Label, TextWrapping>(*this, &Label::set_text_wrapping),
         {}, {}, {}});
 
     PropertyDescriptor maximum_lines;

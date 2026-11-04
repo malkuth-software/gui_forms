@@ -155,8 +155,23 @@ inline Point center(const Control::Ptr& control) {
     return {bounds.x + bounds.width * 0.5, bounds.y + bounds.height * 0.5};
 }
 
+// A page taller than the shell's viewport scrolls (sweep defect D3): bring
+// the target into the page viewport first, as a user would scroll to it.
+inline void reveal_in_page_viewport(Window& window, const Control::Ptr& control) {
+    for (Control::Ptr ancestor = (*control).parent(); ancestor; ancestor = (*ancestor).parent()) {
+        const std::shared_ptr<ScrollableControl> viewport =
+            std::dynamic_pointer_cast<ScrollableControl>(ancestor);
+        const std::string_view id = (*ancestor).stable_id().value();
+        if (!viewport || !id.ends_with(".viewport")) continue;
+        (*viewport).scroll_control_into_view(control);
+        window.perform_layout();
+        return;
+    }
+}
+
 inline void click(Window& window, const Control::Ptr& control) {
     if (!control) throw std::runtime_error("gallery click target is missing");
+    reveal_in_page_viewport(window, control);
     const Point point = center(control);
     const bool down = window.dispatch_pointer(
         {PointerAction::down, PointerButton::primary, point});
@@ -214,7 +229,7 @@ inline void select_page(Window& window, std::string_view page_id) {
     for (const gallery::GalleryPageSpec& page : gallery::gallery_pages) {
         const Control::Ptr surface = window.find(
             std::string(gallery::surface_id_prefix) + std::string(page.id));
-        require(surface && (*surface).visible() == (page.id == page_id),
+        require(surface && (*surface).effectively_visible() == (page.id == page_id),
                 "gallery navigation must expose exactly one retained page");
     }
     require(gallery::selected_gallery_page(window) == page_id,

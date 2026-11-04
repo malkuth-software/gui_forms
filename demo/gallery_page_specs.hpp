@@ -34,20 +34,20 @@ inline constexpr std::string_view navigation_id_prefix = "gallery.page.";
 inline constexpr std::string_view surface_id_prefix = "gallery.surface.";
 inline constexpr std::string_view body_id_prefix = "gallery.body.";
 
-// Compiled-DML pages first (their content is declared in gallery.dml), then the
+// Form-document pages first (their content is declared in gallery.form), then the
 // pages migrated from the retired Complete Showcase in their former order.
 inline constexpr std::array<GalleryPageSpec, 31> gallery_pages {{
     {"basics", "Basic controls",
-     "Compiled-DML form grid over public Button, CheckBox, RadioButton, LinkLabel and Label instances plus a composed UserControl lifecycle card.",
+     "Form-document group of public TextBox, Button, CheckBox, RadioButton, LinkLabel and Label instances plus a composed UserControl lifecycle card.",
      false, "Information display"},
     {"values", "Values and state",
-     "Compiled-DML group binding one retained model value to public TrackBar, ProgressBar and Label instances.",
+     "Form-document group binding one retained model value to public TrackBar, ProgressBar and Label instances.",
      false, "Value setting"},
     {"retained-rows", "Retained rows",
-     "Compiled-DML GalleryControl rows with exclusive selection and a typed drop target (demo-private, not a registry type).",
+     "Form-document ListBox subclass with exclusive selection over stable row IDs and a typed copy drop target (an application type).",
      false, "Selection from a list"},
     {"instrument", "Custom instrument",
-     "Compiled-DML GalleryControl instrument on a paint-gated 30 fps animation timer (demo-private, not a registry type).",
+     "Form-document custom control (a UserControl application type) on a paint-gated 30 fps animation timer.",
      false, "Drawing"},
     {"control-spectrum", "Control spectrum",
      "Stock button family: default, disabled, visual styles, image list, check and radio indicators.",

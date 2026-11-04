@@ -239,6 +239,49 @@ private:
     void paint_glyph(Painter& painter, Rect bounds, ObjectGlyph glyph,
                      bool enabled) const;
 
+    // The fonts of one card, from font_ and the effective text scale.
+    struct CorrespondenceCardFonts final {
+        FontSpec title{};
+        FontSpec secondary{};
+        FontSpec metric{};
+        FontSpec evidence{};
+        FontSpec evidence_bold{};
+    };
+    // Where one card's text and boxes go, in local coordinates: the one
+    // geometry used by on_paint and publish_realized_item_geometry. Widths
+    // are measured with the window's text metrics (estimated when
+    // detached), so the title, state word and metric never overlap: the
+    // metric is right-aligned, the state word sits left of it, and the
+    // title and secondary line end before them (elided when painted).
+    struct CorrespondenceCardLayout final {
+        Rect card{};
+        Rect status_rail{};
+        Rect glyph{};
+        Point title_origin{};
+        double title_width{};
+        Point secondary_origin{};
+        double secondary_width{};
+        Point metric_origin{};
+        Rect metric_box{};
+        // "PINNED", "OFFLINE" or "STALE"; empty when the card has none.
+        std::string state_text;
+        Point state_origin{};
+        // The expanded evidence body (valid only when expanded is true).
+        bool expanded{};
+        double body_top{};
+        double evidence_x{};
+        bool wide{};
+        double lane_width{};
+        Rect excerpt_box{};
+        // The narrow layout's information line under the excerpt box; not
+        // drawn when the card is too short to hold it below the box.
+        bool footer_shown{};
+        Point footer_origin{};
+    };
+    [[nodiscard]] CorrespondenceCardFonts card_fonts() const;
+    [[nodiscard]] CorrespondenceCardLayout card_layout(std::size_t index, const CorrespondenceCardFonts& fonts) const;
+    [[nodiscard]] double measured_text_width(std::string_view text, FontSpec font) const;
+
     std::vector<CorrespondenceItem> items_;
     std::string selected_id_;
     std::string focused_id_;

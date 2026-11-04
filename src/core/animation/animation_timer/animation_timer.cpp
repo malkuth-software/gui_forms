@@ -17,6 +17,20 @@ namespace {
 // that a very slow speed cannot overflow the conversion to FrameInterval.
 constexpr double longest_travel_interval_seconds = 3600.0;
 
+// The period a timer of `interval` ticks at: an interval of at least one
+// display interval rounds to the nearest whole number of display intervals,
+// so that animations of different speeds, all ticking on multiples of their
+// period in clock time, fall due in the same frame poll and share one wake
+// and one frame instead of each presenting its own. A shorter interval is
+// kept: such a timer is paced by its owner's paints.
+FrameInterval paced_interval(FrameInterval interval) noexcept {
+    if (interval < display_frame_interval) return interval;
+    const FrameInterval half = display_frame_interval / 2;
+    const std::int64_t frames = (interval + half) / display_frame_interval;
+    const FrameInterval period = display_frame_interval * frames;
+    return period;
+}
+
 } // namespace
 
 FrameInterval animation_interval_for_travel(double device_pixels_per_second,
@@ -151,12 +165,14 @@ void AnimationTimer::schedule(const std::shared_ptr<State>& shared) {
     // The first tick counts the paint that started the timer (or the one
     // its caller requested with the change that started it).
     state.painted_since_tick = true;
-    // The first tick falls on a multiple of the interval in clock time, so
-    // that timers with the same interval tick in the same frame poll.
+    // The first tick falls on a multiple of the period in clock time, so
+    // that timers whose periods are multiples of one another tick in the
+    // same frame poll.
+    const FrameInterval period = paced_interval(state.interval);
     const FrameTime now = FrameClock::now();
-    const FrameInterval into_interval = now.time_since_epoch() % state.interval;
-    const FrameTime first_tick = now + (state.interval - into_interval);
-    state.request = (*window).schedule_ui_timer(*owner, state.interval, first_tick,
+    const FrameInterval into_period = now.time_since_epoch() % period;
+    const FrameTime first_tick = now + (period - into_period);
+    state.request = (*window).schedule_ui_timer(*owner, period, first_tick,
                                                 Callback{shared});
 }
 

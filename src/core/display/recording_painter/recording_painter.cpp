@@ -7,6 +7,63 @@
 #include <utility>
 
 namespace gui_forms::detail {
+
+namespace {
+
+// Whether a new command may take the renderer cache of `previous`: the same
+// horizontal text in the same font, or a box shadow with every parameter
+// equal. The memo a renderer keeps in the cache validates its own inputs
+// as well; this keeps a cache from following a different drawing.
+bool same_cached_drawing(const DisplayCommand& previous, const DisplayCommand& recorded) noexcept {
+    if (previous.operation != recorded.operation || !previous.retained_cache) return false;
+    if (recorded.operation == DisplayOperation::draw_text_utf8) {
+        const bool same = previous.text_orientation == TextOrientation::horizontal &&
+                          recorded.text_orientation == TextOrientation::horizontal &&
+                          previous.font == recorded.font && previous.text == recorded.text;
+        return same;
+    }
+    if (recorded.operation == DisplayOperation::draw_box_shadow) {
+        const bool same = previous.rect == recorded.rect && previous.first == recorded.first &&
+                          previous.color == recorded.color && previous.scalar == recorded.scalar &&
+                          previous.secondary_scalar == recorded.secondary_scalar &&
+                          previous.tertiary_scalar == recorded.tertiary_scalar;
+        return same;
+    }
+    return false;
+}
+
+} // namespace
+
+void RecordingPainter::inherit_caches(std::shared_ptr<const DisplayChunk> previous) {
+    previous_text_.clear();
+    previous_shadows_.clear();
+    text_ordinal_ = 0U;
+    shadow_ordinal_ = 0U;
+    previous_ = std::move(previous);
+    if (!previous_) return;
+    const std::vector<DisplayCommand>& commands = (*previous_).commands();
+    for (std::size_t index = 0; index < commands.size(); ++index) {
+        const DisplayCommand& command = commands[index];
+        if (command.operation == DisplayOperation::draw_text_utf8 &&
+            command.text_orientation == TextOrientation::horizontal) {
+            previous_text_.push_back(index);
+        } else if (command.operation == DisplayOperation::draw_box_shadow) {
+            previous_shadows_.push_back(index);
+        }
+    }
+}
+
+std::shared_ptr<RetainedDrawCache> RecordingPainter::inherited_cache(
+    const DisplayCommand& recorded, const std::vector<std::size_t>& previous_indices,
+    std::size_t& ordinal) const {
+    const std::size_t at = ordinal;
+    ++ordinal;
+    if (!previous_ || at >= previous_indices.size()) return {};
+    const DisplayCommand& previous = (*previous_).commands()[previous_indices[at]];
+    if (!same_cached_drawing(previous, recorded)) return {};
+    return previous.retained_cache;
+}
+
 PreparedTextPaintResult RecordingPainter::draw_prepared_text(const PreparedTextLayout& layout,
     const LayoutAuthority expected, const Point baseline, const Color color) {
     PreparedTextPaintResult result{};
@@ -177,7 +234,8 @@ void RecordingPainter::draw_box_shadow(Rect rect, double corner_radius,
     command.scalar = corner_radius;
     command.secondary_scalar = blur_radius;
     command.tertiary_scalar = spread;
-    command.retained_cache = std::make_shared<RetainedDrawCache>();
+    command.retained_cache = inherited_cache(command, previous_shadows_, shadow_ordinal_);
+    if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }
 
@@ -193,6 +251,11 @@ void RecordingPainter::draw_retained_box_shadow(
     command.secondary_scalar = blur_radius;
     command.tertiary_scalar = spread;
     command.retained_cache = cache;
+    // The caller's cache wins; the ordinal still counts this shadow, so the
+    // ones after it pair with the previous chunk's in order.
+    const std::shared_ptr<RetainedDrawCache> inherited =
+        inherited_cache(command, previous_shadows_, shadow_ordinal_);
+    if (!command.retained_cache) command.retained_cache = inherited;
     if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }
@@ -231,7 +294,8 @@ void RecordingPainter::draw_text_utf8(Point origin,
     command.color = color;
     command.font = font;
     command.text.assign(text);
-    command.retained_cache = std::make_shared<RetainedDrawCache>();
+    command.retained_cache = inherited_cache(command, previous_text_, text_ordinal_);
+    if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }
 
@@ -245,6 +309,11 @@ void RecordingPainter::draw_retained_text_utf8(
     command.font = font;
     command.text.assign(text);
     command.retained_cache = cache;
+    // As draw_retained_box_shadow: the caller's cache wins, and the ordinal
+    // counts this run.
+    const std::shared_ptr<RetainedDrawCache> inherited =
+        inherited_cache(command, previous_text_, text_ordinal_);
+    if (!command.retained_cache) command.retained_cache = inherited;
     if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }

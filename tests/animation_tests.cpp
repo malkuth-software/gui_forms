@@ -257,9 +257,20 @@ void test_animation_timer_is_paint_gated() {
     require(rejected && !(*probe).timer.started(),
             "an interval below one millisecond must be rejected without starting");
 
+    // An interval of a display interval or more ticks at the nearest whole
+    // number of display intervals, so that timers of different speeds share
+    // frame polls.
     (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    const FrameInterval near_one = *window.next_wake() - FrameClock::now();
+    require((*window.next_wake()).time_since_epoch() % display_frame_interval == FrameInterval{} &&
+                near_one <= display_frame_interval && (*probe).timer.interval() == 20ms,
+            "a 20 ms timer must tick at one display interval and report its given interval");
+    (*probe).timer.start(*probe, 25ms, TimerProbe::Tick{probe.get()});
+    require((*window.next_wake()).time_since_epoch() % (display_frame_interval * 2) == FrameInterval{},
+            "a 25 ms timer must tick at two display intervals");
+    (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
     require((*probe).timer.ticking() && window.next_wake().has_value() &&
-                (*window.next_wake()).time_since_epoch() % 20ms == FrameInterval{},
+                (*window.next_wake()).time_since_epoch() % 32ms == FrameInterval{},
             "a started timer's first tick must fall on a multiple of its interval");
     static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
     require((*probe).ticks == 1 && (*probe).timer.ticking(),
@@ -276,7 +287,7 @@ void test_animation_timer_is_paint_gated() {
     const FrameTime due = *window.next_wake();
     const FramePollResult late = window.poll_frame_schedule(due + 105ms);
     require(late.ui_timer_ticks == 1U && (*probe).ticks == 2 &&
-                *window.next_wake() == due + 120ms,
+                *window.next_wake() == due + 128ms,
             "a late tick must be one tick, the next one the first deadline of its cadence");
 
     // A tick that changes nothing expects no paint and stays scheduled.
@@ -294,9 +305,9 @@ void test_animation_timer_is_paint_gated() {
                 (*probe).timer.started(),
             "a hidden owner's timer must stop at its next tick without ticking");
     (*probe).set_visible(true);
-    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
     (*probe).set_visible(false);
-    (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
+    (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
     require(!(*probe).timer.ticking() && !window.next_wake().has_value(),
             "starting for a hidden owner must wait for its paint");
     (*probe).set_visible(true);

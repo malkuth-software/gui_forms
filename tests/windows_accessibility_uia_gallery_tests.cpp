@@ -10,13 +10,16 @@
 // text and selection offsets), the tab-to-panel relation, its
 // child order and its parent, and that runtime IDs are unique. A second
 // window holds the registry controls the Gallery does not attach to its
-// tree. Then it performs one default action for every control type and
-// semantic role pair through the pattern that action belongs to (Invoke,
-// Toggle, SelectionItem, ExpandCollapse, or SetFocus when focus is the only
-// action) and observes the change in the semantic tree, in a fresh window
-// per page. It checks that every visual registry control published a node
-// of its own, or is listed as presentational, and that an element of a page
-// that was replaced answers UIA_E_ELEMENTNOTAVAILABLE. TextPattern's
+// tree. Then it performs one default action for every semantic role,
+// pattern call and placement (a control's own node, an item of a control,
+// an item with no control above it) through the pattern that action belongs
+// to (Invoke, Toggle, SelectionItem, ExpandCollapse, or SetFocus when focus
+// is the only action) and observes the change in the semantic tree, in a
+// fresh window per page; the adapter's path depends only on those three.
+// It checks that an element of a page that was replaced answers
+// UIA_E_ELEMENTNOTAVAILABLE. Which node every registry control publishes
+// and each control type's default action are checked headless by
+// semantic_gallery_tests.cpp. TextPattern's
 // units, Select and events are covered by
 // windows_accessibility_uia_text_tests.cpp.
 //
@@ -32,7 +35,6 @@
 // thread in posting order, after any work an Invoke posted before it.
 
 #include "gallery.hpp"
-#include "gallery_catalog.hpp"
 #include "gallery_page_specs.hpp"
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/platform/windows_host.hpp"
@@ -80,26 +82,6 @@ constexpr std::string_view host_services_page = "dialogs-and-host-services";
 // The fixture window holding the registry controls the Gallery does not
 // attach to its root tree, compared and acted on like a Gallery page.
 constexpr std::string_view off_tree_page = "off-tree-controls";
-
-// Registry entries that are not controls, as the anatomy coverage test
-// lists them.
-constexpr std::array<std::string_view, 24> nonvisual_entries{
-    "command", "gallery_command", "font_command", "color_command", "context_menu",
-    "tool_tip", "ribbon_tool_tip", "timer", "background_worker", "notify_icon",
-    "thread_exception_dialog", "image_list", "error_provider", "help_provider", "semantic_feedback", "binding",
-    "binding_source", "binding_context", "live_surface", "dock_workspace", "open_file_dialog",
-    "save_file_dialog",
-    "color_dialog",
-    "folder_browser_dialog",
-};
-
-// Registry controls that publish no node of their own (A-W1 lists the
-// same ones and why).
-constexpr std::array<std::string_view, 8> unexposed_entries{
-    "scaled_panel", "splitter_panel", "tool_strip_panel", "property_grid",
-    "scrollable_control", "anchored_popup_layer", "visual_inspector_overlay",
-    "range_control",
-};
 
 // The most popups the client closes with Escape after an action.
 constexpr int maximum_popup_closes = 4;
@@ -1004,6 +986,22 @@ void compare_controller(PageWalk& walk, IUIAutomationElement& element, const Exp
     ++walk.report.controller_relations;
 }
 
+// The key of a node's action: its role, the pattern call and its placement.
+// The provider routes an action by exactly these, so one action per key
+// covers the mapping.
+std::string action_key(const ExpectedNode& expected, DefaultKind kind) {
+    const char* placement = "own node";
+    if (expected.is_item && expected.scope_id.empty()) placement = "unscoped item";
+    if (expected.is_item && !expected.scope_id.empty()) placement = "item";
+    const PatternCall call = pattern_call(expected.node, kind);
+    std::string key = semantic_role_name(expected.node.role);
+    key += " / ";
+    key += pattern_call_name(call);
+    key += " / ";
+    key += placement;
+    return key;
+}
+
 void consider_candidate(PageWalk& walk, const ExpectedNode& expected) {
     const SemanticNode& node = expected.node;
     if (walk.page == host_services_page) return;
@@ -1012,7 +1010,7 @@ void consider_candidate(PageWalk& walk, const ExpectedNode& expected) {
     const bool focus_only = kind == DefaultKind::none &&
                             has_semantic_state(node.states, SemanticState::focusable);
     if (kind == DefaultKind::none && !focus_only) return;
-    const std::string key = expected.control_type + " / " + semantic_role_name(node.role);
+    const std::string key = action_key(expected, kind);
     bool observable = true;
     if (kind == DefaultKind::select) observable = !has_semantic_state(node.states, SemanticState::selected);
     if (kind == DefaultKind::press && node.role == SemanticRole::radio_button) {
@@ -1849,37 +1847,6 @@ void perform_page_actions(Report& report, std::string_view page) {
     }
 }
 
-bool listed(std::span<const std::string_view> list, std::string_view id) noexcept {
-    for (const std::string_view entry : list) {
-        if (entry == id) return true;
-    }
-    return false;
-}
-
-std::string registry_coverage(const Report& report) {
-    std::size_t controls = 0;
-    std::size_t exposed = 0;
-    std::string missing;
-    std::string stale;
-    for (const gallery::CatalogEntry& entry : gallery::control_catalog) {
-        if (listed(nonvisual_entries, entry.id)) continue;
-        ++controls;
-        const std::map<std::string, ControlTally>::const_iterator found = report.tallies.find(std::string(entry.id));
-        const bool own_node = found != report.tallies.end() && (*found).second.own_nodes != 0U;
-        if (own_node) ++exposed;
-        const bool unexposed = listed(unexposed_entries, entry.id);
-        if (!own_node && !unexposed) missing += " " + std::string(entry.id);
-        if (own_node && unexposed) stale += " " + std::string(entry.id);
-    }
-    std::cout << "registry coverage: " << exposed << " of " << controls
-              << " visual registry controls publish their own node; " << unexposed_entries.size()
-              << " are presentational (" << nonvisual_entries.size() << " nonvisual entries excluded)\n";
-    std::string disagreement;
-    if (!missing.empty()) disagreement += "registry controls the client never found:" + missing;
-    if (!stale.empty()) disagreement += " unexposed_entries lists exposed controls:" + stale;
-    return disagreement;
-}
-
 void print_report(const Report& report) {
     std::cout << "UI Automation Gallery client: " << report.pages << " pages, " << report.elements
               << " elements compared, " << report.controller_relations << " tab-to-panel relations\n";
@@ -1916,7 +1883,6 @@ int main() {
         }
         perform_page_actions(report, off_tree_page);
         print_report(report);
-        const std::string coverage = registry_coverage(report);
         std::size_t failed_actions = 0;
         for (const ActionResult& action : report.actions) {
             if (action.outcome != ActionOutcome::changed) ++failed_actions;
@@ -1926,10 +1892,6 @@ int main() {
             return 1;
         }
         std::cout << "stale element: UIA_E_ELEMENTNOTAVAILABLE after its page was replaced\n";
-        if (!coverage.empty()) {
-            std::cerr << coverage << '\n';
-            return 1;
-        }
         if (!report.mismatches.empty() || failed_actions != 0U) {
             std::cerr << report.mismatches.size() << " mismatches, " << failed_actions
                       << " actions without an observed change\n";

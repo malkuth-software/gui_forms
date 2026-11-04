@@ -162,6 +162,31 @@ bool valid_text_image_relation(TextImageRelation relation) noexcept {
     return false;
 }
 
+std::string elide_text_end(Painter& painter, std::string_view text, FontSpec font,
+                           const double maximum_width) {
+    if (text.empty() || maximum_width <= 0.0) return {};
+    if (painter.measure_text_utf8(text, font).width <= maximum_width) {
+        return std::string(text);
+    }
+    constexpr std::string_view ellipsis = "…";
+    if (painter.measure_text_utf8(ellipsis, font).width > maximum_width) {
+        return {};
+    }
+    const TextStore store(text);
+    std::size_t grapheme = store.grapheme_count().value();
+    while (grapheme > 0U) {
+        --grapheme;
+        const std::size_t end =
+            store.utf8_offset(GraphemeIndex(grapheme)).value();
+        std::string candidate(text.substr(0U, end));
+        candidate.append(ellipsis);
+        if (painter.measure_text_utf8(candidate, font).width <= maximum_width) {
+            return candidate;
+        }
+    }
+    return std::string(ellipsis);
+}
+
 Rect aligned_rect(Rect bounds, Size size,
                   ContentAlignment alignment) noexcept {
     const double width = std::min(std::max(0.0, size.width), bounds.width);

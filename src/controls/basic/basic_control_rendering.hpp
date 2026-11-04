@@ -24,6 +24,13 @@ BindingValue picture_box_size_mode_value(PictureBoxSizeMode mode);
     ContentAlignment alignment) noexcept;
 [[nodiscard]] bool valid_text_image_relation(
     TextImageRelation relation) noexcept;
+// `text` cut at a grapheme boundary and ended with an ellipsis so that it
+// measures at most `maximum_width` with `painter`; the whole text when it
+// fits, empty when not even the ellipsis does. Measures once per grapheme
+// removed: for short display strings painted at most once a frame.
+[[nodiscard]] std::string elide_text_end(Painter& painter, std::string_view text, FontSpec font,
+                                         double maximum_width);
+
 [[nodiscard]] Rect aligned_rect(Rect bounds, Size size,
                                 ContentAlignment alignment) noexcept;
 // Zero admits all lines. A positive limit returns the exact unlimited prefix

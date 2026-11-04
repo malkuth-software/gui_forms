@@ -561,11 +561,13 @@ std::optional<BindingValue> ModelBuilder::integer_value(const ValueTokens& value
     return BindingValue{static_cast<std::uint64_t>(integer)};
 }
 
-// A font (owner decision FD6-3): `<role> <size> <weight> [italic]`, the
-// role one of control, content and monospace, the size a positive number
-// of logical pixels, the weight an integer from 1 to 1000.
+// A font (owner decision FD6-3): `<role> <size> <weight> [italic]
+// [spacing <n>]`, the role one of control, content and monospace, the size
+// a positive number of logical pixels, the weight an integer from 1 to
+// 1000, the letter spacing (FD6.3) a number of logical pixels from minus a
+// quarter of the size to the size (valid_font_spec).
 std::optional<BindingValue> ModelBuilder::font_value(const ValueTokens& value, ValueReading& reading) const {
-    if (value.count < 3U || value.count > 4U) {
+    if (value.count < 3U || value.count > 6U) {
         reading.offending = value.indices[value.count - 1U];
         return std::nullopt;
     }
@@ -593,13 +595,35 @@ std::optional<BindingValue> ModelBuilder::font_value(const ValueTokens& value, V
     const ThemeNumber& weight = numbers_[weight_token.number];
     if (!weight.integer || weight.value < 1.0 || weight.value > 1000.0) return std::nullopt;
     font.weight = static_cast<std::uint16_t>(weight.value);
-    if (value.count == 4U) {
-        reading.offending = value.indices[3];
-        if (tokens_[value.indices[3]].kind != TokenKind::ident || token_text(value.indices[3]) != "italic") {
+    std::size_t next = 3U;
+    if (next < value.count) {
+        const std::uint32_t word = value.indices[next];
+        reading.offending = word;
+        if (tokens_[word].kind != TokenKind::ident) return std::nullopt;
+        if (token_text(word) == "italic") {
+            font.italic = true;
+            ++next;
+        }
+    }
+    if (next < value.count) {
+        const std::uint32_t word = value.indices[next];
+        reading.offending = word;
+        if (tokens_[word].kind != TokenKind::ident || token_text(word) != "spacing") return std::nullopt;
+        if (next + 2U != value.count) {
+            reading.offending = value.indices[value.count - 1U];
             return std::nullopt;
         }
-        font.italic = true;
+        reading.offending = value.indices[next + 1U];
+        const std::optional<double> spacing = number_at(value.indices[next + 1U]);
+        if (!spacing) return std::nullopt;
+        font.letter_spacing = *spacing;
+        next += 2U;
     }
+    if (next != value.count) {
+        reading.offending = value.indices[next];
+        return std::nullopt;
+    }
+    if (!valid_font_spec(font)) return std::nullopt;
     return BindingValue{font};
 }
 

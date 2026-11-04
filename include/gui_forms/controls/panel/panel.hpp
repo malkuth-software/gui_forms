@@ -59,6 +59,12 @@ protected:
     [[nodiscard]] Parts panel_parts() const;
 
 private:
+    // The colour that replaces the themed material on the panel's face: the
+    // panel background (set_background), else the control's own back_color
+    // outside high contrast (Control::paint_back_color's rule); none keeps
+    // the material.
+    [[nodiscard]] std::optional<Color> face_colour() const noexcept;
+
     std::optional<BasicControlStyle> style_override_;
     std::optional<Color> background_override_;
     ControlVisualRole visual_role_{ControlVisualRole::panel};

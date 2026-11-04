@@ -257,6 +257,12 @@ void test_public_controls_render_with_role_policy() {
     (*panel).set_border_style(BorderStyle::line);
     std::shared_ptr<gui_forms::GroupBox> group = make_control<GroupBox>(StableId("controls.group"), "Reusable controls");
     (*group).set_requested_bounds({10.0, 10.0, 340.0, 160.0});
+    // The caption is the group's `text` property (Windows Forms' GroupBox.Text).
+    (*group).set_property_value("text", BindingValue{std::string("Shared controls")});
+    require((*group).text() == "Shared controls", "GroupBox text is a property");
+    require(std::get<std::string>(*(*group).property_value("text")) == "Shared controls",
+            "GroupBox text reads back as a property");
+    (*group).set_text("Reusable controls");
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("controls.label"), "Field content");
     (*label).set_requested_bounds({12.0, 24.0, 140.0, 24.0});
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("controls.button"), "Apply");

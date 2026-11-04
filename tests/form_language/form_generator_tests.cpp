@@ -375,6 +375,84 @@ void test_fonts_and_items() {
     require(located, "values: each malformed font and item, located");
 }
 
+// FD6.3's descriptors: letter spacing in a font, a group box's caption
+// font, the scaled containers' design size (their children placed by their
+// own bounds, read in design coordinates), a panel's face colour, and the
+// choice controls' indicator style.
+void test_page_descriptors() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "scaled-panel app.root {\n"
+                                      "  design-size: 200 100;\n"
+                                      "  back-color: #E1EBF3;\n"
+                                      "  scaled-group-box app.group {\n"
+                                      "    text: \"Group\";\n"
+                                      "    font: control 12 700 spacing 0.24;\n"
+                                      "    design-size: 50 50;\n"
+                                      "    bounds: 100 0 100 100;\n"
+                                      "    check-box app.check { indicator-style: toggle; bounds: 0 0 25 10; }\n"
+                                      "  }\n"
+                                      "  radio-button app.radio { indicator-style: modern; bounds: 0 50 100 50; }\n"
+                                      "  label app.italic { font: content 13 400 italic spacing 0.5; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "page.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "page descriptors: the model builds");
+    if (!read) return;
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = gui_forms::form_language::load_form(
+        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, loaded,
+        workspace.diagnostics);
+    require(outcome == FormLoadOutcome::loaded, "page descriptors: the document loads");
+    if (outcome != FormLoadOutcome::loaded) return;
+
+    const std::shared_ptr<gui_forms::ScaledPanel> root =
+        std::dynamic_pointer_cast<gui_forms::ScaledPanel>(loaded.root);
+    const std::shared_ptr<gui_forms::ScaledGroupBox> group =
+        std::dynamic_pointer_cast<gui_forms::ScaledGroupBox>(find_control(loaded.root, "app.group"));
+    const std::shared_ptr<gui_forms::CheckBox> check =
+        std::dynamic_pointer_cast<gui_forms::CheckBox>(find_control(loaded.root, "app.check"));
+    const std::shared_ptr<gui_forms::RadioButton> radio =
+        std::dynamic_pointer_cast<gui_forms::RadioButton>(find_control(loaded.root, "app.radio"));
+    const std::shared_ptr<gui_forms::Label> italic =
+        std::dynamic_pointer_cast<gui_forms::Label>(find_control(loaded.root, "app.italic"));
+    require(root != nullptr && group != nullptr && check != nullptr && radio != nullptr && italic != nullptr,
+            "page descriptors: every object made");
+    if (root == nullptr || group == nullptr || check == nullptr || radio == nullptr || italic == nullptr) return;
+    require((*root).design_size() == gui_forms::Size{200.0, 100.0}, "page descriptors: the panel's design size");
+    require((*group).design_size() == gui_forms::Size{50.0, 50.0}, "page descriptors: the group's design size");
+    require((*root).background() == gui_forms::Color::rgba(0xE1, 0xEB, 0xF3),
+            "page descriptors: a panel's back colour is its face");
+    const gui_forms::FontSpec caption{gui_forms::FontRole::control, 12.0, 700, false, 0.24};
+    require((*group).font() == caption, "page descriptors: the caption font with its letter spacing");
+    const gui_forms::FontSpec body{gui_forms::FontRole::content, 13.0, 400, true, 0.5};
+    require((*italic).font() == body, "page descriptors: italic, then spacing");
+    require((*check).indicator_style() == gui_forms::ChoiceIndicatorStyle::toggle,
+            "page descriptors: the check box's indicator style");
+    require((*radio).indicator_style() == gui_forms::ChoiceIndicatorStyle::modern,
+            "page descriptors: the radio button's indicator style");
+
+    // Arranged at twice the design size: each child's own bounds, scaled.
+    (*root).arrange({0.0, 0.0, 400.0, 200.0});
+    require((*group).pending_layout_bounds() == gui_forms::Rect{200.0, 0.0, 200.0, 200.0},
+            "page descriptors: a scaled panel places a child by its own bounds");
+    require((*radio).pending_layout_bounds() == gui_forms::Rect{0.0, 100.0, 200.0, 100.0},
+            "page descriptors: a second child, scaled");
+
+    const std::string_view refused = "user-control app.root {\n"
+                                     "  label app.a { font: control 12 700 spacing; }\n"
+                                     "  label app.b { font: control 12 700 spacing 13; }\n"
+                                     "  label app.c { font: control 12 700 spacing 1 italic; }\n"
+                                     "  check-box app.d { indicator-style: round; }\n"
+                                     "}\n";
+    Workspace refusing{};
+    require(!read_document(refusing, "refused.form", refused, schema), "page descriptors: malformed values refused");
+    const std::span<const ThemeDiagnostic> records = refusing.diagnostics.records();
+    const bool counted = records.size() == 4U && records[0].code == DiagnosticCode::form_value_invalid;
+    if (!counted) print_diagnostics(refusing);
+    require(counted, "page descriptors: one refusal each");
+}
+
 void test_member_names() {
     require(gui_forms::form_language::form_member_name("settings.auto-save") == "settings_auto_save",
             "member names: '.' and '-' spelled '_'");
@@ -391,6 +469,7 @@ int main() {
     test_handlers();
     test_golden();
     test_fonts_and_items();
+    test_page_descriptors();
     test_refusals();
     test_member_names();
     if (failures != 0) {

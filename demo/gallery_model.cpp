@@ -1,7 +1,5 @@
 #include "gallery_model.hpp"
 
-#include "gallery_dml.hpp"
-
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -26,11 +24,8 @@ const GalleryState& GalleryModel::state() const noexcept
 
 bool GalleryModel::activate(std::string_view stable_id)
 {
-    const dml::NodeSpec* const node = dml::find(stable_id);
-    if (node == nullptr || ((*node).flags & dml::enabled) == 0U) {
-        return false;
-    }
-
+    // An ID the Gallery does not act on (unknown, or a disabled control
+    // such as gallery.disabled-button) is no activation.
     bool changed = false;
     if (stable_id == "gallery.command.reset") {
         reset();
@@ -106,8 +101,7 @@ bool GalleryModel::select_page(std::string_view page_id)
 
 bool GalleryModel::select_collection_row(std::string_view stable_id)
 {
-    if (!is_collection_row(stable_id) || dml::find(stable_id) == nullptr ||
-        state_.selected_collection_row == stable_id) {
+    if (!is_collection_row(stable_id) || state_.selected_collection_row == stable_id) {
         return false;
     }
     state_.selected_collection_row.assign(stable_id);

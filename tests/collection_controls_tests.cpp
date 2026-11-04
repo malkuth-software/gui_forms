@@ -984,6 +984,49 @@ void test_correspondence_keyboard_pin_semantics_and_activation() {
     require(operation_check_81, "semantic expansion must enter the same one-pin state path for unavailable evidence");
 }
 
+PartGeometry correspondence_item_part(const Control& view, std::size_t item, std::string_view name) {
+    const ItemSystemDeclaration& system = view.anatomy().item_systems.front();
+    std::vector<PartGeometry> geometry(system.parts.size());
+    view.fill_realized_item_geometry(item, geometry);
+    for (std::size_t index = 0U; index < system.parts.size(); ++index) {
+        if (system.parts[index].name == name) return geometry[index];
+    }
+    return {};
+}
+
+// Sweep defect D9: in a narrow card the title, the state word and the
+// metric share one line and must not overlap; the secondary line ends
+// before the metric; the excerpt box stays inside a short expanded card.
+void test_correspondence_narrow_card_layout() {
+    std::shared_ptr<gui_forms::CorrespondenceView> records = make_control<CorrespondenceView>(
+        StableId("correspondence.narrow"));
+    (*records).set_requested_bounds({0.0, 0.0, 280.0, 300.0});
+    (*records).set_compact_height(44.0);
+    (*records).set_expanded_height(124.0);
+    (*records).set_items(correspondence_fixture(3U));
+    (*records).set_pinned_id("correspondence.0");
+    Window window(records, {280.0, 300.0});
+    window.flush();
+    require((*records).expanded("correspondence.0"), "the pinned card must be expanded");
+    const PartGeometry card = correspondence_item_part(*records, 0U, "card");
+    const PartGeometry title = correspondence_item_part(*records, 0U, "title");
+    const PartGeometry secondary = correspondence_item_part(*records, 0U, "secondary");
+    const PartGeometry metric = correspondence_item_part(*records, 0U, "metric");
+    const PartGeometry evidence = correspondence_item_part(*records, 0U, "evidence");
+    require(title.present && metric.present && secondary.present && evidence.present,
+            "a narrow expanded card must publish its title, secondary, metric and evidence parts");
+    // The state word sits between the title and the metric, so the title
+    // ends at least one gap and the word's width before the metric.
+    require(title.bounds.x + title.bounds.width + 16.0 < metric.bounds.x,
+            "a pinned card's title must end before the state word and the metric");
+    require(secondary.bounds.x + secondary.bounds.width < metric.bounds.x,
+            "the secondary line must end before the metric");
+    require(metric.bounds.x + metric.bounds.width <= card.bounds.x + card.bounds.width,
+            "the metric must stay inside the card");
+    require(evidence.bounds.y + evidence.bounds.height <= card.bounds.y + card.bounds.height,
+            "the excerpt box must stay inside the expanded card");
+}
+
 void test_correspondence_background_pointer_contract() {
     std::shared_ptr<gui_forms::CorrespondenceView> records =
         make_control<CorrespondenceView>(StableId("correspondence.background"));
@@ -1789,6 +1832,7 @@ int main() {
         test_shared_command_binding();
         test_correspondence_virtualization_and_anchor_stability();
         test_correspondence_keyboard_pin_semantics_and_activation();
+        test_correspondence_narrow_card_layout();
         test_correspondence_background_pointer_contract();
         std::cout << "gui_forms_collection_controls_tests: all tests passed\n";
         return EXIT_SUCCESS;

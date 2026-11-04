@@ -87,6 +87,12 @@ UndefinedBehaviorSanitizer run everywhere; LeakSanitizer runs on Linux and
 macOS, since the Windows MinGW runtime has none. Host code is sanitized only
 where it builds, so the Windows and macOS hosts depend on these local trees.
 
+A plain run without `--sanitize` builds the tree, runs the suite and installs
+the SDK. `--install-only` builds and installs the same SDK, with its notice
+and import checks and the installed reference examples, but runs none of the
+toolkit's tests: it is for a consumer's smoke build at a pin GUI.Forms' CI
+has already tested (File Manager's bootstrap smoke).
+
 Sanitized trees carry line tables, not full debug information, by default
 (`--debug-info lines`, `-gline-tables-only`): every report frame keeps its
 file, line and column; objects and programs are about 60 to 70% smaller and

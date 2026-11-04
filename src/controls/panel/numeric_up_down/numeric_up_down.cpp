@@ -182,14 +182,15 @@ void NumericUpDown::step(int direction) {
 
 void NumericUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    const double button_width =
-        std::min(button_width_, std::max(0.0, final_bounds.width));
-    if (editor_) set_child_layout(
-        editor_, {0.0, 0.0, std::max(0.0, final_bounds.width - button_width),
-                  final_bounds.height});
-    if (spinner_) set_child_layout(
-        spinner_, {std::max(0.0, final_bounds.width - button_width), 0.0,
-                   button_width, final_bounds.height});
+    // The field and the spin column sit inside the control's own border
+    // (the borderless editor draws none of its own).
+    const double inset = border_style() == BorderStyle::none ? 0.0 : 1.0;
+    const double inner_width = std::max(0.0, final_bounds.width - 2.0 * inset);
+    const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
+    const double button_width = std::min(button_width_, inner_width);
+    const double field_width = std::max(0.0, inner_width - button_width);
+    if (editor_) set_child_layout(editor_, {inset, inset, field_width, inner_height});
+    if (spinner_) set_child_layout(spinner_, {inset + field_width, inset, button_width, inner_height});
 }
 
 void NumericUpDown::on_key_preview(KeyEvent& event) {

@@ -1,0 +1,150 @@
+/* The Gallery's own controls (stage FD, phase FD6.2): the command strip, the
+   four compiled pages (basics, values, retained rows, instrument) and the
+   diagnostics overlay. gui_forms_add_form() compiles this document into
+   gallery_form.hpp at build time. gallery.root is a declared boundary only:
+   the registry-driven shell (src/controls/gallery_pages.cpp) takes each of
+   its children to its place (src/controls/gallery_controls.cpp names the
+   mounts). Every handler is a member function of GalleryContext
+   (gallery_context.hpp), one per object (owner decision FD6-2).
+
+   Application types (gallery_parts.hpp, gallery_instrument.hpp):
+   gallery-lifecycle-card (user-control), gallery-collection (list-box) and
+   gallery-instrument (user-control). */
+panel gallery.root {
+  panel gallery.command-strip {
+    bounds: 0 0 1280 34;
+    button gallery.command.reset {
+      text: "Reset";
+      bounds: 6 5 72 24;
+      on-clicked: reset_clicked;
+    }
+    button gallery.command.diagnostics {
+      text: "Diagnostics";
+      bounds: 84 5 96 24;
+      on-clicked: diagnostics_clicked;
+    }
+    picture-box gallery.command.status-badge { bounds: 188 9 16 16; }
+    label gallery.command.status {
+      text: "Portable core · Host 0.4 · drop-ready";
+      font: control 12 400;
+      bounds: 210 5 1064 24;
+    }
+  }
+
+  material-panel gallery.backplane {
+    bounds: 0 0 660 200;
+    group-box gallery.basics-group {
+      text: "Basic controls";
+      bounds: 16 14 628 172;
+      label gallery.intro {
+        text: "Professional retained controls with deterministic native behavior.";
+        font: content 12 400;
+        bounds: 10 22 608 22;
+      }
+      text-box gallery.text-input {
+        text: "Edit this text";
+        bounds: 10 50 250 28;
+        tab-index: 0;
+        on-text-changed: text_changed;
+      }
+      button gallery.default-button {
+        text: "Apply";
+        bounds: 266 50 92 28;
+        tab-index: 1;
+        on-clicked: apply_clicked;
+      }
+      button gallery.disabled-button {
+        text: "Unavailable";
+        enabled: false;
+        bounds: 364 50 108 28;
+        tab-index: 2;
+      }
+      check-box gallery.checkbox {
+        text: "Enable precise updates";
+        checked: true;
+        bounds: 10 84 220 24;
+        tab-index: 3;
+        on-clicked: precise_updates_clicked;
+      }
+      radio-button gallery.radio.classic {
+        text: "Classic relief";
+        checked: true;
+        bounds: 236 84 180 24;
+        tab-index: 4;
+        on-clicked: classic_relief_clicked;
+      }
+      radio-button gallery.radio.quiet {
+        text: "Quiet relief";
+        bounds: 422 84 180 24;
+        tab-index: 5;
+        on-clicked: quiet_relief_clicked;
+      }
+      check-box gallery.checkbox.indeterminate {
+        text: "Three-state option";
+        bounds: 10 112 220 24;
+        tab-index: 6;
+        on-clicked: three_state_clicked;
+      }
+      link-label gallery.link {
+        text: "Show control contract";
+        bounds: 240 112 170 24;
+        tab-index: 7;
+        on-clicked: contract_link_clicked;
+      }
+      gallery-lifecycle-card gallery.lifecycle-card {
+        bounds: 416 112 202 24;
+        label gallery.lifecycle-title { text: "COMPOSED"; font: control 10 600; }
+        label gallery.lifecycle-status { text: "Awaiting attach"; font: content 10 400; }
+      }
+    }
+  }
+
+  group-box gallery.values-group {
+    text: "Values and retained state";
+    bounds: 0 0 660 116;
+    track-bar gallery.slider {
+      minimum: 0;
+      maximum: 100;
+      value: 42;
+      bounds: 10 22 640 28;
+      on-value-changed: slider_changed;
+    }
+    progress-bar gallery.progress { minimum: 0; maximum: 100; value: 42; bounds: 10 56 640 20; }
+    label gallery.value-label { text: "42%"; font: content 12 400; bounds: 10 82 640 22; }
+  }
+
+  group-box gallery.collection-group {
+    text: "Retained collection";
+    bounds: 0 0 660 144;
+    gallery-collection gallery.collection {
+      items: "Alpha channel" "Beta channel" "Gamma channel" "Delta channel";
+      bounds: 10 22 640 112;
+      on-selection-changed: collection_selection_changed;
+    }
+  }
+
+  group-box gallery.instrument-group {
+    text: "Custom instrument";
+    bounds: 0 0 660 150;
+    gallery-instrument gallery.instrument { bounds: 10 22 640 118; }
+  }
+
+  group-box gallery.diagnostics {
+    text: "Diagnostics";
+    visible: false;
+    bounds: 0 0 280 742;
+    label gallery.diagnostics.about { text: "GUI.Forms Gallery"; font: content 10 400; bounds: 10 22 260 52; }
+    label gallery.diagnostics.renderer { text: "renderer"; font: content 12 400; bounds: 10 80 260 20; }
+    label gallery.diagnostics.controls { text: "controls"; font: content 12 400; bounds: 10 106 260 20; }
+    label gallery.diagnostics.layout { text: "measure / arrange"; font: content 12 400; bounds: 10 132 260 20; }
+    label gallery.diagnostics.paint { text: "paint / damage"; font: content 12 400; bounds: 10 158 260 20; }
+    label gallery.diagnostics.input { text: "input / focus / activation"; font: content 12 400; bounds: 10 184 260 20; }
+    label gallery.diagnostics.flush { text: "wake / ticks / active"; font: content 12 400; bounds: 10 210 260 20; }
+    label gallery.diagnostics.present { text: "present / worst"; font: content 12 400; bounds: 10 236 260 20; }
+    label gallery.diagnostics.font {
+      text: "Controls: Portsmouth Rapids 1.0; Fields: Carlito body specimen.";
+      font: content 10 400;
+      bounds: 10 262 260 52;
+    }
+  }
+}

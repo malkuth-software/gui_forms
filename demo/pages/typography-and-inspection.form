@@ -1,0 +1,125 @@
+/* The Gallery's typography-and-inspection page (stage FD, phase FD6.3):
+   four TypographySpecimen runs, the inspection policy and the
+   VisualInspectorView over one specimen, with the VisualInspectorOverlay
+   above them. gui_forms_add_form() compiles this document into
+   typography-and-inspection_form.hpp at build time.
+
+   gallery.typography.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface),
+   where each is placed by its bounds in design coordinates. Behaviour stays
+   in the page (src/controls/gallery/pages/typography-and-inspection.cpp):
+   the shared overlay Command, the bound Values (inspection target,
+   adornments, wrapped size), the ChoiceGroup's items and the page style. */
+scaled-panel gallery.typography.document {
+  design-size: 1000 660;
+
+  label gallery.typography-and-inspection.heading {
+    text: "TYPOGRAPHY AND INSPECTION";
+    font: content 22 700;
+    fore-color: #182d42;
+    bounds: 24 18 620 34;
+  }
+  label gallery.typography-and-inspection.lead {
+    text: "Committed text runs with their logical line box and resolved baseline, and the public visual-inspection snapshot of any retained control.";
+    font: content 12 400;
+    fore-color: #5b6b79;
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.typography.specimens {
+    text: "TypographySpecimen · committed runs, line boxes, baselines";
+    font: control 12 700 spacing 0.24;
+    design-size: 560 330;
+    bounds: 24 92 560 330;
+    typography-specimen gallery.typography.specimen.0 {
+      text: "CONTROL FACE · GALLERY HEADING";
+      font: control 12 700 spacing 0.24;
+      caption: "FontRole::control · 12 / 700 · tracking 0.24";
+      bounds: 22 40 516 56;
+    }
+    typography-specimen gallery.typography.specimen.1 {
+      text: "The quick brown fox jumps over the lazy dog · Ω ß ñ ø";
+      font: content 12 400;
+      caption: "FontRole::content · 12 / 400 · UTF-8 run";
+      bounds: 22 104 516 56;
+    }
+    typography-specimen gallery.typography.specimen.2 {
+      text: "Resolved baseline at display size";
+      font: content 20 400 italic;
+      caption: "FontRole::content · 20 / 400 · italic";
+      bounds: 22 168 516 70;
+    }
+    typography-specimen gallery.typography.specimen.3 {
+      text: "Wrapped specimen: the size slider below rewrites this run's FontSpec, and the committed layout reports the resulting line boxes.";
+      font: content 14 400;
+      wrap-text: true;
+      caption: "FontRole::content · bound size · wrapped";
+      bounds: 22 246 516 72;
+    }
+  }
+
+  scaled-group-box gallery.typography.policy {
+    text: "Inspection target and review policy";
+    font: control 12 700 spacing 0.24;
+    design-size: 560 180;
+    bounds: 24 442 560 180;
+    choice-group gallery.typography.target {
+      accessible-name: "Inspection target";
+      bounds: 22 40 516 34;
+    }
+    check-box gallery.typography.diagnostics {
+      text: "Line box and baseline adornments";
+      bounds: 22 88 250 28;
+    }
+    check-box gallery.typography.overlay {
+      text: "Show inspector overlay";
+      indicator-style: toggle;
+      bounds: 290 88 248 28;
+    }
+    button gallery.typography.overlay.toggle {
+      text: "Toggle overlay";
+      bounds: 22 128 180 32;
+    }
+    label gallery.typography.size.label {
+      text: "Wrapped specimen size · 10–28";
+      font: content 10 700;
+      fore-color: #182d42;
+      bounds: 290 120 248 18;
+    }
+    track-bar gallery.typography.size {
+      minimum: 10;
+      maximum: 28;
+      value: 14;
+      tick-frequency: 2;
+      accessible-name: "Wrapped specimen font size";
+      bounds: 290 136 248 36;
+    }
+  }
+
+  scaled-group-box gallery.typography.inspection {
+    text: "VisualInspectorView · public inspection snapshot";
+    font: control 12 700 spacing 0.24;
+    design-size: 350 530;
+    bounds: 604 92 350 530;
+    visual-inspector-view gallery.typography.inspector {
+      target-stable-id: "gallery.typography.specimen.0";
+      accessible-name: "Visual inspection of the selected specimen";
+      bounds: 20 38 310 440;
+    }
+    label gallery.typography.readout {
+      text: "Inspecting gallery.typography.specimen.0";
+      font: content 10 400;
+      fore-color: #5b6b79;
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 20 486 310 36;
+    }
+  }
+
+  /* The transparent overlay covers the whole body and never hit-tests. */
+  visual-inspector-overlay gallery.typography.inspector.overlay {
+    target-stable-id: "gallery.typography.specimen.0";
+    visible: false;
+    bounds: 0 0 1000 660;
+  }
+}

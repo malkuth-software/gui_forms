@@ -9,6 +9,7 @@
 #include <cmath>
 #include <iterator>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -84,10 +85,17 @@ double LinkLabel::text_baseline() const noexcept {
     return baseline;
 }
 
+// The text's measured advance: the window's text metrics, which the host
+// sets to its raster painter's, so the underline ends where the drawn text
+// does (sweep defect D5: the width estimate ran past the text). A detached
+// label estimates.
 double LinkLabel::underline_width() const {
     const Rect bounds = local_bounds();
-    const double width = std::min(bounds.width - 4.0,
-                                  estimated_text_width(display_text(), font()));
+    const std::string text = display_text();
+    const ResolvedTextLayout measured = window() != nullptr
+        ? (*window()).resolve_text_layout_utf8(text, font())
+        : estimate_text_layout_utf8(text, font());
+    const double width = std::min(bounds.width - 4.0, measured.logical_size.width);
     return std::max(0.0, width);
 }
 

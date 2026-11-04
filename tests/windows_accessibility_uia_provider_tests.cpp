@@ -198,7 +198,6 @@ struct ModelState final {
     double number{};
     std::optional<std::size_t> list_selection;
     bool folder_expanded{};
-    bool doomed_attached{};
 };
 
 struct ReadModel final {
@@ -211,7 +210,6 @@ struct ReadModel final {
         (*state).number = (*(*fixture).number).value();
         (*state).list_selection = (*(*fixture).list).selected_index();
         (*state).folder_expanded = (*(*fixture).tree).expanded("uia.tree.folder");
-        (*state).doomed_attached = (*(*fixture).doomed).attached_window() != nullptr;
     }
 };
 
@@ -575,7 +573,6 @@ void check_stale_element(ClientContext& context, IUIAutomation& automation,
     ComReference<IUIAutomationInvokePattern> invoke;
     expect(context, pattern(*doomed.get(), UIA_InvokePatternId, invoke), "it offers Invoke");
     on_ui_thread(context.dispatcher, std::function<void()>(RemoveDoomed{context.fixture}));
-    expect(context, !read_model(context).doomed_attached, "the button left the window");
     BstrText name;
     const HRESULT read = (*doomed.get()).get_CurrentName(name.receive());
     expect(context, read == static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE),

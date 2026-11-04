@@ -4,6 +4,7 @@
 #include "gui_forms/commands.hpp"
 #include "gui_forms/connected_controls.hpp"
 #include "../basic/basic_control_rendering.hpp"
+#include "choice_indicator_property.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/text.hpp"
@@ -20,6 +21,13 @@
 #include <vector>
 
 namespace gui_forms {
+
+std::shared_ptr<const PropertyEnumDescriptor> button_base_detail::choice_indicator_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "indicator_style", {{"classic", 0}, {"modern", 1}, {"toggle", 2}}, false});
+    return value;
+}
 
 class ButtonBase::CommandConnection final
     : public std::enable_shared_from_this<CommandConnection> {
@@ -120,6 +128,42 @@ void ButtonBase::unbind_command() noexcept {
 
 
 namespace {
+
+// aligned_rect for a button's text block: a block taller than the content
+// box keeps its own height and overflows by its alignment (centred for a
+// middle row), instead of being pinned to the content's top, which put the
+// baseline on or below the bottom edge of a short button (sweep defect D6).
+[[nodiscard]] Rect aligned_text_block(Rect content, Size size, ContentAlignment alignment) noexcept {
+    Rect placed = aligned_rect(content, size, alignment);
+    if (!(size.height > content.height)) return placed;
+    double share = 0.5;
+    switch (alignment) {
+    case ContentAlignment::top_left:
+    case ContentAlignment::top_center:
+    case ContentAlignment::top_right:
+        share = 0.0;
+        break;
+    case ContentAlignment::middle_left:
+    case ContentAlignment::middle_center:
+    case ContentAlignment::middle_right:
+        share = 0.5;
+        break;
+    case ContentAlignment::bottom_left:
+    case ContentAlignment::bottom_center:
+    case ContentAlignment::bottom_right:
+        share = 1.0;
+        break;
+    default:
+        // ContentAlignment names only the nine values above; a value outside
+        // them centres the block like the middle row.
+        share = 0.5;
+        break;
+    }
+    placed.y = content.y + (content.height - size.height) * share;
+    placed.height = size.height;
+    return placed;
+}
+
 std::shared_ptr<const PropertyEnumDescriptor> content_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
@@ -653,7 +697,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                    std::max(image_size.height, text_size.height)}
             : Size{std::max(image_size.width, text_size.width),
                    image_size.height + gap + text_size.height};
-        const Rect group = aligned_rect(content, group_size, group_alignment);
+        const Rect group = aligned_text_block(content, group_size, group_alignment);
         if (horizontal) {
             const bool image_first =
                 text_image_relation_ == TextImageRelation::image_before_text;
@@ -681,7 +725,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
         }
     } else {
         if (has_image) layout.image = aligned_rect(content, image_size, image_alignment_);
-        if (has_text) layout.text = aligned_rect(content, text_size, group_alignment);
+        if (has_text) layout.text = aligned_text_block(content, text_size, group_alignment);
     }
     return layout;
 }

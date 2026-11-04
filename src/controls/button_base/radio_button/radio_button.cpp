@@ -1,6 +1,7 @@
 #include "gui_forms/controls/button_base/radio_button/radio_button.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../basic/basic_control_rendering.hpp"
+#include "../choice_indicator_property.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
@@ -29,6 +30,22 @@ RadioButton::RadioButton(StableId stable_id, std::string text)
             *this, &RadioButton::set_checked, BindingValueKind::boolean,
             "RadioButton.Checked binding requires Boolean"),
         detail::EventChangeConnector<bool>(checked_changed_), {}, {}});
+
+    PropertyDescriptor indicator_style;
+    indicator_style.name = "indicator_style";
+    indicator_style.kind = BindingValueKind::enumeration;
+    indicator_style.category = "Appearance";
+    indicator_style.description = "How the choice mark draws: classic, modern or toggle.";
+    indicator_style.default_value = BindingValue{PropertyEnumValue{"indicator_style", "classic", 0}};
+    indicator_style.invalidation_effects = Dirty::paint | Dirty::semantics;
+    indicator_style.bindable = false;
+    indicator_style.enumeration = button_base_detail::choice_indicator_style_enum();
+    define_bindable_property({
+        std::move(indicator_style),
+        detail::EnumerationPropertyGetter<RadioButton, ChoiceIndicatorStyle>(
+            *this, &RadioButton::indicator_style, button_base_detail::choice_indicator_style_enum()),
+        detail::EnumerationPropertySetter<RadioButton, ChoiceIndicatorStyle>(*this, &RadioButton::set_indicator_style),
+        {}, {}, {}});
 }
 
 void RadioButton::set_checked_without_exclusion(bool checked_value) {
@@ -97,6 +114,14 @@ void RadioButton::set_auto_check(bool enabled_value) {
 
 void RadioButton::set_indicator_style(ChoiceIndicatorStyle style_value) {
     require_mutable();
+    switch (style_value) {
+    case ChoiceIndicatorStyle::classic:
+    case ChoiceIndicatorStyle::modern:
+    case ChoiceIndicatorStyle::toggle:
+        break;
+    default:
+        throw std::invalid_argument("RadioButton indicator style is invalid");
+    }
     if (indicator_style_ == style_value) {
         return;
     }

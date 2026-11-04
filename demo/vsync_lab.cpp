@@ -24,9 +24,43 @@ namespace {
 
 using namespace std::chrono_literals;
 
+// The waterfall is designed in a 1024 x 480 frame (its peaks and grid are
+// placed in those coordinates, the spectrum strip is the top 112 rows); the
+// producer renders it at the surface's own size.
 constexpr std::uint32_t surface_width = 1024U;
 constexpr std::uint32_t surface_height = 480U;
 constexpr std::uint32_t spectrum_height = 112U;
+// The largest surface the producer renders, in device pixels per side.
+constexpr std::uint32_t maximum_surface_side = 4096U;
+
+// A surface size in device pixels, packed into one atomic word by the UI
+// thread and read by the producer (width in the high half).
+struct SurfaceSize final {
+    std::uint32_t width{};
+    std::uint32_t height{};
+};
+
+std::uint64_t pack_surface_size(SurfaceSize size) noexcept {
+    const std::uint64_t packed = (static_cast<std::uint64_t>(size.width) << 32U) | size.height;
+    return packed;
+}
+
+SurfaceSize unpack_surface_size(std::uint64_t packed) noexcept {
+    SurfaceSize size;
+    size.width = static_cast<std::uint32_t>(packed >> 32U);
+    size.height = static_cast<std::uint32_t>(packed & 0xffff'ffffU);
+    return size;
+}
+
+// Every pixel the producer writes has alpha 255, so the window may copy the
+// frame instead of blending it over what lies beneath.
+LiveSurfaceDescription waterfall_description(SurfaceSize size) noexcept {
+    LiveSurfaceDescription description;
+    description.width = size.width;
+    description.height = size.height;
+    description.opaque = true;
+    return description;
+}
 
 class WaterfallSurface final : public Control {
 public:
@@ -43,7 +77,7 @@ public:
 
     explicit WaterfallSurface(StableId stable_id)
         : Control(std::move(stable_id)),
-          surface_(LiveSurface::create({surface_width, surface_height})) {
+          surface_(LiveSurface::create(waterfall_description({surface_width, surface_height}))) {
         set_focusable(true);
         set_accessible_name("High-rate waterfall and tearing diagnostic");
         if (surface_) {
@@ -124,9 +158,18 @@ public:
         return descriptor;
     }
 
+    // The surface follows the control's size in device pixels, so that the
+    // window copies each frame instead of scaling it (UI thread; the
+    // producer reconfigures the surface before its next frame).
+    void arrange(Rect final_bounds) override {
+        Control::arrange(final_bounds);
+        request_device_size();
+    }
+
 protected:
     void on_attached_to_window() override {
         Control::on_attached_to_window();
+        request_device_size();
         std::shared_ptr<WaterfallSurface> self;
         try {
             self = std::static_pointer_cast<WaterfallSurface>(shared_from_this());
@@ -180,11 +223,26 @@ private:
         }
     };
 
-    static void write_pixel(std::span<std::byte> pixels, std::uint32_t x,
-                            std::uint32_t y, std::uint8_t red,
+    void request_device_size() noexcept {
+        const Window* const owner = window();
+        if (owner == nullptr) return;
+        const Rect bounds = client_rectangle();
+        const double scale = (*owner).scale();
+        const double width = std::clamp(std::round(bounds.width * scale), 1.0,
+                                        static_cast<double>(maximum_surface_side));
+        const double height = std::clamp(std::round(bounds.height * scale), 1.0,
+                                         static_cast<double>(maximum_surface_side));
+        SurfaceSize size;
+        size.width = static_cast<std::uint32_t>(width);
+        size.height = static_cast<std::uint32_t>(height);
+        requested_size_.store(pack_surface_size(size), std::memory_order_release);
+    }
+
+    static void write_pixel(std::span<std::byte> pixels, std::uint32_t width,
+                            std::uint32_t x, std::uint32_t y, std::uint8_t red,
                             std::uint8_t green, std::uint8_t blue) noexcept {
         const std::size_t offset =
-            (static_cast<std::size_t>(y) * surface_width + x) * 4U;
+            (static_cast<std::size_t>(y) * width + x) * 4U;
         pixels[offset] = static_cast<std::byte>(blue);
         pixels[offset + 1U] = static_cast<std::byte>(green);
         pixels[offset + 2U] = static_cast<std::byte>(red);
@@ -229,14 +287,29 @@ private:
         }
     }
 
-    void render_candidate(std::span<std::byte> staging,
+    // The design column of pixel column `x` in a frame `width` pixels wide.
+    static std::uint32_t design_column(std::uint32_t x, std::uint32_t width) noexcept {
+        const std::uint32_t column = static_cast<std::uint32_t>(
+            static_cast<std::uint64_t>(x) * surface_width / width);
+        return column;
+    }
+
+    // Renders the next frame into `staging`, `size` pixels in rows of
+    // size.width, scrolling the waterfall below the spectrum strip down by
+    // the rows per frame. Design coordinates (surface_width by
+    // surface_height) map onto the frame's pixels.
+    void render_candidate(std::span<std::byte> staging, SurfaceSize size,
                           std::uint64_t frame_index) noexcept {
+        const std::uint32_t width = size.width;
+        const std::uint32_t strip = std::max<std::uint32_t>(
+            1U, static_cast<std::uint32_t>(static_cast<std::uint64_t>(spectrum_height) *
+                                           size.height / surface_height));
         const std::uint32_t rows = rows_per_frame_.load(std::memory_order_acquire);
-        const std::size_t row_bytes = static_cast<std::size_t>(surface_width) * 4U;
-        const std::size_t waterfall_rows = surface_height - spectrum_height;
+        const std::size_t row_bytes = static_cast<std::size_t>(width) * 4U;
+        const std::size_t waterfall_rows = size.height > strip ? size.height - strip : 0U;
         const std::size_t shifted_rows = std::min<std::size_t>(rows, waterfall_rows);
         std::byte* const waterfall =
-            staging.data() + static_cast<std::size_t>(spectrum_height) * row_bytes;
+            staging.data() + static_cast<std::size_t>(strip) * row_bytes;
         if (waterfall_rows > shifted_rows) {
             std::memmove(waterfall + shifted_rows * row_bytes, waterfall,
                          (waterfall_rows - shifted_rows) * row_bytes);
@@ -246,49 +319,67 @@ private:
         std::uint32_t random =
             static_cast<std::uint32_t>(0x9e3779b9U ^ frame_index * 2654435761ULL);
         for (std::uint32_t y = 0U; y < shifted_rows; ++y) {
-            for (std::uint32_t x = 0U; x < surface_width; ++x) {
+            for (std::uint32_t x = 0U; x < width; ++x) {
+                const std::uint32_t design_x = design_column(x, width);
                 const std::uint32_t noise = next_random(random) & 63U;
                 std::uint32_t intensity = 18U + noise;
-                intensity += peak(x, 185U, 7U, 185U);
-                intensity += peak(x, 428U, 18U, 112U);
-                intensity += peak(x, 716U, 5U, 225U);
-                intensity += peak(x, 842U, 44U, 95U);
+                intensity += peak(design_x, 185U, 7U, 185U);
+                intensity += peak(design_x, 428U, 18U, 112U);
+                intensity += peak(design_x, 716U, 5U, 225U);
+                intensity += peak(design_x, 842U, 44U, 95U);
                 intensity = intensity * contrast / 100U;
                 std::uint8_t red{};
                 std::uint8_t green{};
                 std::uint8_t blue{};
                 waterfall_color(intensity, red, green, blue);
-                write_pixel(staging, x, spectrum_height + y, red, green, blue);
+                write_pixel(staging, width, x, strip + y, red, green, blue);
             }
         }
 
         // Rebuild the spectrum strip every candidate. The single bright sweep
         // line must remain vertically continuous; a split or stepped line is
-        // a visible tear rather than ambiguous waterfall motion.
-        for (std::uint32_t y = 0U; y < spectrum_height; ++y) {
-            for (std::uint32_t x = 0U; x < surface_width; ++x) {
-                const bool grid = (x % 128U == 0U) || (y % 28U == 0U);
-                write_pixel(staging, x, y, grid ? 18U : 3U,
+        // a visible tear rather than ambiguous waterfall motion. Each design
+        // grid line is one pixel wide at any size: the first pixel row or
+        // column whose design coordinate is on the line.
+        const double design_rows_per_row = static_cast<double>(spectrum_height) / strip;
+        const double pixels_per_design_column = static_cast<double>(width) / surface_width;
+        std::uint32_t previous_design_y = spectrum_height;
+        for (std::uint32_t y = 0U; y < strip; ++y) {
+            const std::uint32_t design_y = static_cast<std::uint32_t>(y * design_rows_per_row);
+            const bool grid_row = design_y % 28U == 0U && design_y != previous_design_y;
+            previous_design_y = design_y;
+            std::uint32_t previous_design_x = surface_width;
+            for (std::uint32_t x = 0U; x < width; ++x) {
+                const std::uint32_t design_x = design_column(x, width);
+                const bool grid_column = design_x % 128U == 0U && design_x != previous_design_x;
+                previous_design_x = design_x;
+                const bool grid = grid_column || grid_row;
+                write_pixel(staging, width, x, y, grid ? 18U : 3U,
                             grid ? 31U : 8U, grid ? 46U : 14U);
             }
         }
-        for (std::uint32_t x = 1U; x + 1U < surface_width; ++x) {
-            const double phase = static_cast<double>(x) * 0.031 +
+        for (std::uint32_t x = 1U; x + 1U < width; ++x) {
+            const double design_x = static_cast<double>(x) / pixels_per_design_column;
+            const double phase = design_x * 0.031 +
                 static_cast<double>(frame_index) * 0.027;
             const double lobe = 36.0 * std::exp(
-                -std::pow((static_cast<double>(x) - 716.0) / 72.0, 2.0));
-            const std::uint32_t y = static_cast<std::uint32_t>(std::clamp(
+                -std::pow((design_x - 716.0) / 72.0, 2.0));
+            const double design_y = std::clamp(
                 82.0 - 10.0 * std::sin(phase) - lobe, 5.0,
-                static_cast<double>(spectrum_height - 5U)));
-            write_pixel(staging, x, y, 218U, 240U, 255U);
-            if (y + 1U < spectrum_height) {
-                write_pixel(staging, x, y + 1U, 40U, 142U, 235U);
+                static_cast<double>(spectrum_height - 5U));
+            const std::uint32_t y = std::min<std::uint32_t>(
+                static_cast<std::uint32_t>(design_y / design_rows_per_row), strip - 1U);
+            write_pixel(staging, width, x, y, 218U, 240U, 255U);
+            if (y + 1U < strip) {
+                write_pixel(staging, width, x, y + 1U, 40U, 142U, 235U);
             }
         }
-        const std::uint32_t sweep = static_cast<std::uint32_t>(
+        const std::uint32_t design_sweep = static_cast<std::uint32_t>(
             (frame_index * 9U) % surface_width);
-        for (std::uint32_t y = 0U; y < spectrum_height; ++y) {
-            write_pixel(staging, sweep, y, 255U, 241U, 76U);
+        const std::uint32_t sweep = std::min<std::uint32_t>(
+            static_cast<std::uint32_t>(design_sweep * pixels_per_design_column), width - 1U);
+        for (std::uint32_t y = 0U; y < strip; ++y) {
+            write_pixel(staging, width, sweep, y, 255U, 241U, 76U);
         }
 
         // Optional work is producer-only. If this slows the controls, the
@@ -302,6 +393,11 @@ private:
     }
 
     void producer_loop() noexcept {
+        SurfaceSize size;
+        size.width = surface_width;
+        size.height = surface_height;
+        // Holds one frame of the current size; it grows (and is cleared)
+        // only when the control's device size changes.
         std::vector<std::byte> staging(
             static_cast<std::size_t>(surface_width) * surface_height * 4U,
             std::byte{});
@@ -321,9 +417,20 @@ private:
                 next = std::chrono::steady_clock::now();
                 continue;
             }
+            // Follow the control's device size between frames: the surface
+            // starts a new epoch, and the waterfall restarts blank.
+            const SurfaceSize requested =
+                unpack_surface_size(requested_size_.load(std::memory_order_acquire));
+            if (requested.width != 0U &&
+                (requested.width != size.width || requested.height != size.height) &&
+                (*surface_).reconfigure(waterfall_description(requested))) {
+                size = requested;
+                staging.assign(static_cast<std::size_t>(size.width) * size.height * 4U,
+                               std::byte{});
+            }
             ++frame_index;
             producer_frames_.fetch_add(1U, std::memory_order_relaxed);
-            render_candidate(staging, frame_index);
+            render_candidate(staging, size, frame_index);
             LiveSurfaceWriteLease lease = (*surface_).try_acquire_write();
             if (lease) {
                 const std::span<std::byte> destination = lease.pixels();
@@ -392,6 +499,9 @@ private:
     std::thread worker_;
     std::atomic<bool> stop_requested_{};
     std::atomic<std::uint32_t> producer_rate_{240U};
+    // The control's size in device pixels (pack_surface_size), 0 before its
+    // first arrangement in a window.
+    std::atomic<std::uint64_t> requested_size_{};
     std::atomic<std::uint32_t> rows_per_frame_{1U};
     std::atomic<std::uint32_t> contrast_{100U};
     std::atomic<std::uint32_t> synthetic_load_{0U};
