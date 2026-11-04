@@ -729,13 +729,18 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
         content.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
         content.role = PartRole::content;
         content.states = item_states;
-        content.text = elide_text_end(painter, item.title, fonts.title, layout.title_width);
+        // PartPaint::text borrows: each elided line is held in a named
+        // string that outlives its part's paint.
+        const std::string title = elide_text_end(painter, item.title, fonts.title, layout.title_width);
+        content.text = title;
         content.font = fonts.title;
         paint_text_part_at(painter, *this, content, layout.title_origin, layout.title_width);
         PartPaint secondary = content;
         secondary.tone = PartTextTone::secondary;
         secondary.states = status_states;
-        secondary.text = elide_text_end(painter, item.secondary_text, fonts.secondary, layout.secondary_width);
+        const std::string secondary_line =
+            elide_text_end(painter, item.secondary_text, fonts.secondary, layout.secondary_width);
+        secondary.text = secondary_line;
         secondary.font = fonts.secondary;
         paint_text_part_at(painter, *this, secondary, layout.secondary_origin, layout.secondary_width);
         content.text = item.metric;
