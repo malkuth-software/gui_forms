@@ -228,6 +228,8 @@ CONTROLTYPEID control_type(SemanticRole role) noexcept {
     case SemanticRole::dialog: return UIA_PaneControlTypeId;
     case SemanticRole::status_bar: return UIA_StatusBarControlTypeId;
     case SemanticRole::live_region: return UIA_GroupControlTypeId;
+    // UIA has no meter control type; a meter reads as a progress bar.
+    case SemanticRole::meter: return UIA_ProgressBarControlTypeId;
     case SemanticRole::count: return UIA_GroupControlTypeId;
     }
     return UIA_GroupControlTypeId;

@@ -2516,6 +2516,12 @@ Enumerations
 
    .. cpp:enumerator:: image
 
+   .. cpp:enumerator:: plot
+
+   .. cpp:enumerator:: graticule
+
+   .. cpp:enumerator:: trace
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms

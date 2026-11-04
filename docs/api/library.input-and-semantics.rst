@@ -1118,6 +1118,8 @@ Enumerations
 
    .. cpp:enumerator:: live_region
 
+   .. cpp:enumerator:: meter
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms

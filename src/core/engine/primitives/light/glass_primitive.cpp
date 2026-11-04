@@ -27,7 +27,7 @@
 namespace gui_forms::engine_primitives {
 namespace {
 
-const PartRole glass_roles[] = {PartRole::region, PartRole::face, PartRole::well};
+const PartRole glass_roles[] = {PartRole::region, PartRole::face, PartRole::well, PartRole::plot};
 
 constexpr std::size_t glass_blur = 0U;
 constexpr std::size_t glass_tint = 1U;

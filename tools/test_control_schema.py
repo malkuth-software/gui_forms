@@ -97,6 +97,12 @@ public:
                       "small_step", "large_step", "text_selection", "multiline"):
             self.assertIn(field, vocabulary["semantic_fields"])
 
+    def test_the_vocabulary_lists_the_instrument_atoms(self) -> None:
+        # W-5: the instrument part roles and the meter semantic role, appended.
+        vocabulary = cs.load_schema()["vocabulary"]
+        self.assertEqual(vocabulary["part_roles"][-3:], ["plot", "graticule", "trace"])
+        self.assertEqual(vocabulary["semantic_roles"][-1], "meter")
+
     def test_the_vocabulary_lists_the_docking_atoms(self) -> None:
         schema = cs.load_schema()
         vocabulary = schema["vocabulary"]

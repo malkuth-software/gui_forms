@@ -61,6 +61,15 @@ enum class PartRole : std::uint8_t {
     // and its highlighting: edge, well, plates), never its content; an icon
     // is chrome, an image is content.
     image,
+    // The instrument roles (W-5; owner ruling 2 of the 0.5 closure: the
+    // vocabulary only, before the instrument controls). `plot` is the field
+    // a reading is drawn in; `graticule` the ruled scale lines over it;
+    // `trace` the drawn reading. The built-in recipe paints them as a well,
+    // a divider and an indicator, so a control moving to them draws the
+    // same until a theme binds them.
+    plot,
+    graticule,
+    trace,
     count,
 };
 

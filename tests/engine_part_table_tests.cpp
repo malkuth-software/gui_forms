@@ -17,6 +17,7 @@
 #include <iostream>
 #include <memory>
 #include <optional>
+#include <span>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -309,6 +310,117 @@ void test_image_role_draws_as_given() {
     require(empty.trace.empty(), "an image part without a picture draws nothing");
 }
 
+// -- the instrument roles (W-5) --------------------------------------------------
+
+// Records each command with its colour, so that two paints compare in ink as
+// well as in shape.
+class InkPainter final : public Painter {
+public:
+    void save() override { trace += "save\n"; }
+    void restore() override { trace += "restore\n"; }
+    void translate(Point offset) override { line("translate", {offset.x, offset.y, 0.0, 0.0}, Color{}); }
+    void clip_rect(Rect rect) override { line("clip", rect, Color{}); }
+    void fill_rect(Rect rect, Color colour) override { line("fill", rect, colour); }
+    void fill_rounded_rect(Rect rect, double, Color colour) override { line("fill_rounded", rect, colour); }
+    void stroke_rect(Rect rect, Color colour, double) override { line("stroke", rect, colour); }
+    void stroke_rounded_rect(Rect rect, double, Color colour, double) override {
+        line("stroke_rounded", rect, colour);
+    }
+    void draw_line(Point from, Point to, Color colour, double) override {
+        line("line", {from.x, from.y, to.x, to.y}, colour);
+    }
+    void draw_text_utf8(Point origin, std::string_view text, FontSpec, Color colour) override {
+        line("text", {origin.x, origin.y, 0.0, 0.0}, colour);
+        trace += text;
+        trace += '\n';
+    }
+    void draw_image(ImageId image, Rect destination, double opacity) override {
+        line("image", destination, Color{});
+        trace += std::to_string(image.value) + " " + std::to_string(opacity) + "\n";
+    }
+
+    std::string trace;
+
+private:
+    void line(const char* name, Rect rect, Color colour) {
+        trace += name;
+        trace += ' ' + std::to_string(rect.x) + ' ' + std::to_string(rect.y) + ' ' + std::to_string(rect.width) +
+                 ' ' + std::to_string(rect.height);
+        trace += ' ' + std::to_string(colour.red) + ' ' + std::to_string(colour.green) + ' ' + std::to_string(colour.blue) +
+                 ' ' + std::to_string(colour.alpha) + '\n';
+    }
+};
+
+// What the built-in recipe draws for `part` with its role replaced by `role`.
+std::string inked(const Control& control, PartPaint part, PartRole role) {
+    part.role = role;
+    InkPainter painter;
+    paint_part(painter, control, part);
+    return painter.trace;
+}
+
+struct InstrumentStandIn final {
+    PartRole role{PartRole::region};
+    PartRole stand_in{PartRole::region};
+};
+
+bool primitive_paints(const ThemeEngine& engine, std::string_view name, PartRole role) {
+    const EnginePrimitive* const primitive = engine.registry().find(name);
+    if (primitive == nullptr) return false;
+    const std::span<const PartRole> roles = (*primitive).descriptor().roles;
+    for (const PartRole candidate : roles) {
+        if (candidate == role) return true;
+    }
+    return false;
+}
+
+void test_instrument_roles_draw_as_their_stand_ins() {
+    const std::array<InstrumentStandIn, 3> pairs{
+        InstrumentStandIn{PartRole::plot, PartRole::well},
+        InstrumentStandIn{PartRole::graticule, PartRole::divider},
+        InstrumentStandIn{PartRole::trace, PartRole::indicator},
+    };
+    require(part_role_name(PartRole::plot) == "plot" && part_role_name(PartRole::graticule) == "graticule" &&
+                part_role_name(PartRole::trace) == "trace",
+            "the instrument roles are registered");
+    require(part_role_from_name("graticule") == std::optional<PartRole>{PartRole::graticule},
+            "an instrument role parses by name");
+
+    const std::shared_ptr<Control> root = make_control<Control>(StableId("instrument"));
+    Window window(root, Size{200.0, 120.0});
+    for (const InstrumentStandIn& pair : pairs) {
+        PartPaint part{};
+        part.family = ControlVisualRole::progress;
+        part.bounds = {4.0, 6.0, 120.0, 40.0};
+        const std::string drawn = inked(*root, part, pair.role);
+        require(!drawn.empty(), "an instrument role draws with the built-in recipe");
+        require(drawn == inked(*root, part, pair.stand_in),
+                "an instrument role draws as its stand-in (plot a well, graticule a divider, trace an indicator)");
+        part.states.insert(AnatomyState::disabled);
+        require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in),
+                "and so when disabled");
+        part.states = {};
+        part.authored_foreground = Color{200, 30, 40, 255};
+        part.authored_background = Color{10, 20, 30, 255};
+        require(inked(*root, part, pair.role) == inked(*root, part, pair.stand_in),
+                "and with authored colours");
+    }
+    PartPaint marked{};
+    marked.family = ControlVisualRole::progress;
+    marked.bounds = {0.0, 0.0, 12.0, 12.0};
+    marked.mark = PartMark::arrow_down;
+    require(inked(*root, marked, PartRole::trace) == inked(*root, marked, PartRole::indicator),
+            "a marked trace draws its mark as an indicator does");
+
+    const ThemeEngine& engine = window.theme().engine();
+    require(primitive_paints(engine, "inset_well", PartRole::plot) &&
+                primitive_paints(engine, "material", PartRole::plot) &&
+                primitive_paints(engine, "glass", PartRole::plot),
+            "a theme may give a plot the primitives a well takes");
+    require(primitive_paints(engine, "etched_divider", PartRole::graticule),
+            "a theme may rule a graticule as a divider");
+}
+
 // -- bounded item records -------------------------------------------------------
 
 void test_item_records_are_evicted_least_recently_painted_first() {
@@ -425,6 +537,7 @@ int main() {
     test_key_changes_nothing_drawn();
     test_windows_share_the_application_engine();
     test_image_role_draws_as_given();
+    test_instrument_roles_draw_as_their_stand_ins();
     test_item_records_are_evicted_least_recently_painted_first();
     test_scrolling_a_virtualized_control_stays_within_the_cap();
     std::cout << "engine part table tests passed\n";

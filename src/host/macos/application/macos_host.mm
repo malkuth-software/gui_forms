@@ -789,6 +789,7 @@ NSString* native_accessibility_role(SemanticRole role) {
     case SemanticRole::dialog: return NSAccessibilityGroupRole;
     case SemanticRole::status_bar: return NSAccessibilityGroupRole;
     case SemanticRole::live_region: return NSAccessibilityGroupRole;
+    case SemanticRole::meter: return NSAccessibilityLevelIndicatorRole;
     case SemanticRole::generic: return NSAccessibilityGroupRole;
     case SemanticRole::count: return NSAccessibilityGroupRole;
     }
