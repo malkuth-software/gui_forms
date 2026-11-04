@@ -1525,9 +1525,15 @@ public:
         case WM_SIZE:
             // Inside the native size/move loop the sizes arriving between two
             // frames are coalesced: the newest is laid out when the next frame
-            // is painted or the live clock ticks (apply_pending_resize).
+            // is painted or the live clock ticks (apply_pending_resize). The
+            // class has no CS_HREDRAW/CS_VREDRAW, so a shrink exposes nothing
+            // and sends no WM_PAINT: the coalesced size requests that paint
+            // itself, or a window without a live clock would not lay out
+            // until the loop ends. The paint presents the whole raster once
+            // (expose_whole_raster_), it does not repaint the window.
             if (in_size_move_) {
                 resize_pending_ = true;
+                InvalidateRect(hwnd_, nullptr, FALSE);
             } else {
                 resize();
             }
