@@ -1,0 +1,80 @@
+name: Effect pass
+# C-10 (owner, 2026-11-04): effect programs verified on Linux CI rather than
+# registered unverified. The native jobs build without LLVM's and Clang's
+# headers, so the gui_forms Clang plugin is skipped there and the built-in
+# effects run labelled unverified. This job installs Clang 22 with
+# llvm-22-dev and libclang-22-dev, builds the plugin, compiles the files that
+# register effects with its effect pass (gui_forms_verify_effects: a compile
+# fails on any effect that breaks the rules or its budgets), and runs the
+# effect tests: the pass's cases (tests/effect_pass) and
+# gui_forms_effect_program_tests, which then requires every built-in effect
+# to be verified with bounds inside its budgets.
+#
+# Lean by design: one Linux x64 job, only on pull requests that touch the
+# effect engine, the plugin, the effect tests or an effect-registering file,
+# plus manual runs. No gallery, host, Skia or audio; only the effect targets
+# are built.
+on:
+  pull_request:
+    paths:
+      - 'src/core/engine/effect*/**'
+      - 'include/gui_forms/engine/effect*/**'
+      - 'src/controls/**/*_effects.cpp'
+      - 'include/gui_forms/controls/**/*_effects.hpp'
+      - 'tools/localizable_plugin/**'
+      - 'tests/effect_pass/**'
+      - 'tests/effect_program_tests.cpp'
+      - 'cmake/LocalizablePlugin.cmake'
+      - 'cmake/check_effect_pass.cmake'
+      - '.github/workflows/effect-pass.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: effect-pass-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+jobs:
+  effect-pass:
+    name: effect-pass (linux-x64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: gui_forms
+      - name: Install LLVM 22 with its development headers, and Ninja
+        run: |
+          curl -fsSL https://apt.llvm.org/llvm-snapshot.gpg.key -o "$RUNNER_TEMP/llvm-key.asc"
+          sudo install -m 0644 "$RUNNER_TEMP/llvm-key.asc" /usr/share/keyrings/apt-llvm.asc
+          echo 'deb [signed-by=/usr/share/keyrings/apt-llvm.asc] https://apt.llvm.org/noble/ llvm-toolchain-noble-22 main' \
+            | sudo tee /etc/apt/sources.list.d/llvm-22.list
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends clang-22 llvm-22-dev libclang-22-dev ninja-build
+          echo /usr/lib/llvm-22/bin >> "$GITHUB_PATH"
+      # GUI_FORMS_LLVM_ROOT is the compiler's prefix by default
+      # (cmake/LocalizablePlugin.cmake), /usr/lib/llvm-22 here.
+      - name: Configure the tree
+        run: |
+          sh gui_forms/third_party/fetch_text_stack.sh
+          sh gui_forms/third_party/fetch_linebreak.sh
+          cmake -S gui_forms -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_TOOLCHAIN_FILE="$PWD/gui_forms/cmake/llvm22.cmake" \
+            -DGUI_FORMS_BUILD_GALLERY=OFF -DGUI_FORMS_BUILD_TESTS=ON -DGUI_FORMS_BUILD_AUDIO=OFF \
+            -DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF -DGUI_FORMS_ENABLE_MACOS_HOST=OFF \
+            -DGUI_FORMS_ENABLE_LINUX_HOST=OFF -DGUI_FORMS_ENABLE_SKIA=OFF -DGUI_FORMS_ENABLE_HARFBUZZ_TEXT=ON \
+            -DGUI_FORMS_BUILD_GENERATED_FORM_TESTS=OFF \
+            -DGUI_FORMS_LOCALIZABLE_PLUGIN=ON -DGUI_FORMS_EFFECT_VERIFY=ON
+      # The effect-pass tests exist only in a tree whose effects are verified;
+      # their absence means the plugin was skipped, which fails this job
+      # rather than passing it with nothing checked.
+      - name: Require the verified configuration
+        run: |
+          if ! ctest --test-dir build -N -R '^gui_forms_effect_pass_passes$' | grep -q 'Total Tests: 1'; then
+            echo "The gui_forms Clang plugin was skipped (see build/localizable_plugin/probe.log)."
+            cat build/localizable_plugin/probe.log 2>/dev/null | tail -40
+            exit 1
+          fi
+      - name: Build the effect targets with the effect pass
+        run: cmake --build build --parallel 4 --target gui_forms_effect_program_tests
+      - name: Run the effect tests
+        run: ctest --test-dir build --output-on-failure -R '^gui_forms_effect_(program_tests|pass_)'
