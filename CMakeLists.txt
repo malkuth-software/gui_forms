@@ -112,6 +112,11 @@ else()
     set(GUI_FORMS_FORM_COMPILER_DEFAULT ON)
 endif()
 option(GUI_FORMS_BUILD_FORM_COMPILER "Build and install the form compiler" ${GUI_FORMS_FORM_COMPILER_DEFAULT})
+# The tests whose form header the form compiler generates at build time
+# (gui_forms_add_form). The state-machine gate turns them off: it parses
+# sources syntax-only and builds only generated headers, and this header
+# would make it compile and link the whole library to run the compiler.
+option(GUI_FORMS_BUILD_GENERATED_FORM_TESTS "Build the tests that generate a form header at build time" ON)
 option(GUI_FORMS_BUILD_BENCHMARKS "Build measurement harnesses" OFF)
 option(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK "Build the renderer-neutral D1 measurement harness" OFF)
 option(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE "Build the private text shaping diagnostic" OFF)
@@ -2962,17 +2967,19 @@ if(GUI_FORMS_BUILD_TESTS)
                 --class RefusedForm --check --output refused_dialog_form.hpp)
         set_tests_properties(gui_forms_form_compiler_refusal_tests PROPERTIES
             PASS_REGULAR_EXPRESSION "E812 form_generation_refused: refused-ok")
-        # gui_forms_add_form end to end: a header generated at build time,
-        # naming an application type.
-        add_executable(gui_forms_form_application_type_tests
-            tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp)
-        target_link_libraries(gui_forms_form_application_type_tests PRIVATE gui_forms_controls)
-        target_include_directories(gui_forms_form_application_type_tests PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
-        gui_forms_add_form(gui_forms_form_application_type_tests tests/form_language/generated/note_dialog.form
-            CLASS NoteDialogForm NAMESPACE form_generated
-            TYPES "note_card,form_generated::NoteCard,user_control,generated/note_card.hpp")
-        add_test(NAME gui_forms_form_application_type_tests COMMAND gui_forms_form_application_type_tests)
+        if(GUI_FORMS_BUILD_GENERATED_FORM_TESTS)
+            # gui_forms_add_form end to end: a header generated at build time,
+            # naming an application type.
+            add_executable(gui_forms_form_application_type_tests
+                tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp)
+            target_link_libraries(gui_forms_form_application_type_tests PRIVATE gui_forms_controls)
+            target_include_directories(gui_forms_form_application_type_tests PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
+            gui_forms_add_form(gui_forms_form_application_type_tests tests/form_language/generated/note_dialog.form
+                CLASS NoteDialogForm NAMESPACE form_generated
+                TYPES "note_card,form_generated::NoteCard,user_control,generated/note_card.hpp")
+            add_test(NAME gui_forms_form_application_type_tests COMMAND gui_forms_form_application_type_tests)
+        endif()
     endif()
 
     add_executable(gui_forms_theme_selector_tests tests/theme_language/theme_selector_tests.cpp)
