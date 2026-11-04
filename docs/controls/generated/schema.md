@@ -398,7 +398,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `indeterminate`, `enabled`, `disabled`, `reduced_motion`.
 
-Properties beyond every control's: `effect` (text), `effect_input` (enumeration), `effect_seed` (unsigned_integer), `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `effect` (text), `effect_input` (enumeration), `effect_seed` (unsigned_integer), `maximum` (number), `minimum` (number), `value` (number), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1116,7 +1116,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `valu
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `tick_frequency` (number), `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `tick_frequency` (number), `value` (number), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -2306,7 +2306,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `large_change` (number), `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2327,7 +2327,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `valu
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `large_change` (number), `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2348,7 +2348,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `valu
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `large_change` (number), `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|

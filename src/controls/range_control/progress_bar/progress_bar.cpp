@@ -17,6 +17,23 @@ using namespace range_control_detail;
 
 namespace {
 
+// The ProgressBarVisualStyle enumeration, numbered as declared
+// (luminance_pulse is pulse's other name). Static storage; any thread may
+// read it.
+std::shared_ptr<const PropertyEnumDescriptor> progress_bar_visual_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "progress_bar_visual_style",
+            {{"blocks", 0}, {"continuous", 1}, {"marquee", 2}, {"pulse", 3}, {"marching_stripes", 4},
+             {"laser_etch", 5}},
+            false});
+    return value;
+}
+
+} // namespace
+
+namespace {
+
 std::shared_ptr<const PropertyEnumDescriptor> effect_input_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
@@ -29,6 +46,25 @@ std::shared_ptr<const PropertyEnumDescriptor> effect_input_enum() {
 ProgressBar::ProgressBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(false);
+
+    // The look a form document sets (stage FD6.3); no change event.
+    PropertyDescriptor visual_style;
+    visual_style.name = "visual_style";
+    visual_style.kind = BindingValueKind::enumeration;
+    visual_style.category = "Appearance";
+    visual_style.description =
+        "How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch.";
+    visual_style.default_value = BindingValue{PropertyEnumValue{"progress_bar_visual_style", "blocks", 0}};
+    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
+    visual_style.bindable = false;
+    visual_style.enumeration = progress_bar_visual_style_enum();
+    define_bindable_property({
+        std::move(visual_style),
+        detail::EnumerationPropertyGetter<ProgressBar, ProgressBarVisualStyle>(
+            *this, &ProgressBar::visual_style, progress_bar_visual_style_enum()),
+        detail::EnumerationPropertySetter<ProgressBar, ProgressBarVisualStyle>(
+            *this, &ProgressBar::set_visual_style),
+        {}, {}, {}});
 
     // The effect properties (effect programs, design note section 7).
     PropertyDescriptor effect;

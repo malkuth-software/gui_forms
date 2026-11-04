@@ -14,6 +14,19 @@
 namespace gui_forms {
 using namespace range_control_detail;
 
+namespace {
+
+// The TrackBarVisualStyle enumeration, numbered as declared. Static storage; any thread
+// may read it.
+std::shared_ptr<const PropertyEnumDescriptor> track_bar_visual_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "track_bar_visual_style", {{"classic", 0}, {"filled", 1}, {"compact", 2}}, false});
+    return value;
+}
+
+} // namespace
+
 TrackBar::TrackBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(true);
@@ -30,6 +43,21 @@ TrackBar::TrackBar(StableId stable_id)
         std::move(tick_frequency),
         detail::BindingNoexceptMethodGetter<TrackBar, double>(*this, &TrackBar::tick_frequency),
         detail::DirectPropertySetter<TrackBar, double>(*this, &TrackBar::set_tick_frequency),
+        {}, {}, {}});
+
+    PropertyDescriptor visual_style;
+    visual_style.name = "visual_style";
+    visual_style.kind = BindingValueKind::enumeration;
+    visual_style.category = "Appearance";
+    visual_style.description = "How the rail and thumb draw: classic ticks, a filled rail or a compact rail.";
+    visual_style.default_value = BindingValue{PropertyEnumValue{"track_bar_visual_style", "classic", 0}};
+    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
+    visual_style.bindable = false;
+    visual_style.enumeration = track_bar_visual_style_enum();
+    define_bindable_property({
+        std::move(visual_style),
+        detail::EnumerationPropertyGetter<TrackBar, TrackBarVisualStyle>(*this, &TrackBar::visual_style, track_bar_visual_style_enum()),
+        detail::EnumerationPropertySetter<TrackBar, TrackBarVisualStyle>(*this, &TrackBar::set_visual_style),
         {}, {}, {}});
 }
 

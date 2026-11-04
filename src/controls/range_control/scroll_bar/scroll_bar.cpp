@@ -2,6 +2,7 @@
 
 #include "../range_control_rendering.hpp"
 #include "scroll_bar_anatomy.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -19,6 +20,21 @@ ScrollBar::ScrollBar(StableId stable_id, Orientation orientation)
     set_orientation(orientation);
     set_focusable(true);
     set_cursor(CursorKind::arrow);
+    // What a form document sets besides the range (stage FD6.3); it raises
+    // no change event.
+    PropertyDescriptor large_change;
+    large_change.name = "large_change";
+    large_change.kind = BindingValueKind::number;
+    large_change.category = "Behavior";
+    large_change.description = "How far a click on the track or Page Up/Down moves the value.";
+    large_change.default_value = BindingValue{10.0};
+    large_change.invalidation_effects = Dirty::paint | Dirty::semantics;
+    large_change.bindable = false;
+    define_bindable_property({
+        std::move(large_change),
+        detail::BindingNoexceptMethodGetter<ScrollBar, double>(*this, &ScrollBar::large_change),
+        detail::DirectPropertySetter<ScrollBar, double>(*this, &ScrollBar::set_large_change),
+        {}, {}, {}});
 }
 
 void ScrollBar::set_button_extent(double extent) {
