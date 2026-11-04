@@ -1281,9 +1281,9 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel, PartCornerRadii corners = {}) noexcept
+   .. cpp:function:: EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel, PartCornerRadii corners = {}, const std::shared_ptr<const PartRaster>* backdrop = nullptr) noexcept
 
-      A canvas over ``painter`` for a part of ``part`` logical size whose origin is the painter's current origin, with ``outsets`` around it, at display ``scale``, and a budget of ``per_device_pixel`` operations for each device pixel of the part and its outsets. The painter must already be clipped to the part and its outsets and translated to the part's origin (the host does both); the canvas leaves its save depth as it found it. ``corners`` are the part's shape's corner radii (clip_part_shape).
+      A canvas over ``painter`` for a part of ``part`` logical size whose origin is the painter's current origin, with ``outsets`` around it, at display ``scale``, and a budget of ``per_device_pixel`` operations for each device pixel of the part and its outsets. The painter must already be clipped to the part and its outsets and translated to the part's origin (the host does both); the canvas leaves its save depth as it found it. ``corners`` are the part's shape's corner radii (clip_part_shape). ``backdrop``, borrowed for the canvas's life, is the blurred backplane under the part and its outsets, one raster pixel per device pixel (draw_backdrop); null, or pointing at null, when there is none.
 
 
    .. rubric:: Properties
@@ -1338,6 +1338,10 @@ Types
    .. cpp:function:: void clip_part_shape() noexcept
 
       Narrows the clip to the part's own shape (EP-6): its box with the corners its host gives it (EffectInstance::paint), so an effect drawn over a rounded part stays inside its corners. It gives up the outsets until the next restore.
+
+   .. cpp:function:: void draw_backdrop(Rect rect, double opacity) noexcept
+
+      Draws the window's backplane under the part, blurred as the effect declares (EffectDeclaration::backdrop, EP-7), within ``rect`` (in the current coordinates) at ``opacity`` in [0, 1], device-aligned and never resampled. Refused, and counted, for an effect that does not declare a backdrop or a part whose host lends none (a part in the backplane plane, a headless paint, or a backplane that could not be made).
 
 .. cpp:namespace:: gui_forms
 
@@ -1430,6 +1434,12 @@ Types
    .. cpp:member:: EffectInputKind input
 
       Default: ``{EffectInputKind::none}``.
+
+   .. cpp:member:: bool backdrop
+
+      Whether the effect reads the window's backplane under its part and outsets (EP-7, EffectCanvas::draw_backdrop), and how far the blur of that backdrop reaches, in logical units, in [0, maximum_effect_backdrop_margin]: three box passes of half width floor(backdrop_margin * scale / 3) device pixels; 0 reads it unblurred.
+
+   .. cpp:member:: double backdrop_margin
 
    .. cpp:member:: double frames_per_second
 
@@ -1586,9 +1596,9 @@ Types
 
       Takes one pointer event the hosting control received, at ``position`` in the control's coordinates, for a part whose origin there is ``part_origin``: converts it to part-local units, queues a move, press or release under the grant (queue_input), and updates the standing pointer state (EffectFrame::pointer) for every action, enter and leave setting ``inside``. Does nothing without an effect, a grant and an effect declaring pointer input. Returns whether the effect's frame changed (an event queued or the state moved), when the host repaints the effect's extent. Never fails.
 
-   .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view, PartShape shape = PartShape{})
+   .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view, PartShape shape = PartShape{}, const Control* host = nullptr)
 
-      Runs the effect's frame over ``painter``, whose origin is the parent's, for the part at ``part`` (logical, in the painter's coordinates) at display ``scale``. Runs setup first when due. ``still`` draws the still pose and consumes no ticks. ``view`` must be the effect's parent's view. ``shape`` is the part's shape, which EffectCanvas::clip_part_shape clips to; by default a plain rectangle.
+      Runs the effect's frame over ``painter``, whose origin is the parent's, for the part at ``part`` (logical, in the painter's coordinates) at display ``scale``. Runs setup first when due. ``still`` draws the still pose and consumes no ticks. ``view`` must be the effect's parent's view. ``shape`` is the part's shape, which EffectCanvas::clip_part_shape clips to; by default a plain rectangle. ``host`` is the control that paints the effect, through which a backdrop is sampled from its window (EP-7); null for a paint with no control, which lends no backdrop.
 
 .. cpp:namespace:: gui_forms
 
@@ -5432,6 +5442,8 @@ Enumerations
 
    .. cpp:enumerator:: outsets_out_of_range
 
+   .. cpp:enumerator:: backdrop_out_of_range
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: EffectSelectionOutcome
@@ -6611,6 +6623,10 @@ Functions, constants and aliases
 
 .. cpp:function:: bool effect_name_valid(std::string_view name) noexcept
 
+.. cpp:function:: std::uint32_t effect_backdrop_half(double margin, double scale) noexcept
+
+   The half width of the box passes for a backdrop blur reaching ``margin`` logical units at display ``scale``: floor(margin * scale / 3) device pixels.
+
 .. cpp:function:: const EffectRegistry& built_in_effect_registry()
 
    The registry of the toolkit's own effects, filled on first use (defined with the controls that host them).
@@ -6644,6 +6660,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_effect_outset
 
    The farthest an effect may draw outside its part, in logical units. Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_effect_backdrop_margin
+
+   The farthest an effect's backdrop blur reaches (EffectDeclaration:: backdrop_margin), in logical units: glass's own bound. Value: ``8.0``.
+
+.. cpp:var:: constexpr std::uint32_t effect_backdrop_operations_per_pixel
+
+   What sampling the backdrop costs a frame, per device pixel of the grown backplane image (EP-7): its copy into the blur's storage, six box passes of an add and a subtract per lane, and the copy out. Added to the effect's frame estimate when it is selected (check_effect_selection). Value: ``16U``.
 
 .. cpp:var:: constexpr std::uint64_t maximum_effect_operations_per_frame
 

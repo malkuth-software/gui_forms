@@ -32,10 +32,12 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 
 namespace gui_forms {
 
 class Painter;
+class PartRaster;
 
 // The deepest the canvas's save stack goes; a deeper save is refused.
 inline constexpr std::size_t maximum_effect_save_depth = 4U;
@@ -74,8 +76,12 @@ public:
     // to the part and its outsets and translated to the part's origin (the
     // host does both); the canvas leaves its save depth as it found it.
     // `corners` are the part's shape's corner radii (clip_part_shape).
+    // `backdrop`, borrowed for the canvas's life, is the blurred backplane
+    // under the part and its outsets, one raster pixel per device pixel
+    // (draw_backdrop); null, or pointing at null, when there is none.
     EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel,
-                 PartCornerRadii corners = {}) noexcept;
+                 PartCornerRadii corners = {},
+                 const std::shared_ptr<const PartRaster>* backdrop = nullptr) noexcept;
     ~EffectCanvas();
     EffectCanvas(const EffectCanvas&) = delete;
     EffectCanvas& operator=(const EffectCanvas&) = delete;
@@ -125,6 +131,14 @@ public:
     // outsets until the next restore.
     GUI_FORMS_EFFECT_VOCABULARY(6, 0)
     void clip_part_shape() noexcept;
+    // Draws the window's backplane under the part, blurred as the effect
+    // declares (EffectDeclaration::backdrop, EP-7), within `rect` (in the
+    // current coordinates) at `opacity` in [0, 1], device-aligned and never
+    // resampled. Refused, and counted, for an effect that does not declare
+    // a backdrop or a part whose host lends none (a part in the backplane
+    // plane, a headless paint, or a backplane that could not be made).
+    GUI_FORMS_EFFECT_VOCABULARY(10, 2)
+    void draw_backdrop(Rect rect, double opacity) noexcept;
 
     // For the host: what the frame charged and refused.
     [[nodiscard]] const EffectCanvasMeter& meter() const noexcept { return meter_; }
@@ -147,6 +161,9 @@ private:
     double scale_;
     Size part_;
     PartCornerRadii corners_;
+    // The part and its outsets, in part coordinates: where the backdrop lies.
+    Rect layer_;
+    const std::shared_ptr<const PartRaster>* backdrop_;
     std::array<Level, maximum_effect_save_depth + 1U> levels_{};
     std::size_t depth_{};
     std::size_t painter_saves_{};

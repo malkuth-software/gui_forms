@@ -992,6 +992,9 @@ private:
     friend class BindingContext;
     friend class detail::PopupAttachment;
     friend class ThemeEngine;
+    // An effect's backdrop (EP-7) samples the backplane through the same
+    // engine calls a theme part uses, and joins its damage list.
+    friend class EffectInstance;
     // Called by ThemeEngine::paint for a part of `control`, which has an
     // inline style, under a theme with rules of its own: the first time,
     // writes W401 to the log and notes it (inline_with_theme_reported).

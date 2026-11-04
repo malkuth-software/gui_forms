@@ -398,6 +398,14 @@ struct EffectDeclaration final {
     // the parent's paint order.
     Insets outsets{};
     EffectInputKind input{EffectInputKind::none};
+    // Whether the effect reads the window's backplane under its part and
+    // outsets (EP-7, EffectCanvas::draw_backdrop), and how far the blur of
+    // that backdrop reaches, in logical units, in [0,
+    // maximum_effect_backdrop_margin]: three box passes of half width
+    // floor(backdrop_margin * scale / 3) device pixels; 0 reads it
+    // unblurred.
+    bool backdrop{};
+    double backdrop_margin{};
     // Its ambient frame rate, at most the ambient cap (30).
     double frames_per_second{30.0};
 };

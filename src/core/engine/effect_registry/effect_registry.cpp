@@ -1,9 +1,13 @@
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include "../../text/localizable/gui_forms_notes.hpp"
+#include "../primitives/kernel/box_blur.hpp"
 
+#include "gui_forms/control/control/control.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -11,6 +15,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <exception>
 #include <optional>
 #include <span>
 #include <vector>
@@ -34,6 +39,19 @@ bool snake_case(std::string_view name) noexcept {
 
 bool outset_in_range(double outset) noexcept {
     return std::isfinite(outset) && outset >= 0.0 && outset <= maximum_effect_outset;
+}
+
+bool backdrop_margin_in_range(double margin) noexcept {
+    return std::isfinite(margin) && margin >= 0.0 && margin <= maximum_effect_backdrop_margin;
+}
+
+// Device pixels covering `logical` units at `scale`, or none past the
+// largest raster side.
+std::optional<std::uint32_t> device_side(double logical, double scale) noexcept {
+    const double device = std::ceil(std::max(0.0, logical) * scale);
+    if (!(device <= static_cast<double>(maximum_part_raster_side))) return std::nullopt;
+    const std::uint32_t side = static_cast<std::uint32_t>(device);
+    return side;
 }
 
 // Reads little-endian integers and strings from one verification record.
@@ -172,8 +190,14 @@ EffectSelectionOutcome check_effect_selection(const EffectRegistry& registry, st
     const double width = std::max(0.0, part.width + outsets.left + outsets.right) * scale;
     const double height = std::max(0.0, part.height + outsets.top + outsets.bottom) * scale;
     const double pixels = std::ceil(width) * std::ceil(height);
-    const double cost = static_cast<double>(declaration.cost.fixed) +
-                        static_cast<double>(declaration.cost.per_device_pixel) * pixels;
+    double cost = static_cast<double>(declaration.cost.fixed) +
+                  static_cast<double>(declaration.cost.per_device_pixel) * pixels;
+    // Sampling the backdrop: the grown image's pixels, at the sampling cost.
+    if (declaration.backdrop) {
+        const double grown = 2.0 * static_cast<double>(effect_backdrop_half(declaration.backdrop_margin, scale) * 3U);
+        const double sampled = (std::ceil(width) + grown) * (std::ceil(height) + grown);
+        cost = cost + static_cast<double>(effect_backdrop_operations_per_pixel) * sampled;
+    }
     if (!(cost <= static_cast<double>(maximum_effect_operations_per_frame))) {
         return EffectSelectionOutcome::over_frame_budget;
     }
@@ -233,6 +257,9 @@ EffectRegistrationOutcome EffectRegistry::add(const EffectEntry& entry) noexcept
         !outset_in_range(outsets.bottom)) {
         return EffectRegistrationOutcome::outsets_out_of_range;
     }
+    if (!backdrop_margin_in_range((*declaration).backdrop_margin)) {
+        return EffectRegistrationOutcome::backdrop_out_of_range;
+    }
     if (find((*declaration).name) != nullptr) return EffectRegistrationOutcome::duplicate_name;
     if (count_ == entries_.size()) return EffectRegistrationOutcome::registry_full;
     EffectEntry registered = entry;
@@ -263,6 +290,17 @@ void effect_detail::StorageRelease::operator()(std::byte* storage) const noexcep
     ::operator delete(storage, std::align_val_t(alignment));
 }
 
+void effect_detail::BlurWorkRelease::operator()(engine_primitives::BoxBlurWork* work) const noexcept {
+    delete work;
+}
+
+std::uint32_t effect_backdrop_half(double margin, double scale) noexcept {
+    if (!backdrop_margin_in_range(margin) || !(scale > 0.0) || !std::isfinite(scale)) return 0U;
+    const double device = std::floor(margin * scale);
+    const std::uint32_t half = static_cast<std::uint32_t>(device) / 3U;
+    return half;
+}
+
 EffectInstance::~EffectInstance() {
     detach();
 }
@@ -284,6 +322,8 @@ void EffectInstance::attach(const EffectEntry& entry, std::uint64_t seed, FrameT
     pending_ = 0U;
     input_count_ = 0U;
     pointer_ = EffectPointer{};
+    backdrop_.reset();
+    backdrop_key_.reset();
     set_up_ = false;
     setup_part_ = Size{};
     setup_scale_ = 0.0;
@@ -414,8 +454,97 @@ bool EffectInstance::note_pointer(const PointerEvent& event, Point part_origin) 
     return changed;
 }
 
+std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& painter, const Control& host,
+                                                                 Rect layer, double scale) {
+    SurfaceRoot* const root = host.surface_root();
+    if (root == nullptr) return {};
+    const SurfaceRoot::EnginePaintPlace place = (*root).engine_paint_place(host, painter);
+    // A part recorded in the backplane plane would sample itself.
+    if (place.painted_by == nullptr || (*place.painted_by).paint_plane() == PaintPlane::backplane) return {};
+    const EffectDeclaration& declaration = *(*entry_).declaration;
+    // An effect that is not ticked repaints only when told: the backplane's
+    // damage under it tells it (EP-7), through a record of its own.
+    if (declaration.time_model != EffectTimeModel::ambient) {
+        PartKey key{};
+        key.part = declaration.name;
+        const std::optional<PartRecordHandle> record = (*root).note_engine_part(host, key, AnatomyStateSet{});
+        if (record) {
+            const Rect extent{layer.x + place.origin.x, layer.y + place.origin.y, layer.width, layer.height};
+            (*root).note_engine_paint(*record, 0U, *place.painted_by, extent);
+            (*root).note_engine_backplane_reader(*record, true);
+        }
+    }
+    const std::optional<std::uint32_t> width = device_side(layer.width, scale);
+    const std::optional<std::uint32_t> height = device_side(layer.height, scale);
+    if (!width || !height || *width == 0U || *height == 0U) return {};
+    const DeviceExtent extent{*width, *height};
+    // Under reduced transparency the backdrop is drawn unblurred.
+    const bool flattened = (*root).presentation_settings().reduced_transparency;
+    const std::uint32_t half = flattened ? 0U : effect_backdrop_half(declaration.backdrop_margin, scale);
+    const std::uint32_t margin = half * 3U;
+    const Point raster_origin{place.window_origin.x + layer.x, place.window_origin.y + layer.y};
+    const SurfaceRoot::EngineBackplane lent = (*root).engine_backplane(raster_origin, extent, DeviceScale{scale}, margin);
+    if (!lent.image) return {};
+    BackdropKey key{};
+    key.generation = lent.generation;
+    key.origin = raster_origin;
+    key.extent = extent;
+    key.scale = scale;
+    key.half = half;
+    if (backdrop_ && backdrop_key_ && *backdrop_key_ == key) return backdrop_;
+    const PartRaster& image = *lent.image;
+    const DeviceExtent grown{extent.width + margin * 2U, extent.height + margin * 2U};
+    if (!(image.extent() == grown)) return {};
+    backdrop_key_.reset();
+    // Refilled in place only while no recorded command holds it.
+    const bool reusable = backdrop_ && backdrop_.use_count() == 1 && (*backdrop_).extent() == extent &&
+                          (*backdrop_).scale() == DeviceScale{scale};
+    if (!reusable) backdrop_ = PartRaster::create(extent, DeviceScale{scale});
+    if (!backdrop_) return {};
+    const std::size_t lanes = engine_primitives::box_blur_lanes;
+    const std::size_t columns = grown.width;
+    const std::size_t rows = grown.height;
+    const std::size_t stride = columns * lanes;
+    try {
+        if (!blur_work_) {
+            blur_work_ = std::unique_ptr<engine_primitives::BoxBlurWork, effect_detail::BlurWorkRelease>(
+                new engine_primitives::BoxBlurWork{});
+        }
+        engine_primitives::prepare_box_blur(*blur_work_, columns, rows, lanes);
+    } catch (const std::exception&) {
+        // std::bad_alloc or std::length_error: no backdrop this paint.
+        backdrop_.reset();
+        return {};
+    }
+    // Into the blur's first image, blurred there (the result, extent-sized,
+    // at its start, rows still `stride` apart), then out to the raster.
+    engine_primitives::BoxBlurWork& work = *blur_work_;
+    const std::span<const std::uint8_t> source = image.pixels();
+    for (std::size_t row = 0U; row < rows; ++row) {
+        const std::size_t read = row * image.row_bytes();
+        const std::size_t write = row * stride;
+        for (std::size_t element = 0U; element < stride; ++element) {
+            work.first[write + element] = source[read + element];
+        }
+    }
+    if (half > 0U) engine_primitives::blur_three_boxes(work, columns, rows, lanes, half);
+    const PartRasterView destination = (*backdrop_).view();
+    const std::size_t shown = static_cast<std::size_t>(extent.width) * lanes;
+    // Unblurred, the image keeps its grown edge: margin is 0 then, so the
+    // rows line up either way.
+    for (std::size_t row = 0U; row < extent.height; ++row) {
+        const std::size_t read = row * stride;
+        const std::size_t write = row * destination.row_bytes;
+        for (std::size_t element = 0U; element < shown; ++element) {
+            destination.pixels[write + element] = static_cast<std::uint8_t>(work.first[read + element]);
+        }
+    }
+    backdrop_key_ = key;
+    return backdrop_;
+}
+
 void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool still, const void* view,
-                                PartShape shape) {
+                                PartShape shape, const Control* host) {
     const EffectDeclaration& declaration = *(*entry_).declaration;
     if (!part.finite() || part.empty() || !(scale > 0.0) || !std::isfinite(scale)) return;
     const Size size{part.width, part.height};
@@ -451,12 +580,16 @@ void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool 
     const Insets outsets = declaration.outsets;
     const Rect layer{part.x - outsets.left, part.y - outsets.top, part.width + outsets.left + outsets.right,
                      part.height + outsets.top + outsets.bottom};
+    // The backdrop, sampled before the painter moves (EP-7).
+    std::shared_ptr<const PartRaster> backdrop{};
+    if (declaration.backdrop && host != nullptr) backdrop = sample_backdrop(painter, *host, layer, scale);
     painter.save();
     painter.clip_rect(layer);
     painter.translate(Point{part.x, part.y});
     {
         const PartCornerRadii corners = part_corner_radii(shape, Rect{0.0, 0.0, size.width, size.height});
-        EffectCanvas canvas(painter, size, outsets, scale, declaration.cost.per_device_pixel, corners);
+        EffectCanvas canvas(painter, size, outsets, scale, declaration.cost.per_device_pixel, corners,
+                            &backdrop);
         (*(*entry_).run)(state_, view, frame, canvas);
         last_meter_ = canvas.meter();
     }

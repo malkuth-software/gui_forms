@@ -839,8 +839,8 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();
     const bool still = !animation_enabled_ || policy.reduced || suppressed;
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;
-    effect_instance_.paint(painter, bounds, scale, still, view, track_shape);
-    overlay_instance_.paint(painter, bounds, scale, still, view, track_shape);
+    effect_instance_.paint(painter, bounds, scale, still, view, track_shape, this);
+    overlay_instance_.paint(painter, bounds, scale, still, view, track_shape, this);
 }
 
 bool ProgressBar::hit_test_local(Point local_point) const {

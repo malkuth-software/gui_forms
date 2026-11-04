@@ -1,5 +1,6 @@
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
 
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
 #include <algorithm>
@@ -30,10 +31,13 @@ std::span<const GradientStop> live_stops(const EffectGradient& gradient) noexcep
 } // namespace
 
 EffectCanvas::EffectCanvas(Painter& painter, Size part, Insets outsets, double scale,
-                           std::uint32_t per_device_pixel, PartCornerRadii corners) noexcept
-    : painter_(painter), scale_(scale), part_(part), corners_(corners) {
-    const Rect layer{-outsets.left, -outsets.top, part.width + outsets.left + outsets.right,
-                     part.height + outsets.top + outsets.bottom};
+                           std::uint32_t per_device_pixel, PartCornerRadii corners,
+                           const std::shared_ptr<const PartRaster>* backdrop) noexcept
+    : painter_(painter), scale_(scale), part_(part), corners_(corners),
+      layer_{-outsets.left, -outsets.top, part.width + outsets.left + outsets.right,
+             part.height + outsets.top + outsets.bottom},
+      backdrop_(backdrop) {
+    const Rect layer = layer_;
     levels_[0].clip = layer;
     const double device_area = layer.area() * scale * scale;
     meter_.budget = device_area * static_cast<double>(per_device_pixel);
@@ -214,6 +218,24 @@ void EffectCanvas::clip_part_shape() noexcept {
     radii.bottom_right = corners_.bottom_right;
     radii.bottom_left = corners_.bottom_left;
     painter_.clip_rounded_rect_corners(box, radii);
+}
+
+void EffectCanvas::draw_backdrop(Rect rect, double opacity) noexcept {
+    const bool lent = backdrop_ != nullptr && *backdrop_ != nullptr;
+    if (!lent || !std::isfinite(opacity)) {
+        meter_.calls = meter_.calls + 1U;
+        meter_.refused = meter_.refused + 1U;
+        return;
+    }
+    if (!charge(rect, rect.area(), 2U)) return;
+    // The layer's corner in the painter's current coordinates, which the
+    // canvas's offset has moved.
+    const Level& level = levels_[depth_];
+    const Point origin{layer_.x - level.offset.x, layer_.y - level.offset.y};
+    painter_.save();
+    painter_.clip_rect(rect);
+    painter_.draw_part_raster(*backdrop_, origin, std::clamp(opacity, 0.0, 1.0));
+    painter_.restore();
 }
 
 void EffectCanvas::translate(Point offset) noexcept {

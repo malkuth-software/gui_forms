@@ -15,6 +15,7 @@
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/gui_forms.hpp"
@@ -76,6 +77,10 @@ public:
     }
     void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
     void draw_image(ImageId, Rect, double) override {}
+    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double) override {
+        part_rasters.push_back(raster);
+        part_origins.push_back(origin);
+    }
 
     int saves{};
     int restores{};
@@ -94,6 +99,8 @@ public:
     std::vector<Point> line_starts{};
     std::vector<Rect> corner_boxes{};
     std::vector<PaintCornerRadii> corner_clips{};
+    std::vector<std::shared_ptr<const PartRaster>> part_rasters{};
+    std::vector<Point> part_origins{};
 };
 
 const FrameTime start{std::chrono::seconds(1000)};
@@ -1031,6 +1038,105 @@ void part_shape_clip() {
             "with no shape the part is a plain rectangle");
 }
 
+// A test effect that reads the backdrop under its part, blurred over three
+// logical units, and draws it over the whole part; posed, never ticked.
+class BackdropProbe final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_backdrop_probe",
+        .time_model = EffectTimeModel::static_pose,
+        .cost = {.fixed = 100U, .per_device_pixel = 4U},
+        .state_budget = 8U,
+        .backdrop = true,
+        .backdrop_margin = 3.0,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame& frame, EffectCanvas& canvas) {
+        canvas.draw_backdrop(Rect{0.0, 0.0, frame.part.width, frame.part.height}, 1.0);
+    }
+};
+
+// One whose blur reaches past glass's bound.
+class FarBackdrop final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_far_backdrop",
+        .cost = {.fixed = 100U, .per_device_pixel = 4U},
+        .state_budget = 8U,
+        .backdrop = true,
+        .backdrop_margin = 9.0,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame&, EffectCanvas&) {}
+};
+
+const EffectEntry& backdrop_probe_entry() {
+    static const EffectEntry entry = make_effect_entry<BackdropProbe>();
+    return entry;
+}
+
+// Backdrop sampling (EP-7): an effect declaring a backdrop draws the
+// window's backplane under its part, blurred, through one metered canvas
+// call; the blurred raster is kept while the backplane stands; a posed
+// effect is damaged when the backplane changes; a headless paint lends no
+// backdrop and the call is refused.
+void backdrop_sampling() {
+    EffectRegistry local;
+    require(local.add(make_effect_entry<FarBackdrop>()) == EffectRegistrationOutcome::backdrop_out_of_range,
+            "a backdrop blur past its bound is refused at registration");
+    require(effect_backdrop_half(3.0, 1.0) == 1U && effect_backdrop_half(3.0, 2.0) == 2U &&
+                effect_backdrop_half(8.0, 1.0) == 2U && effect_backdrop_half(-1.0, 1.0) == 0U,
+            "the box half width is floor(margin * scale / 3)");
+
+    const EffectView<ProgressBar> view = bar_view(0.5);
+    EffectInstance headless;
+    headless.attach(backdrop_probe_entry(), 1U, start);
+    RecordingPainter alone;
+    headless.paint(alone, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view);
+    require(alone.part_rasters.empty() && headless.last_meter().refused == 1U,
+            "with no host there is no backdrop: the call is refused and counted");
+
+    // The host is a control in the control plane: a panel paints in the
+    // backplane plane, and would sample itself.
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("effects.backdrop"));
+    std::shared_ptr<Control> host = make_control<Control>(StableId("effects.backdrop.host"));
+    (*host).set_requested_bounds({0.0, 0.0, 100.0, 40.0});
+    (*root).add_child(host);
+    Window window(root, {200.0, 100.0});
+    // The backplane is made from the theme's window material.
+    window.set_theme(Theme::create(*test_support::professional_definition()));
+    window.perform_layout();
+    EffectInstance instance;
+    instance.attach(backdrop_probe_entry(), 1U, start);
+    RecordingPainter first;
+    instance.paint(first, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view, PartShape{}, host.get());
+    require(first.part_rasters.size() == 1U && instance.last_meter().refused == 0U,
+            "a hosted effect draws its backdrop");
+    const PartRaster& sampled = *first.part_rasters[0];
+    require(sampled.extent() == DeviceExtent{40U, 10U} && first.part_origins[0] == Point{0.0, 0.0},
+            "the backdrop covers the part, from its corner, one pixel per device pixel");
+    require(sampled.pixels()[3] > 0U, "the backdrop holds the backplane's pixels");
+
+    RecordingPainter again;
+    instance.paint(again, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view, PartShape{}, host.get());
+    require(again.part_rasters.size() == 1U && again.part_rasters[0].get() == first.part_rasters[0].get(),
+            "while the backplane stands the blurred backdrop is kept, not blurred again");
+
+    window.reset_activity_metrics();
+    window.set_active(false);
+    // Activation reaches the backplane's readers by more than one path;
+    // each damage is the effect's extent.
+    const MetricsSnapshot activated = window.metrics_snapshot();
+    require(activated.engine_input_damaged_parts >= 1U &&
+                activated.engine_input_damage_area ==
+                    static_cast<double>(activated.engine_input_damaged_parts) * 40.0 * 10.0,
+            "a posed effect reading the backdrop is damaged within its extent when the backplane changes");
+    RecordingPainter changed;
+    instance.paint(changed, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view, PartShape{}, host.get());
+    require(changed.part_rasters.size() == 1U && changed.part_rasters[0].get() != first.part_rasters[0].get(),
+            "a changed backplane is blurred again, into a new raster while the old one is held");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -1048,8 +1154,10 @@ int main() {
     effects_take_colour_roles();
     pointer_record();
     part_shape_clip();
+    backdrop_sampling();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
-                 "properties and input, themes selecting effects\n";
+                 "properties and input, themes selecting effects, colour roles, pointer record, part shape clip, "
+                 "backdrop\n";
     return 0;
 }

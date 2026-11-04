@@ -20,6 +20,7 @@
 
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
+#include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 
@@ -28,13 +29,20 @@
 #include <cstdint>
 #include <memory>
 #include <new>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <type_traits>
 
 namespace gui_forms {
 
+class Control;
 class Painter;
+class PartRaster;
+
+namespace engine_primitives {
+struct BoxBlurWork;
+} // namespace engine_primitives
 
 // One registered effect type: its declaration, its parent's name, its state
 // layout and the thunks the engine calls. `setup` is null for an effect
@@ -82,6 +90,12 @@ struct StorageRelease final {
     void operator()(std::byte* storage) const noexcept;
 };
 
+// Releases an instance's blur storage (EffectInstance's backdrop), whose
+// type is private to the engine.
+struct BlurWorkRelease final {
+    void operator()(engine_primitives::BoxBlurWork* work) const noexcept;
+};
+
 } // namespace effect_detail
 
 // The generated table entry of one effect type. Its state must fit the
@@ -121,12 +135,26 @@ enum class EffectRegistrationOutcome : std::uint8_t {
     setup_without_budget,
     frame_rate_out_of_range,
     outsets_out_of_range,
+    // A backdrop margin that is not finite, negative or past
+    // maximum_effect_backdrop_margin.
+    backdrop_out_of_range,
 };
 
 // The most effect types one registry holds.
 inline constexpr std::size_t maximum_registered_effects = 64U;
 // The farthest an effect may draw outside its part, in logical units.
 inline constexpr double maximum_effect_outset = 64.0;
+// The farthest an effect's backdrop blur reaches (EffectDeclaration::
+// backdrop_margin), in logical units: glass's own bound.
+inline constexpr double maximum_effect_backdrop_margin = 8.0;
+// What sampling the backdrop costs a frame, per device pixel of the grown
+// backplane image (EP-7): its copy into the blur's storage, six box passes
+// of an add and a subtract per lane, and the copy out. Added to the
+// effect's frame estimate when it is selected (check_effect_selection).
+inline constexpr std::uint32_t effect_backdrop_operations_per_pixel = 16U;
+// The half width of the box passes for a backdrop blur reaching `margin`
+// logical units at display `scale`: floor(margin * scale / 3) device pixels.
+[[nodiscard]] std::uint32_t effect_backdrop_half(double margin, double scale) noexcept;
 
 class EffectRegistry final {
 public:
@@ -305,11 +333,14 @@ public:
     // pose and consumes no ticks. `view` must be the effect's parent's view.
     // `shape` is the part's shape, which EffectCanvas::clip_part_shape
     // clips to; by default a plain rectangle.
+    // `host` is the control that paints the effect, through which a
+    // backdrop is sampled from its window (EP-7); null for a paint with no
+    // control, which lends no backdrop.
     template <typename Parent>
     void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view,
-               PartShape shape = PartShape{}) {
+               PartShape shape = PartShape{}, const Control* host = nullptr) {
         if (entry_ == nullptr || (*entry_).parent != EffectView<Parent>::parent_name) return;
-        paint_view(painter, part, scale, still, &view, shape);
+        paint_view(painter, part, scale, still, &view, shape, host);
     }
 
     // The colours the next frames are given (EffectFrame::colours); the
@@ -323,7 +354,29 @@ public:
     [[nodiscard]] const EffectCanvasMeter& last_meter() const noexcept { return last_meter_; }
 
 private:
-    void paint_view(Painter& painter, Rect part, double scale, bool still, const void* view, PartShape shape);
+    void paint_view(Painter& painter, Rect part, double scale, bool still, const void* view, PartShape shape,
+                    const Control* host);
+    // The blurred backplane under `layer` (the part and its outsets, in the
+    // painter's coordinates) for an effect declaring a backdrop, sampled
+    // through `host`'s window; null when none can be lent. Puts a
+    // non-ambient effect on the window's backplane damage list.
+    std::shared_ptr<const PartRaster> sample_backdrop(Painter& painter, const Control& host, Rect layer,
+                                                      double scale);
+
+    // What a kept backdrop was made from: the backplane's generation, the
+    // raster's place in window units, its extent and scale and the blur.
+    struct BackdropKey final {
+        std::uint64_t generation{};
+        Point origin{};
+        DeviceExtent extent{};
+        double scale{};
+        std::uint32_t half{};
+
+        friend constexpr bool operator==(const BackdropKey& left, const BackdropKey& right) noexcept {
+            return left.generation == right.generation && left.origin == right.origin &&
+                   left.extent == right.extent && left.scale == right.scale && left.half == right.half;
+        }
+    };
 
     const EffectEntry* entry_{};
     std::unique_ptr<std::byte, effect_detail::StorageRelease> storage_{};
@@ -347,6 +400,13 @@ private:
     EffectColours colours_{};
     EffectInputKind input_grant_{EffectInputKind::none};
     EffectPointer pointer_{};
+    // The backdrop (EP-7): the last blurred backplane, kept while its key
+    // stands and refilled in place when no recorded command still holds
+    // it; the blur's storage, reused from one blur to the next. Released
+    // with the effect.
+    std::shared_ptr<PartRaster> backdrop_{};
+    std::optional<BackdropKey> backdrop_key_{};
+    std::unique_ptr<engine_primitives::BoxBlurWork, effect_detail::BlurWorkRelease> blur_work_{};
 };
 
 } // namespace gui_forms
