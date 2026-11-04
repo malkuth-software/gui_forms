@@ -2475,6 +2475,16 @@ if(GUI_FORMS_BUILD_TESTS)
             COMMENT "Extracting native C++ API and rendering authored contracts"
             VERBATIM)
     endif()
+    # No test checks with bare assert(): a Release (NDEBUG) build compiles
+    # it out, and the test then checks nothing.
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME gui_forms_test_assert_check
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_asserts.py
+                --root ${CMAKE_CURRENT_SOURCE_DIR})
+        add_test(NAME gui_forms_test_assert_check_unit
+            COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+                -p test_check_test_asserts.py)
+    endif()
     add_executable(gui_drawing_core_tests tests/drawing_core_tests.cpp)
     target_link_libraries(gui_drawing_core_tests PRIVATE gui_drawing_core)
     add_test(NAME gui_drawing_core_tests COMMAND gui_drawing_core_tests)
