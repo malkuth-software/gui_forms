@@ -8,6 +8,7 @@
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/window/window.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -456,7 +457,8 @@ bool EffectInstance::note_pointer(const PointerEvent& event, Point part_origin) 
 
 std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& painter, const Control& host,
                                                                  Rect layer, double scale) {
-    SurfaceRoot* const root = host.surface_root();
+    // The window is the host's surface root (Window derives from SurfaceRoot).
+    SurfaceRoot* const root = host.attached_window();
     if (root == nullptr) return {};
     const SurfaceRoot::EnginePaintPlace place = (*root).engine_paint_place(host, painter);
     // A part recorded in the backplane plane would sample itself.
