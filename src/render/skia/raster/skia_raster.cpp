@@ -59,6 +59,31 @@ SkColor to_sk_color(Color color) noexcept {
     return SkColorSetARGB(color.alpha, color.red, color.green, color.blue);
 }
 
+// Copies the device pixels two surfaces share, their top-left overlap, from
+// `previous` into `replacement` row by row (SkiaRaster::resize at an
+// unchanged scale). Both are premultiplied BGRA8 surfaces of distinct
+// storage; `replacement` is clear outside the overlap. False, copying
+// nothing, when either surface's pixels cannot be addressed.
+bool carry_overlap(SkSurface& previous, SkSurface& replacement) noexcept {
+    const std::optional<SkPixmap> source = previous.peekPixels();
+    const std::optional<SkPixmap> target = replacement.peekPixels();
+    if (!source || !target) return false;
+    if ((*source).colorType() != (*target).colorType()) return false;
+    const int columns = std::min((*source).width(), (*target).width());
+    const int rows = std::min((*source).height(), (*target).height());
+    if (columns <= 0 || rows <= 0) return false;
+    const std::size_t row_bytes = static_cast<std::size_t>(columns) * 4U;
+    const std::byte* const from = static_cast<const std::byte*>((*source).addr());
+    std::byte* const to = static_cast<std::byte*>((*target).writable_addr());
+    if (from == nullptr || to == nullptr) return false;
+    for (int row = 0; row < rows; ++row) {
+        const std::size_t source_offset = static_cast<std::size_t>(row) * (*source).rowBytes();
+        const std::size_t target_offset = static_cast<std::size_t>(row) * (*target).rowBytes();
+        std::memcpy(to + target_offset, from + source_offset, row_bytes);
+    }
+    return true;
+}
+
 SkRect to_sk_rect(Rect rect) noexcept {
     return SkRect::MakeXYWH(static_cast<SkScalar>(rect.x),
                             static_cast<SkScalar>(rect.y),
@@ -316,6 +341,9 @@ public:
     // The process's bundled font set, held so every window shares it (register_bundled_fonts).
     std::shared_ptr<gui_forms::detail::BundledFontSet> bundled_fonts;
     sk_sp<SkSurface> surface;
+    // Whether `surface` holds its predecessor's pixels in their overlap
+    // (resize at an unchanged scale); false for a first or rescaled surface.
+    bool surface_carried{false};
 #if defined(GUI_FORMS_PREPARED_TEXT)
     PreparedSkiaFrame prepared_frame{};
     bool prepared_mode{false};
@@ -663,10 +691,21 @@ bool SkiaRaster::resize(Size logical_size, double scale) {
         return false;
     }
     (*(*replacement).getCanvas()).clear(SK_ColorTRANSPARENT);
+    // At an unchanged scale the pixels both extents cover stay as they were,
+    // so a host need repaint only what the resize exposed; at a new scale
+    // nothing lines up and the surface starts clear.
+    bool carried = false;
+    if ((*impl_).surface && scale == (*impl_).scale) carried = carry_overlap(*(*impl_).surface, *replacement);
     (*impl_).surface = std::move(replacement);
+    (*impl_).surface_carried = carried;
     (*impl_).logical_size = logical_size;
     (*impl_).scale = scale;
     return true;
+}
+
+bool SkiaRaster::carried_on_resize() const noexcept {
+    const bool carried = (*impl_).surface_carried;
+    return carried;
 }
 
 void SkiaRaster::begin_frame(const DamageRegion& damage) {

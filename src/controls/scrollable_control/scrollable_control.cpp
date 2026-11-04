@@ -325,11 +325,16 @@ void ScrollableControl::arrange_scroll_viewport(Size client_size, Size measured_
     if (v) scroll_state_ |= scroll_state_vscroll_visible;
     else scroll_state_ &= ~scroll_state_vscroll_visible;
 
-    if (previous_viewport != viewport_rectangle_ ||
-        previous_content != content_extent_ || previous_h != h ||
-        previous_v != v || previous_position != scroll_position_) {
-        invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics |
-                   Dirty::accessibility);
+    // A new scroll bar or position moves what is drawn. A viewport or
+    // content extent that only changed size repaints the control only when
+    // its paint depends on its size; otherwise the resize damage of its
+    // exposed strips is enough (Window::keeps_pixels_on_resize).
+    const bool scrolled = previous_h != h || previous_v != v || previous_position != scroll_position_;
+    const bool resized = previous_viewport != viewport_rectangle_ || previous_content != content_extent_;
+    if (scrolled || resized) {
+        Dirty effects = Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        if (scrolled || paint_depends_on_size()) effects |= Dirty::paint;
+        invalidate(effects);
     }
     if (previous_position != scroll_position_) on_scroll_position_changed();
 }

@@ -4423,6 +4423,10 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_skia_damage_edge_tests tests/skia_damage_edge_tests.cpp)
         target_link_libraries(gui_forms_skia_damage_edge_tests PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_damage_edge_tests COMMAND gui_forms_skia_damage_edge_tests)
+        # A resize through several sizes presents what a full repaint draws.
+        add_executable(gui_forms_resize_damage_equivalence_tests tests/resize_damage_equivalence_tests.cpp)
+        target_link_libraries(gui_forms_resize_damage_equivalence_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_resize_damage_equivalence_tests COMMAND gui_forms_resize_damage_equivalence_tests)
 
 
         add_test(

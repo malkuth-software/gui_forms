@@ -2954,6 +2954,11 @@ bool Control::on_ambient_frame(FrameTime) {
     return false;
 }
 
+bool Control::paint_depends_on_size() const noexcept {
+    const bool depends = has_style(ControlStyles::resize_redraw);
+    return depends;
+}
+
 bool Control::hit_test_local(Point local_point) const {
     return Rect{0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height}.contains(local_point);
 }

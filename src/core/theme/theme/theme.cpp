@@ -1096,6 +1096,34 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     return false;
 }
 
+std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
+    if (!valid_surface_material(material) || material.finish != 0.0) return std::nullopt;
+    if (material.corner_radii) return std::nullopt;
+    if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
+    if (!material.border_edges.empty()) return std::nullopt;
+    if (!(surface_material_visual_outsets(material) == Insets{})) return std::nullopt;
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+        material.reflection) {
+        return std::nullopt;
+    }
+    for (const MaterialFillLayer& fill : material.fills) {
+        if (fill.kind != MaterialFillKind::solid) return std::nullopt;
+    }
+    double band = std::max(0.0, material.corner_radius);
+    if (material.border) {
+        // A dashed or dotted border's pattern runs along each edge's length.
+        if ((*material.border).style != MaterialBorderStyle::solid) return std::nullopt;
+        band = std::max(band, (*material.border).width);
+    }
+    return band;
+}
+
+bool surface_material_size_invariant(const SurfaceMaterial& material) noexcept {
+    const std::optional<double> band = surface_material_resize_band(material);
+    const bool invariant = band && *band == 0.0;
+    return invariant;
+}
+
 Insets box_shadow_visual_outsets(std::span<const MaterialShadow> shadows) noexcept {
     Insets result{};
     for (const MaterialShadow& shadow : shadows) {

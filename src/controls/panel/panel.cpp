@@ -186,6 +186,14 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
     return;
 }
 
+bool Panel::paint_depends_on_size() const noexcept {
+    if (border_style_ != BorderStyle::none || hscroll() || vscroll()) return true;
+    if (background_override_ || style_override_) return false;
+    const bool invariant = surface_material_size_invariant(
+        effective_theme().resolve(visual_role_, visual_context()).material);
+    return !invariant;
+}
+
 Insets Panel::visual_outsets() const noexcept {
     if (face_colour() || style_override_) return {};
     return surface_material_visual_outsets(

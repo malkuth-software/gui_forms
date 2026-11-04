@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "tool_tips/tool_tip_presenter.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "../dispatcher/state/dispatcher_state.hpp"
@@ -2791,6 +2792,38 @@ void SurfaceRoot::add_damage_all_planes(Rect damage) {
     }
 }
 
+void SurfaceRoot::add_resize_strip_damage(Rect before, Rect after, double band) {
+    // A moving edge's band is redrawn on both sides of the move: the old
+    // edge's border inside the larger extent, and the new edge's. The band
+    // starts one logical unit further in, for anti-aliasing at a fractional
+    // scale.
+    const double reach = band > 0.0 ? std::ceil(band) + 1.0 : 0.0;
+    const bool width_changed = before.width != after.width;
+    const bool height_changed = before.height != after.height;
+    const double inner_right = std::min(before.x + before.width, after.x + after.width);
+    const double inner_bottom = std::min(before.y + before.height, after.y + after.height);
+    const double shared_right = width_changed ? std::max(before.x, inner_right - reach) : inner_right;
+    const double shared_bottom = height_changed ? std::max(before.y, inner_bottom - reach) : inner_bottom;
+    const double outer_right = std::max(before.x + before.width, after.x + after.width);
+    const double outer_bottom = std::max(before.y + before.height, after.y + after.height);
+    // The strip right of the shared extent, full height, then the one
+    // below it, shared width: together the larger extent minus the smaller.
+    const Rect right{shared_right, before.y, outer_right - shared_right, outer_bottom - before.y};
+    const Rect below{before.x, shared_bottom, shared_right - before.x, outer_bottom - shared_bottom};
+    if (!right.empty()) add_damage_all_planes(right);
+    if (!below.empty()) add_damage_all_planes(below);
+}
+
+bool SurfaceRoot::keeps_pixels_on_resize(const Control& control) const noexcept {
+    if (control.paint_depends_on_size()) return false;
+    if (!(control.effective_visual_outsets() == Insets{})) return false;
+    if (!(control.last_painted_visual_outsets_ == Insets{})) return false;
+    if (!control.owned_decorations_.empty()) return false;
+    const bool surface_invariant = !control.authored_surface_material_ ||
+                                   surface_material_size_invariant(*control.authored_surface_material_);
+    return surface_invariant;
+}
+
 void SurfaceRoot::request_paint_wake() noexcept {
     if (paint_wake_pending_) {
         ++paint_wakes_coalesced_;
@@ -3097,9 +3130,18 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         if (old_bounds != new_bounds) {
             // Arrangement changes expose content below the moved control. The
             // compositor uses one target across ordered paint planes, so both
-            // the vacated and occupied rectangles need full recomposition.
-            add_damage_all_planes(old_bounds);
-            add_damage_all_planes(new_bounds);
+            // the vacated and occupied rectangles need full recomposition,
+            // except where a control that kept its origin keeps its pixels
+            // (keeps_pixels_on_resize): there only the strips between the
+            // two extents change. Its chunk is recorded again at the new
+            // size either way (paint_recursive).
+            const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
+            if (same_origin && keeps_pixels_on_resize(*control)) {
+                add_resize_strip_damage(old_bounds, new_bounds, 0.0);
+            } else {
+                add_damage_all_planes(old_bounds);
+                add_damage_all_planes(new_bounds);
+            }
             touch_paint();
             (*control).publish_change((*control).arranged_bounds_changed_,
                                     new_bounds);

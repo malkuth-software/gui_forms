@@ -860,6 +860,12 @@ public:
     // the clock then drops it, so a control can never keep a window
     // painting by itself. The default returns false.
     virtual bool on_ambient_frame(FrameTime now);
+    // Whether what on_paint and on_paint_overlay draw at a point changes
+    // when only the control's size does. A control that answers false keeps
+    // its pixels inside its old extent when it is resized in place, and only
+    // the strips the resize exposed or vacated are repainted. The default is
+    // the resize_redraw style, which is on unless the control clears it.
+    [[nodiscard]] virtual bool paint_depends_on_size() const noexcept;
     [[nodiscard]] virtual bool hit_test_local(Point local_point) const;
 
     virtual void on_pointer_preview(PointerEvent& event);
@@ -1258,7 +1264,11 @@ private:
     bool tab_stop_{true};
     bool allow_drop_{};
     bool hit_test_transparent_{};
+    // resize_redraw is on by default (unlike Windows Forms): a control
+    // repaints all of itself when its size changes unless it, or its
+    // application, clears it, or it overrides paint_depends_on_size.
     ControlStyles styles_{ControlStyles::user_paint |
+                          ControlStyles::resize_redraw |
                           ControlStyles::standard_click |
                           ControlStyles::selectable |
                           ControlStyles::all_painting_in_one_pass};

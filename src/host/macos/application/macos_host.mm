@@ -2791,7 +2791,10 @@ void post_perform_close(NSWindow* window) {
     _lastCGClipBoundsArea = 0.0;
     _lastCGSourceBytes = 0U;
 #if !defined(GUI_FORMS_PREPARED_TEXT)
-    if (_raster.resize(logicalSize, scale)) {
+    // At an unchanged scale the raster keeps its pixels where the old and
+    // new extents overlap, and the window damaged what the resize exposed
+    // (Window::resize); otherwise it starts clear and is painted whole.
+    if (_raster.resize(logicalSize, scale) && !_raster.carried_on_resize()) {
         _rasterHasContent = NO;
         _pendingDamage.add(GFRect{0.0, 0.0, logicalSize.width, logicalSize.height});
     }
@@ -2805,7 +2808,8 @@ void post_perform_close(NSWindow* window) {
     reuse.front_matches_extent = _raster.prepared_front_matches(logicalSize, scale);
     const PaintReceipt previousReceipt = _raster.prepared_front_receipt();
 #else
-    // The ordinary raster was resized to the view above (and lost its content).
+    // The ordinary raster was resized to the view above (keeping the pixels
+    // it carried, if any).
     reuse.front_matches_extent = true;
 #endif
     reuse.front_surface_epoch = _frontSurfaceEpoch;

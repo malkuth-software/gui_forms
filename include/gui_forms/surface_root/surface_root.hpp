@@ -1199,6 +1199,11 @@ private:
     // Marks for measure the controls a client-size change reaches (see
     // Window::resize): `control`, and below it each child whose parent
     // requests no extent on a changed axis.
+    // The surface side of a client resize, called by Window::resize: damages
+    // the exposed strips and edge bands (or the whole window when its base
+    // depends on its size), marks the root's layout slot and the measure the
+    // new size reaches.
+    void apply_client_resize(Rect old_bounds, Rect new_bounds, bool width_changed, bool height_changed);
     void mark_resized_measure(Control& control, bool width_reaches, bool height_reaches);
     void apply_subtree_dirty(Control& control, Dirty dirty,
                              double& requested_damage_area);
@@ -1206,6 +1211,17 @@ private:
     void change_paint_plane(Control& control, PaintPlane plane);
     void add_damage(Rect damage, PaintPlane plane);
     void add_damage_all_planes(Rect damage);
+    // Damages, in every plane, what differs between two rectangles with one
+    // origin: the strips of the larger extent past the smaller, on each
+    // axis that changed, widened inward by `band` logical units on that
+    // axis (the reach of a border or corner at the moving edge,
+    // surface_material_resize_band). A resize that keeps the pixels both
+    // cover, away from the moving edges.
+    void add_resize_strip_damage(Rect before, Rect after, double band);
+    // Whether `control`'s pixels inside its old extent stay right when its
+    // size alone changes: paint_depends_on_size false, no visual outsets, owned
+    // decorations or size-dependent authored surface.
+    [[nodiscard]] bool keeps_pixels_on_resize(const Control& control) const noexcept;
     void request_paint_wake() noexcept;
     void acknowledge_paint_wake_if_damage_drained() noexcept;
     void touch_paint() noexcept;

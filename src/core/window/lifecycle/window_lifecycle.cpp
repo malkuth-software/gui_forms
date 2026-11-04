@@ -1,5 +1,6 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 #include "../../dispatcher/state/dispatcher_state.hpp"
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "../accelerator/accelerator_attachment.hpp"
@@ -9,6 +10,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <optional>
 #include <cstdio>
 #include <cstdlib>
 #include <exception>
@@ -116,24 +118,51 @@ void Window::resize(Size client_size) {
         return;
     }
     const Rect old_bounds{0.0, 0.0, client_size_.width, client_size_.height};
+    const Rect new_bounds{0.0, 0.0, client_size.width, client_size.height};
     const bool width_changed = client_size_.width != client_size.width;
     const bool height_changed = client_size_.height != client_size.height;
     client_size_ = client_size;
     invalidate_cursor_interaction(CursorError::stale_metrics);
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
-    add_damage_all_planes(old_bounds);
-    // Every control is arranged, painted and hit-tested again, as before.
-    // Only the controls whose measure input the client size reaches are
-    // measured again; the others are handed the same available size as
-    // before, so their measure would answer as it did (stage L, L7).
-    mark_subtree_dirty(*root_, without_dirty(invalidation::bounds, Dirty::measure));
-    mark_resized_measure(*root_, width_changed, height_changed);
+    apply_client_resize(old_bounds, new_bounds, width_changed, height_changed);
     for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
         if (const Control::Ptr overlay = (*popup).popup()) {
             mark_subtree_dirty(*overlay, invalidation::bounds);
         }
     }
+}
+
+// The surface side of a client resize (Window::resize is its host entry):
+// damage and layout marks for a root that went from `old_bounds` to
+// `new_bounds`, both at the window origin.
+void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool width_changed,
+                                      bool height_changed) {
+    // What the resize touched, and whether it needs repainting (the owner,
+    // 2026-11-03). The window's base is drawn in window coordinates: one
+    // whose only size-dependent parts are its border and corners keeps its
+    // pixels, and only the exposed strips and the bands at the moving edges
+    // are damaged (a corner touches both axes); any other is damaged whole.
+    // The root is arranged again; a container whose children respond to
+    // the changed axis gives them new slots, and only those are arranged
+    // again (set_child_layout), damaging what their own bounds changed
+    // (arrange_dirty_recursive). Controls
+    // whose bounds stay keep their chunks and pixels. Only the controls
+    // whose measure input the client size reaches are measured again; the
+    // others are handed the same available size as before, so their
+    // measure would answer as it did (stage L, L7).
+    ControlVisualContext base_context;
+    base_context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
+    base_context.high_contrast = presentation_settings_.high_contrast;
+    const std::optional<double> base_band = surface_material_resize_band(backplane_base(base_context));
+    if (base_band) {
+        add_resize_strip_damage(old_bounds, new_bounds, *base_band);
+    } else {
+        add_damage_all_planes(old_bounds);
+        add_damage_all_planes(new_bounds);
+    }
+    mark_child_layout_slot(*root_);
+    mark_resized_measure(*root_, width_changed, height_changed);
 }
 
 // The window's measure pass hands the root the client size, and hands each
