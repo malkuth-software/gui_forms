@@ -153,7 +153,6 @@ struct ModelState final {
     TextSelection single_selection{};
     std::string single_text;
     std::string multi_text;
-    bool doomed_attached{};
 };
 
 struct ReadModel final {
@@ -163,7 +162,6 @@ struct ReadModel final {
         (*state).single_selection = (*(*fixture).single).selection();
         (*state).single_text = std::string((*(*fixture).single).text());
         (*state).multi_text = std::string((*(*fixture).multi).text());
-        (*state).doomed_attached = (*(*fixture).doomed).attached_window() != nullptr;
     }
 };
 
@@ -573,7 +571,6 @@ void check_stale(ClientContext& context, IUIAutomation& automation, IUIAutomatio
     ComReference<IUIAutomationTextRange> document;
     require(SUCCEEDED((*text.get()).get_DocumentRange(document.receive())), "a document range");
     on_ui_thread(context.dispatcher, std::function<void()>(RemoveDoomed{context.fixture}));
-    expect(context, !read_model(context).doomed_attached, "the text box left the window");
     BstrText read;
     expect(context, (*document.get()).GetText(-1, read.receive()) ==
                         static_cast<HRESULT>(UIA_E_ELEMENTNOTAVAILABLE),

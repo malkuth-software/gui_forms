@@ -6,12 +6,14 @@
 // publishes: role, name, value, description, state, default action,
 // location, child count and parent. A second window holds the registry
 // controls the Gallery does not attach to its tree. Then it performs one
-// default action for every control type and semantic role pair through
-// accDoDefaultAction (or, for a node whose only action is focus, accSelect
-// with SELFLAG_TAKEFOCUS) and observes the resulting change in the semantic
-// tree, in a fresh window per page. Finally it checks that every visual
-// registry control published a node of its own, or is listed as
-// presentational.
+// default action for every semantic role, default action kind and
+// placement (a control's own node, an item of a control, an item with no
+// control above it) through accDoDefaultAction (or, for a node whose only
+// action is focus, accSelect with SELFLAG_TAKEFOCUS) and observes the
+// resulting change in the semantic tree, in a fresh window per page; the
+// adapter's path depends only on those three. Which node every registry
+// control publishes and each control type's default action are checked
+// headless by semantic_gallery_tests.cpp.
 //
 // The expected MSAA vocabulary (roles, state bits and default-action verbs)
 // is written out here, independently of the provider, as a client expects
@@ -33,7 +35,6 @@
 #include <oleacc.h>
 
 #include <algorithm>
-#include <array>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -69,31 +70,6 @@ constexpr std::string_view host_services_page = "dialogs-and-host-services";
 // only through subclasses, presentational containers and dialogs that
 // open on demand. It is enumerated and acted on like a Gallery page.
 constexpr std::string_view off_tree_page = "off-tree-controls";
-
-// Registry entries that are not controls (nonvisual components and the
-// LiveSurface service type), as the anatomy coverage test lists them.
-constexpr std::array<std::string_view, 24> nonvisual_entries{
-    "command", "gallery_command", "font_command", "color_command", "context_menu",
-    "tool_tip", "ribbon_tool_tip", "timer", "background_worker", "notify_icon",
-    "thread_exception_dialog", "image_list", "error_provider", "help_provider", "semantic_feedback", "binding",
-    "binding_source", "binding_context", "live_surface", "dock_workspace", "open_file_dialog",
-    "save_file_dialog",
-    "color_dialog",
-    "folder_browser_dialog",
-};
-
-// Registry controls that publish no node of their own: presentational
-// containers whose children are published in their place (a scrollable
-// control publishes only its scroll bars, as virtual children), the popup
-// layer that only hosts a popup's content, and RangeControl, the value base
-// whose subclasses (track bar, scroll bars) publish their own roles. The
-// test fails when this list and the published tree disagree in either
-// direction.
-constexpr std::array<std::string_view, 8> unexposed_entries{
-    "scaled_panel", "splitter_panel", "tool_strip_panel", "property_grid",
-    "scrollable_control", "anchored_popup_layer", "visual_inspector_overlay",
-    "range_control",
-};
 
 // The most popups the client closes with Escape after an action that opened
 // some (a menu inside a menu is two).
@@ -625,7 +601,34 @@ bool candidate_observable(const SemanticNode& node, DefaultKind kind) noexcept {
     return true;
 }
 
-void consider_candidate(PageWalk& walk, const SemanticNode& node, std::string_view type,
+const char* default_kind_name(DefaultKind kind) noexcept {
+    switch (kind) {
+    case DefaultKind::none: return "focus";
+    case DefaultKind::press: return "press";
+    case DefaultKind::show_menu: return "show menu";
+    case DefaultKind::select: return "select";
+    case DefaultKind::expand: return "expand";
+    case DefaultKind::collapse: return "collapse";
+    }
+    return "focus";
+}
+
+// The key of a node's action: its role, the default action kind and its
+// placement. The provider routes an action by exactly these, so one action
+// per key covers the mapping.
+std::string action_key(const SemanticNode& node, DefaultKind kind, bool is_item, std::string_view scope_id) {
+    const char* placement = "own node";
+    if (is_item && scope_id.empty()) placement = "unscoped item";
+    if (is_item && !scope_id.empty()) placement = "item";
+    std::string key = semantic_role_name(node.role);
+    key += " / ";
+    key += default_kind_name(kind);
+    key += " / ";
+    key += placement;
+    return key;
+}
+
+void consider_candidate(PageWalk& walk, const SemanticNode& node, std::string_view type, bool is_item,
                         std::string_view scope_id) {
     if (walk.page == host_services_page) return;
     if (!has_semantic_state(node.states, SemanticState::enabled)) return;
@@ -637,7 +640,7 @@ void consider_candidate(PageWalk& walk, const SemanticNode& node, std::string_vi
                             (has_semantic_state(node.states, SemanticState::focusable) ||
                              has_action(node, SemanticAction::focus));
     if (kind == DefaultKind::none && !focus_only) return;
-    const std::string key = std::string(type) + " / " + semantic_role_name(node.role);
+    const std::string key = action_key(node, kind, is_item, scope_id);
     const bool observable = candidate_observable(node, kind);
     std::map<std::string, ActionCandidate>::iterator existing = walk.report.candidates.find(key);
     if (existing != walk.report.candidates.end()) {
@@ -726,7 +729,7 @@ void compare_tree(PageWalk& walk, IAccessible& object, const SemanticNode& node,
         } else {
             ++tally.mismatched;
         }
-        consider_candidate(walk, node, type, own_scope);
+        consider_candidate(walk, node, type, is_item, own_scope);
     }
     const LONG walked = reading.child_count < children ? reading.child_count : children;
     for (LONG index = 1; index <= walked; ++index) {
@@ -1064,43 +1067,6 @@ void print_report(const Report& report) {
     }
 }
 
-bool listed(std::span<const std::string_view> list, std::string_view id) noexcept {
-    for (const std::string_view entry : list) {
-        if (entry == id) return true;
-    }
-    return false;
-}
-
-// Compares the registry with the control types the client found: every
-// visual registry control publishes a node of its own, except those
-// unexposed_entries lists. Prints the coverage line; returns an empty
-// string, or the disagreement.
-std::string registry_coverage(const Report& report) {
-    std::size_t controls = 0;
-    std::size_t exposed = 0;
-    std::string missing;
-    std::string stale;
-    for (const gallery::CatalogEntry& entry : gallery::control_catalog) {
-        if (listed(nonvisual_entries, entry.id)) continue;
-        ++controls;
-        const std::map<std::string, ControlTally>::const_iterator found =
-            report.tallies.find(std::string(entry.id));
-        const bool own_node = found != report.tallies.end() && (*found).second.own_nodes != 0U;
-        if (own_node) ++exposed;
-        const bool unexposed = listed(unexposed_entries, entry.id);
-        if (!own_node && !unexposed) missing += " " + std::string(entry.id);
-        if (own_node && unexposed) stale += " " + std::string(entry.id);
-    }
-    std::cout << "registry coverage: " << exposed << " of " << controls
-              << " visual registry controls publish their own node; "
-              << unexposed_entries.size() << " are presentational (" << nonvisual_entries.size()
-              << " nonvisual entries excluded)\n";
-    std::string disagreement;
-    if (!missing.empty()) disagreement += "registry controls the client never found:" + missing;
-    if (!stale.empty()) disagreement += " unexposed_entries lists exposed controls:" + stale;
-    return disagreement;
-}
-
 // Shows a Gallery page; the off-tree fixture has one page, always shown.
 bool show_page(Window& window, std::string_view page) {
     if (page == off_tree_page) return true;
@@ -1302,7 +1268,6 @@ int main() {
         }
         perform_page_actions(report, off_tree_page);
         print_report(report);
-        const std::string coverage = registry_coverage(report);
         // After the window is gone a retained object is disconnected.
         if (report.retained.get() == nullptr) throw std::runtime_error("no object was retained");
         BstrOwner name;
@@ -1318,10 +1283,6 @@ int main() {
         std::size_t failed_actions = 0;
         for (const ActionResult& action : report.actions) {
             if (action.outcome != ActionOutcome::changed) ++failed_actions;
-        }
-        if (!coverage.empty()) {
-            std::cerr << coverage << '\n';
-            return 1;
         }
         if (!report.mismatches.empty() || failed_actions != 0U) {
             std::cerr << report.mismatches.size() << " mismatches, " << failed_actions

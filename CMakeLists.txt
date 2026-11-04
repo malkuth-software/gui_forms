@@ -3638,6 +3638,11 @@ if(GUI_FORMS_BUILD_TESTS)
     )
     target_link_libraries(gui_forms_semantic_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_semantic_tests COMMAND gui_forms_semantic_tests)
+    # The semantic halves of the UI Automation provider and text tests'
+    # checks, on the same fixtures, headless (no host, no foreground).
+    add_executable(gui_forms_semantic_fixture_tests tests/semantic_fixture_tests.cpp)
+    target_link_libraries(gui_forms_semantic_fixture_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_semantic_fixture_tests COMMAND gui_forms_semantic_fixture_tests)
 
     # The localizable-literal plugin, dogfooded: a unit with the plugin, one
     # without it, a static and a shared library with it. Without the plugin
@@ -3863,6 +3868,15 @@ if(GUI_FORMS_BUILD_TESTS)
                 -DEXPECTED_SYMBOL=gd_get_api_v0
                 -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_linux_c_api_exports.cmake
         )
+    endif()
+
+    # The semantic half of the Windows MSAA and UI Automation Gallery
+    # clients' checks (registry coverage, identities, and one default
+    # action per control type and role by each client's rules), headless.
+    if(TARGET gui_forms_gallery_model)
+        add_executable(gui_forms_semantic_gallery_tests tests/semantic_gallery_tests.cpp)
+        target_link_libraries(gui_forms_semantic_gallery_tests PRIVATE gui_forms_gallery_model)
+        add_test(NAME gui_forms_semantic_gallery_tests COMMAND gui_forms_semantic_gallery_tests)
     endif()
 
     if(TARGET gui_forms_gallery_model)
