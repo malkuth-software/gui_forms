@@ -98,7 +98,8 @@ def gallery_enabled(flag: bool, environ: dict[str, str]) -> bool:
 
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
                   sanitize: bool = False, tests: str = '', test_jobs: int = 1,
-                  debug_info: str = 'lines', skip_labels: str = '', changed_from: str = '') -> None:
+                  debug_info: str = 'lines', skip_labels: str = '', changed_from: str = '',
+                  install_only: bool = False) -> None:
     """Build, test, then install only into the explicitly supplied build SDK.
 
     With sanitize, the toolkit is built in its own directory with the
@@ -119,6 +120,11 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     paths changed since it can affect (tools/change_selection.py, the areas
     of tools/test_areas.json) and the build to what they read; when no
     changed path is read by any test, nothing is configured, built or run.
+    install_only builds the whole tree and installs the SDK, with its notice
+    and import checks and the installed reference examples, but runs none
+    of the toolkit's own tests and writes no JUnit report: a consumer's
+    smoke build at a pin whose suite GUI.Forms' CI already passed (File
+    Manager's bootstrap smoke).
     """
     toolkit: Path = build / ('gui-forms-sanitize' if sanitize else 'gui-forms')
     build_record_path(toolkit).unlink(missing_ok=True)
@@ -188,10 +194,13 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
             '--parallel', test_jobs, *selection)
         return
-    # The JUnit report names the passed tests the cache manifest records
-    # (tools/native_tests.py); the programs job does not run them again.
-    run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
-        '--parallel', test_jobs, *selection, '--output-junit', native_tests.JUNIT_NAME)
+    if install_only:
+        print('install only: the toolkit tests are not run', flush=True)
+    else:
+        # The JUnit report names the passed tests the cache manifest records
+        # (tools/native_tests.py); the programs job does not run them again.
+        run('ctest', '--test-dir', toolkit, '--output-on-failure', '--timeout', timeout,
+            '--parallel', test_jobs, *selection, '--output-junit', native_tests.JUNIT_NAME)
     run('cmake', '--install', toolkit)
     check_installed_notices(sdk)
     if host == 'windows':
@@ -224,6 +233,9 @@ def main() -> None:
     parser.add_argument('--changed-from', default='',
                         help='with --sanitize, build and run only the tests the paths changed since this ref '
                              'can affect (tools/change_selection.py); every test when a path touches everything')
+    parser.add_argument('--install-only', action='store_true',
+                        help='build and install the SDK (with its checks and the installed reference examples) '
+                             "but run none of the toolkit's tests: a consumer's smoke build at a tested pin")
     parser.add_argument('--gallery', action='store_true',
                         help='also configure GUI_FORMS_BUILD_GALLERY=ON '
                              '(or set GUI_FORMS_CI_BUILD_GALLERY=1); default OFF')
@@ -234,6 +246,9 @@ def main() -> None:
         parser.error('--test-jobs must be positive')
     if args.changed_from and not args.sanitize:
         parser.error('--changed-from narrows the sanitized run only')
+    if args.install_only and (args.sanitize or args.tests or args.changed_from or args.skip_labels):
+        parser.error('--install-only builds and installs everything and runs no toolkit test; '
+                     'it takes no --sanitize, --tests, --changed-from or --skip-labels')
     if args.debug_info and not args.sanitize:
         parser.error('--debug-info applies to the sanitized build only')
     debug_info: str = 'lines'
@@ -250,7 +265,7 @@ def main() -> None:
     build.mkdir(parents=True, exist_ok=True)
     build_toolkit(host, build, build / 'gui-forms-sdk', args.jobs,
                   gallery_enabled(args.gallery, dict(os.environ)), args.sanitize, args.tests,
-                  args.test_jobs, debug_info, args.skip_labels, args.changed_from)
+                  args.test_jobs, debug_info, args.skip_labels, args.changed_from, args.install_only)
 
 
 if __name__ == '__main__':

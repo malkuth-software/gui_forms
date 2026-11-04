@@ -528,7 +528,11 @@ public:
     }
 };
 
-SkiaRaster::SkiaRaster() : impl_(std::make_unique<Impl>()) {}
+SkiaRaster::SkiaRaster() : impl_(std::make_unique<Impl>()) {
+    // Selects stx_skia's SIMD tier for the process (stx_skia/simd.hpp) and installs its
+    // kernels before the first draw; thread-safe and idempotent, so every raster calls it.
+    SkGraphics::Init();
+}
 SkiaRaster::~SkiaRaster() = default;
 
 bool SkiaRaster::register_typeface(FontRole role, std::uint16_t weight,

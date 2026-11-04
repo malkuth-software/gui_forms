@@ -33,8 +33,11 @@ inline constexpr FrameInterval display_frame_interval = std::chrono::millisecond
 // only while the control is in a window and shown, and only as fast as the
 // control is painted: a tick that finds the control hidden, or not painted
 // since the last damaging tick, stops the timer, and the control's next
-// paint (note_painted) starts it again. Ticks fall on multiples of the
-// interval in clock time and keep that phase; a late tick is one tick.
+// paint (note_painted) starts it again. An interval of at least
+// display_frame_interval ticks at the nearest whole number of display
+// intervals, so that animations of different speeds share frames; a shorter
+// one ticks as given. Ticks fall on multiples of that period in clock time
+// and keep that phase; a late tick is one tick.
 //
 // The control owns the timer as a member and calls note_painted at the start
 // of its on_paint. The tick target is called on the window's UI thread; it
@@ -67,6 +70,7 @@ public:
     [[nodiscard]] bool started() const noexcept;
     // A tick is scheduled on the owner's window.
     [[nodiscard]] bool ticking() const noexcept;
+    // The interval given to start, before rounding to display intervals.
     [[nodiscard]] FrameInterval interval() const noexcept;
 
 private:

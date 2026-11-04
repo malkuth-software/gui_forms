@@ -7,8 +7,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 import re
+import sys
 import tempfile
 import unittest
+from unittest import mock
 
 import ci_build
 import ci_build_steps
@@ -185,6 +187,49 @@ class BuildRecordTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 self.call_with(UnreadChanges().failing_changed_paths, build)
             self.assertFalse(ci_build.build_record_path(tree).exists())
+
+
+class InstallOnlyTests(unittest.TestCase):
+    """--install-only builds and installs the SDK and runs none of the toolkit's tests."""
+
+    def commands_of(self, install_only: bool) -> list[list[str]]:
+        commands: list[list[str]] = []
+
+        def record(*arguments: object, **keywords: object) -> None:
+            commands.append([str(argument) for argument in arguments])
+
+        with tempfile.TemporaryDirectory() as scratch:
+            build: Path = Path(scratch)
+            with mock.patch.object(ci_build, 'run', side_effect=record), \
+                    mock.patch.object(ci_build, 'configure_tree'), \
+                    mock.patch.object(ci_build, 'prepare_host'), \
+                    mock.patch.object(ci_build, 'check_installed_notices'), \
+                    mock.patch.object(ci_build, 'check_windows_sdk_imports'):
+                ci_build.build_toolkit('linux', build, build / 'sdk', 1, install_only=install_only)
+            toolkit: str = str(build / 'gui-forms')
+            self.assertIn(['cmake', '--install', toolkit], commands)
+        return commands
+
+    def toolkit_tests(self, commands: list[list[str]]) -> list[list[str]]:
+        found: list[list[str]] = []
+        command: list[str]
+        for command in commands:
+            if command[:1] == ['ctest'] and command[2].endswith('gui-forms'):
+                found.append(command)
+        return found
+
+    def test_install_only_runs_no_toolkit_test(self) -> None:
+        self.assertEqual(self.toolkit_tests(self.commands_of(True)), [])
+        self.assertEqual(len(self.toolkit_tests(self.commands_of(False))), 1)
+
+    def test_install_only_takes_no_narrowing(self) -> None:
+        option: list[str]
+        for option in (['--sanitize'], ['--tests', 'x'], ['--skip-labels', 'y']):
+            with mock.patch.object(sys, 'argv', ['ci_build.py', '--install-only', *option]), \
+                    mock.patch('sys.stderr'):
+                with self.assertRaises(SystemExit):
+                    ci_build.main()
+
 
 if __name__ == '__main__':
     unittest.main()
