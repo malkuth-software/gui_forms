@@ -75,6 +75,12 @@ gui_forms::SurfaceRoot
          :cpp:func:`resources <gui_forms::SurfaceRoot::resources>` and raises :cpp:func:`theme_changed <gui_forms::SurfaceRoot::theme_changed>` in each; a null theme throws
          ``std::invalid_argument``.
 
+      **application_theme** : ``Theme``, read-only
+         The theme the application chose (ApplicationResources::theme), shown or not; the default theme without resources.
+
+      **theme_fallback** : ``std::optional<ThemeFallback>``, read-only
+         The fallback in force, or none while the window shows the application's theme. Each (theme, scheme) is warned once per resources (W403 theme_variant_missing).
+
       **user_theme_rules** : ``CompiledThemeRules*``, read-only
          The rules of the user theme layered under every theme of these resources (ApplicationResources::user_theme_rules), or null.
 
@@ -555,6 +561,14 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_theme(std::shared_ptr<const Theme> theme)
 
       Sets :cpp:func:`theme <gui_forms::SurfaceRoot::theme>`; see the property's description above.
+
+   .. cpp:function:: const Theme& application_theme() const noexcept
+
+      The theme the application chose (ApplicationResources::theme), shown or not; the default theme without resources.
+
+   .. cpp:function:: const std::optional<ThemeFallback>& theme_fallback() const noexcept
+
+      The fallback in force, or none while the window shows the application's theme. Each (theme, scheme) is warned once per resources (W403 theme_variant_missing).
 
    .. cpp:function:: const CompiledThemeRules* user_theme_rules() const noexcept
 

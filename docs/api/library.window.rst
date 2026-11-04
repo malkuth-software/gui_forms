@@ -36,6 +36,8 @@ Related types
      - AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active popup/focus scopes retain first refusal.
    * - :cpp:class:`AcceleratorToken <gui_forms::AcceleratorToken>`
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
+   * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
+     - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
      - ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change.
    * - :cpp:class:`ControlSnapshot <gui_forms::ControlSnapshot>`
@@ -96,6 +98,10 @@ Related types
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`SystemColourHints <gui_forms::SystemColourHints>`
+     - The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour.
+   * - :cpp:class:`ThemeFallback <gui_forms::ThemeFallback>`
+     - Presentation preferences are logical UI policy and remain independent from the native/device pixel scale.
    * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
      - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
    * - :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`
@@ -149,6 +155,25 @@ Related types
    .. cpp:function:: void disconnect() noexcept
 
       Idempotently removes the exact accelerator from its Window.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ColourSchemeSet final
+
+   ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
+
+   The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them. Light alone by default. A set with neither is invalid (Theme::create refuses it).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: constexpr bool contains(ColourScheme scheme) const noexcept
+
+   .. cpp:member:: bool light
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool dark
 
 .. cpp:namespace:: gui_forms
 
@@ -854,6 +879,34 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SystemColourHints final
+
+   ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
+
+   The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour. Each is empty where the host reports none, and a theme then reads its fallback. They are hints: a theme may use, override or ignore them, and GUI.Forms' own theme reads neither.
+
+   .. cpp:member:: std::optional<Color> accent
+
+   .. cpp:member:: std::optional<Color> highlight
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ThemeFallback final
+
+   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+
+   Presentation preferences are logical UI policy and remain independent from the native/device pixel scale. A window showing GUI.Forms' own theme because its theme has no variant for the window's colour scheme (Window::theme_fallback, T4 theme variants): the application's theme, the scheme it lacks, and the theme shown instead (``gui-forms`` in that scheme). Colours the application set on its controls are suspended while it holds (Control:: application_colours_suspended).
+
+   .. cpp:member:: std::string theme_id
+
+   .. cpp:member:: ColourScheme missing
+
+      Default: ``{ColourScheme::dark}``.
+
+   .. cpp:member:: std::string fallback_id
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolTipEvent final
 
    ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
@@ -968,7 +1021,7 @@ Enumerations
 
 .. cpp:enum-class:: ColourScheme
 
-   ``#include <gui_forms/window/presentation/presentation_types.hpp>``
+   ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
 
    .. cpp:enumerator:: light
 
@@ -1246,6 +1299,12 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_focus_scope_depth
 
    Value: ``32U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/presentation/colour_scheme.hpp>``
+
+.. cpp:function:: constexpr std::string_view colour_scheme_name(ColourScheme scheme) noexcept
 
 .. cpp:namespace:: gui_forms
 
