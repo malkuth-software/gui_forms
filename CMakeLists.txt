@@ -1593,6 +1593,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # The pages converted to form documents (FD6.3), one class each.
     gui_forms_add_form(gui_forms_gallery_model demo/pages/typography-and-inspection.form
         CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/animation-laboratory.form
+        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
