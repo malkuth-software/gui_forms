@@ -11,7 +11,9 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <memory>
 #include <span>
 #include <string>
@@ -32,6 +34,10 @@ constexpr std::uint32_t surface_height = 480U;
 constexpr std::uint32_t spectrum_height = 112U;
 // The largest surface the producer renders, in device pixels per side.
 constexpr std::uint32_t maximum_surface_side = 4096U;
+// While the control's size keeps changing (a drag-resize asks for a new
+// size on every mouse move), the producer reconfigures at most this often;
+// in between the window scales the current frame to the control.
+constexpr std::chrono::milliseconds reconfigure_interval{16};
 
 // A surface size in device pixels, packed into one atomic word by the UI
 // thread and read by the producer (width in the high half).
@@ -62,6 +68,32 @@ LiveSurfaceDescription waterfall_description(SurfaceSize size) noexcept {
     return description;
 }
 
+// One producer frame, for the optional trace (GUI_FORMS_VSYNC_LAB_TRACE).
+// Times are steady-clock nanoseconds since the producer started.
+struct ProducerTraceEntry final {
+    std::uint64_t started{};
+    std::uint64_t reconfigure_nanoseconds{};
+    std::uint64_t render_nanoseconds{};
+    std::uint64_t publish_nanoseconds{};
+    // The surface's read acquires after the publish: a presenter's acquire
+    // advances it, so the trace shows when frames were taken.
+    std::uint64_t read_acquires{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    bool published{};
+};
+
+// The trace holds at most this many frames (about 34 s at 240 Hz),
+// reserved before the producer starts.
+constexpr std::size_t maximum_trace_entries = 8192U;
+
+std::uint64_t nanoseconds_between(std::chrono::steady_clock::time_point from,
+                                  std::chrono::steady_clock::time_point to) noexcept {
+    const std::uint64_t nanoseconds =
+        static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(to - from).count());
+    return nanoseconds;
+}
+
 class WaterfallSurface final : public Control {
 public:
     struct Snapshot final {
@@ -80,6 +112,11 @@ public:
           surface_(LiveSurface::create(waterfall_description({surface_width, surface_height}))) {
         set_focusable(true);
         set_accessible_name("High-rate waterfall and tearing diagnostic");
+        const char* const trace_path = std::getenv("GUI_FORMS_VSYNC_LAB_TRACE");
+        if (trace_path != nullptr && *trace_path != '\0') {
+            trace_path_ = trace_path;
+            trace_.reserve(maximum_trace_entries);
+        }
         if (surface_) {
             worker_ = std::thread(&WaterfallSurface::producer_loop, this);
         }
@@ -88,6 +125,7 @@ public:
     ~WaterfallSurface() override {
         disconnect_surface_wake();
         stop_worker();
+        write_trace();
     }
 
     void set_producer_rate(std::uint32_t frames_per_second) noexcept {
@@ -193,6 +231,7 @@ protected:
     void on_dispose() noexcept override {
         disconnect_surface_wake();
         stop_worker();
+        write_trace();
         Control::on_dispose();
     }
 
@@ -392,18 +431,48 @@ private:
         static_cast<void>(sink);
     }
 
+    // Scales the frame in `from` (`from_size`) into `to` (`to_size`), nearest
+    // pixel, so that a resize carries the waterfall over instead of
+    // restarting it blank. `to` is resized to hold the frame (growing it may
+    // throw); `from` and `to` are distinct buffers.
+    static void resample_frame(std::span<const std::byte> from, SurfaceSize from_size, std::vector<std::byte>& to,
+                               SurfaceSize to_size) {
+        const std::size_t to_row_bytes = static_cast<std::size_t>(to_size.width) * 4U;
+        to.resize(to_row_bytes * to_size.height);
+        const std::size_t from_row_bytes = static_cast<std::size_t>(from_size.width) * 4U;
+        for (std::uint32_t y = 0U; y < to_size.height; ++y) {
+            const std::uint64_t from_y = static_cast<std::uint64_t>(y) * from_size.height / to_size.height;
+            const std::byte* const source_row = from.data() + static_cast<std::size_t>(from_y) * from_row_bytes;
+            std::byte* const target_row = to.data() + static_cast<std::size_t>(y) * to_row_bytes;
+            for (std::uint32_t x = 0U; x < to_size.width; ++x) {
+                const std::uint64_t from_x = static_cast<std::uint64_t>(x) * from_size.width / to_size.width;
+                std::memcpy(target_row + static_cast<std::size_t>(x) * 4U,
+                            source_row + static_cast<std::size_t>(from_x) * 4U, 4U);
+            }
+        }
+    }
+
     void producer_loop() noexcept {
         SurfaceSize size;
         size.width = surface_width;
         size.height = surface_height;
-        // Holds one frame of the current size; it grows (and is cleared)
-        // only when the control's device size changes.
+        // Holds one frame of the current size; a resize scales it into
+        // `resized`, and the two are swapped, so each keeps its capacity.
         std::vector<std::byte> staging(
             static_cast<std::size_t>(surface_width) * surface_height * 4U,
             std::byte{});
+        std::vector<std::byte> resized;
+        // Whether the surface has the control's size yet: until the
+        // control's first arrangement there is nothing to render for.
+        bool sized = false;
+        std::chrono::steady_clock::time_point last_reconfigure{};
         std::uint64_t frame_index{};
         std::chrono::steady_clock::time_point next =
             std::chrono::steady_clock::now();
+        const std::chrono::steady_clock::time_point trace_origin = next;
+        trace_origin_nanoseconds_ = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(trace_origin.time_since_epoch()).count());
+        const bool tracing = !trace_path_.empty();
         while (!stop_requested_.load(std::memory_order_acquire)) {
             if (paused_.load(std::memory_order_acquire)) {
                 std::this_thread::sleep_for(4ms);
@@ -417,20 +486,41 @@ private:
                 next = std::chrono::steady_clock::now();
                 continue;
             }
-            // Follow the control's device size between frames: the surface
-            // starts a new epoch, and the waterfall restarts blank.
+            // Follow the control's device size between frames, at most once
+            // per reconfigure_interval: the surface starts a new epoch (the
+            // window shows the previous epoch's frame, scaled, until this
+            // one publishes, which it does at once), and the waterfall so
+            // far is scaled to the new size.
+            const std::chrono::steady_clock::time_point frame_started = std::chrono::steady_clock::now();
             const SurfaceSize requested =
                 unpack_surface_size(requested_size_.load(std::memory_order_acquire));
-            if (requested.width != 0U &&
-                (requested.width != size.width || requested.height != size.height) &&
-                (*surface_).reconfigure(waterfall_description(requested))) {
-                size = requested;
-                staging.assign(static_cast<std::size_t>(size.width) * size.height * 4U,
-                               std::byte{});
+            if (requested.width == 0U) {
+                std::this_thread::sleep_for(4ms);
+                next = std::chrono::steady_clock::now();
+                continue;
             }
+            const bool changed = requested.width != size.width || requested.height != size.height;
+            const bool due = !sized || frame_started - last_reconfigure >= reconfigure_interval;
+            if (changed && due && (*surface_).reconfigure(waterfall_description(requested))) {
+                // As before, a failed allocation ends the process.
+                resample_frame(staging, size, resized, requested);
+                staging.swap(resized);
+                size = requested;
+                last_reconfigure = frame_started;
+                sized = true;
+            }
+            if (!changed) sized = true;
+            if (!sized) {
+                std::this_thread::sleep_for(1ms);
+                next = std::chrono::steady_clock::now();
+                continue;
+            }
+            const std::chrono::steady_clock::time_point render_started = std::chrono::steady_clock::now();
             ++frame_index;
             producer_frames_.fetch_add(1U, std::memory_order_relaxed);
             render_candidate(staging, size, frame_index);
+            const std::chrono::steady_clock::time_point publish_started = std::chrono::steady_clock::now();
+            bool published = false;
             LiveSurfaceWriteLease lease = (*surface_).try_acquire_write();
             if (lease) {
                 const std::span<std::byte> destination = lease.pixels();
@@ -438,7 +528,21 @@ private:
                             std::min(destination.size(), staging.size()));
                 if (lease.publish()) {
                     published_frames_.fetch_add(1U, std::memory_order_relaxed);
+                    published = true;
                 }
+            }
+            if (tracing && trace_.size() < maximum_trace_entries) {
+                const std::chrono::steady_clock::time_point finished = std::chrono::steady_clock::now();
+                ProducerTraceEntry entry{};
+                entry.started = nanoseconds_between(trace_origin, frame_started);
+                entry.reconfigure_nanoseconds = nanoseconds_between(frame_started, render_started);
+                entry.render_nanoseconds = nanoseconds_between(render_started, publish_started);
+                entry.publish_nanoseconds = nanoseconds_between(publish_started, finished);
+                entry.read_acquires = (*surface_).snapshot().read_acquires;
+                entry.width = size.width;
+                entry.height = size.height;
+                entry.published = published;
+                trace_.push_back(entry);
             }
 
             const std::uint32_t rate =
@@ -494,8 +598,32 @@ private:
         }
     }
 
+    // Writes the trace as CSV, once, after the producer has stopped (UI
+    // thread). A file that cannot be opened leaves no trace.
+    void write_trace() noexcept {
+        if (trace_path_.empty() || worker_.joinable()) return;
+        try {
+            std::ofstream out(trace_path_, std::ios::trunc);
+            out << "origin_ns " << trace_origin_nanoseconds_ << '\n';
+            out << "started_ns,reconfigure_ns,render_ns,publish_ns,read_acquires,width,height,published\n";
+            for (const ProducerTraceEntry& entry : trace_) {
+                out << entry.started << ',' << entry.reconfigure_nanoseconds << ',' << entry.render_nanoseconds
+                    << ',' << entry.publish_nanoseconds << ',' << entry.read_acquires << ',' << entry.width << ','
+                    << entry.height << ',' << (entry.published ? 1 : 0) << '\n';
+            }
+        } catch (...) {
+        }
+        trace_path_.clear();
+    }
+
     std::shared_ptr<LiveSurface> surface_;
     LiveSurfaceWakeConnection surface_wake_;
+    // The optional trace: written by the producer only while it runs, read
+    // by write_trace after it has stopped.
+    std::string trace_path_;
+    std::vector<ProducerTraceEntry> trace_;
+    // The producer's start on the steady clock, for aligning the trace.
+    std::uint64_t trace_origin_nanoseconds_{};
     std::thread worker_;
     std::atomic<bool> stop_requested_{};
     std::atomic<std::uint32_t> producer_rate_{240U};
