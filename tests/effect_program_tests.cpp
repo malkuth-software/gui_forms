@@ -768,6 +768,113 @@ void themes_select_effects() {
             "a malformed name is effect_invalid and drops its rule; a second effect declaration is a duplicate");
 }
 
+// A theme giving a progress bar's fill the effect colour roles focus and
+// chrome-highlight, with other colours for them in the dark scheme (as a
+// palette's media variant lowers to a rule copy under the condition).
+std::unique_ptr<ThemeDefinition> colour_role_theme() {
+    std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    ThemeDefinition& definition = *held;
+    definition.id = "effect-colours";
+    ColourOrigin focus{};
+    focus.source = ColourSource::role;
+    focus.role = ColourRole::focus;
+    ColourOrigin highlight{};
+    highlight.source = ColourSource::role;
+    highlight.role = ColourRole::chrome_highlight;
+    ThemeRule light{};
+    light.label = "progress-bar::part(fill)";
+    light.selector.control_type = "progress_bar";
+    light.selector.part = "fill";
+    RuleDeclaration primary = RuleDeclaration::colour_value(effect_primary_property, Color::rgba(32, 96, 192));
+    primary.origin = focus;
+    RuleDeclaration secondary =
+        RuleDeclaration::colour_value(effect_secondary_property, Color::rgba(240, 244, 248));
+    secondary.origin = highlight;
+    light.declarations.push_back(primary);
+    light.declarations.push_back(secondary);
+    definition.rules.rules.push_back(light);
+    ThemeRule dark = light;
+    dark.label = "progress-bar::part(fill) (dark)";
+    dark.media.dark_scheme = true;
+    dark.declarations[0].colour = Color::rgba(120, 170, 255);
+    dark.declarations[1].colour = Color::rgba(40, 44, 52);
+    definition.rules.rules.push_back(dark);
+    return held;
+}
+
+// Effects take colour roles (EP-4): the theme's primary and secondary roles
+// for the effect's part reach the frame (EffectFrame::colours), follow the
+// colour scheme, are remapped by the forced high-contrast pass, and give
+// the progress effects their colours at the effects' own alphas; the
+// application's own appearance comes first; a literal is refused.
+void effects_take_colour_roles() {
+    std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.coloured"));
+    (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    (*bar).set_value(50.0);
+    (*bar).set_visual_style(ProgressBarVisualStyle::marching_stripes);
+    Window window(bar, {200.0, 40.0});
+    RecordingPainter plain;
+    window.perform_layout();
+    (*bar).on_paint(plain, {0.0, 0.0, 200.0, 20.0});
+    const ProgressBarAnimationAppearance appearance{};
+    require((*bar).effect_colours().primary == appearance.stripe_color &&
+                (*bar).effect_colours().secondary == appearance.luminance_color &&
+                (*bar).effect_instance().colours() == (*bar).effect_colours(),
+            "without theme roles the effects take the appearance's stripe and luminance colours");
+
+    window.set_theme(Theme::create(*colour_role_theme()));
+    RecordingPainter light;
+    (*bar).on_paint(light, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_colours().primary == Color::rgba(32, 96, 192) &&
+                (*bar).effect_colours().secondary == Color::rgba(240, 244, 248) &&
+                (*bar).effect_instance().colours() == (*bar).effect_colours(),
+            "the theme's roles reach the effect's frame");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.colour_scheme = ColourScheme::dark;
+    window.set_presentation_settings(settings);
+    RecordingPainter dark;
+    (*bar).on_paint(dark, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_colours().primary == Color::rgba(120, 170, 255) &&
+                (*bar).effect_colours().secondary == Color::rgba(40, 44, 52),
+            "in the dark scheme the roles take the dark palette's colours");
+
+    settings.high_contrast = true;
+    window.set_presentation_settings(settings);
+    RecordingPainter contrast;
+    (*bar).on_paint(contrast, {0.0, 0.0, 200.0, 20.0});
+    ColourOrigin focus{};
+    focus.source = ColourSource::role;
+    focus.role = ColourRole::focus;
+    const Color remapped = high_contrast_colour(focus, ColourPosition::fill, ControlSurfaceState::normal, false);
+    require((*bar).effect_colours().primary == remapped,
+            "under forced high contrast the primary role takes the pass's colour for its role");
+    settings.high_contrast = false;
+    settings.colour_scheme = ColourScheme::light;
+    window.set_presentation_settings(settings);
+
+    ProgressBarAnimationAppearance own{};
+    own.stripe_color = Color::rgba(200, 10, 10, 120);
+    (*bar).set_animation_appearance(own);
+    RecordingPainter application;
+    (*bar).on_paint(application, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_colours().primary == own.stripe_color,
+            "the application's own appearance comes before the theme's roles");
+
+    ThemeRuleSheet sheet{};
+    ThemeRule literal{};
+    literal.label = "literal";
+    literal.selector.control_type = "progress_bar";
+    literal.declarations.push_back(RuleDeclaration::colour_value(effect_primary_property, Color::rgba(1, 2, 3)));
+    sheet.rules.push_back(literal);
+    const CompiledThemeRules compiled = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    bool refused = false;
+    for (const RuleDiagnostic& diagnostic : compiled.diagnostics()) {
+        if (diagnostic.kind == RuleDiagnosticKind::effect_colour_invalid) refused = true;
+    }
+    require(refused && compiled.rule_count() == 0U, "an effect colour that is a literal, not a role, is refused");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -782,6 +889,7 @@ int main() {
     progress_bar_on_the_motion_clock();
     effect_properties_and_input();
     themes_select_effects();
+    effects_take_colour_roles();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
                  "properties and input, themes selecting effects\n";

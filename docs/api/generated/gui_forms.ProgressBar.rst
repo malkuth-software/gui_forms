@@ -90,6 +90,9 @@ gui_forms::ProgressBar
       **effect_selection** : ``EffectSelection``, read-only
          What the bar's last effect selection came to: the name asked for, who asked (the application, the visual style or the theme) and the load checks' verdict.
 
+      **effect_colours** : ``EffectColours``, read-only
+         The colours the bar's effects draw with (EffectFrame::colours): the primary and secondary colour roles the theme declares for the effect's part (effect_primary_property, effect_secondary_property), in the window's colour scheme and remapped by the forced high-contrast pass; the animation appearance's stripe and luminance colours where the theme declares none, or where the application set its own appearance. Under theme roles the appearance's colours keep their alpha and take the roles' red, green and blue: the stripes and the laser's phase bands the primary, the luminance band, the laser's edge and spark the secondary.
+
       **effect_instance** : ``EffectInstance``, read-only
          The selected effect's instance (empty for none): its counters and state checksum, for diagnostics and tests.
 
@@ -302,6 +305,10 @@ gui_forms::ProgressBar
    .. cpp:function:: const EffectSelection& effect_selection() const noexcept
 
       What the bar's last effect selection came to: the name asked for, who asked (the application, the visual style or the theme) and the load checks' verdict.
+
+   .. cpp:function:: EffectColours effect_colours() const noexcept
+
+      The colours the bar's effects draw with (EffectFrame::colours): the primary and secondary colour roles the theme declares for the effect's part (effect_primary_property, effect_secondary_property), in the window's colour scheme and remapped by the forced high-contrast pass; the animation appearance's stripe and luminance colours where the theme declares none, or where the application set its own appearance. Under theme roles the appearance's colours keep their alpha and take the roles' red, green and blue: the stripes and the laser's phase bands the primary, the luminance band, the laser's edge and spark the secondary.
 
    .. cpp:function:: const EffectInstance& effect_instance() const noexcept
 

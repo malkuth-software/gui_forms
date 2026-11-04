@@ -487,7 +487,7 @@ struct Refusal final {
 };
 
 void test_refusals() {
-    const std::array<Refusal, 40> refusals{{
+    const std::array<Refusal, 42> refusals{{
         {"#a { --x: 0.5 } #b { --x: 1 } @keyframes k { from { opacity: var(--x) } }",
          DiagnosticCode::variable_cannot_vary, "--x) }"},
         {"#a { primitive: bulge; amplitude: 0.5 !important }", DiagnosticCode::value_form_not_admitted, "amplitude"},
@@ -501,6 +501,8 @@ void test_refusals() {
         {"#a { effect: wobble_band }", DiagnosticCode::keyword_unknown, "wobble_band"},
         {"#a { effect: inherit }", DiagnosticCode::value_wrong_kind, "inherit"},
         {"#a { effect: 3 }", DiagnosticCode::value_wrong_kind, "3"},
+        {"#a { effect-primary: red }", DiagnosticCode::value_wrong_kind, "red"},
+        {"#a { effect-secondary: inherit }", DiagnosticCode::value_wrong_kind, "inherit"},
         {"#a { effect: progress-pulse progress-laser }", DiagnosticCode::value_form_not_admitted, "progress-laser"},
         {"#a { opacity: inherit }", DiagnosticCode::value_wrong_kind, "inherit"},
         {"#a { opacity: unset }", DiagnosticCode::value_form_not_admitted, "unset"},

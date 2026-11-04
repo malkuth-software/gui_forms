@@ -132,7 +132,7 @@ only material fields selects the `material` primitive.
 | shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
-| effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; the control checks the effect when it attaches it, and a refused one leaves the part to its primitive |
+| effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; the control checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
 
 `reflection` mirrors the part's finished face (its fills, borders, glows,

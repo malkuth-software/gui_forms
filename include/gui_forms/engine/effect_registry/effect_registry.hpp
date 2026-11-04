@@ -290,6 +290,11 @@ public:
         paint_view(painter, part, scale, still, &view);
     }
 
+    // The colours the next frames are given (EffectFrame::colours); the
+    // host sets them before each paint. Kept across attach and detach.
+    void set_colours(EffectColours colours) noexcept { colours_ = colours; }
+    [[nodiscard]] EffectColours colours() const noexcept { return colours_; }
+
     // The state's bytes, hashed (FNV-1a): the motion checksum.
     [[nodiscard]] std::uint64_t state_checksum() const noexcept;
     [[nodiscard]] const EffectInstanceCounters& counters() const noexcept { return counters_; }
@@ -317,6 +322,7 @@ private:
     double setup_scale_{};
     EffectInstanceCounters counters_{};
     EffectCanvasMeter last_meter_{};
+    EffectColours colours_{};
 };
 
 } // namespace gui_forms

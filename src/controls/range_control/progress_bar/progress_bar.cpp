@@ -297,8 +297,50 @@ bool ProgressBar::animated_style() const noexcept {
            overlay_instance_.entry() != nullptr;
 }
 
+namespace {
+
+// One effect colour from the theme: the role's colour, or under the forced
+// high-contrast pass the pass's colour for the role, drawn as a fill.
+Color effect_colour(const EffectColourDeclaration& declared, const ControlVisualContext& context) noexcept {
+    if (!context.high_contrast) return declared.colour;
+    const Color remapped =
+        high_contrast_colour(declared.origin, ColourPosition::fill, context.surface, context.selected);
+    return remapped;
+}
+
+// `colour` with the red, green and blue of `role` and its own alpha.
+Color role_tinted(Color colour, Color role) noexcept {
+    const Color tinted = Color::rgba(role.red, role.green, role.blue, colour.alpha);
+    return tinted;
+}
+
+} // namespace
+
 ProgressBar::RequestedEffect ProgressBar::requested_effect() const noexcept {
     RequestedEffect requested{};
+    // The theme's declarations for the part the effect draws over: the
+    // fill, or the activity band while marquee (publish_part_geometry). A
+    // bar in no window has none yet; its next paint asks again.
+    bool theme_effect = false;
+    std::string_view theme_name{};
+    if (attached_window() != nullptr) {
+        const bool marquee = visual_style_ == ProgressBarVisualStyle::marquee;
+        PartPaint part{};
+        part.role = marquee ? PartRole::activity : PartRole::fill;
+        part.bounds = local_bounds();
+        part.states = anatomy_states();
+        part.family = ControlVisualRole::progress;
+        part.key = PartKey{.part = marquee ? std::string_view{"activity"} : std::string_view{"fill"}};
+        const ThemeEngine::PartPlan plan = effective_theme().engine().plan(*this, part);
+        theme_effect = plan.resolution.effect_declared;
+        theme_name = plan.resolution.effect;
+        if (plan.resolution.effect_primary && plan.resolution.effect_secondary) {
+            const ControlVisualContext context = part_visual_context(*this, part.states);
+            requested.colours.primary = effect_colour(*plan.resolution.effect_primary, context);
+            requested.colours.secondary = effect_colour(*plan.resolution.effect_secondary, context);
+            requested.themed_colours = true;
+        }
+    }
     if (!effect_.empty()) {
         requested.name = effect_;
         requested.source = EffectSelectionSource::application;
@@ -317,22 +359,9 @@ ProgressBar::RequestedEffect ProgressBar::requested_effect() const noexcept {
         requested.name = ProgressLaser::declaration.name;
         return requested;
     }
-    // The theme's effect for the part the effect draws over: the fill, or
-    // the activity band while marquee (publish_part_geometry). A bar in no
-    // window, or with no paintable bounds, has no theme effect yet; its
-    // next paint asks again.
     requested.source = EffectSelectionSource::none;
-    if (attached_window() == nullptr) return requested;
-    const bool marquee = visual_style_ == ProgressBarVisualStyle::marquee;
-    PartPaint part{};
-    part.role = marquee ? PartRole::activity : PartRole::fill;
-    part.bounds = local_bounds();
-    part.states = anatomy_states();
-    part.family = ControlVisualRole::progress;
-    part.key = PartKey{.part = marquee ? std::string_view{"activity"} : std::string_view{"fill"}};
-    const ThemeEngine::PartPlan plan = effective_theme().engine().plan(*this, part);
-    if (!plan.resolution.effect_declared) return requested;
-    requested.name = plan.resolution.effect;
+    if (!theme_effect) return requested;
+    requested.name = theme_name;
     requested.source = EffectSelectionSource::theme;
     return requested;
 }
@@ -393,6 +422,15 @@ void ProgressBar::sync_effects(FrameTime now) {
         effect_seed_.value_or(effect_default_seed(id, ProgressStripes::declaration.name));
     sync_instance(effect_instance_, effect, effect_seed, now);
     sync_instance(overlay_instance_, stripes, stripes_seed, now);
+    // The colours: the theme's roles, unless the application set its own
+    // appearance (the application's colours come first).
+    const bool own_appearance = !(animation_appearance_ == ProgressBarAnimationAppearance{});
+    themed_colours_ = requested.themed_colours && !own_appearance;
+    effect_colours_.primary = themed_colours_ ? requested.colours.primary : animation_appearance_.stripe_color;
+    effect_colours_.secondary =
+        themed_colours_ ? requested.colours.secondary : animation_appearance_.luminance_color;
+    effect_instance_.set_colours(effect_colours_);
+    overlay_instance_.set_colours(effect_colours_);
 }
 
 void ProgressBar::set_effect(std::string name) {
@@ -786,6 +824,16 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     view.fill = fill;
     view.vertical = orientation() == Orientation::vertical;
     view.appearance = animation_appearance_;
+    if (themed_colours_) {
+        // The theme's roles, at the appearance's own alphas.
+        const Color primary = effect_colours_.primary;
+        const Color secondary = effect_colours_.secondary;
+        view.appearance.stripe_color = role_tinted(view.appearance.stripe_color, primary);
+        view.appearance.laser_phase_color = role_tinted(view.appearance.laser_phase_color, primary);
+        view.appearance.luminance_color = role_tinted(view.appearance.luminance_color, secondary);
+        view.appearance.laser_edge_color = role_tinted(view.appearance.laser_edge_color, secondary);
+        view.appearance.laser_spark_color = role_tinted(view.appearance.laser_spark_color, secondary);
+    }
     view.stripe_width = stripe_width_;
     view.period_seconds = speed > 0.0 ? period / speed : period;
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();

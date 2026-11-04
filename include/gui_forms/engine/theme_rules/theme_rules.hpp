@@ -373,6 +373,28 @@ inline constexpr std::string_view blend_property = "blend";
 inline constexpr std::string_view effect_property = "effect";
 inline constexpr std::string_view effect_none_name = "none";
 
+// The colours a part's effect draws with (EP-4, theme-variants direction):
+// a primary and a secondary colour role, never a literal, so that an
+// effect follows the theme's palette in each colour scheme (the rule
+// copies the palette's media variants make) and the forced high-contrast
+// pass remaps it by its role. A declaration of either holds a colour
+// whose origin is a role (ColourSource::role); the last matching rule that
+// declares each wins. Like effect_property, neither needs a primitive. A
+// part whose rules declare none takes its host control's own colours.
+inline constexpr std::string_view effect_primary_property = "effect_primary";
+inline constexpr std::string_view effect_secondary_property = "effect_secondary";
+
+// One effect colour as the rules resolve it: the role's colour in the
+// part's palette and the role it came from.
+struct EffectColourDeclaration final {
+    Color colour{};
+    ColourOrigin origin{};
+
+    friend bool operator==(const EffectColourDeclaration& left, const EffectColourDeclaration& right) noexcept {
+        return left.colour == right.colour && left.origin == right.origin;
+    }
+};
+
 // The text roles (T3 P8c, owner decision D5 of 2026-10-28): the theme's
 // typography tokens (ThemeTypographyTokens) a part's text takes, `ui`
 // being the controls' own (`control`). A part's em is its role's size
@@ -1099,6 +1121,10 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // of lowercase ASCII letters, digits and '_', the first a letter, of at
     // most maximum_effect_name_length characters.
     effect_invalid,
+    // An effect colour declaration (effect_primary_property,
+    // effect_secondary_property) whose value is not a colour taken from a
+    // colour role.
+    effect_colour_invalid,
     // A published value's name is invalid, repeats an earlier one or is
     // past maximum_published_values. The diagnostic, of the sheet rather
     // than a rule, names it in `property`; its position stays, and reads as
@@ -1327,6 +1353,11 @@ public:
         // declared one; `none` is declared with an empty name.
         std::string_view effect{};
         bool effect_declared{};
+        // The part's effect colours (effect_primary_property,
+        // effect_secondary_property): the last matching rule's of each, or
+        // none.
+        std::optional<EffectColourDeclaration> effect_primary{};
+        std::optional<EffectColourDeclaration> effect_secondary{};
         // The winning declaration of each material field (EC1), by the
         // field's position, or null where no matching rule sets it; they
         // belong to the compiled rules. `materials_authored` is whether any
@@ -1428,6 +1459,9 @@ private:
         std::optional<FontDeclaration> font{};
         // The rule's effect name (effect_property); empty for `none`.
         std::optional<std::string> effect{};
+        // The rule's effect colours.
+        std::optional<EffectColourDeclaration> effect_primary{};
+        std::optional<EffectColourDeclaration> effect_secondary{};
         MediaCondition media{};
         // Checked material fields, at most one per field.
         std::vector<MaterialDeclaration> materials{};
@@ -1482,6 +1516,9 @@ private:
     // diagnostic.
     static void add_blend(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                           const RuleDeclaration& declaration, CompiledRule& compiled);
+    // A rule's effect colour declaration, checked likewise.
+    static void add_effect_colour(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                                  const RuleDeclaration& declaration, CompiledRule& compiled);
     // A rule's effect declaration, checked likewise.
     static void add_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                            const RuleDeclaration& declaration, CompiledRule& compiled);

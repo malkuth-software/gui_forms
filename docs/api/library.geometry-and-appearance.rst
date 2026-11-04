@@ -86,6 +86,10 @@ Types
      -  
    * - :cpp:class:`EffectCanvasMeter <gui_forms::EffectCanvasMeter>`
      - What one frame's canvas did: device pixels charged against the budget, and the calls refused for the budget or the save depth.
+   * - :cpp:class:`EffectColourDeclaration <gui_forms::EffectColourDeclaration>`
+     - One effect colour as the rules resolve it: the role's colour in the part's palette and the role it came from.
+   * - :cpp:class:`EffectColours <gui_forms::EffectColours>`
+     - The colours an effect draws with (EP-4): its part's primary and secondary colour roles as the host control resolves them from its theme and colour scheme (effect_primary_property, effect_secondary_property), or the host's own colours where the theme names none.
    * - :cpp:class:`EffectCost <gui_forms::EffectCost>`
      - An effect's per-frame budget: ``fixed`` operations (proved by the plugin's static bound) plus ``per_device_pixel`` operations for each device pixel of the part and its outsets (metered by the canvas, which refuses drawing past it; owner decision 1(a)).
    * - :cpp:class:`EffectDeclaration <gui_forms::EffectDeclaration>`
@@ -890,6 +894,12 @@ Types
 
    .. cpp:member:: bool effect_declared
 
+   .. cpp:member:: std::optional<EffectColourDeclaration> effect_primary
+
+      The part's effect colours (effect_primary_property, effect_secondary_property): the last matching rule's of each, or none.
+
+   .. cpp:member:: std::optional<EffectColourDeclaration> effect_secondary
+
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> materials
 
       The winning declaration of each material field (EC1), by the field's position, or null where no matching rule sets it; they belong to the compiled rules. ``materials_authored`` is whether any is set.
@@ -1339,6 +1349,30 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: EffectColourDeclaration final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One effect colour as the rules resolve it: the role's colour in the part's palette and the role it came from.
+
+   .. cpp:member:: Color colour
+
+   .. cpp:member:: ColourOrigin origin
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectColours final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   The colours an effect draws with (EP-4): its part's primary and secondary colour roles as the host control resolves them from its theme and colour scheme (effect_primary_property, effect_secondary_property), or the host's own colours where the theme names none. An effect varies their alpha for its own layers; it does not name colours of its own. Transparent black when the host supplies none.
+
+   .. cpp:member:: Color primary
+
+   .. cpp:member:: Color secondary
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: EffectCost final
 
    ``#include <gui_forms/engine/effect/effect.hpp>``
@@ -1447,6 +1481,8 @@ Types
 
    .. cpp:member:: std::uint32_t input_count
 
+   .. cpp:member:: EffectColours colours
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: EffectGradient final
@@ -1488,6 +1524,12 @@ Types
    .. rubric:: Properties
 
    .. cpp:function:: const EffectEntry* entry() const noexcept
+
+   .. cpp:function:: EffectColours colours() const noexcept
+
+   .. cpp:function:: void set_colours(EffectColours colours) noexcept
+
+      The colours the next frames are given (EffectFrame::colours); the host sets them before each paint. Kept across attach and detach.
 
    .. cpp:function:: std::uint64_t state_checksum() const noexcept
 
@@ -6264,6 +6306,8 @@ Enumerations
 
    .. cpp:enumerator:: effect_invalid
 
+   .. cpp:enumerator:: effect_colour_invalid
+
    .. cpp:enumerator:: published_value_invalid
 
    .. cpp:enumerator:: material_field_invalid
@@ -6990,6 +7034,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::string_view effect_none_name
 
    Value: ``"none"``.
+
+.. cpp:var:: constexpr std::string_view effect_primary_property
+
+   The colours a part's effect draws with (EP-4, theme-variants direction): a primary and a secondary colour role, never a literal, so that an effect follows the theme's palette in each colour scheme (the rule copies the palette's media variants make) and the forced high-contrast pass remaps it by its role. A declaration of either holds a colour whose origin is a role (ColourSource::role); the last matching rule that declares each wins. Like effect_property, neither needs a primitive. A part whose rules declare none takes its host control's own colours. Value: ``"effect_primary"``.
+
+.. cpp:var:: constexpr std::string_view effect_secondary_property
+
+   Value: ``"effect_secondary"``.
 
 .. cpp:var:: constexpr std::size_t text_role_count
 

@@ -127,6 +127,17 @@ public:
     // who asked (the application, the visual style or the theme) and the
     // load checks' verdict.
     [[nodiscard]] const EffectSelection& effect_selection() const noexcept { return effect_selection_; }
+    // The colours the bar's effects draw with (EffectFrame::colours): the
+    // primary and secondary colour roles the theme declares for the effect's
+    // part (effect_primary_property, effect_secondary_property), in the
+    // window's colour scheme and remapped by the forced high-contrast pass;
+    // the animation appearance's stripe and luminance colours where the
+    // theme declares none, or where the application set its own appearance.
+    // Under theme roles the appearance's colours keep their alpha and take
+    // the roles' red, green and blue: the stripes and the laser's phase
+    // bands the primary, the luminance band, the laser's edge and spark the
+    // secondary.
+    [[nodiscard]] EffectColours effect_colours() const noexcept { return effect_colours_; }
     // The selected effect's instance (empty for none): its counters and
     // state checksum, for diagnostics and tests.
     [[nodiscard]] const EffectInstance& effect_instance() const noexcept { return effect_instance_; }
@@ -194,9 +205,13 @@ private:
     struct RequestedEffect final {
         std::string_view name{};
         EffectSelectionSource source{EffectSelectionSource::none};
+        // The theme's colour roles for the effect's part, resolved, and
+        // whether it declares both.
+        EffectColours colours{};
+        bool themed_colours{};
     };
     // The effect the application, the visual style or the theme asks for,
-    // in that order, or none.
+    // in that order, or none; and the theme's colours for its part.
     [[nodiscard]] RequestedEffect requested_effect() const noexcept;
     // Attaches the effects the style and the effect name select, when they
     // changed, their time starting at `now`; detaches those no longer
@@ -240,6 +255,10 @@ private:
     // The main effect's last selection, kept for effect_selection(); a
     // change to a refusal is noted once (note_effect_refused).
     EffectSelection effect_selection_{};
+    // The colours the effects were last given (effect_colours), and whether
+    // they are the theme's roles.
+    EffectColours effect_colours_{};
+    bool themed_colours_{};
     // Paints of the bar, and the count its last ambient frame saw: a frame
     // finding them equal finds the bar no longer shown.
     std::uint64_t effect_paints_{};

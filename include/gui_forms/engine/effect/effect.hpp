@@ -301,6 +301,21 @@ struct EffectInputEvent final {
     }
 };
 
+// The colours an effect draws with (EP-4): its part's primary and
+// secondary colour roles as the host control resolves them from its theme
+// and colour scheme (effect_primary_property, effect_secondary_property),
+// or the host's own colours where the theme names none. An effect varies
+// their alpha for its own layers; it does not name colours of its own.
+// Transparent black when the host supplies none.
+struct EffectColours final {
+    Color primary{};
+    Color secondary{};
+
+    friend constexpr bool operator==(const EffectColours& left, const EffectColours& right) noexcept {
+        return left.primary == right.primary && left.secondary == right.secondary;
+    }
+};
+
 // What one frame of `run` is given. `ticks` fixed ticks are due, the first
 // of them numbered `first_tick` since the effect was set up; zero when the
 // part repaints for another reason, so state advances once per due tick
@@ -321,6 +336,7 @@ struct EffectFrame final {
     double scale{1.0};
     std::array<EffectInputEvent, maximum_effect_input_events> input{};
     std::uint32_t input_count{};
+    EffectColours colours{};
 };
 
 // What `setup` is given: once when the effect is instantiated on a part,

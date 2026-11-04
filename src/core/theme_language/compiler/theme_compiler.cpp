@@ -110,6 +110,8 @@ enum class PropertyClass : std::uint8_t {
     // `effect`: the effect program the part draws (effect programs, design
     // note section 7).
     effect,
+    // `effect-primary` and `effect-secondary`: the effect's colour roles.
+    effect_colour,
     // A material property (P6b): its fields are lowered by the material
     // lowering.
     material,
@@ -134,6 +136,7 @@ enum class PropertyClass : std::uint8_t {
     if (name == "isolation") return PropertyClass::isolation;
     if (name == font_property) return PropertyClass::font;
     if (name == effect_property) return PropertyClass::effect;
+    if (name == "effect-primary" || name == "effect-secondary") return PropertyClass::effect_colour;
     if (material_property(name)) return PropertyClass::material;
     if (transition_property(name)) return PropertyClass::transition;
     if (animation_property(name)) return PropertyClass::animation;
@@ -451,6 +454,9 @@ private:
     // `effect`: a registered effect's name in kebab case, `none`, or
     // `initial` (none).
     [[nodiscard]] bool lower_effect(const SyntaxNode& node);
+    // `effect-primary` and `effect-secondary`: one colour role, role(<name>)
+    // (a pair's foreground unless its side is named).
+    [[nodiscard]] bool lower_effect_colour(const SyntaxNode& node);
     // Reports material_lowering_'s problem; true where the declaration is
     // only dropped.
     [[nodiscard]] bool report_material_problem();
@@ -1998,6 +2004,7 @@ bool CompilePass::lower_declaration(const SyntaxNode& node, PropertyClass kind, 
     case PropertyClass::material: return lower_material(node);
     case PropertyClass::font: return lower_font(node);
     case PropertyClass::effect: return lower_effect(node);
+    case PropertyClass::effect_colour: return lower_effect_colour(node);
     case PropertyClass::transition: return lower_transition(node);
     case PropertyClass::animation: return lower_animation(node);
     case PropertyClass::later:
@@ -2381,6 +2388,41 @@ bool CompilePass::lower_effect(const SyntaxNode& node) {
     LoweredDeclaration lowered{};
     lowered.kind = LoweredKind::effect;
     lowered.declaration = RuleDeclaration::choice_value(effect_property, name);
+    add_lowered(std::move(lowered));
+    return true;
+}
+
+bool CompilePass::lower_effect_colour(const SyntaxNode& node) {
+    // folded_ holds the property's name, which classify() found.
+    const bool primary = folded_ == "effect-primary";
+    parameter_names_.clear();
+    bare_side_ = ColourRoleSide::foreground;
+    const bool read = read_value(node);
+    bare_side_.reset();
+    if (!read) return false;
+    const ValueComponent& first = value_.components[0];
+    const WideKeyword wide = wide_keyword();
+    if (wide == WideKeyword::outside) {
+        report(DiagnosticCode::value_form_not_admitted, first.token, clipped_theme_detail(first.text));
+        return false;
+    }
+    if (drop_unknown_function()) return true;
+    if (value_.components.size() != 1U) {
+        report(DiagnosticCode::value_form_not_admitted, value_.components[1].token,
+               "an effect colour takes one colour role alone");
+        return false;
+    }
+    // Only a role: an effect's colours follow the palette (EP-4).
+    const bool role = first.kind == ValueComponentKind::colour && first.origin.source == ColourSource::role;
+    if (wide != WideKeyword::none || !role) {
+        report(DiagnosticCode::value_wrong_kind, first.token, "a colour role, role(<name>)");
+        return false;
+    }
+    LoweredDeclaration lowered{};
+    lowered.kind = primary ? LoweredKind::effect_primary : LoweredKind::effect_secondary;
+    lowered.declaration =
+        RuleDeclaration::colour_value(primary ? effect_primary_property : effect_secondary_property, first.colour);
+    lowered.declaration.origin = first.origin;
     add_lowered(std::move(lowered));
     return true;
 }
@@ -3058,7 +3100,9 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     const std::size_t selections = lowered.declarations.size();
     for (LoweredDeclaration& declaration : declarations_) {
         const bool declared = declaration.kind == LoweredKind::parameter || declaration.kind == LoweredKind::blend ||
-                              declaration.kind == LoweredKind::font || declaration.kind == LoweredKind::effect;
+                              declaration.kind == LoweredKind::font || declaration.kind == LoweredKind::effect ||
+                              declaration.kind == LoweredKind::effect_primary ||
+                              declaration.kind == LoweredKind::effect_secondary;
         if (declared) {
             lowered.declarations.push_back(std::move(declaration.declaration));
             continue;

@@ -383,6 +383,7 @@ void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool 
     frame.scale = scale;
     frame.input = input_;
     frame.input_count = input_count_;
+    frame.colours = colours_;
     input_count_ = 0U;
     const Insets outsets = declaration.outsets;
     const Rect layer{part.x - outsets.left, part.y - outsets.top, part.width + outsets.left + outsets.right,
