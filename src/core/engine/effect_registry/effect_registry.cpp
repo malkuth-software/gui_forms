@@ -283,6 +283,7 @@ void EffectInstance::attach(const EffectEntry& entry, std::uint64_t seed, FrameT
     next_tick_ = 0U;
     pending_ = 0U;
     input_count_ = 0U;
+    pointer_ = EffectPointer{};
     set_up_ = false;
     setup_part_ = Size{};
     setup_scale_ = 0.0;
@@ -357,6 +358,62 @@ bool EffectInstance::queue_input(const EffectInputEvent& event, EffectInputKind 
     return true;
 }
 
+void EffectInstance::set_input_grant(EffectInputKind grant) noexcept {
+    input_grant_ = grant;
+    // A withdrawn grant forgets where the pointer was.
+    if (grant == EffectInputKind::none) pointer_ = EffectPointer{};
+}
+
+bool EffectInstance::note_pointer(const PointerEvent& event, Point part_origin) noexcept {
+    if (entry_ == nullptr || input_grant_ == EffectInputKind::none ||
+        (*(*entry_).declaration).input == EffectInputKind::none) {
+        return false;
+    }
+    const EffectPointer before = pointer_;
+    const Point local{event.position.x - part_origin.x, event.position.y - part_origin.y};
+    bool queued = false;
+    EffectInputEvent input{};
+    input.position = local;
+    switch (event.action) {
+    case PointerAction::move:
+        pointer_.inside = true;
+        pointer_.position = local;
+        input.kind = EffectInputEventKind::pointer_moved;
+        queued = queue_input(input, input_grant_);
+        break;
+    case PointerAction::down:
+        pointer_.inside = true;
+        pointer_.pressed = true;
+        pointer_.position = local;
+        input.kind = EffectInputEventKind::pointer_pressed;
+        queued = queue_input(input, input_grant_);
+        break;
+    case PointerAction::up:
+        pointer_.pressed = false;
+        pointer_.position = local;
+        input.kind = EffectInputEventKind::pointer_released;
+        queued = queue_input(input, input_grant_);
+        break;
+    case PointerAction::enter:
+        pointer_.inside = true;
+        pointer_.position = local;
+        break;
+    case PointerAction::leave:
+        // The last position seen inside stays; a held button is let go.
+        pointer_.inside = false;
+        pointer_.pressed = false;
+        break;
+    case PointerAction::wheel:
+        break;
+    default:
+        // An action a later host adds (and the wheel above) leaves the
+        // standing pointer as it was: the effect is not given it.
+        break;
+    }
+    const bool changed = queued || !(pointer_ == before);
+    return changed;
+}
+
 void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool still, const void* view) {
     const EffectDeclaration& declaration = *(*entry_).declaration;
     if (!part.finite() || part.empty() || !(scale > 0.0) || !std::isfinite(scale)) return;
@@ -384,6 +441,11 @@ void EffectInstance::paint_view(Painter& painter, Rect part, double scale, bool 
     frame.input = input_;
     frame.input_count = input_count_;
     frame.colours = colours_;
+    // The standing pointer, only where the effect declares input and the
+    // host grants it (section 8a(1)); otherwise zero.
+    const bool pointer_granted =
+        input_grant_ != EffectInputKind::none && declaration.input != EffectInputKind::none;
+    if (pointer_granted) frame.pointer = pointer_;
     input_count_ = 0U;
     const Insets outsets = declaration.outsets;
     const Rect layer{part.x - outsets.left, part.y - outsets.top, part.width + outsets.left + outsets.right,

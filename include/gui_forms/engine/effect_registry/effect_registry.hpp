@@ -20,6 +20,7 @@
 
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
+#include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 
 #include <array>
@@ -280,6 +281,24 @@ public:
     // Returns whether it was queued. Never fails.
     bool queue_input(const EffectInputEvent& event, EffectInputKind granted) noexcept;
 
+    // The input the hosting control grants the effect (design note section
+    // 6: none by default, set by the application through the control's
+    // effect_input property). Kept across attach and detach.
+    void set_input_grant(EffectInputKind grant) noexcept;
+    [[nodiscard]] EffectInputKind input_grant() const noexcept { return input_grant_; }
+    // Takes one pointer event the hosting control received, at `position`
+    // in the control's coordinates, for a part whose origin there is
+    // `part_origin`: converts it to part-local units, queues a move, press
+    // or release under the grant (queue_input), and updates the standing
+    // pointer state (EffectFrame::pointer) for every action, enter and
+    // leave setting `inside`. Does nothing without an effect, a grant and
+    // an effect declaring pointer input. Returns whether the effect's
+    // frame changed (an event queued or the state moved), when the host
+    // repaints the effect's extent. Never fails.
+    bool note_pointer(const PointerEvent& event, Point part_origin) noexcept;
+    // The standing pointer state the next frame is given.
+    [[nodiscard]] EffectPointer pointer() const noexcept { return pointer_; }
+
     // Runs the effect's frame over `painter`, whose origin is the parent's,
     // for the part at `part` (logical, in the painter's coordinates) at
     // display `scale`. Runs setup first when due. `still` draws the still
@@ -323,6 +342,8 @@ private:
     EffectInstanceCounters counters_{};
     EffectCanvasMeter last_meter_{};
     EffectColours colours_{};
+    EffectInputKind input_grant_{EffectInputKind::none};
+    EffectPointer pointer_{};
 };
 
 } // namespace gui_forms

@@ -875,6 +875,99 @@ void effects_take_colour_roles() {
     require(refused && compiled.rule_count() == 0U, "an effect colour that is a literal, not a role, is refused");
 }
 
+// A test effect taking pointer input that draws one line from where its
+// frame says the pointer stands, while it is inside, and a second while a
+// button is held.
+class PointerProbe final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_pointer_probe",
+        .cost = {.fixed = 100U, .per_device_pixel = 1U},
+        .state_budget = 8U,
+        .input = EffectInputKind::pointer,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame& frame, EffectCanvas& canvas) {
+        if (frame.pointer.inside) {
+            const Point from = frame.pointer.position;
+            canvas.stroke_line(from, Point{from.x + 1.0, from.y}, Color::rgba(1, 2, 3, 255), 1.0);
+        }
+        if (frame.pointer.pressed) {
+            const Point from = frame.pointer.position;
+            canvas.stroke_line(from, Point{from.x, from.y + 1.0}, Color::rgba(1, 2, 3, 255), 1.0);
+        }
+        frames_ = frames_ + 1U;
+    }
+    std::uint64_t frames_{};
+};
+
+const EffectEntry& pointer_probe_entry() {
+    static const EffectEntry entry = make_effect_entry<PointerProbe>();
+    return entry;
+}
+
+PointerEvent pointer_event(PointerAction action, Point position) {
+    PointerEvent event{};
+    event.action = action;
+    event.position = position;
+    if (action == PointerAction::down || action == PointerAction::up) event.button = PointerButton::primary;
+    return event;
+}
+
+// The pointer record (design note section 8a(1)): the engine converts the
+// host's pointer events to part-local units, queues them under the grant
+// and keeps the standing state (inside, pressed, last position inside),
+// which the frame carries only under a grant; with no grant every field is
+// zero and the state checksum is the same as with no pointer at all.
+void pointer_record() {
+    const EffectView<ProgressBar> view = bar_view(0.5);
+    const Point origin{10.0, 20.0};
+    EffectInstance granted;
+    granted.attach(pointer_probe_entry(), 1U, start);
+    granted.set_input_grant(EffectInputKind::pointer);
+    require(granted.note_pointer(pointer_event(PointerAction::enter, Point{15.0, 25.0}), origin) &&
+                granted.pointer().inside && granted.pointer().position == Point{5.0, 5.0},
+            "enter sets inside at the part-local position");
+    require(granted.note_pointer(pointer_event(PointerAction::move, Point{40.0, 30.0}), origin) &&
+                granted.pointer().position == Point{30.0, 10.0},
+            "a move updates the position and asks for a repaint");
+    RecordingPainter inside;
+    granted.paint(inside, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(inside.lines == 1 && inside.line_starts.size() == 1U && inside.line_starts[0] == Point{30.0, 10.0},
+            "the frame carries the pointer inside the part at its last position");
+    require(granted.note_pointer(pointer_event(PointerAction::down, Point{40.0, 30.0}), origin) &&
+                granted.pointer().pressed,
+            "a press sets pressed");
+    RecordingPainter pressed;
+    granted.paint(pressed, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(pressed.lines == 2, "the frame carries the held button");
+    require(granted.note_pointer(pointer_event(PointerAction::leave, Point{300.0, 300.0}), origin) &&
+                !granted.pointer().inside && !granted.pointer().pressed &&
+                granted.pointer().position == Point{30.0, 10.0},
+            "leave clears inside and pressed and keeps the last position seen inside");
+    RecordingPainter outside;
+    granted.paint(outside, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(outside.lines == 0, "after leave the effect sees the pointer outside");
+    require(!granted.note_pointer(pointer_event(PointerAction::leave, Point{300.0, 300.0}), origin),
+            "a second leave changes nothing and asks for no repaint");
+
+    EffectInstance ungranted;
+    ungranted.attach(pointer_probe_entry(), 1U, start);
+    EffectInstance untouched;
+    untouched.attach(pointer_probe_entry(), 1U, start);
+    require(!ungranted.note_pointer(pointer_event(PointerAction::enter, Point{15.0, 25.0}), origin) &&
+                ungranted.pointer() == EffectPointer{},
+            "without a grant the pointer is not taken");
+    RecordingPainter first;
+    ungranted.paint(first, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    RecordingPainter second;
+    untouched.paint(second, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(first.lines == 0 && ungranted.state_checksum() == untouched.state_checksum(),
+            "with no grant the frame's pointer is zero: the checksum is the same as with no pointer");
+    granted.set_input_grant(EffectInputKind::none);
+    require(granted.pointer() == EffectPointer{}, "withdrawing the grant forgets the pointer");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -890,6 +983,7 @@ int main() {
     effect_properties_and_input();
     themes_select_effects();
     effects_take_colour_roles();
+    pointer_record();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
                  "properties and input, themes selecting effects\n";

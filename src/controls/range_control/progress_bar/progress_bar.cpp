@@ -145,25 +145,14 @@ void ProgressBar::set_effect_input(EffectInputKind input) {
     require_mutable();
     if (input == effect_input_) return;
     effect_input_ = input;
+    effect_instance_.set_input_grant(input);
     invalidate(Dirty::paint);
 }
 
 void ProgressBar::on_pointer(PointerEvent& event) {
-    if (effect_input_ == EffectInputKind::none || effect_instance_.entry() == nullptr) return;
-    EffectInputEvent input{};
-    if (event.action == PointerAction::move) {
-        input.kind = EffectInputEventKind::pointer_moved;
-    } else if (event.action == PointerAction::down) {
-        input.kind = EffectInputEventKind::pointer_pressed;
-    } else if (event.action == PointerAction::up) {
-        input.kind = EffectInputEventKind::pointer_released;
-    } else {
-        return;
-    }
-    // The part is the bar's bounds: part-local is the bar's local space.
+    // The part is the bar's bounds: its origin is the bar's absolute origin.
     const Rect absolute = absolute_bounds();
-    input.position = Point{event.position.x - absolute.x, event.position.y - absolute.y};
-    if (effect_instance_.queue_input(input, effect_input_)) invalidate(animated_extent());
+    if (effect_instance_.note_pointer(event, Point{absolute.x, absolute.y})) invalidate(animated_extent());
 }
 
 void ProgressBar::set_visual_style(ProgressBarVisualStyle style_value) {

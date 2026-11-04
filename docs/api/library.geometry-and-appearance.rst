@@ -108,6 +108,8 @@ Types
      - What an instance has counted over its life.
    * - :cpp:class:`EffectLoadDiagnostics <gui_forms::EffectLoadDiagnostics>`
      - What effect registration found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::effects_unverified): effects registered, and those registered unverified.
+   * - :cpp:class:`EffectPointer <gui_forms::EffectPointer>`
+     - The pointer's standing state over the part at the frame's start (design note section 8a(1)): whether it is inside the part, whether a button is held, and where it was last seen while inside, in part-local logical units.
    * - :cpp:class:`EffectRandom <gui_forms::EffectRandom>`
      - The engine's deterministic generator (owner amendment, 2026-11-02): a counter-based hash of (seed, stream, counter), SplitMix64's finalizer over their mix, with no host randomness and no hidden state beyond the counter in this value.
    * - :cpp:class:`EffectRegistry <gui_forms::EffectRegistry>`
@@ -1483,6 +1485,8 @@ Types
 
    .. cpp:member:: EffectColours colours
 
+   .. cpp:member:: EffectPointer pointer
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: EffectGradient final
@@ -1525,6 +1529,16 @@ Types
 
    .. cpp:function:: const EffectEntry* entry() const noexcept
 
+   .. cpp:function:: EffectInputKind input_grant() const noexcept
+
+   .. cpp:function:: void set_input_grant(EffectInputKind grant) noexcept
+
+      The input the hosting control grants the effect (design note section 6: none by default, set by the application through the control's effect_input property). Kept across attach and detach.
+
+   .. cpp:function:: EffectPointer pointer() const noexcept
+
+      The standing pointer state the next frame is given.
+
    .. cpp:function:: EffectColours colours() const noexcept
 
    .. cpp:function:: void set_colours(EffectColours colours) noexcept
@@ -1560,7 +1574,11 @@ Types
 
    .. cpp:function:: bool queue_input(const EffectInputEvent& event, EffectInputKind granted) noexcept
 
-      Queues one input event for the next frame, if ``granted`` and the effect's declaration both admit its kind (pointer events for ``pointer``, keys too for ``pointer_and_keys``); otherwise it is ignored. Past maximum_effect_input_events queued, it is counted and dropped. Returns whether it was queued. Never fails.
+      Queues one input event for the next frame, if ``granted`` and the effect's declaration both admit its kind (pointer events for :cpp:func:`pointer <gui_forms::EffectInstance::pointer>`, keys too for ``pointer_and_keys``); otherwise it is ignored. Past maximum_effect_input_events queued, it is counted and dropped. Returns whether it was queued. Never fails.
+
+   .. cpp:function:: bool note_pointer(const PointerEvent& event, Point part_origin) noexcept
+
+      Takes one pointer event the hosting control received, at ``position`` in the control's coordinates, for a part whose origin there is ``part_origin``: converts it to part-local units, queues a move, press or release under the grant (queue_input), and updates the standing pointer state (EffectFrame::pointer) for every action, enter and leave setting ``inside``. Does nothing without an effect, a grant and an effect declaring pointer input. Returns whether the effect's frame changed (an event queued or the state moved), when the host repaints the effect's extent. Never fails.
 
    .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view)
 
@@ -1603,6 +1621,20 @@ Types
    .. cpp:member:: std::uint64_t refused
 
       Selections the load checks refused (note_effect_refused).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectPointer final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   The pointer's standing state over the part at the frame's start (design note section 8a(1)): whether it is inside the part, whether a button is held, and where it was last seen while inside, in part-local logical units. Filled only for an effect that declares pointer input on a part whose host grants it; otherwise every field is zero, as in headless runs and still poses, so motion checksums do not depend on it.
+
+   .. cpp:member:: bool inside
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: Point position
 
 .. cpp:namespace:: gui_forms
 

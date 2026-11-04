@@ -316,6 +316,22 @@ struct EffectColours final {
     }
 };
 
+// The pointer's standing state over the part at the frame's start (design
+// note section 8a(1)): whether it is inside the part, whether a button is
+// held, and where it was last seen while inside, in part-local logical
+// units. Filled only for an effect that declares pointer input on a part
+// whose host grants it; otherwise every field is zero, as in headless runs
+// and still poses, so motion checksums do not depend on it.
+struct EffectPointer final {
+    bool inside{};
+    bool pressed{};
+    Point position{};
+
+    friend constexpr bool operator==(const EffectPointer& left, const EffectPointer& right) noexcept {
+        return left.inside == right.inside && left.pressed == right.pressed && left.position == right.position;
+    }
+};
+
 // What one frame of `run` is given. `ticks` fixed ticks are due, the first
 // of them numbered `first_tick` since the effect was set up; zero when the
 // part repaints for another reason, so state advances once per due tick
@@ -337,6 +353,7 @@ struct EffectFrame final {
     std::array<EffectInputEvent, maximum_effect_input_events> input{};
     std::uint32_t input_count{};
     EffectColours colours{};
+    EffectPointer pointer{};
 };
 
 // What `setup` is given: once when the effect is instantiated on a part,
