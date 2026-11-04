@@ -22,6 +22,7 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <string_view>
 
@@ -119,6 +120,36 @@ bool parent_semantic_location(SemanticNode&&, const SemanticLocation&,
 // code units. Throws std::bad_alloc when memory runs out.
 [[nodiscard]] bool utf8_from_wide(std::wstring_view value, std::string& text);
 
+// One window's client tree, read-only and shared. The source keeps the
+// current tree and hands every reader a reference to it; a tree the source
+// replaces lives until its last reader releases it, so the locations a call
+// takes into its tree stay valid through that call.
+using SemanticTreeRef = std::shared_ptr<const SemanticNode>;
+
+// What the source's current tree was built from. The tree is reused while
+// every field reads the same: the window's semantic generation (structure,
+// state and text), its content revision (every change that repaints,
+// including moves the semantic generation does not count), its display
+// generation (a node may describe what was painted), the focused, pressed
+// and captured controls, activation, the client area and the title.
+struct SemanticTreeKey final {
+    std::uint64_t semantic_generation{};
+    std::uint64_t content_revision{};
+    std::uint64_t display_generation{};
+    std::uint64_t focused{};
+    std::uint64_t pressed{};
+    std::uint64_t captured{};
+    bool active{};
+    // The client area in device pixels, and device pixels per logical unit.
+    LONG client_width{};
+    LONG client_height{};
+    double scale{};
+    std::string title;
+};
+
+[[nodiscard]] bool operator==(const SemanticTreeKey& left, const SemanticTreeKey& right) noexcept;
+[[nodiscard]] bool operator!=(const SemanticTreeKey& left, const SemanticTreeKey& right) noexcept;
+
 // The publishers' link to one window. Shared by WindowsAccessibility and
 // every native object it hands out; `model` and `hwnd` are cleared when the
 // window goes, after which every object resolves to nothing and reports its
@@ -140,15 +171,26 @@ struct SemanticSource final {
     // client listens.
     bool automation_observed{};
     // The client tree last announced to UI Automation, which the next
-    // change is compared against; valid while `announced` is true.
-    SemanticNode published{};
-    bool announced{};
+    // change is compared against; null until one is announced.
+    SemanticTreeRef published{};
+    // The tree the last build made and the key it was built under; null
+    // until a snapshot succeeds, and released when the window goes.
+    SemanticTreeRef current{};
+    SemanticTreeKey current_key{};
+    // How many trees snapshot built, and how many times it handed out the
+    // current one instead (diagnostics; never reset).
+    std::uint64_t trees_built{};
+    std::uint64_t trees_reused{};
 
-    // Fills `client` with the window's client node: the snapshot's roots
-    // under one node named by the window title and covering the client
-    // area. Returns false, with `client` unspecified, when the window has
-    // gone or the snapshot failed.
-    [[nodiscard]] bool snapshot(SemanticNode& client) noexcept;
+    // Sets `client` to the window's client node: the snapshot's roots under
+    // one node named by the window title and covering the client area. The
+    // current tree is reused while its key reads the same; otherwise a new
+    // one is built and becomes current. Returns false, with `client` null,
+    // when the window has gone or the build failed; the current tree is
+    // then kept.
+    [[nodiscard]] bool snapshot(SemanticTreeRef& client) noexcept;
+    // Releases the current and announced trees (the window is going).
+    void release_trees() noexcept;
     // Performs `action` on the located node through the window, named by
     // its scope's runtime ID (Window::perform_semantic_action(RuntimeId,
     // ...)), so a virtual child reaches its own owner and a disposed or

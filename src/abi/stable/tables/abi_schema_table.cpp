@@ -9,6 +9,8 @@
 #include "gui_forms/anatomy.hpp"
 
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
+#include "gui_forms/engine/effect/effect.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -36,6 +38,8 @@ constexpr SlotIdentity primitive_at_slot{GF_TABLE_SCHEMA, 13U};
 constexpr SlotIdentity primitive_name_at_slot{GF_TABLE_SCHEMA, 14U};
 constexpr SlotIdentity parameter_at_slot{GF_TABLE_SCHEMA, 15U};
 constexpr SlotIdentity parameter_choice_at_slot{GF_TABLE_SCHEMA, 16U};
+constexpr SlotIdentity effect_count_slot{GF_TABLE_SCHEMA, 17U};
+constexpr SlotIdentity effect_at_slot{GF_TABLE_SCHEMA, 18U};
 
 // One schema call on the UI thread. A library that had no UI thread binds
 // the calling thread for the call and is unbound again when the call ends,
@@ -758,6 +762,98 @@ gf_status GF_CALL schema_parameter_choice_at(std::uint64_t primitive, std::uint6
     }
 }
 
+gf_status GF_CALL schema_effect_count(std::uint64_t* count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(effect_count_slot.table_id, effect_count_slot.slot_index);
+        if (count == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, effect_count_slot, "effect_count needs an output");
+        }
+        SchemaCall call;
+        const Schema* built = nullptr;
+        const gf_status entered = call.enter(effect_count_slot, built);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        *count = built_in_effect_registry().count();
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(effect_count_slot);
+    }
+}
+
+gf_schema_effect_time_model effect_time_model_of(EffectTimeModel model) noexcept {
+    switch (model) {
+    case EffectTimeModel::static_pose:
+        return GF_SCHEMA_EFFECT_TIME_MODEL_STATIC_POSE;
+    case EffectTimeModel::transition:
+        return GF_SCHEMA_EFFECT_TIME_MODEL_TRANSITION;
+    case EffectTimeModel::ambient:
+        return GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT;
+    }
+    return GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT;
+}
+
+gf_schema_effect_input effect_input_of(EffectInputKind input) noexcept {
+    switch (input) {
+    case EffectInputKind::none:
+        return GF_SCHEMA_EFFECT_INPUT_NONE;
+    case EffectInputKind::pointer:
+        return GF_SCHEMA_EFFECT_INPUT_POINTER;
+    case EffectInputKind::pointer_and_keys:
+        return GF_SCHEMA_EFFECT_INPUT_POINTER_AND_KEYS;
+    }
+    return GF_SCHEMA_EFFECT_INPUT_NONE;
+}
+
+// The registry's entries and their declarations live as long as the
+// process, so the views written here stay valid as the schema's do.
+gf_status GF_CALL schema_effect_at(std::uint64_t effect, gf_schema_effect* record) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(effect_at_slot.table_id, effect_at_slot.slot_index);
+        const gf_status valid = check_record(record, effect_at_slot);
+        if (valid != GF_STATUS_OK) {
+            return valid;
+        }
+        SchemaCall call;
+        const Schema* built = nullptr;
+        const gf_status entered = call.enter(effect_at_slot, built);
+        if (entered != GF_STATUS_OK) {
+            return entered;
+        }
+        const EffectRegistry& registry = built_in_effect_registry();
+        const gf_status checked = check_index(effect, registry.count(), effect_at_slot);
+        if (checked != GF_STATUS_OK) {
+            return checked;
+        }
+        const EffectEntry& entry = registry.at(static_cast<std::size_t>(effect));
+        const EffectDeclaration& declaration = *entry.declaration;
+        gf_schema_effect_flags flags = 0U;
+        if (entry.verified) flags = flags | GF_SCHEMA_EFFECT_FLAGS_VERIFIED;
+        if (declaration.setup_on_geometry) flags = flags | GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY;
+        gf_schema_effect complete{};
+        complete.struct_size = sizeof(gf_schema_effect);
+        complete.time_model = effect_time_model_of(declaration.time_model);
+        complete.name = view_of(declaration.name);
+        complete.parent = view_of(entry.parent);
+        complete.engine_version = declaration.engine_version;
+        complete.input = effect_input_of(declaration.input);
+        complete.cost_fixed = declaration.cost.fixed;
+        complete.cost_per_device_pixel = declaration.cost.per_device_pixel;
+        complete.setup_cost = declaration.setup_cost;
+        complete.flags = flags;
+        complete.state_budget = declaration.state_budget;
+        complete.frames_per_second = declaration.frames_per_second;
+        complete.outsets.left = declaration.outsets.left;
+        complete.outsets.top = declaration.outsets.top;
+        complete.outsets.right = declaration.outsets.right;
+        complete.outsets.bottom = declaration.outsets.bottom;
+        write_record(complete, record);
+        return GF_STATUS_OK;
+    } catch (...) {
+        return fail_with_current_exception(effect_at_slot);
+    }
+}
+
 constexpr gf_schema_table table{
     .struct_size = sizeof(gf_schema_table),
     .abi_minor = GF_ABI_MINOR,
@@ -778,6 +874,8 @@ constexpr gf_schema_table table{
     .primitive_name_at = &schema_primitive_name_at,
     .parameter_at = &schema_parameter_at,
     .parameter_choice_at = &schema_parameter_choice_at,
+    .effect_count = &schema_effect_count,
+    .effect_at = &schema_effect_at,
 };
 
 } // namespace

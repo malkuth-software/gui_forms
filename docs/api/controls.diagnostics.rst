@@ -301,6 +301,10 @@ Related types
 
    .. cpp:function:: void record_engine_ambient_refusal() noexcept
 
+   .. cpp:function:: void record_effect_ambient_frame() noexcept
+
+      An ambient frame advanced a control's effects.
+
    .. cpp:function:: void record_engine_primitive_refusal() noexcept
 
       A primitive refused to draw a part (EnginePrimitive::accepts), which the built-in recipe drew instead.
@@ -585,6 +589,12 @@ Related types
       The theme engine's ambient effects (E7): frames that repainted an ambient part, and effects refused for covering more than 10 % of the window on an everyday surface (counted when the refusal begins).
 
    .. cpp:member:: std::uint64_t engine_ambient_refusals
+
+   .. cpp:member:: std::uint64_t effect_ambient_frames
+
+      Effect programs (design note section 7): ambient frames that advanced a control's effects, and effects registered unverified in this process (effect_load_diagnostics, read when the snapshot is taken).
+
+   .. cpp:member:: std::uint64_t effects_unverified
 
    .. cpp:member:: std::uint64_t engine_primitive_refusals
 

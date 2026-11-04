@@ -227,23 +227,89 @@ bool utf8_from_wide(std::wstring_view value, std::string& text) {
     return true;
 }
 
-bool SemanticSource::snapshot(SemanticNode& client) noexcept {
+bool operator==(const SemanticTreeKey& left, const SemanticTreeKey& right) noexcept {
+    const bool equal = left.semantic_generation == right.semantic_generation &&
+                       left.content_revision == right.content_revision &&
+                       left.display_generation == right.display_generation &&
+                       left.focused == right.focused && left.pressed == right.pressed &&
+                       left.captured == right.captured && left.active == right.active &&
+                       left.client_width == right.client_width &&
+                       left.client_height == right.client_height &&
+                       left.scale == right.scale && left.title == right.title;
+    return equal;
+}
+
+bool operator!=(const SemanticTreeKey& left, const SemanticTreeKey& right) noexcept {
+    const bool different = !(left == right);
+    return different;
+}
+
+namespace {
+
+std::uint64_t control_id(const Control::Ptr& control) noexcept {
+    const std::uint64_t id = control ? (*control).runtime_id().value : 0U;
+    return id;
+}
+
+// The key `window` and `hwnd` give now. Throws std::bad_alloc when memory
+// runs out.
+SemanticTreeKey read_tree_key(const Window& window, HWND hwnd, double scale) {
+    SemanticTreeKey key;
+    key.semantic_generation = window.semantic_generation();
+    key.content_revision = window.paint_lease_snapshot().content_revision;
+    key.display_generation = window.metrics_snapshot().display_generation;
+    key.focused = control_id(window.focused_control());
+    key.pressed = control_id(window.pressed_control());
+    key.captured = control_id(window.captured_control());
+    key.active = window.active();
+    RECT bounds{};
+    GetClientRect(hwnd, &bounds);
+    key.client_width = bounds.right;
+    key.client_height = bounds.bottom;
+    key.scale = scale;
+    key.title = window_title(hwnd);
+    return key;
+}
+
+} // namespace
+
+bool SemanticSource::snapshot(SemanticTreeRef& client) noexcept {
+    client.reset();
     if (model == nullptr || hwnd == nullptr) return false;
     try {
+        const SemanticTreeKey before = read_tree_key(*model, hwnd, scale);
+        if (current && before == current_key) {
+            ++trees_reused;
+            client = current;
+            return true;
+        }
         SemanticSnapshot tree = (*model).semantic_snapshot();
-        client.runtime_id = 0U;
-        client.stable_id.clear();
-        client.role = SemanticRole::group;
-        client.children = std::move(tree.roots);
-        client.states = SemanticState::enabled | SemanticState::visible;
-        client.name = window_title(hwnd);
-        RECT bounds{};
-        GetClientRect(hwnd, &bounds);
-        client.bounds = Rect{0.0, 0.0, bounds.right / scale, bounds.bottom / scale};
+        // The key is read again after the build, which may lay the window
+        // out first and so move its revisions.
+        SemanticTreeKey after = read_tree_key(*model, hwnd, scale);
+        std::shared_ptr<SemanticNode> built = std::make_shared<SemanticNode>();
+        SemanticNode& node = *built;
+        node.runtime_id = 0U;
+        node.stable_id.clear();
+        node.role = SemanticRole::group;
+        node.children = std::move(tree.roots);
+        node.states = SemanticState::enabled | SemanticState::visible;
+        node.name = after.title;
+        node.bounds = Rect{0.0, 0.0, after.client_width / scale, after.client_height / scale};
+        current = std::move(built);
+        current_key = std::move(after);
+        ++trees_built;
+        client = current;
         return true;
     } catch (...) {
         return false;
     }
+}
+
+void SemanticSource::release_trees() noexcept {
+    current.reset();
+    current_key = SemanticTreeKey{};
+    published.reset();
 }
 
 bool SemanticSource::perform(const SemanticLocation& location, SemanticAction action,

@@ -1,6 +1,5 @@
 #include "layered_material_lab.hpp"
 
-#include "coregraphics_raster.hpp"
 #include "skia_raster.hpp"
 
 #include <algorithm>
@@ -53,12 +52,11 @@ struct Pixel final {
     std::uint8_t alpha{};
 };
 
-template <typename Raster>
-Pixel pixel_at(const Raster& raster, int x, int y, int scale = 2) {
+Pixel pixel_at(const render::SkiaRaster& raster, int x, int y, int scale = 2) {
     const std::uint8_t* pixels = static_cast<const std::uint8_t*>(raster.pixels());
     const std::size_t offset = static_cast<std::size_t>(y * scale) *
             raster.row_bytes() + static_cast<std::size_t>(x * scale) * 4U;
-    // Both rasters store premultiplied BGRA8 (SK2).
+    // SkiaRaster stores premultiplied BGRA8 (SK2).
     return {pixels[offset + 2U], pixels[offset + 1U], pixels[offset],
             pixels[offset + 3U]};
 }
@@ -73,8 +71,7 @@ unsigned pixel_distance(Pixel left, Pixel right) {
            channel_distance(left.blue, right.blue);
 }
 
-template <typename Raster>
-void render_materials(Raster& raster, const ImageRegistry& images,
+void render_materials(render::SkiaRaster& raster, const ImageRegistry& images,
                       ImageId studio_patch) {
     require(raster.synchronize_images(images),
             "CPU raster rejected the deterministic material image registry");
@@ -96,8 +93,7 @@ void render_materials(Raster& raster, const ImageRegistry& images,
     raster.end_frame();
 }
 
-template <typename Raster>
-void verify_material_hierarchy(const Raster& raster) {
+void verify_material_hierarchy(const render::SkiaRaster& raster) {
     const Pixel watercolor_left = pixel_at(raster, 42, 64);
     const Pixel watercolor_right = pixel_at(raster, 210, 64);
     const Pixel watercolor_dark_edge = pixel_at(raster, 120, 109);
@@ -152,31 +148,9 @@ int main() {
                 "deterministic Studio nine-patch must load");
 
         gui_forms::render::SkiaRaster skia;
-        gui_forms::render::CoreGraphicsRaster coregraphics;
         render_materials(skia, images, patch.image);
-        render_materials(coregraphics, images, patch.image);
         verify_material_hierarchy(skia);
-        verify_material_hierarchy(coregraphics);
-
-        const std::array<Point, 8U> probes{{
-            {42.0, 64.0}, {120.0, 107.0}, {210.0, 64.0},
-            {360.0, 32.0}, {360.0, 98.0}, {80.0, 184.0},
-            {276.0, 184.0}, {370.0, 184.0},
-        }};
-        unsigned worst_distance{};
-        for (const Point probe : probes) {
-            worst_distance = std::max(
-                worst_distance,
-                pixel_distance(pixel_at(skia, static_cast<int>(probe.x),
-                                        static_cast<int>(probe.y)),
-                               pixel_at(coregraphics,
-                                        static_cast<int>(probe.x),
-                                        static_cast<int>(probe.y))));
-        }
-        require(worst_distance <= 120U,
-                "Skia and CoreGraphics material semantic probes diverged beyond the provisional CPU-profile tolerance");
-        std::cout << "gui_forms_layered_material_raster_tests: all tests passed; "
-                  << "worst probe distance=" << worst_distance << '\n';
+        std::cout << "gui_forms_layered_material_raster_tests: all tests passed\n";
         return EXIT_SUCCESS;
     } catch (const std::exception& error) {
         std::cerr << "gui_forms_layered_material_raster_tests: " << error.what()

@@ -78,6 +78,18 @@ gui_forms::ProgressBar
       **animation_phase** : ``double``, read-only
          Position in the current animation cycle, from 0 up to 1.
 
+      **effect** : ``std::string``
+         The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch, none for the rest. A name no registered progress-bar effect has draws no effect. The moving-stripes overlay draws progress_stripes over any other effect.
+
+      **effect_seed** : ``std::optional<std::uint64_t>``
+         The seed of the bar's effects. None (the default) derives it from the bar's stable ID and the effect's name, so runs, tests and motion checksums reproduce; an application sets one for another arrangement.
+
+      **effect_input** : ``EffectInputKind``
+         The input the bar grants its effect (none by default): with a grant the bar is hit-tested and passes the pointer, in part-local units, to an effect that declares pointer input. The bar never takes focus, so a key grant delivers nothing.
+
+      **effect_instance** : ``EffectInstance``, read-only
+         The selected effect's instance (empty for none): its counters and state checksum, for diagnostics and tests.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -95,7 +107,7 @@ gui_forms::ProgressBar
       :widths: 35 65
 
       * - :cpp:func:`advance_animation <gui_forms::ProgressBar::advance_animation>`
-        - Advances the indeterminate or marquee phase to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
+        - Advances the indeterminate or marquee phase, and the effect programs' time, to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
 
    .. seealso::
 
@@ -266,6 +278,28 @@ gui_forms::ProgressBar
 
       Position in the current animation cycle, from 0 up to 1.
 
+   .. cpp:function:: const std::string& effect() const noexcept
+
+      The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch, none for the rest. A name no registered progress-bar effect has draws no effect. The moving-stripes overlay draws progress_stripes over any other effect.
+
+   .. cpp:function:: void set_effect(std::string name)
+
+   .. cpp:function:: std::optional<std::uint64_t> effect_seed() const noexcept
+
+      The seed of the bar's effects. None (the default) derives it from the bar's stable ID and the effect's name, so runs, tests and motion checksums reproduce; an application sets one for another arrangement.
+
+   .. cpp:function:: void set_effect_seed(std::optional<std::uint64_t> seed)
+
+   .. cpp:function:: EffectInputKind effect_input() const noexcept
+
+      The input the bar grants its effect (none by default): with a grant the bar is hit-tested and passes the pointer, in part-local units, to an effect that declares pointer input. The bar never takes focus, so a key grant delivers nothing.
+
+   .. cpp:function:: void set_effect_input(EffectInputKind input)
+
+   .. cpp:function:: const EffectInstance& effect_instance() const noexcept
+
+      The selected effect's instance (empty for none): its counters and state checksum, for diagnostics and tests.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -275,10 +309,20 @@ gui_forms::ProgressBar
 
    .. cpp:function:: void advance_animation(FrameTime now)
 
-      Advances the indeterminate or marquee phase to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
+      Advances the indeterminate or marquee phase, and the effect programs' time, to ``now``; the animation timer calls it on each tick, and tests call it to step the bar.
 
 
    .. rubric:: Extension points
+
+   .. cpp:function:: Insets visual_outsets() const noexcept override
+
+      The selected effect's outsets, so damage and replay cover what it draws outside the bar (steam rising above it).
+
+   .. cpp:function:: bool on_ambient_frame(FrameTime now) override
+
+      The effects' ambient frame (MotionClock::enlist_control_ambient): their ticks due at ``now``, and their extent invalidated; false when the bar was not painted since its last frame.
+
+   .. cpp:function:: void on_pointer(PointerEvent& event) override
 
    .. cpp:function:: Size measure(Size available) override
 

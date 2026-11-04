@@ -19,6 +19,10 @@ on:
         description: Run native validation even if an identical successful receipt exists
         type: boolean
         default: false
+      cold_build:
+        description: Restore no compiler cache or object seed (measures a cold build)
+        type: boolean
+        default: false
       package_windows_toolchain:
         description: Install and package a new Windows toolchain when none is published for the harness's windows_toolchain.json
         type: boolean
@@ -245,9 +249,10 @@ jobs:
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.
           echo "GUI_FORMS_JOB_START=$(date +%s)" >> "$GITHUB_ENV"
+      # A cold build (dispatch input cold_build) restores no objects and no seed.
       - uses: actions/cache/restore@v4
         id: objects
-        if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
+        if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true') && inputs.cold_build != true
         with:
           path: .ccache
           key: gui-objects-v2-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ steps.inputs.outputs.tree }}
@@ -262,12 +267,11 @@ jobs:
             gui_forms/third_party/harfbuzz
             gui_forms/third_party/freetype
             gui_forms/third_party/libunibreak
-            .build/native-${{ inputs.platform }}/gui-forms/_deps/gui_forms_miniaudio-src
-          key: gui-deps-v3-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
-          restore-keys: gui-deps-v2-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn') }}
+            gui_forms/third_party/miniaudio
+          key: gui-deps-v4-${{ runner.os }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
       - name: Find recent validated object seed across branches
         id: seed
-        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true
         env:
           GH_TOKEN: ${{ github.token }}
         run: python template_harness/harness/ci_promote.py seed --platform "${{ inputs.platform }}"
@@ -386,6 +390,19 @@ jobs:
       # by no other ref and held 0.5 GB of the 10 GB. Only after every build
       # and test step above passed (owner, 2026-11-01): a failed run's
       # partial fetch must never become the entry the next run restores.
+      # The sources are platform-neutral, so the entry is keyed by the runner's
+      # OS only (Linux x64 and arm64 share one; Windows stays apart, as the
+      # Actions cache restores no entry across Windows and the others). The
+      # miniaudio Git checkout FetchContent made is kept at third_party/miniaudio,
+      # the place cmake/Audio.cmake (and the source SDK) read it from.
+      - name: Keep the fetched miniaudio sources with the other dependencies
+        if: steps.promotion.outputs.reused != 'true' && (success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.reuse.outputs.reused != 'true' && steps.dependencies.outputs.cache-primary-key != '' && steps.dependencies.outputs.cache-hit != 'true')
+        run: |
+          fetched=".build/native-${{ inputs.platform }}/gui-forms/_deps/gui_forms_miniaudio-src"
+          if [ ! -f gui_forms/third_party/miniaudio/miniaudio.h ] && [ -f "$fetched/miniaudio.h" ]; then
+            mkdir -p gui_forms/third_party/miniaudio
+            tar -C "$fetched" -cf - . | tar -C gui_forms/third_party/miniaudio -xf -
+          fi
       - uses: actions/cache/save@v4
         if: steps.promotion.outputs.reused != 'true' && (success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.reuse.outputs.reused != 'true' && steps.dependencies.outputs.cache-primary-key != '' && steps.dependencies.outputs.cache-hit != 'true')
         with:
@@ -393,7 +410,7 @@ jobs:
             gui_forms/third_party/harfbuzz
             gui_forms/third_party/freetype
             gui_forms/third_party/libunibreak
-            .build/native-${{ inputs.platform }}/gui-forms/_deps/gui_forms_miniaudio-src
+            gui_forms/third_party/miniaudio
           key: ${{ steps.dependencies.outputs.cache-primary-key }}
       - name: Report cache statistics
         if: steps.promotion.outputs.reused != 'true' && (always())

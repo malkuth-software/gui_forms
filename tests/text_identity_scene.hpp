@@ -26,8 +26,9 @@ inline constexpr Size scene_size{160.0, 48.0};
 // exchanged first.
 
 // Expected FNV-1a hashes of the raster's rows in RGBA order,
-// [case][scale]: identical on macOS arm64 (Apple SDK) and Alpine aarch64 musl
-// (Clang 22.1.3), 2026-10-11.
+// [case][scale], from SkiaRaster, the one CPU painter: identical on macOS
+// arm64 (Apple SDK) and Alpine aarch64 musl (Clang 22.1.3), 2026-10-11, and
+// on Windows x64 (clang 22.1.8), 2026-11-02 (SK5).
 inline constexpr std::array<std::array<std::uint64_t, 3>, 5> expected{{
     {0x8d50f64b74fcf8b8ULL, 0x471b6a11e111ec7dULL, 0xab5fc975326f3f28ULL},
     {0x83f2cc636fa71c45ULL, 0x6c602d56fa0ed64eULL, 0x63a26ab8baf146e2ULL},

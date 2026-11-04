@@ -7,7 +7,7 @@ namespace GuiForms.Interop;
 public static class Constants
 {
     public const uint GF_ABI_MAJOR = 1u;
-    public const uint GF_ABI_MINOR = 0u;
+    public const uint GF_ABI_MINOR = 1u;
     public const int GF_STATUS_OK = 0;
     public const int GF_STATUS_INVALID_ARGUMENT = 1;
     public const int GF_STATUS_STALE_HANDLE = 2;
@@ -102,6 +102,14 @@ public static class Constants
     public const uint GF_SCHEMA_PRIMITIVE_LIST_ROLES = 0u;
     public const uint GF_SCHEMA_PRIMITIVE_LIST_STATES_READ = 1u;
     public const uint GF_SCHEMA_PRIMITIVE_LIST_INPUTS_READ = 2u;
+    public const uint GF_SCHEMA_EFFECT_TIME_MODEL_STATIC_POSE = 0u;
+    public const uint GF_SCHEMA_EFFECT_TIME_MODEL_TRANSITION = 1u;
+    public const uint GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT = 2u;
+    public const uint GF_SCHEMA_EFFECT_INPUT_NONE = 0u;
+    public const uint GF_SCHEMA_EFFECT_INPUT_POINTER = 1u;
+    public const uint GF_SCHEMA_EFFECT_INPUT_POINTER_AND_KEYS = 2u;
+    public const uint GF_SCHEMA_EFFECT_FLAGS_VERIFIED = 1u;
+    public const uint GF_SCHEMA_EFFECT_FLAGS_SETUP_ON_GEOMETRY = 2u;
     public const uint GF_THEME_PACKAGE_MAXIMUM_FILES = 256u;
     public const uint GF_THEME_PACKAGE_MAXIMUM_BYTES = 16777216u;
     public const uint GF_THEME_MAXIMUM_PUBLISHED_VALUES = 256u;

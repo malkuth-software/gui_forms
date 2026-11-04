@@ -37,7 +37,13 @@ help_requested
     `HelpRequestEvent` carries the control's stable ID, the position, the
     `help_namespace`, the control's help string, keyword and navigator, and
     whether the request came from the keyboard. Set `handled` to report that
-    help was shown.
+    help was shown. It is also raised for the window's own help request (a
+    message box's Help button or F1, `Window::request_help`) that the
+    window's `help_requested` handlers did not handle: the window's
+    providers are offered it in the order they were created, until one
+    handles it, each with its own namespace and the root control's help
+    string, keyword and navigator where it maps the root. A disposed
+    provider is not offered it.
 
 Methods
 -------

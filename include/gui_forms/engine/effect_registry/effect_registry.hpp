@@ -1,0 +1,248 @@
+#pragma once
+
+// The effect registry and an effect's instance on a part (design note §1,
+// §6, §7). Registration is explicit and checked, beside the primitive
+// registry: one generated entry per effect type (make_effect_entry), which
+// themes and applications address by name. The only indirect calls are the
+// entry's thunks, made by the engine; effect code makes none.
+//
+// An EffectInstance owns one effect's state on one part: storage of the
+// effect's size and alignment from the toolkit's allocator, value-
+// initialized when the effect is attached and released when it is detached
+// or the instance is destroyed. It counts fixed ticks from the engine clock
+// it is given (never the wall clock), at most
+// maximum_effect_ticks_per_frame per frame, skipping and counting the rest;
+// it runs setup before the first frame and, when declared, after a geometry
+// change; and it builds each frame's canvas with the effect's budget.
+//
+// Execution: UI thread. An instance is owned by the control (or engine part)
+// that hosts it; it holds no reference to anything else.
+
+#include "gui_forms/engine/effect/effect.hpp"
+#include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
+
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <new>
+#include <string_view>
+#include <type_traits>
+
+namespace gui_forms {
+
+class Painter;
+
+// One registered effect type: its declaration, its parent's name, its state
+// layout and the thunks the engine calls. `setup` is null for an effect
+// without one. `verified` is set at registration from the plugin's record.
+struct EffectEntry final {
+    const EffectDeclaration* declaration{};
+    std::string_view parent{};
+    std::size_t size{};
+    std::size_t alignment{};
+    void* (*construct)(void* storage) noexcept {};
+    void (*setup)(void* state, const void* view, const EffectSetup& setup) noexcept {};
+    void (*run)(void* state, const void* view, const EffectFrame& frame, EffectCanvas& canvas) noexcept {};
+    bool verified{};
+};
+
+namespace effect_detail {
+
+template <typename Effect>
+void* construct(void* storage) noexcept {
+    Effect* const made = ::new (storage) Effect{};
+    return made;
+}
+
+template <typename Effect>
+void setup(void* state, const void* view, const EffectSetup& setup) noexcept {
+    using View = EffectView<typename Effect::parent_type>;
+    Effect& effect = *static_cast<Effect*>(state);
+    effect.setup(*static_cast<const View*>(view), setup);
+}
+
+template <typename Effect>
+void run(void* state, const void* view, const EffectFrame& frame, EffectCanvas& canvas) noexcept {
+    using View = EffectView<typename Effect::parent_type>;
+    Effect& effect = *static_cast<Effect*>(state);
+    effect.run(*static_cast<const View*>(view), frame, canvas);
+}
+
+// Releases an EffectInstance's state storage, allocated at `alignment`.
+// Declared at namespace scope, complete before EffectInstance uses it: a
+// nested class with a default member initializer is not default
+// constructible until its enclosing class is complete, which libstdc++'s
+// unique_ptr default constructor requires.
+struct StorageRelease final {
+    std::size_t alignment{};
+    void operator()(std::byte* storage) const noexcept;
+};
+
+} // namespace effect_detail
+
+// The generated table entry of one effect type. Its state must fit the
+// budget it declares, and that budget the toolkit's maximum.
+template <typename Effect>
+    requires EffectProgram<Effect>
+[[nodiscard]] constexpr EffectEntry make_effect_entry() noexcept {
+    static_assert(sizeof(Effect) <= Effect::declaration.state_budget,
+                  "an effect's state (its sizeof) must fit its declared state_budget");
+    static_assert(Effect::declaration.state_budget <= maximum_effect_state_bytes,
+                  "an effect's state budget must not exceed maximum_effect_state_bytes");
+    EffectEntry entry{};
+    entry.declaration = &Effect::declaration;
+    entry.parent = EffectView<typename Effect::parent_type>::parent_name;
+    entry.size = sizeof(Effect);
+    entry.alignment = alignof(Effect);
+    entry.construct = &effect_detail::construct<Effect>;
+    if constexpr (EffectWithSetup<Effect>) entry.setup = &effect_detail::setup<Effect>;
+    entry.run = &effect_detail::run<Effect>;
+    return entry;
+}
+
+enum class EffectRegistrationOutcome : std::uint8_t {
+    registered,
+    registry_full,
+    name_not_snake_case,
+    duplicate_name,
+    no_parent,
+    setup_without_budget,
+    frame_rate_out_of_range,
+    outsets_out_of_range,
+};
+
+// The most effect types one registry holds.
+inline constexpr std::size_t maximum_registered_effects = 64U;
+// The farthest an effect may draw outside its part, in logical units.
+inline constexpr double maximum_effect_outset = 64.0;
+
+class EffectRegistry final {
+public:
+    // Checks `entry` and adds it; anything but `registered` leaves the
+    // registry unchanged. Looks up the plugin's verification record for it.
+    EffectRegistrationOutcome add(const EffectEntry& entry) noexcept;
+    // The entry registered under `name`, or null.
+    [[nodiscard]] const EffectEntry* find(std::string_view name) const noexcept;
+    [[nodiscard]] std::size_t count() const noexcept { return count_; }
+    [[nodiscard]] const EffectEntry& at(std::size_t index) const noexcept { return entries_[index]; }
+    // How many registered effects carry no verification record.
+    [[nodiscard]] std::size_t unverified_count() const noexcept;
+
+private:
+    std::array<EffectEntry, maximum_registered_effects> entries_{};
+    std::size_t count_{};
+};
+
+// The registry of the toolkit's own effects, filled on first use (defined
+// with the controls that host them).
+[[nodiscard]] const EffectRegistry& built_in_effect_registry();
+
+// Whether the effect pass of the gui_forms Clang plugin verified the effect
+// named `name`, of `state_size` bytes, whose run thunk is `run_thunk`: a
+// record naming it with that state size is in the binary holding that code
+// (design note §2). A record of another size (another build's effect of the
+// same name) does not count.
+[[nodiscard]] bool effect_verification_recorded(std::string_view name, std::size_t state_size,
+                                                const void* run_thunk) noexcept;
+
+// What effect registration found in this process, for diagnostics and the
+// windows' metrics (MetricsSnapshot::effects_unverified): effects
+// registered, and those registered unverified. The first unverified
+// registration also writes one line to stderr naming it and saying why; the
+// rest are only counted. Any thread.
+struct EffectLoadDiagnostics final {
+    std::uint64_t registered{};
+    std::uint64_t unverified{};
+};
+[[nodiscard]] EffectLoadDiagnostics effect_load_diagnostics() noexcept;
+
+// What advancing an instance's time did.
+struct EffectAdvance final {
+    // Ticks now due for the next frame.
+    std::uint32_t pending{};
+    // Ticks skipped by this advance, past maximum_effect_ticks_per_frame.
+    std::uint32_t skipped{};
+};
+
+// What an instance has counted over its life.
+struct EffectInstanceCounters final {
+    std::uint64_t ticks{};
+    std::uint64_t skipped_ticks{};
+    std::uint64_t frames{};
+    std::uint64_t setups{};
+    std::uint64_t refused_calls{};
+    // Input events dropped: past maximum_effect_input_events before a frame.
+    std::uint64_t dropped_input{};
+};
+
+class EffectInstance final {
+public:
+    EffectInstance() noexcept = default;
+    ~EffectInstance();
+    EffectInstance(const EffectInstance&) = delete;
+    EffectInstance& operator=(const EffectInstance&) = delete;
+
+    // Releases any effect held, then makes `entry`'s state, value-
+    // initialized, with `seed`, its time starting at `now`. On an allocation
+    // failure the instance is left empty and the exception propagates.
+    void attach(const EffectEntry& entry, std::uint64_t seed, FrameTime now);
+    // Releases the effect's state; the instance is empty.
+    void detach() noexcept;
+    [[nodiscard]] const EffectEntry* entry() const noexcept { return entry_; }
+
+    // The engine clock reads `now` on an ambient frame: the ticks due since
+    // the last advance are added to the pending ones, at most
+    // maximum_effect_ticks_per_frame; the rest are skipped and counted.
+    EffectAdvance advance(FrameTime now) noexcept;
+    // Motion resumed after a pause: time restarts from `now`, with no
+    // catch-up.
+    void rebase(FrameTime now) noexcept;
+    // Queues one input event for the next frame, if `granted` and the
+    // effect's declaration both admit its kind (pointer events for
+    // `pointer`, keys too for `pointer_and_keys`); otherwise it is ignored.
+    // Past maximum_effect_input_events queued, it is counted and dropped.
+    // Returns whether it was queued. Never fails.
+    bool queue_input(const EffectInputEvent& event, EffectInputKind granted) noexcept;
+
+    // Runs the effect's frame over `painter`, whose origin is the parent's,
+    // for the part at `part` (logical, in the painter's coordinates) at
+    // display `scale`. Runs setup first when due. `still` draws the still
+    // pose and consumes no ticks. `view` must be the effect's parent's view.
+    template <typename Parent>
+    void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view) {
+        if (entry_ == nullptr || (*entry_).parent != EffectView<Parent>::parent_name) return;
+        paint_view(painter, part, scale, still, &view);
+    }
+
+    // The state's bytes, hashed (FNV-1a): the motion checksum.
+    [[nodiscard]] std::uint64_t state_checksum() const noexcept;
+    [[nodiscard]] const EffectInstanceCounters& counters() const noexcept { return counters_; }
+    [[nodiscard]] const EffectCanvasMeter& last_meter() const noexcept { return last_meter_; }
+
+private:
+    void paint_view(Painter& painter, Rect part, double scale, bool still, const void* view);
+
+    const EffectEntry* entry_{};
+    std::unique_ptr<std::byte, effect_detail::StorageRelease> storage_{};
+    void* state_{};
+    std::uint64_t seed_{};
+    // Time: ticks are counted from `origin_`; `counted_` of them have been
+    // made due (pending or run), `next_tick_` is the next one's index.
+    FrameTime origin_{};
+    std::uint64_t counted_{};
+    std::uint64_t next_tick_{};
+    std::uint32_t pending_{};
+    // Input queued for the next frame, which receives and clears it.
+    std::array<EffectInputEvent, maximum_effect_input_events> input_{};
+    std::uint32_t input_count_{};
+    // Setup: whether it ran, and the geometry it ran for.
+    bool set_up_{};
+    Size setup_part_{};
+    double setup_scale_{};
+    EffectInstanceCounters counters_{};
+    EffectCanvasMeter last_meter_{};
+};
+
+} // namespace gui_forms

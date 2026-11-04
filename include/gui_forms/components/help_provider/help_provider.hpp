@@ -19,6 +19,9 @@ namespace gui_forms {
 
 class Control;
 class Binding;
+namespace detail {
+class WindowHelpFallback;
+}
 class BindingSource;
 struct BindingCompleteEvent;
 class ToolTip;
@@ -57,6 +60,10 @@ struct HelpProviderSnapshot final {
 // Help resolution is intentionally policy-free. The provider retains authored
 // metadata and routes F1/mouse requests, but never opens a browser, help file,
 // or network resource. Consumers or capability-gated plugins handle the event.
+// It is also offered the window's own help requests (a message box's Help
+// button or F1, Window::request_help) that no window handler took, after the
+// window's earlier-created providers, with its namespace and the root's
+// mapping where it has one.
 class HelpProvider final : public Component {
 public:
     explicit HelpProvider(Window& window);
@@ -102,6 +109,8 @@ private:
 
         bool operator()() const;
     };
+    // The provider's place in its window's help offers.
+    class WindowFallback;
     class AcceleratorHolder;
     using EntryMap =
         std::unordered_map<std::uint64_t, std::unique_ptr<Entry>>;
@@ -115,10 +124,12 @@ private:
     void publish_semantics(Entry& entry);
     void erase_if_empty(std::uint64_t runtime_id);
     bool request_focused_help();
+    bool offer_window_help(HelpRequestEvent& request);
 
     std::weak_ptr<detail::WindowLifetime> window_lifetime_;
     EntryMap entries_;
     std::unique_ptr<AcceleratorHolder> accelerator_;
+    std::unique_ptr<WindowFallback> window_fallback_;
     Event<HelpRequestEvent&> help_requested_;
     std::any tag_;
     std::string help_namespace_;

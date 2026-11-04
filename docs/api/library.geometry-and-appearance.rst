@@ -26,6 +26,10 @@ Types
      - One backplane image's region (E9-B): ``extent`` device pixels at ``scale``, its top-left pixel at ``origin`` in the window's device pixels (the window's logical origin times the scale; possibly fractional).
    * - :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>`
      - BasicControlStyle retains the compact compatibility palette used by callers that do not select full role recipes.
+   * - :cpp:class:`BoundedRange <gui_forms::BoundedRange>`
+     - At most Capacity passes: ``count`` clamped to Capacity.
+   * - :cpp:class:`BoundedRange::Iterator <gui_forms::BoundedRange::Iterator>`
+     -  
    * - :cpp:class:`BoxLength <gui_forms::BoxLength>`
      - A length along one axis of the part's box: ``fraction`` of the box's extent on that axis plus ``units`` logical units, as CSS's <length-percentage> (a percentage, a length, or the calc() of both).
    * - :cpp:class:`CachedPartRaster <gui_forms::CachedPartRaster>`
@@ -74,6 +78,38 @@ Types
      - A raster's size in device pixels.
    * - :cpp:class:`DeviceScale <gui_forms::DeviceScale>`
      - Device pixels per logical unit.
+   * - :cpp:class:`EffectAdvance <gui_forms::EffectAdvance>`
+     - What advancing an instance's time did.
+   * - :cpp:class:`EffectArray <gui_forms::EffectArray>`
+     - A fixed-capacity array with a live count: ``items`` holds Capacity values, the first ``count`` of them live.
+   * - :cpp:class:`EffectCanvas <gui_forms::EffectCanvas>`
+     -  
+   * - :cpp:class:`EffectCanvasMeter <gui_forms::EffectCanvasMeter>`
+     - What one frame's canvas did: device pixels charged against the budget, and the calls refused for the budget or the save depth.
+   * - :cpp:class:`EffectCost <gui_forms::EffectCost>`
+     - An effect's per-frame budget: ``fixed`` operations (proved by the plugin's static bound) plus ``per_device_pixel`` operations for each device pixel of the part and its outsets (metered by the canvas, which refuses drawing past it; owner decision 1(a)).
+   * - :cpp:class:`EffectDeclaration <gui_forms::EffectDeclaration>`
+     - What an effect is, as its class declares it in ``static constexpr EffectDeclaration declaration``.
+   * - :cpp:class:`EffectEntry <gui_forms::EffectEntry>`
+     - One registered effect type: its declaration, its parent's name, its state layout and the thunks the engine calls.
+   * - :cpp:class:`EffectFrame <gui_forms::EffectFrame>`
+     - What one frame of ``run`` is given.
+   * - :cpp:class:`EffectGradient <gui_forms::EffectGradient>`
+     - A gradient's stops: the first ``count`` of ``stops`` are live, offsets in [0, 1] and non-decreasing.
+   * - :cpp:class:`EffectInputEvent <gui_forms::EffectInputEvent>`
+     - One granted input event: the pointer in part-local logical units, or a key's code (KeyCode's value).
+   * - :cpp:class:`EffectInstance <gui_forms::EffectInstance>`
+     -  
+   * - :cpp:class:`EffectInstanceCounters <gui_forms::EffectInstanceCounters>`
+     - What an instance has counted over its life.
+   * - :cpp:class:`EffectLoadDiagnostics <gui_forms::EffectLoadDiagnostics>`
+     - What effect registration found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::effects_unverified): effects registered, and those registered unverified.
+   * - :cpp:class:`EffectRandom <gui_forms::EffectRandom>`
+     - The engine's deterministic generator (owner amendment, 2026-11-02): a counter-based hash of (seed, stream, counter), SplitMix64's finalizer over their mix, with no host randomness and no hidden state beyond the counter in this value.
+   * - :cpp:class:`EffectRegistry <gui_forms::EffectRegistry>`
+     -  
+   * - :cpp:class:`EffectSetup <gui_forms::EffectSetup>`
+     - What ``setup`` is given: once when the effect is instantiated on a part, and again on a geometry change if the effect declares setup_on_geometry.
    * - :cpp:class:`EngineExpression <gui_forms::EngineExpression>`
      - A compiled program: immutable, a fixed-size value with no allocation, so it can be copied into a rule table and evaluated from any number of parts on the UI thread.
    * - :cpp:class:`EnginePartRecord <gui_forms::EnginePartRecord>`
@@ -476,6 +512,37 @@ Types
    .. cpp:member:: Color visited_link
 
       Default: ``{Color::rgba(93, 65, 145)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <std::size_t Capacity> BoundedRange final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   At most Capacity passes: ``count`` clamped to Capacity. The only loop shape, with std::array and EffectArray, whose bound the plugin knows.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit constexpr BoundedRange(std::size_t count) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: constexpr Iterator begin() const noexcept
+
+   .. cpp:function:: constexpr Iterator end() const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: BoundedRange::Iterator final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit constexpr Iterator(std::size_t index) noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -1136,6 +1203,422 @@ Types
    Device pixels per logical unit. Kept apart from plain doubles so that a logical length is never passed where a scale is meant (house style §3).
 
    .. cpp:member:: double value
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectAdvance final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   What advancing an instance's time did.
+
+   .. cpp:member:: std::uint32_t pending
+
+      Ticks now due for the next frame.
+
+   .. cpp:member:: std::uint32_t skipped
+
+      Ticks skipped by this advance, past maximum_effect_ticks_per_frame.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Item, std::size_t Capacity> EffectArray final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   A fixed-capacity array with a live count: ``items`` holds Capacity values, the first ``count`` of them live. State an effect keeps between frames.
+
+   .. cpp:member:: constexpr std::size_t capacity
+
+      Default: ``Capacity``.
+
+   .. cpp:member:: std::array<Item, Capacity> items
+
+   .. cpp:member:: std::uint32_t count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: EffectCanvas final
+
+   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel) noexcept
+
+      A canvas over ``painter`` for a part of ``part`` logical size whose origin is the painter's current origin, with ``outsets`` around it, at display ``scale``, and a budget of ``per_device_pixel`` operations for each device pixel of the part and its outsets. The painter must already be clipped to the part and its outsets and translated to the part's origin (the host does both); the canvas leaves its save depth as it found it.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const EffectCanvasMeter& meter() const noexcept
+
+      For the host: what the frame charged and refused.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void fill_rect(Rect rect, Color color) noexcept
+
+   .. cpp:function:: void fill_rounded_rect(Rect rect, double radius, Color color) noexcept
+
+   .. cpp:function:: void fill_circle(Point center, double radius, Color color) noexcept
+
+   .. cpp:function:: void stroke_rect(Rect rect, Color color, double width) noexcept
+
+   .. cpp:function:: void stroke_circle(Point center, double radius, Color color, double width) noexcept
+
+   .. cpp:function:: void stroke_line(Point from, Point to, Color color, double width) noexcept
+
+   .. cpp:function:: void fill_linear_gradient(Rect rect, Point start, Point end, const EffectGradient& gradient, bool repeat) noexcept
+
+      A linear gradient over ``rect`` from ``start`` to ``end``; ``repeat`` repeats it past them instead of extending its end colours.
+
+   .. cpp:function:: void fill_radial_gradient(Rect rect, Point center, Size radii, const EffectGradient& gradient) noexcept
+
+   .. cpp:function:: void soft_dot(Point center, double radius, Color color) noexcept
+
+      A soft round dot: ``color`` at its centre fading to transparent at ``radius`` (PlaySuite's mist puffs and glints, drawn source-over).
+
+   .. cpp:function:: void streak(Point head, Point tail, double width, Color color) noexcept
+
+      A streak: a line of ``width`` from ``tail`` to ``head`` with a soft dot at the head (PlaySuite's particle streaks, simplified).
+
+   .. cpp:function:: void save() noexcept
+
+      Saves the clip and the offset; refused past maximum_effect_save_depth.
+
+   .. cpp:function:: void restore() noexcept
+
+      Restores the last save; a restore without a save does nothing.
+
+   .. cpp:function:: void clip_rect(Rect rect) noexcept
+
+      Narrows the clip to ``rect`` (in the current offset's coordinates).
+
+   .. cpp:function:: void translate(Point offset) noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectCanvasMeter final
+
+   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+
+   What one frame's canvas did: device pixels charged against the budget, and the calls refused for the budget or the save depth.
+
+   .. cpp:member:: double budget
+
+   .. cpp:member:: double charged
+
+   .. cpp:member:: std::uint32_t calls
+
+   .. cpp:member:: std::uint32_t refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectCost final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   An effect's per-frame budget: ``fixed`` operations (proved by the plugin's static bound) plus ``per_device_pixel`` operations for each device pixel of the part and its outsets (metered by the canvas, which refuses drawing past it; owner decision 1(a)).
+
+   .. cpp:member:: std::uint32_t fixed
+
+   .. cpp:member:: std::uint32_t per_device_pixel
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectDeclaration final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   What an effect is, as its class declares it in ``static constexpr EffectDeclaration declaration``.
+
+   .. cpp:member:: std::string_view name
+
+      Registered (snake_case) name, as themes and applications write it.
+
+   .. cpp:member:: std::uint32_t engine_version
+
+      The engine version that introduced the effect. Default: ``{1U}``.
+
+   .. cpp:member:: EffectTimeModel time_model
+
+      Default: ``{EffectTimeModel::ambient}``.
+
+   .. cpp:member:: EffectCost cost
+
+   .. cpp:member:: std::uint32_t setup_cost
+
+      setup's own budget, in operations; a one-off, never charged to a frame. Zero for an effect without setup.
+
+   .. cpp:member:: bool setup_on_geometry
+
+   .. cpp:member:: std::size_t state_budget
+
+      The most bytes the effect's state may take; sizeof must not exceed it.
+
+   .. cpp:member:: Insets outsets
+
+      How far the effect draws outside its part, in logical units. The engine clips to them, damages them and composites them source-over in the parent's paint order.
+
+   .. cpp:member:: EffectInputKind input
+
+      Default: ``{EffectInputKind::none}``.
+
+   .. cpp:member:: double frames_per_second
+
+      Its ambient frame rate, at most the ambient cap (30). Default: ``{30.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectEntry final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   One registered effect type: its declaration, its parent's name, its state layout and the thunks the engine calls. ``setup`` is null for an effect without one. ``verified`` is set at registration from the plugin's record.
+
+   .. cpp:member:: const EffectDeclaration* declaration
+
+   .. cpp:member:: std::string_view parent
+
+   .. cpp:member:: std::size_t size
+
+   .. cpp:member:: std::size_t alignment
+
+   .. cpp:member:: void* (*construct)(void* storage) noexcept
+
+   .. cpp:member:: void (*setup)(void* state, const void* view, const EffectSetup& setup) noexcept
+
+   .. cpp:member:: void (*run)(void* state, const void* view, const EffectFrame& frame, EffectCanvas& canvas) noexcept
+
+   .. cpp:member:: bool verified
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectFrame final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   What one frame of ``run`` is given. ``ticks`` fixed ticks are due, the first of them numbered ``first_tick`` since the effect was set up; zero when the part repaints for another reason, so state advances once per due tick however often the part repaints. ``still`` is true while motion is paused (reduced motion, an occluded window, the motion switch): the effect draws its still pose and advances nothing. A random draw for tick t uses EffectRandom(seed, t), so draws do not depend on how ticks were grouped into frames.
+
+   .. cpp:member:: std::uint32_t ticks
+
+   .. cpp:member:: std::uint64_t first_tick
+
+   .. cpp:member:: double transition
+
+   .. cpp:member:: bool still
+
+   .. cpp:member:: std::uint64_t seed
+
+   .. cpp:member:: Size part
+
+      The part's logical size and the display scale (device pixels per logical unit).
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: std::array<EffectInputEvent, maximum_effect_input_events> input
+
+   .. cpp:member:: std::uint32_t input_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectGradient final
+
+   ``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+
+   A gradient's stops: the first ``count`` of ``stops`` are live, offsets in [0, 1] and non-decreasing.
+
+   .. cpp:member:: std::array<GradientStop, maximum_effect_gradient_stops> stops
+
+   .. cpp:member:: std::uint32_t count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectInputEvent final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   One granted input event: the pointer in part-local logical units, or a key's code (KeyCode's value).
+
+   .. cpp:member:: EffectInputEventKind kind
+
+   .. cpp:member:: Point position
+
+   .. cpp:member:: std::uint32_t key
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: EffectInstance final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: EffectInstance() noexcept = default
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const EffectEntry* entry() const noexcept
+
+   .. cpp:function:: std::uint64_t state_checksum() const noexcept
+
+      The state's bytes, hashed (FNV-1a): the motion checksum.
+
+   .. cpp:function:: const EffectInstanceCounters& counters() const noexcept
+
+   .. cpp:function:: const EffectCanvasMeter& last_meter() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void attach(const EffectEntry& entry, std::uint64_t seed, FrameTime now)
+
+      Releases any effect held, then makes :cpp:func:`entry <gui_forms::EffectInstance::entry>`'s state, value- initialized, with ``seed``, its time starting at ``now``. On an allocation failure the instance is left empty and the exception propagates.
+
+   .. cpp:function:: void detach() noexcept
+
+      Releases the effect's state; the instance is empty.
+
+   .. cpp:function:: EffectAdvance advance(FrameTime now) noexcept
+
+      The engine clock reads ``now`` on an ambient frame: the ticks due since the last advance are added to the pending ones, at most maximum_effect_ticks_per_frame; the rest are skipped and counted.
+
+   .. cpp:function:: void rebase(FrameTime now) noexcept
+
+      Motion resumed after a pause: time restarts from ``now``, with no catch-up.
+
+   .. cpp:function:: bool queue_input(const EffectInputEvent& event, EffectInputKind granted) noexcept
+
+      Queues one input event for the next frame, if ``granted`` and the effect's declaration both admit its kind (pointer events for ``pointer``, keys too for ``pointer_and_keys``); otherwise it is ignored. Past maximum_effect_input_events queued, it is counted and dropped. Returns whether it was queued. Never fails.
+
+   .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view)
+
+      Runs the effect's frame over ``painter``, whose origin is the parent's, for the part at ``part`` (logical, in the painter's coordinates) at display ``scale``. Runs setup first when due. ``still`` draws the still pose and consumes no ticks. ``view`` must be the effect's parent's view.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectInstanceCounters final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   What an instance has counted over its life.
+
+   .. cpp:member:: std::uint64_t ticks
+
+   .. cpp:member:: std::uint64_t skipped_ticks
+
+   .. cpp:member:: std::uint64_t frames
+
+   .. cpp:member:: std::uint64_t setups
+
+   .. cpp:member:: std::uint64_t refused_calls
+
+   .. cpp:member:: std::uint64_t dropped_input
+
+      Input events dropped: past maximum_effect_input_events before a frame.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectLoadDiagnostics final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   What effect registration found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::effects_unverified): effects registered, and those registered unverified. The first unverified registration also writes one line to stderr naming it and saying why; the rest are only counted. Any thread.
+
+   .. cpp:member:: std::uint64_t registered
+
+   .. cpp:member:: std::uint64_t unverified
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: EffectRandom final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   The engine's deterministic generator (owner amendment, 2026-11-02): a counter-based hash of (seed, stream, counter), SplitMix64's finalizer over their mix, with no host randomness and no hidden state beyond the counter in this value. Bit-exact on every host; known-answer vectors are in the tests.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: constexpr EffectRandom(std::uint64_t seed, std::uint64_t stream) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static constexpr std::uint64_t hash(std::uint64_t seed, std::uint64_t stream, std::uint64_t counter) noexcept
+
+      The hash itself: the same three inputs give the same bits.
+
+   .. cpp:function:: constexpr std::uint64_t next() noexcept
+
+      The next 64 bits.
+
+   .. cpp:function:: constexpr double next_unit() noexcept
+
+      In [0, 1): the top 53 bits, exactly representable.
+
+   .. cpp:function:: constexpr std::uint32_t next_below(std::uint32_t bound) noexcept
+
+      In [0, bound): the high half of a 32 × 32-bit product; 0 when bound is 0.
+
+   .. cpp:function:: constexpr double next_between(double low, double high) noexcept
+
+      In [low, high).
+
+   .. cpp:member:: constexpr std::uint64_t setup_stream
+
+      The stream setup draws from. Default: ``0xffffffffffffffffULL``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: EffectRegistry final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t count() const noexcept
+
+   .. cpp:function:: std::size_t unverified_count() const noexcept
+
+      How many registered effects carry no verification record.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: EffectRegistrationOutcome add(const EffectEntry& entry) noexcept
+
+      Checks ``entry`` and adds it; anything but ``registered`` leaves the registry unchanged. Looks up the plugin's verification record for it.
+
+   .. cpp:function:: const EffectEntry* find(std::string_view name) const noexcept
+
+      The entry registered under ``name``, or null.
+
+   .. cpp:function:: const EffectEntry& at(std::size_t index) const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectSetup final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   What ``setup`` is given: once when the effect is instantiated on a part, and again on a geometry change if the effect declares setup_on_geometry. Its draws come from EffectRandom(seed, EffectRandom::setup_stream).
+
+   .. cpp:member:: std::uint64_t seed
+
+   .. cpp:member:: Size part
+
+   .. cpp:member:: double scale
 
       Default: ``{1.0}``.
 
@@ -2332,7 +2815,7 @@ Types
 
    ``#include <gui_forms/engine/motion_clock/motion_clock.hpp>``
 
-   One window's motion clock (T2 plan, MotionClock; GIVEN D1-1). The window owns it; it observes the window. It holds at most one frame request, armed only while some value it holds has not settled, however many values move; the request is disconnected once the last one settles, so a window at rest schedules no frames. Execution: every member runs on the window's UI thread. Frames, settling and the listeners' damage all happen inside the window's frame poll. Event order on a frame: each value enlisted before the frame starts is advanced to the frame's time, in the order of its record's slot (the same for the same sequence of starts and releases); a value that settles is released before its listener runs; then the owner is invalidated as the value declared, then its listener runs. Values started by a listener are first advanced on the next frame. A listener that throws is counted as a frame callback fault; its value jumps to its end. Ending motion (all by name): - finish_all: reduced motion turned on (GIVEN D2-1) or the window occluded or minimized (GIVEN D4-1). Every value jumps to its end and its listener runs once, with the cause. While either holds, a new move jumps to its end at once and nothing is scheduled. - release_owner: a control left the window. Its values jump to their ends without listeners. - cancel: the window closes (or cancels its frame requests). Every value jumps to its end without listeners, and the request is disconnected. A record is named by its handle; a stale handle (its record released) is rejected, so a value whose owner has gone is never advanced. Ambient effects (T2 plan, phase E7; design language §9.4) share the same request. The engine enlists a part with an ambient effect while it draws it; on each frame at least the effect's frame interval after its last, the part's extent repaints. An effect whose part was not repainted since its last frame (the part is no longer shown) is dropped, so an effect can never keep a window painting by itself. finish_all and cancel drop every effect too; finish_all repaints each part once, at its static pose.
+   One window's motion clock (T2 plan, MotionClock; GIVEN D1-1). The window owns it; it observes the window. It holds at most one frame request, armed only while some value it holds has not settled, however many values move; the request is disconnected once the last one settles, so a window at rest schedules no frames. Execution: every member runs on the window's UI thread. Frames, settling and the listeners' damage all happen inside the window's frame poll. Event order on a frame: each value enlisted before the frame starts is advanced to the frame's time, in the order of its record's slot (the same for the same sequence of starts and releases); a value that settles is released before its listener runs; then the owner is invalidated as the value declared, then its listener runs. Values started by a listener are first advanced on the next frame. A listener that throws is counted as a frame callback fault; its value jumps to its end. Ending motion (all by name): - finish_all: reduced motion turned on (GIVEN D2-1) or the window occluded or minimized (GIVEN D4-1). Every value jumps to its end and its listener runs once, with the cause. While either holds, a new move jumps to its end at once and nothing is scheduled. - release_owner: a control left the window. Its values jump to their ends without listeners. - cancel: the window closes (or cancels its frame requests). Every value jumps to its end without listeners, and the request is disconnected. A record is named by its handle; a stale handle (its record released) is rejected, so a value whose owner has gone is never advanced. Ambient effects (T2 plan, phase E7; design language §9.4) share the same request. The engine enlists a part with an ambient effect while it draws it; on each frame at least the effect's frame interval after its last, the part's extent repaints. An effect whose part was not repainted since its last frame (the part is no longer shown) is dropped, so an effect can never keep a window painting by itself. finish_all and cancel drop every effect too; finish_all repaints each part once, at its static pose. A control hosting an effect program (a progress bar's stripes or bubbles) enlists itself the same way (enlist_control_ambient): on each frame due, its on_ambient_frame advances and invalidates it, and a control that was not painted since its last frame is dropped. The clock observes it: one that died or left the window is dropped unasked. finish_all and stop park the controls (each repaints once, at its still pose, under finish_all); repaint_parked repaints them when ambient motion may resume, and their paints enlist them again.
 
 
    .. rubric:: Construction
@@ -2364,10 +2847,22 @@ Types
 
    .. cpp:function:: std::size_t ambient_count() const noexcept
 
-      Ambient effects running on the clock now.
+      Ambient effects running on the clock now (parts' and controls').
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: bool enlist_control_ambient(Control& control, FrameInterval interval)
+
+      A control's ambient effect, its frames at least ``interval`` apart (see the class comment). Returns true when the control was not enlisted (its effect's time starts now), false when it was (the interval is replaced). Nothing is enlisted, and false returned, while ambient motion is suppressed. If the record's place or the frame request cannot be made, the exception propagates and nothing changes. The control must be held by a shared pointer and attached to this clock's window.
+
+   .. cpp:function:: void withdraw_control_ambient(const Control& control) noexcept
+
+      Ends the control's ambient effect, if any (parked too). Never fails.
+
+   .. cpp:function:: bool control_ambient(const Control& control) const noexcept
+
+      Whether the control is enlisted now.
 
    .. cpp:function:: void set_time_source(const MotionTimeSource* source) noexcept
 
@@ -4677,6 +5172,66 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: EffectInputEventKind
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   .. cpp:enumerator:: pointer_moved
+
+   .. cpp:enumerator:: pointer_pressed
+
+   .. cpp:enumerator:: pointer_released
+
+   .. cpp:enumerator:: key_pressed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EffectInputKind
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: pointer
+
+   .. cpp:enumerator:: pointer_and_keys
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EffectRegistrationOutcome
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   .. cpp:enumerator:: registered
+
+   .. cpp:enumerator:: registry_full
+
+   .. cpp:enumerator:: name_not_snake_case
+
+   .. cpp:enumerator:: duplicate_name
+
+   .. cpp:enumerator:: no_parent
+
+   .. cpp:enumerator:: setup_without_budget
+
+   .. cpp:enumerator:: frame_rate_out_of_range
+
+   .. cpp:enumerator:: outsets_out_of_range
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EffectTimeModel
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   .. cpp:enumerator:: static_pose
+
+   .. cpp:enumerator:: transition
+
+   .. cpp:enumerator:: ambient
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ExpressionDefect
 
    ``#include <gui_forms/engine/engine_expression/engine_expression.hpp>``
@@ -5699,6 +6254,96 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_authored_gradient_stops
 
    The most stops one gradient may have: resolving adds at most two, the colours at the ends of a clipped or rotated stop list. Value: ``maximum_gradient_stops - 2U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/engine/effect/effect.hpp>``
+
+.. cpp:function:: template <std::size_t Capacity> constexpr BoundedRange<Capacity> bounded_range(std::size_t count) noexcept
+
+.. cpp:function:: constexpr std::uint64_t effect_default_seed(std::string_view stable_id, std::string_view effect_name) noexcept
+
+   The default seed of an effect on a control: FNV-1a over the control's stable ID, a separator and the effect's name, so runs, tests and motion checksums reproduce. An application may set its own (effect_seed).
+
+.. cpp:function:: constexpr double effect_fraction(double x) noexcept
+
+   x minus the largest integer not above it, for x strictly between -2^52 and 2^52; 0 otherwise.
+
+.. cpp:function:: constexpr double effect_clamp(double x, double low, double high) noexcept
+
+.. cpp:function:: constexpr double effect_mix(double a, double b, double t) noexcept
+
+.. cpp:function:: constexpr double effect_smoothstep(double edge0, double edge1, double x) noexcept
+
+   0 below edge0, 1 above edge1, u²(3 − 2u) between; equal edges give 0.
+
+.. cpp:function:: inline double effect_sine(double x) noexcept
+
+   The sine of x radians (engine_sine_cosine: the same bits on every host).
+
+.. cpp:function:: constexpr Color effect_faded(Color color, double factor) noexcept
+
+   A colour with its alpha scaled by ``factor``, clamped to [0, 1].
+
+.. cpp:function:: constexpr std::string_view effect_time_model_name(EffectTimeModel model) noexcept
+
+   The names the control schema and the effect_input property spell these with.
+
+.. cpp:function:: constexpr std::string_view effect_input_name(EffectInputKind input) noexcept
+
+.. cpp:var:: constexpr std::uint32_t effect_ticks_per_second
+
+   The fixed tick every effect's time advances by: 1/60 s (owner decision 4(a)). Ticks are counted from the engine clock, never the wall clock. Value: ``60U``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_effect_ticks_per_frame
+
+   The most ticks one frame advances (owner decision 2(a)); a longer stall skips the rest, and the skip is counted. Value: ``4U``.
+
+.. cpp:var:: constexpr std::size_t maximum_effect_input_events
+
+   The most input events one frame carries; the rest are counted, not kept. Value: ``8U``.
+
+.. cpp:var:: constexpr std::size_t maximum_effect_gradient_stops
+
+   The most stops an effect's gradient holds. Value: ``6U``.
+
+.. cpp:var:: constexpr std::size_t maximum_effect_state_bytes
+
+   The largest state any effect may declare, in bytes. Value: ``16384U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/engine/effect_canvas/effect_canvas.hpp>``
+
+.. cpp:var:: constexpr std::size_t maximum_effect_save_depth
+
+   The deepest the canvas's save stack goes; a deeper save is refused. Value: ``4U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+.. cpp:function:: template <typename Effect> requires EffectProgram<Effect> constexpr EffectEntry make_effect_entry() noexcept
+
+   The generated table entry of one effect type. Its state must fit the budget it declares, and that budget the toolkit's maximum.
+
+.. cpp:function:: const EffectRegistry& built_in_effect_registry()
+
+   The registry of the toolkit's own effects, filled on first use (defined with the controls that host them).
+
+.. cpp:function:: bool effect_verification_recorded(std::string_view name, std::size_t state_size, const void* run_thunk) noexcept
+
+   Whether the effect pass of the gui_forms Clang plugin verified the effect named ``name``, of ``state_size`` bytes, whose run thunk is ``run_thunk``: a record naming it with that state size is in the binary holding that code (design note §2). A record of another size (another build's effect of the same name) does not count.
+
+.. cpp:function:: EffectLoadDiagnostics effect_load_diagnostics() noexcept
+
+.. cpp:var:: constexpr std::size_t maximum_registered_effects
+
+   The most effect types one registry holds. Value: ``64U``.
+
+.. cpp:var:: constexpr double maximum_effect_outset
+
+   The farthest an effect may draw outside its part, in logical units. Value: ``64.0``.
 
 .. cpp:namespace:: gui_forms
 

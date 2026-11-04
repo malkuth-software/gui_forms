@@ -1,6 +1,7 @@
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 
 #include "../menu/menu_utilities.hpp"
+#include "strip_merge.hpp"
 #include "../scrollable_control/scrolling_utilities.hpp"
 
 #include "gui_forms/basic_controls.hpp"
@@ -132,6 +133,15 @@ void ToolStrip::on_dispose() noexcept {
 void ToolStrip::validate_items(const std::vector<ToolStripItemSpec>&) const {}
 
 void ToolStrip::set_items(std::vector<ToolStripItemSpec> items) {
+    apply_items(std::move(items), false);
+}
+
+void ToolStrip::set_allow_merge(bool allow) {
+    require_mutable();
+    allow_merge_ = allow;
+}
+
+void ToolStrip::apply_items(std::vector<ToolStripItemSpec> items, bool merged) {
     require_mutable();
     validate_items(items);
     std::unordered_set<std::string> item_ids{};
@@ -157,14 +167,17 @@ void ToolStrip::set_items(std::vector<ToolStripItemSpec> items) {
         if (!std::isfinite(item.width) || item.width < 0.0 || item.width > maximum_hosted_width) {
             throw std::invalid_argument("ToolStrip item width must be finite and between 0 and 1024");
         }
-        if (has_menu(item.kind) != !item.drop_down.empty()) {
+        // Only a menu item has a menu; a merge may leave it empty.
+        const bool stray_menu = !has_menu(item.kind) && !item.drop_down.empty();
+        const bool missing_menu = has_menu(item.kind) && item.drop_down.empty() && !merged;
+        if (stray_menu || missing_menu) {
             throw std::invalid_argument(
                 "ToolStrip drop-down and split buttons require a menu, and other items have none");
         }
         if (!item.drop_down.empty()) {
             std::unordered_set<std::string> identities{};
             std::size_t count{};
-            menu_detail::validate_specs(item.drop_down, identities, 1U, count);
+            menu_detail::validate_specs(item.drop_down, identities, 1U, count, merged);
             collect_menu_ids(item.drop_down, menu_ids);
         }
     }
@@ -949,12 +962,15 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     }
     const std::optional<std::size_t> index = index_of(item_id);
     if (!index || !has_menu(items_[*index].kind) || !item_interactive(*index) || !attached_window()) return false;
+    // A merge may have left the menu empty, or holding only empty submenus.
+    std::vector<MenuItemSpec> menu = menu_detail::prune_empty_submenus(items_[*index].drop_down);
+    if (menu.empty()) return false;
     const Layout placed = layout();
     const Rect bounds = placed.items[*index];
     if (bounds.empty()) return false;
     if (open_index_ == index && (*popup_).is_open()) return true;
     close_drop_down();
-    (*popup_).set_items(items_[*index].drop_down);
+    (*popup_).set_items(std::move(menu));
     const Rect absolute = absolute_bounds();
     // A menu opens below an item, or beside it on a vertical strip.
     Point anchor{absolute.x + bounds.x, absolute.y + bounds.y + bounds.height};
@@ -975,8 +991,10 @@ std::vector<MenuItemSpec> ToolStrip::overflow_menu() const {
         if (item.kind == ToolStripItemKind::separator) {
             menu.emplace_back(item.stable_id, MenuItemKind::separator);
         } else if (has_menu(item.kind)) {
+            std::vector<MenuItemSpec> shown = menu_detail::prune_empty_submenus(item.drop_down);
+            if (shown.empty()) continue;
             menu.emplace_back(item.stable_id, MenuItemKind::submenu, nullptr,
-                              text.empty() ? item.stable_id : text, item.drop_down);
+                              text.empty() ? item.stable_id : text, std::move(shown));
         } else if (item.kind == ToolStripItemKind::button) {
             // A button without a command gets a private one for the menu
             // row; choosing the row clicks the button.

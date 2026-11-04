@@ -73,8 +73,8 @@ jobs:
             gui_forms/third_party/harfbuzz
             gui_forms/third_party/freetype
             gui_forms/third_party/libunibreak
-            .build/native-linux-x64/gui-forms/_deps/gui_forms_miniaudio-src
-          key: gui-deps-v3-linux-x64-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
+            gui_forms/third_party/miniaudio
+          key: gui-deps-v4-${{ runner.os }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
       - name: Configure compiler cache
         run: |
           echo "CCACHE_DIR=$PWD/.ccache-profile" >> "$GITHUB_ENV"

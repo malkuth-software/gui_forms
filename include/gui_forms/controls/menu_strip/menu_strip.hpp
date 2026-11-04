@@ -20,12 +20,23 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
 namespace gui_forms {
+
+namespace detail {
+struct MenuStripMergeHistory;
+class StripMergeAccess;
+}
+
 struct MenuStripItemSpec final {
     std::string stable_id{};
     GUI_FORMS_LOCALIZABLE(text) std::string text{};
     std::vector<MenuItemSpec> items{};
     bool enabled{true};
     bool visible{true};
+    // How the menu joins another menu strip when its strip merges
+    // (MergeAction, merge_strips), and its position there; none matches by
+    // text only.
+    MergeAction merge_action{MergeAction::append};
+    std::optional<std::size_t> merge_index{};
 };
 
 struct MenuStripInvocation final {
@@ -53,6 +64,10 @@ public:
     void set_item_padding(double padding);
     [[nodiscard]] FontSpec font() const noexcept { return font_; }
     void set_font(FontSpec font);
+    // Whether the strip takes part in merging, as source or target
+    // (Windows Forms' AllowMerge; merge_strips). On by default.
+    [[nodiscard]] bool allow_merge() const noexcept { return allow_merge_; }
+    void set_allow_merge(bool allow);
     [[nodiscard]] std::optional<std::size_t> active_index() const noexcept {
         return active_index_;
     }
@@ -128,6 +143,9 @@ protected:
     [[nodiscard]] std::size_t realized_item_index(std::size_t item) const noexcept;
 
 private:
+    friend class detail::StripMergeAccess;
+    // set_items' work; a merge may leave a menu empty.
+    void apply_items(std::vector<MenuStripItemSpec> items, bool merged);
     [[nodiscard]] std::vector<Rect> item_bounds() const;
     [[nodiscard]] double preferred_height() const;
     [[nodiscard]] std::optional<std::size_t> index_at(Point window_point) const;
@@ -147,6 +165,9 @@ private:
     bool focused_{};
     bool switching_{};
     bool use_mnemonic_{true};
+    bool allow_merge_{true};
+    // The merges into this strip, oldest first; none until the first.
+    std::unique_ptr<detail::MenuStripMergeHistory> merge_history_{};
     double item_padding_{11.0};
     FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
     SubscriptionToken popup_invoked_{};

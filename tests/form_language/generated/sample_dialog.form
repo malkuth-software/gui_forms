@@ -1,0 +1,30 @@
+/* The form compiler's golden document (stage FD, phase FD5): a form root
+   with the window's title, client size and buttons; nested controls; a
+   component; handlers on controls and on the component; values of several
+   kinds (fonts and text items among them), and a title outside ASCII. */
+form sample.dialog {
+  text: "Réglages";
+  client-size: 480 320;
+  accept-button: "sample.ok";
+  cancel-button: "sample.cancel";
+
+  user-control sample.root {
+    back-color: #336699;
+    padding: 4 8;
+    group-box sample.general {
+      tab-index: 0;
+      check-box sample.general.auto-save {
+        text: "Save automatically";
+        checked: true;
+        tab-index: 0;
+        on-checked-changed: auto_save_changed;
+      }
+    }
+    button sample.ok { text: "OK"; tab-index: 1; anchor: top right; on-clicked: accept; }
+    button sample.cancel { text: "Cancel"; tab-index: 2; on-clicked: dismiss; }
+    list-box sample.modes { items: "AM" "FM" "Wide FM"; tab-index: 3; }
+    domain-up-down sample.band { items: "HF" "VHF" "UHF"; tab-index: 4; }
+    label sample.heading { text: "Bands"; font: control 14 700 italic; }
+  }
+  command sample.save { on-invoked: save; }
+}

@@ -450,6 +450,30 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status interaction_count(uint64_t* count) const noexcept {
+        if (table_.struct_size < 40u || table_.interaction_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.interaction_count(count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status interaction_at(uint64_t interaction, gf_schema_interaction* record) const noexcept {
+        if (table_.struct_size < 48u || table_.interaction_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.interaction_at(interaction, record);
+        return called;
+    }
+
+    [[nodiscard]] gf_status request_help(gf_object window, uint32_t* handled) const noexcept {
+        if (table_.struct_size < 56u || table_.request_help == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.request_help(window, handled);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };
@@ -625,6 +649,22 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.parameter_choice_at(primitive, parameter, choice, name);
+        return called;
+    }
+
+    [[nodiscard]] gf_status effect_count(uint64_t* count) const noexcept {
+        if (table_.struct_size < 152u || table_.effect_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.effect_count(count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status effect_at(uint64_t effect, gf_schema_effect* record) const noexcept {
+        if (table_.struct_size < 160u || table_.effect_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.effect_at(effect, record);
         return called;
     }
 

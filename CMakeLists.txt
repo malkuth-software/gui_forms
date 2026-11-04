@@ -28,6 +28,61 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 option(GUI_FORMS_BUILD_GALLERY "Build the native control gallery" ${PROJECT_IS_TOP_LEVEL})
 option(GUI_FORMS_BUILD_TESTS "Build automated proving-slice tests" ${PROJECT_IS_TOP_LEVEL})
+# The Gallery model (the control specimen catalogue: gui_forms_gallery_model)
+# apart from the programs. GUI.Forms' own checks read it (the schema export,
+# anatomy coverage, the Gallery page, interaction and accessibility tests),
+# so it builds with the tests; the programs (GUI_FORMS_BUILD_GALLERY) link it.
+option(GUI_FORMS_BUILD_GALLERY_MODEL "Build the Gallery model and the tests that read it" ${GUI_FORMS_BUILD_TESTS})
+option(GUI_FORMS_INSTALL_GALLERY_MODEL "Install the Gallery model as the GalleryModel package component" OFF)
+
+# Tests that open native windows which take focus, capture or activation fall
+# in two groups, by what they need from the desktop:
+# - `foreground`: a desktop of their own is enough. On a development machine
+#   they run on a private desktop of the same window station (projects
+#   tools/run_on_desktop.py), where nothing is ever foreground, so they never
+#   take the user's foreground and may run in parallel, without a lock.
+# - `input_desktop`: they need the desktop the user sees. The UI Automation
+#   and MSAA clients (off the input desktop every UI Automation pattern call
+#   waits 2 s inside UIAutomationCore) and the compositor probe (DWM does not
+#   composite another desktop). They carry the desktop_foreground resource
+#   lock, which serializes them within one ctest run; across ctest runs
+#   (several workers on one machine) a launcher holds a machine-wide lock.
+# Each group has a launcher, a CMake list run in front of the test executable
+# (CMake 3.29 or later, for TEST_LAUNCHER). The cache value wins; when it is
+# empty, the environment variable of the same name is read at every
+# configure. For example:
+#   GUI_FORMS_FOREGROUND_LAUNCHER="python;-B;D:/malkuth/projects/tools/run_on_desktop.py;--"
+#   GUI_FORMS_INPUT_DESKTOP_LAUNCHER="python;-B;D:/malkuth/projects/tools/foreground_lock.py;--"
+# CI leaves both empty: each runner has a desktop of its own.
+set(GUI_FORMS_FOREGROUND_LAUNCHER "" CACHE STRING
+    "Command that runs a foreground test on a private desktop (empty: the environment's, else none)")
+set(GUI_FORMS_INPUT_DESKTOP_LAUNCHER "" CACHE STRING
+    "Command that runs an input-desktop test under a machine-wide lock (empty: the environment's, else none)")
+# Sets the TEST_LAUNCHER of test `test_name` (whose executable target has the
+# same name) from cache variable `variable`, or from the environment variable
+# of that name when the cache value is empty.
+function(gui_forms_desktop_launcher test_name variable)
+    set(launcher "${${variable}}")
+    if(NOT launcher)
+        set(launcher "$ENV{${variable}}")
+    endif()
+    if(NOT launcher)
+        return()
+    endif()
+    if(CMAKE_VERSION VERSION_LESS 3.29)
+        message(FATAL_ERROR "${variable} needs CMake 3.29 or later (TEST_LAUNCHER)")
+    endif()
+    set_property(TARGET ${test_name} PROPERTY TEST_LAUNCHER ${launcher})
+endfunction()
+function(gui_forms_foreground_test test_name)
+    set_property(TEST ${test_name} APPEND PROPERTY LABELS foreground)
+    gui_forms_desktop_launcher(${test_name} GUI_FORMS_FOREGROUND_LAUNCHER)
+endfunction()
+function(gui_forms_input_desktop_test test_name)
+    set_property(TEST ${test_name} APPEND PROPERTY LABELS input_desktop)
+    set_property(TEST ${test_name} APPEND PROPERTY RESOURCE_LOCK desktop_foreground)
+    gui_forms_desktop_launcher(${test_name} GUI_FORMS_INPUT_DESKTOP_LAUNCHER)
+endfunction()
 option(GUI_FORMS_BUILD_AUDIO "Build portable PCM audio service" OFF)
 set(GUI_FORMS_AUDIO_VORBIS_BACKEND "stx" CACHE STRING "Ogg decoder: stx (default) or stb")
 set_property(CACHE GUI_FORMS_AUDIO_VORBIS_BACKEND PROPERTY STRINGS stx stb)
@@ -49,6 +104,19 @@ option(GUI_FORMS_ENABLE_HARFBUZZ_TEXT
        "Build the pinned HarfBuzz/FreeType text engine"
        ${GUI_FORMS_HARFBUZZ_TEXT_DEFAULT})
 option(GUI_FORMS_BUILD_FUZZERS "Build libFuzzer entry points" OFF)
+# Stage FD5: the program that generates a form document's C++ header; the SDK
+# installs it. A cross build has no host to run it on.
+if(CMAKE_CROSSCOMPILING)
+    set(GUI_FORMS_FORM_COMPILER_DEFAULT OFF)
+else()
+    set(GUI_FORMS_FORM_COMPILER_DEFAULT ON)
+endif()
+option(GUI_FORMS_BUILD_FORM_COMPILER "Build and install the form compiler" ${GUI_FORMS_FORM_COMPILER_DEFAULT})
+# The tests whose form header the form compiler generates at build time
+# (gui_forms_add_form). The state-machine gate turns them off: it parses
+# sources syntax-only and builds only generated headers, and this header
+# would make it compile and link the whole library to run the compiler.
+option(GUI_FORMS_BUILD_GENERATED_FORM_TESTS "Build the tests that generate a form header at build time" ON)
 option(GUI_FORMS_BUILD_BENCHMARKS "Build measurement harnesses" OFF)
 option(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK "Build the renderer-neutral D1 measurement harness" OFF)
 option(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE "Build the private text shaping diagnostic" OFF)
@@ -216,6 +284,8 @@ add_library(gui_forms_core STATIC
     src/core/engine/theme_rules/built_in_rules.cpp
     src/core/engine/motion_value/motion_value.cpp
     src/core/engine/motion_clock/motion_clock.cpp
+    src/core/engine/effect_canvas/effect_canvas.cpp
+    src/core/engine/effect_registry/effect_registry.cpp
     src/core/surface_material/colour_matrix/colour_matrix.cpp
     src/core/surface_material/material_fill_layer/material_fill_layer.cpp
     src/core/surface_material/presets/material_presets.cpp
@@ -270,6 +340,10 @@ add_library(gui_forms_core STATIC
     src/core/theme_language/tokenizer/theme_tokenizer.cpp
     src/core/theme_language/syntax_tree/theme_syntax_tree.cpp
     src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
+    src/core/form_language/form_model/form_model.cpp
+    src/core/form_language/form_loader/form_loader.cpp
+    src/core/form_language/form_editor/form_editor.cpp
+    src/core/form_language/form_generator/form_generator.cpp
     src/core/theme_language/selector/theme_selector.cpp
     src/core/theme_language/custom_properties/theme_custom_properties.cpp
     src/core/theme_language/value/theme_value.cpp
@@ -316,6 +390,7 @@ add_library(gui_forms_core STATIC
     src/core/display/replay/replay_display_chunk.cpp
     src/core/dispatcher/operation/dispatch_operation.cpp
     src/core/dispatcher/state/post_dispatch.cpp
+    src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
     src/core/window/dispatcher/window_dispatcher.cpp
@@ -686,6 +761,7 @@ add_library(gui_forms_controls STATIC
     src/controls/menu/context_menu/context_menu.cpp
     src/controls/menu/menu_strip/menu_strip.cpp
     src/controls/tool_strip/tool_strip.cpp
+    src/controls/tool_strip/strip_merge.cpp
     src/controls/pages/navigation_pane/navigation_pane.cpp
     src/controls/quick_access_toolbar/quick_access_toolbar.cpp
     src/controls/quick_access_toolbar/ribbon_state.cpp
@@ -799,9 +875,13 @@ add_library(gui_forms_controls STATIC
     src/controls/guidance/help_provider/help_provider.cpp
     src/controls/panel/material_panel/material_panel.cpp
     src/controls/range_control/range_control_rendering.cpp
+    src/controls/range_control/progress_bar/progress_bar_effects.cpp
     src/controls/range_control/range_control.cpp
     src/controls/range_control/track_bar/track_bar.cpp
     src/controls/range_control/progress_bar/progress_bar.cpp
+    src/controls/instruments/sweep_scope/sweep_scope.cpp
+    src/controls/instruments/sweep_scope/sweep_scope_effects.cpp
+    src/controls/built_in_effect_registry/built_in_effect_registry.cpp
     src/controls/range_control/scroll_bar/scroll_bar.cpp
     src/controls/range_control/scroll_bar/h_scroll_bar/h_scroll_bar.cpp
     src/controls/range_control/scroll_bar/v_scroll_bar/v_scroll_bar.cpp
@@ -819,6 +899,34 @@ target_include_directories(gui_forms_controls PUBLIC
 target_link_libraries(gui_forms_controls PUBLIC gui_forms_core gui_drawing_core)
 set_target_properties(gui_forms_controls gui_forms_host_headless PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
+# The files that register effect programs, verified by the plugin's effect
+# pass (cmake/LocalizablePlugin.cmake, gui_forms_verify_effects).
+gui_forms_verify_effects(gui_forms_controls
+    SOURCES src/controls/range_control/progress_bar/progress_bar_effects.cpp
+            src/controls/instruments/sweep_scope/sweep_scope_effects.cpp)
+
+if(GUI_FORMS_BUILD_FORM_COMPILER)
+    # The form compiler (stage FD5): a form document's C++ header, generated
+    # with the loader's parser, model and registry schema.
+    add_executable(gui_forms_form_compiler
+        tools/form_compiler/form_compiler.cpp
+        tools/form_compiler/form_catalog.cpp
+    )
+    target_link_libraries(gui_forms_form_compiler PRIVATE gui_forms_controls)
+    set_target_properties(gui_forms_form_compiler PROPERTIES EXPORT_NAME form_compiler)
+    add_executable(GUIForms::form_compiler ALIAS gui_forms_form_compiler)
+    # Its own export set, so a build without it installs no reference to it.
+    install(TARGETS gui_forms_form_compiler EXPORT GUIFormsFormCompilerTargets
+            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+    install(EXPORT GUIFormsFormCompilerTargets
+            FILE GUIFormsFormCompilerTargets.cmake
+            NAMESPACE GUIForms::
+            DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+endif()
+# gui_forms_add_form(): form documents generated at build time, here and for
+# SDK consumers.
+include(cmake/GUIFormsForms.cmake)
+install(FILES cmake/GUIFormsForms.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
 add_library(gui_forms_c_api SHARED
     src/abi/c_api.cpp
@@ -1100,25 +1208,6 @@ if(GUI_FORMS_ENABLE_SKIA)
             ${gui_drawing_raster_fonts}
             "$<TARGET_FILE_DIR:gui_drawing_raster_c_api>/fonts"
         VERBATIM
-    )
-endif()
-
-if(APPLE)
-    find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
-    find_library(GUI_FORMS_COREGRAPHICS CoreGraphics REQUIRED)
-    find_library(GUI_FORMS_CORETEXT CoreText REQUIRED)
-    add_library(gui_forms_coregraphics STATIC
-        src/render/coregraphics/raster/coregraphics_raster.cpp
-    )
-    target_include_directories(gui_forms_coregraphics PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/render/coregraphics/raster
-    )
-    target_link_libraries(gui_forms_coregraphics
-        PUBLIC gui_forms_core
-        PRIVATE
-            ${GUI_FORMS_COREFOUNDATION}
-            ${GUI_FORMS_COREGRAPHICS}
-            ${GUI_FORMS_CORETEXT}
     )
 endif()
 
@@ -1434,7 +1523,7 @@ if(GUI_FORMS_BUILD_GALLERY OR (GUI_FORMS_BUILD_TESTS AND GUI_FORMS_ENABLE_MACOS_
 
 endif()
 
-if(GUI_FORMS_BUILD_GALLERY)
+if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # One demonstration program (decision F.1): the registry-driven Gallery.
     # gallery_pages.cpp holds the shell; the pages migrated from the retired
     # Complete Showcase live one per file under src/controls/gallery/pages/.
@@ -1476,16 +1565,40 @@ if(GUI_FORMS_BUILD_GALLERY)
         demo/gallery_model.cpp
     )
     target_include_directories(gui_forms_gallery_model PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}/demo
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/controls
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/demo>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/controls>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery>
     )
     target_compile_definitions(gui_forms_gallery_model PRIVATE
         GUI_FORMS_VERSION_STRING="${PROJECT_VERSION}")
-    target_link_libraries(gui_forms_gallery_model PUBLIC gui_forms_controls)
+    # Installed, the model names no GUI.Forms library: a program links it with
+    # GUIForms::Application and a headless test with GUIForms::Controls, so a
+    # process holds one engine (the SDK's linking rule).
+    target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
     # The Gallery is compiled with the localizable-literal plugin: its own
     # literals are the first table a translator reads.
     gui_forms_compile_with_localizable_plugin(gui_forms_gallery_model)
+    # GUIForms::GalleryModel, for the programs repository
+    # (malkuth-software/gui_forms_programs), which builds the Gallery
+    # executables against an installed SDK: the static model and its one
+    # entry header, gui_forms_gallery/gallery.hpp.
+    if(GUI_FORMS_INSTALL_GALLERY_MODEL)
+        set_target_properties(gui_forms_gallery_model PROPERTIES EXPORT_NAME GalleryModel)
+        install(TARGETS gui_forms_gallery_model
+                EXPORT GUIFormsGalleryModelTargets
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+        install(FILES demo/gallery.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery)
+        install(EXPORT GUIFormsGalleryModelTargets
+                FILE GUIFormsGalleryModelTargets.cmake
+                NAMESPACE GUIForms::
+                DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+    endif()
+endif()
+if(GUI_FORMS_INSTALL_GALLERY_MODEL AND NOT TARGET gui_forms_gallery_model)
+    message(FATAL_ERROR "GUI_FORMS_INSTALL_GALLERY_MODEL needs GUI_FORMS_BUILD_GALLERY_MODEL")
+endif()
 
+if(GUI_FORMS_BUILD_GALLERY)
     add_library(gui_forms_vsync_lab_model STATIC
         demo/vsync_lab.cpp
     )
@@ -1986,10 +2099,9 @@ if(TARGET gui_forms_application)
 endif()
 
 if(GUI_FORMS_BUILD_BENCHMARKS)
-    if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_coregraphics OR
-       NOT TARGET gui_forms_gallery_model)
+    if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
         message(FATAL_ERROR
-            "The current M2d renderer comparison requires macOS, Skia, CoreGraphics, and the Gallery model")
+            "The renderer benchmark requires macOS, Skia, and the Gallery model")
     endif()
     add_executable(gui_forms_renderer_benchmark
         benchmarks/renderer_benchmark.cpp
@@ -2001,13 +2113,11 @@ if(GUI_FORMS_BUILD_BENCHMARKS)
     target_link_libraries(gui_forms_renderer_benchmark PRIVATE
         gui_forms_gallery_model
         gui_forms_skia
-        gui_forms_coregraphics
     )
     add_custom_target(gui_forms_renderer_boundary_audit
         COMMAND ${CMAKE_COMMAND}
             -DCORE_LIBRARY=$<TARGET_FILE:gui_forms_core>
             -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
-            -DCOREGRAPHICS_ADAPTER=$<TARGET_FILE:gui_forms_coregraphics>
             -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
             -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
             -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia>
@@ -2415,6 +2525,23 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_drawing_trace_equivalence_tests
              COMMAND gui_drawing_trace_equivalence_tests)
 
+    # Public headers name no renderer or platform type; comments may
+    # (cmake/check_public_header_tokens.cmake). The fixtures prove a comment
+    # passes and a token in code fails.
+    add_test(NAME gui_forms_public_header_tokens
+             COMMAND ${CMAKE_COMMAND} -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_public_header_tokens.cmake)
+    add_test(NAME gui_forms_public_header_tokens_comments_pass
+             COMMAND ${CMAKE_COMMAND}
+                     -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/public_header_tokens/comments_only
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_public_header_tokens.cmake)
+    add_test(NAME gui_forms_public_header_tokens_code_fails
+             COMMAND ${CMAKE_COMMAND}
+                     -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/public_header_tokens/in_code
+                     -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_public_header_tokens.cmake)
+    set_tests_properties(gui_forms_public_header_tokens_code_fails PROPERTIES
+        PASS_REGULAR_EXPRESSION "exposes renderer/platform token: CGContext")
+
     add_test(
         NAME gui_drawing_renderer_boundary_audit
         COMMAND ${CMAKE_COMMAND}
@@ -2536,6 +2663,40 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_user_layer_tests tests/theme_user_layer_tests.cpp)
     target_link_libraries(gui_forms_theme_user_layer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_user_layer_tests COMMAND gui_forms_theme_user_layer_tests)
+    add_executable(gui_forms_effect_program_tests tests/effect_program_tests.cpp)
+    target_link_libraries(gui_forms_effect_program_tests PRIVATE gui_forms_controls)
+    if(GUI_FORMS_EFFECTS_VERIFIED)
+        target_compile_definitions(gui_forms_effect_program_tests PRIVATE GUI_FORMS_EFFECT_TEST_VERIFIED)
+    endif()
+    add_test(NAME gui_forms_effect_program_tests COMMAND gui_forms_effect_program_tests)
+    # The effect pass itself: each case under tests/effect_pass is an object
+    # library outside `all`, compiled by its test with the plugin (or, for
+    # `unverified`, without it), its diagnostics matched against the
+    # `// expect:` line at the head of the case. The tests run the build tool
+    # in this tree, so they take the tree's lock one at a time.
+    if(GUI_FORMS_EFFECTS_VERIFIED)
+        set(_gf_effect_cases
+            passes while_loop unbounded_for loop_variable_written recursion virtual_call function_pointer
+            allocation global_write cmath_call opaque_call pointer_state oversized_state over_budget unverified)
+        foreach(_gf_case IN LISTS _gf_effect_cases)
+            set(_gf_case_target gui_forms_effect_case_${_gf_case})
+            add_library(${_gf_case_target} OBJECT EXCLUDE_FROM_ALL tests/effect_pass/${_gf_case}.cpp)
+            # For the usage requirements only: with Ninja an object library's
+            # compiles do not wait for the libraries it links.
+            target_link_libraries(${_gf_case_target} PRIVATE gui_forms_controls)
+            if(_gf_case STREQUAL "unverified")
+                target_compile_definitions(${_gf_case_target} PRIVATE GUI_FORMS_EFFECTS_UNVERIFIED)
+            else()
+                gui_forms_compile_with_localizable_plugin(${_gf_case_target})
+            endif()
+            add_test(NAME gui_forms_effect_pass_${_gf_case}
+                     COMMAND ${CMAKE_COMMAND} -DBUILD_DIR=${CMAKE_BINARY_DIR} -DTARGET=${_gf_case_target}
+                             -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/tests/effect_pass/${_gf_case}.cpp
+                             -DOBJECT_DIR=CMakeFiles/${_gf_case_target}.dir
+                             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_effect_pass.cmake)
+            set_tests_properties(gui_forms_effect_pass_${_gf_case} PROPERTIES RESOURCE_LOCK gui_forms_build_tree)
+        endforeach()
+    endif()
     add_executable(gui_forms_motion_clock_tests tests/motion_clock_tests.cpp)
     target_link_libraries(gui_forms_motion_clock_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_motion_clock_tests COMMAND gui_forms_motion_clock_tests)
@@ -2672,6 +2833,8 @@ if(GUI_FORMS_BUILD_TESTS)
     endif()
     add_executable(gui_forms_owned_event_lab tools/owned_event_lab.cpp)
     target_link_libraries(gui_forms_owned_event_lab PRIVATE gui_forms_core)
+    add_executable(gui_forms_property_capability_lab tools/property_capability_lab.cpp)
+    target_link_libraries(gui_forms_property_capability_lab PRIVATE gui_forms_controls)
 
     add_executable(gui_forms_delegate_event_tests tests/delegate_event_tests.cpp)
     target_link_libraries(gui_forms_delegate_event_tests PRIVATE gui_forms_core)
@@ -2770,6 +2933,54 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_syntax_tests tests/theme_language/theme_syntax_tests.cpp)
     target_link_libraries(gui_forms_theme_syntax_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_syntax_tests COMMAND gui_forms_theme_syntax_tests)
+    add_executable(gui_forms_form_syntax_tests tests/form_language/form_syntax_tests.cpp)
+    target_link_libraries(gui_forms_form_syntax_tests PRIVATE gui_forms_core)
+    target_compile_definitions(gui_forms_form_syntax_tests PRIVATE
+        GUI_FORMS_FORM_CORPUS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/corpus")
+    add_test(NAME gui_forms_form_syntax_tests COMMAND gui_forms_form_syntax_tests)
+    add_executable(gui_forms_form_model_tests tests/form_language/form_model_tests.cpp)
+    target_link_libraries(gui_forms_form_model_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_model_tests COMMAND gui_forms_form_model_tests)
+    add_executable(gui_forms_form_loader_tests tests/form_language/form_loader_tests.cpp)
+    target_link_libraries(gui_forms_form_loader_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_loader_tests COMMAND gui_forms_form_loader_tests)
+    add_executable(gui_forms_form_editor_tests tests/form_language/form_editor_tests.cpp)
+    target_link_libraries(gui_forms_form_editor_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_form_editor_tests COMMAND gui_forms_form_editor_tests)
+    add_executable(gui_forms_form_generator_tests tests/form_language/form_generator_tests.cpp
+        tools/form_compiler/form_catalog.cpp)
+    target_link_libraries(gui_forms_form_generator_tests PRIVATE gui_forms_controls)
+    target_compile_definitions(gui_forms_form_generator_tests PRIVATE
+        GUI_FORMS_FORM_GENERATED_DIR="${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated")
+    add_test(NAME gui_forms_form_generator_tests COMMAND gui_forms_form_generator_tests)
+    if(TARGET gui_forms_form_compiler)
+        # The program end to end: the golden header is current, and a
+        # document it cannot spell is refused with a located E812.
+        add_test(NAME gui_forms_form_compiler_tests
+            COMMAND gui_forms_form_compiler
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated/sample_dialog.form
+                --class SampleDialogForm --namespace form_generated --check
+                --output ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated/sample_dialog_form.hpp)
+        add_test(NAME gui_forms_form_compiler_refusal_tests
+            COMMAND gui_forms_form_compiler
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language/generated/refused_dialog.form
+                --class RefusedForm --check --output refused_dialog_form.hpp)
+        set_tests_properties(gui_forms_form_compiler_refusal_tests PROPERTIES
+            PASS_REGULAR_EXPRESSION "E812 form_generation_refused: refused-ok")
+        if(GUI_FORMS_BUILD_GENERATED_FORM_TESTS)
+            # gui_forms_add_form end to end: a header generated at build time,
+            # naming an application type.
+            add_executable(gui_forms_form_application_type_tests
+                tests/form_language/form_application_type_tests.cpp tools/form_compiler/form_catalog.cpp)
+            target_link_libraries(gui_forms_form_application_type_tests PRIVATE gui_forms_controls)
+            target_include_directories(gui_forms_form_application_type_tests PRIVATE
+                ${CMAKE_CURRENT_SOURCE_DIR}/tests/form_language)
+            gui_forms_add_form(gui_forms_form_application_type_tests tests/form_language/generated/note_dialog.form
+                CLASS NoteDialogForm NAMESPACE form_generated
+                TYPES "note_card,form_generated::NoteCard,user_control,generated/note_card.hpp")
+            add_test(NAME gui_forms_form_application_type_tests COMMAND gui_forms_form_application_type_tests)
+        endif()
+    endif()
 
     add_executable(gui_forms_theme_selector_tests tests/theme_language/theme_selector_tests.cpp)
     target_link_libraries(gui_forms_theme_selector_tests PRIVATE gui_forms_core)
@@ -3043,6 +3254,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_tool_strip_tests tests/tool_strip_tests.cpp)
     target_link_libraries(gui_forms_tool_strip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_tool_strip_tests COMMAND gui_forms_tool_strip_tests)
+    add_executable(gui_forms_strip_merge_tests tests/strip_merge_tests.cpp)
+    target_link_libraries(gui_forms_strip_merge_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_strip_merge_tests COMMAND gui_forms_strip_merge_tests)
+    add_executable(gui_forms_sweep_scope_tests tests/sweep_scope_tests.cpp)
+    target_link_libraries(gui_forms_sweep_scope_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_sweep_scope_tests COMMAND gui_forms_sweep_scope_tests)
     add_executable(gui_forms_event_payload_lifetime_tests tests/event_payload_lifetime_tests.cpp)
     target_link_libraries(gui_forms_event_payload_lifetime_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_event_payload_lifetime_tests COMMAND gui_forms_event_payload_lifetime_tests)
@@ -3740,17 +3957,15 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_layered_material_lab_tests
                  COMMAND gui_forms_layered_material_lab_tests)
 
-        if(APPLE AND TARGET gui_forms_skia AND TARGET gui_forms_coregraphics)
+        if(TARGET gui_forms_skia)
             add_executable(gui_forms_layered_material_raster_tests
                 tests/layered_material_raster_tests.cpp)
             target_include_directories(gui_forms_layered_material_raster_tests PRIVATE
                 ${CMAKE_CURRENT_SOURCE_DIR}/demo
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster
-                ${CMAKE_CURRENT_SOURCE_DIR}/src/render/coregraphics/raster)
+                ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster)
             target_link_libraries(gui_forms_layered_material_raster_tests PRIVATE
                 gui_forms_layered_material_lab_model
-                gui_forms_skia
-                gui_forms_coregraphics)
+                gui_forms_skia)
             add_test(NAME gui_forms_layered_material_raster_tests
                      COMMAND gui_forms_layered_material_raster_tests)
         endif()
@@ -4194,36 +4409,12 @@ if(GUI_FORMS_BUILD_TESTS)
                  COMMAND gui_drawing_raster_c_api_tests)
     endif()
 
-    if(TARGET gui_forms_coregraphics)
-        add_executable(gui_forms_coregraphics_smoke
-            src/render/coregraphics/coregraphics_raster_smoke.cpp
-        )
-        target_compile_definitions(gui_forms_coregraphics_smoke PRIVATE
-            GUI_FORMS_TEST_CONTROL_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf"
-        )
-        target_link_libraries(gui_forms_coregraphics_smoke PRIVATE
-            gui_forms_coregraphics
-        )
-        add_test(NAME gui_forms_coregraphics_smoke
-                 COMMAND gui_forms_coregraphics_smoke)
-
-        add_executable(gui_forms_coregraphics_raster_edge_snapping_tests
-            tests/coregraphics_raster_edge_snapping_tests.cpp)
-        target_include_directories(gui_forms_coregraphics_raster_edge_snapping_tests PRIVATE
-            ${CMAKE_CURRENT_SOURCE_DIR}/src/render/coregraphics/raster)
-        target_link_libraries(gui_forms_coregraphics_raster_edge_snapping_tests PRIVATE
-            gui_forms_coregraphics)
-        add_test(NAME gui_forms_coregraphics_raster_edge_snapping_tests
-                 COMMAND gui_forms_coregraphics_raster_edge_snapping_tests)
-    endif()
-
     if(TARGET gui_forms_renderer_benchmark)
         add_test(
             NAME gui_forms_renderer_boundary_audit
             COMMAND ${CMAKE_COMMAND}
                 -DCORE_LIBRARY=$<TARGET_FILE:gui_forms_core>
                 -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
-                -DCOREGRAPHICS_ADAPTER=$<TARGET_FILE:gui_forms_coregraphics>
                 -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
                 -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
                 -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia>
@@ -4733,11 +4924,10 @@ if(gui_forms_font_programs)
 endif()
 
 # The targets that compile the red/blue swap loops' replacements link stx_skia::swizzle: the
-# core (material images), the controls (the raster canvas), the CoreGraphics raster, the
-# Windows drawing C API, and the Windows host with the tests that compile windows_host.cpp,
-# the last six by including it textually.
+# core (material images), the controls (the raster canvas), the Windows drawing C API, and
+# the Windows host with the tests that compile windows_host.cpp, the last six by including it textually.
 foreach(gui_forms_swizzle_target IN ITEMS gui_forms_core gui_forms_controls
-        gui_forms_coregraphics gui_drawing_c_api gui_forms_host_windows
+        gui_drawing_c_api gui_forms_host_windows
         gui_forms_windows_dib_lifecycle_tests gui_forms_windows_tooltip_tests
         gui_forms_windows_prepared_text_tests gui_forms_windows_backplane_replay_tests
         gui_forms_windows_canvas_raster_tests gui_forms_windows_content_pixels_tests
@@ -4778,3 +4968,27 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         endif()
     endforeach()
 endif()
+
+# The foreground and input-desktop tests (gui_forms_foreground_test and
+# gui_forms_input_desktop_test, above), on the hosts that build them.
+foreach(gui_forms_foreground_name IN ITEMS
+        gui_forms_application_native_tests
+        gui_forms_gallery_interaction_tests
+        gui_forms_windows_accessibility_tests
+        gui_forms_windows_dib_lifecycle_tests
+        gui_forms_windows_prepared_text_tests
+        gui_forms_windows_tooltip_tests)
+    if(TEST ${gui_forms_foreground_name})
+        gui_forms_foreground_test(${gui_forms_foreground_name})
+    endif()
+endforeach()
+foreach(gui_forms_input_desktop_name IN ITEMS
+        gui_forms_windows_accessibility_msaa_gallery_tests
+        gui_forms_windows_accessibility_uia_gallery_tests
+        gui_forms_windows_accessibility_uia_provider_tests
+        gui_forms_windows_accessibility_uia_text_tests
+        gui_forms_windows_compositor_probe)
+    if(TEST ${gui_forms_input_desktop_name})
+        gui_forms_input_desktop_test(${gui_forms_input_desktop_name})
+    endif()
+endforeach()

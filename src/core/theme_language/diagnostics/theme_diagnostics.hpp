@@ -164,6 +164,37 @@ enum class DiagnosticCode : std::uint16_t {
     // E7xx reserved names: a theme that defines an engine input or a
     // published value (R2-06).
     reserved_input_set = 701,
+    // E8xx form documents (stage FD, phase FD2): the document is refused
+    // before anything is built, every defect reported.
+    // A form document whose top level is not exactly one object (stage FD).
+    form_root_invalid = 801,
+    // An object whose type the form schema does not list.
+    form_type_unknown = 802,
+    // A stable ID written on two objects of one document.
+    form_identity_repeated = 803,
+    // A property, or an `on-` handler's interaction, that the object's type
+    // does not list.
+    form_property_unknown = 804,
+    // A property the object's type does not let a document set.
+    form_property_read_only = 805,
+    // A property or handler written twice in one object's block.
+    form_member_repeated = 806,
+    // A value that is not one of the forms the property's kind admits, or
+    // that the property refuses.
+    form_value_invalid = 807,
+    // A handler reference that is not one C++ identifier.
+    form_handler_invalid = 808,
+    // An object inside an object whose type holds no children.
+    form_children_not_admitted = 809,
+    // A second style block in one object's block.
+    form_style_repeated = 810,
+    // A value, a child or an object the run-time types refuse while a form
+    // loads (FD3): the detail is the refusal. Nothing loaded is kept.
+    form_load_refused = 811,
+    // An object, value or handler the C++ generator cannot spell (FD5): a
+    // type without a C++ name, a stable ID that is no member name or that
+    // spells another's, a reserved handler name. Nothing is generated.
+    form_generation_refused = 812,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the

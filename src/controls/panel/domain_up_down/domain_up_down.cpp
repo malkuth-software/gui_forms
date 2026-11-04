@@ -2,6 +2,8 @@
 
 #include "../up_down/spin_buttons.hpp"
 #include "../panel_anatomy.hpp"
+#include "../text_items_property.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -63,6 +65,34 @@ DomainUpDown::DomainUpDown(StableId stable_id) : Panel(std::move(stable_id)) {
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     set_border_style(BorderStyle::line);
     set_background(style().paper);
+    PropertyRegistration items_registration;
+    items_registration.descriptor = text_items_property::descriptor("Ordered text items the spinner steps through.");
+    items_registration.get =
+        detail::BoundMemberFunction<BindingValue (DomainUpDown::*)() const>(*this, &DomainUpDown::items_property_value);
+    items_registration.set =
+        detail::BoundMemberFunction<void (DomainUpDown::*)(const BindingValue&)>(*this, &DomainUpDown::set_items_property);
+    items_registration.reset = detail::BoundMemberFunction<void (DomainUpDown::*)()>(*this, &DomainUpDown::reset_items_property);
+    items_registration.should_serialize = detail::BoundMemberFunction<bool (DomainUpDown::*)() const noexcept>(
+        *this, &DomainUpDown::should_serialize_items_property);
+    define_bindable_property(std::move(items_registration));
+}
+
+BindingValue DomainUpDown::items_property_value() const {
+    BindingValue value = text_items_property::value_of(items_);
+    return value;
+}
+
+void DomainUpDown::set_items_property(const BindingValue& value) {
+    std::vector<std::string> items = text_items_property::items_of(value, "DomainUpDown");
+    set_items(std::move(items));
+}
+
+void DomainUpDown::reset_items_property() {
+    set_items({});
+}
+
+bool DomainUpDown::should_serialize_items_property() const noexcept {
+    return !items_.empty();
 }
 
 DomainUpDown::~DomainUpDown() {

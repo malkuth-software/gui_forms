@@ -194,13 +194,16 @@ void test_progress_animation_damages_what_moves() {
         StripePainter painter;
         (*progress).on_paint(painter, {0.0, 0.0, 240.0, 20.0});
         static_cast<void>(window.take_damage());
-        const double before = (*progress).animation_phase();
-        const FramePollResult frame = window.poll_frame_schedule(*window.next_wake());
+        const std::uint64_t before = (*progress).effect_instance().counters().ticks;
+        static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
         const DamageRegion damage = window.take_damage();
         const Rect bounds = damage.bounds();
+        // The stripes are an effect program on the motion clock: its frame
+        // makes ticks due, which the next paint runs.
+        StripePainter after;
+        (*progress).on_paint(after, {0.0, 0.0, 240.0, 20.0});
         // The fill is the left half of the 236-pixel interior, inset 2.
-        require(frame.ui_timer_ticks == 1U &&
-                    (*progress).animation_phase() > before && !bounds.empty() &&
+        require((*progress).effect_instance().counters().ticks > before && !bounds.empty() &&
                     bounds.x >= 1.0 && bounds.x + bounds.width <= 121.0 &&
                     bounds.y >= 1.0 && bounds.y + bounds.height <= 19.0 &&
                     window.next_wake().has_value(),
@@ -386,12 +389,27 @@ void test_progress_animation_and_hidden_suspension() {
             "static progress style must revoke its retained frame source");
 
     (*progress).set_overlay_style(ProgressBarOverlayStyle::moving_stripes);
+    // The stripes are an effect program: the bar's paint enlists them on the
+    // window's motion clock.
+    StripePainter striped_painter;
+    (*progress).on_paint(striped_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(),
             "moving stripes must animate a determinate progress style");
     (*progress).set_animation_enabled(false);
     require(!window.next_wake().has_value() && (*progress).animation_phase() == 0.0,
             "disabled stripe motion must paint statically without an idle wake");
     (*progress).set_animation_enabled(true);
+    (*progress).set_animation_paused(true);
+    require(!window.next_wake().has_value(), "paused stripes must leave the motion clock");
+    (*progress).set_animation_paused(false);
+    StripePainter resumed_painter;
+    (*progress).on_paint(resumed_painter, {0.0, 0.0, 240.0, 20.0});
+    require(window.next_wake().has_value(), "resumed stripes must enlist on the motion clock again when painted");
+    // The stripes are an effect program on the window's motion clock
+    // (effect_program_tests); the bar's own timer lease (ADR-016) now drives
+    // the marquee alone, which the rest of this test follows.
+    (*progress).set_overlay_style(ProgressBarOverlayStyle::none);
+    (*progress).set_visual_style(ProgressBarVisualStyle::marquee);
     (*progress).advance_animation(FrameClock::now() + 325ms);
     const double retained_phase = (*progress).animation_phase();
     (*progress).set_animation_paused(true);
@@ -406,7 +424,9 @@ void test_progress_animation_and_hidden_suspension() {
     require((*progress).animation_phase() > retained_phase,
             "the first resumed frame must advance from the retained phase");
     const double pre_reduced_phase = (*progress).animation_phase();
+    const FrameTime before_reduced = FrameClock::now();
     (*progress).set_reduced_motion(true);
+    const FrameTime after_reduced = FrameClock::now();
     (*progress).set_value(73.0);
     require(window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), pre_reduced_phase) &&
@@ -414,13 +434,17 @@ void test_progress_animation_and_hidden_suspension() {
                 has_semantic_state((*progress).semantic_descriptor().states,
                                    SemanticState::busy),
             "reduced motion must retain animation and state updates without resetting phase");
-    (*progress).advance_animation(*window.next_wake());
+    const FrameTime reduced_wake = *window.next_wake();
+    (*progress).advance_animation(reduced_wake);
     const double reduced_phase = (*progress).animation_phase();
-    // The timer is paced to about one device pixel of stripe travel a tick
-    // (the window's scale is 1): reduced motion presents half the 14-pixel
-    // pitch per period.
-    const double reduced_travel = (reduced_phase - pre_reduced_phase) * 14.0 * 0.5;
-    require(reduced_phase > pre_reduced_phase && reduced_travel <= 1.05,
+    // Reduced motion scales the speed by 0.35 (and paces the timer at its
+    // 100 ms floor): the first tick advances the phase 0.35 of the time
+    // since the policy change, in periods of 1 second.
+    const double reduced_step = reduced_phase - pre_reduced_phase;
+    const double longest = std::chrono::duration<double>(reduced_wake - before_reduced).count();
+    const double shortest = std::chrono::duration<double>(reduced_wake - after_reduced).count();
+    require(reduced_phase > pre_reduced_phase && reduced_step <= 0.35 * longest + 1e-9 &&
+                reduced_step >= 0.35 * shortest - 1e-9,
             "reduced progress motion must advance visibly at its calmer speed");
     (*progress).set_reduced_motion(false);
     require(window.next_wake().has_value() &&
@@ -488,7 +512,7 @@ void test_progress_animation_and_hidden_suspension() {
     require(!(*progress).effective_motion_policy().reduced &&
                 window.next_wake().has_value(),
             "clearing the window preference must restore full motion in one transition");
-    (*progress).set_overlay_style(ProgressBarOverlayStyle::none);
+    (*progress).set_visual_style(ProgressBarVisualStyle::continuous);
     require(!window.next_wake().has_value(),
             "removing the last animated progress feature must revoke its frame source");
 }

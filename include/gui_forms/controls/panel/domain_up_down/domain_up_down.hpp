@@ -112,6 +112,11 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // The `items` property (text_items_property.hpp).
+    [[nodiscard]] BindingValue items_property_value() const;
+    void set_items_property(const BindingValue& value);
+    void reset_items_property();
+    [[nodiscard]] bool should_serialize_items_property() const noexcept;
     struct EditorChangeCallback final {
         std::weak_ptr<DomainUpDown> target;
         void operator()(const std::string&) const;

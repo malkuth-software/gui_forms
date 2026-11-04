@@ -10,6 +10,15 @@ public:
     ~WindowsHostServices() override { shutdown(); }
 
     void bind_owner(HWND owner, Window& model) noexcept { owner_ = owner; cursor_model_ = &model; }
+    // WM_HELP at the owner window: a help request of the open message box,
+    // if one is open. F1 held down tells the key from the Help button.
+    bool publish_message_help() {
+        if (message_help_request_ == 0U) return false;
+        HostDialogHelpEvent event{};
+        event.request_id = message_help_request_;
+        event.keyboard_initiated = (GetKeyState(VK_F1) & 0x8000) != 0;
+        return publish_dialog_help(event);
+    }
     bool maintain_hidden_cursor() noexcept {
         if (!cursor_hidden() || cursor_model_ == nullptr) { return false; }
         const CursorStatus authority = cursor_authority_impl(*cursor_model_, true);
@@ -275,9 +284,15 @@ protected:
 
     HostDialogResult show_dialog_impl(const HostDialogRequest& request) override {
         if (std::holds_alternative<HostMessageDialogRequest>(request.payload)) {
-            return native_message_dialog(
+            // WM_HELP reaches the owner window while the box is open
+            // (publish_message_help); nested boxes restore the outer one.
+            const std::uint64_t outer = message_help_request_;
+            message_help_request_ = request.request_id;
+            const HostDialogResult result = native_message_dialog(
                 owner_, request.request_id,
                 std::get<HostMessageDialogRequest>(request.payload));
+            message_help_request_ = outer;
+            return result;
         }
         if (std::holds_alternative<HostOpenFileDialogRequest>(request.payload)) {
             return native_open_dialog(
@@ -362,4 +377,6 @@ private:
     Window* cursor_model_{};
     std::unique_ptr<gui_forms::host::detail::WindowsNotifyIcons> notify_icons_;
     std::array<COLORREF, 16> custom_colors_{};
+    // The open message box's request identity; zero while none is open.
+    std::uint64_t message_help_request_{};
 };

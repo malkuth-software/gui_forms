@@ -18,6 +18,60 @@
       "reason": "Stage T4's Control colours work: a control's back colour is the fill of its own surfaces, the square included, so one colour themes the whole control.",
       "source": "coordinator",
       "date": "2026-11-02"
+    },
+    {
+      "control": "ToolStripManager",
+      "member": "merge_strips (matching by text)",
+      "winforms": "Merge matches a source item to a target item by its Text, compared case-insensitively in the current culture.",
+      "gui_forms": "merge_strips compares displayed text with ASCII-only case folding.",
+      "reason": "Culture-dependent comparison would make a merge depend on the user's locale; the strip ID and merge_index give exact matching where text is not enough.",
+      "source": "owner",
+      "date": "2026-11-03"
+    },
+    {
+      "control": "ToolStripManager",
+      "member": "merge_strips (strip kinds)",
+      "winforms": "Merge accepts any two ToolStrips that allow merging, including a ToolStrip into a MenuStrip.",
+      "gui_forms": "Only strips of the same kind merge: the ToolStrip family with the ToolStrip family, MenuStrip with MenuStrip.",
+      "reason": "A MenuStrip's top level holds menus only (MenuStripItemSpec), a ToolStrip's holds buttons, labels and hosted items; there is no item that is both.",
+      "source": "coordinator",
+      "date": "2026-11-03"
+    },
+    {
+      "control": "ToolStripManager",
+      "member": "merge_strips (repeated IDs)",
+      "winforms": "Items carry no identity, so any merge result is accepted.",
+      "gui_forms": "A merge whose result would repeat an item ID in the target is refused: merge_strips returns false and changes nothing.",
+      "reason": "Items are addressed by stable IDs (clicks, check state, semantics); a repeated ID would make them ambiguous.",
+      "source": "coordinator",
+      "date": "2026-11-03"
+    },
+    {
+      "control": "ToolStripManager",
+      "member": "merge_strips (hosted items)",
+      "winforms": "A moved ToolStripControlHost keeps its hosted control and that control's state.",
+      "gui_forms": "A moved hosted item (combo box, text box, progress bar) is recreated in the target, so its control's state is not carried.",
+      "reason": "A hosted control is owned by its strip; moving it between owners is not part of the strip's item system.",
+      "source": "coordinator",
+      "date": "2026-11-03"
+    },
+    {
+      "control": "ToolStripManager",
+      "member": "merge_strips (MatchOnly)",
+      "winforms": "MatchOnly merges the drop-down items of a matched ToolStripDropDownItem, creating its drop-down as needed.",
+      "gui_forms": "match_only recurses only when the matched item already holds a menu (a drop-down or split button, a menu strip item, a submenu).",
+      "reason": "An item's kind fixes whether it holds a menu; a merge does not change a target item's kind.",
+      "source": "coordinator",
+      "date": "2026-11-03"
+    },
+    {
+      "control": "ToolStripManager",
+      "member": "merge_strips (emptied menus)",
+      "winforms": "A drop-down left without items by a merge still shows an empty drop-down.",
+      "gui_forms": "A menu a merge empties stays valid and is not shown until it has items again.",
+      "reason": "An empty menu has nothing to choose; showing it would be a dead end.",
+      "source": "coordinator",
+      "date": "2026-11-03"
     }
   ]
 }

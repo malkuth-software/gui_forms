@@ -189,6 +189,15 @@ focused_control_changed
     window. A handler may request focus again; that move raises its own
     event afterwards. A `DockSite` follows it to keep its workspace's active
     panel.
+help_requested
+    Raised when help is asked of the window as a whole, as Windows Forms
+    raises `HelpRequested` on a message box's owner form: the Help button of
+    a message box the window owns, or F1 while one is open, or
+    `request_help`. The `HelpRequestEvent` names the root control, at the
+    window's centre. When no handler sets `handled`, the window's
+    :cpp:class:`HelpProvider <gui_forms::HelpProvider>` objects are offered it in creation order until one handles it.
+    Handlers run while the box is open: they may open other windows but
+    cannot close it.
 
 Methods
 -------
@@ -218,6 +227,12 @@ request_focus
     if the control is not focusable or not eligible for input, lies outside
     the active focus scope, or validation of the control losing focus
     refused the move.
+request_help
+    Raises the window's help request, as a message box's Help button or F1
+    does: `help_requested`, then the window's providers in creation order.
+    Returns true when a handler or a provider handled it. A handler may
+    dispose a provider, which is then skipped, or destroy the window, which
+    ends the offers.
 move_focus
     Moves focus to the next Tab stop, or with `false` the previous one,
     within the active focus scope or the whole window, wrapping around.

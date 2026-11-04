@@ -2,9 +2,12 @@
 
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/controls/range_control/range_control.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include <cstdint>
+#include <optional>
 #include <span>
+#include <string>
 
 namespace gui_forms {
 
@@ -93,9 +96,41 @@ public:
         return animation_phase_;
     }
 
-    // Advances the indeterminate or marquee phase to `now`; the animation
-    // timer calls it on each tick, and tests call it to step the bar.
+    // Advances the indeterminate or marquee phase, and the effect
+    // programs' time, to `now`; the animation timer calls it on each tick,
+    // and tests call it to step the bar.
     void advance_animation(FrameTime now);
+
+    // The effect program drawn over the bar (effect programs, design note
+    // §7), by registered name. Empty (the default) selects the visual
+    // style's own: progress_stripes for marching_stripes, progress_pulse
+    // for pulse, progress_laser for laser_etch, none for the rest. A name
+    // no registered progress-bar effect has draws no effect. The
+    // moving-stripes overlay draws progress_stripes over any other effect.
+    [[nodiscard]] const std::string& effect() const noexcept { return effect_; }
+    void set_effect(std::string name);
+    // The seed of the bar's effects. None (the default) derives it from the
+    // bar's stable ID and the effect's name, so runs, tests and motion
+    // checksums reproduce; an application sets one for another arrangement.
+    [[nodiscard]] std::optional<std::uint64_t> effect_seed() const noexcept { return effect_seed_; }
+    void set_effect_seed(std::optional<std::uint64_t> seed);
+    // The input the bar grants its effect (none by default): with a grant
+    // the bar is hit-tested and passes the pointer, in part-local units, to
+    // an effect that declares pointer input. The bar never takes focus, so
+    // a key grant delivers nothing.
+    [[nodiscard]] EffectInputKind effect_input() const noexcept { return effect_input_; }
+    void set_effect_input(EffectInputKind input);
+    // The selected effect's instance (empty for none): its counters and
+    // state checksum, for diagnostics and tests.
+    [[nodiscard]] const EffectInstance& effect_instance() const noexcept { return effect_instance_; }
+    // The selected effect's outsets, so damage and replay cover what it
+    // draws outside the bar (steam rising above it).
+    [[nodiscard]] Insets visual_outsets() const noexcept override;
+    // The effects' ambient frame (MotionClock::enlist_control_ambient):
+    // their ticks due at `now`, and their extent invalidated; false when
+    // the bar was not painted since its last frame.
+    bool on_ambient_frame(FrameTime now) override;
+    void on_pointer(PointerEvent& event) override;
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -146,6 +181,27 @@ private:
     [[nodiscard]] bool animated_style() const noexcept;
     // The fill (determinate styles) or the moving activity band (marquee).
     [[nodiscard]] Rect indicator_bounds() const noexcept;
+    // The registered name of the effect drawn over the bar, or empty.
+    [[nodiscard]] std::string_view resolved_effect() const noexcept;
+    // Attaches the effects the style and the effect name select, when they
+    // changed, their time starting at `now`; detaches those no longer
+    // selected.
+    void sync_effects(FrameTime now);
+    // Whether the effects move: some attached, animation on, motion
+    // neither paused nor reduced.
+    [[nodiscard]] bool effects_move() const noexcept;
+    // Withdraws the effects from the window's motion clock when they stop
+    // moving. While they move, a paint (`painting`) enlists them, their
+    // time restarting when they start, and anything else only updates an
+    // enlistment: as with the engine's parts, only a bar that is drawn asks
+    // for frames.
+    void update_effect_ambient(bool painting);
+    // The effect and effect_seed properties' values (effect programs, design
+    // note section 7): text, and a nullable unsigned integer.
+    [[nodiscard]] BindingValue effect_property_value() const;
+    void set_effect_property_value(const BindingValue& value);
+    [[nodiscard]] BindingValue effect_seed_property_value() const;
+    void set_effect_seed_property_value(const BindingValue& value);
 
     ProgressBarVisualStyle visual_style_{ProgressBarVisualStyle::continuous};
     ProgressBarOverlayStyle overlay_style_{ProgressBarOverlayStyle::none};
@@ -159,6 +215,17 @@ private:
     double animation_phase_{};
     bool animation_enabled_{true};
     MotionPolicy motion_policy_{};
+    std::string effect_{};
+    std::optional<std::uint64_t> effect_seed_{};
+    EffectInputKind effect_input_{EffectInputKind::none};
+    // The selected effect, and the moving-stripes overlay's stripes. Each
+    // owns its state; both are released with the bar.
+    EffectInstance effect_instance_;
+    EffectInstance overlay_instance_;
+    // Paints of the bar, and the count its last ambient frame saw: a frame
+    // finding them equal finds the bar no longer shown.
+    std::uint64_t effect_paints_{};
+    std::uint64_t effect_paints_seen_{~std::uint64_t{0}};
 };
 
 } // namespace gui_forms

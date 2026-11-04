@@ -25,15 +25,19 @@ private:
         HostMessageIcon icon;
         MessageBoxDefaultButton default_button;
     };
-    static constexpr std::array<MessageCase, 4> message_cases{{
-        {"Information · OK", HostMessageButtons::ok,
+    static constexpr std::array<MessageCase, 6> message_cases{{
+        {"OK", HostMessageButtons::ok,
          HostMessageIcon::information, MessageBoxDefaultButton::button1},
-        {"Warning · OK/Cancel", HostMessageButtons::ok_cancel,
+        {"OK/Cancel", HostMessageButtons::ok_cancel,
          HostMessageIcon::warning, MessageBoxDefaultButton::button2},
-        {"Question · Yes/No", HostMessageButtons::yes_no,
+        {"Yes/No", HostMessageButtons::yes_no,
          HostMessageIcon::question, MessageBoxDefaultButton::button1},
-        {"Error · Retry/Cancel", HostMessageButtons::retry_cancel,
+        {"Retry/Cancel", HostMessageButtons::retry_cancel,
          HostMessageIcon::error, MessageBoxDefaultButton::button1},
+        {"Abort/Retry/Ignore", HostMessageButtons::abort_retry_ignore,
+         HostMessageIcon::error, MessageBoxDefaultButton::button2},
+        {"Cancel/Try/Continue", HostMessageButtons::cancel_try_continue,
+         HostMessageIcon::warning, MessageBoxDefaultButton::button3},
     }};
     static constexpr std::array<std::string_view, 5> path_labels{
         "Open file", "Open multiple", "Save file", "Choose folder", "Choose color"};
@@ -78,7 +82,7 @@ private:
     void inspect_monitors(HostServices& host);
     void play_sound(HostServices& host, HostSoundCue cue);
 
-    std::array<Command, 4> message_commands_{};
+    std::array<Command, 6> message_commands_{};
     std::array<Command, 5> dialog_commands_{};
     std::array<Command, 5> service_commands_{};
     // Open file, Open multiple, Save file, Choose folder and Choose color
@@ -270,6 +274,10 @@ std::string_view message_result_name(DialogResult result) {
     if (result == DialogResult::yes) return "Yes";
     if (result == DialogResult::no) return "No";
     if (result == DialogResult::retry) return "Retry";
+    if (result == DialogResult::abort) return "Abort";
+    if (result == DialogResult::ignore) return "Ignore";
+    if (result == DialogResult::try_again) return "Try Again";
+    if (result == DialogResult::continue_) return "Continue";
     return "None";
 }
 
@@ -354,8 +362,8 @@ void HostServicesPage::build_messages(const std::shared_ptr<Surface>& body) {
         (*button).set_visual_style(index == 2U ? ButtonVisualStyle::accent
                                                : ButtonVisualStyle::command);
         (*button).bind(command);
-        (*messages).add_at(button, {24.0 + static_cast<double>(index) * 220.0,
-                                    44.0, 202.0, 42.0});
+        (*messages).add_at(button, {24.0 + static_cast<double>(index) * 148.0,
+                                    44.0, 138.0, 42.0});
         on(command.invoked(), *this, &HostServicesPage::on_message_dialog,
            static_cast<int>(index));
     }

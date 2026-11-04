@@ -129,6 +129,11 @@ protected:
     [[nodiscard]] AnatomyStateSet list_item_states(std::size_t index) const;
 
 private:
+    // The `items` property (text_items_property.hpp).
+    [[nodiscard]] BindingValue items_property_value() const;
+    void set_items_property(const BindingValue& value);
+    void reset_items_property();
+    [[nodiscard]] bool should_serialize_items_property() const noexcept;
     void apply_selection(std::vector<std::size_t> selection,
                          std::optional<std::size_t> active);
     void ensure_visible(std::size_t index);

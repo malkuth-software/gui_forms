@@ -44,9 +44,13 @@ inline double row_height(const MenuSnapshot& item,
            text_scale;
 }
 
+// A merge (merge_strips) may leave a submenu without items: with
+// `allow_empty_submenus` such a submenu is valid, and shows only once it has
+// items again (prune_empty_submenus).
 inline void validate_specs(const std::vector<MenuItemSpec>& items,
                            std::unordered_set<std::string>& identities,
-                           std::size_t depth, std::size_t& count) {
+                           std::size_t depth, std::size_t& count,
+                           bool allow_empty_submenus = false) {
     if (depth > maximum_menu_depth) {
         throw std::invalid_argument(
             "ContextMenu nesting exceeds the bounded depth");
@@ -71,7 +75,8 @@ inline void validate_specs(const std::vector<MenuItemSpec>& items,
                     "ContextMenu separator may not own a command or children");
             }
         } else if (item.kind == MenuItemKind::submenu) {
-            if (item.command || item.text.empty() || item.children.empty()) {
+            if (item.command || item.text.empty() ||
+                (item.children.empty() && !allow_empty_submenus)) {
                 throw std::invalid_argument(
                     "ContextMenu submenu requires text and children but no command");
             }
@@ -79,8 +84,27 @@ inline void validate_specs(const std::vector<MenuItemSpec>& items,
             throw std::invalid_argument(
                 "ContextMenu command/check/radio item requires one shared command");
         }
-        validate_specs(item.children, identities, depth + 1U, count);
+        validate_specs(item.children, identities, depth + 1U, count,
+                       allow_empty_submenus);
     }
+}
+
+// The menu to show: `items` without the submenus a merge left empty, at
+// every depth (a submenu emptied by pruning goes too).
+[[nodiscard]] inline std::vector<MenuItemSpec> prune_empty_submenus(
+    const std::vector<MenuItemSpec>& items) {
+    std::vector<MenuItemSpec> shown;
+    shown.reserve(items.size());
+    for (const MenuItemSpec& item : items) {
+        if (item.kind != MenuItemKind::submenu) {
+            shown.push_back(item);
+            continue;
+        }
+        MenuItemSpec kept = item;
+        kept.children = prune_empty_submenus(item.children);
+        if (!kept.children.empty()) shown.push_back(std::move(kept));
+    }
+    return shown;
 }
 
 inline std::vector<MenuSnapshot> snapshot_items(

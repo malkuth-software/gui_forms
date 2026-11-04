@@ -1,0 +1,6 @@
+/* A document the form compiler refuses (E812): two stable IDs spell one
+   member. */
+user-control refused.root {
+  button refused.ok { text: "OK"; }
+  button refused-ok { text: "Also OK"; }
+}

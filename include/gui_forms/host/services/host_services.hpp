@@ -101,6 +101,18 @@ public:
         return tray_icon_events_;
     }
     [[nodiscard]] bool tray_icon_live(HostTrayIconId icon_id) const noexcept;
+    // Raised on the UI thread when the user asks for help in an open message
+    // dialog (its Help button, or F1 where the host's dialog takes it), with
+    // the dialog's request identity; the dialog stays open. Handlers run
+    // inside the host's modal loop: they may open other windows but cannot
+    // close the dialog.
+    [[nodiscard]] Event<const HostDialogHelpEvent&>& dialog_help_requested() noexcept {
+        return dialog_help_requested_;
+    }
+    // Adapters report a help request in an open dialog here. Dropped (false)
+    // off the UI thread, after shutdown, and for a request that is not an
+    // open dialog's.
+    bool publish_dialog_help(const HostDialogHelpEvent& event);
     // Applies a window's backdrop grant to the native window (stage T5).
     // The window calls it only when its granted backdrop changes. `opaque`
     // needs no capability, and an adapter must not fail it; `transparent`
@@ -189,6 +201,7 @@ private:
     // The value the next added icon's identity takes.
     std::uint64_t next_tray_icon_id_{1U};
     Event<const HostTrayIconEvent&> tray_icon_events_;
+    Event<const HostDialogHelpEvent&> dialog_help_requested_;
 };
 
 } // namespace gui_forms

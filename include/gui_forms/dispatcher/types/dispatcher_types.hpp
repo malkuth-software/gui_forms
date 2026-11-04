@@ -8,6 +8,13 @@ namespace gui_forms {
 inline constexpr std::size_t maximum_posted_callbacks = 4096U;
 inline constexpr std::size_t maximum_callbacks_per_dispatch_turn = 1024U;
 
+// What WindowDispatcher::invoke did: the callback ran, or the window was
+// gone (closed, or being destroyed) before it could, so it did not run.
+enum class DispatchInvokeResult : std::uint8_t {
+    completed,
+    window_gone,
+};
+
 enum class DispatchOperationState : std::uint8_t {
     invalid,
     pending,

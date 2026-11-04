@@ -1,6 +1,7 @@
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 
 #include "../menu_utilities.hpp"
+#include "../../tool_strip/strip_merge.hpp"
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
@@ -75,6 +76,15 @@ MenuStrip::~MenuStrip() {
 }
 
 void MenuStrip::set_items(std::vector<MenuStripItemSpec> items) {
+    apply_items(std::move(items), false);
+}
+
+void MenuStrip::set_allow_merge(bool allow) {
+    require_mutable();
+    allow_merge_ = allow;
+}
+
+void MenuStrip::apply_items(std::vector<MenuStripItemSpec> items, bool merged) {
     require_mutable();
     std::unordered_set<std::string> identities{};
     for (const gui_forms::MenuStripItemSpec& item : items) {
@@ -82,13 +92,13 @@ void MenuStrip::set_items(std::vector<MenuStripItemSpec> items) {
             identities.insert(item.stable_id);
         if (!valid_stable_id(item.stable_id) ||
             item.text.empty() || !validate_utf8(item.text).valid() ||
-            item.items.empty() || !insertion.second) {
+            (item.items.empty() && !merged) || !insertion.second) {
             throw std::invalid_argument(
                 "MenuStrip items require unique IDs following the StableId segment rule, text, and menu contents");
         }
         std::unordered_set<std::string> child_identities{};
         std::size_t count{};
-        validate_specs(item.items, child_identities, 1U, count);
+        validate_specs(item.items, child_identities, 1U, count, merged);
     }
     close();
     items_ = std::move(items);
@@ -151,11 +161,14 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
     if (index >= items_.size() || !items_[index].visible ||
         !items_[index].enabled || !attached_window()) return false;
     if (active_index_ == index && (*popup_).is_open()) return true;
+    // A merge may have left the menu empty, or holding only empty submenus.
+    std::vector<MenuItemSpec> menu = menu_detail::prune_empty_submenus(items_[index].items);
+    if (menu.empty()) return false;
     switching_ = (*popup_).is_open();
     if (switching_) (*popup_).close();
     active_index_ = index;
     hot_index_ = index;
-    (*popup_).set_items(items_[index].items);
+    (*popup_).set_items(std::move(menu));
     const std::vector<Rect> bounds = item_bounds();
     const Rect absolute = absolute_bounds();
     (*popup_).show(shared_from_this(),

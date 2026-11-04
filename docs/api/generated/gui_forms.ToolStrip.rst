@@ -45,6 +45,9 @@ gui_forms::ToolStrip
       **grip_visible** : ``bool``, default ``true``
          Whether the grip shows at the strip's start.
 
+      **allow_merge** : ``bool``
+         Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
       **font** : ``FontSpec``
          The font of item text.
 
@@ -230,6 +233,12 @@ gui_forms::ToolStrip
    .. cpp:function:: void set_grip_visible(bool visible)
 
       Sets :cpp:func:`grip_visible <gui_forms::ToolStrip::grip_visible>`; see the property's description above.
+
+   .. cpp:function:: bool allow_merge() const noexcept
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+   .. cpp:function:: void set_allow_merge(bool allow)
 
    .. cpp:function:: FontSpec font() const noexcept
 

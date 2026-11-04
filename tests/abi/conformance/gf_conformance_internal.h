@@ -87,6 +87,7 @@ void gf_kit_diagnostics(gf_kit* kit);
 void gf_kit_threads(gf_kit* kit);
 void gf_kit_window(gf_kit* kit);
 void gf_kit_window_handle(gf_kit* kit);
+void gf_kit_window_events(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
 void gf_kit_proxies(gf_kit* kit);
 void gf_kit_families(gf_kit* kit);

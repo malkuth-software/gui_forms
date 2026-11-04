@@ -4,6 +4,7 @@
 
 #include <memory>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::abi1 {
 
@@ -21,6 +22,13 @@ void WindowHandle::end_run() noexcept {
     window_ = nullptr;
     if (is_alive()) {
         dispose();
+    }
+}
+
+void WindowHandle::append_interactions(std::vector<InteractionDeclaration>& interactions) const {
+    Component::append_interactions(interactions);
+    if (window_ != nullptr) {
+        Window::append_interactions(interactions);
     }
 }
 

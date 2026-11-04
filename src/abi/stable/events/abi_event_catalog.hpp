@@ -104,6 +104,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/feedback/types/feedback_types.hpp"
+#include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
@@ -115,8 +116,12 @@
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/presentation/input_settings.hpp"
+#include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
 #include "gui_forms/window/window.hpp"
+
+#include "../windows/abi_window_handle.hpp"
 
 #include <array>
 #include <string_view>
@@ -196,6 +201,15 @@ struct EnumerationChoices<CheckState> {
         {"unchecked", static_cast<std::int64_t>(CheckState::unchecked)},
         {"checked", static_cast<std::int64_t>(CheckState::checked)},
         {"indeterminate", static_cast<std::int64_t>(CheckState::indeterminate)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<ColourScheme> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"light", static_cast<std::int64_t>(ColourScheme::light)},
+        {"dark", static_cast<std::int64_t>(ColourScheme::dark)},
     }};
 };
 
@@ -718,6 +732,15 @@ struct EnumerationChoices<SemanticFeedbackKind> {
 };
 
 template <>
+struct EnumerationChoices<SettingOrigin> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"default_value", static_cast<std::int64_t>(SettingOrigin::default_value)},
+        {"host", static_cast<std::int64_t>(SettingOrigin::host)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<SplitChangeReason> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 7> choices{{
@@ -774,6 +797,33 @@ struct EnumerationChoices<TreeListSortOrder> {
     }};
 };
 
+template <>
+struct EnumerationChoices<WindowBackdrop> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"opaque", static_cast<std::int64_t>(WindowBackdrop::opaque)},
+        {"transparent", static_cast<std::int64_t>(WindowBackdrop::transparent)},
+        {"window_material", static_cast<std::int64_t>(WindowBackdrop::window_material)},
+        {"transient_material", static_cast<std::int64_t>(WindowBackdrop::transient_material)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<WindowBackdropReason> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 9> choices{{
+        {"granted", static_cast<std::int64_t>(WindowBackdropReason::granted)},
+        {"not_declared", static_cast<std::int64_t>(WindowBackdropReason::not_declared)},
+        {"host_unsupported", static_cast<std::int64_t>(WindowBackdropReason::host_unsupported)},
+        {"os_version", static_cast<std::int64_t>(WindowBackdropReason::os_version)},
+        {"no_compositor", static_cast<std::int64_t>(WindowBackdropReason::no_compositor)},
+        {"high_contrast", static_cast<std::int64_t>(WindowBackdropReason::high_contrast)},
+        {"reduced_transparency", static_cast<std::int64_t>(WindowBackdropReason::reduced_transparency)},
+        {"transparency_disabled", static_cast<std::int64_t>(WindowBackdropReason::transparency_disabled)},
+        {"backend_failure", static_cast<std::int64_t>(WindowBackdropReason::backend_failure)},
+    }};
+};
+
 // Field writers and readers, declared first so they may call each other.
 void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerCompleted& value);
 void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerProgress& value);
@@ -792,6 +842,7 @@ void append_field(EventFields& fields, std::string_view name, const CalendarDate
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
 void append_field(EventFields& fields, std::string_view name, const CommandState& value);
+void append_field(EventFields& fields, std::string_view name, const CompositorGeneration& value);
 void append_field(EventFields& fields, std::string_view name, const ControlValidationEvent& value);
 void read_field(EventFields& fields, std::string_view name, ControlValidationEvent& value);
 void append_field(EventFields& fields, std::string_view name, const CorrespondenceExpansionChange& value);
@@ -837,6 +888,7 @@ void append_field(EventFields& fields, std::string_view name, const DockPanelId&
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
 void append_field(EventFields& fields, std::string_view name, const FileDialogOk& value);
 void read_field(EventFields& fields, std::string_view name, FileDialogOk& value);
+void append_field(EventFields& fields, std::string_view name, const FocusedControlChange& value);
 void append_field(EventFields& fields, std::string_view name, const FontChoice& value);
 void append_field(EventFields& fields, std::string_view name, const FontDialogResult& value);
 void append_field(EventFields& fields, std::string_view name, const FontSpec& value);
@@ -899,6 +951,7 @@ void append_field(EventFields& fields, std::string_view name, const PageInvocati
 void append_field(EventFields& fields, std::string_view name, const PagePinRequest& value);
 void read_field(EventFields& fields, std::string_view name, PagePinRequest& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
+void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
 void append_field(EventFields& fields, std::string_view name, const ProceduralFill& value);
 void append_field(EventFields& fields, std::string_view name, const PropertyEditorInputError& value);
 void append_field(EventFields& fields, std::string_view name, const PropertyEnumValue& value);
@@ -920,6 +973,7 @@ void append_field(EventFields& fields, std::string_view name, const RibbonTabCha
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipContent& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipEvent& value);
 void append_field(EventFields& fields, std::string_view name, const RibbonToolTipHelpRequest& value);
+void append_field(EventFields& fields, std::string_view name, const RuntimeId& value);
 void append_field(EventFields& fields, std::string_view name, const ScrollEvent& value);
 void read_field(EventFields& fields, std::string_view name, ScrollEvent& value);
 void append_field(EventFields& fields, std::string_view name, const SemanticFeedbackRecord& value);
@@ -950,6 +1004,7 @@ void append_field(EventFields& fields, std::string_view name, const TreeListExpa
 void append_field(EventFields& fields, std::string_view name, const TreeListSelectionChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListSortChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeSelectionChange& value);
+void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value);
 
 inline void append_field(EventFields& fields, std::string_view name, const BackgroundWorkerCompleted& value) {
     const EventFieldPrefix prefix = fields.enter(name);
@@ -1093,6 +1148,11 @@ inline void append_field(EventFields& fields, std::string_view name, const Comma
     append_field(fields, "generation", value.generation);
     append_field(fields, "checkable", value.checkable);
     fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const CompositorGeneration& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ControlValidationEvent& value) {
@@ -1493,6 +1553,14 @@ inline void read_field(EventFields& fields, std::string_view name, FileDialogOk&
     const EventFieldPrefix prefix = fields.enter(name);
     read_field(fields, "file_names", value.file_names);
     read_field(fields, "cancel", value.cancel);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const FocusedControlChange& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "previous_id", value.previous_id);
+    append_field(fields, "current_id", value.current_id);
+    append_field(fields, "stable_id", value.stable_id);
     fields.leave(prefix);
 }
 
@@ -2037,6 +2105,20 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "text_scale", value.text_scale);
+    append_field(fields, "high_contrast", value.high_contrast);
+    append_field(fields, "reduced_motion", value.reduced_motion);
+    append_field(fields, "sound_enabled", value.sound_enabled);
+    append_field(fields, "ambient_motion", value.ambient_motion);
+    append_field(fields, "reduced_transparency", value.reduced_transparency);
+    append_field(fields, "double_click_milliseconds", value.double_click_milliseconds);
+    append_field(fields, "double_click_origin", value.double_click_origin);
+    append_field(fields, "colour_scheme", value.colour_scheme);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const ProceduralFill& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "pattern", value.pattern);
@@ -2207,6 +2289,11 @@ inline void append_field(EventFields& fields, std::string_view name, const Ribbo
     append_field(fields, "item_id", value.item_id);
     append_field(fields, "help_topic", value.help_topic);
     fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const RuntimeId& value) {
+    // An identity: the field is its one value.
+    append_field(fields, name, value.value);
 }
 
 inline void append_field(EventFields& fields, std::string_view name, const ScrollEvent& value) {
@@ -2452,6 +2539,15 @@ inline void append_field(EventFields& fields, std::string_view name, const TreeS
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const WindowBackdropGrant& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "requested", value.requested);
+    append_field(fields, "granted", value.granted);
+    append_field(fields, "reason", value.reason);
+    append_field(fields, "generation", value.generation);
+    fields.leave(prefix);
+}
+
 // One connector per (declaring type, interaction).
 inline SubscriptionToken connect_card_activated(Component& source, const EventSink& sink) {
     Card* typed = dynamic_cast<Card*>(&source);
@@ -2477,6 +2573,19 @@ inline SubscriptionToken connect_dock_workspace_activation_changed(Component& so
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).activation_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_active_changed(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).active_changed(), sink);
     return token;
 }
 
@@ -2558,6 +2667,19 @@ inline SubscriptionToken connect_container_control_auto_validate_changed(Compone
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).auto_validate_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_backdrop_changed(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).backdrop_changed(), sink);
     return token;
 }
 
@@ -3164,6 +3286,19 @@ inline SubscriptionToken connect_button_dialog_result_changed(Component& source,
     return token;
 }
 
+inline SubscriptionToken connect_window_dialog_result_changed(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).dialog_result_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_anchored_popup_layer_dismiss_requested(Component& source, const EventSink& sink) {
     AnchoredPopupLayer* typed = dynamic_cast<AnchoredPopupLayer*>(&source);
     if (typed == nullptr) {
@@ -3488,6 +3623,19 @@ inline SubscriptionToken connect_control_focus_observed(Component& source, const
     return token;
 }
 
+inline SubscriptionToken connect_window_focused_control_changed(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).focused_control_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_binding_format(Component& source, const EventSink& sink) {
     Binding* typed = dynamic_cast<Binding*>(&source);
     if (typed == nullptr) {
@@ -3526,6 +3674,19 @@ inline SubscriptionToken connect_ribbon_tool_tip_help_requested(Component& sourc
 
 inline SubscriptionToken connect_control_help_requested(Component& source, const EventSink& sink) {
     Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).help_requested(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_help_requested(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3994,6 +4155,19 @@ inline SubscriptionToken connect_binding_source_position_changed(Component& sour
 
 inline SubscriptionToken connect_master_detail_view_presentation_changed(Component& source, const EventSink& sink) {
     MasterDetailView* typed = dynamic_cast<MasterDetailView*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).presentation_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_presentation_changed(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4559,6 +4733,19 @@ inline SubscriptionToken connect_text_block_text_changed(Component& source, cons
     return token;
 }
 
+inline SubscriptionToken connect_window_theme_changed(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).theme_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_timer_tick(Component& source, const EventSink& sink) {
     Timer* typed = dynamic_cast<Timer*>(&source);
     if (typed == nullptr) {
@@ -4812,10 +4999,11 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 262> event_connectors{{
+inline constexpr std::array<EventConnector, 269> event_connectors{{
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
     {"activation_changed", "DockWorkspace", &connect_dock_workspace_activation_changed},
+    {"active_changed", "Window", &connect_window_active_changed},
     {"adding_new", "BindingNavigator", &connect_binding_navigator_adding_new},
     {"after_label_edit", "ListView", &connect_list_view_after_label_edit},
     {"application_menu_item_invoked", "Ribbon", &connect_ribbon_application_menu_item_invoked},
@@ -4825,6 +5013,7 @@ inline constexpr std::array<EventConnector, 262> event_connectors{{
     {"auto_complete_open_changed", "TextBox", &connect_text_box_auto_complete_open_changed},
     {"auto_size_changed", "Control", &connect_control_auto_size_changed},
     {"auto_validate_changed", "ContainerControl", &connect_container_control_auto_validate_changed},
+    {"backdrop_changed", "Window", &connect_window_backdrop_changed},
     {"backstage_open_changed", "Ribbon", &connect_ribbon_backstage_open_changed},
     {"balloon_tip_clicked", "NotifyIcon", &connect_notify_icon_balloon_tip_clicked},
     {"balloon_tip_closed", "NotifyIcon", &connect_notify_icon_balloon_tip_closed},
@@ -4892,6 +5081,7 @@ inline constexpr std::array<EventConnector, 262> event_connectors{{
     {"deselecting", "TabControl", &connect_tab_control_deselecting},
     {"dialog_launcher_clicked", "Ribbon", &connect_ribbon_dialog_launcher_clicked},
     {"dialog_result_changed", "Button", &connect_button_dialog_result_changed},
+    {"dialog_result_changed", "Window", &connect_window_dialog_result_changed},
     {"dismiss_requested", "AnchoredPopupLayer", &connect_anchored_popup_layer_dismiss_requested},
     {"disposed_event", "BindingSource", &connect_binding_source_disposed_event},
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
@@ -4928,11 +5118,13 @@ inline constexpr std::array<EventConnector, 262> event_connectors{{
     {"file_ok", "SaveFileDialog", &connect_save_file_dialog_file_ok},
     {"flyout_changed", "DockSite", &connect_dock_site_flyout_changed},
     {"focus_observed", "Control", &connect_control_focus_observed},
+    {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
     {"help_requested", "RibbonToolTip", &connect_ribbon_tool_tip_help_requested},
     {"help_requested", "Control", &connect_control_help_requested},
+    {"help_requested", "Window", &connect_window_help_requested},
     {"image_changed", "PictureBox", &connect_picture_box_image_changed},
     {"initialization_completed", "Control", &connect_control_initialization_completed},
     {"invoked", "CommandBar", &connect_command_bar_invoked},
@@ -4985,6 +5177,7 @@ inline constexpr std::array<EventConnector, 262> event_connectors{{
     {"popup_open_changed", "RibbonGallery", &connect_ribbon_gallery_popup_open_changed},
     {"position_changed", "BindingSource", &connect_binding_source_position_changed},
     {"presentation_changed", "MasterDetailView", &connect_master_detail_view_presentation_changed},
+    {"presentation_changed", "Window", &connect_window_presentation_changed},
     {"preview_cancelled", "GalleryCommand", &connect_gallery_command_preview_cancelled},
     {"preview_requested", "GalleryCommand", &connect_gallery_command_preview_requested},
     {"progress_changed", "BackgroundWorker", &connect_background_worker_progress_changed},
@@ -5047,6 +5240,7 @@ inline constexpr std::array<EventConnector, 262> event_connectors{{
     {"text_changed", "ButtonBase", &connect_button_base_text_changed},
     {"text_changed", "Label", &connect_label_text_changed},
     {"text_changed", "TextBlock", &connect_text_block_text_changed},
+    {"theme_changed", "Window", &connect_window_theme_changed},
     {"tick", "Timer", &connect_timer_tick},
     {"toggled", "ExpandableSections", &connect_expandable_sections_toggled},
     {"token_added", "TokenBox", &connect_token_box_token_added},
@@ -5078,7 +5272,7 @@ inline constexpr std::array<EventConnector, 262> event_connectors{{
 }};
 
 // Payload members no field carries yet, with the family that takes them.
-inline constexpr std::array<std::string_view, 7> deferred_event_members{{
+inline constexpr std::array<std::string_view, 8> deferred_event_members{{
     "BackgroundWorkerCompleted.error (std::exception_ptr): no portable form; the error message is a field",
     "BindingRecord.errors (ErrorMap): keyed collections (C5c)",
     "BindingRecord.fields (FieldMap): keyed collections (C5c)",
@@ -5086,6 +5280,7 @@ inline constexpr std::array<std::string_view, 7> deferred_event_members{{
     "ItemContentPaint.painter (Painter&): owner-draw surfaces (C5d)",
     "ItemContentPaint.states (AnatomyStateSet): owner-draw surfaces (C5d)",
     "SurfaceMaterial.colour_filter (MaterialColourFilter): surface material values (C5c)",
+    "Window.theme_changed (Theme): no field form; theme_changed is a notification",
 }};
 
 } // namespace gui_forms::abi1

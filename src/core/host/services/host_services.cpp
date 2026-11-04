@@ -195,8 +195,20 @@ bool choice_allowed(HostMessageButtons buttons, HostDialogChoice choice) noexcep
                choice == HostDialogChoice::cancel;
     case HostMessageButtons::retry_cancel:
         return choice == HostDialogChoice::retry || choice == HostDialogChoice::cancel;
+    case HostMessageButtons::abort_retry_ignore:
+        return choice == HostDialogChoice::abort || choice == HostDialogChoice::retry ||
+               choice == HostDialogChoice::ignore;
+    case HostMessageButtons::cancel_try_continue:
+        return choice == HostDialogChoice::cancel || choice == HostDialogChoice::try_again ||
+               choice == HostDialogChoice::continue_;
     }
     return false;
+}
+
+// A default choice: one of the set's buttons, or Help where it is shown.
+bool default_allowed(const HostMessageDialogRequest& request) noexcept {
+    if (request.default_choice == HostDialogChoice::help) return request.help_button;
+    return choice_allowed(request.buttons, request.default_choice);
 }
 
 // A file dialog's starting filter names one of its filters, or is zero
@@ -216,7 +228,7 @@ struct DialogRequestValidator final {
         if constexpr (std::is_same_v<Payload, HostMessageDialogRequest>) {
             return valid_dialog_string(payload.title) &&
                    valid_dialog_string(payload.message) &&
-                   choice_allowed(payload.buttons, payload.default_choice);
+                   default_allowed(payload);
         } else if constexpr (
             std::is_same_v<Payload, HostOpenFileDialogRequest>) {
             return valid_dialog_string(payload.title) &&
@@ -953,6 +965,14 @@ HostTrayMenuResult HostServices::show_tray_menu(HostTrayIconId icon_id, const Ho
     }
     ++snapshot_.tray_menus;
     return result;
+}
+
+bool HostServices::publish_dialog_help(const HostDialogHelpEvent& event) {
+    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) return false;
+    const bool open = std::find(modal_stack_.begin(), modal_stack_.end(), event.request_id) != modal_stack_.end();
+    if (!open) return false;
+    dialog_help_requested_.emit(event);
+    return true;
 }
 
 void HostServices::publish_tray_icon_event(const HostTrayIconEvent& event) {

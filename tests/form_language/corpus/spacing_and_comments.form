@@ -1,0 +1,9 @@
+﻿/*bom, comments and spacing kept*/form   spare.root{;;
+	label spare.a{}   label spare.b { text:"ünïcödé ✓" ;; }
+  /* between */ panel   spare.c /* in prelude */ {
+    style{}
+    style { ; color: red !important }
+    panel spare.c.d{panel spare.c.d.e{label spare.c.d.e.f{text:"deep"}}}
+  }
+}
+/* trailing */

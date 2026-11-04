@@ -66,6 +66,9 @@ SPECIFIERS = re.compile(r"\b(?:inline|constexpr|consteval|virtual|static|explici
 
 def clean_signature(signature: str) -> str:
     signature = re.sub(r"\[\[[^\]]*\]\]\s*", "", signature)
+    # The effect pass's cost mark (gui_forms/engine/effect/effect.hpp) is an
+    # attribute for the plugin, not part of the signature.
+    signature = re.sub(r"\bGUI_FORMS_EFFECT_VOCABULARY\s*\([^()]*\)\s*", "", signature)
     signature = re.sub(r"\s+", " ", signature).strip()
     signature = re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", signature))
     return signature.rstrip(";").strip()

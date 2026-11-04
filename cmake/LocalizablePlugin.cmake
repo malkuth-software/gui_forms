@@ -1,27 +1,39 @@
 # The localizable-literal Clang plugin (tools/localizable_plugin): it records
 # every string literal passed to a GUI_FORMS_LOCALIZABLE parameter or field in
 # a table in the object file, which gui_forms::localizable_literals() reads
-# back at run time. The toolkit builds it with the compiler's own Clang CMake
-# package (an ExternalProject, so none of this project's toolchain flags,
-# runtime or sanitizers reach a library the compiler loads), compiles its own
-# programs with it (gui_forms_compile_with_localizable_plugin), and installs it
-# for the package's consumers (cmake/GUIFormsConfig.cmake.in).
+# back at run time. The toolkit builds it against the compiler's own LLVM and
+# Clang headers (an ExternalProject, so none of this project's toolchain
+# flags, runtime or sanitizers reach a library the compiler loads), compiles
+# its own programs with it (gui_forms_compile_with_localizable_plugin), and
+# installs it for the package's consumers (cmake/GUIFormsConfig.cmake.in).
 #
-# The plugin needs the Clang CMake package of the LLVM 22 the toolkit is built
-# with (Homebrew llvm@22 has it; on Linux the libclang-22-dev package, or the
-# toolchain's lib/cmake/clang). A package can be present but unusable (CI's
-# Linux runners carry ClangTargets.cmake without the static libraries it
-# names), so the main configure proves the plugin usable before relying on
-# it: it configures and builds the plugin project and compiles a probe unit
-# with it, and the build uses the plugin only when all three succeed.
+# The plugin needs only LLVM 22's and Clang 22's headers under
+# GUI_FORMS_LLVM_ROOT (about 400 files, listed by tools/localizable_plugin/
+# header_closure.py) and, on Windows, the import libraries of the
+# libclang-cpp and libLLVM-22 DLLs the compiler loads; no CMake package
+# (Homebrew llvm@22; on Linux llvm-22-dev and libclang-22-dev; in MSYS2's
+# clang64 mingw-w64-clang-x86_64-llvm beside the compiler's packages). The
+# headers can still be present but unusable, so the main configure proves the
+# plugin usable before relying on it: it configures and builds the plugin
+# project and compiles a probe unit with it, and the build uses the plugin
+# only when all three succeed.
 # Otherwise the build goes on without the plugin and says so in one status
 # line; the plugin's own configure never fails the main build.
 
 option(GUI_FORMS_LOCALIZABLE_PLUGIN
        "Build the Clang plugin that records localizable string literals, and compile the toolkit's programs with it"
        ON)
-set(GUI_FORMS_CLANG_CMAKE_DIR "" CACHE PATH
-    "Directory holding ClangConfig.cmake for the plugin (default: the compiler's ../lib/cmake/clang)")
+# The plugin's second pass verifies effect programs (tools/localizable_plugin/
+# effect_pass.cpp; gui_forms/engine/effect/effect.hpp). Switching it off, or
+# a toolchain that cannot load the plugin, still builds the effects, but
+# unverified: configure warns naming the targets, each file that registers
+# effects prints a #warning, and the registry labels them unverified and
+# counts them (EffectRegistry::unverified_count). Not recommended.
+option(GUI_FORMS_EFFECT_VERIFY
+       "Verify effect programs with the gui_forms Clang plugin's effect pass (OFF builds them unverified)"
+       ON)
+set(GUI_FORMS_LLVM_ROOT "" CACHE PATH
+    "The LLVM 22 prefix holding include/llvm and include/clang for the plugin (default: the compiler's ..)")
 
 # Configures and builds the plugin project in plugin_dir/build, then compiles
 # a probe unit with the result. Sets `result` in the caller to TRUE when the
@@ -49,7 +61,7 @@ function(_gui_forms_probe_localizable_plugin plugin_dir plugin_path result reaso
     file(WRITE "${_gf_log}" "configure (exit ${_gf_status}):\n${_gf_output}\n")
     if(NOT _gf_status EQUAL 0)
         set(${result} FALSE PARENT_SCOPE)
-        set(${reason} "its project does not configure with this Clang package" PARENT_SCOPE)
+        set(${reason} "its project does not configure with these LLVM headers" PARENT_SCOPE)
         return()
     endif()
     execute_process(
@@ -58,7 +70,7 @@ function(_gui_forms_probe_localizable_plugin plugin_dir plugin_path result reaso
     file(APPEND "${_gf_log}" "build (exit ${_gf_status}):\n${_gf_output}\n")
     if(NOT _gf_status EQUAL 0 OR NOT EXISTS "${plugin_path}")
         set(${result} FALSE PARENT_SCOPE)
-        set(${reason} "it does not build against this Clang package" PARENT_SCOPE)
+        set(${reason} "it does not build against these LLVM headers" PARENT_SCOPE)
         return()
     endif()
     # The probe unit marks its own parameter, so it needs no GUI.Forms header.
@@ -93,27 +105,26 @@ endfunction()
 
 set(GUI_FORMS_LOCALIZABLE_PLUGIN_PATH "")
 if(GUI_FORMS_LOCALIZABLE_PLUGIN)
-    set(_gf_clang_dir "${GUI_FORMS_CLANG_CMAKE_DIR}")
-    if(NOT _gf_clang_dir)
+    # The plugin finds LLVM's and Clang's headers (and on Windows the
+    # import libraries) under one prefix (tools/localizable_plugin/
+    # CMakeLists.txt); no CMake package is loaded.
+    set(_gf_llvm_root "${GUI_FORMS_LLVM_ROOT}")
+    if(NOT _gf_llvm_root)
         get_filename_component(_gf_compiler "${CMAKE_CXX_COMPILER}" REALPATH)
         get_filename_component(_gf_compiler_dir "${_gf_compiler}" DIRECTORY)
-        get_filename_component(_gf_clang_dir "${_gf_compiler_dir}/../lib/cmake/clang" ABSOLUTE)
+        get_filename_component(_gf_llvm_root "${_gf_compiler_dir}/.." ABSOLUTE)
     endif()
     set(_gf_plugin_dir "${CMAKE_CURRENT_BINARY_DIR}/localizable_plugin")
     set(_gf_plugin_path "${_gf_plugin_dir}/gui_forms_localizable${CMAKE_SHARED_MODULE_SUFFIX}")
-    # The plugin project enables C for LLVM's own package checks; it uses
-    # this project's C compiler, the same Clang.
     set(_gf_plugin_arguments
         "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
-        "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
-        "-DClang_DIR=${_gf_clang_dir}"
+        "-DGUI_FORMS_LLVM_ROOT=${_gf_llvm_root}"
         "-DCMAKE_BUILD_TYPE=Release"
-        # Empty on purpose: the sanitizer tree's CFLAGS, CXXFLAGS and
-        # LDFLAGS (template_harness sanitizer_options on macOS) would
-        # otherwise instrument the plugin, and an ASan runtime cannot be
-        # dlopened into an uninstrumented compiler ("interceptors are not
-        # working"). A -D value replaces the environment's initial flags.
-        "-DCMAKE_C_FLAGS="
+        # Empty on purpose: the sanitizer tree's CXXFLAGS and LDFLAGS
+        # (template_harness sanitizer_options on macOS) would otherwise
+        # instrument the plugin, and an ASan runtime cannot be dlopened into
+        # an uninstrumented compiler ("interceptors are not working"). A -D
+        # value replaces the environment's initial flags.
         "-DCMAKE_CXX_FLAGS="
         "-DCMAKE_MODULE_LINKER_FLAGS="
         "-DCMAKE_SHARED_LINKER_FLAGS="
@@ -135,8 +146,8 @@ if(GUI_FORMS_LOCALIZABLE_PLUGIN)
     if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR NOT CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 22
        OR NOT CMAKE_CXX_COMPILER_VERSION VERSION_LESS 23)
         set(_gf_reason "the compiler is not Clang 22")
-    elseif(NOT EXISTS "${_gf_clang_dir}/ClangConfig.cmake")
-        set(_gf_reason "there is no ClangConfig.cmake in ${_gf_clang_dir}")
+    elseif(NOT EXISTS "${_gf_llvm_root}/include/llvm/Config/llvm-config.h")
+        set(_gf_reason "there is no llvm/Config/llvm-config.h in ${_gf_llvm_root}/include")
     elseif(GUI_FORMS_LOCALIZABLE_PLUGIN_PROBED STREQUAL _gf_probe_key AND EXISTS "${_gf_plugin_path}")
         set(_gf_usable TRUE)
     else()
@@ -151,7 +162,7 @@ if(GUI_FORMS_LOCALIZABLE_PLUGIN)
     endif()
     if(NOT _gf_usable)
         message(STATUS "GUI.Forms localizable-literal plugin: skipped, ${_gf_reason} "
-                       "(see ${_gf_plugin_dir}/probe.log; GUI_FORMS_CLANG_CMAKE_DIR names another package)")
+                       "(see ${_gf_plugin_dir}/probe.log; GUI_FORMS_LLVM_ROOT names another LLVM prefix)")
     else()
         include(ExternalProject)
         set(GUI_FORMS_LOCALIZABLE_PLUGIN_PATH "${_gf_plugin_path}")
@@ -182,6 +193,9 @@ function(gui_forms_compile_with_localizable_plugin target)
     set(_gf_flags
         "-fplugin=${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}"
         "-fplugin-arg-gui_forms_localizable-root=${CMAKE_SOURCE_DIR}")
+    if(NOT GUI_FORMS_EFFECT_VERIFY)
+        list(APPEND _gf_flags "-fplugin-arg-gui_forms_localizable-effects=off")
+    endif()
     add_dependencies(${target} gui_forms_localizable_plugin)
     if(_gf_SOURCES)
         set(_gf_sources ${_gf_SOURCES})
@@ -193,4 +207,35 @@ function(gui_forms_compile_with_localizable_plugin target)
     # The compiler loads the plugin: a new plugin recompiles the sources.
     set_property(SOURCE ${_gf_sources} TARGET_DIRECTORY ${target} APPEND PROPERTY
                  OBJECT_DEPENDS "${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}")
+endfunction()
+
+# Whether effect programs are verified in this build: the effect pass is on
+# and the plugin is usable.
+if(GUI_FORMS_EFFECT_VERIFY AND GUI_FORMS_LOCALIZABLE_PLUGIN_PATH)
+    set(GUI_FORMS_EFFECTS_VERIFIED TRUE)
+else()
+    set(GUI_FORMS_EFFECTS_VERIFIED FALSE)
+endif()
+
+# Compiles `SOURCES` of `target`, the files that register effect programs,
+# with the plugin's effect pass, which fails the compile on any effect that
+# breaks the rules or its budgets and records a verification for each that
+# passes. Without the pass the sources compile with GUI_FORMS_EFFECTS_UNVERIFIED
+# defined (each prints its #warning) and configure warns naming the target.
+function(gui_forms_verify_effects target)
+    cmake_parse_arguments(PARSE_ARGV 1 _gf "" "" "SOURCES")
+    if(GUI_FORMS_EFFECTS_VERIFIED)
+        gui_forms_compile_with_localizable_plugin(${target} SOURCES ${_gf_SOURCES})
+        return()
+    endif()
+    if(NOT GUI_FORMS_EFFECT_VERIFY)
+        set(_gf_reason "GUI_FORMS_EFFECT_VERIFY is OFF")
+    else()
+        set(_gf_reason "the gui_forms Clang plugin is not usable with this toolchain")
+    endif()
+    string(JOIN ", " _gf_files ${_gf_SOURCES})
+    message(WARNING "GUI.Forms effects in ${target} (${_gf_files}) are unverified: ${_gf_reason}, so their "
+                    "bounds are not checked. They run, labelled unverified and counted by the effect registry.")
+    set_property(SOURCE ${_gf_SOURCES} TARGET_DIRECTORY ${target} APPEND PROPERTY
+                 COMPILE_DEFINITIONS GUI_FORMS_EFFECTS_UNVERIFIED)
 endfunction()

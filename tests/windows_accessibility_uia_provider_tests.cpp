@@ -118,8 +118,25 @@ std::string narrow(std::wstring_view text) {
 
 // -- the fixture -------------------------------------------------------------
 
+// The fixture's root, which counts its semantic descriptions: the window
+// asks once for each semantic tree it builds, so the count is the number of
+// trees the providers had built.
+class CountingPanel final : public Panel {
+public:
+    explicit CountingPanel(StableId stable_id) : Panel(std::move(stable_id)) {}
+    // The count to raise; set on the UI thread before the window runs.
+    int* descriptions{};
+
+protected:
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
+        if (descriptions != nullptr) ++*descriptions;
+        SemanticDescriptor descriptor = Panel::semantic_descriptor();
+        return descriptor;
+    }
+};
+
 struct Fixture final {
-    std::shared_ptr<Panel> root;
+    std::shared_ptr<CountingPanel> root;
     std::shared_ptr<Button> button;
     std::shared_ptr<CheckBox> check;
     std::shared_ptr<TextBox> text;
@@ -128,10 +145,13 @@ struct Fixture final {
     std::shared_ptr<TreeView> tree;
     std::shared_ptr<Button> doomed;
     int clicks{};
+    // How many times the root was described (CountingPanel).
+    int root_descriptions{};
 };
 
 std::unique_ptr<Window> make_fixture(Fixture& fixture) {
-    fixture.root = make_control<Panel>(StableId("uia.root"));
+    fixture.root = make_control<CountingPanel>(StableId("uia.root"));
+    (*fixture.root).descriptions = &fixture.root_descriptions;
     fixture.button = make_control<Button>(StableId("uia.button"), "Press me");
     fixture.check = make_control<CheckBox>(StableId("uia.check"), "Check me");
     fixture.text = make_control<TextBox>(StableId("uia.text"));
@@ -202,6 +222,18 @@ struct RemoveDoomed final {
     }
 };
 
+struct ReadDescriptions final {
+    Fixture* fixture{};
+    int* count{};
+    void operator()() const { *count = (*fixture).root_descriptions; }
+};
+
+struct RenameButton final {
+    Fixture* fixture{};
+    std::string text;
+    void operator()() const { (*(*fixture).button).set_text(text); }
+};
+
 struct CloseWindow final {
     std::function<void()>* request_close{};
     void operator()() const { (*request_close)(); }
@@ -209,8 +241,20 @@ struct CloseWindow final {
 
 // -- the client ---------------------------------------------------------------
 
+// Runs `work` on the UI thread through the window's dispatcher handle. The
+// window may close under the client (its host destroys it); the handle then
+// reports window_gone and the client stops with that failure instead of
+// touching the destroyed window. The work itself runs only while the window
+// lives, so it may use the window.
+void on_ui_thread(const WindowDispatcher& dispatcher, std::function<void()> work) {
+    if (dispatcher.invoke(std::move(work)) == DispatchInvokeResult::window_gone) {
+        throw std::runtime_error("the window closed before the client finished");
+    }
+}
+
 struct ClientContext final {
-    Window* window{};
+    // The client thread reaches the window only through this handle.
+    WindowDispatcher dispatcher;
     Fixture* fixture{};
     HWND hwnd{};
     std::function<void()> request_close;
@@ -232,7 +276,7 @@ struct ClientContext final {
 
 ModelState read_model(ClientContext& context) {
     ModelState state;
-    (*context.window).invoke(std::function<void()>(ReadModel{context.fixture, &state}));
+    on_ui_thread(context.dispatcher, std::function<void()>(ReadModel{context.fixture, &state}));
     return state;
 }
 
@@ -340,6 +384,45 @@ void check_root_and_identity(ClientContext& context, IUIAutomation& automation,
     // prefix, so a client sees that prefix and the provider's four parts.
     expect(context, button_id.size() > 4U && check_id.size() > 4U && button_id != check_id,
            "elements carry distinct runtime IDs that end in the provider's four parts");
+}
+
+int read_descriptions(ClientContext& context) {
+    int count = 0;
+    on_ui_thread(context.dispatcher,
+                 std::function<void()>(ReadDescriptions{context.fixture, &count}));
+    return count;
+}
+
+// The providers reuse one semantic tree while the window is unchanged, and
+// build a new one once it changes.
+void check_tree_reuse(ClientContext& context, IUIAutomation& automation,
+                      IUIAutomationElement& window) {
+    ComReference<IUIAutomationElement> button;
+    if (!find_element(automation, window, "uia.button", button)) {
+        expect(context, false, "the button is found for the reuse check");
+        return;
+    }
+    constexpr int reads = 20;
+    const int before = read_descriptions(context);
+    bool named = true;
+    for (int read = 0; read < reads; ++read) {
+        named = named && element_name(*button.get()) == "Press me";
+    }
+    const int built = read_descriptions(context) - before;
+    // An idle window builds one tree for all of them; a second allows one
+    // repaint the host may still owe its first frame. Without reuse each
+    // read builds at least one.
+    expect(context, named && built <= 2,
+           "twenty reads of an unchanged window share its semantic tree (built " +
+               std::to_string(built) + ")");
+    on_ui_thread(context.dispatcher,
+                 std::function<void()>(RenameButton{context.fixture, "Renamed"}));
+    expect(context, element_name(*button.get()) == "Renamed",
+           "a changed window is described again: the button's new name is read");
+    on_ui_thread(context.dispatcher,
+                 std::function<void()>(RenameButton{context.fixture, "Press me"}));
+    expect(context, element_name(*button.get()) == "Press me",
+           "the restored name is read");
 }
 
 void check_invoke(ClientContext& context, IUIAutomation& automation, IUIAutomationElement& window) {
@@ -491,7 +574,7 @@ void check_stale_element(ClientContext& context, IUIAutomation& automation,
     }
     ComReference<IUIAutomationInvokePattern> invoke;
     expect(context, pattern(*doomed.get(), UIA_InvokePatternId, invoke), "it offers Invoke");
-    (*context.window).invoke(std::function<void()>(RemoveDoomed{context.fixture}));
+    on_ui_thread(context.dispatcher, std::function<void()>(RemoveDoomed{context.fixture}));
     expect(context, !read_model(context).doomed_attached, "the button left the window");
     BstrText name;
     const HRESULT read = (*doomed.get()).get_CurrentName(name.receive());
@@ -528,6 +611,7 @@ void run_client_checks(ClientContext& context) {
     GetWindowThreadProcessId(context.hwnd, &owner);
     expect(context, owner == GetCurrentProcessId(), "the window the client reads belongs to this process");
     check_root_and_identity(context, *automation.get(), *window.get());
+    check_tree_reuse(context, *automation.get(), *window.get());
     check_invoke(context, *automation.get(), *window.get());
     check_toggle(context, *automation.get(), *window.get());
     check_value(context, *automation.get(), *window.get());
@@ -589,7 +673,8 @@ struct ClientThread final {
         }
         if (SUCCEEDED(initialized)) CoUninitialize();
         try {
-            (*(*context).window).invoke(std::function<void()>(CloseWindow{&(*context).request_close}));
+            // A window that closed already needs no close.
+            static_cast<void>((*context).dispatcher.invoke(std::function<void()>(CloseWindow{&(*context).request_close})));
         } catch (const std::exception& error) {
             (*context).failures.push_back(std::string("closing the window: ") + error.what());
         }
@@ -658,11 +743,12 @@ struct DecoyClose final {
 // then closes the decoy's window through the UI thread.
 struct DecoyWait final {
     HANDLE done{};
-    Window* window{};
+    WindowDispatcher dispatcher;
     std::function<void()>* request_close{};
     void operator()() const {
         static_cast<void>(WaitForSingleObject(done, 120000U));
-        (*window).invoke(std::function<void()>(DecoyClose{request_close}));
+        // A decoy window that closed already needs no close.
+        static_cast<void>(dispatcher.invoke(std::function<void()>(DecoyClose{request_close})));
     }
 };
 
@@ -678,7 +764,7 @@ struct DecoyReady final {
                     std::function<void()>, std::function<HostClipboardTextResult()>,
                     std::function<HostServiceStatus(std::string_view)>) const {
         *request_close = std::move(close);
-        *waiter = std::thread(DecoyWait{done, window, request_close});
+        *waiter = std::thread(DecoyWait{done, (*window).dispatcher(), request_close});
         SetEvent(ready);
     }
 };
@@ -773,7 +859,7 @@ void run_fixture_window(ClientContext& context) {
     Fixture fixture;
     std::unique_ptr<Window> window = make_fixture(fixture);
     SubscriptionToken clicked = (*fixture.button).clicked().subscribe(CountClick{&fixture.clicks});
-    context.window = window.get();
+    context.dispatcher = (*window).dispatcher();
     context.fixture = &fixture;
     std::thread client;
     host::WindowsHostOptions options;
@@ -783,7 +869,7 @@ void run_fixture_window(ClientContext& context) {
     options.host_ready = HostReady{&context, &client};
     const int exit_code = host::run_windows(std::move(window), std::move(options));
     if (client.joinable()) client.join();
-    context.window = nullptr;
+    context.dispatcher = WindowDispatcher();
     context.fixture = nullptr;
     require(exit_code == 0, "the fixture window did not run");
 }

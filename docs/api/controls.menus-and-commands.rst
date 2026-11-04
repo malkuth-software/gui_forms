@@ -404,6 +404,12 @@ Related types
 
       The row's text is set in the italic style. A presentational bridge: no anatomy state names why a row is set apart (PageStrip's list sets the pages it does not show in italic, owner decision DK-42, PT6).
 
+   .. cpp:member:: MergeAction merge_action
+
+      How the item joins another strip's menu when its strip merges (MergeAction), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
+
+   .. cpp:member:: std::optional<std::size_t> merge_index
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: MenuStrip::Item final
@@ -495,6 +501,12 @@ Related types
    .. cpp:member:: bool visible
 
       Default: ``{true}``.
+
+   .. cpp:member:: MergeAction merge_action
+
+      How the menu joins another menu strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
+
+   .. cpp:member:: std::optional<std::size_t> merge_index
 
 .. cpp:namespace:: gui_forms
 
@@ -1504,6 +1516,12 @@ Related types
 
    .. cpp:member:: double width
 
+   .. cpp:member:: MergeAction merge_action
+
+      How the item joins another strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
+
+   .. cpp:member:: std::optional<std::size_t> merge_index
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ToolStripMove final
@@ -1580,6 +1598,22 @@ Enumerations
    .. cpp:enumerator:: keyboard
 
    .. cpp:enumerator:: pointer
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MergeAction
+
+   ``#include <gui_forms/components/context_menu/context_menu.hpp>``
+
+   .. cpp:enumerator:: append
+
+   .. cpp:enumerator:: insert
+
+   .. cpp:enumerator:: replace
+
+   .. cpp:enumerator:: remove
+
+   .. cpp:enumerator:: match_only
 
 .. cpp:namespace:: gui_forms
 
@@ -1861,3 +1895,25 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::uint32_t ribbon_all_modes
 
    The application modes a tab or group belongs to (stage RB, phase 5; owner decision 14, F2-1, after the Windows Ribbon Framework's application modes): one bit per mode, 32 modes. A tab or group shows while it shares a bit with Ribbon::application_modes. Every mode by default. Value: ``0xFFFFFFFFU``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/tool_strip/tool_strip_manager.hpp>``
+
+.. cpp:function:: bool merge_strips(ToolStrip& source, ToolStrip& target)
+
+   Merges ``source`` into ``target``. Returns whether any item moved or left; false, changing nothing, when either strip does not allow merging, when nothing applies, or when the result would be invalid (a repeated item ID). Throws std::invalid_argument when ``source`` is ``target``, and std::bad_weak_ptr when ``source`` is not owned by a shared pointer.
+
+.. cpp:function:: bool merge_strips(MenuStrip& source, MenuStrip& target)
+
+.. cpp:function:: bool revert_merge(ToolStrip& target)
+
+   Reverts every merge into ``target``, newest first, restoring the sources that still exist (items of a destroyed source are dropped from the target). Returns whether there was a merge to revert. Each merge reverts whole or not at all: when restoring one would make either strip invalid (items added since with a repeated ID), std::invalid_argument propagates, the newer merges stay reverted, and that merge and the older ones stay in place with their history.
+
+.. cpp:function:: bool revert_merge(MenuStrip& target)
+
+.. cpp:function:: bool revert_merge(ToolStrip& target, ToolStrip& source)
+
+   Reverts the newest merge of ``source`` into ``target``: the merges after it are reverted first and then merged again, in their order, from the sources that still exist. Returns whether ``source`` had merged into ``target``. Failures as revert_merge(target).
+
+.. cpp:function:: bool revert_merge(MenuStrip& target, MenuStrip& source)

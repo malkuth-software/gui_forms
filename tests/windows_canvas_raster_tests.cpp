@@ -237,7 +237,7 @@ void edge_snapping_scene() {
         // A top-down 32-bit BMP: the pixels follow the 54-byte headers.
         require(bytes.size() >= 54U + image.row_bytes * static_cast<std::size_t>(image.height));
         image.bytes = bytes.data() + 54U;
-        require(edge_snapping::check_scene(image, scale, 0));
+        require(edge_snapping::check_scene(image, scale));
     }
 }
 

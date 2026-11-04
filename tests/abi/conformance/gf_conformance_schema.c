@@ -101,6 +101,42 @@ static void lookups(gf_kit* kit) {
     gf_kit_check(kit, engine.primitive_count > 0u, "the engine registers primitives");
 }
 
+/* The effect programs (since 1.1): each names a schema type as its parent,
+ * and the refusals leave their outputs. */
+static void effects(gf_kit* kit) {
+    uint64_t count = 0u;
+    gf_kit_status(kit, (*kit).schema.effect_count(&count), GF_STATUS_OK, "effect_count");
+    gf_kit_check(kit, count > 0u, "the library registers effect programs");
+    gf_kit_status(kit, (*kit).schema.effect_count(NULL), GF_STATUS_INVALID_ARGUMENT, "effect_count needs an output");
+    uint64_t index = 0u;
+    for (index = 0u; index < count; ++index) {
+        gf_schema_effect effect;
+        memset(&effect, 0, sizeof(effect));
+        effect.struct_size = (uint32_t)sizeof(effect);
+        gf_kit_status(kit, (*kit).schema.effect_at(index, &effect), GF_STATUS_OK, "effect_at");
+        uint64_t parent = 0u;
+        gf_kit_status(kit, (*kit).schema.find_type(effect.parent, &parent), GF_STATUS_OK,
+                      "an effect's parent is a schema type");
+        gf_kit_check(kit, effect.struct_size == (uint32_t)sizeof(effect) && effect.name.size > 0u &&
+                              effect.time_model <= GF_SCHEMA_EFFECT_TIME_MODEL_AMBIENT &&
+                              effect.input <= GF_SCHEMA_EFFECT_INPUT_POINTER_AND_KEYS && effect.state_budget > 0u &&
+                              effect.frames_per_second > 0.0 && effect.outsets.left >= 0.0 &&
+                              effect.outsets.top >= 0.0 && effect.outsets.right >= 0.0 && effect.outsets.bottom >= 0.0,
+                     "an effect has a name, a known time model and input, a state budget, a rate and outsets");
+    }
+    gf_schema_effect past;
+    memset(&past, 0, sizeof(past));
+    past.struct_size = (uint32_t)sizeof(past);
+    gf_kit_status(kit, (*kit).schema.effect_at(count, &past), GF_STATUS_INVALID_ARGUMENT,
+                  "an effect index past the end is refused");
+    gf_kit_check(kit, past.name.size == 0u, "a refused effect_at leaves its record");
+    gf_schema_effect small;
+    memset(&small, 0, sizeof(small));
+    small.struct_size = 8u;
+    gf_kit_status(kit, (*kit).schema.effect_at(0u, &small), GF_STATUS_INVALID_ARGUMENT,
+                  "an effect record below its size is refused");
+}
+
 /* Every type the schema lists is created by its id unless it needs another
  * object or a window, or is a service. */
 static void create_every_type(gf_kit* kit) {
@@ -179,6 +215,7 @@ static void threads(gf_kit* kit) {
 
 void gf_kit_schema(gf_kit* kit) {
     lookups(kit);
+    effects(kit);
     create_every_type(kit);
     threads(kit);
 }

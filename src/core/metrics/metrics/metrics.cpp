@@ -1,4 +1,5 @@
 #include "gui_forms/metrics/metrics/metrics.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 
 #include <algorithm>
 
@@ -8,6 +9,7 @@ MetricsSnapshot Metrics::snapshot() const {
     MetricsSnapshot result = values_;
     result.rejected_wrong_thread_operations =
         wrong_thread_rejections_.load(std::memory_order_relaxed);
+    result.effects_unverified = effect_load_diagnostics().unverified;
     return result;
 }
 
@@ -217,6 +219,9 @@ void Metrics::record_engine_ambient_frame() noexcept {
 }
 void Metrics::record_engine_ambient_refusal() noexcept {
     values_.engine_ambient_refusals = values_.engine_ambient_refusals + 1U;
+}
+void Metrics::record_effect_ambient_frame() noexcept {
+    values_.effect_ambient_frames = values_.effect_ambient_frames + 1U;
 }
 void Metrics::record_engine_primitive_refusal() noexcept {
     values_.engine_primitive_refusals = values_.engine_primitive_refusals + 1U;

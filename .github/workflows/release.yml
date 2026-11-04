@@ -9,7 +9,9 @@ name: GUI.Forms programs and release
 # platform (platform), after that platform's native job (from_native): the
 # programs job then adds the objects the native job just compiled for the same
 # tree (the native cache archive), so the toolkit and tests are compiled once
-# per platform and run, rather than twice. native.yml then publishes, once all
+# per platform and run, rather than twice. A push to main also adds the objects
+# the programs job of the run that tested its tree created, so main links and
+# packages that tree without compiling it again. native.yml then publishes, once all
 # four have packaged (publish-release.yml). native.yml's daily scheduled run on
 # main calls it the same way and publishes nothing. Tags, manual dispatch and the
 # weekly prune still start it directly, with only the Actions caches.
@@ -257,8 +259,8 @@ jobs:
             gui_forms/third_party/harfbuzz
             gui_forms/third_party/freetype
             gui_forms/third_party/libunibreak
-            .build/native-${{ matrix.platform }}/gui-forms/_deps/gui_forms_miniaudio-src
-          key: gui-deps-v3-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
+            gui_forms/third_party/miniaudio
+          key: gui-deps-v4-${{ runner.os }}-${{ hashFiles('gui_forms/third_party/*.sh', 'gui_forms/third_party/*.patch', 'gui_forms/third_party/*.gn', 'gui_forms/cmake/Audio.cmake') }}
       # Called from native.yml: this run's native job for the platform compiled
       # the toolkit and tests of this very tree and archived its .ccache (or,
       # on a promoted main run, the archive of the run that tested this tree).
@@ -277,6 +279,50 @@ jobs:
           tar -xzf .ci/native-cache/gui-forms-cache-${{ matrix.platform }}.tar.gz .ccache
           tar -xzf .ci/native-cache/gui-forms-cache-${{ matrix.platform }}.tar.gz -O cache-manifest.json > .ci/native-manifest.json
           rm -rf .ci/native-cache
+      # A pull request or a merge group called from native.yml runs only the
+      # tests its native job did not pass on this tree: those of the Gallery,
+      # the demoboard and any the native job skipped (tools/native_tests.py).
+      # A push to main is the commit its merge group tested (or, merged
+      # without the queue, has the tree of the up-to-date pull request it
+      # merges): main's native job reuses that run's validation, and this job
+      # carries that run's programs receipt (the rest of the tests) instead
+      # of running them again (owner's choice, 2026-10-23). A release tag names a tree main has already tested and
+      # carries main's receipt the same way. Both still package and smoke
+      # test under their own version (tools/release_tests.py). With no such
+      # run, or one that has not finished, the job runs every test. The daily
+      # scheduled run and direct runs always test everything: the schedule is
+      # the backstop for native_tests.py's name match.
+      - name: Carry the tests of this tree from an earlier run
+        id: tested
+        if: startsWith(github.ref, 'refs/tags/v') || (inputs.from_native && github.event_name == 'push' && github.ref == 'refs/heads/main')
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMMAND: ${{ startsWith(github.ref, 'refs/tags/v') && 'find' || 'merged' }}
+        run: python gui_forms/tools/release_tests.py "$COMMAND" --platform "${{ matrix.platform }}" --dist dist
+      # A push to main carries the run that tested its tree (the merge group, or
+      # the merged pull request's run), found before the build: that run's
+      # programs job archived the compiler cache entries it created
+      # (gui-programs-objects-<platform>, below), which the restored cache
+      # lacks because pull requests and merge groups save no Actions cache.
+      # Adding them turns this build's compilations into hits, so main links
+      # and packages the tested tree without compiling it again (about 200 s
+      # of the linux-x64 job on 2026-11-02, run 41473847301). An expired or
+      # missing archive only means compiling as before.
+      - uses: actions/download-artifact@v4
+        id: tested-objects
+        if: steps.tested.outputs.reused == 'true' && inputs.from_native && github.event_name == 'push'
+        continue-on-error: true
+        with:
+          name: gui-programs-objects-${{ matrix.platform }}
+          path: .ci/tested-objects
+          run-id: ${{ steps.tested.outputs.run }}
+          github-token: ${{ github.token }}
+      - name: Add the tested run's objects to the compiler cache
+        if: steps.tested-objects.outcome == 'success'
+        run: |
+          tar -xf .ci/tested-objects/gui-programs-objects-${{ matrix.platform }}.tar
+          rm -rf .ci/tested-objects
       # --- build, as tools/ci_build.py configures it, plus the programs ------------
       # The CPU renderer, stx_skia/, is part of the tree and builds with it.
       - name: Fetch pinned text sources
@@ -300,31 +346,13 @@ jobs:
         id: compile
         run: |
           ccache --zero-stats
+          # The entries present before compiling; the archive step below keeps the rest.
+          mkdir -p .ccache
+          find .ccache -type f | LC_ALL=C sort > "$RUNNER_TEMP/ccache-before.txt"
           cmake --build "$BUILD_DIR" --parallel 4
       - name: Report cache statistics
         if: always()
         run: ccache --show-stats --verbose
-      # A pull request or a merge group called from native.yml runs only the
-      # tests its native job did not pass on this tree: those of the Gallery,
-      # the demoboard and any the native job skipped (tools/native_tests.py).
-      # A push to main is the commit its merge group tested (or, merged
-      # without the queue, has the tree of the up-to-date pull request it
-      # merges): main's native job reuses that run's validation, and this job
-      # carries that run's programs receipt (the rest of the tests) instead
-      # of running them again (owner's choice, 2026-10-23). A release tag names a tree main has already tested and
-      # carries main's receipt the same way. Both still package and smoke
-      # test under their own version (tools/release_tests.py). With no such
-      # run, or one that has not finished, the job runs every test. The daily
-      # scheduled run and direct runs always test everything: the schedule is
-      # the backstop for native_tests.py's name match.
-      - name: Carry the tests of this tree from an earlier run
-        id: tested
-        if: startsWith(github.ref, 'refs/tags/v') || (inputs.from_native && github.event_name == 'push' && github.ref == 'refs/heads/main')
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          COMMAND: ${{ startsWith(github.ref, 'refs/tags/v') && 'find' || 'merged' }}
-        run: python gui_forms/tools/release_tests.py "$COMMAND" --platform "${{ matrix.platform }}" --dist dist
       - name: Test
         if: steps.tested.outputs.reused != 'true'
         env:
@@ -347,12 +375,44 @@ jobs:
           else
             ctest "$@"
           fi
+      # A pull request or a merge group passes the compiler cache entries its
+      # build created to the push to main that merges its tree (above): only
+      # the new entries, as the push restores the same Actions cache this run
+      # did and the native job's archive. ccache's stats and lock files are
+      # left out.
+      - name: Archive the objects this build created for main
+        if: success() && inputs.from_native && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+        run: |
+          find .ccache -type f | LC_ALL=C sort > "$RUNNER_TEMP/ccache-after.txt"
+          LC_ALL=C comm -13 "$RUNNER_TEMP/ccache-before.txt" "$RUNNER_TEMP/ccache-after.txt" | grep -v -e '/stats$' -e '\.lock$' -e '/tmp/' > "$RUNNER_TEMP/ccache-new.txt" || true
+          echo "$(wc -l < "$RUNNER_TEMP/ccache-new.txt") new compiler cache files"
+          tar -cf gui-programs-objects-${{ matrix.platform }}.tar -T "$RUNNER_TEMP/ccache-new.txt"
+      - uses: actions/upload-artifact@v4
+        if: success() && inputs.from_native && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
+        with:
+          name: gui-programs-objects-${{ matrix.platform }}
+          path: gui-programs-objects-${{ matrix.platform }}.tar
+          compression-level: 0
+          retention-days: 7
       # The caches are saved after the build and its tests passed, or the tests
       # were carried from the run that passed them (owner, 2026-11-01): a failed
       # build's cache must never become the newest entry the next run restores.
       # Only main saves (pull requests restore main's): per-PR entries evicted
       # the dependency caches from the repository's 10 GB. The dependencies
       # are saved after the build, which fetched miniaudio's sources.
+      # The sources are platform-neutral, so the entry is keyed by the runner's
+      # OS only (Linux x64 and arm64 share one; Windows stays apart, as the
+      # Actions cache restores no entry across Windows and the others). The
+      # miniaudio Git checkout FetchContent made is kept at third_party/miniaudio,
+      # the place cmake/Audio.cmake (and the source SDK) read it from.
+      - name: Keep the fetched miniaudio sources with the other dependencies
+        if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.dependencies.outputs.cache-hit != 'true'
+        run: |
+          fetched=".build/native-${{ matrix.platform }}/gui-forms/_deps/gui_forms_miniaudio-src"
+          if [ ! -f gui_forms/third_party/miniaudio/miniaudio.h ] && [ -f "$fetched/miniaudio.h" ]; then
+            mkdir -p gui_forms/third_party/miniaudio
+            tar -C "$fetched" -cf - . | tar -C gui_forms/third_party/miniaudio -xf -
+          fi
       - uses: actions/cache/save@v4
         if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.dependencies.outputs.cache-hit != 'true'
         with:
@@ -360,7 +420,7 @@ jobs:
             gui_forms/third_party/harfbuzz
             gui_forms/third_party/freetype
             gui_forms/third_party/libunibreak
-            .build/native-${{ matrix.platform }}/gui-forms/_deps/gui_forms_miniaudio-src
+            gui_forms/third_party/miniaudio
           key: ${{ steps.dependencies.outputs.cache-primary-key }}
       # The saved cache is this build's working set, not every generation up
       # to CCACHE_MAXSIZE (notes:planning/BUILD_SIZE_PLAN_2026-10-23.md, step 1).
@@ -398,8 +458,10 @@ jobs:
         env:
           COMPILER_CACHE: ${{ inputs.from_native && github.event_name == 'push' && github.ref == 'refs/heads/main' && '--compiler-cache' || '' }}
         run: |
+          miniaudio="$BUILD_DIR/_deps/gui_forms_miniaudio-src"
+          if [ -f gui_forms/third_party/miniaudio/miniaudio.h ]; then miniaudio=gui_forms/third_party/miniaudio; fi
           python gui_forms/tools/package_sdk.py --version "$RELEASE_VERSION" --revision "${{ github.sha }}" --out dist \
-            --checkout "miniaudio=$BUILD_DIR/_deps/gui_forms_miniaudio-src" --fetch-missing $COMPILER_CACHE
+            --checkout "miniaudio=$miniaudio" --fetch-missing $COMPILER_CACHE
       - uses: actions/upload-artifact@v4
         with:
           name: gui-forms-programs-${{ matrix.platform }}

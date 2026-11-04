@@ -2950,6 +2950,10 @@ Insets Control::visual_outsets() const noexcept {
     return {};
 }
 
+bool Control::on_ambient_frame(FrameTime) {
+    return false;
+}
+
 bool Control::hit_test_local(Point local_point) const {
     return Rect{0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height}.contains(local_point);
 }

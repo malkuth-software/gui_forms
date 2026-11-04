@@ -77,6 +77,35 @@ class PaintCensusTests(unittest.TestCase):
         summary = paint_census.totals(self.census())
         self.assertEqual(summary["stock"], {"files": 1, "calls": 4})
 
+    def test_effect_canvas_calls_are_not_stock(self) -> None:
+        canvas_header = self.root / "effect_canvas.hpp"
+        canvas_header.write_text(
+            "class EffectCanvas final {\npublic:\n"
+            "    GUI_FORMS_EFFECT_VOCABULARY(4, 1)\n    void fill_rect(Rect rect, Color color) noexcept;\n"
+            "    GUI_FORMS_EFFECT_VOCABULARY(6, 2)\n    void stroke_line(Point from, Point to, Color color,\n"
+            "                     double width) noexcept;\n"
+            "    GUI_FORMS_EFFECT_VOCABULARY(2, 0)\n    void save() noexcept;\n};\n", encoding="utf-8")
+        effect_methods = paint_census.effect_canvas_methods(canvas_header)
+        self.assertEqual(effect_methods, frozenset({"fill_rect", "stroke_line"}))
+        (self.controls / "thing" / "thing_effects.cpp").write_text(
+            "void Glow::run(const EffectView<Thing>& parent, const EffectFrame& frame, EffectCanvas& canvas) {\n"
+            "    canvas.save();\n"
+            "    canvas.fill_rect(r, c);\n"
+            "    canvas.stroke_line(a, b, c, 1.0);\n"
+            "    painter.fill_rect(r, c);\n"
+            "}\n", encoding="utf-8")
+        methods = paint_census.painter_drawing_methods(self.header)
+        census = paint_census.scan(self.controls, methods, {}, effect_methods)
+        by_path = {entry.path: entry for entry in census}
+        effects = by_path["thing/thing_effects.cpp"]
+        self.assertEqual(effects.calls, {"fill_rect": 1})
+        self.assertEqual(effects.effect_calls, {"fill_rect": 1, "stroke_line": 1})
+        summary = paint_census.totals(census)
+        self.assertEqual(summary["effect"], {"files": 1, "calls": 2})
+        baseline = paint_census.baseline_document(census, {}, methods)
+        self.assertEqual(baseline["files"]["thing/thing_effects.cpp"]["calls"], 1)
+        self.assertEqual(baseline["files"]["thing/thing_effects.cpp"]["effect_calls"], 2)
+
     def test_ratchet(self) -> None:
         census = self.census()
         methods = paint_census.painter_drawing_methods(self.header)

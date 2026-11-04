@@ -85,7 +85,8 @@ def check_installed_notices(sdk: Path) -> None:
 def gallery_enabled(flag: bool, environ: dict[str, str]) -> bool:
     """Resolve whether the demo programs are configured.
 
-    The default stays OFF: CI builds only the toolkit and its tests. The
+    The default stays OFF: CI builds the toolkit, the Gallery model and
+    their tests (GUI_FORMS_BUILD_GALLERY_MODEL follows the tests). The
     release pipeline passes --gallery or sets GUI_FORMS_CI_BUILD_GALLERY to
     1/true/on/yes to add the Gallery and lab executables.
     """

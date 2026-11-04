@@ -15,6 +15,14 @@ measurement), so a new drawing method is counted without editing this file.
 A call is `.name(` on a code line; comments are skipped. Definitions (an
 override in a Painter subclass) are not calls and are not counted.
 
+Effect programs draw through an `EffectCanvas` (stage M2), the effect
+engine's sanctioned path (coordinator ruling, checkpoint 14): a call of one
+of the canvas's vocabulary members (read from
+include/gui_forms/engine/effect_canvas/effect_canvas.hpp, the members
+annotated `GUI_FORMS_EFFECT_VOCABULARY`) on a name the same file declares
+as `EffectCanvas&` is an effect call. Effect calls are counted apart (the
+`effect` totals) and are never stock calls, whatever the file's class.
+
 Each file is classed by its path:
 - `demo`: the Gallery's own code (src/controls/gallery*), which is not a
   stock control;
@@ -42,6 +50,7 @@ from pathlib import Path
 
 ROOT: Path = Path(__file__).resolve().parents[1]
 PAINTER_HEADER: Path = ROOT / "include" / "gui_forms" / "types" / "painter" / "painter.hpp"
+EFFECT_CANVAS_HEADER: Path = ROOT / "include" / "gui_forms" / "engine" / "effect_canvas" / "effect_canvas.hpp"
 CONTROLS: Path = ROOT / "src" / "controls"
 DEFAULT_BASELINE: Path = ROOT / "manifests" / "paint_census.json"
 
@@ -54,14 +63,23 @@ STATE_METHODS: frozenset[str] = frozenset({
 RECIPE_FUNCTIONS: tuple[str, ...] = ("paint_surface_material", "paint_part_from_recipe")
 SOURCE_SUFFIXES: frozenset[str] = frozenset({".cpp", ".hpp", ".mm"})
 VIRTUAL_METHOD: re.Pattern[str] = re.compile(r"\bvirtual\s+[^;{(]*?\b([a-z_][a-z0-9_]*)\s*\(")
+# An effect-vocabulary member: the annotation, then the declaration up to its name.
+VOCABULARY_METHOD: re.Pattern[str] = re.compile(
+    r"GUI_FORMS_EFFECT_VOCABULARY\s*\([^)]*\)\s*[^;{(]*?\b([a-z_][a-z0-9_]*)\s*\(")
+# A name declared as an effect canvas reference (a parameter or a local).
+EFFECT_CANVAS_NAME: re.Pattern[str] = re.compile(r"\bEffectCanvas\s*&\s*([A-Za-z_][A-Za-z0-9_]*)")
+# The receiver name ending just before a member call's `.`.
+RECEIVER_NAME: re.Pattern[str] = re.compile(r"([A-Za-z_][A-Za-z0-9_]*)\s*$")
 
 
 @dataclass
 class FileCensus:
-    """One file's direct drawing calls, by callee name."""
+    """One file's direct drawing calls, by callee name, and apart from them
+    its effect-canvas calls."""
     path: str
     category: str
     calls: dict[str, int] = field(default_factory=dict)
+    effect_calls: dict[str, int] = field(default_factory=dict)
 
     def total(self) -> int:
         count = 0
@@ -84,6 +102,24 @@ def painter_drawing_methods(header: Path) -> list[str]:
     if not names:
         raise SystemExit(f"paint_census: no drawing methods found in {header}")
     return sorted(names)
+
+
+def effect_canvas_methods(header: Path) -> frozenset[str]:
+    """The effect canvas's drawing members: those annotated as vocabulary,
+    less the state ones (save, restore, clipping). Empty
+    when the header is absent (a tree without effect programs)."""
+    if not header.is_file():
+        return frozenset()
+    text = header.read_text(encoding="utf-8")
+    start = text.find("class EffectCanvas ")
+    if start < 0:
+        raise SystemExit(f"paint_census: no `class EffectCanvas` in {header}")
+    names: set[str] = set()
+    for match in VOCABULARY_METHOD.finditer(text, start):
+        name = match.group(1)
+        if name not in STATE_METHODS:
+            names.add(name)
+    return frozenset(names)
 
 
 def call_pattern(methods: list[str]) -> re.Pattern[str]:
@@ -111,17 +147,33 @@ def classify(relative: str, exempt: dict[str, str]) -> str:
     return "stock"
 
 
-def scan(controls: Path, methods: list[str], exempt: dict[str, str]) -> list[FileCensus]:
-    """Every file under `controls` with at least one direct drawing call."""
-    pattern = call_pattern(methods)
+def is_effect_call(code: str, match: re.Match[str], receivers: set[str],
+                   effect_methods: frozenset[str]) -> bool:
+    """Whether a member call is an effect-canvas vocabulary call: its
+    receiver is a name declared as `EffectCanvas&` in the file."""
+    if match.group(1) is None or match.group(1) not in effect_methods:
+        return False
+    receiver = RECEIVER_NAME.search(code, 0, match.start())
+    if receiver is None:
+        return False
+    return receiver.group(1) in receivers
+
+
+def scan(controls: Path, methods: list[str], exempt: dict[str, str],
+         effect_methods: frozenset[str] = frozenset()) -> list[FileCensus]:
+    """Every file under `controls` with at least one direct drawing call or
+    effect-canvas call."""
+    pattern = call_pattern(sorted(set(methods) | effect_methods))
     result: list[FileCensus] = []
     for path in sorted(controls.rglob("*")):
         if path.suffix not in SOURCE_SUFFIXES or not path.is_file():
             continue
         relative = path.relative_to(controls).as_posix()
         census = FileCensus(path=relative, category=classify(relative, exempt))
+        text = path.read_text(encoding="utf-8", errors="replace")
+        receivers: set[str] = set(EFFECT_CANVAS_NAME.findall(text))
         in_block_comment = False
-        for raw in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        for raw in text.splitlines():
             line = raw
             if in_block_comment:
                 end = line.find("*/")
@@ -136,19 +188,27 @@ def scan(controls: Path, methods: list[str], exempt: dict[str, str]) -> list[Fil
             code = strip_comment(line)
             for match in pattern.finditer(code):
                 name = match.group(1) or match.group(2)
-                census.calls[name] = census.calls.get(name, 0) + 1
-        if census.calls:
+                if is_effect_call(code, match, receivers, effect_methods):
+                    census.effect_calls[name] = census.effect_calls.get(name, 0) + 1
+                elif name in methods or match.group(2) is not None:
+                    census.calls[name] = census.calls.get(name, 0) + 1
+        if census.calls or census.effect_calls:
             result.append(census)
     return result
 
 
 def totals(census: list[FileCensus]) -> dict[str, dict[str, int]]:
-    """Files and calls per category."""
+    """Files and calls per category, and the effect-canvas calls as `effect`."""
     summary: dict[str, dict[str, int]] = {}
     for entry in census:
-        bucket = summary.setdefault(entry.category, {"files": 0, "calls": 0})
-        bucket["files"] += 1
-        bucket["calls"] += entry.total()
+        if entry.calls:
+            bucket = summary.setdefault(entry.category, {"files": 0, "calls": 0})
+            bucket["files"] += 1
+            bucket["calls"] += entry.total()
+        if entry.effect_calls:
+            effect = summary.setdefault("effect", {"files": 0, "calls": 0})
+            effect["files"] += 1
+            effect["calls"] += sum(entry.effect_calls.values())
     return summary
 
 
@@ -164,10 +224,15 @@ def load_baseline(path: Path) -> dict:
 def baseline_document(census: list[FileCensus], exempt: dict[str, str], methods: list[str]) -> dict:
     files: dict[str, dict] = {}
     for entry in census:
-        files[entry.path] = {"category": entry.category, "calls": entry.total()}
+        record = {"category": entry.category, "calls": entry.total()}
+        if entry.effect_calls:
+            record["effect_calls"] = sum(entry.effect_calls.values())
+        files[entry.path] = record
     document = {
         "description": "Direct drawing calls under src/controls/ (tools/paint_census.py); "
-                       "the stage T4 gate is zero stock calls. The census may only fall.",
+                       "the stage T4 gate is zero stock calls. The census may only fall. "
+                       "Effect-canvas calls (effect_calls) are the effect engine's sanctioned "
+                       "path and are not stock calls.",
         "drawing_methods": methods,
         "exempt": dict(sorted(exempt.items())),
         "totals": totals(census),
@@ -200,6 +265,9 @@ def check(census: list[FileCensus], baseline: dict) -> tuple[list[str], list[str
 def print_census(census: list[FileCensus]) -> None:
     for entry in census:
         names = ", ".join(f"{name} {count}" for name, count in sorted(entry.calls.items()))
+        if entry.effect_calls:
+            effect_names = ", ".join(f"{name} {count}" for name, count in sorted(entry.effect_calls.items()))
+            names = f"{names}; effect: {effect_names}" if names else f"effect: {effect_names}"
         print(f"{entry.category:6} {entry.total():4}  {entry.path}  ({names})")
     for category, bucket in sorted(totals(census).items()):
         print(f"total {category}: {bucket['files']} files, {bucket['calls']} calls")
@@ -220,7 +288,8 @@ def main(argv: list[str]) -> int:
     baseline = load_baseline(arguments.baseline)
     exempt: dict[str, str] = baseline["exempt"]
     methods = painter_drawing_methods(PAINTER_HEADER)
-    census = scan(CONTROLS, methods, exempt)
+    effect_methods = effect_canvas_methods(EFFECT_CANVAS_HEADER)
+    census = scan(CONTROLS, methods, exempt, effect_methods)
     if arguments.command == "scan":
         print_census(census)
         if arguments.json is not None:

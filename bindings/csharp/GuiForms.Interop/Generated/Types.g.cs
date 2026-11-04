@@ -227,6 +227,16 @@ public unsafe struct gf_dispatch_table
     public delegate* unmanaged[Cdecl]<ulong*, gf_status> run_pending;
 }
 
+/// <summary>gf_schema_interaction (extensible, 40 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_schema_interaction
+{
+    public uint struct_size;
+    public uint mutable_payload;
+    public gf_utf8_view name;
+    public gf_utf8_view payload;
+}
+
 /// <summary>gf_run_options (extensible, 64 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_run_options
@@ -241,7 +251,7 @@ public unsafe struct gf_run_options
     public gf_callback* closed;
 }
 
-/// <summary>gf_windows_table (table, 32 bytes).</summary>
+/// <summary>gf_windows_table (table, 56 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -250,6 +260,9 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_run_options*, gf_status> run;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> request_close;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> create;
+    public delegate* unmanaged[Cdecl]<ulong*, gf_status> interaction_count;
+    public delegate* unmanaged[Cdecl]<ulong, gf_schema_interaction*, gf_status> interaction_at;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> request_help;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>
@@ -316,16 +329,6 @@ public unsafe struct gf_schema_choice
     public long value;
 }
 
-/// <summary>gf_schema_interaction (extensible, 40 bytes).</summary>
-[StructLayout(LayoutKind.Sequential)]
-public unsafe struct gf_schema_interaction
-{
-    public uint struct_size;
-    public uint mutable_payload;
-    public gf_utf8_view name;
-    public gf_utf8_view payload;
-}
-
 /// <summary>gf_schema_engine (extensible, 96 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_schema_engine
@@ -379,7 +382,26 @@ public unsafe struct gf_schema_parameter
     public ulong choice_count;
 }
 
-/// <summary>gf_schema_table (table, 144 bytes).</summary>
+/// <summary>gf_schema_effect (extensible, 112 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_schema_effect
+{
+    public uint struct_size;
+    public gf_schema_effect_time_model time_model;
+    public gf_utf8_view name;
+    public gf_utf8_view parent;
+    public uint engine_version;
+    public gf_schema_effect_input input;
+    public uint cost_fixed;
+    public uint cost_per_device_pixel;
+    public uint setup_cost;
+    public gf_schema_effect_flags flags;
+    public ulong state_budget;
+    public double frames_per_second;
+    public gf_logical_insets outsets;
+}
+
+/// <summary>gf_schema_table (table, 160 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_schema_table
 {
@@ -402,6 +424,8 @@ public unsafe struct gf_schema_table
     public delegate* unmanaged[Cdecl]<ulong, gf_schema_primitive_list, ulong, gf_utf8_view*, gf_status> primitive_name_at;
     public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_parameter*, gf_status> parameter_at;
     public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_utf8_view*, gf_status> parameter_choice_at;
+    public delegate* unmanaged[Cdecl]<ulong*, gf_status> effect_count;
+    public delegate* unmanaged[Cdecl]<ulong, gf_schema_effect*, gf_status> effect_at;
 }
 
 /// <summary>gf_bytes_view (record, 16 bytes).</summary>

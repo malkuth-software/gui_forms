@@ -151,6 +151,17 @@
       "doc": "api/generated/gui_forms.ProgressBar.rst"
     },
     {
+      "id": "sweep_scope",
+      "type": "SweepScope",
+      "header": "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp",
+      "category": "Information display",
+      "purpose": "Read-only level scope from the instruments package: the level drawn as a trace on a graticule, crossed by a sweep line that is a verified effect program on the window's motion clock.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "ranges-and-progress",
+      "doc": "api/generated/gui_forms.SweepScope.rst"
+    },
+    {
       "id": "review_card",
       "type": "ReviewCard",
       "header": "gui_forms/controls/panel/card/review_card/review_card.hpp",

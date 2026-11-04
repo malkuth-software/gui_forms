@@ -1,6 +1,9 @@
-// GUI.Forms localizable-literal plugin for Clang 22.
+// The GUI.Forms Clang 22 plugin, with two passes (owner's choice,
+// 2026-11-02: one plugin): the localizable-literal pass below, and the
+// effect pass (effect_pass.cpp), which verifies every effect program
+// registered in the unit and records what it proved.
 //
-// Loaded with -fplugin during the normal compile, it finds every string
+// The localizable pass. Loaded with -fplugin during the normal compile, it finds every string
 // literal that reaches a parameter or field annotated
 // GUI_FORMS_LOCALIZABLE(property) (gui_forms/text/localizable/localizable_property.hpp)
 // and writes one table per translation unit into a dedicated section of the
@@ -20,10 +23,20 @@
 // SHT_NOTE section, so linkers place it in a PT_NOTE segment); COFF
 // .gfloc$m.
 //
+// The effect pass writes its records to the same section as a note of type
+// 0x47464c02: a record count, then per verified effect its name (length,
+// bytes), the static bound of one run, the static bound of one setup (0
+// without setup) and its state's size in bytes. An effect with any error
+// has no record, and the compile fails.
+//
 // The plugin is named gui_forms_localizable (the driver splits
 // -fplugin-arg-<name>-<argument> at the first dash, so the name has none).
 // Arguments (-fplugin-arg-gui_forms_localizable-<argument>):
-//   root=<directory>  record file names relative to this directory.
+//   root=<directory>  record file names relative to this directory;
+//   effects=off       skip the effect pass (GUI_FORMS_EFFECT_VERIFY=OFF):
+//                     the unit's effects get no record and count unverified.
+
+#include "effect_pass.hpp"
 
 #include "clang/AST/ASTConsumer.h"
 #include "clang/AST/ASTContext.h"
@@ -52,7 +65,8 @@
 namespace {
 
 constexpr llvm::StringLiteral annotation_prefix = "gui_forms.localizable:";
-constexpr std::uint32_t note_type = 0x47464c01U;
+constexpr std::uint32_t localizable_note_type = 0x47464c01U;
+constexpr std::uint32_t effect_note_type = 0x47464c02U;
 constexpr unsigned maximum_constant_depth = 8U;
 
 struct Record final {
@@ -407,10 +421,27 @@ std::string encode(const std::vector<Record>& records) {
         put_text(description, record.function);
         put_text(description, record.literal);
     }
+    return description;
+}
+
+std::string encode_effects(const std::vector<gui_forms_plugin::EffectRecord>& records) {
+    std::string description;
+    put_u32(description, static_cast<std::uint32_t>(records.size()));
+    for (const gui_forms_plugin::EffectRecord& record : records) {
+        put_text(description, record.name);
+        put_u32(description, record.bound);
+        put_u32(description, record.setup_bound);
+        put_u32(description, record.state_size);
+    }
+    return description;
+}
+
+// One note: the header, the name "GUIForms" and `description`, padded.
+std::string note(std::uint32_t type, const std::string& description) {
     std::string blob;
     put_u32(blob, 9U);
     put_u32(blob, static_cast<std::uint32_t>(description.size()));
-    put_u32(blob, note_type);
+    put_u32(blob, type);
     blob.append("GUIForms", 8U);
     blob.append(4U, '\0');
     blob.append(description);
@@ -425,61 +456,75 @@ std::string section_name(const clang::ASTContext& context) {
     return ".note.gui_forms.loc";
 }
 
+// Adds `blob` to the unit as an internal constant array named `name` in
+// our section, handed to the code generator as a top-level declaration
+// before it finishes the translation unit: `static const char name[] =
+// "…"` with section, used and retain attributes.
+void emit_table(clang::CompilerInstance& instance, clang::ASTContext& context, const char* name,
+                const std::string& blob) {
+    const clang::QualType element = context.CharTy.withConst();
+    const clang::QualType array = context.getConstantArrayType(
+        element, llvm::APInt(64, blob.size()), nullptr, clang::ArraySizeModifier::Normal, 0U);
+    clang::StringLiteral* initializer = clang::StringLiteral::Create(
+        context, blob, clang::StringLiteralKind::Ordinary, false, array, clang::SourceLocation());
+    clang::TranslationUnitDecl* unit = context.getTranslationUnitDecl();
+    clang::VarDecl* table = clang::VarDecl::Create(
+        context, unit, clang::SourceLocation(), clang::SourceLocation(), &context.Idents.get(name), array,
+        context.getTrivialTypeSourceInfo(array), clang::SC_Static);
+    (*table).setInit(initializer);
+    (*table).addAttr(clang::SectionAttr::CreateImplicit(context, section_name(context)));
+    // Notes are 4-byte aligned, so the linker's concatenation of every
+    // translation unit's table stays a well-formed note sequence.
+    clang::Expr* alignment = clang::IntegerLiteral::Create(
+        context, llvm::APInt(context.getIntWidth(context.IntTy), 4U), context.IntTy, clang::SourceLocation());
+    (*table).addAttr(clang::AlignedAttr::CreateImplicit(context, true, alignment));
+    // Not instrumented by AddressSanitizer: it would put a poisoned
+    // redzone after each table inside the section, which the reader then
+    // walks as part of the note sequence (a global-buffer-overflow in a
+    // sanitized program, and a malformed sequence when the redzone bytes
+    // are not zero).
+    std::array<llvm::StringRef, 2U> unsanitized{llvm::StringRef("address"), llvm::StringRef("hwaddress")};
+    (*table).addAttr(clang::NoSanitizeAttr::CreateImplicit(
+        context, unsanitized.data(), static_cast<unsigned>(unsanitized.size())));
+    (*table).addAttr(clang::UsedAttr::CreateImplicit(context));
+    (*table).addAttr(clang::RetainAttr::CreateImplicit(context));
+    (*unit).addDecl(table);
+    instance.getASTConsumer().HandleTopLevelDecl(clang::DeclGroupRef(table));
+}
+
 class Consumer final : public clang::ASTConsumer {
 public:
-    Consumer(clang::CompilerInstance& instance, std::string root) : instance_(instance), root_(std::move(root)) {}
+    Consumer(clang::CompilerInstance& instance, std::string root, bool effects)
+        : instance_(instance), root_(std::move(root)), effects_(effects) {}
 
     void HandleTranslationUnit(clang::ASTContext& context) override {
         if (instance_.getDiagnostics().hasErrorOccurred()) return;
         Finder finder(context, root_);
         finder.TraverseDecl(context.getTranslationUnitDecl());
-        if (finder.records().empty()) return;
-        const std::string blob = encode(finder.records());
-        // The table is an internal constant array the code generator emits
-        // like any other: `static const char table[] = "…"` with section,
-        // used and retain attributes, handed to it as a top-level declaration
-        // before it finishes the translation unit.
-        const clang::QualType element = context.CharTy.withConst();
-        const clang::QualType array = context.getConstantArrayType(
-            element, llvm::APInt(64, blob.size()), nullptr, clang::ArraySizeModifier::Normal, 0U);
-        clang::StringLiteral* initializer = clang::StringLiteral::Create(
-            context, blob, clang::StringLiteralKind::Ordinary, false, array, clang::SourceLocation());
-        clang::TranslationUnitDecl* unit = context.getTranslationUnitDecl();
-        clang::VarDecl* table = clang::VarDecl::Create(
-            context, unit, clang::SourceLocation(), clang::SourceLocation(),
-            &context.Idents.get("__gui_forms_localizable_table"), array, context.getTrivialTypeSourceInfo(array),
-            clang::SC_Static);
-        (*table).setInit(initializer);
-        (*table).addAttr(clang::SectionAttr::CreateImplicit(context, section_name(context)));
-        // Notes are 4-byte aligned, so the linker's concatenation of every
-        // translation unit's table stays a well-formed note sequence.
-        clang::Expr* alignment = clang::IntegerLiteral::Create(
-            context, llvm::APInt(context.getIntWidth(context.IntTy), 4U), context.IntTy, clang::SourceLocation());
-        (*table).addAttr(clang::AlignedAttr::CreateImplicit(context, true, alignment));
-        // Not instrumented by AddressSanitizer: it would put a poisoned
-        // redzone after each table inside the section, which the reader then
-        // walks as part of the note sequence (a global-buffer-overflow in a
-        // sanitized program, and a malformed sequence when the redzone bytes
-        // are not zero).
-        std::array<llvm::StringRef, 2U> unsanitized{llvm::StringRef("address"), llvm::StringRef("hwaddress")};
-        (*table).addAttr(clang::NoSanitizeAttr::CreateImplicit(
-            context, unsanitized.data(), static_cast<unsigned>(unsanitized.size())));
-        (*table).addAttr(clang::UsedAttr::CreateImplicit(context));
-        (*table).addAttr(clang::RetainAttr::CreateImplicit(context));
-        (*unit).addDecl(table);
-        instance_.getASTConsumer().HandleTopLevelDecl(clang::DeclGroupRef(table));
+        std::vector<gui_forms_plugin::EffectRecord> effects;
+        if (effects_) effects = gui_forms_plugin::verify_effects(context, instance_.getDiagnostics());
+        // A rejected effect fails the compile; nothing is recorded.
+        if (instance_.getDiagnostics().hasErrorOccurred()) return;
+        if (!finder.records().empty()) {
+            emit_table(instance_, context, "__gui_forms_localizable_table",
+                       note(localizable_note_type, encode(finder.records())));
+        }
+        if (!effects.empty()) {
+            emit_table(instance_, context, "__gui_forms_effect_table", note(effect_note_type, encode_effects(effects)));
+        }
     }
 
 private:
     clang::CompilerInstance& instance_;
     std::string root_;
+    bool effects_;
 };
 
 class Action final : public clang::PluginASTAction {
 protected:
     std::unique_ptr<clang::ASTConsumer> CreateASTConsumer(clang::CompilerInstance& instance,
                                                           llvm::StringRef) override {
-        return std::make_unique<Consumer>(instance, root_);
+        return std::make_unique<Consumer>(instance, root_, effects_);
     }
 
     bool ParseArgs(const clang::CompilerInstance& instance, const std::vector<std::string>& arguments) override {
@@ -487,6 +532,10 @@ protected:
             const llvm::StringRef text(argument);
             if (text.starts_with("root=")) {
                 root_ = text.drop_front(5).str();
+                continue;
+            }
+            if (text == "effects=off") {
+                effects_ = false;
                 continue;
             }
             clang::DiagnosticsEngine& diagnostics = instance.getDiagnostics();
@@ -502,9 +551,11 @@ protected:
 
 private:
     std::string root_;
+    bool effects_{true};
 };
 
 } // namespace
 
 static clang::FrontendPluginRegistry::Add<Action> registration(
-    "gui_forms_localizable", "record string literals passed to GUI.Forms localizable properties");
+    "gui_forms_localizable",
+    "record string literals passed to GUI.Forms localizable properties, and verify effect programs");

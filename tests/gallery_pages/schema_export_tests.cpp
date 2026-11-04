@@ -1,6 +1,7 @@
 #include "support.hpp"
 
 #include "gui_forms/engine.hpp"
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/schema.hpp"
 
 #include <array>
@@ -427,7 +428,73 @@ void append_engine(std::string& out) {
     append_json_string(out, "maximum_window_fraction");
     out += ": ";
     append_number(out, maximum_ambient_window_fraction);
-    out += '}';
+    out += "},\n";
+    // Effect programs (design note section 7), one per line in registration
+    // order. Whether the plugin verified each depends on the build, so the
+    // manifest leaves it out; the ABI's effect_at reports it.
+    append_key(out, "    ", "effects");
+    out += '[';
+    const EffectRegistry& effects = built_in_effect_registry();
+    for (std::size_t index = 0; index < effects.count(); ++index) {
+        const EffectEntry& entry = effects.at(index);
+        const EffectDeclaration& declaration = *entry.declaration;
+        out += index == 0U ? "\n      {" : ",\n      {";
+        append_json_string(out, "name");
+        out += ": ";
+        append_json_string(out, declaration.name);
+        out += ", ";
+        append_json_string(out, "parent");
+        out += ": ";
+        append_json_string(out, entry.parent);
+        out += ", ";
+        append_json_string(out, "time_model");
+        out += ": ";
+        append_json_string(out, effect_time_model_name(declaration.time_model));
+        out += ", ";
+        append_json_string(out, "engine_version");
+        out += ": ";
+        append_unsigned(out, declaration.engine_version);
+        out += ", ";
+        append_json_string(out, "cost");
+        out += ": {";
+        append_json_string(out, "fixed");
+        out += ": ";
+        append_unsigned(out, declaration.cost.fixed);
+        out += ", ";
+        append_json_string(out, "per_device_pixel");
+        out += ": ";
+        append_unsigned(out, declaration.cost.per_device_pixel);
+        out += "}, ";
+        append_json_string(out, "setup_cost");
+        out += ": ";
+        append_unsigned(out, declaration.setup_cost);
+        out += ", ";
+        append_json_string(out, "setup_on_geometry");
+        out += declaration.setup_on_geometry ? ": true, " : ": false, ";
+        append_json_string(out, "state_budget");
+        out += ": ";
+        append_unsigned(out, declaration.state_budget);
+        out += ", ";
+        append_json_string(out, "frames_per_second");
+        out += ": ";
+        append_number(out, declaration.frames_per_second);
+        out += ", ";
+        append_json_string(out, "outsets");
+        out += ": [";
+        append_number(out, declaration.outsets.left);
+        out += ", ";
+        append_number(out, declaration.outsets.top);
+        out += ", ";
+        append_number(out, declaration.outsets.right);
+        out += ", ";
+        append_number(out, declaration.outsets.bottom);
+        out += "], ";
+        append_json_string(out, "input");
+        out += ": ";
+        append_json_string(out, effect_input_name(declaration.input));
+        out += '}';
+    }
+    out += effects.count() == 0U ? "]" : "\n    ]";
     out += "\n  },\n";
 }
 

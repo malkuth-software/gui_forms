@@ -1,5 +1,5 @@
 {
-  "description": "Direct drawing calls under src/controls/ (tools/paint_census.py); the stage T4 gate is zero stock calls. The census may only fall.",
+  "description": "Direct drawing calls under src/controls/ (tools/paint_census.py); the stage T4 gate is zero stock calls. The census may only fall. Effect-canvas calls (effect_calls) are the effect engine's sanctioned path and are not stock calls.",
   "drawing_methods": [
     "draw_box_shadow",
     "draw_image",
@@ -35,7 +35,7 @@
   "totals": {
     "stock": {
       "files": 36,
-      "calls": 331
+      "calls": 318
     },
     "exempt": {
       "files": 6,
@@ -44,6 +44,10 @@
     "demo": {
       "files": 3,
       "calls": 57
+    },
+    "effect": {
+      "files": 2,
+      "calls": 19
     }
   },
   "files": {
@@ -78,6 +82,11 @@
     "guidance/error_glyph/error_glyph.cpp": {
       "category": "stock",
       "calls": 5
+    },
+    "instruments/sweep_scope/sweep_scope_effects.cpp": {
+      "category": "stock",
+      "calls": 0,
+      "effect_calls": 3
     },
     "label/label.cpp": {
       "category": "stock",
@@ -183,9 +192,14 @@
       "category": "stock",
       "calls": 5
     },
+    "range_control/progress_bar/progress_bar_effects.cpp": {
+      "category": "stock",
+      "calls": 0,
+      "effect_calls": 16
+    },
     "range_control/range_control_rendering.cpp": {
       "category": "stock",
-      "calls": 25
+      "calls": 12
     },
     "range_control/scroll_bar/scroll_bar.cpp": {
       "category": "stock",

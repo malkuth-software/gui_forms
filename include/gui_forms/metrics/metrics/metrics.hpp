@@ -87,6 +87,8 @@ public:
     // An ambient part repainted for its effect, or an effect refused.
     void record_engine_ambient_frame() noexcept;
     void record_engine_ambient_refusal() noexcept;
+    // An ambient frame advanced a control's effects.
+    void record_effect_ambient_frame() noexcept;
     // A primitive refused to draw a part (EnginePrimitive::accepts), which
     // the built-in recipe drew instead.
     void record_engine_primitive_refusal() noexcept;

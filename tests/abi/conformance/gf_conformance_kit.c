@@ -171,6 +171,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
         gf_kit_threads(&kit);
         gf_kit_create_with(&kit);
         gf_kit_events(&kit);
+        gf_kit_window_events(&kit);
         gf_kit_themes(&kit);
         gf_kit_proxies(&kit);
         gf_kit_families(&kit);

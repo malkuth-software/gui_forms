@@ -3,7 +3,8 @@
 namespace gui_forms::gallery::pages {
 
 // One application-owned level drives every range control on the page: the
-// three TrackBars, both ScrollBars and all six ProgressBars bind the same
+// three TrackBars, both ScrollBars, all six ProgressBars and the SweepScope
+// (the instruments package's level scope) bind the same
 // Value<double>, so any user drag moves them all without a copy chain. The
 // owner observes the state event (every change) and the input-only `scroll`
 // events (user gestures) separately, as the state/input table requires.
@@ -18,6 +19,7 @@ public:
                              12.0, 400, muted), {26.0, 52.0, 850.0, 24.0});
         build_sliders(body);
         build_progress(body, context);
+        build_scope(body);
         on(level_.changed(), *this, &RangesPage::on_level_changed);
         on_level_changed(level_.get());
     }
@@ -104,10 +106,23 @@ private:
         (*progress_group).add_at(shared_, {160.0, 292.0, 740.0, 24.0});
     }
 
+    // The instruments package's level scope: the level as a trace, crossed
+    // by its sweep (an effect program on the window's motion clock).
+    void build_scope(const std::shared_ptr<Surface>& body) {
+        std::shared_ptr<LayoutGroup> scope_group = group(
+            "gallery.ranges.instruments", "SweepScope · instruments: level trace and effect-program sweep",
+            {930.0, 170.0});
+        (*body).add_at(scope_group, {24.0, 683.0, 930.0, 170.0});
+        std::shared_ptr<SweepScope> scope = make_control<SweepScope>(StableId("gallery.ranges.scope"));
+        (*scope).set_accessible_name("Level scope");
+        (*scope).bind(level_);
+        (*scope_group).add_at(scope, {160.0, 36.0, 220.0, 120.0});
+    }
+
     // State: fires for every change of the shared level, user or programmatic.
     void on_level_changed(const double value) {
         level_text_ = "Value<double> level = " + std::to_string(static_cast<int>(value)) +
-                      " · bound to 3 TrackBars, 2 ScrollBars, 6 ProgressBars";
+                      " · bound to 3 TrackBars, 2 ScrollBars, 6 ProgressBars, 1 SweepScope";
         publish_status();
     }
 

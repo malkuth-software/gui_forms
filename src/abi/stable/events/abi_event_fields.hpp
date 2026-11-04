@@ -47,6 +47,7 @@
 
 namespace gui_forms {
 class DockDragOutcome;
+class Theme;
 } // namespace gui_forms
 
 namespace gui_forms::abi1 {
@@ -212,6 +213,10 @@ void append_field(EventFields& fields, std::string_view name, const BindingValue
 
 // No field carries a drag's outcome yet (docking family, C5d): nothing.
 void append_field(EventFields& fields, std::string_view name, const DockDragOutcome& value);
+
+// A theme has no field form (a window's theme_changed is a notification;
+// the catalog lists it as deferred): nothing.
+void append_field(EventFields& fields, std::string_view name, const Theme& value);
 
 template <typename Number>
     requires(std::is_arithmetic_v<Number> && !std::is_same_v<Number, bool>)

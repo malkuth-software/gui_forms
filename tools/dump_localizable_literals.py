@@ -152,6 +152,8 @@ def default_objcopy() -> str | None:
 
 
 def main() -> int:
+    # Literals are UTF-8; a Windows console's default code page cannot print them.
+    sys.stdout.reconfigure(encoding='utf-8')
     parser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('binary', type=Path, help='a linked program or shared library')
     parser.add_argument('--objcopy', help='the llvm-objcopy to use (default: llvm-objcopy on PATH)')

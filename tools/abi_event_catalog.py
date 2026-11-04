@@ -52,13 +52,21 @@ DEFERRED: dict[str, str] = {
     'AnatomyStateSet': 'owner-draw surfaces (C5d)',
     'MaterialColourFilter': 'surface material values (C5c)',
     'DockDragOutcome': 'docking family (C5d)',
+    'Theme': 'no field form; theme_changed is a notification',
+}
+
+# Declaring types that are not Components, reached through the ABI object
+# that holds them: (holder class, the holder's header, the accessor giving
+# the held object or null once it is gone). A window is a WindowHandle.
+HOSTED: dict[str, tuple[str, str, str]] = {
+    'Window': ('WindowHandle', '../windows/abi_window_handle.hpp', 'window'),
 }
 
 ARRAY = re.compile(r'constexpr std::array<InteractionDeclaration,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};', re.S)
 ENTRY = re.compile(r'\{\s*\.name\s*=\s*"([^"]+)",\s*\.payload\s*=\s*"([^"]*)",\s*'
                    r'\.mutable_payload\s*=\s*(true|false)\s*\}')
 APPEND = re.compile(r'void ([\w:]+)::append_interactions\(std::vector<InteractionDeclaration>& interactions\) '
-                    r'const \{(.*?)\n\}', re.S)
+                    r'(?:const )?\{(.*?)\n\}', re.S)
 CLASS = re.compile(r'^(?:class|struct) (\w+)(?: final)?\s*(?::\s*([^{;]*))?\{', re.M)
 OPTIONAL = re.compile(r'^std::optional<(.+)>$')
 VECTOR = re.compile(r'^std::(?:vector|span)<(?:const )?(.+)>$')
@@ -322,6 +330,11 @@ def render(catalog: Catalog) -> str:
     header: str
     for header in sorted(includes):
         lines.append(f'#include "{header}"')
+    hosted: list[str] = sorted({HOSTED[item.owner][1] for item in catalog.declarations if item.owner in HOSTED})
+    if hosted:
+        lines.append('')
+        for header in hosted:
+            lines.append(f'#include "{header}"')
     lines += ['', '#include <array>', '#include <string_view>', '', 'namespace gui_forms::abi1 {', '']
 
     lines.append('// The choices of every enumeration a payload reaches.')
@@ -392,7 +405,15 @@ def render(catalog: Catalog) -> str:
     for declaration in unique:
         function: str = connector_name(declaration)
         lines.append(f'inline SubscriptionToken {function}(Component& source, const EventSink& sink) {{')
-        lines.append(f'    {declaration.owner}* typed = dynamic_cast<{declaration.owner}*>(&source);')
+        if declaration.owner in HOSTED:
+            holder, _, accessor = HOSTED[declaration.owner]
+            lines.append(f'    {holder}* holder = dynamic_cast<{holder}*>(&source);')
+            lines.append('    if (holder == nullptr) {')
+            lines.append('        return SubscriptionToken{};')
+            lines.append('    }')
+            lines.append(f'    {declaration.owner}* typed = (*holder).{accessor}();')
+        else:
+            lines.append(f'    {declaration.owner}* typed = dynamic_cast<{declaration.owner}*>(&source);')
         lines.append('    if (typed == nullptr) {')
         lines.append('        return SubscriptionToken{};')
         lines.append('    }')

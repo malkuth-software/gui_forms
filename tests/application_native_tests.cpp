@@ -13,6 +13,7 @@
 #endif
 #include <windows.h>
 #include "gui_forms/platform/windows_host.hpp"
+#include "support/windows_desktop.hpp"
 #include "support/windows_own_window.hpp"
 #endif
 
@@ -356,8 +357,18 @@ void check_runtime_windows() {
             "runtime window frame did not follow the request");
     require(probe.frames >= 1U, "runtime window frame change not reported");
 #endif
-    require(probe.pointer.accepted() && probe.at_point.accepted() && probe.raise.accepted(),
-            "pointer, window-at-point or ordering refused");
+#if defined(_WIN32)
+    // Off the input desktop (a private test desktop) Windows refuses the
+    // cursor position; the host reports that refusal as backend_failure.
+    const bool pointer_answered = probe.pointer.accepted() ||
+        (!test_support::on_input_desktop() &&
+         probe.pointer.error == HostServiceError::backend_failure);
+#else
+    const bool pointer_answered = probe.pointer.accepted();
+#endif
+    require(pointer_answered, "pointer position refused");
+    require(probe.at_point.accepted(), "window-at-point refused");
+    require(probe.raise.accepted(), "ordering refused");
     require(probe.destroy.accepted() && probe.closed_before_return && probe.floating_closed == 1U,
             "runtime window destroy did not close it once before returning");
     require(probe.handle_expired, "destroyed runtime window handle still active");

@@ -63,6 +63,7 @@ struct DispatcherState final {
     Control::WeakPtr owner,
     bool requires_owner,
     std::function<void()> callback,
-    bool synchronous = false);
+    bool synchronous = false,
+    bool refuse_when_closed = false);
 
 } // namespace gui_forms::detail
