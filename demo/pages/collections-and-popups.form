@@ -1,0 +1,91 @@
+/* The Gallery's collections-and-popups page (stage FD, phase FD6.3): two
+   ListBoxes (single and extended selection) and three ComboBoxes (a fixed
+   list, one with a placeholder, a searchable field) with a status line.
+   gui_forms_add_form() compiles this document into
+   collections-and-popups_form.hpp at build time.
+
+   gallery.collections.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface),
+   where each is placed by its bounds in design coordinates. Behaviour stays
+   in the page (src/controls/gallery/pages/collections-and-popups.cpp): the
+   lists' initial selections, the status line's reports and the page
+   style. */
+scaled-panel gallery.collections.document {
+  design-size: 1000 660;
+
+  label gallery.collections.heading {
+    text: "COLLECTIONS AND POPUPS";
+    font: content 22 700;
+    fore-color: #182d42;
+    bounds: 24 18 620 34;
+  }
+  label gallery.collections.lead {
+    text: "Single and extended selection, virtualized rows, keyboard traversal, overlay dismissal, and focus restoration.";
+    font: content 12 400;
+    fore-color: #5b6b79;
+    bounds: 26 52 900 24;
+  }
+
+  scaled-group-box gallery.collections.single {
+    text: "ListBox · single selection";
+    font: control 12 700 spacing 0.24;
+    design-size: 450 360;
+    bounds: 24 92 450 360;
+    list-box gallery.collections.single.list {
+      accessible-name: "Single-selection locations";
+      items: "Local volumes" "Recent locations" "Pinned folders" "Saved searches" "Plugin surfaces"
+        "Diagnostics" "Appearance" "Keyboard map" "Security policy" "About GUI.Forms";
+      bounds: 24 38 400 280;
+    }
+  }
+
+  scaled-group-box gallery.collections.multi {
+    text: "ListBox · extended selection";
+    font: control 12 700 spacing 0.24;
+    design-size: 460 360;
+    bounds: 494 92 460 360;
+    list-box gallery.collections.multi.list {
+      accessible-name: "Extended-selection framework features";
+      selection-mode: multiple-extended;
+      items: "CPU renderer" "Retained tree" "Damage regions" "Tokenized events" "Unicode store"
+        "Focus scopes" "Popup controller" "Frame deadlines" "Host protocol" "Drawing recorder";
+      bounds: 24 38 410 280;
+    }
+  }
+
+  scaled-group-box gallery.collections.combos {
+    text: "ComboBox · retained overlay popup";
+    font: control 12 700 spacing 0.24;
+    design-size: 930 160;
+    bounds: 24 474 930 160;
+    combo-box gallery.collections.combo.profile {
+      accessible-name: "Visual profile";
+      items: "Windows 7 professional" "Windows 10 professional" "System neutral" "High contrast";
+      selected-index: 1;
+      bounds: 24 42 300 36;
+    }
+    combo-box gallery.collections.combo.density {
+      accessible-name: "Control density";
+      items: "Compact" "Comfortable" "Spacious" "Touch";
+      placeholder-text: "Choose density";
+      bounds: 348 42 250 36;
+    }
+    /* A searchable field: typing narrows the list to the items that
+       contain the text, with the matched text highlighted. */
+    combo-box gallery.collections.combo.search {
+      accessible-name: "Find a station";
+      items: "Amsterdam Centraal" "Antwerpen-Centraal" "Basel SBB" "Berlin Hauptbahnhof" "Bruxelles-Midi"
+        "Frankfurt (Main) Hbf" "Hamburg Hbf" "Köln Hbf" "London St Pancras" "Lyon Part-Dieu"
+        "Milano Centrale" "Paris Gare du Nord" "Rotterdam Centraal" "Wien Hauptbahnhof" "Zürich HB";
+      drop-down-style: drop-down;
+      drop-down-filter: substring;
+      bounds: 622 42 284 36;
+    }
+    label gallery.collections.status {
+      text: "Popup overlays are root-attached, owner-revoked, and focus-contained.";
+      font: content 11 600;
+      fore-color: #318b5e;
+      bounds: 24 96 780 26;
+    }
+  }
+}
