@@ -1,0 +1,176 @@
+/* The Gallery's ranges-and-progress page (stage FD, phase FD6.3): three
+   TrackBars, two ScrollBars, six ProgressBars and the SweepScope, all bound
+   by the page to one Value<double>. gui_forms_add_form() compiles this
+   document into ranges-and-progress_form.hpp at build time.
+
+   gallery.ranges.document is a declared boundary only: the page moves its
+   children into the shell's page body (a 1000 x 660 design surface), where
+   each is placed by its bounds in design coordinates. The page keeps in
+   code the shared level and its bindings, the scroll observers, the
+   animation periods, the motion policy's list, the status line, the page
+   style and the groups' paper face. */
+scaled-panel gallery.ranges.document {
+  design-size: 1000 660;
+
+  label gallery.ranges.heading {
+    text: "RANGES AND PROGRESS";
+    font: content 22 700;
+    fore-color: #182d42;
+    bounds: 24 18 500 34;
+  }
+  label gallery.ranges.lead {
+    text: "Live captured dragging, keyboard control, vertical orientation, and retained animation.";
+    font: content 12 400;
+    fore-color: #5b6b79;
+    bounds: 26 52 850 24;
+  }
+
+  scaled-group-box gallery.ranges.sliders {
+    text: "TrackBar · classic, filled, compact · ScrollBar";
+    font: control 12 700 spacing 0.24;
+    design-size: 930 230;
+    bounds: 24 92 930 230;
+    label gallery.ranges.slider.caption.0 {
+      text: "Classic ticks";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 38 130 24;
+    }
+    track-bar gallery.ranges.slider.0 {
+      accessible-name: "Classic ticks";
+      visual-style: classic;
+      bounds: 155 35 690 32;
+    }
+    label gallery.ranges.slider.caption.1 {
+      text: "Filled rail";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 96 130 24;
+    }
+    track-bar gallery.ranges.slider.1 {
+      accessible-name: "Filled rail";
+      visual-style: filled;
+      bounds: 155 93 690 32;
+    }
+    label gallery.ranges.slider.caption.2 {
+      text: "Compact rail";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 154 130 24;
+    }
+    track-bar gallery.ranges.slider.2 {
+      accessible-name: "Compact rail";
+      visual-style: compact;
+      bounds: 155 151 690 32;
+    }
+    h-scroll-bar gallery.ranges.scroll.horizontal {
+      accessible-name: "Horizontal viewport scrollbar";
+      minimum: 0;
+      maximum: 100;
+      large-change: 18;
+      bounds: 155 200 690 18;
+    }
+    label gallery.ranges.scroll.caption {
+      text: "Viewport";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 197 120 22;
+    }
+    v-scroll-bar gallery.ranges.scroll.vertical {
+      accessible-name: "Vertical viewport scrollbar";
+      minimum: 0;
+      maximum: 100;
+      large-change: 18;
+      bounds: 874 38 18 160;
+    }
+  }
+
+  scaled-group-box gallery.ranges.progress {
+    text: "ProgressBar · static, indeterminate, luminance, marching, laser";
+    font: control 12 700 spacing 0.24;
+    design-size: 930 325;
+    bounds: 24 340 930 325;
+    label gallery.ranges.progress.caption.0 {
+      text: "Blocks";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 36 122 24;
+    }
+    progress-bar gallery.ranges.progress.0 {
+      accessible-name: "Blocks progress";
+      visual-style: blocks;
+      bounds: 160 38 695 24;
+    }
+    label gallery.ranges.progress.caption.1 {
+      text: "Continuous";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 81 122 24;
+    }
+    progress-bar gallery.ranges.progress.1 {
+      accessible-name: "Continuous progress";
+      visual-style: continuous;
+      bounds: 160 83 695 24;
+    }
+    label gallery.ranges.progress.caption.2 {
+      text: "Marquee";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 126 122 24;
+    }
+    progress-bar gallery.ranges.progress.2 {
+      accessible-name: "Marquee progress";
+      visual-style: marquee;
+      bounds: 160 128 695 24;
+    }
+    label gallery.ranges.progress.caption.3 {
+      text: "Luminance pulse";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 171 122 24;
+    }
+    progress-bar gallery.ranges.progress.3 {
+      accessible-name: "Luminance pulse progress";
+      visual-style: pulse;
+      bounds: 160 173 695 24;
+    }
+    label gallery.ranges.progress.caption.4 {
+      text: "Marching stripes";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 216 122 24;
+    }
+    progress-bar gallery.ranges.progress.4 {
+      accessible-name: "Marching stripes progress";
+      visual-style: marching-stripes;
+      bounds: 160 218 695 24;
+    }
+    label gallery.ranges.progress.caption.5 {
+      text: "Laser etch";
+      font: content 11 600;
+      fore-color: #5b6b79;
+      bounds: 24 261 122 24;
+    }
+    progress-bar gallery.ranges.progress.5 {
+      accessible-name: "Laser etch progress";
+      visual-style: laser-etch;
+      bounds: 160 263 695 24;
+    }
+    label gallery.ranges.shared {
+      font: content 10.5 600;
+      fore-color: #318b5e;
+      bounds: 160 292 740 24;
+    }
+  }
+
+  scaled-group-box gallery.ranges.instruments {
+    text: "SweepScope · instruments: level trace and effect-program sweep";
+    font: control 12 700 spacing 0.24;
+    design-size: 930 170;
+    bounds: 24 683 930 170;
+    sweep-scope gallery.ranges.scope {
+      accessible-name: "Level scope";
+      bounds: 160 36 220 120;
+    }
+  }
+}
