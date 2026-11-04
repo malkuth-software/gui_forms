@@ -618,6 +618,9 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
         NSApplication* nativeApplication = [NSApplication sharedApplication];
         [nativeApplication setActivationPolicy:NSApplicationActivationPolicyRegular];
         detail::install_application_menu();
+        // NSApp holds its delegate weakly; this local keeps it to the end.
+        GUIFormsTerminationDelegate* termination = [[GUIFormsTerminationDelegate alloc] init];
+        [nativeApplication setDelegate:termination];
 
         MacApplicationRun run;
         GUIFormsActivationObserver* activation = [[GUIFormsActivationObserver alloc] initWithRun:&run];
@@ -650,6 +653,7 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
             [nativeApplication activateIgnoringOtherApps:YES];
             [nativeApplication run];
         }
+        [nativeApplication setDelegate:nil];
 
         // The program's handles stop reaching the windowing first, so a
         // closed callback during shutdown cannot open another window.
