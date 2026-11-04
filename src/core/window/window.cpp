@@ -34,6 +34,15 @@ namespace gui_forms {
 
 namespace {
 
+// Whether GUI_FORMS_TRACE_LAYOUT_INVALIDATION was set when the first layout
+// mark asked. Read once: a layout mark is a hot path, and getenv walks the
+// environment on every call. The trace is a diagnostic switch for a whole
+// run, so a variable set later in the process is not seen.
+bool layout_invalidation_traced() noexcept {
+    static const bool traced = std::getenv("GUI_FORMS_TRACE_LAYOUT_INVALIDATION") != nullptr;
+    return traced;
+}
+
 constexpr std::uint32_t maximum_layout_passes = 4;
 constexpr std::uint32_t maximum_semantic_snapshot_passes = 4;
 
@@ -2422,7 +2431,7 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
 
     if (has_dirty(requested_dirty, Dirty::layout)) {
         static std::atomic<std::uint64_t> traced_layout_invalidations{};
-        if (std::getenv("GUI_FORMS_TRACE_LAYOUT_INVALIDATION") != nullptr) {
+        if (layout_invalidation_traced()) {
             const std::uint64_t sequence =
                 traced_layout_invalidations.fetch_add(1U,
                     std::memory_order_relaxed) + 1U;
