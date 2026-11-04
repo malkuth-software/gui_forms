@@ -1,2 +1,2 @@
 refused
-E105 escape_not_admitted 2:5
+E105 escape_not_admitted 2:19 detail=an escape outside a selector

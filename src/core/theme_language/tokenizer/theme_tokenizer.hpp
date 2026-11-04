@@ -57,6 +57,25 @@ enum class TokenKind : std::uint8_t {
 // A hash whose name would start an identifier (CSS's "id" type flag): the
 // form a stable ID selector needs. `#fff` lacks it; `#player-play` has it.
 inline constexpr std::uint8_t token_flag_hash_identifier = 0x01U;
+// A name (an ident, function, hash, at-keyword or dimension unit) written
+// with CSS escapes (`#gallery\.heading`): its text is not its name, which
+// append_decoded_name gives. Set only where escapes are admitted
+// (NameEscapes::in_names).
+inline constexpr std::uint8_t token_flag_escaped = 0x02U;
+
+// Whether a tokenization admits CSS backslash escapes in names (CSS Syntax
+// 4.3.7, owner 2026-11-04): a theme sheet does, so that a selector can
+// name a stable ID or class holding a character no name may (the
+// Gallery's dotted IDs); the compiler refuses an escape anywhere but a
+// selector. Elsewhere (form documents, layout styles) a backslash is
+// escape_not_admitted. An escape of code point 0, of a surrogate or of a
+// value past U+10FFFF is escape_not_admitted either way.
+enum class NameEscapes : std::uint8_t { refused, in_names };
+
+// Appends to `output` the name `written` spells: each escape replaced by
+// the code point it names, in UTF-8. `written` is a name the tokenizer
+// admitted (its escapes valid). The result is never longer than `written`.
+void append_decoded_name(std::string_view written, std::string& output);
 
 // One token: its kind and its bytes [offset, offset + length). For a
 // number, percentage or dimension, `number` is the position of its value in
@@ -114,6 +133,7 @@ enum class TokenizeOutcome : std::uint8_t {
 // before tokenizing), then the token defects. `source` is borrowed for the
 // call.
 [[nodiscard]] TokenizeOutcome tokenize_theme_sheet(const ThemeSource& source, ThemeTokenBuffer& buffer,
-                                                   LineStartTable& lines, ThemeDiagnosticList& diagnostics);
+                                                   LineStartTable& lines, ThemeDiagnosticList& diagnostics,
+                                                   NameEscapes escapes = NameEscapes::refused);
 
 } // namespace gui_forms::theme_language

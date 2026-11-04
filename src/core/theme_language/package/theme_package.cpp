@@ -72,7 +72,7 @@ bool read_sheet_imports(VerifiedThemePack& pack, ThemeDiagnostic& problem) {
     LineStartTable lines{};
     ThemeSyntaxTree tree{};
     ThemeDiagnosticList diagnostics{};
-    const TokenizeOutcome tokenized = tokenize_theme_sheet(source, tokens, lines, diagnostics);
+    const TokenizeOutcome tokenized = tokenize_theme_sheet(source, tokens, lines, diagnostics, NameEscapes::in_names);
     if (tokenized == TokenizeOutcome::tokens_cover_sheet && diagnostics.error_count() == 0U) {
         static_cast<void>(parse_theme_sheet(source, tokens, lines, tree, diagnostics));
     }

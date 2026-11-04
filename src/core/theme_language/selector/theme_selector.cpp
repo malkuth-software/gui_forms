@@ -20,6 +20,7 @@ namespace gui_forms::theme_language {
 namespace {
 
 using selector_detail::Alternative;
+using selector_detail::DecodedName;
 using selector_detail::Frame;
 using selector_detail::SelectorWorkspace;
 using selector_detail::Simple;
@@ -195,6 +196,27 @@ SelectorOutcome SelectorPass::run() {
     end_ = input_.selectors.end.value;
     workspace_.simples.clear();
     workspace_.simples.reserve(end_ - index_);
+    // Escaped names (`#gallery\.heading`) are decoded first: a decoded
+    // name is never longer than its text, so the reservation holds them
+    // all and nothing read from `decoded` moves.
+    workspace_.decoded.clear();
+    workspace_.decoded_names.clear();
+    std::size_t escaped_bytes = 0U;
+    for (std::uint32_t token = index_; token < end_; ++token) {
+        if ((tokens_[token].flags & token_flag_escaped) != 0U) escaped_bytes += tokens_[token].length.value;
+    }
+    workspace_.decoded.reserve(escaped_bytes);
+    for (std::uint32_t token = index_; token < end_; ++token) {
+        if ((tokens_[token].flags & token_flag_escaped) == 0U) continue;
+        const std::size_t offset = workspace_.decoded.size();
+        const Token& escaped = tokens_[token];
+        const std::string_view written = input_.source.text.substr(escaped.offset.value, escaped.length.value);
+        append_decoded_name(written, workspace_.decoded);
+        workspace_.decoded_names.push_back(
+            DecodedName{.token = token,
+                        .offset = static_cast<std::uint32_t>(offset),
+                        .length = static_cast<std::uint32_t>(workspace_.decoded.size() - offset)});
+    }
     Frame& list = workspace_.frames[0];
     reset_compound(list);
     while (index_ < end_) {
@@ -676,6 +698,14 @@ std::uint32_t SelectorPass::after_matching_paren(std::uint32_t function_token) c
 
 std::string_view SelectorPass::token_text(std::uint32_t index) const noexcept {
     const Token& token = tokens_[index];
+    if ((token.flags & token_flag_escaped) != 0U) {
+        // The name it spells (run() decoded it).
+        for (const DecodedName& name : workspace_.decoded_names) {
+            if (name.token != index) continue;
+            const std::string_view decoded = std::string_view(workspace_.decoded).substr(name.offset, name.length);
+            return decoded;
+        }
+    }
     const std::string_view text = input_.source.text.substr(token.offset.value, token.length.value);
     return text;
 }
