@@ -1590,6 +1590,10 @@ gui_forms::Control
 
       One ambient frame of the window's motion clock, for a control that enlisted itself (MotionClock::enlist_control_ambient): advance what moves to ``now`` and invalidate what it covers. Return false when the control was not painted since its last frame (it is no longer shown): the clock then drops it, so a control can never keep a window painting by itself. The default returns false.
 
+   .. cpp:function:: virtual bool paint_depends_on_size() const noexcept
+
+      Whether what on_paint and on_paint_overlay draw at a point changes when only the control's size does. A control that answers false keeps its pixels inside its old extent when it is resized in place, and only the strips the resize exposed or vacated are repainted. The default is the resize_redraw style, which is on unless the control clears it.
+
    .. cpp:function:: virtual bool hit_test_local(Point local_point) const
 
       Override to refine which local points hit the control. The base version
