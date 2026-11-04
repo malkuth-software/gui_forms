@@ -3601,6 +3601,36 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
 }
 @end
 
+namespace gui_forms::host {
+
+// What a quit request did to one window (closeForTermination:).
+enum class MacTerminationClose : std::uint8_t {
+    // The window does not end the run; the request is for another window.
+    not_ending,
+    // The closing handler refused; the run goes on.
+    refused,
+    // The window has closed, so the run is over.
+    closed,
+};
+
+// The end of a run: what it does once the window that ends it has closed
+// (close metrics, final snapshots, the capture check, shutdown). It runs
+// once: after [NSApp run] returns or, for a quit request, from the
+// application delegate before AppKit ends the process.
+struct MacRunEnd final {
+    void (*finish)(void* context){};
+    void* context{};
+    bool finished{};
+};
+
+void finish_run(MacRunEnd& end) {
+    if (end.finished || end.finish == nullptr) return;
+    end.finished = true;
+    (*end.finish)(end.context);
+}
+
+} // namespace gui_forms::host
+
 @interface GUIFormsWindowDelegate : NSObject <NSWindowDelegate> {
     __weak GUIFormsView* _view;
     BOOL _stopsApplicationOnClose;
@@ -3623,10 +3653,10 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
            window:(gui_forms::HostWindowId)window;
 // Closes without asking the closing handler (HostWindowing::destroy_window).
 - (void)closeWindowForApplication:(NSWindow*)window;
-// A quit request (Cmd-Q, the Dock, a quit Apple event) for the window that
-// ends the run: asks the closing handler as the close button does and closes
-// the window when it agrees. NO when this window does not end the run.
-- (BOOL)closeForTermination:(NSWindow*)window;
+// A quit request (Cmd-Q, the Dock, a quit Apple event, a log-out): for the
+// window that ends the run, asks the closing handler as the close button
+// does and closes the window when it agrees.
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window;
 @end
 
 @implementation GUIFormsWindowDelegate
@@ -3721,33 +3751,51 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
 - (void)windowDidChangeBackingProperties:(NSNotification*)notification {
     [_view notifyScaleChanged];
 }
-- (BOOL)closeForTermination:(NSWindow*)window {
-    if (!_stopsApplicationOnClose) return NO;
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window {
+    if (!_stopsApplicationOnClose) return gui_forms::host::MacTerminationClose::not_ending;
     // windowShouldClose: rather than performClose:, which beeps and does
-    // nothing for a window without a close button. A refusal keeps the run.
-    if ([self windowShouldClose:window]) [window close];
-    return YES;
+    // nothing for a window without a close button.
+    if (![self windowShouldClose:window]) return gui_forms::host::MacTerminationClose::refused;
+    [window close];
+    return gui_forms::host::MacTerminationClose::closed;
 }
 @end
 
 // The application delegate for a run. AppKit's terminate: ends the process
 // before [NSApp run] returns, which would skip everything a run does after
-// its window closes (close metrics, final snapshots, the capture check,
-// shutdown). A quit request therefore closes the window that ends the run
-// instead and cancels the termination; that close stops the run, which then
-// returns normally. With no such window, the termination proceeds.
-// Note: cancelling also cancels a log-out that asked this program to quit;
-// the program still ends once its window has closed.
-@interface GUIFormsTerminationDelegate : NSObject <NSApplicationDelegate>
+// its window closes. A quit request therefore closes the window that ends
+// the run, as its close button does, then ends the run in place (the run's
+// MacRunEnd) and lets the termination proceed, so a log-out or restart goes
+// on. When the closing handler refuses, the termination is cancelled, as an
+// application with unsaved work cancels it. With no such window, the
+// termination proceeds. The work is synchronous, so the reply is given at
+// once rather than deferred with NSTerminateLater.
+// After a quit, the process ends inside terminate: with status 0: the run's
+// own exit code and the program's code after the run do not apply.
+@interface GUIFormsTerminationDelegate : NSObject <NSApplicationDelegate> {
+    // Observing: the run function owns it and clears this delegate before
+    // it returns.
+    gui_forms::host::MacRunEnd* _end;
+}
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end;
 @end
 
 @implementation GUIFormsTerminationDelegate
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end {
+    self = [super init];
+    if (self != nil) _end = end;
+    return self;
+}
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
     for (NSWindow* window in [sender windows]) {
         const id delegate = [window delegate];
         if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;
         GUIFormsWindowDelegate* windowDelegate = static_cast<GUIFormsWindowDelegate*>(delegate);
-        if ([windowDelegate closeForTermination:window]) return NSTerminateCancel;
+        const gui_forms::host::MacTerminationClose outcome = [windowDelegate closeForTermination:window];
+        if (outcome == gui_forms::host::MacTerminationClose::not_ending) continue;
+        if (outcome == gui_forms::host::MacTerminationClose::refused) return NSTerminateCancel;
+        if (_end != nullptr) gui_forms::host::finish_run(*_end);
+        return NSTerminateNow;
     }
     return NSTerminateNow;
 }
@@ -4057,6 +4105,44 @@ private:
 };
 
 
+namespace {
+
+// A single-window run's end (MacRunEnd's context): borrowed from run_macos,
+// which outlives every use.
+struct SingleWindowRunEnd final {
+    GUIFormsView* view{};
+    NSWindow* window{};
+    MacHostOptions* options{};
+    int* exit_code{};
+};
+
+void end_single_window_run(void* context) {
+    SingleWindowRunEnd& end = *static_cast<SingleWindowRunEnd*>(context);
+    MacHostOptions& options = *end.options;
+    [NSApp setDelegate:nil];
+    const std::string metrics = [end.view metricsJSON];
+    const std::string host = [end.view hostJSON];
+    if (options.print_metrics_on_close) {
+        std::fprintf(stdout, "{\"window\":%s,\"host\":%s}\n",
+                     metrics.c_str(), host.c_str());
+        std::fflush(stdout);
+    }
+    if (options.final_snapshot) {
+        options.final_snapshot(metrics, host);
+    }
+    // Portable contract: a requested capture that was never saved (no
+    // covering frame before close, or an encode/write failure) fails the
+    // process.
+    if (!options.capture_path.empty() && [end.view frameCaptureSaved] == NO) {
+        *end.exit_code = 6;
+    }
+    [end.view prepareForShutdown];
+    [end.window setDelegate:nil];
+    [end.window setContentView:nil];
+}
+
+} // namespace
+
 int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
     if (!model || !options.initially_visible || options.hide_on_close) {
         return 2;
@@ -4077,9 +4163,6 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
         NSApplication* application = [NSApplication sharedApplication];
         [application setActivationPolicy:NSApplicationActivationPolicyRegular];
         detail::install_application_menu();
-        // NSApp holds its delegate weakly; this local keeps it to the end.
-        GUIFormsTerminationDelegate* termination = [[GUIFormsTerminationDelegate alloc] init];
-        [application setDelegate:termination];
 
         const Size initialSize = options.capture_size.has_value()
             ? *options.capture_size : options.initial_size;
@@ -4131,7 +4214,6 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             [view prepareForShutdown];
             [nativeWindow setDelegate:nil];
             [nativeWindow setContentView:nil];
-            [application setDelegate:nil];
             return 5;
         }
         if (options.host_ready) {
@@ -4166,27 +4248,14 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             RepeatedCloseWork* const work = new RepeatedCloseWork{nativeWindow, closeAttempts};
             dispatch_async_f(dispatch_get_main_queue(), work, &repeated_close_on_main);
         }
+        SingleWindowRunEnd ending{view, nativeWindow, &options, &exitCode};
+        MacRunEnd end{&end_single_window_run, &ending, false};
+        // NSApp holds its delegate weakly; this local keeps it to the end,
+        // and end_single_window_run clears it.
+        GUIFormsTerminationDelegate* termination = [[GUIFormsTerminationDelegate alloc] initWithEnd:&end];
+        [application setDelegate:termination];
         [application run];
-        [application setDelegate:nil];
-        const std::string metrics = [view metricsJSON];
-        const std::string host = [view hostJSON];
-        if (options.print_metrics_on_close) {
-            std::fprintf(stdout, "{\"window\":%s,\"host\":%s}\n",
-                         metrics.c_str(), host.c_str());
-            std::fflush(stdout);
-        }
-        if (options.final_snapshot) {
-            options.final_snapshot(metrics, host);
-        }
-        // Portable contract: a requested capture that was never saved (no
-        // covering frame before close, or an encode/write failure) fails the
-        // process.
-        if (!options.capture_path.empty() && [view frameCaptureSaved] == NO) {
-            exitCode = 6;
-        }
-        [view prepareForShutdown];
-        [nativeWindow setDelegate:nil];
-        [nativeWindow setContentView:nil];
+        finish_run(end);
     }
     return exitCode;
 }
