@@ -86,6 +86,19 @@ constexpr LONGLONG live_clock_fallback_millihertz = 60'000;
 using DwmCompositionTimingFunction = HRESULT(WINAPI*)(HWND, DWM_TIMING_INFO*);
 constexpr UINT managed_dispatch_message = WM_APP + 0x41U;
 constexpr UINT render_dispatch_message = WM_APP + 0x42U;
+// Posted by the modal live clock (modal_live_clock_signalled) when the live
+// frame clock fires inside the native size/move loop.
+constexpr UINT modal_live_clock_message = WM_APP + 0x43U;
+
+// The live frame clock fired while the window is in the native size/move
+// loop, which waits on messages only (threadpool thread). `context` is the
+// window's HWND; posting to it is all this does, and a window already gone
+// rejects the post. The host stops the wait, and waits for this callback to
+// finish, before it destroys the window.
+void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
+    const HWND window = static_cast<HWND>(context);
+    static_cast<void>(PostMessageW(window, modal_live_clock_message, 0, 0));
+}
 constexpr std::size_t maximum_automation_command = 4096;
 
 bool environment_flag(const char* name) noexcept {
@@ -1248,6 +1261,12 @@ public:
         (*title_state_).window = nullptr;
         (*size_state_).host = nullptr;
         accessibility_.detach();
+        // The modal live clock posts to the window: stop it first.
+        if (modal_live_clock_ != nullptr) {
+            stop_modal_live_clock();
+            CloseThreadpoolWait(modal_live_clock_);
+            modal_live_clock_ = nullptr;
+        }
         // Initialization can unwind before WM_DESTROY. Detach the callback
         // address before releasing the native window so no later message can
         // reach this partially destroyed owner.
@@ -1575,16 +1594,30 @@ public:
             // run there, but the live plane must keep presenting independently
             // of retained layout and input. A modal-loop timer is the native
             // Win32 clock bridge for exactly that interval.
+            // The live frame clock keeps its display phase there through a
+            // threadpool wait that posts modal_live_clock_message; a timer
+            // message (coarse, and only sent when the queue is empty) is the
+            // fallback when that wait cannot be made.
             in_size_move_ = true;
-            if ((*model_).has_live_surface_presentations()) {
+            if ((*model_).has_live_surface_presentations() && !start_modal_live_clock()) {
                 SetTimer(hwnd_, modal_live_surface_timer,
                          live_surface_period_milliseconds, nullptr);
             }
             return 0;
         case WM_EXITSIZEMOVE:
             KillTimer(hwnd_, modal_live_surface_timer);
+            stop_modal_live_clock();
             in_size_move_ = false;
             mark_live_frame_due();
+            return 0;
+        case modal_live_clock_message:
+            // A late post after the loop ended is ignored: the outer loop
+            // waits on the clock again.
+            if (!in_size_move_ || modal_live_clock_ == nullptr) return 0;
+            mark_live_frame_due();
+            present_live_surface_updates();
+            live_frame_due_ = false;
+            if (live_clock_armed_) SetThreadpoolWait(modal_live_clock_, live_frame_clock_, nullptr);
             return 0;
         case managed_dispatch_message:
             static_cast<void>((*model_).drain_posted_work());
@@ -2150,6 +2183,30 @@ private:
         live_clock_armed_ = SetWaitableTimer(live_frame_clock_, &due, 0, nullptr, nullptr,
                                              FALSE) != FALSE;
         if (live_clock_armed_) live_clock_deadline_ = deadline;
+    }
+
+    // Starts the modal live clock (WM_ENTERSIZEMOVE): arms the live frame
+    // clock and waits on it from the threadpool. False when there is no
+    // clock or the wait cannot be made, and the caller falls back.
+    bool start_modal_live_clock() noexcept {
+        if (live_frame_clock_ == nullptr || hwnd_ == nullptr) return false;
+        if (modal_live_clock_ == nullptr) {
+            modal_live_clock_ = CreateThreadpoolWait(&modal_live_clock_signalled, static_cast<PVOID>(hwnd_), nullptr);
+            if (modal_live_clock_ == nullptr) return false;
+        }
+        if (!live_clock_armed_) arm_live_clock();
+        if (!live_clock_armed_) return false;
+        SetThreadpoolWait(modal_live_clock_, live_frame_clock_, nullptr);
+        return true;
+    }
+
+    // Stops the modal live clock and waits for a callback in flight, so that
+    // none runs after this returns; the wait object is kept for the next
+    // size/move loop.
+    void stop_modal_live_clock() noexcept {
+        if (modal_live_clock_ == nullptr) return;
+        SetThreadpoolWait(modal_live_clock_, nullptr, nullptr);
+        WaitForThreadpoolWaitCallbacks(modal_live_clock_, TRUE);
     }
 
     void request_render_wake() noexcept {
@@ -2996,6 +3053,9 @@ private:
     bool render_dispatch_pending_{};
     bool presentation_pending_{};
     HANDLE live_frame_clock_{};
+    // The threadpool wait on live_frame_clock_ during the native size/move
+    // loop (start_modal_live_clock); made on first use, closed with the host.
+    PTP_WAIT modal_live_clock_{};
     bool live_clock_armed_{};
     // The live clock's armed deadline in QueryPerformanceCounter ticks (0
     // when it is not armed), the counter's frequency, and the compositor's
