@@ -1285,7 +1285,7 @@ public:
             return false;
         }
         hwnd_ = window;
-        scale_ = query_scale(window);
+        scale_ = options_.scale_override > 0.0 ? options_.scale_override : query_scale(window);
         const std::filesystem::path font_directory = bundled_font_directory();
         std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = load_bundled_fonts(font_directory);
         RECT client{};
@@ -1979,7 +1979,8 @@ private:
     }
 
     void dpi_changed(WPARAM wparam, LPARAM lparam) {
-        const double next = std::max(1.0, HIWORD(wparam) / 96.0);
+        const double next = options_.scale_override > 0.0 ? options_.scale_override
+                                                          : std::max(1.0, HIWORD(wparam) / 96.0);
         if (next != scale_) { scale_ = next; dispatch(HostScaleEvent{scale_}); }
         if (const RECT* suggested = reinterpret_cast<const RECT*>(lparam)) {
             SetWindowPos(hwnd_, nullptr, (*suggested).left, (*suggested).top,
@@ -3149,12 +3150,15 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     WindowsHostState state(std::move(model), options);
     const DWORD style = options.popup_window ? (WS_POPUP | WS_BORDER) :
         (options.minimizable ? WS_OVERLAPPEDWINDOW : (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX));
-    const double initial_scale = query_scale(nullptr);
+    const double initial_scale =
+        options.scale_override > 0.0 ? options.scale_override : query_scale(nullptr);
     const Size initial_size = options.capture_size.has_value()
         ? *options.capture_size : options.initial_size;
     RECT frame{0, 0, static_cast<LONG>(std::ceil(initial_size.width * initial_scale)),
                static_cast<LONG>(std::ceil(initial_size.height * initial_scale))};
-    adjust_client_frame(frame, style, 0, initial_scale);
+    // The frame's own metrics follow the monitor even when the content's
+    // scale is overridden.
+    adjust_client_frame(frame, style, 0, query_scale(nullptr));
     const std::wstring title = wide_from_utf8(options.title);
     const int initial_x = options.popup_window
         ? static_cast<int>(std::lround(options.initial_position.x)) : CW_USEDEFAULT;

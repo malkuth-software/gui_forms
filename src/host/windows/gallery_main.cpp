@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
     options.minimum_size = gui_forms::gallery::gallery_minimum_size;
     gui_forms::demo::apply_program_options(*program, options);
     options.automation_enabled = (*program).automation;
+    options.scale_override = (*program).scale_hint;
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
     if (!(*program).page.empty() && !gui_forms::gallery::select_gallery_page(*window, (*program).page)) {
         std::fprintf(stderr, "unknown Gallery page: %s\n", (*program).page.c_str());

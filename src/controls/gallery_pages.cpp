@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -57,18 +58,15 @@ std::string page_control_line(const CatalogEntry& entry) {
            " · WinForms: " + std::string(entry.winforms);
 }
 
-// Fills one page body: compiled-DML pages mount their declared group; the
+// Fills one page body: the form document's pages mount their group; the
 // pages migrated from the Complete Showcase keep their builders unchanged.
 void populate_page_body(std::string_view page_id,
                         const std::shared_ptr<Surface>& body,
                         const std::shared_ptr<PageContext>& context,
                         const GalleryTree& compiled) {
     for (const GalleryMount& mount : compiled.mounts) {
-        if ((*mount.specification).page == page_id) {
-            (*body).add_at(mount.control,
-                           {0.0, 0.0,
-                            static_cast<double>((*mount.specification).preferred_width),
-                            static_cast<double>((*mount.specification).preferred_height)});
+        if (!mount.page.empty() && mount.page == page_id) {
+            (*body).add_at(mount.control, {0.0, 0.0, mount.size.width, mount.size.height});
             return;
         }
     }
@@ -99,7 +97,7 @@ void populate_page_body(std::string_view page_id,
     else if (page_id == "live-surfaces") add_live_surfaces(body, context);
     else if (page_id == "typography-and-inspection") add_typography_and_inspection(body, context);
     else if (page_id == "semantic-feedback") add_semantic_feedback(body, context);
-    else throw std::logic_error("Gallery page has neither a compiled-DML mount nor a builder");
+    else throw std::logic_error("Gallery page has neither a form-document mount nor a builder");
 }
 
 // The one place the retained page context is recovered from the root Tag.
@@ -150,7 +148,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     (*root).set_background(canvas);
     (*root).set_tag(context);
 
-    // Compiled-DML command strip: Reset, Diagnostics toggle, status badge.
+    // The form document's command strip: Reset, Diagnostics toggle, status badge.
     if (const Control::Ptr strip = compiled.mount("gallery.command-strip")) {
         (*root).add_at(strip, {0.0, 0.0, 1280.0, 34.0});
     }
@@ -158,11 +156,14 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     const std::vector<NavigationEntry> order = navigation_order();
 
     // The navigation lists every registry page, more than fit in one column,
-    // so the sidebar scrolls; select_page keeps the chosen row in view.
+    // so the sidebar scrolls; select_page keeps the chosen row in view. It
+    // runs down to the window's bottom edge, beside the status strip (sweep
+    // defect D20: it stopped at the strip's top, leaving a blank block).
+    constexpr double sidebar_height = 786.0;
     std::shared_ptr<gui_forms::ScrollableControl> sidebar = make_control<ScrollableControl>(
         StableId("gallery.sidebar"));
     (*sidebar).set_auto_scroll(true);
-    (*root).add_at(sidebar, {0.0, 34.0, 238.0, 742.0});
+    (*root).add_at(sidebar, {0.0, 34.0, 238.0, sidebar_height});
     // First child, so it paints beneath the rows; sized to the content below.
     std::shared_ptr<gui_forms::Panel> sidebar_paper =
         make_control<Panel>(StableId("gallery.sidebar.paper"));
@@ -201,7 +202,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     }
     // Narrower than the viewport beside the vertical bar, so no horizontal
     // scrollbar appears; the column's own background shows at the edge.
-    (*sidebar_paper).set_bounds({0.0, 0.0, 206.0, std::max(742.0, navigation_y + 8.0)});
+    (*sidebar_paper).set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
     (*sidebar).set_auto_scroll_min_size({206.0, navigation_y + 8.0});
 
     std::shared_ptr<gui_forms::ScaledPanel> content = make_control<Surface>(
@@ -217,14 +218,26 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
             if (entry.gallery_page == spec.id) demonstrated.push_back(&entry);
         }
         // Header strip: title, then one line per registry record this page
-        // demonstrates (or the page's own summary when none names it).
+        // demonstrates (or the page's own summary when none names it), 16
+        // units apart so a line's descenders and underscores stay inside its
+        // own label (sweep defect D1).
+        constexpr double header_line_pitch = 16.0;
         const std::size_t line_count = std::max<std::size_t>(1U, demonstrated.size());
-        const double strip_height = 28.0 + 14.0 * static_cast<double>(line_count) + 8.0;
+        const double strip_height = 28.0 + header_line_pitch * static_cast<double>(line_count) + 8.0;
+        // The page is drawn at its design size, unscaled, in a scrolling
+        // viewport: a page taller than the viewport scrolls instead of being
+        // squeezed vertically, which overprinted the header lines and the
+        // title (sweep defect D2). Its height is known once the body holds
+        // its content.
+        std::shared_ptr<gui_forms::ScrollableControl> viewport = make_control<ScrollableControl>(
+            StableId(surface_id + ".viewport"));
+        (*viewport).set_auto_scroll(true);
+        (*viewport).set_visible(index == 0U);
+        (*content).add_at(viewport, {20.0, 0.0, 1022.0, 742.0});
         std::shared_ptr<gui_forms::ScaledPanel> page = make_control<Surface>(
             StableId(surface_id), Size{1000.0, strip_height + 660.0});
         (*page).set_background(canvas);
-        (*page).set_visible(index == 0U);
-        (*content).add_at(page, {20.0, 0.0, 1000.0, 742.0});
+        (*viewport).add_child(page);
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, shell_blue_dark);
         (*title).set_font({FontRole::control, 15.0, 700, false});
@@ -232,14 +245,15 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",
                                                    std::string(spec.summary), 10.0, 400, muted);
-            (*page).add_at(summary, {0.0, 28.0, 1000.0, 14.0});
+            (*page).add_at(summary, {0.0, 28.0, 1000.0, header_line_pitch});
         }
         for (std::size_t line = 0; line < demonstrated.size(); ++line) {
             std::shared_ptr<Label> control_line = label(
                 surface_id + ".control." + std::to_string(line),
                 page_control_line(*demonstrated[line]), 10.0, 400, muted);
             (*page).add_at(control_line,
-                           {0.0, 28.0 + 14.0 * static_cast<double>(line), 1000.0, 14.0});
+                           {0.0, 28.0 + header_line_pitch * static_cast<double>(line), 1000.0,
+                            header_line_pitch});
         }
         std::shared_ptr<gui_forms::ScaledPanel> body = make_control<Surface>(
             StableId(std::string(body_id_prefix) + std::string(spec.id)),
@@ -247,7 +261,21 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         (*body).set_background(canvas);
         (*page).add_at(body, {0.0, strip_height, 1000.0, 660.0});
         populate_page_body(spec.id, body, context, compiled);
-        (*context).pages.push_back(page);
+        // The body is as tall as its content (at least 660): content placed
+        // below 660 was cut off with no way to reach it (sweep defect D3).
+        double body_height = 660.0;
+        for (const Control::Ptr& child : (*body).children()) {
+            const std::optional<Rect> slot = (*body).design_bounds(*child);
+            const Rect placed = slot ? *slot : (*child).requested_bounds();
+            body_height = std::max(body_height, placed.y + placed.height + 16.0);
+        }
+        const double page_height = strip_height + body_height;
+        (*body).set_design_size({1000.0, body_height});
+        (*page).set_design_bounds(*body, {0.0, strip_height, 1000.0, body_height});
+        (*page).set_design_size({1000.0, page_height});
+        (*page).set_bounds({0.0, 0.0, 1000.0, page_height});
+        (*viewport).set_auto_scroll_min_size({1000.0, page_height});
+        (*context).pages.push_back(viewport);
     }
 
     std::shared_ptr<gui_forms::ScaledPanel> status_surface = make_control<Surface>(
@@ -265,7 +293,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     (*live).set_indicator_style(ChoiceIndicatorStyle::toggle);
     (*status_surface).add_at(live, {846.0, 8.0, 180.0, 28.0});
 
-    // Compiled-DML diagnostics overlay; hidden until the command toggles it.
+    // The form document's diagnostics overlay; hidden until the command toggles it.
     if (const Control::Ptr diagnostics = compiled.mount("gallery.diagnostics")) {
         (*root).add_at(diagnostics, {1000.0, 34.0, 280.0, 742.0});
     }

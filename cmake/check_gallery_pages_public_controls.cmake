@@ -6,9 +6,9 @@ string(REPLACE "," ";" gallery_page_files "${GALLERY_PAGE_FILES}")
 
 # The Gallery's page builders are a public-library consumer. Any local control
 # subclass can hide layout, paint, input, scheduler, or semantic behavior that
-# should instead be implemented and tested in GUI.Forms itself. (The
-# compiled-DML GalleryControl family lives in gallery_controls.cpp, outside
-# this policy.) A handler owner deriving from Component is the documented
+# should instead be implemented and tested in GUI.Forms itself. (The form
+# document's application types, demo/gallery_parts.hpp and
+# demo/gallery_instrument.hpp, are outside this policy.) A handler owner deriving from Component is the documented
 # authoring idiom (on(event, owner, &Owner::method)) and is admitted. So is an
 # application's DataGridViewCellValueProvider: it supplies a virtual grid's
 # values by row ID and is data, not a control.

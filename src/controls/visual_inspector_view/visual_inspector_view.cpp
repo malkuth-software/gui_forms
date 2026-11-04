@@ -1,6 +1,8 @@
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
 
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
+#include "../basic/basic_control_rendering.hpp"
 
 #include <array>
 #include <cstddef>
@@ -59,7 +61,10 @@ std::string representative_font_text(const VisualControlInspection& target) {
            << operation.font.weight;
     if (operation.font.italic) output << "i";
     if (operation.font.letter_spacing != 0.0) {
-        output << " +" << operation.font.letter_spacing << "ls";
+        // Two decimals: tracking is authored in hundredths (0.24), which one
+        // decimal showed as 0.2 (sweep defect D23).
+        output << " +" << std::setprecision(2) << operation.font.letter_spacing << "ls"
+               << std::setprecision(1);
     }
     if (operation.resolved_text) {
         const ResolvedTextLayout& resolved = *operation.resolved_text;
@@ -251,6 +256,20 @@ VisualInspectorView::VisualInspectorView(StableId stable_id,
     : Control(std::move(stable_id)),
       target_stable_id_(std::move(target_stable_id)) {
     set_accessible_name("Visual state inspector");
+    // The inspected control's stable ID, for a form document (FD6.3).
+    PropertyDescriptor target_property;
+    target_property.name = "target_stable_id";
+    target_property.kind = BindingValueKind::text;
+    target_property.category = "Behavior";
+    target_property.description = "Stable ID of the control the view inspects; empty for none.";
+    target_property.default_value = BindingValue{std::string{}};
+    target_property.invalidation_effects = Dirty::paint | Dirty::semantics;
+    target_property.bindable = false;
+    define_bindable_property({
+        std::move(target_property),
+        detail::BindingMemberGetter<VisualInspectorView, std::string>(*this, &VisualInspectorView::target_stable_id_),
+        detail::DirectPropertySetter<VisualInspectorView, std::string>(*this, &VisualInspectorView::set_target_stable_id),
+        {}, {}, {}});
 }
 
 void VisualInspectorView::set_target_stable_id(std::string stable_id) {
@@ -314,12 +333,24 @@ void VisualInspectorView::on_paint(Painter& painter, Rect) {
         painter.draw_text_utf8({18.0, 68.0}, content.message, body, content.message_color);
         return;
     }
-    double y = 64.0;
+    // The rows share the height between the title band and the legend,
+    // 30 units each at most and 18 at least; rows that still do not fit
+    // are left out rather than drawn over the legend (sweep defect D25).
+    // A value wider than its column ends in an ellipsis (D24).
+    constexpr double first_baseline = 64.0;
+    constexpr double legend_reserve = 34.0;
+    const double last_baseline = bounds.height - legend_reserve;
+    const double gaps = static_cast<double>(std::max<std::size_t>(content.rows.size(), 2U) - 1U);
+    const double pitch = std::clamp((last_baseline - first_baseline) / gaps, 18.0, 30.0);
+    const double value_width = std::max(0.0, bounds.width - 18.0 - 145.0);
+    double y = first_baseline;
     for (const InspectorRow& row : content.rows) {
+        if (y > last_baseline) break;
         painter.draw_text_utf8({18.0, y}, row.label, section, inspector_muted);
-        painter.draw_text_utf8({145.0, y}, row.value, body, row.color);
-        y += 30.0;
-        painter.draw_line({18.0, y - 10.0}, {bounds.width - 18.0, y - 10.0},
+        const std::string value = elide_text_end(painter, row.value, body, value_width);
+        painter.draw_text_utf8({145.0, y}, value, body, row.color);
+        y += pitch;
+        painter.draw_line({18.0, y - pitch / 3.0}, {bounds.width - 18.0, y - pitch / 3.0},
                           Color::rgba(73, 86, 96), 1.0);
     }
     painter.draw_text_utf8(
@@ -378,6 +409,20 @@ VisualInspectorOverlay::VisualInspectorOverlay(StableId stable_id,
       target_stable_id_(std::move(target_stable_id)) {
     set_hit_test_transparent(true);
     set_paint_plane(PaintPlane::overlay);
+    // The inspected control's stable ID, for a form document (FD6.3).
+    PropertyDescriptor target_property;
+    target_property.name = "target_stable_id";
+    target_property.kind = BindingValueKind::text;
+    target_property.category = "Behavior";
+    target_property.description = "Stable ID of the control the overlay outlines; empty for none.";
+    target_property.default_value = BindingValue{std::string{}};
+    target_property.invalidation_effects = Dirty::paint | Dirty::semantics;
+    target_property.bindable = false;
+    define_bindable_property({
+        std::move(target_property),
+        detail::BindingMemberGetter<VisualInspectorOverlay, std::string>(*this, &VisualInspectorOverlay::target_stable_id_),
+        detail::DirectPropertySetter<VisualInspectorOverlay, std::string>(*this, &VisualInspectorOverlay::set_target_stable_id),
+        {}, {}, {}});
 }
 
 void VisualInspectorOverlay::set_target_stable_id(std::string stable_id) {

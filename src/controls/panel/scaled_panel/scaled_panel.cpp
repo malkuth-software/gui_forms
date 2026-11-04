@@ -1,4 +1,5 @@
 #include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_control/container_control/scaled_layout_utilities.hpp"
 #include "../panel_anatomy.hpp"
 
@@ -16,6 +17,19 @@ namespace gui_forms {
 ScaledPanel::ScaledPanel(StableId stable_id, Size design_size)
     : Panel(std::move(stable_id)), design_size_(design_size) {
     scaled_layout_detail::validate_design_size(design_size_);
+    PropertyDescriptor design_size_property;
+    design_size_property.name = "design_size";
+    design_size_property.kind = BindingValueKind::size;
+    design_size_property.category = "Layout";
+    design_size_property.description =
+        "The coordinate space the children's design bounds are written in; it scales to the arranged size.";
+    design_size_property.default_value = BindingValue{Size{1.0, 1.0}};
+    design_size_property.invalidation_effects = Dirty::layout;
+    design_size_property.bindable = false;
+    define_bindable_property({
+        std::move(design_size_property),
+        detail::BindingMemberGetter<ScaledPanel, Size>(*this, &ScaledPanel::design_size_),
+        detail::DirectPropertySetter<ScaledPanel, Size>(*this, &ScaledPanel::set_design_size), {}, {}, {}});
 }
 
 void ScaledPanel::set_design_size(Size size) {
@@ -61,12 +75,13 @@ void ScaledPanel::arrange(Rect final_bounds) {
     reconcile_slots();
     arrange_self(final_bounds);
     for (const Control::Ptr& child : children()) {
+        // A child added without design bounds (a form document's child,
+        // added by add_child) is placed by its own authored bounds, read in
+        // design coordinates.
         const SlotMap::iterator slot =
             slots_.find((*child).runtime_id().value);
-        if (slot == slots_.end()) continue;
-        set_child_layout(child,
-                         scaled_layout_detail::child_bounds(design_size_, (*slot).second,
-                                             final_bounds));
+        const Rect design = slot == slots_.end() ? (*child).requested_bounds() : (*slot).second;
+        set_child_layout(child, scaled_layout_detail::child_bounds(design_size_, design, final_bounds));
     }
 }
 

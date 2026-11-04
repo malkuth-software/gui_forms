@@ -15,7 +15,10 @@ TabPage::TabPage(StableId stable_id, std::string text)
     // page's body (owner, 2026-10-28).
     set_tool_tip_presentation(ToolTipPresentation::owner_item);
     set_background(Color::rgba(255, 255, 255));
-    set_border_style(BorderStyle::line);
+    // No border of its own, as Windows Forms' TabPage.BorderStyle (None):
+    // the owning TabControl paints the display's frame (sweep defect D13:
+    // a square line over the display's rounded card left corner notches).
+    set_border_style(BorderStyle::none);
 }
 
 void TabPage::set_text(std::string text) {

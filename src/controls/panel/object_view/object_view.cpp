@@ -95,31 +95,6 @@ std::size_t preferred_break(std::string_view text,
     return fitting_end;
 }
 
-std::string elide_object_name(Painter& painter, std::string_view text,
-                              FontSpec font, const double maximum_width) {
-    if (text.empty() || maximum_width <= 0.0) return {};
-    if (painter.measure_text_utf8(text, font).width <= maximum_width) {
-        return std::string(text);
-    }
-    constexpr std::string_view ellipsis = "…";
-    if (painter.measure_text_utf8(ellipsis, font).width > maximum_width) {
-        return {};
-    }
-    const TextStore store(text);
-    std::size_t grapheme = store.grapheme_count().value();
-    while (grapheme > 0U) {
-        --grapheme;
-        const std::size_t end =
-            store.utf8_offset(GraphemeIndex(grapheme)).value();
-        std::string candidate(text.substr(0U, end));
-        candidate.append(ellipsis);
-        if (painter.measure_text_utf8(candidate, font).width <= maximum_width) {
-            return candidate;
-        }
-    }
-    return std::string(ellipsis);
-}
-
 IconLabelLayout icon_label_layout(Painter& painter, std::string_view text,
                                   FontSpec font, const double maximum_width) {
     IconLabelLayout result;
@@ -159,7 +134,7 @@ IconLabelLayout icon_label_layout(Painter& painter, std::string_view text,
     const std::size_t fit = maximum_fitting_end(
         painter, text, font, maximum_width);
     if (fit == 0U) {
-        result.lines.push_back(elide_object_name(
+        result.lines.push_back(elide_text_end(
             painter, text, font, maximum_width));
         result.truncated = true;
         return result;
@@ -174,7 +149,7 @@ IconLabelLayout icon_label_layout(Painter& painter, std::string_view text,
     }
     result.lines.emplace_back(first);
     const std::string_view remainder = text.substr(remainder_start);
-    const std::string second = elide_object_name(
+    const std::string second = elide_text_end(
         painter, remainder, font, maximum_width);
     if (!second.empty()) result.lines.push_back(second);
     result.truncated = second != remainder;
@@ -978,7 +953,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                                             std::max(8.0, font_.size - 1.5),
                                             400, false};
                 const FontSpec secondary = effective_font(authored_secondary);
-                const std::string display_secondary = elide_object_name(
+                const std::string display_secondary = elide_text_end(
                     painter, item.secondary_text, secondary,
                     std::max(0.0, cell.width - 10.0));
                 painter.draw_text_utf8(
@@ -1000,7 +975,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
             const double name_width = std::max(
                 0.0, secondary_x - (cell.x + 38.0) -
                     (paint_secondary ? 8.0 : 0.0));
-            const std::string display_name = elide_object_name(
+            const std::string display_name = elide_text_end(
                 painter, item.name, font, name_width);
             painter.draw_text_utf8(
                 {cell.x + 38.0, cell.y + cell.height * .5 + 4.0},
@@ -1014,7 +989,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
                 }
             }
             if (paint_secondary) {
-                const std::string display_secondary = elide_object_name(
+                const std::string display_secondary = elide_text_end(
                     painter, item.secondary_text, font,
                     std::max(0.0, cell.x + cell.width - 6.0 - secondary_x));
                 painter.draw_text_utf8(

@@ -1,6 +1,7 @@
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 
 #include "gui_forms/visual_inspection.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 
 #include <array>
@@ -73,7 +74,65 @@ struct PainterLineResolver final {
 } // namespace
 
 TypographySpecimen::TypographySpecimen(StableId stable_id, std::string text)
-    : Control(std::move(stable_id)), text_(std::move(text)) {}
+    : Control(std::move(stable_id)), text_(std::move(text)) {
+    // The run-time schema of a specimen (stage FD6.3): what a form document
+    // sets on it. None raises a change event.
+    PropertyDescriptor text_property;
+    text_property.name = "text";
+    text_property.kind = BindingValueKind::text;
+    text_property.category = "Appearance";
+    text_property.description = "The run of text the specimen commits and measures.";
+    text_property.default_value = BindingValue{std::string{}};
+    text_property.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    text_property.bindable = false;
+    define_bindable_property({
+        std::move(text_property),
+        detail::BindingMemberGetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::text_),
+        detail::DirectPropertySetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::set_text),
+        {}, {}, {}});
+
+    PropertyDescriptor font;
+    font.name = "font";
+    font.kind = BindingValueKind::font;
+    font.category = "Appearance";
+    font.description = "The FontSpec the run is committed with.";
+    font.default_value = BindingValue{FontSpec{}};
+    font.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    font.bindable = false;
+    define_bindable_property({
+        std::move(font),
+        detail::BindingMemberGetter<TypographySpecimen, FontSpec>(*this, &TypographySpecimen::font_),
+        detail::DirectPropertySetter<TypographySpecimen, FontSpec>(*this, &TypographySpecimen::set_font),
+        {}, {}, {}});
+
+    PropertyDescriptor caption;
+    caption.name = "caption";
+    caption.kind = BindingValueKind::text;
+    caption.category = "Appearance";
+    caption.description = "The line under the run that names its font.";
+    caption.default_value = BindingValue{std::string{}};
+    caption.invalidation_effects = Dirty::paint | Dirty::semantics;
+    caption.bindable = false;
+    define_bindable_property({
+        std::move(caption),
+        detail::BindingMemberGetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::caption_),
+        detail::DirectPropertySetter<TypographySpecimen, std::string>(*this, &TypographySpecimen::set_caption),
+        {}, {}, {}});
+
+    PropertyDescriptor wrap_text;
+    wrap_text.name = "wrap_text";
+    wrap_text.kind = BindingValueKind::boolean;
+    wrap_text.category = "Layout";
+    wrap_text.description = "Whether the run wraps at the specimen's width.";
+    wrap_text.default_value = BindingValue{false};
+    wrap_text.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    wrap_text.bindable = false;
+    define_bindable_property({
+        std::move(wrap_text),
+        detail::BindingMemberGetter<TypographySpecimen, bool>(*this, &TypographySpecimen::wrap_text_),
+        detail::DirectPropertySetter<TypographySpecimen, bool>(*this, &TypographySpecimen::set_wrap_text),
+        {}, {}, {}});
+}
 
 void TypographySpecimen::set_text(std::string text) {
     require_mutable();
@@ -167,16 +226,29 @@ void TypographySpecimen::on_paint(Painter& painter, Rect) {
             {10.0, snap_text_baseline(caption_font.size + 3.0)}, caption_,
             caption_font, muted);
     }
-    double logical_baseline = caption_font.size + 8.0 + resolved.ascent;
-    double baseline = snap_text_baseline(logical_baseline);
+    // The first line's baselines, which the footer reports for every run
+    // (sweep defect D27: a wrapped run reported its last line's).
+    const double first_logical_baseline = caption_font.size + 8.0 + resolved.ascent;
+    const double first_baseline = snap_text_baseline(first_logical_baseline);
+    const Color line_box_ink = Color::rgba(64, 145, 196, 70);
+    double logical_baseline = first_logical_baseline;
+    double baseline = first_baseline;
     for (std::size_t index = 0U; index < lines.size(); ++index) {
         if (index != 0U) {
             logical_baseline += std::max(
                 effective.size, resolved_lines[index - 1U].logical_size.height);
             baseline = snap_text_baseline(logical_baseline);
         }
-        painter.draw_line({8.0, baseline}, {bounds.width - 8.0, baseline},
-                          baseline_ink, 1.0);
+        // The adornments the diagnostics switch shows (D22: the line box
+        // was promised but never drawn, and the baseline was always on):
+        // the line box from ascent to descent, and the baseline.
+        if (diagnostics_visible_) {
+            const ResolvedTextLayout& line = resolved_lines[index];
+            const Rect line_box{8.5, baseline - line.ascent + 0.5, std::max(0.0, bounds.width - 17.0),
+                                std::max(0.0, line.ascent + line.descent - 1.0)};
+            painter.stroke_rect(line_box, line_box_ink, 1.0);
+            painter.draw_line({8.0, baseline}, {bounds.width - 8.0, baseline}, baseline_ink, 1.0);
+        }
         painter.draw_text_utf8(
             {10.0, baseline}, lines[index], effective,
             resolved_lines[index].status == TextResolutionStatus::exact
@@ -195,7 +267,7 @@ void TypographySpecimen::on_paint(Painter& painter, Rect) {
         details << " A" << std::fixed << std::setprecision(0)
                 << resolved.ascent << "/D"
                 << resolved.descent << " B" << std::setprecision(1)
-                << logical_baseline << ">" << baseline
+                << first_logical_baseline << ">" << first_baseline
                 << " @" << (window() != nullptr ? (*window()).scale() : 1.0)
                 << "×";
         painter.draw_text_utf8(

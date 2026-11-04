@@ -1,5 +1,6 @@
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "../../basic/basic_control_rendering.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "group_box_anatomy.hpp"
@@ -17,6 +18,29 @@ namespace gui_forms {
 GroupBox::GroupBox(StableId stable_id, std::string text)
     : Panel(std::move(stable_id)), text_(std::move(text)) {
     set_border_style(BorderStyle::none);
+    // The caption (Windows Forms' GroupBox.Text); it raises no change event.
+    define_bindable_property({
+        {"text", BindingValueKind::text, "Appearance",
+         "Caption shown in the group's frame.", BindingValue{std::string{}},
+         Dirty::measure | Dirty::paint | Dirty::semantics},
+        detail::BindingMemberGetter<GroupBox, std::string>(*this, &GroupBox::text_),
+        detail::ConvertedPropertySetter<GroupBox, std::string>(
+            *this, &GroupBox::set_text, BindingValueKind::text,
+            "GroupBox.Text binding requires text"),
+        {}, {}, {}});
+
+    PropertyDescriptor font;
+    font.name = "font";
+    font.kind = BindingValueKind::font;
+    font.category = "Appearance";
+    font.description = "Font used for the caption.";
+    font.default_value = BindingValue{FontSpec{FontRole::control, 12.0, 600, false, 0.24}};
+    font.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    font.bindable = false;
+    define_bindable_property({
+        std::move(font),
+        detail::BindingMemberGetter<GroupBox, FontSpec>(*this, &GroupBox::font_),
+        detail::DirectPropertySetter<GroupBox, FontSpec>(*this, &GroupBox::set_font), {}, {}, {}});
 }
 
 void GroupBox::set_text(std::string text) {
@@ -53,11 +77,34 @@ void GroupBox::on_paint(Painter& painter, Rect) {
     const std::string caption = caption_text();
     const double caption_height = std::max(16.0, font.size + 4.0);
     const double rule_y = std::max(10.5, caption_height * 0.66);
-    painter.fill_rect(bounds, background());
-    painter.stroke_rect({0.5, rule_y, std::max(0.0, bounds.width - 1.0),
-                         std::max(0.0, bounds.height - rule_y - 0.5)},
-                        style().border, 1.0);
-    painter.fill_rect(caption_bounds(), background());
+    // The face fills the frame only: above the rule the parent's ground
+    // shows, as in Windows Forms (sweep defect D4: a full-width band of
+    // the group's colour sat above its frame).
+    painter.fill_rect({0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)}, background());
+    // The frame, broken behind the caption: stroked three times, clipped
+    // to the left of the caption, to its right, and below it, so the
+    // frame's pixels elsewhere are unchanged and nothing has to paint the
+    // parent's colour back over the rule.
+    const Rect frame{0.5, rule_y, std::max(0.0, bounds.width - 1.0),
+                     std::max(0.0, bounds.height - rule_y - 0.5)};
+    if (caption.empty()) {
+        painter.stroke_rect(frame, style().border, 1.0);
+        return;
+    }
+    const Rect caption_box = caption_bounds();
+    const double gap_right = caption_box.x + caption_box.width;
+    const double caption_bottom = caption_box.y + caption_box.height;
+    const std::array<Rect, 3> frame_pieces{{
+        {0.0, 0.0, caption_box.x, bounds.height},
+        {gap_right, 0.0, std::max(0.0, bounds.width - gap_right), bounds.height},
+        {caption_box.x, caption_bottom, caption_box.width, std::max(0.0, bounds.height - caption_bottom)},
+    }};
+    for (const Rect& piece : frame_pieces) {
+        painter.save();
+        painter.clip_rect(piece);
+        painter.stroke_rect(frame, style().border, 1.0);
+        painter.restore();
+    }
     painter.draw_text_utf8({13.0, std::max(font.size, rule_y + font.size * 0.36)},
                            caption, font,
                            effectively_enabled() ? style().text

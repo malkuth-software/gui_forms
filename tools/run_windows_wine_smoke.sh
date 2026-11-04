@@ -33,14 +33,16 @@ until WINEDEBUG=-all "$wine_binary" "$probe" snapshot >/dev/null 2>&1; do
 done
 
 # Pages are registry-driven; a click on a navigation row ("gallery.page.<id>")
-# selects the page whose compiled-DML controls the next clicks address.
+# selects the page whose form-document controls the next clicks address. The last click
+# goes to the collection list box itself: its rows are items, not controls,
+# so no row has an automation target of its own.
 for stable_id in \
     gallery.page.basics \
     gallery.checkbox \
     gallery.radio.quiet \
     gallery.page.values \
     gallery.page.retained-rows \
-    gallery.collection.gamma
+    gallery.collection
 do
     WINEDEBUG=-all "$wine_binary" "$probe" click "$stable_id" >/dev/null
 done

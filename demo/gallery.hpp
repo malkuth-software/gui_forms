@@ -14,9 +14,10 @@ inline constexpr Size gallery_default_size {1280.0, 820.0};
 inline constexpr Size gallery_minimum_size {980.0, 680.0};
 inline constexpr std::string_view gallery_program_name = "GUI.Forms Gallery";
 
-// Builds the registry-driven control gallery: compiled-DML pages, the pages
-// migrated from the Complete Showcase, navigation derived from
-// manifests/controls.json, and the diagnostics overlay. The retained controls
+// Builds the registry-driven control gallery: the form document's pages
+// (demo/gallery.form), the pages migrated from the Complete Showcase,
+// navigation derived from manifests/controls.json, and the diagnostics
+// overlay. The retained controls
 // own their models; callers only own the native Window boundary.
 [[nodiscard]] std::unique_ptr<Window> make_gallery();
 

@@ -388,6 +388,9 @@ struct InstrumentRack::Impl final {
         InstrumentFieldSpec& field = module.spec.fields[field_index];
         const std::string id = module.spec.stable_id + "." + field.stable_id;
         Control::Ptr editor;
+        // The content face at 11 units, as other compact editors: the 9-unit
+        // fields read at about 8 px (sweep defect D19).
+        const FontSpec field_font{FontRole::content, 11.0, 400, false};
         if (field.editor == InstrumentFieldEditor::choice) {
             std::shared_ptr<gui_forms::ComboBox> choice = make_control<ComboBox>(StableId(id));
             (*choice).set_items(field.choices);
@@ -398,11 +401,11 @@ struct InstrumentRack::Impl final {
                 (*choice).set_selected_index(static_cast<std::size_t>(
                     std::distance(field.choices.begin(), selected)));
             }
-            (*choice).set_font({FontRole::content, 9.0, 400, false});
+            (*choice).set_font(field_font);
             editor = choice;
         } else {
             std::shared_ptr<gui_forms::TextBox> text = make_control<TextBox>(StableId(id), field.value);
-            (*text).set_font({FontRole::content, 9.0, 400, false});
+            (*text).set_font(field_font);
             editor = text;
         }
         (*editor).set_margin({});
@@ -463,7 +466,7 @@ struct InstrumentRack::Impl final {
         module.status = make_control<Label>(
             StableId(module.spec.stable_id + ".state"),
             module.spec.status_text);
-        (*module.status).set_font({FontRole::control, 8.0, 600, false, 0.30});
+        (*module.status).set_font({FontRole::control, 9.5, 600, false, 0.30});
         (*module.status).set_foreground(Color::rgba(92, 113, 128));
         (*module.status).set_margin({});
         (*module.status).set_accessible_name("Application state");

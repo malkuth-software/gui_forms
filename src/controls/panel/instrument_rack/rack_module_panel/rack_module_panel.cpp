@@ -23,21 +23,24 @@ void RackModulePanel::set_compact(bool compact) {
 void RackModulePanel::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     const double scale = effective_text_scale();
-    const double width = std::max(0.0, final_bounds.width);
-    const double height = std::max(0.0, final_bounds.height);
+    // Children sit inside the module's 1-unit line border (sweep defect
+    // D19: the enable switch at x 0 covered the left border).
+    const double border = border_style() == BorderStyle::none ? 0.0 : 1.0;
+    const double width = std::max(0.0, final_bounds.width - border);
+    const double height = std::max(0.0, final_bounds.height - 2.0 * border);
     const double enable_width = 20.0 * scale;
     const double remove_width = 22.0 * scale;
     const double gap = 3.0 * scale;
     if (enable) {
-        set_child_layout(enable, {0.0, 0.0, enable_width,
+        set_child_layout(enable, {border + 2.0 * scale, border, enable_width,
                                   compact_ ? 26.0 * scale : height});
     }
     if (remove) {
-        set_child_layout(remove, {std::max(0.0, width - remove_width), 0.0,
+        set_child_layout(remove, {std::max(0.0, width - remove_width), border,
                                   remove_width,
                                   compact_ ? 26.0 * scale : height});
     }
-    const double field_left = enable_width + 5.0 * scale;
+    const double field_left = border + 2.0 * scale + enable_width + 5.0 * scale;
     const double field_right = std::max(field_left,
                                          width - remove_width - 5.0 * scale);
     const double field_width = std::max(0.0, field_right - field_left);

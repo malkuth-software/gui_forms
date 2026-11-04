@@ -1,15 +1,18 @@
 #include "pages.hpp"
 
+#include "typography-and-inspection_form.hpp"
+
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 #include "gui_forms/controls/visual_inspector_view/visual_inspector_view.hpp"
 
 namespace gui_forms::gallery::pages {
 
-// Owns the typography page: four TypographySpecimen runs, the
-// VisualInspectorView over one of them, and the VisualInspectorOverlay whose
-// visibility is one checkable Command shared by a CheckBox and a Button. The
+// Owns the typography page: the controls demo/pages/typography-and-inspection.form
+// describes (four TypographySpecimen runs, the VisualInspectorView over one of
+// them, and the VisualInspectorOverlay), and their behaviour. The overlay's
+// visibility is one checkable Command shared by a CheckBox and a Button; the
 // inspection target is a Value<int> bound to a ChoiceGroup; the diagnostics
-// adornments and the live specimen's size are bound Values too.
+// adornments and the wrapped specimen's size are bound Values too.
 class TypographyPage final : public gui_forms::Component {
 public:
     explicit TypographyPage(const std::shared_ptr<Surface>& body);
@@ -21,40 +24,30 @@ private:
     static constexpr std::string_view toggle_button_id =
         "gallery.typography.overlay.toggle";
 
-    void build_specimens(const std::shared_ptr<Surface>& body);
-    void build_policy(const std::shared_ptr<Surface>& body);
-    void build_inspector(const std::shared_ptr<Surface>& body);
+    void mount_document(const std::shared_ptr<Surface>& body);
+    void connect_policy();
     void on_overlay_invoked(const CommandInvocation& invocation);
     void on_overlay_state(const CommandState& state);
     void on_target_changed(int index);
     void on_diagnostics_changed(bool visible);
     void on_size_changed(double size);
 
+    // Owns the document's controls; the shell's page body holds them too once
+    // mount_document() has moved them there.
+    TypographyDocument<TypographyPage> document_{};
     Command overlay_{};
     Value<int> target_{0};
     Value<bool> diagnostics_{true};
     Value<double> size_{14.0};
     std::array<std::shared_ptr<TypographySpecimen>, 4> specimens_{};
-    std::shared_ptr<VisualInspectorView> inspector_;
-    std::shared_ptr<VisualInspectorOverlay> overlay_view_;
-    std::shared_ptr<Label> readout_;
 };
 
 TypographyPage::TypographyPage(const std::shared_ptr<Surface>& body) {
-    (*body).add_at(label("gallery.typography-and-inspection.heading",
-                         "TYPOGRAPHY AND INSPECTION", 22.0, 700, shell_blue_dark),
-                   {24.0, 18.0, 620.0, 34.0});
-    (*body).add_at(label("gallery.typography-and-inspection.lead",
-                         "Committed text runs with their logical line box and resolved baseline, and the public visual-inspection snapshot of any retained control.",
-                         12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-    build_specimens(body);
-    build_policy(body);
-    build_inspector(body);
-    // The transparent overlay covers the whole body and never hit-tests.
-    overlay_view_ = make_control<VisualInspectorOverlay>(
-        StableId("gallery.typography.inspector.overlay"), std::string(specimen_ids[0]));
-    (*overlay_view_).set_visible(false);
-    (*body).add_at(overlay_view_, {0.0, 0.0, 1000.0, 660.0});
+    document_.initialize_component(*this);
+    specimens_ = {document_.gallery_typography_specimen_0, document_.gallery_typography_specimen_1,
+                  document_.gallery_typography_specimen_2, document_.gallery_typography_specimen_3};
+    mount_document(body);
+    connect_policy();
 
     on(overlay_.invoked(), *this, &TypographyPage::on_overlay_invoked);
     on(overlay_.state_changed(), *this, &TypographyPage::on_overlay_state);
@@ -63,106 +56,50 @@ TypographyPage::TypographyPage(const std::shared_ptr<Surface>& body) {
     on(size_.changed(), *this, &TypographyPage::on_size_changed);
 }
 
-void TypographyPage::build_specimens(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> specimens = group(
-        "gallery.typography.specimens",
-        "TypographySpecimen · committed runs, line boxes, baselines", {560.0, 330.0});
-    (*body).add_at(specimens, {24.0, 92.0, 560.0, 330.0});
-
-    specimens_[0] = make_control<TypographySpecimen>(
-        StableId(std::string(specimen_ids[0])), "CONTROL FACE · GALLERY HEADING");
-    (*specimens_[0]).set_font({FontRole::control, 12.0, 700, false, 0.24});
-    (*specimens_[0]).set_caption("FontRole::control · 12 / 700 · tracking 0.24");
-    (*specimens).add_at(specimens_[0], {22.0, 40.0, 516.0, 56.0});
-
-    specimens_[1] = make_control<TypographySpecimen>(
-        StableId(std::string(specimen_ids[1])),
-        "The quick brown fox jumps over the lazy dog · Ω ß ñ ø");
-    (*specimens_[1]).set_font({FontRole::content, 12.0, 400, false});
-    (*specimens_[1]).set_caption("FontRole::content · 12 / 400 · UTF-8 run");
-    (*specimens).add_at(specimens_[1], {22.0, 104.0, 516.0, 56.0});
-
-    specimens_[2] = make_control<TypographySpecimen>(
-        StableId(std::string(specimen_ids[2])), "Resolved baseline at display size");
-    (*specimens_[2]).set_font({FontRole::content, 20.0, 400, true});
-    (*specimens_[2]).set_caption("FontRole::content · 20 / 400 · italic");
-    (*specimens).add_at(specimens_[2], {22.0, 168.0, 516.0, 70.0});
-
-    specimens_[3] = make_control<TypographySpecimen>(
-        StableId(std::string(specimen_ids[3])),
-        "Wrapped specimen: the size slider below rewrites this run's FontSpec, and the committed layout reports the resulting line boxes.");
-    (*specimens_[3]).set_font({FontRole::content, size_.get(), 400, false});
-    (*specimens_[3]).set_wrap_text(true);
-    (*specimens_[3]).set_caption("FontRole::content · bound size · wrapped");
-    (*specimens).add_at(specimens_[3], {22.0, 246.0, 516.0, 72.0});
-    for (const std::shared_ptr<TypographySpecimen>& specimen : specimens_) {
-        (*specimen).set_diagnostics_visible(diagnostics_.get());
+void TypographyPage::mount_document(const std::shared_ptr<Surface>& body) {
+    // The document's root is a declared boundary only: its children move into
+    // the shell's page body, a design surface of the same 1000 x 660 size,
+    // where each is placed by its bounds in design coordinates. The copy of
+    // the child list keeps the iteration valid while the root shrinks.
+    Control& root = *document_.gallery_typography_document;
+    const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+    for (const Control::Ptr& child : children) {
+        Control::Ptr moved = root.remove_child((*child).runtime_id());
+        (*body).add_child(std::move(moved));
+    }
+    // What the form language does not state yet: the page style, and the
+    // groups' paper face. The face is Panel's own background, not back-color:
+    // back-color is ambient, and the groups' buttons and choices would take it
+    // in place of their themed faces.
+    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
+        document_.gallery_typography_specimens, document_.gallery_typography_policy,
+        document_.gallery_typography_inspection};
+    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+        (*group).set_background(paper);
+        (*group).set_style(page_style());
     }
 }
 
-void TypographyPage::build_policy(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> policy = group(
-        "gallery.typography.policy", "Inspection target and review policy",
-        {560.0, 180.0});
-    (*body).add_at(policy, {24.0, 442.0, 560.0, 180.0});
-
-    std::shared_ptr<ChoiceGroup> target =
-        make_control<ChoiceGroup>(StableId("gallery.typography.target"));
-    (*target).set_items({
+void TypographyPage::connect_policy() {
+    for (const std::shared_ptr<TypographySpecimen>& specimen : specimens_) {
+        (*specimen).set_diagnostics_visible(diagnostics_.get());
+    }
+    ChoiceGroup& target = *document_.gallery_typography_target;
+    target.set_items({
         {0, "Heading", {}, {}, "Inspect the heading specimen"},
         {1, "Body", {}, {}, "Inspect the body specimen"},
         {2, "Display", {}, {}, "Inspect the display specimen"},
         {3, "Wrapped", {}, {}, "Inspect the wrapped specimen"},
     });
-    (*target).set_accessible_name("Inspection target");
-    (*target).bind(target_);
-    (*policy).add_at(target, {22.0, 40.0, 516.0, 34.0});
-
-    std::shared_ptr<CheckBox> diagnostics = make_control<CheckBox>(
-        StableId("gallery.typography.diagnostics"), "Line box and baseline adornments");
-    (*diagnostics).bind(diagnostics_);
-    (*policy).add_at(diagnostics, {22.0, 88.0, 250.0, 28.0});
+    target.bind(target_);
+    (*document_.gallery_typography_diagnostics).bind(diagnostics_);
 
     overlay_.set_text("Show inspector overlay");
     overlay_.set_description("Draw the target's arranged, visual and clipped bounds");
     overlay_.set_checked(false);
-    std::shared_ptr<CheckBox> overlay = make_control<CheckBox>(
-        StableId("gallery.typography.overlay"), "Show inspector overlay");
-    (*overlay).set_indicator_style(ChoiceIndicatorStyle::toggle);
-    (*overlay).bind(overlay_);
-    (*policy).add_at(overlay, {290.0, 88.0, 248.0, 28.0});
-    std::shared_ptr<Button> toggle = make_control<Button>(
-        StableId(std::string(toggle_button_id)), "Toggle overlay");
-    (*toggle).set_visual_style(ButtonVisualStyle::command);
-    (*toggle).bind(overlay_);
-    (*policy).add_at(toggle, {22.0, 128.0, 180.0, 32.0});
-
-    (*policy).add_at(label("gallery.typography.size.label", "Wrapped specimen size · 10–28",
-                           10.0, 700, shell_blue_dark),
-                     {290.0, 120.0, 248.0, 18.0});
-    std::shared_ptr<TrackBar> size =
-        make_control<TrackBar>(StableId("gallery.typography.size"));
-    (*size).set_range(10.0, 28.0);
-    (*size).set_tick_frequency(2U);
-    (*size).set_accessible_name("Wrapped specimen font size");
-    (*size).bind(size_);
-    (*policy).add_at(size, {290.0, 136.0, 248.0, 36.0});
-}
-
-void TypographyPage::build_inspector(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> inspection = group(
-        "gallery.typography.inspection",
-        "VisualInspectorView · public inspection snapshot", {350.0, 530.0});
-    (*body).add_at(inspection, {604.0, 92.0, 350.0, 530.0});
-    inspector_ = make_control<VisualInspectorView>(
-        StableId("gallery.typography.inspector"), std::string(specimen_ids[0]));
-    (*inspector_).set_accessible_name("Visual inspection of the selected specimen");
-    (*inspection).add_at(inspector_, {20.0, 38.0, 310.0, 440.0});
-    readout_ = label("gallery.typography.readout",
-                     "Inspecting " + std::string(specimen_ids[0]), 10.0, 400, muted);
-    (*readout_).set_text_wrapping(TextWrapping::word);
-    (*readout_).set_vertical_alignment(VerticalAlignment::near);
-    (*inspection).add_at(readout_, {20.0, 486.0, 310.0, 36.0});
+    (*document_.gallery_typography_overlay).bind(overlay_);
+    (*document_.gallery_typography_overlay_toggle).bind(overlay_);
+    (*document_.gallery_typography_size).bind(size_);
 }
 
 void TypographyPage::on_overlay_invoked(const CommandInvocation& invocation) {
@@ -173,20 +110,23 @@ void TypographyPage::on_overlay_invoked(const CommandInvocation& invocation) {
 }
 
 void TypographyPage::on_overlay_state(const CommandState& state) {
+    VisualInspectorOverlay& overlay = *document_.gallery_typography_inspector_overlay;
     const bool visible = state.checkable && state.checked;
-    if ((*overlay_view_).visible() == visible) return;
-    (*overlay_view_).set_visible(visible);
-    if (visible) (*overlay_view_).refresh();
+    if (overlay.visible() == visible) return;
+    overlay.set_visible(visible);
+    if (visible) overlay.refresh();
 }
 
 void TypographyPage::on_target_changed(const int index) {
     if (index < 0 || static_cast<std::size_t>(index) >= specimen_ids.size()) return;
     const std::string target(specimen_ids[static_cast<std::size_t>(index)]);
-    (*inspector_).set_target_stable_id(target);
-    (*overlay_view_).set_target_stable_id(target);
-    (*inspector_).refresh();
-    (*overlay_view_).refresh();
-    (*readout_).set_text("Inspecting " + target);
+    VisualInspectorView& inspector = *document_.gallery_typography_inspector;
+    VisualInspectorOverlay& overlay = *document_.gallery_typography_inspector_overlay;
+    inspector.set_target_stable_id(target);
+    overlay.set_target_stable_id(target);
+    inspector.refresh();
+    overlay.refresh();
+    (*document_.gallery_typography_readout).set_text("Inspecting " + target);
 }
 
 void TypographyPage::on_diagnostics_changed(const bool visible) {
@@ -199,7 +139,7 @@ void TypographyPage::on_size_changed(const double size) {
     FontSpec font = (*specimens_[3]).font();
     font.size = size;
     (*specimens_[3]).set_font(font);
-    (*inspector_).refresh();
+    (*document_.gallery_typography_inspector).refresh();
 }
 
 void add_typography_and_inspection(const std::shared_ptr<Surface>& page,

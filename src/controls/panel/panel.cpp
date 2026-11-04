@@ -43,6 +43,16 @@ Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
         detail::EnumerationPropertySetter<Panel, BorderStyle>(*this, &Panel::set_border_style), {}, {}, {}});
 }
 
+std::optional<Color> Panel::face_colour() const noexcept {
+    if (background_override_) return background_override_;
+    const std::optional<Color> own = back_color();
+    if (!own) return std::nullopt;
+    const Window* const attached = window();
+    const bool high_contrast = attached != nullptr && (*attached).presentation_settings().high_contrast;
+    if (high_contrast) return std::nullopt;
+    return own;
+}
+
 void Panel::set_border_style(BorderStyle style) {
     require_mutable();
     switch (style) {
@@ -69,7 +79,8 @@ void Panel::set_background(Color color) {
 }
 
 Color Panel::background() const noexcept {
-    if (background_override_) return *background_override_;
+    const std::optional<Color> face = face_colour();
+    if (face) return *face;
     const ControlVisualRecipe& recipe = effective_theme().resolve(
         visual_role_, visual_context());
     const MaterialFillLayer& fill = recipe.material.fills.front();
@@ -137,7 +148,7 @@ Rect Panel::local_bounds() const noexcept {
 
 void Panel::paint_panel(Painter& painter, Rect bounds) const {
     const BasicControlStyle& colors = style();
-    if (!background_override_ && !style_override_) {
+    if (!face_colour() && !style_override_) {
         paint_surface_material(
             painter, bounds,
             effective_theme().resolve(visual_role_, visual_context()).material);
@@ -176,7 +187,7 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
 }
 
 Insets Panel::visual_outsets() const noexcept {
-    if (background_override_ || style_override_) return {};
+    if (face_colour() || style_override_) return {};
     return surface_material_visual_outsets(
         effective_theme().resolve(visual_role_, visual_context()).material);
 }
@@ -186,7 +197,7 @@ void Panel::on_paint(Painter& painter, Rect) {
     paint_panel(painter, bounds);
     // The face paint_panel drew first: an opaque background colour, or an
     // opaque material without outsets. The border draws over it.
-    const bool overridden = background_override_ || style_override_;
+    const bool overridden = face_colour() || style_override_;
     const bool opaque = overridden
         ? background().alpha == 255U
         : surface_material_opaque(effective_theme().resolve(visual_role_, visual_context()).material);

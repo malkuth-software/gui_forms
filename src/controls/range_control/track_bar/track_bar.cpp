@@ -1,6 +1,7 @@
 #include "gui_forms/controls/range_control/track_bar/track_bar.hpp"
 
 #include "../range_control_rendering.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -17,6 +18,19 @@ TrackBar::TrackBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(true);
     set_cursor(CursorKind::hand);
+    PropertyDescriptor tick_frequency;
+    tick_frequency.name = "tick_frequency";
+    tick_frequency.kind = BindingValueKind::number;
+    tick_frequency.category = "Appearance";
+    tick_frequency.description = "Distance in value units between tick marks.";
+    tick_frequency.default_value = BindingValue{10.0};
+    tick_frequency.invalidation_effects = Dirty::paint | Dirty::semantics;
+    tick_frequency.bindable = false;
+    define_bindable_property({
+        std::move(tick_frequency),
+        detail::BindingNoexceptMethodGetter<TrackBar, double>(*this, &TrackBar::tick_frequency),
+        detail::DirectPropertySetter<TrackBar, double>(*this, &TrackBar::set_tick_frequency),
+        {}, {}, {}});
 }
 
 void TrackBar::set_tick_frequency(double frequency) {

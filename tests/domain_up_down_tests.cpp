@@ -60,9 +60,11 @@ void stepping_and_wrap() {
 
     const Rect spin = (*window.find("domain.step.spinner")).absolute_bounds();
     const Rect field = (*(*domain).editor()).absolute_bounds();
-    require(spin.x == 162.0 && spin.width == 18.0 && spin.height == 32.0 && field.x == 0.0 &&
-                field.width == 162.0 && field.height == 32.0,
-            "the spin column takes the button width at the right and the field the rest");
+    // Both sit inside the control's 1-unit line border (sweep defect D12:
+    // the borderless editor draws no frame of its own).
+    require(spin.x == 161.0 && spin.width == 18.0 && spin.height == 30.0 && field.x == 1.0 &&
+                field.y == 1.0 && field.width == 160.0 && field.height == 30.0,
+            "the spin column takes the button width at the right and the field the rest, inside the border");
     const Point upper{spin.x + spin.width * 0.5, spin.y + spin.height * 0.25};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, upper}),
             "the upper arrow takes the press");

@@ -319,10 +319,15 @@ void DomainUpDown::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     // The spin column takes button_width_ (or the whole width, when narrower)
     // at the right; the field takes the rest.
-    const double button_width = std::min(button_width_, std::max(0.0, final_bounds.width));
-    const double field_width = std::max(0.0, final_bounds.width - button_width);
-    const Rect field{0.0, 0.0, field_width, final_bounds.height};
-    const Rect column{field_width, 0.0, button_width, final_bounds.height};
+    // Both sit inside the control's own border (the borderless editor
+    // draws none of its own).
+    const double inset = border_style() == BorderStyle::none ? 0.0 : 1.0;
+    const double inner_width = std::max(0.0, final_bounds.width - 2.0 * inset);
+    const double inner_height = std::max(0.0, final_bounds.height - 2.0 * inset);
+    const double button_width = std::min(button_width_, inner_width);
+    const double field_width = std::max(0.0, inner_width - button_width);
+    const Rect field{inset, inset, field_width, inner_height};
+    const Rect column{inset + field_width, inset, button_width, inner_height};
     if (editor_) set_child_layout(editor_, field);
     if (spinner_) set_child_layout(spinner_, column);
 }

@@ -245,7 +245,7 @@ private:
         (*ledger_).set_accessible_name("Recent files");
         (*ledger_).set_style(page_style());
         (*ledger_).set_compact_height(44.0);
-        (*ledger_).set_expanded_height(118.0);
+        (*ledger_).set_expanded_height(124.0);
         (*ledger_group).add_at(ledger_, {18.0, 36.0, 236.0, 404.0});
         on((*ledger_).selection_changed(), *this, &TreeAndObjectViewsPage::on_file_selected);
         on((*ledger_).pin_changed(), *this, &TreeAndObjectViewsPage::on_pin_changed);

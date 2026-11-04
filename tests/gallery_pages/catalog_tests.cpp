@@ -53,8 +53,8 @@ void test_catalog_pages_resolve_and_headers_describe_pages() {
             "most Gallery pages must demonstrate at least one registry control");
     require(gallery::select_gallery_page(window, "basics") &&
                 gallery::selected_gallery_page(window) == "basics" &&
-                (*window.find("gallery.surface.basics")).visible() &&
-                !(*window.find("gallery.surface.control-spectrum")).visible(),
+                (*window.find("gallery.surface.basics")).effectively_visible() &&
+                !(*window.find("gallery.surface.control-spectrum")).effectively_visible(),
             "select_gallery_page must switch pages by stable id");
     require(!gallery::select_gallery_page(window, "no-such-page"),
             "select_gallery_page must reject unknown ids");

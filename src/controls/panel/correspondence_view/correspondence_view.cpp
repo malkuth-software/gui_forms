@@ -4,6 +4,7 @@
 #include "gui_forms/detail/algorithm/sort.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "../../basic/basic_control_rendering.hpp"
 
 #include <vector>
 #include <string>
@@ -556,18 +557,92 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
     }
 }
 
+CorrespondenceView::CorrespondenceCardFonts CorrespondenceView::card_fonts() const {
+    CorrespondenceCardFonts fonts;
+    const FontSpec title = effective_font(font_);
+    fonts.title = {title.role, title.size, 700, title.italic, title.letter_spacing};
+    fonts.secondary = effective_font({font_.role, std::max(8.0, font_.size - 2.0), 400, false});
+    fonts.metric = effective_font({FontRole::content, std::max(12.0, font_.size + 5.0), 700, false});
+    fonts.evidence = effective_font({FontRole::content, std::max(8.0, font_.size - 1.5), 400, false});
+    fonts.evidence_bold = effective_font({FontRole::content, std::max(8.0, font_.size - 1.5), 700, false});
+    return fonts;
+}
+
+double CorrespondenceView::measured_text_width(std::string_view text, FontSpec font) const {
+    if (text.empty()) return 0.0;
+    const ResolvedTextLayout measured = window() != nullptr
+        ? (*window()).resolve_text_layout_utf8(text, font)
+        : estimate_text_layout_utf8(text, font);
+    return measured.logical_size.width;
+}
+
+// Sweep defect D9: the state word sat at a fixed offset from the right
+// edge, over the title of a narrow card; the metric at a fixed offset ran
+// over the secondary line; and the narrow information line was drawn over
+// the excerpt box of a short expanded card.
+CorrespondenceView::CorrespondenceCardLayout CorrespondenceView::card_layout(std::size_t index,
+                                                               const CorrespondenceCardFonts& fonts) const {
+    const CorrespondenceItem& item = items_[index];
+    const Rect row = item_bounds(index);
+    const double visible_height = std::max(0.0, row.height - 5.0);
+    constexpr double text_x = 48.0;
+    constexpr double right_margin = 10.0;
+    constexpr double gap = 8.0;
+    CorrespondenceCardLayout layout;
+    layout.card = {row.x, row.y, row.width, visible_height};
+    layout.status_rail = {row.x + 1.0, row.y + 1.0, status_rail_width_, std::max(0.0, visible_height - 2.0)};
+    layout.glyph = {row.x + 10.0, row.y + 7.0, 30.0, 30.0};
+
+    const double metric_width = measured_text_width(item.metric, fonts.metric);
+    const double metric_x = std::max(row.x + text_x, row.right() - right_margin - metric_width);
+    layout.metric_origin = {metric_x, row.y + 27.0};
+    layout.metric_box = {metric_x, row.y + 12.0, std::max(0.0, row.right() - metric_x - 4.0), 20.0};
+
+    const bool pinned = item.stable_id == pinned_id_;
+    if (pinned) layout.state_text = "PINNED";
+    else if (item.unavailable) layout.state_text = "OFFLINE";
+    else if (item.stale) layout.state_text = "STALE";
+    double title_end = metric_x - gap;
+    if (!layout.state_text.empty()) {
+        const double state_width = measured_text_width(layout.state_text, fonts.evidence_bold);
+        const double state_x = std::max(row.x + text_x, metric_x - gap - state_width);
+        layout.state_origin = {state_x, row.y + 12.0};
+        title_end = state_x - gap;
+    }
+    layout.title_origin = {row.x + text_x, row.y + 17.0};
+    layout.title_width = std::max(0.0, title_end - layout.title_origin.x);
+    layout.secondary_origin = {row.x + text_x, row.y + 34.0};
+    layout.secondary_width = std::max(0.0, metric_x - gap - layout.secondary_origin.x);
+
+    layout.expanded = expanded_index(index);
+    if (!layout.expanded) return layout;
+    const double scale = effective_text_scale();
+    layout.body_top = row.y + scaled_compact_height() - 5.0 * scale;
+    layout.wide = row.width >= 650.0 * scale;
+    layout.lane_width = layout.wide ? std::min(190.0 * scale, std::max(150.0 * scale, row.width * 0.25)) : 0.0;
+    layout.evidence_x = row.x + 52.0 * scale;
+    const double evidence_width = std::max(40.0, row.width - 62.0 * scale - layout.lane_width);
+    const double full_height = std::max(20.0, 43.0 * scale);
+    layout.excerpt_box = {layout.evidence_x, layout.body_top + 22.0 * scale, evidence_width, full_height};
+    if (layout.wide) return layout;
+    // The narrow information line goes under the box. The box gives up
+    // height down to what its heading (baseline +15) and excerpt line
+    // (baseline +31) need; below that the line is not drawn.
+    const double minimum_height = std::max(20.0, 34.0 * scale);
+    const Point footer{layout.evidence_x, row.y + visible_height - 7.0 * scale};
+    const double room = footer.y - fonts.evidence.size - 3.0 * scale - layout.excerpt_box.y;
+    if (room >= minimum_height) {
+        layout.excerpt_box.height = std::min(full_height, room);
+        layout.footer_shown = true;
+        layout.footer_origin = footer;
+    }
+    return layout;
+}
+
 void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds = local_bounds();
-    const FontSpec title_font = effective_font(font_);
-    const FontSpec secondary_font = effective_font(
-        {font_.role, std::max(8.0, font_.size - 2.0), 400, false});
-    const FontSpec metric_font = effective_font(
-        {FontRole::content, std::max(12.0, font_.size + 5.0), 700, false});
-    const FontSpec evidence_font = effective_font(
-        {FontRole::content, std::max(8.0, font_.size - 1.5), 400, false});
-    const FontSpec evidence_bold = effective_font(
-        {FontRole::content, std::max(8.0, font_.size - 1.5), 700, false});
+    const CorrespondenceCardFonts fonts = card_fonts();
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
@@ -576,15 +651,15 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
     const std::size_t end = range.second;
     for (std::size_t index = first; index < end; ++index) {
         const CorrespondenceItem& item = items_[index];
-        const Rect row = item_bounds(index);
-        const double visible_height = std::max(0.0, row.height - 5.0);
+        const CorrespondenceCardLayout layout = card_layout(index, fonts);
+        const Rect row = layout.card;
+        const double visible_height = row.height;
         const bool selected = item.stable_id == selected_id_;
         const bool active = focused_ && item.stable_id == focused_id_;
         const bool pinned = item.stable_id == pinned_id_;
-        const bool is_expanded = expanded_index(index);
         painter.save();
-        painter.clip_rect({row.x, row.y, row.width, visible_height});
-        painter.fill_rect({row.x, row.y, row.width, visible_height},
+        painter.clip_rect(row);
+        painter.fill_rect(row,
                           selected ? style().accent_light :
                           item.stable_id == hovered_id_ ? style().face_light :
                           style().paper);
@@ -596,45 +671,30 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
                            : item.stale ? Color::rgba(151, 112, 64)
                            : pinned ? style().accent
                                     : with_alpha(style().dark_border, 150);
-        painter.fill_rect({row.x + 1.0, row.y + 1.0, status_rail_width_,
-                           std::max(0.0, visible_height - 2.0)}, rail);
-        paint_glyph(painter, {row.x + 10.0, row.y + 7.0, 30.0, 30.0},
-                    item.glyph, item.enabled);
+        painter.fill_rect(layout.status_rail, rail);
+        paint_glyph(painter, layout.glyph, item.glyph, item.enabled);
         const Color text = item.enabled ? style().text : style().disabled_text;
-        painter.draw_text_utf8({row.x + 48.0, row.y + 17.0}, item.title,
-                               {title_font.role, title_font.size, 700,
-                                title_font.italic, title_font.letter_spacing}, text);
-        painter.draw_text_utf8({row.x + 48.0, row.y + 34.0},
-                               item.secondary_text, secondary_font,
+        const std::string title = elide_text_end(painter, item.title, fonts.title, layout.title_width);
+        painter.draw_text_utf8(layout.title_origin, title, fonts.title, text);
+        const std::string secondary =
+            elide_text_end(painter, item.secondary_text, fonts.secondary, layout.secondary_width);
+        painter.draw_text_utf8(layout.secondary_origin, secondary, fonts.secondary,
                                item.unavailable ? style().disabled_text
                                                 : style().dark_border);
-        const double metric_x = row.x + std::max(48.0, row.width - 64.0);
-        painter.draw_text_utf8({metric_x, row.y + 27.0}, item.metric,
-                               metric_font, text);
-        if (pinned || item.unavailable || item.stale) {
-            const std::string state = pinned ? "PINNED"
-                : item.unavailable ? "OFFLINE" : "STALE";
-            painter.draw_text_utf8(
-                {row.x + std::max(48.0, row.width - 132.0), row.y + 12.0},
-                state, evidence_bold, rail);
+        painter.draw_text_utf8(layout.metric_origin, item.metric, fonts.metric, text);
+        if (!layout.state_text.empty()) {
+            painter.draw_text_utf8(layout.state_origin, layout.state_text, fonts.evidence_bold, rail);
         }
-        if (is_expanded) {
+        if (layout.expanded) {
             const double scale = effective_text_scale();
-            const double compact = scaled_compact_height();
-            const double body_top = row.y + compact - 5.0 * scale;
+            const double body_top = layout.body_top;
             painter.draw_line({row.x + 48.0, body_top},
                               {row.x + row.width - 8.0, body_top},
                               with_alpha(style().border, 120), 1.0);
-            const bool wide = row.width >= 650.0 * scale;
-            const double lane_width = wide ? std::min(190.0 * scale,
-                std::max(150.0 * scale, row.width * .25)) : 0.0;
-            const double evidence_x = row.x + 52.0 * scale;
-            const double evidence_width = std::max(40.0,
-                row.width - 62.0 * scale - lane_width);
+            const double evidence_x = layout.evidence_x;
             painter.draw_text_utf8({evidence_x, body_top + 16.0 * scale},
-                                   item.metadata, evidence_font, text);
-            const Rect excerpt_box{evidence_x, body_top + 22.0 * scale,
-                evidence_width, std::max(20.0, 43.0 * scale)};
+                                   item.metadata, fonts.evidence, text);
+            const Rect excerpt_box = layout.excerpt_box;
             painter.fill_rect(excerpt_box,
                               item.unavailable ? style().face
                                                : Color::rgba(251, 248, 237));
@@ -644,37 +704,37 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
                                 with_alpha(style().border, 90), 1.0);
             painter.draw_text_utf8(
                 {excerpt_box.x + 6.0, excerpt_box.y + 15.0 * scale},
-                "MATCHED EXCERPT", evidence_bold, style().dark_border);
+                "MATCHED EXCERPT", fonts.evidence_bold, style().dark_border);
             draw_emphasized_text(
                 painter,
                 {excerpt_box.x + 6.0, excerpt_box.y + 31.0 * scale},
-                item.excerpt, item.emphasis_terms, evidence_font, text,
+                item.excerpt, item.emphasis_terms, fonts.evidence, text,
                 with_alpha(style().accent_light, 220));
             std::string tags;
             for (const std::string& tag : item.information_tags) {
                 if (!tags.empty()) tags += "  ·  ";
                 tags += tag;
             }
-            if (wide) {
-                const double lane_x = row.x + row.width - lane_width;
+            if (layout.wide) {
+                const double lane_x = row.x + row.width - layout.lane_width;
                 painter.draw_line({lane_x, body_top + 7.0 * scale},
                                   {lane_x, row.y + visible_height - 7.0 * scale},
                                   with_alpha(style().border, 125), 1.0);
                 painter.draw_text_utf8(
                     {lane_x + 9.0 * scale, body_top + 18.0 * scale},
-                    item.information_heading, evidence_bold, text);
+                    item.information_heading, fonts.evidence_bold, text);
                 painter.draw_text_utf8(
                     {lane_x + 9.0 * scale, body_top + 36.0 * scale}, tags,
-                    evidence_font, style().dark_border);
+                    fonts.evidence, style().dark_border);
                 painter.draw_text_utf8(
                     {lane_x + 9.0 * scale, body_top + 54.0 * scale},
-                    item.information_detail, evidence_font,
+                    item.information_detail, fonts.evidence,
                     style().disabled_text);
-            } else {
+            } else if (layout.footer_shown) {
                 painter.draw_text_utf8(
-                    {evidence_x, row.y + visible_height - 7.0 * scale},
+                    layout.footer_origin,
                     item.information_heading + " · " + tags,
-                    evidence_font, style().dark_border);
+                    fonts.evidence, style().dark_border);
             }
         }
         if (active) {
@@ -1097,33 +1157,19 @@ void CorrespondenceView::publish_realized_item_geometry(std::size_t item,
     const Rect bounds = local_bounds();
     const Rect clip{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                     std::max(0.0, bounds.height - 4.0)};
-    const Rect row = item_bounds(index);
-    const double visible_height = std::max(0.0, row.height - 5.0);
-    const Rect card{row.x, row.y, row.width, visible_height};
-    const double metric_x = row.x + std::max(48.0, row.width - 64.0);
-    record.card = PartGeometry::from_bounds(Rect::intersection(card, clip));
-    record.status_rail = PartGeometry::from_bounds(Rect::intersection(
-        {row.x + 1.0, row.y + 1.0, status_rail_width_, std::max(0.0, visible_height - 2.0)}, clip));
-    record.glyph = PartGeometry::from_bounds(
-        Rect::intersection({row.x + 10.0, row.y + 7.0, 30.0, 30.0}, clip));
+    const CorrespondenceCardFonts fonts = card_fonts();
+    const CorrespondenceCardLayout layout = card_layout(index, fonts);
+    record.card = PartGeometry::from_bounds(Rect::intersection(layout.card, clip));
+    record.status_rail = PartGeometry::from_bounds(Rect::intersection(layout.status_rail, clip));
+    record.glyph = PartGeometry::from_bounds(Rect::intersection(layout.glyph, clip));
     record.title = PartGeometry::from_bounds(Rect::intersection(
-        {row.x + 48.0, row.y + 4.0, std::max(0.0, metric_x - row.x - 56.0), 17.0}, clip));
+        {layout.title_origin.x, layout.card.y + 4.0, layout.title_width, 17.0}, clip));
     record.secondary = PartGeometry::from_bounds(Rect::intersection(
-        {row.x + 48.0, row.y + 22.0, std::max(0.0, metric_x - row.x - 56.0), 15.0}, clip));
-    record.metric = PartGeometry::from_bounds(Rect::intersection(
-        {metric_x, row.y + 12.0, std::max(0.0, row.right() - metric_x - 4.0), 20.0}, clip));
-    if (expanded_index(index)) {
-        // The excerpt box of the expanded evidence body.
-        const double scale = effective_text_scale();
-        const double body_top = row.y + scaled_compact_height() - 5.0 * scale;
-        const bool wide = row.width >= 650.0 * scale;
-        const double lane_width = wide
-            ? std::min(190.0 * scale, std::max(150.0 * scale, row.width * 0.25)) : 0.0;
-        const double evidence_x = row.x + 52.0 * scale;
-        const double evidence_width = std::max(40.0, row.width - 62.0 * scale - lane_width);
-        const Rect excerpt{evidence_x, body_top + 22.0 * scale, evidence_width,
-                           std::max(20.0, 43.0 * scale)};
-        record.evidence = PartGeometry::from_bounds(Rect::intersection(excerpt, clip));
+        {layout.secondary_origin.x, layout.card.y + 22.0, layout.secondary_width, 15.0}, clip));
+    record.metric = PartGeometry::from_bounds(Rect::intersection(layout.metric_box, clip));
+    // The excerpt box of the expanded evidence body.
+    if (layout.expanded) {
+        record.evidence = PartGeometry::from_bounds(Rect::intersection(layout.excerpt_box, clip));
     }
     record.card_focus = record.card;
     write_item_parts(anatomy().item_systems.front(), correspondence_view_item_part_fields, record, geometry);

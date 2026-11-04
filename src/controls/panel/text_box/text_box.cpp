@@ -784,7 +784,15 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         ControlVisualRole::editor,
         visual_context(false, false, false, focused_));
     if (themed) {
-        paint_surface_material(painter, bounds, editor_recipe.material);
+        // BorderStyle::none is a field without a frame, as in Windows
+        // Forms: the editor material's ground only. Composites that hold a
+        // borderless TextBox (ComboBox, the up-downs, TokenBox,
+        // BreadcrumbTrail, the grid's cell editor) draw the frame
+        // themselves (sweep defect D12: the ComboBox field showed the
+        // editor's frame inside its own).
+        SurfaceMaterial material = editor_recipe.material;
+        if (border_style() == BorderStyle::none) material.border.reset();
+        paint_surface_material(painter, bounds, material);
     } else {
         Panel::on_paint(painter, damage);
     }
