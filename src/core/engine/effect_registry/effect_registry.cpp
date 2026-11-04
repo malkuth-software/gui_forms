@@ -215,11 +215,17 @@ void note_effect_refused(const EffectSelection& selection) noexcept {
                                            : maximum_reported_name_bytes;
     const std::string_view source = effect_selection_source_name(selection.source);
     const std::string_view outcome = effect_selection_outcome_name(selection.outcome);
+    // The source and outcome names are short literals; the program name's
+    // bound keeps every %.*s precision representable as an int.
+    const std::size_t source_bytes =
+        source.size() < maximum_reported_name_bytes ? source.size() : maximum_reported_name_bytes;
+    const std::size_t outcome_bytes =
+        outcome.size() < maximum_reported_name_bytes ? outcome.size() : maximum_reported_name_bytes;
     std::fprintf(stderr,
                  "GUI.Forms: effect program %.*s, selected by the %.*s, is refused (%.*s): the part draws its "
                  "primitive alone (further refusals are counted, not reported)\n",
-                 static_cast<int>(reported_bytes), selection.name.data(), static_cast<int>(source.size()),
-                 source.data(), static_cast<int>(outcome.size()), outcome.data());
+                 static_cast<int>(reported_bytes), selection.name.data(), static_cast<int>(source_bytes),
+                 source.data(), static_cast<int>(outcome_bytes), outcome.data());
 }
 
 bool effect_verification_recorded(std::string_view name, std::size_t state_size,

@@ -1,6 +1,7 @@
 {
   "description": "Direct drawing calls under src/controls/ (tools/paint_census.py); the stage T4 gate is zero stock calls. The census may only fall. Effect-canvas calls (effect_calls) are the effect engine's sanctioned path and are not stock calls.",
   "drawing_methods": [
+    "clip_rounded_rect_corners",
     "draw_box_shadow",
     "draw_image",
     "draw_image_region",
@@ -34,8 +35,8 @@
   },
   "totals": {
     "stock": {
-      "files": 7,
-      "calls": 44
+      "files": 5,
+      "calls": 16
     },
     "exempt": {
       "files": 6,
@@ -51,6 +52,10 @@
     }
   },
   "files": {
+    "basic/basic_control_rendering.cpp": {
+      "category": "stock",
+      "calls": 2
+    },
     "connected_controls/connected_controls.cpp": {
       "category": "stock",
       "calls": 3
@@ -71,10 +76,6 @@
       "category": "demo",
       "calls": 10
     },
-    "guidance/error_glyph/error_glyph.cpp": {
-      "category": "stock",
-      "calls": 5
-    },
     "instruments/sweep_scope/sweep_scope_effects.cpp": {
       "category": "stock",
       "calls": 0,
@@ -84,24 +85,16 @@
       "category": "exempt",
       "calls": 5
     },
-    "panel/breadcrumb_trail/breadcrumb_trail.cpp": {
-      "category": "stock",
-      "calls": 11
-    },
-    "panel/color_value_editor/color_value_editor.cpp": {
-      "category": "stock",
-      "calls": 6
-    },
-    "panel/flags_value_editor/flags_value_editor.cpp": {
-      "category": "stock",
-      "calls": 6
-    },
     "panel/material_panel/material_panel.cpp": {
       "category": "stock",
       "calls": 1
     },
     "panel/picture_box/picture_box.cpp": {
       "category": "exempt",
+      "calls": 1
+    },
+    "panel/text_box/text_box.cpp": {
+      "category": "stock",
       "calls": 1
     },
     "range_control/progress_bar/progress_bar_effects.cpp": {
@@ -119,7 +112,7 @@
     },
     "visual_inspector_view/visual_inspector_view.cpp": {
       "category": "stock",
-      "calls": 12
+      "calls": 9
     }
   }
 }
