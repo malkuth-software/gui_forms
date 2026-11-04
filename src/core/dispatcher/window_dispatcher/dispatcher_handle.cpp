@@ -1,7 +1,7 @@
 #include "../state/dispatcher_state.hpp"
 
 #include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
-#include "gui_forms/window.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <mutex>
 #include <stdexcept>
@@ -71,7 +71,7 @@ bool WindowDispatcher::window_alive() const noexcept {
     return alive;
 }
 
-WindowDispatcher Window::dispatcher() const {
+WindowDispatcher SurfaceRoot::dispatcher() const {
     WindowDispatcher handle(dispatcher_state_);
     return handle;
 }

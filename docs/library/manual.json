@@ -1998,6 +1998,24 @@
         "semantic_descriptor": "Projects group role, canonical value, description, descendant inclusion, and invalid state."
       }
     },
+    "SurfaceRoot": {
+      "status": "OBSERVED: threaded sub-surfaces stage S1.1 (thread identity, dispatcher and metrics moved out of Window); Windows build and focused tests pass",
+      "method_scope": "all",
+      "summary": "SurfaceRoot is the root of one retained control tree and the thread that owns it: the thread identity every mutation is checked against, the bounded dispatcher queue that thread drains, and the structured metrics its work reports into. Window is a SurfaceRoot presented through a native host; stage S1 moves the rest of the control-root part of Window here.",
+      "methods": {
+        "check_access": "Compares the caller with the root's immutable thread affinity.",
+        "verify_access": "Throws a named wrong-thread failure and records its metric when access is invalid.",
+        "invoke_required": "Reports whether caller marshaling is required.",
+        "begin_invoke": "Posts unowned or control-owned work into the bounded FIFO dispatcher and coalesces one host wake.",
+        "invoke": "Runs inline on the UI thread or posts and blocks without a nested message pump when a host wake seam exists.",
+        "drain_posted_work": "Consumes one bounded queue snapshot in FIFO order, validates owners, isolates faults/cancellation, updates telemetry, and rearms one wake if work remains.",
+        "dispatcher_snapshot": "Returns thread-safe queue, outcome, invocation, wake, bound, and shutdown telemetry.",
+        "set_dispatch_wake_handler": "Installs or removes the host wake primitive, immediately wakes queued work, and refuses removal while a synchronous waiter exists.",
+        "metrics_snapshot": "Returns structured retained layout/paint/input/semantic/resource activity metrics.",
+        "metrics": "Returns mutable structured instrumentation for internal coordinated emitters.",
+        "reset_activity_metrics": "Resets interval activity counters without erasing lifetime/identity state."
+      }
+    },
     "Window": {
       "status": "OBSERVED: bundle 007 retained-window hierarchy and lifecycle/dispatcher split; M4 macOS and MinGW builds, focused tests, and Screen Sharing pass",
       "method_scope": "all",
@@ -2043,14 +2061,6 @@
         "cancel_frame_requests": "Revokes every outstanding frame/surface/timer request and refreshes scheduling metrics.",
         "set_occluded": "Transitions scheduling and paint leases between visible and occluded policy without discarding dirty state.",
         "occluded": "Reports portable host occlusion state.",
-        "check_access": "Compares the caller with immutable Window UI-thread affinity.",
-        "verify_access": "Throws a named wrong-thread failure and records its metric when access is invalid.",
-        "invoke_required": "Reports whether caller marshaling is required.",
-        "begin_invoke": "Posts unowned or control-owned work into the bounded FIFO dispatcher and coalesces one host wake.",
-        "invoke": "Runs inline on the UI thread or posts and blocks without a nested message pump when a host wake seam exists.",
-        "drain_posted_work": "Consumes one bounded queue snapshot in FIFO order, validates owners, isolates faults/cancellation, updates telemetry, and rearms one wake if work remains.",
-        "dispatcher_snapshot": "Returns thread-safe queue, outcome, invocation, wake, bound, and shutdown telemetry.",
-        "set_dispatch_wake_handler": "Installs or removes the host wake primitive, immediately wakes queued work, and refuses removal while a synchronous waiter exists.",
         "set_paint_wake_handler": "Installs the host paint wake primitive used by cross-window or asynchronous retained invalidation.",
         "shutdown_dispatcher": "Atomically stops acceptance, removes the wake seam, abandons deferred input on the UI thread, cancels pending work, and releases waiters.",
         "load_png": "Loads the sole admitted encoded image format into the generational resource registry on the UI thread.",
@@ -2098,9 +2108,6 @@
         "deferred_input_snapshot": "Returns fixed-capacity queue, delivery, compaction, rejection, abandonment, fault, and drain telemetry.",
         "dispatch_drag": "Validates session ordering and typed payload, defers under paint, routes enter/over/leave/drop, and enforces one admitted effect.",
         "cancel_drag": "Terminates retained drag ownership and abandons deferred drag work.",
-        "metrics_snapshot": "Returns structured retained layout/paint/input/semantic/resource activity metrics.",
-        "metrics": "Returns mutable structured instrumentation for internal coordinated emitters.",
-        "reset_activity_metrics": "Resets interval activity counters without erasing lifetime/identity state.",
         "semantic_snapshot": "Builds a mutation-safe bounded semantic tree across root and overlays, retrying when callbacks mutate identity.",
         "semantic_generation": "Returns the generation native accessibility adapters use to avoid redundant publication.",
         "perform_semantic_action": "Defers during paint or resolves stable real/virtual identity and enters the same focus, press, value, disclosure, and scroll paths as ordinary input.",
@@ -2167,8 +2174,7 @@
         "validate_command_activation": "Applies focus validation before mnemonic/default/cancel command activation.",
         "dispatch_mnemonic": "Builds and cycles stable mnemonic candidates while accounting collisions and scope containment.",
         "dispatch_dialog_button": "Validates and performs the configured accept or cancel button through normal semantic press behavior.",
-        "clear_dialog_targets_for_subtree": "Clears accept/cancel references owned by a departing subtree.",
-        "require_ui_thread": "Rejects named wrong-thread mutations and records the structured rejection metric."
+        "clear_dialog_targets_for_subtree": "Clears accept/cancel references owned by a departing subtree."
       }
     },
     "UpdateScope": {

@@ -1,5 +1,8 @@
 #include "../../dispatcher/state/dispatcher_state.hpp"
 
+#include "gui_forms/surface_root/surface_root.hpp"
+// Complete Window: a control's back link is still its Window (stage S1
+// moves it to the surface root with the control table).
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -22,12 +25,12 @@ void record_inline_invoke(
 
 } // namespace
 
-DispatchOperation Window::begin_invoke(std::function<void()> callback) {
+DispatchOperation SurfaceRoot::begin_invoke(std::function<void()> callback) {
     return detail::post_dispatch(dispatcher_state_, {}, false,
                                  std::move(callback));
 }
 
-DispatchOperation Window::begin_invoke(const Control::Ptr& owner,
+DispatchOperation SurfaceRoot::begin_invoke(const Control::Ptr& owner,
                                        std::function<void()> callback) {
     if (!owner) {
         throw std::invalid_argument(
@@ -37,7 +40,7 @@ DispatchOperation Window::begin_invoke(const Control::Ptr& owner,
                                  std::move(callback));
 }
 
-void Window::invoke(std::function<void()> callback) {
+void SurfaceRoot::invoke(std::function<void()> callback) {
     if (!callback) {
         throw std::invalid_argument("GUI.Forms Invoke requires a callback");
     }
@@ -51,7 +54,7 @@ void Window::invoke(std::function<void()> callback) {
     operation.wait_and_rethrow();
 }
 
-void Window::invoke(const Control::Ptr& owner,
+void SurfaceRoot::invoke(const Control::Ptr& owner,
                     std::function<void()> callback) {
     if (!owner) {
         throw std::invalid_argument("GUI.Forms owned Invoke requires a control");
@@ -73,8 +76,8 @@ void Window::invoke(const Control::Ptr& owner,
     operation.wait_and_rethrow();
 }
 
-DispatchDrainResult Window::drain_posted_work(std::size_t maximum_callbacks) {
-    require_ui_thread("posted callback drain");
+DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks) {
+    require_root_thread("posted callback drain");
     if (maximum_callbacks == 0U ||
         maximum_callbacks > maximum_callbacks_per_dispatch_turn) {
         throw std::invalid_argument(
@@ -179,7 +182,7 @@ DispatchDrainResult Window::drain_posted_work(std::size_t maximum_callbacks) {
     return result;
 }
 
-DispatcherSnapshot Window::dispatcher_snapshot() const noexcept {
+DispatcherSnapshot SurfaceRoot::dispatcher_snapshot() const noexcept {
     if (!dispatcher_state_) return {};
     std::scoped_lock lock((*dispatcher_state_).mutex);
     return {
@@ -200,8 +203,8 @@ DispatcherSnapshot Window::dispatcher_snapshot() const noexcept {
     };
 }
 
-void Window::set_dispatch_wake_handler(std::function<void()> wake_handler) {
-    require_ui_thread("dispatcher wake-handler mutation");
+void SurfaceRoot::set_dispatch_wake_handler(std::function<void()> wake_handler) {
+    require_root_thread("dispatcher wake-handler mutation");
     {
         std::scoped_lock lock((*dispatcher_state_).mutex);
         if (!wake_handler) {
@@ -233,7 +236,7 @@ void Window::set_dispatch_wake_handler(std::function<void()> wake_handler) {
     }
 }
 
-void Window::begin_dispatcher_teardown() noexcept {
+void SurfaceRoot::begin_dispatcher_teardown() noexcept {
     if (!dispatcher_state_) return;
     std::scoped_lock lock((*dispatcher_state_).mutex);
     (*dispatcher_state_).closing = true;
@@ -244,11 +247,8 @@ void Window::begin_dispatcher_teardown() noexcept {
     (*dispatcher_state_).wake_pending = false;
 }
 
-void Window::shutdown_dispatcher() noexcept {
+void SurfaceRoot::close_dispatcher() noexcept {
     if (!dispatcher_state_) return;
-    if (std::this_thread::get_id() == ui_thread_) {
-        abandon_deferred_input();
-    }
     std::deque<std::shared_ptr<detail::DispatchWork>> pending;
     {
         std::scoped_lock lock((*dispatcher_state_).mutex);

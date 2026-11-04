@@ -1118,6 +1118,7 @@ private:
     // definitions (CompiledThemeRules::theme_serial differs).
     void refresh_inline_style();
     friend class Window;
+    friend class SurfaceRoot;
     friend class ContainerControl;
     friend class ErrorProvider;
     friend class HelpProvider;

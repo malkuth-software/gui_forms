@@ -34,7 +34,7 @@ constexpr std::uint64_t published_input_bits = every_published_bit();
 } // namespace
 
 bool Window::publish_value(std::string_view name, double value) {
-    require_ui_thread("published value");
+    require_root_thread("published value");
     if (!valid_style_class_name(name) || !std::isfinite(value)) return false;
     PublishedValue* found = nullptr;
     for (PublishedValue& published : published_values_) {
@@ -55,7 +55,7 @@ bool Window::publish_value(std::string_view name, double value) {
 }
 
 void Window::withdraw_value(std::string_view name) {
-    require_ui_thread("published value");
+    require_root_thread("published value");
     for (std::size_t index = 0; index < published_values_.size(); ++index) {
         if (published_values_[index].name != name) continue;
         published_values_.erase(published_values_.begin() + static_cast<std::ptrdiff_t>(index));

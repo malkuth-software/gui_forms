@@ -48,7 +48,7 @@ std::optional<FrameTime> Window::next_wake() const noexcept {
 
 FrameRequestToken Window::schedule_paint(const Control::Ptr& control,
                                          FrameTime deadline) {
-    require_ui_thread("frame deadline scheduling");
+    require_root_thread("frame deadline scheduling");
     if (!control || !(*control).is_alive() || (*control).window_ != this) {
         throw std::logic_error("GUI.Forms frame deadline requires an attached control");
     }
@@ -65,7 +65,7 @@ FrameRequestToken Window::schedule_paint(const Control::Ptr& control,
 }
 
 FrameRequestToken Window::request_motion_frames(FrameTime first_deadline) {
-    require_ui_thread("motion clock scheduling");
+    require_root_thread("motion clock scheduling");
     compact_frame_requests();
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
         throw std::length_error("GUI.Forms scheduled frame request limit reached");
@@ -88,7 +88,7 @@ void Window::set_motion_frame_deadline(FrameTime deadline) noexcept {
 FrameRequestToken Window::schedule_ui_timer(
     Component& owner, FrameInterval interval, FrameTime first_deadline,
     std::function<void(FrameTime)> callback) {
-    require_ui_thread("UI timer scheduling");
+    require_root_thread("UI timer scheduling");
     if (!owner.is_alive()) {
         throw std::logic_error("GUI.Forms UI timer requires a live component owner");
     }
@@ -111,7 +111,7 @@ FrameRequestToken Window::schedule_ui_timer(
 }
 
 FramePollResult Window::poll_frame_schedule(FrameTime now) {
-    require_ui_thread("frame schedule polling");
+    require_root_thread("frame schedule polling");
     if (in_frame_poll_) {
         metrics_.record_reentrant_frame_poll();
         FramePollResult deferred;
@@ -219,7 +219,7 @@ FramePollResult Window::poll_frame_schedule(FrameTime now) {
 }
 
 void Window::cancel_frame_requests() {
-    require_ui_thread("frame schedule cancellation");
+    require_root_thread("frame schedule cancellation");
     // Animation timers waiting for a paint read the count and stay stopped.
     ++frame_request_cancellations_;
     // Motion ends with the requests: every value jumps to its end.
@@ -231,7 +231,7 @@ void Window::cancel_frame_requests() {
 }
 
 void Window::set_occluded(bool occluded, FrameTime transition_time) {
-    require_ui_thread("occlusion transition");
+    require_root_thread("occlusion transition");
     if (occluded_ == occluded) {
         return;
     }

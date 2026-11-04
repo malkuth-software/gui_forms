@@ -11,6 +11,8 @@ The retained window model, update scopes, damage, frame scheduling, the UI-threa
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`
+     - The root of one retained control tree and the thread that owns it.
    * - :cpp:class:`UpdateScope <gui_forms::UpdateScope>`
      - A batch of changes to a window that is laid out once, when the batch ends.
    * - :cpp:class:`Window <gui_forms::Window>`
@@ -19,6 +21,7 @@ The retained window model, update scopes, damage, frame scheduling, the UI-threa
 .. toctree::
    :hidden:
 
+   generated/gui_forms.SurfaceRoot
    generated/gui_forms.UpdateScope
    generated/gui_forms.Window
 

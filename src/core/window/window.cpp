@@ -392,21 +392,21 @@ void Window::DeferredInputVisitor::operator()(InputEvent&& event) const {
 
 
 ImageLoadResult Window::load_png(std::span<const std::byte> encoded) {
-    require_ui_thread("PNG resource load");
+    require_root_thread("PNG resource load");
     return (*resources_).load_png(encoded);
 }
 
 ImageLoadResult Window::load_bgra32_premultiplied(
     std::uint32_t width, std::uint32_t height, std::uint64_t row_bytes,
     std::span<const std::byte> pixels) {
-    require_ui_thread("BGRA resource load");
+    require_root_thread("BGRA resource load");
     return (*resources_).load_bgra32_premultiplied(
         width, height, row_bytes, pixels);
 }
 
 ImageLoadResult Window::replace_png(ImageId image,
                                     std::span<const std::byte> encoded) {
-    require_ui_thread("PNG resource replacement");
+    require_root_thread("PNG resource replacement");
     // Repaints every window sharing the registry, this one included.
     ImageLoadResult result = (*resources_).replace_png(image, encoded);
     return result;
@@ -429,7 +429,7 @@ ImageLoadResult Window::replace_bgra32_premultiplied(
     ImageId image, std::uint32_t width, std::uint32_t height,
     std::uint64_t row_bytes, std::span<const std::byte> pixels,
     Control& consumer) {
-    require_ui_thread("scoped BGRA resource replacement");
+    require_root_thread("scoped BGRA resource replacement");
     if (consumer.window_ != this) {
         throw std::invalid_argument(
             "scoped BGRA replacement requires an attached consumer");
@@ -446,7 +446,7 @@ ImageLoadResult Window::update_bgra32_premultiplied(
     ImageId image, std::uint32_t width, std::uint32_t height,
     std::uint64_t row_bytes, std::span<const std::byte> pixels,
     Control& consumer) {
-    require_ui_thread("scoped live BGRA resource update");
+    require_root_thread("scoped live BGRA resource update");
     if (consumer.window_ != this) {
         throw std::invalid_argument(
             "scoped live BGRA update requires an attached consumer");
@@ -464,7 +464,7 @@ ImageLoadResult Window::patch_bgra32_premultiplied(
     std::uint32_t width, std::uint32_t height,
     std::uint64_t source_row_bytes, std::span<const std::byte> pixels,
     Control& consumer, Rect local_damage) {
-    require_ui_thread("scoped BGRA resource patch");
+    require_root_thread("scoped BGRA resource patch");
     if (consumer.window_ != this) {
         throw std::invalid_argument(
             "scoped BGRA patch requires an attached consumer");
@@ -480,7 +480,7 @@ ImageLoadResult Window::patch_bgra32_premultiplied(
 ImageLoadResult Window::replace_png(ImageId image,
                                     std::span<const std::byte> encoded,
                                     Control& consumer) {
-    require_ui_thread("scoped PNG resource replacement");
+    require_root_thread("scoped PNG resource replacement");
     if (consumer.window_ != this) {
         throw std::invalid_argument(
             "scoped PNG replacement requires an attached consumer");
@@ -493,7 +493,7 @@ ImageLoadResult Window::replace_png(ImageId image,
 }
 
 bool Window::remove_image(ImageId image) {
-    require_ui_thread("PNG resource removal");
+    require_root_thread("PNG resource removal");
     // Retires the paint of every window sharing the registry.
     const bool removed = (*resources_).remove_image(image);
     return removed;
@@ -503,7 +503,7 @@ bool Window::remove_image(ImageId image) {
 AcceleratorToken Window::register_accelerator(
     Component& owner, KeyGesture gesture, std::function<bool()> callback,
     AcceleratorOptions options) {
-    require_ui_thread("accelerator registration");
+    require_root_thread("accelerator registration");
     if (!owner.is_alive() || gesture.physical_key == 0U || !callback) {
         throw std::invalid_argument(
             "accelerator requires a live owner, physical key, and callback");
@@ -528,7 +528,7 @@ void Window::close_accelerator(
 }
 
 bool Window::offer_accelerators(const KeyEvent& event) {
-    require_ui_thread("accelerator offer");
+    require_root_thread("accelerator offer");
     const bool taken = dispatch_accelerator(event, false);
     return taken;
 }
@@ -553,7 +553,7 @@ bool Window::dispatch_accelerator(const KeyEvent& event, bool preemptive) {
 PopupToken Window::open_popup(const Control::Ptr& owner,
                               const Control::Ptr& popup,
                               PopupOptions options) {
-    require_ui_thread("popup attachment");
+    require_root_thread("popup attachment");
     const bool owner_available = owner && (*owner).window_ == this &&
         (*owner).is_alive() && (*owner).effectively_visible() &&
         (!options.require_enabled_owner || (*owner).effectively_enabled());
@@ -623,13 +623,6 @@ void Window::close_popups_for_subtree(const Control::Ptr& control) noexcept {
 }
 
 
-bool Window::check_access() const noexcept {
-    return std::this_thread::get_id() == ui_thread_;
-}
-
-void Window::verify_access(std::string_view operation) {
-    require_ui_thread(operation);
-}
 
 Control::Ptr Window::find(std::string_view stable_id) const {
     const StableIdMap::const_iterator found =
@@ -638,7 +631,7 @@ Control::Ptr Window::find(std::string_view stable_id) const {
 }
 
 Control::Ptr Window::hit_test(Point position) {
-    require_ui_thread("hit test");
+    require_root_thread("hit test");
     for (std::uint32_t pass = 0U;
          pass < maximum_semantic_snapshot_passes; ++pass) {
         ensure_layout(true);
@@ -709,7 +702,7 @@ void Window::remove_help_fallback(const detail::WindowHelpFallback& fallback) no
 }
 
 bool Window::request_focus(const Control::Ptr& control) {
-    require_ui_thread("focus mutation");
+    require_root_thread("focus mutation");
     if (control && (!eligible(control) || !(*control).focusable_)) {
         return false;
     }
@@ -798,7 +791,7 @@ void Window::set_focus_cue_visible(bool visible) {
 }
 
 void Window::set_accept_button(const Control::Ptr& control) {
-    require_ui_thread("accept button mutation");
+    require_root_thread("accept button mutation");
     if (control && ((*control).attached_window() != this || !(*control).is_alive() ||
                     !(*control).supports_dialog_command())) {
         throw std::invalid_argument(
@@ -817,7 +810,7 @@ void Window::set_accept_button(const Control::Ptr& control) {
 }
 
 void Window::set_cancel_button(const Control::Ptr& control) {
-    require_ui_thread("cancel button mutation");
+    require_root_thread("cancel button mutation");
     if (control && ((*control).attached_window() != this || !(*control).is_alive() ||
                     !(*control).supports_dialog_command())) {
         throw std::invalid_argument(
@@ -842,7 +835,7 @@ DialogKeySnapshot Window::dialog_key_snapshot() const noexcept {
 }
 
 void Window::set_dialog_result(DialogResult result) {
-    require_ui_thread("dialog result mutation");
+    require_root_thread("dialog result mutation");
     switch (result) {
     case DialogResult::none:
     case DialogResult::ok:
@@ -903,7 +896,7 @@ void Window::collect_mnemonic_candidates(const Control::Ptr& control,
 }
 
 bool Window::move_focus_after(const Control::Ptr& origin) {
-    require_ui_thread("mnemonic focus traversal");
+    require_root_thread("mnemonic focus traversal");
     if (!origin || (*origin).attached_window() != this) return false;
     const Control::Ptr scope = active_focus_scope_root();
     const Control::Ptr traversal_root = scope ? scope : root_;
@@ -923,7 +916,7 @@ bool Window::move_focus_after(const Control::Ptr& origin) {
 }
 
 bool Window::validate_command_activation(const Control::Ptr& destination) {
-    require_ui_thread("dialog command activation");
+    require_root_thread("dialog command activation");
     if (!destination || !eligible(destination) ||
         !focus_allowed_by_active_scope(destination)) return false;
     const Control::Ptr previous = focused_.lock();
@@ -1038,7 +1031,7 @@ bool Window::dispatch_dialog_key(const KeyEvent& event) {
 
 bool Window::validate_control(const Control::Ptr& control,
                               Control* destination, bool bulk) {
-    require_ui_thread("control validation");
+    require_root_thread("control validation");
     if (!control || !eligible(control)) return true;
     if (validating_) {
         ++validation_reentrant_requests_rejected_;
@@ -1059,7 +1052,7 @@ bool Window::validate_control(const Control::Ptr& control,
 
 bool Window::validate_children(const Control::Ptr& container,
                                ValidationConstraints constraints) {
-    require_ui_thread("child validation");
+    require_root_thread("child validation");
     if (!container || !eligible(container)) return true;
     if (validating_) {
         ++validation_reentrant_requests_rejected_;
@@ -1172,7 +1165,7 @@ bool Window::validate_focus_transition(const Control::Ptr& previous,
 FocusScopeId Window::begin_focus_scope(const Control::Ptr& root,
                                        const Control::Ptr& preferred_focus,
                                        FocusScopeOptions options) {
-    require_ui_thread("focus-scope entry");
+    require_root_thread("focus-scope entry");
     if (!root || !eligible(root)) {
         throw std::logic_error(
             "GUI.Forms focus scope requires an eligible attached root");
@@ -1265,7 +1258,7 @@ bool Window::end_focus_scope(FocusScopeId scope,
 bool Window::end_focus_scope(FocusScopeId scope,
                              FocusScopeCloseReason reason,
                              const Control::Ptr& notification_owner) {
-    require_ui_thread("focus-scope exit");
+    require_root_thread("focus-scope exit");
     FocusScopeList::iterator found = focus_scopes_.begin();
     while (found != focus_scopes_.end() &&
            ((*found).id != scope || !(*found).active)) {
@@ -1380,7 +1373,7 @@ std::vector<Control::Ptr> Window::focus_candidates(
 }
 
 bool Window::move_focus(bool forward) {
-    require_ui_thread("focus traversal");
+    require_root_thread("focus traversal");
     const Control::Ptr scope_root = active_focus_scope_root();
     ControlList candidates =
         focus_candidates(scope_root ? scope_root : root_);
@@ -1406,7 +1399,7 @@ bool Window::move_focus(bool forward) {
 }
 
 void Window::set_focus_regions(std::vector<Control::Ptr> regions) {
-    require_ui_thread("focus region mutation");
+    require_root_thread("focus region mutation");
     for (std::size_t index = 0; index < regions.size(); ++index) {
         const Control::Ptr& region = regions[index];
         if (!region || !(*region).is_alive() || (*region).attached_window() != this) {
@@ -1441,7 +1434,7 @@ std::vector<Control::Ptr> Window::focus_regions() const {
 }
 
 bool Window::add_focus_region(const Control::Ptr& region) {
-    require_ui_thread("focus region mutation");
+    require_root_thread("focus region mutation");
     if (!region || !(*region).is_alive() || (*region).attached_window() != this) return false;
     for (const FocusRegion& entry : focus_regions_) {
         const Control::Ptr existing = entry.region.lock();
@@ -1482,7 +1475,7 @@ bool Window::focus_into_region(FocusRegion& entry) {
 }
 
 bool Window::move_focus_region(bool forward) {
-    require_ui_thread("focus region traversal");
+    require_root_thread("focus region traversal");
     if (!focus_scopes_.empty() || focus_regions_.empty()) return false;
     const std::size_t count = focus_regions_.size();
     // The region holding the focused control, if any.
@@ -1514,7 +1507,7 @@ bool Window::move_focus_region(bool forward) {
 }
 
 void Window::capture_pointer(const Control::Ptr& control, std::uint64_t pointer_id) {
-    require_ui_thread("pointer capture");
+    require_root_thread("pointer capture");
     if (control && !eligible(control)) {
         throw std::logic_error("GUI.Forms cannot capture pointer to a foreign control");
     }
@@ -1522,7 +1515,7 @@ void Window::capture_pointer(const Control::Ptr& control, std::uint64_t pointer_
 }
 
 void Window::release_pointer() {
-    require_ui_thread("pointer capture release");
+    require_root_thread("pointer capture release");
     change_pointer_capture({}, 0, false);
 }
 
@@ -1560,7 +1553,7 @@ void Window::change_pointer_capture(const Control::Ptr& control,
 }
 
 bool Window::dispatch_pointer(PointerEvent event) {
-    require_ui_thread("pointer dispatch");
+    require_root_thread("pointer dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "pointer", 0U);
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
@@ -1705,7 +1698,7 @@ bool Window::dispatch_pointer(PointerEvent event) {
 }
 
 bool Window::dispatch_key(KeyEvent event) {
-    require_ui_thread("key dispatch");
+    require_root_thread("key dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "key", 0U);
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
@@ -1787,7 +1780,7 @@ bool Window::route_key(KeyEvent event) {
 }
 
 bool Window::dispatch_text(TextInputEvent event) {
-    require_ui_thread("text dispatch");
+    require_root_thread("text dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "text", 0U);
     if (in_paint_) {
         return defer_input(DeferredInput{std::move(event)});
@@ -1867,7 +1860,7 @@ void Window::schedule_deferred_input_drain() noexcept {
 }
 
 void Window::drain_deferred_input() {
-    require_ui_thread("deferred input drain");
+    require_root_thread("deferred input drain");
     deferred_input_drain_operation_ = {};
     deferred_input_drain_queued_ = false;
     if (in_paint_) {
@@ -1997,7 +1990,7 @@ void Window::leave_drag_target(const DragEvent& event,
 }
 
 DragDispatchResult Window::dispatch_drag(DragEvent event) {
-    require_ui_thread("drag dispatch");
+    require_root_thread("drag dispatch");
     const ShadowFrameScope shadow_frame(ShadowFrameKind::input_dispatch, (*root_).stable_id().value(), "drag", 0U);
     if (in_paint_) {
         const std::uint64_t session = event.session_id;
@@ -2133,7 +2126,7 @@ void Window::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles
 }
 
 void Window::attach_subtree(const Control::Ptr& control, const Control::WeakPtr& parent) {
-    require_ui_thread("visual-tree attachment");
+    require_root_thread("visual-tree attachment");
     register_subtree(control);
     ControlList controls;
     attach_subtree_state(control, parent, controls);
@@ -2185,7 +2178,7 @@ void Window::attach_subtree(const Control::Ptr& control, const Control::WeakPtr&
 }
 
 void Window::detach_subtree(const Control::Ptr& control) {
-    require_ui_thread("visual-tree detachment");
+    require_root_thread("visual-tree detachment");
     clear_dialog_targets_for_subtree(control);
     close_popups_for_subtree(control);
     close_focus_scopes_for_subtree(control);
@@ -2336,14 +2329,14 @@ void Window::revoke_focus_scopes_for_subtree(
 }
 
 void Window::on_eligibility_changed(const Control::Ptr& control) {
-    require_ui_thread("eligibility mutation");
+    require_root_thread("eligibility mutation");
     close_popups_for_subtree(control);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
 }
 
 void Window::on_hit_test_transparency_changed(const Control::Ptr& control) {
-    require_ui_thread("hit-test transparency mutation");
+    require_root_thread("hit-test transparency mutation");
     if (!control) return;
     if (contains_control(control, captured_.lock())) {
         change_pointer_capture({}, 0, true);
@@ -2371,7 +2364,7 @@ void Window::forget_hover() noexcept {
 }
 
 void Window::publish_control_availability(Control& control) {
-    require_ui_thread("control availability publication");
+    require_root_thread("control availability publication");
     if (!control.is_alive() || control.window_ != this) return;
     const ControlAvailabilityChange change{
         control.runtime_id(), std::string(control.stable_id().value()),
@@ -2415,7 +2408,7 @@ void Window::unregister_subtree(const Control::Ptr& control) {
 }
 
 void Window::mark_dirty(Control& control, Dirty requested_dirty) {
-    require_ui_thread("dirty mutation");
+    require_root_thread("dirty mutation");
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
     }
@@ -2470,7 +2463,7 @@ void Window::mark_dirty(Control& control, Dirty requested_dirty) {
 }
 
 void Window::mark_paint_dirty(Control& control, Rect local_damage) {
-    require_ui_thread("localized paint mutation");
+    require_root_thread("localized paint mutation");
     if (control.window_ != this) {
         throw std::invalid_argument(
             "localized paint mutation requires an attached control");
@@ -2495,7 +2488,7 @@ void Window::mark_paint_dirty(Control& control, Rect local_damage) {
 }
 
 void Window::mark_child_layout_slot(Control& control) {
-    require_ui_thread("child layout-slot mutation");
+    require_root_thread("child layout-slot mutation");
     constexpr Dirty effects = Dirty::arrange | Dirty::hit_test |
                               Dirty::semantics | Dirty::accessibility;
     control.dirty_ |= effects;
@@ -2512,7 +2505,7 @@ void Window::mark_child_layout_slot(Control& control) {
 }
 
 SemanticSnapshot Window::semantic_snapshot() {
-    require_ui_thread("semantic snapshot");
+    require_root_thread("semantic snapshot");
     if (in_semantic_snapshot_) {
         throw std::logic_error("GUI.Forms rejects recursive semantic snapshots");
     }
@@ -2559,7 +2552,7 @@ SemanticSnapshot Window::semantic_snapshot() {
 bool Window::perform_semantic_action(std::string_view stable_id,
                                      SemanticAction action,
                                      std::string_view value) {
-    require_ui_thread("semantic action");
+    require_root_thread("semantic action");
     if (in_paint_) {
         return defer_input(DeferredInput{DeferredSemanticInput{
             std::string(stable_id), action, std::string(value)}});
@@ -2616,7 +2609,7 @@ bool Window::perform_semantic_action(RuntimeId control_id,
                                      std::string_view virtual_child,
                                      SemanticAction action,
                                      std::string_view value) {
-    require_ui_thread("semantic action");
+    require_root_thread("semantic action");
     if (in_paint_) {
         return defer_input(DeferredInput{DeferredSemanticInput{
             std::string(virtual_child), action, std::string(value), control_id}});
@@ -2640,7 +2633,7 @@ bool Window::perform_semantic_action(RuntimeId control_id,
 }
 
 SemanticTextResult Window::semantic_text_layout(RuntimeId control_id, SemanticTextLayout& layout) {
-    require_ui_thread("semantic text layout");
+    require_root_thread("semantic text layout");
     layout.clear();
     if (in_paint_) return SemanticTextResult::during_paint;
     const Control::Ptr control = find_runtime_control(control_id);
@@ -2651,7 +2644,7 @@ SemanticTextResult Window::semantic_text_layout(RuntimeId control_id, SemanticTe
 }
 
 SemanticTextResult Window::set_semantic_text_selection(RuntimeId control_id, SemanticTextSelection selection) {
-    require_ui_thread("semantic text selection");
+    require_root_thread("semantic text selection");
     if (in_paint_) return SemanticTextResult::during_paint;
     const Control::Ptr control = find_runtime_control(control_id);
     if (!control) return SemanticTextResult::stale_identity;
@@ -2716,7 +2709,7 @@ void Window::apply_subtree_dirty(Control& control, Dirty requested_dirty,
 }
 
 void Window::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
-    require_ui_thread("subtree dirty mutation");
+    require_root_thread("subtree dirty mutation");
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
     }
@@ -2763,7 +2756,7 @@ void Window::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
 }
 
 void Window::change_paint_plane(Control& control, PaintPlane plane) {
-    require_ui_thread("paint-plane mutation");
+    require_root_thread("paint-plane mutation");
     const Rect bounds = paint_damage_bounds_of(control);
     add_damage_all_planes(bounds);
     control.paint_plane_ = plane;
@@ -2856,7 +2849,7 @@ void Window::add_subtree_damage(const Control::Ptr& control) {
 }
 
 void Window::ensure_layout(bool read_barrier) {
-    require_ui_thread("layout");
+    require_root_thread("layout");
     if (!(*root_).is_alive()) {
         layout_dirty_ = false;
         hit_test_dirty_ = false;
@@ -3659,13 +3652,6 @@ bool Window::eligible(const Control::Ptr& control) const noexcept {
     return control && (*control).window_ == this && (*control).eligible_for_input();
 }
 
-void Window::require_ui_thread(std::string_view operation) {
-    if (std::this_thread::get_id() == ui_thread_) {
-        return;
-    }
-    metrics_.record_wrong_thread_rejection();
-    throw std::logic_error("GUI.Forms rejected wrong-thread " + std::string(operation));
-}
 
 
 } // namespace gui_forms

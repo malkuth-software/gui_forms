@@ -18,6 +18,7 @@
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
 #include "gui_forms/resources.hpp"
 #include "gui_forms/scheduler.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
@@ -280,7 +281,9 @@ struct ControlSnapshot final {
     std::uint32_t pixel_height{};
 };
 
-class Window {
+// A top-level window: a SurfaceRoot (its control tree, thread and
+// dispatcher) presented through a native host.
+class Window : public SurfaceRoot {
 public:
     explicit Window(Control::Ptr root, Size client_size = {});
     /// Uses explicit per-window image quotas. The two-argument constructor
@@ -534,34 +537,6 @@ public:
     void cancel_frame_requests();
     void set_occluded(bool occluded, FrameTime transition_time);
     [[nodiscard]] bool occluded() const noexcept { return occluded_; }
-    [[nodiscard]] bool check_access() const noexcept;
-    void verify_access(std::string_view operation = "window access");
-    [[nodiscard]] bool invoke_required() const noexcept { return !check_access(); }
-    [[nodiscard]] DispatchOperation begin_invoke(std::function<void()> callback);
-    [[nodiscard]] DispatchOperation begin_invoke(
-        const Control::Ptr& owner, std::function<void()> callback);
-    // Synchronous Invoke never starts a nested message pump. UI-thread calls
-    // execute inline; worker calls require an installed running host wake seam.
-    void invoke(std::function<void()> callback);
-    void invoke(const Control::Ptr& owner, std::function<void()> callback);
-    // A handle to this window's dispatcher that any thread may keep and post
-    // through after the window has closed (WindowDispatcher).
-    [[nodiscard]] WindowDispatcher dispatcher() const;
-    [[nodiscard]] DispatchDrainResult drain_posted_work(
-        std::size_t maximum_callbacks = maximum_callbacks_per_dispatch_turn);
-    [[nodiscard]] DispatcherSnapshot dispatcher_snapshot() const noexcept;
-    // Host adapters install a thread-safe wake primitive. Installing a handler
-    // after work was queued immediately publishes one coalesced wake. The
-    // handler runs under the dispatcher's lock, on whichever thread posted:
-    // it may only signal (set a flag, post a message, write a pipe) and must
-    // never call back into the window. In return, once this call replaces or
-    // removes a handler, no wake through the old one is under way or to come,
-    // so its target may be destroyed. A thread may post (begin_invoke, invoke)
-    // while holding locks of its own, so the lock order is the poster's locks,
-    // then the dispatcher's, then any the handler takes: the handler must take
-    // no lock that a posting thread may hold. The stock hosts' handlers take
-    // none of GUI.Forms' or the application's.
-    void set_dispatch_wake_handler(std::function<void()> wake);
     // Host adapters also install a paint wake seam. Retained invalidation may
     // originate from another Window's callback, so relying only on the host
     // currently dispatching input can strand valid dirty state indefinitely.
@@ -807,7 +782,6 @@ public:
     [[nodiscard]] DragDispatchResult dispatch_drag(DragEvent event);
     void cancel_drag() noexcept;
 
-    [[nodiscard]] MetricsSnapshot metrics_snapshot() const { return metrics_.snapshot(); }
     // The theme engine's records of this window's keyed parts (T2 plan,
     // EnginePartTable), for inspection. The engine alone changes them.
     [[nodiscard]] const EnginePartTable& engine_parts() const noexcept { return engine_parts_; }
@@ -831,8 +805,6 @@ public:
     bool publish_value(std::string_view name, double value);
     void withdraw_value(std::string_view name);
     [[nodiscard]] std::optional<double> published_value(std::string_view name) const;
-    Metrics& metrics() noexcept { return metrics_; }
-    void reset_activity_metrics() noexcept { metrics_.reset_activity(); }
     // Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in
     // the order the layout passes recorded them: at most
     // maximum_layout_diagnostics, the later ones counted in
@@ -923,10 +895,6 @@ private:
     // defaults unless they are seeded already.
     void install_host_key_map(const KeyMap& defaults);
     void initialize_cursor_identity() noexcept;
-    // The destructor's first dispatcher step: stops host wakes and marks the
-    // dispatcher closing, so that a post reaching it after shutdown is
-    // refused by name instead of throwing (DispatcherState::closing).
-    void begin_dispatcher_teardown() noexcept;
     void invalidate_cursor_interaction(CursorError cause) noexcept;
     friend class Control;
     friend class UpdateScope;
@@ -1383,7 +1351,6 @@ private:
     void leave_drag_target(const DragEvent& event,
                            DragDispatchResult& aggregate);
     void clear_dialog_targets_for_subtree(const Control::Ptr& control) noexcept;
-    void require_ui_thread(std::string_view operation);
 
     Control::Ptr root_;
     Size client_size_{};
@@ -1528,11 +1495,10 @@ private:
         Rect source, Rect cover);
     LiveSurfaceRegistrationMap live_surface_registrations_;
     std::shared_ptr<detail::LiveSurfaceIdleWake> live_surface_idle_wake_{};
-    Metrics metrics_;
     // The theme engine's records of this window's keyed parts. A control's
     // records are released when it leaves the window.
     EnginePartTable engine_parts_;
-    // After metrics_, which it reports into, so that it is destroyed first.
+    // Reports into the base's metrics, which outlive it.
     MotionClock motion_clock_{*this};
     // The values the application publishes for the engine, in publication
     // order (E6).
@@ -1561,8 +1527,6 @@ private:
     std::uint64_t frame_request_cancellations_{};
     bool in_frame_poll_{};
     std::shared_ptr<detail::WindowLifetime> lifetime_;
-    std::thread::id ui_thread_;
-    std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     std::uint64_t update_depth_{};
     bool layout_dirty_{true};
     bool hit_test_dirty_{true};

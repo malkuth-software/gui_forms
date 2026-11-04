@@ -93,12 +93,6 @@ cancel_button
 dialog_result : default ``DialogResult::none``
     The result a dialog-style window reports. Clicking a `Button` with a
     `dialog_result` sets it. Setting it raises `dialog_result_changed`.
-check_access
-    Whether the calling thread is the window's UI thread: the thread that
-    constructed it.
-invoke_required
-    The opposite of `check_access`: whether the caller must post work with
-    `begin_invoke` or `invoke` instead of touching the window directly.
 host_services
     The services of the attached native host, or null when none is attached.
 key_map
@@ -127,13 +121,6 @@ occluded : default ``false``
     Whether the host reports the window as hidden from view. While occluded,
     painting and paint wake-ups are suspended, and motion values jump to
     their ends without scheduling frames.
-metrics_snapshot
-    A copy of the window's instrumentation counters: layout passes, flushes,
-    mutations, damage, input, focus, disposals, wrong-thread rejections and
-    more. `MetricsSnapshot::to_json` serializes it.
-dispatcher_snapshot
-    Counters of the posted-work queue: posted, invoked, cancelled and
-    faulted callbacks, pending work and wake-ups.
 validation_snapshot
     Counters of validation attempts, cancellations and focus moves blocked by
     validation.
@@ -287,26 +274,9 @@ rebind_key_command
     nothing.
 restore_key_command
     Returns a command to the host's default.
-begin_invoke
-    Queues a callback to run on the UI thread in a later dispatch turn and
-    returns a `DispatchOperation`; it may be called from any thread. The
-    overload that takes a control cancels the work if that control is
-    detached or disposed before its turn.
-invoke
-    Runs a callback on the UI thread and waits for it. On the UI thread it
-    runs inline; from another thread it blocks until the host runs it and
-    rethrows its exception. It requires a running host when called from
-    another thread.
-drain_posted_work
-    Runs one turn of posted work on the UI thread: the callbacks that were
-    queued when it started, up to the given bound. Hosts call it; tests call
-    it to run posted work without a host.
 shutdown_dispatcher
     Stops accepting posted work and cancels everything still queued. The
     destructor calls it.
-verify_access
-    Throws `std::logic_error` unless the caller is on the UI thread, naming
-    the operation, and counts the rejection.
 register_accelerator
     Installs a window-wide keyboard shortcut owned by a `Component`. The
     callback returns true when it handled the key. Accelerators are tried
@@ -381,12 +351,6 @@ perform_semantic_action
     The overload native accessibility hosts use names a published node by
     its control's runtime ID and, for a virtual child, the child's stable
     ID; a disposed or replaced control's runtime ID is refused.
-metrics
-    The live instrumentation counters, for hosts and renderers that record
-    into them.
-reset_activity_metrics
-    Zeroes the activity counters, keeping the population and depth values,
-    so a test can measure one workload.
 publish_value
     Publishes a named number for the theme engine, such as a meter's
     `level`. A theme's expressions read the values its rule sheet names; a

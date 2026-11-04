@@ -7,7 +7,7 @@ gui_forms::Window
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Window
+.. cpp:class:: Window : public SurfaceRoot
 
    ``#include <gui_forms/window/window.hpp>``
 
@@ -20,7 +20,7 @@ gui_forms::Window
    model on its own; a native host presents it, and ``Application::run`` is the
    usual way to do that. Without a host the same object runs in tests and
    headless tools: call :cpp:func:`perform_layout <gui_forms::Window::perform_layout>`, feed it input with :cpp:func:`dispatch_pointer <gui_forms::Window::dispatch_pointer>`
-   and :cpp:func:`dispatch_key <gui_forms::Window::dispatch_key>`, run posted work with :cpp:func:`drain_posted_work <gui_forms::Window::drain_posted_work>`, and read the
+   and :cpp:func:`dispatch_key <gui_forms::Window::dispatch_key>`, run posted work with ``drain_posted_work``, and read the
    results.
 
    :Parameters:
@@ -135,21 +135,6 @@ gui_forms::Window
          painting and paint wake-ups are suspended, and motion values jump to
          their ends without scheduling frames.
 
-      **check_access** : ``bool``, read-only
-         Whether the calling thread is the window's UI thread: the thread that
-         constructed it.
-
-      **invoke_required** : ``bool``, read-only
-         The opposite of :cpp:func:`check_access <gui_forms::Window::check_access>`: whether the caller must post work with
-         :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>` or :cpp:func:`invoke <gui_forms::Window::invoke>` instead of touching the window directly.
-
-      **dispatcher** : ``WindowDispatcher``, read-only
-         A handle to this window's dispatcher that any thread may keep and post through after the window has closed (WindowDispatcher).
-
-      **dispatcher_snapshot** : ``DispatcherSnapshot``, read-only
-         Counters of the posted-work queue: posted, invoked, cancelled and
-         faulted callbacks, pending work and wake-ups.
-
       **image_resources** : ``ImageRegistry``, read-only
          Returns the renderer-neutral image registry.
 
@@ -245,11 +230,6 @@ gui_forms::Window
       **deferred_input_snapshot** : ``DeferredInputSnapshot``, read-only
          Returns fixed-capacity queue, delivery, compaction, rejection, abandonment, fault, and drain telemetry.
 
-      **metrics_snapshot** : ``MetricsSnapshot``, read-only
-         A copy of the window's instrumentation counters: layout passes, flushes,
-         mutations, damage, input, focus, disposals, wrong-thread rejections and
-         more. ``MetricsSnapshot::to_json`` serializes it.
-
       **engine_parts** : ``EnginePartTable``, read-only
          The theme engine's records of this window's keyed parts (T2 plan, EnginePartTable), for inspection. The engine alone changes them.
 
@@ -326,6 +306,10 @@ gui_forms::Window
          the target's stable ID, the item ID, the text, whether it now shows and
          whether keyboard focus showed it.
 
+   :Inherited:
+
+      From :cpp:class:`SurfaceRoot <gui_forms::SurfaceRoot>`: properties :cpp:func:`check_access <gui_forms::SurfaceRoot::check_access>`, :cpp:func:`invoke_required <gui_forms::SurfaceRoot::invoke_required>`, :cpp:func:`dispatcher <gui_forms::SurfaceRoot::dispatcher>`, :cpp:func:`dispatcher_snapshot <gui_forms::SurfaceRoot::dispatcher_snapshot>`, :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`; methods :cpp:func:`begin_invoke <gui_forms::SurfaceRoot::begin_invoke>`, :cpp:func:`drain_posted_work <gui_forms::SurfaceRoot::drain_posted_work>`, :cpp:func:`invoke <gui_forms::SurfaceRoot::invoke>`, :cpp:func:`metrics <gui_forms::SurfaceRoot::metrics>`, :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`, :cpp:func:`set_dispatch_wake_handler <gui_forms::SurfaceRoot::set_dispatch_wake_handler>`, :cpp:func:`verify_access <gui_forms::SurfaceRoot::verify_access>`.
+
    .. rubric:: Methods
 
    .. list-table::
@@ -386,14 +370,6 @@ gui_forms::Window
         -  
       * - :cpp:func:`cancel_frame_requests <gui_forms::Window::cancel_frame_requests>`
         -  
-      * - :cpp:func:`verify_access <gui_forms::Window::verify_access>`
-        - Throws ``std::logic_error`` unless the caller is on the UI thread, naming the operation, and counts the rejection.
-      * - :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>`
-        - Queues a callback to run on the UI thread in a later dispatch turn and returns a :cpp:class:`DispatchOperation <gui_forms::DispatchOperation>`; it may be called from any thread.
-      * - :cpp:func:`invoke <gui_forms::Window::invoke>`
-        - Runs a callback on the UI thread and waits for it.
-      * - :cpp:func:`drain_posted_work <gui_forms::Window::drain_posted_work>`
-        - Runs one turn of posted work on the UI thread: the callbacks that were queued when it started, up to the given bound.
       * - :cpp:func:`shutdown_dispatcher <gui_forms::Window::shutdown_dispatcher>`
         - Stops accepting posted work and cancels everything still queued.
       * - :cpp:func:`load_png <gui_forms::Window::load_png>`
@@ -472,10 +448,6 @@ gui_forms::Window
         - Withdraws a published value; its readers then read it as not published and give their expressions' fallbacks.
       * - :cpp:func:`published_value <gui_forms::Window::published_value>`
         - The value published under a name, or none.
-      * - :cpp:func:`metrics <gui_forms::Window::metrics>`
-        - The live instrumentation counters, for hosts and renderers that record into them.
-      * - :cpp:func:`reset_activity_metrics <gui_forms::Window::reset_activity_metrics>`
-        - Zeroes the activity counters, keeping the population and depth values, so a test can measure one workload.
       * - :cpp:func:`clear_layout_diagnostics <gui_forms::Window::clear_layout_diagnostics>`
         -  
       * - :cpp:func:`containing_block_dependent_count <gui_forms::Window::containing_block_dependent_count>`
@@ -496,8 +468,6 @@ gui_forms::Window
         - Native host idle handshake.
       * - :cpp:func:`set_live_surface_idle_waiting <gui_forms::Window::set_live_surface_idle_waiting>`
         -  
-      * - :cpp:func:`set_dispatch_wake_handler <gui_forms::Window::set_dispatch_wake_handler>`
-        - Host adapters install a thread-safe wake primitive.
       * - :cpp:func:`set_paint_wake_handler <gui_forms::Window::set_paint_wake_handler>`
         - Host adapters also install a paint wake seam.
       * - :cpp:func:`set_command_target <gui_forms::Window::set_command_target>`
@@ -528,8 +498,8 @@ gui_forms::Window
    its tree belongs to that thread. Mutations, layout, input dispatch and
    painting from any other thread throw ``std::logic_error`` without changing
    anything, and count in ``MetricsSnapshot::rejected_wrong_thread_operations``.
-   Only :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>`, :cpp:func:`invoke <gui_forms::Window::invoke>`, :cpp:func:`check_access <gui_forms::Window::check_access>`, :cpp:func:`invoke_required <gui_forms::Window::invoke_required>` and
-   :cpp:func:`dispatcher_snapshot <gui_forms::Window::dispatcher_snapshot>` are meant to be called from other threads. Destroy the
+   Only ``begin_invoke``, ``invoke``, ``check_access``, ``invoke_required`` and
+   ``dispatcher_snapshot`` are meant to be called from other threads. Destroy the
    window on its UI thread too: its destructor detaches the tree, and doing that
    from another thread terminates the program.
 
@@ -538,13 +508,13 @@ gui_forms::Window
    and its children are not disposed; dispose the root yourself if nothing else
    should use it.
 
-   The posted-work queue holds at most 4096 callbacks; :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>` throws
+   The posted-work queue holds at most 4096 callbacks; ``begin_invoke`` throws
    ``std::length_error`` beyond that, ``std::invalid_argument`` for an empty
    callback and ``std::logic_error`` after :cpp:func:`shutdown_dispatcher <gui_forms::Window::shutdown_dispatcher>`. One dispatch
    turn runs at most 1024 callbacks, and work posted from a callback waits for
    the next turn. A callback that throws keeps its exception on its
    :cpp:class:`DispatchOperation <gui_forms::DispatchOperation>`; later callbacks still run. Dropping the operation does
-   not cancel the work; call ``DispatchOperation::cancel``. :cpp:func:`invoke <gui_forms::Window::invoke>` from another
+   not cancel the work; call ``DispatchOperation::cancel``. ``invoke`` from another
    thread throws ``std::logic_error`` when no host is running, and
    :cpp:class:`DispatchCancelledError <gui_forms::DispatchCancelledError>` if the work is cancelled before it runs.
 
@@ -606,7 +576,7 @@ gui_forms::Window
       }
 
    Post work to the UI thread and run it. On a worker you would only call
-   :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>`; the host runs the turn. Here the example runs it itself:
+   ``begin_invoke``; the host runs the turn. Here the example runs it itself:
 
    .. code-block:: cpp
 
@@ -789,25 +759,6 @@ gui_forms::Window
 
       Sets :cpp:func:`occluded <gui_forms::Window::occluded>`; see the property's description above.
 
-   .. cpp:function:: bool check_access() const noexcept
-
-      Whether the calling thread is the window's UI thread: the thread that
-      constructed it.
-
-   .. cpp:function:: bool invoke_required() const noexcept
-
-      The opposite of :cpp:func:`check_access <gui_forms::Window::check_access>`: whether the caller must post work with
-      :cpp:func:`begin_invoke <gui_forms::Window::begin_invoke>` or :cpp:func:`invoke <gui_forms::Window::invoke>` instead of touching the window directly.
-
-   .. cpp:function:: WindowDispatcher dispatcher() const
-
-      A handle to this window's dispatcher that any thread may keep and post through after the window has closed (WindowDispatcher).
-
-   .. cpp:function:: DispatcherSnapshot dispatcher_snapshot() const noexcept
-
-      Counters of the posted-work queue: posted, invoked, cancelled and
-      faulted callbacks, pending work and wake-ups.
-
    .. cpp:function:: const ImageRegistry& image_resources() const noexcept
 
    .. cpp:function:: ImageRegistrySnapshot image_resource_snapshot() const noexcept
@@ -933,12 +884,6 @@ gui_forms::Window
       released, or null.
 
    .. cpp:function:: DeferredInputSnapshot deferred_input_snapshot() const noexcept
-
-   .. cpp:function:: MetricsSnapshot metrics_snapshot() const
-
-      A copy of the window's instrumentation counters: layout passes, flushes,
-      mutations, damage, input, focus, disposals, wrong-thread rejections and
-      more. ``MetricsSnapshot::to_json`` serializes it.
 
    .. cpp:function:: const EnginePartTable& engine_parts() const noexcept
 
@@ -1172,45 +1117,6 @@ gui_forms::Window
 
    .. cpp:function:: void cancel_frame_requests()
 
-   .. cpp:function:: void verify_access(std::string_view operation = "window access")
-
-      Throws ``std::logic_error`` unless the caller is on the UI thread, naming
-      the operation, and counts the rejection.
-
-   .. cpp:function:: DispatchOperation begin_invoke(std::function<void()> callback)
-
-      Queues a callback to run on the UI thread in a later dispatch turn and
-      returns a :cpp:class:`DispatchOperation <gui_forms::DispatchOperation>`; it may be called from any thread. The
-      overload that takes a control cancels the work if that control is
-      detached or disposed before its turn.
-
-   .. cpp:function:: DispatchOperation begin_invoke(const Control::Ptr& owner, std::function<void()> callback)
-
-      Queues a callback to run on the UI thread in a later dispatch turn and
-      returns a :cpp:class:`DispatchOperation <gui_forms::DispatchOperation>`; it may be called from any thread. The
-      overload that takes a control cancels the work if that control is
-      detached or disposed before its turn.
-
-   .. cpp:function:: void invoke(std::function<void()> callback)
-
-      Runs a callback on the UI thread and waits for it. On the UI thread it
-      runs inline; from another thread it blocks until the host runs it and
-      rethrows its exception. It requires a running host when called from
-      another thread.
-
-   .. cpp:function:: void invoke(const Control::Ptr& owner, std::function<void()> callback)
-
-      Runs a callback on the UI thread and waits for it. On the UI thread it
-      runs inline; from another thread it blocks until the host runs it and
-      rethrows its exception. It requires a running host when called from
-      another thread.
-
-   .. cpp:function:: DispatchDrainResult drain_posted_work(std::size_t maximum_callbacks = maximum_callbacks_per_dispatch_turn)
-
-      Runs one turn of posted work on the UI thread: the callbacks that were
-      queued when it started, up to the given bound. Hosts call it; tests call
-      it to run posted work without a host.
-
    .. cpp:function:: void shutdown_dispatcher() noexcept
 
       Stops accepting posted work and cancels everything still queued. The
@@ -1404,16 +1310,6 @@ gui_forms::Window
 
       The value published under a name, or none.
 
-   .. cpp:function:: Metrics& metrics() noexcept
-
-      The live instrumentation counters, for hosts and renderers that record
-      into them.
-
-   .. cpp:function:: void reset_activity_metrics() noexcept
-
-      Zeroes the activity counters, keeping the population and depth values,
-      so a test can measure one workload.
-
    .. cpp:function:: void clear_layout_diagnostics() noexcept
 
    .. cpp:function:: std::size_t containing_block_dependent_count(RuntimeId watched) const noexcept
@@ -1466,10 +1362,6 @@ gui_forms::Window
       Native host idle handshake. Install/arm on the UI thread. The handler may run on a producer thread and must only schedule lifetime-safe UI work. One publication wakes each armed idle period; arm also checks generations to cover a publication racing the host's final empty presentation drain.
 
    .. cpp:function:: void set_live_surface_idle_waiting(bool waiting)
-
-   .. cpp:function:: void set_dispatch_wake_handler(std::function<void()> wake)
-
-      Host adapters install a thread-safe wake primitive. Installing a handler after work was queued immediately publishes one coalesced wake. The handler runs under the dispatcher's lock, on whichever thread posted: it may only signal (set a flag, post a message, write a pipe) and must never call back into the window. In return, once this call replaces or removes a handler, no wake through the old one is under way or to come, so its target may be destroyed. A thread may post (begin_invoke, invoke) while holding locks of its own, so the lock order is the poster's locks, then the dispatcher's, then any the handler takes: the handler must take no lock that a posting thread may hold. The stock hosts' handlers take none of GUI.Forms' or the application's.
 
    .. cpp:function:: void set_paint_wake_handler(std::function<void()> wake)
 

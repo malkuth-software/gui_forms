@@ -3,7 +3,7 @@
 namespace gui_forms {
 
 void Window::set_text_metrics_provider(TextMetricsProvider* provider) {
-    require_ui_thread("set_text_metrics_provider");
+    require_root_thread("set_text_metrics_provider");
     if (text_metrics_provider_ == provider) return;
     text_metrics_provider_ = provider;
     if (root_ && (*root_).is_alive()) {

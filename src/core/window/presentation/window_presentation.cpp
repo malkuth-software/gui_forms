@@ -100,7 +100,7 @@ bool copy_framebuffer_bgra(PaintFramebuffer& framebuffer, std::vector<std::byte>
 } // namespace detail
 
 void Window::set_framebuffer_painter(Painter* const painter) {
-    require_ui_thread("set_framebuffer_painter");
+    require_root_thread("set_framebuffer_painter");
     framebuffer_painter_ = painter;
     // The backplane replay's framebuffer belongs to the previous renderer.
     backplane_framebuffer_.reset();
@@ -111,7 +111,7 @@ void Window::set_framebuffer_painter(Painter* const painter) {
 // display chunk; replay that chunk into an offscreen framebuffer; copy the
 // pixels into the image registry as premultiplied BGRA.
 std::optional<ControlSnapshot> Window::snapshot_control(const Control::Ptr& control, const double scale) {
-    require_ui_thread("snapshot_control");
+    require_root_thread("snapshot_control");
     if (in_paint_ || framebuffer_painter_ == nullptr || !control) return std::nullopt;
     if (!(*control).is_alive() || (*control).window_ != this || !(*control).effectively_visible()) return std::nullopt;
     if (!std::isfinite(scale) || scale <= 0.0 || scale > 8.0) return std::nullopt;
@@ -164,7 +164,7 @@ std::optional<ControlSnapshot> Window::snapshot_control(const Control::Ptr& cont
 }
 
 bool Window::release_control_snapshot(ImageId image) {
-    require_ui_thread("release_control_snapshot");
+    require_root_thread("release_control_snapshot");
     // The repainting removal: a stamp that showed the picture may still be
     // in a retained chunk.
     const bool removed = (*resources_).remove_image(image);
@@ -172,7 +172,7 @@ bool Window::release_control_snapshot(ImageId image) {
 }
 
 std::unique_ptr<PaintFramebuffer> Window::create_framebuffer(const Size logical_size, const double scale) {
-    require_ui_thread("create_framebuffer");
+    require_root_thread("create_framebuffer");
     std::unique_ptr<PaintFramebuffer> result{};
     if (framebuffer_painter_ != nullptr) {
         result = (*framebuffer_painter_).create_framebuffer(logical_size, scale);
@@ -439,7 +439,7 @@ std::optional<PaintReceipt> Window::paint(Painter& painter,
 
 std::optional<PaintReceipt> Window::paint_rectangles(
     Painter& painter, std::span<const Rect> rectangles, bool explicit_request) {
-    require_ui_thread("paint");
+    require_root_thread("paint");
     if (in_paint_) {
         // Refresh/Update/native paint recursion requests a later pass. It must
         // never re-enter application painting while the exclusive lease is held.
@@ -646,7 +646,7 @@ bool Window::notify_presented(PaintReceipt receipt,
 
 void Window::notify_live_presented(std::uint64_t duration_nanoseconds,
                                    PresentedArea presented) {
-    require_ui_thread("live surface presentation report");
+    require_root_thread("live surface presentation report");
     metrics_.record_screen_copy(presented.copy_nanoseconds);
     metrics_.record_live_present(duration_nanoseconds, presented.device_pixels,
                                  presented.rectangles);
@@ -655,7 +655,7 @@ void Window::notify_live_presented(std::uint64_t duration_nanoseconds,
 bool Window::notify_presented(PaintReceipt receipt,
                               std::uint64_t duration_nanoseconds,
                               PresentedArea presented) {
-    require_ui_thread("paint presentation release");
+    require_root_thread("paint presentation release");
     // The copy happened whether or not the receipt is newer (a tick that only
     // presents live frames repeats the presented revision).
     metrics_.record_screen_copy(presented.copy_nanoseconds);
@@ -732,7 +732,7 @@ PaintLeaseSnapshot Window::paint_lease_snapshot() const noexcept {
 
 bool Window::queue_live_surface_presentation(
     const Control::Ptr& control, std::shared_ptr<LiveSurface> surface) {
-    require_ui_thread("live-surface presentation");
+    require_root_thread("live-surface presentation");
     if (!control || !surface || !(*control).is_alive() ||
         (*control).window_ != this) {
         return false;
@@ -763,7 +763,7 @@ bool Window::queue_live_surface_presentation(
 }
 
 void Window::set_live_surface_idle_wake_handler(std::function<void()> wake) {
-    require_ui_thread("live-surface idle handler");
+    require_root_thread("live-surface idle handler");
     std::shared_ptr<detail::LiveSurfaceIdleWake> replacement{};
     if (wake) replacement = std::make_shared<detail::LiveSurfaceIdleWake>(std::move(wake));
     if (live_surface_idle_wake_)
@@ -780,7 +780,7 @@ void Window::set_live_surface_idle_wake_handler(std::function<void()> wake) {
 }
 
 void Window::set_live_surface_idle_waiting(const bool waiting) {
-    require_ui_thread("live-surface idle handshake");
+    require_root_thread("live-surface idle handshake");
     if (!live_surface_idle_wake_) return;
     (*live_surface_idle_wake_).waiting.store(waiting, std::memory_order_release);
     if (!waiting) return;
@@ -841,7 +841,7 @@ std::vector<Rect> Window::subtract_rectangle(Rect source, Rect cover) {
 std::vector<LiveSurfacePresentation>
 Window::take_live_surface_presentations(const bool include_unchanged,
                                         bool* const publication_changed) {
-    require_ui_thread("live-surface presentation drain");
+    require_root_thread("live-surface presentation drain");
     if (publication_changed != nullptr) *publication_changed = false;
     std::vector<LiveSurfacePresentation> result;
     result.reserve(live_surface_registrations_.size());
@@ -990,7 +990,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
 }
 
 void Window::set_paint_wake_handler(std::function<void()> wake) {
-    require_ui_thread("paint wake-handler mutation");
+    require_root_thread("paint wake-handler mutation");
     paint_wake_handler_ = std::move(wake);
     paint_wake_pending_ = false;
     if (paint_wake_handler_ && paint_pending() && !occluded_) {
@@ -999,7 +999,7 @@ void Window::set_paint_wake_handler(std::function<void()> wake) {
 }
 
 DamageRegion Window::take_damage() {
-    require_ui_thread("damage mutation");
+    require_root_thread("damage mutation");
     // Hosts request damage before entering their native paint transaction.
     // Commit layout first so geometry changes discovered during arrange are
     // included in that same transaction instead of becoming stranded after
@@ -1017,7 +1017,7 @@ DamageRegion Window::take_damage() {
 }
 
 DamageRegion Window::take_damage(PaintPlane plane) {
-    require_ui_thread("plane damage mutation");
+    require_root_thread("plane damage mutation");
     if (!is_valid_paint_plane(plane)) {
         throw std::invalid_argument("invalid paint plane");
     }

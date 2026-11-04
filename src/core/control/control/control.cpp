@@ -1239,7 +1239,7 @@ std::optional<BindingValue> Control::property_value(std::string_view name) const
     if (!is_alive()) {
         throw std::logic_error("GUI.Forms cannot query a disposed control property");
     }
-    if (window_) (*window_).require_ui_thread("control property query");
+    if (window_) (*window_).require_root_thread("control property query");
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(registered_name(name));
     if (found == bindable_properties_.end() ||
@@ -1321,7 +1321,7 @@ bool Control::should_serialize_property(std::string_view name) const {
         throw std::logic_error(
             "GUI.Forms cannot inspect a disposed control property");
     }
-    if (window_) (*window_).require_ui_thread("control property inspection");
+    if (window_) (*window_).require_root_thread("control property inspection");
     const std::string canonical = registered_name(name);
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(canonical);
@@ -1349,7 +1349,7 @@ PropertyValueOrigin Control::property_value_origin(
             "GUI.Forms cannot inspect a disposed control property");
     }
     if (window_) {
-        (*window_).require_ui_thread("control property origin inspection");
+        (*window_).require_root_thread("control property origin inspection");
     }
     const std::string canonical = registered_name(name);
     const BindablePropertyMap::const_iterator found =
@@ -1516,7 +1516,7 @@ void Control::add_child(Ptr child) {
         throw std::logic_error("GUI.Forms cannot attach a disposed control");
     }
     if ((*child).window_) {
-        (*(*child).window_).require_ui_thread("visual-tree mutation");
+        (*(*child).window_).require_root_thread("visual-tree mutation");
         if ((*(*child).window_).in_lifecycle_notification_) {
             throw std::logic_error("GUI.Forms cannot mutate the visual tree during lifecycle notification");
         }
@@ -2657,7 +2657,7 @@ Size Control::measure(Size available) {
 
 Size Control::measure_for_layout(const LayoutConstraint& constraint) {
     // The cache is UI-thread state, like the tree the answer reads.
-    if (window_ != nullptr) (*window_).require_ui_thread("layout measurement");
+    if (window_ != nullptr) (*window_).require_root_thread("layout measurement");
     if (!valid_layout_constraint(constraint)) {
         throw std::invalid_argument(
             "GUI.Forms layout constraint extents must be finite and nonnegative");
@@ -3336,7 +3336,7 @@ void Control::require_mutable() const {
         throw std::logic_error("GUI.Forms cannot mutate a disposed control");
     }
     if (window_) {
-        (*window_).require_ui_thread("control mutation");
+        (*window_).require_root_thread("control mutation");
     }
 }
 
@@ -3346,7 +3346,7 @@ void Control::verify_dispose_thread() {
         throw std::logic_error("GUI.Forms cannot dispose a control during lifecycle notification");
     }
     if (window_) {
-        (*window_).require_ui_thread("control disposal");
+        (*window_).require_root_thread("control disposal");
     }
 }
 

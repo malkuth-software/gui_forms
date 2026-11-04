@@ -21,7 +21,7 @@ bool grant_outcome_differs(const WindowBackdropGrant& left, const WindowBackdrop
 } // namespace
 
 bool Window::declare_non_opaque() {
-    require_ui_thread("non-opaque declaration");
+    require_root_thread("non-opaque declaration");
     if (host_session_bound_) return false;
     if (non_opaque_declared_) return true;
     non_opaque_declared_ = true;
@@ -30,7 +30,7 @@ bool Window::declare_non_opaque() {
 }
 
 void Window::set_compositor_state(const CompositorState& state, bool host_preferences) {
-    require_ui_thread("compositor state");
+    require_root_thread("compositor state");
     const CompositorState previous = compositor_state_;
     compositor_state_ = state;
     PresentationSettings settings = presentation_settings_;
@@ -49,7 +49,7 @@ void Window::set_compositor_state(const CompositorState& state, bool host_prefer
 }
 
 WindowBackdropGrant Window::request_backdrop(const WindowBackdropRequest& request) {
-    require_ui_thread("backdrop request");
+    require_root_thread("backdrop request");
     if (!window_backdrop_request_valid(request)) {
         throw std::invalid_argument(
             "GUI.Forms backdrop request needs one to three distinct entries with opaque only last");

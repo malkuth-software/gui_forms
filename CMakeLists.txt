@@ -393,7 +393,8 @@ add_library(gui_forms_core STATIC
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
-    src/core/window/dispatcher/window_dispatcher.cpp
+    src/core/surface_root/dispatcher/surface_root_dispatcher.cpp
+    src/core/surface_root/surface_root.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp

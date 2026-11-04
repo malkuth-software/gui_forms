@@ -71,7 +71,7 @@ CommandRouteMatch find_command_handler(const Window& window, std::string_view co
 } // namespace
 
 void Window::set_command_target(CommandRouteStage stage, const std::shared_ptr<CommandTarget>& target) {
-    require_ui_thread("command target");
+    require_root_thread("command target");
     const std::size_t slot = command_target_slot(stage);
     command_targets_[slot] = target;
 }
@@ -93,7 +93,7 @@ CommandRouteResult Window::resolve_command(std::string_view command_id) const {
 }
 
 CommandRouteResult Window::route_command(const CommandInvocation& invocation) {
-    require_ui_thread("command routing");
+    require_root_thread("command routing");
     CommandRouteResult result{};
     if (command_route_depth >= maximum_command_route_depth) {
         result.outcome = CommandRouteOutcome::refused;

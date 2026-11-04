@@ -199,23 +199,23 @@ void Window::invalidate_cursor_interaction(CursorError cause) noexcept {
     if (cursor_metrics_generation_ != 0) { ++cursor_metrics_generation_; }
 }
 CursorMetrics Window::cursor_metrics() const noexcept {
-    if (std::this_thread::get_id() != ui_thread_) { return {}; }
+    if (std::this_thread::get_id() != root_thread_) { return {}; }
     return {cursor_window_id_, cursor_metrics_generation_, client_size_, scale_};
 }
 CursorCapabilities Window::cursor_capabilities() const noexcept {
-    if (std::this_thread::get_id() != ui_thread_) { return {}; }
+    if (std::this_thread::get_id() != root_thread_) { return {}; }
     if (host_services_ == nullptr) { return {}; }
     const CursorCapabilities result = (*host_services_).cursor_capabilities();
     return result;
 }
 CursorLeaseResult Window::begin_cursor_hidden() {
-    if (std::this_thread::get_id() != ui_thread_) { return {{}, {CursorError::wrong_thread}}; }
+    if (std::this_thread::get_id() != root_thread_) { return {{}, {CursorError::wrong_thread}}; }
     if (host_services_ == nullptr) { return {{}, {CursorError::stale_window}}; }
     CursorLeaseResult result = (*host_services_).begin_cursor_hidden(*this);
     return result;
 }
 CursorStatus Window::warp_cursor(CursorMetrics metrics, Point target) {
-    if (std::this_thread::get_id() != ui_thread_) { return {CursorError::wrong_thread}; }
+    if (std::this_thread::get_id() != root_thread_) { return {CursorError::wrong_thread}; }
     if (host_services_ == nullptr) { return {CursorError::stale_window}; }
     const CursorStatus result = (*host_services_).warp_cursor(*this, metrics, target);
     return result;

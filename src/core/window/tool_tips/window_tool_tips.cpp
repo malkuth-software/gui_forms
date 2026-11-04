@@ -10,7 +10,7 @@
 namespace gui_forms {
 
 void Window::set_tool_tips_shown(std::optional<bool> shown) {
-    require_ui_thread("tooltip switch");
+    require_root_thread("tooltip switch");
     if (tool_tips_shown_ == shown) return;
     tool_tips_shown_ = shown;
     (*tool_tip_presenter_).settings_changed();
@@ -22,7 +22,7 @@ bool Window::tool_tips_shown() const noexcept {
 }
 
 void Window::set_tool_tip_settings(ToolTipSettings settings) {
-    require_ui_thread("tooltip settings");
+    require_root_thread("tooltip settings");
     if (settings.initial_delay.count() < 0 || settings.reshow_delay.count() < 0 ||
         settings.auto_pop_delay.count() < 0) {
         throw std::invalid_argument("GUI.Forms tooltip delays may not be negative");
@@ -40,7 +40,7 @@ void Window::set_tool_tip_settings(ToolTipSettings settings) {
 }
 
 void Window::show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) {
-    require_ui_thread("tooltip show");
+    require_root_thread("tooltip show");
     if (!target || !(*target).is_alive() || (*target).attached_window() != this) {
         throw std::invalid_argument("GUI.Forms tooltip target must be a live control attached to its Window");
     }
@@ -54,7 +54,7 @@ void Window::show_tool_tip(const Control::Ptr& target, std::optional<std::chrono
 }
 
 void Window::hide_tool_tip() {
-    require_ui_thread("tooltip hide");
+    require_root_thread("tooltip hide");
     (*tool_tip_presenter_).hide();
 }
 
@@ -85,7 +85,7 @@ void Window::cover_tool_tip(RuntimeId control, std::string_view item_id, bool co
 }
 
 FrameRequestToken Window::request_tool_tip_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {
-    require_ui_thread("tooltip scheduling");
+    require_root_thread("tooltip scheduling");
     compact_frame_requests();
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
         throw std::length_error("GUI.Forms scheduled frame request limit reached");
