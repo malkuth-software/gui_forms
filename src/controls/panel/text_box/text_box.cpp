@@ -831,26 +831,17 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     // The field is the editor's well, drawn by the theme's engine; an
     // overridden field keeps the panel's own paint.
     if (themed) {
-        if (border_style() == BorderStyle::none) {
-            // BorderStyle::none is a field without a frame, as in Windows
-            // Forms: the editor material's ground only. Composites that
-            // hold a borderless TextBox (ComboBox, the up-downs, TokenBox,
-            // BreadcrumbTrail, the grid's cell editor) draw the frame
-            // themselves (sweep defect D12). The engine's well has its
-            // frame, so the ground is drawn from the editor recipe here.
-            const ControlVisualRecipe& editor_recipe =
-                effective_theme().resolve(ControlVisualRole::editor, visual_context(false, false, false, focused_));
-            SurfaceMaterial material = editor_recipe.material;
-            material.border.reset();
-            paint_surface_material(painter, bounds, material);
-        } else {
-            PartPaint well;
-            well.family = ControlVisualRole::editor;
-            well.role = PartRole::well;
-            well.bounds = bounds;
-            well.states = text_states();
-            paint_part(painter, *this, well);
-        }
+        // BorderStyle::none is a field without a frame, as in Windows Forms:
+        // the well's ground only. Composites that hold a borderless TextBox
+        // (ComboBox, the up-downs, TokenBox, BreadcrumbTrail, the grid's cell
+        // editor) draw the frame themselves (sweep defect D12).
+        PartPaint well;
+        well.family = ControlVisualRole::editor;
+        well.role = PartRole::well;
+        well.bounds = bounds;
+        well.states = text_states();
+        well.frame = border_style() == BorderStyle::none ? PartFrame::none : PartFrame::drawn;
+        paint_part(painter, *this, well);
     } else {
         Panel::on_paint(painter, damage);
     }

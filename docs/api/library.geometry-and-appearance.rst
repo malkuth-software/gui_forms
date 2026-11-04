@@ -3526,6 +3526,10 @@ Types
 
       A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
 
+   .. cpp:member:: PartFrame frame
+
+      Whether the part draws its frame. A surface part with frame none is its material's ground: the material's border and per-edge borders are left out, and its fills, keylines, shadows and shape are kept. It is the field of a borderless TextBox (Windows Forms BorderStyle.None), whose composite (a ComboBox, an up-down, the grid's cell editor) draws the frame itself. A primitive that draws no theme material has no ground apart from its frame, so a frameless part it would draw is drawn by the built-in recipe instead. A pointed face with frame none draws no nose edges. Roles that are not surfaces ignore it. Default: ``{PartFrame::drawn}``.
+
    .. cpp:member:: std::optional<AccentIndex> accent
 
       The part's position in the theme's accent ramp (§8.5), or none. A surface part with an accent is tinted from the ramp over its material; text and mark roles ignore it.
@@ -6009,6 +6013,16 @@ Enumerations
    .. cpp:enumerator:: multiply
 
    .. cpp:enumerator:: screen
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PartFrame
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   .. cpp:enumerator:: drawn
+
+   .. cpp:enumerator:: none
 
 .. cpp:namespace:: gui_forms
 

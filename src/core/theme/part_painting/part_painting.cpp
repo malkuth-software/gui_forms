@@ -92,12 +92,19 @@ bool any_state(AnatomyStateSet states, AnatomyState first, AnatomyState second) 
 
 // The surface of a part whose role is a plate, well or mark ground.
 void paint_surface(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
-    if (!part.corner_radius) {
+    const bool frameless = part.frame == PartFrame::none;
+    if (!part.corner_radius && !frameless) {
         paint_surface_material(painter, part.bounds, recipe.material);
         return;
     }
+    // A copy for this paint: the part's corner radius, and a frameless
+    // part's ground without the material's borders (PartPaint::frame).
     SurfaceMaterial shaped = recipe.material;
-    shaped.corner_radius = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius) shaped.corner_radius = std::max(0.0, *part.corner_radius);
+    if (frameless) {
+        shaped.border.reset();
+        shaped.border_edges = MaterialBorderEdges{};
+    }
     paint_surface_material(painter, part.bounds, shaped);
 }
 
@@ -736,7 +743,7 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     }
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
-    if (!recipe.material.border) return;
+    if (part.frame == PartFrame::none || !recipe.material.border) return;
     const Color edge = (*recipe.material.border).color;
     const Point tip{bounds.x + bounds.width - 0.5, bounds.y + bounds.height * 0.5};
     painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);

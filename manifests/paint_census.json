@@ -49,10 +49,6 @@
     "effect": {
       "files": 2,
       "calls": 19
-    },
-    "stock": {
-      "files": 1,
-      "calls": 1
     }
   },
   "files": {
@@ -95,10 +91,6 @@
     },
     "panel/picture_box/picture_box.cpp": {
       "category": "exempt",
-      "calls": 1
-    },
-    "panel/text_box/text_box.cpp": {
-      "category": "stock",
       "calls": 1
     },
     "range_control/progress_bar/progress_bar_effects.cpp": {
