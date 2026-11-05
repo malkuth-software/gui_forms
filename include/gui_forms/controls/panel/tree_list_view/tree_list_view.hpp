@@ -4,6 +4,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
+#include "gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp"
 
 #include <chrono>
 #include <cstddef>
@@ -113,7 +114,7 @@ struct TreeListColumnMove final {
 // header's divider and moved by dragging a header; the tree column stays
 // first. Multiple selection, check boxes, label editing, owner drawing and a
 // virtual node source are not supported yet.
-class TreeListView final : public Control {
+class TreeListView final : public Control, public TreeListViewCapabilities<TreeListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
     // Development bounds, not measured capacity.
@@ -194,13 +195,6 @@ public:
     [[nodiscard]] double horizontal_offset() const noexcept { return horizontal_offset_; }
     void set_horizontal_offset(double offset);
 
-    // -- selection ---------------------------------------------------------------
-    // The selected node's ID, or none; borrowed until the nodes change.
-    [[nodiscard]] std::optional<std::string_view> selected_id() const noexcept;
-    // Selects a node (expanding its ancestors and scrolling it into view) or
-    // nothing, moves the current node with it, and raises selection_changed.
-    // Throws std::out_of_range for an unknown node.
-    void set_selected_id(std::optional<std::string_view> node_id);
     // The node with the keyboard's position and the focus cue, or none.
     [[nodiscard]] std::optional<std::string_view> current_id() const noexcept;
 
@@ -213,18 +207,6 @@ public:
     // header shows the order with a sort glyph. Raises sort_changed when the
     // sort changes. Throws std::out_of_range for a column past the end.
     void set_sort(std::optional<std::size_t> column, TreeListSortOrder order);
-
-    // -- appearance --------------------------------------------------------------
-    // The step of each tree level, in logical units; also the expander's
-    // width. Throws std::invalid_argument outside the indentation bounds.
-    [[nodiscard]] double indentation() const noexcept { return indentation_; }
-    void set_indentation(double indentation);
-    [[nodiscard]] std::shared_ptr<ImageList> image_list() const noexcept { return images_; }
-    // Throws std::invalid_argument for a list that is not alive or belongs to
-    // another window.
-    void set_image_list(std::shared_ptr<ImageList> images);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
 
     // The node under a point in window coordinates, if any.
     [[nodiscard]] std::optional<std::string> node_id_at(Point window_point) const;
@@ -514,11 +496,8 @@ private:
     double horizontal_offset_{};
     std::optional<std::size_t> sort_column_{};
     TreeListSortOrder sort_order_{TreeListSortOrder::none};
-    double indentation_{18.0};
     bool focused_{};
     bool synchronizing_scroll_{};
-    FontSpec font_{FontRole::content, 10.5, 400, false};
-    std::shared_ptr<ImageList> images_{};
     SubscriptionToken images_changed_{};
     std::shared_ptr<VScrollBar> vertical_bar_{};
     std::shared_ptr<HScrollBar> horizontal_bar_{};
@@ -535,6 +514,22 @@ private:
     Event<const TreeListSortChange&> sort_changed_{};
     Event<const TreeListColumnWidthChange&> column_width_changed_{};
     Event<const TreeListColumnMove&> column_moved_{};
+    // property_codemod begin TreeListView (tools/property_families/tree_list_view.json; generated, do not edit)
+private:
+    friend struct TreeListViewIndentationCapability<TreeListView>;
+    friend struct TreeListViewImageListCapability<TreeListView>;
+    friend struct FontCapability<TreeListView>;
+    friend struct TreeListViewSelectedIdCapability<TreeListView>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(indentation)& cell, double& incoming);
+    void written(const decltype(indentation)& cell);
+    void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);
+    void written(const decltype(image_list)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void write_view(const decltype(selected_id)& cell, std::optional<std::string> incoming);
+    [[nodiscard]] std::optional<std::string> read_view(const decltype(selected_id)& cell) const;
+    // property_codemod end TreeListView
 };
 
 } // namespace gui_forms

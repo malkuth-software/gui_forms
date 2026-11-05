@@ -298,6 +298,14 @@ Related types
      - The "row" item system: one realized row.
    * - :cpp:class:`TreeListView::RowStates <gui_forms::TreeListView::RowStates>`
      -  
+   * - :cpp:class:`TreeListViewCapabilities <gui_forms::TreeListViewCapabilities>`
+     - Every TreeListView capability, in the order the declaring class takes them.
+   * - :cpp:class:`TreeListViewImageListCapability <gui_forms::TreeListViewImageListCapability>`
+     - The images that the nodes' image_key values name; a list must be alive and belong to this view's Window.
+   * - :cpp:class:`TreeListViewIndentationCapability <gui_forms::TreeListViewIndentationCapability>`
+     - Width of one tree level, in logical units; the tree column's text starts after the indentation, the expander and the icon.
+   * - :cpp:class:`TreeListViewSelectedIdCapability <gui_forms::TreeListViewSelectedIdCapability>`
+     - The selected node's stable ID, or none.
    * - :cpp:class:`TreeSelectionChange <gui_forms::TreeSelectionChange>`
      - TreeSelectionChange reports previous/current optional node identities and interaction source.
    * - :cpp:class:`TreeView::Item <gui_forms::TreeView::Item>`
@@ -2573,6 +2581,87 @@ Related types
    .. cpp:member:: bool disabled
 
    .. cpp:member:: bool focus_visible
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeListViewCapabilities : public TreeListViewIndentationCapability<Declaring>, public TreeListViewImageListCapability<Declaring>, public FontCapability<Declaring>, public TreeListViewSelectedIdCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+
+   Every TreeListView capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TreeListViewCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double indentation
+
+      Width of one tree level, in logical units; the tree column's text starts after the indentation, the expander and the icon.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images that the nodes' image_key values name; a list must be alive and belong to this view's Window.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::optional<std::string> selected_id
+
+      The selected node's stable ID, or none.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeListViewImageListCapability
+
+   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+
+   The images that the nodes' image_key values name; a list must be alive and belong to this view's Window.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeListViewImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, TreeListViewImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeListViewIndentationCapability
+
+   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+
+   Width of one tree level, in logical units; the tree column's text starts after the indentation, the expander and the icon.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeListViewIndentationCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TreeListViewIndentationCapability<Declaring>> indentation
+
+      Default: ``{18.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeListViewSelectedIdCapability
+
+   ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp>``
+
+   The selected node's stable ID, or none.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeListViewSelectedIdCapability& capability, std::optional<std::string> incoming)
+
+   .. cpp:function:: static std::optional<std::string> read(const TreeListViewSelectedIdCapability& capability)
+
+   .. cpp:member:: PropertyView<std::optional<std::string>, TreeListViewSelectedIdCapability<Declaring>> selected_id
 
 .. cpp:namespace:: gui_forms
 

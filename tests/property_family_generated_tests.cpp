@@ -4,6 +4,7 @@
 // raises the change event once (property-capabilities study, section 15.2).
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 
 #include <cstdlib>
@@ -138,11 +139,27 @@ void test_scrollable_control_properties() {
     }
 }
 
+void test_tree_list_view_properties() {
+    std::shared_ptr<TreeListView> control = make_control<TreeListView>(StableId("generated.treelistview"));
+    {
+        const double sample = 24.0;
+        (*control).indentation = sample;
+        expect((*control).indentation.read() == sample, "TreeListView.indentation: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    {
+        const FontSpec sample = FontSpec{FontRole::content, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "TreeListView.font: a write stores");
+    }
+}
+
 } // namespace
 
 int main() {
     test_button_base_properties();
     test_scrollable_control_properties();
+    test_tree_list_view_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;
 }

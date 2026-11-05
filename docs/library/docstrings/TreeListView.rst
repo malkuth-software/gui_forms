@@ -44,10 +44,10 @@ top_row
 horizontal_offset
     The sideways scroll, in logical units, clamped to the columns' width.
 selected_id
-    The selected node's ID, or none. `set_selected_id` selects a node
-    (expanding its ancestors and scrolling it into view) or nothing, and
-    throws `std::out_of_range` for an unknown node. The returned view is
-    valid until the nodes change.
+    The selected node's ID, or none; ``selected_id.read()`` returns a copy.
+    Writing ``selected_id = "id"`` selects a node (expanding its ancestors
+    and scrolling it into view), ``selected_id = std::nullopt`` selects
+    nothing, and a write throws `std::out_of_range` for an unknown node.
 current_id
     The node with the keyboard's position and the focus cue, or none.
 sort_column
@@ -56,11 +56,12 @@ sort_order : default ``TreeListSortOrder::none``
     The order the siblings are shown in.
 indentation : default ``18``
     The step of each tree level in logical units, also the width of the
-    expander's slot, from `minimum_indentation` to `maximum_indentation`.
+    expander's slot, from `minimum_indentation` to `maximum_indentation`; a
+    write outside them throws `std::invalid_argument`.
 image_list
     The images shown before each node's text, looked up by `image_key`.
-    Without it no icons are shown. `set_image_list` throws
-    `std::invalid_argument` for a list of another window.
+    Without it no icons are shown. A write throws `std::invalid_argument`
+    for a list that is not alive or belongs to another window.
 font
     The font of node, cell and header text.
 realized_rows
