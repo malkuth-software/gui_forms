@@ -337,7 +337,7 @@ Color text_of(const ThemeRule& rule) {
 
 void test_conditional_palettes() {
     constexpr std::string_view two =
-        ":root { ink-on-paper: #111111 on #ffffff } "
+        ":root { color-scheme: light dark; ink-on-paper: #111111 on #ffffff } "
         "@media (prefers-color-scheme: dark) { :root { ink-on-paper: #eeeeee on #000000 } } ";
     const Compilation switched = compile(std::string(two) + "#a { color: role(ink-on-paper) } #b { opacity: 0.5 }");
     require(compiled_clean(switched) && switched.sheet.rules.size() == 3U, "a rule reading a varying role is copied");
@@ -385,7 +385,7 @@ void test_conditional_palettes() {
             "a later unconditional declaration replaces the conditional ones");
 
     const Compilation listed = compile(
-        ":root { ink-on-paper: #111111 on #ffffff } "
+        ":root { color-scheme: light dark; ink-on-paper: #111111 on #ffffff } "
         "@media (prefers-color-scheme: dark), (forced-colors: active) { :root { ink-on-paper: #eeeeee on #000000 } } "
         "#a { color: role(ink-on-paper) }");
     require(compiled_clean(listed) && listed.sheet.rules.size() == 3U && listed.sheet.rules[1].media == dark() &&
@@ -465,8 +465,9 @@ void test_high_contrast_remap() {
     require(high_contrast_colour(invalid, ColourPosition::edge, normal, false) == red_edge,
             "an invalid role takes the invalid edge");
     require(high_contrast_colour(focus, ColourPosition::edge, normal, false) == cyan &&
-                high_contrast_colour(focus, ColourPosition::edge, ControlSurfaceState::pressed, false) == cyan,
-            "focus takes the hot edge");
+                high_contrast_colour(focus, ColourPosition::edge, ControlSurfaceState::pressed, false) ==
+                    Color::rgba(0, 0, 0),
+            "focus takes the cue colour, and the selection ink on a pressed (inverse) plate");
     require(high_contrast_colour(selection_plate, ColourPosition::fill, normal, false) == white,
             "a selection background is the selected plate");
     const ColourOrigin selection_text = (*recipe_of(second, RecipeField::text)).origin;
@@ -493,7 +494,7 @@ public:
 
 void test_light_and_dark_palette() {
     const Compilation compiled = compile(
-        ":root { ink-on-paper: #111111 on #ffffff } "
+        ":root { color-scheme: light dark; ink-on-paper: #111111 on #ffffff } "
         "@media (prefers-color-scheme: dark) { :root { ink-on-paper: #eeeeee on #000000 } } "
         "#pad { color: role(ink-on-paper) }");
     require(compiled_clean(compiled), "the palette sheet compiles");

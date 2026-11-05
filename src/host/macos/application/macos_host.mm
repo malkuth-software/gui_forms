@@ -802,6 +802,40 @@ bool semantic_has_action(const SemanticNode& node, SemanticAction action) {
 
 } // namespace
 
+// What the published accessibility tree was built from. The semantic
+// generation moves with every semantic invalidation (focus, text, enabled,
+// visibility, bounds requests, attach and detach, focus scopes), but an
+// arrangement that moves a control without such an invalidation of its own
+// only advances the content revision, and the elements keep each node's
+// bounds. The display generation moves when a control is painted again, in
+// case a node describes what was painted (as the Windows tree's key does).
+// The elements convert their window-local bounds to the screen when read,
+// so window moves and scale changes need no entry here.
+struct MacAccessibilityTreeKey final {
+    std::uint64_t semantic_generation{0};
+    std::uint64_t content_revision{0};
+    std::uint64_t display_generation{0};
+};
+
+static bool operator==(const MacAccessibilityTreeKey& left,
+                       const MacAccessibilityTreeKey& right) noexcept {
+    const bool equal = left.semantic_generation == right.semantic_generation &&
+                       left.content_revision == right.content_revision &&
+                       left.display_generation == right.display_generation;
+    return equal;
+}
+
+// The key `window` gives now; builds no snapshot. metrics_snapshot copies
+// the metrics record, including its renderer-name string (at most one small
+// allocation), since Window has no narrower reader of the display generation.
+static MacAccessibilityTreeKey read_accessibility_tree_key(const Window& window) {
+    MacAccessibilityTreeKey key;
+    key.semantic_generation = window.semantic_generation();
+    key.content_revision = window.paint_lease_snapshot().content_revision;
+    key.display_generation = window.metrics_snapshot().display_generation;
+    return key;
+}
+
 @class GUIFormsAccessibilityElement;
 @class GUIFormsView;
 
@@ -860,7 +894,9 @@ bool semantic_has_action(const SemanticNode& node, SemanticAction action) {
     NSPanel* _tooltipPanel;
     NSTimer* _tooltipTimer;
     std::uint64_t _lastSemanticGeneration;
-    std::uint64_t _accessibilityCacheGeneration;
+    // The key the cached accessibility children were built under; read only
+    // while _semanticAccessibilityChildren is not nil.
+    MacAccessibilityTreeKey _accessibilityCacheKey;
     // Whether the last published tree held a live region: a semantic change
     // then republishes the tree at once, so that a changed announcement is
     // posted when it changes rather than when a client next reads.
@@ -1846,7 +1882,7 @@ void post_perform_close(NSWindow* window) {
         _nextHostSequence = 1;
         _hostAttached = NO;
         _lastSemanticGeneration = 0;
-        _accessibilityCacheGeneration = 0;
+        _accessibilityCacheKey = MacAccessibilityTreeKey{};
         _nativeCallbackFaults = 0;
         _initialHostOccluded = YES;
         _scheduledWakeCount = 0;
@@ -2125,11 +2161,16 @@ void post_perform_close(NSWindow* window) {
 
 - (NSArray*)accessibilityChildren {
     if (!_model) return @[];
-    const gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
-    if (_semanticAccessibilityChildren != nil &&
-        _accessibilityCacheGeneration == snapshot.generation) {
+    // Every client query lands here; build a snapshot only when the key has
+    // moved since the cached children were built.
+    const MacAccessibilityTreeKey before = read_accessibility_tree_key(*_model);
+    if (_semanticAccessibilityChildren != nil && _accessibilityCacheKey == before) {
         return _semanticAccessibilityChildren;
     }
+    const gui_forms::SemanticSnapshot snapshot = (*_model).semantic_snapshot();
+    // The snapshot lays the window out first, which can move the key; the
+    // children describe the window as it is after that layout.
+    const MacAccessibilityTreeKey after = read_accessibility_tree_key(*_model);
     NSMutableArray* result = [[NSMutableArray alloc]
         initWithCapacity:snapshot.roots.size()];
     bool live_region = false;
@@ -2150,7 +2191,7 @@ void post_perform_close(NSWindow* window) {
     _semanticAccessibilityElements = next;
     _semanticAccessibilityElementsByStableId = byStableId;
     _semanticAccessibilityChildren = [result copy];
-    _accessibilityCacheGeneration = snapshot.generation;
+    _accessibilityCacheKey = after;
     return _semanticAccessibilityChildren;
 }
 
@@ -2412,7 +2453,7 @@ void post_perform_close(NSWindow* window) {
         if (semanticGeneration != _lastSemanticGeneration) {
             _lastSemanticGeneration = semanticGeneration;
             _semanticAccessibilityChildren = nil;
-            _accessibilityCacheGeneration = 0;
+            _accessibilityCacheKey = MacAccessibilityTreeKey{};
             // Republishing posts a changed live region's announcement, and
             // a text node's changed value or selection, now.
             if (_publishesLiveRegion == YES || _publishesTextRanges == YES) {
@@ -2750,7 +2791,10 @@ void post_perform_close(NSWindow* window) {
     _lastCGClipBoundsArea = 0.0;
     _lastCGSourceBytes = 0U;
 #if !defined(GUI_FORMS_PREPARED_TEXT)
-    if (_raster.resize(logicalSize, scale)) {
+    // At an unchanged scale the raster keeps its pixels where the old and
+    // new extents overlap, and the window damaged what the resize exposed
+    // (Window::resize); otherwise it starts clear and is painted whole.
+    if (_raster.resize(logicalSize, scale) && !_raster.carried_on_resize()) {
         _rasterHasContent = NO;
         _pendingDamage.add(GFRect{0.0, 0.0, logicalSize.width, logicalSize.height});
     }
@@ -2764,7 +2808,8 @@ void post_perform_close(NSWindow* window) {
     reuse.front_matches_extent = _raster.prepared_front_matches(logicalSize, scale);
     const PaintReceipt previousReceipt = _raster.prepared_front_receipt();
 #else
-    // The ordinary raster was resized to the view above (and lost its content).
+    // The ordinary raster was resized to the view above (keeping the pixels
+    // it carried, if any).
     reuse.front_matches_extent = true;
 #endif
     reuse.front_surface_epoch = _frontSurfaceEpoch;
@@ -3560,6 +3605,36 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
 }
 @end
 
+namespace gui_forms::host {
+
+// What a quit request did to one window (closeForTermination:).
+enum class MacTerminationClose : std::uint8_t {
+    // The window does not end the run; the request is for another window.
+    not_ending,
+    // The closing handler refused; the run goes on.
+    refused,
+    // The window has closed, so the run is over.
+    closed,
+};
+
+// The end of a run: what it does once the window that ends it has closed
+// (close metrics, final snapshots, the capture check, shutdown). It runs
+// once: after [NSApp run] returns or, for a quit request, from the
+// application delegate before AppKit ends the process.
+struct MacRunEnd final {
+    void (*finish)(void* context){};
+    void* context{};
+    bool finished{};
+};
+
+void finish_run(MacRunEnd& end) {
+    if (end.finished || end.finish == nullptr) return;
+    end.finished = true;
+    (*end.finish)(end.context);
+}
+
+} // namespace gui_forms::host
+
 @interface GUIFormsWindowDelegate : NSObject <NSWindowDelegate> {
     __weak GUIFormsView* _view;
     BOOL _stopsApplicationOnClose;
@@ -3582,6 +3657,10 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
            window:(gui_forms::HostWindowId)window;
 // Closes without asking the closing handler (HostWindowing::destroy_window).
 - (void)closeWindowForApplication:(NSWindow*)window;
+// A quit request (Cmd-Q, the Dock, a quit Apple event, a log-out): for the
+// window that ends the run, asks the closing handler as the close button
+// does and closes the window when it agrees.
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window;
 @end
 
 @implementation GUIFormsWindowDelegate
@@ -3675,6 +3754,54 @@ void mac_run_report_active(MacApplicationRun* run, bool active);
 }
 - (void)windowDidChangeBackingProperties:(NSNotification*)notification {
     [_view notifyScaleChanged];
+}
+- (gui_forms::host::MacTerminationClose)closeForTermination:(NSWindow*)window {
+    if (!_stopsApplicationOnClose) return gui_forms::host::MacTerminationClose::not_ending;
+    // windowShouldClose: rather than performClose:, which beeps and does
+    // nothing for a window without a close button.
+    if (![self windowShouldClose:window]) return gui_forms::host::MacTerminationClose::refused;
+    [window close];
+    return gui_forms::host::MacTerminationClose::closed;
+}
+@end
+
+// The application delegate for a run. AppKit's terminate: ends the process
+// before [NSApp run] returns, which would skip everything a run does after
+// its window closes. A quit request therefore closes the window that ends
+// the run, as its close button does, then ends the run in place (the run's
+// MacRunEnd) and lets the termination proceed, so a log-out or restart goes
+// on. When the closing handler refuses, the termination is cancelled, as an
+// application with unsaved work cancels it. With no such window, the
+// termination proceeds. The work is synchronous, so the reply is given at
+// once rather than deferred with NSTerminateLater.
+// After a quit, the process ends inside terminate: with status 0: the run's
+// own exit code and the program's code after the run do not apply.
+@interface GUIFormsTerminationDelegate : NSObject <NSApplicationDelegate> {
+    // Observing: the run function owns it and clears this delegate before
+    // it returns.
+    gui_forms::host::MacRunEnd* _end;
+}
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end;
+@end
+
+@implementation GUIFormsTerminationDelegate
+- (instancetype)initWithEnd:(gui_forms::host::MacRunEnd*)end {
+    self = [super init];
+    if (self != nil) _end = end;
+    return self;
+}
+- (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication*)sender {
+    for (NSWindow* window in [sender windows]) {
+        const id delegate = [window delegate];
+        if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) continue;
+        GUIFormsWindowDelegate* windowDelegate = static_cast<GUIFormsWindowDelegate*>(delegate);
+        const gui_forms::host::MacTerminationClose outcome = [windowDelegate closeForTermination:window];
+        if (outcome == gui_forms::host::MacTerminationClose::not_ending) continue;
+        if (outcome == gui_forms::host::MacTerminationClose::refused) return NSTerminateCancel;
+        if (_end != nullptr) gui_forms::host::finish_run(*_end);
+        return NSTerminateNow;
+    }
+    return NSTerminateNow;
 }
 @end
 
@@ -3982,6 +4109,44 @@ private:
 };
 
 
+namespace {
+
+// A single-window run's end (MacRunEnd's context): borrowed from run_macos,
+// which outlives every use.
+struct SingleWindowRunEnd final {
+    GUIFormsView* view{};
+    NSWindow* window{};
+    MacHostOptions* options{};
+    int* exit_code{};
+};
+
+void end_single_window_run(void* context) {
+    SingleWindowRunEnd& end = *static_cast<SingleWindowRunEnd*>(context);
+    MacHostOptions& options = *end.options;
+    [NSApp setDelegate:nil];
+    const std::string metrics = [end.view metricsJSON];
+    const std::string host = [end.view hostJSON];
+    if (options.print_metrics_on_close) {
+        std::fprintf(stdout, "{\"window\":%s,\"host\":%s}\n",
+                     metrics.c_str(), host.c_str());
+        std::fflush(stdout);
+    }
+    if (options.final_snapshot) {
+        options.final_snapshot(metrics, host);
+    }
+    // Portable contract: a requested capture that was never saved (no
+    // covering frame before close, or an encode/write failure) fails the
+    // process.
+    if (!options.capture_path.empty() && [end.view frameCaptureSaved] == NO) {
+        *end.exit_code = 6;
+    }
+    [end.view prepareForShutdown];
+    [end.window setDelegate:nil];
+    [end.window setContentView:nil];
+}
+
+} // namespace
+
 int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
     if (!model || !options.initially_visible || options.hide_on_close) {
         return 2;
@@ -4087,26 +4252,14 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             RepeatedCloseWork* const work = new RepeatedCloseWork{nativeWindow, closeAttempts};
             dispatch_async_f(dispatch_get_main_queue(), work, &repeated_close_on_main);
         }
+        SingleWindowRunEnd ending{view, nativeWindow, &options, &exitCode};
+        MacRunEnd end{&end_single_window_run, &ending, false};
+        // NSApp holds its delegate weakly; this local keeps it to the end,
+        // and end_single_window_run clears it.
+        GUIFormsTerminationDelegate* termination = [[GUIFormsTerminationDelegate alloc] initWithEnd:&end];
+        [application setDelegate:termination];
         [application run];
-        const std::string metrics = [view metricsJSON];
-        const std::string host = [view hostJSON];
-        if (options.print_metrics_on_close) {
-            std::fprintf(stdout, "{\"window\":%s,\"host\":%s}\n",
-                         metrics.c_str(), host.c_str());
-            std::fflush(stdout);
-        }
-        if (options.final_snapshot) {
-            options.final_snapshot(metrics, host);
-        }
-        // Portable contract: a requested capture that was never saved (no
-        // covering frame before close, or an encode/write failure) fails the
-        // process.
-        if (!options.capture_path.empty() && [view frameCaptureSaved] == NO) {
-            exitCode = 6;
-        }
-        [view prepareForShutdown];
-        [nativeWindow setDelegate:nil];
-        [nativeWindow setContentView:nil];
+        finish_run(end);
     }
     return exitCode;
 }

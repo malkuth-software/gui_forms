@@ -215,7 +215,7 @@ void test_state_validation_and_json() {
     require(json == "{\"generation\":3,\"compositing\":\"present\",\"support\":{\"opaque\":\"supported\","
                     "\"transparent\":\"supported\",\"window_material\":\"supported\","
                     "\"transient_material\":\"supported\"},\"transparency_enabled\":true,"
-                    "\"reduced_transparency\":false,\"high_contrast\":false}",
+                    "\"reduced_transparency\":false,\"high_contrast\":false,\"dark_scheme\":false}",
             "the state's JSON names every field");
     const HostCapabilities capabilities = host::headless_capabilities();
     require(capabilities.protocol_version >= 9U && host_protocol_revisions.size() >= 2U &&

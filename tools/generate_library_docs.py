@@ -81,7 +81,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "The retained window model, update scopes, damage, frame scheduling, "
           "the UI-thread dispatcher, per-window instrumentation and each "
           "thread's shadow frames.",
-          ("window", "scheduler", "dispatcher", "display", "dirty", "metrics", "diagnostics")),
+          ("window", "surface_root", "scheduler", "dispatcher", "display", "dirty", "metrics", "diagnostics")),
     Group("control-and-component", "Control and component",
           "The base classes every control and nonvisual component derives from, "
           "with layout, docking, anchoring and validation vocabularies (layout "

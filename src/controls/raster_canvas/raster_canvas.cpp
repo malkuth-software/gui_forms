@@ -30,7 +30,7 @@ RasterCanvas::RasterCanvas(StableId stable_id) : Control(std::move(stable_id)) {
 void RasterCanvas::set_bitmap(std::shared_ptr<gui_drawing::Bitmap> bitmap) {
     require_mutable();
     if (bitmap_ == bitmap) return;
-    if (Window* owner = window()) release_tiles(*owner);
+    if (SurfaceRoot* owner = surface_root()) release_tiles(*owner);
     bitmap_ = std::move(bitmap);
     tiles_.clear();
     presented_generation_ = 0U;
@@ -164,7 +164,7 @@ bool RasterCanvas::publish_full_bitmap() {
     return true;
 }
 
-void RasterCanvas::release_tiles(Window& owner) noexcept {
+void RasterCanvas::release_tiles(SurfaceRoot& owner) noexcept {
     for (std::size_t index = 0; index < tiles_.size(); ++index) {
         try { static_cast<void>(owner.remove_image(tiles_[index].image)); }
         catch (...) {}
@@ -325,7 +325,7 @@ void RasterCanvas::on_attached_to_window() {
     }
 }
 
-void RasterCanvas::on_detaching_from_window(Window& former_window) noexcept {
+void RasterCanvas::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     release_tiles(former_window);
 }
 
@@ -335,7 +335,7 @@ void RasterCanvas::on_detached_from_window() noexcept {
 }
 
 void RasterCanvas::on_dispose() noexcept {
-    if (Window* owner = window()) release_tiles(*owner);
+    if (SurfaceRoot* owner = surface_root()) release_tiles(*owner);
     bitmap_.reset();
     tiles_.clear();
     presented_generation_ = 0U;

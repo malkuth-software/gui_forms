@@ -143,6 +143,9 @@ property.box-shadow-inset	shadows-opacity-filters
 property.clip-path	not-admitted
 property.color	transforms-text
 property.conic-gradient	fills
+property.effect	effects
+property.effect-colours	effects
+property.effect-none	effects
 property.filter-blur	shadows-opacity-filters
 property.filter-colour	shadows-opacity-filters
 property.filter-drop-shadow	shadows-opacity-filters
@@ -160,6 +163,7 @@ property.outline-offset	borders
 property.primitive	transforms-text
 property.procedural	fills
 property.radial-gradient	fills
+property.reflection	finish-light-images-masks
 property.repeating-gradient	fills
 property.rotate	not-admitted
 property.scale	transforms-text
@@ -242,6 +246,9 @@ code-elsewhere E607	theme_compiler_tests (engine too old)
 code-elsewhere W108	theme_compiler_tests (a registry with a costly primitive)
 code-elsewhere W109	theme_compiler_tests (a registry with an unbounded primitive)
 code-elsewhere W401	theme_inline_style_tests (reported by a window)
+code-elsewhere W402	theme_variant_tests (the package compile)
+code-elsewhere W403	theme_variant_tests (reported by a window)
+code-elsewhere W404	theme_variant_tests (reported by a control)
 code-elsewhere W501	theme_user_theme_tests (an icon file a user theme has)
 code-elsewhere W502	theme_user_theme_tests (an icon file a user theme has)
 code-elsewhere W503	theme_user_theme_tests (an icon file a user theme has)

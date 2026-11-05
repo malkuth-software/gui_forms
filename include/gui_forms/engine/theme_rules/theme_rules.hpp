@@ -8,6 +8,7 @@
 #include "gui_forms/engine/types/engine_types.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
 
 #include <array>
 #include <cstddef>
@@ -359,6 +360,41 @@ enum class PartBlend : std::uint8_t { normal, multiply, screen };
 // beyond them is shown. The forced high-contrast pass draws no blend.
 inline constexpr std::string_view blend_property = "blend";
 
+// The effect a part draws (effect programs, design note section 7): a
+// declaration of this property whose value is a registered effect's name
+// (snake_case, as EffectDeclaration::name spells it) selects that effect
+// for the part, and the name `none` (effect_none_name) selects none. Like
+// blend it is no atom and no primitive parameter, and a rule that declares
+// it needs no primitive; the last matching rule that declares it wins. The
+// rules check only the name's form: the control hosting the part checks
+// the effect against its registry when it attaches it (the effect's parent
+// type, its budget and its verification record), and a refused effect
+// leaves the part to its primitive alone (EffectSelectionOutcome).
+inline constexpr std::string_view effect_property = "effect";
+inline constexpr std::string_view effect_none_name = "none";
+
+// The colours a part's effect draws with (EP-4, theme-variants direction):
+// a primary and a secondary colour role, never a literal, so that an
+// effect follows the theme's palette in each colour scheme (the rule
+// copies the palette's media variants make) and the forced high-contrast
+// pass remaps it by its role. A declaration of either holds a colour
+// whose origin is a role (ColourSource::role); the last matching rule that
+// declares each wins. Like effect_property, neither needs a primitive. A
+// part whose rules declare none takes its host control's own colours.
+inline constexpr std::string_view effect_primary_property = "effect_primary";
+inline constexpr std::string_view effect_secondary_property = "effect_secondary";
+
+// One effect colour as the rules resolve it: the role's colour in the
+// part's palette and the role it came from.
+struct EffectColourDeclaration final {
+    Color colour{};
+    ColourOrigin origin{};
+
+    friend bool operator==(const EffectColourDeclaration& left, const EffectColourDeclaration& right) noexcept {
+        return left.colour == right.colour && left.origin == right.origin;
+    }
+};
+
 // The text roles (T3 P8c, owner decision D5 of 2026-10-28): the theme's
 // typography tokens (ThemeTypographyTokens) a part's text takes, `ui`
 // being the controls' own (`control`). A part's em is its role's size
@@ -596,6 +632,7 @@ enum class MaterialField : std::uint8_t {
     filter_blur,
     finish,
     mask,
+    reflection,
     count,
 };
 
@@ -635,7 +672,8 @@ inline constexpr std::size_t material_field_count = static_cast<std::size_t>(Mat
 // - colour_filter: `colour_filter`; drop_shadow: `drop_shadow`, empty for
 //   none; mask: `mask`, empty for none, and `gradients`, empty or one
 //   entry, the mask's authored gradient as for a fill layer;
-// - filter_blur and finish: `number`.
+// - filter_blur and finish: `number`;
+// - reflection: `reflection`, empty for none (stage T5, C7).
 // `initial`, set, is CSS's `initial`: the field keeps the floor's value,
 // and the declaration still wins over those beneath it; its value members
 // are not read.
@@ -661,6 +699,7 @@ struct MaterialDeclaration final {
     MaterialColourFilter colour_filter{};
     std::optional<MaterialDropShadow> drop_shadow{};
     std::optional<MaterialFillLayer> mask{};
+    std::optional<MaterialReflection> reflection{};
     // Where the declaration's colours came from (EC4).
     ColourOrigin origin{};
     // Its lengths in em (T3 P8c, owner decision D4): empty, or one
@@ -684,7 +723,8 @@ struct MaterialDeclaration final {
                left.colour == right.colour && left.keylines == right.keylines &&
                left.number == right.number && left.relative == right.relative &&
                left.colour_filter == right.colour_filter && left.drop_shadow == right.drop_shadow &&
-               left.mask == right.mask && left.origin == right.origin && left.em_lengths == right.em_lengths &&
+               left.mask == right.mask && left.reflection == right.reflection && left.origin == right.origin &&
+               left.em_lengths == right.em_lengths &&
                left.current_colours == right.current_colours;
     }
 };
@@ -695,7 +735,7 @@ struct MaterialDeclaration final {
 // authored gradient's centre, radii and stop positions (their units); the
 // image positions' and the image sizes' units; each shadow's offset, blur
 // and spread; each glow's blur and spread; each keyline's width and inset;
-// the drop shadow's offset and blur.
+// the drop shadow's offset and blur; the reflection's gap and reach.
 void material_declaration_lengths(const MaterialDeclaration& declaration, std::vector<double>& lengths);
 // Sets the lengths of `declaration` from `lengths`, in that order; a length
 // past the end of `lengths` is kept.
@@ -994,10 +1034,14 @@ struct ThemeRuleSheet final {
     EngineVersion requires_engine{current_engine_version};
     std::vector<ThemeRule> rules{};
     std::vector<std::string> published_values{};
+    // The colour schemes the sheet declares (`:root { color-scheme: ... }`,
+    // T4 theme variants), or none where it declares none. Theme::create
+    // takes a declared set as the theme's (ThemeDefinition::colour_schemes).
+    std::optional<ColourSchemeSet> colour_schemes{};
 
     friend bool operator==(const ThemeRuleSheet& left, const ThemeRuleSheet& right) noexcept {
         return left.requires_engine == right.requires_engine && left.rules == right.rules &&
-               left.published_values == right.published_values;
+               left.published_values == right.published_values && left.colour_schemes == right.colour_schemes;
     }
 };
 
@@ -1073,6 +1117,14 @@ enum class RuleDiagnosticKind : std::uint8_t {
     // A font declaration whose value is not a text role's name or
     // `inherit` (P8c).
     font_invalid,
+    // An effect declaration (effect_property) whose value is not a name
+    // of lowercase ASCII letters, digits and '_', the first a letter, of at
+    // most maximum_effect_name_length characters.
+    effect_invalid,
+    // An effect colour declaration (effect_primary_property,
+    // effect_secondary_property) whose value is not a colour taken from a
+    // colour role.
+    effect_colour_invalid,
     // A published value's name is invalid, repeats an earlier one or is
     // past maximum_published_values. The diagnostic, of the sheet rather
     // than a rule, names it in `property`; its position stays, and reads as
@@ -1296,6 +1348,16 @@ public:
         // The part's font (font_property, P8c): the last matching rule's,
         // else the ui role.
         FontDeclaration font{};
+        // The part's effect (effect_property): the last matching rule's
+        // name, which belongs to the compiled rules, and whether any rule
+        // declared one; `none` is declared with an empty name.
+        std::string_view effect{};
+        bool effect_declared{};
+        // The part's effect colours (effect_primary_property,
+        // effect_secondary_property): the last matching rule's of each, or
+        // none.
+        std::optional<EffectColourDeclaration> effect_primary{};
+        std::optional<EffectColourDeclaration> effect_secondary{};
         // The winning declaration of each material field (EC1), by the
         // field's position, or null where no matching rule sets it; they
         // belong to the compiled rules. `materials_authored` is whether any
@@ -1395,6 +1457,11 @@ private:
         std::optional<AmbientEffect> ambient{};
         std::optional<PartBlend> blend{};
         std::optional<FontDeclaration> font{};
+        // The rule's effect name (effect_property); empty for `none`.
+        std::optional<std::string> effect{};
+        // The rule's effect colours.
+        std::optional<EffectColourDeclaration> effect_primary{};
+        std::optional<EffectColourDeclaration> effect_secondary{};
         MediaCondition media{};
         // Checked material fields, at most one per field.
         std::vector<MaterialDeclaration> materials{};
@@ -1449,6 +1516,12 @@ private:
     // diagnostic.
     static void add_blend(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                           const RuleDeclaration& declaration, CompiledRule& compiled);
+    // A rule's effect colour declaration, checked likewise.
+    static void add_effect_colour(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                                  const RuleDeclaration& declaration, CompiledRule& compiled);
+    // A rule's effect declaration, checked likewise.
+    static void add_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                           const RuleDeclaration& declaration, CompiledRule& compiled);
     // A rule's font declaration (P8c), checked likewise.
     static void add_font(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                          const RuleDeclaration& declaration, CompiledRule& compiled);

@@ -1,5 +1,6 @@
 #include "splitter_grip.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -305,98 +306,62 @@ void SplitterGrip::on_paint(Painter& painter, Rect) {
     transition_frames_.note_painted();
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
-    const BasicControlStyle style;
+    // The seam's band and the collapse tab with its arrow are parts the
+    // theme's engine draws: the band a panel face, pressed while dragged; the
+    // tab a button's actuator, hot while engaged and pressed while dragged;
+    // both disabled with the seam.
     const SplitSeamState state = seam_state();
     const bool disabled = state == SplitSeamState::disabled;
     const bool dragging = state == SplitSeamState::dragging;
+    AnatomyStateSet states{};
+    if (disabled) states.insert(AnatomyState::disabled);
+    if (dragging) states.insert(AnatomyState::pressed);
+    PartPaint band;
+    band.family = ControlVisualRole::panel;
+    band.role = PartRole::face;
+    band.states = states;
+    band.corner_radius = 0.0;
     if (orientation_ == Orientation::vertical) {
         const double width = std::min(visible_width_, bounds.width);
         const double x = std::clamp(visible_origin_, 0.0,
                                     std::max(0.0, bounds.width - width));
-        painter.fill_rect({x, 0.0, width, bounds.height},
-                          disabled ? style.face_light
-                                   : (dragging ? style.accent_light : style.face));
-        if (width >= 2.0) {
-            painter.draw_line({x, 0.0}, {x, bounds.height},
-                              disabled ? style.border : style.highlight, 1.0);
-            painter.draw_line({x + width - 1.0, 0.0},
-                              {x + width - 1.0, bounds.height},
-                              disabled ? style.border : style.dark_border,
-                              1.0);
-        }
+        band.bounds = {x, 0.0, width, bounds.height};
     } else {
         const double height = std::min(visible_width_, bounds.height);
         const double y = std::clamp(visible_origin_, 0.0,
                                     std::max(0.0, bounds.height - height));
-        painter.fill_rect({0.0, y, bounds.width, height},
-                          disabled ? style.face_light
-                                   : (dragging ? style.accent_light : style.face));
-        if (height >= 2.0) {
-            painter.draw_line({0.0, y}, {bounds.width, y},
-                              disabled ? style.border : style.highlight, 1.0);
-            painter.draw_line({0.0, y + height - 1.0},
-                              {bounds.width, y + height - 1.0},
-                              disabled ? style.border : style.dark_border,
-                              1.0);
-        }
+        band.bounds = {0.0, y, bounds.width, height};
     }
+    paint_part(painter, *this, band);
     if (collapse_panel_ == SplitFixedPanel::none) return;
 
     const bool expanded_grip = engaged();
     const bool first = collapse_panel_ == SplitFixedPanel::first;
-    std::string arrow;
     const Rect tab = actuator_bounds();
-    Point text_origin;
+    PartMark arrow = PartMark::none;
     if (orientation_ == Orientation::vertical) {
-        arrow = first ? (collapsed_ ? "▶" : "◀")
-                      : (collapsed_ ? "◀" : "▶");
-        text_origin = {tab.x + (tab.width - 7.0) * 0.5,
-                       tab.y + tab.height * 0.5 + 4.0};
+        arrow = first == collapsed_ ? PartMark::arrow_right : PartMark::arrow_left;
     } else {
-        arrow = first ? (collapsed_ ? "▼" : "▲")
-                      : (collapsed_ ? "▲" : "▼");
-        text_origin = {tab.x + tab.width * 0.5 - 4.0,
-                       tab.y + tab.height * 0.5 + 4.0};
+        arrow = first == collapsed_ ? PartMark::arrow_down : PartMark::arrow_up;
     }
-    if (expanded_grip && !disabled) {
-        painter.draw_box_shadow(
-            tab, 0.0, engaged_shadow_offset, engaged_shadow_blur, 0.0,
-            Color::rgba(style.dark_border.red, style.dark_border.green,
-                        style.dark_border.blue, 102));
-    }
-    painter.fill_rect(tab, disabled ? style.face_light
-                                    : (expanded_grip ? style.accent_light
-                                                     : style.face_light));
-    painter.stroke_rect({tab.x + 0.5, tab.y + 0.5,
-                         std::max(0.0, tab.width - 1.0),
-                         std::max(0.0, tab.height - 1.0)},
-                        disabled ? style.border
-                                 : (expanded_grip ? style.accent : style.border),
-                        1.0);
-    if (expanded_grip) {
-        painter.draw_line({tab.x + 1.0, tab.y + 1.0},
-                          {tab.x + tab.width - 1.0, tab.y + 1.0},
-                          style.highlight, 1.0);
-    }
-    if (dragging) {
-        if (orientation_ == Orientation::vertical) {
-            painter.draw_line({tab.x + tab.width * 0.5 - 2.0,
-                               tab.y + tab.height * 0.5},
-                              {tab.x + tab.width * 0.5 + 2.0,
-                               tab.y + tab.height * 0.5},
-                              style.dark_border, 1.0);
-        } else {
-            painter.draw_line({tab.x + tab.width * 0.5,
-                               tab.y + tab.height * 0.5 - 2.0},
-                              {tab.x + tab.width * 0.5,
-                               tab.y + tab.height * 0.5 + 2.0},
-                              style.dark_border, 1.0);
-        }
-    }
-    painter.draw_text_utf8(text_origin, arrow,
-                           effective_font(
-                               {FontRole::control, 8.0, 700, false}),
-                           style.text);
+    AnatomyStateSet tab_states = states;
+    if (expanded_grip) tab_states.insert(AnatomyState::hot);
+    PartPaint actuator;
+    actuator.family = ControlVisualRole::button;
+    actuator.role = PartRole::actuator;
+    actuator.bounds = tab;
+    actuator.states = tab_states;
+    paint_part(painter, *this, actuator);
+    // An 8-unit square holds the arrow's four rows.
+    const double center_x = std::floor(tab.x + tab.width * 0.5);
+    const double center_y = std::floor(tab.y + tab.height * 0.5);
+    PartPaint glyph;
+    glyph.family = ControlVisualRole::button;
+    glyph.role = PartRole::glyph;
+    glyph.mark = arrow;
+    glyph.bounds = {center_x - 4.0, center_y - 4.0, 8.0, 8.0};
+    glyph.states = tab_states;
+    paint_part(painter, *this, glyph);
 }
 
 } // namespace gui_forms

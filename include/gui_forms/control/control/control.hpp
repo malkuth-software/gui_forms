@@ -1,4 +1,5 @@
 #pragma once
+#include "gui_forms/surface_root/control_table/control_table.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
 
 #include "gui_forms/anatomy.hpp"
@@ -40,6 +41,7 @@
 namespace gui_forms {
 
 class Window;
+class SurfaceRoot;
 class Control;
 class ContainerControl;
 class CommandTarget;
@@ -392,7 +394,7 @@ public:
     void set_tag(std::any tag);
     [[nodiscard]] Ptr parent() const noexcept { return parent_.lock(); }
     [[nodiscard]] std::span<const Ptr> children() const noexcept { return children_; }
-    [[nodiscard]] bool attached() const noexcept { return window_ != nullptr; }
+    [[nodiscard]] bool attached() const noexcept { return surface_root_ != nullptr; }
 
     void add_child(Ptr child);
     [[nodiscard]] Ptr remove_child(RuntimeId child);
@@ -449,6 +451,9 @@ public:
     void bring_to_front();
     void send_to_back();
     [[nodiscard]] Window* attached_window() const noexcept { return window_; }
+    // The surface root whose table holds this control (null while detached).
+    // Inside a sub-surface attached_window() is null and this is not.
+    [[nodiscard]] SurfaceRoot* attached_surface_root() const noexcept { return surface_root_; }
     // Resolves the authored font against the attached window's presentation
     // text scale. Custom controls should use this for both measurement and
     // painting so text, wrapping, hit geometry, and carets remain coherent.
@@ -465,7 +470,22 @@ public:
     [[nodiscard]] TextResolutionStatus fill_line_break_opportunities_utf8(
         std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const;
     [[nodiscard]] double snap_text_baseline(double logical_baseline) const noexcept;
+    // The theme the control is drawn in: the nearest override on the
+    // control or an ancestor, else its window's application theme, else the
+    // default theme; but GUI.Forms' own theme where that theme has no
+    // variant for the window's colour scheme (T4 theme variants).
     [[nodiscard]] const Theme& effective_theme() const noexcept;
+    // Whether the control is drawn in GUI.Forms' own theme in place of the
+    // theme it was given (effective_theme): its back_color, fore_color,
+    // authored surface material and parts' authored colours are then not
+    // applied, since they were chosen against the other theme. They apply
+    // again when that theme is shown.
+    [[nodiscard]] bool application_colours_suspended() const noexcept;
+    // Whether back_color or fore_color has been set on this control, which
+    // writes the warning W404 `inline_colour` once for each (T4 theme
+    // variants, stage A: colour belongs in the theme).
+    [[nodiscard]] bool back_color_warned() const noexcept { return back_color_warned_; }
+    [[nodiscard]] bool fore_color_warned() const noexcept { return fore_color_warned_; }
     // The attached window's key map (Window::key_map), or the PC
     // convention's while detached. A control asks it whether a key event is
     // a named keyboard command instead of naming the keys itself.
@@ -726,6 +746,9 @@ public:
 
     [[nodiscard]] Dirty dirty() const noexcept { return dirty_; }
     [[nodiscard]] Dirty subtree_dirty() const noexcept { return subtree_dirty_; }
+    // This control's slot in its surface root's control table, for
+    // inspection (SurfaceRoot::control_table); unassigned while detached.
+    [[nodiscard]] detail::ControlSlot surface_slot() const noexcept { return surface_slot_; }
     [[nodiscard]] PaintPlane paint_plane() const noexcept { return paint_plane_; }
     void set_paint_plane(PaintPlane plane);
     [[nodiscard]] std::optional<DisplayChunkInfo> display_chunk_info() const noexcept;
@@ -856,6 +879,12 @@ public:
     // the clock then drops it, so a control can never keep a window
     // painting by itself. The default returns false.
     virtual bool on_ambient_frame(FrameTime now);
+    // Whether what on_paint and on_paint_overlay draw at a point changes
+    // when only the control's size does. A control that answers false keeps
+    // its pixels inside its old extent when it is resized in place, and only
+    // the strips the resize exposed or vacated are repainted. The default is
+    // the resize_redraw style, which is on unless the control clears it.
+    [[nodiscard]] virtual bool paint_depends_on_size() const noexcept;
     [[nodiscard]] virtual bool hit_test_local(Point local_point) const;
 
     virtual void on_pointer_preview(PointerEvent& event);
@@ -998,6 +1027,9 @@ protected:
     // focused and focus-visible. Overrides start from this and add their own.
     [[nodiscard]] AnatomyStateSet base_anatomy_states() const;
     [[nodiscard]] Window* window() const noexcept { return window_; }
+    // The surface root whose control table holds this control; null while
+    // detached. Set and cleared together with window().
+    [[nodiscard]] SurfaceRoot* surface_root() const noexcept { return surface_root_; }
     // Chooses where this type's tooltip shows (ToolTipPresentation); bubble
     // by default. Call it from the constructor, or when the control changes
     // what it is (a ComboBox gaining or losing its edit field).
@@ -1089,7 +1121,7 @@ protected:
     virtual void on_attachment_committed() noexcept;
     // Last noexcept callback while the former Window is still available.
     // Controls use it to retire window-owned resources before detachment.
-    virtual void on_detaching_from_window(Window& former_window) noexcept;
+    virtual void on_detaching_from_window(SurfaceRoot& former_window) noexcept;
     virtual void on_detached_from_window() noexcept;
     // Derived disposal hooks that retain child controls must finish through
     // this base implementation; it owns the mutation-free child detach path.
@@ -1099,6 +1131,11 @@ private:
     // The theme the control takes without its own override: its parent's,
     // else its window's, else the default theme.
     [[nodiscard]] const Theme& inherited_theme() const noexcept;
+    // The theme the control was given, before any fallback: the nearest
+    // override, else the window's application theme, else the default.
+    [[nodiscard]] const Theme& chosen_theme() const noexcept;
+    // Writes W404 for `property` of this control.
+    void warn_inline_colour(std::string_view property) const;
     // P12b: compiles again, against `theme`, each inline style of this
     // subtree that defines custom properties and was compiled against
     // another theme, appending each to `restyles` uninstalled; a control
@@ -1118,6 +1155,7 @@ private:
     // definitions (CompiledThemeRules::theme_serial differs).
     void refresh_inline_style();
     friend class Window;
+    friend class SurfaceRoot;
     friend class ContainerControl;
     friend class ErrorProvider;
     friend class HelpProvider;
@@ -1206,6 +1244,11 @@ private:
     WeakPtr parent_;
     ChildList children_;
     Window* window_{};
+    SurfaceRoot* surface_root_{};
+    // This control's slot in its surface root's control table while it is
+    // attached (assigned and released with surface_root_); unassigned
+    // otherwise.
+    detail::ControlSlot surface_slot_{};
     // Atomic shared_ptr free functions make BeginInvoke safe to acquire from a
     // worker while the UI thread attaches or detaches this control.
     mutable std::mutex dispatcher_mutex_;
@@ -1249,7 +1292,11 @@ private:
     bool tab_stop_{true};
     bool allow_drop_{};
     bool hit_test_transparent_{};
+    // resize_redraw is on by default (unlike Windows Forms): a control
+    // repaints all of itself when its size changes unless it, or its
+    // application, clears it, or it overrides paint_depends_on_size.
     ControlStyles styles_{ControlStyles::user_paint |
+                          ControlStyles::resize_redraw |
                           ControlStyles::standard_click |
                           ControlStyles::selectable |
                           ControlStyles::all_painting_in_one_pass};
@@ -1262,6 +1309,8 @@ private:
     std::optional<SurfaceMaterial> authored_surface_material_;
     std::optional<Color> back_color_;
     std::optional<Color> fore_color_;
+    bool back_color_warned_{};
+    bool fore_color_warned_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
     std::string accessible_name_;

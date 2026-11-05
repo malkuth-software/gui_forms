@@ -9,20 +9,20 @@
 
 namespace gui_forms {
 
-void Window::set_tool_tips_shown(std::optional<bool> shown) {
-    require_ui_thread("tooltip switch");
+void SurfaceRoot::set_tool_tips_shown(std::optional<bool> shown) {
+    require_root_thread("tooltip switch");
     if (tool_tips_shown_ == shown) return;
     tool_tips_shown_ = shown;
     (*tool_tip_presenter_).settings_changed();
 }
 
-bool Window::tool_tips_shown() const noexcept {
+bool SurfaceRoot::tool_tips_shown() const noexcept {
     const bool shown = tool_tips_shown_.value_or(Application::tool_tips_shown());
     return shown;
 }
 
-void Window::set_tool_tip_settings(ToolTipSettings settings) {
-    require_ui_thread("tooltip settings");
+void SurfaceRoot::set_tool_tip_settings(ToolTipSettings settings) {
+    require_root_thread("tooltip settings");
     if (settings.initial_delay.count() < 0 || settings.reshow_delay.count() < 0 ||
         settings.auto_pop_delay.count() < 0) {
         throw std::invalid_argument("GUI.Forms tooltip delays may not be negative");
@@ -39,8 +39,8 @@ void Window::set_tool_tip_settings(ToolTipSettings settings) {
     if (width_changed || switches_changed) (*tool_tip_presenter_).settings_changed();
 }
 
-void Window::show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) {
-    require_ui_thread("tooltip show");
+void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) {
+    require_root_thread("tooltip show");
     if (!target || !(*target).is_alive() || (*target).attached_window() != this) {
         throw std::invalid_argument("GUI.Forms tooltip target must be a live control attached to its Window");
     }
@@ -53,39 +53,39 @@ void Window::show_tool_tip(const Control::Ptr& target, std::optional<std::chrono
     (*tool_tip_presenter_).show_program(target, duration);
 }
 
-void Window::hide_tool_tip() {
-    require_ui_thread("tooltip hide");
+void SurfaceRoot::hide_tool_tip() {
+    require_root_thread("tooltip hide");
     (*tool_tip_presenter_).hide();
 }
 
-bool Window::tool_tip_visible() const noexcept {
+bool SurfaceRoot::tool_tip_visible() const noexcept {
     const bool visible = (*tool_tip_presenter_).visible();
     return visible;
 }
 
-Control::Ptr Window::tool_tip_target() const noexcept {
+Control::Ptr SurfaceRoot::tool_tip_target() const noexcept {
     const Control::Ptr target = (*tool_tip_presenter_).target();
     return target;
 }
 
-std::string Window::tool_tip_item_id() const {
+std::string SurfaceRoot::tool_tip_item_id() const {
     return (*tool_tip_presenter_).item_id();
 }
 
-std::string Window::tool_tip_text() const {
+std::string SurfaceRoot::tool_tip_text() const {
     return (*tool_tip_presenter_).text();
 }
 
-void Window::tool_tip_text_changed(Control& control) {
+void SurfaceRoot::tool_tip_text_changed(Control& control) {
     (*tool_tip_presenter_).text_changed(control);
 }
 
-void Window::cover_tool_tip(RuntimeId control, std::string_view item_id, bool covered) {
+void SurfaceRoot::cover_tool_tip(RuntimeId control, std::string_view item_id, bool covered) {
     (*tool_tip_presenter_).cover(control, item_id, covered);
 }
 
-FrameRequestToken Window::request_tool_tip_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {
-    require_ui_thread("tooltip scheduling");
+FrameRequestToken SurfaceRoot::request_tool_tip_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {
+    require_root_thread("tooltip scheduling");
     compact_frame_requests();
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
         throw std::length_error("GUI.Forms scheduled frame request limit reached");

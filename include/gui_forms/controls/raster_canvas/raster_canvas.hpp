@@ -81,7 +81,7 @@ public:
 
 protected:
     void on_attached_to_window() override;
-    void on_detaching_from_window(Window& former_window) noexcept override;
+    void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
     void on_detached_from_window() noexcept override;
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
@@ -93,7 +93,7 @@ private:
         gui_drawing::RectI storage;
     };
     [[nodiscard]] bool publish_full_bitmap();
-    void release_tiles(Window& owner) noexcept;
+    void release_tiles(SurfaceRoot& owner) noexcept;
     [[nodiscard]] Rect damage_to_client(gui_drawing::RectI pixels) const noexcept;
     void paint_transparency_grid(Painter& painter, Rect bounds) const;
 

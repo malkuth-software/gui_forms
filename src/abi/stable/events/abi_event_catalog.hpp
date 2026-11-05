@@ -113,9 +113,11 @@
 #include "gui_forms/surface_material/material_fill_layer/material_fill_layer.hpp"
 #include "gui_forms/surface_material/procedural_fill/procedural_fill.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/presentation/colour_scheme.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
@@ -544,6 +546,15 @@ struct EnumerationChoices<MaterialLinearGeometry> {
 };
 
 template <>
+struct EnumerationChoices<MaterialReflectionSource> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"face", static_cast<std::int64_t>(MaterialReflectionSource::face)},
+        {"backplane", static_cast<std::int64_t>(MaterialReflectionSource::backplane)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<Modifier> {
     static constexpr bool flags = true;
     static constexpr std::array<EnumerationChoice, 5> choices{{
@@ -927,6 +938,7 @@ void append_field(EventFields& fields, std::string_view name, const MaterialDrop
 void append_field(EventFields& fields, std::string_view name, const MaterialFillLayer& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialGlow& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialKeyline& value);
+void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value);
 void append_field(EventFields& fields, std::string_view name, const MenuItemInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuStripInvocation& value);
@@ -1919,6 +1931,17 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "edge", value.edge);
+    append_field(fields, "gap", value.gap);
+    append_field(fields, "reach", value.reach);
+    append_field(fields, "start_opacity", value.start_opacity);
+    append_field(fields, "end_opacity", value.end_opacity);
+    append_field(fields, "source", value.source);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "offset", value.offset);
@@ -2363,6 +2386,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Surfa
     append_field(fields, "filter_blur", value.filter_blur);
     append_field(fields, "finish", value.finish);
     append_field(fields, "mask", value.mask);
+    append_field(fields, "reflection", value.reflection);
     fields.leave(prefix);
 }
 
@@ -3672,8 +3696,12 @@ inline SubscriptionToken connect_ribbon_tool_tip_help_requested(Component& sourc
     return token;
 }
 
-inline SubscriptionToken connect_control_help_requested(Component& source, const EventSink& sink) {
-    Control* typed = dynamic_cast<Control*>(&source);
+inline SubscriptionToken connect_window_help_requested(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -3681,12 +3709,8 @@ inline SubscriptionToken connect_control_help_requested(Component& source, const
     return token;
 }
 
-inline SubscriptionToken connect_window_help_requested(Component& source, const EventSink& sink) {
-    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
-    if (holder == nullptr) {
-        return SubscriptionToken{};
-    }
-    Window* typed = (*holder).window();
+inline SubscriptionToken connect_control_help_requested(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5123,8 +5147,8 @@ inline constexpr std::array<EventConnector, 269> event_connectors{{
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"help_requested", "HelpProvider", &connect_help_provider_help_requested},
     {"help_requested", "RibbonToolTip", &connect_ribbon_tool_tip_help_requested},
-    {"help_requested", "Control", &connect_control_help_requested},
     {"help_requested", "Window", &connect_window_help_requested},
+    {"help_requested", "Control", &connect_control_help_requested},
     {"image_changed", "PictureBox", &connect_picture_box_image_changed},
     {"initialization_completed", "Control", &connect_control_initialization_completed},
     {"invoked", "CommandBar", &connect_command_bar_invoked},

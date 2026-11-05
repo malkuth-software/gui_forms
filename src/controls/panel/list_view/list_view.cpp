@@ -2036,7 +2036,7 @@ void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point l
     revealed.cell = {absolute.x + text_cell.x, absolute.y + text_cell.y, text_cell.width, text_cell.height};
     revealed.text = std::string(text);
     revealed.font = effective_font(font_);
-    revealed.paint = detail::ThemedRevealPaint{.family = ControlVisualRole::selection, .states = states};
+    revealed.paint = detail::RevealPaint{.family = ControlVisualRole::selection, .states = states};
     static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
 }
 

@@ -579,6 +579,65 @@ struct MacRunOpen final {
     }
 };
 
+namespace {
+
+// A multi-window run's end (MacRunEnd's context): borrowed from
+// run_macos_application, which outlives every use.
+struct ApplicationRunEnd final {
+    MacApplicationRun* run{};
+    MacRunOpenState* open_state{};
+    GUIFormsActivationObserver* activation{};
+    MacApplicationOptions* application{};
+    bool windowing_published{};
+    int* exit_code{};
+};
+
+void end_application_run(void* context) {
+    ApplicationRunEnd& end = *static_cast<ApplicationRunEnd*>(context);
+    MacApplicationRun& run = *end.run;
+    [NSApp setDelegate:nil];
+    // The program's handles stop reaching the windowing first, so a
+    // closed callback during shutdown cannot open another window.
+    (*end.open_state).run = nullptr;
+    [end.activation stopObserving];
+    if (end.windowing_published && (*end.application).windowing_ended) (*end.application).windowing_ended();
+    run.shutdown();
+
+    // Closing the primary terminates the application session. Close any
+    // surviving owned/tool windows while their independent host sessions
+    // and delegates are still intact, so each root receives one real
+    // HostClosedEvent and its callback observes the actual close point.
+    for (std::size_t index = 0U; index < run.slot_count(); ++index) {
+        [run.slot_at(index).delegate prepareForApplicationShutdown];
+    }
+    for (std::size_t index = 0U; index < run.slot_count(); ++index) {
+        NSWindow* nativeWindow = run.slot_at(index).window;
+        if (nativeWindow.isVisible || !nativeWindow.isReleasedWhenClosed) {
+            [nativeWindow close];
+        }
+    }
+
+    for (std::size_t index = 0U; index < run.slot_count(); ++index) {
+        MacRunSlot& slot = run.slot_at(index);
+        const std::string metrics = [slot.view metricsJSON];
+        const std::string host = [slot.view hostJSON];
+        if (slot.print_metrics_on_close) {
+            std::fprintf(stdout, "{\"stable_id\":\"%s\",\"window\":%s,\"host\":%s}\n",
+                         slot.stable_id.c_str(), metrics.c_str(), host.c_str());
+        }
+        if (slot.final_snapshot) slot.final_snapshot(metrics, host);
+        if (slot.capture_requested && [slot.view frameCaptureSaved] == NO) {
+            *end.exit_code = 6;
+        }
+        [slot.view prepareForShutdown];
+        [slot.window setDelegate:nil];
+        [slot.window setContentView:nil];
+    }
+    std::fflush(stdout);
+}
+
+} // namespace
+
 int run_macos_application(std::vector<MacApplicationWindow> windows,
                           MacApplicationOptions application) {
     if (windows.empty() || windows.size() > gui_forms::HostWindowing::maximum_windows) return 2;
@@ -646,18 +705,23 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
             }
         }
         if (failure == 0) {
+            ApplicationRunEnd ending{&run, openState.get(), activation, &application, windowingPublished, &exitCode};
+            MacRunEnd end{&end_application_run, &ending, false};
+            // NSApp holds its delegate weakly; this local keeps it to the
+            // end, and end_application_run clears it.
+            GUIFormsTerminationDelegate* termination = [[GUIFormsTerminationDelegate alloc] initWithEnd:&end];
+            [nativeApplication setDelegate:termination];
             run.mark_started();
             [nativeApplication activateIgnoringOtherApps:YES];
             [nativeApplication run];
-        }
-
-        // The program's handles stop reaching the windowing first, so a
-        // closed callback during shutdown cannot open another window.
-        (*openState).run = nullptr;
-        [activation stopObserving];
-        if (windowingPublished && application.windowing_ended) application.windowing_ended();
-        run.shutdown();
-        if (failure != 0) {
+            finish_run(end);
+        } else {
+            // The program's handles stop reaching the windowing first, so a
+            // closed callback during shutdown cannot open another window.
+            (*openState).run = nullptr;
+            [activation stopObserving];
+            if (windowingPublished && application.windowing_ended) application.windowing_ended();
+            run.shutdown();
             // As before: a failed start releases the created windows without
             // running their close notifications.
             for (std::size_t index = 0U; index < run.slot_count(); ++index) {
@@ -667,40 +731,8 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
                 [slot.window setDelegate:nil];
                 [slot.window setContentView:nil];
             }
-            return failure;
+            exitCode = failure;
         }
-
-        // Closing the primary terminates the application session. Close any
-        // surviving owned/tool windows while their independent host sessions
-        // and delegates are still intact, so each root receives one real
-        // HostClosedEvent and its callback observes the actual close point.
-        for (std::size_t index = 0U; index < run.slot_count(); ++index) {
-            [run.slot_at(index).delegate prepareForApplicationShutdown];
-        }
-        for (std::size_t index = 0U; index < run.slot_count(); ++index) {
-            NSWindow* nativeWindow = run.slot_at(index).window;
-            if (nativeWindow.isVisible || !nativeWindow.isReleasedWhenClosed) {
-                [nativeWindow close];
-            }
-        }
-
-        for (std::size_t index = 0U; index < run.slot_count(); ++index) {
-            MacRunSlot& slot = run.slot_at(index);
-            const std::string metrics = [slot.view metricsJSON];
-            const std::string host = [slot.view hostJSON];
-            if (slot.print_metrics_on_close) {
-                std::fprintf(stdout, "{\"stable_id\":\"%s\",\"window\":%s,\"host\":%s}\n",
-                             slot.stable_id.c_str(), metrics.c_str(), host.c_str());
-            }
-            if (slot.final_snapshot) slot.final_snapshot(metrics, host);
-            if (slot.capture_requested && [slot.view frameCaptureSaved] == NO) {
-                exitCode = 6;
-            }
-            [slot.view prepareForShutdown];
-            [slot.window setDelegate:nil];
-            [slot.window setContentView:nil];
-        }
-        std::fflush(stdout);
     }
     return exitCode;
 }

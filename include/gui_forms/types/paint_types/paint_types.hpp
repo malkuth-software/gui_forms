@@ -27,6 +27,21 @@ struct Color {
     }
 };
 
+// A rounded rectangle's four corner radii, in the rectangle's units:
+// top-left, top-right, bottom-right and bottom-left. A painter draws each at
+// most half the rectangle's shorter side.
+struct PaintCornerRadii final {
+    double top_left{};
+    double top_right{};
+    double bottom_right{};
+    double bottom_left{};
+
+    friend constexpr bool operator==(PaintCornerRadii left, PaintCornerRadii right) noexcept {
+        return left.top_left == right.top_left && left.top_right == right.top_right &&
+               left.bottom_right == right.bottom_right && left.bottom_left == right.bottom_left;
+    }
+};
+
 // Renderer-neutral retained paint vocabulary.  Stops are deliberately copied
 // into display chunks; callers may therefore supply stack-backed spans without
 // extending their lifetime through presentation.

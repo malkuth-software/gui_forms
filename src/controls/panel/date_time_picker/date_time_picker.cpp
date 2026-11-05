@@ -6,10 +6,12 @@
 #include "date_time_utilities.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <stdexcept>
 #include <utility>
 
@@ -155,8 +157,9 @@ void DateTimePicker::set_font(FontSpec font) {
 
 void DateTimePicker::set_style(BasicControlStyle style) {
     require_mutable();
-    if (style_ == style) return;
+    if (style_authored_ && style_ == style) return;
     style_ = style;
+    style_authored_ = true;
     set_background(style_.paper);
     invalidate(Dirty::paint);
 }
@@ -174,67 +177,123 @@ DateTimePicker::HitPart DateTimePicker::part_at(Point absolute) const noexcept {
     return HitPart::body;
 }
 
+// The panel's well first; then the drop-down button (or the up-down pair),
+// its divider and arrow marks, the check box's well and mark, the value's
+// text and the focus ring are parts the theme's engine draws in the
+// control's anatomy states, a pressed arrow pressed. An unchecked value's
+// text is disabled text. A style set with set_style inks the text and the
+// marks as authored colours (T4-1). The ring shows while the field has
+// focus or its calendar is open.
 void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width,
                       committed_arranged_bounds().height};
+    const AnatomyStateSet states = anatomy_states();
+    std::optional<Color> ink{};
+    if (style_authored_) ink = style_.text;
     const FontSpec font = effective_font(font_);
     const double button_width = std::min(24.0, bounds.width);
     const double button_x = std::max(0.0, bounds.width - button_width);
-    painter.fill_rect({button_x, 1.0, std::max(0.0, button_width - 1.0),
-                       std::max(0.0, bounds.height - 2.0)}, style_.face);
-    painter.draw_line({button_x, 1.0}, {button_x, bounds.height - 1.0},
-                      style_.border, 1.0);
+    const double button_height = std::max(0.0, bounds.height - 2.0);
     const double center_x = button_x + button_width * 0.5;
+    const double mark_left = std::floor(center_x) - 4.0;
+    PartPaint button;
+    button.family = ControlVisualRole::choice;
+    button.role = PartRole::actuator;
+    PartPaint mark;
+    mark.family = ControlVisualRole::choice;
+    mark.role = PartRole::disclosure;
+    mark.authored_foreground = ink;
+    PartPaint divider;
+    divider.family = ControlVisualRole::choice;
+    divider.role = PartRole::divider;
+    divider.states = states;
+    divider.bounds = {button_x - 0.5, 1.0, 1.0, button_height};
     if (show_up_down_) {
         const double middle = std::floor(bounds.height * 0.5);
-        painter.draw_line({button_x, middle}, {bounds.width, middle},
-                          style_.border, 1.0);
-        painter.draw_line({center_x - 3.5, middle - 4.0}, {center_x, middle - 7.0},
-                          style_.dark_border, 1.0);
-        painter.draw_line({center_x, middle - 7.0}, {center_x + 3.5, middle - 4.0},
-                          style_.dark_border, 1.0);
-        painter.draw_line({center_x - 3.5, middle + 4.0}, {center_x, middle + 7.0},
-                          style_.dark_border, 1.0);
-        painter.draw_line({center_x, middle + 7.0}, {center_x + 3.5, middle + 4.0},
-                          style_.dark_border, 1.0);
+        AnatomyStateSet up_states = states;
+        AnatomyStateSet down_states = states;
+        if (pressed_part_ == HitPart::arrow_up) up_states.insert(AnatomyState::pressed);
+        if (pressed_part_ == HitPart::arrow_down) down_states.insert(AnatomyState::pressed);
+        button.states = up_states;
+        button.bounds = {button_x, 1.0, std::max(0.0, button_width - 1.0), std::max(0.0, middle - 1.0)};
+        paint_part(painter, *this, button);
+        button.states = down_states;
+        button.bounds = {button_x, middle, std::max(0.0, button_width - 1.0),
+                         std::max(0.0, bounds.height - 1.0 - middle)};
+        paint_part(painter, *this, button);
+        paint_part(painter, *this, divider);
+        PartPaint rule = divider;
+        rule.bounds = {button_x, middle - 0.5, button_width, 1.0};
+        paint_part(painter, *this, rule);
+        // The 7 x 4 arrows above and below the middle rule, as the old
+        // strokes stood.
+        mark.states = up_states;
+        mark.mark = PartMark::arrow_up;
+        mark.bounds = {mark_left, middle - 8.0, 8.0, 8.0};
+        paint_part(painter, *this, mark);
+        mark.states = down_states;
+        mark.mark = PartMark::arrow_down;
+        mark.bounds = {mark_left, middle + 1.0, 8.0, 8.0};
+        paint_part(painter, *this, mark);
     } else {
+        button.states = states;
+        if (pressed_part_ == HitPart::arrow_down) button.states.insert(AnatomyState::pressed);
+        button.bounds = {button_x, 1.0, std::max(0.0, button_width - 1.0), button_height};
+        paint_part(painter, *this, button);
+        paint_part(painter, *this, divider);
+        // The arrow flips and moves when the calendar is open, as the combo
+        // box's does.
         const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
-        const double direction = dropped_down_ ? -1.0 : 1.0;
-        painter.draw_line({center_x - 4.0, center_y - direction * 2.0},
-                          {center_x, center_y + direction * 2.0},
-                          style_.dark_border, 1.0);
-        painter.draw_line({center_x, center_y + direction * 2.0},
-                          {center_x + 4.0, center_y - direction * 2.0},
-                          style_.dark_border, 1.0);
+        const double square_top = dropped_down_ ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
+        mark.states = button.states;
+        mark.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
+        mark.bounds = {mark_left, square_top, 8.0, 8.0};
+        paint_part(painter, *this, mark);
     }
     double text_left = 7.0;
+    AnatomyStateSet text_states = states;
     if (show_check_box_) {
         const double check_y = std::max(3.0, (bounds.height - 14.0) * 0.5);
-        painter.fill_rect({5.0, check_y, 14.0, 14.0}, style_.paper);
-        painter.stroke_rect({5.5, check_y + 0.5, 13.0, 13.0}, style_.dark_border, 1.0);
+        PartPaint check;
+        check.family = ControlVisualRole::choice;
+        check.role = PartRole::well;
+        check.states = states;
+        check.bounds = {5.0, check_y, 14.0, 14.0};
+        paint_part(painter, *this, check);
         if (checked_) {
-            painter.draw_line({8.0, check_y + 7.0}, {11.0, check_y + 10.0},
-                              style_.accent, 2.0);
-            painter.draw_line({11.0, check_y + 10.0}, {17.0, check_y + 3.5},
-                              style_.accent, 2.0);
+            check.role = PartRole::indicator;
+            check.mark = PartMark::check;
+            check.authored_foreground = ink;
+            paint_part(painter, *this, check);
+        } else {
+            text_states.insert(AnatomyState::disabled);
         }
         text_left = 25.0;
     }
-    painter.save();
-    painter.clip_rect({text_left, 2.0,
-                       std::max(0.0, button_x - text_left - 3.0),
-                       std::max(0.0, bounds.height - 4.0)});
-    painter.draw_text_utf8(
-        {text_left, std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0)},
-        formatted_value(), font,
-        enabled() && (!show_check_box_ || checked_) ? style_.text
-                                                    : style_.disabled_text);
-    painter.restore();
+    PartPaint content;
+    content.family = ControlVisualRole::editor;
+    content.role = PartRole::content;
+    content.states = text_states;
+    content.font = font;
+    content.authored_foreground = ink;
+    const std::string text = formatted_value();
+    content.text = text;
+    const Size measured = painter.measure_text_utf8(text, font);
+    const double box_height = std::max(measured.height, font.size * 1.2);
+    const double box_ascent = std::max(font.size, box_height * 0.82);
+    const double baseline = std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0);
+    content.bounds = {text_left, baseline - box_ascent, std::max(0.0, button_x - text_left - 3.0), box_height};
+    content.measured_text = measured;
+    paint_part(painter, *this, content);
     if (focused_ || dropped_down_) {
-        painter.stroke_rect({1.5, 1.5, std::max(0.0, bounds.width - 3.0),
-                             std::max(0.0, bounds.height - 3.0)},
-                            style_.accent, 1.0);
+        PartPaint ring;
+        ring.family = ControlVisualRole::editor;
+        ring.role = PartRole::focus;
+        ring.bounds = bounds;
+        ring.states = states;
+        ring.states.insert(AnatomyState::focus_visible);
+        paint_part(painter, *this, ring);
     }
 }
 
@@ -321,7 +380,7 @@ void DateTimePicker::open_drop_down() {
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     std::shared_ptr<gui_forms::CalendarPopup> calendar = make_control<CalendarPopup>(
         StableId(prefix + ".popup.calendar"), value_, minimum_, maximum_,
-        format_provider_, style_);
+        format_provider_);
     (*calendar).set_requested_bounds({x, y, width, height});
     (*layer).add_child(calendar);
     PopupToken token = (*window()).open_popup(owner, layer);

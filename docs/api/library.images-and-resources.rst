@@ -67,6 +67,16 @@ Types
 
       The program's own theme: theme() but while a user theme replaces it.
 
+   .. cpp:function:: bool automatic_colour_scheme() const noexcept
+
+   .. cpp:function:: void set_automatic_colour_scheme(bool automatic)
+
+      Whether the windows follow the host's light or dark preference (T4 theme variants): off by default, so a program keeps the scheme it sets in each window's PresentationSettings::colour_scheme. On, each window takes the scheme its host reports (capability presentation_preferences; light where the host reports none) now and at each later report. A window whose theme has no variant for its scheme shows GUI.Forms' own theme in it (Window::theme_fallback).
+
+   .. cpp:function:: const SystemColourHints& system_colour_hints() const noexcept
+
+      The host's colour hints as a window last reported them (T4 theme variants), which compile_theme_package and compile_user_theme pass to the sheets' env() where the options give none. Empty before any.
+
    .. cpp:function:: UserThemePolicy user_theme_policy() const noexcept
 
    .. cpp:function:: void set_user_theme_policy(UserThemePolicy policy)
@@ -95,6 +105,10 @@ Types
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: bool theme_variant_missing_reported(std::string_view theme_id, ColourScheme scheme) const noexcept
+
+      Whether the warning W403 ``theme_variant_missing`` has been written for ``theme_id`` in ``scheme`` by these resources' windows.
 
    .. cpp:function:: ThemeCompileResult compile_user_theme(const UserThemeFiles& files, const ThemeLibrary& program, const ThemeCompileOptions& options, UserThemeHeader* header = nullptr)
 

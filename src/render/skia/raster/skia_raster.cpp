@@ -59,6 +59,31 @@ SkColor to_sk_color(Color color) noexcept {
     return SkColorSetARGB(color.alpha, color.red, color.green, color.blue);
 }
 
+// Copies the device pixels two surfaces share, their top-left overlap, from
+// `previous` into `replacement` row by row (SkiaRaster::resize at an
+// unchanged scale). Both are premultiplied BGRA8 surfaces of distinct
+// storage; `replacement` is clear outside the overlap. False, copying
+// nothing, when either surface's pixels cannot be addressed.
+bool carry_overlap(SkSurface& previous, SkSurface& replacement) noexcept {
+    const std::optional<SkPixmap> source = previous.peekPixels();
+    const std::optional<SkPixmap> target = replacement.peekPixels();
+    if (!source || !target) return false;
+    if ((*source).colorType() != (*target).colorType()) return false;
+    const int columns = std::min((*source).width(), (*target).width());
+    const int rows = std::min((*source).height(), (*target).height());
+    if (columns <= 0 || rows <= 0) return false;
+    const std::size_t row_bytes = static_cast<std::size_t>(columns) * 4U;
+    const std::byte* const from = static_cast<const std::byte*>((*source).addr());
+    std::byte* const to = static_cast<std::byte*>((*target).writable_addr());
+    if (from == nullptr || to == nullptr) return false;
+    for (int row = 0; row < rows; ++row) {
+        const std::size_t source_offset = static_cast<std::size_t>(row) * (*source).rowBytes();
+        const std::size_t target_offset = static_cast<std::size_t>(row) * (*target).rowBytes();
+        std::memcpy(to + target_offset, from + source_offset, row_bytes);
+    }
+    return true;
+}
+
 SkRect to_sk_rect(Rect rect) noexcept {
     return SkRect::MakeXYWH(static_cast<SkScalar>(rect.x),
                             static_cast<SkScalar>(rect.y),
@@ -93,6 +118,21 @@ SkRRect to_sk_rrect(Rect rect, double radius) noexcept {
     const SkScalar bounded = static_cast<SkScalar>(std::clamp(
         radius, 0.0, std::max(0.0, std::min(rect.width, rect.height) * 0.5)));
     return SkRRect::MakeRectXY(to_sk_rect(rect), bounded, bounded);
+}
+
+// Each radius held within half the shorter side, as to_sk_rrect holds one.
+SkRRect to_sk_rrect_corners(Rect rect, PaintCornerRadii radii) noexcept {
+    const double limit = std::max(0.0, std::min(rect.width, rect.height) * 0.5);
+    const std::array<double, 4> written{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    // Skia's order: upper-left, upper-right, lower-right, lower-left.
+    std::array<SkVector, 4> corners{};
+    for (std::size_t index = 0U; index < corners.size(); ++index) {
+        const SkScalar bounded = static_cast<SkScalar>(std::clamp(written[index], 0.0, limit));
+        corners[index] = SkVector::Make(bounded, bounded);
+    }
+    SkRRect result;
+    result.setRectRadii(to_sk_rect(rect), corners.data());
+    return result;
 }
 
 struct SkGradientData final {
@@ -316,6 +356,9 @@ public:
     // The process's bundled font set, held so every window shares it (register_bundled_fonts).
     std::shared_ptr<gui_forms::detail::BundledFontSet> bundled_fonts;
     sk_sp<SkSurface> surface;
+    // Whether `surface` holds its predecessor's pixels in their overlap
+    // (resize at an unchanged scale); false for a first or rescaled surface.
+    bool surface_carried{false};
 #if defined(GUI_FORMS_PREPARED_TEXT)
     PreparedSkiaFrame prepared_frame{};
     bool prepared_mode{false};
@@ -663,10 +706,21 @@ bool SkiaRaster::resize(Size logical_size, double scale) {
         return false;
     }
     (*(*replacement).getCanvas()).clear(SK_ColorTRANSPARENT);
+    // At an unchanged scale the pixels both extents cover stay as they were,
+    // so a host need repaint only what the resize exposed; at a new scale
+    // nothing lines up and the surface starts clear.
+    bool carried = false;
+    if ((*impl_).surface && scale == (*impl_).scale) carried = carry_overlap(*(*impl_).surface, *replacement);
     (*impl_).surface = std::move(replacement);
+    (*impl_).surface_carried = carried;
     (*impl_).logical_size = logical_size;
     (*impl_).scale = scale;
     return true;
+}
+
+bool SkiaRaster::carried_on_resize() const noexcept {
+    const bool carried = (*impl_).surface_carried;
+    return carried;
 }
 
 void SkiaRaster::begin_frame(const DamageRegion& damage) {
@@ -996,6 +1050,27 @@ void SkiaRaster::clip_rounded_rect(Rect rect, double radius) {
             (*state).rounded = true;
             (*state).rounded_rect = device;
             (*state).radius = std::max(0.0, radius) * static_cast<double>(matrix.getScaleX());
+            if (!(*state).rect.intersect(device)) (*state).rect.setEmpty();
+        }
+    }
+}
+
+void SkiaRaster::clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) {
+    if (SkCanvas* canvas = (*impl_).canvas()) {
+        (*canvas).clipRRect(to_sk_rrect_corners(rect, radii), SkClipOp::kIntersect, true);
+        if (Impl::TextClipState* const state = (*impl_).current_text_clip(*canvas)) {
+            // The text clip keeps one radius: the per-corner clip is kept as
+            // its bounds rounded by the largest radius, so glyphs never pass
+            // outside the exact clip (they may lose pixels at a corner whose
+            // radius is smaller).
+            const SkMatrix matrix = (*canvas).getTotalMatrix();
+            const SkRect device = matrix.mapRect(to_sk_rect(rect));
+            const double largest = std::max(std::max(radii.top_left, radii.top_right),
+                                            std::max(radii.bottom_right, radii.bottom_left));
+            if ((*state).rounded && !(*state).rect.intersect((*state).rounded_rect)) (*state).rect.setEmpty();
+            (*state).rounded = true;
+            (*state).rounded_rect = device;
+            (*state).radius = std::max(0.0, largest) * static_cast<double>(matrix.getScaleX());
             if (!(*state).rect.intersect(device)) (*state).rect.setEmpty();
         }
     }

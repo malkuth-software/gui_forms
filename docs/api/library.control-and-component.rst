@@ -2532,6 +2532,20 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: ResizeAxes
+
+   ``#include <gui_forms/layout/resize_axes/resize_axes.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: horizontal
+
+   .. cpp:enumerator:: vertical
+
+   .. cpp:enumerator:: both
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SizeKind
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -2858,6 +2872,18 @@ Functions, constants and aliases
 .. cpp:var:: constexpr AutoLengthPercentage automatic_inset
 
    The inset ``auto``, every side's default. Value: ``{true, {}}``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/layout/resize_axes/resize_axes.hpp>``
+
+.. cpp:function:: constexpr bool has_axes(ResizeAxes axes, ResizeAxes wanted) noexcept
+
+   Whether ``axes`` holds every axis of ``wanted``.
+
+.. cpp:function:: constexpr bool shares_axis(ResizeAxes axes, ResizeAxes wanted) noexcept
+
+   Whether ``axes`` holds any axis of ``wanted``.
 
 .. cpp:namespace:: gui_forms
 

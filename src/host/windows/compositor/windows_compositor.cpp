@@ -3,7 +3,9 @@
 #include <dwmapi.h>
 #include <versionhelpers.h>
 
+#include <cstdint>
 #include <cstring>
+#include <optional>
 #include <cwchar>
 
 namespace gui_forms::host::detail {
@@ -63,6 +65,42 @@ bool transparency_effects_enabled() noexcept {
     if (status != ERROR_SUCCESS) return true;
     const bool enabled = value != 0U;
     return enabled;
+}
+
+// Whether the user chose dark applications (Settings, Colours, "Choose
+// your default app mode"): AppsUseLightTheme 0. Light where the value is
+// absent (before Windows 10 1809).
+bool dark_applications() noexcept {
+    DWORD value = 1U;
+    DWORD size = sizeof(value);
+    const LSTATUS status =
+        RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize",
+                     L"AppsUseLightTheme", RRF_RT_REG_DWORD, nullptr, &value, &size);
+    if (status != ERROR_SUCCESS) return false;
+    const bool dark = value == 0U;
+    return dark;
+}
+
+// The accent colour (Settings, Colours, "Accent colour"): DWM's
+// AccentColor, a DWORD laid out 0xAABBGGRR; empty where it is absent.
+std::optional<Color> accent_colour() noexcept {
+    DWORD value = 0U;
+    DWORD size = sizeof(value);
+    const LSTATUS status = RegGetValueW(HKEY_CURRENT_USER, L"Software\\Microsoft\\Windows\\DWM", L"AccentColor",
+                                        RRF_RT_REG_DWORD, nullptr, &value, &size);
+    if (status != ERROR_SUCCESS) return std::nullopt;
+    const Color colour = Color::rgba(static_cast<std::uint8_t>(value & 0xFFU),
+                                     static_cast<std::uint8_t>((value >> 8U) & 0xFFU),
+                                     static_cast<std::uint8_t>((value >> 16U) & 0xFFU));
+    return colour;
+}
+
+// The text-selection colour (COLOR_HIGHLIGHT), which GetSysColor always
+// answers.
+Color highlight_colour() noexcept {
+    const COLORREF value = GetSysColor(COLOR_HIGHLIGHT);
+    const Color colour = Color::rgba(GetRValue(value), GetGValue(value), GetBValue(value));
+    return colour;
 }
 
 bool high_contrast_on() noexcept {
@@ -142,6 +180,11 @@ CompositorState read_windows_compositor_state(HWND window, CompositorGeneration 
     state.transparency_enabled = effects;
     state.reduced_transparency = !effects;
     state.high_contrast = high_contrast_on();
+    // T4 theme variants. Windows' own high-contrast palette is not taken:
+    // GUI.Forms' high contrast uses its own (a recorded divergence).
+    state.dark_scheme = dark_applications();
+    state.system_colours.accent = accent_colour();
+    state.system_colours.highlight = highlight_colour();
     return state;
 }
 

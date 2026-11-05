@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/window/presentation/colour_scheme.hpp"
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
@@ -86,6 +88,14 @@ struct CompositorState final {
     // presentation_preferences).
     bool reduced_transparency{};
     bool high_contrast{};
+    // The host's colour-scheme preference (T4 theme variants): dark where
+    // the user chose dark applications; false where the host has no such
+    // setting. A window follows it only while its application's automatic
+    // colour scheme is on (ApplicationResources::set_automatic_colour_scheme).
+    bool dark_scheme{};
+    // The host's accent and text-selection colours, empty where it reports
+    // none: hints a theme's env() may read (SystemColourHints).
+    SystemColourHints system_colours{};
 
     [[nodiscard]] WindowBackdropSupport support_of(WindowBackdrop backdrop) const noexcept {
         const std::size_t index = static_cast<std::size_t>(backdrop);
@@ -97,7 +107,8 @@ struct CompositorState final {
         return left.generation == right.generation && left.compositing == right.compositing &&
                left.support == right.support && left.transparency_enabled == right.transparency_enabled &&
                left.reduced_transparency == right.reduced_transparency &&
-               left.high_contrast == right.high_contrast;
+               left.high_contrast == right.high_contrast && left.dark_scheme == right.dark_scheme &&
+               left.system_colours == right.system_colours;
     }
 };
 

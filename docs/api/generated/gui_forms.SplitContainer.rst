@@ -562,7 +562,7 @@ gui_forms::SplitContainer
 
       *Protected.*
 
-   .. cpp:function:: void on_detaching_from_window(Window& former_window) noexcept override
+   .. cpp:function:: void on_detaching_from_window(SurfaceRoot& former_window) noexcept override
 
       *Protected.*
 

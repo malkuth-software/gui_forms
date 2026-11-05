@@ -32,7 +32,14 @@ public:
     SkiaRaster(const SkiaRaster&) = delete;
     SkiaRaster& operator=(const SkiaRaster&) = delete;
 
+    // Sizes the surface for `logical_size` at `scale`; true when it was
+    // replaced. At an unchanged scale the replacement keeps the previous
+    // surface's pixels in their top-left overlap and is clear elsewhere; at
+    // a new scale it is clear (carried_on_resize says which).
     bool resize(Size logical_size, double scale);
+    // Whether the current surface kept its predecessor's pixels when resize
+    // replaced it: a host then repaints only what the resize exposed.
+    [[nodiscard]] bool carried_on_resize() const noexcept;
     void begin_frame(const DamageRegion& damage);
     void end_frame();
     // Intersects the current clip with damage's rectangles, rounded outward
@@ -90,6 +97,7 @@ public:
     void translate(Point offset) override;
     void clip_rect(Rect rect) override;
     void clip_rounded_rect(Rect rect, double radius) override;
+    void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) override;
     void fill_rect(Rect rect, Color color) override;
     void fill_rounded_rect(Rect rect, double radius, Color color) override;
     void stroke_rect(Rect rect, Color color, double width) override;

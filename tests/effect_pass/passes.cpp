@@ -54,6 +54,22 @@ void Accepted::run(const View& parent, const gui_forms::EffectFrame& frame, gui_
         canvas.stroke_line({offsets_.items[index], 0.0}, {offsets_.items[index], frame.part.height},
                            gui_forms::Color::rgba(255, 255, 255, 128), 1.0);
     }
+    // The host's colour roles (EffectFrame::colours) are frame fields:
+    // reading them is free.
+    canvas.fill_rect({0.0, 0.0, 2.0, 2.0}, frame.colours.primary);
+    canvas.fill_rect({2.0, 0.0, 2.0, 2.0}, frame.colours.secondary);
+    // Clipping to the part's shape is a fixed-cost call.
+    canvas.save();
+    canvas.clip_part_shape();
+    canvas.fill_rect({0.0, 0.0, 2.0, 2.0}, frame.colours.primary);
+    canvas.restore();
+    // Drawing the backdrop is metered per pixel (refused here: this effect
+    // declares none).
+    canvas.draw_backdrop({0.0, 0.0, 2.0, 2.0}, 0.5);
+    // So is the standing pointer (EffectFrame::pointer).
+    if (frame.pointer.inside) {
+        canvas.fill_rect({frame.pointer.position.x, frame.pointer.position.y, 1.0, 1.0}, frame.colours.primary);
+    }
     for (std::uint32_t step = 10U; step > 0U; step -= 2U) {
         canvas.fill_circle({static_cast<double>(step), 1.0}, 1.0, gui_forms::Color::rgba(1, 2, 3, 255));
     }

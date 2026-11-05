@@ -4,6 +4,7 @@
 #include "../cut_off_text/cut_off_text_reveal.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <vector>
 #include <string>
@@ -235,17 +236,19 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
     }
     const FontSpec font = effective_font(font_);
     const bool selected = item.stable_id == selected_id_;
-    detail::PlainRevealPaint paint{};
-    paint.face = selected ? (focused_ ? style().accent : style().accent_light) : style().face_light;
-    paint.border = style().dark_border;
-    paint.text = !item.enabled ? style().disabled_text : selected && focused_ ? style().highlight : style().text;
+    // The reveal shows under the pointer, so its row is hot, as the row's
+    // own plate is.
+    detail::RevealPaint paint{};
+    paint.family = ControlVisualRole::selection;
+    paint.states.insert(AnatomyState::hot);
+    if (selected) paint.states.insert(AnatomyState::selected);
+    if (!item.enabled) paint.states.insert(AnatomyState::disabled);
     detail::CutOffText revealed{};
     revealed.key = item.stable_id;
     revealed.row = {bounds.x + left - 2.0, bounds.y + y, clip_right - left + 2.0, row_height};
     revealed.cell = {bounds.x + left, bounds.y + y, clip_right - left, row_height};
     revealed.text = item.text;
     revealed.font = font;
-    revealed.baseline = std::max(font.size, row_height * 0.5 + 4.0);
     revealed.paint = paint;
     static_cast<void>((*reveal_).reveal(shared_from_this(), std::move(revealed)));
 }
@@ -313,32 +316,49 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
     const std::size_t end = std::min(visible_.size(), top_row_ + visible_row_count() + 1U);
-    const Color selected_fill = focused_ ? style().accent : style().accent_light;
+    // Each row's selection plate, expander, image, text and the active row's
+    // focus ring are parts the theme's engine draws; a row is hot under the
+    // pointer, selected when selected and disabled with its item. A style
+    // override supplies the plates' grounds and the text (T4-1).
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    const bool overridden = has_style_override();
     for (std::size_t row = top_row_; row < end; ++row) {
         const TreeViewItem& item = items_[visible_[row]];
         const double y = 2.0 + static_cast<double>(row - top_row_) * row_height;
         const bool selected = item.stable_id == selected_id_;
         const bool active = focused_ && item.stable_id == active_id_;
-        if (selected) {
-            painter.fill_rect({2.0, y, std::max(0.0, bounds.width - 4.0), row_height}, selected_fill);
-        } else if (hovered_row_ == row) {
-            painter.fill_rect({2.0, y, std::max(0.0, bounds.width - 4.0), row_height},
-                              style().face_light);
+        const bool hovered = hovered_row_ == row;
+        AnatomyStateSet row_states = states;
+        if (hovered) row_states.insert(AnatomyState::hot);
+        if (selected) row_states.insert(AnatomyState::selected);
+        if (!item.enabled) row_states.insert(AnatomyState::disabled);
+        const Rect plate_bounds{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
+        if (selected || hovered) {
+            PartPaint plate;
+            plate.family = ControlVisualRole::selection;
+            plate.role = PartRole::selection;
+            plate.bounds = plate_bounds;
+            plate.states = row_states;
+            if (overridden) {
+                const Color selected_fill = focused_ ? style().accent : style().accent_light;
+                plate.authored_background = selected ? selected_fill : style().face_light;
+            }
+            paint_part(painter, *this, plate);
         }
         const double indent = 7.0 + static_cast<double>(item.depth) *
             indentation_ * text_scale;
         if (show_expanders_ && item.expandable) {
-            const Color arrow = item.enabled ? style().dark_border : style().disabled_text;
-            if (item.expanded) {
-                painter.draw_line({indent, y + 9.0}, {indent + 4.0, y + 13.0}, arrow, 1.4);
-                painter.draw_line({indent + 4.0, y + 13.0}, {indent + 8.0, y + 9.0}, arrow, 1.4);
-            } else {
-                painter.draw_line({indent + 2.0, y + 7.0}, {indent + 6.0, y + 11.0}, arrow, 1.4);
-                painter.draw_line({indent + 6.0, y + 11.0}, {indent + 2.0, y + 15.0}, arrow, 1.4);
-            }
+            // A 12-unit square centred where the 8 x 4 chevron sat.
+            PartPaint expander;
+            expander.family = ControlVisualRole::editor;
+            expander.role = PartRole::disclosure;
+            expander.mark = item.expanded ? PartMark::chevron_down : PartMark::chevron_right;
+            expander.bounds = {indent - 2.0, y + 5.0, 12.0, 12.0};
+            expander.states = row_states;
+            if (item.expanded) expander.states.insert(AnatomyState::open);
+            paint_part(painter, *this, expander);
         }
-        const Color text = !item.enabled ? style().disabled_text
-            : selected && focused_ ? style().highlight : style().text;
         const double image_x = indent + 14.0;
         if (image_list_ && (*image_list_).is_alive() && !item.image_key.empty()) {
             const ImageVisualState state = !item.enabled
@@ -359,21 +379,37 @@ void TreeView::on_paint(Painter& painter, Rect damage) {
                     {image_x, y + (row_height - slot_height) * 0.5,
                      slot_width, slot_height},
                     resolved.source_size);
-                painter.draw_image(
-                    resolved.image, destination,
-                    !item.enabled &&
-                            resolved.resolved_state != ImageVisualState::disabled
-                        ? 0.45 : 1.0);
+                // The icon role dims a disabled item's image; an image
+                // list's own disabled image is drawn as given.
+                PartPaint icon;
+                icon.family = ControlVisualRole::editor;
+                icon.role = resolved.resolved_state == ImageVisualState::disabled ? PartRole::image
+                                                                                   : PartRole::icon;
+                icon.image = resolved.image;
+                icon.bounds = destination;
+                icon.states = row_states;
+                paint_part(painter, *this, icon);
             }
         }
         const double content_x = text_left(item, row_height);
-        painter.draw_text_utf8({content_x,
-                                y + std::max(font.size, row_height * 0.5 + 4.0)},
-                               item.text, font, text);
+        PartPaint label;
+        label.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
+        label.role = PartRole::content;
+        label.states = row_states;
+        label.text = item.text;
+        label.font = font;
+        if (overridden) label.authored_foreground = selected && focused_ ? style().highlight : style().text;
+        paint_text_part_at(painter, *this, label,
+                           {content_x, y + std::max(font.size, row_height * 0.5 + 4.0)},
+                           std::max(0.0, plate_bounds.x + plate_bounds.width - content_x));
         if (active) {
-            painter.stroke_rect({3.5, y + 1.5, std::max(0.0, bounds.width - 7.0),
-                                 std::max(0.0, row_height - 3.0)},
-                                selected ? style().highlight : style().accent, 1.0);
+            PartPaint ring;
+            ring.family = ControlVisualRole::selection;
+            ring.role = PartRole::focus;
+            ring.bounds = {3.0, y + 1.0, std::max(0.0, bounds.width - 6.0), std::max(0.0, row_height - 2.0)};
+            ring.states = row_states;
+            ring.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, ring);
         }
     }
     painter.restore();

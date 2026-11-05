@@ -113,15 +113,15 @@ void paint_rule(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe
     }
 }
 
-// The preselect (default) ring, inside the part's bounds.
-void paint_preselect(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe) {
+// The preselect (default) ring, inside the part's bounds, following a
+// surface whose corners have `radius`.
+void paint_preselect(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe, double radius) {
     const double width = recipe.default_width;
     if (width <= 0.0 || bounds.width <= width * 2.0 || bounds.height <= width * 2.0) return;
     const double inset = width * 0.5;
     const Rect ring{bounds.x + inset, bounds.y + inset,
                     bounds.width - inset * 2.0, bounds.height - inset * 2.0};
-    painter.stroke_rounded_rect(ring, std::max(0.0, recipe.material.corner_radius - inset),
-                                recipe.default_ring, width);
+    painter.stroke_rounded_rect(ring, std::max(0.0, radius - inset), recipe.default_ring, width);
 }
 
 // One side of a dotted ring: `count` square dots `width` across, the first
@@ -161,19 +161,20 @@ void paint_dotted_ring(Painter& painter, Rect ring, double width, Color colour) 
 }
 
 // The focus ring: the recipe's authored outline outside the bounds, or the
-// house ring inset inside them; dotted when the recipe says so.
-void paint_focus_ring(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe) {
+// house ring inset inside them; dotted when the recipe says so. It follows a
+// surface whose corners have `corner_radius`.
+void paint_focus_ring(Painter& painter, Rect bounds, const ControlVisualRecipe& recipe, double corner_radius) {
     if (recipe.focus_width <= 0.0 || bounds.width <= 8.0 || bounds.height <= 8.0) return;
     Rect ring{};
     double radius = 0.0;
     if (recipe.authored_focus_outline) {
         const double outset = recipe.focus_offset + recipe.focus_width * 0.5;
         ring = Rect{bounds.x - outset, bounds.y - outset, bounds.width + outset * 2.0, bounds.height + outset * 2.0};
-        radius = std::max(0.0, recipe.material.corner_radius + outset);
+        radius = std::max(0.0, corner_radius + outset);
     } else {
         const double inset = std::max(3.0, recipe.default_width + 1.0);
         ring = Rect{bounds.x + inset, bounds.y + inset, bounds.width - inset * 2.0, bounds.height - inset * 2.0};
-        radius = std::max(0.0, recipe.material.corner_radius - inset);
+        radius = std::max(0.0, corner_radius - inset);
     }
     if (ring.empty()) return;
     if (recipe.dotted_focus) {
@@ -532,7 +533,8 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
 // (top_to_bottom), so its line box is centred across the width.
 void paint_text(Painter& painter, const PartPaint& part, Color color) {
     if (part.text.empty()) return;
-    const Size measured = painter.measure_text_utf8(part.text, part.font);
+    const Size measured = part.measured_text ? *part.measured_text
+                                             : painter.measure_text_utf8(part.text, part.font);
     const double line_height = std::max(measured.height, part.font.size * 1.2);
     const double ascent = std::max(part.font.size, line_height * 0.82);
     const bool turned = part.orientation != TextOrientation::horizontal;
@@ -605,7 +607,10 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::label:
     case PartRole::content:
     case PartRole::caret:
-        if (!important_text) recipe.text = ink;
+        if (!important_text) {
+            recipe.text = ink;
+            recipe.muted_text = ink;
+        }
         return;
     case PartRole::indicator:
     case PartRole::glyph:
@@ -693,16 +698,90 @@ bool part_bounds_paintable(Rect bounds) noexcept {
     return result;
 }
 
+namespace {
+
+// The strips a pointed face's nose is cut into: each is clipped to the
+// nose's height at its leading edge, so the nose is a bounded staircase
+// whose outline the edge rules then draw.
+constexpr std::size_t pointed_face_strips = 9U;
+
+// The nose length of a pointed part, within its bounds (zero when none).
+double pointed_length(const PartPaint& part) noexcept {
+    if (!part.point || !surface_role(part.role)) return 0.0;
+    const double length = std::clamp(*part.point, 0.0, std::max(0.0, part.bounds.width));
+    return length;
+}
+
+// A pointed part (PartPaint::point): the whole part painted once clipped
+// to its body and once to each strip of its nose, so whatever draws the
+// part (a primitive or the built-in recipe) is cut to the shape; then the
+// nose's two edges in the material's border colour.
+void paint_pointed_part(Painter& painter, const Control& control, const PartPaint& part, double length) {
+    PartPaint whole = part;
+    whole.point.reset();
+    const Rect bounds = part.bounds;
+    const double shoulder = bounds.x + bounds.width - length;
+    painter.save();
+    painter.clip_rect({bounds.x, bounds.y, bounds.width - length, bounds.height});
+    paint_part(painter, control, whole);
+    painter.restore();
+    for (std::size_t strip = 0U; strip < pointed_face_strips; ++strip) {
+        const double left = length * static_cast<double>(strip) / static_cast<double>(pointed_face_strips);
+        const double right = length * static_cast<double>(strip + 1U) / static_cast<double>(pointed_face_strips);
+        const double inset = bounds.height * 0.5 * left / length;
+        painter.save();
+        painter.clip_rect({shoulder + left, bounds.y + inset, right - left, bounds.height - inset * 2.0});
+        paint_part(painter, control, whole);
+        painter.restore();
+    }
+    const ControlVisualContext context = part_visual_context(control, part.states);
+    const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
+    if (!recipe.material.border) return;
+    const Color edge = (*recipe.material.border).color;
+    const Point tip{bounds.x + bounds.width - 0.5, bounds.y + bounds.height * 0.5};
+    painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);
+    painter.draw_line(tip, {shoulder, bounds.y + bounds.height - 0.5}, edge, 1.0);
+}
+
+} // namespace
+
+bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
+    if (!bounds.contains(position)) return false;
+    const double half_height = bounds.height * 0.5;
+    if (point <= 0.0 || half_height <= 0.0) return true;
+    const double tip = std::min(point, bounds.width);
+    const double distance = std::abs(position.y - bounds.y - half_height);
+    const double edge = bounds.x + bounds.width - tip * distance / half_height;
+    const bool inside = position.x <= edge;
+    return inside;
+}
+
 void paint_part(Painter& painter, const Control& control, const PartPaint& part) {
+    // Drawn in GUI.Forms' own theme in place of the application's (T4
+    // theme variants): colours chosen against the other theme are not
+    // applied, the part's own included.
+    const bool suspended = control.application_colours_suspended();
+    if (suspended && (part.authored_background || part.authored_foreground)) {
+        PartPaint plain = part;
+        plain.authored_background.reset();
+        plain.authored_foreground.reset();
+        paint_part(painter, control, plain);
+        return;
+    }
+    const double length = pointed_length(part);
+    if (length > 0.0 && paintable(part.bounds)) {
+        paint_pointed_part(painter, control, part, length);
+        return;
+    }
     const Theme& theme = control.effective_theme();
     // The control's authored colours (Control::set_back_color and
     // set_fore_color) under the part's own: its own background fills every
     // ground, an inherited one every ground but a well.
     std::optional<Color> background = part.authored_background;
-    if (!background) background = control.back_color();
-    if (!background && part.role != PartRole::well) background = control.ambient_back_color();
+    if (!background && !suspended) background = control.back_color();
+    if (!background && !suspended && part.role != PartRole::well) background = control.ambient_back_color();
     std::optional<Color> foreground = part.authored_foreground;
-    if (!foreground) foreground = control.ambient_fore_color();
+    if (!foreground && !suspended) foreground = control.ambient_fore_color();
     const bool unchanged = background == part.authored_background && foreground == part.authored_foreground;
     if (unchanged) {
         theme.engine().paint(painter, control, part);
@@ -712,6 +791,21 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     coloured.authored_background = background;
     coloured.authored_foreground = foreground;
     theme.engine().paint(painter, control, coloured);
+}
+
+void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
+                        double width) {
+    if (part.text.empty()) return;
+    // The line box paint_text centres the text in: its height and ascent.
+    const Size measured = part.measured_text ? *part.measured_text
+                                             : painter.measure_text_utf8(part.text, part.font);
+    const double line_height = std::max(measured.height, part.font.size * 1.2);
+    const double ascent = std::max(part.font.size, line_height * 0.82);
+    part.alignment = PartTextAlignment::start;
+    part.orientation = TextOrientation::horizontal;
+    part.bounds = {origin.x, origin.y - ascent, std::max(width, measured.width), line_height};
+    part.measured_text = measured;
+    paint_part(painter, control, part);
 }
 
 void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part) {
@@ -802,7 +896,12 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::caption:
     case PartRole::label:
     case PartRole::content:
-        paint_text(painter, part, disabled ? recipe.muted_text : recipe.text);
+        // The recipe is resolved in the disabled state, so its text is the
+        // theme's own disabled text (owner ruling, 2026-11-02).
+        // A secondary text is drawn in the muted ink; disabled text of either
+        // tone is the disabled recipe's text.
+        paint_text(painter, part,
+                   part.tone == PartTextTone::secondary && !disabled ? recipe.muted_text : recipe.text);
         return;
     case PartRole::icon:
         if (part.image.value != 0U) painter.draw_image(part.image, part.bounds, disabled ? 0.45 : 1.0);
@@ -819,10 +918,10 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
         paint_mark(painter, part, recipe);
         return;
     case PartRole::focus:
-        if (context.focused) paint_focus_ring(painter, part.bounds, recipe);
+        if (context.focused) paint_focus_ring(painter, part.bounds, recipe, part_corner_radius(part, recipe));
         return;
     case PartRole::preselect:
-        if (context.defaulted) paint_preselect(painter, part.bounds, recipe);
+        if (context.defaulted) paint_preselect(painter, part.bounds, recipe, part_corner_radius(part, recipe));
         return;
     }
     // A role outside the enumeration paints nothing.

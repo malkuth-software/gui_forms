@@ -48,7 +48,7 @@ whole record for logs.
 | `transparent_windows` | a window presented with per-pixel alpha when the compositor allows it | yes | yes | yes (while a compositing manager runs) |
 | `window_backdrops` | a system material behind a transparent window | yes | yes (Windows 11 22H2 and later) | no |
 | `compositor_notifications` | compositor and preference changes reported at run time | yes | yes | yes |
-| `presentation_preferences` | the host's high contrast and reduced transparency fed to each window | yes | yes | no |
+| `presentation_preferences` | the host's high contrast and reduced transparency fed to each window; its light or dark preference and accent and highlight colours reported (Windows only so far) | yes | yes | no |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.

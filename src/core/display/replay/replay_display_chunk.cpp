@@ -27,6 +27,15 @@ void replay_command(const DisplayCommand& command, Painter& painter) {
     case DisplayOperation::clip_rounded_rect:
         painter.clip_rounded_rect(command.rect, command.scalar);
         return;
+    case DisplayOperation::clip_rounded_rect_corners: {
+        PaintCornerRadii radii{};
+        radii.top_left = command.first.x;
+        radii.top_right = command.first.y;
+        radii.bottom_right = command.second.x;
+        radii.bottom_left = command.second.y;
+        painter.clip_rounded_rect_corners(command.rect, radii);
+        return;
+    }
     case DisplayOperation::fill_rect:
         painter.fill_rect(command.rect, command.color);
         return;

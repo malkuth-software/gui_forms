@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "../popup/popup_attachment.hpp"
 
 #include <stdexcept>
@@ -20,8 +21,8 @@ bool grant_outcome_differs(const WindowBackdropGrant& left, const WindowBackdrop
 
 } // namespace
 
-bool Window::declare_non_opaque() {
-    require_ui_thread("non-opaque declaration");
+bool SurfaceRoot::declare_non_opaque() {
+    require_root_thread("non-opaque declaration");
     if (host_session_bound_) return false;
     if (non_opaque_declared_) return true;
     non_opaque_declared_ = true;
@@ -29,8 +30,8 @@ bool Window::declare_non_opaque() {
     return true;
 }
 
-void Window::set_compositor_state(const CompositorState& state, bool host_preferences) {
-    require_ui_thread("compositor state");
+void SurfaceRoot::set_compositor_state(const CompositorState& state, bool host_preferences) {
+    require_root_thread("compositor state");
     const CompositorState previous = compositor_state_;
     compositor_state_ = state;
     PresentationSettings settings = presentation_settings_;
@@ -39,6 +40,12 @@ void Window::set_compositor_state(const CompositorState& state, bool host_prefer
         if (state.reduced_transparency != previous.reduced_transparency) {
             settings.reduced_transparency = state.reduced_transparency;
         }
+        // The host's light or dark preference and colour hints (T4 theme
+        // variants): the scheme is taken only while the application
+        // follows the host (ApplicationResources::automatic_colour_scheme).
+        host_colour_scheme_ = state.dark_scheme ? ColourScheme::dark : ColourScheme::light;
+        (*resources_).note_system_colour_hints(state.system_colours);
+        if ((*resources_).automatic_colour_scheme()) settings.colour_scheme = host_colour_scheme_;
     }
     if (settings == presentation_settings_) {
         refresh_backdrop();
@@ -48,8 +55,8 @@ void Window::set_compositor_state(const CompositorState& state, bool host_prefer
     set_presentation_settings(settings);
 }
 
-WindowBackdropGrant Window::request_backdrop(const WindowBackdropRequest& request) {
-    require_ui_thread("backdrop request");
+WindowBackdropGrant SurfaceRoot::request_backdrop(const WindowBackdropRequest& request) {
+    require_root_thread("backdrop request");
     if (!window_backdrop_request_valid(request)) {
         throw std::invalid_argument(
             "GUI.Forms backdrop request needs one to three distinct entries with opaque only last");
@@ -61,7 +68,7 @@ WindowBackdropGrant Window::request_backdrop(const WindowBackdropRequest& reques
     return grant;
 }
 
-void Window::refresh_backdrop() {
+void SurfaceRoot::refresh_backdrop() {
     const WindowBackdropConditions conditions{non_opaque_declared_, presentation_settings_.high_contrast,
                                               presentation_settings_.reduced_transparency};
     WindowBackdropGrant next = resolve_window_backdrop(backdrop_request_, compositor_state_, conditions);
@@ -98,7 +105,7 @@ void Window::refresh_backdrop() {
     backdrop_changed_.emit(emitted);
 }
 
-const SurfaceMaterial& Window::backplane_base(const ControlVisualContext& context) const noexcept {
+const SurfaceMaterial& SurfaceRoot::backplane_base(const ControlVisualContext& context) const noexcept {
     const ThemeWindowBackdrop& themed = (*theme_).definition().window_backdrop;
     const SurfaceMaterial* const base = themed.base_for(backdrop_grant_.granted);
     if (backdrop_grant_.granted != WindowBackdrop::opaque && base != nullptr) return *base;

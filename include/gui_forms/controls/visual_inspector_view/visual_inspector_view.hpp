@@ -169,6 +169,7 @@ private:
         }
     };
     [[nodiscard]] Outlines current_outlines() const;
+    void paint_outline(Painter& painter, Rect bounds, Color colour, double width) const;
     std::string target_stable_id_;
     // What on_paint last drew; nullopt before the first paint.
     std::optional<Outlines> painted_;

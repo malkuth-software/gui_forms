@@ -1,9 +1,11 @@
 #include "gui_forms/controls/panel/list_box/list_box.hpp"
 #include "list_box_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include "../input_control_utilities.hpp"
 #include "../text_items_property.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/detail/algorithm/binary_search.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -26,6 +28,15 @@ struct SelectionOutsideItemCount final {
     }
 };
 
+// The ListSelectionMode enumeration, numbered as declared. Static storage;
+// any thread may read it.
+std::shared_ptr<const PropertyEnumDescriptor> list_selection_mode_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "list_selection_mode", {{"one", 0}, {"multiple_extended", 1}}, false});
+    return value;
+}
+
 } // namespace
 using namespace input_control_detail;
 
@@ -43,6 +54,24 @@ ListBox::ListBox(StableId stable_id) : Panel(std::move(stable_id)) {
     items_registration.should_serialize = detail::BoundMemberFunction<bool (ListBox::*)() const noexcept>(
         *this, &ListBox::should_serialize_items_property);
     define_bindable_property(std::move(items_registration));
+
+    // What a form document sets besides the items (stage FD6.3); it raises
+    // no change event.
+    PropertyDescriptor mode;
+    mode.name = "selection_mode";
+    mode.kind = BindingValueKind::enumeration;
+    mode.category = "Behavior";
+    mode.description = "One selected item, or an extended selection with Shift and Ctrl.";
+    mode.default_value = BindingValue{PropertyEnumValue{"list_selection_mode", "one", 0}};
+    mode.invalidation_effects = Dirty::paint | Dirty::semantics;
+    mode.bindable = false;
+    mode.enumeration = list_selection_mode_enum();
+    define_bindable_property({
+        std::move(mode),
+        detail::EnumerationPropertyGetter<ListBox, ListSelectionMode>(
+            *this, &ListBox::selection_mode, list_selection_mode_enum()),
+        detail::EnumerationPropertySetter<ListBox, ListSelectionMode>(*this, &ListBox::set_selection_mode),
+        {}, {}, {}});
 }
 
 BindingValue ListBox::items_property_value() const {
@@ -302,17 +331,23 @@ std::optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
                                  : std::optional<std::size_t>{};
 }
 
-void ListBox::on_paint(Painter& painter, Rect damage) {
+// The well, each row's selection plate, its text and the active row's focus
+// ring are parts the theme's engine draws. A row is hot under the pointer
+// and selected when selected. A background or style override supplies the
+// well's ground; a style override the plates' grounds and the text (T4-1).
+void ListBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const bool themed = !has_background_override() && !has_style_override();
-    const ControlVisualRecipe& editor_recipe = effective_theme().resolve(
-        ControlVisualRole::editor,
-        visual_context(false, false, false, focused_));
-    if (themed) {
-        paint_surface_material(painter, bounds, editor_recipe.material);
-    } else {
-        Panel::on_paint(painter, damage);
-    }
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    const bool overridden = has_style_override();
+    PartPaint well;
+    well.family = ControlVisualRole::editor;
+    well.role = PartRole::well;
+    well.bounds = bounds;
+    well.states = states;
+    if (has_background_override() || overridden) well.authored_background = background();
+    well.key = PartKey{"well", {}, {}};
+    paint_part(painter, *this, well);
     const FontSpec font = effective_font(font_);
     const double row_height = item_height_ * effective_text_scale();
     painter.save();
@@ -320,42 +355,47 @@ void ListBox::on_paint(Painter& painter, Rect damage) {
                        std::max(0.0, bounds.height - 4.0)});
     const std::size_t visible = visible_row_count() + 1U;
     const std::size_t end = std::min(items_.size(), top_index_ + visible);
-    const Color selected_fill = focused_ ? style().accent : style().accent_light;
     for (std::size_t index = top_index_; index < end; ++index) {
         const double y = 2.0 + static_cast<double>(index - top_index_) * row_height;
         const bool selected = detail::binary_search_contains(
             std::span<const std::size_t>(selected_), index);
         const bool hovered = hovered_index_ == index;
         const Rect row{2.0, y, std::max(0.0, bounds.width - 4.0), row_height};
-        const ControlVisualRecipe& row_recipe = effective_theme().resolve(
-            ControlVisualRole::selection,
-            visual_context(hovered, false, selected, focused_));
-        if (themed && (selected || hovered)) {
-            paint_surface_material(painter, row, row_recipe.material);
-        } else if (selected) {
-            painter.fill_rect(row, selected_fill);
-        } else if (hovered) {
-            painter.fill_rect(row, style().face_light);
+        AnatomyStateSet row_states = states;
+        if (hovered) row_states.insert(AnatomyState::hot);
+        if (selected) row_states.insert(AnatomyState::selected);
+        if (selected || hovered) {
+            PartPaint plate;
+            plate.family = ControlVisualRole::selection;
+            plate.role = PartRole::selection;
+            plate.bounds = row;
+            plate.states = row_states;
+            if (overridden) {
+                const Color selected_fill = focused_ ? style().accent : style().accent_light;
+                plate.authored_background = selected ? selected_fill : style().face_light;
+            }
+            paint_part(painter, *this, plate);
         }
         paint_row_adornment(painter, index, row, selected, focused_);
-        painter.draw_text_utf8({row_text_left(),
-                                y + std::max(font.size,
-                                             row_height * 0.5 + 4.0)},
-                               items_[index], font,
-                               themed ? (selected || hovered
-                                             ? row_recipe.text
-                                             : editor_recipe.text)
-                                      : selected && focused_
-                                            ? style().highlight
-                                            : enabled() ? style().text
-                                                        : style().disabled_text);
+        PartPaint text;
+        text.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
+        text.role = PartRole::content;
+        text.states = row_states;
+        text.text = items_[index];
+        text.font = font;
+        if (overridden) text.authored_foreground = selected && focused_ ? style().highlight : style().text;
+        const double left = row_text_left();
+        paint_text_part_at(painter, *this, text,
+                           {left, y + std::max(font.size, row_height * 0.5 + 4.0)},
+                           std::max(0.0, row.x + row.width - left));
         if (focused_ && active_index_ == index) {
-            painter.stroke_rect({3.5, y + 1.5, std::max(0.0, bounds.width - 7.0),
-                                 std::max(0.0, row_height - 3.0)},
-                                themed ? row_recipe.focus_ring
-                                       : selected ? style().highlight
-                                                  : style().accent,
-                                themed ? row_recipe.focus_width : 1.0);
+            PartPaint ring;
+            ring.family = ControlVisualRole::selection;
+            ring.role = PartRole::focus;
+            ring.bounds = {3.0, y + 1.0, std::max(0.0, bounds.width - 6.0), std::max(0.0, row_height - 2.0)};
+            ring.states = row_states;
+            ring.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, ring);
         }
     }
     painter.restore();

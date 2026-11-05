@@ -4,8 +4,11 @@
 #include "gui_forms/detail/weak_member_callback.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
+#include <string>
+#include <optional>
 #include <algorithm>
 #include <bit>
 #include <cmath>
@@ -272,38 +275,59 @@ void FlagsValueEditor::apply_popup_choice(std::size_t popup_index,
     publish_change(value_changed_, value_);
 }
 
+// The panel's well first; then the drop-down button, its divider and arrow
+// (as the combo box's), the value's text and the focus ring are parts the
+// theme's engine draws in the control's anatomy states. A style override
+// inks the text and the arrow as authored colours (T4-1). The ring shows
+// while the field has focus or its list is open.
 void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds = local_bounds();
-    const BasicControlStyle& colors = style();
+    const AnatomyStateSet states = anatomy_states();
+    std::optional<Color> ink{};
+    if (has_style_override()) ink = style().text;
     const double button_width = std::min(24.0, bounds.width);
-    const double divider = std::max(0.0, bounds.width - button_width);
-    painter.fill_rect({divider, 1.0, std::max(0.0, button_width - 1.0),
-                       std::max(0.0, bounds.height - 2.0)}, colors.face);
-    painter.draw_line({divider, 1.0}, {divider, bounds.height - 1.0},
-                      colors.border, 1.0);
+    const double divider_x = std::max(0.0, bounds.width - button_width);
+    PartPaint drop_down;
+    drop_down.family = ControlVisualRole::choice;
+    drop_down.role = PartRole::actuator;
+    drop_down.states = states;
+    drop_down.bounds = {divider_x, 1.0, std::max(0.0, button_width - 1.0), std::max(0.0, bounds.height - 2.0)};
+    paint_part(painter, *this, drop_down);
+    PartPaint divider = drop_down;
+    divider.role = PartRole::divider;
+    divider.bounds = {divider_x - 0.5, 1.0, 1.0, std::max(0.0, bounds.height - 2.0)};
+    paint_part(painter, *this, divider);
+    // The arrow flips and moves when the list is open, as the combo box's.
     const double center_x = bounds.width - button_width * 0.5;
-    const double center_y = bounds.height * 0.5;
-    const double direction = dropped_down_ ? -1.0 : 1.0;
-    painter.draw_line({center_x - 4.0, center_y - direction * 2.0},
-                      {center_x, center_y + direction * 2.0},
-                      colors.dark_border, 1.0);
-    painter.draw_line({center_x, center_y + direction * 2.0},
-                      {center_x + 4.0, center_y - direction * 2.0},
-                      colors.dark_border, 1.0);
+    const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
+    const double square_top = dropped_down_ ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
+    PartPaint disclosure = drop_down;
+    disclosure.role = PartRole::disclosure;
+    disclosure.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
+    disclosure.bounds = {std::floor(center_x) - 4.0, square_top, 8.0, 8.0};
+    disclosure.authored_foreground = ink;
+    paint_part(painter, *this, disclosure);
     const FontSpec font = effective_font({FontRole::content, 10.0, 400, false});
-    painter.save();
-    painter.clip_rect({4.0, 2.0, std::max(0.0, divider - 8.0),
-                       std::max(0.0, bounds.height - 4.0)});
-    painter.draw_text_utf8({7.0, std::max(font.size,
-                            (bounds.height + font.size) * 0.5 - 1.0)},
-                           display_label(value_.name), font,
-                           enabled() ? colors.text : colors.disabled_text);
-    painter.restore();
+    PartPaint content;
+    content.family = ControlVisualRole::editor;
+    content.role = PartRole::content;
+    content.states = states;
+    content.font = font;
+    content.authored_foreground = ink;
+    const std::string label = display_label(value_.name);
+    content.text = label;
+    paint_text_part_at(painter, *this, content,
+                       {7.0, std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0)},
+                       std::max(0.0, divider_x - 11.0));
     if (focused_ || dropped_down_) {
-        painter.stroke_rect({1.5, 1.5, std::max(0.0, bounds.width - 3.0),
-                             std::max(0.0, bounds.height - 3.0)},
-                            colors.accent, 1.0);
+        PartPaint ring;
+        ring.family = ControlVisualRole::editor;
+        ring.role = PartRole::focus;
+        ring.bounds = bounds;
+        ring.states = states;
+        ring.states.insert(AnatomyState::focus_visible);
+        paint_part(painter, *this, ring);
     }
 }
 

@@ -133,6 +133,7 @@ std::uint64_t composite_backplane_chunk(const DisplayChunk& chunk, Point origin,
             break;
         case DisplayOperation::clip_rect:
         case DisplayOperation::clip_rounded_rect:
+        case DisplayOperation::clip_rounded_rect_corners:
             state.clip = Rect::intersection(state.clip, translated(command.rect, state.offset));
             break;
         case DisplayOperation::draw_part_raster: {

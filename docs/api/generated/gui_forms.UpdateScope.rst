@@ -23,8 +23,8 @@ gui_forms::UpdateScope
 
    :Parameters:
 
-      **window** : ``Window``
-         The window whose scope the token closes. Do not construct a token this
+      **root** : ``SurfaceRoot``
+         The surface root (usually a :cpp:class:`Window <gui_forms::Window>`) whose scope the token closes. Do not construct a token this
          way: it does not open a scope, so closing it would close one that
          ``Window::begin_update`` opened elsewhere. Always obtain tokens from
          ``Window::begin_update``.
@@ -113,7 +113,7 @@ gui_forms::UpdateScope
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit UpdateScope(Window& window) noexcept
+   .. cpp:function:: explicit UpdateScope(SurfaceRoot& root) noexcept
 
    .. cpp:function:: UpdateScope(UpdateScope&& other) noexcept
 

@@ -1,0 +1,389 @@
+{
+  "schema": 1,
+  "symbols": {
+    "gui_forms::SurfaceRoot::root|Control::Ptr () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the singular retained root owned for the SurfaceRoot's lifetime."
+    },
+    "gui_forms::SurfaceRoot::client_size|Size () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns logical client extent independent of device scale."
+    },
+    "gui_forms::SurfaceRoot::scale|double () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns native device-pixel scale without conflating it with presentation text scale."
+    },
+    "gui_forms::SurfaceRoot::presentation_settings|const PresentationSettings &() const noexcept": {
+      "reviewed": false,
+      "summary": "Returns logical text-scale, contrast, motion, and sound preferences."
+    },
+    "gui_forms::SurfaceRoot::set_presentation_settings|void (PresentationSettings)": {
+      "reviewed": false,
+      "summary": "Validates bounded text scale, dismisses geometry-sensitive transients when it changes, invalidates retained presentation, and publishes one committed event."
+    },
+    "gui_forms::SurfaceRoot::set_text_scale|void (double)": {
+      "reviewed": false,
+      "summary": "Changes only logical text scale through the complete presentation-settings transaction."
+    },
+    "gui_forms::SurfaceRoot::presentation_changed|Event<const PresentationSettings &> &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns the event published after presentation settings commit."
+    },
+    "gui_forms::SurfaceRoot::theme|const Theme &() const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the active immutable theme by reference."
+    },
+    "gui_forms::SurfaceRoot::theme_ptr|std::shared_ptr<const Theme> () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns shared ownership of the active immutable theme."
+    },
+    "gui_forms::SurfaceRoot::set_theme|void (std::shared_ptr<const Theme>)": {
+      "reviewed": false,
+      "summary": "Rejects null, replaces immutable theme state, conservatively invalidates root and overlay style/layout/semantics, and publishes after commit."
+    },
+    "gui_forms::SurfaceRoot::theme_changed|Event<const Theme &> &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns the post-commit theme event."
+    },
+    "gui_forms::SurfaceRoot::active|bool () const noexcept": {
+      "reviewed": false,
+      "summary": "Reports portable top-level activation state."
+    },
+    "gui_forms::SurfaceRoot::set_active|void (bool)": {
+      "reviewed": false,
+      "summary": "Commits a distinct activation value, refreshes activation-dependent style/paint/semantics across roots, and publishes after commit."
+    },
+    "gui_forms::SurfaceRoot::active_changed|Event<bool> &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns the post-commit activation event."
+    },
+    "gui_forms::SurfaceRoot::host_services|HostServices *() const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the non-owning service seam installed only for an active HostSession."
+    },
+    "gui_forms::SurfaceRoot::begin_update|UpdateScope ()": {
+      "reviewed": false,
+      "summary": "Enters a nestable update transaction, records depth metrics, and returns the sole close token for that level."
+    },
+    "gui_forms::SurfaceRoot::perform_layout|void ()": {
+      "reviewed": false,
+      "summary": "Runs the bounded retained layout barrier even inside an update scope without publishing paint."
+    },
+    "gui_forms::SurfaceRoot::flush|void ()": {
+      "reviewed": false,
+      "summary": "Runs the retained layout barrier; paint remains host-demand driven."
+    },
+    "gui_forms::SurfaceRoot::paint|std::optional<PaintReceipt> (Painter &, Rect)": {
+      "reviewed": false,
+      "summary": "Acquires the exclusive revision/epoch lease, applies bounded layout, replays damaged retained planes, produces an exact receipt only for a coherent current result, and defers reentrant input/paint."
+    },
+    "gui_forms::SurfaceRoot::notify_presented|bool (PaintReceipt, std::uint64_t)": {
+      "reviewed": false,
+      "summary": "Validates an exact receipt or uses the synchronous compatibility receipt, advances presentation metrics only in order, and rejects duplicates or retired epochs."
+    },
+    "gui_forms::SurfaceRoot::notify_presented|void (std::uint64_t)": {
+      "reviewed": false,
+      "summary": "Validates an exact receipt or uses the synchronous compatibility receipt, advances presentation metrics only in order, and rejects duplicates or retired epochs."
+    },
+    "gui_forms::SurfaceRoot::paint_lease_snapshot|PaintLeaseSnapshot () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns revision, epoch, lease, wake, deferral, and receipt counters plus current lease state."
+    },
+    "gui_forms::SurfaceRoot::take_damage|DamageRegion ()": {
+      "reviewed": false,
+      "summary": "Moves pending aggregate or named-plane damage to the host and acknowledges the paint wake when every plane drains."
+    },
+    "gui_forms::SurfaceRoot::take_damage|DamageRegion (PaintPlane)": {
+      "reviewed": false,
+      "summary": "Moves pending aggregate or named-plane damage to the host and acknowledges the paint wake when every plane drains."
+    },
+    "gui_forms::SurfaceRoot::needs_frame|bool () const noexcept": {
+      "reviewed": false,
+      "summary": "Reports retained damage or due scheduled work without polling controls."
+    },
+    "gui_forms::SurfaceRoot::next_wake|std::optional<FrameTime> () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the earliest eligible frame/timer deadline, respecting occlusion."
+    },
+    "gui_forms::SurfaceRoot::schedule_paint|FrameRequestToken (const Control::Ptr &, FrameTime)": {
+      "reviewed": false,
+      "summary": "Adds one bounded, revocable deadline request for an attached control."
+    },
+    "gui_forms::SurfaceRoot::schedule_ui_timer|FrameRequestToken (Component &, FrameInterval, FrameTime, std::function<void (FrameTime)>)": {
+      "reviewed": false,
+      "summary": "Adds a bounded periodic callback for a live Component owner with fault isolation and a minimum interval."
+    },
+    "gui_forms::SurfaceRoot::poll_frame_schedule|FramePollResult (FrameTime)": {
+      "reviewed": false,
+      "summary": "Runs one nonreentrant bounded schedule turn, coalesces due work, disconnects faulting callbacks, invalidates controls whose paint deadlines are due, and returns the next wake."
+    },
+    "gui_forms::SurfaceRoot::cancel_frame_requests|void ()": {
+      "reviewed": false,
+      "summary": "Revokes every outstanding frame/surface/timer request and refreshes scheduling metrics."
+    },
+    "gui_forms::SurfaceRoot::set_occluded|void (bool, FrameTime)": {
+      "reviewed": false,
+      "summary": "Transitions scheduling and paint leases between visible and occluded policy without discarding dirty state."
+    },
+    "gui_forms::SurfaceRoot::occluded|bool () const noexcept": {
+      "reviewed": false,
+      "summary": "Reports portable host occlusion state."
+    },
+    "gui_forms::SurfaceRoot::check_access|bool () const noexcept": {
+      "reviewed": false,
+      "summary": "Compares the caller with immutable Window UI-thread affinity."
+    },
+    "gui_forms::SurfaceRoot::verify_access|void (std::string_view)": {
+      "reviewed": false,
+      "summary": "Throws a named wrong-thread failure and records its metric when access is invalid."
+    },
+    "gui_forms::SurfaceRoot::invoke_required|bool () const noexcept": {
+      "reviewed": false,
+      "summary": "Reports whether caller marshaling is required."
+    },
+    "gui_forms::SurfaceRoot::begin_invoke|DispatchOperation (std::function<void ()>)": {
+      "reviewed": false,
+      "summary": "Posts unowned or control-owned work into the bounded FIFO dispatcher and coalesces one host wake."
+    },
+    "gui_forms::SurfaceRoot::begin_invoke|DispatchOperation (const Control::Ptr &, std::function<void ()>)": {
+      "reviewed": false,
+      "summary": "Posts unowned or control-owned work into the bounded FIFO dispatcher and coalesces one host wake."
+    },
+    "gui_forms::SurfaceRoot::invoke|void (std::function<void ()>)": {
+      "reviewed": false,
+      "summary": "Runs inline on the UI thread or posts and blocks without a nested message pump when a host wake seam exists."
+    },
+    "gui_forms::SurfaceRoot::invoke|void (const Control::Ptr &, std::function<void ()>)": {
+      "reviewed": false,
+      "summary": "Runs inline on the UI thread or posts and blocks without a nested message pump when a host wake seam exists."
+    },
+    "gui_forms::SurfaceRoot::drain_posted_work|DispatchDrainResult (std::size_t)": {
+      "reviewed": false,
+      "summary": "Consumes one bounded queue snapshot in FIFO order, validates owners, isolates faults/cancellation, updates telemetry, and rearms one wake if work remains."
+    },
+    "gui_forms::SurfaceRoot::dispatcher_snapshot|DispatcherSnapshot () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns thread-safe queue, outcome, invocation, wake, bound, and shutdown telemetry."
+    },
+    "gui_forms::SurfaceRoot::set_dispatch_wake_handler|void (std::function<void ()>)": {
+      "reviewed": false,
+      "summary": "Installs or removes the host wake primitive, immediately wakes queued work, and refuses removal while a synchronous waiter exists."
+    },
+    "gui_forms::SurfaceRoot::set_paint_wake_handler|void (std::function<void ()>)": {
+      "reviewed": false,
+      "summary": "Installs the host paint wake primitive used by cross-window or asynchronous retained invalidation."
+    },
+    "gui_forms::SurfaceRoot::shutdown_dispatcher|void () noexcept": {
+      "reviewed": false,
+      "summary": "Atomically stops acceptance, removes the wake seam, abandons deferred input on the UI thread, cancels pending work, and releases waiters."
+    },
+    "gui_forms::SurfaceRoot::load_png|ImageLoadResult (std::span<const std::byte>)": {
+      "reviewed": false,
+      "summary": "Loads the sole admitted encoded image format into the generational resource registry on the UI thread."
+    },
+    "gui_forms::SurfaceRoot::load_bgra32_premultiplied|ImageLoadResult (std::uint32_t, std::uint32_t, std::uint64_t, std::span<const std::byte>)": {
+      "reviewed": false,
+      "summary": "Loads validated raw premultiplied pixels into the generational resource registry."
+    },
+    "gui_forms::SurfaceRoot::replace_png|ImageLoadResult (ImageId, std::span<const std::byte>)": {
+      "reviewed": false,
+      "summary": "Replaces an existing PNG generation globally or for a named attached consumer and applies the appropriate conservative or scoped invalidation."
+    },
+    "gui_forms::SurfaceRoot::replace_png|ImageLoadResult (ImageId, std::span<const std::byte>, Control &)": {
+      "reviewed": false,
+      "summary": "Replaces an existing PNG generation globally or for a named attached consumer and applies the appropriate conservative or scoped invalidation."
+    },
+    "gui_forms::SurfaceRoot::replace_bgra32_premultiplied|ImageLoadResult (ImageId, std::uint32_t, std::uint32_t, std::uint64_t, std::span<const std::byte>, Control &)": {
+      "reviewed": false,
+      "summary": "Replaces raw pixels for an attached consumer and invalidates its paint/semantic projection."
+    },
+    "gui_forms::SurfaceRoot::update_bgra32_premultiplied|ImageLoadResult (ImageId, std::uint32_t, std::uint32_t, std::uint64_t, std::span<const std::byte>, Control &)": {
+      "reviewed": false,
+      "summary": "Publishes a live raw-pixel generation for an attached consumer without admitting renderer types."
+    },
+    "gui_forms::SurfaceRoot::patch_bgra32_premultiplied|ImageLoadResult (ImageId, std::uint32_t, std::uint32_t, std::uint32_t, std::uint32_t, std::uint64_t, std::span<const std::byte>, Control &, Rect)": {
+      "reviewed": false,
+      "summary": "Validates and patches a raw subregion, then applies exact consumer-local damage."
+    },
+    "gui_forms::SurfaceRoot::remove_image|bool (ImageId)": {
+      "reviewed": false,
+      "summary": "Retires a generational image and invalidates all display chunks because the unscoped API cannot name consumers."
+    },
+    "gui_forms::SurfaceRoot::image_resources|const ImageRegistry &() const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the renderer-neutral image registry."
+    },
+    "gui_forms::SurfaceRoot::image_resource_snapshot|ImageRegistrySnapshot () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns generational image counts and byte/accounting telemetry."
+    },
+    "gui_forms::SurfaceRoot::find|Control::Ptr (std::string_view) const": {
+      "reviewed": false,
+      "summary": "Resolves an attached control by authoritative unique stable ID."
+    },
+    "gui_forms::SurfaceRoot::hit_test|Control::Ptr (Point)": {
+      "reviewed": false,
+      "summary": "Applies the layout read barrier and finds the frontmost eligible retained target across overlays and root."
+    },
+    "gui_forms::SurfaceRoot::request_focus|bool (const Control::Ptr &)": {
+      "reviewed": false,
+      "summary": "Validates attachment, eligibility, active focus-scope containment, and AutoValidate before committing focus events."
+    },
+    "gui_forms::SurfaceRoot::focused_control|Control::Ptr () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the currently focused live control if retained."
+    },
+    "gui_forms::SurfaceRoot::validate_control|bool (const Control::Ptr &, Control *, bool)": {
+      "reviewed": false,
+      "summary": "Runs one nonreentrant cancelable validation transaction for an eligible control and records exact outcome metrics."
+    },
+    "gui_forms::SurfaceRoot::validate_children|bool (const Control::Ptr &, ValidationConstraints)": {
+      "reviewed": false,
+      "summary": "Traverses a bounded retained subtree under declared validation constraints and stops on cancellation."
+    },
+    "gui_forms::SurfaceRoot::validation_snapshot|ValidationSnapshot () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns validation attempts, outcomes, blocked focus moves, reentrancy, visits, and active state."
+    },
+    "gui_forms::SurfaceRoot::begin_focus_scope|FocusScopeId (const Control::Ptr &, const Control::Ptr &, FocusScopeOptions)": {
+      "reviewed": false,
+      "summary": "Validates nested ownership and depth, captures previous focus, optionally focuses a preferred/first descendant, and publishes the opened scope."
+    },
+    "gui_forms::SurfaceRoot::end_focus_scope|bool (FocusScopeId, FocusScopeCloseReason)": {
+      "reviewed": false,
+      "summary": "Closes the active matching scope, applies the named reason, optionally restores eligible prior focus, and publishes after state commit."
+    },
+    "gui_forms::SurfaceRoot::focus_scope_depth|std::size_t () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns active transient/modal focus containment depth."
+    },
+    "gui_forms::SurfaceRoot::active_focus_scope_root|Control::Ptr () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the live root of the innermost active focus scope."
+    },
+    "gui_forms::SurfaceRoot::move_focus|bool (bool)": {
+      "reviewed": false,
+      "summary": "Builds stable eligible tab-order candidates within the active scope and commits the next validated destination."
+    },
+    "gui_forms::SurfaceRoot::set_accept_button|void (const Control::Ptr &)": {
+      "reviewed": false,
+      "summary": "Validates and retains the attached command target used for Return dialog routing."
+    },
+    "gui_forms::SurfaceRoot::set_cancel_button|void (const Control::Ptr &)": {
+      "reviewed": false,
+      "summary": "Validates and retains the attached command target used for Escape dialog routing."
+    },
+    "gui_forms::SurfaceRoot::accept_button|Control::Ptr () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the current live default command target."
+    },
+    "gui_forms::SurfaceRoot::cancel_button|Control::Ptr () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the current live cancellation command target."
+    },
+    "gui_forms::SurfaceRoot::dialog_key_snapshot|DialogKeySnapshot () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns mnemonic/default/cancel attempts, outcomes, candidates, collisions, cycles, and rejections."
+    },
+    "gui_forms::SurfaceRoot::dialog_result|DialogResult () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the committed portable dialog result."
+    },
+    "gui_forms::SurfaceRoot::set_dialog_result|void (DialogResult)": {
+      "reviewed": false,
+      "summary": "Validates a defined result, commits a distinct value, and publishes it."
+    },
+    "gui_forms::SurfaceRoot::dialog_result_changed|Event<DialogResult> &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns the post-commit dialog-result event."
+    },
+    "gui_forms::SurfaceRoot::focus_scope_changed|Event<const FocusScopeChange &> &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns opened/closed focus-scope publications."
+    },
+    "gui_forms::SurfaceRoot::capture_pointer|void (const Control::Ptr &, std::uint64_t)": {
+      "reviewed": false,
+      "summary": "Validates an attached eligible control and commits portable pointer capture for a nonzero pointer identity."
+    },
+    "gui_forms::SurfaceRoot::release_pointer|void ()": {
+      "reviewed": false,
+      "summary": "Revokes current portable pointer capture and publishes the transition."
+    },
+    "gui_forms::SurfaceRoot::captured_control|Control::Ptr () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the current live retained capture owner."
+    },
+    "gui_forms::SurfaceRoot::captured_pointer_id|std::uint64_t () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the captured pointer identity or zero."
+    },
+    "gui_forms::SurfaceRoot::pointer_capture_changed|Event<const PointerCaptureChange &> &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns capture transitions consumed by HostSession services."
+    },
+    "gui_forms::SurfaceRoot::control_availability_changed|Event<const ControlAvailabilityChange &> &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns effective visibility/enabled transitions for providers and native projection."
+    },
+    "gui_forms::SurfaceRoot::open_popup|PopupToken (const Control::Ptr &, const Control::Ptr &, PopupOptions)": {
+      "reviewed": false,
+      "summary": "Validates owner policy and a live detached popup root, attaches it as a retained overlay, binds revocable owner lifetime, and returns the close token."
+    },
+    "gui_forms::SurfaceRoot::register_accelerator|AcceleratorToken (Component &, KeyGesture, std::function<bool ()>, AcceleratorOptions)": {
+      "reviewed": false,
+      "summary": "Validates owner/gesture/callback, records priority policy, binds owner lifetime, and returns the revocation token."
+    },
+    "gui_forms::SurfaceRoot::pressed_control|Control::Ptr () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the control retaining qualified pointer press state."
+    },
+    "gui_forms::SurfaceRoot::dispatch_pointer|bool (PointerEvent)": {
+      "reviewed": false,
+      "summary": "Defers safely under a paint lease or routes preview/target/bubble pointer input with hover, press, capture, focus, and mutation revalidation."
+    },
+    "gui_forms::SurfaceRoot::dispatch_key|bool (KeyEvent)": {
+      "reviewed": false,
+      "summary": "Defers safely under paint, arbitrates preemptive accelerators, focus route, dialog keys/mnemonics, ordinary accelerators, and traversal in deterministic order."
+    },
+    "gui_forms::SurfaceRoot::dispatch_text|bool (TextInputEvent)": {
+      "reviewed": false,
+      "summary": "Defers safely under paint or routes committed/composition text through the focused retained route."
+    },
+    "gui_forms::SurfaceRoot::deferred_input_snapshot|DeferredInputSnapshot () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns fixed-capacity queue, delivery, compaction, rejection, abandonment, fault, and drain telemetry."
+    },
+    "gui_forms::SurfaceRoot::dispatch_drag|DragDispatchResult (DragEvent)": {
+      "reviewed": false,
+      "summary": "Validates session ordering and typed payload, defers under paint, routes enter/over/leave/drop, and enforces one admitted effect."
+    },
+    "gui_forms::SurfaceRoot::cancel_drag|void () noexcept": {
+      "reviewed": false,
+      "summary": "Terminates retained drag ownership and abandons deferred drag work."
+    },
+    "gui_forms::SurfaceRoot::metrics_snapshot|MetricsSnapshot () const": {
+      "reviewed": false,
+      "summary": "Returns structured retained layout/paint/input/semantic/resource activity metrics."
+    },
+    "gui_forms::SurfaceRoot::metrics|Metrics &() noexcept": {
+      "reviewed": false,
+      "summary": "Returns mutable structured instrumentation for internal coordinated emitters."
+    },
+    "gui_forms::SurfaceRoot::reset_activity_metrics|void () noexcept": {
+      "reviewed": false,
+      "summary": "Resets interval activity counters without erasing lifetime/identity state."
+    },
+    "gui_forms::SurfaceRoot::semantic_snapshot|SemanticSnapshot ()": {
+      "reviewed": false,
+      "summary": "Builds a mutation-safe bounded semantic tree across root and overlays, retrying when callbacks mutate identity."
+    },
+    "gui_forms::SurfaceRoot::semantic_generation|std::uint64_t () const noexcept": {
+      "reviewed": false,
+      "summary": "Returns the generation native accessibility adapters use to avoid redundant publication."
+    },
+    "gui_forms::SurfaceRoot::perform_semantic_action|bool (std::string_view, SemanticAction, std::string_view)": {
+      "reviewed": false,
+      "summary": "Defers during paint or resolves stable real/virtual identity and enters the same focus, press, value, disclosure, and scroll paths as ordinary input."
+    }
+  }
+}

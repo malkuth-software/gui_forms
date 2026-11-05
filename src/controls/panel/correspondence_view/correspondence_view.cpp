@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "../../basic/basic_control_rendering.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <vector>
 #include <string>
@@ -520,11 +521,14 @@ void CorrespondenceView::arrange(Rect final_bounds) {
     if (const std::optional<std::size_t> focused = item_index(focused_id_)) ensure_visible(*focused);
 }
 
+// A glyph is a well (the folder's body or the page) with the glyph's colour
+// or the paper as its ground, framed by the theme's edge, and content fills
+// for the folder's tab and the page's band and marks: the colours are the
+// item kind's own, as a swatch's are. A disabled item's well is disabled
+// and its colour the face's.
 void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
                                      ObjectGlyph glyph,
                                      bool item_enabled) const {
-    const Color border = item_enabled ? style().dark_border
-                                      : style().disabled_text;
     const Color base = !item_enabled ? style().face
         : glyph == ObjectGlyph::folder ? Color::rgba(79, 137, 196)
         : glyph == ObjectGlyph::image ? Color::rgba(83, 154, 119)
@@ -532,28 +536,41 @@ void CorrespondenceView::paint_glyph(Painter& painter, Rect b,
         : glyph == ObjectGlyph::archive ? Color::rgba(190, 135, 61)
         : glyph == ObjectGlyph::code ? Color::rgba(67, 132, 135)
         : Color::rgba(107, 126, 158);
+    AnatomyStateSet states{};
+    if (!item_enabled) states.insert(AnatomyState::disabled);
+    PartPaint well;
+    well.family = ControlVisualRole::editor;
+    well.role = PartRole::well;
+    well.states = states;
+    well.corner_radius = 0.0;
+    PartPaint fill;
+    fill.family = ControlVisualRole::editor;
+    fill.role = PartRole::fill;
+    fill.states = states;
     if (glyph == ObjectGlyph::folder) {
-        painter.fill_rect({b.x + 2.0, b.y + 8.0, b.width - 4.0,
-                           b.height - 10.0}, base);
-        painter.fill_rect({b.x + 6.0, b.y + 4.0, b.width * .44, 7.0},
-                          with_alpha(style().highlight, 190));
-        painter.stroke_rect({b.x + 2.5, b.y + 8.5, b.width - 5.0,
-                             b.height - 11.0}, border, 1.0);
+        well.bounds = {b.x + 2.0, b.y + 8.0, b.width - 4.0, b.height - 10.0};
+        well.authored_background = base;
+        paint_part(painter, *this, well);
+        fill.bounds = {b.x + 6.0, b.y + 4.0, b.width * .44, 4.0};
+        fill.content_color = with_alpha(style().highlight, 190);
+        paint_part(painter, *this, fill);
         return;
     }
-    painter.fill_rect({b.x + 5.0, b.y + 1.0, b.width - 10.0, b.height - 2.0},
-                      style().paper);
-    painter.fill_rect({b.x + 5.0, b.y + 1.0, b.width - 10.0, 6.0}, base);
-    painter.stroke_rect({b.x + 5.5, b.y + 1.5, b.width - 11.0,
-                         b.height - 3.0}, border, 1.0);
+    well.bounds = {b.x + 5.0, b.y + 1.0, b.width - 10.0, b.height - 2.0};
+    well.authored_background = style().paper;
+    paint_part(painter, *this, well);
+    fill.bounds = {b.x + 6.0, b.y + 2.0, b.width - 12.0, 5.0};
+    fill.content_color = base;
+    paint_part(painter, *this, fill);
     if (glyph == ObjectGlyph::image) {
-        painter.fill_rect({b.x + 9.0, b.y + 11.0, b.width - 18.0,
-                           b.height - 17.0}, with_alpha(base, 120));
+        fill.bounds = {b.x + 9.0, b.y + 11.0, b.width - 18.0, b.height - 17.0};
+        fill.content_color = with_alpha(base, 120);
+        paint_part(painter, *this, fill);
     } else {
-        painter.draw_line({b.x + 9.0, b.y + 13.0},
-                          {b.x + b.width - 9.0, b.y + 13.0}, base, 1.0);
-        painter.draw_line({b.x + 9.0, b.y + 18.0},
-                          {b.x + b.width - 12.0, b.y + 18.0}, base, 1.0);
+        fill.bounds = {b.x + 9.0, b.y + 12.5, b.width - 18.0, 1.0};
+        paint_part(painter, *this, fill);
+        fill.bounds = {b.x + 9.0, b.y + 17.5, b.width - 21.0, 1.0};
+        paint_part(painter, *this, fill);
     }
 }
 
@@ -646,6 +663,14 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
+    // Each item's card and plate, glyph, title, metric, rules, evidence
+    // well and texts and the active item's focus ring are parts the theme's
+    // engine draws; an item is hot under the pointer, selected when selected
+    // and disabled with its item. A style override supplies the plates'
+    // grounds (T4-1).
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    const bool overridden = has_style_override();
     const std::pair<std::size_t, std::size_t> range = realized_range();
     const std::size_t first = range.first;
     const std::size_t end = range.second;
@@ -659,57 +684,131 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
         const bool pinned = item.stable_id == pinned_id_;
         painter.save();
         painter.clip_rect(row);
-        painter.fill_rect(row,
-                          selected ? style().accent_light :
-                          item.stable_id == hovered_id_ ? style().face_light :
-                          style().paper);
-        painter.stroke_rect({row.x + .5, row.y + .5,
-                             std::max(0.0, row.width - 1.0),
-                             std::max(0.0, visible_height - 1.0)},
-                            with_alpha(style().border, 105), 1.0);
-        const Color rail = item.unavailable ? style().disabled_text
-                           : item.stale ? Color::rgba(151, 112, 64)
-                           : pinned ? style().accent
-                                    : with_alpha(style().dark_border, 150);
-        painter.fill_rect(layout.status_rail, rail);
+        const bool hovered = item.stable_id == hovered_id_;
+        AnatomyStateSet item_states = states;
+        if (hovered) item_states.insert(AnatomyState::hot);
+        if (selected) item_states.insert(AnatomyState::selected);
+        if (!item.enabled) item_states.insert(AnatomyState::disabled);
+        const Rect card_bounds{row.x, row.y, row.width, visible_height};
+        PartPaint card;
+        card.family = ControlVisualRole::card;
+        card.role = PartRole::face;
+        card.bounds = card_bounds;
+        card.states = item_states;
+        if (overridden) card.authored_background = style().paper;
+        paint_part(painter, *this, card);
+        if (selected || hovered) {
+            PartPaint plate;
+            plate.family = ControlVisualRole::selection;
+            plate.role = PartRole::selection;
+            plate.bounds = card_bounds;
+            plate.states = item_states;
+            if (overridden) plate.authored_background = selected ? style().accent_light : style().face_light;
+            paint_part(painter, *this, plate);
+        }
+        // The status rail is a fill; pinned and stale items take the first
+        // and second accent indices and an offline item is unavailable
+        // (owner decision, 2026-11-02).
+        std::optional<AccentIndex> status_accent{};
+        if (pinned) {
+            status_accent = AccentIndex{0U};
+        } else if (item.stale && !item.unavailable) {
+            status_accent = AccentIndex{1U};
+        }
+        AnatomyStateSet status_states = item_states;
+        if (item.unavailable) status_states.insert(AnatomyState::unavailable);
+        PartPaint rail;
+        rail.family = ControlVisualRole::card;
+        rail.role = PartRole::fill;
+        rail.bounds = layout.status_rail;
+        rail.states = status_states;
+        rail.accent = status_accent;
+        paint_part(painter, *this, rail);
         paint_glyph(painter, layout.glyph, item.glyph, item.enabled);
-        const Color text = item.enabled ? style().text : style().disabled_text;
+        PartPaint content;
+        content.family = selected || hovered ? ControlVisualRole::selection : ControlVisualRole::editor;
+        content.role = PartRole::content;
+        content.states = item_states;
+        // PartPaint::text borrows: each elided line is held in a named
+        // string that outlives its part's paint.
         const std::string title = elide_text_end(painter, item.title, fonts.title, layout.title_width);
-        painter.draw_text_utf8(layout.title_origin, title, fonts.title, text);
-        const std::string secondary =
+        content.text = title;
+        content.font = fonts.title;
+        paint_text_part_at(painter, *this, content, layout.title_origin, layout.title_width);
+        PartPaint secondary = content;
+        secondary.tone = PartTextTone::secondary;
+        secondary.states = status_states;
+        const std::string secondary_line =
             elide_text_end(painter, item.secondary_text, fonts.secondary, layout.secondary_width);
-        painter.draw_text_utf8(layout.secondary_origin, secondary, fonts.secondary,
-                               item.unavailable ? style().disabled_text
-                                                : style().dark_border);
-        painter.draw_text_utf8(layout.metric_origin, item.metric, fonts.metric, text);
+        secondary.text = secondary_line;
+        secondary.font = fonts.secondary;
+        paint_text_part_at(painter, *this, secondary, layout.secondary_origin, layout.secondary_width);
+        content.text = item.metric;
+        content.font = fonts.metric;
+        paint_text_part_at(painter, *this, content, layout.metric_origin,
+                           std::max(0.0, row.x + row.width - layout.metric_origin.x));
         if (!layout.state_text.empty()) {
-            painter.draw_text_utf8(layout.state_origin, layout.state_text, fonts.evidence_bold, rail);
+            // The state word is a label on a chip in the rail's accent.
+            const FontSpec& word_font = fonts.evidence_bold;
+            const Point word_origin = layout.state_origin;
+            const Size word = painter.measure_text_utf8(layout.state_text, word_font);
+            PartPaint chip;
+            chip.family = ControlVisualRole::card;
+            chip.role = PartRole::chip;
+            chip.bounds = {word_origin.x - 3.0, word_origin.y - word_font.size - 1.0,
+                           word.width + 6.0, word_font.size + 5.0};
+            chip.states = status_states;
+            chip.accent = status_accent;
+            paint_part(painter, *this, chip);
+            PartPaint word_label;
+            word_label.family = ControlVisualRole::card;
+            word_label.role = PartRole::label;
+            word_label.states = status_states;
+            word_label.text = layout.state_text;
+            word_label.font = word_font;
+            word_label.measured_text = word;
+            paint_text_part_at(painter, *this, word_label, word_origin, word.width);
         }
         if (layout.expanded) {
             const double scale = effective_text_scale();
             const double body_top = layout.body_top;
-            painter.draw_line({row.x + 48.0, body_top},
-                              {row.x + row.width - 8.0, body_top},
-                              with_alpha(style().border, 120), 1.0);
+            PartPaint rule;
+            rule.family = ControlVisualRole::card;
+            rule.role = PartRole::divider;
+            rule.bounds = {row.x + 48.0, body_top - 0.5, std::max(0.0, row.width - 56.0), 1.0};
+            rule.states = item_states;
+            paint_part(painter, *this, rule);
             const double evidence_x = layout.evidence_x;
-            painter.draw_text_utf8({evidence_x, body_top + 16.0 * scale},
-                                   item.metadata, fonts.evidence, text);
             const Rect excerpt_box = layout.excerpt_box;
-            painter.fill_rect(excerpt_box,
-                              item.unavailable ? style().face
-                                               : Color::rgba(251, 248, 237));
-            painter.stroke_rect({excerpt_box.x + .5, excerpt_box.y + .5,
-                                 std::max(0.0, excerpt_box.width - 1.0),
-                                 std::max(0.0, excerpt_box.height - 1.0)},
-                                with_alpha(style().border, 90), 1.0);
-            painter.draw_text_utf8(
-                {excerpt_box.x + 6.0, excerpt_box.y + 15.0 * scale},
-                "MATCHED EXCERPT", fonts.evidence_bold, style().dark_border);
-            draw_emphasized_text(
-                painter,
+            content.text = item.metadata;
+            content.font = fonts.evidence;
+            paint_text_part_at(painter, *this, content, {evidence_x, body_top + 16.0 * scale},
+                               excerpt_box.width);
+            // The excerpt sits in a well, unavailable with an unavailable item.
+            PartPaint excerpt_well;
+            excerpt_well.family = ControlVisualRole::editor;
+            excerpt_well.role = PartRole::well;
+            excerpt_well.bounds = excerpt_box;
+            excerpt_well.states = item_states;
+            if (item.unavailable) excerpt_well.states.insert(AnatomyState::unavailable);
+            paint_part(painter, *this, excerpt_well);
+            PartPaint quiet = content;
+            quiet.family = ControlVisualRole::editor;
+            quiet.tone = PartTextTone::secondary;
+            quiet.states = status_states;
+            quiet.text = "MATCHED EXCERPT";
+            quiet.font = fonts.evidence_bold;
+            paint_text_part_at(painter, *this, quiet,
+                               {excerpt_box.x + 6.0, excerpt_box.y + 15.0 * scale},
+                               std::max(0.0, excerpt_box.width - 12.0));
+            PartPaint excerpt = content;
+            excerpt.family = ControlVisualRole::editor;
+            excerpt.states = status_states;
+            excerpt.font = fonts.evidence;
+            paint_emphasized_text(
+                painter, *this,
                 {excerpt_box.x + 6.0, excerpt_box.y + 31.0 * scale},
-                item.excerpt, item.emphasis_terms, fonts.evidence, text,
-                with_alpha(style().accent_light, 220));
+                item.excerpt, item.emphasis_terms, excerpt);
             std::string tags;
             for (const std::string& tag : item.information_tags) {
                 if (!tags.empty()) tags += "  ·  ";
@@ -717,31 +816,55 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
             }
             if (layout.wide) {
                 const double lane_x = row.x + row.width - layout.lane_width;
-                painter.draw_line({lane_x, body_top + 7.0 * scale},
-                                  {lane_x, row.y + visible_height - 7.0 * scale},
-                                  with_alpha(style().border, 125), 1.0);
-                painter.draw_text_utf8(
-                    {lane_x + 9.0 * scale, body_top + 18.0 * scale},
-                    item.information_heading, fonts.evidence_bold, text);
-                painter.draw_text_utf8(
-                    {lane_x + 9.0 * scale, body_top + 36.0 * scale}, tags,
-                    fonts.evidence, style().dark_border);
-                painter.draw_text_utf8(
-                    {lane_x + 9.0 * scale, body_top + 54.0 * scale},
-                    item.information_detail, fonts.evidence,
-                    style().disabled_text);
+                PartPaint lane_rule;
+                lane_rule.family = ControlVisualRole::card;
+                lane_rule.role = PartRole::divider;
+                lane_rule.bounds = {lane_x - 0.5, body_top + 7.0 * scale, 1.0,
+                                    std::max(0.0, row.y + visible_height - 14.0 * scale - body_top)};
+                lane_rule.states = item_states;
+                paint_part(painter, *this, lane_rule);
+                PartPaint heading;
+                heading.family = ControlVisualRole::card;
+                heading.role = PartRole::label;
+                heading.states = item_states;
+                heading.text = item.information_heading;
+                heading.font = fonts.evidence_bold;
+                paint_text_part_at(painter, *this, heading,
+                                   {lane_x + 9.0 * scale, body_top + 18.0 * scale},
+                                   std::max(0.0, layout.lane_width - 12.0 * scale));
+                PartPaint lane_text = heading;
+                lane_text.tone = PartTextTone::secondary;
+                lane_text.font = fonts.evidence;
+                lane_text.text = tags;
+                paint_text_part_at(painter, *this, lane_text,
+                                   {lane_x + 9.0 * scale, body_top + 36.0 * scale},
+                                   std::max(0.0, layout.lane_width - 12.0 * scale));
+                lane_text.text = item.information_detail;
+                paint_text_part_at(painter, *this, lane_text,
+                                   {lane_x + 9.0 * scale, body_top + 54.0 * scale},
+                                   std::max(0.0, layout.lane_width - 12.0 * scale));
             } else if (layout.footer_shown) {
-                painter.draw_text_utf8(
-                    layout.footer_origin,
-                    item.information_heading + " · " + tags,
-                    fonts.evidence, style().dark_border);
+                const std::string summary = item.information_heading + " · " + tags;
+                PartPaint lane_text;
+                lane_text.family = ControlVisualRole::card;
+                lane_text.role = PartRole::label;
+                lane_text.tone = PartTextTone::secondary;
+                lane_text.states = item_states;
+                lane_text.text = summary;
+                lane_text.font = fonts.evidence;
+                paint_text_part_at(painter, *this, lane_text, layout.footer_origin,
+                                   std::max(0.0, row.x + row.width - layout.footer_origin.x));
             }
         }
         if (active) {
-            painter.stroke_rect({row.x + 6.5, row.y + 2.5,
-                                 std::max(0.0, row.width - 9.0),
-                                 std::max(0.0, visible_height - 5.0)},
-                                style().accent, 1.0);
+            PartPaint ring;
+            ring.family = ControlVisualRole::selection;
+            ring.role = PartRole::focus;
+            ring.bounds = {row.x + 6.0, row.y + 2.0, std::max(0.0, row.width - 8.0),
+                           std::max(0.0, visible_height - 4.0)};
+            ring.states = item_states;
+            ring.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, ring);
         }
         painter.restore();
     }

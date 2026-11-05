@@ -64,14 +64,87 @@ struct CodePoint final {
     return newline;
 }
 
+[[nodiscard]] bool hex_byte(char byte) noexcept {
+    const bool hex = (byte >= '0' && byte <= '9') || (byte >= 'a' && byte <= 'f') || (byte >= 'A' && byte <= 'F');
+    return hex;
+}
+
+[[nodiscard]] std::uint32_t hex_value(char byte) noexcept {
+    if (byte >= '0' && byte <= '9') return static_cast<std::uint32_t>(byte - '0');
+    if (byte >= 'a' && byte <= 'f') return static_cast<std::uint32_t>(byte - 'a' + 10);
+    return static_cast<std::uint32_t>(byte - 'A' + 10);
+}
+
+// One escape read at its backslash (CSS Syntax 4.3.7): the code point it
+// names and the byte after it. A hex escape is one to six hex digits and
+// one optional whitespace (CR LF counting as one); any other escape is the
+// backslash and one code point. `valid` is false for an escape of 0, of a
+// surrogate or of a value past U+10FFFF.
+struct Escape final {
+    std::uint32_t scalar{};
+    std::size_t end{};
+    bool valid{};
+};
+
+[[nodiscard]] Escape read_escape(std::string_view text, std::size_t backslash) noexcept {
+    Escape result{};
+    std::size_t end = backslash + 1U;
+    if (end < text.size() && hex_byte(text[end])) {
+        std::uint32_t value = 0U;
+        std::size_t digits = 0U;
+        while (end < text.size() && digits < 6U && hex_byte(text[end])) {
+            value = value * 16U + hex_value(text[end]);
+            ++end;
+            ++digits;
+        }
+        if (end + 1U < text.size() && text[end] == '\r' && text[end + 1U] == '\n') {
+            end += 2U;
+        } else if (end < text.size() && whitespace_byte(text[end])) {
+            ++end;
+        }
+        result.scalar = value;
+        result.end = end;
+        result.valid = value != 0U && (value < 0xD800U || value > 0xDFFFU) && value <= 0x10FFFFU;
+        return result;
+    }
+    const CodePoint escaped = code_point_at(text, end);
+    result.scalar = escaped.scalar;
+    result.end = end + escaped.length;
+    result.valid = escaped.length != 0U && escaped.scalar != 0U;
+    return result;
+}
+
+void append_utf8(std::uint32_t scalar, std::string& output) {
+    if (scalar < 0x80U) {
+        output.push_back(static_cast<char>(scalar));
+        return;
+    }
+    if (scalar < 0x800U) {
+        output.push_back(static_cast<char>(0xC0U | (scalar >> 6U)));
+        output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
+        return;
+    }
+    if (scalar < 0x10000U) {
+        output.push_back(static_cast<char>(0xE0U | (scalar >> 12U)));
+        output.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
+        output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
+        return;
+    }
+    output.push_back(static_cast<char>(0xF0U | (scalar >> 18U)));
+    output.push_back(static_cast<char>(0x80U | ((scalar >> 12U) & 0x3FU)));
+    output.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
+    output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
+}
+
 // The tokenizer over one sheet. It borrows the text, the output buffer and
 // the diagnostics for one call of tokenize_theme_sheet; `cursor` borrows
 // the line table, which outlives it.
 class SheetTokenizer final {
 public:
     SheetTokenizer(const ThemeSource& source, ThemeTokenBuffer& buffer, const LineStartTable& lines,
-                   ThemeDiagnosticList& diagnostics) noexcept
-        : source_(source), text_(source.text), buffer_(buffer), diagnostics_(diagnostics), cursor_(lines, text_) {}
+                   ThemeDiagnosticList& diagnostics, NameEscapes escapes) noexcept
+        : source_(source), text_(source.text), buffer_(buffer), diagnostics_(diagnostics), cursor_(lines, text_),
+          escapes_(escapes) {}
 
     void run();
 
@@ -81,11 +154,19 @@ private:
         const bool matches = text_.substr(offset, prefix.size()) == prefix;
         return matches;
     }
-    // CSS §4.3.9 and §4.3.10, without escapes (round 002 item 16).
+    // CSS §4.3.9 and §4.3.10, with escapes where they are admitted.
     [[nodiscard]] bool starts_identifier(std::size_t offset) const noexcept;
     [[nodiscard]] bool starts_number(std::size_t offset) const noexcept;
-    // The end of the name starting at `offset`.
-    [[nodiscard]] std::size_t name_end(std::size_t offset) const noexcept;
+    // Whether a valid escape's backslash is at `offset` (CSS 4.3.8): one
+    // followed by a code point that is no line break, where escapes are
+    // admitted.
+    [[nodiscard]] bool starts_escape(std::size_t offset) const noexcept;
+    // The end of the name starting at `offset`; `escaped` says whether it
+    // holds an escape.
+    [[nodiscard]] std::size_t name_end(std::size_t offset, bool& escaped) const noexcept;
+    // Reports the first escape in [first, end) whose code point is not
+    // admitted, and gives false then.
+    [[nodiscard]] bool escapes_valid(std::size_t first, std::size_t end);
     // The end of the number starting at `offset` (CSS §4.3.12).
     [[nodiscard]] std::size_t number_end(std::size_t offset) const noexcept;
 
@@ -108,18 +189,27 @@ private:
     ThemeTokenBuffer& buffer_;
     ThemeDiagnosticList& diagnostics_;
     SourcePositionCursor cursor_;
+    NameEscapes escapes_{NameEscapes::refused};
     std::size_t index_{};
 };
+
+bool SheetTokenizer::starts_escape(std::size_t offset) const noexcept {
+    if (escapes_ != NameEscapes::in_names) return false;
+    if (offset + 1U >= text_.size() || text_[offset] != '\\') return false;
+    const bool starts = !newline_byte(text_[offset + 1U]) && at(offset + 1U).length != 0U;
+    return starts;
+}
 
 bool SheetTokenizer::starts_identifier(std::size_t offset) const noexcept {
     const CodePoint first = at(offset);
     if (first.length == 0U) return false;
     if (first.scalar == '-') {
         const CodePoint second = at(offset + 1U);
-        const bool starts = name_start(second) || (second.length != 0U && second.scalar == '-');
+        const bool starts =
+            name_start(second) || (second.length != 0U && second.scalar == '-') || starts_escape(offset + 1U);
         return starts;
     }
-    return name_start(first);
+    return name_start(first) || starts_escape(offset);
 }
 
 bool SheetTokenizer::starts_number(std::size_t offset) const noexcept {
@@ -140,14 +230,37 @@ bool SheetTokenizer::starts_number(std::size_t offset) const noexcept {
     return digit(first.scalar);
 }
 
-std::size_t SheetTokenizer::name_end(std::size_t offset) const noexcept {
+std::size_t SheetTokenizer::name_end(std::size_t offset, bool& escaped) const noexcept {
     std::size_t end = offset;
+    escaped = false;
     while (end < text_.size()) {
+        if (starts_escape(end)) {
+            escaped = true;
+            end = read_escape(text_, end).end;
+            continue;
+        }
         const CodePoint point = at(end);
         if (!name_character(point)) break;
         end += point.length;
     }
     return end;
+}
+
+bool SheetTokenizer::escapes_valid(std::size_t first, std::size_t end) {
+    std::size_t index = first;
+    while (index < end) {
+        if (text_[index] != '\\') {
+            ++index;
+            continue;
+        }
+        const Escape escape = read_escape(text_, index);
+        if (!escape.valid) {
+            report(DiagnosticCode::escape_not_admitted, index, std::string(text_.substr(index, escape.end - index)));
+            return false;
+        }
+        index = escape.end;
+    }
+    return true;
 }
 
 std::size_t SheetTokenizer::number_end(std::size_t offset) const noexcept {
@@ -253,12 +366,18 @@ void SheetTokenizer::consume_string() {
 void SheetTokenizer::consume_hash() {
     const std::size_t first = index_;
     const CodePoint next = at(first + 1U);
-    if (!name_character(next)) {
+    if (!name_character(next) && !starts_escape(first + 1U)) {
         emit(TokenKind::delim, first, first + 1U);
         return;
     }
-    const std::uint8_t flags = starts_identifier(first + 1U) ? token_flag_hash_identifier : std::uint8_t{0U};
-    const std::size_t end = name_end(first + 1U);
+    std::uint8_t flags = starts_identifier(first + 1U) ? token_flag_hash_identifier : std::uint8_t{0U};
+    bool escaped = false;
+    const std::size_t end = name_end(first + 1U, escaped);
+    if (escaped && !escapes_valid(first, end)) {
+        emit(TokenKind::invalid, first, end);
+        return;
+    }
+    if (escaped) flags = static_cast<std::uint8_t>(flags | token_flag_escaped);
     emit(TokenKind::hash, first, end, flags);
 }
 
@@ -268,8 +387,13 @@ void SheetTokenizer::consume_at_keyword() {
         emit(TokenKind::delim, first, first + 1U);
         return;
     }
-    const std::size_t end = name_end(first + 1U);
-    emit(TokenKind::at_keyword, first, end);
+    bool escaped = false;
+    const std::size_t end = name_end(first + 1U, escaped);
+    if (escaped && !escapes_valid(first, end)) {
+        emit(TokenKind::invalid, first, end);
+        return;
+    }
+    emit(TokenKind::at_keyword, first, end, escaped ? token_flag_escaped : std::uint8_t{0U});
 }
 
 void SheetTokenizer::consume_bad_url(std::size_t first) {
@@ -282,9 +406,15 @@ void SheetTokenizer::consume_bad_url(std::size_t first) {
 
 void SheetTokenizer::consume_ident_like() {
     const std::size_t first = index_;
-    const std::size_t end = name_end(first);
+    bool escaped = false;
+    const std::size_t end = name_end(first, escaped);
+    if (escaped && !escapes_valid(first, end)) {
+        emit(TokenKind::invalid, first, end);
+        return;
+    }
+    const std::uint8_t flags = escaped ? token_flag_escaped : std::uint8_t{0U};
     if (end >= text_.size() || text_[end] != '(') {
-        emit(TokenKind::ident, first, end);
+        emit(TokenKind::ident, first, end, flags);
         return;
     }
     const std::string_view name = text_.substr(first, end - first);
@@ -301,7 +431,7 @@ void SheetTokenizer::consume_ident_like() {
             return;
         }
     }
-    emit(TokenKind::function, first, end + 1U);
+    emit(TokenKind::function, first, end + 1U, flags);
 }
 
 void SheetTokenizer::consume_numeric() {
@@ -311,9 +441,14 @@ void SheetTokenizer::consume_numeric() {
     const NumberConversion conversion = convert_theme_number(number_text);
     TokenKind kind = TokenKind::number;
     std::size_t end = numeric;
+    bool escaped = false;
     if (starts_identifier(numeric)) {
         kind = TokenKind::dimension;
-        end = name_end(numeric);
+        end = name_end(numeric, escaped);
+    }
+    if (escaped && !escapes_valid(numeric, end)) {
+        emit(TokenKind::invalid, first, end);
+        return;
     } else if (numeric < text_.size() && text_[numeric] == '%') {
         kind = TokenKind::percentage;
         end = numeric + 1U;
@@ -331,7 +466,7 @@ void SheetTokenizer::consume_numeric() {
     value.integer = conversion.integer;
     const std::uint32_t position = static_cast<std::uint32_t>(buffer_.numbers.size());
     buffer_.numbers.push_back(value);
-    emit(kind, first, end);
+    emit(kind, first, end, escaped ? token_flag_escaped : std::uint8_t{0U});
     buffer_.tokens.back().number = position;
 }
 
@@ -473,8 +608,21 @@ std::string_view token_kind_name(TokenKind kind) noexcept {
     return "unknown";
 }
 
+void append_decoded_name(std::string_view written, std::string& output) {
+    std::size_t index = 0U;
+    while (index < written.size()) {
+        const std::size_t backslash = written.find('\\', index);
+        const std::size_t plain_end = backslash == std::string_view::npos ? written.size() : backslash;
+        output.append(written.substr(index, plain_end - index));
+        if (plain_end == written.size()) return;
+        const Escape escape = read_escape(written, backslash);
+        append_utf8(escape.scalar, output);
+        index = escape.end;
+    }
+}
+
 TokenizeOutcome tokenize_theme_sheet(const ThemeSource& source, ThemeTokenBuffer& buffer, LineStartTable& lines,
-                                     ThemeDiagnosticList& diagnostics) {
+                                     ThemeDiagnosticList& diagnostics, NameEscapes escapes) {
     buffer.tokens.clear();
     buffer.numbers.clear();
     lines.clear();
@@ -493,7 +641,7 @@ TokenizeOutcome tokenize_theme_sheet(const ThemeSource& source, ThemeTokenBuffer
     buffer.tokens.reserve(text.size());
     buffer.numbers.reserve(text.size() / 2U + 1U);
     report_encoding_defects(source, lines, diagnostics);
-    SheetTokenizer tokenizer(source, buffer, lines, diagnostics);
+    SheetTokenizer tokenizer(source, buffer, lines, diagnostics, escapes);
     tokenizer.run();
     return TokenizeOutcome::tokens_cover_sheet;
 }

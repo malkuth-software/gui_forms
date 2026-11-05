@@ -137,6 +137,9 @@ private:
     std::string custom_format_{"MMMM d, yyyy"};
     FontSpec font_{FontRole::content, 12.0, 400, false};
     BasicControlStyle style_;
+    // Whether set_style supplied style_: its text then inks the field's text
+    // and marks as authored colours (T4-1); otherwise the theme's stand.
+    bool style_authored_{};
     HitPart pressed_part_{HitPart::none};
     HitPart activation_part_{HitPart::none};
     bool show_check_box_{};

@@ -45,14 +45,10 @@ using TextWidthResolver = std::function<double(std::string_view)>;
 [[nodiscard]] std::vector<std::string> label_lines(
     std::string_view text, FontSpec font, double width, TextWrapping wrapping,
     const TextWidthResolver& resolve_width, std::size_t maximum_lines = 0U);
-void paint_relief(Painter& painter, Rect bounds,
-                  const BasicControlStyle& style, bool pressed);
-void fill_radio_disc(Painter& painter, double left, double top, Color color,
-                     bool inner);
-void fill_radio_face(Painter& painter, double left, double top, Color color);
-void paint_focus(Painter& painter, Rect bounds, Color color);
+// The default ring, then the focus ring, drawn from a recipe the program
+// authored (ButtonBase::set_visual_recipes), which the theme's engine does
+// not resolve.
 void paint_theme_cues(Painter& painter, Rect bounds,
                       const ControlVisualRecipe& recipe,
                       ControlVisualContext context);
-
 } // namespace gui_forms

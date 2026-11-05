@@ -10,6 +10,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
@@ -654,6 +655,52 @@ void TextBox::reveal_multiline_caret() {
     set_multiline_scroll(offset);
 }
 
+AnatomyStateSet TextBox::text_states() const {
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    return states;
+}
+
+// A text run's part: the editor's content, or the selection's for the run
+// inside a selection band. An overridden field's ink is authored: its text
+// colour, or the highlight inside the band (T4-1).
+PartPaint TextBox::text_part_template(FontSpec font, bool selected) const {
+    const bool themed = !has_background_override() && !has_style_override();
+    PartPaint part;
+    part.family = selected ? ControlVisualRole::selection : ControlVisualRole::editor;
+    part.role = PartRole::content;
+    part.states = text_states();
+    if (selected) part.states.insert(AnatomyState::selected);
+    part.font = font;
+    if (!themed) part.authored_foreground = selected ? style().highlight : style().text;
+    return part;
+}
+
+// A selection band: the selection's plate, the accent as its ground in an
+// overridden field (T4-1).
+void TextBox::paint_selection_band(Painter& painter, Rect band) const {
+    const bool themed = !has_background_override() && !has_style_override();
+    PartPaint plate;
+    plate.family = ControlVisualRole::selection;
+    plate.role = PartRole::selection;
+    plate.bounds = band;
+    plate.states = text_states();
+    plate.states.insert(AnatomyState::selected);
+    plate.states.insert(AnatomyState::focused);
+    if (!themed) plate.authored_background = style().accent;
+    paint_part(painter, *this, plate);
+}
+
+void TextBox::paint_caret(Painter& painter, Rect caret) const {
+    PartPaint part;
+    part.family = ControlVisualRole::editor;
+    part.role = PartRole::caret;
+    part.bounds = caret;
+    part.states = text_states();
+    if (has_background_override() || has_style_override()) part.authored_foreground = style().text;
+    paint_part(painter, *this, part);
+}
+
 Rect TextBox::paint_multiline(Painter& painter) {
     ensure_multiline_layout();
     reveal_multiline_caret();
@@ -662,13 +709,11 @@ Rect TextBox::paint_multiline(Painter& painter) {
     const double height = viewport.height;
     const Point offset = scroll_offset();
     const FontSpec font = effective_font(font_);
-    const bool themed = !has_background_override() && !has_style_override();
-    const ControlVisualRecipe& editor = effective_theme().resolve(ControlVisualRole::editor,
-        visual_context(false, false, false, focused_));
-    const ControlVisualRecipe& highlight = effective_theme().resolve(ControlVisualRole::selection,
-        visual_context(false, false, true, true));
-    const Color foreground = themed ? editor.text : enabled() ? style().text : style().disabled_text;
-    const Color selected_text = themed ? highlight.text : style().highlight;
+    // Text runs, selection bands, the cue and the caret are parts the
+    // theme's engine draws (text_part_template); a style or background
+    // override supplies the text's ink and the band's ground (T4-1).
+    const PartPaint text_part = text_part_template(font, false);
+    const PartPaint selected_part = text_part_template(font, true);
     painter.save();
     painter.clip_rect({text_left_, 4.0, width, height});
     const std::size_t first = static_cast<std::size_t>(offset.y / line_height_);
@@ -687,14 +732,15 @@ Rect TextBox::paint_multiline(Painter& painter) {
             double right = multiline_boundary_x(i, (*editing_).selection().end());
             if ((*editing_).selection().end().value() > row.offsets.back()) right += std::max(3.0, font.size * 0.35);
             selection_bounds = {origin + left, y, std::max(0.0, right - left), line_height_};
-            if (themed) paint_surface_material(painter, selection_bounds, highlight.material);
-            else painter.fill_rect(selection_bounds, style().accent);
+            paint_selection_band(painter, selection_bounds);
         }
         const std::string_view source = text();
         if (!selected) {
             for (const VisualRun& run : row.runs) {
                 const Point baseline{origin + run.x, y + line_ascent_};
-                painter.draw_text_utf8(baseline, source.substr(run.start, run.end - run.start), font, foreground);
+                PartPaint run_part = text_part;
+                run_part.text = source.substr(run.start, run.end - run.start);
+                paint_text_part_at(painter, *this, run_part, baseline, 0.0);
             }
             continue;
         }
@@ -710,10 +756,11 @@ Rect TextBox::paint_multiline(Painter& painter) {
             if (spans[span].width <= 0.0) continue;
             painter.save();
             painter.clip_rect(spans[span]);
-            const Color ink = span == 1U ? selected_text : foreground;
             for (const VisualRun& run : row.runs) {
                 const Point baseline{origin + run.x, y + line_ascent_};
-                painter.draw_text_utf8(baseline, source.substr(run.start, run.end - run.start), font, ink);
+                PartPaint run_part = span == 1U ? selected_part : text_part;
+                run_part.text = source.substr(run.start, run.end - run.start);
+                paint_text_part_at(painter, *this, run_part, baseline, 0.0);
             }
             painter.restore();
         }
@@ -721,8 +768,11 @@ Rect TextBox::paint_multiline(Painter& painter) {
     if (text().empty()) {
         const std::string empty_text = empty_field_text();
         if (!empty_text.empty()) {
-            painter.draw_text_utf8({text_left_, 4.0 + line_ascent_}, empty_text, font,
-                                   themed ? editor.muted_text : style().disabled_text);
+            PartPaint cue = text_part;
+            cue.tone = PartTextTone::secondary;
+            cue.authored_foreground.reset();
+            cue.text = empty_text;
+            paint_text_part_at(painter, *this, cue, {text_left_, 4.0 + line_ascent_}, width);
         }
     }
     Rect caret_bounds{};
@@ -731,9 +781,7 @@ Rect TextBox::paint_multiline(Painter& painter) {
         const double x = text_left_ - offset.x + multiline_boundary_x(row, (*editing_).selection().caret);
         const double y = 4.0 + static_cast<double>(row) * line_height_ - offset.y;
         caret_bounds = {x, y, 0.0, line_height_};
-        if (caret_visible_) {
-            painter.draw_line({x, y}, {x, y + line_height_}, foreground, 1.0);
-        }
+        if (caret_visible_) paint_caret(painter, {x - 0.5, y, 1.0, line_height_});
     }
     painter.restore();
     return caret_bounds;
@@ -780,19 +828,29 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     caret_damage_.valid = false;
     const Rect bounds = local_bounds();
     const bool themed = !has_background_override() && !has_style_override();
-    const ControlVisualRecipe& editor_recipe = effective_theme().resolve(
-        ControlVisualRole::editor,
-        visual_context(false, false, false, focused_));
+    // The field is the editor's well, drawn by the theme's engine; an
+    // overridden field keeps the panel's own paint.
     if (themed) {
-        // BorderStyle::none is a field without a frame, as in Windows
-        // Forms: the editor material's ground only. Composites that hold a
-        // borderless TextBox (ComboBox, the up-downs, TokenBox,
-        // BreadcrumbTrail, the grid's cell editor) draw the frame
-        // themselves (sweep defect D12: the ComboBox field showed the
-        // editor's frame inside its own).
-        SurfaceMaterial material = editor_recipe.material;
-        if (border_style() == BorderStyle::none) material.border.reset();
-        paint_surface_material(painter, bounds, material);
+        if (border_style() == BorderStyle::none) {
+            // BorderStyle::none is a field without a frame, as in Windows
+            // Forms: the editor material's ground only. Composites that
+            // hold a borderless TextBox (ComboBox, the up-downs, TokenBox,
+            // BreadcrumbTrail, the grid's cell editor) draw the frame
+            // themselves (sweep defect D12). The engine's well has its
+            // frame, so the ground is drawn from the editor recipe here.
+            const ControlVisualRecipe& editor_recipe =
+                effective_theme().resolve(ControlVisualRole::editor, visual_context(false, false, false, focused_));
+            SurfaceMaterial material = editor_recipe.material;
+            material.border.reset();
+            paint_surface_material(painter, bounds, material);
+        } else {
+            PartPaint well;
+            well.family = ControlVisualRole::editor;
+            well.role = PartRole::well;
+            well.bounds = bounds;
+            well.states = text_states();
+            paint_part(painter, *this, well);
+        }
     } else {
         Panel::on_paint(painter, damage);
     }
@@ -818,6 +876,9 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
     layout_offsets_.reserve(count + 1U);
     const bool masked = password_protected();
     const std::string_view presentation(presented);
+    // The last prefix is the whole presentation: its measurement serves the
+    // text parts, so the text is measured once.
+    Size presented_size{};
     for (std::size_t index = 0U; index <= count; ++index) {
         const Utf8Offset offset = (*editing_).store().utf8_offset(GraphemeIndex(index));
         layout_offsets_.push_back(offset.value());
@@ -826,6 +887,7 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         const std::string_view prefix = presentation.substr(0U, presentation_offset);
         const Size prefix_size = painter.measure_text_utf8(prefix, font);
         layout_positions_.push_back(prefix_size.width);
+        presented_size = prefix_size;
     }
     const double caret_content_x = boundary_x((*editing_).selection().caret);
     if (caret_content_x < horizontal_offset_) {
@@ -849,27 +911,19 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
             selection_x, 3.0,
             std::max(0.0, selection_end_x - selection_x),
             std::max(0.0, bounds.height - 6.0)};
-        if (themed) {
-            paint_surface_material(
-                painter, selection_bounds,
-                effective_theme().resolve(
-                    ControlVisualRole::selection,
-                    visual_context(false, false, true, true)).material);
-        } else {
-            painter.fill_rect(selection_bounds, style().accent);
-        }
+        paint_selection_band(painter, selection_bounds);
     }
-    const Color text_ink = themed ? editor_recipe.text : enabled() ? style().text : style().disabled_text;
+    PartPaint text_part = text_part_template(font, false);
+    text_part.text = presented;
+    text_part.measured_text = presented_size;
     if (!(*editing_).store().utf8().empty() && (!focused_ || (*editing_).selection().empty())) {
-        painter.draw_text_utf8({origin_x, baseline}, presented, font, text_ink);
+        paint_text_part_at(painter, *this, text_part, {origin_x, baseline}, 0.0);
     } else if (!(*editing_).store().utf8().empty()) {
         // Each glyph is drawn once: in the selection's ink inside the band,
         // in the text's ink to either side.
-        const Color selected_text = themed
-            ? effective_theme().resolve(
-                  ControlVisualRole::selection,
-                  visual_context(false, false, true, true)).text
-            : style().highlight;
+        PartPaint selected_part = text_part_template(font, true);
+        selected_part.text = presented;
+        selected_part.measured_text = presented_size;
         const double band_width = std::max(0.0, selection_end_x - selection_x);
         const double band_right = selection_x + band_width;
         const double height = std::max(0.0, bounds.height - 4.0);
@@ -882,33 +936,34 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
             if (spans[span].width <= 0.0) continue;
             painter.save();
             painter.clip_rect(spans[span]);
-            painter.draw_text_utf8({origin_x, baseline}, presented, font, span == 1U ? selected_text : text_ink);
+            paint_text_part_at(painter, *this, span == 1U ? selected_part : text_part,
+                               {origin_x, baseline}, 0.0);
             painter.restore();
         }
     } else {
         const std::string empty_text = empty_field_text();
         if (!empty_text.empty()) {
-            painter.draw_text_utf8({text_left_, baseline}, empty_text, font,
-                                   themed ? editor_recipe.muted_text : style().disabled_text);
+            PartPaint cue = text_part_template(font, false);
+            cue.tone = PartTextTone::secondary;
+            cue.authored_foreground.reset();
+            cue.text = empty_text;
+            paint_text_part_at(painter, *this, cue, {text_left_, baseline}, viewport);
         }
     }
     if (focused_ && caret_visible_ && (*editing_).selection().empty()) {
         const double caret_x = origin_x + caret_content_x;
-        painter.draw_line({caret_x, 4.0},
-                          {caret_x, std::max(4.0, bounds.height - 4.0)},
-                          themed ? editor_recipe.text : style().text, 1.0);
+        paint_caret(painter, {caret_x - 0.5, 4.0, 1.0, std::max(0.0, bounds.height - 8.0)});
     }
     painter.restore();
     if (focused_) {
-        const Rect ring{1.5, 1.5, std::max(0.0, bounds.width - 3.0),
-                        std::max(0.0, bounds.height - 3.0)};
-        if (themed) {
-            painter.stroke_rounded_rect(
-                ring, std::max(0.0, editor_recipe.material.corner_radius - 1.0),
-                editor_recipe.focus_ring, editor_recipe.focus_width);
-        } else {
-            painter.stroke_rect(ring, style().accent, 1.0);
-        }
+        PartPaint ring;
+        ring.family = ControlVisualRole::editor;
+        ring.role = PartRole::focus;
+        ring.bounds = {1.0, 1.0, std::max(0.0, bounds.width - 2.0),
+                       std::max(0.0, bounds.height - 2.0)};
+        ring.states = text_states();
+        ring.states.insert(AnatomyState::focus_visible);
+        paint_part(painter, *this, ring);
     }
     if ((*editing_).selection().empty()) {
         const double caret_x = origin_x + caret_content_x;

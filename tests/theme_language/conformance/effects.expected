@@ -1,0 +1,14 @@
+compiled
+rule 0 theme_sheet type=track_bar part=track
+  label track-bar::part(track)
+  decl effect = name progress_woven_stripes
+rule 1 theme_sheet type=button part=face
+  label button::part(face)
+  decl effect = name none
+rule 2 theme_sheet type=button part=label
+  label button::part(label)
+  decl effect = name none
+rule 3 theme_sheet type=track_bar part=thumb
+  label track-bar::part(thumb)
+  decl effect_primary = colour #2060c0ff origin=role(focus foreground)
+  decl effect_secondary = colour #f0f4f8ff origin=role(chrome-highlight foreground)

@@ -85,6 +85,7 @@ struct TextEdit final {
 
 // The suggestion list's events (list_box.hpp, anchored_popup_layer.hpp).
 struct ListSelectionChange;
+struct PartPaint;
 enum class PopupDismissReason : std::uint8_t;
 
 namespace detail {
@@ -349,6 +350,10 @@ private:
     void fill_multiline_text_layout(SemanticTextLayout& layout) const;
     [[nodiscard]] Rect multiline_text_rectangle() const noexcept;
     void set_multiline_scroll(Point position);
+    [[nodiscard]] AnatomyStateSet text_states() const;
+    [[nodiscard]] PartPaint text_part_template(FontSpec font, bool selected) const;
+    void paint_selection_band(Painter& painter, Rect band) const;
+    void paint_caret(Painter& painter, Rect caret) const;
     [[nodiscard]] Rect paint_multiline(Painter& painter);
     void reveal_multiline_caret();
     [[nodiscard]] std::size_t caret_line() const;

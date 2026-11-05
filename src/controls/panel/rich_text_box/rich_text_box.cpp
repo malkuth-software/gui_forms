@@ -9,6 +9,7 @@
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <array>
@@ -638,20 +639,30 @@ void RichTextBox::on_paint(Painter& painter, Rect damage) {
     }
     const Rect bounds = local_bounds();
     const bool themed = !has_background_override() && !has_style_override();
-    const ControlVisualRecipe& editor = effective_theme().resolve(ControlVisualRole::editor,
-        visual_context(false, false, false, focused_));
-    if (themed) paint_surface_material(painter, bounds, editor.material);
-    else Panel::on_paint(painter, damage);
+    // The field is the editor's well and its focus ring a part, drawn by
+    // the theme's engine; an overridden field keeps the panel's own paint.
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    if (themed) {
+        PartPaint well;
+        well.family = ControlVisualRole::editor;
+        well.role = PartRole::well;
+        well.bounds = bounds;
+        well.states = states;
+        paint_part(painter, *this, well);
+    } else {
+        Panel::on_paint(painter, damage);
+    }
     paint_bar(painter);
     static_cast<void>(paint_rows(painter));
     if (!focused_) return;
-    const Rect ring{1.5, 1.5, std::max(0.0, bounds.width - 3.0), std::max(0.0, bounds.height - 3.0)};
-    if (themed) {
-        painter.stroke_rounded_rect(ring, std::max(0.0, editor.material.corner_radius - 1.0),
-                                    editor.focus_ring, editor.focus_width);
-    } else {
-        painter.stroke_rect(ring, style().accent, 1.0);
-    }
+    PartPaint ring;
+    ring.family = ControlVisualRole::editor;
+    ring.role = PartRole::focus;
+    ring.bounds = {1.0, 1.0, std::max(0.0, bounds.width - 2.0), std::max(0.0, bounds.height - 2.0)};
+    ring.states = states;
+    ring.states.insert(AnatomyState::focus_visible);
+    paint_part(painter, *this, ring);
 }
 
 // -- semantics ------------------------------------------------------------------

@@ -6,12 +6,15 @@
 #include "gui_forms/timer.hpp"
 
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>
+#include <fstream>
 #include <memory>
 #include <span>
 #include <string>
@@ -32,6 +35,10 @@ constexpr std::uint32_t surface_height = 480U;
 constexpr std::uint32_t spectrum_height = 112U;
 // The largest surface the producer renders, in device pixels per side.
 constexpr std::uint32_t maximum_surface_side = 4096U;
+// While the control's size keeps changing (a drag-resize asks for a new
+// size on every mouse move), the producer reconfigures at most this often;
+// in between the window scales the current frame to the control.
+constexpr std::chrono::milliseconds reconfigure_interval{16};
 
 // A surface size in device pixels, packed into one atomic word by the UI
 // thread and read by the producer (width in the high half).
@@ -62,6 +69,32 @@ LiveSurfaceDescription waterfall_description(SurfaceSize size) noexcept {
     return description;
 }
 
+// One producer frame, for the optional trace (GUI_FORMS_VSYNC_LAB_TRACE).
+// Times are steady-clock nanoseconds since the producer started.
+struct ProducerTraceEntry final {
+    std::uint64_t started{};
+    std::uint64_t reconfigure_nanoseconds{};
+    std::uint64_t render_nanoseconds{};
+    std::uint64_t publish_nanoseconds{};
+    // The surface's read acquires after the publish: a presenter's acquire
+    // advances it, so the trace shows when frames were taken.
+    std::uint64_t read_acquires{};
+    std::uint32_t width{};
+    std::uint32_t height{};
+    bool published{};
+};
+
+// The trace holds at most this many frames (about 34 s at 240 Hz),
+// reserved before the producer starts.
+constexpr std::size_t maximum_trace_entries = 8192U;
+
+std::uint64_t nanoseconds_between(std::chrono::steady_clock::time_point from,
+                                  std::chrono::steady_clock::time_point to) noexcept {
+    const std::uint64_t nanoseconds =
+        static_cast<std::uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(to - from).count());
+    return nanoseconds;
+}
+
 class WaterfallSurface final : public Control {
 public:
     struct Snapshot final {
@@ -80,6 +113,11 @@ public:
           surface_(LiveSurface::create(waterfall_description({surface_width, surface_height}))) {
         set_focusable(true);
         set_accessible_name("High-rate waterfall and tearing diagnostic");
+        const char* const trace_path = std::getenv("GUI_FORMS_VSYNC_LAB_TRACE");
+        if (trace_path != nullptr && *trace_path != '\0') {
+            trace_path_ = trace_path;
+            trace_.reserve(maximum_trace_entries);
+        }
         if (surface_) {
             worker_ = std::thread(&WaterfallSurface::producer_loop, this);
         }
@@ -88,6 +126,7 @@ public:
     ~WaterfallSurface() override {
         disconnect_surface_wake();
         stop_worker();
+        write_trace();
     }
 
     void set_producer_rate(std::uint32_t frames_per_second) noexcept {
@@ -193,6 +232,7 @@ protected:
     void on_dispose() noexcept override {
         disconnect_surface_wake();
         stop_worker();
+        write_trace();
         Control::on_dispose();
     }
 
@@ -294,16 +334,74 @@ private:
         return column;
     }
 
-    // Renders the next frame into `staging`, `size` pixels in rows of
-    // size.width, scrolling the waterfall below the spectrum strip down by
-    // the rows per frame. Design coordinates (surface_width by
-    // surface_height) map onto the frame's pixels.
-    void render_candidate(std::span<std::byte> staging, SurfaceSize size,
-                          std::uint64_t frame_index) noexcept {
-        const std::uint32_t width = size.width;
+    // The waterfall so far, independent of the frame's size: one entry per
+    // waterfall row produced (a ring of history_capacity_rows), each that
+    // row's intensity at every design column, after contrast. A resize draws
+    // the frame again from it, so every row is drawn from its own values at
+    // the new size, never from pixels already scaled at earlier sizes (which
+    // left the waterfall in bands, each scaled by a different amount).
+    // Storage is reserved once; the oldest rows are overwritten. Owned by
+    // the producer thread.
+    struct WaterfallHistory final {
+        std::vector<std::uint8_t> intensities;
+        // The ring slot of the newest row, and how many rows are held.
+        std::size_t newest{};
+        std::size_t count{};
+    };
+    static constexpr std::size_t history_capacity_rows = 4096U;
+
+    // The spectrum strip's height in pixel rows of a frame of `size`.
+    static std::uint32_t spectrum_rows(SurfaceSize size) noexcept {
         const std::uint32_t strip = std::max<std::uint32_t>(
             1U, static_cast<std::uint32_t>(static_cast<std::uint64_t>(spectrum_height) *
                                            size.height / surface_height));
+        return strip;
+    }
+
+    // The design-column intensities of the history row `age` rows older
+    // than the newest (0 is the newest); `age` is below history.count.
+    static const std::uint8_t* history_row(const WaterfallHistory& history, std::size_t age) noexcept {
+        const std::size_t slot = (history.newest + history_capacity_rows - age) % history_capacity_rows;
+        const std::uint8_t* const row = history.intensities.data() + slot * surface_width;
+        return row;
+    }
+
+    // Draws pixel row `y` of a frame `width` pixels wide from one history
+    // row's design-column intensities.
+    static void draw_history_row(std::span<std::byte> staging, std::uint32_t width, std::uint32_t y,
+                                 const std::uint8_t* intensities) noexcept {
+        for (std::uint32_t x = 0U; x < width; ++x) {
+            const std::uint32_t design_x = design_column(x, width);
+            std::uint8_t red{};
+            std::uint8_t green{};
+            std::uint8_t blue{};
+            waterfall_color(intensities[design_x], red, green, blue);
+            write_pixel(staging, width, x, y, red, green, blue);
+        }
+    }
+
+    // Draws the whole waterfall of a frame of `size` from `history`, the
+    // newest row at the top; rows older than the history take the floor
+    // colour (intensity 0). The spectrum strip is left to render_candidate.
+    static void draw_waterfall_from_history(std::span<std::byte> staging, SurfaceSize size,
+                                            const WaterfallHistory& history) noexcept {
+        const std::uint32_t strip = spectrum_rows(size);
+        const std::uint32_t waterfall_rows = size.height > strip ? size.height - strip : 0U;
+        static constexpr std::array<std::uint8_t, surface_width> floor{};
+        for (std::uint32_t y = 0U; y < waterfall_rows; ++y) {
+            const std::uint8_t* const row = y < history.count ? history_row(history, y) : floor.data();
+            draw_history_row(staging, size.width, strip + y, row);
+        }
+    }
+
+    // Renders the next frame into `staging`, `size` pixels in rows of
+    // size.width, scrolling the waterfall below the spectrum strip down by
+    // the rows per frame; the new rows join `history`. Design coordinates
+    // (surface_width by surface_height) map onto the frame's pixels.
+    void render_candidate(std::span<std::byte> staging, SurfaceSize size,
+                          std::uint64_t frame_index, WaterfallHistory& history) noexcept {
+        const std::uint32_t width = size.width;
+        const std::uint32_t strip = spectrum_rows(size);
         const std::uint32_t rows = rows_per_frame_.load(std::memory_order_acquire);
         const std::size_t row_bytes = static_cast<std::size_t>(width) * 4U;
         const std::size_t waterfall_rows = size.height > strip ? size.height - strip : 0U;
@@ -318,9 +416,14 @@ private:
         const std::uint32_t contrast = contrast_.load(std::memory_order_acquire);
         std::uint32_t random =
             static_cast<std::uint32_t>(0x9e3779b9U ^ frame_index * 2654435761ULL);
-        for (std::uint32_t y = 0U; y < shifted_rows; ++y) {
-            for (std::uint32_t x = 0U; x < width; ++x) {
-                const std::uint32_t design_x = design_column(x, width);
+        // The new rows, oldest first, so that row 0 (the top) is the newest
+        // in the history: each is made at the design columns, kept, then drawn.
+        for (std::size_t made = shifted_rows; made > 0U; --made) {
+            const std::uint32_t y = static_cast<std::uint32_t>(made - 1U);
+            history.newest = (history.newest + 1U) % history_capacity_rows;
+            history.count = std::min(history.count + 1U, history_capacity_rows);
+            std::uint8_t* const row = history.intensities.data() + history.newest * surface_width;
+            for (std::uint32_t design_x = 0U; design_x < surface_width; ++design_x) {
                 const std::uint32_t noise = next_random(random) & 63U;
                 std::uint32_t intensity = 18U + noise;
                 intensity += peak(design_x, 185U, 7U, 185U);
@@ -328,12 +431,9 @@ private:
                 intensity += peak(design_x, 716U, 5U, 225U);
                 intensity += peak(design_x, 842U, 44U, 95U);
                 intensity = intensity * contrast / 100U;
-                std::uint8_t red{};
-                std::uint8_t green{};
-                std::uint8_t blue{};
-                waterfall_color(intensity, red, green, blue);
-                write_pixel(staging, width, x, strip + y, red, green, blue);
+                row[design_x] = static_cast<std::uint8_t>(std::min<std::uint32_t>(intensity, 255U));
             }
+            draw_history_row(staging, width, strip + y, row);
         }
 
         // Rebuild the spectrum strip every candidate. The single bright sweep
@@ -396,14 +496,25 @@ private:
         SurfaceSize size;
         size.width = surface_width;
         size.height = surface_height;
-        // Holds one frame of the current size; it grows (and is cleared)
-        // only when the control's device size changes.
+        // Holds one frame of the current size; a resize draws it again at the
+        // new size from the history. As elsewhere, a failed allocation ends
+        // the process.
         std::vector<std::byte> staging(
             static_cast<std::size_t>(surface_width) * surface_height * 4U,
             std::byte{});
+        WaterfallHistory history{};
+        history.intensities.assign(history_capacity_rows * surface_width, std::uint8_t{});
+        // Whether the surface has the control's size yet: until the
+        // control's first arrangement there is nothing to render for.
+        bool sized = false;
+        std::chrono::steady_clock::time_point last_reconfigure{};
         std::uint64_t frame_index{};
         std::chrono::steady_clock::time_point next =
             std::chrono::steady_clock::now();
+        const std::chrono::steady_clock::time_point trace_origin = next;
+        trace_origin_nanoseconds_ = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(trace_origin.time_since_epoch()).count());
+        const bool tracing = !trace_path_.empty();
         while (!stop_requested_.load(std::memory_order_acquire)) {
             if (paused_.load(std::memory_order_acquire)) {
                 std::this_thread::sleep_for(4ms);
@@ -417,20 +528,41 @@ private:
                 next = std::chrono::steady_clock::now();
                 continue;
             }
-            // Follow the control's device size between frames: the surface
-            // starts a new epoch, and the waterfall restarts blank.
+            // Follow the control's device size between frames, at most once
+            // per reconfigure_interval: the surface starts a new epoch (the
+            // window shows the previous epoch's frame, scaled, until this
+            // one publishes, which it does at once), and the waterfall so
+            // far is drawn again at the new size from its history.
+            const std::chrono::steady_clock::time_point frame_started = std::chrono::steady_clock::now();
             const SurfaceSize requested =
                 unpack_surface_size(requested_size_.load(std::memory_order_acquire));
-            if (requested.width != 0U &&
-                (requested.width != size.width || requested.height != size.height) &&
-                (*surface_).reconfigure(waterfall_description(requested))) {
-                size = requested;
-                staging.assign(static_cast<std::size_t>(size.width) * size.height * 4U,
-                               std::byte{});
+            if (requested.width == 0U) {
+                std::this_thread::sleep_for(4ms);
+                next = std::chrono::steady_clock::now();
+                continue;
             }
+            const bool changed = requested.width != size.width || requested.height != size.height;
+            const bool due = !sized || frame_started - last_reconfigure >= reconfigure_interval;
+            if (changed && due && (*surface_).reconfigure(waterfall_description(requested))) {
+                // As before, a failed allocation ends the process.
+                staging.resize(static_cast<std::size_t>(requested.width) * requested.height * 4U);
+                size = requested;
+                draw_waterfall_from_history(staging, size, history);
+                last_reconfigure = frame_started;
+                sized = true;
+            }
+            if (!changed) sized = true;
+            if (!sized) {
+                std::this_thread::sleep_for(1ms);
+                next = std::chrono::steady_clock::now();
+                continue;
+            }
+            const std::chrono::steady_clock::time_point render_started = std::chrono::steady_clock::now();
             ++frame_index;
             producer_frames_.fetch_add(1U, std::memory_order_relaxed);
-            render_candidate(staging, size, frame_index);
+            render_candidate(staging, size, frame_index, history);
+            const std::chrono::steady_clock::time_point publish_started = std::chrono::steady_clock::now();
+            bool published = false;
             LiveSurfaceWriteLease lease = (*surface_).try_acquire_write();
             if (lease) {
                 const std::span<std::byte> destination = lease.pixels();
@@ -438,7 +570,21 @@ private:
                             std::min(destination.size(), staging.size()));
                 if (lease.publish()) {
                     published_frames_.fetch_add(1U, std::memory_order_relaxed);
+                    published = true;
                 }
+            }
+            if (tracing && trace_.size() < maximum_trace_entries) {
+                const std::chrono::steady_clock::time_point finished = std::chrono::steady_clock::now();
+                ProducerTraceEntry entry{};
+                entry.started = nanoseconds_between(trace_origin, frame_started);
+                entry.reconfigure_nanoseconds = nanoseconds_between(frame_started, render_started);
+                entry.render_nanoseconds = nanoseconds_between(render_started, publish_started);
+                entry.publish_nanoseconds = nanoseconds_between(publish_started, finished);
+                entry.read_acquires = (*surface_).snapshot().read_acquires;
+                entry.width = size.width;
+                entry.height = size.height;
+                entry.published = published;
+                trace_.push_back(entry);
             }
 
             const std::uint32_t rate =
@@ -494,8 +640,32 @@ private:
         }
     }
 
+    // Writes the trace as CSV, once, after the producer has stopped (UI
+    // thread). A file that cannot be opened leaves no trace.
+    void write_trace() noexcept {
+        if (trace_path_.empty() || worker_.joinable()) return;
+        try {
+            std::ofstream out(trace_path_, std::ios::trunc);
+            out << "origin_ns " << trace_origin_nanoseconds_ << '\n';
+            out << "started_ns,reconfigure_ns,render_ns,publish_ns,read_acquires,width,height,published\n";
+            for (const ProducerTraceEntry& entry : trace_) {
+                out << entry.started << ',' << entry.reconfigure_nanoseconds << ',' << entry.render_nanoseconds
+                    << ',' << entry.publish_nanoseconds << ',' << entry.read_acquires << ',' << entry.width << ','
+                    << entry.height << ',' << (entry.published ? 1 : 0) << '\n';
+            }
+        } catch (...) {
+        }
+        trace_path_.clear();
+    }
+
     std::shared_ptr<LiveSurface> surface_;
     LiveSurfaceWakeConnection surface_wake_;
+    // The optional trace: written by the producer only while it runs, read
+    // by write_trace after it has stopped.
+    std::string trace_path_;
+    std::vector<ProducerTraceEntry> trace_;
+    // The producer's start on the steady clock, for aligning the trace.
+    std::uint64_t trace_origin_nanoseconds_{};
     std::thread worker_;
     std::atomic<bool> stop_requested_{};
     std::atomic<std::uint32_t> producer_rate_{240U};
@@ -680,6 +850,8 @@ std::unique_ptr<Window> make_vsync_lab() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("vsync.root"));
     (*root).set_background(Color::rgba(225, 231, 237));
     (*root).set_tag(context);
+    // The root, header and footer are flat colour without a border, so a
+    // size change repaints only what it exposed (Panel::paint_depends_on_size).
 
     std::shared_ptr<gui_forms::Panel> header = make_control<Panel>(StableId("vsync.header"));
     (*header).set_requested_bounds({0.0, 0.0, 0.0, 72.0});

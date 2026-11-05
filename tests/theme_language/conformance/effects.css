@@ -1,0 +1,6 @@
+/* forms: property.effect property.effect-none property.effect-colours */
+track-bar::part(track) { effect: progress-woven-stripes }
+button::part(face) { effect: none }
+button::part(label) { effect: initial }
+:root { focus: #2060c0; chrome-highlight: #f0f4f8 }
+track-bar::part(thumb) { effect-primary: role(focus); effect-secondary: role(chrome-highlight) }

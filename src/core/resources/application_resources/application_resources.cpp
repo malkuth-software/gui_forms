@@ -4,6 +4,9 @@
 #include "gui_forms/window.hpp"
 
 #include "../../theme/theme_compiler/control_inline_style.hpp"
+#include "../../theme_language/diagnostics/theme_diagnostics.hpp"
+
+#include <cstdio>
 
 #include <stdexcept>
 #include <string>
@@ -78,6 +81,38 @@ void ApplicationResources::set_theme(std::shared_ptr<const Theme> theme) {
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         if (listed(windows_, windows[index])) (*windows[index]).apply_theme(theme_);
     }
+}
+
+void ApplicationResources::set_automatic_colour_scheme(bool automatic) {
+    require_access("automatic colour scheme");
+    if (automatic_colour_scheme_ == automatic) return;
+    automatic_colour_scheme_ = automatic;
+    // A handler of a window's change may create or destroy windows.
+    const std::vector<Window*> windows = windows_;
+    for (std::size_t index = 0U; index < windows.size(); ++index) {
+        if (listed(windows_, windows[index])) (*windows[index]).follow_host_colour_scheme(automatic);
+    }
+}
+
+bool ApplicationResources::theme_variant_missing_reported(std::string_view theme_id,
+                                                          ColourScheme scheme) const noexcept {
+    for (const VariantReport& report : variant_reports_) {
+        if (report.theme_id == theme_id && report.scheme == scheme) return true;
+    }
+    return false;
+}
+
+void ApplicationResources::note_theme_variant_missing(const Theme& theme, ColourScheme scheme) {
+    if (theme_variant_missing_reported(theme.id(), scheme)) return;
+    variant_reports_.push_back(VariantReport{.theme_id = std::string(theme.id()), .scheme = scheme});
+    theme_language::ThemeDiagnostic warning{};
+    warning.code = theme_language::DiagnosticCode::theme_variant_missing;
+    warning.file = "theme:" + std::string(theme.id());
+    warning.detail = std::string(colour_scheme_name(scheme)) + "; shown in gui-forms " +
+                     std::string(colour_scheme_name(scheme));
+    theme_language::ThemeDiagnosticList list{};
+    list.add(std::move(warning));
+    theme_language::write_theme_diagnostics(list, stderr);
 }
 
 void ApplicationResources::set_user_theme_policy(UserThemePolicy policy) {
@@ -170,6 +205,7 @@ ThemeCompileResult ApplicationResources::compile_user_theme(const UserThemeFiles
         user_theme_policy_ == UserThemePolicy::replaces_program_sheet ? ThemeRuleSet::program : ThemeRuleSet::user;
     ThemeCompileOptions with_icons = options;
     with_icons.icons = icons_;
+    if (with_icons.system_colours == SystemColourHints{}) with_icons.system_colours = system_colour_hints_;
     ThemeCompileResult result = gui_forms::compile_user_theme(files, program, images_, with_icons, set, header);
     return result;
 }
@@ -177,6 +213,12 @@ ThemeCompileResult ApplicationResources::compile_user_theme(const UserThemeFiles
 ThemeCompileResult ApplicationResources::compile_theme_package(const ThemePackage& package, const ThemeLibrary& library,
                                                               const ThemeCompileOptions& options) {
     require_access("theme package compilation");
+    if (options.system_colours == SystemColourHints{} && system_colour_hints_ != SystemColourHints{}) {
+        ThemeCompileOptions hinted = options;
+        hinted.system_colours = system_colour_hints_;
+        ThemeCompileResult result = gui_forms::compile_theme_package(package, library, images_, hinted);
+        return result;
+    }
     ThemeCompileResult result = gui_forms::compile_theme_package(package, library, images_, options);
     return result;
 }

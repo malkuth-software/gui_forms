@@ -10,7 +10,7 @@
     "custom_states": ["modified", "pinned"],
     "marks": ["check", "indeterminate", "radio_dot", "toggle_knob", "arrow_up", "arrow_down", "arrow_left", "arrow_right", "chevron_down", "chevron_right", "close", "grip_dots", "dialog_launcher", "more", "overflow", "customize", "pin", "dock_shape", "underline", "pencil", "asterisk", "error"],
     "engine_inputs": ["pointer_x", "pointer_y", "time_in_state", "display_scale", "text_scale"],
-    "values": ["accent_index", "text_orientation", "dock_region", "content_color", "authored_color"],
+    "values": ["accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face"],
     "families": ["window", "panel", "card", "button", "accent_button", "command_button", "choice", "editor", "menu_item", "selection", "progress", "tool_tip", "link", "visited_link"],
     "semantic_roles": ["generic", "group", "static_text", "button", "check_box", "radio_button", "link", "text_box", "list", "list_item", "check_list_item", "combo_box", "slider", "scroll_bar", "progress_bar", "image", "tab_group", "tab", "split_pane", "numeric_field", "tool_tip", "date_picker", "calendar", "date_cell", "property_grid", "property_group", "property_row", "menu_bar", "menu_bar_item", "menu", "menu_item", "separator", "toolbar", "radio_group", "split_button", "menu_button", "pane", "tab_panel", "tree", "tree_item", "table", "row", "cell", "column_header", "row_header", "tree_grid", "dialog", "status_bar", "live_region"],
     "semantic_actions": ["focus", "press", "select", "increment", "decrement", "expand", "collapse", "show_menu", "set_value", "close"],
@@ -1179,7 +1179,8 @@
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "value", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
-        {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
+        {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
+        {"name": "visual_style", "kind": "enumeration", "category": "Appearance", "enumeration": "progress_bar_visual_style", "choices": ["blocks", "continuous", "marquee", "pulse", "marching_stripes", "laser_etch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"}
       ],
       "interactions": [
         {"name": "name_changed", "payload": "std::string", "mutable_payload": false},
@@ -1408,6 +1409,7 @@
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "selection_mode", "kind": "enumeration", "category": "Behavior", "enumeration": "list_selection_mode", "choices": ["one", "multiple_extended"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
@@ -1499,6 +1501,7 @@
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "selection_mode", "kind": "enumeration", "category": "Behavior", "enumeration": "list_selection_mode", "choices": ["one", "multiple_extended"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
@@ -1572,6 +1575,8 @@
         {"name": "causes_validation", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "cursor", "kind": "enumeration", "category": "Appearance", "enumeration": "cursor_kind", "choices": ["inherit", "arrow", "text", "hand", "crosshair", "resize_horizontal", "resize_vertical", "wait", "forbidden", "resize_diagonal_down", "resize_diagonal_up"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "dock", "kind": "enumeration", "category": "Layout", "enumeration": "dock_style", "choices": ["none", "top", "bottom", "left", "right", "fill"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "drop_down_filter", "kind": "enumeration", "category": "Behavior", "enumeration": "combo_box_filter", "choices": ["none", "prefix", "substring"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "drop_down_style", "kind": "enumeration", "category": "Appearance", "enumeration": "combo_box_style", "choices": ["drop_down_list", "drop_down"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "enabled", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "fore_color", "kind": "color", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": true, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -1582,6 +1587,7 @@
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "placeholder_text", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "selected_index", "kind": "signed_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -2680,7 +2686,8 @@
         {"name": "tick_frequency", "kind": "number", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "value", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
-        {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
+        {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
+        {"name": "visual_style", "kind": "enumeration", "category": "Appearance", "enumeration": "track_bar_visual_style", "choices": ["classic", "filled", "compact"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"}
       ],
       "interactions": [
         {"name": "name_changed", "payload": "std::string", "mutable_payload": false},
@@ -5571,6 +5578,7 @@
         {"name": "enabled", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "fore_color", "kind": "color", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": true, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "large_change", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "maximum", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -5636,6 +5644,7 @@
         {"name": "enabled", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "fore_color", "kind": "color", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": true, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "large_change", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "maximum", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -5701,6 +5710,7 @@
         {"name": "enabled", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "fore_color", "kind": "color", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": true, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "large_change", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "maximum", "kind": "number", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -7139,6 +7149,7 @@
         {"name": "padding", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "title", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"}
       ],

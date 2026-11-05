@@ -426,101 +426,127 @@ struct PageDigest final {
 // Checkpoint 14 recorded the folded tree once; against main only these
 // four pages differ.
 //
-// FD6.2 makes the Gallery's own controls a form document (demo/gallery.form)
-// of registered controls. On every page the command strip is a themed panel
-// (its gradient and edge for the accent bar, rule and flat face), its status
-// badge a picture box beside the status label (the label's text moves left
-// and down by its own padding). basics, values, retained-rows and instrument
-// show group boxes for the Gallery's group frames (the theme's face, edge
-// and caption plate), a material panel for the backplane, a TextBox (its
-// field text at the TextBox's 12 px, where the Gallery drew 13 px), a
-// ListBox for the retained rows (its themed well, selection and rows) and
-// the pages' descriptions name the form document; the instrument's own
-// commands did not change. states-and-diagnostics moves by the control
-// count and the chunks reused, typography-and-inspection by the RuntimeId.
-// Diffed against main's traces nothing else changed; every page was
-// recorded again.
 //
-// FD6.3's framework fixes from the Gallery defect sweep
-// (dev/fd6_review/index.html in the worker's review folder). Every group
-// box fills only inside its frame and strokes the frame in three clipped
-// pieces around its caption (D4), so every page changed. Besides that:
-// LinkLabel underlines end at the measured text (D5: basics,
-// control-spectrum, states-and-diagnostics); short buttons centre their
-// overflowing text block (D6: css-layout-panels, retained-layout-panels,
-// responsive-layouts, commands-and-menus); the styled accent Save button is
-// plain while disabled (D11: commands-and-menus); the TypographySpecimen
-// draws line boxes and reports the first baseline, and the inspector
-// elides, fits its rows above the legend and prints tracking to two
-// decimals (D22-D25, D27: typography-and-inspection). Diffed against the
-// previous traces nothing else changed; every page was recorded again.
+// Range controls paint through the theme engine (T4 phase 4, range
+// batch): ScrollBar's trough, track, arrow buttons, arrows and thumb,
+// TrackBar's track, fill, ticks and thumb, and ProgressBar's track and
+// fill are parts. The classic sunken troughs and bevelled thumbs (fill_rect
+// and draw_line relief) became the theme's rounded track and thumb
+// materials, the scroll arrows filled arrow marks for chevrons, the ticks
+// rules in the theme's colour, and the progress fill's flat 3-unit top band
+// went. Text did not change. The pages showing range controls were
+// recorded again: live-surfaces, ranges-and-progress, responsive-layouts,
+// retained-layout-panels, timing-and-tooltips, typography-and-inspection,
+// values and values-and-spinners.
 //
-// The sweep's remaining framework fixes: CorrespondenceView cards lay out
-// by measured text and keep the information line off the excerpt box, and
-// the Gallery ledger is 6 units taller (D9: tree-and-object-views); a
-// borderless TextBox draws no frame, so the editable ComboBox loses its
-// nested frame and the up-downs lay field and spin column inside their own
-// border (D12: collections-and-popups, values-and-spinners); TabControl's
-// face covers only the header band (D13: tabs-and-pages); InstrumentRack
-// fields at 11 units inside the module border (D19: value-editors). Diffed
-// against the previous traces only these five pages changed.
+// Disabled labels take the theme's own disabled text (owner ruling,
+// 2026-11-02, superseding the part path's muted ink): the recipe resolved
+// in the disabled state gives the text colour. The 18 disabled labels on
+// basics, commands-and-menus, control-spectrum, docking-workspace,
+// responsive-layouts, states-and-diagnostics, text-and-input,
+// timing-and-tooltips, value-editors and values-and-spinners returned to
+// #848f99 from #76808a; those pages were recorded again.
 //
-// The sweep's shell fixes: every page is drawn unscaled at its design size
-// in a scrolling viewport (D2; pages with more than two header lines were
-// squeezed vertically), header lines are 16 units apart (D1), the body is
-// as tall as its content (D3) and the sidebar reaches the window's bottom
-// (D20), so every page changed: the sidebar, the viewport and its scroll
-// bar where the page is taller than the viewport, and the header and body
-// positions.
+// Lists, trees and the property list paint through the theme engine (T4
+// phase 4, lists batch): ListBox's well, row plates, text and focus ring,
+// CheckedListBox's check wells and marks, TreeView's plates, expanders,
+// images, text and focus ring, and PropertyList's face, group bands, rules,
+// expanders, titles, names, values and thumb are parts. Row text keeps its
+// baseline and is clipped to its line box (save, clip, restore); check
+// boxes became the theme's choice well and check mark, expanders chevron
+// marks for the old glyphs and strokes, the property list's group bands and
+// thumb the theme's panel face, and its property names the theme's label
+// text in place of the muted ink. Recorded again: checked-collections,
+// collections-and-popups, responsive-layouts, tree-and-object-views,
+// value-editors and values-and-spinners.
 //
-// typography-and-inspection is a form document (FD6.3): the Toggle overlay
-// button is a standard button with its caption centred (D28; it was a
-// left-aligned command button), and the inspector's REQUESTED row shows the
-// specimen's bounds, which the document sets, where the add_at slot left
-// them zero. Diffed against the previous traces nothing else changed.
+// ObjectView, CorrespondenceView and the plain BreadcrumbTrail paint
+// through the theme engine (lists batch, second part): plates, text,
+// rules, header band, sort arrows and focus rings are parts, and the item
+// glyphs are a framing well with content fills. Text keeps its place and
+// takes the theme's text; tree-and-object-views was recorded again.
 //
-// Rebased onto checkpoint 14: main's own changes reach the sweep's pages.
-// Text is drawn inside a clip of its content box (save, clip_rect, restore
-// around each run), disabled text takes the theme's ink (#76808a), combo
-// box arrows list their rows tip first, MessageBox has its new buttons and
-// the progress bar draws through effect programs. Diffed against the
-// pre-rebase traces nothing else changed; every page was recorded again.
+// The text tone (owner, 2026-11-02): ObjectView's and CorrespondenceView's
+// secondary text is a secondary-tone text part in the theme's muted ink;
+// search matches are selection parts behind the text; the correspondence
+// rail and state word take accent indices (pinned 0, stale 1) and the
+// unavailable state (offline). tree-and-object-views was recorded again.
+//
+// ContextMenu and MenuStrip paint through the theme engine: bands, plates,
+// labels, shortcuts (secondary tone), marks and separators are parts. The
+// menu bar's labels are clipped to their part (save, clip, restore) at the
+// same origins; commands-and-menus was recorded again.
+//
+// TextBox and RichTextBox paint through the theme engine: wells, text
+// runs, selection, cue text (secondary tone), caret and focus are parts.
+// Runs are clipped to their parts at the same origins and colours; recorded
+// again: dialogs-and-host-services, docking-workspace, semantic-feedback,
+// text-and-input, timing-and-tooltips, value-editors and values-and-spinners.
+//
+// Panel, GroupBox, Card, SplitterPanel, TableLayoutPanelCompat, the
+// scrollable control's scroll bars and SplitterGrip paint through the theme
+// engine. A panel with an authored background is the theme's face with that
+// ground and keeps the material's border (T4-1), as a theme-coloured panel
+// already did; GroupBox's border runs as keylines broken behind its caption
+// in place of a plate under it; the scroll bars are the ScrollBar's track,
+// buttons, arrow marks and thumb. Every page was recorded again.
+//
+// DateTimePicker and its calendar popup paint through the theme engine: the
+// drop-down button, divider and arrow mark (as the combo box's), the up-down
+// pair, the check box and the value's text (clipped to its line box) are
+// parts; dates-and-calendar was recorded again.
+//
+// Label and TextBlock lines are label parts placed by their baselines, in
+// the theme's text or the authored foreground; each line is clipped to its
+// line box (save, clip, restore) at the same origin and colour. Every page
+// was recorded again.
+//
+// ErrorGlyph is the theme's round validation plate (the invalid recipe)
+// with the error mark; ColorValueEditor's swatch is a framing well with
+// content fills (the checkerboard and the value); FlagsValueEditor's
+// drop-down is the combo box's parts. Recorded again: timing-and-tooltips
+// and value-editors.
+//
+// The raised breadcrumb's segments are button faces in the engine's pointed
+// shape (the current one selected, the edit terminal an accent button), with
+// label and focus parts; hit testing uses the same shape. Recorded again:
+// tree-and-object-views.
 //
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 31> expected_digests{{
-    {"basics", 0x8cae025d2f580545ULL},
-    {"values", 0x8c3a060ed7c5dbc3ULL},
-    {"retained-rows", 0xb57e6e4aac1d3cbaULL},
-    {"instrument", 0x9546605f5ed28ef2ULL},
-    {"control-spectrum", 0x8e0053f2e4499a95ULL},
-    {"ranges-and-progress", 0xa7ab64f1788c9216ULL},
-    {"containers-and-focus", 0xaeb5fea9b08b24c9ULL},
-    {"animation-laboratory", 0x1286961870989036ULL},
-    {"states-and-diagnostics", 0x08ed6e4bf56bb621ULL},
-    {"text-and-input", 0xfda0c520db512216ULL},
-    {"collections-and-popups", 0xffd16e5dfe20dfedULL},
-    {"values-and-spinners", 0xeb220cb7d5f79644ULL},
-    {"images-and-drawing", 0x546c5b629575a286ULL},
-    {"tabs-and-pages", 0xdcb246053d2be837ULL},
-    {"checked-collections", 0x6fcdd13b37adaceaULL},
-    {"timing-and-tooltips", 0x184a0430b361e535ULL},
-    {"dates-and-calendar", 0x6c7fb09ca8ee9ebbULL},
-    {"dialogs-and-host-services", 0xff47cc81cf003f79ULL},
-    {"css-layout-panels", 0x99172189312f6ca0ULL},
-    {"retained-layout-panels", 0x7a8c39ea5460bc8aULL},
-    {"dock-and-anchor", 0x939b63bcfd12a121ULL},
-    {"docking-workspace", 0x3133cf77fa8eabe3ULL},
-    {"commands-and-menus", 0x41bdb133b330f6e1ULL},
-    {"tree-and-object-views", 0x1fe16711a4a1290fULL},
-    {"choices-and-sections", 0xebc94e7a5b78c68aULL},
-    {"value-editors", 0xb14f73990cdb841eULL},
-    {"responsive-layouts", 0xa496bf6fba3489fbULL},
-    {"anchored-popups", 0x3e74fc6ecc04990cULL},
-    {"live-surfaces", 0x3381187885a43d9dULL},
-    {"typography-and-inspection", 0x4711edc357df28e0ULL},
-    {"semantic-feedback", 0x278702ce61956f16ULL},
+    {"basics", 0xccbc75d25401fa75ULL},
+    {"values", 0x6af71a97d60ede98ULL},
+    {"retained-rows", 0xc765eeecf84e14a8ULL},
+    {"instrument", 0xc442167e4ec53a0aULL},
+    {"control-spectrum", 0x44a62eb2804ff762ULL},
+    {"ranges-and-progress", 0x0840937a6e04608eULL},
+    {"containers-and-focus", 0x3db49ebe2198a393ULL},
+    {"animation-laboratory", 0x9e6b2dc688c4f733ULL},
+    {"states-and-diagnostics", 0xe8a44653a431fbacULL},
+    {"text-and-input", 0xd63d5868c06666d0ULL},
+    {"collections-and-popups", 0x269da5a860f1ecb0ULL},
+    {"values-and-spinners", 0xac4f161c0872610cULL},
+    {"images-and-drawing", 0x32e1f240ea4e25ebULL},
+    {"tabs-and-pages", 0x560a6fa02160dc77ULL},
+    {"checked-collections", 0x566f6f923810a6d8ULL},
+    {"timing-and-tooltips", 0x19fedadf8a45c907ULL},
+    {"dates-and-calendar", 0x61acd1b121cde257ULL},
+    {"dialogs-and-host-services", 0x9e2542a13d90999dULL},
+    {"css-layout-panels", 0x162050b329f8a697ULL},
+    {"retained-layout-panels", 0xe61e61f53c094ef7ULL},
+    {"dock-and-anchor", 0x2e438b6d5ef0d3a2ULL},
+    {"docking-workspace", 0x93034084a5a6f65eULL},
+    {"commands-and-menus", 0x703113d3522deabdULL},
+    {"tree-and-object-views", 0x0fd8a892fa49aab7ULL},
+    {"choices-and-sections", 0x4695234a6161e9c3ULL},
+    {"value-editors", 0x529ff55217238635ULL},
+    {"responsive-layouts", 0x69e0ea0983dd9cf8ULL},
+    {"anchored-popups", 0x837ef0d60de1508eULL},
+    {"live-surfaces", 0x7633da7d2d0cd584ULL},
+    {"typography-and-inspection", 0xa07f3abd48bcf56bULL},
+    {"semantic-feedback", 0xadd8151ebca966baULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {

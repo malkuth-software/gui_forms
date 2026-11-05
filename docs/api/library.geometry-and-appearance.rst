@@ -86,6 +86,10 @@ Types
      -  
    * - :cpp:class:`EffectCanvasMeter <gui_forms::EffectCanvasMeter>`
      - What one frame's canvas did: device pixels charged against the budget, and the calls refused for the budget or the save depth.
+   * - :cpp:class:`EffectColourDeclaration <gui_forms::EffectColourDeclaration>`
+     - One effect colour as the rules resolve it: the role's colour in the part's palette and the role it came from.
+   * - :cpp:class:`EffectColours <gui_forms::EffectColours>`
+     - The colours an effect draws with (EP-4): its part's primary and secondary colour roles as the host control resolves them from its theme and colour scheme (effect_primary_property, effect_secondary_property), or the host's own colours where the theme names none.
    * - :cpp:class:`EffectCost <gui_forms::EffectCost>`
      - An effect's per-frame budget: ``fixed`` operations (proved by the plugin's static bound) plus ``per_device_pixel`` operations for each device pixel of the part and its outsets (metered by the canvas, which refuses drawing past it; owner decision 1(a)).
    * - :cpp:class:`EffectDeclaration <gui_forms::EffectDeclaration>`
@@ -104,10 +108,14 @@ Types
      - What an instance has counted over its life.
    * - :cpp:class:`EffectLoadDiagnostics <gui_forms::EffectLoadDiagnostics>`
      - What effect registration found in this process, for diagnostics and the windows' metrics (MetricsSnapshot::effects_unverified): effects registered, and those registered unverified.
+   * - :cpp:class:`EffectPointer <gui_forms::EffectPointer>`
+     - The pointer's standing state over the part at the frame's start (design note section 8a(1)): whether it is inside the part, whether a button is held, and where it was last seen while inside, in part-local logical units.
    * - :cpp:class:`EffectRandom <gui_forms::EffectRandom>`
      - The engine's deterministic generator (owner amendment, 2026-11-02): a counter-based hash of (seed, stream, counter), SplitMix64's finalizer over their mix, with no host randomness and no hidden state beyond the counter in this value.
    * - :cpp:class:`EffectRegistry <gui_forms::EffectRegistry>`
      -  
+   * - :cpp:class:`EffectSelection <gui_forms::EffectSelection>`
+     - What a control's effect selection came to, kept by the control for diagnostics: the name asked for (a copy, empty for none), who asked and the verdict.
    * - :cpp:class:`EffectSetup <gui_forms::EffectSetup>`
      - What ``setup`` is given: once when the effect is instantiated on a part, and again on a geometry change if the effect declares setup_on_geometry.
    * - :cpp:class:`EngineExpression <gui_forms::EngineExpression>`
@@ -186,6 +194,8 @@ Types
      -  
    * - :cpp:class:`MaterialKeyline <gui_forms::MaterialKeyline>`
      - One ordered physical keyline.
+   * - :cpp:class:`MaterialReflection <gui_forms::MaterialReflection>`
+     - A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end.
    * - :cpp:class:`MaterialShadow <gui_forms::MaterialShadow>`
      - MaterialShadow specifies offset, blur, spread, and color for one bounded surface shadow.
    * - :cpp:class:`MediaCondition <gui_forms::MediaCondition>`
@@ -206,6 +216,8 @@ Types
      - Where a clock reads the time a motion starts.
    * - :cpp:class:`MotionValue <gui_forms::MotionValue>`
      - One value.
+   * - :cpp:class:`PaintCornerRadii <gui_forms::PaintCornerRadii>`
+     - A rounded rectangle's four corner radii, in the rectangle's units: top-left, top-right, bottom-right and bottom-left.
    * - :cpp:class:`Painter <gui_forms::Painter>`
      - Painter is the renderer-neutral command vocabulary for transforms, clips, solids, rounded geometry, gradients, shadows, text, registered images, live surfaces, sampled regions, and bounded patterns; rich operations provide coherent minimal-host fallbacks.
    * - :cpp:class:`PaintGroup <gui_forms::PaintGroup>`
@@ -880,6 +892,18 @@ Types
 
       The part's font (font_property, P8c): the last matching rule's, else the ui role.
 
+   .. cpp:member:: std::string_view effect
+
+      The part's effect (effect_property): the last matching rule's name, which belongs to the compiled rules, and whether any rule declared one; ``none`` is declared with an empty name.
+
+   .. cpp:member:: bool effect_declared
+
+   .. cpp:member:: std::optional<EffectColourDeclaration> effect_primary
+
+      The part's effect colours (effect_primary_property, effect_secondary_property): the last matching rule's of each, or none.
+
+   .. cpp:member:: std::optional<EffectColourDeclaration> effect_secondary
+
    .. cpp:member:: std::array<const MaterialDeclaration*, material_field_count> materials
 
       The winning declaration of each material field (EC1), by the field's position, or null where no matching rule sets it; they belong to the compiled rules. ``materials_authored`` is whether any is set.
@@ -955,6 +979,12 @@ Types
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> high_contrast
 
    .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> high_contrast_selected
+
+   .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark
+
+      The dark variant's records (stage T4 phase 5): derived from the ordinary and selected ones when the theme asks for a derived dark variant (ThemeDefinition::dark_variant), otherwise copies of them. Theme::create fills them; authored values are replaced.
+
+   .. cpp:member:: std::array<ControlVisualRecipe, control_surface_state_count> dark_selected
 
 .. cpp:namespace:: gui_forms
 
@@ -1041,6 +1071,10 @@ Types
    .. cpp:member:: bool defaulted
 
    .. cpp:member:: bool high_contrast
+
+   .. cpp:member:: bool dark
+
+      The window prefers the dark colour scheme (PresentationSettings:: colour_scheme, stage T4 phase 5). A theme with a derived dark variant resolves its dark records; high contrast wins over it.
 
 .. cpp:namespace:: gui_forms
 
@@ -1247,9 +1281,9 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel) noexcept
+   .. cpp:function:: EffectCanvas(Painter& painter, Size part, Insets outsets, double scale, std::uint32_t per_device_pixel, PartCornerRadii corners = {}, const std::shared_ptr<const PartRaster>* backdrop = nullptr) noexcept
 
-      A canvas over ``painter`` for a part of ``part`` logical size whose origin is the painter's current origin, with ``outsets`` around it, at display ``scale``, and a budget of ``per_device_pixel`` operations for each device pixel of the part and its outsets. The painter must already be clipped to the part and its outsets and translated to the part's origin (the host does both); the canvas leaves its save depth as it found it.
+      A canvas over ``painter`` for a part of ``part`` logical size whose origin is the painter's current origin, with ``outsets`` around it, at display ``scale``, and a budget of ``per_device_pixel`` operations for each device pixel of the part and its outsets. The painter must already be clipped to the part and its outsets and translated to the part's origin (the host does both); the canvas leaves its save depth as it found it. ``corners`` are the part's shape's corner radii (clip_part_shape). ``backdrop``, borrowed for the canvas's life, is the blurred backplane under the part and its outsets, one raster pixel per device pixel (draw_backdrop); null, or pointing at null, when there is none.
 
 
    .. rubric:: Properties
@@ -1301,6 +1335,14 @@ Types
 
    .. cpp:function:: void translate(Point offset) noexcept
 
+   .. cpp:function:: void clip_part_shape() noexcept
+
+      Narrows the clip to the part's own shape (EP-6): its box with the corners its host gives it (EffectInstance::paint), so an effect drawn over a rounded part stays inside its corners. It gives up the outsets until the next restore.
+
+   .. cpp:function:: void draw_backdrop(Rect rect, double opacity) noexcept
+
+      Draws the window's backplane under the part, blurred as the effect declares (EffectDeclaration::backdrop, EP-7), within ``rect`` (in the current coordinates) at ``opacity`` in [0, 1], device-aligned and never resampled. Refused, and counted, for an effect that does not declare a backdrop or a part whose host lends none (a part in the backplane plane, a headless paint, or a backplane that could not be made).
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: EffectCanvasMeter final
@@ -1316,6 +1358,30 @@ Types
    .. cpp:member:: std::uint32_t calls
 
    .. cpp:member:: std::uint32_t refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectColourDeclaration final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   One effect colour as the rules resolve it: the role's colour in the part's palette and the role it came from.
+
+   .. cpp:member:: Color colour
+
+   .. cpp:member:: ColourOrigin origin
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectColours final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   The colours an effect draws with (EP-4): its part's primary and secondary colour roles as the host control resolves them from its theme and colour scheme (effect_primary_property, effect_secondary_property), or the host's own colours where the theme names none. An effect varies their alpha for its own layers; it does not name colours of its own. Transparent black when the host supplies none.
+
+   .. cpp:member:: Color primary
+
+   .. cpp:member:: Color secondary
 
 .. cpp:namespace:: gui_forms
 
@@ -1368,6 +1434,12 @@ Types
    .. cpp:member:: EffectInputKind input
 
       Default: ``{EffectInputKind::none}``.
+
+   .. cpp:member:: bool backdrop
+
+      Whether the effect reads the window's backplane under its part and outsets (EP-7, EffectCanvas::draw_backdrop), and how far the blur of that backdrop reaches, in logical units, in [0, maximum_effect_backdrop_margin]: three box passes of half width floor(backdrop_margin * scale / 3) device pixels; 0 reads it unblurred.
+
+   .. cpp:member:: double backdrop_margin
 
    .. cpp:member:: double frames_per_second
 
@@ -1427,6 +1499,10 @@ Types
 
    .. cpp:member:: std::uint32_t input_count
 
+   .. cpp:member:: EffectColours colours
+
+   .. cpp:member:: EffectPointer pointer
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: EffectGradient final
@@ -1469,6 +1545,22 @@ Types
 
    .. cpp:function:: const EffectEntry* entry() const noexcept
 
+   .. cpp:function:: EffectInputKind input_grant() const noexcept
+
+   .. cpp:function:: void set_input_grant(EffectInputKind grant) noexcept
+
+      The input the hosting control grants the effect (design note section 6: none by default, set by the application through the control's effect_input property). Kept across attach and detach.
+
+   .. cpp:function:: EffectPointer pointer() const noexcept
+
+      The standing pointer state the next frame is given.
+
+   .. cpp:function:: EffectColours colours() const noexcept
+
+   .. cpp:function:: void set_colours(EffectColours colours) noexcept
+
+      The colours the next frames are given (EffectFrame::colours); the host sets them before each paint. Kept across attach and detach.
+
    .. cpp:function:: std::uint64_t state_checksum() const noexcept
 
       The state's bytes, hashed (FNV-1a): the motion checksum.
@@ -1498,11 +1590,15 @@ Types
 
    .. cpp:function:: bool queue_input(const EffectInputEvent& event, EffectInputKind granted) noexcept
 
-      Queues one input event for the next frame, if ``granted`` and the effect's declaration both admit its kind (pointer events for ``pointer``, keys too for ``pointer_and_keys``); otherwise it is ignored. Past maximum_effect_input_events queued, it is counted and dropped. Returns whether it was queued. Never fails.
+      Queues one input event for the next frame, if ``granted`` and the effect's declaration both admit its kind (pointer events for :cpp:func:`pointer <gui_forms::EffectInstance::pointer>`, keys too for ``pointer_and_keys``); otherwise it is ignored. Past maximum_effect_input_events queued, it is counted and dropped. Returns whether it was queued. Never fails.
 
-   .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view)
+   .. cpp:function:: bool note_pointer(const PointerEvent& event, Point part_origin) noexcept
 
-      Runs the effect's frame over ``painter``, whose origin is the parent's, for the part at ``part`` (logical, in the painter's coordinates) at display ``scale``. Runs setup first when due. ``still`` draws the still pose and consumes no ticks. ``view`` must be the effect's parent's view.
+      Takes one pointer event the hosting control received, at ``position`` in the control's coordinates, for a part whose origin there is ``part_origin``: converts it to part-local units, queues a move, press or release under the grant (queue_input), and updates the standing pointer state (EffectFrame::pointer) for every action, enter and leave setting ``inside``. Does nothing without an effect, a grant and an effect declaring pointer input. Returns whether the effect's frame changed (an event queued or the state moved), when the host repaints the effect's extent. Never fails.
+
+   .. cpp:function:: template <typename Parent> void paint(Painter& painter, Rect part, double scale, bool still, const EffectView<Parent>& view, PartShape shape = PartShape{}, const Control* host = nullptr)
+
+      Runs the effect's frame over ``painter``, whose origin is the parent's, for the part at ``part`` (logical, in the painter's coordinates) at display ``scale``. Runs setup first when due. ``still`` draws the still pose and consumes no ticks. ``view`` must be the effect's parent's view. ``shape`` is the part's shape, which EffectCanvas::clip_part_shape clips to; by default a plain rectangle. ``host`` is the control that paints the effect, through which a backdrop is sampled from its window (EP-7); null for a paint with no control, which lends no backdrop.
 
 .. cpp:namespace:: gui_forms
 
@@ -1537,6 +1633,24 @@ Types
    .. cpp:member:: std::uint64_t registered
 
    .. cpp:member:: std::uint64_t unverified
+
+   .. cpp:member:: std::uint64_t refused
+
+      Selections the load checks refused (note_effect_refused).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectPointer final
+
+   ``#include <gui_forms/engine/effect/effect.hpp>``
+
+   The pointer's standing state over the part at the frame's start (design note section 8a(1)): whether it is inside the part, whether a button is held, and where it was last seen while inside, in part-local logical units. Filled only for an effect that declares pointer input on a part whose host grants it; otherwise every field is zero, as in headless runs and still poses, so motion checksums do not depend on it.
+
+   .. cpp:member:: bool inside
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: Point position
 
 .. cpp:namespace:: gui_forms
 
@@ -1605,6 +1719,24 @@ Types
       The entry registered under ``name``, or null.
 
    .. cpp:function:: const EffectEntry& at(std::size_t index) const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EffectSelection final
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   What a control's effect selection came to, kept by the control for diagnostics: the name asked for (a copy, empty for none), who asked and the verdict.
+
+   .. cpp:member:: std::string name
+
+   .. cpp:member:: EffectSelectionSource source
+
+      Default: ``{EffectSelectionSource::none}``.
+
+   .. cpp:member:: EffectSelectionOutcome outcome
+
+      Default: ``{EffectSelectionOutcome::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2448,7 +2580,7 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``. ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
+   One material field a rule sets and its value. Only the members ``field`` names are read; the others stay empty: - background_colour: ``colour``, a solid layer under the image layers; - fills: the image layers (gradients, images, patterns), bottom first, at most SurfaceMaterial::maximum_fill_layers, empty for none; and ``gradients``, empty, or one per layer: a gradient as a sheet wrote it (T3 P6b), resolved for the part's box when the material is assembled, in place of its layer; an entry of kind ``solid`` keeps its layer as written; - fill_blend_modes: ``blend_modes``, in CSS's order (the top image layer's first), repeated over the image layers as CSS repeats a short list; empty for normal; - fill_positions, fill_sizes, fill_repeats: ``image_positions``, ``image_sizes``, ``image_repeats``, in the same order and repeated the same way, read by the image fills (not a nine-patch) among the image layers: a gradient layer covers the box; - shadows, glows, keylines: the lists; - glow_placements: ``glow_placements``, in the glows' order, repeated over them as CSS repeats a short list (``glow-placement``); - an edge's style: ``border_style``, empty for none (CSS's ``none``), and ``edge_lines``; its width: ``number``, 0 for none; its colour: ``colour``; - border_image: ``border_image``, a nine-patch image fill, empty for none; - a corner: ``number``, its radius in logical units, or, with ``relative``, a fraction of the box's shorter side (CSS's percentage, R2-11), resolved when the material is assembled for a part; - colour_filter: ``colour_filter``; drop_shadow: ``drop_shadow``, empty for none; mask: ``mask``, empty for none, and ``gradients``, empty or one entry, the mask's authored gradient as for a fill layer; - filter_blur and finish: ``number``; - reflection: ``reflection``, empty for none (stage T5, C7). ``initial``, set, is CSS's ``initial``: the field keeps the floor's value, and the declaration still wins over those beneath it; its value members are not read.
 
    .. cpp:member:: MaterialField field
 
@@ -2495,6 +2627,8 @@ Types
    .. cpp:member:: std::optional<MaterialDropShadow> drop_shadow
 
    .. cpp:member:: std::optional<MaterialFillLayer> mask
+
+   .. cpp:member:: std::optional<MaterialReflection> reflection
 
    .. cpp:member:: ColourOrigin origin
 
@@ -2737,6 +2871,34 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: MaterialReflection final
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   A reflection (stage T5, C7; owner T5-Q14, T5-Q15): ``source`` within the part's box, mirrored about the box's ``edge``, ``gap`` logical units beyond it, for ``reach`` units, faded by a linear opacity from ``start_opacity`` next to the edge to ``end_opacity`` at the far end. gap + reach is at most SurfaceMaterial::maximum_reflection_reach, within the part's granted overflow; reach is above 0 and both opacities lie in [0, 1]. The reflection is composited beneath what the face drew past that edge (its outer shadows and glows). The engine's material primitive draws it, and omits it under high contrast and reduced transparency (T5-Q16); the built-in path, paint_surface_material, draws none.
+
+   .. cpp:member:: MaterialEdge edge
+
+      Default: ``{MaterialEdge::bottom}``.
+
+   .. cpp:member:: double gap
+
+   .. cpp:member:: double reach
+
+      Default: ``{8.0}``.
+
+   .. cpp:member:: double start_opacity
+
+      Default: ``{0.5}``.
+
+   .. cpp:member:: double end_opacity
+
+   .. cpp:member:: MaterialReflectionSource source
+
+      Default: ``{MaterialReflectionSource::face}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MaterialShadow final
 
    ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
@@ -2820,7 +2982,7 @@ Types
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit MotionClock(Window& window) noexcept
+   .. cpp:function:: explicit MotionClock(SurfaceRoot& root) noexcept
 
 
    .. rubric:: Properties
@@ -3073,6 +3235,22 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PaintCornerRadii final
+
+   ``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+   A rounded rectangle's four corner radii, in the rectangle's units: top-left, top-right, bottom-right and bottom-left. A painter draws each at most half the rectangle's shorter side.
+
+   .. cpp:member:: double top_left
+
+   .. cpp:member:: double top_right
+
+   .. cpp:member:: double bottom_right
+
+   .. cpp:member:: double bottom_left
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: Painter : public TextMetricsProvider
 
    ``#include <gui_forms/types/painter/painter.hpp>``
@@ -3107,6 +3285,10 @@ Types
    .. cpp:function:: virtual void clip_rounded_rect(Rect rect, double radius)
 
       Rich geometry has deterministic renderer-neutral fallbacks so a minimal host stays coherent. Recording and production raster painters override these operations to preserve the authored material exactly.
+
+   .. cpp:function:: virtual void clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii)
+
+      Narrows the clip to ``rect`` with each corner rounded by its own radius (EP-6: an effect clipped to its part's shape). The fallback rounds every corner by the largest of the four, so it never shows more than the exact clip at a corner.
 
    .. cpp:function:: virtual void fill_rect(Rect rect, Color color) = 0
 
@@ -3326,6 +3508,10 @@ Types
 
       The text's reading direction (§8.5; owner decision DK-35, J4). A turned label lies along the part's height, its line centred across the width; ``alignment`` then runs from the end reading starts at (the bottom for bottom_to_top, the top for top_to_bottom). Default: ``{TextOrientation::horizontal}``.
 
+   .. cpp:member:: PartTextTone tone
+
+      The text's tone: ordinary text in the recipe's text colour, secondary text in its muted ink. Read only with ``text``. Default: ``{PartTextTone::ordinary}``.
+
    .. cpp:member:: DockShapeRegion dock_region
 
       The region the dock_shape mark fills. Default: ``{DockShapeRegion::tab_into}``.
@@ -3333,6 +3519,12 @@ Types
    .. cpp:member:: ImageId image
 
    .. cpp:member:: std::optional<double> corner_radius
+
+      A focus or preselect ring follows the same shape: a connected segment's square corners, for one.
+
+   .. cpp:member:: std::optional<double> point
+
+      A pointed face (design language §8.5; owner decision 2026-11-02): the surface's trailing end is a nose this many units long, its tip at the middle of the right edge, as a raised breadcrumb segment's. Only surface roles read it; none is a rectangle. Hit testing uses the same shape (pointed_face_contains).
 
    .. cpp:member:: std::optional<AccentIndex> accent
 
@@ -3355,6 +3547,10 @@ Types
    .. cpp:member:: Insets granted_overflow
 
       How far past ``bounds`` the control lets the part be drawn when a theme scales it (T2 GIVEN D5-1, E8), in logical units. The presentational scale grows the part about its centre only as far as this allows: with none granted, the default, a part never grows. Layout and the part's hit region ignore it.
+
+   .. cpp:member:: std::optional<Size> measured_text
+
+      The text's measurement in ``font``, when the caller has already made it (paint_text_part_at does), so the text is not measured again; none otherwise. A cache, not vocabulary: it changes nothing drawn, and a caller that sets it must have measured exactly ``text`` in ``font``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4244,6 +4440,10 @@ Types
 
       The farthest the part filters reach outside the box, in logical units: the drop shadow's larger offset component plus 1.5 × its blur, plus 1.5 × the filter blur. The engine material's outsets hold it. Default: ``8.0``.
 
+   .. cpp:member:: constexpr double maximum_reflection_reach
+
+      The farthest a reflection reaches outside the box, gap and reach together, in logical units (T5-Q15: the blur and glow cap). Default: ``8.0``.
+
    .. cpp:member:: std::vector<MaterialFillLayer> fills
 
    .. cpp:member:: std::vector<MaterialShadow> shadows
@@ -4279,6 +4479,10 @@ Types
    .. cpp:member:: std::optional<MaterialFillLayer> mask
 
       An alpha mask (E9.6, CSS ``mask-image``): a solid, gradient or image fill whose alpha, times its opacity for an image, multiplies the whole finished part, its shadows and glows included; outside the box it extends at its edge value, so that a shadow fades with the face beside it. The engine's material primitive draws it; the built-in path, paint_surface_material, draws the material unmasked.
+
+   .. cpp:member:: std::optional<MaterialReflection> reflection
+
+      A reflection of the finished face (MaterialReflection), drawn after the mask; none by default.
 
 .. cpp:namespace:: gui_forms
 
@@ -4329,6 +4533,10 @@ Types
    .. cpp:function:: ResolvedControlRecipe resolve(const Control& control, ControlVisualRole role, ControlVisualContext context, AnatomyStateSet states) const
 
       Bounds role/state indices and chooses ordinary, selected, high-contrast, or high-contrast-selected recipe deterministically.
+
+   .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
+
+      Whether the theme has a variant for ``scheme`` (T4 theme variants): its colour_schemes, which its sheet's ``color-scheme`` sets.
 
    .. cpp:function:: Color accent(AccentIndex index) const noexcept
 
@@ -4414,6 +4622,10 @@ Types
 
       The program icons a user theme may replace (ApplicationResources:: icon_declarations); a package compiles no icons.
 
+   .. cpp:member:: SystemColourHints system_colours
+
+      The host's colour hints the sheets' env() reads (T4 theme variants), as compiled: a theme compiled again reads new hints. Empty, every env() reads its fallback. ApplicationResources::compile_theme_package and compile_user_theme pass the resources' (system_colour_hints) where these are empty.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeCompileResult final
@@ -4483,6 +4695,14 @@ Types
    .. cpp:member:: ThemeWindowBackdrop window_backdrop
 
       The backdrop request and backplane bases (stage T5). Empty by default: an opaque window, drawn as before.
+
+   .. cpp:member:: ThemeDarkVariant dark_variant
+
+      The dark variant (stage T4 phase 5). None by default. Default: ``{ThemeDarkVariant::none}``.
+
+   .. cpp:member:: ColourSchemeSet colour_schemes
+
+      The colour schemes the theme has variants for (T4 theme variants): light alone by default. A window in a scheme its theme lacks shows GUI.Forms' own theme in that scheme (Window::theme_fallback). A sheet declaring ``color-scheme`` (rules.colour_schemes) replaces it when the theme is made.
 
 .. cpp:namespace:: gui_forms
 
@@ -4753,6 +4973,10 @@ Types
    .. cpp:member:: std::vector<ThemeRule> rules
 
    .. cpp:member:: std::vector<std::string> published_values
+
+   .. cpp:member:: std::optional<ColourSchemeSet> colour_schemes
+
+      The colour schemes the sheet declares (``:root { color-scheme: ... }``, T4 theme variants), or none where it declares none. Theme::create takes a declared set as the theme's (ThemeDefinition::colour_schemes).
 
 .. cpp:namespace:: gui_forms
 
@@ -5218,6 +5442,40 @@ Enumerations
 
    .. cpp:enumerator:: outsets_out_of_range
 
+   .. cpp:enumerator:: backdrop_out_of_range
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EffectSelectionOutcome
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   .. cpp:enumerator:: selected
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: unknown_effect
+
+   .. cpp:enumerator:: parent_mismatch
+
+   .. cpp:enumerator:: over_frame_budget
+
+   .. cpp:enumerator:: unverified
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EffectSelectionSource
+
+   ``#include <gui_forms/engine/effect_registry/effect_registry.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: application
+
+   .. cpp:enumerator:: style
+
+   .. cpp:enumerator:: theme
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: EffectTimeModel
@@ -5526,6 +5784,8 @@ Enumerations
 
    .. cpp:enumerator:: mask
 
+   .. cpp:enumerator:: reflection
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -5607,6 +5867,16 @@ Enumerations
    .. cpp:enumerator:: endpoints
 
    .. cpp:enumerator:: css_angle
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: MaterialReflectionSource
+
+   ``#include <gui_forms/surface_material/types/surface_material_types.hpp>``
+
+   .. cpp:enumerator:: face
+
+   .. cpp:enumerator:: backplane
 
 .. cpp:namespace:: gui_forms
 
@@ -5843,6 +6113,16 @@ Enumerations
    .. cpp:enumerator:: center
 
    .. cpp:enumerator:: end
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PartTextTone
+
+   ``#include <gui_forms/theme/part_painting/part_painting.hpp>``
+
+   .. cpp:enumerator:: ordinary
+
+   .. cpp:enumerator:: secondary
 
 .. cpp:namespace:: gui_forms
 
@@ -6094,6 +6374,10 @@ Enumerations
 
    .. cpp:enumerator:: font_invalid
 
+   .. cpp:enumerator:: effect_invalid
+
+   .. cpp:enumerator:: effect_colour_invalid
+
    .. cpp:enumerator:: published_value_invalid
 
    .. cpp:enumerator:: material_field_invalid
@@ -6167,6 +6451,16 @@ Enumerations
    .. cpp:enumerator:: monospace
 
    .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ThemeDarkVariant
+
+   ``#include <gui_forms/theme/types/theme_types.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: derived
 
 .. cpp:namespace:: gui_forms
 
@@ -6327,6 +6621,12 @@ Functions, constants and aliases
 
    The generated table entry of one effect type. Its state must fit the budget it declares, and that budget the toolkit's maximum.
 
+.. cpp:function:: bool effect_name_valid(std::string_view name) noexcept
+
+.. cpp:function:: std::uint32_t effect_backdrop_half(double margin, double scale) noexcept
+
+   The half width of the box passes for a backdrop blur reaching ``margin`` logical units at display ``scale``: floor(margin * scale / 3) device pixels.
+
 .. cpp:function:: const EffectRegistry& built_in_effect_registry()
 
    The registry of the toolkit's own effects, filled on first use (defined with the controls that host them).
@@ -6337,6 +6637,22 @@ Functions, constants and aliases
 
 .. cpp:function:: EffectLoadDiagnostics effect_load_diagnostics() noexcept
 
+.. cpp:function:: std::string_view effect_selection_source_name(EffectSelectionSource source) noexcept
+
+.. cpp:function:: std::string_view effect_selection_outcome_name(EffectSelectionOutcome outcome) noexcept
+
+.. cpp:function:: EffectSelectionOutcome check_effect_selection(const EffectRegistry& registry, std::string_view name, EffectSelectionSource source, std::string_view parent, Size part, double scale, const EffectEntry*& entry) noexcept
+
+   The load checks for the effect ``name``, asked for by ``source``, on a part of a control whose effect parent is ``parent`` (EffectView<P>::parent_name), ``part`` logical units in size at display ``scale``. Sets ``entry`` to the registered entry when the outcome is ``selected``, else to null. An empty name is ``none``. Never fails.
+
+.. cpp:function:: void note_effect_refused(const EffectSelection& selection) noexcept
+
+   Counts one refused selection (an outcome other than ``selected`` and ``none``) in effect_load_diagnostics; the first in the process also writes one line to stderr naming the effect, who asked and why. A control calls it once per change of its selection, not once per paint. Any thread.
+
+.. cpp:var:: constexpr std::size_t maximum_effect_name_length
+
+   Whether ``name`` may name an effect: snake_case (lowercase ASCII letters, digits and single '_'s, the first a letter, the last not '_'), at most maximum_effect_name_length characters, and not effect_none_name's ``none``, which themes write for no effect. Value: ``64U``.
+
 .. cpp:var:: constexpr std::size_t maximum_registered_effects
 
    The most effect types one registry holds. Value: ``64U``.
@@ -6344,6 +6660,18 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double maximum_effect_outset
 
    The farthest an effect may draw outside its part, in logical units. Value: ``64.0``.
+
+.. cpp:var:: constexpr double maximum_effect_backdrop_margin
+
+   The farthest an effect's backdrop blur reaches (EffectDeclaration:: backdrop_margin), in logical units: glass's own bound. Value: ``8.0``.
+
+.. cpp:var:: constexpr std::uint32_t effect_backdrop_operations_per_pixel
+
+   What sampling the backdrop costs a frame, per device pixel of the grown backplane image (EP-7): its copy into the blur's storage, six box passes of an add and a subtract per lane, and the copy out. Added to the effect's frame estimate when it is selected (check_effect_selection). Value: ``16U``.
+
+.. cpp:var:: constexpr std::uint64_t maximum_effect_operations_per_frame
+
+   The most operations one effect frame may cost on its part: the bound an animated primitive's part has (maximum_animated_operations_per_frame, GIVEN F1-1). Value: ``4'000'000U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -6657,7 +6985,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void material_declaration_lengths(const MaterialDeclaration& declaration, std::vector<double>& lengths)
 
-   The lengths of ``declaration`` in logical units, into ``lengths`` (cleared first), in a fixed order: its number where it is a length (a border width, a corner's radius that is not relative, the filter's blur); each authored gradient's centre, radii and stop positions (their units); the image positions' and the image sizes' units; each shadow's offset, blur and spread; each glow's blur and spread; each keyline's width and inset; the drop shadow's offset and blur.
+   The lengths of ``declaration`` in logical units, into ``lengths`` (cleared first), in a fixed order: its number where it is a length (a border width, a corner's radius that is not relative, the filter's blur); each authored gradient's centre, radii and stop positions (their units); the image positions' and the image sizes' units; each shadow's offset, blur and spread; each glow's blur and spread; each keyline's width and inset; the drop shadow's offset and blur; the reflection's gap and reach.
 
 .. cpp:function:: void set_material_declaration_lengths(MaterialDeclaration& declaration, std::span<const double> lengths) noexcept
 
@@ -6780,6 +7108,22 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::string_view blend_property
 
    The engine's blend property (E9.6): a declaration of this name, whose value is the name ``normal``, ``multiply`` or ``screen``, draws the part through a paint group of that composite (PaintGroupComposite), whatever draws it, so that it multiplies or screens what was painted beneath it. Like opacity it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The group's bounds are the part's extent (its bounds grown by its primitive's outsets and its granted overflow): nothing the part draws beyond them is shown. The forced high-contrast pass draws no blend. Value: ``"blend"``.
+
+.. cpp:var:: constexpr std::string_view effect_property
+
+   The effect a part draws (effect programs, design note section 7): a declaration of this property whose value is a registered effect's name (snake_case, as EffectDeclaration::name spells it) selects that effect for the part, and the name ``none`` (effect_none_name) selects none. Like blend it is no atom and no primitive parameter, and a rule that declares it needs no primitive; the last matching rule that declares it wins. The rules check only the name's form: the control hosting the part checks the effect against its registry when it attaches it (the effect's parent type, its budget and its verification record), and a refused effect leaves the part to its primitive alone (EffectSelectionOutcome). Value: ``"effect"``.
+
+.. cpp:var:: constexpr std::string_view effect_none_name
+
+   Value: ``"none"``.
+
+.. cpp:var:: constexpr std::string_view effect_primary_property
+
+   The colours a part's effect draws with (EP-4, theme-variants direction): a primary and a secondary colour role, never a literal, so that an effect follows the theme's palette in each colour scheme (the rule copies the palette's media variants make) and the forced high-contrast pass remaps it by its role. A declaration of either holds a colour whose origin is a role (ColourSource::role); the last matching rule that declares each wins. Like effect_property, neither needs a primitive. A part whose rules declare none takes its host control's own colours. Value: ``"effect_primary"``.
+
+.. cpp:var:: constexpr std::string_view effect_secondary_property
+
+   Value: ``"effect_secondary"``.
 
 .. cpp:var:: constexpr std::size_t text_role_count
 
@@ -6927,6 +7271,14 @@ Functions, constants and aliases
 
    Whether paint_surface_material leaves the whole of its bounds opaque, whatever lay beneath: a valid, unfinished material with square corners, no visual outsets, filter or mask, and an opaque solid fill drawn normally, over which everything else it draws composites.
 
+.. cpp:function:: bool surface_material_size_invariant(const SurfaceMaterial& material) noexcept
+
+   Whether paint_surface_material draws each pixel of its bounds the same whatever the bounds' size: a valid, unfinished material with square corners, no border, shadow, visual outset, filter, mask or reflection, whose fills are all solid. Its pixels inside an old extent then stay right when the extent changes (Panel::paint_depends_on_size).
+
+.. cpp:function:: std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept
+
+   How far in from the bounds' right and bottom edges a size change can alter what paint_surface_material draws, in logical units, when nothing else moves: 0 for a size-invariant material; for one whose only size-dependent parts are square or rounded corners and a solid border of one width on every edge, the larger of the corner radius and the border width. Empty for any other material (a gradient, an image, shadows, outsets, filters, masks, reflections, per-edge borders), which a size change alters anywhere.
+
 .. cpp:function:: Insets box_shadow_visual_outsets(std::span<const MaterialShadow> shadows) noexcept
 
    How far the outer (not inset) shadows among ``shadows`` reach outside the rect that casts them: three blur radii plus any positive spread, shifted by each offset.
@@ -7021,6 +7373,14 @@ Functions, constants and aliases
 
    Paints one part of ``control`` by its role (see PartPaint), through the engine of the control's effective theme. Roles that draw nothing of their own (region, edge, perimeter, sheen) are no-ops: the material of the surface they belong to draws them. An empty or non-finite ``bounds`` paints nothing. What disabled means (owner, 2026-10-20: "a change in font color or control highlighting. greyed out"): a disabled part greys the control's chrome, through the recipes' disabled states: the text colour of labels and captions, and the highlighting (edge, well, hot and selected plates). Content never changes: - the image role (T2 GIVEN H1-1) is a content picture, such as the docking stamp's snapshot, drawn exactly as given into ``bounds``, never tinted, dimmed or resized by a theme, disabled or not; - a content colour (GIVEN E2-1) is drawn exactly as given, disabled or not. An icon is chrome, the theme's or the command's symbol, and keeps its disabled treatment: 45 % opacity. The shadow role paints the theme's overlay shadow (owner decision RB-37): ``bounds`` is the rect of the surface that casts it (a tooltip's face, a menu's panel), with the corner radius of ``corner_radius`` or else of the ``family`` recipe, and the shadow falls outside it, down and right. Paint it before the surface. Only surfaces that really overlap content cast it; a control's own contact shadow stays in its material. Nothing is painted where the theme casts no overlay shadow (high contrast, by default). A control that paints a shadow part reports overlay_shadow_outsets from its visual_outsets, so that damage and replay cover the blur. A part without its own authored colours takes the control's (Control::set_back_color and set_fore_color): the control's own or inherited foreground, and its own background, or an inherited one on any role but a well.
 
+.. cpp:function:: void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin, double width)
+
+   A text part (label, caption or content) placed by its baseline, as controls that lay out text by baseline draw it: ``part``'s bounds become its line box with the text starting at ``origin`` (a point on the baseline), at least ``width`` wide and never narrower than the text, and paint_part draws it. The line box is the one paint_part centres text in, so the text lands on ``origin`` exactly. A part without text draws nothing. A part that carries its text's measurement (PartPaint::measured_text) is not measured again.
+
+.. cpp:function:: bool pointed_face_contains(Rect bounds, double point, Point position) noexcept
+
+   Whether ``position`` lies in the pointed face of ``bounds`` whose nose is ``point`` units long (PartPaint::point): inside the bounds and left of the nose's edges. A point of zero or less is the whole rectangle.
+
 .. cpp:function:: Insets overlay_shadow_outsets(const Control& control) noexcept
 
    How far ``control``'s theme's overlay shadow reaches outside the casting surface's rect, in the control's presentation (ordinary or high contrast). Zero on every side when the theme casts none.
@@ -7033,7 +7393,7 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(PartMark::count)``.
 
-.. cpp:var:: constexpr std::array<std::string_view, 5> part_value_names
+.. cpp:var:: constexpr std::array<std::string_view, 7> part_value_names
 
    The values admitted to the vocabulary beside states and marks (design language 12.7), as the schema lists them: they have no enum, so this is the order they were admitted in.
 
@@ -7093,9 +7453,13 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_control_state_recipes(const ControlStateRecipes& value) noexcept
 
-.. cpp:function:: ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes)
+.. cpp:function:: ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family)
 
-   The forced high-contrast pass (T2 plan, E4; design language 5.8): ``recipes`` with its high_contrast and high_contrast_selected records derived from its ordinary ones. GUI.Forms' own high-contrast mode keeps each state's geometry and cues (corner radius, edge width, focus and default rings, offsets) and rebuilds the material as one solid plate inside one solid edge from a near-colourless palette by state, dropping gradients, images, keylines, per-edge borders and shadows. Selected parts take a white plate and black text inside their state's edge. Theme::create applies it to every family, so authored high-contrast records are replaced.
+   The forced high-contrast pass (T2 plan, E4; design language 5.8): ``recipes`` with its high_contrast and high_contrast_selected records derived from its ordinary ones. GUI.Forms' own high-contrast mode keeps each state's geometry and cues (corner radius, edge width, focus and default rings, offsets) and rebuilds the material as one solid plate inside one solid edge from a near-colourless palette by state, dropping gradients, images, keylines, per-edge borders and shadows. Selected parts take a white plate and black text inside their state's edge; a family whose text does not lie on a plate of its own (window, panel and card, whose children paint over the plate in their own states; choice, whose label lies on its parent's ground; editor, whose text lies on its well) never inverts: pressed keeps the plain plate inside the pressed edge, and selected the state's plate inside the selection line. Theme::create applies it to every family (``family``), so authored high-contrast records are replaced.
+
+.. cpp:function:: ControlRoleRecipes derive_dark_recipes(ControlRoleRecipes recipes, ControlVisualRole family)
+
+   The dark pass (stage T4 phase 5; design language 5.8 rule 3): ``recipes`` with its dark and dark_selected records derived from its ordinary and selected ones by the dark colour rule, for a family of role ``family``. Geometry, cues and structure are kept; every colour is mapped by what it paints (a face by its family: stock, well, chrome or accent; text, lines, cues, highlights and shades by their own rules), so the light stays upper left and inset stays inset.
 
 .. cpp:function:: Color high_contrast_colour(ColourOrigin origin, ColourPosition position, ControlSurfaceState state, bool selected) noexcept
 

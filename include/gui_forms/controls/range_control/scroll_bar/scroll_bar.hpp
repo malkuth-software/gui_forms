@@ -91,8 +91,10 @@ private:
     // when the track no longer lies under the pointer or the step is refused.
     void repeat_step();
 
+    // One arrow button: its actuator part, pressed while it is the pressed
+    // part, and its arrow mark.
     void paint_button(Painter& painter, Rect button, ScrollBarPart part,
-                      bool incrementing, const BasicControlStyle& colors);
+                      bool incrementing, AnatomyStateSet states);
     [[nodiscard]] double axis_coordinate(Point local_point) const noexcept;
     [[nodiscard]] double value_from_thumb_coordinate(double coordinate) const noexcept;
     bool apply_part(ScrollBarPart part);

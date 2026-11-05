@@ -184,7 +184,13 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     underline.authored_foreground = foreground;
     paint_part(painter, *this, underline);
     if (focus_cue_visible()) {
-        paint_focus(painter, bounds, foreground);
+        PartPaint ring;
+        ring.role = PartRole::focus;
+        ring.family = family;
+        ring.states = states;
+        ring.states.insert(AnatomyState::focus_visible);
+        ring.bounds = bounds;
+        paint_part(painter, *this, ring);
     }
 }
 

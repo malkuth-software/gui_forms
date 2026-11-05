@@ -45,6 +45,10 @@ enum class DisplayOperation : std::uint8_t {
     // A part raster shown scaled (Painter::draw_part_raster_scaled): `rect`
     // its logical destination, `scalar` its opacity.
     draw_part_raster_scaled = 25,
+    // A per-corner rounded clip: `rect`, with the top-left and top-right
+    // radii in `first` (x, y) and the bottom-right and bottom-left in
+    // `second`.
+    clip_rounded_rect_corners = 26,
 };
 
 struct DisplayCommand final {

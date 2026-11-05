@@ -12,6 +12,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -133,8 +134,20 @@ struct Frame final {
 // The storage one lowering works in, kept from rule to rule: the simple
 // selectors read, one frame per open `:is()` (and the list itself), and
 // the scratch product of an `:is()` with its compound.
+// An escaped name of the list being lowered (token_flag_escaped): its
+// token and where its decoded name is in SelectorWorkspace::decoded.
+struct DecodedName final {
+    std::uint32_t token{};
+    std::uint32_t offset{};
+    std::uint32_t length{};
+};
+
 struct SelectorWorkspace final {
     std::vector<Simple> simples{};
+    // The list's escaped names, decoded before it is read, so that the
+    // names read from them stay valid while it is lowered.
+    std::string decoded{};
+    std::vector<DecodedName> decoded_names{};
     std::array<Frame, maximum_nesting_depth + 1U> frames{};
     std::vector<Alternative> product{};
 };

@@ -1,5 +1,6 @@
 #include "gui_forms/controls/easing_preview/easing_preview.hpp"
 
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/window.hpp"
 
 #include <array>
@@ -42,6 +43,22 @@ EasingPreview::EasingPreview(StableId stable_id)
     set_accessible_name("Animation easing preview");
     set_accessible_description(
         "Retained timeline tracks comparing configured easing curves");
+    // The run-time schema of a preview (stage FD6.3): what a form document
+    // sets on it. The tracks stay in code (a list of records). It raises no
+    // change event.
+    PropertyDescriptor title;
+    title.name = "title";
+    title.kind = BindingValueKind::text;
+    title.category = "Appearance";
+    title.description = "The heading painted above the tracks.";
+    title.default_value = BindingValue{std::string("Animation timeline and easing")};
+    title.invalidation_effects = Dirty::paint | Dirty::semantics;
+    title.bindable = false;
+    define_bindable_property({
+        std::move(title),
+        detail::BindingMemberGetter<EasingPreview, std::string>(*this, &EasingPreview::title_),
+        detail::DirectPropertySetter<EasingPreview, std::string>(*this, &EasingPreview::set_title),
+        {}, {}, {}});
 }
 
 void EasingPreview::set_title(std::string title) {

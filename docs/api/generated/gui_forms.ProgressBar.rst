@@ -79,13 +79,19 @@ gui_forms::ProgressBar
          Position in the current animation cycle, from 0 up to 1.
 
       **effect** : ``std::string``
-         The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch, none for the rest. A name no registered progress-bar effect has draws no effect. The moving-stripes overlay draws progress_stripes over any other effect.
+         The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch; for the other styles, the effect the theme declares for the bar's fill part (its activity part while marquee), if any (effect_property). A name no registered progress-bar effect has, or one the load checks refuse, draws no effect (effect_selection says why). The moving-stripes overlay draws progress_stripes over any other effect.
 
       **effect_seed** : ``std::optional<std::uint64_t>``
          The seed of the bar's effects. None (the default) derives it from the bar's stable ID and the effect's name, so runs, tests and motion checksums reproduce; an application sets one for another arrangement.
 
       **effect_input** : ``EffectInputKind``
          The input the bar grants its effect (none by default): with a grant the bar is hit-tested and passes the pointer, in part-local units, to an effect that declares pointer input. The bar never takes focus, so a key grant delivers nothing.
+
+      **effect_selection** : ``EffectSelection``, read-only
+         What the bar's last effect selection came to: the name asked for, who asked (the application, the visual style or the theme) and the load checks' verdict.
+
+      **effect_colours** : ``EffectColours``, read-only
+         The colours the bar's effects draw with (EffectFrame::colours): the primary and secondary colour roles the theme declares for the effect's part (effect_primary_property, effect_secondary_property), in the window's colour scheme and remapped by the forced high-contrast pass; the animation appearance's stripe and luminance colours where the theme declares none, or where the application set its own appearance. Under theme roles the appearance's colours keep their alpha and take the roles' red, green and blue: the stripes and the laser's phase bands the primary, the luminance band, the laser's edge and spark the secondary.
 
       **effect_instance** : ``EffectInstance``, read-only
          The selected effect's instance (empty for none): its counters and state checksum, for diagnostics and tests.
@@ -280,7 +286,7 @@ gui_forms::ProgressBar
 
    .. cpp:function:: const std::string& effect() const noexcept
 
-      The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch, none for the rest. A name no registered progress-bar effect has draws no effect. The moving-stripes overlay draws progress_stripes over any other effect.
+      The effect program drawn over the bar (effect programs, design note §7), by registered name. Empty (the default) selects the visual style's own: progress_stripes for marching_stripes, progress_pulse for pulse, progress_laser for laser_etch; for the other styles, the effect the theme declares for the bar's fill part (its activity part while marquee), if any (effect_property). A name no registered progress-bar effect has, or one the load checks refuse, draws no effect (effect_selection says why). The moving-stripes overlay draws progress_stripes over any other effect.
 
    .. cpp:function:: void set_effect(std::string name)
 
@@ -295,6 +301,14 @@ gui_forms::ProgressBar
       The input the bar grants its effect (none by default): with a grant the bar is hit-tested and passes the pointer, in part-local units, to an effect that declares pointer input. The bar never takes focus, so a key grant delivers nothing.
 
    .. cpp:function:: void set_effect_input(EffectInputKind input)
+
+   .. cpp:function:: const EffectSelection& effect_selection() const noexcept
+
+      What the bar's last effect selection came to: the name asked for, who asked (the application, the visual style or the theme) and the load checks' verdict.
+
+   .. cpp:function:: EffectColours effect_colours() const noexcept
+
+      The colours the bar's effects draw with (EffectFrame::colours): the primary and secondary colour roles the theme declares for the effect's part (effect_primary_property, effect_secondary_property), in the window's colour scheme and remapped by the forced high-contrast pass; the animation appearance's stripe and luminance colours where the theme declares none, or where the application set its own appearance. Under theme roles the appearance's colours keep their alpha and take the roles' red, green and blue: the stripes and the laser's phase bands the primary, the luminance band, the laser's edge and spark the secondary.
 
    .. cpp:function:: const EffectInstance& effect_instance() const noexcept
 

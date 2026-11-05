@@ -3,6 +3,7 @@
 #include "../collection_control_utilities.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <vector>
 #include <string>
@@ -351,38 +352,41 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         font.size, committed_arranged_bounds().height * 0.5 + font.size * 0.34));
     painter.save();
     painter.clip_rect(local_bounds());
-
-    // Paint every overlapping face before its shared chevron edge. Drawing a
+    // Each segment's face and label, the chevrons between segments and the
+    // active segment's focus ring are parts the theme's engine draws. A
+    // segment is a command button's face, hot under the pointer or while
+    // active; the edit terminal is an accent button's. A disabled segment's
+    // parts are disabled.
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
+    // Paint every overlapping face before its shared chevron. Drawing a
     // joint inside this loop lets the next face erase that joint because each
     // successor deliberately overlaps the preceding face by edge_overlap_.
     for (std::size_t index = 0; index < visible_items_.size(); ++index) {
         const VisibleItem& item = visible_items_[index];
         const bool active = focused_ && visible_stable_id(item) == active_id_;
         const bool hovered = hovered_visible_ == index;
-        Color face = style().paper;
-        Color foreground = style().text;
+        AnatomyStateSet item_states = states;
+        if (hovered || active) item_states.insert(AnatomyState::hot);
+        ControlVisualRole family = ControlVisualRole::command_button;
         std::string_view text{};
         if (item.kind == VisibleKind::edit) {
-            const Color terminal_top = hovered || active
-                ? style().accent_light
-                : style().accent;
-            const std::array<GradientStop, 2> stops{{
-                {0.0, terminal_top}, {1.0, style().dark_border}}};
-            painter.fill_linear_gradient(
-                item.bounds, {item.bounds.x, item.bounds.y},
-                {item.bounds.x, item.bounds.y + item.bounds.height}, stops);
-            foreground = style().highlight;
+            family = ControlVisualRole::accent_button;
             text = "./";
         } else if (item.kind == VisibleKind::overflow) {
-            face = hovered ? style().face_light : style().face;
             text = "…";
         } else {
             const BreadcrumbSegment& segment = segments_[item.segment_index];
-            if (!segment.enabled) foreground = style().disabled_text;
-            if (hovered || active) face = style().face_light;
+            if (!segment.enabled) item_states.insert(AnatomyState::disabled);
             text = segment.text;
         }
-        if (item.kind != VisibleKind::edit) painter.fill_rect(item.bounds, face);
+        PartPaint face;
+        face.family = family;
+        face.role = PartRole::face;
+        face.bounds = item.bounds;
+        face.states = item_states;
+        face.corner_radius = 0.0;
+        paint_part(painter, *this, face);
         FontSpec item_font = font;
         if (item.kind == VisibleKind::edit ||
             (item.kind == VisibleKind::segment &&
@@ -395,45 +399,63 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
             ? item.bounds.x + 9.0
             : item.bounds.x + std::max(0.0,
                 (item.bounds.width - text_width) * 0.5);
-        painter.draw_text_utf8(
-            {text_x, baseline}, text, item_font, foreground);
+        PartPaint label;
+        label.family = family;
+        label.role = PartRole::label;
+        label.states = item_states;
+        label.text = text;
+        label.font = item_font;
+        paint_text_part_at(painter, *this, label, {text_x, baseline},
+                           std::max(0.0, item.bounds.x + item.bounds.width - text_x));
     }
 
-    // Shared edges and focus rings are the foreground geometry of the one
+    // Chevrons and focus rings are the foreground geometry of the one
     // continuous location instrument, so no later face may cover them.
     for (std::size_t index = 0; index < visible_items_.size(); ++index) {
         const VisibleItem& item = visible_items_[index];
         const bool active = focused_ && visible_stable_id(item) == active_id_;
         if (index + 1U < visible_items_.size()) {
-            const double edge_x = item.bounds.x + item.bounds.width - edge_overlap_;
-            const double middle = item.bounds.y + item.bounds.height * 0.5;
-            painter.draw_line({edge_x, item.bounds.y + 2.0},
-                              {edge_x + edge_overlap_ - 1.0, middle},
-                              style().dark_border, 1.0);
-            painter.draw_line({edge_x + edge_overlap_ - 1.0, middle},
-                              {edge_x, item.bounds.y + item.bounds.height - 2.0},
-                              style().highlight, 1.0);
+            // An 8-unit square on the overlap holds the chevron.
+            const double edge_x = std::floor(item.bounds.x + item.bounds.width - edge_overlap_ * 0.5);
+            const double middle = std::floor(item.bounds.y + item.bounds.height * 0.5);
+            PartPaint chevron;
+            chevron.family = ControlVisualRole::command_button;
+            chevron.role = PartRole::disclosure;
+            chevron.mark = PartMark::chevron_right;
+            chevron.bounds = {edge_x - 4.0, middle - 4.0, 8.0, 8.0};
+            chevron.states = states;
+            paint_part(painter, *this, chevron);
         }
         if (active) {
-            painter.stroke_rect(
-                {item.bounds.x + 2.5, item.bounds.y + 2.5,
-                 std::max(0.0, item.bounds.width - 5.0),
-                 std::max(0.0, item.bounds.height - 5.0)},
-                style().accent, 1.0);
+            PartPaint ring;
+            ring.family = ControlVisualRole::command_button;
+            ring.role = PartRole::focus;
+            ring.bounds = {item.bounds.x + 2.0, item.bounds.y + 2.0,
+                           std::max(0.0, item.bounds.width - 4.0),
+                           std::max(0.0, item.bounds.height - 4.0)};
+            ring.states = states;
+            ring.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, ring);
         }
     }
     painter.restore();
 }
 
+// The raised trail: each segment is a button's pointed face (design
+// language §8.5, owner decision 2026-11-02), its nose over the next
+// segment; the current segment's face is selected, a segment under the
+// pointer or active hot, a pressed one pressed and a disabled one
+// disabled. The edit terminal is an accent button's square face. Labels
+// and the active segment's focus ring are parts too. Faces are painted
+// back to front, so each nose lies whole over its successor.
 void BreadcrumbTrail::paint_raised(Painter& painter) {
     const FontSpec font = effective_font(font_);
     const double baseline = snap_text_baseline(std::max(
         font.size, committed_arranged_bounds().height * 0.5 + font.size * 0.34));
+    AnatomyStateSet states = anatomy_states();
+    states.erase(AnatomyState::hot);
     painter.save();
     painter.clip_rect(local_bounds());
-    // Back-to-front preserves the complete pointed nose of each preceding
-    // segment. Nine bounded strips express the tip through the public Painter
-    // vocabulary; every backend receives the same retained geometry.
     for (std::size_t remaining = visible_items_.size(); remaining > 0U; --remaining) {
         const std::size_t index = remaining - 1U;
         const VisibleItem& item = visible_items_[index];
@@ -442,71 +464,62 @@ void BreadcrumbTrail::paint_raised(Painter& painter) {
         const bool current = item.kind == VisibleKind::segment &&
             item.segment_index + 1U == segments_.size();
         const bool active = focused_ && visible_stable_id(item) == active_id_;
-        const bool hot = hovered_visible_ == index || active;
-        const bool pressed = pressed_visible_ == index;
         const bool terminal = item.kind == VisibleKind::edit;
-        const double tip = terminal ? 0.0 : std::min(edge_overlap_, bounds.width * 0.25);
+        const double tip = terminal ? 0.0 : raised_point(bounds);
         const double shoulder = bounds.x + bounds.width - tip;
-        const double middle = bounds.y + bounds.height * 0.5;
-        Color top = style().highlight;
-        Color bottom = current ? style().accent_light : style().face;
-        if (hot) bottom = style().accent_light;
-        if (pressed) { top = style().face; bottom = style().face_light; }
-        if (terminal) { top = style().accent; bottom = style().dark_border; }
-        const std::array<GradientStop, 3> stops{{
-            {0.0, top}, {0.45, pressed ? bottom : style().face_light}, {1.0, bottom}}};
-        const std::array<GradientStop, 2> terminal_stops{{{0.0, top}, {1.0, bottom}}};
-        const Point start{bounds.x, bounds.y};
-        const Point end{bounds.x, bounds.y + bounds.height};
-        const Rect body{bounds.x, bounds.y, bounds.width - tip, bounds.height};
-        if (terminal) painter.fill_linear_gradient(body, start, end, terminal_stops);
-        else painter.fill_linear_gradient(body, start, end, stops);
-        for (unsigned strip = 0U; strip < 9U && tip > 0.0; ++strip) {
-            const double left = tip * static_cast<double>(strip) / 9.0;
-            const double right = tip * static_cast<double>(strip + 1U) / 9.0;
-            const double inset = bounds.height * 0.5 * left / tip;
-            const Rect slice{shoulder + left, bounds.y + inset,
-                             right - left, bounds.height - inset * 2.0};
-            painter.fill_linear_gradient(slice, start, end, stops);
-        }
-        if (!terminal) {
-            const std::array<GradientStop, 4> grain{{
-                {0.0, {255, 255, 255, 18}}, {0.32, {255, 255, 255, 18}},
-                {0.34, {255, 255, 255, 0}}, {1.0, {255, 255, 255, 0}}}};
-            painter.fill_linear_gradient_spread(body, {bounds.x, bounds.y},
-                {bounds.x + 3.0, bounds.y + 3.0}, grain, GradientSpreadMode::repeat);
-        }
-        painter.draw_line({bounds.x, bounds.y + 0.5}, {shoulder, bounds.y + 0.5},
-                          pressed ? style().dark_border : style().highlight, 1.0);
-        painter.draw_line({bounds.x, bounds.y + bounds.height - 0.5},
-                          {shoulder, bounds.y + bounds.height - 0.5}, style().border, 1.0);
-        if (!terminal) {
-            painter.draw_line({shoulder, bounds.y + 0.5},
-                              {bounds.x + bounds.width - 0.5, middle}, style().dark_border, 1.0);
-            painter.draw_line({bounds.x + bounds.width - 0.5, middle},
-                              {shoulder, bounds.y + bounds.height - 0.5}, style().dark_border, 1.0);
-            painter.draw_line({shoulder - 1.0, bounds.y + 1.0},
-                              {bounds.x + bounds.width - 2.0, middle}, style().highlight, 1.0);
-        }
+        AnatomyStateSet item_states = states;
+        if (hovered_visible_ == index || active) item_states.insert(AnatomyState::hot);
+        if (pressed_visible_ == index) item_states.insert(AnatomyState::pressed);
+        if (current) item_states.insert(AnatomyState::selected);
         std::string_view text = terminal ? "./" : "…";
-        Color foreground = terminal ? style().highlight : style().text;
         if (item.kind == VisibleKind::segment) {
             text = segments_[item.segment_index].text;
-            if (!segments_[item.segment_index].enabled) foreground = style().disabled_text;
+            if (!segments_[item.segment_index].enabled) item_states.insert(AnatomyState::disabled);
         }
+        const ControlVisualRole family = terminal ? ControlVisualRole::accent_button : ControlVisualRole::button;
+        PartPaint face;
+        face.family = family;
+        face.role = PartRole::face;
+        face.bounds = bounds;
+        face.states = item_states;
+        face.corner_radius = 0.0;
+        if (tip > 0.0) face.point = tip;
+        paint_part(painter, *this, face);
         FontSpec item_font = font;
         if (current || terminal) item_font.weight = 700;
         const double left_padding = index == 0U || terminal ? 9.0 : edge_overlap_ + 5.0;
         const double text_x = bounds.x + left_padding;
-        painter.save();
-        painter.clip_rect({text_x, bounds.y + 1.0,
-                           std::max(0.0, shoulder - text_x - 2.0), std::max(0.0, bounds.height - 2.0)});
-        painter.draw_text_utf8({text_x, baseline}, text, item_font, foreground);
-        painter.restore();
-        if (active) painter.stroke_rect({bounds.x + left_padding - 2.0, bounds.y + 2.5,
-            std::max(0.0, shoulder - bounds.x - left_padding), std::max(0.0, bounds.height - 5.0)}, style().accent, 1.0);
+        const Size measured = painter.measure_text_utf8(text, item_font);
+        const double box_height = std::max(measured.height, item_font.size * 1.2);
+        const double box_ascent = std::max(item_font.size, box_height * 0.82);
+        PartPaint label;
+        label.family = family;
+        label.role = PartRole::label;
+        label.states = item_states;
+        label.text = text;
+        label.font = item_font;
+        label.bounds = {text_x, baseline - box_ascent, std::max(0.0, shoulder - text_x - 2.0), box_height};
+        label.measured_text = measured;
+        paint_part(painter, *this, label);
+        if (active) {
+            PartPaint ring;
+            ring.family = family;
+            ring.role = PartRole::focus;
+            ring.bounds = {bounds.x + left_padding - 5.0, bounds.y,
+                           std::max(0.0, shoulder - bounds.x - left_padding + 5.0), bounds.height};
+            ring.states = item_states;
+            ring.states.insert(AnatomyState::focus_visible);
+            paint_part(painter, *this, ring);
+        }
     }
     painter.restore();
+}
+
+// The nose a raised segment of `bounds` points with: the overlap, at most
+// a quarter of the segment.
+double BreadcrumbTrail::raised_point(Rect bounds) const noexcept {
+    const double result = std::min(edge_overlap_, bounds.width * 0.25);
+    return result;
 }
 
 std::optional<std::size_t> BreadcrumbTrail::visible_index_at(
@@ -516,17 +529,13 @@ std::optional<std::size_t> BreadcrumbTrail::visible_index_at(
     for (std::size_t index = visible_items_.size(); index > 0U; --index) {
         const VisibleItem& item = visible_items_[index - 1U];
         if (!item.bounds.contains(local)) continue;
+        // A raised segment is hit in its pointed face (the shape it is
+        // painted in), less the preceding segment's nose over it.
         if (appearance_ == BreadcrumbAppearance::raised && item.kind != VisibleKind::edit) {
-            const double half_height = item.bounds.height * 0.5;
-            const double tip = std::min(edge_overlap_, item.bounds.width * 0.25);
-            const double distance = std::abs(local.y - item.bounds.y - half_height);
-            const double point_x = item.bounds.x + item.bounds.width - tip * distance / half_height;
-            if (local.x > point_x) continue;
+            if (!pointed_face_contains(item.bounds, raised_point(item.bounds), local)) continue;
             if (index > 1U) {
                 const Rect previous = visible_items_[index - 2U].bounds;
-                const double previous_tip = std::min(edge_overlap_, previous.width * 0.25);
-                const double previous_edge = previous.x + previous.width - previous_tip * distance / half_height;
-                if (local.x < previous_edge) continue;
+                if (pointed_face_contains(previous, raised_point(previous), local)) continue;
             }
         }
         const std::optional<std::size_t> result(index - 1U);

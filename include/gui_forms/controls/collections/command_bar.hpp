@@ -40,7 +40,7 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_attached_to_window() override;
-    void on_detaching_from_window(Window& former_window) noexcept override;
+    void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
 
 private:
     struct Entry;

@@ -1,0 +1,55 @@
+/* The Gallery's animation laboratory (stage FD, phase FD6.3): the
+   EasingPreview board and the motion-policy group below it.
+   gui_forms_add_form() compiles this document into
+   animation-laboratory_form.hpp at build time.
+
+   gallery.animation.document is a declared boundary only: the page moves
+   its children into the shell's page body (a 1000 x 660 design surface),
+   where each is placed by its bounds in design coordinates. Behaviour stays
+   in the page (src/controls/gallery/pages/animation-laboratory.cpp): the
+   board's tracks, the pause Command, the reduced-motion Value, the shell's
+   MotionPolicy and the page style. */
+scaled-panel gallery.animation.document {
+  design-size: 1000 660;
+
+  label gallery.animation.heading {
+    text: "ANIMATION LABORATORY";
+    font: content 22 700;
+    fore-color: #182d42;
+    bounds: 24 18 520 34;
+  }
+  label gallery.animation.lead {
+    text: "Eight public easing curves, alternate direction, retained frame scheduling, hidden-page suspension.";
+    font: content 12 400;
+    fore-color: #5b6b79;
+    bounds: 26 52 900 24;
+  }
+
+  easing-preview gallery.animation.easing {
+    title: "TIMELINE AND EASING LAB";
+    bounds: 24 92 930 340;
+  }
+
+  scaled-group-box gallery.animation.controls {
+    text: "Animation controls and motion policy";
+    font: control 12 700 spacing 0.24;
+    design-size: 930 168;
+    bounds: 24 454 930 168;
+    button gallery.animation.pause {
+      text: "Pause motion";
+      visual-style: accent;
+      bounds: 24 42 160 36;
+    }
+    label gallery.animation.policy {
+      text: "Animation is deadline-driven and quiescent when hidden or paused. No perpetual redraw loop.";
+      font: content 12 400;
+      fore-color: #1c2732;
+      bounds: 210 46 650 28;
+    }
+    check-box gallery.animation.reduced {
+      text: "Reduced-motion substitution";
+      indicator-style: toggle;
+      bounds: 24 96 310 28;
+    }
+  }
+}

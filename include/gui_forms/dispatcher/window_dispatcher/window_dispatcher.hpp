@@ -8,7 +8,7 @@
 
 namespace gui_forms {
 
-class Window;
+class SurfaceRoot;
 namespace detail {
 struct DispatcherState;
 }
@@ -50,7 +50,7 @@ public:
     [[nodiscard]] bool window_alive() const noexcept;
 
 private:
-    friend class Window;
+    friend class SurfaceRoot;
     explicit WindowDispatcher(std::shared_ptr<detail::DispatcherState> state) noexcept;
 
     std::shared_ptr<detail::DispatcherState> state_;

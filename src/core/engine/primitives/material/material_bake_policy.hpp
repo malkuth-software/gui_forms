@@ -99,6 +99,11 @@ struct MaterialEffortWeights final {
     // raster, past evaluating the mask, which is charged as a fill of its
     // kind.
     std::uint32_t mask{};
+    // Per reflected pixel, for a reflection (stage T5, C7): its reach in
+    // device pixels, rounded up, times the destination's side along its
+    // edge. The pass blends each one in floating point, so it is dear per
+    // pixel but touches only those lines.
+    std::uint32_t reflection{};
 };
 
 // The weights' relative sizes come from the quiet-machine measurements of
@@ -110,6 +115,11 @@ struct MaterialEffortWeights final {
 // gradient stop, is one unit. border_pattern is per pixel of a dashed ring
 // whose every pixel is on an arc, its dearest, and is charged per
 // destination pixel. mask covers a solid mask's pass and a linear one's.
+// reflection was measured on 2026-11-03 on the Windows worker machine,
+// which was busy, so by the median of 101 interleaved pairs of bakes
+// against the base material (and the solid layer measured the same way):
+// nine runs suggested 56 to 98, median 68, at its dearest (reach 8, every
+// line drawn, opacity 1).
 inline constexpr MaterialEffortWeights material_effort_weights{
     .base = 90U,
     .solid = 25U,
@@ -130,6 +140,7 @@ inline constexpr MaterialEffortWeights material_effort_weights{
     .filter_blur = 240U,
     .fill_blend = 140U,
     .mask = 55U,
+    .reflection = 70U,
 };
 
 } // namespace gui_forms::engine_primitives

@@ -87,6 +87,14 @@ control types, parts and states.
   colour. A literal colour in a text or edge position (`color`, borders,
   outlines) is a warning: forced high contrast can only replace it by its
   position.
+- **System colours:** `env(system-accent, <colour>)` and
+  `env(system-highlight, <colour>)` read the host's accent and
+  text-selection colours as hints, in any colour position. The fallback
+  colour is required, and is read where the host reports none or the
+  theme is compiled without hints. A hint is read when the theme is
+  compiled (`ThemeCompileOptions::system_colours`;
+  `ApplicationResources::compile_theme_package` passes the hints its
+  windows last reported). GUI.Forms' own theme reads neither.
 - **Expressions:** `calc()`, `clamp()`, `min()`, `max()`, and the engine's
   `mix()`, `smoothstep()`, `choose()`, `less()`, `less-equal()`,
   `greater()`, `greater-equal()`, `equal()`, `not-equal()`, `state()` and
@@ -112,7 +120,7 @@ combinations of definitions it reads.
 ## Properties
 
 Property names are CSS's where CSS has the property, and engine-named
-otherwise (`shape`, `surface-finish`, `glow`). `primitive: <name>` selects a
+otherwise (`shape`, `surface-finish`, `glow`, `reflection`). `primitive: <name>` selects a
 drawing primitive for the part and its parameters are then properties by
 their registered names (`primitive: bulge; amplitude: 0.5`); a rule declaring
 only material fields selects the `material` primitive.
@@ -121,10 +129,25 @@ only material fields selects the `material` primitive.
 |---|---|
 | fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` forms, images), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat`, `background-position` |
 | borders | `border`, `border-<edge>`, `border-width`, `border-color`, `border-style` (`solid`, `dashed`, `dotted`, `double`, `groove`, `ridge`), `border-radius` (1 to 4 values), `border-image`, `outline`, `outline-style` (`auto`, `solid`, `dotted`, `none`), `outline-offset`, `shape` |
-| shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish` |
+| shadows and light | `box-shadow` (up to 4, `inset` admitted), `text-shadow` (on a control), `glow`, `glow-placement`, `surface-finish`, `reflection` |
 | filters and blending | `filter` (`brightness()`, `contrast()`, `saturate()`, `grayscale()`, `sepia()`, `invert()`, `hue-rotate()`, `blur()`, `drop-shadow()`), `mix-blend-mode` (`normal`, `multiply`, `screen`), `isolation`, `mask-image` |
 | presentation | `opacity`, `scale`, `translate` |
+| effects | `effect: <name>`, a registered effect program in kebab case (such as `progress-woven-stripes`), or `none`; the control checks the effect when it attaches it, and a refused one leaves the part to its primitive; `effect-primary`, `effect-secondary`: the effect's colours, each one colour role (`role(<name>)`, never a literal), so effects follow the palette in each colour scheme and under forced high contrast |
 | text | `color`, `font: <role>` (`ui`, `field`, `caption`, `heading`, `title`, `monospace`) |
+
+`reflection` mirrors the part's finished face (its fills, borders, glows,
+filters and mask; not its text), or with `backplane` the window's backplane
+under the part (as glass samples it), about one edge into the space past it:
+`reflection: none | <edge> [<gap> [<reach>]] [<start> [<end>]] [backplane]`. The edge is
+`above`, `below`, `left` or `right` (as in `-webkit-box-reflect`); the gap
+and the reach are lengths (0, and the rest of the 8 units a reflection may
+reach, by default), and together at most 8 units; the start and end are the
+opacity next to the edge and at the far end, numbers or percentages (0.5 and
+0 by default). A unitless 0 is a length until an opacity has been read, so
+`below 0 6px 1 0` is a gap of 0. The reflection is drawn beneath what the
+face draws past that edge, and is omitted under high contrast and reduced
+transparency. A part drawn in the backplane plane reflects no backplane.
+For example, `reflection: below 1px 6px 40% 0` or `reflection: below 6px 30% backplane`.
 
 `inherit` is admitted on `color` and `font` only; `initial` means the
 built-in recipe's value. `clip-path`, `rotate`, `transform`, text
@@ -156,6 +179,38 @@ animation stops.
 applies the block for each query. Media types other than `all` and `screen`,
 `not`, `only` and `or` are errors; an unknown feature is a warning that
 skips the block. The conditions are evaluated per window.
+
+## Colour schemes
+
+A theme declares the colour schemes it has variants for on `:root`:
+`:root { color-scheme: light dark; }`, or `light` or `dark` alone. A theme
+that declares nothing is light only. The rules for one scheme are written
+under `@media (prefers-color-scheme: dark)` (or `light`); unconditioned
+rules hold in both, so a dark variant writes only what differs. Any other
+word (`normal`, `only`) and `color-scheme` under `@media` are errors;
+`color-scheme` outside `:root` is a warning that drops it, and a sheet with
+dark rules but no dark variant is warned (W402
+`scheme_rules_without_variant`), since those rules then apply nowhere.
+
+A window whose scheme its theme has no variant for shows GUI.Forms' own
+theme (`gui-forms`) in that scheme instead: `Window::theme_fallback()` says
+so, the warning W403 `theme_variant_missing` is written once per theme and
+scheme, and the colours the application set on its controls (`back_color`,
+`fore_color`, authored surfaces and parts' colours) are suspended, since
+they were chosen against the other theme. Switching back shows the
+application's theme and its colours again; `theme_changed` is raised each
+time. High contrast uses GUI.Forms' own high-contrast palette in either
+case.
+
+The window's scheme is the application's choice
+(`PresentationSettings::colour_scheme`) unless the application turns on
+`ApplicationResources::set_automatic_colour_scheme(true)`, when every
+window follows the host's light or dark preference (capability
+`presentation_preferences`; light where the host reports none).
+
+Colour belongs in the theme: setting `back_color` or `fore_color` on a
+control still applies, for compatibility, but writes the warning W404
+`inline_colour` once per control and property.
 
 ## Inline styles
 

@@ -51,6 +51,12 @@ public:
     [[nodiscard]] const ThemeDefinition& definition() const noexcept {
         return definition_;
     }
+    // Whether the theme has a variant for `scheme` (T4 theme variants):
+    // its colour_schemes, which its sheet's `color-scheme` sets.
+    [[nodiscard]] bool supports(ColourScheme scheme) const noexcept {
+        const bool held = definition_.colour_schemes.contains(scheme);
+        return held;
+    }
     // The ramp colour for an accent index; an index past the end of the
     // ramp wraps around it.
     [[nodiscard]] Color accent(AccentIndex index) const noexcept {

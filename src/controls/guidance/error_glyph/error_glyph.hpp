@@ -21,6 +21,9 @@ public:
 
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point point) const override;
+    // The validation plate's material may draw outside the bounds (a
+    // contact shadow).
+    [[nodiscard]] Insets visual_outsets() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
 
 protected:

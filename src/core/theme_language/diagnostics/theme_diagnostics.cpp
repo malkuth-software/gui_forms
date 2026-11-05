@@ -110,6 +110,9 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyword_from_newer_engine:
     case DiagnosticCode::literal_colour_unremappable:
     case DiagnosticCode::inline_with_theme:
+    case DiagnosticCode::scheme_rules_without_variant:
+    case DiagnosticCode::theme_variant_missing:
+    case DiagnosticCode::inline_colour:
     case DiagnosticCode::icon_unknown:
     case DiagnosticCode::icon_not_overridable:
     case DiagnosticCode::icon_refused:
@@ -204,6 +207,9 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::keyword_from_newer_engine: return "keyword_from_newer_engine";
     case DiagnosticCode::literal_colour_unremappable: return "literal_colour_unremappable";
     case DiagnosticCode::inline_with_theme: return "inline_with_theme";
+    case DiagnosticCode::scheme_rules_without_variant: return "scheme_rules_without_variant";
+    case DiagnosticCode::theme_variant_missing: return "theme_variant_missing";
+    case DiagnosticCode::inline_colour: return "inline_colour";
     case DiagnosticCode::icon_unknown: return "icon_unknown";
     case DiagnosticCode::icon_not_overridable: return "icon_not_overridable";
     case DiagnosticCode::icon_refused: return "icon_refused";

@@ -147,6 +147,9 @@ struct ValueContext final {
     bool fold_constants{true};
     const RolePalette* palette{};
     std::optional<ColourRoleSide> bare_side{};
+    // The host's colour hints env() reads (T4 theme variants), or null:
+    // every env() then reads its fallback.
+    const SystemColourHints* system_colours{};
 };
 
 // What one read takes, all borrowed for the call. `written` is the

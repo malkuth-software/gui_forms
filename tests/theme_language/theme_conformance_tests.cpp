@@ -283,6 +283,12 @@ std::string material_text(const MaterialDeclaration& declaration) {
     if (declaration.border_image) text += " border-image";
     if (declaration.drop_shadow) text += " drop-shadow";
     if (declaration.mask) text += " mask";
+    if (declaration.reflection) {
+        const MaterialReflection& reflection = *declaration.reflection;
+        text += " reflection edge=" + std::to_string(static_cast<unsigned int>(reflection.edge)) + " opacities=" +
+                number_text(reflection.start_opacity) + "," + number_text(reflection.end_opacity);
+        if (reflection.source == MaterialReflectionSource::backplane) text += " source=backplane";
+    }
     if (declaration.number != 0.0) text += " number=" + number_text(declaration.number);
     if (declaration.relative) text += " relative";
     std::vector<double> lengths{};

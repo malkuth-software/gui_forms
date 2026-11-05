@@ -41,6 +41,7 @@ public:
 
 private:
     friend class Window;
+    friend class SurfaceRoot;
     friend class Control;
     friend class WindowDispatcher;
     // Waits without pumping until the work is completed, cancelled or

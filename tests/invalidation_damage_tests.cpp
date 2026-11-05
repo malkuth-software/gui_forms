@@ -448,11 +448,16 @@ void test_full_subtree_invalidation_is_explicit() {
     (*fixture.window).resize({320.0, 190.0});
     (*fixture.window).perform_layout();
     const MetricsSnapshot metrics = (*fixture.window).metrics_snapshot();
-    // A resize arranges every retained control again, and measures again
-    // only the controls the client size reaches. The root requests its
-    // whole size, so its children are handed the same extent as before.
-    require(metrics.controls_arranged == 6 && metrics.arrange_nodes_visited == 6,
-            "window resize must arrange the complete retained subtree");
+    // A resize arranges the root again (its layout slot is marked), and a
+    // child only when the root gives it a new slot; it measures again only
+    // the controls the client size reaches. The root requests its whole
+    // size, so its children keep their slots and extents, and keep their
+    // arrangement.
+    require(metrics.controls_arranged == 1 && metrics.arrange_nodes_visited == 1,
+            "window resize must arrange only the root when no child's slot changes");
+    require((*fixture.left).arrange_calls == 1U && (*fixture.right).arrange_calls == 1U &&
+                (*fixture.left_leaf).arrange_calls == 1U && (*fixture.right_leaf).arrange_calls == 1U,
+            "children whose slots did not change must not be arranged again");
     require(metrics.controls_measured == 1 && metrics.measure_nodes_visited == 1,
             "window resize must measure only the controls the client size reaches");
 }

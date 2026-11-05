@@ -285,7 +285,8 @@ private:
         std::size_t item{};
         std::size_t column{};
         double width{};
-        double measured_width{};
+        // The elided text's measurement in the details font.
+        Size measured{};
         bool header{};
         bool valid{};
         std::string text{};
@@ -368,6 +369,7 @@ private:
         std::size_t index, bool selected, Rect destination_bounds);
     void paint_glyph(Painter& painter, Rect bounds, ObjectGlyph glyph,
                      bool enabled) const;
+    void paint_focus_ring_part(Painter& painter, Rect bounds) const;
 
     std::vector<ObjectViewItem> items_{};
     std::string selected_id_{};

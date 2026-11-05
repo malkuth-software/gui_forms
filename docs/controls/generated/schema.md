@@ -30,7 +30,7 @@ Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
-Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`.
+Values: `accent_index`, `text_orientation`, `dock_region`, `content_color`, `authored_color`, `text_tone`, `pointed_face`.
 
 Recipe families: `window`, `panel`, `card`, `button`, `accent_button`, `command_button`, `choice`, `editor`, `menu_item`, `selection`, `progress`, `tool_tip`, `link`, `visited_link`.
 
@@ -398,7 +398,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `indeterminate`, `enabled`, `disabled`, `reduced_motion`.
 
-Properties beyond every control's: `effect` (text), `effect_input` (enumeration), `effect_seed` (unsigned_integer), `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `effect` (text), `effect_input` (enumeration), `effect_seed` (unsigned_integer), `maximum` (number), `minimum` (number), `value` (number), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -490,7 +490,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selection_mode` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -533,7 +533,7 @@ Item system `item`:
 
 Item states: `selected`, `hot`, `current`, `checked`, `indeterminate`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selection_mode` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -569,7 +569,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `hot`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `items` (collection), `selected_index` (signed_integer), `text` (text).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `drop_down_filter` (enumeration), `drop_down_style` (enumeration), `items` (collection), `placeholder_text` (text), `selected_index` (signed_integer), `text` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -1116,7 +1116,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `valu
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `tick_frequency` (number), `value` (number).
+Properties beyond every control's: `maximum` (number), `minimum` (number), `tick_frequency` (number), `value` (number), `visual_style` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -2306,7 +2306,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `large_change` (number), `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2327,7 +2327,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `valu
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `large_change` (number), `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2348,7 +2348,7 @@ Properties beyond every control's: `maximum` (number), `minimum` (number), `valu
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `maximum` (number), `minimum` (number), `value` (number).
+Properties beyond every control's: `large_change` (number), `maximum` (number), `minimum` (number), `value` (number).
 
 | Interaction | Payload |
 |---|---|
@@ -2991,7 +2991,7 @@ Interactions: none.
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `title` (text).
 
 Interactions beyond every control's: none.
 

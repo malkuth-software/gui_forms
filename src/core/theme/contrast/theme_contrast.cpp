@@ -252,11 +252,12 @@ ContrastRow unmeasured_row(const ContrastRow& key, ContrastPair pair, double min
 // The surface around a control in one presentation: the panel family's
 // resting face over the window family's, over white paper. Returns false
 // when either cannot be sampled.
-bool sample_surround(const Theme& theme, bool high_contrast, FaceSamples& surround) noexcept {
+bool sample_surround(const Theme& theme, bool high_contrast, bool dark, FaceSamples& surround) noexcept {
     FaceSamples paper{};
     paper.fill(Color::rgba(255, 255, 255));
     ControlVisualContext resting{};
     resting.high_contrast = high_contrast;
+    resting.dark = dark;
     const ControlVisualRecipe& window = theme.resolve(ControlVisualRole::window, resting);
     FaceSamples backplane{};
     if (!sample_material(window.material, paper, backplane)) return false;
@@ -347,11 +348,21 @@ Color composite_over(Color top, Color ground, ContrastBlend blend) noexcept {
 
 void measure_theme_contrast(const Theme& theme, std::vector<ContrastRow>& rows) {
     rows.clear();
-    const std::array<bool, 2> presentations{false, true};
+    // The presentations: ordinary, dark (a derived dark variant only) and
+    // high contrast.
+    struct Presentation final {
+        bool high_contrast{};
+        bool dark{};
+    };
+    const std::array<Presentation, 3> presentations{
+        Presentation{false, false}, Presentation{false, true}, Presentation{true, false}};
+    const bool measures_dark = theme.definition().dark_variant == ThemeDarkVariant::derived;
     const std::array<bool, 2> selections{false, true};
-    for (const bool high_contrast : presentations) {
+    for (const Presentation& presentation : presentations) {
+        if (presentation.dark && !measures_dark) continue;
+        const bool high_contrast = presentation.high_contrast;
         FaceSamples surround{};
-        const bool surround_known = sample_surround(theme, high_contrast, surround);
+        const bool surround_known = sample_surround(theme, high_contrast, presentation.dark, surround);
         for (std::size_t family = 0U; family < control_visual_role_count; ++family) {
             for (std::size_t state = 0U; state < control_surface_state_count; ++state) {
                 for (const bool selected : selections) {
@@ -360,10 +371,12 @@ void measure_theme_contrast(const Theme& theme, std::vector<ContrastRow>& rows) 
                     key.state = static_cast<ControlSurfaceState>(state);
                     key.selected = selected;
                     key.high_contrast = high_contrast;
+                    key.dark = presentation.dark;
                     ControlVisualContext context{};
                     context.surface = key.state;
                     context.selected = selected;
                     context.high_contrast = high_contrast;
+                    context.dark = presentation.dark;
                     const ControlVisualRecipe& recipe = theme.resolve(key.family, context);
                     measure_recipe(recipe, key, surround_known, surround, rows);
                 }

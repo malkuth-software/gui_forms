@@ -50,7 +50,7 @@ void copy_framebuffer_rows(const PartRasterView& image, PaintFramebuffer& frameb
 
 } // namespace
 
-Window::EngineBackplane Window::engine_backplane(Point raster_origin, DeviceExtent extent, DeviceScale scale,
+SurfaceRoot::EngineBackplane SurfaceRoot::engine_backplane(Point raster_origin, DeviceExtent extent, DeviceScale scale,
                                                  std::uint32_t margin) {
     EngineBackplane lent{};
     lent.generation = backplane_generation_;
@@ -74,6 +74,7 @@ Window::EngineBackplane Window::engine_backplane(Point raster_origin, DeviceExte
     ControlVisualContext context;
     context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
     context.high_contrast = presentation_settings_.high_contrast;
+    context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
     const SurfaceMaterial& material = backplane_base(context);
     engine_parts_.bake_backplane_material(material, client_size_, region, &image_resources(), image,
                                           paint_leases_completed_);
@@ -92,7 +93,7 @@ Window::EngineBackplane Window::engine_backplane(Point raster_origin, DeviceExte
     return lent;
 }
 
-bool Window::replay_backplane(Rect covered, const BackplaneRegion& region, const PartRasterView& image) {
+bool SurfaceRoot::replay_backplane(Rect covered, const BackplaneRegion& region, const PartRasterView& image) {
     if (framebuffer_painter_ == nullptr || !root_) return false;
     const DeviceExtent extent = region.extent;
     if (extent.width == 0U || extent.height == 0U) return false;
@@ -137,9 +138,9 @@ bool Window::replay_backplane(Rect covered, const BackplaneRegion& region, const
     return true;
 }
 
-void Window::replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter) const {
+void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter) const {
     const Control& node = *control;
-    if (!node.is_alive() || node.window_ != this || !node.visible_ || node.layout_collapsed_) return;
+    if (!node.is_alive() || node.surface_root_ != this || !node.visible_ || node.layout_collapsed_) return;
     const Rect bounds = absolute_bounds_of(node);
     const Rect visual = visual_bounds_of(node, node.effective_visual_outsets());
     const Rect drawn = Rect::intersection(visual, clip);
@@ -164,10 +165,10 @@ void Window::replay_backplane_subtree(const Control::Ptr& control, Rect clip, Pa
     }
 }
 
-void Window::composite_backplane_subtree(const Control::Ptr& control, Rect clip, const BackplaneRegion& region,
+void SurfaceRoot::composite_backplane_subtree(const Control::Ptr& control, Rect clip, const BackplaneRegion& region,
                                          const PartRasterView& image, std::uint64_t& skipped) const {
     const Control& node = *control;
-    if (!node.is_alive() || node.window_ != this || !node.visible_ || node.layout_collapsed_) return;
+    if (!node.is_alive() || node.surface_root_ != this || !node.visible_ || node.layout_collapsed_) return;
     const Rect bounds = absolute_bounds_of(node);
     const Rect visual = visual_bounds_of(node, node.effective_visual_outsets());
     const Rect drawn = Rect::intersection(visual, clip);

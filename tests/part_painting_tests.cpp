@@ -191,7 +191,7 @@ void marks_and_text(const Control& control) {
         theme.resolve(ControlVisualRole::button, part_visual_context(control, label.states));
     for (const Operation& operation : unavailable.operations) {
         if (operation.kind == "text") {
-            require(operation.color == disabled.muted_text, "an unavailable label uses the muted colour");
+            require(operation.color == disabled.text, "an unavailable label uses the theme's disabled text colour");
         }
     }
 }
@@ -467,7 +467,7 @@ void authored_colors(const Control& control) {
     const ControlVisualContext off = part_visual_context(control, label.states);
     RecordingPainter disabled_label;
     paint_part(disabled_label, control, label);
-    require(recorded(disabled_label, "text", theme.resolve(label.family, off).muted_text),
+    require(recorded(disabled_label, "text", theme.resolve(label.family, off).text),
             "a disabled label keeps the theme's disabled text colour");
 
     PartPaint check;
@@ -566,10 +566,10 @@ void control_colors() {
     require(recorded(inherited_label, "text", ink), "a label draws in an inherited foreground");
     label.states.insert(AnatomyState::disabled);
     const ControlVisualContext off = part_visual_context(*child, label.states);
-    const Color muted = (*child).effective_theme().resolve(label.family, off).muted_text;
+    const Color disabled_text = (*child).effective_theme().resolve(label.family, off).text;
     RecordingPainter disabled_label;
     paint_part(disabled_label, *child, label);
-    require(recorded(disabled_label, "text", muted) && !recorded(disabled_label, "text", ink),
+    require(recorded(disabled_label, "text", disabled_text) && !recorded(disabled_label, "text", ink),
             "a disabled label keeps the theme's disabled text under a control's foreground");
 
     (*child).clear_back_color();
@@ -677,6 +677,40 @@ void dotted_focus() {
             "the first dot sits on the ring's top-left corner");
 }
 
+// The pointed face (the raised breadcrumb's shape): its nose narrows to a
+// tip at the middle of the right edge, the point is clamped to the width,
+// and hit testing follows the painted shape. Only surface roles point; a
+// label ignores the point.
+void pointed_faces(const Control& control) {
+    const Rect bounds{10.0, 0.0, 40.0, 20.0};
+    require(pointed_face_contains(bounds, 8.0, {49.0, 10.0}), "the tip is inside the face");
+    require(!pointed_face_contains(bounds, 8.0, {49.0, 1.0}), "the corner beside the nose is outside");
+    require(pointed_face_contains(bounds, 8.0, {41.0, 1.0}), "the body before the shoulder is inside");
+    require(!pointed_face_contains(bounds, 8.0, {9.0, 10.0}), "a point left of the face is outside");
+    require(pointed_face_contains(bounds, 0.0, {49.0, 1.0}), "without a point the face is square");
+    require(!pointed_face_contains(bounds, 100.0, {30.0, 1.0}), "the point is clamped to the width");
+    PartPaint face;
+    face.role = PartRole::face;
+    face.family = ControlVisualRole::button;
+    face.bounds = bounds;
+    RecordingPainter square;
+    paint_part(square, control, face);
+    face.point = 8.0;
+    RecordingPainter pointed;
+    paint_part(pointed, control, face);
+    require(pointed.operations.size() > square.operations.size(), "a pointed face paints its nose strips");
+    PartPaint label;
+    label.role = PartRole::label;
+    label.bounds = bounds;
+    label.text = "Segment";
+    RecordingPainter plain_label;
+    paint_part(plain_label, control, label);
+    label.point = 8.0;
+    RecordingPainter pointed_label;
+    paint_part(pointed_label, control, label);
+    require(pointed_label.operations.size() == plain_label.operations.size(), "a label ignores the point");
+}
+
 int main() {
     dotted_focus();
     const std::shared_ptr<Control> control = make_control<Control>(StableId("part.painting"));
@@ -691,7 +725,8 @@ int main() {
     authored_colors(*control);
     control_colors();
     families();
+    pointed_faces(*control);
     std::cout << "by-role paint path: silent roles, surfaces, cues, marks, text, states, overlay shadow, "
-                 "content colours, authored colours, control colours and families passed\n";
+                 "content colours, authored colours, control colours, families and pointed faces passed\n";
     return 0;
 }

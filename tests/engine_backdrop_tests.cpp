@@ -113,6 +113,16 @@ public:
     std::shared_ptr<const PartRaster> red;
 };
 
+// The window's root: it draws nothing, so that what the glass samples is
+// the backplane base and the Backdrop alone. (A Panel root's face is an
+// engine part raster since T4 138a3f3c, and the backplane composites part
+// rasters: an opaque face would cover the base the glass is tested over.)
+class Root final : public Control {
+public:
+    explicit Root(StableId stable_id) : Control(std::move(stable_id)) {}
+    void on_paint(Painter&, Rect) override {}
+};
+
 // A control-plane control with one glass region and one face drawn by the
 // material primitive, which never samples the backplane.
 class Pane final : public Control {
@@ -187,7 +197,7 @@ CompositorState every_backdrop() {
 }
 
 struct Fixture final {
-    std::shared_ptr<Panel> root;
+    std::shared_ptr<Root> root;
     std::shared_ptr<Backdrop> backdrop;
     std::shared_ptr<Pane> pane;
     std::unique_ptr<Window> window;
@@ -198,7 +208,7 @@ struct Fixture final {
 std::unique_ptr<Fixture> make_fixture() {
     std::unique_ptr<Fixture> fixture = std::make_unique<Fixture>();
     Fixture& made = *fixture;
-    made.root = make_control<Panel>(StableId("root"));
+    made.root = make_control<Root>(StableId("root"));
     made.backdrop = make_control<Backdrop>(StableId("backdrop"));
     (*made.backdrop).set_requested_bounds(Rect{60.0, 0.0, 120.0, 160.0});
     (*made.backdrop).red = solid_raster(DeviceExtent{120U, 160U}, {255U, 0U, 0U, 255U});

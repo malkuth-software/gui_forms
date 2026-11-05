@@ -6,7 +6,7 @@ namespace gui_forms::detail {
 
 class AcceleratorAttachment final : public Revocable {
 public:
-    AcceleratorAttachment(Window& window, Component& owner, KeyGesture gesture,
+    AcceleratorAttachment(SurfaceRoot& window, Component& owner, KeyGesture gesture,
                           std::function<bool()> callback,
                           AcceleratorOptions options)
         : window_(&window), owner_(&owner), gesture_(gesture),
@@ -28,7 +28,7 @@ public:
     }
 
 private:
-    Window* window_{};
+    SurfaceRoot* window_{};
     Component* owner_{};
     KeyGesture gesture_{};
     std::function<bool()> callback_;

@@ -15,8 +15,11 @@
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_canvas/effect_canvas.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
+#include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/gui_forms.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include "../src/core/text/localizable/gui_forms_notes.hpp"
 
@@ -48,6 +51,10 @@ public:
     void restore() override { restores = restores + 1; }
     void translate(Point offset) override { translations.push_back(offset); }
     void clip_rect(Rect bounds) override { clips.push_back(bounds); }
+    void clip_rounded_rect_corners(Rect bounds, PaintCornerRadii radii) override {
+        corner_boxes.push_back(bounds);
+        corner_clips.push_back(radii);
+    }
     void fill_rect(Rect, Color) override { rects = rects + 1; }
     void fill_rounded_rect(Rect, double, Color) override { rounded = rounded + 1; }
     void stroke_rect(Rect, Color, double) override { stroked = stroked + 1; }
@@ -70,6 +77,10 @@ public:
     }
     void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
     void draw_image(ImageId, Rect, double) override {}
+    void draw_part_raster(const std::shared_ptr<const PartRaster>& raster, Point origin, double) override {
+        part_rasters.push_back(raster);
+        part_origins.push_back(origin);
+    }
 
     int saves{};
     int restores{};
@@ -86,6 +97,10 @@ public:
     std::vector<Rect> clips{};
     std::vector<Point> radial_centers{};
     std::vector<Point> line_starts{};
+    std::vector<Rect> corner_boxes{};
+    std::vector<PaintCornerRadii> corner_clips{};
+    std::vector<std::shared_ptr<const PartRaster>> part_rasters{};
+    std::vector<Point> part_origins{};
 };
 
 const FrameTime start{std::chrono::seconds(1000)};
@@ -613,6 +628,518 @@ void effect_properties_and_input() {
     require(ignored.circles == after.circles, "without a grant a press reaches no effect");
 }
 
+// A theme whose rules give a progress bar's fill the effect `fill` and its
+// activity band the effect `activity` (effect_property), each skipped when
+// empty; a class rule `calm` declares none for the fill.
+std::unique_ptr<ThemeDefinition> effect_theme(std::string_view fill, std::string_view activity) {
+    std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    ThemeDefinition& definition = *held;
+    definition.id = "effect-programs";
+    if (!fill.empty()) {
+        ThemeRule rule{};
+        rule.label = "progress-bar::part(fill)";
+        rule.selector.control_type = "progress_bar";
+        rule.selector.part = "fill";
+        rule.declarations.push_back(RuleDeclaration::choice_value(effect_property, fill));
+        definition.rules.rules.push_back(rule);
+    }
+    if (!activity.empty()) {
+        ThemeRule rule{};
+        rule.label = "progress-bar::part(activity)";
+        rule.selector.control_type = "progress_bar";
+        rule.selector.part = "activity";
+        rule.declarations.push_back(RuleDeclaration::choice_value(effect_property, activity));
+        definition.rules.rules.push_back(rule);
+    }
+    ThemeRule calm{};
+    calm.label = "progress-bar.calm::part(fill)";
+    calm.selector.control_type = "progress_bar";
+    calm.selector.classes.push_back("calm");
+    calm.selector.part = "fill";
+    calm.declarations.push_back(RuleDeclaration::choice_value(effect_property, effect_none_name));
+    definition.rules.rules.push_back(calm);
+    return held;
+}
+
+// Themes select effects by name (design note section 7): a rule's effect
+// declaration gives a part its effect; the application's name and the
+// visual style's own come first; `none` selects none; the load checks
+// refuse an unknown name, another parent's effect, a frame over the bound
+// and (for a theme) an unverified effect, leaving the part to its
+// primitive with a counted, structured diagnostic; and a malformed name is
+// the rules' own diagnostic.
+void themes_select_effects() {
+    std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.themed"));
+    (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    (*bar).set_value(50.0);
+    Window window(bar, {200.0, 40.0});
+    window.set_theme(Theme::create(*effect_theme("progress_woven_stripes", "progress_pulse")));
+    window.perform_layout();
+    RecordingPainter first;
+    (*bar).on_paint(first, {0.0, 0.0, 200.0, 20.0});
+    const EffectEntry& woven = built_in("progress_woven_stripes");
+    if (woven.verified) {
+        require((*bar).effect_instance().entry() == &woven &&
+                    (*bar).effect_selection().source == EffectSelectionSource::theme &&
+                    (*bar).effect_selection().outcome == EffectSelectionOutcome::selected &&
+                    (*bar).effect_selection().name == "progress_woven_stripes",
+                "the theme's effect for the fill draws over a continuous bar");
+    } else {
+        require((*bar).effect_instance().entry() == nullptr &&
+                    (*bar).effect_selection().outcome == EffectSelectionOutcome::unverified,
+                "a theme may not select an unverified effect: the fill draws its primitive alone");
+    }
+    (*bar).set_visual_style(ProgressBarVisualStyle::laser_etch);
+    require((*bar).effect_instance().entry() == &built_in("progress_laser") &&
+                (*bar).effect_selection().source == EffectSelectionSource::style,
+            "the visual style's own effect comes before the theme's");
+    (*bar).set_effect("progress_bubbles");
+    require((*bar).effect_instance().entry() == &built_in("progress_bubbles") &&
+                (*bar).effect_selection().source == EffectSelectionSource::application,
+            "the application's effect comes first");
+    (*bar).set_effect("");
+    (*bar).set_visual_style(ProgressBarVisualStyle::marquee);
+    RecordingPainter marquee;
+    (*bar).on_paint(marquee, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_selection().source == EffectSelectionSource::theme &&
+                (*bar).effect_selection().name == "progress_pulse",
+            "while marquee the theme's effect for the activity band applies");
+    (*bar).set_visual_style(ProgressBarVisualStyle::continuous);
+    (*bar).add_class("calm");
+    RecordingPainter calm;
+    (*bar).on_paint(calm, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_instance().entry() == nullptr &&
+                (*bar).effect_selection().source == EffectSelectionSource::theme &&
+                (*bar).effect_selection().outcome == EffectSelectionOutcome::none,
+            "a more specific rule's none selects no effect");
+
+    const std::uint64_t refused = effect_load_diagnostics().refused;
+    std::shared_ptr<ProgressBar> unknown = make_control<ProgressBar>(StableId("effects.unknown"));
+    (*unknown).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    Window unknown_window(unknown, {200.0, 40.0});
+    unknown_window.set_theme(Theme::create(*effect_theme("no_such_effect", "scope_sweep")));
+    unknown_window.perform_layout();
+    RecordingPainter unknown_paint;
+    (*unknown).on_paint(unknown_paint, {0.0, 0.0, 200.0, 20.0});
+    require((*unknown).effect_instance().entry() == nullptr &&
+                (*unknown).effect_selection().outcome == EffectSelectionOutcome::unknown_effect &&
+                effect_load_diagnostics().refused == refused + 1U,
+            "an unknown effect is refused and counted, and the fill draws its primitive alone");
+    RecordingPainter unknown_again;
+    (*unknown).on_paint(unknown_again, {0.0, 0.0, 200.0, 20.0});
+    require(effect_load_diagnostics().refused == refused + 1U, "a refusal is counted once, not once per paint");
+    (*unknown).set_visual_style(ProgressBarVisualStyle::marquee);
+    RecordingPainter other_parent;
+    (*unknown).on_paint(other_parent, {0.0, 0.0, 200.0, 20.0});
+    require((*unknown).effect_selection().outcome == EffectSelectionOutcome::parent_mismatch &&
+                (*unknown).effect_instance().entry() == nullptr,
+            "another parent type's effect is refused");
+
+    const EffectEntry* entry = &woven;
+    require(check_effect_selection(built_in_effect_registry(), "progress_pulse", EffectSelectionSource::application,
+                                   EffectView<ProgressBar>::parent_name, Size{200.0, 20.0}, 1.0,
+                                   entry) == EffectSelectionOutcome::selected &&
+                entry == &built_in("progress_pulse"),
+            "the load checks select a fitting effect");
+    // progress_pulse costs 400 + 4 per device pixel: a million pixels pass
+    // the 4,000,000 bound.
+    require(check_effect_selection(built_in_effect_registry(), "progress_pulse", EffectSelectionSource::application,
+                                   EffectView<ProgressBar>::parent_name, Size{1000.0, 1000.0}, 1.0,
+                                   entry) == EffectSelectionOutcome::over_frame_budget &&
+                entry == nullptr,
+            "an effect whose frame passes the operations bound at the part's size is refused");
+    require(check_effect_selection(built_in_effect_registry(), "", EffectSelectionSource::theme,
+                                   EffectView<ProgressBar>::parent_name, Size{200.0, 20.0}, 1.0,
+                                   entry) == EffectSelectionOutcome::none,
+            "an empty name is none");
+
+    require(effect_name_valid("progress_pulse") && !effect_name_valid("none") && !effect_name_valid("Pulse") &&
+                !effect_name_valid("pulse__band") && !effect_name_valid(std::string(65U, 'a')),
+            "an effect's name is snake_case, at most 64 characters, and not none");
+    ThemeRuleSheet sheet{};
+    ThemeRule malformed{};
+    malformed.label = "malformed";
+    malformed.selector.control_type = "progress_bar";
+    malformed.declarations.push_back(RuleDeclaration::choice_value(effect_property, "Not-An-Effect"));
+    sheet.rules.push_back(malformed);
+    ThemeRule twice{};
+    twice.label = "twice";
+    twice.selector.control_type = "progress_bar";
+    twice.declarations.push_back(RuleDeclaration::choice_value(effect_property, "progress_pulse"));
+    twice.declarations.push_back(RuleDeclaration::choice_value(effect_property, "progress_laser"));
+    sheet.rules.push_back(twice);
+    const CompiledThemeRules compiled = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    bool invalid = false;
+    bool duplicate = false;
+    for (const RuleDiagnostic& diagnostic : compiled.diagnostics()) {
+        if (diagnostic.kind == RuleDiagnosticKind::effect_invalid && diagnostic.label == "malformed") invalid = true;
+        if (diagnostic.kind == RuleDiagnosticKind::duplicate_declaration && diagnostic.label == "twice") {
+            duplicate = true;
+        }
+    }
+    require(invalid && duplicate && compiled.rule_count() == 1U,
+            "a malformed name is effect_invalid and drops its rule; a second effect declaration is a duplicate");
+}
+
+// A theme giving a progress bar's fill the effect colour roles focus and
+// chrome-highlight, with other colours for them in the dark scheme (as a
+// palette's media variant lowers to a rule copy under the condition).
+std::unique_ptr<ThemeDefinition> colour_role_theme() {
+    std::unique_ptr<ThemeDefinition> held = test_support::professional_definition();
+    ThemeDefinition& definition = *held;
+    definition.id = "effect-colours";
+    // The theme has a dark variant (T4 theme variants); without one, a dark
+    // window shows GUI.Forms' own theme and these rules never apply.
+    definition.colour_schemes = ColourSchemeSet{.light = true, .dark = true};
+    ColourOrigin focus{};
+    focus.source = ColourSource::role;
+    focus.role = ColourRole::focus;
+    ColourOrigin highlight{};
+    highlight.source = ColourSource::role;
+    highlight.role = ColourRole::chrome_highlight;
+    ThemeRule light{};
+    light.label = "progress-bar::part(fill)";
+    light.selector.control_type = "progress_bar";
+    light.selector.part = "fill";
+    RuleDeclaration primary = RuleDeclaration::colour_value(effect_primary_property, Color::rgba(32, 96, 192));
+    primary.origin = focus;
+    RuleDeclaration secondary =
+        RuleDeclaration::colour_value(effect_secondary_property, Color::rgba(240, 244, 248));
+    secondary.origin = highlight;
+    light.declarations.push_back(primary);
+    light.declarations.push_back(secondary);
+    definition.rules.rules.push_back(light);
+    ThemeRule dark = light;
+    dark.label = "progress-bar::part(fill) (dark)";
+    dark.media.dark_scheme = true;
+    dark.declarations[0].colour = Color::rgba(120, 170, 255);
+    dark.declarations[1].colour = Color::rgba(40, 44, 52);
+    definition.rules.rules.push_back(dark);
+    return held;
+}
+
+// Effects take colour roles (EP-4): the theme's primary and secondary roles
+// for the effect's part reach the frame (EffectFrame::colours), follow the
+// colour scheme, are remapped by the forced high-contrast pass, and give
+// the progress effects their colours at the effects' own alphas; the
+// application's own appearance comes first; a literal is refused.
+void effects_take_colour_roles() {
+    std::shared_ptr<ProgressBar> bar = make_control<ProgressBar>(StableId("effects.coloured"));
+    (*bar).set_requested_bounds({0.0, 0.0, 200.0, 20.0});
+    (*bar).set_value(50.0);
+    (*bar).set_visual_style(ProgressBarVisualStyle::marching_stripes);
+    Window window(bar, {200.0, 40.0});
+    RecordingPainter plain;
+    window.perform_layout();
+    (*bar).on_paint(plain, {0.0, 0.0, 200.0, 20.0});
+    const ProgressBarAnimationAppearance appearance{};
+    require((*bar).effect_colours().primary == appearance.stripe_color &&
+                (*bar).effect_colours().secondary == appearance.luminance_color &&
+                (*bar).effect_instance().colours() == (*bar).effect_colours(),
+            "without theme roles the effects take the appearance's stripe and luminance colours");
+
+    window.set_theme(Theme::create(*colour_role_theme()));
+    RecordingPainter light;
+    (*bar).on_paint(light, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_colours().primary == Color::rgba(32, 96, 192) &&
+                (*bar).effect_colours().secondary == Color::rgba(240, 244, 248) &&
+                (*bar).effect_instance().colours() == (*bar).effect_colours(),
+            "the theme's roles reach the effect's frame");
+
+    PresentationSettings settings = window.presentation_settings();
+    settings.colour_scheme = ColourScheme::dark;
+    window.set_presentation_settings(settings);
+    RecordingPainter dark;
+    (*bar).on_paint(dark, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_colours().primary == Color::rgba(120, 170, 255) &&
+                (*bar).effect_colours().secondary == Color::rgba(40, 44, 52),
+            "in the dark scheme the roles take the dark palette's colours");
+
+    settings.high_contrast = true;
+    window.set_presentation_settings(settings);
+    RecordingPainter contrast;
+    (*bar).on_paint(contrast, {0.0, 0.0, 200.0, 20.0});
+    ColourOrigin focus{};
+    focus.source = ColourSource::role;
+    focus.role = ColourRole::focus;
+    const Color remapped = high_contrast_colour(focus, ColourPosition::fill, ControlSurfaceState::normal, false);
+    require((*bar).effect_colours().primary == remapped,
+            "under forced high contrast the primary role takes the pass's colour for its role");
+    settings.high_contrast = false;
+    settings.colour_scheme = ColourScheme::light;
+    window.set_presentation_settings(settings);
+
+    ProgressBarAnimationAppearance own{};
+    own.stripe_color = Color::rgba(200, 10, 10, 120);
+    (*bar).set_animation_appearance(own);
+    RecordingPainter application;
+    (*bar).on_paint(application, {0.0, 0.0, 200.0, 20.0});
+    require((*bar).effect_colours().primary == own.stripe_color,
+            "the application's own appearance comes before the theme's roles");
+
+    ThemeRuleSheet sheet{};
+    ThemeRule literal{};
+    literal.label = "literal";
+    literal.selector.control_type = "progress_bar";
+    literal.declarations.push_back(RuleDeclaration::colour_value(effect_primary_property, Color::rgba(1, 2, 3)));
+    sheet.rules.push_back(literal);
+    const CompiledThemeRules compiled = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    bool refused = false;
+    for (const RuleDiagnostic& diagnostic : compiled.diagnostics()) {
+        if (diagnostic.kind == RuleDiagnosticKind::effect_colour_invalid) refused = true;
+    }
+    require(refused && compiled.rule_count() == 0U, "an effect colour that is a literal, not a role, is refused");
+}
+
+// A test effect taking pointer input that draws one line from where its
+// frame says the pointer stands, while it is inside, and a second while a
+// button is held.
+class PointerProbe final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_pointer_probe",
+        .cost = {.fixed = 100U, .per_device_pixel = 1U},
+        .state_budget = 8U,
+        .input = EffectInputKind::pointer,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame& frame, EffectCanvas& canvas) {
+        if (frame.pointer.inside) {
+            const Point from = frame.pointer.position;
+            canvas.stroke_line(from, Point{from.x + 1.0, from.y}, Color::rgba(1, 2, 3, 255), 1.0);
+        }
+        if (frame.pointer.pressed) {
+            const Point from = frame.pointer.position;
+            canvas.stroke_line(from, Point{from.x, from.y + 1.0}, Color::rgba(1, 2, 3, 255), 1.0);
+        }
+        frames_ = frames_ + 1U;
+    }
+    std::uint64_t frames_{};
+};
+
+const EffectEntry& pointer_probe_entry() {
+    static const EffectEntry entry = make_effect_entry<PointerProbe>();
+    return entry;
+}
+
+PointerEvent pointer_event(PointerAction action, Point position) {
+    PointerEvent event{};
+    event.action = action;
+    event.position = position;
+    if (action == PointerAction::down || action == PointerAction::up) event.button = PointerButton::primary;
+    return event;
+}
+
+// The pointer record (design note section 8a(1)): the engine converts the
+// host's pointer events to part-local units, queues them under the grant
+// and keeps the standing state (inside, pressed, last position inside),
+// which the frame carries only under a grant; with no grant every field is
+// zero and the state checksum is the same as with no pointer at all.
+void pointer_record() {
+    const EffectView<ProgressBar> view = bar_view(0.5);
+    const Point origin{10.0, 20.0};
+    EffectInstance granted;
+    granted.attach(pointer_probe_entry(), 1U, start);
+    granted.set_input_grant(EffectInputKind::pointer);
+    require(granted.note_pointer(pointer_event(PointerAction::enter, Point{15.0, 25.0}), origin) &&
+                granted.pointer().inside && granted.pointer().position == Point{5.0, 5.0},
+            "enter sets inside at the part-local position");
+    require(granted.note_pointer(pointer_event(PointerAction::move, Point{40.0, 30.0}), origin) &&
+                granted.pointer().position == Point{30.0, 10.0},
+            "a move updates the position and asks for a repaint");
+    RecordingPainter inside;
+    granted.paint(inside, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(inside.lines == 1 && inside.line_starts.size() == 1U && inside.line_starts[0] == Point{30.0, 10.0},
+            "the frame carries the pointer inside the part at its last position");
+    require(granted.note_pointer(pointer_event(PointerAction::down, Point{40.0, 30.0}), origin) &&
+                granted.pointer().pressed,
+            "a press sets pressed");
+    RecordingPainter pressed;
+    granted.paint(pressed, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(pressed.lines == 2, "the frame carries the held button");
+    require(granted.note_pointer(pointer_event(PointerAction::leave, Point{300.0, 300.0}), origin) &&
+                !granted.pointer().inside && !granted.pointer().pressed &&
+                granted.pointer().position == Point{30.0, 10.0},
+            "leave clears inside and pressed and keeps the last position seen inside");
+    RecordingPainter outside;
+    granted.paint(outside, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(outside.lines == 0, "after leave the effect sees the pointer outside");
+    require(!granted.note_pointer(pointer_event(PointerAction::leave, Point{300.0, 300.0}), origin),
+            "a second leave changes nothing and asks for no repaint");
+
+    EffectInstance ungranted;
+    ungranted.attach(pointer_probe_entry(), 1U, start);
+    EffectInstance untouched;
+    untouched.attach(pointer_probe_entry(), 1U, start);
+    require(!ungranted.note_pointer(pointer_event(PointerAction::enter, Point{15.0, 25.0}), origin) &&
+                ungranted.pointer() == EffectPointer{},
+            "without a grant the pointer is not taken");
+    RecordingPainter first;
+    ungranted.paint(first, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    RecordingPainter second;
+    untouched.paint(second, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(first.lines == 0 && ungranted.state_checksum() == untouched.state_checksum(),
+            "with no grant the frame's pointer is zero: the checksum is the same as with no pointer");
+    granted.set_input_grant(EffectInputKind::none);
+    require(granted.pointer() == EffectPointer{}, "withdrawing the grant forgets the pointer");
+}
+
+// A test effect that moves its origin, clips to its part's shape and fills
+// the part.
+class ShapeProbe final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_shape_probe",
+        .cost = {.fixed = 100U, .per_device_pixel = 1U},
+        .state_budget = 8U,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame& frame, EffectCanvas& canvas) {
+        canvas.save();
+        canvas.translate(Point{5.0, 0.0});
+        canvas.clip_part_shape();
+        canvas.fill_rect(Rect{0.0, 0.0, frame.part.width, frame.part.height}, Color::rgba(1, 2, 3, 255));
+        canvas.restore();
+    }
+};
+
+const EffectEntry& shape_probe_entry() {
+    static const EffectEntry entry = make_effect_entry<ShapeProbe>();
+    return entry;
+}
+
+// clip_part_shape (EP-6): the canvas clips to the part's box with the
+// corners its host gives it, each clamped to half the shorter side, in the
+// painter's coordinates after the effect's own translation; with no shape
+// the part is a plain rectangle.
+void part_shape_clip() {
+    const EffectView<ProgressBar> view = bar_view(0.5);
+    EffectInstance instance;
+    instance.attach(shape_probe_entry(), 1U, start);
+    PartShape rounded{};
+    rounded.corner_radius = 6.0;
+    RecordingPainter even;
+    instance.paint(even, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view, rounded);
+    require(even.corner_clips.size() == 1U && even.corner_boxes[0] == Rect{-5.0, 0.0, 200.0, 20.0},
+            "the shape clip is the part's box, moved by the effect's translation");
+    const PaintCornerRadii sixes{6.0, 6.0, 6.0, 6.0};
+    require(even.corner_clips[0] == sixes, "a rounded part gives every corner its radius");
+    require(even.saves == even.restores, "the shape clip is undone by the effect's restore");
+
+    PartShape differing{};
+    differing.per_corner = true;
+    differing.corners = PartCornerRadii{30.0, 0.0, 4.0, 2.0};
+    RecordingPainter uneven;
+    instance.paint(uneven, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view, differing);
+    const PaintCornerRadii clamped{10.0, 0.0, 4.0, 2.0};
+    require(uneven.corner_clips.size() == 1U && uneven.corner_clips[0] == clamped,
+            "per-corner radii reach the clip, each clamped to half the shorter side");
+
+    RecordingPainter plain;
+    instance.paint(plain, Rect{0.0, 0.0, 200.0, 20.0}, 1.0, true, view);
+    require(plain.corner_clips.size() == 1U && plain.corner_clips[0] == PaintCornerRadii{},
+            "with no shape the part is a plain rectangle");
+}
+
+// A test effect that reads the backdrop under its part, blurred over three
+// logical units, and draws it over the whole part; posed, never ticked.
+class BackdropProbe final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_backdrop_probe",
+        .time_model = EffectTimeModel::static_pose,
+        .cost = {.fixed = 100U, .per_device_pixel = 4U},
+        .state_budget = 8U,
+        .backdrop = true,
+        .backdrop_margin = 3.0,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame& frame, EffectCanvas& canvas) {
+        canvas.draw_backdrop(Rect{0.0, 0.0, frame.part.width, frame.part.height}, 1.0);
+    }
+};
+
+// One whose blur reaches past glass's bound.
+class FarBackdrop final {
+public:
+    using parent_type = ProgressBar;
+    static constexpr EffectDeclaration declaration{
+        .name = "test_far_backdrop",
+        .cost = {.fixed = 100U, .per_device_pixel = 4U},
+        .state_budget = 8U,
+        .backdrop = true,
+        .backdrop_margin = 9.0,
+    };
+    void run(const EffectView<ProgressBar>&, const EffectFrame&, EffectCanvas&) {}
+};
+
+const EffectEntry& backdrop_probe_entry() {
+    static const EffectEntry entry = make_effect_entry<BackdropProbe>();
+    return entry;
+}
+
+// Backdrop sampling (EP-7): an effect declaring a backdrop draws the
+// window's backplane under its part, blurred, through one metered canvas
+// call; the blurred raster is kept while the backplane stands; a posed
+// effect is damaged when the backplane changes; a headless paint lends no
+// backdrop and the call is refused.
+void backdrop_sampling() {
+    EffectRegistry local;
+    require(local.add(make_effect_entry<FarBackdrop>()) == EffectRegistrationOutcome::backdrop_out_of_range,
+            "a backdrop blur past its bound is refused at registration");
+    require(effect_backdrop_half(3.0, 1.0) == 1U && effect_backdrop_half(3.0, 2.0) == 2U &&
+                effect_backdrop_half(8.0, 1.0) == 2U && effect_backdrop_half(-1.0, 1.0) == 0U,
+            "the box half width is floor(margin * scale / 3)");
+
+    const EffectView<ProgressBar> view = bar_view(0.5);
+    EffectInstance headless;
+    headless.attach(backdrop_probe_entry(), 1U, start);
+    RecordingPainter alone;
+    headless.paint(alone, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view);
+    require(alone.part_rasters.empty() && headless.last_meter().refused == 1U,
+            "with no host there is no backdrop: the call is refused and counted");
+
+    // The host is a control in the control plane: a panel paints in the
+    // backplane plane, and would sample itself.
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("effects.backdrop"));
+    std::shared_ptr<Control> host = make_control<Control>(StableId("effects.backdrop.host"));
+    (*host).set_requested_bounds({0.0, 0.0, 100.0, 40.0});
+    (*root).add_child(host);
+    Window window(root, {200.0, 100.0});
+    // The backplane is made from the theme's window material.
+    window.set_theme(Theme::create(*test_support::professional_definition()));
+    window.perform_layout();
+    EffectInstance instance;
+    instance.attach(backdrop_probe_entry(), 1U, start);
+    RecordingPainter first;
+    instance.paint(first, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view, PartShape{}, host.get());
+    require(first.part_rasters.size() == 1U && instance.last_meter().refused == 0U,
+            "a hosted effect draws its backdrop");
+    const PartRaster& sampled = *first.part_rasters[0];
+    require(sampled.extent() == DeviceExtent{40U, 10U} && first.part_origins[0] == Point{0.0, 0.0},
+            "the backdrop covers the part, from its corner, one pixel per device pixel");
+    require(sampled.pixels()[3] > 0U, "the backdrop holds the backplane's pixels");
+
+    RecordingPainter again;
+    instance.paint(again, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view, PartShape{}, host.get());
+    require(again.part_rasters.size() == 1U && again.part_rasters[0].get() == first.part_rasters[0].get(),
+            "while the backplane stands the blurred backdrop is kept, not blurred again");
+
+    window.reset_activity_metrics();
+    window.set_active(false);
+    // Activation reaches the backplane's readers by more than one path;
+    // each damage is the effect's extent.
+    const MetricsSnapshot activated = window.metrics_snapshot();
+    require(activated.engine_input_damaged_parts >= 1U &&
+                activated.engine_input_damage_area ==
+                    static_cast<double>(activated.engine_input_damaged_parts) * 40.0 * 10.0,
+            "a posed effect reading the backdrop is damaged within its extent when the backplane changes");
+    RecordingPainter changed;
+    instance.paint(changed, Rect{10.0, 20.0, 40.0, 10.0}, 1.0, true, view, PartShape{}, host.get());
+    require(changed.part_rasters.size() == 1U && changed.part_rasters[0].get() != first.part_rasters[0].get(),
+            "a changed backplane is blurred again, into a new raster while the old one is held");
+}
+
 int main() {
     generator_known_answers();
     bounded_ranges();
@@ -626,8 +1153,14 @@ int main() {
     progress_bar_hosting();
     progress_bar_on_the_motion_clock();
     effect_properties_and_input();
+    themes_select_effects();
+    effects_take_colour_roles();
+    pointer_record();
+    part_shape_clip();
+    backdrop_sampling();
     std::cout << "effect programs: generator, bounded ranges, registry, verification, ticks and skips, meter, "
                  "stripes, pulse, laser, woven stripes, bubbles and steam, progress bar hosting, motion clock, "
-                 "properties and input\n";
+                 "properties and input, themes selecting effects, colour roles, pointer record, part shape clip, "
+                 "backdrop\n";
     return 0;
 }

@@ -296,87 +296,9 @@ std::vector<std::string> label_lines(
     return lines;
 }
 
-void paint_relief(Painter& painter, Rect bounds, const BasicControlStyle& style,
-                  bool pressed) {
-    painter.fill_rect(bounds, style.face);
-    if (!pressed && bounds.width > 3.0 && bounds.height > 3.0) {
-        painter.fill_rect({bounds.x + 1.0, bounds.y + 1.0,
-                           std::max(0.0, bounds.width - 2.0),
-                           std::floor(std::max(0.0, bounds.height - 2.0) * 0.45)},
-                          style.face_light);
-    }
-    const Color top = pressed ? style.dark_border : style.highlight;
-    const Color bottom = pressed ? style.highlight : style.dark_border;
-    painter.draw_line({bounds.x, bounds.y},
-                      {bounds.x + bounds.width - 1.0, bounds.y}, top, 1.0);
-    painter.draw_line({bounds.x, bounds.y},
-                      {bounds.x, bounds.y + bounds.height - 1.0}, top, 1.0);
-    painter.draw_line({bounds.x, bounds.y + bounds.height - 1.0},
-                      {bounds.x + bounds.width - 1.0,
-                       bounds.y + bounds.height - 1.0}, bottom, 1.0);
-    painter.draw_line({bounds.x + bounds.width - 1.0, bounds.y},
-                      {bounds.x + bounds.width - 1.0,
-                       bounds.y + bounds.height - 1.0}, bottom, 1.0);
-    if (bounds.width > 4.0 && bounds.height > 4.0) {
-        painter.stroke_rect({bounds.x + 1.5, bounds.y + 1.5,
-                             bounds.width - 3.0, bounds.height - 3.0},
-                            pressed ? style.border : style.face_light, 1.0);
-    }
-}
-
-void fill_radio_disc(Painter& painter, double left, double top, Color color,
-                     bool inner) {
-    // Painter deliberately exposes only renderer-neutral primitives today.
-    // These one-pixel chords preserve a genuinely round 15 px WinForms radio
-    // indicator without adding an ellipse primitive to every host backend.
-    static constexpr int outer_left[] = {5, 3, 2, 1, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 5};
-    static constexpr int outer_width[] = {5, 9, 11, 13, 15, 15, 15, 15, 15, 15, 15, 13, 11, 9, 5};
-    static constexpr int inner_left[] = {2, 1, 0, 0, 0, 1, 2};
-    static constexpr int inner_width[] = {3, 5, 7, 7, 7, 5, 3};
-    if (inner) {
-        for (int row = 0; row < 7; ++row) {
-            painter.fill_rect({left + 4.0 + inner_left[row], top + 4.0 + row,
-                               static_cast<double>(inner_width[row]), 1.0}, color);
-        }
-        return;
-    }
-    for (int row = 0; row < 15; ++row) {
-        painter.fill_rect({left + outer_left[row], top + row,
-                           static_cast<double>(outer_width[row]), 1.0}, color);
-    }
-}
-
-void fill_radio_face(Painter& painter, double left, double top, Color color) {
-    static constexpr int face_left[] = {5, 4, 3, 2, 1, 1, 1, 1, 1, 2, 3, 4, 5};
-    static constexpr int face_width[] = {5, 7, 9, 11, 13, 13, 13, 13, 13, 11, 9, 7, 5};
-    for (int row = 0; row < 13; ++row) {
-        painter.fill_rect({left + face_left[row], top + 1.0 + row,
-                           static_cast<double>(face_width[row]), 1.0}, color);
-    }
-}
-
-void paint_focus(Painter& painter, Rect bounds, Color color) {
-    if (bounds.width > 9.0 && bounds.height > 9.0) {
-        const double left = bounds.x + 4.5;
-        const double top = bounds.y + 4.5;
-        const double right = bounds.x + bounds.width - 4.5;
-        const double bottom = bounds.y + bounds.height - 4.5;
-        for (double x = left; x < right; x += 2.0) {
-            painter.draw_line({x, top}, {std::min(x + 1.0, right), top}, color, 1.0);
-            painter.draw_line({x, bottom}, {std::min(x + 1.0, right), bottom}, color, 1.0);
-        }
-        for (double y = top + 1.0; y < bottom; y += 2.0) {
-            painter.draw_line({left, y}, {left, std::min(y + 1.0, bottom)}, color, 1.0);
-            painter.draw_line({right, y}, {right, std::min(y + 1.0, bottom)}, color, 1.0);
-        }
-    }
-}
-
 void paint_theme_cues(Painter& painter, Rect bounds,
                       const ControlVisualRecipe& recipe,
                       ControlVisualContext context) {
-    // The default ring first, then the focus ring over it, both drawn by the
-    // by-role paint path.
     PartPaint cue;
     cue.bounds = bounds;
     cue.role = PartRole::preselect;

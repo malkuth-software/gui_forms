@@ -33,8 +33,8 @@ constexpr std::uint64_t published_input_bits = every_published_bit();
 
 } // namespace
 
-bool Window::publish_value(std::string_view name, double value) {
-    require_ui_thread("published value");
+bool SurfaceRoot::publish_value(std::string_view name, double value) {
+    require_root_thread("published value");
     if (!valid_style_class_name(name) || !std::isfinite(value)) return false;
     PublishedValue* found = nullptr;
     for (PublishedValue& published : published_values_) {
@@ -54,8 +54,8 @@ bool Window::publish_value(std::string_view name, double value) {
     return true;
 }
 
-void Window::withdraw_value(std::string_view name) {
-    require_ui_thread("published value");
+void SurfaceRoot::withdraw_value(std::string_view name) {
+    require_root_thread("published value");
     for (std::size_t index = 0; index < published_values_.size(); ++index) {
         if (published_values_[index].name != name) continue;
         published_values_.erase(published_values_.begin() + static_cast<std::ptrdiff_t>(index));
@@ -65,14 +65,14 @@ void Window::withdraw_value(std::string_view name) {
     }
 }
 
-std::optional<double> Window::published_value(std::string_view name) const {
+std::optional<double> SurfaceRoot::published_value(std::string_view name) const {
     for (const PublishedValue& published : published_values_) {
         if (published.name == name) return published.value;
     }
     return std::nullopt;
 }
 
-Window::EnginePaintPlace Window::engine_paint_place(const Control& control, const Painter& painter) const {
+SurfaceRoot::EnginePaintPlace SurfaceRoot::engine_paint_place(const Control& control, const Painter& painter) const {
     EnginePaintPlace place{};
     const Painter* const recorder = recording_painter_;
     if (recording_control_ != nullptr && recorder == &painter) {
@@ -86,12 +86,12 @@ Window::EnginePaintPlace Window::engine_paint_place(const Control& control, cons
     return place;
 }
 
-void Window::note_engine_paint(PartRecordHandle handle, std::uint64_t inputs_read, const Control& painted_by,
+void SurfaceRoot::note_engine_paint(PartRecordHandle handle, std::uint64_t inputs_read, const Control& painted_by,
                                Rect extent) {
     engine_parts_.note_paint(handle, inputs_read, painted_by.stable_id().value(), extent);
 }
 
-void Window::note_engine_pointer(const PointerEvent& event) {
+void SurfaceRoot::note_engine_pointer(const PointerEvent& event) {
     if (event.action == PointerAction::leave) {
         engine_pointer_.reset();
         return;
@@ -103,9 +103,9 @@ void Window::note_engine_pointer(const PointerEvent& event) {
     damage_engine_readers(pointer_input_bits, true);
 }
 
-bool Window::damage_engine_part(const EnginePartRecord& record, EngineDamage& damage) {
+bool SurfaceRoot::damage_engine_part(const EnginePartRecord& record, EngineDamage& damage) {
     const Control::Ptr recorded_by = find(record.painted_by);
-    if (!recorded_by || (*recorded_by).window_ != this || !(*recorded_by).is_alive()) return false;
+    if (!recorded_by || (*recorded_by).surface_root_ != this || !(*recorded_by).is_alive()) return false;
     const Rect extent = Rect::intersection(record.extent, (*recorded_by).client_rectangle());
     if (extent.empty()) return false;
     (*recorded_by).invalidate(extent);
@@ -114,7 +114,7 @@ bool Window::damage_engine_part(const EnginePartRecord& record, EngineDamage& da
     return true;
 }
 
-void Window::damage_engine_readers(std::uint64_t inputs, bool hot_only) {
+void SurfaceRoot::damage_engine_readers(std::uint64_t inputs, bool hot_only) {
     if (!engine_parts_.reads_any(inputs)) return;
     EngineDamage damage{};
     // By slot. An invalidation never makes or releases records.
@@ -127,7 +127,7 @@ void Window::damage_engine_readers(std::uint64_t inputs, bool hot_only) {
     if (damage.parts > 0U) metrics_.record_engine_input_damage(damage.parts, damage.area);
 }
 
-void Window::damage_backplane_readers(const Rect* damage) {
+void SurfaceRoot::damage_backplane_readers(const Rect* damage) {
     backplane_generation_ = backplane_generation_ + 1U;
     EngineDamage damaged{};
     for (std::size_t slot = 0; slot < engine_parts_.slot_count(); ++slot) {
@@ -135,7 +135,7 @@ void Window::damage_backplane_readers(const Rect* damage) {
         if (record == nullptr || !(*record).reads_backplane) continue;
         if (damage != nullptr) {
             const Control::Ptr recorded_by = find((*record).painted_by);
-            if (!recorded_by || (*recorded_by).window_ != this) continue;
+            if (!recorded_by || (*recorded_by).surface_root_ != this) continue;
             const Rect bounds = absolute_bounds_of(*recorded_by);
             const Rect extent{bounds.x + (*record).extent.x, bounds.y + (*record).extent.y, (*record).extent.width,
                               (*record).extent.height};
@@ -146,7 +146,7 @@ void Window::damage_backplane_readers(const Rect* damage) {
     if (damaged.parts > 0U) metrics_.record_engine_input_damage(damaged.parts, damaged.area);
 }
 
-void Window::damage_pattern_waiters(PatternGeneration generation) {
+void SurfaceRoot::damage_pattern_waiters(PatternGeneration generation) {
     switch (generation) {
     case PatternGeneration::none:
         // Nothing was made, so every raster that drew a ground is current.
@@ -176,11 +176,11 @@ void Window::damage_pattern_waiters(PatternGeneration generation) {
     return;
 }
 
-void Window::note_engine_backplane_reader(PartRecordHandle handle, bool reads) noexcept {
+void SurfaceRoot::note_engine_backplane_reader(PartRecordHandle handle, bool reads) noexcept {
     engine_parts_.note_backplane_reader(handle, reads);
 }
 
-void Window::damage_published_readers(std::string_view name) {
+void SurfaceRoot::damage_published_readers(std::string_view name) {
     if (!engine_parts_.reads_any(published_input_bits)) return;
     EngineDamage damage{};
     for (std::size_t slot = 0; slot < engine_parts_.slot_count(); ++slot) {

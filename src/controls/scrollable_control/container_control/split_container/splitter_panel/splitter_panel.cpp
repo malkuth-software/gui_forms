@@ -1,5 +1,6 @@
 #include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
 #include "../../../scrollable_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
@@ -26,7 +27,14 @@ void SplitterPanel::set_background(Color color) {
 void SplitterPanel::on_paint(Painter& painter, Rect) {
     if (background_.alpha == 0U) return;
     const Rect bounds = committed_arranged_bounds();
-    painter.fill_rect({0.0, 0.0, bounds.width, bounds.height}, background_);
+    // The authored background is a flat ground on a fill (T4-1).
+    PartPaint ground;
+    ground.family = ControlVisualRole::panel;
+    ground.role = PartRole::fill;
+    ground.bounds = {0.0, 0.0, bounds.width, bounds.height};
+    ground.corner_radius = 0.0;
+    ground.authored_background = background_;
+    paint_part(painter, *this, ground);
 }
 
 

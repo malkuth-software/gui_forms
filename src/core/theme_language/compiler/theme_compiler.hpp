@@ -83,6 +83,9 @@ struct ThemeCompileInput final {
     // at `important_user_theme` for its `!important` declarations, its
     // selectors ordered by specificity within the level.
     bool user_theme{};
+    // The host's colour hints, which env() reads when the sheet is
+    // compiled (T4 theme variants); empty, every env() reads its fallback.
+    SystemColourHints system_colours{};
 };
 
 // One stretch of an inline style's text copied into a sheet by
@@ -106,7 +109,7 @@ enum class CompileOutcome : std::uint8_t {
 // One kind of lowered declaration, for the cascade's last-wins rule within
 // a rule: a later declaration of the same kind (and parameter) replaces an
 // earlier one.
-enum class LoweredKind : std::uint8_t { parameter, opacity, scale, translate, blend, font };
+enum class LoweredKind : std::uint8_t { parameter, opacity, scale, translate, blend, font, effect, effect_primary, effect_secondary };
 
 // A rule's declaration once lowered, kept until the rule's last
 // declaration is read: the engine records it becomes, at most two

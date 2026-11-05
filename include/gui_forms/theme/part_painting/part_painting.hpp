@@ -78,10 +78,17 @@ inline constexpr std::size_t part_mark_count = static_cast<std::size_t>(PartMark
 // The values admitted to the vocabulary beside states and marks (design
 // language 12.7), as the schema lists them: they have no enum, so this is
 // the order they were admitted in.
-inline constexpr std::array<std::string_view, 5> part_value_names{
-    {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color"}};
+inline constexpr std::array<std::string_view, 7> part_value_names{
+    {"accent_index", "text_orientation", "dock_region", "content_color", "authored_color",
+     "text_tone", "pointed_face"}};
 
 enum class PartTextAlignment : std::uint8_t { start, center, end };
+
+// A text part's tone (design language §8.5; owner decision 2026-11-02): an
+// ordinary text is drawn in the recipe's text colour, a secondary one (an
+// item's secondary line, a shortcut, a column of metadata, a hint) in its
+// muted ink. Disabled text of either tone is the theme's disabled text.
+enum class PartTextTone : std::uint8_t { ordinary, secondary };
 
 // The region the dock_shape mark fills (design language §8.5; owner
 // decision DK-35, question J2): a drop on that side of a pane splits it and
@@ -111,10 +118,21 @@ struct PartPaint final {
     // width; `alignment` then runs from the end reading starts at (the
     // bottom for bottom_to_top, the top for top_to_bottom).
     TextOrientation orientation{TextOrientation::horizontal};
+    // The text's tone: ordinary text in the recipe's text colour, secondary
+    // text in its muted ink. Read only with `text`.
+    PartTextTone tone{PartTextTone::ordinary};
     // The region the dock_shape mark fills.
     DockShapeRegion dock_region{DockShapeRegion::tab_into};
     ImageId image{};
+    // A focus or preselect ring follows the same shape: a connected
+    // segment's square corners, for one.
     std::optional<double> corner_radius{};
+    // A pointed face (design language §8.5; owner decision 2026-11-02): the
+    // surface's trailing end is a nose this many units long, its tip at the
+    // middle of the right edge, as a raised breadcrumb segment's. Only
+    // surface roles read it; none is a rectangle. Hit testing uses the same
+    // shape (pointed_face_contains).
+    std::optional<double> point{};
     // The part's position in the theme's accent ramp (§8.5), or none. A
     // surface part with an accent is tinted from the ramp over its
     // material; text and mark roles ignore it.
@@ -166,6 +184,11 @@ struct PartPaint final {
     // with none granted, the default, a part never grows. Layout and the
     // part's hit region ignore it.
     Insets granted_overflow{};
+    // The text's measurement in `font`, when the caller has already made it
+    // (paint_text_part_at does), so the text is not measured again; none
+    // otherwise. A cache, not vocabulary: it changes nothing drawn, and a
+    // caller that sets it must have measured exactly `text` in `font`.
+    std::optional<Size> measured_text{};
 };
 
 // The theme context a part's states select: hot, pressed or captured,
@@ -210,6 +233,22 @@ struct PartPaint final {
 // inherited foreground, and its own background, or an inherited one on any
 // role but a well.
 void paint_part(Painter& painter, const Control& control, const PartPaint& part);
+
+// A text part (label, caption or content) placed by its baseline, as
+// controls that lay out text by baseline draw it: `part`'s bounds become
+// its line box with the text starting at `origin` (a point on the
+// baseline), at least `width` wide and never narrower than the text, and
+// paint_part draws it. The line box is the one paint_part centres text in,
+// so the text lands on `origin` exactly. A part without text draws nothing.
+// A part that carries its text's measurement (PartPaint::measured_text) is
+// not measured again.
+void paint_text_part_at(Painter& painter, const Control& control, PartPaint part, Point origin,
+                        double width);
+
+// Whether `position` lies in the pointed face of `bounds` whose nose is
+// `point` units long (PartPaint::point): inside the bounds and left of the
+// nose's edges. A point of zero or less is the whole rectangle.
+[[nodiscard]] bool pointed_face_contains(Rect bounds, double point, Point position) noexcept;
 
 // How far `control`'s theme's overlay shadow reaches outside the casting
 // surface's rect, in the control's presentation (ordinary or high

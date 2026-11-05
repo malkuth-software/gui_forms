@@ -6,7 +6,7 @@ namespace gui_forms::detail {
 
 class PopupAttachment final : public Revocable {
 public:
-    PopupAttachment(Window& window, Control::Ptr owner, Control::Ptr popup)
+    PopupAttachment(SurfaceRoot& window, Control::Ptr owner, Control::Ptr popup)
         : window_(&window), owner_(std::move(owner)), popup_(std::move(popup)) {}
 
     void disconnect() noexcept override {
@@ -28,7 +28,7 @@ public:
     void publish_closed() { closed_.emit(); }
 
 private:
-    Window* window_{};
+    SurfaceRoot* window_{};
     Control::WeakPtr owner_;
     Control::WeakPtr popup_;
     bool connected_{true};

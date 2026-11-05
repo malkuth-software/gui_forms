@@ -86,6 +86,19 @@ constexpr LONGLONG live_clock_fallback_millihertz = 60'000;
 using DwmCompositionTimingFunction = HRESULT(WINAPI*)(HWND, DWM_TIMING_INFO*);
 constexpr UINT managed_dispatch_message = WM_APP + 0x41U;
 constexpr UINT render_dispatch_message = WM_APP + 0x42U;
+// Posted by the modal live clock (modal_live_clock_signalled) when the live
+// frame clock fires inside the native size/move loop.
+constexpr UINT modal_live_clock_message = WM_APP + 0x43U;
+
+// The live frame clock fired while the window is in the native size/move
+// loop, which waits on messages only (threadpool thread). `context` is the
+// window's HWND; posting to it is all this does, and a window already gone
+// rejects the post. The host stops the wait, and waits for this callback to
+// finish, before it destroys the window.
+void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
+    const HWND window = static_cast<HWND>(context);
+    static_cast<void>(PostMessageW(window, modal_live_clock_message, 0, 0));
+}
 constexpr std::size_t maximum_automation_command = 4096;
 
 bool environment_flag(const char* name) noexcept {
@@ -1248,6 +1261,12 @@ public:
         (*title_state_).window = nullptr;
         (*size_state_).host = nullptr;
         accessibility_.detach();
+        // The modal live clock posts to the window: stop it first.
+        if (modal_live_clock_ != nullptr) {
+            stop_modal_live_clock();
+            CloseThreadpoolWait(modal_live_clock_);
+            modal_live_clock_ = nullptr;
+        }
         // Initialization can unwind before WM_DESTROY. Detach the callback
         // address before releasing the native window so no later message can
         // reach this partially destroyed owner.
@@ -1503,7 +1522,23 @@ public:
             // ignores repeated reports of the same state.
             report_application_active_to_run(wparam != FALSE);
             break;
-        case WM_SIZE: resize(); report_frame_to_run(); return 0;
+        case WM_SIZE:
+            // Inside the native size/move loop the sizes arriving between two
+            // frames are coalesced: the newest is laid out when the next frame
+            // is painted or the live clock ticks (apply_pending_resize). The
+            // class has no CS_HREDRAW/CS_VREDRAW, so a shrink exposes nothing
+            // and sends no WM_PAINT: the coalesced size requests that paint
+            // itself, or a window without a live clock would not lay out
+            // until the loop ends. The paint presents the whole raster once
+            // (expose_whole_raster_), it does not repaint the window.
+            if (in_size_move_) {
+                resize_pending_ = true;
+                InvalidateRect(hwnd_, nullptr, FALSE);
+            } else {
+                resize();
+            }
+            report_frame_to_run();
+            return 0;
         case WM_MOVE: report_frame_to_run(); return 0;
         case WM_DPICHANGED: dpi_changed(wparam, lparam); return 0;
         case WM_ACTIVATE:
@@ -1567,6 +1602,7 @@ public:
             // turning the posted wake itself into a synchronous paint loop.
             render_dispatch_pending_ = false;
             presentation_pending_ = false;
+            apply_pending_resize();
             paint();
             return 0;
         case WM_ENTERSIZEMOVE:
@@ -1575,16 +1611,32 @@ public:
             // run there, but the live plane must keep presenting independently
             // of retained layout and input. A modal-loop timer is the native
             // Win32 clock bridge for exactly that interval.
+            // The live frame clock keeps its display phase there through a
+            // threadpool wait that posts modal_live_clock_message; a timer
+            // message (coarse, and only sent when the queue is empty) is the
+            // fallback when that wait cannot be made.
             in_size_move_ = true;
-            if ((*model_).has_live_surface_presentations()) {
+            if ((*model_).has_live_surface_presentations() && !start_modal_live_clock()) {
                 SetTimer(hwnd_, modal_live_surface_timer,
                          live_surface_period_milliseconds, nullptr);
             }
             return 0;
         case WM_EXITSIZEMOVE:
             KillTimer(hwnd_, modal_live_surface_timer);
+            stop_modal_live_clock();
             in_size_move_ = false;
+            apply_pending_resize();
             mark_live_frame_due();
+            return 0;
+        case modal_live_clock_message:
+            // A late post after the loop ended is ignored: the outer loop
+            // waits on the clock again.
+            if (!in_size_move_ || modal_live_clock_ == nullptr) return 0;
+            apply_pending_resize();
+            mark_live_frame_due();
+            present_live_surface_updates();
+            live_frame_due_ = false;
+            if (live_clock_armed_) SetThreadpoolWait(modal_live_clock_, live_frame_clock_, nullptr);
             return 0;
         case managed_dispatch_message:
             static_cast<void>((*model_).drain_posted_work());
@@ -1604,7 +1656,9 @@ public:
         case WM_TIMER:
             if (wparam == modal_live_surface_timer) {
                 // Do not enter retained polling/layout from the native modal
-                // loop. Sample and present only the newest live generation.
+                // loop. Sample and present only the newest live generation,
+                // after the newest coalesced size.
+                apply_pending_resize();
                 present_live_surface_updates();
                 return 0;
             }
@@ -1976,6 +2030,24 @@ private:
         raster_.resize(logical, scale_);
         dispatch(HostResizeEvent{logical});
         collect_damage();
+#if !defined(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
+        // The raster now holds the whole client: the pixels it carried and the
+        // damage the window reported for what the resize exposed. The
+        // window's own pixels need not match it, since Windows keeps or
+        // copies a resized window's old client pixels as it chooses (a
+        // maximized window restored kept them 144 rows lower). So the next
+        // present copies the whole raster, and an empty damage still
+        // presents (expose_whole_raster_).
+        expose_whole_raster_ = true;
+        InvalidateRect(hwnd_, nullptr, FALSE);
+#endif
+    }
+
+    // Lays out the newest size coalesced during the size/move loop, if any.
+    void apply_pending_resize() {
+        if (!resize_pending_) return;
+        resize_pending_ = false;
+        resize();
     }
 
     void dpi_changed(WPARAM wparam, LPARAM lparam) {
@@ -2013,6 +2085,15 @@ public:
     [[nodiscard]] bool frame_capture_saved() const noexcept { return frame_capture_saved_; }
 
 private:
+
+    // The client area in logical units.
+    [[nodiscard]] Size logical_size_of_client() const noexcept {
+        RECT client{};
+        GetClientRect(hwnd_, &client);
+        const Size size{static_cast<double>(client.right - client.left) / scale_,
+                        static_cast<double>(client.bottom - client.top) / scale_};
+        return size;
+    }
 
     // The whole device pixels covering a logical rectangle, clipped to the
     // client area.
@@ -2152,6 +2233,30 @@ private:
         if (live_clock_armed_) live_clock_deadline_ = deadline;
     }
 
+    // Starts the modal live clock (WM_ENTERSIZEMOVE): arms the live frame
+    // clock and waits on it from the threadpool. False when there is no
+    // clock or the wait cannot be made, and the caller falls back.
+    bool start_modal_live_clock() noexcept {
+        if (live_frame_clock_ == nullptr || hwnd_ == nullptr) return false;
+        if (modal_live_clock_ == nullptr) {
+            modal_live_clock_ = CreateThreadpoolWait(&modal_live_clock_signalled, static_cast<PVOID>(hwnd_), nullptr);
+            if (modal_live_clock_ == nullptr) return false;
+        }
+        if (!live_clock_armed_) arm_live_clock();
+        if (!live_clock_armed_) return false;
+        SetThreadpoolWait(modal_live_clock_, live_frame_clock_, nullptr);
+        return true;
+    }
+
+    // Stops the modal live clock and waits for a callback in flight, so that
+    // none runs after this returns; the wait object is kept for the next
+    // size/move loop.
+    void stop_modal_live_clock() noexcept {
+        if (modal_live_clock_ == nullptr) return;
+        SetThreadpoolWait(modal_live_clock_, nullptr, nullptr);
+        WaitForThreadpoolWaitCallbacks(modal_live_clock_, TRUE);
+    }
+
     void request_render_wake() noexcept {
         if (hwnd_ == nullptr || render_dispatch_pending_ ||
             presentation_pending_) return;
@@ -2253,6 +2358,9 @@ private:
             }
         }
         raster_.end_frame();
+        // After a resize the whole raster is copied once (expose_whole_raster_).
+        const bool expose_whole = expose_whole_raster_ && frame_begun;
+        if (expose_whole) screen.add(Rect{0.0, 0.0, logical_size_of_client().width, logical_size_of_client().height});
         // Present: each rectangle once, and none left for WM_PAINT to repeat.
         HDC target = GetDC(hwnd_);
         if (target == nullptr) {
@@ -2277,6 +2385,7 @@ private:
             }
         }
         ReleaseDC(hwnd_, target);
+        if (expose_whole && presented) expose_whole_raster_ = false;
         copied.copy_nanoseconds = static_cast<std::uint64_t>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now() - copy_started).count());
@@ -2471,7 +2580,11 @@ private:
         }
         collect_damage();
 #else
-        const bool update_region_read = add_update_region_damage();
+        // After a resize the raster is current outside the pending damage, so
+        // the window's update region (what Windows invalidated) is copied
+        // from it, not painted again: the whole client is presented.
+        const bool expose_whole = expose_whole_raster_;
+        const bool update_region_read = expose_whole || add_update_region_damage();
         PAINTSTRUCT paint_state{};
         HDC dc = BeginPaint(hwnd_, &paint_state);
         const std::chrono::steady_clock::time_point started =
@@ -2483,9 +2596,15 @@ private:
         // frame everywhere else, and the window already shows it there.
         const std::span<const Rect> painted_rectangles = pending_damage_.rectangles();
         std::vector<RECT> present_rectangles;
-        present_rectangles.reserve(painted_rectangles.size());
-        for (std::size_t index = 0; index < painted_rectangles.size(); ++index) {
-            present_rectangles.push_back(device_rect(painted_rectangles[index]));
+        present_rectangles.reserve(painted_rectangles.size() + 1U);
+        if (expose_whole) {
+            RECT client{};
+            GetClientRect(hwnd_, &client);
+            present_rectangles.push_back(client);
+        } else {
+            for (std::size_t index = 0; index < painted_rectangles.size(); ++index) {
+                present_rectangles.push_back(device_rect(painted_rectangles[index]));
+            }
         }
         prepare_frame_alpha();
         static_cast<void>(raster_.synchronize_images((*model_).image_resources()));
@@ -2494,12 +2613,15 @@ private:
             receipt = (*model_).paint(raster_.painter(), pending_damage_.rectangles());
             raster_.end_frame();
         }
-        bool presented = receipt.has_value();
+        // With no damage pending there is nothing to paint, and an exposure
+        // still copies the raster as it stands.
+        bool presented = receipt.has_value() || (expose_whole && pending_damage_.empty());
         const std::chrono::steady_clock::time_point copy_started =
             std::chrono::steady_clock::now();
         for (std::size_t index = 0; presented && index < present_rectangles.size(); ++index) {
             presented = raster_.present(dc, present_rectangles[index]);
         }
+        if (presented && expose_whole) expose_whole_raster_ = false;
         const std::uint64_t copy_nanoseconds = static_cast<std::uint64_t>(
             std::chrono::duration_cast<std::chrono::nanoseconds>(
                 std::chrono::steady_clock::now() - copy_started).count());
@@ -2514,7 +2636,7 @@ private:
             copied.device_pixels += pixels;
             if (pixels != 0U) ++copied.rectangles;
         }
-        if (presented &&
+        if (presented && receipt &&
             (*model_).notify_presented(*receipt,
                                      static_cast<std::uint64_t>(elapsed.count()), copied)) {
             pending_damage_.clear();
@@ -2996,6 +3118,16 @@ private:
     bool render_dispatch_pending_{};
     bool presentation_pending_{};
     HANDLE live_frame_clock_{};
+    // The threadpool wait on live_frame_clock_ during the native size/move
+    // loop (start_modal_live_clock); made on first use, closed with the host.
+    PTP_WAIT modal_live_clock_{};
+    // A WM_SIZE inside the size/move loop not yet laid out (WM_SIZE).
+    bool resize_pending_{};
+    // Whether the next present copies the whole raster: set by every
+    // resize, whose pixels Windows may have left out of step with the
+    // raster; cleared when such a present succeeds (paint,
+    // present_live_frame_sequence).
+    bool expose_whole_raster_{};
     bool live_clock_armed_{};
     // The live clock's armed deadline in QueryPerformanceCounter ticks (0
     // when it is not armed), the counter's frequency, and the compositor's
@@ -3135,7 +3267,10 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     HINSTANCE instance = GetModuleHandleW(nullptr);
     WNDCLASSEXW native_class{};
     native_class.cbSize = sizeof(native_class);
-    native_class.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
+    // No CS_HREDRAW or CS_VREDRAW: the window decides what a resize
+    // damages (Window::resize), and the system invalidates only what the
+    // resize exposed.
+    native_class.style = CS_DBLCLKS;
     native_class.lpfnWndProc = window_procedure;
     native_class.hInstance = instance;
     native_class.hCursor = load_system_cursor(IDC_ARROW);
@@ -3280,7 +3415,10 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     HINSTANCE instance = GetModuleHandleW(nullptr);
     WNDCLASSEXW native_class{};
     native_class.cbSize = sizeof(native_class);
-    native_class.style = CS_HREDRAW | CS_VREDRAW | CS_DBLCLKS;
+    // No CS_HREDRAW or CS_VREDRAW: the window decides what a resize
+    // damages (Window::resize), and the system invalidates only what the
+    // resize exposed.
+    native_class.style = CS_DBLCLKS;
     native_class.lpfnWndProc = window_procedure;
     native_class.hInstance = instance;
     native_class.hCursor = load_system_cursor(IDC_ARROW);

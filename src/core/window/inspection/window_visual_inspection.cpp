@@ -20,6 +20,7 @@ VisualPaintOperation public_operation(detail::DisplayOperation operation) {
     case Private::translate: return VisualPaintOperation::translate;
     case Private::clip_rect: return VisualPaintOperation::clip_rect;
     case Private::clip_rounded_rect:
+    case Private::clip_rounded_rect_corners:
         return VisualPaintOperation::clip_rounded_rect;
     case Private::fill_rect: return VisualPaintOperation::fill_rect;
     case Private::fill_rounded_rect:
@@ -112,9 +113,9 @@ struct PendingInspectionNode final {
 
 } // namespace
 
-VisualInspectionSnapshot Window::visual_inspection_snapshot(
+VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
     VisualInspectionOptions options) {
-    require_ui_thread("visual inspection snapshot");
+    require_root_thread("visual inspection snapshot");
     if (options.maximum_controls == 0U ||
         options.maximum_controls > VisualInspectionOptions::maximum_allowed_controls) {
         throw std::invalid_argument(
@@ -168,7 +169,7 @@ VisualInspectionSnapshot Window::visual_inspection_snapshot(
         PendingInspectionNode current = std::move(pending.back());
         pending.pop_back();
         const Control::Ptr& control = current.control;
-        if (!control || !(*control).is_alive() || (*control).window_ != this) {
+        if (!control || !(*control).is_alive() || (*control).surface_root_ != this) {
             continue;
         }
         ++snapshot.total_controls;
@@ -279,7 +280,7 @@ VisualInspectionSnapshot Window::visual_inspection_snapshot(
         for (ControlList::const_reverse_iterator iterator = children.rbegin();
              iterator != children.rend(); ++iterator) {
             const Control::Ptr& child = *iterator;
-            if (!child || !(*child).is_alive() || (*child).window_ != this ||
+            if (!child || !(*child).is_alive() || (*child).surface_root_ != this ||
                 (*child).parent_.lock().get() != control.get()) {
                 continue;
             }

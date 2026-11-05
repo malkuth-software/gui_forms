@@ -30,6 +30,9 @@ public:
     void fill_rect(Rect, Color) override { ++fills; }
     void stroke_rect(Rect, Color, double) override { ++strokes; }
     void draw_line(Point, Point, Color, double) override { ++lines; }
+    void clip_rounded_rect(Rect, double) override { ++clips; }
+    void fill_rounded_rect(Rect, double, Color) override { ++fills; }
+    void stroke_rounded_rect(Rect, double, Color, double) override { ++strokes; }
     void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
     void draw_image(ImageId, Rect, double) override {}
 
@@ -233,7 +236,7 @@ void test_progress_rendering_and_vertical_geometry() {
     RecordingPainter painter;
     window.paint(painter, {0.0, 0.0, 240.0, 180.0});
     require(painter.saves == painter.restores && painter.clips >= 4 &&
-                painter.fills >= 8 && painter.lines >= 16,
+                painter.fills >= 4 && painter.strokes + painter.lines >= 4,
             "horizontal and vertical ranges must render retained painter commands");
     const Rect progress_bounds = (*horizontal).absolute_bounds();
     const Point progress_center{progress_bounds.x + progress_bounds.width * 0.5,

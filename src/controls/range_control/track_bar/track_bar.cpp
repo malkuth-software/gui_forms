@@ -2,6 +2,7 @@
 
 #include "../range_control_rendering.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -13,6 +14,19 @@
 
 namespace gui_forms {
 using namespace range_control_detail;
+
+namespace {
+
+// The TrackBarVisualStyle enumeration, numbered as declared. Static storage; any thread
+// may read it.
+std::shared_ptr<const PropertyEnumDescriptor> track_bar_visual_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "track_bar_visual_style", {{"classic", 0}, {"filled", 1}, {"compact", 2}}, false});
+    return value;
+}
+
+} // namespace
 
 TrackBar::TrackBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
@@ -30,6 +44,21 @@ TrackBar::TrackBar(StableId stable_id)
         std::move(tick_frequency),
         detail::BindingNoexceptMethodGetter<TrackBar, double>(*this, &TrackBar::tick_frequency),
         detail::DirectPropertySetter<TrackBar, double>(*this, &TrackBar::set_tick_frequency),
+        {}, {}, {}});
+
+    PropertyDescriptor visual_style;
+    visual_style.name = "visual_style";
+    visual_style.kind = BindingValueKind::enumeration;
+    visual_style.category = "Appearance";
+    visual_style.description = "How the rail and thumb draw: classic ticks, a filled rail or a compact rail.";
+    visual_style.default_value = BindingValue{PropertyEnumValue{"track_bar_visual_style", "classic", 0}};
+    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
+    visual_style.bindable = false;
+    visual_style.enumeration = track_bar_visual_style_enum();
+    define_bindable_property({
+        std::move(visual_style),
+        detail::EnumerationPropertyGetter<TrackBar, TrackBarVisualStyle>(*this, &TrackBar::visual_style, track_bar_visual_style_enum()),
+        detail::EnumerationPropertySetter<TrackBar, TrackBarVisualStyle>(*this, &TrackBar::set_visual_style),
         {}, {}, {}});
 }
 
@@ -246,14 +275,31 @@ TrackBar::States TrackBar::states() const {
     return record;
 }
 
+// The track, the fill (modern style), the ticks, the thumb and the focus
+// cue are parts the theme's engine draws in the control's anatomy states.
+// The classic style shows the value span as its track and no fill; the
+// modern style the full track and the filled part of it.
 void TrackBar::on_paint(Painter& painter, Rect) {
     const bool horizontal = orientation() == Orientation::horizontal;
     const Rect span = value_span_bounds();
-    if (visual_style_ == TrackBarVisualStyle::classic) {
-        paint_sunken(painter, span, style(), style().face_light);
-    } else {
-        painter.fill_rect(track_bounds(), style().border);
-        painter.fill_rect(fill_bounds(), style().accent);
+    const AnatomyStateSet states = anatomy_states();
+    const bool classic = visual_style_ == TrackBarVisualStyle::classic;
+    PartPaint track;
+    track.family = ControlVisualRole::progress;
+    track.role = PartRole::track;
+    track.bounds = classic ? span : track_bounds();
+    track.states = states;
+    track.key = PartKey{"track", {}, {}};
+    paint_part(painter, *this, track);
+    if (!classic) {
+        PartPaint fill;
+        fill.family = ControlVisualRole::progress;
+        fill.role = PartRole::fill;
+        fill.bounds = fill_bounds();
+        fill.states = states;
+        fill.states.insert(AnatomyState::selected);
+        fill.key = PartKey{"fill", {}, {}};
+        paint_part(painter, *this, fill);
     }
 
     if (ticks_drawn()) {
@@ -261,33 +307,38 @@ void TrackBar::on_paint(Painter& painter, Rect) {
         const double requested_count = std::floor(value_range / tick_frequency_);
         const std::size_t bounded_count = static_cast<std::size_t>(
             std::min(requested_count, 256.0));
+        PartPaint tick;
+        tick.family = ControlVisualRole::panel;
+        tick.role = PartRole::divider;
+        tick.states = states;
         for (std::size_t index = 0; index <= bounded_count; ++index) {
             const double ratio = bounded_count == 0U
                 ? 0.0 : static_cast<double>(index) /
                     static_cast<double>(bounded_count);
             if (horizontal) {
                 const double x = span.x + ratio * span.width;
-                painter.draw_line({x, span.y + span.height + 2.0},
-                                  {x, span.y + span.height + 5.0},
-                                  style().dark_border, 1.0);
+                tick.bounds = {x - 0.5, span.y + span.height + 2.0, 1.0, 3.0};
             } else {
                 const double y = span.y + (1.0 - ratio) * span.height;
-                painter.draw_line({span.x + span.width + 2.0, y},
-                                  {span.x + span.width + 5.0, y},
-                                  style().dark_border, 1.0);
+                tick.bounds = {span.x + span.width + 2.0, y - 0.5, 3.0, 1.0};
             }
+            paint_part(painter, *this, tick);
         }
     }
 
-    const Rect thumb = thumb_bounds();
-    if (visual_style_ == TrackBarVisualStyle::classic) {
-        paint_thumb(painter, thumb, style(), focused_);
-    } else {
-        painter.fill_rect(thumb, focused_ ? style().accent : style().face_light);
-        painter.stroke_rect({thumb.x + 0.5, thumb.y + 0.5,
-                             std::max(0.0, thumb.width - 1.0),
-                             std::max(0.0, thumb.height - 1.0)},
-                            style().dark_border, 1.0);
+    PartPaint thumb;
+    thumb.family = ControlVisualRole::button;
+    thumb.role = PartRole::thumb;
+    thumb.bounds = thumb_bounds();
+    thumb.states = states;
+    thumb.key = PartKey{"thumb", {}, {}};
+    paint_part(painter, *this, thumb);
+    if (focused_) {
+        PartPaint focus = thumb;
+        focus.role = PartRole::focus;
+        focus.states.insert(AnatomyState::focus_visible);
+        focus.key = PartKey{"focus", {}, {}};
+        paint_part(painter, *this, focus);
     }
 }
 

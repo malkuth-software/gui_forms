@@ -62,6 +62,14 @@ HOSTED: dict[str, tuple[str, str, str]] = {
     'Window': ('WindowHandle', '../windows/abi_window_handle.hpp', 'window'),
 }
 
+# Declaring types published under another class's name. The surface root
+# declares the window's interactions (S1.2 moved them from Window), and the
+# ABI holds a surface root only as a window until sub-surfaces have handles
+# of their own, so they stay Window's and are reached through WindowHandle.
+PUBLISHED_AS: dict[str, str] = {
+    'SurfaceRoot': 'Window',
+}
+
 ARRAY = re.compile(r'constexpr std::array<InteractionDeclaration,\s*\d+>\s+(\w+)\s*\{\{(.*?)\}\};', re.S)
 ENTRY = re.compile(r'\{\s*\.name\s*=\s*"([^"]+)",\s*\.payload\s*=\s*"([^"]*)",\s*'
                    r'\.mutable_payload\s*=\s*(true|false)\s*\}')
@@ -125,7 +133,8 @@ def read_declarations() -> list[Declaration]:
             arrays[match.group(1)] = [(entry.group(1), entry.group(2), entry.group(3) == 'true')
                                       for entry in ENTRY.finditer(match.group(2))]
         for match in APPEND.finditer(text):
-            owner: str = match.group(1).split('::')[-1]
+            declared: str = match.group(1).split('::')[-1]
+            owner: str = PUBLISHED_AS.get(declared, declared)
             for used in re.finditer(r'(\w+)\.begin\(\)', match.group(2)):
                 for name, payload, mutable in arrays.get(used.group(1), []):
                     declarations.append(Declaration(owner, name, payload, mutable))

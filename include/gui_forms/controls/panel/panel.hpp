@@ -41,6 +41,9 @@ public:
 
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
+    // False for a borderless panel without scroll bars whose face is a
+    // solid colour or a size-invariant material (surface_material_size_invariant).
+    [[nodiscard]] bool paint_depends_on_size() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.

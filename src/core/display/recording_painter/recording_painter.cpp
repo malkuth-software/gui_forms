@@ -137,6 +137,16 @@ void RecordingPainter::clip_rounded_rect(Rect rect, double radius) {
     commands_.push_back(std::move(command));
 }
 
+void RecordingPainter::clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) {
+    if (save_depth_ == 0U) clipped_ = true;
+    DisplayCommand command;
+    command.operation = DisplayOperation::clip_rounded_rect_corners;
+    command.rect = rect;
+    command.first = Point{radii.top_left, radii.top_right};
+    command.second = Point{radii.bottom_right, radii.bottom_left};
+    commands_.push_back(std::move(command));
+}
+
 void RecordingPainter::fill_rect(Rect rect, Color color) {
     DisplayCommand command;
     command.operation = DisplayOperation::fill_rect;

@@ -250,6 +250,7 @@ add_library(gui_forms_core STATIC
     src/core/types/rect/rect.cpp
     src/core/theme/theme/theme.cpp
     src/core/theme/contrast/theme_contrast.cpp
+    src/core/theme/dark_variant/dark_variant.cpp
     src/core/theme/gui_forms_theme/gui_forms_theme.cpp
     src/core/theme/stock_anatomies/stock_anatomies.cpp
     src/core/theme/theme_compiler/theme_compiler.cpp
@@ -393,7 +394,9 @@ add_library(gui_forms_core STATIC
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
-    src/core/window/dispatcher/window_dispatcher.cpp
+    src/core/surface_root/dispatcher/surface_root_dispatcher.cpp
+    src/core/surface_root/surface_root.cpp
+    src/core/surface_root/control_table/control_table.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp
@@ -1593,6 +1596,14 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # The pages converted to form documents (FD6.3), one class each.
     gui_forms_add_form(gui_forms_gallery_model demo/pages/typography-and-inspection.form
         CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/animation-laboratory.form
+        CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-popups.form
+        CLASS CollectionsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/images-and-drawing.form
+        CLASS ImagesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/ranges-and-progress.form
+        CLASS RangesDocument NAMESPACE gui_forms::gallery::pages)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
@@ -2668,6 +2679,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_contrast_tests tests/theme_contrast_tests.cpp)
     target_link_libraries(gui_forms_theme_contrast_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_theme_contrast_tests COMMAND gui_forms_theme_contrast_tests)
+    add_executable(gui_forms_dark_variant_tests tests/dark_variant_tests.cpp)
+    target_link_libraries(gui_forms_dark_variant_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_dark_variant_tests COMMAND gui_forms_dark_variant_tests)
     add_executable(gui_forms_gui_forms_theme_tests tests/gui_forms_theme_tests.cpp)
     target_link_libraries(gui_forms_gui_forms_theme_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_gui_forms_theme_tests COMMAND gui_forms_gui_forms_theme_tests)
@@ -2770,6 +2784,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_engine_backdrop_tests tests/engine_backdrop_tests.cpp)
     target_link_libraries(gui_forms_engine_backdrop_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_backdrop_tests COMMAND gui_forms_engine_backdrop_tests)
+    add_executable(gui_forms_engine_reflection_tests tests/engine_reflection_tests.cpp)
+    target_link_libraries(gui_forms_engine_reflection_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_engine_reflection_tests COMMAND gui_forms_engine_reflection_tests)
     add_executable(gui_forms_engine_backplane_replay_tests tests/engine_backplane_replay_tests.cpp)
     target_link_libraries(gui_forms_engine_backplane_replay_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_engine_backplane_replay_tests COMMAND gui_forms_engine_backplane_replay_tests)
@@ -2825,6 +2842,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_damage_clip_tests tests/damage_clip_tests.cpp)
     target_link_libraries(gui_forms_damage_clip_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_damage_clip_tests COMMAND gui_forms_damage_clip_tests)
+
+    add_executable(gui_forms_control_table_tests tests/control_table_tests.cpp)
+    target_link_libraries(gui_forms_control_table_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_control_table_tests COMMAND gui_forms_control_table_tests)
 
     add_executable(gui_forms_damage_rectangles_tests tests/damage_rectangles_tests.cpp)
     target_link_libraries(gui_forms_damage_rectangles_tests PRIVATE gui_forms_controls)
@@ -3050,6 +3071,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_colour_role_css_tests tests/theme_language/theme_colour_role_css_tests.cpp)
     target_link_libraries(gui_forms_theme_colour_role_css_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_colour_role_css_tests COMMAND gui_forms_theme_colour_role_css_tests)
+    add_executable(gui_forms_theme_variant_tests tests/theme_variant_tests.cpp)
+    target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_variant_tests COMMAND gui_forms_theme_variant_tests)
+    add_executable(gui_forms_theme_escape_tests tests/theme_language/theme_escape_tests.cpp)
+    target_link_libraries(gui_forms_theme_escape_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_escape_tests COMMAND gui_forms_theme_escape_tests)
     add_executable(gui_forms_theme_em_font_css_tests tests/theme_language/theme_em_font_css_tests.cpp)
     target_link_libraries(gui_forms_theme_em_font_css_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_em_font_css_tests COMMAND gui_forms_theme_em_font_css_tests)
@@ -4411,6 +4438,10 @@ if(GUI_FORMS_BUILD_TESTS)
         add_executable(gui_forms_skia_damage_edge_tests tests/skia_damage_edge_tests.cpp)
         target_link_libraries(gui_forms_skia_damage_edge_tests PRIVATE gui_forms_skia)
         add_test(NAME gui_forms_skia_damage_edge_tests COMMAND gui_forms_skia_damage_edge_tests)
+        # A resize through several sizes presents what a full repaint draws.
+        add_executable(gui_forms_resize_damage_equivalence_tests tests/resize_damage_equivalence_tests.cpp)
+        target_link_libraries(gui_forms_resize_damage_equivalence_tests PRIVATE gui_forms_controls gui_forms_skia)
+        add_test(NAME gui_forms_resize_damage_equivalence_tests COMMAND gui_forms_resize_damage_equivalence_tests)
 
 
         add_test(
@@ -4999,6 +5030,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         if(gui_forms_target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
             target_compile_options(${gui_forms_first_party_target} PRIVATE
                 $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-ffp-contract=off>)
+            # A view (std::string_view, std::span) bound or assigned to a
+            # temporary dangles: PartPaint::text twice held a temporary
+            # std::string (CorrespondenceView, PropertyList) and painting read
+            # freed memory. Clang reports these on by default; here they fail
+            # the build.
+            if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+                target_compile_options(${gui_forms_first_party_target} PRIVATE
+                    $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Werror=dangling-assignment-gsl -Werror=dangling-gsl>)
+            endif()
         endif()
     endforeach()
 endif()

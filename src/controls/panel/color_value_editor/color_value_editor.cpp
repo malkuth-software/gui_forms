@@ -1,6 +1,7 @@
 #include "gui_forms/controls/panel/color_value_editor/color_value_editor.hpp"
 #include "gui_forms/detail/weak_member_callback.hpp"
 #include "../panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
@@ -174,26 +175,48 @@ void ColorValueEditor::arrange(Rect final_bounds) {
     }
 }
 
+// The swatch is the value's colour as content (owner decision W-7) over a
+// checkerboard that shows its transparency, inside a well that frames it.
+// The checkerboard's squares are content colours too: they are the
+// backdrop the value is judged against, the same in every theme.
 void ColorValueEditor::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
     const double swatch_width = std::min(swatch_width_, bounds.width);
     const Rect swatch{2.0, 2.0, std::max(0.0, swatch_width - 5.0),
                       std::max(0.0, bounds.height - 4.0)};
-    const double half_width = swatch.width * 0.5;
-    const double half_height = swatch.height * 0.5;
-    painter.fill_rect({swatch.x, swatch.y, half_width, half_height},
-                      Color::rgba(232, 232, 232));
-    painter.fill_rect({swatch.x + half_width, swatch.y, half_width, half_height},
-                      Color::rgba(178, 178, 178));
-    painter.fill_rect({swatch.x, swatch.y + half_height, half_width, half_height},
-                      Color::rgba(178, 178, 178));
-    painter.fill_rect({swatch.x + half_width, swatch.y + half_height,
-                       half_width, half_height}, Color::rgba(232, 232, 232));
-    painter.fill_rect(swatch, value_);
-    painter.stroke_rect({swatch.x + 0.5, swatch.y + 0.5,
-                         std::max(0.0, swatch.width - 1.0),
-                         std::max(0.0, swatch.height - 1.0)},
-                        style().dark_border, 1.0);
+    const AnatomyStateSet states = anatomy_states();
+    PartPaint well;
+    well.family = ControlVisualRole::editor;
+    well.role = PartRole::well;
+    well.states = states;
+    well.bounds = swatch;
+    well.corner_radius = 0.0;
+    paint_part(painter, *this, well);
+    const Rect inside{swatch.x + 1.0, swatch.y + 1.0, std::max(0.0, swatch.width - 2.0),
+                      std::max(0.0, swatch.height - 2.0)};
+    const double half_width = inside.width * 0.5;
+    const double half_height = inside.height * 0.5;
+    const Color light = Color::rgba(232, 232, 232);
+    const Color dark = Color::rgba(178, 178, 178);
+    const std::array<Rect, 4> squares{{
+        {inside.x, inside.y, half_width, half_height},
+        {inside.x + half_width, inside.y, half_width, half_height},
+        {inside.x, inside.y + half_height, half_width, half_height},
+        {inside.x + half_width, inside.y + half_height, half_width, half_height},
+    }};
+    const std::array<Color, 4> shades{{light, dark, dark, light}};
+    PartPaint fill;
+    fill.family = ControlVisualRole::editor;
+    fill.role = PartRole::fill;
+    fill.states = states;
+    for (std::size_t index = 0U; index < squares.size(); ++index) {
+        fill.bounds = squares[index];
+        fill.content_color = shades[index];
+        paint_part(painter, *this, fill);
+    }
+    fill.bounds = inside;
+    fill.content_color = value_;
+    paint_part(painter, *this, fill);
 }
 
 SemanticDescriptor ColorValueEditor::semantic_descriptor() const {

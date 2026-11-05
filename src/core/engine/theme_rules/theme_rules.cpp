@@ -3,6 +3,8 @@
 
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 
+#include "gui_forms/engine/effect_registry/effect_registry.hpp"
+
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 
 #include <algorithm>
@@ -270,6 +272,8 @@ std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept {
     case RuleDiagnosticKind::ambient_invalid: return "ambient_invalid";
     case RuleDiagnosticKind::blend_invalid: return "blend_invalid";
     case RuleDiagnosticKind::font_invalid: return "font_invalid";
+    case RuleDiagnosticKind::effect_invalid: return "effect_invalid";
+    case RuleDiagnosticKind::effect_colour_invalid: return "effect_colour_invalid";
     case RuleDiagnosticKind::published_value_invalid: return "published_value_invalid";
     case RuleDiagnosticKind::material_field_invalid: return "material_field_invalid";
     case RuleDiagnosticKind::recipe_field_invalid: return "recipe_field_invalid";
@@ -317,7 +321,8 @@ constexpr std::array<std::string_view, material_field_count> material_field_name
     "drop_shadow",
     "filter_blur",
     "finish",
-    "mask"};
+    "mask",
+    "reflection"};
 
 // The edge fields: four edges of three fields each, from border_top_style.
 constexpr std::size_t first_edge_field = static_cast<std::size_t>(MaterialField::border_top_style);
@@ -376,6 +381,7 @@ ColourPosition material_field_colour_position(MaterialField field) noexcept {
     case MaterialField::filter_blur:
     case MaterialField::finish:
     case MaterialField::mask:
+    case MaterialField::reflection:
     case MaterialField::count:
     default: return ColourPosition::none;
     }
@@ -417,6 +423,7 @@ void apply_material_declaration(const MaterialDeclaration& declaration, SurfaceM
     case MaterialField::filter_blur: material.filter_blur = declaration.number; return;
     case MaterialField::finish: material.finish = declaration.number; return;
     case MaterialField::mask: material.mask = declaration.mask; return;
+    case MaterialField::reflection: material.reflection = declaration.reflection; return;
     case MaterialField::border_top_style:
     case MaterialField::border_top_width:
     case MaterialField::border_top_colour:
@@ -950,6 +957,11 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
         walk.visit(shadow.offset.y);
         walk.visit(shadow.blur_radius);
     }
+    if (declaration.reflection) {
+        MaterialReflection& reflection = *declaration.reflection;
+        walk.visit(reflection.gap);
+        walk.visit(reflection.reach);
+    }
 }
 
 void walk_recipe_lengths(RecipeDeclaration& declaration, LengthWalk& walk) {
@@ -1404,6 +1416,15 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
                 add_font(result.diagnostics_, index, rule, declaration, compiled);
                 continue;
             }
+            if (declaration.property == effect_property) {
+                add_effect(result.diagnostics_, index, rule, declaration, compiled);
+                continue;
+            }
+            if (declaration.property == effect_primary_property ||
+                declaration.property == effect_secondary_property) {
+                add_effect_colour(result.diagnostics_, index, rule, declaration, compiled);
+                continue;
+            }
             if (compiled.primitive == nullptr) {
                 result.diagnostics_.push_back(
                     diagnostic(RuleDiagnosticKind::parameter_without_primitive, index, rule, declaration.property));
@@ -1474,6 +1495,8 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
                               compiled.ambient.has_value() || compiled.blend.has_value() || compiled.font.has_value() ||
+                              compiled.effect.has_value() || compiled.effect_primary.has_value() ||
+                              compiled.effect_secondary.has_value() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
                               !compiled.scoped_definitions.empty();
         // A rule of definitions no condition reads declares nothing the
@@ -1512,6 +1535,48 @@ void CompiledThemeRules::add_blend(std::vector<RuleDiagnostic>& diagnostics, std
         return;
     }
     diagnostics.push_back(diagnostic(RuleDiagnosticKind::blend_invalid, index, rule, declaration.property));
+}
+
+void CompiledThemeRules::add_effect_colour(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                           const ThemeRule& rule, const RuleDeclaration& declaration,
+                                           CompiledRule& compiled) {
+    const bool primary = declaration.property == effect_primary_property;
+    std::optional<EffectColourDeclaration>& slot = primary ? compiled.effect_primary : compiled.effect_secondary;
+    if (slot) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
+        return;
+    }
+    if (declaration.kind != RuleValueKind::colour || declaration.origin.source != ColourSource::role) {
+        diagnostics.push_back(
+            diagnostic(RuleDiagnosticKind::effect_colour_invalid, index, rule, declaration.property));
+        return;
+    }
+    EffectColourDeclaration colour{};
+    colour.colour = declaration.colour;
+    colour.origin = declaration.origin;
+    slot = colour;
+}
+
+void CompiledThemeRules::add_effect(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                    const ThemeRule& rule, const RuleDeclaration& declaration,
+                                    CompiledRule& compiled) {
+    if (compiled.effect) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::duplicate_declaration, index, rule, declaration.property));
+        return;
+    }
+    if (declaration.kind != RuleValueKind::name) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::effect_invalid, index, rule, declaration.property));
+        return;
+    }
+    if (declaration.name == effect_none_name) {
+        compiled.effect = std::string{};
+        return;
+    }
+    if (!effect_name_valid(declaration.name)) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::effect_invalid, index, rule, declaration.property));
+        return;
+    }
+    compiled.effect = declaration.name;
 }
 
 void CompiledThemeRules::add_font(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
@@ -2321,11 +2386,19 @@ void CompiledThemeRules::resolve_transitions(const PartFacts& facts, const Scope
     RuleWalk walk(*this, facts, false, &winners);
     for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
         const CompiledRule& rule = *next;
-        const bool presents = !rule.transitions.empty() || rule.ambient || rule.blend || rule.font;
+        const bool presents =
+            !rule.transitions.empty() || rule.ambient || rule.blend || rule.font || rule.effect.has_value() ||
+            rule.effect_primary.has_value() || rule.effect_secondary.has_value();
         if (!presents || !matches(rule, facts)) continue;
         if (rule.ambient) result.ambient = &*rule.ambient;
         if (rule.blend) result.blend = *rule.blend;
         if (rule.font) result.font = *rule.font;
+        if (rule.effect) {
+            result.effect = *rule.effect;
+            result.effect_declared = true;
+        }
+        if (rule.effect_primary) result.effect_primary = rule.effect_primary;
+        if (rule.effect_secondary) result.effect_secondary = rule.effect_secondary;
         const bool same_primitive = primitive && rule.primitive == result.primitive;
         for (const CompiledTransition& transition : rule.transitions) {
             if (transition.property == PresentationProperty::opacity) {

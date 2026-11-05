@@ -4,6 +4,10 @@
 #include "gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/engine/theme_engine/theme_engine.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 
 #include <algorithm>
@@ -14,6 +18,23 @@
 
 namespace gui_forms {
 using namespace range_control_detail;
+
+namespace {
+
+// The ProgressBarVisualStyle enumeration, numbered as declared
+// (luminance_pulse is pulse's other name). Static storage; any thread may
+// read it.
+std::shared_ptr<const PropertyEnumDescriptor> progress_bar_visual_style_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "progress_bar_visual_style",
+            {{"blocks", 0}, {"continuous", 1}, {"marquee", 2}, {"pulse", 3}, {"marching_stripes", 4},
+             {"laser_etch", 5}},
+            false});
+    return value;
+}
+
+} // namespace
 
 namespace {
 
@@ -29,6 +50,25 @@ std::shared_ptr<const PropertyEnumDescriptor> effect_input_enum() {
 ProgressBar::ProgressBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(false);
+
+    // The look a form document sets (stage FD6.3); no change event.
+    PropertyDescriptor visual_style;
+    visual_style.name = "visual_style";
+    visual_style.kind = BindingValueKind::enumeration;
+    visual_style.category = "Appearance";
+    visual_style.description =
+        "How the bar draws: blocks, continuous, marquee, pulse, marching stripes or laser etch.";
+    visual_style.default_value = BindingValue{PropertyEnumValue{"progress_bar_visual_style", "blocks", 0}};
+    visual_style.invalidation_effects = Dirty::paint | Dirty::semantics;
+    visual_style.bindable = false;
+    visual_style.enumeration = progress_bar_visual_style_enum();
+    define_bindable_property({
+        std::move(visual_style),
+        detail::EnumerationPropertyGetter<ProgressBar, ProgressBarVisualStyle>(
+            *this, &ProgressBar::visual_style, progress_bar_visual_style_enum()),
+        detail::EnumerationPropertySetter<ProgressBar, ProgressBarVisualStyle>(
+            *this, &ProgressBar::set_visual_style),
+        {}, {}, {}});
 
     // The effect properties (effect programs, design note section 7).
     PropertyDescriptor effect;
@@ -105,25 +145,14 @@ void ProgressBar::set_effect_input(EffectInputKind input) {
     require_mutable();
     if (input == effect_input_) return;
     effect_input_ = input;
+    effect_instance_.set_input_grant(input);
     invalidate(Dirty::paint);
 }
 
 void ProgressBar::on_pointer(PointerEvent& event) {
-    if (effect_input_ == EffectInputKind::none || effect_instance_.entry() == nullptr) return;
-    EffectInputEvent input{};
-    if (event.action == PointerAction::move) {
-        input.kind = EffectInputEventKind::pointer_moved;
-    } else if (event.action == PointerAction::down) {
-        input.kind = EffectInputEventKind::pointer_pressed;
-    } else if (event.action == PointerAction::up) {
-        input.kind = EffectInputEventKind::pointer_released;
-    } else {
-        return;
-    }
-    // The part is the bar's bounds: part-local is the bar's local space.
+    // The part is the bar's bounds: its origin is the bar's absolute origin.
     const Rect absolute = absolute_bounds();
-    input.position = Point{event.position.x - absolute.x, event.position.y - absolute.y};
-    if (effect_instance_.queue_input(input, effect_input_)) invalidate(animated_extent());
+    if (effect_instance_.note_pointer(event, Point{absolute.x, absolute.y})) invalidate(animated_extent());
 }
 
 void ProgressBar::set_visual_style(ProgressBarVisualStyle style_value) {
@@ -257,25 +286,80 @@ bool ProgressBar::animated_style() const noexcept {
            overlay_instance_.entry() != nullptr;
 }
 
-std::string_view ProgressBar::resolved_effect() const noexcept {
-    if (!effect_.empty()) return effect_;
+namespace {
+
+// One effect colour from the theme: the role's colour, or under the forced
+// high-contrast pass the pass's colour for the role, drawn as a fill.
+Color effect_colour(const EffectColourDeclaration& declared, const ControlVisualContext& context) noexcept {
+    if (!context.high_contrast) return declared.colour;
+    const Color remapped =
+        high_contrast_colour(declared.origin, ColourPosition::fill, context.surface, context.selected);
+    return remapped;
+}
+
+// `colour` with the red, green and blue of `role` and its own alpha.
+Color role_tinted(Color colour, Color role) noexcept {
+    const Color tinted = Color::rgba(role.red, role.green, role.blue, colour.alpha);
+    return tinted;
+}
+
+} // namespace
+
+ProgressBar::RequestedEffect ProgressBar::requested_effect() const noexcept {
+    RequestedEffect requested{};
+    // The theme's declarations for the part the effect draws over: the
+    // fill, or the activity band while marquee (publish_part_geometry). A
+    // bar in no window has none yet; its next paint asks again.
+    bool theme_effect = false;
+    std::string_view theme_name{};
+    if (attached_window() != nullptr) {
+        const bool marquee = visual_style_ == ProgressBarVisualStyle::marquee;
+        PartPaint part{};
+        part.role = marquee ? PartRole::activity : PartRole::fill;
+        part.bounds = local_bounds();
+        part.states = anatomy_states();
+        part.family = ControlVisualRole::progress;
+        part.key = PartKey{.part = marquee ? std::string_view{"activity"} : std::string_view{"fill"}};
+        const ThemeEngine::PartPlan plan = effective_theme().engine().plan(*this, part);
+        theme_effect = plan.resolution.effect_declared;
+        theme_name = plan.resolution.effect;
+        if (plan.resolution.effect_primary && plan.resolution.effect_secondary) {
+            const ControlVisualContext context = part_visual_context(*this, part.states);
+            requested.colours.primary = effect_colour(*plan.resolution.effect_primary, context);
+            requested.colours.secondary = effect_colour(*plan.resolution.effect_secondary, context);
+            requested.themed_colours = true;
+        }
+    }
+    if (!effect_.empty()) {
+        requested.name = effect_;
+        requested.source = EffectSelectionSource::application;
+        return requested;
+    }
+    requested.source = EffectSelectionSource::style;
     if (visual_style_ == ProgressBarVisualStyle::marching_stripes) {
-        return ProgressStripes::declaration.name;
+        requested.name = ProgressStripes::declaration.name;
+        return requested;
     }
     if (visual_style_ == ProgressBarVisualStyle::pulse) {
-        return ProgressPulse::declaration.name;
+        requested.name = ProgressPulse::declaration.name;
+        return requested;
     }
     if (visual_style_ == ProgressBarVisualStyle::laser_etch) {
-        return ProgressLaser::declaration.name;
+        requested.name = ProgressLaser::declaration.name;
+        return requested;
     }
-    return {};
+    requested.source = EffectSelectionSource::none;
+    if (!theme_effect) return requested;
+    requested.name = theme_name;
+    requested.source = EffectSelectionSource::theme;
+    return requested;
 }
 
 namespace {
 
-// The registered progress-bar effect named `name`, or null.
+// The registered progress-bar effect named `name`, or null (the overlay's
+// stripes, which only the overlay style asks for).
 const EffectEntry* progress_bar_effect(std::string_view name) noexcept {
-    if (name.empty()) return nullptr;
     const EffectEntry* const entry = built_in_effect_registry().find(name);
     if (entry == nullptr || (*entry).parent != EffectView<ProgressBar>::parent_name) {
         return nullptr;
@@ -298,7 +382,23 @@ void sync_instance(EffectInstance& instance, const EffectEntry* wanted,
 } // namespace
 
 void ProgressBar::sync_effects(FrameTime now) {
-    const EffectEntry* const effect = progress_bar_effect(resolved_effect());
+    const RequestedEffect requested = requested_effect();
+    const Rect bounds = local_bounds();
+    const double scale = window() != nullptr ? (*window()).scale() : 1.0;
+    const EffectEntry* effect = nullptr;
+    const EffectSelectionOutcome outcome =
+        check_effect_selection(built_in_effect_registry(), requested.name, requested.source,
+                               EffectView<ProgressBar>::parent_name, Size{bounds.width, bounds.height}, scale, effect);
+    const bool changed = outcome != effect_selection_.outcome || requested.source != effect_selection_.source ||
+                         requested.name != effect_selection_.name;
+    if (changed) {
+        effect_selection_.name = std::string{requested.name};
+        effect_selection_.source = requested.source;
+        effect_selection_.outcome = outcome;
+        if (outcome != EffectSelectionOutcome::selected && outcome != EffectSelectionOutcome::none) {
+            note_effect_refused(effect_selection_);
+        }
+    }
     const bool overlay = overlay_style_ == ProgressBarOverlayStyle::moving_stripes &&
                          visual_style_ != ProgressBarVisualStyle::marching_stripes;
     const EffectEntry* const stripes =
@@ -311,6 +411,15 @@ void ProgressBar::sync_effects(FrameTime now) {
         effect_seed_.value_or(effect_default_seed(id, ProgressStripes::declaration.name));
     sync_instance(effect_instance_, effect, effect_seed, now);
     sync_instance(overlay_instance_, stripes, stripes_seed, now);
+    // The colours: the theme's roles, unless the application set its own
+    // appearance (the application's colours come first).
+    const bool own_appearance = !(animation_appearance_ == ProgressBarAnimationAppearance{});
+    themed_colours_ = requested.themed_colours && !own_appearance;
+    effect_colours_.primary = themed_colours_ ? requested.colours.primary : animation_appearance_.stripe_color;
+    effect_colours_.secondary =
+        themed_colours_ ? requested.colours.secondary : animation_appearance_.luminance_color;
+    effect_instance_.set_colours(effect_colours_);
+    overlay_instance_.set_colours(effect_colours_);
 }
 
 void ProgressBar::set_effect(std::string name) {
@@ -645,43 +754,57 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
         last_animation_frame_ = FrameClock::now();
     }
     animation_timer_.note_painted();
+    // The track and the fill (one fill part per block in the blocks style)
+    // are parts the theme's engine draws; the fill is the progress family
+    // selected. The animated styles' effects are drawn over the fill.
     const Rect bounds = local_bounds();
+    const AnatomyStateSet states = anatomy_states();
+    PartPaint track;
+    track.family = ControlVisualRole::progress;
+    track.role = PartRole::track;
+    track.bounds = bounds;
+    track.states = states;
+    track.key = PartKey{"track", {}, {}};
+    paint_part(painter, *this, track);
     const ControlVisualRecipe& track_recipe = effective_theme().resolve(
         ControlVisualRole::progress, visual_context());
-    paint_surface_material(painter, bounds, track_recipe.material);
+    // The track was painted as a part above; this is its shape, which an
+    // effect's clip_part_shape follows.
+    PartShape track_shape{};
+    track_shape.corner_radius = track_recipe.material.corner_radius;
+    if (track_recipe.material.corner_radii.has_value()) {
+        const MaterialCornerRadii& radii = *track_recipe.material.corner_radii;
+        track_shape.per_corner = true;
+        track_shape.corners = PartCornerRadii{radii.top_left, radii.top_right, radii.bottom_right, radii.bottom_left};
+    }
     const Rect interior{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                         std::max(0.0, bounds.height - 4.0)};
     const MotionPolicy policy = effective_motion_policy();
     const Rect fill = indicator_bounds();
 
-    const ControlVisualRecipe& fill_recipe = effective_theme().resolve(
-        ControlVisualRole::progress,
-        visual_context(false, false, true, false));
+    PartPaint fill_part;
+    fill_part.family = ControlVisualRole::progress;
+    fill_part.role = PartRole::fill;
+    fill_part.states = states;
+    fill_part.states.insert(AnatomyState::selected);
     if (visual_style_ == ProgressBarVisualStyle::blocks) {
         constexpr double gap = 2.0;
         constexpr double block = 9.0;
         if (orientation() == Orientation::horizontal) {
             for (double x = fill.x; x + block <= fill.x + fill.width; x += block + gap) {
-                paint_surface_material(
-                    painter, {x, fill.y, block, fill.height},
-                    fill_recipe.material);
+                fill_part.bounds = {x, fill.y, block, fill.height};
+                paint_part(painter, *this, fill_part);
             }
         } else {
             for (double y = fill.y + fill.height - block; y >= fill.y; y -= block + gap) {
-                paint_surface_material(
-                    painter, {fill.x, y, fill.width, block},
-                    fill_recipe.material);
+                fill_part.bounds = {fill.x, y, fill.width, block};
+                paint_part(painter, *this, fill_part);
             }
         }
     } else {
-        paint_surface_material(painter, fill, fill_recipe.material);
-    }
-    const bool own_effect = visual_style_ == ProgressBarVisualStyle::pulse ||
-                            visual_style_ == ProgressBarVisualStyle::marching_stripes ||
-                            visual_style_ == ProgressBarVisualStyle::laser_etch;
-    if (!own_effect && fill.height > 3.0 && fill.width > 0.0) {
-        painter.fill_rect({fill.x, fill.y, fill.width, 3.0},
-                          fill_recipe.muted_text);
+        fill_part.bounds = fill;
+        fill_part.key = PartKey{"fill", {}, {}};
+        paint_part(painter, *this, fill_part);
     }
 
     // The effects (design note section 8), drawn over the bar with its
@@ -701,13 +824,23 @@ void ProgressBar::on_paint(Painter& painter, Rect) {
     view.fill = fill;
     view.vertical = orientation() == Orientation::vertical;
     view.appearance = animation_appearance_;
+    if (themed_colours_) {
+        // The theme's roles, at the appearance's own alphas.
+        const Color primary = effect_colours_.primary;
+        const Color secondary = effect_colours_.secondary;
+        view.appearance.stripe_color = role_tinted(view.appearance.stripe_color, primary);
+        view.appearance.laser_phase_color = role_tinted(view.appearance.laser_phase_color, primary);
+        view.appearance.luminance_color = role_tinted(view.appearance.luminance_color, secondary);
+        view.appearance.laser_edge_color = role_tinted(view.appearance.laser_edge_color, secondary);
+        view.appearance.laser_spark_color = role_tinted(view.appearance.laser_spark_color, secondary);
+    }
     view.stripe_width = stripe_width_;
     view.period_seconds = speed > 0.0 ? period / speed : period;
     const bool suppressed = window() != nullptr && (*window()).motion_clock().ambient_suppressed();
     const bool still = !animation_enabled_ || policy.reduced || suppressed;
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;
-    effect_instance_.paint(painter, bounds, scale, still, view);
-    overlay_instance_.paint(painter, bounds, scale, still, view);
+    effect_instance_.paint(painter, bounds, scale, still, view, track_shape, this);
+    overlay_instance_.paint(painter, bounds, scale, still, view, track_shape, this);
 }
 
 bool ProgressBar::hit_test_local(Point local_point) const {

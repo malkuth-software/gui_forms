@@ -175,7 +175,7 @@ public:
 protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
-    void on_detaching_from_window(Window& former_window) noexcept override;
+    void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
     void on_dispose() noexcept override;
 
 private:
@@ -265,7 +265,7 @@ private:
     void end_drag(bool drop);
     void finish_settling() noexcept;
     void reset_drag() noexcept;
-    void release_picture(Window& host) noexcept;
+    void release_picture(SurfaceRoot& host) noexcept;
     [[nodiscard]] Rect stamp_now() const;
     // Marks the stamp and the insertion line for repainting where they are.
     void invalidate_drag_paint();

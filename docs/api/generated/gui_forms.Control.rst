@@ -112,6 +112,9 @@ gui_forms::Control
       **attached_window** : ``Window*``, read-only
          The window whose tree contains this control, or null.
 
+      **attached_surface_root** : ``SurfaceRoot*``, read-only
+         The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+
       **effective_text_scale** : ``double``, read-only
          The attached window's presentation text scale, or 1 when detached.
          :cpp:func:`effective_font <gui_forms::Control::effective_font>` applies it to a font; custom controls use the result for
@@ -120,6 +123,14 @@ gui_forms::Control
       **effective_theme** : ``Theme``, read-only
          The theme in use: the nearest :cpp:func:`theme_override <gui_forms::Control::theme_override>` on this control or an
          ancestor, else the window's theme, else the default theme.
+
+      **application_colours_suspended** : ``bool``, read-only
+         Whether the control is drawn in GUI.Forms' own theme in place of the theme it was given (effective_theme): its back_color, fore_color, authored surface material and parts' authored colours are then not applied, since they were chosen against the other theme. They apply again when that theme is shown.
+
+      **back_color_warned** : ``bool``, read-only
+         Whether back_color or fore_color has been set on this control, which writes the warning W404 ``inline_colour`` once for each (T4 theme variants, stage A: colour belongs in the theme).
+
+      **fore_color_warned** : ``bool``, read-only
 
       **effective_key_map** : ``KeyMap``, read-only
          The attached window's key map (Window::key_map), or the PC convention's while detached. A control asks it whether a key event is a named keyboard command instead of naming the keys itself.
@@ -314,6 +325,9 @@ gui_forms::Control
 
       **subtree_dirty** : ``Dirty``, read-only
          The invalidation flags pending on this control or any descendant.
+
+      **surface_slot** : ``detail::ControlSlot``, read-only
+         This control's slot in its surface root's control table, for inspection (SurfaceRoot::control_table); unassigned while detached.
 
       **paint_plane** : ``PaintPlane``, default ``PaintPlane::control``
          The compositing plane the control paints into. Panels use
@@ -769,6 +783,10 @@ gui_forms::Control
 
       The window whose tree contains this control, or null.
 
+   .. cpp:function:: SurfaceRoot* attached_surface_root() const noexcept
+
+      The surface root whose table holds this control (null while detached). Inside a sub-surface attached_window() is null and this is not.
+
    .. cpp:function:: double effective_text_scale() const noexcept
 
       The attached window's presentation text scale, or 1 when detached.
@@ -779,6 +797,16 @@ gui_forms::Control
 
       The theme in use: the nearest :cpp:func:`theme_override <gui_forms::Control::theme_override>` on this control or an
       ancestor, else the window's theme, else the default theme.
+
+   .. cpp:function:: bool application_colours_suspended() const noexcept
+
+      Whether the control is drawn in GUI.Forms' own theme in place of the theme it was given (effective_theme): its back_color, fore_color, authored surface material and parts' authored colours are then not applied, since they were chosen against the other theme. They apply again when that theme is shown.
+
+   .. cpp:function:: bool back_color_warned() const noexcept
+
+      Whether back_color or fore_color has been set on this control, which writes the warning W404 ``inline_colour`` once for each (T4 theme variants, stage A: colour belongs in the theme).
+
+   .. cpp:function:: bool fore_color_warned() const noexcept
 
    .. cpp:function:: const KeyMap& effective_key_map() const noexcept
 
@@ -1121,6 +1149,10 @@ gui_forms::Control
    .. cpp:function:: Dirty subtree_dirty() const noexcept
 
       The invalidation flags pending on this control or any descendant.
+
+   .. cpp:function:: detail::ControlSlot surface_slot() const noexcept
+
+      This control's slot in its surface root's control table, for inspection (SurfaceRoot::control_table); unassigned while detached.
 
    .. cpp:function:: PaintPlane paint_plane() const noexcept
 
@@ -1558,6 +1590,10 @@ gui_forms::Control
 
       One ambient frame of the window's motion clock, for a control that enlisted itself (MotionClock::enlist_control_ambient): advance what moves to ``now`` and invalidate what it covers. Return false when the control was not painted since its last frame (it is no longer shown): the clock then drops it, so a control can never keep a window painting by itself. The default returns false.
 
+   .. cpp:function:: virtual bool paint_depends_on_size() const noexcept
+
+      Whether what on_paint and on_paint_overlay draw at a point changes when only the control's size does. A control that answers false keeps its pixels inside its old extent when it is resized in place, and only the strips the resize exposed or vacated are repainted. The default is the resize_redraw style, which is on unless the control clears it.
+
    .. cpp:function:: virtual bool hit_test_local(Point local_point) const
 
       Override to refine which local points hit the control. The base version
@@ -1702,6 +1738,12 @@ gui_forms::Control
 
       *Protected.*
 
+   .. cpp:function:: SurfaceRoot* surface_root() const noexcept
+
+      *Protected.*
+
+      The surface root whose control table holds this control; null while detached. Set and cleared together with window().
+
    .. cpp:function:: void set_tool_tip_presentation(ToolTipPresentation presentation) noexcept
 
       *Protected.*
@@ -1841,7 +1883,7 @@ gui_forms::Control
 
       *Protected.*
 
-   .. cpp:function:: virtual void on_detaching_from_window(Window& former_window) noexcept
+   .. cpp:function:: virtual void on_detaching_from_window(SurfaceRoot& former_window) noexcept
 
       *Protected.*
 

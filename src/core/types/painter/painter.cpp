@@ -72,6 +72,13 @@ void Painter::clip_rounded_rect(Rect rect, double) {
     clip_rect(rect);
 }
 
+void Painter::clip_rounded_rect_corners(Rect rect, PaintCornerRadii radii) {
+    const double top = std::max(radii.top_left, radii.top_right);
+    const double bottom = std::max(radii.bottom_right, radii.bottom_left);
+    const double largest = std::max(top, bottom);
+    clip_rounded_rect(rect, largest);
+}
+
 void Painter::fill_rounded_rect(Rect rect, double radius, Color color) {
     if (rect.empty()) return;
     radius = clamped_radius(rect, radius);

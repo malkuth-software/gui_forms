@@ -1,8 +1,11 @@
 #include "pages.hpp"
 
+#include "ranges-and-progress_form.hpp"
+
 namespace gui_forms::gallery::pages {
 
-// One application-owned level drives every range control on the page: the
+// Owns the ranges page: the controls demo/pages/ranges-and-progress.form
+// describes, and their behaviour. One application-owned level drives every range control on the page: the
 // three TrackBars, both ScrollBars, all six ProgressBars and the SweepScope
 // (the instruments package's level scope) bind the same
 // Value<double>, so any user drag moves them all without a copy chain. The
@@ -12,14 +15,11 @@ class RangesPage final : public gui_forms::Component {
 public:
     RangesPage(const std::shared_ptr<Surface>& body,
                const std::shared_ptr<PageContext>& context) {
-        (*body).add_at(label("gallery.ranges.heading", "RANGES AND PROGRESS", 22.0, 700,
-                             shell_blue_dark), {24.0, 18.0, 500.0, 34.0});
-        (*body).add_at(label("gallery.ranges.lead",
-                             "Live captured dragging, keyboard control, vertical orientation, and retained animation.",
-                             12.0, 400, muted), {26.0, 52.0, 850.0, 24.0});
-        build_sliders(body);
-        build_progress(body, context);
-        build_scope(body);
+        document_.initialize_component(*this);
+        mount_document(body);
+        connect_sliders();
+        connect_progress(context);
+        (*document_.gallery_ranges_scope).bind(level_);
         on(level_.changed(), *this, &RangesPage::on_level_changed);
         on_level_changed(level_.get());
     }
@@ -27,96 +27,61 @@ public:
 private:
     static constexpr std::array<std::string_view, 3> track_names{
         "Classic ticks", "Filled rail", "Compact rail"};
-    static constexpr std::array<std::string_view, 6> progress_names{
-        "Blocks", "Continuous", "Marquee", "Luminance pulse", "Marching stripes",
-        "Laser etch"};
     static constexpr int horizontal_source = 3;
     static constexpr int vertical_source = 4;
 
-    void build_sliders(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> sliders = group(
-            "gallery.ranges.sliders", "TrackBar · classic, filled, compact · ScrollBar",
-            {930.0, 230.0});
-        (*body).add_at(sliders, {24.0, 92.0, 930.0, 230.0});
-        for (std::size_t index = 0; index < track_names.size(); ++index) {
-            const double row = static_cast<double>(index) * 58.0;
-            (*sliders).add_at(label("gallery.ranges.slider.caption." + std::to_string(index),
-                                    std::string(track_names[index]), 11.0, 600, muted),
-                              {24.0, 38.0 + row, 130.0, 24.0});
-            std::shared_ptr<TrackBar> track = make_control<TrackBar>(
-                StableId("gallery.ranges.slider." + std::to_string(index)));
-            (*track).set_accessible_name(std::string(track_names[index]));
-            (*track).set_visual_style(static_cast<TrackBarVisualStyle>(index));
-            (*track).bind(level_);
-            (*sliders).add_at(track, {155.0, 35.0 + row, 690.0, 32.0});
-            on((*track).scroll(), *this, &RangesPage::on_scroll, static_cast<int>(index));
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        // The document's root is a declared boundary only: its children move
+        // into the shell's page body, a design surface of the same 1000 x 660
+        // size, where each is placed by its bounds in design coordinates. The
+        // copy of the child list keeps the iteration valid while the root
+        // shrinks.
+        Control& root = *document_.gallery_ranges_document;
+        const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+        for (const Control::Ptr& child : children) {
+            Control::Ptr moved = root.remove_child((*child).runtime_id());
+            (*body).add_child(std::move(moved));
         }
-        std::shared_ptr<HScrollBar> horizontal = make_control<HScrollBar>(
-            StableId("gallery.ranges.scroll.horizontal"));
-        (*horizontal).set_accessible_name("Horizontal viewport scrollbar");
-        (*horizontal).set_range(0.0, 100.0);
-        (*horizontal).set_large_change(18.0);
-        (*horizontal).bind(level_);
-        (*sliders).add_at(horizontal, {155.0, 200.0, 690.0, 18.0});
-        (*sliders).add_at(label("gallery.ranges.scroll.caption", "Viewport", 11.0, 600, muted),
-                          {24.0, 197.0, 120.0, 22.0});
-        on((*horizontal).scroll(), *this, &RangesPage::on_scroll, horizontal_source);
-
-        std::shared_ptr<VScrollBar> vertical = make_control<VScrollBar>(
-            StableId("gallery.ranges.scroll.vertical"));
-        (*vertical).set_accessible_name("Vertical viewport scrollbar");
-        (*vertical).set_range(0.0, 100.0);
-        (*vertical).set_large_change(18.0);
-        (*vertical).bind(level_);
-        (*sliders).add_at(vertical, {874.0, 38.0, 18.0, 160.0});
-        on((*vertical).scroll(), *this, &RangesPage::on_scroll, vertical_source);
+        const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
+            document_.gallery_ranges_sliders, document_.gallery_ranges_progress,
+            document_.gallery_ranges_instruments};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_background(paper);
+            (*group).set_style(page_style());
+        }
+        shared_ = document_.gallery_ranges_shared;
     }
 
-    void build_progress(const std::shared_ptr<Surface>& body,
-                        const std::shared_ptr<PageContext>& context) {
-        std::shared_ptr<LayoutGroup> progress_group = group(
-            "gallery.ranges.progress",
-            "ProgressBar · static, indeterminate, luminance, marching, laser",
-            {930.0, 325.0});
-        (*body).add_at(progress_group, {24.0, 340.0, 930.0, 325.0});
-        for (std::size_t index = 0; index < progress_names.size(); ++index) {
-            const double row = static_cast<double>(index) * 45.0;
-            (*progress_group).add_at(
-                label("gallery.ranges.progress.caption." + std::to_string(index),
-                      std::string(progress_names[index]), 11.0, 600, muted),
-                {24.0, 36.0 + row, 122.0, 24.0});
-            std::shared_ptr<ProgressBar> progress = make_control<ProgressBar>(
-                StableId("gallery.ranges.progress." + std::to_string(index)));
-            (*progress).set_accessible_name(std::string(progress_names[index]) + " progress");
-            (*progress).set_visual_style(static_cast<ProgressBarVisualStyle>(index));
-            if (index == 3U) {
-                (*progress).set_animation_period(std::chrono::milliseconds(2400));
-            } else if (index == 4U) {
-                (*progress).set_animation_period(std::chrono::milliseconds(850));
-            } else if (index == 5U) {
-                (*progress).set_animation_period(std::chrono::milliseconds(1250));
-            }
-            (*progress).bind(level_);
-            (*progress_group).add_at(progress, {160.0, 38.0 + row, 695.0, 24.0});
+    void connect_sliders() {
+        const std::array<std::shared_ptr<TrackBar>, 3> tracks{
+            document_.gallery_ranges_slider_0, document_.gallery_ranges_slider_1,
+            document_.gallery_ranges_slider_2};
+        for (std::size_t index = 0; index < tracks.size(); ++index) {
+            (*tracks[index]).bind(level_);
+            on((*tracks[index]).scroll(), *this, &RangesPage::on_scroll, static_cast<int>(index));
+        }
+        HScrollBar& horizontal = *document_.gallery_ranges_scroll_horizontal;
+        horizontal.bind(level_);
+        on(horizontal.scroll(), *this, &RangesPage::on_scroll, horizontal_source);
+        VScrollBar& vertical = *document_.gallery_ranges_scroll_vertical;
+        vertical.bind(level_);
+        on(vertical.scroll(), *this, &RangesPage::on_scroll, vertical_source);
+    }
+
+    void connect_progress(const std::shared_ptr<PageContext>& context) {
+        const std::array<std::shared_ptr<ProgressBar>, 6> bars{
+            document_.gallery_ranges_progress_0, document_.gallery_ranges_progress_1,
+            document_.gallery_ranges_progress_2, document_.gallery_ranges_progress_3,
+            document_.gallery_ranges_progress_4, document_.gallery_ranges_progress_5};
+        (*bars[3]).set_animation_period(std::chrono::milliseconds(2400));
+        (*bars[4]).set_animation_period(std::chrono::milliseconds(850));
+        (*bars[5]).set_animation_period(std::chrono::milliseconds(1250));
+        for (std::size_t index = 0; index < bars.size(); ++index) {
+            (*bars[index]).bind(level_);
             // The shell's motion policy (pause, reduced motion) still reaches
             // the animated styles through the page context.
-            if (index >= 2U) (*context).animated_progress.push_back(progress);
+            if (index >= 2U) (*context).animated_progress.push_back(bars[index]);
         }
-        shared_ = label("gallery.ranges.shared", "", 10.5, 600, green);
-        (*progress_group).add_at(shared_, {160.0, 292.0, 740.0, 24.0});
-    }
-
-    // The instruments package's level scope: the level as a trace, crossed
-    // by its sweep (an effect program on the window's motion clock).
-    void build_scope(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> scope_group = group(
-            "gallery.ranges.instruments", "SweepScope · instruments: level trace and effect-program sweep",
-            {930.0, 170.0});
-        (*body).add_at(scope_group, {24.0, 683.0, 930.0, 170.0});
-        std::shared_ptr<SweepScope> scope = make_control<SweepScope>(StableId("gallery.ranges.scope"));
-        (*scope).set_accessible_name("Level scope");
-        (*scope).bind(level_);
-        (*scope_group).add_at(scope, {160.0, 36.0, 220.0, 120.0});
     }
 
     // State: fires for every change of the shared level, user or programmatic.
@@ -160,6 +125,9 @@ private:
         return "input";
     }
 
+    // Owns the document's controls; the shell's page body holds them too once
+    // mount_document() has moved them there.
+    RangesDocument<RangesPage> document_{};
     Value<double> level_{52.0};
     std::shared_ptr<Label> shared_;
     std::string level_text_;

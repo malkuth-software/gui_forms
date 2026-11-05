@@ -301,6 +301,37 @@ struct EffectInputEvent final {
     }
 };
 
+// The colours an effect draws with (EP-4): its part's primary and
+// secondary colour roles as the host control resolves them from its theme
+// and colour scheme (effect_primary_property, effect_secondary_property),
+// or the host's own colours where the theme names none. An effect varies
+// their alpha for its own layers; it does not name colours of its own.
+// Transparent black when the host supplies none.
+struct EffectColours final {
+    Color primary{};
+    Color secondary{};
+
+    friend constexpr bool operator==(const EffectColours& left, const EffectColours& right) noexcept {
+        return left.primary == right.primary && left.secondary == right.secondary;
+    }
+};
+
+// The pointer's standing state over the part at the frame's start (design
+// note section 8a(1)): whether it is inside the part, whether a button is
+// held, and where it was last seen while inside, in part-local logical
+// units. Filled only for an effect that declares pointer input on a part
+// whose host grants it; otherwise every field is zero, as in headless runs
+// and still poses, so motion checksums do not depend on it.
+struct EffectPointer final {
+    bool inside{};
+    bool pressed{};
+    Point position{};
+
+    friend constexpr bool operator==(const EffectPointer& left, const EffectPointer& right) noexcept {
+        return left.inside == right.inside && left.pressed == right.pressed && left.position == right.position;
+    }
+};
+
 // What one frame of `run` is given. `ticks` fixed ticks are due, the first
 // of them numbered `first_tick` since the effect was set up; zero when the
 // part repaints for another reason, so state advances once per due tick
@@ -321,6 +352,8 @@ struct EffectFrame final {
     double scale{1.0};
     std::array<EffectInputEvent, maximum_effect_input_events> input{};
     std::uint32_t input_count{};
+    EffectColours colours{};
+    EffectPointer pointer{};
 };
 
 // What `setup` is given: once when the effect is instantiated on a part,
@@ -365,6 +398,14 @@ struct EffectDeclaration final {
     // the parent's paint order.
     Insets outsets{};
     EffectInputKind input{EffectInputKind::none};
+    // Whether the effect reads the window's backplane under its part and
+    // outsets (EP-7, EffectCanvas::draw_backdrop), and how far the blur of
+    // that backdrop reaches, in logical units, in [0,
+    // maximum_effect_backdrop_margin]: three box passes of half width
+    // floor(backdrop_margin * scale / 3) device pixels; 0 reads it
+    // unblurred.
+    bool backdrop{};
+    double backdrop_margin{};
     // Its ambient frame rate, at most the ambient cap (30).
     double frames_per_second{30.0};
 };

@@ -349,13 +349,14 @@ private:
         bool code_block{};
     };
     // The colours a paint uses and the content origin in local coordinates.
+    // What every row's parts share: the text origin, the field's states
+    // and, in an overridden field, the authored text and selected-text inks
+    // (T4-1).
     struct RowInks final {
         Point origin{};
-        Color text{};
-        Color muted{};
-        Color selected_text{};
-        Color link_text{};
-        Color link_glyph{};
+        AnatomyStateSet states{};
+        std::optional<Color> authored_text{};
+        std::optional<Color> authored_selected_text{};
     };
     using SourceChange = detail::RichTextSourceChange;
     // The first and last source lines a selection touches.

@@ -1,6 +1,7 @@
 #include "gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp"
 #include "../container_layout_utilities.hpp"
 #include "../../scrollable_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <array>
 #include <algorithm>
@@ -60,32 +61,34 @@ bool grow_to_fit(std::size_t& columns, std::size_t& rows, TableLayoutCellPositio
     return true;
 }
 
-void draw_table_grid(Painter& painter,
+// The grid's rules, each a `rule` part (its role and family set by the
+// caller) one unit across, centred on the line the grid draws.
+void draw_table_grid(Painter& painter, const Control& control,
                      std::span<const double> column_widths,
                      std::span<const double> row_heights,
                      Insets inset, Size track_spacing,
                      double width, double height,
-                     Color color, double offset) {
+                     PartPaint rule, double offset) {
     double x = inset.left;
-    painter.draw_line({x + offset, inset.top},
-                      {x + offset, inset.top + height}, color, 1.0);
+    rule.bounds = {x + offset - 0.5, inset.top, 1.0, height};
+    paint_part(painter, control, rule);
     for (std::size_t index = 0U; index < column_widths.size(); ++index) {
         x += column_widths[index];
         const bool has_gap = index + 1U < column_widths.size();
         const double line_x = x + (has_gap ? track_spacing.width * 0.5 : 0.0);
-        painter.draw_line({line_x + offset, inset.top},
-                          {line_x + offset, inset.top + height}, color, 1.0);
+        rule.bounds = {line_x + offset - 0.5, inset.top, 1.0, height};
+        paint_part(painter, control, rule);
         if (has_gap) x += track_spacing.width;
     }
     double y = inset.top;
-    painter.draw_line({inset.left, y + offset},
-                      {inset.left + width, y + offset}, color, 1.0);
+    rule.bounds = {inset.left, y + offset - 0.5, width, 1.0};
+    paint_part(painter, control, rule);
     for (std::size_t index = 0U; index < row_heights.size(); ++index) {
         y += row_heights[index];
         const bool has_gap = index + 1U < row_heights.size();
         const double line_y = y + (has_gap ? track_spacing.height * 0.5 : 0.0);
-        painter.draw_line({inset.left, line_y + offset},
-                          {inset.left + width, line_y + offset}, color, 1.0);
+        rule.bounds = {inset.left, line_y + offset - 0.5, width, 1.0};
+        paint_part(painter, control, rule);
         if (has_gap) y += track_spacing.height;
     }
 }
@@ -611,7 +614,6 @@ void TableLayoutPanelCompat::on_paint(Painter& painter, Rect) {
         column_widths_.empty() || row_heights_.empty()) {
         return;
     }
-    const BasicControlStyle style;
     const Insets inset = padding();
     const double width = std::accumulate(column_widths_.begin(),
                                          column_widths_.end(), 0.0) +
@@ -624,19 +626,27 @@ void TableLayoutPanelCompat::on_paint(Painter& painter, Rect) {
     Insets origin = inset;
     origin.left = grid_left_;
     const std::span<const double> columns = painted_column_widths_;
+    // Single borders are keylines; inset and outset borders a keyline and a
+    // seam a unit apart, the keyline above and left for inset and below and
+    // right for outset, in the theme's rule colours.
+    PartPaint keyline;
+    keyline.family = ControlVisualRole::panel;
+    keyline.role = PartRole::keyline;
+    PartPaint seam = keyline;
+    seam.role = PartRole::seam;
     if (cell_border_style_ == TableCellBorderStyle::single) {
-        draw_table_grid(painter, columns, row_heights_, origin, track_spacing_,
-                        width, height, style.border, 0.0);
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+                        width, height, keyline, 0.0);
     } else if (cell_border_style_ == TableCellBorderStyle::inset) {
-        draw_table_grid(painter, columns, row_heights_, origin, track_spacing_,
-                        width, height, style.dark_border, 0.0);
-        draw_table_grid(painter, columns, row_heights_, origin, track_spacing_,
-                        width, height, style.highlight, 1.0);
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+                        width, height, keyline, 0.0);
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+                        width, height, seam, 1.0);
     } else {
-        draw_table_grid(painter, columns, row_heights_, origin, track_spacing_,
-                        width, height, style.highlight, 0.0);
-        draw_table_grid(painter, columns, row_heights_, origin, track_spacing_,
-                        width, height, style.dark_border, 1.0);
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+                        width, height, seam, 0.0);
+        draw_table_grid(painter, *this, columns, row_heights_, origin, track_spacing_,
+                        width, height, keyline, 1.0);
     }
 }
 

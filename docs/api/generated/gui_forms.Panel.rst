@@ -233,6 +233,10 @@ gui_forms::Panel
 
    .. cpp:function:: Insets visual_outsets() const noexcept override
 
+   .. cpp:function:: bool paint_depends_on_size() const noexcept override
+
+      False for a borderless panel without scroll bars whose face is a solid colour or a size-invariant material (surface_material_size_invariant).
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override

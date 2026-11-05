@@ -2,8 +2,8 @@
 
 namespace gui_forms {
 
-void Window::set_text_metrics_provider(TextMetricsProvider* provider) {
-    require_ui_thread("set_text_metrics_provider");
+void SurfaceRoot::set_text_metrics_provider(TextMetricsProvider* provider) {
+    require_root_thread("set_text_metrics_provider");
     if (text_metrics_provider_ == provider) return;
     text_metrics_provider_ = provider;
     if (root_ && (*root_).is_alive()) {
@@ -12,7 +12,7 @@ void Window::set_text_metrics_provider(TextMetricsProvider* provider) {
     }
 }
 
-ResolvedTextLayout Window::resolve_text_layout_utf8(
+ResolvedTextLayout SurfaceRoot::resolve_text_layout_utf8(
     std::string_view utf8, FontSpec effective_font) const {
     if (!valid_font_spec(effective_font)) {
         return estimate_text_layout_utf8(utf8, effective_font);
@@ -23,7 +23,7 @@ ResolvedTextLayout Window::resolve_text_layout_utf8(
         : estimate_text_layout_utf8(utf8, effective_font);
 }
 
-TextResolutionStatus Window::fill_line_break_opportunities_utf8(
+TextResolutionStatus SurfaceRoot::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) const {
     if (text_metrics_provider_ == nullptr) {
         return estimate_line_break_opportunities_utf8(utf8, opportunities);

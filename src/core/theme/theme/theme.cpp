@@ -71,6 +71,26 @@ double filter_reach(const SurfaceMaterial& material) noexcept {
     return reach;
 }
 
+bool unit_interval(double value) noexcept {
+    const bool inside = std::isfinite(value) && value >= 0.0 && value <= 1.0;
+    return inside;
+}
+
+// A reflection (T5 C7): a known edge, a gap of zero or more and a reach
+// above zero that together stay within SurfaceMaterial::
+// maximum_reflection_reach, and opacities in [0, 1].
+bool valid_material_reflection(const MaterialReflection& reflection) noexcept {
+    const bool edge_known =
+        static_cast<std::uint8_t>(reflection.edge) <= static_cast<std::uint8_t>(MaterialEdge::left);
+    const bool lengths = std::isfinite(reflection.gap) && std::isfinite(reflection.reach) && reflection.gap >= 0.0 &&
+                         reflection.reach > 0.0 &&
+                         reflection.gap + reflection.reach <= SurfaceMaterial::maximum_reflection_reach;
+    const bool opacities = unit_interval(reflection.start_opacity) && unit_interval(reflection.end_opacity);
+    const bool source_known = static_cast<std::uint8_t>(reflection.source) <=
+                              static_cast<std::uint8_t>(MaterialReflectionSource::backplane);
+    return edge_known && lengths && opacities && source_known;
+}
+
 bool valid_corner(double radius) noexcept {
     return std::isfinite(radius) && radius >= 0.0 && radius <= 4096.0;
 }
@@ -540,34 +560,105 @@ void fill_link_role(ControlRoleRecipes& result, Color text, Color disabled_text)
     }
 }
 
-// GUI.Forms' own high-contrast mode (T2 plan, E4; design language 5.8): a
-// near-colourless palette by surface state. Under the host's own mode the
-// host palette is meant to win; no host reports one to the core yet.
+// GUI.Forms' own high-contrast mode (T2 plan, E4; design language 5.8),
+// from the role model (T4 phase 5d): each colour role's high-contrast pair
+// in one table, and every surface state's palette read from those roles.
+// Under the host's own mode the host palette is meant to win; no host
+// reports one to the core yet.
+struct HighContrastPair final {
+    Color background{};
+    Color foreground{};
+};
+
+constexpr Color high_contrast_black = Color::rgba(0, 0, 0);
+constexpr Color high_contrast_white = Color::rgba(255, 255, 255);
+constexpr Color high_contrast_cyan = Color::rgba(0, 255, 255);
+constexpr Color high_contrast_invalid = Color::rgba(255, 96, 96);
+constexpr Color high_contrast_disabled_ink = Color::rgba(160, 160, 160);
+// Two state colours no colour role names: the pressed edge and the
+// disabled edge.
+constexpr Color high_contrast_pressed_edge = Color::rgba(255, 255, 0);
+constexpr Color high_contrast_disabled_edge = Color::rgba(128, 128, 128);
+
+constexpr HighContrastPair high_contrast_ink{high_contrast_black, high_contrast_white};
+constexpr HighContrastPair high_contrast_inverse{high_contrast_white, high_contrast_black};
+constexpr HighContrastPair high_contrast_plate{high_contrast_black, high_contrast_black};
+constexpr HighContrastPair high_contrast_line{high_contrast_black, high_contrast_white};
+constexpr HighContrastPair high_contrast_cue{high_contrast_black, high_contrast_cyan};
+
+// By ColourRole, in its order. A single role's colour is its foreground;
+// its background is the plate it lies on.
+constexpr std::array<HighContrastPair, colour_role_count> high_contrast_roles{{
+    high_contrast_ink,                                          // ink_on_paper
+    high_contrast_ink,                                          // muted_ink_on_paper
+    high_contrast_ink,                                          // ink_on_soft_paper
+    high_contrast_ink,                                          // ink_on_chrome
+    high_contrast_ink,                                          // ink_on_chrome_low
+    high_contrast_ink,                                          // ink_on_near_white_stock
+    high_contrast_inverse,                                      // selection_ink_on_selection
+    high_contrast_ink,                                          // ink_on_gold
+    high_contrast_inverse,                                      // on_accent_on_accent
+    high_contrast_ink,                                          // signal_on_paper
+    high_contrast_ink,                                          // success_on_paper
+    high_contrast_ink,                                          // pending_ink_on_tint
+    {high_contrast_black, high_contrast_invalid},               // invalid_ink_on_tint
+    {high_contrast_black, high_contrast_disabled_ink},          // disabled_ink_on_chrome
+    {high_contrast_black, high_contrast_disabled_ink},          // disabled_ink_on_paper
+    high_contrast_ink,                                          // phosphor_on_instrument_black
+    high_contrast_ink,                                          // command_link_ink_on_paper
+    high_contrast_plate,                                        // chrome_highlight
+    high_contrast_plate,                                        // chrome
+    high_contrast_plate,                                        // chrome_middle
+    high_contrast_plate,                                        // chrome_low
+    high_contrast_line,                                         // ordinary_line
+    high_contrast_line,                                         // dark_line
+    high_contrast_plate,                                        // shadow
+    high_contrast_cue,                                          // selection_line
+    high_contrast_cue,                                          // focus
+}};
+static_assert(static_cast<std::size_t>(ColourRole::focus) + 1U == colour_role_count,
+              "high_contrast_roles lists every colour role");
+
+HighContrastPair high_contrast_role(ColourRole role) noexcept {
+    const std::size_t index = static_cast<std::size_t>(role);
+    if (index >= colour_role_count) return high_contrast_ink;
+    return high_contrast_roles[index];
+}
+
+// A surface state's palette: its plate, edge, text and focus ring.
 struct HighContrastColours final {
     Color plate{};
     Color edge{};
     Color text{};
+    Color focus{};
 };
 
+// Read from the roles: the chrome plate, the ordinary line, the ink on
+// chrome and the focus cue, unless the state says otherwise.
 HighContrastColours high_contrast_colours(ControlSurfaceState state) noexcept {
-    const Color black = Color::rgba(0, 0, 0);
-    const Color white = Color::rgba(255, 255, 255);
-    // Black plates, white edges and text, unless the state says otherwise.
-    HighContrastColours colours{black, white, white};
+    HighContrastColours colours{high_contrast_role(ColourRole::chrome).foreground,
+                                high_contrast_role(ColourRole::ordinary_line).foreground,
+                                high_contrast_role(ColourRole::ink_on_chrome).foreground,
+                                high_contrast_role(ColourRole::focus).foreground};
     switch (state) {
     case ControlSurfaceState::hot:
     case ControlSurfaceState::pending:
-        colours.edge = Color::rgba(0, 255, 255);
+        colours.edge = high_contrast_role(ColourRole::focus).foreground;
         return colours;
-    case ControlSurfaceState::pressed:
-        colours = HighContrastColours{white, Color::rgba(255, 255, 0), black};
+    case ControlSurfaceState::pressed: {
+        // Pressed is drawn inverse, as a selection, with its ink as the
+        // focus ring (the cue colour does not show on the light plate).
+        const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
+        colours = HighContrastColours{selection.background, high_contrast_pressed_edge, selection.foreground,
+                                      selection.foreground};
         return colours;
+    }
     case ControlSurfaceState::invalid:
-        colours.edge = Color::rgba(255, 96, 96);
+        colours.edge = high_contrast_role(ColourRole::invalid_ink_on_tint).foreground;
         return colours;
     case ControlSurfaceState::disabled:
-        colours.edge = Color::rgba(128, 128, 128);
-        colours.text = Color::rgba(160, 160, 160);
+        colours.edge = high_contrast_disabled_edge;
+        colours.text = high_contrast_role(ColourRole::disabled_ink_on_chrome).foreground;
         return colours;
     case ControlSurfaceState::normal:
     case ControlSurfaceState::deactivated:
@@ -579,11 +670,14 @@ HighContrastColours high_contrast_colours(ControlSurfaceState state) noexcept {
 }
 
 // One state's derived record: the ordinary record's geometry and cues (its
-// corner radii, edge width, focus and default rings, offsets) kept, its
-// material rebuilt as one solid plate inside one solid edge, so that every
-// gradient, image, keyline, per-edge border, shadow and glow is dropped.
+// corner radii, edge width, ring widths and offsets) kept, its material
+// rebuilt as one solid plate inside one solid edge, so that every gradient,
+// image, keyline, per-edge border, shadow and glow is dropped. Its text,
+// glyph and muted text are `text` (high contrast has no quieter tone: muted
+// text must meet 7:1 too), and its focus ring is `focus` (phase 5d: the
+// ordinary ring colours failed the high-contrast gate).
 ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, Color plate, Color edge,
-                                          Color text) {
+                                          Color text, Color focus) {
     ControlVisualRecipe result = ordinary;
     const double edge_width = ordinary.material.border ? (*ordinary.material.border).width : 1.0;
     SurfaceMaterial material{};
@@ -594,6 +688,8 @@ ControlVisualRecipe derived_high_contrast(const ControlVisualRecipe& ordinary, C
     result.material = std::move(material);
     result.text = text;
     result.glyph = text;
+    result.muted_text = text;
+    result.focus_ring = focus;
     return result;
 }
 
@@ -938,6 +1034,7 @@ bool valid_surface_material(const SurfaceMaterial& material) noexcept {
         const MaterialFillLayer& mask = *material.mask;
         if (mask.kind == MaterialFillKind::procedural || !valid_fill_layer(mask)) return false;
     }
+    if (material.reflection && !valid_material_reflection(*material.reflection)) return false;
     return true;
 }
 
@@ -1038,6 +1135,15 @@ void paint_surface_material(Painter& painter, Rect bounds,
 
 Insets surface_material_visual_outsets(const SurfaceMaterial& material) noexcept {
     Insets result = box_shadow_visual_outsets(material.shadows);
+    // A reflection (T5 C7) reaches past its one edge.
+    if (material.reflection) {
+        const MaterialReflection& reflection = *material.reflection;
+        const double reach = reflection.gap + reflection.reach;
+        if (reflection.edge == MaterialEdge::top) result.top = std::max(result.top, reach);
+        if (reflection.edge == MaterialEdge::right) result.right = std::max(result.right, reach);
+        if (reflection.edge == MaterialEdge::bottom) result.bottom = std::max(result.bottom, reach);
+        if (reflection.edge == MaterialEdge::left) result.left = std::max(result.left, reach);
+    }
     for (const MaterialGlow& glow : material.glows) {
         // An over glow lies within the box.
         if (glow.placement != MaterialGlowPlacement::under) continue;
@@ -1054,13 +1160,44 @@ bool surface_material_opaque(const SurfaceMaterial& material) noexcept {
     if (!valid_surface_material(material) || material.finish != 0.0) return false;
     if (material.corner_radius != 0.0 || material.corner_radii) return false;
     if (!(surface_material_visual_outsets(material) == Insets{})) return false;
-    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask) return false;
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+        material.reflection) {
+        return false;
+    }
     for (const MaterialFillLayer& fill : material.fills) {
         const bool opaque = fill.kind == MaterialFillKind::solid && fill.color.alpha == 255U &&
             fill.opacity == 1.0 && fill.blend == MaterialBlendMode::normal;
         if (opaque) return true;
     }
     return false;
+}
+
+std::optional<double> surface_material_resize_band(const SurfaceMaterial& material) noexcept {
+    if (!valid_surface_material(material) || material.finish != 0.0) return std::nullopt;
+    if (material.corner_radii) return std::nullopt;
+    if (!material.shadows.empty() || !material.glows.empty() || !material.keylines.empty()) return std::nullopt;
+    if (!material.border_edges.empty()) return std::nullopt;
+    if (!(surface_material_visual_outsets(material) == Insets{})) return std::nullopt;
+    if (material.colour_filter || material.filter_blur != 0.0 || material.drop_shadow || material.mask ||
+        material.reflection) {
+        return std::nullopt;
+    }
+    for (const MaterialFillLayer& fill : material.fills) {
+        if (fill.kind != MaterialFillKind::solid) return std::nullopt;
+    }
+    double band = std::max(0.0, material.corner_radius);
+    if (material.border) {
+        // A dashed or dotted border's pattern runs along each edge's length.
+        if ((*material.border).style != MaterialBorderStyle::solid) return std::nullopt;
+        band = std::max(band, (*material.border).width);
+    }
+    return band;
+}
+
+bool surface_material_size_invariant(const SurfaceMaterial& material) noexcept {
+    const std::optional<double> band = surface_material_resize_band(material);
+    const bool invariant = band && *band == 0.0;
+    return invariant;
 }
 
 Insets box_shadow_visual_outsets(std::span<const MaterialShadow> shadows) noexcept {
@@ -1106,11 +1243,17 @@ Color high_contrast_colour(ColourOrigin origin, ColourPosition position, Control
                            bool selected) noexcept {
     HighContrastColours colours = high_contrast_colours(state);
     if (selected) {
-        colours.plate = Color::rgba(255, 255, 255);
-        colours.text = Color::rgba(0, 0, 0);
+        const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
+        colours.plate = selection.background;
+        colours.text = selection.foreground;
+        colours.focus = selection.foreground;
     }
     if (origin.source != ColourSource::role) return by_position(colours, position);
     const bool foreground = origin.side == ColourRoleSide::foreground;
+    // The roles with a colour of their own take it from the role table; the
+    // ink, chrome and line roles take the state's palette, so that a pressed
+    // or selected part inverts.
+    const HighContrastPair pair = high_contrast_role(origin.role);
     switch (origin.role) {
     case ColourRole::disabled_ink_on_chrome:
     case ColourRole::disabled_ink_on_paper:
@@ -1118,11 +1261,11 @@ Color high_contrast_colour(ColourOrigin origin, ColourPosition position, Control
         return foreground_of(high_contrast_colours(ControlSurfaceState::disabled), position);
     case ColourRole::invalid_ink_on_tint:
         if (!foreground) return colours.plate;
-        return high_contrast_colours(ControlSurfaceState::invalid).edge;
-    case ColourRole::focus:
-    case ColourRole::selection_line: return high_contrast_colours(ControlSurfaceState::hot).edge;
+        return pair.foreground;
+    case ColourRole::focus: return colours.focus;
+    case ColourRole::selection_line: return pair.foreground;
     case ColourRole::selection_ink_on_selection:
-    case ColourRole::on_accent_on_accent: return foreground ? Color::rgba(0, 0, 0) : Color::rgba(255, 255, 255);
+    case ColourRole::on_accent_on_accent: return foreground ? pair.foreground : pair.background;
     case ColourRole::chrome_highlight:
     case ColourRole::chrome:
     case ColourRole::chrome_middle:
@@ -1196,6 +1339,7 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
         case MaterialField::filter_blur:
         case MaterialField::finish:
         case MaterialField::mask:
+        case MaterialField::reflection:
         case MaterialField::count:
         default: break; // Not drawn under the pass.
         }
@@ -1220,15 +1364,42 @@ void forced_material_fields(const std::array<const MaterialDeclaration*, materia
 
 } // namespace detail
 
-ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes) {
+ControlRoleRecipes derive_high_contrast_recipes(ControlRoleRecipes recipes, ControlVisualRole family) {
+    // Families whose text does not lie on a plate of their own never invert
+    // (T4 phase 5e): a container's children paint over its plate in their
+    // own states (a pressed or toggled card's white plate hid its
+    // children's white text), a choice's label lies on its parent's ground
+    // (a checked check box's black ink lay on black), and an editor's text
+    // lies on its well, which does not invert (a pressed combo box's).
+    // Pressed keeps the plain plate and ink inside the pressed edge, and
+    // selected the state's palette inside the selection line.
+    const bool container = family == ControlVisualRole::window || family == ControlVisualRole::panel ||
+                           family == ControlVisualRole::card || family == ControlVisualRole::choice ||
+                           family == ControlVisualRole::editor;
+    const HighContrastPair selection = high_contrast_role(ColourRole::selection_ink_on_selection);
     for (std::size_t index = 0; index < control_surface_state_count; ++index) {
         const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        const HighContrastColours colours = high_contrast_colours(state);
+        HighContrastColours colours = high_contrast_colours(state);
+        if (container && state == ControlSurfaceState::pressed) {
+            const HighContrastColours plain = high_contrast_colours(ControlSurfaceState::normal);
+            colours.plate = plain.plate;
+            colours.text = plain.text;
+            colours.focus = plain.focus;
+        }
         const ControlVisualRecipe& ordinary = recipes.ordinary[index];
-        recipes.high_contrast[index] = derived_high_contrast(ordinary, colours.plate, colours.edge, colours.text);
-        // Selected: a white plate inside the state's edge, with black text.
+        recipes.high_contrast[index] = derived_high_contrast(ordinary, colours.plate, colours.edge, colours.text,
+                                                             colours.focus);
+        if (container) {
+            const Color line = high_contrast_role(ColourRole::selection_line).foreground;
+            recipes.high_contrast_selected[index] =
+                derived_high_contrast(ordinary, colours.plate, line, colours.text, colours.focus);
+            continue;
+        }
+        // Selected: the selection's plate inside the state's edge, with its
+        // ink.
         recipes.high_contrast_selected[index] =
-            derived_high_contrast(ordinary, Color::rgba(255, 255, 255), colours.edge, Color::rgba(0, 0, 0));
+            derived_high_contrast(ordinary, selection.background, colours.edge, selection.foreground,
+                                  selection.foreground);
     }
     return recipes;
 }
@@ -1294,12 +1465,32 @@ std::unique_ptr<Theme> Theme::validated(const ThemeDefinition& definition) {
         throw std::invalid_argument(
             "theme window backdrop needs a valid request, no opaque base and valid base materials");
     }
+    const ColourSchemeSet schemes =
+        definition.rules.colour_schemes ? *definition.rules.colour_schemes : definition.colour_schemes;
+    if (!schemes.light && !schemes.dark) {
+        throw std::invalid_argument("theme must have a light or a dark variant");
+    }
     std::unique_ptr<Theme> theme(new Theme(definition));
+    // A sheet's `color-scheme` is the theme's (T4 theme variants).
+    (*theme).definition_.colour_schemes = schemes;
     // The forced high-contrast pass: every family's high-contrast records
     // are derived from its ordinary ones, replacing whatever was authored.
     // It reads only the roles, so the engine compiled from the rules stands.
-    for (ControlRoleRecipes& role : (*theme).definition_.roles) {
-        role = derive_high_contrast_recipes(std::move(role));
+    for (std::size_t index = 0; index < (*theme).definition_.roles.size(); ++index) {
+        ControlRoleRecipes& role = (*theme).definition_.roles[index];
+        role = derive_high_contrast_recipes(std::move(role), static_cast<ControlVisualRole>(index));
+    }
+    // The dark pass (T4 phase 5): derived when the definition asks for it,
+    // otherwise the ordinary records, so a dark window keeps its colours.
+    const bool derive_dark = definition.dark_variant == ThemeDarkVariant::derived;
+    for (std::size_t index = 0; index < (*theme).definition_.roles.size(); ++index) {
+        ControlRoleRecipes& role = (*theme).definition_.roles[index];
+        if (derive_dark) {
+            role = derive_dark_recipes(std::move(role), static_cast<ControlVisualRole>(index));
+        } else {
+            role.dark = role.ordinary;
+            role.dark_selected = role.selected;
+        }
     }
     return theme;
 }
@@ -1335,6 +1526,9 @@ const ControlVisualRecipe& Theme::resolve(
     if (context.high_contrast) {
         return context.selected ? recipes.high_contrast_selected[state_index]
                                 : recipes.high_contrast[state_index];
+    }
+    if (context.dark) {
+        return context.selected ? recipes.dark_selected[state_index] : recipes.dark[state_index];
     }
     return context.selected ? recipes.selected[state_index]
                             : recipes.ordinary[state_index];

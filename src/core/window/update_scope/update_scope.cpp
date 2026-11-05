@@ -33,7 +33,7 @@ void UpdateScope::abandon() noexcept {
 
 void UpdateScope::close() {
     if (window_) {
-        Window* closing = std::exchange(window_, nullptr);
+        SurfaceRoot* closing = std::exchange(window_, nullptr);
         (*closing).leave_update_scope();
     }
 }

@@ -4,8 +4,10 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "panel_anatomy.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <iterator>
 #include <memory>
@@ -146,48 +148,56 @@ Rect Panel::local_bounds() const noexcept {
     return {0.0, 0.0, arranged.width, arranged.height};
 }
 
+// The panel's face is a part the theme's engine draws in the panel's
+// visual role. A sunken border makes the face the editor's well and a raised
+// one the button's face; a line border is four keylines around the face. A
+// background or style override supplies the face's ground (T4-1).
 void Panel::paint_panel(Painter& painter, Rect bounds) const {
-    const BasicControlStyle& colors = style();
-    if (!face_colour() && !style_override_) {
-        paint_surface_material(
-            painter, bounds,
-            effective_theme().resolve(visual_role_, visual_context()).material);
-        if (border_style_ == BorderStyle::none) return;
-    } else {
-        painter.fill_rect(bounds, background());
+    PartPaint face;
+    face.family = visual_role_;
+    face.role = PartRole::face;
+    face.bounds = bounds;
+    if (border_style_ == BorderStyle::sunken) {
+        face.family = ControlVisualRole::editor;
+        face.role = PartRole::well;
+    } else if (border_style_ == BorderStyle::raised) {
+        face.family = ControlVisualRole::button;
     }
-    switch (border_style_) {
-    case BorderStyle::none:
-        // No border; the face is the whole panel.
-        return;
-    case BorderStyle::line:
-        painter.stroke_rect({0.5, 0.5, std::max(0.0, bounds.width - 1.0),
-                             std::max(0.0, bounds.height - 1.0)},
-                            colors.border, 1.0);
-        return;
-    case BorderStyle::sunken:
-        painter.draw_line({0.0, 0.0}, {bounds.width, 0.0}, colors.dark_border, 1.0);
-        painter.draw_line({0.0, 0.0}, {0.0, bounds.height}, colors.dark_border, 1.0);
-        painter.draw_line({0.0, bounds.height - 1.0},
-                          {bounds.width, bounds.height - 1.0}, colors.highlight, 1.0);
-        painter.draw_line({bounds.width - 1.0, 0.0},
-                          {bounds.width - 1.0, bounds.height}, colors.highlight, 1.0);
-        return;
-    case BorderStyle::raised:
-        painter.draw_line({0.0, 0.0}, {bounds.width, 0.0}, colors.highlight, 1.0);
-        painter.draw_line({0.0, 0.0}, {0.0, bounds.height}, colors.highlight, 1.0);
-        painter.draw_line({0.0, bounds.height - 1.0},
-                          {bounds.width, bounds.height - 1.0}, colors.dark_border, 1.0);
-        painter.draw_line({bounds.width - 1.0, 0.0},
-                          {bounds.width - 1.0, bounds.height}, colors.dark_border, 1.0);
-        return;
+    // The panel's own colour (face_colour) or a style override supplies the
+    // face's ground.
+    const std::optional<Color> face_ground = face_colour();
+    if (face_ground) face.authored_background = *face_ground;
+    if (!face_ground && style_override_) face.authored_background = background();
+    paint_part(painter, *this, face);
+    if (border_style_ != BorderStyle::line) return;
+    PartPaint rule;
+    rule.family = visual_role_;
+    rule.role = PartRole::keyline;
+    const double right = std::max(0.0, bounds.width - 1.0);
+    const double bottom = std::max(0.0, bounds.height - 1.0);
+    const std::array<Rect, 4> sides{{
+        {0.0, 0.0, bounds.width, 1.0},
+        {0.0, bottom, bounds.width, 1.0},
+        {0.0, 0.0, 1.0, bounds.height},
+        {right, 0.0, 1.0, bounds.height},
+    }};
+    for (const Rect& side : sides) {
+        rule.bounds = side;
+        paint_part(painter, *this, rule);
     }
-    // A style outside the enumeration draws no border.
-    return;
 }
 
+bool Panel::paint_depends_on_size() const noexcept {
+    if (border_style_ != BorderStyle::none || hscroll() || vscroll()) return true;
+    if (background_override_ || style_override_) return false;
+    const bool invariant = surface_material_size_invariant(
+        effective_theme().resolve(visual_role_, visual_context()).material);
+    return !invariant;
+}
+
+// An authored background keeps the material's border and shadows (T4-1),
+// so the outsets are the material's either way.
 Insets Panel::visual_outsets() const noexcept {
-    if (face_colour() || style_override_) return {};
     return surface_material_visual_outsets(
         effective_theme().resolve(visual_role_, visual_context()).material);
 }
