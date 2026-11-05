@@ -718,7 +718,7 @@ public:
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 22U;
+    static constexpr std::size_t control_property_count = 23U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -1285,6 +1285,10 @@ private:
         auto_size_mode_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         layout_direction_property_enum();
+    // The classes property: a collection of text, one item per class in
+    // order. Setting it refuses an invalid name as set_classes does.
+    [[nodiscard]] BindingValue classes_property_value() const;
+    void set_classes_property_value(const BindingValue& value);
     // The cursor property: "inherit" (no cursor of its own) or a kind.
     [[nodiscard]] BindingValue cursor_property_value() const;
     void set_cursor_property_value(const BindingValue& value);
@@ -1474,6 +1478,7 @@ private:
         accessible_description,
         tool_tip_text,
         cursor,
+        classes,
         back_color,
         fore_color,
     };
@@ -1561,6 +1566,8 @@ private:
                 return BindingValue{(*control).tool_tip_text.read()};
             } else if constexpr (Property == RegisteredProperty::cursor) {
                 return (*control).cursor_property_value();
+            } else if constexpr (Property == RegisteredProperty::classes) {
+                return (*control).classes_property_value();
             } else if constexpr (Property == RegisteredProperty::back_color) {
                 return (*control).back_color_property_value();
             } else if constexpr (Property == RegisteredProperty::fore_color) {
@@ -1663,6 +1670,8 @@ private:
                 (*control).tool_tip_text = std::get<std::string>(*converted);
             } else if constexpr (Property == RegisteredProperty::cursor) {
                 (*control).set_cursor_property_value(value);
+            } else if constexpr (Property == RegisteredProperty::classes) {
+                (*control).set_classes_property_value(value);
             } else if constexpr (Property == RegisteredProperty::back_color) {
                 (*control).set_back_color_property_value(value);
             } else if constexpr (Property == RegisteredProperty::fore_color) {

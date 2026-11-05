@@ -209,7 +209,7 @@ gui_forms::Label
 
       Sets :cpp:func:`text_style_role <gui_forms::Label::text_style_role>`; see the property's description above.
 
-   .. cpp:function:: Color foreground() const noexcept
+   .. cpp:function:: Color foreground() const
 
       The text colour: the one given to :cpp:func:`set_foreground <gui_forms::Label::set_foreground>`, or else the theme's
       text colour. :cpp:func:`clear_foreground <gui_forms::Label::clear_foreground>` returns to the theme's colour.

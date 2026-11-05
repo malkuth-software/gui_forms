@@ -1,6 +1,7 @@
 #include "gui_forms/control.hpp"
 
 #include "gui_forms/binding.hpp"
+#include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -355,6 +356,26 @@ void Control::set_cursor_property_value(const BindingValue& value) {
     cursor = static_cast<CursorKind>(choice.value - 1);
 }
 
+BindingValue Control::classes_property_value() const {
+    std::vector<BindingValue> names{};
+    names.reserve(classes_.size());
+    for (const std::string& name : classes_) names.emplace_back(name);
+    BindingValue value{make_property_collection("String", BindingValueKind::text, std::move(names))};
+    return value;
+}
+
+void Control::set_classes_property_value(const BindingValue& value) {
+    const PropertyCollectionValue* collection = std::get_if<PropertyCollectionValue>(&value);
+    if (collection == nullptr || !*collection || (*collection).item_kind() != BindingValueKind::text) {
+        throw std::invalid_argument("Control.Classes requires a homogeneous text collection");
+    }
+    const std::span<const BindingValue> items = property_collection_items(*collection);
+    std::vector<std::string> names{};
+    names.reserve(items.size());
+    for (const BindingValue& item : items) names.push_back(std::get<std::string>(item));
+    set_classes(std::move(names));
+}
+
 BindingValue Control::back_color_property_value() const {
     if (!back_color.read()) {
         return BindingValue{};
@@ -592,6 +613,21 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         cursor.bindable = false;
         cursor.enumeration = cursor_kind_property_enum();
         return cursor;
+    }
+    case RegisteredProperty::classes: {
+        // The style classes a theme's class rules select (owner ruling of
+        // 2026-11-04): the ontology names a control's role, the project theme
+        // gives the role its look.
+        PropertyDescriptor classes;
+        classes.name = "classes";
+        classes.kind = BindingValueKind::collection;
+        classes.category = "Appearance";
+        classes.description = "The style classes the theme's class rules select, in order; repeated names are dropped.";
+        classes.default_value = BindingValue{make_property_collection("String", BindingValueKind::text, {})};
+        classes.invalidation_effects = Dirty::style | Dirty::paint;
+        classes.serialization_visibility = PropertySerializationVisibility::content;
+        classes.bindable = false;
+        return classes;
     }
     case RegisteredProperty::back_color: {
         PropertyDescriptor back_color;
@@ -854,6 +890,8 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::tool_tip_text>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::tool_tip_text>},
         {"cursor", &describe_registered<RegisteredProperty::cursor>, &read_registered<RegisteredProperty::cursor>,
          &write_registered<RegisteredProperty::cursor>, nullptr, nullptr, nullptr, nullptr},
+        {"classes", &describe_registered<RegisteredProperty::classes>, &read_registered<RegisteredProperty::classes>,
+         &write_registered<RegisteredProperty::classes>, nullptr, nullptr, nullptr, nullptr},
         {"back_color", &describe_registered<RegisteredProperty::back_color>, &read_registered<RegisteredProperty::back_color>,
          &write_registered<RegisteredProperty::back_color>, &reset_registered<RegisteredProperty::back_color>, nullptr, nullptr, nullptr},
         {"fore_color", &describe_registered<RegisteredProperty::fore_color>, &read_registered<RegisteredProperty::fore_color>,

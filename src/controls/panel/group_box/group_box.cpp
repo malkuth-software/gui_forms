@@ -92,6 +92,15 @@ void GroupBox::on_paint(Painter& painter, Rect) {
         ground.corner_radius = 0.0;
         ground.authored_background = background();
         paint_part(painter, *this, ground);
+    } else if (face_selected_by_rule()) {
+        // A theme rule that selects the face (G3) draws it over the frame,
+        // where the override's ground would be.
+        PartPaint face;
+        face.family = ControlVisualRole::panel;
+        face.role = PartRole::face;
+        face.key = PartKey{"face", {}, {}};
+        face.bounds = {0.0, rule_y, bounds.width, std::max(0.0, bounds.height - rule_y)};
+        paint_part(painter, *this, face);
     }
     const Rect gap = caption_bounds();
     const double top = rule_y - 0.5;

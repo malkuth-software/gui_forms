@@ -175,7 +175,7 @@ gui_forms::Panel
 
       Sets :cpp:func:`border_style <gui_forms::Panel::border_style>`; see the property's description above.
 
-   .. cpp:function:: Color background() const noexcept
+   .. cpp:function:: Color background() const
 
       The fill colour. Until you call :cpp:func:`set_background <gui_forms::Panel::set_background>` it comes from the
       theme's surface for :cpp:func:`visual_role <gui_forms::Panel::visual_role>`. :cpp:func:`clear_background <gui_forms::Panel::clear_background>` returns to the
@@ -262,3 +262,9 @@ gui_forms::Panel
       *Protected.*
 
       The scrollable parts, the face, and the edge when a border style is set.
+
+   .. cpp:function:: bool face_selected_by_rule() const noexcept
+
+      *Protected.*
+
+      Whether a theme rule selects a primitive for the face (G3): then the rule, not the recipe, decides what the face draws.

@@ -104,7 +104,7 @@ Label::Label(StableId stable_id, std::string text)
     foreground.bindable = false;
     define_bindable_property({
         std::move(foreground),
-        detail::BindingNoexceptMethodGetter<Label, Color>(
+        detail::BindingMethodGetter<Label, Color>(
             *this, &Label::foreground),
         detail::DirectPropertySetter<Label, Color>(
             *this, &Label::set_foreground), {},
@@ -277,10 +277,15 @@ void Label::set_text_style_role(TextStyleRole role) {
     }
 }
 
-Color Label::foreground() const noexcept {
+// The text colour paint_label_text draws: the authored foreground, or the
+// theme's text with the fields of the rules that select this label (its
+// type, stable ID, classes and states) in place (G3).
+Color Label::foreground() const {
     if (foreground_override_) return *foreground_override_;
-    return effective_theme().resolve(ControlVisualRole::panel,
-                                     visual_context()).text;
+    const ResolvedControlRecipe resolved =
+        effective_theme().resolve(*this, ControlVisualRole::panel, visual_context());
+    const Color text = resolved.recipe().text;
+    return text;
 }
 
 void Label::set_foreground(Color color) {
