@@ -332,6 +332,11 @@ void SplitterGrip::on_paint(Painter& painter, Rect) {
                                     std::max(0.0, bounds.height - height));
         band.bounds = {0.0, y, bounds.width, height};
     }
+    // A band narrower than 2 px is a hairline: its face is the whole line,
+    // and an edge stroke would draw over it.
+    const double thickness = orientation_ == Orientation::vertical ? band.bounds.width
+                                                                  : band.bounds.height;
+    band.frame = thickness < 2.0 ? PartFrame::none : PartFrame::drawn;
     paint_part(painter, *this, band);
     if (collapse_panel_ == SplitFixedPanel::none) return;
 

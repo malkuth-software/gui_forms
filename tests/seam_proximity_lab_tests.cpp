@@ -119,7 +119,7 @@ void test_trace_scale_state_input_and_inspection() {
     const VisualControlInspection* grip =
         snapshot.find("seam-proximity.hairline.splitter");
     const VisualPaintOperationSnapshot* fill = grip ? first_fill(*grip) : nullptr;
-    // Bounded: the band's face and edge (2), the tab's clip, face, gradient,
+    // Bounded: the band's face (1; no edge below 2 px), the tab's clip, face, gradient,
     // restore and edge (5), and its arrow mark's four rows (4).
     require(grip && fill && near((*fill).rect.width, 1.0) &&
                 (*grip).display_chunk_current &&
