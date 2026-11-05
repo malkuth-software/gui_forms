@@ -1,0 +1,30 @@
+/* The Gallery's project theme (owner rulings of 2026-11-04). A form
+   document is ontological: it names each object's role with `classes`,
+   and this sheet gives the roles their look. The Gallery compiles it at
+   start-up (make_gallery) onto the built-in professional theme and selects
+   it for its window; gui_forms_add_theme embeds it and checks it against
+   the Gallery's form documents.
+
+   Light only for now: the shell's own colours (page style, canvas) are
+   still code, and a dark variant waits until they are themed too. */
+
+/* Text roles: colour roles, never literals, so that forced high contrast
+   replaces each by meaning (a literal text colour warns, W201). The role
+   names are the theme language's fixed vocabulary; this package's palette
+   gives them the Gallery's own colours, and its rules alone read them. */
+:root {
+  ink-on-paper: #182d42 on #ffffff;
+  muted-ink-on-paper: #5b6b79 on #ffffff;
+  success-on-paper: #318b5e on #ffffff;
+  ink-on-soft-paper: #1c2732 on #ffffff;
+  command-link-ink-on-paper: #2774b8 on #ffffff;
+}
+.heading { color: role(ink-on-paper); }
+.muted { color: role(muted-ink-on-paper); }
+.positive { color: role(success-on-paper); }
+.ink { color: role(ink-on-soft-paper); }
+.accent-text { color: role(command-link-ink-on-paper); }
+
+/* A page group's paper face: the `background` shorthand, since
+   background-color alone lies under the recipe's gradient layers (CSS). */
+.paper::part(face) { background: #ffffff; }

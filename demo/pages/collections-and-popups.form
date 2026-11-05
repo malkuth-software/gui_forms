@@ -16,13 +16,13 @@ scaled-panel gallery.collections.document {
   label gallery.collections.heading {
     text: "COLLECTIONS AND POPUPS";
     font: content 22 700;
-    fore-color: #182d42;
+    classes: "heading";
     bounds: 24 18 620 34;
   }
   label gallery.collections.lead {
     text: "Single and extended selection, virtualized rows, keyboard traversal, overlay dismissal, and focus restoration.";
     font: content 12 400;
-    fore-color: #5b6b79;
+    classes: "muted";
     bounds: 26 52 900 24;
   }
 
@@ -31,6 +31,7 @@ scaled-panel gallery.collections.document {
     font: control 12 700 spacing 0.24;
     design-size: 450 360;
     bounds: 24 92 450 360;
+    classes: "paper";
     list-box gallery.collections.single.list {
       accessible-name: "Single-selection locations";
       items: "Local volumes" "Recent locations" "Pinned folders" "Saved searches" "Plugin surfaces"
@@ -44,6 +45,7 @@ scaled-panel gallery.collections.document {
     font: control 12 700 spacing 0.24;
     design-size: 460 360;
     bounds: 494 92 460 360;
+    classes: "paper";
     list-box gallery.collections.multi.list {
       accessible-name: "Extended-selection framework features";
       selection-mode: multiple-extended;
@@ -58,6 +60,7 @@ scaled-panel gallery.collections.document {
     font: control 12 700 spacing 0.24;
     design-size: 930 160;
     bounds: 24 474 930 160;
+    classes: "paper";
     combo-box gallery.collections.combo.profile {
       accessible-name: "Visual profile";
       items: "Windows 7 professional" "Windows 10 professional" "System neutral" "High contrast";
@@ -84,7 +87,7 @@ scaled-panel gallery.collections.document {
     label gallery.collections.status {
       text: "Popup overlays are root-attached, owner-revoked, and focus-contained.";
       font: content 11 600;
-      fore-color: #318b5e;
+      classes: "positive";
       bounds: 24 96 780 26;
     }
   }

@@ -938,6 +938,9 @@ endif()
 # SDK consumers.
 include(cmake/GUIFormsForms.cmake)
 install(FILES cmake/GUIFormsForms.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+include(cmake/GUIFormsThemes.cmake)
+install(FILES cmake/GUIFormsThemes.cmake cmake/GUIFormsThemeEmbed.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
 add_library(gui_forms_c_api SHARED
     src/abi/c_api.cpp
@@ -1612,6 +1615,18 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ImagesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/ranges-and-progress.form
         CLASS RangesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
+        CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
+        CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
+    # The Gallery's project theme (owner rulings of 2026-11-04): the forms
+    # name roles by class; the theme gives the roles their look.
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
+        FUNCTION gallery_theme_package NAMESPACE gui_forms::gallery
+        FORMS demo/gallery.form demo/pages/typography-and-inspection.form
+            demo/pages/animation-laboratory.form demo/pages/collections-and-popups.form
+            demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
+            demo/pages/semantic-feedback.form demo/pages/control-spectrum.form)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own

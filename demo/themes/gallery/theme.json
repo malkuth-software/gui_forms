@@ -1,0 +1,7 @@
+{
+  "format": "gui-forms-theme/1",
+  "name": "gallery",
+  "version": "1.0.0",
+  "engine": ">=0.3",
+  "sheet": {"path": "gallery.theme.css", "sha256": "b666d16a073927d96fea246e4869baa0cf2b0f5d121135509aef4abaaecb3469"}
+}

@@ -48,14 +48,12 @@ private:
             Control::Ptr moved = root.remove_child((*child).runtime_id());
             (*body).add_child(std::move(moved));
         }
-        // What the form language does not state yet: the page style, and the
-        // groups' paper face (Panel's own background, not the ambient
-        // back-color).
+        // The page style stays code; the groups' paper face is the Gallery
+        // theme's `paper` class (demo/themes/gallery).
         const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
             document_.gallery_collections_single, document_.gallery_collections_multi,
             document_.gallery_collections_combos};
         for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_background(paper);
             (*group).set_style(page_style());
         }
     }

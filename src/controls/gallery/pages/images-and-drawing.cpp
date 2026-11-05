@@ -8,8 +8,8 @@ namespace gui_forms::gallery::pages {
 // describes (every PictureBox sizing mode, image opacity, the DrawingSurface
 // painter composition, a RasterCanvas and two MaterialPanel materials) and
 // what the form language does not state: the pictures' grounds, the board's
-// paint callback, the raster's bitmap and sampling, the page style and the
-// groups' paper face. The page has no interactive state.
+// paint callback, the raster's bitmap and sampling and the page style. The
+// page has no interactive state.
 class ImagesPage final : public gui_forms::Component {
 public:
     explicit ImagesPage(const std::shared_ptr<Surface>& body);
@@ -45,7 +45,6 @@ void ImagesPage::mount_document(const std::shared_ptr<Surface>& body) {
     const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
         document_.gallery_images_modes, document_.gallery_images_opacity, document_.gallery_images_primitives};
     for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_background(paper);
         (*group).set_style(page_style());
     }
 }

@@ -512,6 +512,18 @@ struct PageDigest final {
 // label and focus parts; hit testing uses the same shape. Recorded again:
 // tree-and-object-views.
 //
+// FD6.3's Gallery project theme (demo/themes/gallery, selected by
+// make_gallery) and the `classes` property: the page headings, leads and
+// group faces moved from code and `fore-color` to classes the theme styles,
+// with the same colours, and control-spectrum and semantic-feedback became
+// form documents. Against cp16's traces only three pages differ:
+// values-and-spinners' property grid gains the Classes row (its editor one
+// control more, and the rows below move), states-and-diagnostics' live
+// control count (1398) follows, and typography-and-inspection's inspector
+// names the selected theme ("gallery · inherited" for
+// "windows-professional"). No other page moved; those three were recorded
+// again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -524,10 +536,10 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"ranges-and-progress", 0x0840937a6e04608eULL},
     {"containers-and-focus", 0x3db49ebe2198a393ULL},
     {"animation-laboratory", 0x9e6b2dc688c4f733ULL},
-    {"states-and-diagnostics", 0xe8a44653a431fbacULL},
+    {"states-and-diagnostics", 0x28a54f2b83e37a97ULL},
     {"text-and-input", 0xd63d5868c06666d0ULL},
     {"collections-and-popups", 0x269da5a860f1ecb0ULL},
-    {"values-and-spinners", 0xac4f161c0872610cULL},
+    {"values-and-spinners", 0x7d208b2ba561ffacULL},
     {"images-and-drawing", 0x32e1f240ea4e25ebULL},
     {"tabs-and-pages", 0x560a6fa02160dc77ULL},
     {"checked-collections", 0x566f6f923810a6d8ULL},
@@ -545,7 +557,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"responsive-layouts", 0x69e0ea0983dd9cf8ULL},
     {"anchored-popups", 0x837ef0d60de1508eULL},
     {"live-surfaces", 0x7633da7d2d0cd584ULL},
-    {"typography-and-inspection", 0xa07f3abd48bcf56bULL},
+    {"typography-and-inspection", 0xf49c41d11f381597ULL},
     {"semantic-feedback", 0xadd8151ebca966baULL},
 }};
 

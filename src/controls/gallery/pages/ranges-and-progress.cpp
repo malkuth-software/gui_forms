@@ -46,7 +46,6 @@ private:
             document_.gallery_ranges_sliders, document_.gallery_ranges_progress,
             document_.gallery_ranges_instruments};
         for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-            (*group).set_background(paper);
             (*group).set_style(page_style());
         }
         shared_ = document_.gallery_ranges_shared;

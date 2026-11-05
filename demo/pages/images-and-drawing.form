@@ -8,21 +8,21 @@
    children into the shell's page body (a 1000 x 660 design surface), where
    each is placed by its bounds in design coordinates. The page keeps in
    code what the form language does not state: the pictures' grounds, the
-   drawing board's paint callback, the raster's bitmap and sampling, the
-   page style and the groups' paper face. */
+   drawing board's paint callback, the raster's bitmap and sampling and the
+   page style. The Gallery theme styles the classes. */
 scaled-panel gallery.images.document {
   design-size: 1000 660;
 
   label gallery.images.heading {
     text: "IMAGES AND DRAWING";
     font: content 22 700;
-    fore-color: #182d42;
+    classes: "heading";
     bounds: 24 18 620 34;
   }
   label gallery.images.lead {
     text: "Window-owned image resources, every PictureBox sizing policy, opacity, clipping, and retained painter primitives.";
     font: content 12 400;
-    fore-color: #5b6b79;
+    classes: "muted";
     bounds: 26 52 920 24;
   }
 
@@ -31,6 +31,7 @@ scaled-panel gallery.images.document {
     font: control 12 700 spacing 0.24;
     design-size: 930 290;
     bounds: 24 92 930 290;
+    classes: "paper";
     picture-box gallery.images.picture.0 {
       size-mode: normal;
       border-style: sunken;
@@ -40,14 +41,14 @@ scaled-panel gallery.images.document {
     label gallery.images.caption.0 {
       text: "Normal";
       font: content 11 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 22 216 158 24;
     }
     label gallery.images.behavior.0 {
       text: "Native pixels";
       font: content 10 400;
-      fore-color: #5b6b79;
+      classes: "muted";
       alignment: center;
       bounds: 22 242 158 22;
     }
@@ -60,14 +61,14 @@ scaled-panel gallery.images.document {
     label gallery.images.caption.1 {
       text: "StretchImage";
       font: content 11 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 202 216 158 24;
     }
     label gallery.images.behavior.1 {
       text: "Fill bounds";
       font: content 10 400;
-      fore-color: #5b6b79;
+      classes: "muted";
       alignment: center;
       bounds: 202 242 158 22;
     }
@@ -80,14 +81,14 @@ scaled-panel gallery.images.document {
     label gallery.images.caption.2 {
       text: "AutoSize";
       font: content 11 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 382 216 158 24;
     }
     label gallery.images.behavior.2 {
       text: "Intrinsic measure";
       font: content 10 400;
-      fore-color: #5b6b79;
+      classes: "muted";
       alignment: center;
       bounds: 382 242 158 22;
     }
@@ -100,14 +101,14 @@ scaled-panel gallery.images.document {
     label gallery.images.caption.3 {
       text: "CenterImage";
       font: content 11 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 562 216 158 24;
     }
     label gallery.images.behavior.3 {
       text: "Native centered";
       font: content 10 400;
-      fore-color: #5b6b79;
+      classes: "muted";
       alignment: center;
       bounds: 562 242 158 22;
     }
@@ -120,14 +121,14 @@ scaled-panel gallery.images.document {
     label gallery.images.caption.4 {
       text: "Zoom";
       font: content 11 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 742 216 158 24;
     }
     label gallery.images.behavior.4 {
       text: "Aspect fit";
       font: content 10 400;
-      fore-color: #5b6b79;
+      classes: "muted";
       alignment: center;
       bounds: 742 242 158 22;
     }
@@ -138,6 +139,7 @@ scaled-panel gallery.images.document {
     font: control 12 700 spacing 0.24;
     design-size: 450 220;
     bounds: 24 404 450 220;
+    classes: "paper";
     picture-box gallery.images.opacity.0 {
       size-mode: zoom;
       image-opacity: 1;
@@ -148,7 +150,7 @@ scaled-panel gallery.images.document {
     label gallery.images.opacity.caption.0 {
       text: "100%";
       font: content 10 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 22 164 120 22;
     }
@@ -162,7 +164,7 @@ scaled-panel gallery.images.document {
     label gallery.images.opacity.caption.1 {
       text: "60%";
       font: content 10 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 158 164 120 22;
     }
@@ -176,7 +178,7 @@ scaled-panel gallery.images.document {
     label gallery.images.opacity.caption.2 {
       text: "25%";
       font: content 10 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 294 164 120 22;
     }
@@ -187,6 +189,7 @@ scaled-panel gallery.images.document {
     font: control 12 700 spacing 0.24;
     design-size: 460 220;
     bounds: 494 404 460 220;
+    classes: "paper";
     drawing-surface gallery.images.drawing.board {
       accessible-name: "Renderer-neutral drawing primitive composition";
       accessible-description: "Nested clipping, translation, fills, strokes, lines, and text";
@@ -199,7 +202,7 @@ scaled-panel gallery.images.document {
     label gallery.images.raster.caption {
       text: "RASTER";
       font: content 9 700;
-      fore-color: #182d42;
+      classes: "heading";
       alignment: center;
       bounds: 224 34 96 16;
     }
@@ -211,7 +214,7 @@ scaled-panel gallery.images.document {
     label gallery.images.material.nine-patch.caption {
       text: "NINE-PATCH";
       font: content 9 700;
-      fore-color: #182d42;
+      classes: "heading";
       bounds: 334 34 106 16;
     }
     material-panel gallery.images.material.tile {
@@ -222,7 +225,7 @@ scaled-panel gallery.images.document {
     label gallery.images.material.tile.caption {
       text: "TEXTURE TILE";
       font: content 9 700;
-      fore-color: #182d42;
+      classes: "heading";
       bounds: 334 114 106 16;
     }
   }

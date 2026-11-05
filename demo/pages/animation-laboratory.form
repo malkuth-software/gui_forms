@@ -15,13 +15,13 @@ scaled-panel gallery.animation.document {
   label gallery.animation.heading {
     text: "ANIMATION LABORATORY";
     font: content 22 700;
-    fore-color: #182d42;
+    classes: "heading";
     bounds: 24 18 520 34;
   }
   label gallery.animation.lead {
     text: "Eight public easing curves, alternate direction, retained frame scheduling, hidden-page suspension.";
     font: content 12 400;
-    fore-color: #5b6b79;
+    classes: "muted";
     bounds: 26 52 900 24;
   }
 
@@ -35,6 +35,7 @@ scaled-panel gallery.animation.document {
     font: control 12 700 spacing 0.24;
     design-size: 930 168;
     bounds: 24 454 930 168;
+    classes: "paper";
     button gallery.animation.pause {
       text: "Pause motion";
       visual-style: accent;
@@ -43,7 +44,7 @@ scaled-panel gallery.animation.document {
     label gallery.animation.policy {
       text: "Animation is deadline-driven and quiescent when hidden or paused. No perpetual redraw loop.";
       font: content 12 400;
-      fore-color: #1c2732;
+      classes: "ink";
       bounds: 210 46 650 28;
     }
     check-box gallery.animation.reduced {

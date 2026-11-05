@@ -67,15 +67,12 @@ void TypographyPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    // What the form language does not state yet: the page style, and the
-    // groups' paper face. The face is Panel's own background, not back-color:
-    // back-color is ambient, and the groups' buttons and choices would take it
-    // in place of their themed faces.
+    // The page style stays code; the groups' paper face is the Gallery
+    // theme's `paper` class (demo/themes/gallery).
     const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
         document_.gallery_typography_specimens, document_.gallery_typography_policy,
         document_.gallery_typography_inspection};
     for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
-        (*group).set_background(paper);
         (*group).set_style(page_style());
     }
 }
