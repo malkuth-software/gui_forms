@@ -36,6 +36,11 @@ public:
     // made on that thread. A null root or an exception stops the
     // sub-surface as failed (SubSurfaceState::failed).
     [[nodiscard]] virtual Control::Ptr build_root() = 0;
+    // Called once, on the sub-surface's thread, after the sub-surface made
+    // its root of the built tree and before its loop starts: `dispatcher`
+    // posts to that thread (the C ABI runs its posted callbacks through it).
+    // The base does nothing.
+    virtual void root_started(const WindowDispatcher& dispatcher);
 };
 
 // The state both sides agree on in one visible frame (design note section

@@ -170,20 +170,96 @@ bool HandleRegistry::on_ui_thread_locked() const noexcept {
     return on_ui_thread;
 }
 
+ThreadDomain HandleRegistry::calling_domain_locked() const noexcept {
+    const std::thread::id caller = std::this_thread::get_id();
+    std::size_t index = 0U;
+    for (index = 0U; index < domains_.size(); ++index) {
+        if (domains_[index].occupied && domains_[index].thread == caller) {
+            const ThreadDomain domain{static_cast<std::uint32_t>(index + 1U)};
+            return domain;
+        }
+    }
+    return ui_domain;
+}
+
+bool HandleRegistry::on_domain_thread_locked(ThreadDomain domain) const noexcept {
+    if (domain.value == ui_domain.value) {
+        return on_ui_thread_locked();
+    }
+    const SubSurfaceDomain& owner = domains_[domain.value - 1U];
+    const bool on_thread = owner.occupied && owner.thread == std::this_thread::get_id();
+    return on_thread;
+}
+
+std::vector<Component::Ptr>& HandleRegistry::deferred_locked(ThreadDomain domain) noexcept {
+    if (domain.value == ui_domain.value) {
+        return deferred_;
+    }
+    return domains_[domain.value - 1U].deferred;
+}
+
+std::deque<PostedCall>& HandleRegistry::posted_locked(ThreadDomain domain) noexcept {
+    if (domain.value == ui_domain.value) {
+        return posted_;
+    }
+    return domains_[domain.value - 1U].posted;
+}
+
+namespace {
+
+// The tables a sub-surface's thread may call (enter_ui): the ones that act
+// on objects and read the schema. Windows, themes, the host, diagnostics,
+// overlays, property grids, custom controls and bindings stay on the UI
+// thread.
+bool admitted_on_sub_surface(gf_table_id table) noexcept {
+    switch (table) {
+    case GF_TABLE_OBJECTS:
+    case GF_TABLE_PROPERTIES:
+    case GF_TABLE_EVENTS:
+    case GF_TABLE_DISPATCH:
+    case GF_TABLE_SCHEMA:
+    case GF_TABLE_CONTROLS:
+    case GF_TABLE_TEXT_EDITING:
+    case GF_TABLE_SUBSURFACES:
+        return true;
+    default:
+        return false;
+    }
+}
+
+// Posted to a sub-surface's dispatcher by its domain's wake: runs the
+// domain's deferred releases and posted callbacks on its thread.
+struct DrainDomain final {
+    ThreadDomain domain{};
+    void operator()() const {
+        registry().drain_domain(domain);
+    }
+};
+
+} // namespace
+
 gf_status HandleRegistry::enter_ui(SlotIdentity slot, bool bind) {
+    bool sub_surface = false;
     bool bound = false;
     {
         const std::scoped_lock lock(mutex_);
-        if (ui_thread_ != std::thread::id{} && !on_ui_thread_locked()) {
+        sub_surface = calling_domain_locked().value != ui_domain.value;
+        if (sub_surface && !admitted_on_sub_surface(slot.table_id)) {
+            return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only, "
+                                                      "not on a sub-surface's thread");
+        }
+        if (!sub_surface && ui_thread_ != std::thread::id{} && !on_ui_thread_locked()) {
             return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only");
         }
-        bound = ui_thread_ != std::thread::id{};
+        bound = sub_surface || ui_thread_ != std::thread::id{};
     }
     if (bound) {
-        // May unbind the library when nothing is left.
+        // The calling thread's deferred releases. On the UI thread this may
+        // unbind the library when nothing is left.
         complete_deferred();
     }
-    if (bind) {
+    // A sub-surface's thread never binds the UI thread.
+    if (bind && !sub_surface) {
         const std::scoped_lock lock(mutex_);
         if (ui_thread_ == std::thread::id{}) {
             ui_thread_ = std::this_thread::get_id();
@@ -198,7 +274,7 @@ void HandleRegistry::complete_deferred() {
     std::vector<Component::Ptr> ended;
     {
         const std::scoped_lock lock(mutex_);
-        ended.swap(deferred_);
+        ended.swap(deferred_locked(calling_domain_locked()));
     }
     // Destroying the controls may end subscriptions, which takes the lock.
     ended.clear();
@@ -207,8 +283,9 @@ void HandleRegistry::complete_deferred() {
 
 void HandleRegistry::unbind_if_idle() {
     const std::scoped_lock lock(mutex_);
-    const bool idle = live_objects_ == 0U && live_subscriptions_ == 0U && posted_.empty() &&
-                      deferred_.empty() && !running_ && !binding_held_;
+    // Only the UI thread gives up its binding.
+    const bool idle = on_ui_thread_locked() && live_objects_ == 0U && live_subscriptions_ == 0U &&
+                      posted_.empty() && deferred_.empty() && !running_ && !binding_held_;
     if (idle) {
         ui_thread_ = std::thread::id{};
     }
@@ -219,9 +296,137 @@ void HandleRegistry::hold_binding() noexcept {
     binding_held_ = true;
 }
 
-void HandleRegistry::wake_locked() noexcept {
-    if (run_wake_) {
-        run_wake_();
+WindowDispatcher HandleRegistry::wake_locked(ThreadDomain domain) noexcept {
+    if (domain.value == ui_domain.value) {
+        if (run_wake_) {
+            run_wake_();
+        }
+        return WindowDispatcher{};
+    }
+    SubSurfaceDomain& owner = domains_[domain.value - 1U];
+    if (!owner.occupied || owner.drain_pending || !owner.dispatcher.window_alive()) {
+        return WindowDispatcher{};
+    }
+    owner.drain_pending = true;
+    return owner.dispatcher;
+}
+
+namespace {
+
+// Posts a domain's drain through the dispatcher wake_locked returned, after
+// the registry's lock is left. An empty dispatcher posts nothing; a closed
+// one cancels the work, which the domain's end then covers.
+void post_drain(const WindowDispatcher& dispatcher, ThreadDomain domain) {
+    if (!dispatcher.window_alive()) {
+        return;
+    }
+    static_cast<void>(dispatcher.begin_invoke(DrainDomain{domain}));
+}
+
+} // namespace
+
+ThreadDomain HandleRegistry::begin_domain() {
+    const std::scoped_lock lock(mutex_);
+    std::size_t index = 0U;
+    for (index = 0U; index < domains_.size(); ++index) {
+        if (!domains_[index].occupied) {
+            break;
+        }
+    }
+    if (index == domains_.size()) {
+        domains_.emplace_back();
+    }
+    SubSurfaceDomain& owner = domains_[index];
+    owner.occupied = true;
+    owner.thread = std::this_thread::get_id();
+    owner.drain_pending = false;
+    const ThreadDomain domain{static_cast<std::uint32_t>(index + 1U)};
+    return domain;
+}
+
+void HandleRegistry::set_domain_wake(ThreadDomain domain, const WindowDispatcher& dispatcher) {
+    WindowDispatcher wake;
+    {
+        const std::scoped_lock lock(mutex_);
+        SubSurfaceDomain& owner = domains_[domain.value - 1U];
+        owner.dispatcher = dispatcher;
+        owner.drain_pending = false;
+        if (!owner.posted.empty() || !owner.deferred.empty()) {
+            wake = wake_locked(domain);
+        }
+    }
+    post_drain(wake, domain);
+}
+
+void HandleRegistry::drain_domain(ThreadDomain domain) {
+    {
+        const std::scoped_lock lock(mutex_);
+        if (!on_domain_thread_locked(domain)) {
+            return;
+        }
+        domains_[domain.value - 1U].drain_pending = false;
+    }
+    complete_deferred();
+    static_cast<void>(run_posted(maximum_posted_callbacks));
+}
+
+void HandleRegistry::end_domain(ThreadDomain domain) noexcept {
+    // One object, deferred release or posted callback at a time, each ended
+    // without the lock (their destructors may call back in), so nothing is
+    // allocated here.
+    std::size_t cursor = 0U;
+    for (;;) {
+        Component::Ptr ended;
+        {
+            const std::scoped_lock lock(mutex_);
+            while (cursor < objects_.size()) {
+                ObjectSlot& slot = objects_[cursor];
+                cursor = cursor + 1U;
+                if (slot.occupied && !slot.orphaned && slot.domain.value == domain.value) {
+                    object_index_.erase(slot.object.get());
+                    ended = std::move(slot.object);
+                    slot.object.reset();
+                    slot.orphaned = true;
+                    break;
+                }
+            }
+            if (!ended) {
+                std::vector<Component::Ptr>& deferred = domains_[domain.value - 1U].deferred;
+                if (!deferred.empty()) {
+                    ended = std::move(deferred.back());
+                    deferred.pop_back();
+                }
+            }
+        }
+        if (!ended) {
+            break;
+        }
+        ended.reset();
+    }
+    for (;;) {
+        PostedCall call{};
+        {
+            const std::scoped_lock lock(mutex_);
+            std::deque<PostedCall>& posted = domains_[domain.value - 1U].posted;
+            if (posted.empty()) {
+                break;
+            }
+            call = std::move(posted.front());
+            posted.pop_front();
+        }
+        // The callback is released unrun, here; the posted reference goes.
+        call.callback.reset();
+        static_cast<void>(release(call.target, SlotIdentity{GF_TABLE_DISPATCH, 0U}));
+    }
+    WindowDispatcher gone;
+    {
+        const std::scoped_lock lock(mutex_);
+        SubSurfaceDomain& owner = domains_[domain.value - 1U];
+        owner.occupied = false;
+        owner.thread = std::thread::id{};
+        owner.drain_pending = false;
+        gone = std::move(owner.dispatcher);
+        owner.dispatcher = WindowDispatcher{};
     }
 }
 
@@ -248,6 +453,13 @@ gf_status HandleRegistry::find_component(gf_object object, SlotIdentity slot, Co
     const ObjectSlot* found = object_slot_locked(object);
     if (found == nullptr) {
         return fail(GF_STATUS_STALE_HANDLE, slot, "the object has ended (its last reference was released)");
+    }
+    if ((*found).orphaned) {
+        return fail(GF_STATUS_STALE_HANDLE, slot, "the object's sub-surface has stopped");
+    }
+    if ((*found).domain.value != calling_domain_locked().value) {
+        return fail(GF_STATUS_WRONG_THREAD, slot,
+                    "the object belongs to another thread (a sub-surface's, or the UI thread)");
     }
     component = (*found).object;
     return GF_STATUS_OK;
@@ -296,6 +508,8 @@ gf_object HandleRegistry::add_reference(const Component::Ptr& component) {
     }
     ObjectSlot& slot = objects_[index - 1U];
     slot.occupied = true;
+    slot.orphaned = false;
+    slot.domain = calling_domain_locked();
     slot.references = 1U;
     slot.object = component;
     ++live_objects_;
@@ -325,10 +539,13 @@ void HandleRegistry::drop_reference_locked(gf_object object, ObjectSlot& slot, C
         return;
     }
     const Identity identity = decode_identity(object);
-    object_index_.erase(slot.object.get());
+    if (slot.object) {
+        object_index_.erase(slot.object.get());
+    }
     ended = std::move(slot.object);
     slot.object.reset();
     slot.occupied = false;
+    slot.orphaned = false;
     slot.generation = next_generation(slot.generation);
     // free_objects_ has capacity for every slot (add_reference reserves it).
     free_objects_.push_back(identity.slot);
@@ -340,28 +557,38 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the object is zero");
     }
     Component::Ptr ended;
+    bool on_owner_thread = false;
     bool on_ui_thread = false;
+    ThreadDomain owner{};
+    WindowDispatcher wake;
     {
         const std::scoped_lock lock(mutex_);
         ObjectSlot* found = object_slot_locked(object);
         if (found == nullptr) {
             return fail(GF_STATUS_STALE_HANDLE, slot, "the object has ended (its last reference was released)");
         }
+        owner = (*found).domain;
         on_ui_thread = on_ui_thread_locked();
-        if (!on_ui_thread && (*found).references == 1U) {
-            // The control is destroyed on the UI thread. Reserve before the
+        // An orphaned identity holds no object: nothing to defer.
+        on_owner_thread = (*found).orphaned || on_domain_thread_locked(owner);
+        std::vector<Component::Ptr>& deferred = deferred_locked(owner);
+        if (!on_owner_thread && (*found).references == 1U) {
+            // The control is destroyed on its own thread. Reserve before the
             // identity ends, so a failed allocation changes nothing.
-            deferred_.reserve(deferred_.size() + 1U);
+            deferred.reserve(deferred.size() + 1U);
         }
         drop_reference_locked(object, *found, ended);
-        if (ended && !on_ui_thread) {
-            deferred_.push_back(std::move(ended));
-            wake_locked();
-            return GF_STATUS_OK;
+        if (ended && !on_owner_thread) {
+            deferred.push_back(std::move(ended));
+            wake = wake_locked(owner);
         }
     }
-    // On the UI thread the control (and any subtree only it held) ends here,
-    // without the lock.
+    if (!on_owner_thread) {
+        post_drain(wake, owner);
+        return GF_STATUS_OK;
+    }
+    // On its own thread the control (and any subtree only it held) ends
+    // here, without the lock.
     ended.reset();
     if (on_ui_thread) {
         unbind_if_idle();
@@ -471,12 +698,25 @@ gf_status HandleRegistry::disconnect(gf_subscription subscription, SlotIdentity 
     if (subscription == 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the subscription is zero");
     }
+    // Held past the lock: the last reference to a source must not end under it.
+    Component::Ptr source;
     SubscriptionToken ended;
     {
         const std::scoped_lock lock(mutex_);
         SubscriptionSlot* found = subscription_slot_locked(subscription);
         if (found == nullptr) {
             return fail(GF_STATUS_STALE_HANDLE, slot, "the subscription has already ended");
+        }
+        // The source's event is touched by its own thread only.
+        source = (*found).source.lock();
+        if (source) {
+            const std::unordered_map<const Component*, std::uint32_t>::const_iterator owner =
+                object_index_.find(source.get());
+            if (owner != object_index_.end() &&
+                objects_[(*owner).second - 1U].domain.value != calling_domain_locked().value) {
+                return fail(GF_STATUS_WRONG_THREAD, slot,
+                            "the subscription's source belongs to another thread (a sub-surface's, or the UI thread)");
+            }
         }
         ended = std::move((*found).token);
         (*found).source.reset();
@@ -528,32 +768,45 @@ gf_status HandleRegistry::post(gf_object target, std::unique_ptr<CallbackBinding
     if (target == 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the target is zero");
     }
-    const std::scoped_lock lock(mutex_);
-    ObjectSlot* found = object_slot_locked(target);
-    if (found == nullptr) {
-        return fail(GF_STATUS_STALE_HANDLE, slot, "the target has ended (its last reference was released)");
+    WindowDispatcher wake;
+    ThreadDomain owner{};
+    {
+        const std::scoped_lock lock(mutex_);
+        ObjectSlot* found = object_slot_locked(target);
+        if (found == nullptr) {
+            return fail(GF_STATUS_STALE_HANDLE, slot, "the target has ended (its last reference was released)");
+        }
+        if ((*found).orphaned) {
+            return fail(GF_STATUS_STALE_HANDLE, slot, "the target's sub-surface has stopped");
+        }
+        owner = (*found).domain;
+        std::deque<PostedCall>& posted = posted_locked(owner);
+        if (posted.size() >= maximum_posted_callbacks) {
+            return fail(GF_STATUS_LIMIT_EXCEEDED, slot, "4096 posted callbacks are already waiting");
+        }
+        if ((*found).references == std::numeric_limits<std::uint64_t>::max()) {
+            return fail(GF_STATUS_LIMIT_EXCEEDED, slot, "the target's reference count is at its limit");
+        }
+        PostedCall call{};
+        call.target = target;
+        posted.push_back(std::move(call));
+        posted.back().callback = std::move(callback);
+        ++(*found).references;
+        wake = wake_locked(owner);
     }
-    if (posted_.size() >= maximum_posted_callbacks) {
-        return fail(GF_STATUS_LIMIT_EXCEEDED, slot, "4096 posted callbacks are already waiting");
-    }
-    if ((*found).references == std::numeric_limits<std::uint64_t>::max()) {
-        return fail(GF_STATUS_LIMIT_EXCEEDED, slot, "the target's reference count is at its limit");
-    }
-    PostedCall call{};
-    call.target = target;
-    posted_.push_back(std::move(call));
-    posted_.back().callback = std::move(callback);
-    ++(*found).references;
-    wake_locked();
+    post_drain(wake, owner);
     return GF_STATUS_OK;
 }
 
 std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
     complete_deferred();
     std::size_t waiting = 0U;
+    ThreadDomain domain{};
     {
         const std::scoped_lock lock(mutex_);
-        waiting = posted_.size() < maximum ? posted_.size() : maximum;
+        domain = calling_domain_locked();
+        const std::deque<PostedCall>& posted = posted_locked(domain);
+        waiting = posted.size() < maximum ? posted.size() : maximum;
     }
     std::uint64_t invoked = 0U;
     std::size_t turn = 0U;
@@ -562,13 +815,14 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
         Component::Ptr target;
         {
             const std::scoped_lock lock(mutex_);
-            call = std::move(posted_.front());
-            posted_.pop_front();
+            std::deque<PostedCall>& posted = posted_locked(domain);
+            call = std::move(posted.front());
+            posted.pop_front();
             const ObjectSlot* found = object_slot_locked(call.target);
             // The posted reference keeps the target's identity live.
             target = (*found).object;
         }
-        if ((*target).is_alive()) {
+        if (target && (*target).is_alive()) {
             const ShadowFrameScope shadow_frame(ShadowFrameKind::posted_callback, frame_subject(target.get()),
                                                 std::string_view{}, 0U);
             gf_event event{};
@@ -584,12 +838,14 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
         // Gives back the posted reference.
         static_cast<void>(release(call.target, SlotIdentity{GF_TABLE_DISPATCH, 1U}));
     }
+    WindowDispatcher wake;
     {
         const std::scoped_lock lock(mutex_);
-        if (!posted_.empty()) {
-            wake_locked();
+        if (!posted_locked(domain).empty()) {
+            wake = wake_locked(domain);
         }
     }
+    post_drain(wake, domain);
     unbind_if_idle();
     return invoked;
 }
@@ -616,7 +872,7 @@ void HandleRegistry::set_run_wake(std::function<void()> wake) {
     const std::scoped_lock lock(mutex_);
     run_wake_ = std::move(wake);
     if (!posted_.empty() || !deferred_.empty()) {
-        wake_locked();
+        static_cast<void>(wake_locked(ui_domain));
     }
 }
 

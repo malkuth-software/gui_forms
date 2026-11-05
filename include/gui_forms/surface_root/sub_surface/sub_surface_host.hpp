@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <memory>
 #include <span>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -78,6 +79,9 @@ public:
     [[nodiscard]] bool started() const noexcept { return static_cast<bool>(thread_); }
     // The thread's state; stopped while there is none.
     [[nodiscard]] SubSurfaceState state() const;
+    // What the content threw or why it built no root, for state failed;
+    // empty otherwise (SubSurfaceThread::failure).
+    [[nodiscard]] std::string failure() const;
     [[nodiscard]] SubSurfaceStatistics statistics() const;
     // Posts to the sub-surface's thread (SubSurfaceThread::dispatcher);
     // empty while it is not running.

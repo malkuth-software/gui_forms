@@ -160,6 +160,8 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
     load_table(&kit, GF_TABLE_CUSTOM_CONTROLS, &kit.custom_controls, sizeof(kit.custom_controls),
                "load the custom controls table");
     load_table(&kit, GF_TABLE_BINDINGS, &kit.bindings, sizeof(kit.bindings), "load the bindings table");
+    load_table(&kit, GF_TABLE_SUBSURFACES, &kit.subsurfaces, sizeof(kit.subsurfaces),
+               "load the subsurfaces table");
     if (kit.failures == 0u) {
         gf_kit_ownership(&kit);
         gf_kit_values(&kit);
@@ -182,6 +184,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
         if ((flags & GF_CONFORMANCE_FLAGS_WINDOW) != 0u) {
             gf_kit_window(&kit);
             gf_kit_window_handle(&kit);
+            gf_kit_subsurfaces(&kit);
         }
     }
     if (out != NULL) {

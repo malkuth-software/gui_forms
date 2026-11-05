@@ -31,6 +31,7 @@ typedef struct gf_kit {
     gf_property_grid_table property_grid;
     gf_custom_controls_table custom_controls;
     gf_bindings_table bindings;
+    gf_subsurfaces_table subsurfaces;
     /* Loaded by the custom part where the library has it (Windows). */
     gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;
@@ -93,6 +94,8 @@ void gf_kit_proxies(gf_kit* kit);
 void gf_kit_families(gf_kit* kit);
 void gf_kit_custom(gf_kit* kit);
 void gf_kit_bindings(gf_kit* kit);
+/* Runs a window with a threaded sub-surface. */
+void gf_kit_subsurfaces(gf_kit* kit);
 void gf_kit_host(gf_kit* kit);
 /* The host checks that need a running window; from its ready callback. */
 void gf_kit_host_running(gf_kit* kit);

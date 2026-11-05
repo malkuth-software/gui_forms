@@ -771,6 +771,26 @@ public static unsafe class Layout
             failures += expect(output, "gf_bindings_table.set_current_field offset", (long)((byte*)&value.set_current_field - start), 96);
         }
         {
+            gf_subsurface_content value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_subsurface_content size", sizeof(gf_subsurface_content), 40);
+            failures += expect(output, "gf_subsurface_content.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_subsurface_content.opaque offset", (long)((byte*)&value.opaque - start), 4);
+            failures += expect(output, "gf_subsurface_content.build offset", (long)((byte*)&value.build - start), 8);
+        }
+        {
+            gf_subsurfaces_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_subsurfaces_table size", sizeof(gf_subsurfaces_table), 48);
+            failures += expect(output, "gf_subsurfaces_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_subsurfaces_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_subsurfaces_table.set_content offset", (long)((byte*)&value.set_content - start), 8);
+            failures += expect(output, "gf_subsurfaces_table.set_root offset", (long)((byte*)&value.set_root - start), 16);
+            failures += expect(output, "gf_subsurfaces_table.state offset", (long)((byte*)&value.state - start), 24);
+            failures += expect(output, "gf_subsurfaces_table.content_epoch offset", (long)((byte*)&value.content_epoch - start), 32);
+            failures += expect(output, "gf_subsurfaces_table.failure offset", (long)((byte*)&value.failure - start), 40);
+        }
+        {
             gf_windows_paint_endpoint_table value = default;
             byte* start = (byte*)&value;
             failures += expect(output, "gf_windows_paint_endpoint_table size", sizeof(gf_windows_paint_endpoint_table), 104);

@@ -15,6 +15,8 @@
 
 namespace gui_forms {
 
+void SubSurfaceContent::root_started(const WindowDispatcher&) {}
+
 SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> resources)
     : SurfaceRoot(std::move(root), Size{}, std::move(resources)) {
     if (!resources_) {
@@ -300,6 +302,7 @@ void SubSurfaceLoop::run_tree() {
         (*channel_).dispatcher = root.dispatcher();
         (*channel_).state = SubSurfaceState::running;
     }
+    (*content_).root_started(root.dispatcher());
     std::optional<SubSurfaceConfiguration> configuration;
     while (wait(root, configuration)) {
         const bool configured = static_cast<bool>(configuration);

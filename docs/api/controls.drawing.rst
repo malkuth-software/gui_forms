@@ -217,6 +217,10 @@ Related types
 
       Called once, on the sub-surface's thread, before the first configuration is applied: the root control of the sub-surface's tree, made on that thread. A null root or an exception stops the sub-surface as failed (SubSurfaceState::failed).
 
+   .. cpp:function:: virtual void root_started(const WindowDispatcher& dispatcher)
+
+      Called once, on the sub-surface's thread, after the sub-surface made its root of the built tree and before its loop starts: ``dispatcher`` posts to that thread (the C ABI runs its posted callbacks through it). The base does nothing.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: SubSurfaceHost::Parts final

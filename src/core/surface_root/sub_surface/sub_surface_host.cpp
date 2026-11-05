@@ -122,6 +122,12 @@ SubSurfaceState SubSurfaceHost::state() const {
     return state;
 }
 
+std::string SubSurfaceHost::failure() const {
+    if (!thread_) return std::string{};
+    std::string failure = (*thread_).failure();
+    return failure;
+}
+
 SubSurfaceStatistics SubSurfaceHost::statistics() const {
     if (!thread_) return SubSurfaceStatistics{};
     const SubSurfaceStatistics statistics = (*thread_).statistics();

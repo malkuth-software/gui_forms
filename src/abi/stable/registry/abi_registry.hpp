@@ -9,6 +9,7 @@
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
 #include "gui_forms/event.hpp"
 
 #include "../failure/abi_failure.hpp"
@@ -37,8 +38,16 @@ struct Identity {
 [[nodiscard]] Identity decode_identity(std::uint64_t value) noexcept;
 [[nodiscard]] std::uint64_t encode_identity(Identity identity) noexcept;
 
-// The most callbacks that wait for the UI thread at once (gf_abi.h).
+// The most callbacks that wait for one thread at once (gf_abi.h).
 inline constexpr std::size_t maximum_posted_callbacks = 4096U;
+
+// The thread an object belongs to (gf_abi.h, "Threads"): the library's UI
+// thread, or one running sub-surface (GF_TABLE_SUBSURFACES, since 1.1).
+// Zero is the UI thread; a sub-surface's domain is its slot index plus one.
+struct ThreadDomain {
+    std::uint32_t value = 0U;
+};
+inline constexpr ThreadDomain ui_domain{0U};
 
 // One callback a caller lent the library. The binding owns the loan: its
 // destruction calls the callback's release, so each binding is destroyed on
@@ -92,8 +101,9 @@ private:
     std::string name_;
 };
 
-// One callback posted with begin_invoke, waiting for the UI thread. The
-// target is retained (one internal reference) until the callback has run.
+// One callback posted with begin_invoke, waiting for its target's thread.
+// The target is retained (one internal reference) until the callback has
+// run.
 struct PostedCall {
     std::unique_ptr<CallbackBinding> callback;
     gf_object target = 0U;
@@ -107,7 +117,12 @@ public:
 
     // The entry of every UI-thread slot. Returns GF_STATUS_WRONG_THREAD off
     // the UI thread; with bind, an unbound library binds the calling thread.
-    // On the UI thread it first completes deferred releases.
+    // On the UI thread it first completes deferred releases. On the thread
+    // of a running sub-surface it admits the tables a sub-surface may use
+    // (objects, properties, events, dispatch, schema, controls, text
+    // editing and subsurfaces), completes that thread's deferred releases,
+    // and never binds the UI thread; every other table is
+    // GF_STATUS_WRONG_THREAD there.
     [[nodiscard]] gf_status enter_ui(SlotIdentity slot, bool bind);
     // Unbinds the UI thread when nothing holds it: no object, subscription,
     // posted or deferred callback, or run. Ends a call that bound the
@@ -119,14 +134,18 @@ public:
     void hold_binding() noexcept;
 
     // The control behind a live identity (GF_STATUS_INVALID_ARGUMENT for
-    // zero, GF_STATUS_STALE_HANDLE for an ended one).
+    // zero, GF_STATUS_STALE_HANDLE for an ended one or one whose sub-surface
+    // has stopped, GF_STATUS_WRONG_THREAD for one that belongs to another
+    // thread than the caller's).
     // The control behind object; GF_STATUS_WRONG_HANDLE_KIND for a
     // component that is not a control.
     [[nodiscard]] gf_status find_object(gf_object object, SlotIdentity slot, Control::Ptr& control);
     // The component (a control among them) behind object.
     [[nodiscard]] gf_status find_component(gf_object object, SlotIdentity slot, Component::Ptr& component);
     // A new reference to component, reusing its identity when it has one.
-    // UI thread. Throws std::bad_alloc, leaving the registry unchanged.
+    // A new identity belongs to the calling thread: the UI thread, or the
+    // sub-surface whose thread calls. Throws std::bad_alloc, leaving the
+    // registry unchanged.
     [[nodiscard]] gf_object add_reference(const Component::Ptr& component);
     [[nodiscard]] gf_status retain(gf_object object, SlotIdentity slot);
     [[nodiscard]] gf_status release(gf_object object, SlotIdentity slot);
@@ -150,13 +169,32 @@ public:
     // Ends every subscription whose source has been disposed or destroyed.
     void end_disposed_subscriptions();
 
-    // Queues callback for the UI thread and wakes a running window. Any
-    // thread. On failure callback is left with the caller.
+    // Queues callback for the thread target belongs to and wakes it (a
+    // running window, or the sub-surface's loop). Any thread. On failure
+    // callback is left with the caller.
     [[nodiscard]] gf_status post(gf_object target, std::unique_ptr<CallbackBinding>& callback,
                                  SlotIdentity slot);
-    // Runs the callbacks posted before this call, at most maximum of them,
-    // and returns how many were invoked. UI thread.
+    // Runs the callbacks posted to the calling thread before this call, at
+    // most maximum of them, and returns how many were invoked. The UI thread
+    // or a sub-surface's thread.
     [[nodiscard]] std::uint64_t run_posted(std::size_t maximum);
+
+    // Sub-surface threads (GF_TABLE_SUBSURFACES). begin_domain, on the
+    // sub-surface's thread before it makes any object, makes that thread a
+    // domain: objects it creates from then on belong to it. set_domain_wake
+    // gives the domain the dispatcher its posted callbacks and deferred
+    // releases are run through (until then they wait), and runs what
+    // already waits. end_domain, on the same thread when the sub-surface
+    // stops, destroys every object of the domain there (their identities
+    // stay until released, and give GF_STATUS_STALE_HANDLE), releases the
+    // callbacks posted to it unrun, and ends the domain. begin_domain throws
+    // std::bad_alloc, leaving the registry unchanged.
+    [[nodiscard]] ThreadDomain begin_domain();
+    void set_domain_wake(ThreadDomain domain, const WindowDispatcher& dispatcher);
+    void end_domain(ThreadDomain domain) noexcept;
+    // Runs a sub-surface domain's deferred releases and posted callbacks: the
+    // work its wake posts. The domain's thread.
+    void drain_domain(ThreadDomain domain);
 
     // The window run. begin_run refuses a second run; the host's callbacks
     // publish its window and wake; end_run forgets both.
@@ -171,8 +209,24 @@ private:
     struct ObjectSlot {
         std::uint32_t generation = 1U;
         bool occupied = false;
+        // The object's sub-surface stopped: object is gone, the identity
+        // stays until its last reference is released.
+        bool orphaned = false;
+        ThreadDomain domain{};
         std::uint64_t references = 0U;
         Component::Ptr object;
+    };
+    // One sub-surface thread's domain (domain value = index + 1).
+    struct SubSurfaceDomain {
+        bool occupied = false;
+        std::thread::id thread{};
+        // Objects of the domain released last off its thread.
+        std::vector<Component::Ptr> deferred;
+        std::deque<PostedCall> posted;
+        // Empty until set_domain_wake; posts a DrainDomain.
+        WindowDispatcher dispatcher;
+        // A DrainDomain is posted and has not run yet.
+        bool drain_pending = false;
     };
     struct SubscriptionSlot {
         std::uint32_t generation = 1U;
@@ -182,14 +236,26 @@ private:
     };
 
     [[nodiscard]] bool on_ui_thread_locked() const noexcept;
+    // The calling thread's domain: a sub-surface's, else the UI domain
+    // (whether or not the caller is the UI thread; enter_ui decides that).
+    [[nodiscard]] ThreadDomain calling_domain_locked() const noexcept;
+    // Whether the caller runs on the thread of domain.
+    [[nodiscard]] bool on_domain_thread_locked(ThreadDomain domain) const noexcept;
+    [[nodiscard]] std::vector<Component::Ptr>& deferred_locked(ThreadDomain domain) noexcept;
+    [[nodiscard]] std::deque<PostedCall>& posted_locked(ThreadDomain domain) noexcept;
+    // Wakes domain's thread: the UI's run wake, called with the lock held,
+    // or, for a sub-surface, the dispatcher to post a DrainDomain through,
+    // which the caller posts after leaving the lock (an empty one when a
+    // drain is pending or there is no dispatcher yet).
+    [[nodiscard]] WindowDispatcher wake_locked(ThreadDomain domain) noexcept;
     [[nodiscard]] ObjectSlot* object_slot_locked(gf_object object) noexcept;
     [[nodiscard]] SubscriptionSlot* subscription_slot_locked(gf_subscription subscription) noexcept;
     // Drops one reference; at zero frees the identity and moves the control
     // into ended. ended is destroyed by the caller without the lock.
     void drop_reference_locked(gf_object object, ObjectSlot& slot, Component::Ptr& ended);
-    // Takes the deferred controls and destroys them without the lock.
+    // Takes the calling thread's deferred controls and destroys them without
+    // the lock.
     void complete_deferred();
-    void wake_locked() noexcept;
 
     std::mutex mutex_;
     // The UI thread, or a default id while unbound.
@@ -198,10 +264,11 @@ private:
     std::vector<std::uint32_t> free_objects_;
     std::unordered_map<const Component*, std::uint32_t> object_index_;
     std::size_t live_objects_ = 0U;
+    std::vector<SubSurfaceDomain> domains_;
     std::vector<SubscriptionSlot> subscriptions_;
     std::vector<std::uint32_t> free_subscriptions_;
     std::size_t live_subscriptions_ = 0U;
-    // Objects whose last reference was released off the UI thread.
+    // UI-thread objects whose last reference was released off the UI thread.
     std::vector<Component::Ptr> deferred_;
     std::deque<PostedCall> posted_;
     bool running_ = false;

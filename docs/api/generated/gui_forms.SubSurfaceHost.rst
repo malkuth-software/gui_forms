@@ -29,6 +29,9 @@ gui_forms::SubSurfaceHost
       **state** : ``SubSurfaceState``, read-only
          The thread's state; stopped while there is none.
 
+      **failure** : ``std::string``, read-only
+         What the content threw or why it built no root, for state failed; empty otherwise (SubSurfaceThread::failure).
+
       **statistics** : ``SubSurfaceStatistics``, read-only
 
       **dispatcher** : ``WindowDispatcher``, read-only
@@ -79,6 +82,10 @@ gui_forms::SubSurfaceHost
    .. cpp:function:: SubSurfaceState state() const
 
       The thread's state; stopped while there is none.
+
+   .. cpp:function:: std::string failure() const
+
+      What the content threw or why it built no root, for state failed; empty otherwise (SubSurfaceThread::failure).
 
    .. cpp:function:: SubSurfaceStatistics statistics() const
 

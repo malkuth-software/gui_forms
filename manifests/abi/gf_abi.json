@@ -184,6 +184,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_TABLE_SUBSURFACES",
+      "value": 17,
+      "type": "uint32"
+    },
+    {
       "name": "GF_TABLE_WINDOWS_PAINT_ENDPOINT",
       "value": 256,
       "type": "uint32"
@@ -1084,6 +1089,26 @@
       "type": "uint32"
     },
     {
+      "name": "GF_SUBSURFACE_STATE_STOPPED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SUBSURFACE_STATE_STARTING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SUBSURFACE_STATE_RUNNING",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SUBSURFACE_STATE_FAILED",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"
@@ -1240,6 +1265,10 @@
     },
     {
       "name": "gf_control_update_mode",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_subsurface_state",
       "type": "uint32_t"
     },
     {
@@ -6426,6 +6455,156 @@
             ]
           },
           "since": "1.0"
+        }
+      ]
+    },
+    {
+      "name": "gf_subsurface_content",
+      "kind": "extensible",
+      "size": 40,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "opaque",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "build",
+          "type": "gf_callback",
+          "offset": 8,
+          "size": 32
+        }
+      ]
+    },
+    {
+      "name": "gf_subsurfaces_table",
+      "kind": "table",
+      "size": 48,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "abi_minor",
+          "type": "uint32_t",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "set_content",
+          "type": "function",
+          "offset": 8,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "content",
+                "type": "const gf_subsurface_content*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "set_root",
+          "type": "function",
+          "offset": 16,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "root",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "state",
+          "type": "function",
+          "offset": 24,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "state",
+                "type": "gf_subsurface_state*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "content_epoch",
+          "type": "function",
+          "offset": 32,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "epoch",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "failure",
+          "type": "function",
+          "offset": 40,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "host",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
         }
       ]
     },
