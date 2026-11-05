@@ -438,6 +438,10 @@ gui_forms::SurfaceRoot
         - Asks for a tooltip about ``owner``, its content as data (threaded sub-surfaces design note section 15).
       * - :cpp:func:`withdraw_tool_tip_request <gui_forms::SurfaceRoot::withdraw_tool_tip_request>`
         - Withdraws the current request ``id``, closing it where it shows; it is not answered.
+      * - :cpp:func:`raise_alert <gui_forms::SurfaceRoot::raise_alert>`
+        - Raises an alert about ``owner``, its content as data (threaded sub-surfaces design note section 15).
+      * - :cpp:func:`withdraw_alert <gui_forms::SurfaceRoot::withdraw_alert>`
+        - Withdraws alert ``id`` while it waits to show (answered revoked).
       * - :cpp:func:`register_accelerator <gui_forms::SurfaceRoot::register_accelerator>`
         - Installs a window-wide keyboard shortcut owned by a :cpp:class:`Component <gui_forms::Component>`.
       * - :cpp:func:`offer_accelerators <gui_forms::SurfaceRoot::offer_accelerators>`
@@ -1197,6 +1201,14 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void withdraw_tool_tip_request(std::uint64_t id)
 
       Withdraws the current request ``id``, closing it where it shows; it is not answered. Any other ID changes nothing. Root thread.
+
+   .. cpp:function:: std::uint64_t raise_alert(const Control::Ptr& owner, AlertRequest request, std::weak_ptr<SurfaceRequestAnswer> answer = {})
+
+      Raises an alert about ``owner``, its content as data (threaded sub-surfaces design note section 15). A window shows it modally through its host's message dialog (HostServices, capability ``dialogs``), after the alerts raised before it, from its dispatcher, so this returns at once; a sub-surface forwards it to its parent, which raises it on the sub-surface's host. Answers go to ``answer`` through this root's dispatcher, once: closed with the chosen button (SurfaceRequestOutcome::choice); declined without a host or when the host refuses the dialog; revoked when it is withdrawn, or its owner (at the parent, the host) leaves the deciding root, before it shows. Returns its ID: 1 for the first, growing by one. Throws std::invalid_argument, changing nothing, for an owner that is not a live control attached to this root, empty text, text or a caption that is not valid UTF-8, holds NUL or is longer than HostServices::maximum_dialog_text_bytes, an unknown button set or icon, or a default choice that is not one of the buttons. Root thread.
+
+   .. cpp:function:: void withdraw_alert(std::uint64_t id)
+
+      Withdraws alert ``id`` while it waits to show (answered revoked). One showing stays until the user closes it; any other ID changes nothing. Root thread.
 
    .. cpp:function:: AcceleratorToken register_accelerator(Component& owner, KeyGesture gesture, std::function<bool()> callback, AcceleratorOptions options = {})
 

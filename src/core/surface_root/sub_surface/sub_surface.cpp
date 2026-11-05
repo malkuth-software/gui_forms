@@ -1,5 +1,6 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 
+#include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"
 #include "sub_surface_tool_tips.hpp"
 
@@ -36,6 +37,11 @@ SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> 
         std::make_unique<detail::SubSurfaceToolTipRequester>(*this);
     requester_ = requester.get();
     tool_tips_ = std::move(requester);
+    // So are alerts.
+    std::unique_ptr<detail::SubSurfaceAlertRequester> alerts =
+        std::make_unique<detail::SubSurfaceAlertRequester>(*this);
+    alert_requester_ = alerts.get();
+    alerts_ = std::move(alerts);
     // Inactive until keyboard focus enters from the host (enter_focus), and
     // no wrap-around: Tab past the last stop goes back to the parent.
     active_ = false;
@@ -53,6 +59,7 @@ SubSurface::~SubSurface() {
     // Nothing is asked of the parent while the tree goes.
     channel_.reset();
     (*tool_tips_).shutdown();
+    (*alerts_).shutdown();
     release_tree();
     (*resources_).detach(*this);
 }
@@ -405,7 +412,8 @@ void SubSurfaceLoop::deliver_outcomes(SubSurface& root) {
     std::uint64_t stale = 0U;
     const std::uint64_t received = outcomes_.size();
     for (const SurfaceRequestOutcome& outcome : outcomes_) {
-        if (!(*root.requester_).receive_outcome(outcome)) ++stale;
+        if ((*root.requester_).receive_outcome(outcome)) continue;
+        if (!(*root.alert_requester_).receive_outcome(outcome)) ++stale;
     }
     outcomes_.clear();
     const std::lock_guard<std::mutex> lock((*channel_).mutex);

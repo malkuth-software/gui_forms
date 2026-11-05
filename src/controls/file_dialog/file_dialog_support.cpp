@@ -9,9 +9,6 @@
 namespace gui_forms::detail {
 namespace {
 
-// The last identity take_dialog_request_id gave; zero before the first.
-std::atomic<std::uint64_t> last_dialog_request_id{0U};
-
 // Characters an extension may not hold: wildcards, path separators, and the
 // characters Windows forbids in a file name.
 bool is_extension_character(char character) noexcept {
@@ -32,12 +29,6 @@ bool is_extension_character(char character) noexcept {
 }
 
 } // namespace
-
-std::uint64_t take_dialog_request_id() noexcept {
-    const std::uint64_t previous = last_dialog_request_id.fetch_add(1U, std::memory_order_relaxed);
-    const std::uint64_t result = previous + 1U;
-    return result;
-}
 
 bool window_alive(const std::weak_ptr<WindowLifetime>& lifetime) {
     const std::shared_ptr<WindowLifetime> locked = lifetime.lock();

@@ -66,6 +66,9 @@ class RecordingPainter;
 class ToolTipPresenter;
 class ToolTipRoute;
 class SubSurfaceToolTipRequester;
+class AlertRoute;
+class WindowAlerts;
+class SubSurfaceAlertRequester;
 class MessageBoxHelpRoute;
 
 } // namespace detail
@@ -792,6 +795,28 @@ public:
     // Withdraws the current request `id`, closing it where it shows; it is
     // not answered. Any other ID changes nothing. Root thread.
     void withdraw_tool_tip_request(std::uint64_t id);
+    // Raises an alert about `owner`, its content as data (threaded
+    // sub-surfaces design note section 15). A window shows it modally
+    // through its host's message dialog (HostServices, capability
+    // `dialogs`), after the alerts raised before it, from its dispatcher, so
+    // this returns at once; a sub-surface forwards it to its parent, which
+    // raises it on the sub-surface's host. Answers go to `answer` through
+    // this root's dispatcher, once: closed with the chosen button
+    // (SurfaceRequestOutcome::choice); declined without a host or when the
+    // host refuses the dialog; revoked when it is withdrawn, or its owner
+    // (at the parent, the host) leaves the deciding root, before it shows.
+    // Returns its ID: 1 for the first, growing by one. Throws
+    // std::invalid_argument, changing nothing, for an owner that is not a
+    // live control attached to this root, empty text, text or a caption
+    // that is not valid UTF-8, holds NUL or is longer than
+    // HostServices::maximum_dialog_text_bytes, an unknown button set or
+    // icon, or a default choice that is not one of the buttons. Root thread.
+    std::uint64_t raise_alert(const Control::Ptr& owner, AlertRequest request,
+                              std::weak_ptr<SurfaceRequestAnswer> answer = {});
+    // Withdraws alert `id` while it waits to show (answered revoked). One
+    // showing stays until the user closes it; any other ID changes nothing.
+    // Root thread.
+    void withdraw_alert(std::uint64_t id);
     // Window accelerators are tried only after the focused retained route
     // declines a key, preserving editor/menu ownership of their native keys.
     // Registrations are revoked by either the token or owner disposal.
@@ -1014,6 +1039,12 @@ private:
     friend class AnimationTimer;
     friend class detail::ToolTipPresenter;
     friend class detail::SubSurfaceToolTipRequester;
+    friend class detail::WindowAlerts;
+    friend class detail::SubSurfaceAlertRequester;
+    // Posts `outcome` to `answer` through this root's dispatcher; a target
+    // released by then receives nothing.
+    void deliver_request_answer(const std::weak_ptr<SurfaceRequestAnswer>& answer,
+                                const SurfaceRequestOutcome& outcome);
     // The current tooltip request (request_tool_tip): its owner, its item
     // ID among the owner's tooltip parts ("request.<id>"), and where its
     // answers go.
@@ -1674,6 +1705,12 @@ private:
     std::optional<bool> tool_tips_shown_{};
     std::optional<ToolTipRequestRecord> tool_tip_request_{};
     std::uint64_t next_tool_tip_request_{1};
+    // Where this root's alerts go (detail::AlertRoute): a window shows them,
+    // a sub-surface forwards them. Made by the derived root's constructor
+    // and shut down first in its destructor; never null once that
+    // constructor finished.
+    std::unique_ptr<detail::AlertRoute> alerts_;
+    std::uint64_t next_alert_{1};
     Event<const ToolTipEvent&> tool_tip_visibility_changed_;
     // The active panel's, active document's and main window's command
     // targets, in that order; observed, never owned.

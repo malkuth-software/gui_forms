@@ -217,6 +217,15 @@ which kind of root it lives in: a window's tooltip presenter shows the
 request at once, as `show_tool_tip` does, and a sub-surface forwards it to
 its parent, which decides.
 
+Alerts take the same path. `SurfaceRoot::raise_alert(owner, AlertRequest,
+answer)` carries a message, a caption, the buttons, an icon and the default
+button, and returns at once; a window shows its alerts one at a time, in the
+order raised, through the host's message dialog, and a sub-surface forwards
+each to its parent, which raises it on the host. The one answer is closed
+with the chosen button (`SurfaceRequestOutcome::choice`), declined when
+there is no host or the host refuses, or revoked when `withdraw_alert` took
+it back, or its owner left the root, before it showed.
+
 ### Sub-surface tooltips
 
 A sub-surface borrows its region from its parent and never shows anything

@@ -6,6 +6,7 @@
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "../accelerator/accelerator_attachment.hpp"
 #include "../overlay/overlay_attachment.hpp"
+#include "../alerts/window_alerts.hpp"
 #include "../tool_tips/tool_tip_presenter.hpp"
 
 #include <algorithm>
@@ -34,6 +35,7 @@ Window::Window(Control::Ptr root, Size client_size,
     : SurfaceRoot(std::move(root), client_size, std::move(resources)) {
     presenting_window_ = this;
     tool_tips_ = std::make_unique<detail::ToolTipPresenter>(*this);
+    alerts_ = std::make_unique<detail::WindowAlerts>(*this);
     initialize_cursor_identity();
     (*lifetime_).window = this;
     if (!resources_) {
@@ -69,6 +71,8 @@ Window::~Window() {
     // The tooltip presenter goes first: it holds an overlay and a wake, and
     // raises nothing while it shuts down.
     if (tool_tips_) (*tool_tips_).shutdown();
+    // Waiting alerts go unshown; one showing returns to nothing.
+    if (alerts_) (*alerts_).shutdown();
     invalidate_cursor_interaction(CursorError::closing);
     release_tree();
     (*resources_).detach(*this);

@@ -7,6 +7,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
+#include "headless_host.hpp"
 #include "support/theme_definition_heap.hpp"
 
 #include <algorithm>
@@ -16,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstdio>
+#include <deque>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -1377,6 +1379,253 @@ void user_theme_and_engine_input_reach_the_sub_surface() {
     static_cast<void>((*root).remove_child((*host).runtime_id()));
 }
 
+// Stage S4.6: alerts on the request API (design note section 15).
+
+// The host's message dialog, scripted: records each request and answers
+// the next scripted result (cancelled without a choice when none is left).
+struct AlertScript final {
+    std::vector<HostDialogRequest> requests{};
+    std::deque<HostMessageDialogResult> answers{};
+};
+
+class ScriptedAlerts final {
+public:
+    explicit ScriptedAlerts(AlertScript* script) noexcept : script_(script) {}
+    HostDialogResult operator()(const HostDialogRequest& request, host::HeadlessHostServices&) const {
+        (*script_).requests.push_back(request);
+        HostDialogResult result;
+        result.request_id = request.request_id;
+        HostMessageDialogResult message{HostDialogOutcome::cancelled, HostDialogChoice::none};
+        if (!(*script_).answers.empty()) {
+            message = (*script_).answers.front();
+            (*script_).answers.pop_front();
+        }
+        result.payload = message;
+        return result;
+    }
+
+private:
+    AlertScript* script_{};
+};
+
+// The answer `answers` received for alert `id`, if any.
+[[nodiscard]] std::optional<SurfaceRequestOutcome> alert_answer(CollectAnswers& answers, std::uint64_t id) {
+    const std::lock_guard<std::mutex> lock(answers.mutex);
+    for (const SurfaceRequestOutcome& outcome : answers.outcomes) {
+        if (outcome.id == id) return outcome;
+    }
+    return std::nullopt;
+}
+
+[[nodiscard]] std::size_t answers_for(CollectAnswers& answers, std::uint64_t id) {
+    const std::lock_guard<std::mutex> lock(answers.mutex);
+    std::size_t count = 0U;
+    for (const SurfaceRequestOutcome& outcome : answers.outcomes) {
+        if (outcome.id == id) ++count;
+    }
+    return count;
+}
+
+struct RaiseWithDefault final {
+    Window* window{};
+    Control::Ptr owner{};
+    void operator()() const {
+        AlertRequest request;
+        request.text = "Wrong default";
+        request.default_choice = HostDialogChoice::retry;
+        static_cast<void>((*window).raise_alert(owner, request));
+    }
+};
+
+struct RaiseEmpty final {
+    Window* window{};
+    Control::Ptr owner{};
+    void operator()() const { static_cast<void>((*window).raise_alert(owner, AlertRequest{})); }
+};
+
+template <typename Action>
+[[nodiscard]] bool throws_invalid(const Action& action) {
+    try {
+        action();
+    } catch (const std::invalid_argument&) {
+        return true;
+    }
+    return false;
+}
+
+// A window shows its alerts through the host's message dialog, one at a
+// time and in order, from its dispatcher; each is answered once (closed
+// with the choice; declined without a host; revoked when withdrawn or its
+// owner left before it showed), and bad content changes nothing.
+void window_shows_alerts() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("alerts.window"));
+    std::shared_ptr<PlainStop> owner = std::make_shared<PlainStop>(StableId("alerts.owner"));
+    std::shared_ptr<PlainStop> leaving = std::make_shared<PlainStop>(StableId("alerts.leaving"));
+    (*root).add_child(owner);
+    (*root).add_child(leaving);
+    Window window(root, Size{200.0, 100.0});
+    std::shared_ptr<CollectAnswers> answers = std::make_shared<CollectAnswers>();
+
+    AlertRequest saved;
+    saved.text = "Saved.";
+    const std::uint64_t unhosted = window.raise_alert(owner, saved, answers);
+    require(unhosted == 1U, "the first alert is 1");
+    require(!alert_answer(*answers, unhosted).has_value(), "raising returns before the alert is decided");
+    static_cast<void>(window.drain_posted_work());
+    static_cast<void>(window.drain_posted_work());
+    const std::optional<SurfaceRequestOutcome> declined = alert_answer(*answers, unhosted);
+    require(declined && (*declined).result == SurfaceRequestResult::declined,
+            "without a host the alert is declined");
+
+    host::HeadlessHost headless(window);
+    host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
+    AlertScript script;
+    services.set_dialog_handler(ScriptedAlerts(&script));
+    script.answers.push_back(HostMessageDialogResult{HostDialogOutcome::accepted, HostDialogChoice::no});
+
+    AlertRequest discard;
+    discard.text = "Discard the changes?";
+    discard.caption = "Evidence";
+    discard.buttons = HostMessageButtons::yes_no_cancel;
+    discard.icon = HostMessageIcon::question;
+    discard.default_choice = HostDialogChoice::no;
+    const std::uint64_t first = window.raise_alert(owner, discard, answers);
+    AlertRequest withdrawn;
+    withdrawn.text = "Withdrawn";
+    const std::uint64_t second = window.raise_alert(owner, withdrawn, answers);
+    AlertRequest third;
+    third.text = "Closed without a choice";
+    third.buttons = HostMessageButtons::ok_cancel;
+    const std::uint64_t later = window.raise_alert(owner, third, answers);
+    AlertRequest orphan;
+    orphan.text = "Its owner leaves";
+    const std::uint64_t orphaned = window.raise_alert(leaving, orphan, answers);
+    window.withdraw_alert(second);
+    static_cast<void>((*root).remove_child((*leaving).runtime_id()));
+    for (int round = 0; round < 8; ++round) static_cast<void>(window.drain_posted_work());
+
+    require(script.requests.size() == 2U, "the two alerts still raised are shown, one at a time");
+    const HostMessageDialogRequest* const shown =
+        std::get_if<HostMessageDialogRequest>(&script.requests[0].payload);
+    require(shown != nullptr && (*shown).message == "Discard the changes?" && (*shown).title == "Evidence" &&
+                (*shown).buttons == HostMessageButtons::yes_no_cancel && (*shown).icon == HostMessageIcon::question &&
+                (*shown).default_choice == HostDialogChoice::no,
+            "the first alert's content reaches the host's dialog");
+    require(script.requests[0].owner_id == "alerts.window" && script.requests[0].request_id != 0U &&
+                script.requests[1].request_id != script.requests[0].request_id,
+            "each dialog names the window's root and a fresh identity");
+    const HostMessageDialogRequest* const next =
+        std::get_if<HostMessageDialogRequest>(&script.requests[1].payload);
+    require(next != nullptr && (*next).message == "Closed without a choice" &&
+                (*next).default_choice == HostDialogChoice::ok,
+            "the next one follows, defaulting to its first button");
+    const std::optional<SurfaceRequestOutcome> chose = alert_answer(*answers, first);
+    require(chose && (*chose).result == SurfaceRequestResult::closed && (*chose).choice == HostDialogChoice::no,
+            "the user's choice is the answer");
+    const std::optional<SurfaceRequestOutcome> revoked = alert_answer(*answers, second);
+    require(revoked && (*revoked).result == SurfaceRequestResult::revoked, "a withdrawn alert is revoked");
+    const std::optional<SurfaceRequestOutcome> dismissed = alert_answer(*answers, later);
+    require(dismissed && (*dismissed).result == SurfaceRequestResult::closed &&
+                (*dismissed).choice == HostDialogChoice::cancel,
+            "a box closed without a choice answers cancel");
+    const std::optional<SurfaceRequestOutcome> gone = alert_answer(*answers, orphaned);
+    require(gone && (*gone).result == SurfaceRequestResult::revoked, "an alert whose owner left is revoked");
+    require(answers_for(*answers, first) == 1U && answers_for(*answers, later) == 1U, "each alert is answered once");
+
+    require(throws_invalid(RaiseWithDefault{&window, owner}), "a default choice outside the buttons is refused");
+    require(throws_invalid(RaiseEmpty{&window, owner}), "an alert without text is refused");
+    require(throws_invalid(RaiseEmpty{&window, leaving}), "an owner outside the root is refused");
+    static_cast<void>(window.drain_posted_work());
+    require(script.requests.size() == 2U, "refused alerts show nothing");
+}
+
+// Posted to the sub-surface's thread: raises an alert about `control`
+// through its root, or withdraws alert 1.
+class RaiseAlertInside final {
+public:
+    RaiseAlertInside(std::weak_ptr<Control> control, std::shared_ptr<CollectAnswers> answers, bool withdraw) noexcept
+        : control_(std::move(control)), answers_(std::move(answers)), withdraw_(withdraw) {}
+    void operator()() const {
+        const Control::Ptr control = control_.lock();
+        if (!control) return;
+        SurfaceRoot* const root = (*control).attached_surface_root();
+        if (root == nullptr) return;
+        if (withdraw_) {
+            (*root).withdraw_alert(1U);
+            return;
+        }
+        AlertRequest request;
+        request.text = "From inside";
+        request.buttons = HostMessageButtons::retry_cancel;
+        request.icon = HostMessageIcon::warning;
+        static_cast<void>((*root).raise_alert(control, request, answers_));
+    }
+
+private:
+    std::weak_ptr<Control> control_;
+    std::shared_ptr<CollectAnswers> answers_;
+    bool withdraw_{};
+};
+
+struct AlertsAtLeast final {
+    std::uint64_t count{};
+    [[nodiscard]] bool operator()(const SubSurfaceRequestStatistics& statistics) const noexcept {
+        return statistics.alerts >= count;
+    }
+};
+
+// A sub-surface forwards its alert; the parent raises it on the host and
+// shows it over the window, and the one answer reaches the target on the
+// sub-surface's thread, with the choice. Withdrawn while it waits at the
+// parent, it is revoked and never shown.
+void sub_surface_forwards_alerts() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("forward-alert.window"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("forward-alert.host"));
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    std::shared_ptr<TipControls> controls = std::make_shared<TipControls>();
+    (*host).set_content(std::make_unique<TipContent>(controls), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    host::HeadlessHost headless(window);
+    host::HeadlessHostServices& services = static_cast<host::HeadlessHostServices&>(headless.services());
+    AlertScript script;
+    services.set_dialog_handler(ScriptedAlerts(&script));
+    script.answers.push_back(HostMessageDialogResult{HostDialogOutcome::accepted, HostDialogChoice::retry});
+    window.flush();
+    require(wait_for_content_tag(*(*host).live_surface(), 1U), "the sub-surface is configured");
+    std::weak_ptr<Control> hover;
+    {
+        const std::lock_guard<std::mutex> lock((*controls).mutex);
+        hover = (*controls).hover;
+    }
+    std::shared_ptr<CollectAnswers> answers = std::make_shared<CollectAnswers>();
+    static_cast<void>((*host).dispatcher().begin_invoke(RaiseAlertInside(hover, answers, false)));
+    require(drain_until_requests(window, *host, AlertsAtLeast{1U}), "the alert reaches the parent");
+    for (int round = 0; round < 4; ++round) static_cast<void>(window.drain_posted_work());
+    require(script.requests.size() == 1U, "the parent shows it");
+    const HostMessageDialogRequest* const shown =
+        std::get_if<HostMessageDialogRequest>(&script.requests[0].payload);
+    require(shown != nullptr && (*shown).message == "From inside" &&
+                (*shown).buttons == HostMessageButtons::retry_cancel && (*shown).icon == HostMessageIcon::warning,
+            "with the sub-surface's content");
+    require(wait_for_answer(*answers, 1U, SurfaceRequestResult::closed), "the answer reaches the target");
+    const std::optional<SurfaceRequestOutcome> chose = alert_answer(*answers, 1U);
+    require(chose && (*chose).choice == HostDialogChoice::retry, "with the user's choice");
+
+    // A second alert, withdrawn before the parent shows it.
+    static_cast<void>((*host).dispatcher().begin_invoke(RaiseAlertInside(hover, answers, false)));
+    require(drain_until_requests(window, *host, AlertsAtLeast{2U}), "the second alert reaches the parent");
+    // The parent shows it from its next drain; the sub-surface withdraws it
+    // first (alert 2 is the root's; withdraw_alert(1) is a no-op now).
+    static_cast<void>(window.raise_alert(host, AlertRequest{.text = "Parent's own"}, answers));
+    require(script.requests.size() == 1U, "nothing more shown yet");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+    for (int round = 0; round < 4; ++round) static_cast<void>(window.drain_posted_work());
+    require(script.requests.size() == 1U, "a host that leaves withdraws its waiting alerts, and its own go too");
+}
+
 // A sub-surface made on the test's thread, without a SubSurfaceThread: its
 // tooltip API works and asks nowhere (it used to reach a window's absent
 // presenter).
@@ -1408,6 +1657,8 @@ int run_all() {
     sub_surface_forwards_tool_tip_requests();
     ambient_effect_ticks_off_the_ui_thread();
     user_theme_and_engine_input_reach_the_sub_surface();
+    window_shows_alerts();
+    sub_surface_forwards_alerts();
     return 0;
 }
 

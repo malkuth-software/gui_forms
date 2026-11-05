@@ -36,6 +36,8 @@ Related types
      - AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active overlay/focus scopes retain first refusal.
    * - :cpp:class:`AcceleratorToken <gui_forms::AcceleratorToken>`
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
+   * - :cpp:class:`AlertRequest <gui_forms::AlertRequest>`
+     - One alert: a message the user acknowledges by choosing one of its buttons, its content as data.
    * - :cpp:class:`BackdropChain <gui_forms::BackdropChain>`
      - The chain: ``length`` live operations, applied in order, in a fixed array.
    * - :cpp:class:`BackdropChainResolution <gui_forms::BackdropChainResolution>`
@@ -171,6 +173,34 @@ Related types
    .. cpp:function:: void disconnect() noexcept
 
       Idempotently removes the exact accelerator from its Window.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AlertRequest final
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   One alert: a message the user acknowledges by choosing one of its buttons, its content as data. The deciding window shows its alerts modally, one at a time, in the order they were raised.
+
+   .. cpp:member:: std::string text
+
+      The message, not empty. It and the caption are valid UTF-8 without NUL, of at most HostServices::maximum_dialog_text_bytes.
+
+   .. cpp:member:: std::string caption
+
+      The title; empty for the host's own.
+
+   .. cpp:member:: HostMessageButtons buttons
+
+      Default: ``{HostMessageButtons::ok}``.
+
+   .. cpp:member:: HostMessageIcon icon
+
+      Default: ``{HostMessageIcon::none}``.
+
+   .. cpp:member:: HostDialogChoice default_choice
+
+      The button Enter chooses, one of ``buttons``; none for the first. Default: ``{HostDialogChoice::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1066,6 +1096,10 @@ Related types
    .. cpp:member:: SurfaceRequestResult result
 
       Default: ``{SurfaceRequestResult::shown}``.
+
+   .. cpp:member:: HostDialogChoice choice
+
+      For a closed alert, the button chosen: cancel (or ok for an OK box) when the user closed it without choosing, none when the host closed a box the user cannot dismiss (Yes/No; Abort, Retry, Ignore). Default: ``{HostDialogChoice::none}``.
 
 .. cpp:namespace:: gui_forms
 

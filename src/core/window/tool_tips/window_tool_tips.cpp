@@ -14,23 +14,6 @@ namespace gui_forms {
 
 namespace {
 
-// Posted to a root's dispatcher with one answer: delivers it on the root's
-// thread unless the target was released first.
-class DeliverRequestAnswer final {
-public:
-    DeliverRequestAnswer(std::weak_ptr<SurfaceRequestAnswer> target, SurfaceRequestOutcome outcome) noexcept
-        : target_(std::move(target)), outcome_(outcome) {}
-    void operator()() const {
-        const std::shared_ptr<SurfaceRequestAnswer> target = target_.lock();
-        if (!target) return;
-        (*target).request_answered(outcome_);
-    }
-
-private:
-    std::weak_ptr<SurfaceRequestAnswer> target_;
-    SurfaceRequestOutcome outcome_{};
-};
-
 [[nodiscard]] bool finite_rect(Rect rect) noexcept {
     const bool finite = std::isfinite(rect.x) && std::isfinite(rect.y) && std::isfinite(rect.width) &&
                         std::isfinite(rect.height) && rect.width >= 0.0 && rect.height >= 0.0;
@@ -127,7 +110,7 @@ void SurfaceRoot::end_tool_tip_request(bool answer_revoked) {
         SurfaceRequestOutcome outcome;
         outcome.id = ended.id;
         outcome.result = SurfaceRequestResult::revoked;
-        static_cast<void>(dispatcher().begin_invoke(DeliverRequestAnswer(ended.answer, outcome)));
+        deliver_request_answer(ended.answer, outcome);
     }
     (*tool_tips_).withdraw(ended.item_id);
 }
@@ -142,7 +125,7 @@ void SurfaceRoot::answer_tool_tip_request(std::uint64_t id, SurfaceRequestResult
     SurfaceRequestOutcome outcome;
     outcome.id = id;
     outcome.result = result;
-    static_cast<void>(dispatcher().begin_invoke(DeliverRequestAnswer(answer, outcome)));
+    deliver_request_answer(answer, outcome);
 }
 
 void SurfaceRoot::tool_tip_request_changed(const ToolTipEvent& change) {

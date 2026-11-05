@@ -1,6 +1,7 @@
 #include "sub_surface_tool_tips.hpp"
 
 #include "sub_surface_channel.hpp"
+#include "sub_surface_request_posts.hpp"
 
 #include <utility>
 #include <vector>
@@ -8,39 +9,6 @@
 namespace gui_forms::detail {
 
 namespace {
-
-// Posted to the parent's dispatcher with one request: delivers it on the
-// parent's thread, unless the parent released the target first.
-class DeliverSubSurfaceRequest final {
-public:
-    DeliverSubSurfaceRequest(std::weak_ptr<SubSurfaceRequestTarget> target, SubSurfaceRequest request) noexcept
-        : target_(std::move(target)), request_(std::move(request)) {}
-    void operator()() const {
-        const std::shared_ptr<SubSurfaceRequestTarget> target = target_.lock();
-        if (!target) return;
-        (*target).receive_request(request_);
-    }
-
-private:
-    std::weak_ptr<SubSurfaceRequestTarget> target_;
-    SubSurfaceRequest request_{};
-};
-
-// Posted the same way with the id of a request the sub-surface revoked.
-class DeliverSubSurfaceRevoke final {
-public:
-    DeliverSubSurfaceRevoke(std::weak_ptr<SubSurfaceRequestTarget> target, std::uint64_t id) noexcept
-        : target_(std::move(target)), id_(id) {}
-    void operator()() const {
-        const std::shared_ptr<SubSurfaceRequestTarget> target = target_.lock();
-        if (!target) return;
-        (*target).receive_revoke(id_);
-    }
-
-private:
-    std::weak_ptr<SubSurfaceRequestTarget> target_;
-    std::uint64_t id_{};
-};
 
 // The node among `nodes` and their children whose stable ID is `stable_id`,
 // or null. The pointer is borrowed from `nodes`.

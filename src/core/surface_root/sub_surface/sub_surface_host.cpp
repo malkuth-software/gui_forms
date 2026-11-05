@@ -62,6 +62,21 @@ private:
     SubSurfaceHost* host_{};
 };
 
+class SubSurfaceHost::AlertRelay final : public SurfaceRequestAnswer {
+public:
+    explicit AlertRelay(SubSurfaceHost& host) noexcept : host_(&host) {}
+    void request_answered(const SurfaceRequestOutcome& outcome) override {
+        if (host_ == nullptr) return;
+        (*host_).relay_alert(outcome);
+    }
+    // The host stopped the thread these alerts were raised for.
+    void revoke() noexcept { host_ = nullptr; }
+
+private:
+    // Observes the host that owns this object; null once revoked.
+    SubSurfaceHost* host_{};
+};
+
 class SubSurfaceHost::KeyReturn final : public SubSurfaceKeyReturn {
 public:
     explicit KeyReturn(SubSurfaceHost& host) noexcept : host_(&host) {}
@@ -362,6 +377,10 @@ std::vector<SemanticNode> SubSurfaceHost::tool_tip_items() const {
 
 void SubSurfaceHost::receive_request(const SubSurfaceRequest& request) {
     ++request_statistics_.received;
+    if (request.kind == SubSurfaceRequestKind::alert) {
+        receive_alert(request);
+        return;
+    }
     Window* const window = attached_window();
     const bool stale = request.content_epoch != content_epoch_ ||
                        (request.origin == SubSurfaceToolTipOrigin::pointer &&
@@ -406,7 +425,49 @@ void SubSurfaceHost::receive_request(const SubSurfaceRequest& request) {
     (*window).tool_tip_items_changed(*this);
 }
 
+void SubSurfaceHost::receive_alert(const SubSurfaceRequest& request) {
+    // The host's root decides: a window shows it, a sub-surface (a nested
+    // host) forwards it again.
+    SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr || !alert_relay_) {
+        ++request_statistics_.declined;
+        answer(request.id, SurfaceRequestResult::declined);
+        return;
+    }
+    AlertRequest content;
+    content.text = request.text;
+    content.caption = request.caption;
+    content.buttons = request.buttons;
+    content.icon = request.icon;
+    content.default_choice = request.default_choice;
+    // The sub-surface validated the content as raise_alert does here.
+    const std::uint64_t raised = (*root).raise_alert(shared_from_this(), std::move(content), alert_relay_);
+    RaisedAlert record;
+    record.raised = raised;
+    record.request = request.id;
+    alerts_.push_back(record);
+    ++request_statistics_.alerts;
+}
+
+void SubSurfaceHost::relay_alert(const SurfaceRequestOutcome& outcome) {
+    std::vector<RaisedAlert>::iterator found = alerts_.begin();
+    while (found != alerts_.end() && (*found).raised != outcome.id) ++found;
+    if (found == alerts_.end()) return;
+    const std::uint64_t request = (*found).request;
+    alerts_.erase(found);
+    answer(request, outcome.result, outcome.choice);
+}
+
 void SubSurfaceHost::receive_revoke(std::uint64_t id) {
+    for (std::vector<RaisedAlert>::iterator alert = alerts_.begin(); alert != alerts_.end(); ++alert) {
+        if ((*alert).request != id) continue;
+        const std::uint64_t raised = (*alert).raised;
+        alerts_.erase(alert);
+        ++request_statistics_.withdrawn;
+        SurfaceRoot* const root = attached_surface_root();
+        if (root != nullptr) (*root).withdraw_alert(raised);
+        return;
+    }
     std::vector<SubSurfaceRequest>::iterator found = requests_.begin();
     while (found != requests_.end() && (*found).id != id) ++found;
     if (found == requests_.end()) return;
@@ -435,11 +496,12 @@ void SubSurfaceHost::revoke_requests(SubSurfaceToolTipOrigin origin) {
     if (revoked && root != nullptr) (*root).tool_tip_items_changed(*this);
 }
 
-void SubSurfaceHost::answer(std::uint64_t id, SurfaceRequestResult result) {
+void SubSurfaceHost::answer(std::uint64_t id, SurfaceRequestResult result, HostDialogChoice choice) {
     if (!thread_) return;
     SurfaceRequestOutcome outcome;
     outcome.id = id;
     outcome.result = result;
+    outcome.choice = choice;
     (*thread_).post_request_outcome(outcome);
 }
 
@@ -513,6 +575,7 @@ void SubSurfaceHost::configure_region() {
         key_return_ = std::make_shared<KeyReturn>(*this);
         (*thread_).set_key_return((*window).dispatcher(), key_return_);
         request_target_ = std::make_shared<RequestTarget>(*this);
+        alert_relay_ = std::make_shared<AlertRelay>(*this);
         (*thread_).set_request_target((*window).dispatcher(), request_target_);
         pointer_left_sequence_ = 0U;
         focus_left_sequence_ = 0U;
@@ -556,6 +619,15 @@ void SubSurfaceHost::stop_thread() noexcept {
     (*request_target_).revoke();
     request_target_.reset();
     requests_.clear();
+    // Alerts still waiting are withdrawn; one showing closes into the
+    // revoked relay, unanswered.
+    (*alert_relay_).revoke();
+    alert_relay_.reset();
+    SurfaceRoot* const root = attached_surface_root();
+    for (const RaisedAlert& alert : alerts_) {
+        if (root != nullptr) (*root).withdraw_alert(alert.raised);
+    }
+    alerts_.clear();
     keyboard_inside_ = false;
     pressed_buttons_ = 0U;
     took_capture_ = false;

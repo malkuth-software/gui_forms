@@ -21,6 +21,7 @@ namespace detail {
 struct SubSurfaceChannel;
 class SubSurfaceLoop;
 class SubSurfaceToolTipRequester;
+class SubSurfaceAlertRequester;
 }
 
 // What a sub-surface shows (stage S2, threaded sub-surfaces design note
@@ -124,6 +125,9 @@ public:
 // whether and where it shows.
 enum class SubSurfaceRequestKind : std::uint8_t {
     tool_tip,
+    // SurfaceRoot::raise_alert on the sub-surface: the parent raises it on
+    // the host and relays its one answer.
+    alert,
 };
 
 // What made the sub-surface ask for a tooltip.
@@ -160,6 +164,13 @@ struct SubSurfaceRequest final {
     std::string text{};
     // The thing's semantic description, when it has one.
     std::string description{};
+    // An alert's caption, buttons, icon and default choice (AlertRequest;
+    // `text` is its message). Alerts are never stale: they carry no anchor
+    // and no input.
+    std::string caption{};
+    HostMessageButtons buttons{HostMessageButtons::ok};
+    HostMessageIcon icon{HostMessageIcon::none};
+    HostDialogChoice default_choice{HostDialogChoice::none};
     SubSurfaceToolTipOrigin origin{SubSurfaceToolTipOrigin::pointer};
     // For a program request (SurfaceRoot::show_tool_tip or
     // request_tool_tip on the sub-surface): how long it shows (none: the
@@ -263,6 +274,7 @@ public:
 private:
     friend class detail::SubSurfaceLoop;
     friend class detail::SubSurfaceToolTipRequester;
+    friend class detail::SubSurfaceAlertRequester;
 
     // Set by the loop that runs this root (null for a SubSurface made
     // without a SubSurfaceThread: its requests go nowhere).
@@ -273,6 +285,8 @@ private:
     std::uint64_t input_sequence_{};
     // Observes the route SurfaceRoot::tool_tips_ owns.
     detail::SubSurfaceToolTipRequester* requester_{};
+    // Observes the route SurfaceRoot::alerts_ owns.
+    detail::SubSurfaceAlertRequester* alert_requester_{};
 };
 
 // The parent's side of one sub-surface: owns its thread (owner decision 9,

@@ -26,6 +26,8 @@ struct SubSurfaceRequestStatistics final {
     std::uint64_t revoked{};
     // Revoked by the sub-surface.
     std::uint64_t withdrawn{};
+    // Alerts raised on the host for the sub-surface (SurfaceRoot::raise_alert).
+    std::uint64_t alerts{};
 };
 
 // The parent's control for one threaded sub-surface (stage S2, design note
@@ -147,13 +149,26 @@ private:
     class KeyReturn;
     // The sub-surface's request target for one thread, revoked the same way.
     class RequestTarget;
+    // Where the answers to the alerts raised for one thread go, revoked the
+    // same way.
+    class AlertRelay;
+    // An alert raised on the host's root for the sub-surface: the root's
+    // alert ID and the sub-surface's request ID.
+    struct RaisedAlert final {
+        std::uint64_t raised{};
+        std::uint64_t request{};
+    };
 
     // A request the sub-surface posted (RequestTarget).
     void receive_request(const SubSurfaceRequest& request);
     void receive_revoke(std::uint64_t id);
     // Revokes every open request of `origin` and tells the sub-surface.
     void revoke_requests(SubSurfaceToolTipOrigin origin);
-    void answer(std::uint64_t id, SurfaceRequestResult result);
+    void answer(std::uint64_t id, SurfaceRequestResult result, HostDialogChoice choice = HostDialogChoice::none);
+    // An alert the sub-surface raised: raised again on the host's root,
+    // whose one answer goes back (relay_alert).
+    void receive_alert(const SubSurfaceRequest& request);
+    void relay_alert(const SurfaceRequestOutcome& outcome);
     // The window's presenter showed or closed one of this host's items.
     void on_window_tool_tip(const ToolTipEvent& change);
 
@@ -198,6 +213,9 @@ private:
     SubscriptionToken tool_tip_subscription_{};
     // The sub-surface's open requests, oldest first.
     std::vector<SubSurfaceRequest> requests_{};
+    std::shared_ptr<AlertRelay> alert_relay_{};
+    // The alerts raised for the sub-surface and not yet answered.
+    std::vector<RaisedAlert> alerts_{};
     // The input sequences of the newest pointer leave and focus leave
     // forwarded: an older request of that origin is stale.
     std::uint64_t pointer_left_sequence_{};

@@ -402,6 +402,9 @@ add_library(gui_forms_core STATIC
     src/core/surface_root/sub_surface/sub_surface.cpp
     src/core/surface_root/sub_surface/sub_surface_host.cpp
     src/core/surface_root/sub_surface/sub_surface_tool_tips.cpp
+    src/core/surface_root/sub_surface/sub_surface_alerts.cpp
+    src/core/surface_root/requests/surface_alerts.cpp
+    src/core/window/alerts/window_alerts.cpp
     src/core/surface_root/control_table/control_table.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
@@ -2970,7 +2973,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_live_surface_pacer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_live_surface_pacer_tests COMMAND gui_forms_live_surface_pacer_tests)
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
-    target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)
     set_tests_properties(gui_forms_sub_surface_tests PROPERTIES TIMEOUT 120)
     add_executable(gui_forms_live_surface_idle_wake_tests tests/live_surface_idle_wake_tests.cpp)

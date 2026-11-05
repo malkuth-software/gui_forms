@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/host/types/host_types.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 
 #include <chrono>
@@ -30,16 +31,34 @@ struct ToolTipRequest final {
     std::optional<std::chrono::milliseconds> duration{};
 };
 
+// One alert: a message the user acknowledges by choosing one of its
+// buttons, its content as data. The deciding window shows its alerts
+// modally, one at a time, in the order they were raised.
+struct AlertRequest final {
+    // The message, not empty. It and the caption are valid UTF-8 without
+    // NUL, of at most HostServices::maximum_dialog_text_bytes.
+    std::string text{};
+    // The title; empty for the host's own.
+    std::string caption{};
+    HostMessageButtons buttons{HostMessageButtons::ok};
+    HostMessageIcon icon{HostMessageIcon::none};
+    // The button Enter chooses, one of `buttons`; none for the first.
+    HostDialogChoice default_choice{HostDialogChoice::none};
+};
+
 enum class SurfaceRequestResult : std::uint8_t {
-    // It shows.
+    // It shows (tooltips; an alert is answered once, when it closes).
     shown,
     // The deciding root refused it (its policy, or an owner that cannot
-    // show one now); nothing is kept.
+    // show one now; for an alert, no host or a host that refused the
+    // dialog); nothing is kept.
     declined,
-    // It showed and was closed (auto-pop, a press, its owner left).
+    // It showed and was closed (auto-pop, a press, its owner left; an
+    // alert, by the user's choice).
     closed,
     // It was replaced by a newer request, or revoked by the root that
-    // decides (the pointer or focus left a sub-surface's host).
+    // decides (the pointer or focus left a sub-surface's host); an alert
+    // withdrawn, or whose owner left its root, before it showed.
     revoked,
     // It arrived out of date at the deciding root and was dropped.
     stale,
@@ -49,6 +68,10 @@ enum class SurfaceRequestResult : std::uint8_t {
 struct SurfaceRequestOutcome final {
     std::uint64_t id{};
     SurfaceRequestResult result{SurfaceRequestResult::shown};
+    // For a closed alert, the button chosen: cancel (or ok for an OK box)
+    // when the user closed it without choosing, none when the host closed
+    // a box the user cannot dismiss (Yes/No; Abort, Retry, Ignore).
+    HostDialogChoice choice{HostDialogChoice::none};
 };
 
 // Where a request's answers go: posted through the requesting root's

@@ -316,6 +316,22 @@ Related types
 
       The thing's semantic description, when it has one.
 
+   .. cpp:member:: std::string caption
+
+      An alert's caption, buttons, icon and default choice (AlertRequest; ``text`` is its message). Alerts are never stale: they carry no anchor and no input.
+
+   .. cpp:member:: HostMessageButtons buttons
+
+      Default: ``{HostMessageButtons::ok}``.
+
+   .. cpp:member:: HostMessageIcon icon
+
+      Default: ``{HostMessageIcon::none}``.
+
+   .. cpp:member:: HostDialogChoice default_choice
+
+      Default: ``{HostDialogChoice::none}``.
+
    .. cpp:member:: SubSurfaceToolTipOrigin origin
 
       Default: ``{SubSurfaceToolTipOrigin::pointer}``.
@@ -353,6 +369,10 @@ Related types
    .. cpp:member:: std::uint64_t withdrawn
 
       Revoked by the sub-surface.
+
+   .. cpp:member:: std::uint64_t alerts
+
+      Alerts raised on the host for the sub-surface (SurfaceRoot::raise_alert).
 
 .. cpp:namespace:: gui_forms
 
@@ -528,6 +548,8 @@ Enumerations
    ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
 
    .. cpp:enumerator:: tool_tip
+
+   .. cpp:enumerator:: alert
 
 .. cpp:namespace:: gui_forms
 
