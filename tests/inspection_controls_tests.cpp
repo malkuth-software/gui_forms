@@ -507,6 +507,13 @@ void test_grouped_editors_commit_cancel_validation_and_semantics() {
                 (*properties).content_height() ==
                     height_before + 18.0,
             "inline validation must participate in the one owning scroll geometry");
+    // The validation line is painted from a string the row's paint holds
+    // (PartPaint::text borrows it); under ASan a dangling view fails here.
+    window.perform_layout();
+    test_support::TypographyPainter validation_painter;
+    (*properties).on_paint(validation_painter, {0.0, 0.0, 440.0, 500.0});
+    require(validation_painter.find("! Name already exists") != nullptr,
+            "the inline validation message must paint behind its marker");
     const SemanticSnapshot semantic = window.semantic_snapshot();
     const SemanticNode* grid = find_semantic(semantic.roots,
                                               "inspection.properties");

@@ -1059,7 +1059,9 @@ void PropertyList::on_paint(Painter& painter, Rect) {
                 message.role = PartRole::content;
                 message.states = row_states;
                 message.states.insert(AnatomyState::invalid);
-                message.text = "! " + row.validation_message;
+                // PartPaint::text borrows: the line is held here, past the paint.
+                const std::string line = "! " + row.validation_message;
+                message.text = line;
                 message.font = validation_font;
                 paint_text_part_at(painter, *this, message,
                                    {validation.x,

@@ -51,11 +51,27 @@ std::shared_ptr<SplitContainer> find_split(Window& window,
         find_control(window.root(), id));
 }
 
+// The seam band's face: the grip's first fill. Since T4 the band is a panel
+// face the theme's engine draws, a flat fill or a gradient as the theme's
+// recipe says; the tab's arrow mark is drawn later with small fill_rects.
+bool face_fill(VisualPaintOperation operation) noexcept {
+    switch (operation) {
+    case VisualPaintOperation::fill_rect:
+    case VisualPaintOperation::fill_linear_gradient:
+    case VisualPaintOperation::fill_linear_gradient_spread:
+        return true;
+    default:
+        // Every other operation (state, strokes, text, images, groups) is
+        // not a face fill.
+        return false;
+    }
+}
+
 const VisualPaintOperationSnapshot* first_fill(
     const VisualControlInspection& control) {
     for (const VisualPaintOperationSnapshot& operation :
          control.display_operations) {
-        if (operation.operation == VisualPaintOperation::fill_rect) {
+        if (face_fill(operation.operation)) {
             return &operation;
         }
     }
@@ -103,9 +119,11 @@ void test_trace_scale_state_input_and_inspection() {
     const VisualControlInspection* grip =
         snapshot.find("seam-proximity.hairline.splitter");
     const VisualPaintOperationSnapshot* fill = grip ? first_fill(*grip) : nullptr;
+    // Bounded: the band's face and edge (2), the tab's clip, face, gradient,
+    // restore and edge (5), and its arrow mark's four rows (4).
     require(grip && fill && near((*fill).rect.width, 1.0) &&
                 (*grip).display_chunk_current &&
-                (*grip).total_display_operations <= 8U,
+                (*grip).total_display_operations <= 11U,
             "one-times inspector trace must expose one logical hairline fill in a bounded current chunk");
 
     require((*window).perform_semantic_action(

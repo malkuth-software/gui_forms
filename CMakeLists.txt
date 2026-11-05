@@ -5030,6 +5030,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         if(gui_forms_target_type MATCHES "^(STATIC_LIBRARY|SHARED_LIBRARY|MODULE_LIBRARY|OBJECT_LIBRARY|EXECUTABLE)$")
             target_compile_options(${gui_forms_first_party_target} PRIVATE
                 $<$<COMPILE_LANGUAGE:C,CXX,OBJC,OBJCXX>:-ffp-contract=off>)
+            # A view (std::string_view, std::span) bound or assigned to a
+            # temporary dangles: PartPaint::text twice held a temporary
+            # std::string (CorrespondenceView, PropertyList) and painting read
+            # freed memory. Clang reports these on by default; here they fail
+            # the build.
+            if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+                target_compile_options(${gui_forms_first_party_target} PRIVATE
+                    $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Werror=dangling-assignment-gsl -Werror=dangling-gsl>)
+            endif()
         endif()
     endforeach()
 endif()
