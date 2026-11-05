@@ -130,6 +130,21 @@ still receive the pointer. A server without the 32-bit visual leaves the
 window opaque (`host_unsupported`). The measurements behind this are in
 [`planning/stages/T5-compositor/MEASUREMENTS.md`](https://github.com/malkuth-software/notes/blob/gui_forms/planning/stages/T5-compositor/MEASUREMENTS.md).
 
+**Owned and popup windows.** What a host can grant a window owned by
+another (a floating panel, and in time a native popup, menu or tooltip)
+is reported in that window's own `CompositorState`, as for any window:
+
+| Owned or popup window | macOS | Windows | X11 |
+|---|---|---|---|
+| per-pixel alpha (`transparent`) | yes | yes | while a compositing manager runs |
+| system material (blur) | `NSVisualEffectView` in the owned window or panel | DWM system backdrop on the owned window (Windows 11 22H2 and later) | none; any blur is the compositing manager's own |
+| saturation of the material | no | no | no |
+
+Popups, menus and tooltips are still drawn inside their owner's
+surface, so for now they take only a backdrop chain's tint
+([Transparency, glass and reflections](transparency.md), "Window
+backdrops").
+
 The headless reference host simulates these capabilities
 (`HeadlessApplication::simulate_compositor_state`).
 

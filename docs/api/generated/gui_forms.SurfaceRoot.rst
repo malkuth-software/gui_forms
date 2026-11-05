@@ -111,8 +111,11 @@ gui_forms::SurfaceRoot
 
       **backdrop_chain** : ``std::optional<BackdropChain>``
 
+      **backdrop_chain_resolution** : ``std::optional<BackdropChainResolution>``, read-only
+         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
+
       **backdrop_statistics** : ``BackdropStatistics``, read-only
-         What the window's popup backdrops cost so far (BackdropStatistics).
+         What the window's popup tints cost so far (BackdropStatistics).
 
       **host_services** : ``HostServices*``, read-only
          The services of the attached native host, or null when none is attached.
@@ -624,11 +627,15 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: void set_backdrop_chain(std::optional<BackdropChain> chain)
 
-      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A change repaints the window and recomputes the backdrop. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread.
+      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread.
+
+   .. cpp:function:: std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
+
+      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
 
    .. cpp:function:: const BackdropStatistics& backdrop_statistics() const noexcept
 
-      What the window's popup backdrops cost so far (BackdropStatistics).
+      What the window's popup tints cost so far (BackdropStatistics).
 
    .. cpp:function:: HostServices* host_services() const noexcept
 

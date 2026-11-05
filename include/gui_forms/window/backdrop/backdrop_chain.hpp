@@ -1,20 +1,25 @@
 #pragma once
 
+#include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/types.hpp"
 
 #include <array>
 #include <cstddef>
 #include <cstdint>
 
-// A window's backdrop (owner, 2026-11-05): an ordered chain of operations,
-// in the manner of CSS backdrop-filter, applied once to what lies behind the
-// window's content, under everything the window draws. Only a window has
-// one (a popup and a floating panel in its own window count); a container
-// never does, and a backdrop never samples another backdrop. Content is
-// opaque by default and occludes it: the backdrop is computed only where
-// clear content exposes it. Under reduced transparency, or with no
-// compositor, the chain collapses to its tint as one solid colour
-// (backdrop_chain_solid); under high contrast there is no backdrop.
+// A window's backdrop (owner, 2026-11-05, revised the same day): an ordered
+// chain of operations, in the manner of CSS backdrop-filter, for what lies
+// behind the window's content, under everything the window draws. Only a
+// window has one (a popup and a floating panel in its own window count); a
+// container never does. GUI.Forms never reads or blurs what lies outside a
+// window's own surface: a blur is the system material granted to the
+// native window (Mica, Acrylic, vibrancy, a compositor's blur), and the
+// CPU paints only the chain's tint with its alpha. No host material takes
+// a saturation, so saturate is dropped and reported
+// (BackdropChainResolution). Content is opaque by default and occludes the
+// tint. Under reduced transparency, or with no compositor, the chain
+// collapses to its tint as one opaque colour; under high contrast there is
+// no backdrop.
 //
 // Renderer-neutral: the theme engine lowers the theme's `backdrop:`
 // property into a chain and sets it on the window
@@ -90,23 +95,42 @@ struct BackdropChain final {
 // The largest blur radius in the chain, in logical units; 0 without one.
 [[nodiscard]] double backdrop_chain_blur(const BackdropChain& chain) noexcept;
 
-// What a window's backdrops have cost (SurfaceRoot::backdrop_statistics),
-// counted from the window's creation.
+// How a window carries its chain under its grant
+// (SurfaceRoot::backdrop_chain_resolution).
+struct BackdropChainResolution final {
+    // The chain's blur is the system material granted (window_material or
+    // transient_material).
+    bool blur_by_material{};
+    // The chain has a blur but no material was granted: it is dropped.
+    bool blur_dropped{};
+    // The chain has a saturation, which no host material applies: dropped.
+    bool saturate_dropped{};
+    // The tint GUI.Forms paints (backdrop_chain_solid), straight alpha.
+    Color tint{};
+    // The tint is painted opaque: the grant is opaque (reduced
+    // transparency, no compositor, or any other refusal).
+    bool solid{};
+    // No backdrop at all: high contrast.
+    bool withdrawn{};
+};
+
+// The chain's resolution under `grant`, with the window's high contrast.
+[[nodiscard]] BackdropChainResolution resolve_backdrop_chain(const BackdropChain& chain,
+                                                             const WindowBackdropGrant& grant,
+                                                             bool high_contrast) noexcept;
+
+// What a window's in-surface popup tints have cost
+// (SurfaceRoot::backdrop_statistics), counted from the window's creation.
 struct BackdropStatistics final {
-    // Computations of the chain over a strip of cache tiles, and the device
-    // pixels they wrote.
-    std::uint64_t computations{};
-    std::uint64_t computed_pixels{};
-    // Exposed rectangles drawn from the cache, and their device pixels.
+    // Exposed rectangles tinted, and their device pixels.
     std::uint64_t draws{};
     std::uint64_t drawn_pixels{};
-    // Painted rectangles in which the backdrop was wholly covered by
-    // opaque content, so nothing was computed or drawn.
+    // Painted rectangles in which the popup's opaque content covered all of
+    // it, so nothing was drawn.
     std::uint64_t occluded{};
-    // Draws of the solid fallback (reduced transparency, or no source).
+    // Of the draws, those of the opaque fallback (reduced transparency or
+    // no compositor).
     std::uint64_t solid_fallbacks{};
-    // Cache tiles invalidated by damage under them.
-    std::uint64_t invalidated_tiles{};
 };
 
 } // namespace gui_forms

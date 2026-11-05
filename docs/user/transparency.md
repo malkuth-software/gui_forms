@@ -52,29 +52,38 @@ changes. See [Theme language](theme-language.md) for the full syntax.
 
 A window, and only a window, may carry a *backdrop chain*
 (`BackdropChain`, `gui_forms/window/backdrop/backdrop_chain.hpp`): an
-ordered list of operations in the manner of CSS `backdrop-filter`, applied
-once to what lies behind the window, under everything the window draws.
-The operations are `blur(radius)` (a Gaussian, radius in logical units, at
-most 32), `saturate(factor)` (at most 4) and `tint(colour)`, applied in
-order; a chain holds at most eight and at most one blur.
+ordered list of operations in the manner of CSS `backdrop-filter`, for
+what lies behind the window, under everything the window draws. The
+operations are `blur(radius)` (radius in logical units, at most 32),
+`saturate(factor)` (at most 4) and `tint(colour)`; a chain holds at most
+eight and at most one blur.
 
-- A popup counts as a window: `PopupOptions::backdrop` gives it a chain,
-  applied to its owner window's finished pixels under it (the owner's own
-  backdrop result included, never another popup's). The result is cached
-  tile by tile and recomputed only where the owner's content changes under
-  the popup; the popup's own changes never recompute it.
-- A top-level window takes its chain through `Window::set_backdrop_chain`
-  (the theme's `backdrop:` property is to lower into it). A chain with a blur
-  asks the window system for its material (falling back to `transparent`);
-  GUI.Forms applies only the tints itself, as the window's base.
-- Content is opaque by default and occludes the backdrop: it is computed
-  only where clear content (`background: transparent`) exposes it. A popup
-  whose opaque content covers it entirely costs nothing to draw.
+GUI.Forms never reads or blurs what lies outside a window's own surface:
+it cannot know whether the window beneath is its own or another
+application's. The window system supplies the blur.
 
-Under reduced transparency, or without a compositor, a chain collapses to
-its tints as one solid colour; under high contrast there is no backdrop.
-`Window::backdrop_statistics` counts computations, cached draws, occluded
-paints, solid fallbacks and invalidated tiles.
+- `Window::set_backdrop_chain` sets a window's chain (the theme's
+  `backdrop:` property is to lower into it). A chain with a blur asks for
+  the system material (`window_material`, falling back to `transparent`)
+  unless the application made its own request: Mica or Acrylic on
+  Windows, vibrancy on macOS, and whatever blur the compositor gives
+  elsewhere. GUI.Forms paints only the chain's tint, with its alpha, as
+  the window's base. No host material takes a saturation, so `saturate`
+  is dropped. `Window::backdrop_chain_resolution` reports what the
+  material gives, what was dropped and how the tint is drawn.
+- Popups, menus, tooltips and floating panels count as windows. Today a
+  popup is drawn inside its owner's surface, so its chain
+  (`PopupOptions::backdrop`) gives only its tint, composited over the
+  owner's pixels where the popup's content is clear: no blur and no
+  cache. A floating panel in its own native window carries a chain like
+  any window.
+- Content is opaque by default and occludes the tint: a popup whose
+  opaque content covers it entirely draws no tint at all.
+
+Under reduced transparency, or without a compositor, the window is
+opaque and the tint is painted opaque; under high contrast there is no
+backdrop. `Window::backdrop_statistics` counts the popup tints drawn,
+the occluded paints and the opaque fallbacks.
 
 ## Fallbacks
 

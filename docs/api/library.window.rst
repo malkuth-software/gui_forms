@@ -38,10 +38,12 @@ Related types
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
    * - :cpp:class:`BackdropChain <gui_forms::BackdropChain>`
      - The chain: ``length`` live operations, applied in order, in a fixed array.
+   * - :cpp:class:`BackdropChainResolution <gui_forms::BackdropChainResolution>`
+     - How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
    * - :cpp:class:`BackdropOperation <gui_forms::BackdropOperation>`
      -  
    * - :cpp:class:`BackdropStatistics <gui_forms::BackdropStatistics>`
-     - What a window's backdrops have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
+     - What a window's in-surface popup tints have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
    * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
@@ -187,6 +189,38 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: BackdropChainResolution final
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+   How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
+
+   .. cpp:member:: bool blur_by_material
+
+      The chain's blur is the system material granted (window_material or transient_material).
+
+   .. cpp:member:: bool blur_dropped
+
+      The chain has a blur but no material was granted: it is dropped.
+
+   .. cpp:member:: bool saturate_dropped
+
+      The chain has a saturation, which no host material applies: dropped.
+
+   .. cpp:member:: Color tint
+
+      The tint GUI.Forms paints (backdrop_chain_solid), straight alpha.
+
+   .. cpp:member:: bool solid
+
+      The tint is painted opaque: the grant is opaque (reduced transparency, no compositor, or any other refusal).
+
+   .. cpp:member:: bool withdrawn
+
+      No backdrop at all: high contrast.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: BackdropOperation final
 
    ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
@@ -218,31 +252,21 @@ Related types
 
    ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
 
-   What a window's backdrops have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
-
-   .. cpp:member:: std::uint64_t computations
-
-      Computations of the chain over a strip of cache tiles, and the device pixels they wrote.
-
-   .. cpp:member:: std::uint64_t computed_pixels
+   What a window's in-surface popup tints have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
 
    .. cpp:member:: std::uint64_t draws
 
-      Exposed rectangles drawn from the cache, and their device pixels.
+      Exposed rectangles tinted, and their device pixels.
 
    .. cpp:member:: std::uint64_t drawn_pixels
 
    .. cpp:member:: std::uint64_t occluded
 
-      Painted rectangles in which the backdrop was wholly covered by opaque content, so nothing was computed or drawn.
+      Painted rectangles in which the popup's opaque content covered all of it, so nothing was drawn.
 
    .. cpp:member:: std::uint64_t solid_fallbacks
 
-      Draws of the solid fallback (reduced transparency, or no source).
-
-   .. cpp:member:: std::uint64_t invalidated_tiles
-
-      Cache tiles invalidated by damage under them.
+      Of the draws, those of the opaque fallback (reduced transparency or no compositor).
 
 .. cpp:namespace:: gui_forms
 
@@ -748,7 +772,7 @@ Related types
 
    .. cpp:member:: std::optional<BackdropChain> backdrop
 
-      The popup's backdrop (owner, 2026-11-05): a popup counts as a window, and its chain is applied to the window's finished content under it, where the popup's content is clear. None by default.
+      The popup's backdrop chain (owner, 2026-11-05, as revised). A popup drawn inside its owner's surface, as every popup is today, takes only the chain's tint, composited over the owner's pixels where the popup's content is clear: GUI.Forms never blurs what lies outside a window's own surface (blur is the system material of a native window). None by default.
 
 .. cpp:namespace:: gui_forms
 
@@ -1425,6 +1449,10 @@ Functions, constants and aliases
 .. cpp:function:: double backdrop_chain_blur(const BackdropChain& chain) noexcept
 
    The largest blur radius in the chain, in logical units; 0 without one.
+
+.. cpp:function:: BackdropChainResolution resolve_backdrop_chain(const BackdropChain& chain, const WindowBackdropGrant& grant, bool high_contrast) noexcept
+
+   The chain's resolution under ``grant``, with the window's high contrast.
 
 .. cpp:var:: constexpr double backdrop_maximum_blur
 

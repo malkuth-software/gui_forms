@@ -105,8 +105,6 @@ void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
     // The backplane replay's framebuffer belongs to the previous renderer.
     backplane_framebuffer_.reset();
     backplane_framebuffer_scale_ = 0.0;
-    backdrop_framebuffer_.reset();
-    backdrop_framebuffer_scale_ = 0.0;
 }
 
 // Four stages: validate the request; record the subtree's planes into one

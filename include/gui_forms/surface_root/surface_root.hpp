@@ -205,9 +205,12 @@ struct PopupOptions final {
     // providers such as ToolTip may opt out while still requiring a live,
     // attached, effectively visible owner.
     bool require_enabled_owner{true};
-    // The popup's backdrop (owner, 2026-11-05): a popup counts as a window,
-    // and its chain is applied to the window's finished content under it,
-    // where the popup's content is clear. None by default.
+    // The popup's backdrop chain (owner, 2026-11-05, as revised). A popup
+    // drawn inside its owner's surface, as every popup is today, takes only
+    // the chain's tint, composited over the owner's pixels where the
+    // popup's content is clear: GUI.Forms never blurs what lies outside a
+    // window's own surface (blur is the system material of a native
+    // window). None by default.
     std::optional<BackdropChain> backdrop{};
 };
 
@@ -490,12 +493,18 @@ public:
     // The window's backdrop chain (owner, 2026-11-05;
     // gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme
     // engine from the theme's `backdrop:` property, or by the application;
-    // nullopt removes it. A change repaints the window and recomputes the
-    // backdrop. std::invalid_argument, changing nothing, for a chain
+    // nullopt removes it. A chain with a blur asks for the system material
+    // (implied_backdrop_request); GUI.Forms paints only the chain's tint,
+    // as the window's base. A change repaints the window.
+    // std::invalid_argument, changing nothing, for a chain
     // backdrop_chain_valid refuses. UI thread.
     void set_backdrop_chain(std::optional<BackdropChain> chain);
     [[nodiscard]] const std::optional<BackdropChain>& backdrop_chain() const noexcept { return backdrop_chain_; }
-    // What the window's popup backdrops cost so far (BackdropStatistics).
+    // How the chain is carried under the grant in force: what the material
+    // gives, what is dropped and how the tint is drawn; nullopt without a
+    // chain.
+    [[nodiscard]] std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
+    // What the window's popup tints cost so far (BackdropStatistics).
     [[nodiscard]] const BackdropStatistics& backdrop_statistics() const noexcept { return backdrop_statistics_; }
     // Non-owning portable service seam, installed for the lifetime of a
     // HostSession. Renderer-free and headless windows may legitimately return
@@ -1149,33 +1158,18 @@ private:
     // holds the base, through a framebuffer of the window's renderer, with
     // the saves, translations and clips the window paint uses. False,
     // leaving `image` as it was, without a renderer that makes a
-    // framebuffer of the region's exact extent. With `every_plane`, every
-    // plane of the application root in order (a popup's backdrop source:
-    // the window's finished content under it), else the backplane plane.
-    [[nodiscard]] bool replay_backplane(Rect covered, const BackplaneRegion& region, const PartRasterView& image,
-                                        bool every_plane);
-    void replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter, PaintPlane plane) const;
-    // A popup's backdrop (owner, 2026-11-05) in the painted rectangle
-    // `rectangle`: recorded into `candidate` beneath the popup's content,
-    // only where the popup's content does not cover it, computed from the
-    // window's finished content under it and cached in the attachment.
+    // framebuffer of the region's exact extent.
+    [[nodiscard]] bool replay_backplane(Rect covered, const BackplaneRegion& region, const PartRasterView& image);
+    void replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter) const;
+    // An in-surface popup's backdrop (owner, 2026-11-05, as revised) in the
+    // painted rectangle `rectangle`: its chain's tint, recorded into
+    // `candidate` beneath the popup's content and composited over the
+    // owner's pixels, only where the popup's content does not cover it.
     void paint_popup_backdrop(detail::RecordingPainter& candidate, detail::PopupAttachment& popup, Rect rectangle);
-    // Invalidates every popup backdrop cache under `damage` (window logical
-    // units), unless the damage comes from a popup's own content.
-    void invalidate_popup_backdrops(Rect damage) noexcept;
-    // Computes the tiles of the popup's cache under `exposed` that are
-    // missing and not covered by the opaque content of `overlay`, the
-    // popup's live root; false when the
-    // cache or its source cannot be made, so that the caller falls back to
-    // the solid tint.
-    [[nodiscard]] bool paint_popup_backdrop_cache(detail::PopupAttachment& popup, const Control::Ptr& overlay,
-                                                  const BackdropChain& chain, Rect bounds, Rect exposed);
     // Whether a current, opaque chunk in `overlay`'s subtree, in any plane,
     // paints all of `rectangle` (find_paint_cover; `path` its scratch).
     [[nodiscard]] bool popup_content_covers(const Control::Ptr& overlay, Rect rectangle,
                                             std::vector<Control::Ptr>& path) const;
-    // Whether `control` lies in a popup's subtree rather than the root's.
-    [[nodiscard]] bool popup_subtree(const Control& control) const noexcept;
     struct EngineDamage final {
         std::uint64_t parts{};
         double area{};
@@ -1542,10 +1536,6 @@ private:
     // same; released when the painter changes.
     std::unique_ptr<PaintFramebuffer> backplane_framebuffer_{};
     double backplane_framebuffer_scale_{};
-    // The popup backdrop source's framebuffer, kept apart from the
-    // backplane's so that neither remakes the other's at each paint.
-    std::unique_ptr<PaintFramebuffer> backdrop_framebuffer_{};
-    double backdrop_framebuffer_scale_{};
     Event<const PresentationSettings&> presentation_changed_;
     std::shared_ptr<const Theme> theme_;
     // Set while theme_ is GUI.Forms' own in place of the application's.
@@ -1808,9 +1798,6 @@ private:
     // The chain in force (set_backdrop_chain); none by default.
     std::optional<BackdropChain> backdrop_chain_{};
     BackdropStatistics backdrop_statistics_{};
-    // Set while a popup's own content records its damage, so that the
-    // damage does not invalidate the backdrop under it.
-    bool popup_damage_in_progress_{};
     // Scratch for the popup backdrops' cover searches, reused.
     std::vector<Control::Ptr> backdrop_cover_path_{};
     // Resolves the grant from the request, the compositor state, the
@@ -1820,12 +1807,12 @@ private:
     // The material the window's backplane is drawn from (PLAN.md §4.1), by
     // the presentation and the engine's backplane image alike: the theme's
     // base for the granted backdrop when it has one, else the window
-    // recipe's material for `context`. With a backdrop chain (and no high
-    // contrast) the chain's solid tint takes the base's place over a
-    // non-opaque grant (what lies behind is the system's: the CPU side adds
-    // only the tint), and is drawn over the recipe's material over
-    // `opaque` (the chain's fallback). A copy: the chain's tint is not held
-    // by the theme.
+    // recipe's material for `context`. With a backdrop chain that has a
+    // tint (and no high contrast) the tint takes the base's place: with its
+    // alpha over a non-opaque grant (what lies behind is the system's
+    // material: the CPU side adds only the tint), opaque over `opaque` (the
+    // chain's fallback, BackdropChainResolution::solid). A copy: the
+    // chain's tint is not held by the theme.
     [[nodiscard]] SurfaceMaterial backplane_base(const ControlVisualContext& context) const;
     // The request the window makes while its application has made none: a
     // chain with a blur asks for the main window's material, falling back to

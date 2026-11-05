@@ -101,6 +101,28 @@ Color backdrop_chain_solid(const BackdropChain& chain) noexcept {
     return solid;
 }
 
+BackdropChainResolution resolve_backdrop_chain(const BackdropChain& chain, const WindowBackdropGrant& grant,
+                                               bool high_contrast) noexcept {
+    BackdropChainResolution resolution{};
+    if (high_contrast) {
+        resolution.withdrawn = true;
+        return resolution;
+    }
+    const bool material =
+        grant.granted == WindowBackdrop::window_material || grant.granted == WindowBackdrop::transient_material;
+    const bool blurred = backdrop_chain_blur(chain) > 0.0;
+    resolution.blur_by_material = blurred && material;
+    resolution.blur_dropped = blurred && !material;
+    const std::size_t length = chain.length < BackdropChain::maximum_operations ? chain.length
+                                                                                : BackdropChain::maximum_operations;
+    for (std::size_t index = 0U; index < length; ++index) {
+        if (chain.operations[index].kind == BackdropOperationKind::saturate) resolution.saturate_dropped = true;
+    }
+    resolution.tint = backdrop_chain_solid(chain);
+    resolution.solid = grant.granted == WindowBackdrop::opaque;
+    return resolution;
+}
+
 double backdrop_chain_blur(const BackdropChain& chain) noexcept {
     double radius = 0.0;
     const std::size_t length = chain.length < BackdropChain::maximum_operations ? chain.length

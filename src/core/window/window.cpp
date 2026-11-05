@@ -2860,9 +2860,6 @@ void SurfaceRoot::add_damage(Rect damage, PaintPlane plane) {
         region.collapse_count() - collapses);
     // Glass over the damaged backplane shows it changed (E9-B).
     if (plane == PaintPlane::backplane) damage_backplane_readers(&damage);
-    // A popup's backdrop reads the window's content under it, never a
-    // popup's own.
-    if (!popup_damage_in_progress_ && !popups_.empty()) invalidate_popup_backdrops(damage);
 }
 
 void SurfaceRoot::add_damage_all_planes(Rect damage) {

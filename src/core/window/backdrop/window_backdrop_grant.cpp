@@ -119,7 +119,7 @@ void SurfaceRoot::set_backdrop_chain(std::optional<BackdropChain> chain) {
         backdrop_request_ = implied_backdrop_request();
         refresh_backdrop();
     }
-    // The backdrop lies under everything: every part that sampled the
+    // The tint lies under everything: every part that sampled the
     // backplane is baked again, and the window repaints.
     damage_backplane_readers(nullptr);
     mark_subtree_dirty(*root_, Dirty::paint);
@@ -131,12 +131,19 @@ void SurfaceRoot::set_backdrop_chain(std::optional<BackdropChain> chain) {
 SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context) const {
     const ThemeWindowBackdrop& themed = (*theme_).definition().window_backdrop;
     const bool clear_grant = backdrop_grant_.granted != WindowBackdrop::opaque;
-    const bool chained = backdrop_chain_.has_value() && !context.high_contrast;
-    if (chained && clear_grant) {
-        SurfaceMaterial tinted{};
-        tinted.fills.clear();
-        tinted.fills.push_back(MaterialFillLayer::solid(backdrop_chain_solid(*backdrop_chain_)));
-        return tinted;
+    if (backdrop_chain_.has_value() && !context.high_contrast) {
+        const BackdropChainResolution resolution =
+            resolve_backdrop_chain(*backdrop_chain_, backdrop_grant_, context.high_contrast);
+        // A chain without a tint leaves the base to the theme.
+        if (resolution.tint.alpha != 0U) {
+            const Color tint = resolution.solid ? Color::rgba(resolution.tint.red, resolution.tint.green,
+                                                              resolution.tint.blue, 255U)
+                                                : resolution.tint;
+            SurfaceMaterial tinted{};
+            tinted.fills.clear();
+            tinted.fills.push_back(MaterialFillLayer::solid(tint));
+            return tinted;
+        }
     }
     const SurfaceMaterial* const base = themed.base_for(backdrop_grant_.granted);
     if (clear_grant && base != nullptr) {
@@ -144,12 +151,14 @@ SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context)
         return copied;
     }
     SurfaceMaterial recipe = (*theme_).resolve(ControlVisualRole::window, context).material;
-    // Fills draw in order, the last on top (paint_surface_material); a
-    // recipe already at the fill cap keeps its look without the tint.
-    if (chained && recipe.fills.size() < SurfaceMaterial::maximum_fill_layers) {
-        recipe.fills.push_back(MaterialFillLayer::solid(backdrop_chain_solid(*backdrop_chain_)));
-    }
     return recipe;
+}
+
+std::optional<BackdropChainResolution> SurfaceRoot::backdrop_chain_resolution() const noexcept {
+    if (!backdrop_chain_.has_value()) return std::nullopt;
+    const BackdropChainResolution resolution =
+        resolve_backdrop_chain(*backdrop_chain_, backdrop_grant_, presentation_settings_.high_contrast);
+    return resolution;
 }
 
 WindowBackdropRequest SurfaceRoot::implied_backdrop_request() const {
