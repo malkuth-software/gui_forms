@@ -21,7 +21,7 @@ inline constexpr std::array<std::string_view, 14> catalog_categories {{
     "Components",
 }};
 
-inline constexpr std::array<CatalogEntry, 116> control_catalog {{
+inline constexpr std::array<CatalogEntry, 117> control_catalog {{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", "Commands", "Shared retained command state machine for pointer, keyboard, mnemonic, semantic, and dialog activation that Button, CheckBox, RadioButton, and LinkLabel specialize.", "ButtonBase", "stable", "control-spectrum"},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", "Commands", "Push button with accept/cancel dialog results, default-button state, and four visual policies.", "Button", "stable", "control-spectrum"},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", "Commands", "Command button with an explicit disclosure actuator that either routes the whole button to an owned popup menu or keeps a primary click region beside a trailing split region.", "ToolStripSplitButton", "provisional", "commands-and-menus"},
@@ -121,6 +121,7 @@ inline constexpr std::array<CatalogEntry, 116> control_catalog {{
     {"drawing_surface", "DrawingSurface", "gui_forms/controls/drawing_surface/drawing_surface.hpp", "Drawing", "Owner-render surface configured through the renderer-neutral Painter vocabulary without a Control subclass.", "GUI.Forms-only", "stable", "images-and-drawing"},
     {"raster_canvas", "RasterCanvas", "gui_forms/controls/raster_canvas/raster_canvas.hpp", "Drawing", "Viewport over an owned GUI.Drawing bitmap that handles presentation, coordinate transforms, resource synchronization, and local invalidation.", "GUI.Forms-only", "stable", "images-and-drawing"},
     {"live_surface", "LiveSurface", "gui_forms/live_surface/surface/live_surface.hpp", "Drawing", "Latest-frame surface where a producer publishes complete frame candidates and painters acquire only the newest immutable one.", "GUI.Forms-only", "stable", "live-surfaces"},
+    {"sub_surface_host", "SubSurfaceHost", "gui_forms/surface_root/sub_surface/sub_surface_host.hpp", "Drawing", "Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it.", "GUI.Forms-only", "provisional", "live-surfaces"},
     {"easing_preview", "EasingPreview", "gui_forms/controls/easing_preview/easing_preview.hpp", "Diagnostics", "Animation and easing conformance surface over an owned AnimationTimeline with configurable tracks and motion policy.", "GUI.Forms-only", "lab", "animation-laboratory"},
     {"metrics_view", "MetricsView", "gui_forms/controls/metrics_view/metrics_view.hpp", "Diagnostics", "View over the structured Window metrics snapshot.", "GUI.Forms-only", "lab", "states-and-diagnostics"},
     {"typography_specimen", "TypographySpecimen", "gui_forms/controls/typography_specimen/typography_specimen.hpp", "Diagnostics", "Typography review control that draws one committed text run with its logical line box, resolved baseline, and provider status.", "GUI.Forms-only", "lab", "typography-and-inspection"},

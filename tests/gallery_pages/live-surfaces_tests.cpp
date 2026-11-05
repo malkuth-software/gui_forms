@@ -1,5 +1,9 @@
 #include "support.hpp"
 
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
+
+#include <string_view>
+
 namespace gallery_pages_tests {
 
 void test_live_surfaces(gui_forms::Window& window) {
@@ -21,6 +25,13 @@ void test_live_surfaces(gui_forms::Window& window) {
         require(button != nullptr && (*button).command_connected(),
                 "live-surfaces producer buttons must bind page-owned Commands");
     }
+    // The threaded sub-surface: a public control with its own anatomy.
+    const std::shared_ptr<gui_forms::SubSurfaceHost> host = std::dynamic_pointer_cast<SubSurfaceHost>(
+        window.find("gallery.live-surfaces.sub-surface.host"));
+    require(host != nullptr && (*host).anatomy().control_id == std::string_view("sub_surface_host"),
+            "live-surfaces page must show a SubSurfaceHost with its own anatomy");
+    require((*host).parts().region.present && (*host).parts().focus.present,
+            "the sub-surface host publishes its region and focus parts");
     const std::string semantics = window.semantic_snapshot().to_json();
     require(semantics.find("\"role\":\"image\"") != std::string::npos &&
                 semantics.find("Live surface presentation") != std::string::npos,

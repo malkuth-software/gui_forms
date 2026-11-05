@@ -1099,6 +1099,17 @@
       "doc": "api/generated/gui_forms.LiveSurface.rst"
     },
     {
+      "id": "sub_surface_host",
+      "type": "SubSurfaceHost",
+      "header": "gui_forms/surface_root/sub_surface/sub_surface_host.hpp",
+      "category": "Drawing",
+      "purpose": "Region control that runs one threaded sub-surface with its own retained tree, sizes and reconfigures it, composes its LiveSurface frames into the window, and forwards input and keyboard focus to it.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "live-surfaces",
+      "doc": "api/generated/gui_forms.SubSurfaceHost.rst"
+    },
+    {
       "id": "easing_preview",
       "type": "EasingPreview",
       "header": "gui_forms/controls/easing_preview/easing_preview.hpp",

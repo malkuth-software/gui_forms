@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 
+#include <array>
 #include <cmath>
 #include <limits>
 #include <utility>
@@ -81,6 +82,64 @@ void SubSurfaceHost::on_paint(Painter& painter, Rect) {
     if (!surface_) return;
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
     painter.draw_live_surface(surface_, bounds, 1.0);
+}
+
+namespace {
+
+constexpr std::array<PartField<SubSurfaceHost::Parts>, 3> sub_surface_host_part_fields{{
+    {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}},
+     .member = &SubSurfaceHost::Parts::region},
+    {.declaration = {.name = "content", .role = PartRole::content, .composed_from = {}},
+     .member = &SubSurfaceHost::Parts::content},
+    {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}},
+     .member = &SubSurfaceHost::Parts::focus},
+}};
+
+constexpr std::array<StateField<SubSurfaceHost::States>, 5> sub_surface_host_state_fields{{
+    {.state = AnatomyState::normal, .member = &SubSurfaceHost::States::normal},
+    {.state = AnatomyState::enabled, .member = &SubSurfaceHost::States::enabled},
+    {.state = AnatomyState::disabled, .member = &SubSurfaceHost::States::disabled},
+    {.state = AnatomyState::focused, .member = &SubSurfaceHost::States::focused},
+    {.state = AnatomyState::focus_visible, .member = &SubSurfaceHost::States::focus_visible},
+}};
+
+constexpr std::array<PartDeclaration, 3> sub_surface_host_parts = part_declarations(sub_surface_host_part_fields);
+constexpr std::array<AnatomyState, 5> sub_surface_host_states = state_declarations(sub_surface_host_state_fields);
+
+constexpr ControlAnatomy sub_surface_host_anatomy{
+    .control_id = "sub_surface_host",
+    .parts = sub_surface_host_parts,
+    .states = sub_surface_host_states,
+    .custom_states = {},
+};
+
+} // namespace
+
+const ControlAnatomy& SubSurfaceHost::anatomy() const noexcept {
+    return sub_surface_host_anatomy;
+}
+
+void SubSurfaceHost::publish_part_geometry(std::span<PartGeometry> geometry) const {
+    const Rect bounds = client_rectangle();
+    Parts record;
+    record.region = PartGeometry::from_bounds(bounds);
+    // The composed frame covers the region once there is a surface to show.
+    if (surface_) record.content = PartGeometry::from_bounds(bounds);
+    record.focus = PartGeometry::from_bounds(bounds);
+    write_parts(anatomy(), sub_surface_host_part_fields, record, geometry);
+}
+
+SubSurfaceHost::Parts SubSurfaceHost::parts() const {
+    const PartGeometryBuffer published = published_part_geometry();
+    Parts record;
+    read_parts(anatomy(), sub_surface_host_part_fields, published.parts(), record);
+    return record;
+}
+
+SubSurfaceHost::States SubSurfaceHost::states() const {
+    States record;
+    read_states(sub_surface_host_state_fields, anatomy_states(), record);
+    return record;
 }
 
 void SubSurfaceHost::on_attached_to_window() {

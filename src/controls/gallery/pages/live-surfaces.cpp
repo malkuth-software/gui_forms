@@ -1,6 +1,7 @@
 #include "pages.hpp"
 
 #include "gui_forms/live_surface.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 
 namespace gui_forms::gallery::pages {
 
@@ -20,6 +21,25 @@ private:
     std::shared_ptr<LiveSurface> surface_;
 };
 
+// The sub-surface's tree, built on its own thread: a caption and a button
+// that counts its own presses there, so the window's tree never sees them.
+class SubSurfaceSample final : public SubSurfaceContent {
+public:
+    Control::Ptr build_root() override {
+        std::shared_ptr<Panel> root = make_control<Panel>(StableId("gallery.live-surfaces.sub-surface.root"));
+        (*root).set_background(Color::rgba(236, 242, 248));
+        std::shared_ptr<Label> caption = make_control<Label>(
+            StableId("gallery.live-surfaces.sub-surface.caption"), "This tree runs on its own thread");
+        (*caption).set_requested_bounds({12.0, 10.0, 300.0, 22.0});
+        (*root).add_child(caption);
+        std::shared_ptr<Button> press = make_control<Button>(
+            StableId("gallery.live-surfaces.sub-surface.press"), "Press inside the sub-surface");
+        (*press).set_requested_bounds({12.0, 40.0, 220.0, 32.0});
+        (*root).add_child(press);
+        return root;
+    }
+};
+
 // Owns the live-surfaces page: one LiveSurface, the page Timer whose tick
 // writes a frame through a write lease on the UI thread, the Commands its
 // producer buttons bind, and the interval Value its TrackBar binds. Each tick
@@ -34,6 +54,7 @@ private:
 
     void build_presenter(const std::shared_ptr<Surface>& body);
     void build_producer(const std::shared_ptr<Surface>& body);
+    void build_sub_surface(const std::shared_ptr<Surface>& body);
     [[nodiscard]] LiveSurfaceDescription description() const noexcept;
     [[nodiscard]] bool ensure_timer();
     void on_start();
@@ -74,6 +95,7 @@ LiveSurfacesPage::LiveSurfacesPage(const std::shared_ptr<Surface>& body) {
                          12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
     build_presenter(body);
     build_producer(body);
+    build_sub_surface(body);
     on(start_.invoked(), *this, &LiveSurfacesPage::on_start);
     on(stop_.invoked(), *this, &LiveSurfacesPage::on_stop);
     on(publish_once_.invoked(), *this, &LiveSurfacesPage::on_publish_once);
@@ -173,6 +195,25 @@ void LiveSurfacesPage::build_producer(const std::shared_ptr<Surface>& body) {
     (*policy).set_text_wrapping(TextWrapping::word);
     (*policy).set_vertical_alignment(VerticalAlignment::near);
     (*producer).add_at(policy, {366.0, 92.0, 540.0, 66.0});
+}
+
+void LiveSurfacesPage::build_sub_surface(const std::shared_ptr<Surface>& body) {
+    std::shared_ptr<LayoutGroup> threaded = group(
+        "gallery.live-surfaces.sub-surface",
+        "SubSurfaceHost · a retained tree on its own thread, composed as a live surface", {930.0, 130.0});
+    (*body).add_at(threaded, {24.0, 642.0, 930.0, 130.0});
+    std::shared_ptr<SubSurfaceHost> host =
+        make_control<SubSurfaceHost>(StableId("gallery.live-surfaces.sub-surface.host"));
+    (*host).set_accessible_name("Threaded sub-surface");
+    (*host).set_content(std::make_unique<SubSurfaceSample>(), true);
+    (*threaded).add_at(host, {22.0, 40.0, 340.0, 82.0});
+    std::shared_ptr<Label> note = label(
+        "gallery.live-surfaces.sub-surface.note",
+        "The host starts the sub-surface's thread when it is first shown and stops it when it leaves the window. Pointer, keys and focus are forwarded to it; its frames never mark the window's tree.",
+        10.0, 400, muted);
+    (*note).set_text_wrapping(TextWrapping::word);
+    (*note).set_vertical_alignment(VerticalAlignment::near);
+    (*threaded).add_at(note, {384.0, 40.0, 524.0, 80.0});
 }
 
 bool LiveSurfacesPage::ensure_timer() {

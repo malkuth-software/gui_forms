@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <span>
 
 namespace gui_forms {
 
@@ -65,8 +66,28 @@ public:
     void arrange(Rect final_bounds) override;
     // Composes the newest frame into the region (Painter::draw_live_surface).
     void on_paint(Painter& painter, Rect local_damage) override;
+    [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
+    // Stage T1 anatomy, as dot members (see Control::Parts). `content` is
+    // the composed sub-surface frame, present once the sub-surface has a
+    // LiveSurface; the sub-surface's own controls are parts of its tree,
+    // not of the host.
+    struct Parts final {
+        PartGeometry region;
+        PartGeometry content;
+        PartGeometry focus;
+    };
+    struct States final {
+        bool normal{};
+        bool enabled{};
+        bool disabled{};
+        bool focused{};
+        bool focus_visible{};
+    };
+    [[nodiscard]] Parts parts() const;
+    [[nodiscard]] States states() const;
 
 protected:
+    void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     void on_attached_to_window() override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
     // Forward to the sub-surface while it runs and mark the event handled.
