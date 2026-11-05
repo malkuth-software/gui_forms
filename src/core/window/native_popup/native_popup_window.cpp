@@ -72,6 +72,12 @@ bool NativePopupToken::connected() const noexcept {
     return overlay;
 }
 
+Event<>* NativePopupToken::closed_event() noexcept {
+    if (native_) return &(*native_).closed();
+    Event<>* overlay = overlay_.closed_event();
+    return overlay;
+}
+
 Window* NativePopupToken::window() const noexcept {
     if (!native_) return nullptr;
     Window* model = (*native_).model();

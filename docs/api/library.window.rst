@@ -763,6 +763,10 @@ Related types
 
       Closes the popup: destroys its native window, or closes the overlay.
 
+   .. cpp:function:: Event<>* closed_event() noexcept
+
+      Raised once, on the UI thread, when the popup closes, whatever closed it (this token, the opener's death, the host closing the window, or for an overlay its owner leaving the window). Null for an empty token. A subscriber that disconnects the token itself should unsubscribe first if it does not want to hear its own close.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: OverlayOptions final
@@ -1286,6 +1290,16 @@ Enumerations
    .. cpp:enumerator:: light
 
    .. cpp:enumerator:: dark
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DialogSurface
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: native_popup
 
 .. cpp:namespace:: gui_forms
 

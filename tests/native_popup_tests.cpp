@@ -92,6 +92,8 @@ void opens_a_native_window() {
     const HostWindowFrame frame = desk.windowing().native_frame(token.id());
     require(frame.outer == frame.content, "a popup has no decorations");
     require((*token.window()).client_size() == Size{200.0, 120.0}, "its model has the bounds' size");
+    require((*token.window()).backdrop_request().preferred() == WindowBackdrop::transparent,
+            "without a chain the popup asks for the transparent backdrop");
     token.disconnect();
     require(!token.connected() && desk.windowing().window_count() == 1U, "disconnecting closes it");
     require(token.window() == nullptr && !token.id().valid(), "a closed popup names nothing");
@@ -116,6 +118,11 @@ void takes_focus_is_declared() {
     require(contains(desk.windowing().trace(), "focus=takes_focus"), "the declared focus reaches the host");
 }
 
+struct CountClosed final {
+    int* count{};
+    void operator()() const { *count = *count + 1; }
+};
+
 void closes_with_its_opener_and_its_host() {
     Desk desk;
     NativePopupToken first = (*desk.model).open_native_popup(desk.opener, make_content("popup.a"),
@@ -129,8 +136,12 @@ void closes_with_its_opener_and_its_host() {
     NativePopupToken second = (*desk.model).open_native_popup(other, make_content("popup.b"),
                                                               Rect{0.0, 0.0, 100.0, 50.0}, NativePopupOptions{});
     const HostWindowId id = second.id();
+    int closed = 0;
+    require(second.closed_event() != nullptr, "a native popup has a closed event");
+    SubscriptionToken heard = (*second.closed_event()).subscribe(CountClosed{&closed});
     require(desk.windowing().destroy_window(id).accepted(), "the host may destroy the popup window");
     require(!second.connected(), "the token sees the host's close");
+    require(closed == 1, "the closed event is raised once for the host's close");
     second.disconnect();
 }
 
@@ -173,7 +184,7 @@ void entries_are_validated() {
     orphan.model = std::make_unique<Window>(make_content("orphan.root"), Size{100.0, 50.0});
     orphan.options.initial_size = {100.0, 50.0};
     orphan.options.minimum_size = {1.0, 1.0};
-    orphan.popup = ApplicationPopup{};
+    orphan.popup = HostPopupPlacement{};
     std::vector<ApplicationWindow> windows;
     windows.push_back(std::move(orphan));
     require(!Application::validate(windows).accepted(), "a popup needs an owner");
@@ -192,8 +203,6 @@ void entries_are_validated() {
     }
     require(refused, "an empty popup is refused");
 }
-
-} // namespace
 
 int main() {
     try {

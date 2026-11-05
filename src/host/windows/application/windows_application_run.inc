@@ -102,6 +102,15 @@ struct WindowsWindowStyles final {
 WindowsWindowStyles windows_window_styles(HostWindowKind kind, bool tool_window,
                                           const WindowsHostOptions& options) noexcept {
     WindowsWindowStyles styles;
+    // A native popup (owner, 2026-11-04): undecorated, off the taskbar
+    // (the tool style), above its owner as an owned window. A passive
+    // popup is never activated (WS_EX_NOACTIVATE, and MA_NOACTIVATE on a
+    // click: WindowsHostState::passive_popup_).
+    if (kind == HostWindowKind::popup) {
+        styles.style = WS_POPUP;
+        styles.extended = WS_EX_TOOLWINDOW;
+        return styles;
+    }
     if (kind == HostWindowKind::floating_tool) {
         styles.style = WS_OVERLAPPEDWINDOW & ~(WS_MINIMIZEBOX | WS_MAXIMIZEBOX);
         styles.extended = WS_EX_TOOLWINDOW;
@@ -173,6 +182,14 @@ protected:
     HostServiceStatus bring_to_front_impl(HostWindowId window) override;
     HostServiceStatus destroy_window_impl(HostWindowId window) override;
     HostMonitorResult query_monitors_impl() override;
+
+public:
+    // Popup windows open during the run (HostWindowKind::popup); their
+    // per-pixel alpha is the transparent backdrop through DWM's blur-behind
+    // with an empty region (windows_compositor.cpp).
+    [[nodiscard]] bool supports_popup_windows() const noexcept override { return true; }
+
+protected:
     HostServiceStatus show_impl(HostWindowId window) override;
     HostServiceStatus hide_impl(HostWindowId window) override;
 
@@ -258,7 +275,9 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         owner_id = (*owner_slot).id;
         owner = (*(*owner_slot).state).native_window();
     }
-    const HostWindowKind kind = host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, false);
+    const std::optional<HostPopupPlacement> popup = entry.popup;
+    const HostWindowKind kind =
+        host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
     const bool floating = host_window_kind_traits(kind).floating;
     HostWindowDescription description;
     description.stable_id = entry.stable_id;
@@ -289,7 +308,12 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     (*window_slot.state).attach_run(*this, id);
     const WindowsWindowStyles styles = windows_window_styles(kind, entry.tool_window, entry.options);
     const DWORD style = styles.style;
-    const DWORD ex_style = styles.extended;
+    DWORD ex_style = styles.extended;
+    const bool passive_popup = popup.has_value() && (*popup).focus == HostPopupFocus::passive;
+    if (passive_popup) {
+        ex_style = ex_style | WS_EX_NOACTIVATE;
+        (*window_slot.state).mark_passive_popup();
+    }
     const double initial_scale = query_scale(owner);
     const Size initial_size = entry.options.capture_size.has_value()
         ? *entry.options.capture_size : entry.options.initial_size;
@@ -314,6 +338,18 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         return outcome;
     }
     report_native_frame(id, window);
+    // A popup is placed where the program put it, before it is shown.
+    if (popup.has_value()) {
+        const Rect content{(*popup).origin.x, (*popup).origin.y, initial_size.width, initial_size.height};
+        if (!request_frame_impl(id, content).accepted()) {
+            DestroyWindow(window);
+            retire(id);
+            outcome.admission.status.error = HostServiceError::backend_failure;
+            outcome.admission.window = {};
+            outcome.failure_code = 5;
+            return outcome;
+        }
+    }
     if (!runtime) return outcome;
     if (!state.will_show()) {
         DestroyWindow(window);
@@ -325,7 +361,8 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     }
     window_created(id, initially_visible);
     if (initially_visible && !floating) {
-        ShowWindow(window, kind == HostWindowKind::tool ? SW_SHOWNOACTIVATE : SW_SHOWNORMAL);
+        const bool activates = kind != HostWindowKind::tool && !passive_popup;
+        ShowWindow(window, activates ? SW_SHOWNORMAL : SW_SHOWNOACTIVATE);
         UpdateWindow(window);
     }
     if (close_after_launch) PostMessageW(window, WM_CLOSE, 0, 0);
