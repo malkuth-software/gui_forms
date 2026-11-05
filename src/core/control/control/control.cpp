@@ -2038,6 +2038,10 @@ LayoutTransactionState Control::layout_transaction_state() const {
             layout_committed_revision_};
 }
 
+Dirty Control::child_touch_escalation() const noexcept {
+    return Dirty::none;
+}
+
 Dirty Control::dirty() const {
     if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     return dirty_;

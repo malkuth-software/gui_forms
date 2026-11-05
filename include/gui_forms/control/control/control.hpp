@@ -862,6 +862,13 @@ public:
     // only when it can state the answer for every configuration.
     [[nodiscard]] virtual bool size_depends_on_content() const noexcept;
     [[nodiscard]] virtual bool sizes_children_from_content() const noexcept;
+    // The container's invalidation policy (property-capabilities study,
+    // decision 9): the kinds of a descendant's touch that escalate to this
+    // control's subtree mark instead of staying with the descendant (for
+    // example measure, where one child's size change re-lays out every
+    // child anyway). The nearest ancestor escalating a kind takes it, at
+    // the settle. Constant per type. The default escalates nothing.
+    [[nodiscard]] virtual Dirty child_touch_escalation() const noexcept;
     // Whether this container's arrange asks each child the content
     // questions its algorithm needs (min-content, max-content, a height at
     // a definite width) rather than the at-most question the window's

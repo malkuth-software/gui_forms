@@ -166,6 +166,60 @@ void test_settle_defers_bookkeeping() {
     (*root).add_child(std::move(removed));
 }
 
+// M0.3: a subtree mark waits for the settle too, and covers the touches
+// inside it: a descendant's touch and a nested subtree mark of the same
+// kinds add no damage area of their own. A container escalating a kind
+// takes a descendant's touch of it as its own subtree mark.
+class EscalatingPanel final : public Panel {
+public:
+    using Panel::Panel;
+    [[nodiscard]] Dirty child_touch_escalation() const noexcept override { return Dirty::paint; }
+};
+
+double settled_area(Window& window) {
+    const MetricsSnapshot metrics = window.metrics_snapshot();
+    static_cast<void>(window.take_damage());
+    window.reset_activity_metrics();
+    return metrics.requested_damage_area;
+}
+
+void test_subtree_marks_settle() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("subtree.root"));
+    std::shared_ptr<EscalatingPanel> child = make_control<EscalatingPanel>(StableId("subtree.child"));
+    std::shared_ptr<Panel> left = make_control<Panel>(StableId("subtree.left"));
+    std::shared_ptr<Panel> right = make_control<Panel>(StableId("subtree.right"));
+    (*child).set_bounds(Rect{10.0, 20.0, 100.0, 50.0});
+    (*left).set_bounds(Rect{5.0, 5.0, 30.0, 20.0});
+    (*right).set_bounds(Rect{50.0, 5.0, 30.0, 20.0});
+    (*child).add_child(left);
+    (*child).add_child(right);
+    (*root).add_child(child);
+    Window window(root, Size{200.0, 100.0});
+    const ControlTable& table = window.control_table();
+    window.perform_layout();
+    static_cast<void>(settled_area(window));
+
+    (*root).invalidate_subtree(Dirty::paint);
+    expect(table.pending(DirtyKind::subtree), "a subtree mark touches the subtree bit");
+    expect(has_dirty((*right).dirty(), Dirty::paint), "the settle marks every descendant");
+    expect(!table.pending(DirtyKind::subtree), "and drains the subtree bit");
+    const double whole = settled_area(window);
+    expect(whole > 0.0, "the subtree mark requests its damage at the settle");
+
+    (*right).invalidate(Dirty::paint);
+    (*child).invalidate_subtree(Dirty::paint);
+    (*root).invalidate_subtree(Dirty::paint);
+    expect(settled_area(window) == whole, "touches and marks inside a pending subtree mark add nothing");
+
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    static_cast<void>(settled_area(window));
+    (*left).invalidate(Dirty::paint);
+    const double escalated = settled_area(window);
+    expect(escalated > (*left).absolute_bounds().area(),
+           "the escalating container takes its child's paint as its subtree mark");
+}
+
 } // namespace
 
 int main() {
@@ -173,6 +227,7 @@ int main() {
     test_table_slots();
     test_window_lifecycle();
     test_settle_defers_bookkeeping();
+    test_subtree_marks_settle();
     std::cout << "control table tests passed\n";
     return EXIT_SUCCESS;
 }

@@ -2698,6 +2698,14 @@ bool SurfaceRoot::semantic_scope_reaches(const Control::Ptr& control) const {
 
 void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
                                  double& requested_damage_area) {
+    // A pending touch inside the subtree whose kinds the mark covers is
+    // redone by this walk; its own settle would only repeat it.
+    const detail::PendingTouch pending = control_table_.pending_touch(control.surface_slot_);
+    const Dirty pending_kinds = pending.requested | pending.subtree;
+    const bool damage_covered = !pending.damages_bounds || has_dirty(requested_dirty, Dirty::paint);
+    if (without_dirty(pending_kinds, requested_dirty) == Dirty::none && damage_covered) {
+        control_table_.forget(control.surface_slot_);
+    }
     control.add_dirty(requested_dirty);
     control.subtree_dirty_ |= requested_dirty;
     if (has_dirty(requested_dirty, Dirty::layout) &&
@@ -2728,27 +2736,12 @@ void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
     }
-    double requested_damage_area = 0.0;
-    apply_subtree_dirty(control, requested_dirty, requested_damage_area);
-    // The subtree's root stands for the subtree in the table. Its
-    // bookkeeping is done here (M0.3 moves it to the settle), so the touch
-    // owes nothing.
-    control_table_.touch(control.surface_slot_, requested_dirty, detail::PendingTouch{});
-    for (Control::Ptr ancestor = control.parent(); ancestor;
-         ancestor = (*ancestor).parent()) {
-        (*ancestor).subtree_dirty_ |= requested_dirty;
-        if (has_dirty(requested_dirty, Dirty::layout) &&
-            (*ancestor).layout_suspend_depth_ != 0U) {
-            (*ancestor).layout_deferred_ = true;
-            ++(*ancestor).layout_requested_revision_;
-            if ((*ancestor).layout_requested_revision_ == 0U) {
-                ++(*ancestor).layout_requested_revision_;
-            }
-        }
-    }
-    if (has_dirty(requested_dirty, Dirty::layout)) {
-        mark_layout_ancestors(control);
-    }
+    // The subtree's root stands for the subtree in the table; the walk over
+    // the subtree, the ancestors and the damage wait for the settle
+    // (settle_subtree).
+    detail::PendingTouch owed{};
+    owed.subtree = requested_dirty;
+    control_table_.touch(control.surface_slot_, Dirty::none, owed);
     // Subtree mutation has the same semantic-generation contract as a
     // single-control mutation. Cached native accessibility trees must retire
     // hidden descendants even when their arranged geometry is unchanged.
@@ -2768,10 +2761,38 @@ void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     }
     if (has_dirty(requested_dirty, Dirty::paint)) {
         touch_paint();
-        metrics_.record_dirty_mark(requested_damage_area);
-    } else {
-        metrics_.record_dirty_mark(0.0);
     }
+    // Counted now; the subtree's damage area when it settles.
+    metrics_.record_dirty_mark(0.0);
+    if (in_layout_ || in_paint_) settle_dirty();
+}
+
+void SurfaceRoot::settle_subtree(Control& control, Dirty kinds) {
+    // The order is mark_subtree_dirty's when it did this at the write.
+    double requested_damage_area = 0.0;
+    apply_subtree_dirty(control, kinds, requested_damage_area);
+    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        (*ancestor).subtree_dirty_ |= kinds;
+        if (has_dirty(kinds, Dirty::layout) && (*ancestor).layout_suspend_depth_ != 0U) {
+            (*ancestor).layout_deferred_ = true;
+            ++(*ancestor).layout_requested_revision_;
+            if ((*ancestor).layout_requested_revision_ == 0U) {
+                ++(*ancestor).layout_requested_revision_;
+            }
+        }
+    }
+    if (has_dirty(kinds, Dirty::layout)) {
+        mark_layout_ancestors(control);
+    }
+    metrics_.record_requested_damage(requested_damage_area);
+}
+
+bool SurfaceRoot::covered_by_pending_subtree(const Control& control, Dirty kinds) const {
+    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        const detail::PendingTouch pending = control_table_.pending_touch((*ancestor).surface_slot_);
+        if (without_dirty(kinds, pending.subtree) == Dirty::none) return true;
+    }
+    return false;
 }
 
 void SurfaceRoot::change_paint_plane(Control& control, PaintPlane plane) {
@@ -2923,6 +2944,23 @@ bool SurfaceRoot::settle_pending() const noexcept {
 }
 
 void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
+    // A container escalating some of the touch's kinds takes them as its
+    // own subtree mark (decision 9); the control keeps its own flags, set
+    // at the write, and the escalated walk covers its ancestors' flags.
+    Dirty remaining = owed.requested;
+    for (Control::Ptr ancestor = control.parent(); ancestor && remaining != Dirty::none;
+         ancestor = (*ancestor).parent()) {
+        const Dirty escalated = remaining & (*ancestor).child_touch_escalation();
+        if (escalated == Dirty::none) continue;
+        settle_subtree(*ancestor, escalated);
+        remaining = without_dirty(remaining, escalated);
+    }
+    if (remaining != owed.requested) {
+        // Escalated paint is the container's whole damage.
+        if (!has_dirty(remaining, Dirty::paint)) owed.damages_bounds = false;
+        if (!has_dirty(remaining, Dirty::layout)) owed.marks_layout_ancestors = false;
+        owed.requested = remaining;
+    }
     // The order is mark_dirty's when it did this at the write.
     if (has_dirty(owed.requested, Dirty::layout)) {
         note_suspended_layout_request(control);
@@ -2956,7 +2994,35 @@ void SurfaceRoot::settle_dirty() {
     // than one kind is settled at its first, and its later take_touch is
     // empty. A failure (a damage allocation) leaves the untaken touches
     // pending for the next settle.
+    // Subtree marks first (study 3.5, step 1). A mark inside an enclosing
+    // pending mark of the same kinds is dropped before any is applied, so
+    // the outcome does not depend on index order; applying a mark forgets
+    // the descendants' touches it covers, whose later take_touch is empty.
+    settle_indices_.clear();
+    static_cast<void>(control_table_.take(detail::DirtyKind::subtree, settle_indices_));
+    for (const std::uint32_t index : settle_indices_) {
+        Control* const control = control_table_.control_at_index(index);
+        if (control == nullptr) continue;
+        const detail::PendingTouch pending = control_table_.pending_touch((*control).surface_slot_);
+        if (covered_by_pending_subtree(*control, pending.subtree)) {
+            detail::PendingTouch reduced = control_table_.take_touch(index);
+            reduced.subtree = Dirty::none;
+            control_table_.touch((*control).surface_slot_, Dirty::none, reduced);
+        }
+    }
+    for (const std::uint32_t index : settle_indices_) {
+        Control* const control = control_table_.control_at_index(index);
+        if (control == nullptr) continue;
+        detail::PendingTouch pending = control_table_.take_touch(index);
+        const Dirty kinds = pending.subtree;
+        pending.subtree = Dirty::none;
+        // The control's own touch stays for its kind's pass below.
+        control_table_.touch((*control).surface_slot_, Dirty::none, pending);
+        if (kinds != Dirty::none) settle_subtree(*control, kinds);
+    }
+    // Then each other kind's touched indices, in index order.
     for (std::size_t kind = 0U; kind < detail::dirty_kind_count; ++kind) {
+        if (static_cast<detail::DirtyKind>(kind) == detail::DirtyKind::subtree) continue;
         settle_indices_.clear();
         static_cast<void>(control_table_.take(static_cast<detail::DirtyKind>(kind), settle_indices_));
         for (const std::uint32_t index : settle_indices_) {

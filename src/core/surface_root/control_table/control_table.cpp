@@ -26,6 +26,7 @@ bool dirty_reaches(Dirty dirty, DirtyKind kind) noexcept {
                                     Dirty::semantics | Dirty::accessibility);
         return rest != Dirty::none;
     }
+    case DirtyKind::subtree: return false;
     case DirtyKind::count: return false;
     }
     return false;
@@ -164,7 +165,9 @@ void ControlTable::touch(ControlSlot slot, Dirty dirty, PendingTouch owed) noexc
     for (std::size_t kind = 0U; kind < dirty_kind_count; ++kind) {
         if (dirty_reaches(dirty, static_cast<DirtyKind>(kind))) pending_[kind].set(slot.index);
     }
+    if (owed.subtree != Dirty::none) pending_[static_cast<std::size_t>(DirtyKind::subtree)].set(slot.index);
     PendingTouch& pending_touch = touches_[slot.index];
+    pending_touch.subtree |= owed.subtree;
     pending_touch.requested |= owed.requested;
     pending_touch.marks_layout_ancestors = pending_touch.marks_layout_ancestors || owed.marks_layout_ancestors;
     pending_touch.damages_bounds = pending_touch.damages_bounds || owed.damages_bounds;
@@ -175,6 +178,17 @@ PendingTouch ControlTable::take_touch(std::uint32_t index) noexcept {
     const PendingTouch taken = touches_[index];
     touches_[index] = PendingTouch{};
     return taken;
+}
+
+PendingTouch ControlTable::pending_touch(ControlSlot slot) const noexcept {
+    if (!live(slot)) return PendingTouch{};
+    return touches_[slot.index];
+}
+
+void ControlTable::forget(ControlSlot slot) noexcept {
+    if (!live(slot)) return;
+    for (DirtyBitset& bits : pending_) bits.reset(slot.index);
+    touches_[slot.index] = PendingTouch{};
 }
 
 bool ControlTable::any_pending() const noexcept {

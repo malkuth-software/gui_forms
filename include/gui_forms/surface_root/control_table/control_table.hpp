@@ -44,6 +44,10 @@ enum class DirtyKind : std::uint8_t {
     // Every other kind: hit test, text, style, resource, semantics,
     // accessibility.
     other,
+    // A subtree mark (M0.3): the control and every descendant are redone
+    // for the kinds in its pending touch's `subtree`. Reached by no Dirty
+    // value; set by a touch that owes a subtree.
+    subtree,
     count,
 };
 
@@ -89,6 +93,9 @@ struct PendingTouch final {
     // Whether the control's paint bounds, as they are at the settle, are
     // added to the damage.
     bool damages_bounds{};
+    // The kinds the control and every descendant are marked with at the
+    // settle (SurfaceRoot::mark_subtree_dirty), with the subtree's damage.
+    Dirty subtree{Dirty::none};
 };
 
 // The control table of one surface root: one slot per attached control,
@@ -106,14 +113,20 @@ public:
     void release(ControlSlot slot) noexcept;
     // The control holding `slot`, or null when the slot was released since.
     [[nodiscard]] Control* control_at(ControlSlot slot) const noexcept;
-    // Sets, for a live slot, the bit of every kind `dirty` reaches, and
-    // merges `owed` into the slot's pending touch.
+    // Sets, for a live slot, the bit of every kind `dirty` reaches (and the
+    // subtree bit when `owed.subtree` is not empty), and merges `owed` into
+    // the slot's pending touch.
     void touch(ControlSlot slot, Dirty dirty, PendingTouch owed) noexcept;
     // Returns the pending touch of a live index and clears it (the bits
     // stay; take() clears them). A released index answers an empty touch.
     [[nodiscard]] PendingTouch take_touch(std::uint32_t index) noexcept;
     // Whether any kind has a bit set.
     [[nodiscard]] bool any_pending() const noexcept;
+    // The pending touch of a live slot, unchanged (an empty one for others).
+    [[nodiscard]] PendingTouch pending_touch(ControlSlot slot) const noexcept;
+    // Clears a live slot's bits and pending touch: its work is covered by
+    // an enclosing subtree mark.
+    void forget(ControlSlot slot) noexcept;
     [[nodiscard]] bool pending(DirtyKind kind) const noexcept;
     [[nodiscard]] bool pending(ControlSlot slot, DirtyKind kind) const noexcept;
     // Appends the indices pending `kind` (see DirtyBitset::take) and clears

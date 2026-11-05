@@ -1583,6 +1583,10 @@ gui_forms::Control
 
    .. cpp:function:: virtual bool sizes_children_from_content() const noexcept
 
+   .. cpp:function:: virtual Dirty child_touch_escalation() const noexcept
+
+      The container's invalidation policy (property-capabilities study, decision 9): the kinds of a descendant's touch that escalate to this control's subtree mark instead of staying with the descendant (for example measure, where one child's size change re-lays out every child anyway). The nearest ancestor escalating a kind takes it, at the settle. Constant per type. The default escalates nothing.
+
    .. cpp:function:: virtual bool measures_children_in_arrange() const noexcept
 
       Whether this container's arrange asks each child the content questions its algorithm needs (min-content, max-content, a height at a definite width) rather than the at-most question the window's measure pass would ask. When true, the window's pass leaves a measure-dirty direct child to its arrange: the child's dirtiness has already emptied its cache, and measuring it against the parent's available size too would cost a second callback whose answer nothing reads (stage L, PLAN section 5: one item's text change costs one callback). False by default, which keeps every existing container's measure pass unchanged.

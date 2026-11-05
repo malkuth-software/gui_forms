@@ -1254,6 +1254,14 @@ private:
     [[nodiscard]] bool settle_pending() const noexcept;
     // One control's owed bookkeeping (settle_dirty's body).
     void settle_touch(Control& control, detail::PendingTouch owed);
+    // A subtree mark's settle: every control of the subtree takes `kinds`
+    // (apply_subtree_dirty, which also forgets the descendants' touches it
+    // covers), the ancestors' flags and suspended notes, the layout
+    // ancestors, and the requested damage area.
+    void settle_subtree(Control& control, Dirty kinds);
+    // Whether an ancestor of `control` has a pending subtree mark covering
+    // `kinds`, so the control's own subtree mark is redundant.
+    [[nodiscard]] bool covered_by_pending_subtree(const Control& control, Dirty kinds) const;
     // The damage of a control whose visual bounds changed from `old_bounds`
     // to `new_bounds` (window coordinates) in an arrange: the whole of both
     // when `escalate` (its paint depends on its size) or its origin moved,
