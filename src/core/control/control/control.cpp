@@ -1310,23 +1310,11 @@ const BindableProperty* Control::find_bindable_property(
         ? nullptr : &(*found).second;
 }
 
-std::span<const PropertyEntry> Control::property_table() const noexcept {
-    return {};
-}
-
-const PropertyEntry* Control::find_property_entry(std::string_view registered) const {
-    const std::span<const PropertyEntry> table = property_table();
-    for (const PropertyEntry& entry : table) {
-        if (entry.name == registered) return &entry;
-    }
-    return nullptr;
-}
-
 bool Control::has_bindable_property(std::string_view name) const {
     if (find_bindable_property(name) != nullptr) return true;
     const std::string canonical = registered_name(name);
     if (bindable_properties_.find(canonical) != bindable_properties_.end()) return false;
-    const PropertyEntry* const entry = find_property_entry(canonical);
+    const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
     const bool bindable = entry != nullptr && (*entry).describe().bindable;
     return bindable;
 }
@@ -1348,7 +1336,7 @@ std::optional<PropertyDescriptor> Control::property_descriptor(
     const std::string canonical = registered_name(name);
     const BindablePropertyMap::const_iterator found = bindable_properties_.find(canonical);
     if (found != bindable_properties_.end()) return (*found).second.descriptor;
-    const PropertyEntry* const entry = find_property_entry(canonical);
+    const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
     if (entry == nullptr) return std::nullopt;
     return (*entry).describe();
 }
@@ -1388,21 +1376,16 @@ std::optional<BindingValue> Control::property_value(std::string_view name) const
     if (surface_root_) (*surface_root_).require_root_thread("control property query");
     const std::string canonical = registered_name(name);
     const BindablePropertyMap::const_iterator found = bindable_properties_.find(canonical);
-    const PropertyEntry* const entry = found == bindable_properties_.end() ? find_property_entry(canonical) : nullptr;
-    BindingValue value;
-    const PropertyDescriptor* descriptor = nullptr;
-    if (found != bindable_properties_.end()) {
-        if (!(*found).second.descriptor.readable || !(*found).second.get) return std::nullopt;
-        const PropertyRegistration::Getter getter = (*found).second.get;
-        value = getter();
-        descriptor = &(*found).second.descriptor;
-    } else if (entry != nullptr) {
-        descriptor = &(*entry).describe();
-        if (!(*descriptor).readable || (*entry).read == nullptr) return std::nullopt;
-        value = (*entry).read(*this);
-    } else {
-        return std::nullopt;
+    if (found == bindable_properties_.end()) {
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+        if (entry == nullptr) return std::nullopt;
+        std::optional<BindingValue> table_value = read_property_entry(*this, *entry);
+        return table_value;
     }
+    if (!(*found).second.descriptor.readable || !(*found).second.get) return std::nullopt;
+    const PropertyRegistration::Getter getter = (*found).second.get;
+    const BindingValue value = getter();
+    const PropertyDescriptor* const descriptor = &(*found).second.descriptor;
     const std::optional<BindingValue> normalized = convert_property_value(value, *descriptor);
     if (!normalized || !valid_property_value_tree(*normalized)) {
         throw std::logic_error(
@@ -1417,20 +1400,11 @@ void Control::set_property_value(std::string_view name, BindingValue value) {
     const BindablePropertyMap::iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        const PropertyEntry* const entry = find_property_entry(canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
         if (entry == nullptr) {
             throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
         }
-        const PropertyDescriptor& descriptor = (*entry).describe();
-        if (!descriptor.writable || (*entry).write == nullptr) {
-            throw std::logic_error("GUI.Forms property is read-only: " + descriptor.name);
-        }
-        const std::optional<BindingValue> converted = convert_property_value(value, descriptor);
-        if (!converted) {
-            throw std::invalid_argument(
-                "GUI.Forms property value cannot convert to its declared kind: " + descriptor.name);
-        }
-        (*entry).write(*this, *converted);
+        write_property_entry(*this, *entry, value);
         return;
     }
     const PropertyRegistration registration = (*found).second;
@@ -1455,12 +1429,11 @@ SubscriptionToken Control::subscribe_property_changed(
     const BindablePropertyMap::iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        const PropertyEntry* const entry = find_property_entry(canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
         if (entry == nullptr) {
             throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
         }
-        if ((*entry).connect_changed == nullptr || !changed) return SubscriptionToken{};
-        SubscriptionToken token = (*entry).connect_changed(*this, owner, std::move(changed));
+        SubscriptionToken token = connect_property_entry(*this, *entry, owner, std::move(changed));
         return token;
     }
     const PropertyRegistration::ChangeConnector connector =
@@ -1474,16 +1447,10 @@ bool Control::reset_property(std::string_view name) {
     const std::string canonical = registered_name(name);
     const BindablePropertyMap::iterator found = bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        const PropertyEntry* const entry = find_property_entry(canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
         if (entry == nullptr) return false;
-        if ((*entry).reset != nullptr) {
-            (*entry).reset(*this);
-            return true;
-        }
-        const PropertyDescriptor& descriptor = (*entry).describe();
-        if (!descriptor.writable || (*entry).write == nullptr || !descriptor.default_value) return false;
-        (*entry).write(*this, *descriptor.default_value);
-        return true;
+        const bool reset = reset_property_entry(*this, *entry);
+        return reset;
     }
     const PropertyRegistration registration = (*found).second;
     if (registration.reset) {
@@ -1508,17 +1475,12 @@ bool Control::should_serialize_property(std::string_view name) const {
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        const PropertyEntry* const entry = find_property_entry(canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
         if (entry == nullptr) {
             throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
         }
-        const PropertyDescriptor& descriptor = (*entry).describe();
-        if (descriptor.serialization_visibility == PropertySerializationVisibility::hidden) return false;
-        if ((*entry).should_serialize != nullptr) return (*entry).should_serialize(*this);
-        if (!descriptor.readable || (*entry).read == nullptr) return false;
-        if (!descriptor.default_value) return true;
-        const bool differs = (*entry).read(*this) != *descriptor.default_value;
-        return differs;
+        const bool serialized = property_entry_should_serialize(*this, *entry);
+        return serialized;
     }
     const PropertyRegistration registration = (*found).second;
     if (registration.descriptor.serialization_visibility ==
@@ -1546,17 +1508,12 @@ PropertyValueOrigin Control::property_value_origin(
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        const PropertyEntry* const entry = find_property_entry(canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
         if (entry == nullptr) {
             throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
         }
-        if ((*entry).origin != nullptr) return (*entry).origin(*this);
-        const PropertyDescriptor& descriptor = (*entry).describe();
-        if (descriptor.readable && (*entry).read != nullptr && descriptor.default_value) {
-            const bool defaulted = (*entry).read(*this) == *descriptor.default_value;
-            return defaulted ? PropertyValueOrigin::defaulted : PropertyValueOrigin::local;
-        }
-        return PropertyValueOrigin::computed;
+        const PropertyValueOrigin origin = property_entry_origin(*this, *entry);
+        return origin;
     }
     const PropertyRegistration registration = (*found).second;
     if (registration.origin) return registration.origin();

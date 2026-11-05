@@ -6,9 +6,12 @@
 #include "gui_forms/schema/types/schema_types.hpp"
 
 #include <memory>
+#include <span>
 #include <vector>
 
 namespace gui_forms {
+
+struct PropertyEntry;
 
 class Component {
 public:
@@ -43,6 +46,16 @@ public:
     // The interactions the dynamic type raises (stage T1): one record per
     // public event, its base types' first.
     [[nodiscard]] std::vector<InteractionDeclaration> interactions() const;
+
+    // The type's constant property table (property-capabilities study,
+    // decision 5 and section 14, G7): its capabilities' entries, base class
+    // first, for controls and components alike. Empty by default, which
+    // costs no storage; a type with capabilities overrides it to return its
+    // static table. Control's name-based property API reads its instance
+    // registry, then this table (a registration replaces a table entry of
+    // the same name); find_property_entry and the entry operations in
+    // property_table.hpp read the table of any owner.
+    [[nodiscard]] virtual std::span<const PropertyEntry> property_table() const noexcept;
 
 protected:
     // Appends the type's own interactions to `interactions`. A type with

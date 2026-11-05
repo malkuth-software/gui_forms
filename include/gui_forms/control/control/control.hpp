@@ -806,13 +806,10 @@ public:
     }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
-    // The type's constant property table (property-capabilities study,
-    // decision 5): its capabilities' entries, base class first. The
-    // properties below are the instance registry's (define_bindable_property)
-    // and the table's together; a registration replaces a table entry of the
-    // same name. The default table is empty; a type with capabilities
-    // overrides it to return its static table.
-    [[nodiscard]] virtual std::span<const PropertyEntry> property_table() const noexcept;
+    // The properties below are the instance registry's
+    // (define_bindable_property) and the type's table's (Component::
+    // property_table) together; a registration replaces a table entry of the
+    // same name.
     [[nodiscard]] bool has_bindable_property(std::string_view name) const;
     [[nodiscard]] std::vector<std::string> bindable_property_names() const;
     [[nodiscard]] std::optional<PropertyDescriptor> property_descriptor(
@@ -1233,7 +1230,6 @@ private:
         return AutoValidate::inherit;
     }
     // The table entry named `registered` (a registered name), or null.
-    [[nodiscard]] const PropertyEntry* find_property_entry(std::string_view registered) const;
     // The instance registry's registration only (not the table's entries).
     [[nodiscard]] const BindableProperty* find_bindable_property(
         std::string_view name) const;
