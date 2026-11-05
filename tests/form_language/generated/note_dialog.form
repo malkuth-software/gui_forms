@@ -2,7 +2,7 @@
    generates its header with gui_forms_add_form, which declares note-card. */
 user-control notes.root {
   note-card notes.card {
-    back-color: #112233;
+    padding: 3;
     button notes.card.close { text: "Close"; on-clicked: close; }
   }
 }

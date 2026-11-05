@@ -76,7 +76,6 @@ public:
         made.sample_heading = gui_forms::make_control<gui_forms::Label>(gui_forms::StableId("sample.heading"));
         (*made.sample_root).add_child(made.sample_heading);
         made.sample_save = std::make_shared<gui_forms::Command>();
-        (*made.sample_root).set_property_value("back_color", gui_forms::BindingValue{gui_forms::Color{.red = 51, .green = 102, .blue = 153, .alpha = 255}});
         (*made.sample_root).set_property_value("padding", gui_forms::BindingValue{gui_forms::Insets{.left = 8.0, .top = 4.0, .right = 8.0, .bottom = 4.0}});
         (*made.sample_general).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{0U}});
         (*made.sample_general_auto_save).set_property_value("text", gui_forms::BindingValue{std::string("Save automatically")});

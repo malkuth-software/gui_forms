@@ -27,6 +27,7 @@ using gui_forms::form_language::FormLoadOutcome;
 using gui_forms::form_language::FormModel;
 using gui_forms::form_language::FormModelOutcome;
 using gui_forms::form_language::FormSchema;
+using gui_forms::form_language::FormSchemaType;
 using gui_forms::form_language::LoadedForm;
 using gui_forms::form_language::build_form_model;
 using gui_forms::form_language::describe_form_type;
@@ -57,7 +58,14 @@ void require(bool condition, std::string_view message) {
 
 FormSchema sample_schema() {
     FormSchema schema{};
-    schema.types.push_back(form_control_type<gui_forms::UserControl>("user_control"));
+    // A document refuses a presentation colour (E813); the user control's
+    // back colour is marked as content here, so that loading a colour stays
+    // covered.
+    FormSchemaType user_control_type = form_control_type<gui_forms::UserControl>("user_control");
+    for (gui_forms::PropertyDescriptor& property : user_control_type.properties) {
+        if (property.name == "back_color") property.content_value = true;
+    }
+    schema.types.push_back(std::move(user_control_type));
     schema.types.push_back(form_control_type<gui_forms::GroupBox>("group_box"));
     schema.types.push_back(form_control_type<gui_forms::CheckBox>("check_box"));
     schema.types.push_back(form_control_type<gui_forms::Button>("button"));

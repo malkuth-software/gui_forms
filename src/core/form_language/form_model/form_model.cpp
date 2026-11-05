@@ -284,11 +284,8 @@ void ModelBuilder::read_object(NodeIndex node, std::optional<ObjectIndex> parent
         if (item.kind == SyntaxNodeKind::declaration) {
             read_declaration(NodeIndex{child}, self, written, scratch);
         } else if (item.kind == SyntaxNodeKind::style_block) {
-            if (scratch.objects[self.value].style) {
-                report(DiagnosticCode::form_style_repeated, item.tokens.first.value, stable_id, {}, {});
-            } else {
-                scratch.objects[self.value].style = NodeIndex{child};
-            }
+            report(DiagnosticCode::form_style_block, item.tokens.first.value, stable_id, {},
+                   "move its rules to the project theme, on a class the object names in `classes`");
         } else {
             // An object: the only other node an object's block holds.
             read_object(NodeIndex{child}, self, scratch);
@@ -331,14 +328,19 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
         report(DiagnosticCode::form_property_read_only, name_token, stable_id, written, {});
         return;
     }
-    // A form is ontological: a font belongs to the project theme, reached
-    // through `classes` (owner, 2026-11-04). A content value (the font a
-    // TypographySpecimen shows) is not presentation.
-    const bool presentation = descriptor.kind == BindingValueKind::font && !descriptor.content_value;
-    if (presentation) {
+    // A form is ontological: a font or a colour belongs to the project
+    // theme, reached through `classes` (owner, 2026-11-04). A content value
+    // (the font a TypographySpecimen shows) is not presentation.
+    if (!descriptor.content_value && descriptor.kind == BindingValueKind::font) {
         report(DiagnosticCode::form_presentation_property, name_token, stable_id, written,
                "set it in the project theme (font-family, font-size, font-weight, font-style, "
                "letter-spacing) on a class the object names in `classes`");
+        return;
+    }
+    if (!descriptor.content_value && descriptor.kind == BindingValueKind::color) {
+        report(DiagnosticCode::form_presentation_property, name_token, stable_id, written,
+               "set it in the project theme (color, background, border-color) on a class the object "
+               "names in `classes`");
         return;
     }
     if (!written_names.properties.insert(*registered).second) {

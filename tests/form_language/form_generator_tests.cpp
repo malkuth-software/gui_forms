@@ -378,13 +378,12 @@ void test_fonts_and_items() {
 
 // FD6.3's descriptors: letter spacing in a content font, the scaled
 // containers' design size (their children placed by their
-// own bounds, read in design coordinates), a panel's face colour, and the
-// choice controls' indicator style.
+// own bounds, read in design coordinates), and the choice controls'
+// indicator style.
 void test_page_descriptors() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
     const std::string_view document = "scaled-panel app.root {\n"
                                       "  design-size: 200 100;\n"
-                                      "  back-color: #E1EBF3;\n"
                                       "  scaled-group-box app.group {\n"
                                       "    text: \"Group\";\n"
                                       "    design-size: 50 50;\n"
@@ -421,8 +420,6 @@ void test_page_descriptors() {
     if (root == nullptr || group == nullptr || check == nullptr || radio == nullptr || italic == nullptr) return;
     require((*root).design_size() == gui_forms::Size{200.0, 100.0}, "page descriptors: the panel's design size");
     require((*group).design_size() == gui_forms::Size{50.0, 50.0}, "page descriptors: the group's design size");
-    require((*root).background() == gui_forms::Color::rgba(0xE1, 0xEB, 0xF3),
-            "page descriptors: a panel's back colour is its face");
     const gui_forms::FontSpec body{gui_forms::FontRole::content, 13.0, 400, true, 0.5};
     require((*italic).font() == body, "page descriptors: italic, then spacing");
     require((*check).indicator_style() == gui_forms::ChoiceIndicatorStyle::toggle,

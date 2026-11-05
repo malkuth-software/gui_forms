@@ -1,9 +1,9 @@
 #pragma once
 
-// A form document's model (stage FD, phase FD2): the objects, properties,
-// handler references and style blocks a parsed `.form` document describes,
-// checked against a form schema before anything is built. Internal until
-// stage D (owner decision FD-6).
+// A form document's model (stage FD, phase FD2): the objects, properties
+// and handler references a parsed `.form` document describes, checked
+// against a form schema before anything is built. Internal until stage D
+// (owner decision FD-6).
 //
 // Spelling: a document writes the registry's names in kebab-case
 // (`check-box`, `tab-index`, `on-checked-changed`); the schema holds them
@@ -152,8 +152,6 @@ struct FormObject final {
     // In document order, which is child order (owner decision FD-2).
     std::vector<ObjectIndex> children{};
     theme_language::NodeIndex node{};
-    // Its style block, if it has one.
-    std::optional<theme_language::NodeIndex> style{};
 };
 
 struct FormProperty final {

@@ -92,7 +92,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_value_invalid:
     case DiagnosticCode::form_handler_invalid:
     case DiagnosticCode::form_children_not_admitted:
-    case DiagnosticCode::form_style_repeated:
+    case DiagnosticCode::form_style_block:
     case DiagnosticCode::form_load_refused:
     case DiagnosticCode::form_generation_refused:
     case DiagnosticCode::form_presentation_property:
@@ -193,7 +193,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_value_invalid: return "form_value_invalid";
     case DiagnosticCode::form_handler_invalid: return "form_handler_invalid";
     case DiagnosticCode::form_children_not_admitted: return "form_children_not_admitted";
-    case DiagnosticCode::form_style_repeated: return "form_style_repeated";
+    case DiagnosticCode::form_style_block: return "form_style_block";
     case DiagnosticCode::form_load_refused: return "form_load_refused";
     case DiagnosticCode::form_generation_refused: return "form_generation_refused";
     case DiagnosticCode::form_presentation_property: return "form_presentation_property";

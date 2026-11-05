@@ -186,8 +186,11 @@ enum class DiagnosticCode : std::uint16_t {
     form_handler_invalid = 808,
     // An object inside an object whose type holds no children.
     form_children_not_admitted = 809,
-    // A second style block in one object's block.
-    form_style_repeated = 810,
+    // A style block in an object's block: a form is ontological, and its
+    // objects' look belongs to the project theme, reached by `classes`
+    // (owner, 2026-11-05). The block still parses, so that an editor keeps
+    // the document's text.
+    form_style_block = 810,
     // A value, a child or an object the run-time types refuse while a form
     // loads (FD3): the detail is the refusal. Nothing loaded is kept.
     form_load_refused = 811,
@@ -195,7 +198,7 @@ enum class DiagnosticCode : std::uint16_t {
     // type without a C++ name, a stable ID that is no member name or that
     // spells another's, a reserved handler name. Nothing is generated.
     form_generation_refused = 812,
-    // A presentation property (a font today; colours follow) written in a
+    // A presentation property (a font or a colour) written in a
     // form document: a form is ontological, and its objects' look belongs
     // to the project theme, reached by `classes` (owner, 2026-11-04). A
     // property marked as content (PropertyDescriptor::content_value) is
