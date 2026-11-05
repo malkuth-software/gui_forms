@@ -86,7 +86,7 @@ gui_forms::CommandOverflowPanel
          A button that asks the application to open a menu.
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         The popup menu an actuator can show for the hidden groups.
+         The overlay menu an actuator can show for the hidden groups.
 
    .. rubric:: Notes
 

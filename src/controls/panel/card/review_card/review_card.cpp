@@ -74,8 +74,8 @@ void ReviewCard::set_record(ReviewRecord record) {
     (*title_label_).set_text(record_.title);
     (*summary_label_).set_text(record_.summary);
     (*verdict_label_).set_text(record_.verdict);
-    set_accessible_name(record_.title);
-    set_accessible_description(record_.summary);
+    accessible_name = record_.title;
+    accessible_description = record_.summary;
     set_visual_status(record_.disposition == ReviewDisposition::pending
         ? ControlVisualStatus::pending
         : record_.disposition == ReviewDisposition::rejected

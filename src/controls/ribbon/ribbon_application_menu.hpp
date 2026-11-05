@@ -13,7 +13,7 @@ namespace gui_forms {
 // application menu's commands down the left and the recent items, under
 // their caption, down the right, on a panel below the File tab that casts
 // the overlay shadow. Private to the ribbon, which owns it, opens it as a
-// popup covering the window client (a press outside the panel closes it, as
+// overlay covering the window client (a press outside the panel closes it, as
 // does Escape) and closes it before it goes; `ribbon` observes the owner and
 // is cleared by detach().
 class RibbonApplicationMenu final : public Control {

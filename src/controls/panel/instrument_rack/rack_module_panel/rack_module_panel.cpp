@@ -9,9 +9,8 @@ namespace gui_forms::detail {
 RackModulePanel::RackModulePanel(StableId stable_id)
     : Panel(std::move(stable_id)) {
     set_border_style(BorderStyle::line);
-    set_margin({});
-    set_accessible_description(
-        "Compact editing instrument; Alt+Left and Alt+Right request reordering");
+    margin = Insets{};
+    accessible_description = "Compact editing instrument; Alt+Left and Alt+Right request reordering";
 }
 
 void RackModulePanel::set_compact(bool compact) {
@@ -87,8 +86,8 @@ void RackModulePanel::arrange(Rect final_bounds) {
 SemanticDescriptor RackModulePanel::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.states = SemanticState::enabled | SemanticState::visible;
     descriptor.actions = {SemanticAction::decrement,
                           SemanticAction::increment};

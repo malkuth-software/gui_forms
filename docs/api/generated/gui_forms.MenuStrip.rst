@@ -15,7 +15,7 @@ gui_forms::MenuStrip
 
    A menu strip shows one item per top-level menu. Clicking an item, pressing
    its mnemonic, or focusing the strip and pressing Down opens that menu below
-   it; the menu itself is a :cpp:class:`ContextMenu <gui_forms::ContextMenu>` popup that runs the shared :cpp:class:`Command <gui_forms::Command>`
+   it; the menu itself is a :cpp:class:`ContextMenu <gui_forms::ContextMenu>` overlay that runs the shared :cpp:class:`Command <gui_forms::Command>`
    of the item the user picks. While a menu is open, moving the pointer over
    another top-level item or pressing Left or Right switches to that menu. Dock
    the strip to the top of the window's root container. Use a :cpp:class:`ContextMenu <gui_forms::ContextMenu>` on
@@ -27,7 +27,7 @@ gui_forms::MenuStrip
    :Parameters:
 
       **stable_id** : ``StableId``
-         Identity of the strip, unique within its window. Its popup menu is named
+         Identity of the strip, unique within its window. Its overlay menu is named
          ``<stable_id>.menu``.
 
    :Properties:
@@ -108,7 +108,7 @@ gui_forms::MenuStrip
    .. seealso::
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         The popup menu each top-level item opens.
+         The overlay menu each top-level item opens.
 
       :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>`
          The description of one top-level menu.
@@ -183,7 +183,7 @@ gui_forms::MenuStrip
                       {"view.wrap", gf::MenuItemKind::check, wrap, "&Word wrap"},
                   }},
               });
-              (*menu).set_dock(gf::DockStyle::top);
+              (*menu).dock = gf::DockStyle::top;
               (*root).add_child(menu);
               gf::on((*save).invoked(), *this, &Editor::on_save);
           }

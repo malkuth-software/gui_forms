@@ -80,6 +80,7 @@ struct WindowBridge final {
             // The window's identity in the run, for frames and ordering.
             detail::register_run_window(state);
         } catch (...) { (*failure).capture(); }
+        detail::attach_application_window(*model, state);
         if ((*failure).exception) { (*failure).stop(); return; }
         try {
             if (options.ready) {
@@ -274,6 +275,9 @@ HostServiceError runtime_entry_refusal(const ApplicationWindow& entry, const Hos
         return HostServiceError::invalid_argument;
     }
     if (detail::primary_window_entry(entry)) return HostServiceError::invalid_argument;
+    // A host that opens no popup windows refuses a popup before any native
+    // request (HostWindowing::supports_popup_windows).
+    if (entry.popup.has_value() && !windowing.supports_popup_windows()) return HostServiceError::unsupported;
     std::optional<HostWindowId> owner{};
     if (!entry.owner_id.empty()) {
         owner = windowing.find(entry.owner_id);

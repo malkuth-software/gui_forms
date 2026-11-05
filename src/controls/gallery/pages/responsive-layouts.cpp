@@ -57,12 +57,12 @@ private:
         std::shared_ptr<Panel> panel = make_control<Panel>(StableId(id));
         (*panel).set_background(background);
         (*panel).set_border_style(BorderStyle::line);
-        (*panel).set_dock(DockStyle::fill);
-        (*panel).set_margin({});
+        (*panel).dock = DockStyle::fill;
+        (*panel).margin = Insets{};
         std::shared_ptr<Label> caption = label(id + ".text", text, 11.0, 600, ink);
         (*caption).set_text_wrapping(TextWrapping::word);
-        (*caption).set_padding({8.0, 4.0, 8.0, 4.0});
-        (*caption).set_dock(DockStyle::fill);
+        (*caption).padding = {8.0, 4.0, 8.0, 4.0};
+        (*caption).dock = DockStyle::fill;
         (*panel).add_child(caption);
         return panel;
     }
@@ -75,7 +75,7 @@ private:
         (*page).add_at(width_group, {24.0, 90.0, 930.0, 64.0});
         std::shared_ptr<TrackBar> width = make_control<TrackBar>(
             StableId("gallery.responsive.width"));
-        (*width).set_accessible_name("Stage width");
+        (*width).accessible_name = "Stage width";
         (*width).set_range(stage_minimum, stage_maximum);
         (*width).set_small_change(10.0);
         (*width).set_large_change(100.0);
@@ -95,7 +95,7 @@ private:
             {930.0, 118.0});
         (*page).add_at(tracks_group, {24.0, 164.0, 930.0, 118.0});
         tracks_ = make_control<ResponsiveTrackPanel>(StableId("gallery.responsive.tracks"));
-        (*tracks_).set_accessible_name("Responsive track specimen");
+        (*tracks_).accessible_name = "Responsive track specimen";
         (*tracks_).set_track_gap(6.0);
         (*tracks_).set_track_specs({
             {ResponsiveTrackSizeMode::fixed, 160.0, 160.0, 160.0, 1.0, false, 20U},
@@ -139,7 +139,7 @@ private:
             {930.0, 112.0});
         (*page).add_at(shelf_group, {24.0, 292.0, 930.0, 112.0});
         shelf_ = make_control<CommandOverflowPanel>(StableId("gallery.responsive.shelf"));
-        (*shelf_).set_accessible_name("Command shelf specimen");
+        (*shelf_).accessible_name = "Command shelf specimen";
         (*shelf_).set_group_gap(8.0);
         (*shelf_group).add_at(shelf_, {18.0, 30.0, stage_maximum, 44.0});
         constexpr std::array<std::string_view, 3> ids{"selection", "arrange", "navigate"};
@@ -147,10 +147,10 @@ private:
         for (std::size_t index = 0U; index < ids.size(); ++index) {
             const std::string id = "gallery.responsive.shelf." + std::string(ids[index]);
             std::shared_ptr<Panel> group_panel = make_control<Panel>(StableId(id));
-            (*group_panel).set_accessible_name(std::string(shelf_names[index]) + " commands");
+            (*group_panel).accessible_name = std::string(shelf_names[index]) + " commands";
             (*group_panel).set_requested_bounds({0.0, 0.0, widths[index], 40.0});
             std::shared_ptr<CommandBar> bar = make_control<CommandBar>(StableId(id + ".bar"));
-            (*bar).set_dock(DockStyle::fill);
+            (*bar).dock = DockStyle::fill;
             if (index == 0U) {
                 (*bar).set_items({{.id = 1, .label = "Open"}, {.id = 2, .label = "Copy"},
                                   {.id = 3, .label = "Rename"}});
@@ -188,7 +188,7 @@ private:
         (*page).add_at(view_group, {24.0, 414.0, 930.0, 142.0});
         master_detail_ = make_control<MasterDetailView>(
             StableId("gallery.responsive.master-detail"));
-        (*master_detail_).set_accessible_name("Folder browser specimen");
+        (*master_detail_).accessible_name = "Folder browser specimen";
         MasterDetailLayout layout;
         layout.master_extent = 240.0;
         layout.master_minimum = 160.0;
@@ -197,7 +197,7 @@ private:
         (*master_detail_).set_master_detail_layout(layout);
         (*view_group).add_at(master_detail_, {18.0, 30.0, stage_maximum, 70.0});
         folders_ = make_control<ListBox>(StableId("gallery.responsive.master-detail.master"));
-        (*folders_).set_accessible_name("Folders");
+        (*folders_).accessible_name = "Folders";
         (*folders_).set_item_height(22.0);
         (*folders_).set_items({std::string(folder_names[0]), std::string(folder_names[1]),
                                std::string(folder_names[2])});
@@ -230,7 +230,7 @@ private:
             {930.0, 84.0});
         (*page).add_at(scroll_group, {24.0, 566.0, 930.0, 84.0});
         scroller_ = make_control<Panel>(StableId("gallery.responsive.scroll"));
-        (*scroller_).set_accessible_name("Column scroller specimen");
+        (*scroller_).accessible_name = "Column scroller specimen";
         (*scroller_).set_background(Color::rgba(238, 243, 247));
         (*scroller_).set_border_style(BorderStyle::sunken);
         (*scroller_).set_auto_scroll(true);

@@ -247,7 +247,7 @@ private:
     void on_expander(ButtonBase& sender);
     void on_verification(bool checked);
     void on_radio(bool checked);
-    void on_popup_revoked();
+    void on_overlay_revoked();
     void finish(std::string button_id);
     [[nodiscard]] std::string cancel_button_id() const;
     [[nodiscard]] std::string default_button_id() const;
@@ -266,11 +266,11 @@ private:
     std::shared_ptr<Button> expander_button_{};
     std::shared_ptr<ProgressBar> progress_{};
     std::vector<SubscriptionToken> child_tokens_{};
-    // The modal layer the dialog sits in while shown, and its popup lease
+    // The modal layer the dialog sits in while shown, and its overlay lease
     // and focus scope in the owner's window.
     Control::Ptr layer_{};
-    PopupToken popup_{};
-    SubscriptionToken popup_revoked_{};
+    OverlayToken overlay_{};
+    SubscriptionToken overlay_revoked_{};
     FocusScopeId scope_{};
     bool shown_{};
     bool synchronizing_{};

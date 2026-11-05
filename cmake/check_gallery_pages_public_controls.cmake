@@ -11,11 +11,12 @@ string(REPLACE "," ";" gallery_page_files "${GALLERY_PAGE_FILES}")
 # demo/gallery_instrument.hpp, are outside this policy.) A handler owner deriving from Component is the documented
 # authoring idiom (on(event, owner, &Owner::method)) and is admitted. So is an
 # application's DataGridViewCellValueProvider: it supplies a virtual grid's
-# values by row ID and is data, not a control.
+# values by row ID and is data, not a control. So is a SubSurfaceContent: it
+# builds a sub-surface's tree of public controls on that sub-surface's thread.
 foreach(gallery_page_file IN LISTS gallery_page_files)
     file(READ "${gallery_page_file}" gallery_page_source)
     string(REGEX REPLACE
-        "(class|struct)[ \t]+[A-Za-z_][A-Za-z0-9_]*([ \t]+final)?[ \t\r\n]*:[ \t\r\n]*public[ \t]+(gui_forms::)?(Component|DataGridViewCellValueProvider)[ \t\r\n]*{"
+        "(class|struct)[ \t]+[A-Za-z_][A-Za-z0-9_]*([ \t]+final)?[ \t\r\n]*:[ \t\r\n]*public[ \t]+(gui_forms::)?(Component|DataGridViewCellValueProvider|SubSurfaceContent)[ \t\r\n]*{"
         "" gallery_page_source "${gallery_page_source}")
     if(gallery_page_source MATCHES
        "(^|[\r\n])[ \t]*(class|struct)[ \t]+[A-Za-z_][A-Za-z0-9_]*([ \t]+final)?[ \t\r\n]*:")

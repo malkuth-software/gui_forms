@@ -46,6 +46,19 @@ RadioButton::RadioButton(StableId stable_id, std::string text)
             *this, &RadioButton::indicator_style, button_base_detail::choice_indicator_style_enum()),
         detail::EnumerationPropertySetter<RadioButton, ChoiceIndicatorStyle>(*this, &RadioButton::set_indicator_style),
         {}, {}, {}});
+
+    PropertyDescriptor group_name;
+    group_name.name = "group_name";
+    group_name.kind = BindingValueKind::text;
+    group_name.category = "Behavior";
+    group_name.description = "The exclusion group among the parent's radio buttons; empty is the parent's own group.";
+    group_name.default_value = BindingValue{std::string{}};
+    group_name.invalidation_effects = Dirty::semantics;
+    group_name.bindable = false;
+    define_bindable_property({
+        std::move(group_name),
+        detail::BindingMemberGetter<RadioButton, std::string>(*this, &RadioButton::group_name_),
+        detail::DirectPropertySetter<RadioButton, std::string>(*this, &RadioButton::set_group_name), {}, {}, {}});
 }
 
 void RadioButton::set_checked_without_exclusion(bool checked_value) {

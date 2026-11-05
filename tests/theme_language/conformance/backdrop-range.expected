@@ -1,0 +1,2 @@
+refused
+E403 value_out_of_range 2:37 rule=window property=backdrop detail=a blur() radius from 0 to 32px

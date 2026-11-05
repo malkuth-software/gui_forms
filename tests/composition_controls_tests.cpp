@@ -85,7 +85,7 @@ void test_card_section_ownership_and_layout() {
 void test_interactive_card_state_input_and_semantics() {
     std::shared_ptr<gui_forms::Card> card = make_control<Card>(StableId("card.interactive"));
     (*card).set_requested_bounds({10.0, 10.0, 180.0, 100.0});
-    (*card).set_accessible_name("Sapphire specimen");
+    (*card).accessible_name = "Sapphire specimen";
     (*card).set_interactive(true);
     Window window(card, {200.0, 120.0});
     window.perform_layout();
@@ -313,7 +313,7 @@ void test_review_card_owns_typed_theme_aware_projection() {
 
 void test_master_detail_ownership_and_responsive_presentation() {
     std::shared_ptr<gui_forms::MasterDetailView> view = make_control<MasterDetailView>(StableId("master-detail"));
-    (*view).set_accessible_name("Decision browser");
+    (*view).accessible_name = "Decision browser";
     MasterDetailLayout layout;
     layout.master_extent = 220.0;
     layout.master_minimum = 120.0;

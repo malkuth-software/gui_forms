@@ -143,7 +143,7 @@ Stack three buttons whose 10-unit margins collapse between them:
        std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
            gf::StableId("stack.button" + std::to_string(index)), "Button");
        (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-       (*button).set_margin({0.0, 10.0, 0.0, 10.0});
+       (*button).margin = {0.0, 10.0, 0.0, 10.0};
        (*stack).add_child(button);
        buttons.push_back(button);
    }
@@ -170,7 +170,7 @@ Centre a row of 80-wide inline buttons, wrapping the third:
    for (int index = 0; index < 3; ++index) {
        std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
            gf::StableId("row.button" + std::to_string(index)), "Button");
-       (*button).set_margin({});
+       (*button).margin = gf::Insets{};
        (*row).add_child(button);
        (*row).set_item_layout(*button, atomic);
        buttons.push_back(button);

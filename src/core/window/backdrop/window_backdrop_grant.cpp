@@ -4,7 +4,7 @@
 
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
-#include "../popup/popup_attachment.hpp"
+#include "../overlay/overlay_attachment.hpp"
 
 #include <stdexcept>
 
@@ -95,8 +95,8 @@ void SurfaceRoot::refresh_backdrop() {
         // part that sampled it is baked again, and the window repaints.
         damage_backplane_readers(nullptr);
         mark_subtree_dirty(*root_, Dirty::paint);
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (const Control::Ptr overlay = (*popup).popup()) mark_subtree_dirty(*overlay, Dirty::paint);
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (const Control::Ptr overlay_root = (*overlay).overlay()) mark_subtree_dirty(*overlay_root, Dirty::paint);
         }
     }
     // Held here: a handler that requests another backdrop replaces
@@ -105,12 +105,83 @@ void SurfaceRoot::refresh_backdrop() {
     backdrop_changed_.emit(emitted);
 }
 
-const SurfaceMaterial& SurfaceRoot::backplane_base(const ControlVisualContext& context) const noexcept {
+void SurfaceRoot::set_backdrop_chain(std::optional<BackdropChain> chain) {
+    require_root_thread("backdrop chain");
+    if (chain.has_value() && !backdrop_chain_valid(*chain)) {
+        throw std::invalid_argument(
+            "GUI.Forms backdrop chain needs at most eight operations in range with at most one blur");
+    }
+    application_backdrop_chain_ = true;
+    apply_backdrop_chain(chain);
+}
+
+void SurfaceRoot::lower_theme_backdrop_chain() {
+    if (application_backdrop_chain_) return;
+    const Window* const window = (*root_).attached_window();
+    if (window == nullptr) return;
+    const std::optional<BackdropChain> chain = (*theme_).window_backdrop_chain(*window);
+    apply_backdrop_chain(chain);
+}
+
+void SurfaceRoot::apply_backdrop_chain(const std::optional<BackdropChain>& chain) {
+    if (chain == backdrop_chain_) return;
+    backdrop_chain_ = chain;
+    // A window following its theme's request follows the chain's instead
+    // while the chain has a blur (implied_backdrop_request).
+    if (!application_backdrop_request_) {
+        backdrop_request_ = implied_backdrop_request();
+        refresh_backdrop();
+    }
+    // The tint lies under everything: every part that sampled the
+    // backplane is baked again, and the window repaints.
+    damage_backplane_readers(nullptr);
+    mark_subtree_dirty(*root_, Dirty::paint);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) mark_subtree_dirty(*overlay_root, Dirty::paint);
+    }
+}
+
+SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context) const {
     const ThemeWindowBackdrop& themed = (*theme_).definition().window_backdrop;
+    const bool clear_grant = backdrop_grant_.granted != WindowBackdrop::opaque;
+    if (backdrop_chain_.has_value() && !context.high_contrast) {
+        const BackdropChainResolution resolution =
+            resolve_backdrop_chain(*backdrop_chain_, backdrop_grant_, context.high_contrast);
+        // A chain without a tint leaves the base to the theme.
+        if (resolution.tint.alpha != 0U) {
+            const Color tint = resolution.solid ? Color::rgba(resolution.tint.red, resolution.tint.green,
+                                                              resolution.tint.blue, 255U)
+                                                : resolution.tint;
+            SurfaceMaterial tinted{};
+            tinted.fills.clear();
+            tinted.fills.push_back(MaterialFillLayer::solid(tint));
+            return tinted;
+        }
+    }
     const SurfaceMaterial* const base = themed.base_for(backdrop_grant_.granted);
-    if (backdrop_grant_.granted != WindowBackdrop::opaque && base != nullptr) return *base;
-    const SurfaceMaterial& recipe = (*theme_).resolve(ControlVisualRole::window, context).material;
+    if (clear_grant && base != nullptr) {
+        SurfaceMaterial copied = *base;
+        return copied;
+    }
+    SurfaceMaterial recipe = (*theme_).resolve(ControlVisualRole::window, context).material;
     return recipe;
+}
+
+std::optional<BackdropChainResolution> SurfaceRoot::backdrop_chain_resolution() const noexcept {
+    if (!backdrop_chain_.has_value()) return std::nullopt;
+    const BackdropChainResolution resolution =
+        resolve_backdrop_chain(*backdrop_chain_, backdrop_grant_, presentation_settings_.high_contrast);
+    return resolution;
+}
+
+WindowBackdropRequest SurfaceRoot::implied_backdrop_request() const {
+    if (backdrop_chain_.has_value() && backdrop_chain_blur(*backdrop_chain_) > 0.0) {
+        const WindowBackdropRequest material =
+            WindowBackdropRequest::with_fallback(WindowBackdrop::window_material, WindowBackdrop::transparent);
+        return material;
+    }
+    const WindowBackdropRequest themed = (*theme_).definition().window_backdrop.request;
+    return themed;
 }
 
 } // namespace gui_forms

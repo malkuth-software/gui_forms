@@ -372,7 +372,7 @@ void test_scroll_bar_geometry_and_states() {
     arrow_up.action = PointerAction::up;
     require(window.dispatch_pointer(arrow_up), "arrow release must be handled");
 
-    (*horizontal).set_enabled(false);
+    (*horizontal).enabled = false;
     const ScrollBar::States disabled = (*horizontal).states();
     require(disabled.disabled && !disabled.enabled,
             "a disabled control must publish disabled, not enabled");

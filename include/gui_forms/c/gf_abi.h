@@ -104,7 +104,7 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_DIAGNOSTICS 10u
 #define GF_TABLE_CONTROLS 11u
 #define GF_TABLE_TEXT_EDITING 12u
-#define GF_TABLE_POPUPS 13u
+#define GF_TABLE_OVERLAYS 13u
 #define GF_TABLE_PROPERTY_GRID 14u
 #define GF_TABLE_CUSTOM_CONTROLS 15u
 #define GF_TABLE_BINDINGS 16u
@@ -419,7 +419,7 @@ typedef struct gf_create_choice {
  * What objects.create_with makes a type with. The caller sets struct_size;
  * the library reads the record and the choices during the call only.
  * owner is the object the new one needs:
- * - anchored_popup_layer: its anchor control;
+ * - anchored_overlay_layer: its anchor control;
  * - dock_site: its dock_workspace;
  * - page_strip: the page_view or navigation_pane whose pages it shows;
  * - color_command, font_command, gallery_command: the command it extends;
@@ -1507,27 +1507,27 @@ typedef struct gf_text_editing_table {
 } gf_text_editing_table;
 
 /*
- * GF_TABLE_POPUPS: popup roots and tooltips. A popup is a root control,
- * without a parent, shown over its owner's window until close_popup, until
+ * GF_TABLE_OVERLAYS: overlay roots and tooltips. An overlay is a root control,
+ * without a parent, shown over its owner's window until close_overlay, until
  * its owner leaves the window or until the window closes. Tooltips belong to
  * a tool_tip component (create_with). UI thread only.
  */
-typedef struct gf_popups_table {
+typedef struct gf_overlays_table {
     uint32_t struct_size;
     uint32_t abi_minor;
-    /* Shows popup over owner's window. owner must be in a running window
-     * (else GF_STATUS_INVALID_STATE); a popup already open gives
+    /* Shows overlay over owner's window. owner must be in a running window
+     * (else GF_STATUS_INVALID_STATE); an overlay already open gives
      * GF_STATUS_INVALID_STATE. */
-    gf_status (GF_CALL* open_popup)(gf_object owner, gf_object popup);
-    /* Closes popup; one not open gives GF_STATUS_NOT_FOUND. */
-    gf_status (GF_CALL* close_popup)(gf_object popup);
+    gf_status (GF_CALL* open_overlay)(gf_object owner, gf_object overlay);
+    /* Closes overlay; one not open gives GF_STATUS_NOT_FOUND. */
+    gf_status (GF_CALL* close_overlay)(gf_object overlay);
     /* The text tool_tip shows for target; empty text removes it. */
     gf_status (GF_CALL* set_tool_tip)(gf_object tool_tip, gf_object target, gf_utf8_view text);
     /* Shows target's text now, for duration_ms milliseconds (0: until the
      * pointer leaves or hide_tool_tip). */
     gf_status (GF_CALL* show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms);
     gf_status (GF_CALL* hide_tool_tip)(gf_object tool_tip);
-} gf_popups_table;
+} gf_overlays_table;
 
 /*
  * GF_TABLE_PROPERTY_GRID: a property grid's selection and its editing

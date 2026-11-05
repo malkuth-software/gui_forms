@@ -3,7 +3,7 @@
 #include "gui_forms/commands/color_command/color_command.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/window.hpp"
@@ -27,7 +27,7 @@ enum class RibbonPaletteEntryKind : std::uint8_t { automatic, palette, recent };
 // The ribbon's drop-down colour picker (stage RB, phase 6; RIBBON_STUDY.md
 // §1.1): a small split button whose face shows an icon over a bar of the
 // current colour and applies that colour again, and whose arrow opens a
-// palette popup below it: Automatic, a grid of palette colours, and the
+// palette overlay below it: Automatic, a grid of palette colours, and the
 // command's recent colours. With a ColorCommand the picker shows and commits
 // the command's value (the command's value_changed, then its Command runs);
 // without one it keeps its own value. Hosted in a Ribbon as
@@ -73,7 +73,7 @@ public:
     [[nodiscard]] bool palette_open() const noexcept { return palette_open_; }
     // The palette's content control (its parts are in its local
     // coordinates), null before the first opening.
-    [[nodiscard]] Control::Ptr palette_popup() const noexcept;
+    [[nodiscard]] Control::Ptr palette_overlay() const noexcept;
 
     // Raised after the value shown changes, by the user or the program.
     [[nodiscard]] Event<const std::optional<Color>&>& value_changed() noexcept { return value_changed_; }
@@ -177,8 +177,8 @@ private:
     void palette_paint(Painter& painter) const;
     [[nodiscard]] std::vector<SemanticNode> palette_semantic_children() const;
     bool palette_semantic_action(std::string_view stable_id, SemanticAction action);
-    void on_layer_dismissed(PopupDismissReason reason);
-    void on_popup_revoked();
+    void on_layer_dismissed(OverlayDismissReason reason);
+    void on_overlay_revoked();
 
     std::shared_ptr<ColorCommand> command_{};
     SubscriptionToken command_value_{};
@@ -191,15 +191,15 @@ private:
     Zone pressed_{Zone::none};
     bool focused_{};
 
-    // The palette popup: its content and layer (made on first opening), the
+    // The palette overlay: its content and layer (made on first opening), the
     // lease and focus scope while open, and the entry under the pointer and
     // the keyboard's entry in it.
-    std::shared_ptr<RibbonColorPalette> palette_popup_{};
-    std::shared_ptr<AnchoredPopupLayer> layer_{};
-    PopupToken popup_{};
+    std::shared_ptr<RibbonColorPalette> palette_overlay_{};
+    std::shared_ptr<AnchoredOverlayLayer> layer_{};
+    OverlayToken overlay_{};
     FocusScopeId scope_{};
     SubscriptionToken layer_dismissed_{};
-    SubscriptionToken popup_revoked_{};
+    SubscriptionToken overlay_revoked_{};
     bool palette_open_{};
     bool palette_focused_{};
     std::optional<std::size_t> hot_entry_{};

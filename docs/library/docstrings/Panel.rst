@@ -98,10 +98,10 @@ the order it was added, and the fill child added last takes the rest:
    std::shared_ptr<gf::Panel> status = gf::make_control<gf::Panel>(gf::StableId("shell.status"));
    std::shared_ptr<gf::Panel> content = gf::make_control<gf::Panel>(gf::StableId("shell.content"));
    (*toolbar).set_requested_bounds({0.0, 0.0, 0.0, 32.0});   // only the height is used
-   (*toolbar).set_dock(gf::DockStyle::top);
+   (*toolbar).dock = gf::DockStyle::top;
    (*status).set_requested_bounds({0.0, 0.0, 0.0, 22.0});
-   (*status).set_dock(gf::DockStyle::bottom);
-   (*content).set_dock(gf::DockStyle::fill);
+   (*status).dock = gf::DockStyle::bottom;
+   (*content).dock = gf::DockStyle::fill;
    (*shell).add_child(toolbar);
    (*shell).add_child(status);
    (*shell).add_child(content);
@@ -119,4 +119,4 @@ technology announces it as a group:
    (*swatch).set_requested_bounds({12.0, 12.0, 120.0, 80.0});
    (*swatch).set_background(gf::Color::rgba(250, 240, 200));
    (*swatch).set_border_style(gf::BorderStyle::line);
-   (*swatch).set_accessible_name("Highlight colour");
+   (*swatch).accessible_name = "Highlight colour";

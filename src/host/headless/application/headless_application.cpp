@@ -146,6 +146,11 @@ HostWindowFrame HeadlessWindowing::native_frame(HostWindowId window) const {
     const NativeWindow* entry = native(window);
     if (entry == nullptr) return frame;
     frame.content = (*entry).content;
+    frame.outer_measured = true;
+    if (!(*entry).decorated) {
+        frame.outer = (*entry).content;
+        return frame;
+    }
     frame.outer = {(*entry).content.x - border_width,
                    (*entry).content.y - title_bar_height - border_width,
                    (*entry).content.width + 2.0 * border_width,
@@ -154,13 +159,18 @@ HostWindowFrame HeadlessWindowing::native_frame(HostWindowId window) const {
     return frame;
 }
 
+bool HeadlessWindowing::supports_popup_windows() const noexcept {
+    return true;
+}
+
 void HeadlessWindowing::create_native(HostWindowId window, std::string_view stable_id,
-                                      Rect content, Size minimum_size) {
+                                      Rect content, Size minimum_size, bool decorated) {
     NativeWindow entry;
     entry.id = window;
     entry.stable_id.assign(stable_id);
     entry.content = content;
     entry.minimum_size = minimum_size;
+    entry.decorated = decorated;
     natives_.push_back(std::move(entry));
     order_.insert(order_.begin(), window);
     std::ostringstream line;
@@ -495,7 +505,9 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
         }
         owner = *found;
     }
-    const HostWindowKind kind = host_window_kind(owner.valid(), source.tool_window, source.floating);
+    const std::optional<ApplicationPopup> popup = source.popup;
+    const HostWindowKind kind =
+        host_window_kind(owner.valid(), source.tool_window, source.floating, popup.has_value());
     const bool floating = host_window_kind_traits(kind).floating;
     if (kind == HostWindowKind::primary &&
         (runtime || !source.options.initially_visible || source.options.hide_on_close)) {
@@ -545,14 +557,21 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     const HostInputSettingsEvent input{headless_double_click_milliseconds, SettingOrigin::host};
     static_cast<void>((*window.host).dispatch(input, next_timestamp()));
-    const Rect content = default_placement(kind, owner, window.options.initial_size);
+    Rect content = default_placement(kind, owner, window.options.initial_size);
+    // A popup is where the program put it.
+    if (popup.has_value()) {
+        content = Rect{(*popup).origin.x, (*popup).origin.y, window.options.initial_size.width,
+                       window.options.initial_size.height};
+    }
     if (!owner.valid() && kind != HostWindowKind::primary) ++placements_;
-    windowing_.create_native(window.id, window.stable_id, content, window.options.minimum_size);
+    windowing_.create_native(window.id, window.stable_id, content, window.options.minimum_size,
+                             !popup.has_value());
     {
         std::ostringstream line;
         line << "open id=" << window.id.value << " kind=" << host_window_kind_name(kind)
              << " owner=" << owner.value << " visible=" << (window.options.initially_visible ? 1 : 0)
              << " runtime=" << (runtime ? 1 : 0);
+        if (popup.has_value()) line << " focus=" << host_popup_focus_name((*popup).focus);
         windowing_.note(line.str());
     }
     windowing_.report_frame(window.id, windowing_.native_frame(window.id));
@@ -581,6 +600,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     if (opened.options.wake_ready) opened.options.wake_ready(HeadlessWake{});
     (*opened.state).ready = true;
     detail::register_run_window(opened.state);
+    detail::attach_application_window(*opened.model, opened.state);
     const ApplicationWindowHandle handle = detail::ApplicationHandleAccess::make(opened.state);
     if (opened.options.ready) opened.options.ready(*opened.model, handle);
     // The ready callback may have closed the window.

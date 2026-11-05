@@ -33,7 +33,7 @@ private:
         (*body).add_at(deliberate_group, {24.0, 92.0, 450.0, 400.0});
         std::shared_ptr<CheckedListBox> deliberate = make_control<CheckedListBox>(
             StableId("gallery.checked.deliberate.list"));
-        (*deliberate).set_accessible_name("Deliberate feature selection");
+        (*deliberate).accessible_name = "Deliberate feature selection";
         (*deliberate).add_item("Renderer-neutral core", CheckState::checked);
         (*deliberate).add_item("Window-owned resources", CheckState::checked);
         (*deliberate).add_item("Native accessibility", CheckState::indeterminate);
@@ -58,7 +58,7 @@ private:
             {460.0, 400.0});
         (*body).add_at(immediate_group, {494.0, 92.0, 460.0, 400.0});
         immediate_ = make_control<CheckedListBox>(StableId("gallery.checked.immediate.list"));
-        (*immediate_).set_accessible_name("Immediate capability selection");
+        (*immediate_).accessible_name = "Immediate capability selection";
         (*immediate_).set_check_on_click(true);
         (*immediate_).set_selection_mode(ListSelectionMode::multiple_extended);
         (*immediate_).add_item("Pointer activation", CheckState::checked);
@@ -91,7 +91,7 @@ private:
         std::shared_ptr<CommandBar> bar = make_control<CommandBar>(
             StableId("gallery.checked.command"));
         (*bar).set_style(page_style());
-        (*bar).set_accessible_name("Check-state commands");
+        (*bar).accessible_name = "Check-state commands";
         (*bar).set_items({
             {.id = command_check_all, .label = "Check all"},
             {.id = command_clear_all, .label = "Clear all"},
@@ -118,7 +118,7 @@ private:
             {930.0, 250.0});
         (*body).add_at(list_group, {24.0, 640.0, 930.0, 250.0});
         list_view_ = make_control<ListView>(StableId("gallery.checked.list-view.list"));
-        (*list_view_).set_accessible_name("Release checklist");
+        (*list_view_).accessible_name = "Release checklist";
         (*list_view_).set_check_boxes(true);
         (*list_view_).set_full_row_select(true);
         (*list_view_).set_columns({

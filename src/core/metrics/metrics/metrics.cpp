@@ -70,6 +70,7 @@ void Metrics::record_measure_cache_miss(std::uint64_t control_pass_misses) noexc
 }
 void Metrics::record_layout_boundary_stop() noexcept { ++values_.layout_boundary_stops; }
 void Metrics::record_layout_measure_clamp() noexcept { ++values_.layout_measure_clamps; }
+void Metrics::record_resize_relayout() noexcept { ++values_.resize_relayouts; }
 void Metrics::record_arrange(std::uint64_t nodes_visited,
                              std::uint64_t callbacks) noexcept {
     ++values_.arrange_passes;

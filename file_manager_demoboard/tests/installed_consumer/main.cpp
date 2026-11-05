@@ -74,12 +74,12 @@ int main() {
     gui_forms::CommandBinding binding(command, button);
     (*button).set_requested_bounds({8, 116, 180, 28});
     (*root).add_child(button);
-    std::shared_ptr<gui_forms::Button> popup_owner =
+    std::shared_ptr<gui_forms::Button> overlay_owner =
         std::make_shared<gui_forms::Button>(
-            gui_forms::StableId("installed.popup.owner"), "Open popup");
-    (*popup_owner).set_requested_bounds({190, 116, 120, 28});
-    (*popup_owner).set_expanded_state(false);
-    (*root).add_child(popup_owner);
+            gui_forms::StableId("installed.overlay.owner"), "Open overlay");
+    (*overlay_owner).set_requested_bounds({190, 116, 120, 28});
+    (*overlay_owner).set_expanded_state(false);
+    (*root).add_child(overlay_owner);
     std::shared_ptr<gui_forms::ListBox> stable_list =
         std::make_shared<gui_forms::ListBox>(
             gui_forms::StableId("installed.stable-list"));
@@ -166,26 +166,26 @@ int main() {
     (*root).add_child(rack);
     gui_forms::Window window(root, {520, 624});
     window.perform_layout();
-    gui_forms::AnchoredPopupPlacement popup_placement;
-    popup_placement.preferred_size = {160, 80};
-    popup_placement.horizontal_alignment =
-        gui_forms::PopupHorizontalAlignment::far;
-    popup_placement.gap = 2;
-    std::shared_ptr<gui_forms::Panel> popup_content =
+    gui_forms::AnchoredOverlayPlacement overlay_placement;
+    overlay_placement.preferred_size = {160, 80};
+    overlay_placement.horizontal_alignment =
+        gui_forms::OverlayHorizontalAlignment::far;
+    overlay_placement.gap = 2;
+    std::shared_ptr<gui_forms::Panel> overlay_content =
         std::make_shared<gui_forms::Panel>(
-            gui_forms::StableId("installed.popup.content"));
-    std::shared_ptr<gui_forms::AnchoredPopupLayer> popup_layer =
-        std::make_shared<gui_forms::AnchoredPopupLayer>(
-            gui_forms::StableId("installed.popup.layer"), popup_owner,
-            popup_placement);
-    (*popup_layer).set_content(popup_content);
-    (*popup_layer).set_requested_bounds({0, 0, 520, 350});
-    gui_forms::PopupToken popup = window.open_popup(popup_owner, popup_layer);
+            gui_forms::StableId("installed.overlay.content"));
+    std::shared_ptr<gui_forms::AnchoredOverlayLayer> overlay_layer =
+        std::make_shared<gui_forms::AnchoredOverlayLayer>(
+            gui_forms::StableId("installed.overlay.layer"), overlay_owner,
+            overlay_placement);
+    (*overlay_layer).set_content(overlay_content);
+    (*overlay_layer).set_requested_bounds({0, 0, 520, 350});
+    gui_forms::OverlayToken overlay = window.open_overlay(overlay_owner, overlay_layer);
     window.perform_layout();
-    const bool popup_resolved = popup.connected() &&
-        (*popup_layer).resolved_placement().bounds ==
+    const bool overlay_resolved = overlay.connected() &&
+        (*overlay_layer).resolved_placement().bounds ==
             gui_forms::Rect{150, 146, 160, 80};
-    popup.disconnect();
+    overlay.disconnect();
     std::size_t accelerator_invocations{};
     gui_forms::SubscriptionToken invoked = (*command).invoked().subscribe(
         AcceleratorInvocationCounter{&accelerator_invocations});
@@ -196,10 +196,10 @@ int main() {
         {gui_forms::KeyAction::down, gui_forms::PhysicalKey::left,
          gui_forms::Modifier::alt});
     menu.show(button, {8, 8});
-    const bool menu_visible = window.find("installed.menu.popup.panel.0") != nullptr;
+    const bool menu_visible = window.find("installed.menu.overlay.panel.0") != nullptr;
     menu.close();
     const bool strip_open = (*menu_strip).open(0U) &&
-        window.find("installed.menu-strip.menu.popup.panel.0") != nullptr;
+        window.find("installed.menu-strip.menu.overlay.panel.0") != nullptr;
     (*menu_strip).close();
     const bool property_edit = (*properties).set_validation(
         "installed.properties.name", "Installed validation") &&
@@ -226,7 +226,7 @@ int main() {
         accelerated && accelerator.connected() && accelerator_invocations == 1U &&
         property_edit && collapsed && restored && !(*split).second_collapsed() &&
         (*split).splitter_distance() == remembered_split &&
-        popup_resolved &&
+        overlay_resolved &&
         (*correspondence).items().size() == 2U &&
         (*correspondence).children().empty() &&
         (*correspondence).expanded("installed.correspondence.first") &&
@@ -238,7 +238,7 @@ int main() {
         std::dynamic_pointer_cast<gui_forms::TextBox>(
             (*rack).field_editor("installed.criterion.content", "value")) &&
         (*stable_list).item_stable_id(1U) == "installed.stable-list.beta" &&
-        (*popup_owner).expanded_state() == false &&
+        (*overlay_owner).expanded_state() == false &&
         (*button).text() == "Installed command" &&
         (*button).accessible_description() ==
             "Installed public command metadata" ? 0 : 1;

@@ -229,11 +229,15 @@ add_custom_command(
 
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
+    src/core/application/native_popup.cpp
+    src/core/window/native_popup/native_popup_window.cpp
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
     src/core/animation/animation_timer/animation_timer.cpp
+    src/core/binding/property_type/property_type.cpp
     src/core/binding/value/binding_value.cpp
+    src/core/binding/property_table/property_table.cpp
     src/core/binding/number_format/number_format.cpp
     src/core/binding/value/property_collection_value/property_collection_value.cpp
     src/core/binding/value/property_object_value/property_object_value.cpp
@@ -270,6 +274,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/light/glass_primitive.cpp
     src/core/window/backplane/backplane_composite.cpp
     src/core/window/backdrop/window_backdrop_grant.cpp
+    src/core/window/backdrop/backdrop_chain.cpp
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp
     src/core/engine/primitives/kernel/pixel_kernel.cpp
@@ -321,6 +326,7 @@ add_library(gui_forms_core STATIC
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
     src/core/live_surface/buffer/live_surface_buffer.cpp
     src/core/live_surface/frame/live_surface_frame.cpp
+    src/core/live_surface/pacer/live_surface_pacer.cpp
     src/core/live_surface/surface/live_surface.cpp
     src/core/live_surface/wake_connection/live_surface_wake_connection.cpp
     src/core/live_surface/write_lease/live_surface_write_lease.cpp
@@ -393,6 +399,8 @@ add_library(gui_forms_core STATIC
     src/core/scheduler/request/scheduled_frame_request.cpp
     src/core/surface_root/dispatcher/surface_root_dispatcher.cpp
     src/core/surface_root/surface_root.cpp
+    src/core/surface_root/sub_surface/sub_surface.cpp
+    src/core/surface_root/sub_surface/sub_surface_host.cpp
     src/core/surface_root/control_table/control_table.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
@@ -401,7 +409,7 @@ add_library(gui_forms_core STATIC
     src/core/window/scheduler/window_scheduler.cpp
     src/core/window/engine_inputs/window_engine_inputs.cpp
     src/core/window/engine_motion/window_engine_motion.cpp
-    src/core/window/popup/popup_token.cpp
+    src/core/window/overlay/overlay_token.cpp
     src/core/window/tool_tips/tool_tip_bubble.cpp
     src/core/window/tool_tips/tool_tip_presenter.cpp
     src/core/window/tool_tips/window_tool_tips.cpp
@@ -776,7 +784,7 @@ add_library(gui_forms_controls STATIC
     src/controls/ribbon/ribbon_application_menu.cpp
     src/controls/ribbon/ribbon_file_area.cpp
     src/controls/backstage_view/backstage_view.cpp
-    src/controls/ribbon/ribbon_group_popup.cpp
+    src/controls/ribbon/ribbon_group_overlay.cpp
     src/controls/ribbon/ribbon_scaling.cpp
     src/controls/status_strip/status_strip.cpp
     src/controls/pages/page_strip/page_strip.cpp
@@ -808,8 +816,8 @@ add_library(gui_forms_controls STATIC
     src/controls/commands/gallery_command/gallery_command.cpp
     src/controls/commands/font_command/font_command.cpp
     src/controls/commands/color_command/color_command.cpp
-    src/controls/panel/anchored_popup_layer/anchored_popup_placement/anchored_popup_placement.cpp
-    src/controls/panel/anchored_popup_layer/anchored_popup_layer.cpp
+    src/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.cpp
+    src/controls/panel/anchored_overlay_layer/anchored_overlay_layer.cpp
     src/controls/scrollable_control/container_control/container_control.cpp
     src/controls/scrollable_control/container_control/user_control/user_control.cpp
     src/controls/panel/scaled_panel/scaled_panel.cpp
@@ -832,8 +840,8 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/date_time_picker/calendar_grid/calendar_grid.cpp
     src/controls/panel/date_time_picker/date_time_value/date_time_value.cpp
     src/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.cpp
-    src/controls/panel/date_time_picker/calendar_popup_layer/calendar_popup_layer.cpp
-    src/controls/panel/date_time_picker/calendar_popup/calendar_popup.cpp
+    src/controls/panel/date_time_picker/calendar_overlay_layer/calendar_overlay_layer.cpp
+    src/controls/panel/date_time_picker/calendar_overlay/calendar_overlay.cpp
     src/controls/panel/date_time_picker/date_time_picker.cpp
     src/controls/panel/month_calendar/month_calendar.cpp
     src/controls/drawing_surface/drawing_surface.cpp
@@ -930,6 +938,9 @@ endif()
 # SDK consumers.
 include(cmake/GUIFormsForms.cmake)
 install(FILES cmake/GUIFormsForms.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+include(cmake/GUIFormsThemes.cmake)
+install(FILES cmake/GUIFormsThemes.cmake cmake/GUIFormsThemeEmbed.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 
 add_library(gui_forms_c_api SHARED
     src/abi/c_api.cpp
@@ -1538,7 +1549,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/animation-laboratory.cpp
         src/controls/gallery/pages/states-and-diagnostics.cpp
         src/controls/gallery/pages/text-and-input.cpp
-        src/controls/gallery/pages/collections-and-popups.cpp
+        src/controls/gallery/pages/collections-and-overlays.cpp
         src/controls/gallery/pages/values-and-spinners.cpp
         src/controls/gallery/pages/images-and-drawing.cpp
         src/controls/gallery/pages/tabs-and-pages.cpp
@@ -1555,7 +1566,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/choices-and-sections.cpp
         src/controls/gallery/pages/value-editors.cpp
         src/controls/gallery/pages/responsive-layouts.cpp
-        src/controls/gallery/pages/anchored-popups.cpp
+        src/controls/gallery/pages/anchored-overlays.cpp
         src/controls/gallery/pages/live-surfaces.cpp
         src/controls/gallery/pages/typography-and-inspection.cpp
         src/controls/gallery/pages/semantic-feedback.cpp
@@ -1598,12 +1609,24 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/animation-laboratory.form
         CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages)
-    gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-popups.form
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-overlays.form
         CLASS CollectionsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/images-and-drawing.form
         CLASS ImagesDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/ranges-and-progress.form
         CLASS RangesDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/semantic-feedback.form
+        CLASS SemanticFeedbackDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/control-spectrum.form
+        CLASS ControlSpectrumDocument NAMESPACE gui_forms::gallery::pages)
+    # The Gallery's project theme (owner rulings of 2026-11-04): the forms
+    # name roles by class; the theme gives the roles their look.
+    gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
+        FUNCTION gallery_theme_package NAMESPACE gui_forms::gallery
+        FORMS demo/gallery.form demo/pages/typography-and-inspection.form
+            demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
+            demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
+            demo/pages/semantic-feedback.form demo/pages/control-spectrum.form)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
@@ -2899,6 +2922,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_control_table_tests tests/control_table_tests.cpp)
     target_link_libraries(gui_forms_control_table_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_control_table_tests COMMAND gui_forms_control_table_tests)
+    add_executable(gui_forms_property_capability_tests tests/property_capability_tests.cpp)
+    target_link_libraries(gui_forms_property_capability_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_property_capability_tests COMMAND gui_forms_property_capability_tests)
 
     add_executable(gui_forms_damage_rectangles_tests tests/damage_rectangles_tests.cpp)
     target_link_libraries(gui_forms_damage_rectangles_tests PRIVATE gui_forms_controls)
@@ -2934,6 +2960,13 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_delegate_event_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_delegate_event_tests COMMAND gui_forms_delegate_event_tests)
 
+    add_executable(gui_forms_live_surface_pacer_tests tests/live_surface_pacer_tests.cpp)
+    target_link_libraries(gui_forms_live_surface_pacer_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_live_surface_pacer_tests COMMAND gui_forms_live_surface_pacer_tests)
+    add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
+    target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)
+    set_tests_properties(gui_forms_sub_surface_tests PROPERTIES TIMEOUT 120)
     add_executable(gui_forms_live_surface_idle_wake_tests tests/live_surface_idle_wake_tests.cpp)
     target_link_libraries(gui_forms_live_surface_idle_wake_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_live_surface_idle_wake_tests COMMAND gui_forms_live_surface_idle_wake_tests)
@@ -3133,6 +3166,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_font_tests tests/theme_font_tests.cpp)
     target_link_libraries(gui_forms_theme_font_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_font_tests COMMAND gui_forms_theme_font_tests)
+    add_executable(gui_forms_theme_rule_faces_tests tests/theme_rule_faces_tests.cpp)
+    target_link_libraries(gui_forms_theme_rule_faces_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_rule_faces_tests COMMAND gui_forms_theme_rule_faces_tests)
     add_executable(gui_forms_theme_escape_tests tests/theme_language/theme_escape_tests.cpp)
     target_link_libraries(gui_forms_theme_escape_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_escape_tests COMMAND gui_forms_theme_escape_tests)
@@ -3327,12 +3363,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_menu_controls_tests
              COMMAND gui_forms_menu_controls_tests)
 
-    add_executable(gui_forms_popup_controls_tests
-        tests/popup_controls_tests.cpp)
-    target_link_libraries(gui_forms_popup_controls_tests PRIVATE
+    add_executable(gui_forms_overlay_controls_tests
+        tests/overlay_controls_tests.cpp)
+    target_link_libraries(gui_forms_overlay_controls_tests PRIVATE
         gui_forms_controls)
-    add_test(NAME gui_forms_popup_controls_tests
-             COMMAND gui_forms_popup_controls_tests)
+    add_test(NAME gui_forms_overlay_controls_tests
+             COMMAND gui_forms_overlay_controls_tests)
 
     add_executable(gui_forms_range_controls_tests tests/range_controls_tests.cpp)
     target_link_libraries(gui_forms_range_controls_tests PRIVATE gui_forms_controls)
@@ -3877,6 +3913,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_floating_windows_tests tests/floating_windows_tests.cpp)
     target_link_libraries(gui_forms_floating_windows_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_floating_windows_tests COMMAND gui_forms_floating_windows_tests)
+    add_executable(gui_forms_native_popup_tests tests/native_popup_tests.cpp)
+    target_link_libraries(gui_forms_native_popup_tests PRIVATE gui_forms_host_headless)
+    add_test(NAME gui_forms_native_popup_tests COMMAND gui_forms_native_popup_tests)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)
@@ -3984,7 +4023,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/containers-and-focus_tests.cpp
             tests/gallery_pages/animation-laboratory_tests.cpp
             tests/gallery_pages/text-and-input_tests.cpp
-            tests/gallery_pages/collections-and-popups_tests.cpp
+            tests/gallery_pages/collections-and-overlays_tests.cpp
             tests/gallery_pages/values-and-spinners_tests.cpp
             tests/gallery_pages/images-and-drawing_tests.cpp
             tests/gallery_pages/tabs-and-pages_tests.cpp
@@ -4003,7 +4042,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/choices-and-sections_tests.cpp
             tests/gallery_pages/value-editors_tests.cpp
             tests/gallery_pages/responsive-layouts_tests.cpp
-            tests/gallery_pages/anchored-popups_tests.cpp
+            tests/gallery_pages/anchored-overlays_tests.cpp
             tests/gallery_pages/live-surfaces_tests.cpp
             tests/gallery_pages/typography-and-inspection_tests.cpp
             tests/gallery_pages/semantic-feedback_tests.cpp
@@ -4017,6 +4056,11 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_gallery_model
             gui_forms_host_headless
         )
+        # The M0 measurement on the real Gallery (tools/gallery_dirty_lab.cpp);
+        # a measurement program, not a test.
+        add_executable(gui_forms_gallery_dirty_lab tools/gallery_dirty_lab.cpp)
+        target_include_directories(gui_forms_gallery_dirty_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+        target_link_libraries(gui_forms_gallery_dirty_lab PRIVATE gui_forms_gallery_model gui_forms_host_headless)
         add_test(NAME gui_forms_gallery_pages_tests
                  COMMAND gui_forms_gallery_pages_tests)
         # The test compares its control-schema export with the committed
@@ -5118,10 +5162,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             # temporary dangles: PartPaint::text twice held a temporary
             # std::string (CorrespondenceView, PropertyList) and painting read
             # freed memory. Clang reports these on by default; here they fail
-            # the build.
+            # the build. A value assigned to itself is never meant: a property
+            # forwarder whose parameter shadowed its cell
+            # (`set_visible(bool visible) { visible = visible; }`) stored
+            # nothing and the Gallery hid nothing. -Wself-assign is off by
+            # default; here it fails the build.
             if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 target_compile_options(${gui_forms_first_party_target} PRIVATE
-                    $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Werror=dangling-assignment-gsl -Werror=dangling-gsl>)
+                    $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Werror=dangling-assignment-gsl -Werror=dangling-gsl
+                        -Werror=self-assign -Werror=self-assign-field>)
             endif()
         endif()
     endforeach()

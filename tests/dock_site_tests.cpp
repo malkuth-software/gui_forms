@@ -111,7 +111,7 @@ public:
         const std::string id = "content." + creation.panel.value;
         std::shared_ptr<Panel> panel = make_control<Panel>(StableId(id));
         std::shared_ptr<TextBox> edit = make_control<TextBox>(StableId(id + ".edit"));
-        (*edit).set_accessible_name(creation.panel.value);
+        (*edit).accessible_name = creation.panel.value;
         (*edit).set_requested_bounds({6.0, 6.0, 80.0, 22.0});
         (*panel).add_child(edit);
         std::shared_ptr<Button> action = make_control<Button>(StableId(id + ".action"), "Act");
@@ -298,9 +298,9 @@ void anatomy_and_parts() {
     const std::shared_ptr<PageView> left_view = site.stack_view(stacks[0]);
     const std::shared_ptr<PageView> right_view = site.stack_view(stacks[2]);
     const std::shared_ptr<PageView> document_view = site.stack_view(stacks[1]);
-    require(left_view && right_view && document_view && (*(*left_view).strip()).visible() &&
+    require(left_view && right_view && document_view && (*(*left_view).strip()).visible.read() &&
                 (*(*left_view).strip()).placement() == PageStripPlacement::bottom &&
-                !(*(*right_view).strip()).visible() && (*(*document_view).strip()).visible() &&
+                !(*(*right_view).strip()).visible.read() && (*(*document_view).strip()).visible.read() &&
                 (*(*document_view).strip()).placement() == PageStripPlacement::top,
             "tool tabs show at the bottom of a stack of two; a lone tool panel has none; documents show tabs on top");
     require(near((*right_view).parts().content.bounds.height, (*right_view).client_rectangle().height),
@@ -891,7 +891,7 @@ void lifetime_and_refusals() {
             "a site binds to its workspace and realizes it");
     require(!(*site).open_navigator(DockNavigatorList::documents, 1, Modifier::control) &&
                 !(*site).show_position_menu(DockPanelId("doc.one")),
-            "a detached site opens no popup");
+            "a detached site opens no overlay");
     require(factory.made.empty(), "a site never laid out creates nothing");
     // The workspace goes first: the site empties and stays usable.
     workspace.reset();

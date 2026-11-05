@@ -121,7 +121,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     ContextMenu menu("object.context");
     menu.set_preferred_width(180.0);
     require(menu.preferred_width() == 180.0,
-            "ContextMenu must retain an explicit preferred popup width");
+            "ContextMenu must retain an explicit preferred overlay width");
     menu.set_items({
         {"open", MenuItemKind::command, open},
         {"separator.primary", MenuItemKind::separator},
@@ -152,31 +152,31 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     }
     require(invalid_mode_refused && menu.is_open() &&
             window.focused_control() == original_panel && open_changes == original_open_changes,
-            "invalid context opening mode must preserve the existing popup and focus");
-    require(window.focused_control() == window.find("object.context.popup.panel.0"),
+            "invalid context opening mode must preserve the existing overlay and focus");
+    require(window.focused_control() == window.find("object.context.overlay.panel.0"),
             "pointer opening must not focus a command");
     const SemanticSnapshot pointer_snapshot = window.semantic_snapshot();
-    const SemanticNode* pointer_panel = find_semantic(pointer_snapshot.roots, "object.context.popup.panel.0");
+    const SemanticNode* pointer_panel = find_semantic(pointer_snapshot.roots, "object.context.overlay.panel.0");
     require(pointer_panel && has_semantic_state((*pointer_panel).states, SemanticState::focused),
             "pointer-opened menu focus must remain accessible");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::down}) &&
-            window.focused_control() == window.find("object.context.popup.row.open"),
+            window.focused_control() == window.find("object.context.overlay.row.open"),
             "Down after pointer opening must select the first enabled command");
     menu.close();
     require(window.focused_control() == owner, "pointer menu close must restore invoker");
     menu.show(owner, {100.0, 100.0}, MenuOpenMode::pointer);
     require(window.dispatch_key({KeyAction::down, PhysicalKey::up}) &&
-            window.focused_control() == window.find("object.context.popup.row.view"),
+            window.focused_control() == window.find("object.context.overlay.row.view"),
             "Up after pointer opening must select the last enabled command");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::right}) &&
-            window.focused_control() == window.find("object.context.popup.row.view.icons"),
+            window.focused_control() == window.find("object.context.overlay.row.view.icons"),
             "keyboard entry from pointer opening must retain submenu navigation");
     menu.close();
     ContextMenu disabled_menu("disabled.context");
     disabled_menu.set_items({{"disabled", MenuItemKind::command, remove}});
     disabled_menu.show(owner, {100.0, 100.0}, MenuOpenMode::pointer);
     require(window.dispatch_key({KeyAction::down, PhysicalKey::down}) &&
-            window.focused_control() == window.find("disabled.context.popup.panel.0"),
+            window.focused_control() == window.find("disabled.context.overlay.panel.0"),
             "all-disabled menu must retain container focus");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
             !disabled_menu.is_open() && window.focused_control() == owner,
@@ -185,7 +185,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     menu.show(owner, {395.0, 295.0});
     require(menu.is_open() && window.focus_scope_depth() == 1U,
             "opening a context menu must create one contained focus scope");
-    const Control::Ptr panel = window.find("object.context.popup.panel.0");
+    const Control::Ptr panel = window.find("object.context.overlay.panel.0");
     require(panel && (*panel).absolute_bounds().width == 180.0 &&
                 (*panel).absolute_bounds().x >= 0.0 &&
                 (*panel).absolute_bounds().y >= 0.0 &&
@@ -194,13 +194,13 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
             "root menu placement must avoid every client edge");
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* menu_node = find_semantic(
-        snapshot.roots, "object.context.popup.panel.0");
+        snapshot.roots, "object.context.overlay.panel.0");
     const SemanticNode* details_node = find_semantic(
-        snapshot.roots, "object.context.popup.row.details");
+        snapshot.roots, "object.context.overlay.row.details");
     const SemanticNode* delete_node = find_semantic(
-        snapshot.roots, "object.context.popup.row.delete");
+        snapshot.roots, "object.context.overlay.row.delete");
     const Control::Ptr delete_row = window.find(
-        "object.context.popup.row.delete");
+        "object.context.overlay.row.delete");
     require(menu_node && (*menu_node).role == SemanticRole::menu && details_node &&
                 (*details_node).role == SemanticRole::menu_item &&
                 has_semantic_state((*details_node).states, SemanticState::checked) &&
@@ -211,7 +211,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_2, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_3 = !(*delete_row).focusable();
     require(operation_check_3, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
-    const bool operation_check_4 = !(*delete_row).cursor();
+    const bool operation_check_4 = !(*delete_row).cursor.read();
     require(operation_check_4, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_5 = !has_semantic_state((*delete_node).states,
                                     SemanticState::enabled);
@@ -223,18 +223,18 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     const bool operation_check_8 = !window.request_focus(delete_row);
     require(operation_check_8, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_9 = !window.perform_semantic_action(
-                    "object.context.popup.row.delete", SemanticAction::press);
+                    "object.context.overlay.row.delete", SemanticAction::press);
     require(operation_check_9, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
 
     const bool operation_check_10 = window.dispatch_key({KeyAction::down, PhysicalKey::down});
     require(operation_check_10, "Down must skip a separator and reach the next enabled command");
     const bool operation_check_11 = (*window.focused_control()).stable_id().value() ==
-                    "object.context.popup.row.copy";
+                    "object.context.overlay.row.copy";
     require(operation_check_11, "Down must skip a separator and reach the next enabled command");
     const bool operation_check_12 = window.dispatch_key({KeyAction::down, PhysicalKey::down});
     require(operation_check_12, "keyboard traversal must skip disabled command rows");
     const bool operation_check_13 = (*window.focused_control()).stable_id().value() ==
-                    "object.context.popup.row.details";
+                    "object.context.overlay.row.details";
     require(operation_check_13, "keyboard traversal must skip disabled command rows");
     const bool operation_check_14 = window.dispatch_key({KeyAction::down, PhysicalKey::up});
     require(operation_check_14, "Enter must execute shared command once, close, and restore invoker focus");
@@ -246,7 +246,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_17, "Enter must execute shared command once, close, and restore invoker focus");
     const bool operation_check_18 = window.focused_control() == owner;
     require(operation_check_18, "Enter must execute shared command once, close, and restore invoker focus");
-    const bool operation_check_19 = command_trace.starts_with("edit.copy@object.context.popup.row.copy");
+    const bool operation_check_19 = command_trace.starts_with("edit.copy@object.context.overlay.row.copy");
     require(operation_check_19, "Enter must execute shared command once, close, and restore invoker focus");
 
     std::string nested_trace{};
@@ -256,14 +256,14 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     const bool operation_check_20 = window.dispatch_key({KeyAction::down, PhysicalKey::end});
     require(operation_check_20, "Right must open a bounded nested submenu and focus its first command");
     const bool operation_check_21 = (*window.focused_control()).stable_id().value() ==
-                    "object.context.popup.row.view";
+                    "object.context.overlay.row.view";
     require(operation_check_21, "Right must open a bounded nested submenu and focus its first command");
     const bool operation_check_22 = window.dispatch_key({KeyAction::down, PhysicalKey::right});
     require(operation_check_22, "Right must open a bounded nested submenu and focus its first command");
-    const bool operation_check_23 = window.find("object.context.popup.panel.1") != nullptr;
+    const bool operation_check_23 = window.find("object.context.overlay.panel.1") != nullptr;
     require(operation_check_23, "Right must open a bounded nested submenu and focus its first command");
     const bool operation_check_24 = (*window.focused_control()).stable_id().value() ==
-                    "object.context.popup.row.view.icons";
+                    "object.context.overlay.row.view.icons";
     require(operation_check_24, "Right must open a bounded nested submenu and focus its first command");
     const bool operation_check_25 = window.dispatch_key({KeyAction::down, PhysicalKey::enter});
     require(operation_check_25, "nested keyboard activation must converge on shared command authority");
@@ -279,16 +279,16 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
         window.semantic_snapshot();
     const SemanticNode* disabled_submenu = find_semantic(
         disabled_submenu_snapshot.roots,
-        "object.context.popup.row.view");
+        "object.context.overlay.row.view");
     const Control::Ptr disabled_submenu_row = window.find(
-        "object.context.popup.row.view");
+        "object.context.overlay.row.view");
     const bool operation_check_28 = disabled_submenu;
     require(operation_check_28, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_29 = static_cast<bool>(disabled_submenu_row);
     require(operation_check_29, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_30 = !(*disabled_submenu_row).focusable();
     require(operation_check_30, "submenu with no actionable descendant must explain and enforce its disabled state");
-    const bool operation_check_31 = !(*disabled_submenu_row).cursor();
+    const bool operation_check_31 = !(*disabled_submenu_row).cursor.read();
     require(operation_check_31, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_32 = (*disabled_submenu).description.find(
                     "No commands are currently available") !=
@@ -297,10 +297,10 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     const bool operation_check_33 = (*disabled_submenu).actions.empty();
     require(operation_check_33, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_34 = !window.perform_semantic_action(
-                    "object.context.popup.row.view",
+                    "object.context.overlay.row.view",
                     SemanticAction::expand);
     require(operation_check_34, "submenu with no actionable descendant must explain and enforce its disabled state");
-    const bool operation_check_35 = window.find("object.context.popup.panel.1") == nullptr;
+    const bool operation_check_35 = window.find("object.context.overlay.panel.1") == nullptr;
     require(operation_check_35, "submenu with no actionable descendant must explain and enforce its disabled state");
     menu.close();
     (*icons).set_enabled(true);
@@ -310,11 +310,11 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     const bool operation_check_36 = window.dispatch_pointer({PointerAction::down,
                                      PointerButton::primary,
                                      {2.0, 2.0}});
-    require(operation_check_36, "click-away must revoke the popup and restore focus");
+    require(operation_check_36, "click-away must revoke the overlay and restore focus");
     const bool operation_check_37 = !menu.is_open();
-    require(operation_check_37, "click-away must revoke the popup and restore focus");
+    require(operation_check_37, "click-away must revoke the overlay and restore focus");
     const bool operation_check_38 = window.focused_control() == owner;
-    require(operation_check_38, "click-away must revoke the popup and restore focus");
+    require(operation_check_38, "click-away must revoke the overlay and restore focus");
     require(open_changes == 8U,
             "four complete open/close cycles must publish eight ordered state changes");
 
@@ -357,13 +357,13 @@ void test_context_menu_scroll_and_validation_bounds() {
     ContextMenu menu("long.menu");
     menu.set_items(std::move(specs));
     menu.show(owner, {20.0, 20.0});
-    const Control::Ptr panel = window.find("long.menu.popup.panel.0");
+    const Control::Ptr panel = window.find("long.menu.overlay.panel.0");
     require(panel && (*panel).absolute_bounds().height <= 182.0,
             "long menu must use a bounded on-screen scroll viewport");
     const bool operation_check_43 = window.dispatch_key({KeyAction::down, PhysicalKey::end});
     require(operation_check_43, "End must scroll the last logical command into the visible menu viewport");
     const bool operation_check_44 = (*window.focused_control()).stable_id().value() ==
-                    "long.menu.popup.row.item.29";
+                    "long.menu.overlay.row.item.29";
     require(operation_check_44, "End must scroll the last logical command into the visible menu viewport");
     const Rect focused_bounds = (*window.focused_control()).absolute_bounds();
     require((*panel).absolute_bounds().contains(Point{
@@ -387,7 +387,7 @@ void test_context_menu_scroll_and_validation_bounds() {
 }
 
 // Item IDs that become part of a StableId are checked when they are set,
-// not later, when a popup row or hosted control is made from them.
+// not later, when an overlay row or hosted control is made from them.
 void test_item_ids_follow_the_stable_id_segment_rule() {
     bool identity_refused{};
     try {
@@ -450,11 +450,11 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     });
     (*strip).set_selected_item_id("menustrip.view");
     require((*strip).selected_item_id() == "menustrip.view",
-            "MenuStrip must retain one selected command category independently of popup state");
+            "MenuStrip must retain one selected command category independently of overlay state");
     Window window(root, {420.0, 240.0});
 
     require((*strip).open(0U, MenuOpenMode::pointer) &&
-            window.focused_control() == window.find("menustrip.menu.popup.panel.0"),
+            window.focused_control() == window.find("menustrip.menu.overlay.panel.0"),
             "pointer menu strip opening must not select a command");
     const Control::Ptr original_strip_panel = window.focused_control();
     for (const std::size_t invalid_index : {std::size_t{0}, std::size_t{1}}) {
@@ -465,10 +465,10 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
             invalid_mode_refused = true;
         }
         require(invalid_mode_refused && window.focused_control() == original_strip_panel,
-                "invalid mode must not reuse or replace an existing menu-strip popup");
+                "invalid mode must not reuse or replace an existing menu-strip overlay");
     }
     require(window.dispatch_key({KeyAction::down, PhysicalKey::right}) &&
-            window.focused_control() == window.find("menustrip.menu.popup.row.view.icons"),
+            window.focused_control() == window.find("menustrip.menu.overlay.row.view.icons"),
             "keyboard switching after pointer opening must select the new menu first row");
     (*strip).close();
     require((*strip).open(0U), "fixture must restore initial menu position");
@@ -508,14 +508,14 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
                                     SemanticState::expanded),
             "transient File expansion must not steal or falsely expand the selected View category");
     const bool operation_check_52 = window.dispatch_key({KeyAction::down, PhysicalKey::right});
-    require(operation_check_52, "Right from a root command must switch top-level menus in one popup scope");
+    require(operation_check_52, "Right from a root command must switch top-level menus in one overlay scope");
     const bool operation_check_53 = (*strip).is_open();
-    require(operation_check_53, "Right from a root command must switch top-level menus in one popup scope");
+    require(operation_check_53, "Right from a root command must switch top-level menus in one overlay scope");
     const bool operation_check_54 = (*strip).active_index() == 1U;
-    require(operation_check_54, "Right from a root command must switch top-level menus in one popup scope");
+    require(operation_check_54, "Right from a root command must switch top-level menus in one overlay scope");
     const bool operation_check_55 = (*window.focused_control()).stable_id().value() ==
-                    "menustrip.menu.popup.row.view.icons";
-    require(operation_check_55, "Right from a root command must switch top-level menus in one popup scope");
+                    "menustrip.menu.overlay.row.view.icons";
+    require(operation_check_55, "Right from a root command must switch top-level menus in one overlay scope");
 
     std::string trace{};
     SubscriptionToken invoked = (*strip).item_invoked().subscribe(
@@ -539,11 +539,11 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
             "menu strip must publish distinct bar and top-level item roles");
     const bool operation_check_61 = window.perform_semantic_action("menustrip.file",
                                            SemanticAction::expand);
-    require(operation_check_61, "semantic expansion must open the same retained popup path");
+    require(operation_check_61, "semantic expansion must open the same retained overlay path");
     const bool operation_check_62 = (*strip).is_open();
-    require(operation_check_62, "semantic expansion must open the same retained popup path");
+    require(operation_check_62, "semantic expansion must open the same retained overlay path");
     const bool operation_check_63 = (*strip).active_index() == 0U;
-    require(operation_check_63, "semantic expansion must open the same retained popup path");
+    require(operation_check_63, "semantic expansion must open the same retained overlay path");
     (*strip).close();
 
     const bool operation_check_64 = window.dispatch_pointer({PointerAction::down, PointerButton::primary,
@@ -551,14 +551,14 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     require(operation_check_64, "pointer activation must open the top-level item under its geometry");
     const bool operation_check_65 = (*strip).active_index() == 1U;
     require(operation_check_65, "pointer activation must open the top-level item under its geometry");
-    require(window.focused_control() == window.find("menustrip.menu.popup.panel.0"),
+    require(window.focused_control() == window.find("menustrip.menu.overlay.panel.0"),
             "pointer dispatch must leave menu rows unselected");
     const bool operation_check_66 = window.dispatch_pointer({PointerAction::move, PointerButton::none,
                                      {12.0, 12.0}});
     require(operation_check_66, "moving across the open menu bar must switch menus without click-through");
     const bool operation_check_67 = (*strip).active_index() == 0U;
     require(operation_check_67, "moving across the open menu bar must switch menus without click-through");
-    require(window.focused_control() == window.find("menustrip.menu.popup.panel.0"),
+    require(window.focused_control() == window.find("menustrip.menu.overlay.panel.0"),
             "pointer switching must leave the new menu rows unselected");
     (*strip).close();
 
@@ -594,7 +594,7 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
             "MenuStrip must reject a hidden selected top-level identity");
 }
 
-void test_menu_mnemonics_strip_markers_and_popup_activation() {
+void test_menu_mnemonics_strip_markers_and_overlay_activation() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("mnemonic.root"));
     std::shared_ptr<gui_forms::MenuStrip> strip = make_control<MenuStrip>(StableId("mnemonic.strip"));
     (*strip).set_requested_bounds({0.0, 0.0, 360.0, 24.0});
@@ -624,11 +624,11 @@ void test_menu_mnemonics_strip_markers_and_popup_activation() {
     KeyEvent alt_f{KeyAction::down, PhysicalKey::f};
     alt_f.modifiers = Modifier::alt;
     const bool operation_check_68 = window.dispatch_key(alt_f);
-    require(operation_check_68, "a top-level menu mnemonic must focus and open its retained popup");
+    require(operation_check_68, "a top-level menu mnemonic must focus and open its retained overlay");
     const bool operation_check_69 = (*strip).is_open();
-    require(operation_check_69, "a top-level menu mnemonic must focus and open its retained popup");
+    require(operation_check_69, "a top-level menu mnemonic must focus and open its retained overlay");
     const bool operation_check_70 = (*strip).active_index() == 0U;
-    require(operation_check_70, "a top-level menu mnemonic must focus and open its retained popup");
+    require(operation_check_70, "a top-level menu mnemonic must focus and open its retained overlay");
     (*strip).close();
     const bool operation_check_71 = window.dispatch_key(alt_f);
     require(operation_check_71, "duplicate top-level menu mnemonics must cycle deterministically");
@@ -643,22 +643,22 @@ void test_menu_mnemonics_strip_markers_and_popup_activation() {
     SubscriptionToken copy_invoked = (*copy).invoked().subscribe(
         test_support::IncrementCounter<std::uint64_t,
                                        const CommandInvocation&>(copy_count));
-    ContextMenu popup("mnemonic.popup");
-    popup.set_items({
+    ContextMenu overlay("mnemonic.overlay");
+    overlay.set_items({
         {"copy", MenuItemKind::command, copy, "&Copy"},
     });
-    popup.show(owner, {20.0, 84.0});
-    const Control::Ptr row = window.find("mnemonic.popup.popup.row.copy");
+    overlay.show(owner, {20.0, 84.0});
+    const Control::Ptr row = window.find("mnemonic.overlay.overlay.row.copy");
     require(row && (*row).semantic_descriptor().name == "Copy",
-            "popup menu rows must expose marker-free authored text");
+            "overlay menu rows must expose marker-free authored text");
     KeyEvent alt_c{KeyAction::down, PhysicalKey::c};
     alt_c.modifiers = Modifier::alt;
     const bool operation_check_74 = window.dispatch_key(alt_c);
-    require(operation_check_74, "an active popup mnemonic must execute through shared command authority");
+    require(operation_check_74, "an active overlay mnemonic must execute through shared command authority");
     const bool operation_check_75 = copy_count == 1U;
-    require(operation_check_75, "an active popup mnemonic must execute through shared command authority");
-    const bool operation_check_76 = !popup.is_open();
-    require(operation_check_76, "an active popup mnemonic must execute through shared command authority");
+    require(operation_check_75, "an active overlay mnemonic must execute through shared command authority");
+    const bool operation_check_76 = !overlay.is_open();
+    require(operation_check_76, "an active overlay mnemonic must execute through shared command authority");
 
     (*strip).set_use_mnemonic(false);
     const bool operation_check_77 = !window.dispatch_key(alt_f);
@@ -826,7 +826,7 @@ int main() {
         test_context_menu_scroll_and_validation_bounds();
         test_item_ids_follow_the_stable_id_segment_rule();
         test_menu_strip_retained_switching_commands_and_semantics();
-        test_menu_mnemonics_strip_markers_and_popup_activation();
+        test_menu_mnemonics_strip_markers_and_overlay_activation();
         test_menu_plain_letter_mnemonics();
         test_menu_font_controls_geometry_paint_and_hit_testing();
         std::cout << "gui_forms_menu_controls_tests: all tests passed\n";

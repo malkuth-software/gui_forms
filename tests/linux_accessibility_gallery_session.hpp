@@ -17,7 +17,7 @@
 //   page ID         select Gallery page ID; answers its report
 //   report          answers the Gallery's report
 //   supplement      answers the supplement window's report
-//   reset           closes popups and dialogs (Escape) and reselects the page
+//   reset           closes overlays and dialogs (Escape) and reselects the page
 //   arm STABLE_ID   counts the clicks of that ButtonBase; answers "armed 1" or "armed 0"
 //   replace STABLE_ID  disposes that Button and inserts a new Button with the
 //                   same stable identity and text at its index; answers the report
@@ -290,7 +290,7 @@ private:
         stream << ",\"clicks\":" << counter_.clicks << "},\"replacement_clicks\":" << replacement_counter_.clicks
                << ",\"controls\":[";
         // The root tree, then the tree of each snapshot root that lies
-        // outside it (a popup, or a dialog's scope), found by its stable
+        // outside it (an overlay, or a dialog's scope), found by its stable
         // identity and listed once.
         bool first = true;
         append_controls(stream, window.root(), first);
@@ -322,7 +322,7 @@ private:
         return answer;
     }
 
-    // Whether a popup or a modal dialog is open over the Gallery: a focus
+    // Whether an overlay or a modal dialog is open over the Gallery: a focus
     // scope is active, or a snapshot root lies outside the root tree. (The
     // Gallery's root panel is not exposed, so its children are roots too.)
     bool overlaid() {
@@ -336,7 +336,7 @@ private:
         return false;
     }
 
-    // Escape closes the innermost popup or dialog; six presses close any
+    // Escape closes the innermost overlay or dialog; six presses close any
     // stack the Gallery opens. Then the page the client chose is selected
     // again, since a default action may navigate.
     std::string reset() {
@@ -352,7 +352,7 @@ private:
             settle();
         }
         if (overlaid()) {
-            std::string refusal = "error a popup or dialog stays open after Escape";
+            std::string refusal = "error an overlay or dialog stays open after Escape";
             return refusal;
         }
         if (!page_.empty() && gallery::selected_gallery_page(gallery_) != page_) {

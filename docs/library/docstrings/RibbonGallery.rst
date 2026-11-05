@@ -2,9 +2,9 @@ A ribbon gallery: a grid of image items in categories, in the ribbon or as a dro
 
 A ribbon gallery shows choices as pictures: styles, shapes, colours,
 layouts. It comes in two forms. In the ribbon it shows a fixed number of rows
-with scroll buttons and a "more" button that opens the full gallery as a popup
+with scroll buttons and a "more" button that opens the full gallery as an overlay
 over the ribbon (owner decision RB-23). As a drop-down it is that full gallery,
-grouped by category under captions, shown as the popup of a drop-down or split
+grouped by category under captions, shown as the overlay of a drop-down or split
 button. The selection follows a `GalleryCommand`'s value; resting the pointer
 or the keyboard on an item for 300 ms asks the command for a live preview
 (owner decision RB-13), and a click or Enter commits it.
@@ -12,7 +12,7 @@ or the keyboard on an item for 300 ms asks the command for a live preview
 Parameters
 ----------
 stable_id
-    Identity of the gallery. Its popup layer is ``<stable_id>.layer``, the
+    Identity of the gallery. Its overlay layer is ``<stable_id>.layer``, the
     full gallery its more button opens ``<stable_id>.more``, and category
     nodes ``<stable_id>.category.<id>``.
 form : default in_ribbon
@@ -67,8 +67,8 @@ can_scroll_up
     Whether a line is hidden above.
 can_scroll_down
     Whether a line is hidden below.
-popup_open
-    Drop-down: whether the gallery is open as a popup.
+overlay_open
+    Drop-down: whether the gallery is open as an overlay.
 more_gallery
     In the ribbon: the full gallery the more button opens, made on first use.
 focused_id
@@ -78,20 +78,20 @@ Events
 ------
 selection_changed
     Raised after the selection changes, with the new item or none.
-popup_open_changed
-    Drop-down: raised when the popup opens or closes.
+overlay_open_changed
+    Drop-down: raised when the overlay opens or closes.
 
 Methods
 -------
 scroll_to_line
     Shows a line first; layout keeps the last page full.
-open_popup
-    Drop-down: shows the gallery in a popup under an anchor (a button, or an
+open_overlay
+    Drop-down: shows the gallery in an overlay under an anchor (a button, or an
     in-ribbon gallery), with keyboard focus in it. Returns false for the
     in-ribbon form, when already open, or when the anchor is not attached to a
     window.
-close_popup
-    Withdraws any preview, then closes the popup and returns focus.
+close_overlay
+    Withdraws any preview, then closes the overlay and returns focus.
 show_more
     In the ribbon: opens the full gallery under this one. Returns false for
     the drop-down form or when it cannot open.
@@ -103,7 +103,7 @@ width_for_columns
 See Also
 --------
 GalleryCommand : The value command a gallery commits and previews through.
-AnchoredPopupLayer : The popup a drop-down gallery opens in.
+AnchoredOverlayLayer : The overlay a drop-down gallery opens in.
 ToolStrip : The strip the ribbon's commands follow.
 
 Notes
@@ -112,17 +112,17 @@ Preview and commit, in order. A pointer or keyboard focus resting on an
 enabled item for 300 ms raises the command's `preview_requested`. Moving to
 another item and resting there previews it in place of the first, without a
 cancellation between them. Leaving the gallery, Escape, keyboard focus
-leaving the gallery, the command becoming disabled, or the popup closing
-raises `preview_cancelled` (before the popup's `popup_open_changed`). A click
+leaving the gallery, the command becoming disabled, or the overlay closing
+raises `preview_cancelled` (before the overlay's `overlay_open_changed`). A click
 (press and release on one item), Enter or Space commits: the command's
-`value_changed`, then its `invoked`, with no cancellation; in a popup the
-popup then closes. A pointer that crosses items without resting previews
+`value_changed`, then its `invoked`, with no cancellation; in an overlay the
+overlay then closes. A pointer that crosses items without resting previews
 nothing.
 
 Keys: the arrows move by item, Up and Down by row in the same column; Page Up
 and Page Down move a page of rows; Home and End go to the first and last
 item; Enter and Space commit; Escape withdraws a preview first and then
-closes a popup. The focused row is scrolled into view, a category's caption
+closes an overlay. The focused row is scrolled into view, a category's caption
 with its first row.
 
 Items are records, not controls: lines (item rows and captions) are laid out
@@ -140,7 +140,7 @@ The vocabulary has no grid role: the gallery publishes the accessibility role
 `list`, each item a `list_item` with its position in the set and the set's
 size (grouped under a `group` per category in the drop-down form), every item
 published even when not in view, the scroll buttons as buttons and the more
-button as a `menu_button` that has a popup.
+button as a `menu_button` that has an overlay.
 
 Not supported yet: a resize gripper on the drop-down, menu rows beneath the
 items, and the ribbon's own placement of in-ribbon galleries (phase 1 and 2).

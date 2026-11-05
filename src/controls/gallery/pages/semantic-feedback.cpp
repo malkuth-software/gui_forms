@@ -2,12 +2,16 @@
 
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 
+#include "semantic-feedback_form.hpp"
+
 namespace gui_forms::gallery::pages {
 
-// Owns the semantic-feedback page: one Command per SemanticFeedbackKind on a
-// CommandBar (the completion Command is shared with a plain Button), the
-// Value<bool> the sound check box binds, and the SemanticFeedback component
-// whose bounded record history is published back into the page.
+// Owns the semantic-feedback page: the controls
+// demo/pages/semantic-feedback.form describes, and their behaviour. One
+// Command per SemanticFeedbackKind on the CommandBar (the completion
+// Command is shared with a plain Button), the Value<bool> the sound check
+// box binds, and the SemanticFeedback component whose bounded record
+// history is published back into the page.
 class SemanticFeedbackPage final : public gui_forms::Component {
 public:
     explicit SemanticFeedbackPage(const std::shared_ptr<Surface>& body);
@@ -23,9 +27,9 @@ private:
     static constexpr std::size_t completed_index = 4U;
     static constexpr std::size_t retained_records = 6U;
 
-    void build_commands(const std::shared_ptr<Surface>& body);
-    void build_policy(const std::shared_ptr<Surface>& body);
-    void build_records(const std::shared_ptr<Surface>& body);
+    void mount_document(const std::shared_ptr<Surface>& body);
+    void connect_commands();
+    void connect_policy();
     [[nodiscard]] bool ensure_feedback();
     void on_announce(int index);
     void on_clear();
@@ -33,10 +37,12 @@ private:
     void on_emitted(const SemanticFeedbackRecord& record);
     void refresh_records();
 
+    // Owns the document's controls; the shell's page body holds them too
+    // once mount_document() has moved them there.
+    SemanticFeedbackDocument<SemanticFeedbackPage> document_{};
     std::array<Command, 7> commands_{};
     Command clear_{};
     Value<bool> sound_{true};
-    std::shared_ptr<CommandBar> bar_;
     std::shared_ptr<Label> latest_;
     std::shared_ptr<TextBox> trace_;
     std::shared_ptr<Label> accounting_;
@@ -44,14 +50,10 @@ private:
 };
 
 SemanticFeedbackPage::SemanticFeedbackPage(const std::shared_ptr<Surface>& body) {
-    (*body).add_at(label("gallery.semantic-feedback.heading", "SEMANTIC FEEDBACK", 22.0,
-                         700, shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-    (*body).add_at(label("gallery.semantic-feedback.lead",
-                         "One-shot application transitions become bounded, traceable host sound cues; ordinary hover, focus and selection never do.",
-                         12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-    build_commands(body);
-    build_policy(body);
-    build_records(body);
+    document_.initialize_component(*this);
+    mount_document(body);
+    connect_commands();
+    connect_policy();
     for (std::size_t index = 0U; index < kinds.size(); ++index) {
         on(commands_[index].invoked(), *this, &SemanticFeedbackPage::on_announce,
            static_cast<int>(index));
@@ -61,11 +63,30 @@ SemanticFeedbackPage::SemanticFeedbackPage(const std::shared_ptr<Surface>& body)
     refresh_records();
 }
 
-void SemanticFeedbackPage::build_commands(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> transitions = group(
-        "gallery.semantic.transitions",
-        "SemanticFeedback · application transitions mapped to host cues", {930.0, 150.0});
-    (*body).add_at(transitions, {24.0, 92.0, 930.0, 150.0});
+void SemanticFeedbackPage::mount_document(const std::shared_ptr<Surface>& body) {
+    // The document's root is a declared boundary only: its children move
+    // into the shell's page body, a design surface of the same 1000 x 660
+    // size, where each is placed by its bounds in design coordinates. The
+    // copy of the child list keeps the iteration valid while the root
+    // shrinks.
+    Control& root = *document_.gallery_semantic_feedback_document;
+    const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+    for (const Control::Ptr& child : children) {
+        Control::Ptr moved = root.remove_child((*child).runtime_id());
+        (*body).add_child(std::move(moved));
+    }
+    const std::array<std::shared_ptr<ScaledGroupBox>, 3> groups{
+        document_.gallery_semantic_transitions, document_.gallery_semantic_policy,
+        document_.gallery_semantic_records};
+    for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+        (*group).set_style(page_style());
+    }
+    latest_ = document_.gallery_semantic_latest;
+    trace_ = document_.gallery_semantic_trace;
+    accounting_ = document_.gallery_semantic_accounting;
+}
+
+void SemanticFeedbackPage::connect_commands() {
     std::vector<CommandItem> items;
     for (std::size_t index = 0U; index < kinds.size(); ++index) {
         Command& command = commands_[index];
@@ -81,65 +102,17 @@ void SemanticFeedbackPage::build_commands(const std::shared_ptr<Surface>& body) 
         item.command = &command;
         items.push_back(std::move(item));
     }
-    bar_ = make_control<CommandBar>(StableId("gallery.semantic.commands"));
-    (*bar_).set_style(page_style());
-    (*bar_).set_accessible_name("Semantic feedback transitions");
-    (*bar_).set_items(std::move(items));
-    (*transitions).add_at(bar_, {22.0, 40.0, 886.0, 40.0});
-    std::shared_ptr<Label> note = label(
-        "gallery.semantic.transitions.note",
-        "Each item borrows an application-owned Command. Arrow keys move along the toolbar's single roving tab stop; Tab leaves it. The cue for each kind is fixed by SemanticFeedback::cue_for.",
-        10.0, 400, muted);
-    (*note).set_text_wrapping(TextWrapping::word);
-    (*note).set_vertical_alignment(VerticalAlignment::near);
-    (*transitions).add_at(note, {22.0, 92.0, 886.0, 44.0});
+    CommandBar& bar = *document_.gallery_semantic_commands;
+    bar.set_style(page_style());
+    bar.set_items(std::move(items));
 }
 
-void SemanticFeedbackPage::build_policy(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> policy = group(
-        "gallery.semantic.policy", "Shared Command and sound policy", {930.0, 112.0});
-    (*body).add_at(policy, {24.0, 262.0, 930.0, 112.0});
-    std::shared_ptr<Button> complete = make_control<Button>(
-        StableId("gallery.semantic.complete"), "Announce completion");
-    (*complete).set_visual_style(ButtonVisualStyle::accent);
-    (*complete).bind(commands_[completed_index]);
-    (*policy).add_at(complete, {22.0, 40.0, 200.0, 34.0});
-
-    std::shared_ptr<CheckBox> sound =
-        make_control<CheckBox>(StableId("gallery.semantic.sound"), "Sound cues enabled");
-    (*sound).set_indicator_style(ChoiceIndicatorStyle::toggle);
-    (*sound).bind(sound_);
-    (*policy).add_at(sound, {240.0, 42.0, 220.0, 28.0});
-
+void SemanticFeedbackPage::connect_policy() {
+    (*document_.gallery_semantic_complete).bind(commands_[completed_index]);
+    (*document_.gallery_semantic_sound).bind(sound_);
     clear_.set_text("Clear history");
     clear_.set_description("Clear the retained feedback records");
-    std::shared_ptr<Button> clear =
-        make_control<Button>(StableId("gallery.semantic.clear"), "Clear history");
-    (*clear).set_visual_style(ButtonVisualStyle::command);
-    (*clear).bind(clear_);
-    (*policy).add_at(clear, {480.0, 40.0, 160.0, 34.0});
-
-    accounting_ = label("gallery.semantic.accounting", "", 10.0, 700, shell_blue_dark);
-    (*accounting_).set_text_wrapping(TextWrapping::word);
-    (*accounting_).set_vertical_alignment(VerticalAlignment::near);
-    (*policy).add_at(accounting_, {660.0, 40.0, 248.0, 56.0});
-}
-
-void SemanticFeedbackPage::build_records(const std::shared_ptr<Surface>& body) {
-    std::shared_ptr<LayoutGroup> records = group(
-        "gallery.semantic.records", "Published records · bounded history", {930.0, 230.0});
-    (*body).add_at(records, {24.0, 392.0, 930.0, 230.0});
-    latest_ = label("gallery.semantic.latest", "No transition announced yet", 11.0,
-                    600, green);
-    (*latest_).set_text_wrapping(TextWrapping::word);
-    (*latest_).set_vertical_alignment(VerticalAlignment::near);
-    (*records).add_at(latest_, {22.0, 40.0, 886.0, 30.0});
-    trace_ = make_control<TextBox>(StableId("gallery.semantic.trace"));
-    (*trace_).set_multiline(true);
-    (*trace_).set_read_only(true);
-    (*trace_).set_accessible_name("Semantic feedback trace");
-    (*trace_).set_placeholder_text("feedback=<kind> sequence=<n> cue=<cue> sound=<on|off> accepted=<bool> presented=<bool>");
-    (*records).add_at(trace_, {22.0, 78.0, 886.0, 134.0});
+    (*document_.gallery_semantic_clear).bind(clear_);
 }
 
 bool SemanticFeedbackPage::ensure_feedback() {

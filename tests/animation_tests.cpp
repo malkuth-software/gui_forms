@@ -299,18 +299,18 @@ void test_animation_timer_is_paint_gated() {
             "unchanged ticks must keep the timer running without paints");
 
     // Hidden: the timer waits for a paint instead of holding a wake.
-    (*probe).set_visible(false);
+    (*probe).visible = false;
     static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
     require((*probe).ticks == 4 && !window.next_wake().has_value() &&
                 (*probe).timer.started(),
             "a hidden owner's timer must stop at its next tick without ticking");
-    (*probe).set_visible(true);
+    (*probe).visible = true;
     (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
-    (*probe).set_visible(false);
+    (*probe).visible = false;
     (*probe).timer.start(*probe, 32ms, TimerProbe::Tick{probe.get()});
     require(!(*probe).timer.ticking() && !window.next_wake().has_value(),
             "starting for a hidden owner must wait for its paint");
-    (*probe).set_visible(true);
+    (*probe).visible = true;
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
     require((*probe).timer.ticking(), "a paint must start a timer started while hidden");
 
@@ -337,14 +337,14 @@ void test_animation_timer_is_paint_gated() {
     // A timer waiting for a paint holds no request, and is stopped as well
     // (the Gallery accessibility clients freeze a page this way before
     // reading it: a hidden page's animation started at its first paint).
-    (*probe).set_visible(false);
+    (*probe).visible = false;
     (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
     require((*probe).timer.started() && !(*probe).timer.ticking(),
             "a hidden owner's timer must wait for a paint");
     window.cancel_frame_requests();
     require(!(*probe).timer.started(),
             "cancelling the window's frame requests must stop a timer waiting for a paint");
-    (*probe).set_visible(true);
+    (*probe).visible = true;
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
     require(!(*probe).timer.ticking() && !(*probe).timer.started() &&
                 !window.next_wake().has_value(),
@@ -354,10 +354,10 @@ void test_animation_timer_is_paint_gated() {
     // cancellation runs again.
     std::shared_ptr<TimerProbe> other_root = make_control<TimerProbe>(StableId("animation.timer.other"));
     Window other(other_root, {40.0, 20.0});
-    (*probe).set_visible(false);
+    (*probe).visible = false;
     (*probe).timer.start(*probe, 20ms, TimerProbe::Tick{probe.get()});
     other.cancel_frame_requests();
-    (*probe).set_visible(true);
+    (*probe).visible = true;
     (*probe).on_paint(painter, {0.0, 0.0, 40.0, 20.0});
     require((*probe).timer.started() && (*probe).timer.ticking() && window.next_wake().has_value(),
             "another window's cancellation must not stop the timer, and start must run it again");
@@ -384,13 +384,13 @@ void test_progress_animation_and_hidden_suspension() {
     // The animation runs on a UI timer (ADR-016). A tick that finds the bar
     // unpainted since the last one stops the timer; the bar's next paint
     // starts it again.
-    (*progress).set_visible(false);
+    (*progress).visible = false;
     const double hidden_phase = (*progress).animation_phase();
     static_cast<void>(window.poll_frame_schedule(*window.next_wake()));
     require(!window.next_wake().has_value() &&
                 close_to((*progress).animation_phase(), hidden_phase),
             "a hidden progress bar must stop its timer at its next tick, without advancing");
-    (*progress).set_visible(true);
+    (*progress).visible = true;
     StripePainter shown_painter;
     (*progress).on_paint(shown_painter, {0.0, 0.0, 240.0, 20.0});
     require(window.next_wake().has_value(),

@@ -22,6 +22,6 @@ The stock controls, grouped by what they are for, as the Windows Forms control c
    controls.scrolling
    controls.menus-and-commands
    controls.components
-   controls.dialogs-and-popups
+   controls.dialogs-and-overlays
    controls.drawing
    controls.diagnostics

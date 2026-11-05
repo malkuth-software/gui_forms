@@ -101,7 +101,7 @@ Control::Ptr MasterDetailView::replace_role(
     }
     Control::Ptr previous = slot;
     if (replacement) {
-        (*replacement).set_dock(DockStyle::fill);
+        (*replacement).dock = DockStyle::fill;
         (*panel).add_child(replacement);
     }
     if (slot) previous = (*panel).remove_child((*slot).runtime_id());
@@ -277,8 +277,8 @@ void MasterDetailView::arrange(Rect final_bounds) {
 SemanticDescriptor MasterDetailView::semantic_descriptor() const {
     SemanticDescriptor descriptor = ContainerControl::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = effective_display_mode_ ==
             MasterDetailDisplayMode::side_by_side
         ? "side-by-side"

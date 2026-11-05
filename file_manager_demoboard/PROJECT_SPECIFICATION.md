@@ -8,7 +8,7 @@ Status: **GIVEN consumer specification; implementation and ABI remain gated**.
 
 Can the public retained GUI.Forms system express the complete File Manager
 interface—its material depth, dense layout, stable objects, keyboard and pointer
-behavior, popups, virtual collections, editing, accessibility, responsive
+behavior, overlays, virtual collections, editing, accessibility, responsive
 collapse, and bounded motion—without a browser, immediate mode, real product
 services, or application-local widget framework?
 
@@ -22,7 +22,7 @@ are correct or performant in the product.
 
 - window and host participation;
 - retained control identity and lifetime;
-- layout, focus, commands, input, capture, popups, scrolling, and virtual rows;
+- layout, focus, commands, input, capture, overlays, scrolling, and virtual rows;
 - text editing/shaping/rasterization;
 - drawing/material/resource primitives;
 - drag/drop and clipboard presentation seams;
@@ -331,7 +331,7 @@ The controller and tests can query:
 - paint count by control ID;
 - shaped run, glyph, and cache counts;
 - realized/virtual item counts;
-- popup and capture owner;
+- overlay and capture owner;
 - focused control and selection identities;
 - semantic node/proxy counts;
 - pending deadlines and sound cues;

@@ -78,7 +78,7 @@ activated by it, and a focused `TextBox` handles both Enter and Escape, so
 those keys do not reach the dialog buttons while such a control has focus.
 The keys and mnemonics run
 focus validation of the focused control first; when it refuses, the key is
-consumed and the button is not clicked. Call `set_causes_validation(false)`
+consumed and the button is not clicked. Write `causes_validation = false`
 on a Cancel button so that it works while a field holds an invalid value.
 
 The control publishes the accessibility role `button`, with the selected
@@ -100,7 +100,7 @@ its result to the window:
    (*ok).set_dialog_result(gf::DialogResult::ok);
    (*ok).set_requested_bounds({8.0, 8.0, 80.0, 28.0});
    (*cancel).set_requested_bounds({96.0, 8.0, 80.0, 28.0});
-   (*cancel).set_causes_validation(false);
+   (*cancel).causes_validation = false;
    (*root).add_child(ok);
    (*root).add_child(cancel);
    gf::Window window(root, gf::Size{184.0, 44.0});

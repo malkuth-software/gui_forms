@@ -195,7 +195,7 @@ Size ToolStripPanel::measure(Size available) {
     for (const std::vector<std::shared_ptr<ToolStrip>>& row : rows()) {
         double row_thickness = 0.0;
         for (const std::shared_ptr<ToolStrip>& strip : row) {
-            if (!(*strip).visible()) continue;
+            if (!(*strip).visible.read()) continue;
             row_thickness = std::max(row_thickness, strip_thickness(*strip, along_height, offered));
         }
         thickness += row_thickness;
@@ -226,7 +226,7 @@ void ToolStripPanel::arrange(Rect final_bounds) {
         shown.reserve(row.size());
         double thickness = 0.0;
         for (const std::shared_ptr<ToolStrip>& strip : row) {
-            if (!is_current_layout_child(strip) || !(*strip).visible()) continue;
+            if (!is_current_layout_child(strip) || !(*strip).visible.read()) continue;
             const double measured = strip_thickness(*strip, along_height, offered);
             if (!is_current_layout_child(strip)) continue;
             thickness = std::max(thickness, measured);

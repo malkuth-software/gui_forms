@@ -322,7 +322,7 @@ void semantics() {
     Fixture fixture = make_fixture("tokens.semantics", 360.0);
     Window& window = *fixture.window;
     TokenBox& box = *fixture.box;
-    box.set_accessible_name("Recipients");
+    box.accessible_name = "Recipients";
     const TokenId alpha = box.add_token("alpha");
     const TokenId beta = box.add_token("beta");
     window.perform_layout();

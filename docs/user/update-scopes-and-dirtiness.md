@@ -67,7 +67,7 @@ Always obtain a scope from `begin_update()`: a default-constructed
     gf::UpdateScope scope = window.begin_update();
     (*status).set_text("Working…");
     (*progress).set_value(0.0);
-    (*cancel).set_enabled(true);
+    (*cancel).enabled = true;
 }   // one layout pass, one damage publication
 ```
 

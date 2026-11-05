@@ -189,7 +189,7 @@ TreeView : A hierarchy of items, such as the folders above these objects.
 CorrespondenceView : Records that expand to show matched evidence.
 ListBox : A plain list of text rows.
 ImageList : Shared images looked up by key.
-ContextMenu : A pop-up menu for the target of `context_requested`.
+ContextMenu : An overlay menu for the target of `context_requested`.
 
 Notes
 -----

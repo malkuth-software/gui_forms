@@ -407,7 +407,7 @@ struct PageDigest final {
 // ComboBox paints through the theme engine and declares hot (T4 phase 4):
 // the well, drop-down button, divider, arrow and ring are parts. Themed
 // combo boxes drew the same pixels, the arrow's four rows now listed tip
-// first (collections-and-popups, values-and-spinners, value-editors); the
+// first (collections-and-overlays, values-and-spinners, value-editors); the
 // overridden one on value-editors changed from the panel's flat face and
 // relief lines to the theme's rounded well and button in the override's
 // background. Those three pages were recorded again.
@@ -457,7 +457,7 @@ struct PageDigest final {
 // marks for the old glyphs and strokes, the property list's group bands and
 // thumb the theme's panel face, and its property names the theme's label
 // text in place of the muted ink. Recorded again: checked-collections,
-// collections-and-popups, responsive-layouts, tree-and-object-views,
+// collections-and-overlays, responsive-layouts, tree-and-object-views,
 // value-editors and values-and-spinners.
 //
 // ObjectView, CorrespondenceView and the plain BreadcrumbTrail paint
@@ -491,7 +491,7 @@ struct PageDigest final {
 // in place of a plate under it; the scroll bars are the ScrollBar's track,
 // buttons, arrow marks and thumb. Every page was recorded again.
 //
-// DateTimePicker and its calendar popup paint through the theme engine: the
+// DateTimePicker and its calendar overlay paint through the theme engine: the
 // drop-down button, divider and arrow mark (as the combo box's), the up-down
 // pair, the check box and the value's text (clipped to its line box) are
 // parts; dates-and-calendar was recorded again.
@@ -512,41 +512,65 @@ struct PageDigest final {
 // label and focus parts; hit testing uses the same shape. Recorded again:
 // tree-and-object-views.
 //
+// FD6.3's Gallery project theme (demo/themes/gallery, selected by
+// make_gallery) and the `classes` property: the page headings, leads and
+// group faces moved from code and `fore-color` to classes the theme styles,
+// with the same colours, and control-spectrum and semantic-feedback became
+// form documents. Against cp16's traces only three pages differ:
+// values-and-spinners' property grid gains the Classes row (its editor one
+// control more, and the rows below move), states-and-diagnostics' live
+// control count (1398) follows, and typography-and-inspection's inspector
+// names the selected theme ("gallery · inherited" for
+// "windows-professional"). No other page moved; those three were recorded
+// again.
+//
+// The overlay rename (owner order, 2026-11-05) changed only wording: the
+// navigation sidebar's "Collections and overlays", "Dialogs and overlays" and
+// "Anchored overlays" entries on every page (their clip widths follow the
+// longer words), and the renamed texts on anchored-overlays,
+// collections-and-overlays, commands-and-menus and dates-and-calendar. Every
+// page was recorded again.
+//
+// Folded together (cp18), the rename's traces hold except on FD6.3's three
+// pages above and live-surfaces, which gains the SubSurfaceHost group (the
+// live control count and the specimen's RuntimeId follow); those four were
+// recorded again. M2's property capabilities moved no page.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
 constexpr std::array<PageDigest, 31> expected_digests{{
-    {"basics", 0xccbc75d25401fa75ULL},
-    {"values", 0x6af71a97d60ede98ULL},
-    {"retained-rows", 0xc765eeecf84e14a8ULL},
-    {"instrument", 0xc442167e4ec53a0aULL},
-    {"control-spectrum", 0x44a62eb2804ff762ULL},
-    {"ranges-and-progress", 0x0840937a6e04608eULL},
-    {"containers-and-focus", 0x3db49ebe2198a393ULL},
-    {"animation-laboratory", 0x9e6b2dc688c4f733ULL},
-    {"states-and-diagnostics", 0xe8a44653a431fbacULL},
-    {"text-and-input", 0xd63d5868c06666d0ULL},
-    {"collections-and-popups", 0x269da5a860f1ecb0ULL},
-    {"values-and-spinners", 0xac4f161c0872610cULL},
-    {"images-and-drawing", 0x32e1f240ea4e25ebULL},
-    {"tabs-and-pages", 0x560a6fa02160dc77ULL},
-    {"checked-collections", 0x566f6f923810a6d8ULL},
-    {"timing-and-tooltips", 0x19fedadf8a45c907ULL},
-    {"dates-and-calendar", 0x61acd1b121cde257ULL},
-    {"dialogs-and-host-services", 0x9e2542a13d90999dULL},
-    {"css-layout-panels", 0x162050b329f8a697ULL},
-    {"retained-layout-panels", 0xe61e61f53c094ef7ULL},
-    {"dock-and-anchor", 0x2e438b6d5ef0d3a2ULL},
-    {"docking-workspace", 0x93034084a5a6f65eULL},
-    {"commands-and-menus", 0x703113d3522deabdULL},
-    {"tree-and-object-views", 0x0fd8a892fa49aab7ULL},
-    {"choices-and-sections", 0x4695234a6161e9c3ULL},
-    {"value-editors", 0x529ff55217238635ULL},
-    {"responsive-layouts", 0x69e0ea0983dd9cf8ULL},
-    {"anchored-popups", 0x837ef0d60de1508eULL},
-    {"live-surfaces", 0x7633da7d2d0cd584ULL},
-    {"typography-and-inspection", 0xa07f3abd48bcf56bULL},
-    {"semantic-feedback", 0xadd8151ebca966baULL},
+    {"basics", 0xd44683c3af238ef8ULL},
+    {"values", 0xa6de1c4dd3b0a669ULL},
+    {"retained-rows", 0x113cc633cc36bdf7ULL},
+    {"instrument", 0xd38e47c0216f4d39ULL},
+    {"control-spectrum", 0x10f2227bb69b8505ULL},
+    {"ranges-and-progress", 0x67584febf5f4bfa9ULL},
+    {"containers-and-focus", 0x19c2e8105fdc50c2ULL},
+    {"animation-laboratory", 0x8b9bf5c0465fab82ULL},
+    {"states-and-diagnostics", 0xf6809839bc35ece4ULL},
+    {"text-and-input", 0x750c2338fcc2ddb7ULL},
+    {"collections-and-overlays", 0x5110f0cc784f0d78ULL},
+    {"values-and-spinners", 0xde303c02e6b51f7dULL},
+    {"images-and-drawing", 0xe81d199e463d268aULL},
+    {"tabs-and-pages", 0xc8cd48aa9b829b7aULL},
+    {"checked-collections", 0x8f8fcb8a8a314d53ULL},
+    {"timing-and-tooltips", 0x135bc4ec59effdd6ULL},
+    {"dates-and-calendar", 0x3d44a30b4b36e245ULL},
+    {"dialogs-and-host-services", 0x7aa7c1f1475e2becULL},
+    {"css-layout-panels", 0x2d601a7a22281fb4ULL},
+    {"retained-layout-panels", 0xcd24110ce707bac6ULL},
+    {"dock-and-anchor", 0x314c56585b6e2693ULL},
+    {"docking-workspace", 0xa442c14501ed3ef5ULL},
+    {"commands-and-menus", 0x8f9fb4c2124de180ULL},
+    {"tree-and-object-views", 0xe3db9316c5b9f256ULL},
+    {"choices-and-sections", 0x645f4d73f05c1950ULL},
+    {"value-editors", 0xde01fa2d69bfd844ULL},
+    {"responsive-layouts", 0x819eb7ee4459b363ULL},
+    {"anchored-overlays", 0xa32f4aaa22f2dcf4ULL},
+    {"live-surfaces", 0x73767712b8e50f6cULL},
+    {"typography-and-inspection", 0x558e28500aa51a02ULL},
+    {"semantic-feedback", 0xa1e2bc4278a6798dULL},
 }};
 
 std::uint64_t expected_digest(std::string_view page) {

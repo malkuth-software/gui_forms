@@ -12,14 +12,14 @@ namespace gui_forms {
 
 MetricsView::MetricsView(StableId stable_id, std::string title)
     : Control(std::move(stable_id)), title_(std::move(title)) {
-    set_accessible_name(title_);
+    accessible_name = title_;
 }
 
 void MetricsView::set_title(std::string title) {
     require_mutable();
     if (title_ == title) return;
     title_ = std::move(title);
-    set_accessible_name(title_);
+    accessible_name = title_;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

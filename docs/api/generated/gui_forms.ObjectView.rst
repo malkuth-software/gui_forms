@@ -210,7 +210,7 @@ gui_forms::ObjectView
          Shared images looked up by key.
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         A pop-up menu for the target of ``context_requested``.
+         An overlay menu for the target of ``context_requested``.
 
    .. rubric:: Notes
 

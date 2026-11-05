@@ -44,7 +44,7 @@ void add_at(const std::shared_ptr<Parent>& parent,
             const std::shared_ptr<Child>& child, Rect bounds,
             AnchorStyles anchor = AnchorStyles::top | AnchorStyles::left) {
     (*child).set_requested_bounds(bounds);
-    (*child).set_anchor(anchor);
+    (*child).anchor = anchor;
     (*parent).add_child(child);
 }
 
@@ -151,7 +151,7 @@ std::unique_ptr<Window> make_visual_inspector_lab() {
     std::shared_ptr<Control> card = make_control<Control>(
         StableId("visual-inspector.specimen-card"));
     (*card).set_authored_surface_material(specimen_material());
-    (*card).set_padding({22.0, 18.0, 22.0, 18.0});
+    (*card).padding = {22.0, 18.0, 22.0, 18.0};
     add_at(root, card, {28.0, 84.0, 516.0, 270.0},
            AnchorStyles::top | AnchorStyles::left);
 

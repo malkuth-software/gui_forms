@@ -54,12 +54,12 @@ void BreadcrumbTrail::initialize_control_tree() {
     editor_ = make_control<TextBox>(StableId(editor_stable_id_));
     (*editor_).set_border_style(BorderStyle::none);
     (*editor_).set_placeholder_text("Enter an exact path");
-    (*editor_).set_accessible_name("Exact location path");
+    (*editor_).accessible_name = "Exact location path";
     // Enter commits the path (editor_committed) and Escape ends the edit
     // (editor_cancelled); neither goes further.
     (*editor_).set_accepts_enter(true);
     (*editor_).set_accepts_escape(true);
-    (*editor_).set_visible(false);
+    (*editor_).visible = false;
     (*editor_).set_font(font_);
     add_child(editor_);
     const std::weak_ptr<BreadcrumbTrail> weak =
@@ -177,7 +177,7 @@ void BreadcrumbTrail::set_editing(bool editing) {
     if (editing_ == editing) return;
     editing_ = editing;
     if (!editing_) tab_completion_available_ = false;
-    if (editor_) (*editor_).set_visible(editing_);
+    if (editor_) (*editor_).visible = editing_;
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics |
                Dirty::accessibility);
 }
@@ -589,7 +589,7 @@ void BreadcrumbTrail::on_pointer(PointerEvent& event) {
 }
 
 void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
-    if (!editing_ || !tab_completion_available_ || !enabled() ||
+    if (!editing_ || !tab_completion_available_ || !enabled.read() ||
         event.action != KeyAction::down ||
         event.physical_key != PhysicalKey::tab) {
         return;
@@ -599,7 +599,7 @@ void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
 }
 
 void BreadcrumbTrail::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled() || editing_ ||
+    if (!focused_ || !enabled.read() || editing_ ||
         event.action != KeyAction::down || visible_items_.empty()) return;
     std::size_t active{};
     for (std::size_t index = 0U; index < visible_items_.size(); ++index) {
@@ -636,9 +636,9 @@ void BreadcrumbTrail::on_focus_changed(bool focused) {
 SemanticDescriptor BreadcrumbTrail::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.read();
     descriptor.value = editor_ ? std::string((*editor_).text()) : std::string{};
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     descriptor.include_descendants = true;

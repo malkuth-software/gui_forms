@@ -75,10 +75,10 @@ void snapshots() {
     std::shared_ptr<Panel> foreign = make_control<Panel>(StableId("foreign"));
     Window other(foreign, {50.0, 50.0});
     require(!window.snapshot_control(foreign, 1.0), "another window's control is refused");
-    (*card).set_visible(false);
+    (*card).visible = false;
     window.perform_layout();
     require(!window.snapshot_control(card, 1.0), "a hidden control is refused");
-    (*card).set_visible(true);
+    (*card).visible = true;
     window.perform_layout();
 
     // Finding V4: the release is UI-thread only and repaints as remove_image.

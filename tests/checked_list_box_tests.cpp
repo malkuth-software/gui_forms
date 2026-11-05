@@ -145,7 +145,7 @@ void test_pointer_keyboard_and_disabled_policy() {
     KeyEvent space{KeyAction::down, PhysicalKey::space};
     require(window.dispatch_key(space) && !(*list).item_checked(1U),
             "Space must toggle the active checked-list item");
-    (*list).set_enabled(false);
+    (*list).enabled = false;
     const Point third = row_point(*list, 2U);
     require(!window.dispatch_pointer(
                 {PointerAction::down, PointerButton::primary, third}) &&
@@ -155,7 +155,7 @@ void test_pointer_keyboard_and_disabled_policy() {
 
 void test_paint_and_semantic_actions() {
     std::shared_ptr<gui_forms::CheckedListBox> list = make_control<CheckedListBox>(StableId("checks.semantic"));
-    (*list).set_accessible_name("Feature checks");
+    (*list).accessible_name = "Feature checks";
     (*list).add_item("Checked", CheckState::checked);
     (*list).add_item("Mixed", CheckState::indeterminate);
     (*list).add_item("Empty", CheckState::unchecked);

@@ -51,7 +51,7 @@
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
@@ -121,13 +121,14 @@
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 
 #include <array>
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 116> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 117> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -216,7 +217,7 @@ inline constexpr std::array<SchemaCatalogEntry, 116> schema_catalog{{
     {"font_command", "FontCommand", &describe_type<FontCommand>, &create_type<FontCommand>, &is_exact_type<FontCommand>},
     {"color_command", "ColorCommand", &describe_type<ColorCommand>, &create_type<ColorCommand>, &is_exact_type<ColorCommand>},
     {"gallery_command", "GalleryCommand", &describe_type<GalleryCommand>, &create_type<GalleryCommand>, &is_exact_type<GalleryCommand>},
-    {"anchored_popup_layer", "AnchoredPopupLayer", &describe_type<AnchoredPopupLayer>, &create_type<AnchoredPopupLayer>, &is_exact_type<AnchoredPopupLayer>},
+    {"anchored_overlay_layer", "AnchoredOverlayLayer", &describe_type<AnchoredOverlayLayer>, &create_type<AnchoredOverlayLayer>, &is_exact_type<AnchoredOverlayLayer>},
     {"font_dialog", "FontDialog", &describe_type<FontDialog>, &create_type<FontDialog>, &is_exact_type<FontDialog>},
     {"task_dialog", "TaskDialog", &describe_type<TaskDialog>, &create_type<TaskDialog>, &is_exact_type<TaskDialog>},
     {"thread_exception_dialog", "ThreadExceptionDialog", &describe_type<ThreadExceptionDialog>, &create_type<ThreadExceptionDialog>, &is_exact_type<ThreadExceptionDialog>},
@@ -227,6 +228,7 @@ inline constexpr std::array<SchemaCatalogEntry, 116> schema_catalog{{
     {"drawing_surface", "DrawingSurface", &describe_type<DrawingSurface>, &create_type<DrawingSurface>, &is_exact_type<DrawingSurface>},
     {"raster_canvas", "RasterCanvas", &describe_type<RasterCanvas>, &create_type<RasterCanvas>, &is_exact_type<RasterCanvas>},
     {"live_surface", "LiveSurface", &describe_type<LiveSurface>, &create_type<LiveSurface>, &is_exact_type<LiveSurface>},
+    {"sub_surface_host", "SubSurfaceHost", &describe_type<SubSurfaceHost>, &create_type<SubSurfaceHost>, &is_exact_type<SubSurfaceHost>},
     {"easing_preview", "EasingPreview", &describe_type<EasingPreview>, &create_type<EasingPreview>, &is_exact_type<EasingPreview>},
     {"metrics_view", "MetricsView", &describe_type<MetricsView>, &create_type<MetricsView>, &is_exact_type<MetricsView>},
     {"typography_specimen", "TypographySpecimen", &describe_type<TypographySpecimen>, &create_type<TypographySpecimen>, &is_exact_type<TypographySpecimen>},

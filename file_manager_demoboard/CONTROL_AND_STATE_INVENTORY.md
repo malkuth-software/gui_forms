@@ -30,7 +30,7 @@ fm.window.primary
 │   ├── fm.selection.splitter
 │   └── fm.selection.pane
 ├── fm.status
-└── fm.path.matrix (owned anchored popup)
+└── fm.path.matrix (owned anchored overlay)
 ```
 
 Folder, Search, and Criteria retained subtrees are constructed once per window.
@@ -105,7 +105,7 @@ edits; `./` opens the full matrix.
 
 | Stable ID | Role | Required behavior |
 |---|---|---|
-| `fm.path.matrix` | owned anchored popup | click-away/Escape, focus scope, semantic parent, edge avoidance |
+| `fm.path.matrix` | owned anchored overlay | click-away/Escape, focus scope, semantic parent, edge avoidance |
 | `fm.path.matrix.heading` | label group | title plus factual description |
 | `fm.path.matrix.current` | current-stack group | full drive-rooted stack |
 | `fm.path.matrix.current.segment.<id>` | path segment | navigate immediately |
@@ -280,7 +280,7 @@ Default product task order:
 8. selection pane if participating;
 9. status view toggle.
 
-Popup focus scope temporarily owns traversal and restores the invoking control
+Overlay focus scope temporarily owns traversal and restores the invoking control
 on close. Collapsed panes leave task order. Hidden inactive surfaces leave task
 order. Visual draw order never determines accessibility/task order by accident.
 
@@ -296,8 +296,8 @@ At minimum:
 - product window: window/application root;
 - ribbon: toolbar with grouped commands and tabs;
 - breadcrumb: grouped navigable path components;
-- `./`: button with expanded state and popup relation;
-- path matrix: popup/group with current path, editable text, suggestions, and
+- `./`: button with expanded state and overlay relation;
+- path matrix: overlay/group with current path, editable text, suggestions, and
   recent location options;
 - folder tree: outline/tree with virtual children;
 - object field: list/grid/table according to view;

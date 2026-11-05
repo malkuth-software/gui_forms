@@ -33,7 +33,7 @@ constexpr std::array<ProjectNode, 15> project{{
     {"button.cpp", "button.cpp", 2, false, ObjectGlyph::code, "C++ source", "18 KB", "2026-10-09", "Dialog results and the four visual styles"},
     {"tree-view.cpp", "tree_view.cpp", 2, false, ObjectGlyph::code, "C++ source", "42 KB", "2026-10-10", "Visible-row virtualization and type-select"},
     {"core", "core", 1, true, ObjectGlyph::folder, "Folder", "", "2026-10-08", "Window and scheduler"},
-    {"window.cpp", "window.cpp", 5, false, ObjectGlyph::code, "C++ source", "96 KB", "2026-10-08", "Popup leases and focus scopes"},
+    {"window.cpp", "window.cpp", 5, false, ObjectGlyph::code, "C++ source", "96 KB", "2026-10-08", "Overlay leases and focus scopes"},
     {"docs", "docs", 0, true, ObjectGlyph::folder, "Folder", "", "2026-10-07", "Atlas and manual"},
     {"atlas.md", "atlas.md", 7, false, ObjectGlyph::document, "Markdown", "7 KB", "2026-10-07", "Generated control atlas"},
     {"manual.json", "manual.json", 7, false, ObjectGlyph::code, "JSON", "121 KB", "2026-10-06", "Hand-reviewed narratives"},
@@ -178,7 +178,7 @@ private:
         trail_ = make_control<BreadcrumbTrail>(StableId("gallery.tree.trail"),
                                                "gallery.tree.trail.editor");
         (*trail_).set_appearance(BreadcrumbAppearance::raised);
-        (*trail_).set_accessible_name("Current folder");
+        (*trail_).accessible_name = "Current folder";
         (*location).add_at(trail_, {22.0, 32.0, 690.0, 28.0});
         on((*trail_).segment_activated(), *this, &TreeAndObjectViewsPage::on_segment_activated);
         on((*trail_).edit_started(), *this, &TreeAndObjectViewsPage::on_edit_started);
@@ -188,7 +188,7 @@ private:
         std::shared_ptr<ChoiceGroup> view_mode = make_control<ChoiceGroup>(
             StableId("gallery.tree.view-mode"));
         (*view_mode).set_style(page_style());
-        (*view_mode).set_accessible_name("Object view mode");
+        (*view_mode).accessible_name = "Object view mode";
         (*view_mode).set_items({{.id = 0, .label = "Icons"}, {.id = 1, .label = "Details"}});
         (*view_mode).bind(view_mode_);
         (*location).add_at(view_mode, {732.0, 30.0, 176.0, 32.0});
@@ -199,7 +199,7 @@ private:
             "gallery.tree.folders-group", "TreeView · folders", {300.0, 456.0});
         (*body).add_at(tree_group, {24.0, 172.0, 300.0, 456.0});
         tree_ = make_control<TreeView>(StableId("gallery.tree.folders"));
-        (*tree_).set_accessible_name("Project folders");
+        (*tree_).accessible_name = "Project folders";
         (*tree_).set_style(page_style());
         std::vector<TreeViewItem> items;
         for (std::size_t index = 0; index < project.size(); ++index) {
@@ -226,7 +226,7 @@ private:
             {330.0, 456.0});
         (*body).add_at(objects_group, {338.0, 172.0, 330.0, 456.0});
         objects_ = make_control<ObjectView>(StableId("gallery.tree.objects"));
-        (*objects_).set_accessible_name("Folder contents");
+        (*objects_).accessible_name = "Folder contents";
         (*objects_).set_style(page_style());
         (*objects_).set_icon_cell_size({94.0, 84.0});
         (*objects_).set_view_mode(ObjectViewMode::details);
@@ -242,7 +242,7 @@ private:
             {272.0, 456.0});
         (*body).add_at(ledger_group, {682.0, 172.0, 272.0, 456.0});
         ledger_ = make_control<CorrespondenceView>(StableId("gallery.tree.ledger"));
-        (*ledger_).set_accessible_name("Recent files");
+        (*ledger_).accessible_name = "Recent files";
         (*ledger_).set_style(page_style());
         (*ledger_).set_compact_height(44.0);
         (*ledger_).set_expanded_height(124.0);
@@ -262,7 +262,7 @@ private:
             {930.0, 236.0});
         (*body).add_at(grid_group, {24.0, 668.0, 930.0, 236.0});
         grid_ = make_control<DataGridView>(StableId("gallery.tree.grid"));
-        (*grid_).set_accessible_name("Project files");
+        (*grid_).accessible_name = "Project files";
         std::vector<std::string> kinds;
         for (const ProjectNode& node : project) {
             const std::string kind(node.kind);
@@ -301,7 +301,7 @@ private:
             {930.0, 300.0});
         (*body).add_at(tree_list_group, {24.0, 918.0, 930.0, 300.0});
         tree_list_ = make_control<TreeListView>(StableId("gallery.tree.tree-list"));
-        (*tree_list_).set_accessible_name("Project tree with details");
+        (*tree_list_).accessible_name = "Project tree with details";
         (*tree_list_).set_columns({
             {.stable_id = std::string(column_name), .text = "Name", .width = 260.0},
             {.stable_id = std::string(column_kind), .text = "Kind", .width = 120.0},

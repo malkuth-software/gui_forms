@@ -193,11 +193,11 @@ void throw_callback_failure() {
 }
 
 void disable_child(WindowFixture& fixture) {
-    (*fixture.child).set_enabled(false);
+    (*fixture.child).enabled = false;
 }
 
 void hide_left_parent(WindowFixture& fixture) {
-    (*fixture.left).set_visible(false);
+    (*fixture.left).visible = false;
 }
 
 void remove_child(WindowFixture& fixture) {
@@ -357,7 +357,7 @@ void test_disposal_contract_and_registry() {
 
     bool mutation_rejected = false;
     try {
-        (*fixture.child).set_visible(true);
+        (*fixture.child).visible = true;
     } catch (const std::logic_error&) {
         mutation_rejected = true;
     }

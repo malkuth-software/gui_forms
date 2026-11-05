@@ -95,6 +95,13 @@ public:
 
 // A tile: a 60 × 24 button face 20 units in from its control's left edge
 // and 28 down, hot under the pointer, selected when told.
+// The tiles' parent paints nothing of its own, so the painter sees only the
+// tiles' faces. (A Panel would now composite a face from the theme's rules.)
+class Stage final : public Control {
+public:
+    explicit Stage(StableId stable_id) : Control(std::move(stable_id)) {}
+};
+
 class Tile final : public Control {
 public:
     explicit Tile(StableId stable_id) : Control(std::move(stable_id)) {}
@@ -204,7 +211,7 @@ std::unique_ptr<ThemeDefinition> pop_theme() {
 
 struct Fixture final {
     ManualTime time{};
-    std::shared_ptr<Panel> root;
+    std::shared_ptr<Stage> root;
     std::vector<std::shared_ptr<Tile>> tiles;
     std::unique_ptr<Window> window;
     RasterLog painter{};
@@ -215,7 +222,7 @@ struct Fixture final {
 std::unique_ptr<Fixture> make_fixture(bool reduced_motion, Insets middle_overflow) {
     std::unique_ptr<Fixture> fixture = std::make_unique<Fixture>();
     Fixture& made = *fixture;
-    made.root = make_control<Panel>(StableId("root"));
+    made.root = make_control<Stage>(StableId("root"));
     const char* const names[] = {"left", "middle", "right"};
     for (std::size_t index = 0U; index < 3U; ++index) {
         std::shared_ptr<Tile> tile = make_control<Tile>(StableId(std::string(names[index])));

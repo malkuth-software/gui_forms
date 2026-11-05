@@ -323,7 +323,7 @@ bool SemanticSource::perform(const SemanticLocation& location, SemanticAction ac
         if (location.scope == nullptr) {
             // A virtual child with no control-backed node above it: no
             // control names it, so the window looks for it by stable ID
-            // under its root and popups.
+            // under its root and overlays.
             handled = (*model).perform_semantic_action(node.stable_id, action, value);
         } else {
             // The window refuses a scope whose control was disposed or

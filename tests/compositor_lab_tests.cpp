@@ -12,6 +12,12 @@
 // the reflections. A run through a compositor stopping and starting, with
 // the request standing, falls back and returns without error.
 //
+// Backdrop chains (owner, 2026-11-05, as revised): a window's blur is its
+// granted material, saturate is dropped and reported, and the CPU paints
+// only the tint. Overlays (menus, drop-downs, tooltips: composited into
+// their owner, our own pixels) take no chain; they paint with the theme's
+// materials over the window like any content (owner, 2026-11-04).
+//
 // Run with --print to print one JSON line per state and request (the
 // headless part of the gate record): the state, the request, the grant,
 // the reason and the frame's alpha (minimum, maximum, non-opaque count).
@@ -30,6 +36,7 @@
 #include <memory>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -354,15 +361,123 @@ void parsing() {
             "at most three entries");
 }
 
+
+// Backdrop chains (owner, 2026-11-05, as revised). GUI.Forms never blurs
+// what lies outside a window's own surface: a window's blur is its granted
+// system material. An overlay is the window's own pixels and takes no chain.
+constexpr Rect overlay_bounds{8.0, 8.0, 128.0, 96.0};
+constexpr std::size_t overlay_column = 40U;
+constexpr std::size_t overlay_row = 40U;
+constexpr Color frosted_tint = Color::rgba(255, 255, 255, 64);
+
+BackdropChain frosted_chain() {
+    BackdropChain chain{};
+    static_cast<void>(chain.append(BackdropOperation::blur(8.0)));
+    static_cast<void>(chain.append(BackdropOperation::saturate(1.5)));
+    static_cast<void>(chain.append(BackdropOperation::tint(frosted_tint)));
+    return chain;
+}
+
+// A clear overlay.
+std::shared_ptr<Panel> make_overlay() {
+    std::shared_ptr<Panel> overlay = make_control<Panel>(StableId("lab.backdrop.overlay"));
+    (*overlay).set_background(Color::rgba(0, 0, 0, 0));
+    (*overlay).set_requested_bounds(overlay_bounds);
+    return overlay;
+}
+
+bool same_pixel(const Pixel& left, const Pixel& right) noexcept {
+    return left.red == right.red && left.green == right.green && left.blue == right.blue && left.alpha == right.alpha;
+}
+
+// A window's chain is the window's base only: a clear overlay over it adds
+// no second tint (owner, 2026-11-04: overlays are the window's own pixels).
+void overlay_takes_no_chain(render::SkiaRaster& raster) {
+    const std::unique_ptr<Window> window = lab::make_compositor_lab(lab::default_request(), false);
+    Window& shown = *window;
+    shown.set_compositor_state(make_state(StateCase::every_backdrop, 1U), true);
+    shown.set_backdrop_chain(frosted_chain());
+    const Frame before = present(raster, shown);
+    // The window observes an overlay root; the caller owns it while it shows.
+    const std::shared_ptr<Panel> overlay = make_overlay();
+    OverlayToken token = shown.open_overlay(shown.root(), overlay, OverlayOptions{});
+    const Frame after = present(raster, shown);
+    require(same_pixel(after.at(overlay_column, overlay_row), before.at(overlay_column, overlay_row)),
+            "a clear overlay shows the window beneath it, with no tint of its own");
+    token.disconnect();
+}
+
+// A top-level window: the blur is the granted material, the CPU paints
+// only the tint, saturate is dropped and reported.
+void window_chain_resolution(render::SkiaRaster& raster) {
+    const std::unique_ptr<Window> window = lab::make_compositor_lab(lab::default_request(), false);
+    Window& shown = *window;
+    shown.set_compositor_state(make_state(StateCase::every_backdrop, 1U), true);
+    shown.set_backdrop_chain(frosted_chain());
+    require(shown.backdrop_grant().granted == WindowBackdrop::window_material, "the lab is granted its material");
+    const std::optional<BackdropChainResolution> material = shown.backdrop_chain_resolution();
+    require(material.has_value() && (*material).blur_by_material && !(*material).blur_dropped &&
+                (*material).saturate_dropped && !(*material).solid && !(*material).withdrawn &&
+                (*material).tint == frosted_tint,
+            "under a material the blur is the system's, saturate is dropped, the tint is ours");
+    const Frame granted = present(raster, shown);
+    require(near(granted.at(clear_column, clear_row).alpha, 64U), "the clear part is the chain's tint alone");
+    // Without a compositor: opaque, the blur dropped, the tint opaque.
+    shown.set_compositor_state(make_state(StateCase::no_compositor, 2U), true);
+    const std::optional<BackdropChainResolution> refused = shown.backdrop_chain_resolution();
+    require(refused.has_value() && (*refused).solid && (*refused).blur_dropped && !(*refused).blur_by_material,
+            "without a compositor the chain is its tint, opaque");
+    const Pixel flat = present(raster, shown).at(clear_column, clear_row);
+    require(flat.red == 255U && flat.green == 255U && flat.blue == 255U && flat.alpha == 255U,
+            "the opaque fallback paints the tint opaque");
+    shown.set_compositor_state(make_state(StateCase::high_contrast, 3U), true);
+    const std::optional<BackdropChainResolution> contrast = shown.backdrop_chain_resolution();
+    require(contrast.has_value() && (*contrast).withdrawn, "under high contrast the chain is withdrawn");
+}
+
+void chain_rules() {
+    const BackdropChain chain = frosted_chain();
+    require(backdrop_chain_valid(chain) && backdrop_chain_blur(chain) == 8.0, "the frosted chain is valid");
+    require(backdrop_chain_solid(chain) == frosted_tint, "the solid fallback is the tint");
+    BackdropChain two_blurs = chain;
+    static_cast<void>(two_blurs.append(BackdropOperation::blur(2.0)));
+    require(!backdrop_chain_valid(two_blurs), "at most one blur");
+    BackdropChain too_wide{};
+    static_cast<void>(too_wide.append(BackdropOperation::blur(backdrop_maximum_blur + 1.0)));
+    require(!backdrop_chain_valid(too_wide), "a blur past the largest radius is refused");
+    const std::unique_ptr<Window> window =
+        lab::make_compositor_lab(WindowBackdropRequest::preferring(WindowBackdrop::opaque), false);
+    Window& shown = *window;
+    bool refused = false;
+    try {
+        shown.set_backdrop_chain(two_blurs);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && !shown.backdrop_chain().has_value(), "a window refuses an invalid chain, changing nothing");
+    // A window following its theme asks for the material once its chain
+    // has a blur.
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("lab.backdrop.plain"));
+    Window plain(root, Size{200.0, 100.0});
+    static_cast<void>(plain.declare_non_opaque());
+    plain.set_backdrop_chain(chain);
+    require(plain.backdrop_request() ==
+                WindowBackdropRequest::with_fallback(WindowBackdrop::window_material, WindowBackdrop::transparent),
+            "a chain with a blur asks for the window material");
+}
+
 } // namespace
 
 int main(int argc, char** argv) {
     print_mode = argc > 1 && std::strcmp(argv[1], "--print") == 0;
     parsing();
+    chain_rules();
     {
         render::SkiaRaster raster;
         each_state_and_request(raster);
         compositor_stops_and_starts(raster);
+        overlay_takes_no_chain(raster);
+        window_chain_resolution(raster);
     }
     std::cout << "gui_forms_compositor_lab_tests: all tests passed\n";
     return EXIT_SUCCESS;

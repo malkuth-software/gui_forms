@@ -19,10 +19,10 @@ bounding box when its fixed capacity is exceeded; `damage_region_compactions` an
 records the peak count held.
 
 Paint planes let a control choose where it paints: the ordinary content
-plane, or an overlay plane for popups, tooltips and drag images. Damage is
-tracked separately and can be consumed with `take_damage(plane)`, but this
-does not guarantee separate native surfaces or eliminate repainting beneath
-an overlay.
+plane, or the overlay paint plane (`PaintPlane::overlay`), which overlays,
+tooltips and drag images use. Damage is tracked separately and can be consumed
+with `take_damage(plane)`, but this does not guarantee separate native surfaces
+or eliminate repainting beneath an overlay.
 
 `Window::paint` takes either one rectangle or a set of rectangles. Given a
 set, one paint pass paints each rectangle under its own clip, so pixels
@@ -136,6 +136,66 @@ composite it. Frames are premultiplied BGRA8, the format of every raster; the su
 what lies beneath. On macOS a live-only redraw can omit retained painting
 entirely when the existing raster is valid and opaque clips cover every
 damaged device pixel. Presents copy that format to the screen as it is.
+
+## Sub-surfaces
+
+A `SubSurfaceHost` puts a control subtree on a thread of its own. The host
+hands its `SubSurfaceContent` to a `SubSurfaceThread`, which builds the tree
+there in a `SubSurface` (a surface root like the window, with its own dirty
+structure, layout, paint and dispatcher) and publishes each paint into a
+live surface the window composes over the host's region. The window's tree
+sees only the host: the sub-surface's paints never damage it.
+
+The sub-surface is sized in device pixels (the region's size times the
+window scale, rounded outward), so the window copies its frames and never
+scales them. It produces nothing before the first size, and each change of
+device size or scale opens a new content epoch: the host sends a new
+`SubSurfaceConfiguration`, asks the window to pair the region with a frame of
+that epoch, and schedules a present itself. Configurations coalesce (the
+newest wins). Work for the sub-surface is posted through
+`SubSurfaceHost::dispatcher`; its controls see no `Window`. When the host
+leaves its window the thread is stopped and joined, and the tree is released
+on its own thread.
+
+### Pacing producers
+
+A producer paces itself with a `LiveSurfacePacer`, never with a sleep loop.
+After each present tick the window's host reports, per surface, the
+generation it showed and the display timing of the tick
+(`LiveSurface::notify_presented`, a `LiveDisplayTiming`). The pacer lets a
+producer render its next frame once its last one was shown (or, if it
+published nothing, once a tick passed), and names the display time that
+frame will be shown for. If the window shows nothing for one and a half
+refreshes (a busy UI thread) the pacer releases the frame anyway and counts
+the refreshes missed, so a stalled window never stops a producer. A
+sub-surface paces every frame this way; the Windows host reports the
+compositor's vertical blank, or its 60 Hz cadence without one.
+
+### Sub-surface input
+
+A `SubSurfaceHost` is a tab stop. The pointer events that reach it and the
+key and text events it receives while focused are forwarded, in order and
+with growing sequence numbers, to the sub-surface's thread, which
+dispatches them to its own tree; pointer positions arrive in the
+sub-surface's coordinates. The window's accelerator pre-filter runs before
+anything is forwarded. A key the sub-surface leaves unhandled comes back to
+the window asynchronously and continues there as though the host had not
+handled it: bubble from the host's parent, accelerators, dialog keys, and
+Tab. The sub-surface's own Tab traversal does not wrap, so Tab at its last
+stop comes back and moves focus past the host; Tab onto the host enters at
+the first stop, Shift+Tab at the last, and a click or programmatic focus
+restores the control focused before. The sub-surface is active only while
+the host has focus in an active window. `SubSurfaceStatistics` counts the
+inputs received and dispatched and the keys returned.
+
+A secondary or middle press on the host holds the window's pointer capture
+until its release, as the window already does for the primary button, so a
+drag that leaves the region still reaches the sub-surface. For an input
+method, `SurfaceRoot::text_input_caret` gives the caret box in window
+coordinates: the focused control's `Control::text_input_caret`, or a narrow
+box at its left edge. A sub-surface publishes its own caret at the end of
+each turn and the host reports it at its offset, so the input method never
+waits on the sub-surface's thread.
 
 ## Reading the counters
 

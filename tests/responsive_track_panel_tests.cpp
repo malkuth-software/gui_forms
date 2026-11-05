@@ -151,8 +151,8 @@ struct FocusFixture final {
             {ResponsiveTrackSizeMode::fixed, 120.0, 120.0, 120.0, 1.0,
              false, 10U},
         });
-        (*content).set_dock(DockStyle::fill);
-        (*selection).set_dock(DockStyle::fill);
+        (*content).dock = DockStyle::fill;
+        (*selection).dock = DockStyle::fill;
         (*fallback).set_requested_bounds({4.0, 4.0, 70.0, 24.0});
         (*selection_action).set_requested_bounds({4.0, 4.0, 80.0, 24.0});
         (*content).add_child(fallback);
@@ -173,7 +173,7 @@ void test_focus_preservation_fallback_and_explicit_reveal() {
     fixture.window.resize({100.0, 100.0});
     fixture.window.perform_layout();
     const ResponsiveLayoutSnapshot collapsed = (*fixture.root).layout_snapshot();
-    require((*fixture.selection).visible() &&
+    require((*fixture.selection).visible.read() &&
                 (*fixture.selection).layout_collapsed() &&
                 !(*fixture.selection).effectively_visible() &&
                 fixture.window.focused_control() == fixture.fallback &&
@@ -221,14 +221,14 @@ void test_text_scale_reflow_transactions_and_resize_stability() {
     std::shared_ptr<Label> title = make_control<Label>(
         StableId("responsive.scale.title"), "Current location");
     (*title).set_font({FontRole::control, 15.0, 700, false});
-    (*title).set_dock(DockStyle::fill);
+    (*title).dock = DockStyle::fill;
     std::shared_ptr<Panel> content =
         make_control<Panel>(StableId("responsive.scale.content"));
-    (*content).set_dock(DockStyle::fill);
+    (*content).dock = DockStyle::fill;
     std::shared_ptr<Label> status = make_control<Label>(
         StableId("responsive.scale.status"), "Local authority remains available");
     (*status).set_font({FontRole::content, 10.0, 400, false});
-    (*status).set_dock(DockStyle::fill);
+    (*status).dock = DockStyle::fill;
     (*root).add_child(title);
     (*root).add_child(content);
     (*root).add_child(status);

@@ -1,0 +1,2 @@
+refused
+E301 selector_syntax 2:1 rule=window:hover detail=a window or popup selector takes only classes and a stable ID

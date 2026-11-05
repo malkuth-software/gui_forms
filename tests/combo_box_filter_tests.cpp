@@ -102,10 +102,10 @@ void prefix_filter_narrows_and_widens() {
     require(trace.size() == 1U && trace[0] == "drop" && window.focus_scope_depth() == 0U &&
                 window.focused_control() == combo.editor(),
             "the filtered list opens once and the editor keeps the focus");
-    const Control::Ptr list = window.find("filter.prefix.popup.list");
+    const Control::Ptr list = window.find("filter.prefix.overlay.list");
     require(list != nullptr && (*list).anatomy().control_id == "drop_down_list",
             "the rows are a drop-down list");
-    require((*list).realized_item_stable_id(3U) == "filter.prefix.popup.list.item.4",
+    require((*list).realized_item_stable_id(3U) == "filter.prefix.overlay.list.item.4",
             "a row's identity is its item's, not its position");
     window.perform_layout();
     const PartGeometry match = item_part(*list, 0U, "match");
@@ -126,7 +126,7 @@ void prefix_filter_narrows_and_widens() {
             "Escape closes the list and keeps the text");
     require(press(window, PhysicalKey::f4) && combo.dropped_down() && combo.drop_down_items().size() == 6U,
             "F4 opens the list on every item");
-    const Control::Ptr full = window.find("filter.prefix.popup.list");
+    const Control::Ptr full = window.find("filter.prefix.overlay.list");
     window.perform_layout();
     require(!item_part(*full, 0U, "match").present, "an unfiltered list highlights nothing");
     require(press(window, PhysicalKey::escape), "closed");
@@ -138,7 +138,7 @@ void substring_filter() {
     ComboBox& combo = *fixture.combo;
     require(type(window, "ca") && rows_are(combo, {0U, 1U, 2U, 4U, 5U}),
             "a substring filter also shows items that contain the text");
-    const Control::Ptr list = window.find("filter.substring.popup.list");
+    const Control::Ptr list = window.find("filter.substring.overlay.list");
     window.perform_layout();
     const PartGeometry first = item_part(*list, 0U, "match");
     const PartGeometry last = item_part(*list, 4U, "match");
@@ -162,7 +162,7 @@ void keyboard_and_identity() {
             "Down moves through the filtered rows only, skipping Dover");
     require(press(window, PhysicalKey::down) && combo.selected_index() == 4U, "the last row stays chosen");
     require(press(window, PhysicalKey::up) && combo.selected_index() == 2U, "Up moves back one row");
-    const Control::Ptr list = window.find("filter.keys.popup.list");
+    const Control::Ptr list = window.find("filter.keys.overlay.list");
     require((*std::static_pointer_cast<ListBox>(list)).selected_index() == 2U,
             "the list highlights the chosen item's row");
     window.perform_layout();
@@ -173,7 +173,7 @@ void keyboard_and_identity() {
     // follow the item, not its old position.
     combo.set_items({"Arcadia", "Cambridge", "Calgary", "Cape Town"});
     require(combo.selected_index() == 1U && combo.text() == "Cambridge" && rows_are(combo, {1U, 2U, 3U}) &&
-                (*std::static_pointer_cast<ListBox>(window.find("filter.keys.popup.list"))).selected_index() == 0U,
+                (*std::static_pointer_cast<ListBox>(window.find("filter.keys.overlay.list"))).selected_index() == 0U,
             "new items keep the filter and the chosen item's row");
     require(press(window, PhysicalKey::enter) && !combo.dropped_down() && combo.selected_index() == 1U,
             "Enter keeps the chosen item and closes the list");
@@ -186,7 +186,7 @@ void pointer_and_semantic_rows() {
     ComboBox& combo = *fixture.combo;
     require(type(window, "ca") && combo.dropped_down(), "filtered");
     window.perform_layout();
-    const Rect list = (*window.find("filter.rows.popup.list")).absolute_bounds();
+    const Rect list = (*window.find("filter.rows.overlay.list")).absolute_bounds();
     const Point fourth{list.x + 20.0, list.y + 2.0 + 3.0 * 26.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, fourth}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, fourth}) &&
@@ -194,7 +194,7 @@ void pointer_and_semantic_rows() {
             "clicking the fourth filtered row chooses its item");
     (*combo.editor()).select_all();
     require(type(window, "cam") && rows_are(combo, {2U}), "filtered again");
-    require(window.perform_semantic_action("filter.rows.popup.list.item.2", SemanticAction::press) &&
+    require(window.perform_semantic_action("filter.rows.overlay.list.item.2", SemanticAction::press) &&
                 !combo.dropped_down() && combo.selected_index() == 2U && combo.text() == "Cambridge",
             "a semantic press on a row addresses it by its item's identity");
 }

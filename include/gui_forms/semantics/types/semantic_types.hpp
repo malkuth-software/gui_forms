@@ -190,7 +190,7 @@ enum class SemanticTextUnit : std::uint8_t {
 
 // The position of an element among its siblings of one set (a list's items,
 // a strip's buttons) and the set's size, both counting from one, and whether
-// the element opens a popup (a menu, a list or a dialog) when activated.
+// the element opens an overlay (a menu, a list or a dialog) when activated.
 // These node fields were admitted with the ribbon plan (owner decision
 // RB-22); a position is published with its set size or not at all.
 //

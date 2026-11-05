@@ -56,7 +56,7 @@ public:
     }
     void set_maximum_drop_down_items(std::size_t count);
     // Zero tracks the control width. A positive value supplies the desired
-    // popup width while host placement still constrains it to the work area.
+    // overlay width while host placement still constrains it to the work area.
     [[nodiscard]] double drop_down_width() const noexcept {
         return drop_down_width_;
     }
@@ -177,7 +177,7 @@ private:
     void set_text_property(const BindingValue& value);
     void reset_text_property();
     [[nodiscard]] bool should_serialize_text_property() const noexcept;
-    void popup_selection_changed(const ListSelectionChange& change);
+    void overlay_selection_changed(const ListSelectionChange& change);
     // Opens the list on the items matching `pattern` (every item for an
     // empty pattern or no filter); nothing opens when none match.
     void open_drop_down(std::string_view pattern);
@@ -200,9 +200,9 @@ private:
     // goes to the first row.
     bool step_row(std::uint32_t key);
     void close_drop_down();
-    void commit_popup_selection(std::size_t index);
-    void on_popup_revoked();
-    void on_anchored_dismissal(PopupDismissReason reason);
+    void commit_overlay_selection(std::size_t index);
+    void on_overlay_revoked();
+    void on_anchored_dismissal(OverlayDismissReason reason);
     // The drop_down style's editor: created, configured and removed with
     // the style, observed through its text and focus events.
     void create_editor();
@@ -227,14 +227,14 @@ private:
     double drop_down_width_{};
     bool dropped_down_{};
     bool focused_{};
-    std::shared_ptr<Panel> popup_layer_;
-    std::shared_ptr<ListBox> popup_list_;
-    std::uint64_t popup_scope_{};
-    PopupToken popup_token_;
-    SubscriptionToken popup_selection_;
-    SubscriptionToken popup_activation_;
-    SubscriptionToken popup_dismissal_;
-    SubscriptionToken popup_revocation_;
+    std::shared_ptr<Panel> overlay_layer_;
+    std::shared_ptr<ListBox> overlay_list_;
+    std::uint64_t overlay_scope_{};
+    OverlayToken overlay_token_;
+    SubscriptionToken overlay_selection_;
+    SubscriptionToken overlay_activation_;
+    SubscriptionToken overlay_dismissal_;
+    SubscriptionToken overlay_revocation_;
     ComboBoxStyle drop_down_style_{ComboBoxStyle::drop_down_list};
     std::shared_ptr<TextBox> editor_;
     SubscriptionToken editor_text_;
@@ -259,7 +259,7 @@ private:
     Event<bool> drop_down_changed_;
     Event<> items_changed_;
     Event<const std::string&> text_changed_;
-    bool closing_popup_{};
+    bool closing_overlay_{};
 };
 
 } // namespace gui_forms

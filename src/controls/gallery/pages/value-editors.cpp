@@ -65,11 +65,11 @@ private:
                                 shell_blue_dark), {20.0, 42.0, 60.0, 22.0});
         color_ = make_control<ColorValueEditor>(StableId("gallery.value-editors.color"),
                                                 fixture_tint);
-        (*color_).set_accessible_name("Lamp tint");
+        (*color_).accessible_name = "Lamp tint";
         (*editors).add_at(color_, {84.0, 37.0, 236.0, 30.0});
         preview_ = make_control<Panel>(StableId("gallery.value-editors.preview"));
         (*preview_).set_background(fixture_tint);
-        (*preview_).set_accessible_name("Tint preview");
+        (*preview_).accessible_name = "Tint preview";
         (*editors).add_at(preview_, {336.0, 37.0, 92.0, 30.0});
 
         (*editors).add_at(label("gallery.value-editors.flags.caption", "Edges", 10.0, 700,
@@ -77,8 +77,8 @@ private:
         flags_ = make_control<FlagsValueEditor>(StableId("gallery.value-editors.flags"),
                                                 edges_descriptor(),
                                                 PropertyEnumValue{"Edges", "Top, Left", 3});
-        (*flags_).set_accessible_name("Lamp edges");
-        (*flags_).set_popup_width(236.0);
+        (*flags_).accessible_name = "Lamp edges";
+        (*flags_).set_overlay_width(236.0);
         (*editors).add_at(flags_, {84.0, 91.0, 236.0, 30.0});
         editor_status_ = label("gallery.value-editors.editor-status",
                                "Enter commits · Esc restores · F4 drops the flags list down",
@@ -99,7 +99,7 @@ private:
         release_.set_description("Remove the BindingSource from the BindingContext");
         binding_commands_ = make_control<CommandBar>(
             StableId("gallery.value-editors.binding-commands"));
-        (*binding_commands_).set_accessible_name("Binding context commands");
+        (*binding_commands_).accessible_name = "Binding context commands";
         (*binding_commands_).set_items({
             {.id = command_register, .label = "Register source",
              .accessible_name = "Register source", .command = &register_},
@@ -118,7 +118,7 @@ private:
             {460.0, 330.0});
         (*body).add_at(record, {494.0, 92.0, 460.0, 330.0});
         properties_ = make_control<PropertyList>(StableId("gallery.value-editors.properties"));
-        (*properties_).set_accessible_name("Lamp profile properties");
+        (*properties_).accessible_name = "Lamp profile properties";
         (*properties_).set_label_width(96.0);
         (*properties_).set_groups({
             {"gallery.value-editors.properties.identity", "IDENTITY", {
@@ -151,7 +151,7 @@ private:
             "InstrumentRack · the same record as one compact module", {930.0, 190.0});
         (*body).add_at(rack_group, {24.0, 440.0, 930.0, 190.0});
         rack_ = make_control<InstrumentRack>(StableId("gallery.value-editors.rack"));
-        (*rack_).set_accessible_name("Lamp profile rack");
+        (*rack_).accessible_name = "Lamp profile rack";
         (*rack_).set_module_width(640.0);
         (*rack_).set_modules({{
             std::string(module_id), "Lamp profile",

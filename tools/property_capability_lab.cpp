@@ -47,7 +47,7 @@ using gui_forms::StableId;
 // to it is a pointer to the capability (pointer-interconvertible, the
 // capability being standard-layout), and the capability is a base of the
 // control (a static_cast down). Writes go through operator=, reads through
-// type(); there is no conversion operator.
+// read(); there is no conversion operator.
 template <typename Value, typename Capability>
 class PropertyCell final {
 public:
@@ -61,7 +61,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] const Value& type() const noexcept { return value_; }
+    [[nodiscard]] const Value& read() const noexcept { return value_; }
 
 private:
     friend Capability;
@@ -113,7 +113,7 @@ public:
     explicit TableControl(StableId stable_id) : Control(std::move(stable_id)) {}
 
     // The type's table: one virtual call.
-    [[nodiscard]] virtual std::span<const PropertyEntry> property_table() const noexcept = 0;
+    [[nodiscard]] virtual std::span<const PropertyEntry> lab_property_table() const noexcept = 0;
 
     // The write's touch: the typed dirtiness and the slot's bit.
     void touch(std::uint8_t slot, Dirty dirt) {
@@ -184,7 +184,7 @@ constexpr std::array<PropertyEntry, 32> touch_button_table = make_table<32>(butt
 class TouchButton final : public TableControl, public TouchTextCapability<TouchButton, 27> {
 public:
     explicit TouchButton(StableId stable_id) : TableControl(std::move(stable_id)) {}
-    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override {
+    [[nodiscard]] std::span<const PropertyEntry> lab_property_table() const noexcept override {
         return touch_button_table;
     }
 };
@@ -329,7 +329,7 @@ void measure_spellings() {
     report("set text, capability, equal value", times.equal_value, "ns");
 
     // The setter, touch and key loops all end on the same odd index.
-    const bool same = (*setter).text() == (*touch).text.type();
+    const bool same = (*setter).text() == (*touch).text.read();
     report("setter and touch values agree", same ? 1.0 : 0.0, "");
     report("sizeof SetterButton", static_cast<double>(sizeof(SetterButton)), "bytes");
     report("sizeof CapabilityButton", static_cast<double>(sizeof(CapabilityButton)), "bytes");
@@ -358,13 +358,13 @@ void measure_table_and_gather() {
     for (std::size_t round = 0U; round < rounds; ++round) {
         Clock::time_point start = Clock::now();
         for (std::size_t index = 0U; index < set_iterations; ++index) {
-            const std::span<const PropertyEntry> table = control.property_table();
+            const std::span<const PropertyEntry> table = control.lab_property_table();
             sink += find_slot(table, (index & 1U) == 0U ? "tab_index" : "visible");
         }
         lookup = std::min(lookup, nanoseconds_since(start, set_iterations));
         start = Clock::now();
         for (std::size_t index = 0U; index < set_iterations; ++index) {
-            const std::span<const PropertyEntry> table = control.property_table();
+            const std::span<const PropertyEntry> table = control.lab_property_table();
             for (const PropertyEntry& entry : table) sink += entry.slot;
         }
         walk = std::min(walk, nanoseconds_since(start, set_iterations));
@@ -411,7 +411,7 @@ void measure_control(std::string_view name) {
 
         start = Clock::now();
         for (std::size_t index = 0U; index < set_iterations; ++index) {
-            (*control).set_tab_index(static_cast<std::uint32_t>(index & 1U));
+            (*control).tab_index = static_cast<std::uint32_t>(index & 1U);
         }
         typed = std::min(typed, nanoseconds_since(start, set_iterations));
 
@@ -698,7 +698,7 @@ void measure_today_marking() {
         std::cout << "today invalidate depth " << depth << ": paint " << paint << " ns, measure " << measure
                   << " ns\n";
     }
-    const std::array<std::size_t, 2> control_counts{1000U, 10000U};
+    const std::array<std::size_t, 3> control_counts{1000U, 10000U, 100000U};
     for (const std::size_t controls : control_counts) {
         const std::shared_ptr<Control> root = gui_forms::make_control<Control>(StableId("lab.flat"));
         std::vector<std::shared_ptr<Control>> children{};

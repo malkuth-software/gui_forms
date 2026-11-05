@@ -1,6 +1,6 @@
 // Auto-complete (stage W, matrix row 56): AutoCompleteStringCollection, the
 // shared text matcher, and TextBox's suggest, append and suggest-append
-// modes: the popup's open, highlight, accept and cancel order, the keyboard
+// modes: the overlay's open, highlight, accept and cancel order, the keyboard
 // and pointer traces, composition input never completed, host sources
 // reported unsupported, and the semantics a suggesting box publishes. Then
 // ComboBox's editable drop_down style and its auto-complete settings.
@@ -171,7 +171,7 @@ void suggest_keyboard_trace() {
             "the list shows matches in source order, each text once");
     require(box.text() == "c" && !box.auto_complete_highlighted(), "suggest mode does not change the text");
     require(window.find("ac.suggest.auto-complete.list") != nullptr && window.focused_control() == fixture.box,
-            "the list is a popup and the box keeps the focus");
+            "the list is an overlay and the box keeps the focus");
     window.perform_layout();
     const Rect list_bounds = (*window.find("ac.suggest.auto-complete.list")).absolute_bounds();
     require(list_bounds.y >= 38.0 && list_bounds.width == 200.0,
@@ -396,7 +396,7 @@ void pointer_and_dismissal() {
             "losing the focus closes the list and keeps the text");
     require(window.request_focus(fixture.box) && type(window, "g") && box.auto_complete_open(),
             "the list opens again");
-    box.set_visible(false);
+    box.visible = false;
     require(!box.auto_complete_open() && !window.find("ac.pointer.auto-complete"),
             "hiding the box revokes its list");
 }
@@ -545,7 +545,7 @@ void inactive_boxes() {
     box.set_auto_complete_mode(AutoCompleteMode::none);
     require(type(window, "c") && box.text() == "c" && !box.auto_complete_open() &&
                 !box.semantic_descriptor().has_popup,
-            "mode none completes nothing and publishes no popup");
+            "mode none completes nothing and publishes no overlay");
 }
 
 void paste_suggests_without_appending() {
@@ -638,9 +638,9 @@ void combo_drop_down_style() {
     require(press(window, PhysicalKey::f4) && combo.dropped_down() && window.focus_scope_depth() == 0U &&
                 window.focused_control() == editor,
             "F4 opens the list without taking the focus from the editor");
-    require(!(*window.find("combo.edit.popup.list")).focusable(), "the open list never takes the focus");
+    require(!(*window.find("combo.edit.overlay.list")).focusable(), "the open list never takes the focus");
     require(press(window, PhysicalKey::up) && combo.selected_index() == 2U && combo.dropped_down() &&
-                (*std::static_pointer_cast<ListBox>(window.find("combo.edit.popup.list"))).selected_index() == 2U,
+                (*std::static_pointer_cast<ListBox>(window.find("combo.edit.overlay.list"))).selected_index() == 2U,
             "Up moves through the open list and the field shows each item");
     require(type(window, "s") && combo.text() == "Cambridges" && combo.dropped_down() && !combo.selected_index(),
             "typing goes on in the editor while the list is open");
@@ -651,7 +651,7 @@ void combo_drop_down_style() {
 
     require(press(window, PhysicalKey::f4) && combo.dropped_down(), "the list opens again");
     window.perform_layout();
-    const Rect list = (*window.find("combo.edit.popup.list")).absolute_bounds();
+    const Rect list = (*window.find("combo.edit.overlay.list")).absolute_bounds();
     require(list.y >= 40.0 && list.width == 220.0, "the list opens under the field, as wide as it");
     const Point first{list.x + 20.0, list.y + 2.0 + 13.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, first}) &&

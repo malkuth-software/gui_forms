@@ -2,7 +2,7 @@
 
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
 #include "gui_forms/control.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
 
@@ -20,9 +20,9 @@ namespace gui_forms {
 
 // The two forms of a ribbon gallery (RIBBON_STUDY.md §5.2). In the ribbon a
 // gallery shows a fixed number of rows with scroll buttons and a "more"
-// button that opens the full gallery as a popup over the ribbon (owner
+// button that opens the full gallery as an overlay over the ribbon (owner
 // decision RB-23). The drop-down form is the full gallery, grouped by
-// category with captions, as the content of a popup.
+// category with captions, as the content of an overlay.
 enum class RibbonGalleryForm : std::uint8_t { in_ribbon, drop_down };
 
 // One category: its items show together under the caption in the drop-down
@@ -50,7 +50,7 @@ struct RibbonGalleryItem final {
 // systems, and every part is painted through the by-role paint path. The
 // selection follows the value of a GalleryCommand when one is set; a hover
 // of 300 ms, or keyboard focus resting on an item as long, asks the command
-// for a live preview, and leaving, Escape or closing the popup cancels it.
+// for a live preview, and leaving, Escape or closing the overlay cancels it.
 class RibbonGallery final : public Control {
 public:
     // How long the pointer or keyboard focus rests on an item before it is
@@ -121,15 +121,15 @@ public:
     [[nodiscard]] bool can_scroll_up() const noexcept { return first_line_ > 0U; }
     [[nodiscard]] bool can_scroll_down() const noexcept;
 
-    // -- popups ----------------------------------------------------------
-    // Drop-down form: shows this gallery in a popup below `anchor` (a
+    // -- overlays ----------------------------------------------------------
+    // Drop-down form: shows this gallery in an overlay below `anchor` (a
     // drop-down or split button, or an in-ribbon gallery), with keyboard focus
     // in it. Returns false for the in-ribbon form, when already open, or when
     // `anchor` is not attached to a window.
-    bool open_popup(const Control::Ptr& anchor);
-    // Cancels any preview, then closes the popup and returns focus.
-    void close_popup();
-    [[nodiscard]] bool popup_open() const noexcept { return popup_open_; }
+    bool open_overlay(const Control::Ptr& anchor);
+    // Cancels any preview, then closes the overlay and returns focus.
+    void close_overlay();
+    [[nodiscard]] bool overlay_open() const noexcept { return overlay_open_; }
     // In-ribbon form: opens the full gallery (the more button). Returns false
     // for the drop-down form or when it cannot open.
     bool show_more();
@@ -145,7 +145,7 @@ public:
     [[nodiscard]] Event<const std::optional<std::string>&>& selection_changed() noexcept {
         return selection_changed_;
     }
-    [[nodiscard]] Event<bool>& popup_open_changed() noexcept { return popup_open_changed_; }
+    [[nodiscard]] Event<bool>& overlay_open_changed() noexcept { return overlay_open_changed_; }
 
     // -- Control ---------------------------------------------------------
     [[nodiscard]] Size measure(Size available) override;
@@ -284,8 +284,8 @@ private:
     void cancel_preview();
     void on_command_value(const std::optional<std::string>& value);
     void on_command_state(const CommandState& state);
-    void on_layer_dismissed(PopupDismissReason reason);
-    void on_popup_revoked();
+    void on_layer_dismissed(OverlayDismissReason reason);
+    void on_overlay_revoked();
     void release_layer_content() noexcept;
     void on_more_open_changed(bool open);
     [[nodiscard]] bool navigate(std::uint32_t key);
@@ -322,21 +322,21 @@ private:
     std::string dwell_item_{};
     FrameRequestToken dwell_timer_{};
 
-    // Popup state of a drop-down gallery: the layer it sits in while open
+    // Overlay state of a drop-down gallery: the layer it sits in while open
     // (owned by the gallery; the layer holds the gallery as its content only
-    // while open), its popup lease and focus scope.
-    std::shared_ptr<AnchoredPopupLayer> layer_{};
-    PopupToken popup_{};
+    // while open), its overlay lease and focus scope.
+    std::shared_ptr<AnchoredOverlayLayer> layer_{};
+    OverlayToken overlay_{};
     FocusScopeId scope_{};
     SubscriptionToken layer_dismissed_{};
-    SubscriptionToken popup_revoked_{};
-    bool popup_open_{};
+    SubscriptionToken overlay_revoked_{};
+    bool overlay_open_{};
     // The full gallery an in-ribbon gallery's more button opens.
     std::shared_ptr<RibbonGallery> more_gallery_{};
     SubscriptionToken more_open_changed_{};
 
     Event<const std::optional<std::string>&> selection_changed_{};
-    Event<bool> popup_open_changed_{};
+    Event<bool> overlay_open_changed_{};
 };
 
 } // namespace gui_forms

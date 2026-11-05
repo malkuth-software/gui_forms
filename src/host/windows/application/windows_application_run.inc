@@ -258,7 +258,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         owner_id = (*owner_slot).id;
         owner = (*(*owner_slot).state).native_window();
     }
-    const HostWindowKind kind = host_window_kind(owner_id.valid(), entry.tool_window, entry.floating);
+    const HostWindowKind kind = host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, false);
     const bool floating = host_window_kind_traits(kind).floating;
     HostWindowDescription description;
     description.stable_id = entry.stable_id;

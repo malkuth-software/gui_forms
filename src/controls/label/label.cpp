@@ -104,7 +104,7 @@ Label::Label(StableId stable_id, std::string text)
     foreground.bindable = false;
     define_bindable_property({
         std::move(foreground),
-        detail::BindingNoexceptMethodGetter<Label, Color>(
+        detail::BindingMethodGetter<Label, Color>(
             *this, &Label::foreground),
         detail::DirectPropertySetter<Label, Color>(
             *this, &Label::set_foreground), {},
@@ -212,7 +212,7 @@ void Label::set_text(std::string text) {
     // update a measure request needlessly invalidates every layout ancestor.
     const Rect requested = requested_bounds();
     Dirty effects = Dirty::paint | Dirty::semantics | Dirty::accessibility;
-    if (auto_size() || requested.width <= 0.0 || requested.height <= 0.0) {
+    if (auto_size.read() || requested.width <= 0.0 || requested.height <= 0.0) {
         effects |= Dirty::measure | Dirty::arrange;
     }
     invalidate(effects);
@@ -277,10 +277,15 @@ void Label::set_text_style_role(TextStyleRole role) {
     }
 }
 
-Color Label::foreground() const noexcept {
+// The text colour paint_label_text draws: the authored foreground, or the
+// theme's text with the fields of the rules that select this label (its
+// type, stable ID, classes and states) in place (G3).
+Color Label::foreground() const {
     if (foreground_override_) return *foreground_override_;
-    return effective_theme().resolve(ControlVisualRole::panel,
-                                     visual_context()).text;
+    const ResolvedControlRecipe resolved =
+        effective_theme().resolve(*this, ControlVisualRole::panel, visual_context());
+    const Color text = resolved.recipe().text;
+    return text;
 }
 
 void Label::set_foreground(Color color) {
@@ -656,10 +661,10 @@ bool Label::hit_test_local(Point) const {
 SemanticDescriptor Label::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::static_text;
-    descriptor.name = accessible_name().empty()
+    descriptor.name = accessible_name.read().empty()
         ? (use_mnemonic_ ? parse_mnemonic_text(text_).display_text : text_)
-        : accessible_name();
-    descriptor.description = accessible_description();
+        : accessible_name.read();
+    descriptor.description = accessible_description.read();
     // The mnemonic moves the focus to the next control; the label publishes
     // it, as a Win32 static control does.
     if (use_mnemonic_) descriptor.access_key = mnemonic_access_key(text_);

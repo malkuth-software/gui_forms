@@ -27,7 +27,7 @@ struct ErrorProvider::Entry final {
     double padding{};
     std::shared_ptr<ErrorLayer> layer;
     std::shared_ptr<ErrorGlyph> glyph;
-    std::unique_ptr<PopupToken> popup;
+    std::unique_ptr<OverlayToken> overlay;
     SubscriptionToken bounds_subscription;
 };
 
@@ -542,16 +542,16 @@ Rect ErrorProvider::icon_bounds(const Entry& entry) const noexcept {
 }
 
 void ErrorProvider::position_visual(Entry& entry) {
-    if (entry.glyph && entry.popup && (*entry.popup).connected()) {
+    if (entry.glyph && entry.overlay && (*entry.overlay).connected()) {
         (*entry.glyph).set_requested_bounds(icon_bounds(entry));
     }
 }
 
 void ErrorProvider::close_visual(Entry& entry) noexcept {
     // The glyph's tooltip (its error text) goes with the glyph: closing the
-    // popup detaches it, which closes a tooltip that shows for it.
-    if (entry.popup) (*entry.popup).disconnect();
-    entry.popup.reset();
+    // overlay detaches it, which closes a tooltip that shows for it.
+    if (entry.overlay) (*entry.overlay).disconnect();
+    entry.overlay.reset();
     entry.glyph.reset();
     entry.layer.reset();
 }
@@ -566,8 +566,8 @@ void ErrorProvider::refresh_visual(Entry& entry, bool error_changed) {
         return;
     }
 
-    if (entry.popup && !(*entry.popup).connected()) close_visual(entry);
-    if (!entry.popup) {
+    if (entry.overlay && !(*entry.overlay).connected()) close_visual(entry);
+    if (!entry.overlay) {
         const std::string prefix = "error-provider." +
             std::to_string(provider_id_) + "." +
             std::to_string((*target).runtime_id().value);
@@ -580,17 +580,17 @@ void ErrorProvider::refresh_visual(Entry& entry, bool error_changed) {
         (*entry.glyph).set_icon(icon_);
         (*entry.glyph).configure_blink(blink_style_, blink_rate_, true);
         (*entry.layer).add_child(entry.glyph);
-        PopupToken popup = (*owner).open_popup(
-            target, entry.layer, PopupOptions{.require_enabled_owner = false});
-        entry.popup = std::make_unique<PopupToken>(std::move(popup));
-        (*entry.glyph).set_tool_tip_text(entry.error);
+        OverlayToken overlay = (*owner).open_overlay(
+            target, entry.layer, OverlayOptions{.require_enabled_owner = false});
+        entry.overlay = std::make_unique<OverlayToken>(std::move(overlay));
+        (*entry.glyph).tool_tip_text = entry.error;
         return;
     }
 
     (*entry.glyph).set_error(entry.error);
     (*entry.glyph).set_icon(icon_);
     (*entry.glyph).configure_blink(blink_style_, blink_rate_, error_changed);
-    (*entry.glyph).set_tool_tip_text(entry.error);
+    (*entry.glyph).tool_tip_text = entry.error;
     position_visual(entry);
 }
 
@@ -624,7 +624,7 @@ ErrorProviderSnapshot ErrorProvider::snapshot() const {
         const bool available = target && (*target).is_alive() &&
             (*target).attached_window() == bound_window() &&
             (*target).effectively_visible();
-        const bool presented = (*entry).popup && (*(*entry).popup).connected() &&
+        const bool presented = (*entry).overlay && (*(*entry).overlay).connected() &&
             (*entry).glyph;
         if (!(*entry).error.empty() && target && (*target).is_alive()) {
             ++result.live_errors;

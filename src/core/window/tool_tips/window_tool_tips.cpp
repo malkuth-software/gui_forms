@@ -44,7 +44,7 @@ void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::c
     if (!target || !(*target).is_alive() || (*target).attached_window() != this) {
         throw std::invalid_argument("GUI.Forms tooltip target must be a live control attached to its Window");
     }
-    if ((*target).tool_tip_text().empty()) {
+    if ((*target).tool_tip_text.read().empty()) {
         throw std::invalid_argument("GUI.Forms tooltip target has no tooltip text");
     }
     if (duration && (*duration).count() < 0) {

@@ -479,7 +479,7 @@ void MaskedTextBox::arrange(Rect final_bounds) {
 }
 
 void MaskedTextBox::on_key_preview(KeyEvent& event) {
-    if (!enabled() || event.action != KeyAction::down) return;
+    if (!enabled.read() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::insert && event.modifiers == Modifier::none) {
         set_overwrite_mode(!overwrite_mode_);
         event.handled = true;
@@ -489,7 +489,7 @@ void MaskedTextBox::on_key_preview(KeyEvent& event) {
 SemanticDescriptor MaskedTextBox::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::text_box;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.read();
     // The value is what the field shows: prompts and literals in place.
     descriptor.value = provider_.length() == 0U ? text() : provider_.display_text();
     // The editor shows the value, so its selection and caret index it; they
@@ -498,7 +498,7 @@ SemanticDescriptor MaskedTextBox::semantic_descriptor() const {
         const SemanticDescriptor editing = (*editor_).semantic_descriptor();
         descriptor.text_selection = editing.text_selection;
     }
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     if (read_only_) {
         descriptor.states |= SemanticState::read_only;

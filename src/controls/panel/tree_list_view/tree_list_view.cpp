@@ -1299,7 +1299,7 @@ void TreeListView::on_pointer(PointerEvent& event) {
         const std::optional<std::size_t> next_row = on_row ? std::optional<std::size_t>(hit.index) : std::nullopt;
         const std::optional<std::size_t> next_column =
             hit.zone == HitZone::header ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        set_cursor(hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow);
+        cursor = hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow;
         if (next_row != hot_row_ || next_column != hot_column_) {
             hot_row_ = next_row;
             hot_column_ = next_column;
@@ -1546,8 +1546,8 @@ SemanticDescriptor TreeListView::semantic_descriptor() const {
     // not.
     const Layout placed = layout();
     descriptor.role = SemanticRole::tree_grid;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.row_count = placed.shown_rows;
     descriptor.column_count = column_order_.size();
     if (selected_node_) descriptor.value = nodes_[*selected_node_].text;

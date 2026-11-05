@@ -1,6 +1,6 @@
 // NavigationPane (stage W, docking phase P7): the large buttons and the grip's
 // steps with their semantic value, hidden pages that appear only in the
-// configure menu, collapsing and expanding, the collapsed pane's popup (an
+// configure menu, collapsing and expanding, the collapsed pane's overlay (an
 // outside press closes it and passes through; Escape closes it), selection
 // and the content shown, the saved state's round trip, the semantic
 // snapshot, and the published parts and states.
@@ -80,8 +80,8 @@ struct RecordState final {
     void operator()(const NavigationPaneState& state) const { (*seen).push_back(state); }
 };
 
-// Records the order of the popup's closing and a press reaching a control.
-struct RecordPopup final {
+// Records the order of the overlay's closing and a press reaching a control.
+struct RecordOverlay final {
     std::vector<std::string>* order{};
     void operator()(bool open) const { (*order).push_back(open ? "opened" : "closed"); }
 };
@@ -117,7 +117,7 @@ std::unique_ptr<Fixture> make_fixture(Size client = {640.0, 420.0}) {
     std::unique_ptr<Fixture> fixture = std::make_unique<Fixture>();
     (*fixture).root = make_control<Panel>(StableId("root"));
     (*fixture).pane = make_control<NavigationPane>(StableId("nav"));
-    (*(*fixture).pane).set_dock(DockStyle::left);
+    (*(*fixture).pane).dock = DockStyle::left;
     (*(*fixture).root).add_child((*fixture).pane);
     (*fixture).outside = make_control<Button>(StableId("outside"), "Outside");
     (*(*fixture).outside).set_requested_bounds({400.0, 20.0, 120.0, 30.0});
@@ -173,9 +173,9 @@ void layout_and_content() {
                 parts.button_area.present && parts.overflow_area.present && parts.configure_button.present &&
                 parts.configure_glyph.present && parts.focus.present,
             "an expanded pane shows its header, content, grip, buttons and overflow strip");
-    require(!parts.collapsed_bar.present && !parts.collapsed_label.present && !parts.popup_face.present &&
+    require(!parts.collapsed_bar.present && !parts.collapsed_label.present && !parts.overlay_face.present &&
                 !parts.header_icon.present,
-            "the collapsed bar and the popup are absent, and a page without an image has no header icon");
+            "the collapsed bar and the overlay are absent, and a page without an image has no header icon");
     require(parts.button_area.bounds.height == 4.0 * 31.0 &&
                 parts.grip_bar.bounds.y + parts.grip_bar.bounds.height == parts.button_area.bounds.y &&
                 parts.button_area.bounds.y + parts.button_area.bounds.height == parts.overflow_area.bounds.y &&
@@ -357,14 +357,14 @@ void hidden_pages_and_menu() {
     pane.close_configure_menu();
 }
 
-void collapse_and_popup() {
+void collapse_and_overlay() {
     std::unique_ptr<Fixture> fixture = make_fixture();
     NavigationPane& pane = *(*fixture).pane;
     Window& window = *(*fixture).window;
     std::vector<NavigationPaneState> states;
     SubscriptionToken state_token = pane.state_changed().subscribe(RecordState{&states});
 
-    require(!pane.open_popup(), "an expanded pane has no popup");
+    require(!pane.open_overlay(), "an expanded pane has no overlay");
     click(window, centre(pane.parts().collapse_button.bounds));
     window.perform_layout();
     require(pane.collapsed() && states.size() == 1U && states.back().collapsed, "the collapse button collapses the pane");
@@ -385,44 +385,44 @@ void collapse_and_popup() {
     const SemanticNode* caption = find_node(snapshot.roots, "nav.caption");
     require(expand != nullptr && (*expand).name == "Expand navigation pane" && caption != nullptr &&
                 (*caption).name == "Mail" && (*caption).has_popup,
-            "the bar's button expands and its title opens a popup");
+            "the bar's button expands and its title opens an overlay");
 
-    // The popup opens from the title over the window.
+    // The overlay opens from the title over the window.
     std::vector<std::string> order;
-    SubscriptionToken popup_token = pane.popup_open_changed().subscribe(RecordPopup{&order});
+    SubscriptionToken overlay_token = pane.overlay_open_changed().subscribe(RecordOverlay{&order});
     SubscriptionToken press_token = (*(*fixture).outside).pointer_observed().subscribe(RecordPress{&order});
     click(window, centre(parts.collapsed_label.bounds));
     window.perform_layout();
-    require(pane.popup_open() && order.size() == 1U && order[0] == "opened", "clicking the title opens the popup");
-    const Control::Ptr popup = window.find("nav.popup");
+    require(pane.overlay_open() && order.size() == 1U && order[0] == "opened", "clicking the title opens the overlay");
+    const Control::Ptr overlay = window.find("nav.overlay");
     parts = pane.parts();
-    require(popup && (*host).parent() == popup && (*host).effectively_visible() &&
+    require(overlay && (*host).parent() == overlay && (*host).effectively_visible() &&
                 (*(*fixture).contents[0]).parent() == host,
-            "the content panel moves into the popup with the selected page's control");
-    require(parts.popup_face.present && parts.popup_shadow.present && parts.popup_label.present &&
-                parts.popup_content.present && parts.popup_face.bounds.x == 32.0 &&
-                parts.popup_face.bounds.width == 220.0 && parts.collapsed_label.states.contains(AnatomyState::open),
-            "the popup lies beside the bar at the expanded width, and the title shows open");
-    require((*popup).committed_arranged_bounds() == Rect{32.0, 0.0, 220.0, 420.0},
-            "the popup's root covers the popup's face in window coordinates");
+            "the content panel moves into the overlay with the selected page's control");
+    require(parts.overlay_face.present && parts.overlay_shadow.present && parts.overlay_label.present &&
+                parts.overlay_content.present && parts.overlay_face.bounds.x == 32.0 &&
+                parts.overlay_face.bounds.width == 220.0 && parts.collapsed_label.states.contains(AnatomyState::open),
+            "the overlay lies beside the bar at the expanded width, and the title shows open");
+    require((*overlay).committed_arranged_bounds() == Rect{32.0, 0.0, 220.0, 420.0},
+            "the overlay's root covers the overlay's face in window coordinates");
 
     // A press outside closes it first, then reaches the control under it.
     click(window, centre((*(*fixture).outside).committed_arranged_bounds()));
     window.perform_layout();
-    require(!pane.popup_open() && order.size() == 3U && order[1] == "closed" && order[2] == "outside pressed",
-            "an outside press closes the popup and passes through to the control under it");
-    require((*host).parent() == (*fixture).pane && !window.find("nav.popup") && !pane.parts().popup_face.present,
-            "the content panel returns to the pane and the popup leaves the window");
+    require(!pane.overlay_open() && order.size() == 3U && order[1] == "closed" && order[2] == "outside pressed",
+            "an outside press closes the overlay and passes through to the control under it");
+    require((*host).parent() == (*fixture).pane && !window.find("nav.overlay") && !pane.parts().overlay_face.present,
+            "the content panel returns to the pane and the overlay leaves the window");
 
     // Escape closes it, and focus comes back to the pane.
     require(window.request_focus((*fixture).pane), "the pane takes focus");
-    require(window.perform_semantic_action("nav.caption", SemanticAction::expand) && pane.popup_open(),
-            "the title's expand action opens the popup");
+    require(window.perform_semantic_action("nav.caption", SemanticAction::expand) && pane.overlay_open(),
+            "the title's expand action opens the overlay");
     key(window, PhysicalKey::escape);
-    require(!pane.popup_open() && window.focused_control() == (*fixture).pane, "Escape closes the popup");
+    require(!pane.overlay_open() && window.focused_control() == (*fixture).pane, "Escape closes the overlay");
 
-    // A focusable control in the content takes focus inside the popup, and
-    // Escape it leaves unhandled closes the popup and restores focus.
+    // A focusable control in the content takes focus inside the overlay, and
+    // Escape it leaves unhandled closes the overlay and restores focus.
     std::shared_ptr<Button> editor = make_control<Button>(StableId("content.editor"), "Compose");
     std::unique_ptr<PageContent> content = std::make_unique<PageControlContent>(editor);
     const PageRecord record{.id = PageId{"journal"}, .title = "Journal"};
@@ -431,16 +431,16 @@ void collapse_and_popup() {
             "a page with a button joins while collapsed");
     require(pane.pages().select(record.id, PageSelectionCause::programmatic) == PageEditStatus::applied,
             "a page is selected while collapsed");
-    require(pane.open_popup() && window.focused_control() == editor, "the popup's first Tab stop takes focus");
+    require(pane.open_overlay() && window.focused_control() == editor, "the overlay's first Tab stop takes focus");
     key(window, PhysicalKey::escape);
-    require(!pane.popup_open() && window.focused_control() == (*fixture).pane,
-            "Escape inside the popup closes it and focus returns");
+    require(!pane.overlay_open() && window.focused_control() == (*fixture).pane,
+            "Escape inside the overlay closes it and focus returns");
 
-    // Expanding closes the popup.
-    require(pane.open_popup(), "the popup opens again");
+    // Expanding closes the overlay.
+    require(pane.open_overlay(), "the overlay opens again");
     require(window.perform_semantic_action("nav.collapse", SemanticAction::press) && !pane.collapsed() &&
-                !pane.popup_open(),
-            "expanding closes the popup");
+                !pane.overlay_open(),
+            "expanding closes the overlay");
     window.perform_layout();
     require((*host).effectively_visible() && (*editor).parent() == host, "expanded, the content is back in the pane");
 }
@@ -608,7 +608,7 @@ void published_states() {
 
 void refusals() {
     std::shared_ptr<NavigationPane> pane = make_control<NavigationPane>(StableId("nav"));
-    require(!(*pane).open_popup() && !(*pane).show_configure_menu(), "a detached pane opens nothing");
+    require(!(*pane).open_overlay() && !(*pane).show_configure_menu(), "a detached pane opens nothing");
     bool threw = false;
     try {
         (*pane).set_expanded_width(10.0);
@@ -632,12 +632,12 @@ int main() {
     layout_and_content();
     grip_steps();
     hidden_pages_and_menu();
-    collapse_and_popup();
+    collapse_and_overlay();
     keyboard_and_semantics();
     state_round_trip();
     published_states();
     refusals();
-    std::cout << "NavigationPane: layout, content, grip steps, hidden pages and menu, collapse and popup order, "
+    std::cout << "NavigationPane: layout, content, grip steps, hidden pages and menu, collapse and overlay order, "
                  "keyboard, semantics, state round trip and published parts passed\n";
     return 0;
 }

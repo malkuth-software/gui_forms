@@ -1209,11 +1209,12 @@ bool add_loops(const KeyframesDefinition& definition, const AnimationSettings& s
     return true;
 }
 
-// Whether `rule` declares nothing: no value and no scoped custom property
-// definition (P12).
+// Whether `rule` declares nothing: no value, no scoped custom property
+// definition (P12) and no backdrop.
 bool rule_empty(const ThemeRule& rule) noexcept {
     const bool empty = rule.declarations.empty() && rule.transitions.empty() && !rule.ambient.has_value() &&
-                       rule.materials.empty() && rule.recipe_fields.empty() && rule.scoped_definitions.empty();
+                       rule.materials.empty() && rule.recipe_fields.empty() && rule.scoped_definitions.empty() &&
+                       !rule.backdrop.has_value();
     return empty;
 }
 

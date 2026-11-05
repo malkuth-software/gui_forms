@@ -52,7 +52,7 @@
       "reviewed": false,
       "summary": "Validates the role and updates inherited typography without disturbing an explicit font."
     },
-    "gui_forms::Label::foreground|Color () const noexcept": {
+    "gui_forms::Label::foreground|Color () const": {
       "reviewed": false,
       "summary": "Resolves an explicit color or the active panel-role text color."
     },

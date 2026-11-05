@@ -52,14 +52,14 @@ RibbonGallery::RibbonGallery(StableId stable_id, RibbonGalleryForm form)
         throw std::invalid_argument("RibbonGallery form is invalid");
     }
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(form_ == RibbonGalleryForm::drop_down ? PaintPlane::overlay : PaintPlane::control);
 }
 
 RibbonGallery::~RibbonGallery() {
     dwell_timer_.disconnect();
-    popup_revoked_.disconnect();
-    popup_.disconnect();
+    overlay_revoked_.disconnect();
+    overlay_.disconnect();
 }
 
 void RibbonGallery::on_dispose() noexcept {
@@ -70,9 +70,9 @@ void RibbonGallery::on_dispose() noexcept {
         } catch (...) {
         }
     }
-    popup_revoked_.disconnect();
-    popup_.disconnect();
-    popup_open_ = false;
+    overlay_revoked_.disconnect();
+    overlay_.disconnect();
+    overlay_open_ = false;
     command_value_.disconnect();
     command_state_.disconnect();
     more_open_changed_.disconnect();
@@ -115,7 +115,7 @@ void RibbonGallery::set_items(std::vector<RibbonGalleryCategory> categories, std
         }
         item_category[index] = (*found).second;
     }
-    if (popup_open_) close_popup();
+    if (overlay_open_) close_overlay();
     cancel_preview();
     // Display order: uncategorized items first, then category by category.
     std::vector<std::size_t> order{};
@@ -317,7 +317,7 @@ void RibbonGallery::commit(std::size_t position) {
         invalidate(Dirty::paint | Dirty::semantics);
         selection_changed_.emit(own_selection_);
     }
-    if (is_alive() && popup_open_) close_popup();
+    if (is_alive() && overlay_open_) close_overlay();
 }
 
 void RibbonGallery::start_dwell(std::size_t position) {
@@ -453,12 +453,12 @@ void RibbonGallery::on_key(KeyEvent& event) {
         return;
     }
     if (key == PhysicalKey::escape) {
-        // Escape withdraws a preview first; a second Escape closes a popup.
+        // Escape withdraws a preview first; a second Escape closes an overlay.
         if (command_ && (*command_).previewing()) {
             cancel_preview();
             event.handled = true;
-        } else if (popup_open_) {
-            close_popup();
+        } else if (overlay_open_) {
+            close_overlay();
             event.handled = true;
         }
         return;
@@ -539,24 +539,24 @@ void RibbonGallery::on_pointer(PointerEvent& event) {
     }
 }
 
-// -- popups ----------------------------------------------------------------------------
+// -- overlays ----------------------------------------------------------------------------
 
-bool RibbonGallery::open_popup(const Control::Ptr& anchor) {
+bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
     require_mutable();
-    if (form_ != RibbonGalleryForm::drop_down || popup_open_ || !anchor || (*anchor).attached_window() == nullptr) {
+    if (form_ != RibbonGalleryForm::drop_down || overlay_open_ || !anchor || (*anchor).attached_window() == nullptr) {
         return false;
     }
     Window& window = *(*anchor).attached_window();
-    AnchoredPopupPlacement placement;
+    AnchoredOverlayPlacement placement;
     placement.preferred_size = measure({std::numeric_limits<double>::max(), std::numeric_limits<double>::max()});
-    placement.horizontal_alignment = PopupHorizontalAlignment::near;
-    placement.vertical_preference = PopupVerticalPreference::below;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = 2.0;
     if (!layer_) {
-        layer_ = make_control<AnchoredPopupLayer>(StableId(std::string(stable_id().value()) + ".layer"), anchor,
+        layer_ = make_control<AnchoredOverlayLayer>(StableId(std::string(stable_id().value()) + ".layer"), anchor,
                                                   placement);
         layer_dismissed_ = (*layer_).dismiss_requested().subscribe(
-            Delegate<PopupDismissReason>::bind<RibbonGallery, &RibbonGallery::on_layer_dismissed>(*this));
+            Delegate<OverlayDismissReason>::bind<RibbonGallery, &RibbonGallery::on_layer_dismissed>(*this));
     } else {
         (*layer_).set_anchor(anchor);
         (*layer_).set_placement(placement);
@@ -567,51 +567,51 @@ bool RibbonGallery::open_popup(const Control::Ptr& anchor) {
     const Size client = window.client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     try {
-        popup_ = window.open_popup(anchor, layer_);
+        overlay_ = window.open_overlay(anchor, layer_);
     } catch (...) {
         release_layer_content();
         throw;
     }
-    popup_open_ = true;
-    if (Event<>* closed = popup_.closed_event()) {
-        popup_revoked_ = (*closed).subscribe(Delegate<>::bind<RibbonGallery, &RibbonGallery::on_popup_revoked>(*this));
+    overlay_open_ = true;
+    if (Event<>* closed = overlay_.closed_event()) {
+        overlay_revoked_ = (*closed).subscribe(Delegate<>::bind<RibbonGallery, &RibbonGallery::on_overlay_revoked>(*this));
     }
     scope_ = window.begin_focus_scope(layer_, shared_from_this());
     invalidate(Dirty::paint | Dirty::semantics);
-    popup_open_changed_.emit(true);
+    overlay_open_changed_.emit(true);
     return true;
 }
 
-void RibbonGallery::close_popup() {
-    if (!popup_open_) return;
-    // The preview is withdrawn before the popup goes.
+void RibbonGallery::close_overlay() {
+    if (!overlay_open_) return;
+    // The preview is withdrawn before the overlay goes.
     cancel_preview();
-    popup_open_ = false;
+    overlay_open_ = false;
     Window* const window = attached_window();
     if (window != nullptr && scope_) static_cast<void>((*window).end_focus_scope(scope_));
     scope_ = {};
-    popup_revoked_.disconnect();
-    popup_.disconnect();
+    overlay_revoked_.disconnect();
+    overlay_.disconnect();
     release_layer_content();
     hot_.reset();
     pressed_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
-    popup_open_changed_.emit(false);
+    overlay_open_changed_.emit(false);
 }
 
-void RibbonGallery::on_layer_dismissed(PopupDismissReason) {
-    close_popup();
+void RibbonGallery::on_layer_dismissed(OverlayDismissReason) {
+    close_overlay();
 }
 
-void RibbonGallery::on_popup_revoked() {
-    if (!popup_open_) return;
+void RibbonGallery::on_overlay_revoked() {
+    if (!overlay_open_) return;
     cancel_preview();
-    popup_open_ = false;
+    overlay_open_ = false;
     scope_ = {};
-    popup_revoked_.disconnect();
+    overlay_revoked_.disconnect();
     release_layer_content();
     invalidate(Dirty::paint | Dirty::semantics);
-    popup_open_changed_.emit(false);
+    overlay_open_changed_.emit(false);
 }
 
 // The gallery owns its layer (layer_), and while open the layer holds the
@@ -639,15 +639,15 @@ bool RibbonGallery::show_more() {
         more.set_drop_down_size(drop_down_columns_, drop_down_rows_);
         more.set_items(categories_, items_);
         more.set_command(command_);
-        more.set_accessible_name(accessible_name());
-        more_open_changed_ = more.popup_open_changed().subscribe(
+        more.accessible_name = accessible_name.read();
+        more_open_changed_ = more.overlay_open_changed().subscribe(
             Delegate<bool>::bind<RibbonGallery, &RibbonGallery::on_more_open_changed>(*this));
     }
-    if ((*more_gallery_).popup_open()) return true;
+    if ((*more_gallery_).overlay_open()) return true;
     if (!command_) (*more_gallery_).own_selection_ = own_selection_;
     // The pointer is on the more button now: the in-ribbon preview ends.
     cancel_preview();
-    const bool opened = (*more_gallery_).open_popup(shared_from_this());
+    const bool opened = (*more_gallery_).open_overlay(shared_from_this());
     return opened;
 }
 
@@ -666,8 +666,8 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
     // The vocabulary has no grid role: a gallery is a list of items.
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::list;
-    descriptor.name = accessible_name().empty() ? "Gallery" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? "Gallery" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     const std::optional<std::string> selected = selected_id();
     const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
     if (position) descriptor.value = items_[order_[*position]].label;
@@ -770,7 +770,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
         more.bounds = {absolute.x + placed.more_button.bounds.x, absolute.y + placed.more_button.bounds.y,
                        placed.more_button.bounds.width, placed.more_button.bounds.height};
         more.states = SemanticState::visible | SemanticState::enabled;
-        if (more_gallery_ && (*more_gallery_).popup_open()) more.states |= SemanticState::expanded;
+        if (more_gallery_ && (*more_gallery_).overlay_open()) more.states |= SemanticState::expanded;
         more.actions = {SemanticAction::press, SemanticAction::expand};
         nodes.push_back(std::move(more));
     }

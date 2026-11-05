@@ -86,8 +86,9 @@ void Binding::start() {
     if (!target_ || !(*target_).is_alive() || !source || !(*source).is_alive()) {
         throw std::logic_error("GUI.Forms cannot start a binding with a retired endpoint");
     }
-    const BindableProperty* property = (*target_).find_bindable_property(property_name_);
-    if (!property || !(*property).descriptor.readable || !(*property).get) {
+    // The target's property, from its registry or its type's table.
+    const std::optional<PropertyDescriptor> property = (*target_).property_descriptor(property_name_);
+    if (!property || !(*property).bindable || !(*property).readable) {
         throw std::invalid_argument("GUI.Forms Binding target property is not readable");
     }
     const std::weak_ptr<Binding> weak = weak_from_this();
@@ -95,9 +96,8 @@ void Binding::start() {
         SourceChangedCallback{weak});
     source_disposed_ = (*source).disposed_event().subscribe(
         *this, SourceDisposedCallback{weak});
-    if ((*property).connect_changed) {
-        target_changed_ = (*property).connect_changed(
-            *this, TargetChangedCallback{weak});
+    if ((*property).change_notifications) {
+        target_changed_ = (*target_).subscribe_property_changed(property_name_, *this, TargetChangedCallback{weak});
     }
     target_validating_ = (*target_).validating().subscribe(
         *this, TargetValidatingCallback{weak});
@@ -156,10 +156,10 @@ bool Binding::update_control(bool automatic) {
     }
     const std::shared_ptr<gui_forms::Binding> self = shared_from_this();
     const std::shared_ptr<gui_forms::BindingSource> source = source_.lock();
-    const BindableProperty* property =
-        target_ ? (*target_).find_bindable_property(property_name_) : nullptr;
+    std::optional<PropertyDescriptor> property{};
+    if (target_ && (*target_).is_alive()) property = (*target_).property_descriptor(property_name_);
     if (!source || !(*source).is_alive() || !target_ || !(*target_).is_alive() ||
-        !property || !(*property).descriptor.writable || !(*property).set) {
+        !property || !(*property).bindable || !(*property).writable) {
         ++failed_updates_;
         return complete(BindingCompleteContext::control_update,
                         BindingCompleteState::data_error,
@@ -182,7 +182,7 @@ bool Binding::update_control(bool automatic) {
         }
         if (options_.formatting_enabled) {
             BindingConvertEvent event{
-                proposed, (*property).descriptor.kind, false};
+                proposed, (*property).kind, false};
             format_.emit(event);
             proposed = std::move(event.value);
             if (!event.handled && !options_.format_string.empty()) {
@@ -191,11 +191,11 @@ bool Binding::update_control(bool automatic) {
             }
         }
         const std::optional<BindingValue> converted = convert_property_value(
-            proposed, (*property).descriptor);
+            proposed, *property);
         if (!converted) {
             throw std::invalid_argument("binding value cannot convert to target kind");
         }
-        (*property).set(*converted);
+        (*target_).set_property_value(property_name_, *converted);
         ++control_reads_;
         ++successful_updates_;
         updating_ = false;
@@ -225,10 +225,10 @@ bool Binding::update_source(bool automatic) {
                          DataSourceUpdateMode::on_property_changed) return false;
     const std::shared_ptr<gui_forms::Binding> self = shared_from_this();
     const std::shared_ptr<gui_forms::BindingSource> source = source_.lock();
-    const BindableProperty* property =
-        target_ ? (*target_).find_bindable_property(property_name_) : nullptr;
+    std::optional<PropertyDescriptor> property{};
+    if (target_ && (*target_).is_alive()) property = (*target_).property_descriptor(property_name_);
     if (!source || !(*source).is_alive() || !target_ || !(*target_).is_alive() ||
-        !property || !(*property).descriptor.readable || !(*property).get) {
+        !property || !(*property).bindable || !(*property).readable) {
         ++failed_updates_;
         return complete(BindingCompleteContext::data_source_update,
                         BindingCompleteState::data_error,
@@ -237,7 +237,9 @@ bool Binding::update_source(bool automatic) {
     }
     try {
         updating_ = true;
-        BindingValue proposed = (*property).get();
+        const std::optional<BindingValue> current = (*target_).property_value(property_name_);
+        if (!current) throw std::logic_error("binding target property is not readable");
+        BindingValue proposed = *current;
         if (!std::holds_alternative<std::monostate>(options_.null_value) &&
             proposed == options_.null_value) {
             proposed = options_.data_source_null_value;

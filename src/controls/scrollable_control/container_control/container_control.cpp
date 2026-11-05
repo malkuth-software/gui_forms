@@ -102,8 +102,8 @@ bool ContainerControl::validate_children(ValidationConstraints constraints) {
 SemanticDescriptor ContainerControl::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() ||
                          !descriptor.description.empty();
     return descriptor;

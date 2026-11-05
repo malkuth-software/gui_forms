@@ -162,7 +162,7 @@ void CheckedListBox::on_pointer(PointerEvent& event) {
 void CheckedListBox::on_key(KeyEvent& event) {
     if (event.action == KeyAction::down &&
         event.physical_key == PhysicalKey::space && focused_for_extension() &&
-        enabled()) {
+        enabled.read()) {
         if (const std::optional<std::size_t> index = active_index_for_extension()) {
             toggle_item(*index);
             event.handled = true;

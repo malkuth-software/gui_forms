@@ -91,7 +91,7 @@ Keyboard: the arrow away from the strip (Down) opens the customize menu with
 its first row selected; Left and Right move along the buttons as on a
 ToolStrip. To accessibility the toolbar is a `toolbar` named "Quick Access
 Toolbar" unless it has an accessible name, with a button per shown command
-and a `menu_button` with a popup for the customize button, which press and
+and a `menu_button` with an overlay for the customize button, which press and
 expand open and collapse closes.
 
 Use `capture_ribbon_state` and `apply_ribbon_state` to save and restore the

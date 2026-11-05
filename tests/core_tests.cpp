@@ -285,8 +285,7 @@ public:
 
     void operator()() const {
         alternate_ = !alternate_;
-        control_.set_accessible_name(
-            alternate_ ? "Semantic oscillation A" : "Semantic oscillation B");
+        control_.accessible_name = alternate_ ? "Semantic oscillation A" : "Semantic oscillation B";
     }
 
 private:
@@ -792,10 +791,10 @@ void test_callback_arbitration_snapshots_paint_hit_semantics_and_validation() {
         std::shared_ptr<CallbackArbitrationControl> added =
             make_control<CallbackArbitrationControl>(
             StableId("callback.semantic.added"));
-        (*root).set_accessible_name("Semantic root");
-        (*mutator).set_accessible_name("Semantic mutator");
-        (*removed).set_accessible_name("Semantic removed");
-        (*added).set_accessible_name("Semantic added");
+        (*root).accessible_name = "Semantic root";
+        (*mutator).accessible_name = "Semantic mutator";
+        (*removed).accessible_name = "Semantic removed";
+        (*added).accessible_name = "Semantic added";
         (*root).add_child(mutator);
         (*root).add_child(removed);
         bool changed_once{};
@@ -953,7 +952,7 @@ void test_capture_released_before_release_callback() {
 
 void test_disabled_control_is_ineligible() {
     Fixture fixture;
-    (*fixture.child).set_enabled(false);
+    (*fixture.child).enabled = false;
     require(!(*fixture.window).request_focus(fixture.child),
             "disabled control must reject focus");
     (*fixture.window).dispatch_pointer({PointerAction::down, PointerButton::primary,
@@ -1030,13 +1029,13 @@ void test_cursor_inheritance_and_override() {
     Fixture fixture;
     require((*fixture.child).effective_cursor() == CursorKind::arrow,
             "controls must default to the portable arrow cursor");
-    (*fixture.root).set_cursor(CursorKind::hand);
+    (*fixture.root).cursor = CursorKind::hand;
     require((*fixture.child).effective_cursor() == CursorKind::hand,
             "unset child cursor must inherit from the retained parent");
-    (*fixture.child).set_cursor(CursorKind::text);
+    (*fixture.child).cursor = CursorKind::text;
     require((*fixture.child).effective_cursor() == CursorKind::text,
             "explicit child cursor must override inherited cursor");
-    (*fixture.child).set_cursor(std::nullopt);
+    (*fixture.child).cursor = std::nullopt;
     require((*fixture.child).effective_cursor() == CursorKind::hand,
             "clearing a cursor override must restore inheritance");
 }
@@ -1049,14 +1048,14 @@ void test_control_identity_geometry_constraints_and_z_order() {
     std::string observed_name;
     SubscriptionToken changed = (*first).name_changed().subscribe(
         RecordValue<std::string>(observed_name));
-    (*first).set_name("primary-field");
-    require((*first).name() == "primary-field" &&
+    (*first).name = "primary-field";
+    require((*first).name.read() == "primary-field" &&
                 observed_name == "primary-field" &&
                 (*first).stable_id().value() == "control.first",
             "mutable Forms Name must remain distinct from immutable retained identity");
 
-    (*first).set_minimum_size({40.0, 20.0});
-    (*first).set_maximum_size({80.0, 60.0});
+    (*first).minimum_size = {40.0, 20.0};
+    (*first).maximum_size = {80.0, 60.0};
     (*first).set_requested_bounds({10.0, 12.0, 5.0, 100.0});
     require((*first).requested_bounds() == Rect{10.0, 12.0, 40.0, 60.0} &&
                 (*first).left() == 10.0 && (*first).top() == 12.0 &&
@@ -1073,9 +1072,9 @@ void test_control_identity_geometry_constraints_and_z_order() {
 
     (*second).set_requested_bounds({10.0, 12.0, 40.0, 60.0});
     (*nested).set_requested_bounds({2.0, 2.0, 8.0, 8.0});
-    (*nested).set_tab_index(5U);
-    (*second).set_tab_index(10U);
-    (*first).set_tab_index(20U);
+    (*nested).tab_index = 5U;
+    (*second).tab_index = 10U;
+    (*first).tab_index = 20U;
     (*second).add_child(nested);
     (*root).add_child(first);
     (*root).add_child(second);
@@ -1097,23 +1096,23 @@ void test_control_identity_geometry_constraints_and_z_order() {
     require((*root).get_child_at_point({20.0, 20.0}) == second,
             "direct child lookup must return the topmost overlapping child");
     window.capture_pointer(second, 1U);
-    (*second).set_hit_test_transparent(true);
+    (*second).hit_test_transparent = true;
     require((*root).get_child_at_point(
                 {20.0, 20.0}, GetChildAtPointSkip::transparent) == first &&
                 window.hit_test({20.0, 20.0}) == first &&
                 window.captured_control() == nullptr,
             "transparent child lookup and ordinary pointer routing must pass through and revoke capture coherently");
-    (*second).set_hit_test_transparent(false);
-    (*second).set_enabled(false);
+    (*second).hit_test_transparent = false;
+    (*second).enabled = false;
     require((*root).get_child_at_point(
                 {20.0, 20.0}, GetChildAtPointSkip::disabled) == first,
             "disabled child lookup exclusion must reveal the next z-order candidate");
-    (*second).set_enabled(true);
-    (*second).set_visible(false);
+    (*second).enabled = true;
+    (*second).visible = false;
     require((*root).get_child_at_point(
                 {20.0, 20.0}, GetChildAtPointSkip::invisible) == first,
             "invisible child lookup exclusion must reveal the next z-order candidate");
-    (*second).set_visible(true);
+    (*second).visible = true;
     require((*root).get_next_control({}, true) == second &&
                 (*root).get_next_control(second, true) == nested &&
                 (*root).get_next_control(nested, true) == first &&
@@ -1146,17 +1145,17 @@ void test_control_identity_geometry_constraints_and_z_order() {
     std::shared_ptr<gui_forms::Control> sizing = make_control<Control>(StableId("control.autosize"));
     std::shared_ptr<gui_forms::Control> content = make_control<Control>(StableId("control.autosize.content"));
     (*sizing).set_requested_bounds({0.0, 0.0, 100.0, 80.0});
-    (*sizing).set_padding({2.0, 2.0, 2.0, 2.0});
+    (*sizing).padding = {2.0, 2.0, 2.0, 2.0};
     (*content).set_requested_bounds({10.0, 8.0, 40.0, 20.0});
     (*sizing).add_child(content);
     std::size_t auto_size_events{};
     SubscriptionToken auto_size_token = (*sizing).auto_size_changed().subscribe(
         CountTrueValues(auto_size_events));
-    (*sizing).set_auto_size(true);
+    (*sizing).auto_size = true;
     require((*sizing).get_preferred_size({200.0, 200.0}) == Size{100.0, 80.0} &&
                 auto_size_events == 1U,
             "GrowOnly AutoSize must retain authored minimum extent and publish one change");
-    (*sizing).set_auto_size_mode(AutoSizeMode::grow_and_shrink);
+    (*sizing).auto_size_mode = AutoSizeMode::grow_and_shrink;
     require((*sizing).get_preferred_size({200.0, 200.0}) == Size{55.0, 33.0},
             "GrowAndShrink AutoSize must derive deterministic child, margin, and padding extent");
 }
@@ -1179,22 +1178,22 @@ void test_damage_and_idle_metrics() {
             "machine snapshot must declare CPU-only renderer capability");
 }
 
-void test_popup_surface_composites_after_every_application_plane() {
+void test_overlay_surface_composites_after_every_application_plane() {
     const Color application_overlay = Color::rgba(170, 20, 30);
-    const Color popup_backplane = Color::rgba(20, 170, 30);
+    const Color overlay_backplane = Color::rgba(20, 170, 30);
     std::shared_ptr<ProbeControl> root =
-        make_control<ProbeControl>(StableId("popup-order.root"));
+        make_control<ProbeControl>(StableId("overlay-order.root"));
     (*root).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
     (*root).set_paint_plane(PaintPlane::overlay);
     std::shared_ptr<ProbeControl> owner =
-        make_control<ProbeControl>(StableId("popup-order.owner"));
+        make_control<ProbeControl>(StableId("overlay-order.owner"));
     (*owner).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
     (*root).add_child(owner);
     Window window(root, {120.0, 80.0});
 
-    class ColoredPopup final : public Control {
+    class ColoredOverlayRoot final : public Control {
     public:
-        ColoredPopup(StableId id, Color color)
+        ColoredOverlayRoot(StableId id, Color color)
             : Control(std::move(id)), color_(color) {
             set_paint_plane(PaintPlane::backplane);
         }
@@ -1205,11 +1204,11 @@ void test_popup_surface_composites_after_every_application_plane() {
         Color color_;
     };
 
-    // ProbeControl's fixed paint is replaced by a child overlay so the final
-    // application command has a distinctive color.
-    class ColoredOverlay final : public Control {
+    // ProbeControl's fixed paint is replaced by a child in the overlay paint
+    // plane so the final application command has a distinctive color.
+    class OverlayPlaneControl final : public Control {
     public:
-        ColoredOverlay(StableId id, Color color)
+        OverlayPlaneControl(StableId id, Color color)
             : Control(std::move(id)), color_(color) {
             set_paint_plane(PaintPlane::overlay);
         }
@@ -1219,19 +1218,76 @@ void test_popup_surface_composites_after_every_application_plane() {
     private:
         Color color_;
     };
-    std::shared_ptr<ColoredOverlay> application = make_control<ColoredOverlay>(
-        StableId("popup-order.application-overlay"), application_overlay);
+    std::shared_ptr<OverlayPlaneControl> application = make_control<OverlayPlaneControl>(
+        StableId("overlay-order.application-overlay"), application_overlay);
     (*application).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
     (*root).add_child(application);
-    std::shared_ptr<ColoredPopup> popup = make_control<ColoredPopup>(
-        StableId("popup-order.popup"), popup_backplane);
-    (*popup).set_requested_bounds({10.0, 10.0, 60.0, 40.0});
-    PopupToken token = window.open_popup(owner, popup);
+    std::shared_ptr<ColoredOverlayRoot> overlay = make_control<ColoredOverlayRoot>(
+        StableId("overlay-order.overlay"), overlay_backplane);
+    (*overlay).set_requested_bounds({10.0, 10.0, 60.0, 40.0});
+    OverlayToken token = window.open_overlay(owner, overlay);
     RecordingPainter painter;
     window.paint(painter);
     require(token.connected() && !painter.fill_colors.empty() &&
-                painter.fill_colors.back() == popup_backplane,
-            "a popup backplane must composite after the application's overlay plane");
+                painter.fill_colors.back() == overlay_backplane,
+            "an overlay root's backplane must composite after the application's overlay paint plane");
+}
+
+// The window owns a shown overlay root (owner, 2026-11-05): a caller that
+// passes a temporary still sees it shown until it closes it.
+void test_window_owns_a_shown_overlay() {
+    Fixture fixture;
+    Window& window = *fixture.window;
+    OverlayToken token = window.open_overlay(
+        fixture.root, make_control<ProbeControl>(StableId("owned-overlay.root")));
+    window.perform_layout();
+    paint_pending(window, fixture.painter);
+    const Control::Ptr shown = window.find("owned-overlay.root");
+    require(token.connected() && shown && (*shown).attached_surface_root() == &window,
+            "an overlay whose caller kept no handle stays shown");
+    const Control::WeakPtr observed = shown;
+    token.disconnect();
+    require(!window.find("owned-overlay.root") && !token.connected() && !observed.expired(),
+            "closing it detaches it while the test still holds it");
+}
+
+// A control that closes an overlay from its own attach notification: the
+// window does not detach during a lifecycle notification, so the overlay,
+// which only the window owned, is destroyed while still attached.
+class ClosesOverlayOnAttach final : public ProbeControl {
+public:
+    explicit ClosesOverlayOnAttach(StableId id) : ProbeControl(std::move(id)) {}
+    void on_attached_to_window() override {
+        ProbeControl::on_attached_to_window();
+        if (token != nullptr) (*token).disconnect();
+    }
+    OverlayToken* token{};
+};
+
+// The destructor backstop (owner, 2026-11-05): a control destroyed while
+// attached leaves no address in the window's registries, so its pending
+// touch is dropped and the next settle, layout and paint run safely.
+void test_destroyed_attached_control_is_forgotten() {
+    Fixture fixture;
+    Window& window = *fixture.window;
+    OverlayToken token = window.open_overlay(
+        fixture.root, make_control<ProbeControl>(StableId("forgotten-overlay.root")));
+    Control::Ptr overlay = window.find("forgotten-overlay.root");
+    require(overlay != nullptr, "the overlay is attached");
+    const Control::WeakPtr observed = overlay;
+    // A pending touch for the settle to reach.
+    (*overlay).set_requested_bounds({5.0, 5.0, 30.0, 20.0});
+    // The test lets go of the overlay; only the window holds it now.
+    overlay.reset();
+    std::shared_ptr<ClosesOverlayOnAttach> closer =
+        make_control<ClosesOverlayOnAttach>(StableId("forgotten-overlay.closer"));
+    (*closer).token = &token;
+    (*fixture.root).add_child(closer);
+    require(observed.expired(), "the overlay was destroyed while attached");
+    window.perform_layout();
+    paint_pending(window, fixture.painter);
+    require(!window.find("forgotten-overlay.root") && !token.connected(),
+            "the destroyed overlay is gone from the window");
 }
 
 void test_tokenized_accelerator_runs_after_focused_route() {
@@ -1273,10 +1329,10 @@ void test_presentation_settings_separate_text_and_device_scale() {
     std::shared_ptr<gui_forms::Component> owner = std::make_shared<Component>();
     SubscriptionToken token = window.presentation_changed().subscribe(
         *owner, CountCalls<const PresentationSettings&>(changes));
-    std::shared_ptr<ProbeControl> popup =
-        make_control<ProbeControl>(StableId("presentation.popup"));
-    (*popup).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
-    PopupToken popup_token = window.open_popup(label, popup);
+    std::shared_ptr<ProbeControl> overlay =
+        make_control<ProbeControl>(StableId("presentation.overlay"));
+    (*overlay).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
+    OverlayToken overlay_token = window.open_overlay(label, overlay);
 
     window.set_scale(2.0);
     require(window.scale() == 2.0 && (*label).effective_text_scale() == 1.0,
@@ -1291,7 +1347,7 @@ void test_presentation_settings_separate_text_and_device_scale() {
                 enlarged.width > normal.width && enlarged.height > normal.height &&
                 changes == 1U,
             "text scale must coherently affect public effective fonts and measurement");
-    require(!popup_token.connected(),
+    require(!overlay_token.connected(),
             "text-scale changes must dismiss transient geometry resolved at the old scale");
     window.set_text_scale(2.0);
     require(changes == 1U,
@@ -1412,7 +1468,9 @@ int main() {
         test_cursor_inheritance_and_override();
         test_control_identity_geometry_constraints_and_z_order();
         test_damage_and_idle_metrics();
-        test_popup_surface_composites_after_every_application_plane();
+        test_overlay_surface_composites_after_every_application_plane();
+        test_window_owns_a_shown_overlay();
+        test_destroyed_attached_control_is_forgotten();
         test_tokenized_accelerator_runs_after_focused_route();
         test_presentation_settings_separate_text_and_device_scale();
         test_semantic_feedback_is_clocked_bounded_and_sound_optional();

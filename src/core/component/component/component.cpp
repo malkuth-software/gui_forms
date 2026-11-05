@@ -1,5 +1,7 @@
 #include "gui_forms/component/component/component.hpp"
 
+#include "gui_forms/binding/property_table/property_table.hpp"
+
 #include <algorithm>
 #include <limits>
 #include <stdexcept>
@@ -14,6 +16,10 @@ std::vector<InteractionDeclaration> Component::interactions() const {
 
 // Component itself raises no events.
 void Component::append_interactions(std::vector<InteractionDeclaration>&) const {}
+
+std::span<const PropertyEntry> Component::property_table() const noexcept {
+    return {};
+}
 
 Component::~Component() {
     // Natural C++ destruction ends subscriptions just as explicit disposal

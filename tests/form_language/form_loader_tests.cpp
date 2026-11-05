@@ -27,6 +27,7 @@ using gui_forms::form_language::FormLoadOutcome;
 using gui_forms::form_language::FormModel;
 using gui_forms::form_language::FormModelOutcome;
 using gui_forms::form_language::FormSchema;
+using gui_forms::form_language::FormSchemaType;
 using gui_forms::form_language::LoadedForm;
 using gui_forms::form_language::build_form_model;
 using gui_forms::form_language::describe_form_type;
@@ -57,7 +58,14 @@ void require(bool condition, std::string_view message) {
 
 FormSchema sample_schema() {
     FormSchema schema{};
-    schema.types.push_back(form_control_type<gui_forms::UserControl>("user_control"));
+    // A document refuses a presentation colour (E813); the user control's
+    // back colour is marked as content here, so that loading a colour stays
+    // covered.
+    FormSchemaType user_control_type = form_control_type<gui_forms::UserControl>("user_control");
+    for (gui_forms::PropertyDescriptor& property : user_control_type.properties) {
+        if (property.name == "back_color") property.content_value = true;
+    }
+    schema.types.push_back(std::move(user_control_type));
     schema.types.push_back(form_control_type<gui_forms::GroupBox>("group_box"));
     schema.types.push_back(form_control_type<gui_forms::CheckBox>("check_box"));
     schema.types.push_back(form_control_type<gui_forms::Button>("button"));
@@ -131,7 +139,7 @@ void test_load() {
     require(loaded.root != nullptr && (*loaded.root).stable_id().value() == "settings.root", "load: the root");
     require(loaded.objects.size() == 6U, "load: every object");
     if (loaded.root == nullptr || loaded.objects.size() != 6U) return;
-    require((*loaded.root).back_color() == gui_forms::Color{0x33, 0x66, 0x99, 255}, "load: the root's colour");
+    require((*loaded.root).back_color.read() == gui_forms::Color{0x33, 0x66, 0x99, 255}, "load: the root's colour");
 
     // Child order is document order; the command is the form's, not a child.
     const std::span<const Control::Ptr> root_children = (*loaded.root).children();
@@ -145,7 +153,7 @@ void test_load() {
 
     const std::shared_ptr<gui_forms::CheckBox> check = std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[2]);
     require(check != nullptr && (*check).text() == "Save automatically" && (*check).checked() &&
-                (*check).tab_index() == 2U,
+                (*check).tab_index.read() == 2U,
             "load: the check box's properties");
     require(std::dynamic_pointer_cast<gui_forms::Command>(loaded.objects[4]) != nullptr, "load: the command");
     require(loaded.handlers.size() == 3U && loaded.handlers[0].handler == "autosave_changed" &&

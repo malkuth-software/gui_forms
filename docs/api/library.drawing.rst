@@ -70,10 +70,18 @@ Types
      - LinearGradientBrush retains bounded geometry, angle, wrap, and either factor-derived or explicit interpolation stops.
    * - :cpp:class:`LinearSrgb <gui_drawing::LinearSrgb>`
      - LinearSrgb carries normalized straight-alpha linear-light sRGB channels.
+   * - :cpp:class:`LiveDisplayTiming <gui_forms::LiveDisplayTiming>`
+     - The display timing a presenter publishes after each present tick: data only, read by producers without the presenter's thread.
+   * - :cpp:class:`LivePacingResult <gui_forms::LivePacingResult>`
+     -  
+   * - :cpp:class:`LivePresentationRecord <gui_forms::LivePresentationRecord>`
+     - What the presenter last reported for one surface (LiveSurface:: notify_presented).
    * - :cpp:class:`LiveSurfaceDescription <gui_forms::LiveSurfaceDescription>`
      - LiveSurfaceDescription declares positive bounded pixel dimensions, the admitted premultiplied-sRGB BGRA format, and a configurable two-to-eight-buffer pool whose default remains triple buffering.
    * - :cpp:class:`LiveSurfaceFrame <gui_forms::LiveSurfaceFrame>`
      - LiveSurfaceFrame is a move-only immutable lease over one completely published buffer, retaining pixels while the producer searches other unleased slots.
+   * - :cpp:class:`LiveSurfacePacer <gui_forms::LiveSurfacePacer>`
+     - One producer's presentation clock (design note section 8, decision 7): paces a producer to the display through its presenter's reports (LiveSurface::notify_presented) and never to a free-running sleep, and keeps it going when the presenter stalls.
    * - :cpp:class:`LiveSurfaceSnapshot <gui_forms::LiveSurfaceSnapshot>`
      - LiveSurfaceSnapshot reports immutable configuration, epoch and generation identity, publish/drop/read counters, newest sampled generation, and current writer/frame availability.
    * - :cpp:class:`LiveSurfaceWakeConnection <gui_forms::LiveSurfaceWakeConnection>`
@@ -89,7 +97,7 @@ Types
    * - :cpp:class:`OklchGamutMapping <gui_drawing::OklchGamutMapping>`
      - OklchGamutMapping preserves requested and deterministic 24-iteration chroma-reduced OKLCH plus its committed sRGB conversion.
    * - :cpp:class:`PaintFramebuffer <gui_forms::PaintFramebuffer>`
-     - UI-thread-owned offscreen instance of the host's renderer.
+     - Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer).
    * - :cpp:class:`PathElement <gui_drawing::PathElement>`
      - PathElement is the closed storage record for one retained figure/path verb and its relevant points, bounds, and angles.
    * - :cpp:class:`PathGradientBrush <gui_drawing::PathGradientBrush>`
@@ -1227,6 +1235,68 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: LiveDisplayTiming final
+
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+
+   The display timing a presenter publishes after each present tick: data only, read by producers without the presenter's thread.
+
+   .. cpp:member:: FrameInterval refresh_period
+
+      The display's refresh period; zero when unknown.
+
+   .. cpp:member:: FrameTime last_vblank
+
+      The vertical blank the tick was phased to (FrameClock time).
+
+   .. cpp:member:: LiveTimingSource source
+
+      Default: ``{LiveTimingSource::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LivePacingResult final
+
+   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>``
+
+   .. cpp:member:: LivePacingOutcome outcome
+
+      Default: ``{LivePacingOutcome::pending}``.
+
+   .. cpp:member:: FrameTime frame_time
+
+      The display time the next frame will be shown for: the vertical blank after now in the presenter's phase, or now without display timing. A producer's motion uses it as its now.
+
+   .. cpp:member:: FrameTime wake_at
+
+      When to look again, for ``pending``; FrameTime::max() while idle.
+
+   .. cpp:member:: std::uint64_t presented_generation
+
+   .. cpp:member:: std::uint64_t missed_frames
+
+      Whole refreshes the producer waited past the first, for ``deadline``: the frames the presenter did not show.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: LivePresentationRecord final
+
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+
+   What the presenter last reported for one surface (LiveSurface:: notify_presented).
+
+   .. cpp:member:: LiveDisplayTiming timing
+
+   .. cpp:member:: std::uint64_t presented_generation
+
+      The newest generation the presenter put on the screen.
+
+   .. cpp:member:: std::uint64_t presents
+
+      Reports so far: one per present tick that showed this surface.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: LiveSurfaceDescription final
 
    ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
@@ -1308,6 +1378,43 @@ Types
    .. cpp:function:: std::span<const std::byte> pixels() const noexcept
 
       Returns a const byte span whose lifetime is protected by the retained shared buffer.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LiveSurfacePacer final
+
+   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>``
+
+   One producer's presentation clock (design note section 8, decision 7): paces a producer to the display through its presenter's reports (LiveSurface::notify_presented) and never to a free-running sleep, and keeps it going when the presenter stalls. Owned by the producer's thread; only arm() may be called from another. Holds the surface alive.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: LiveSurfacePacer() = default
+
+   .. cpp:function:: explicit LiveSurfacePacer(std::shared_ptr<LiveSurface> surface) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool is_idle() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: LivePacingResult plan(FrameTime now)
+
+      Decides without blocking, for a producer that waits on something of its own as well (a sub-surface's loop, woken by LiveSurface::connect_presented_wake): frame or deadline commit the frame (the next decision waits for it to be shown); pending names when to look again. Empty pacers answer frame at ``now``.
+
+   .. cpp:function:: LivePacingResult wait_for_frame(const std::stop_token& stop)
+
+      Blocks until plan would answer frame or deadline, or ``stop`` fires; one wait per frame on the surface's condition, never a fixed sleep. While idle it waits only for ``stop`` and arm().
+
+   .. cpp:function:: void idle() noexcept
+
+      A producer with nothing armed and nothing dirty: plan answers pending with no wake time and wait_for_frame waits for arm() or stop. Any thread may arm(); it wakes a waiting producer.
+
+   .. cpp:function:: void arm() noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -1556,7 +1663,7 @@ Types
 
    ``#include <gui_forms/paint_framebuffer.hpp>``
 
-   UI-thread-owned offscreen instance of the host's renderer. Pixels are premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in memory order, the one format of every surface and raster. The buffer survives begin/end; callers may restore cached pixels before drawing damage. A painter and pixel span are borrowed only for this object's lifetime.
+   Offscreen instance of the host's renderer, made on the UI thread (SurfaceRoot::create_framebuffer). One thread uses it at a time: the maker, or the one it hands it to whole, which then alone uses and destroys it (a sub-surface's thread, SubSurfaceConfiguration). Pixels are premultiplied sRGB BGRA8 on every host: blue, green, red and alpha bytes in memory order, the one format of every surface and raster. The buffer survives begin/end; callers may restore cached pixels before drawing damage. A painter and pixel span are borrowed only for this object's lifetime.
 
 
    .. rubric:: Extension points
@@ -2486,11 +2593,39 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: LivePacingOutcome
+
+   ``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>``
+
+   .. cpp:enumerator:: frame
+
+   .. cpp:enumerator:: deadline
+
+   .. cpp:enumerator:: pending
+
+   .. cpp:enumerator:: stopped
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: LiveSurfacePixelFormat
 
    ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
 
    .. cpp:enumerator:: bgra32_premultiplied_srgb
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: LiveTimingSource
+
+   ``#include <gui_forms/live_surface/types/live_surface_types.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: display_phased
+
+   .. cpp:enumerator:: phased_timer
+
+   .. cpp:enumerator:: fallback
 
 .. cpp:namespace:: gui_drawing
 

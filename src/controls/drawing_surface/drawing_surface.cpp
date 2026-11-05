@@ -49,8 +49,8 @@ bool DrawingSurface::hit_test_local(Point local_point) const {
 SemanticDescriptor DrawingSurface::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = semantic_role_;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }

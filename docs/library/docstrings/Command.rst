@@ -105,7 +105,7 @@ set_destructive
 See Also
 --------
 ButtonBase : Buttons and check boxes bind to a command with `bind`.
-ContextMenu : A popup menu whose items run commands.
+ContextMenu : An overlay menu whose items run commands.
 MenuStrip : A menu bar whose menus run commands.
 CommandBar : A toolbar of command items.
 CommandBinding : An older helper that also copies the text to a button.

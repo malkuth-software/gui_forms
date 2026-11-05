@@ -154,8 +154,8 @@ narrow:
        gf::make_control<gf::Panel>(gf::StableId("shell.content"));
    std::shared_ptr<gf::Panel> inspector =
        gf::make_control<gf::Panel>(gf::StableId("shell.inspector"));
-   (*content).set_dock(gf::DockStyle::fill);
-   (*inspector).set_dock(gf::DockStyle::fill);
+   (*content).dock = gf::DockStyle::fill;
+   (*inspector).dock = gf::DockStyle::fill;
    (*shell).add_child(content);
    (*shell).add_child(inspector);
    (*shell).set_child_track(*content, 0U);

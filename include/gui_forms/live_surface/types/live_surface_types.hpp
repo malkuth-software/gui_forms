@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstddef>
@@ -54,6 +55,41 @@ struct LiveSurfaceSnapshot final {
     // The content tag of the frame acquire_latest() returns (the carried
     // frame's while carries_previous_frame); zero when there is none.
     std::uint64_t content_tag{};
+};
+
+// Where a host's present tick takes its phase from (threaded sub-surfaces
+// design note sections 7 and 8).
+enum class LiveTimingSource : std::uint8_t {
+    // No presenter has reported yet.
+    none,
+    // The display's own vertical blank: the compositor's timing on Windows,
+    // the display link on macOS, frame callbacks or Present completions on
+    // Linux.
+    display_phased,
+    // A timer phased from the last presentation the display completed.
+    phased_timer,
+    // A fixed cadence (60 Hz) without display timing.
+    fallback,
+};
+
+// The display timing a presenter publishes after each present tick: data
+// only, read by producers without the presenter's thread.
+struct LiveDisplayTiming final {
+    // The display's refresh period; zero when unknown.
+    FrameInterval refresh_period{};
+    // The vertical blank the tick was phased to (FrameClock time).
+    FrameTime last_vblank{};
+    LiveTimingSource source{LiveTimingSource::none};
+};
+
+// What the presenter last reported for one surface (LiveSurface::
+// notify_presented).
+struct LivePresentationRecord final {
+    LiveDisplayTiming timing{};
+    // The newest generation the presenter put on the screen.
+    std::uint64_t presented_generation{};
+    // Reports so far: one per present tick that showed this surface.
+    std::uint64_t presents{};
 };
 
 } // namespace gui_forms

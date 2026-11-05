@@ -134,10 +134,10 @@ gui_forms::Panel
       std::shared_ptr<gf::Panel> status = gf::make_control<gf::Panel>(gf::StableId("shell.status"));
       std::shared_ptr<gf::Panel> content = gf::make_control<gf::Panel>(gf::StableId("shell.content"));
       (*toolbar).set_requested_bounds({0.0, 0.0, 0.0, 32.0});   // only the height is used
-      (*toolbar).set_dock(gf::DockStyle::top);
+      (*toolbar).dock = gf::DockStyle::top;
       (*status).set_requested_bounds({0.0, 0.0, 0.0, 22.0});
-      (*status).set_dock(gf::DockStyle::bottom);
-      (*content).set_dock(gf::DockStyle::fill);
+      (*status).dock = gf::DockStyle::bottom;
+      (*content).dock = gf::DockStyle::fill;
       (*shell).add_child(toolbar);
       (*shell).add_child(status);
       (*shell).add_child(content);
@@ -155,7 +155,7 @@ gui_forms::Panel
       (*swatch).set_requested_bounds({12.0, 12.0, 120.0, 80.0});
       (*swatch).set_background(gf::Color::rgba(250, 240, 200));
       (*swatch).set_border_style(gf::BorderStyle::line);
-      (*swatch).set_accessible_name("Highlight colour");
+      (*swatch).accessible_name = "Highlight colour";
 
 
    .. rubric:: Construction
@@ -175,7 +175,7 @@ gui_forms::Panel
 
       Sets :cpp:func:`border_style <gui_forms::Panel::border_style>`; see the property's description above.
 
-   .. cpp:function:: Color background() const noexcept
+   .. cpp:function:: Color background() const
 
       The fill colour. Until you call :cpp:func:`set_background <gui_forms::Panel::set_background>` it comes from the
       theme's surface for :cpp:func:`visual_role <gui_forms::Panel::visual_role>`. :cpp:func:`clear_background <gui_forms::Panel::clear_background>` returns to the
@@ -262,3 +262,9 @@ gui_forms::Panel
       *Protected.*
 
       The scrollable parts, the face, and the edge when a border style is set.
+
+   .. cpp:function:: bool face_selected_by_rule() const noexcept
+
+      *Protected.*
+
+      Whether a theme rule selects a primitive for the face (G3): then the rule, not the recipe, decides what the face draws.

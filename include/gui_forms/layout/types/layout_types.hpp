@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/binding/type_tag/type_tag.hpp"
+
 #include "gui_forms/types/geometry/geometry.hpp"
 
 #include <compare>
@@ -109,5 +111,11 @@ enum class LayoutDirection : std::uint8_t {
     left_to_right,
     right_to_left,
 };
+
+namespace types {
+
+inline constexpr TypeTag<LayoutDirection> layout_direction{};
+
+} // namespace types
 
 } // namespace gui_forms

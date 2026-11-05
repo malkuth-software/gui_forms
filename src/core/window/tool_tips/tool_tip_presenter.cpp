@@ -65,8 +65,8 @@ const SemanticNode* node_with_state(std::vector<SemanticNode>&& nodes, SemanticS
 } // namespace
 
 ToolTipPresenter::Overlay::Overlay(std::shared_ptr<ToolTipLayer> layer_control,
-                                   std::shared_ptr<ToolTipBubble> bubble_control, PopupToken popup_token) noexcept
-    : layer(std::move(layer_control)), bubble(std::move(bubble_control)), token(std::move(popup_token)) {}
+                                   std::shared_ptr<ToolTipBubble> bubble_control, OverlayToken overlay_token) noexcept
+    : layer(std::move(layer_control)), bubble(std::move(bubble_control)), token(std::move(overlay_token)) {}
 
 ToolTipPresenter::Overlay::~Overlay() {
     closed.disconnect();
@@ -79,8 +79,8 @@ void ToolTipPresenter::Wake::operator()(FrameTime now) const {
     (*presenter).woke(now);
 }
 
-void ToolTipPresenter::PopupClosed::operator()() const {
-    (*presenter).popup_closed();
+void ToolTipPresenter::OverlayClosed::operator()() const {
+    (*presenter).overlay_closed();
 }
 
 ToolTipPresenter::ToolTipPresenter(Window& window) noexcept : window_(window) {}
@@ -91,7 +91,7 @@ ToolTipPresenter::~ToolTipPresenter() {
 
 void ToolTipPresenter::shutdown() noexcept {
     wake_.disconnect();
-    // The overlay's destructor disconnects its popup before the state goes.
+    // The overlay's destructor disconnects its overlay before the state goes.
     state_ = Idle{};
     keyboard_subject_ = ToolTipSubject{};
 }
@@ -149,9 +149,9 @@ ToolTipSubject ToolTipPresenter::resolve_pointer(const Control::Ptr& hovered, Po
             }
         }
         if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text().empty()) {
+            !(*current).tool_tip_text.read().empty()) {
             if (covered(*current, {})) return nothing_over(bounds);
-            return subject_of(current, {}, (*current).tool_tip_text(), bounds);
+            return subject_of(current, {}, (*current).tool_tip_text.read(), bounds);
         }
     }
     const Rect region = hovered ? (*hovered).absolute_bounds() : Rect{};
@@ -178,9 +178,9 @@ ToolTipSubject ToolTipPresenter::resolve_focus(const Control::Ptr& focused) cons
             }
         }
         if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text().empty()) {
+            !(*current).tool_tip_text.read().empty()) {
             if (covered(*current, {})) return nothing_over(bounds);
-            return subject_of(current, {}, (*current).tool_tip_text(), bounds);
+            return subject_of(current, {}, (*current).tool_tip_text.read(), bounds);
         }
     }
     return nothing_over({});
@@ -296,13 +296,13 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
     (*bubble).set_requested_bounds({0.0, 0.0, face.width, face.height});
     (*layer).add_child(bubble);
 
-    PopupOptions options{};
+    OverlayOptions options{};
     options.require_enabled_owner = !settings.show_when_disabled;
-    PopupToken token = window_.open_popup(control, layer, options);
+    OverlayToken token = window_.open_overlay(control, layer, options);
     std::unique_ptr<Overlay> overlay =
         std::make_unique<Overlay>(std::move(layer), std::move(bubble), std::move(token));
     if (Event<>* closed = (*overlay).token.closed_event()) {
-        (*overlay).closed = (*closed).subscribe(PopupClosed{this});
+        (*overlay).closed = (*closed).subscribe(OverlayClosed{this});
     }
 
     ToolTipEvent change{};
@@ -340,7 +340,7 @@ std::optional<ToolTipEvent> ToolTipPresenter::close(State next) {
     change.shown = false;
     change.keyboard_initiated = (*showing).origin == ToolTipOrigin::keyboard;
     // Moving the state out first leaves the presenter consistent while the
-    // overlay's destructor detaches the popup.
+    // overlay's destructor detaches the overlay.
     State previous = std::move(state_);
     state_ = std::move(next);
     if (!std::holds_alternative<Waiting>(state_)) wake_.disconnect();
@@ -381,7 +381,7 @@ void ToolTipPresenter::raise(const std::optional<ToolTipEvent>& change) {
     if (change) window_.tool_tip_visibility_changed_.emit(*change);
 }
 
-void ToolTipPresenter::popup_closed() {
+void ToolTipPresenter::overlay_closed() {
     raise(close(Idle{}));
 }
 
@@ -538,7 +538,7 @@ void ToolTipPresenter::text_changed(const Control& control) {
         // A thing waiting to show whose text went waits no longer; the wake
         // finds the thing again, so new text needs nothing here.
         if ((*waiting).subject.item_id.empty() && (*waiting).subject.control.lock().get() == &control &&
-            control.tool_tip_text().empty()) {
+            control.tool_tip_text.read().empty()) {
             state_ = Idle{};
             wake_.disconnect();
         }
@@ -549,13 +549,13 @@ void ToolTipPresenter::text_changed(const Control& control) {
         (*showing).subject.control.lock().get() != &control) {
         return;
     }
-    if (control.tool_tip_text().empty()) {
+    if (control.tool_tip_text.read().empty()) {
         raise(close(Idle{}));
         return;
     }
     const ToolTipOrigin origin = (*showing).origin;
     ToolTipSubject subject = (*showing).subject;
-    subject.text = control.tool_tip_text();
+    subject.text = control.tool_tip_text.read();
     replace(origin, std::move(subject), std::nullopt);
 }
 
@@ -599,7 +599,7 @@ void ToolTipPresenter::cover(RuntimeId control, std::string_view item_id, bool c
 
 void ToolTipPresenter::show_program(const Control::Ptr& target,
                                     std::optional<std::chrono::milliseconds> duration) {
-    ToolTipSubject subject = subject_of(target, {}, (*target).tool_tip_text(), (*target).absolute_bounds());
+    ToolTipSubject subject = subject_of(target, {}, (*target).tool_tip_text.read(), (*target).absolute_bounds());
     replace(ToolTipOrigin::program, std::move(subject), duration);
 }
 

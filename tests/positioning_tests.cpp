@@ -52,13 +52,13 @@ void require_bounds(const Control& control, double x, double y, double width, do
 
 std::shared_ptr<Panel> box(const std::string& id) {
     std::shared_ptr<Panel> made = make_control<Panel>(StableId(id));
-    (*made).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
 
 template <typename Container> std::shared_ptr<Container> container(const std::string& id) {
     std::shared_ptr<Container> made = make_control<Container>(StableId(id));
-    (*made).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
 
@@ -198,7 +198,7 @@ void test_absolute_axis_arithmetic() {
 
 void test_flex_children() {
     std::shared_ptr<FlexPanel> root = container<FlexPanel>("pos.flex");
-    (*root).set_padding({10.0, 10.0, 10.0, 10.0});
+    (*root).padding = {10.0, 10.0, 10.0, 10.0};
     std::shared_ptr<Panel> first = box("pos.flex.a");
     std::shared_ptr<Panel> pinned = box("pos.flex.pinned");
     std::shared_ptr<Panel> second = box("pos.flex.b");
@@ -258,7 +258,7 @@ void test_grid_and_block_children() {
     // Both insets `auto`: the static position, the content box's start
     // corner (its end edge right to left).
     std::shared_ptr<BlockPanel> flow = container<BlockPanel>("pos.block");
-    (*flow).set_padding({8.0, 8.0, 8.0, 8.0});
+    (*flow).padding = {8.0, 8.0, 8.0, 8.0};
     std::shared_ptr<Panel> stacked = box("pos.block.stacked");
     std::shared_ptr<Panel> loose = box("pos.block.loose");
     (*flow).add_child(stacked);
@@ -275,7 +275,7 @@ void test_grid_and_block_children() {
     (*flow_window).perform_layout();
     require_bounds(*stacked, 8.0, 8.0, 384.0, 20.0, "the block item fills the content width");
     require_bounds(*loose, 8.0, 8.0, 30.0, 10.0, "the static position");
-    (*flow).set_layout_direction(LayoutDirection::right_to_left);
+    (*flow).layout_direction = LayoutDirection::right_to_left;
     (*flow_window).perform_layout();
     require_bounds(*loose, 362.0, 8.0, 30.0, 10.0, "the static position right to left");
     std::cout << "positioning-tests: grid and block flow absolute children\n";

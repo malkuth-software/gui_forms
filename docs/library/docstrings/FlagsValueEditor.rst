@@ -13,7 +13,7 @@ Parameters
 stable_id
     Identity of the control, unique within its window. Logs, automation and
     semantic actions address the control by this ID. The drop-down list is
-    created as ``<stable_id>.popup.list`` while it is open.
+    created as ``<stable_id>.overlay.list`` while it is open.
 descriptor
     The flags enumeration to edit. See `descriptor` below.
 value
@@ -41,7 +41,7 @@ dropped_down : default ``false``
     in a control that is not attached, `set_dropped_down(true)` leaves it
     closed. In a window, opening it while the editor is hidden or disabled
     throws `std::logic_error`.
-popup_width : default ``240``
+overlay_width : default ``240``
     The width of the list, from 80 to 1024; a width outside that range, or
     one that is not finite, throws `std::invalid_argument`. The list is never
     wider than the window. An open list is rebuilt at the new width.
@@ -137,7 +137,7 @@ commits at once and raises `value_changed`:
        window.perform_layout();
        (*frame.edges).set_dropped_down(true);
        std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
-           window.find("frame.edges.popup.list"));
+           window.find("frame.edges.overlay.list"));
        if (list) (*list).set_item_checked(3U, true);   // the "Right" row
        // drawn is "Top, Left, Right"
        (*frame.edges).set_dropped_down(false);

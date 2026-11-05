@@ -43,7 +43,7 @@ SpinPartGeometry spin_part_geometry(const SpinButtons& spin) {
 
 SpinButtons::SpinButtons(StableId stable_id) : Control(std::move(stable_id)) {
     set_focusable(false);
-    set_cursor(CursorKind::hand);
+    cursor = CursorKind::hand;
 }
 
 AnatomyStateSet SpinButtons::half_states(SpinHalf half) const noexcept {

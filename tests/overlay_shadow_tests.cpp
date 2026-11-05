@@ -71,11 +71,11 @@ void paint_all(Window& window) {
     static_cast<void>(window.paint(painter, Rect{0.0, 0.0, client.width, client.height}));
 }
 
-// The first popup-tree control whose stable id ends with `suffix`.
+// The first overlay-tree control whose stable id ends with `suffix`.
 const VisualControlInspection* find_overlay(const VisualInspectionSnapshot& snapshot, std::string_view suffix) {
     for (const VisualControlInspection& control : snapshot.controls) {
         const std::string_view id = control.stable_id;
-        if (control.popup_tree && id.size() >= suffix.size() &&
+        if (control.overlay_tree && id.size() >= suffix.size() &&
             id.substr(id.size() - suffix.size()) == suffix) {
             return &control;
         }
@@ -239,8 +239,8 @@ void context_menu() {
     menu.show(fixture.button, {100.0, 100.0}, MenuOpenMode::pointer);
     paint_all(fixture.window);
     const VisualInspectionSnapshot snapshot = fixture.window.visual_inspection_snapshot();
-    const VisualControlInspection* panel = snapshot.find("overlay.context.popup.panel.0");
-    require(panel != nullptr && (*panel).popup_tree, "the context menu shows its panel");
+    const VisualControlInspection* panel = snapshot.find("overlay.context.overlay.panel.0");
+    require(panel != nullptr && (*panel).overlay_tree, "the context menu shows its panel");
     require_cast_shadow(*panel, *fixture.theme, "the context menu's panel casts the overlay shadow");
     menu.close();
 
@@ -248,7 +248,7 @@ void context_menu() {
     menu.show(fixture.button, {100.0, 100.0}, MenuOpenMode::pointer);
     paint_all(fixture.window);
     const VisualInspectionSnapshot contrast = fixture.window.visual_inspection_snapshot();
-    const VisualControlInspection* plain = contrast.find("overlay.context.popup.panel.0");
+    const VisualControlInspection* plain = contrast.find("overlay.context.overlay.panel.0");
     require(plain != nullptr, "the context menu shows in high contrast");
     require_no_shadow(*plain, "the context menu casts no shadow in high contrast");
     menu.close();

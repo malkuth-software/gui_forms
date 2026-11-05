@@ -235,7 +235,7 @@ int main() {
     const std::shared_ptr<gui_forms::Button> terminal = std::dynamic_pointer_cast<gui_forms::Button>(
         (*product).find("fm.path.terminal"));
     require(terminal && (*product).request_focus(terminal),
-            "path terminal must be a focusable retained popup owner");
+            "path terminal must be a focusable retained overlay owner");
     const gui_forms::Rect terminal_bounds = (*terminal).absolute_bounds();
     const gui_forms::Point terminal_center{
         terminal_bounds.x + terminal_bounds.width * .5,
@@ -249,7 +249,7 @@ int main() {
             "path terminal pointer activation must route through retained input");
     (*product).perform_layout();
     const gui_forms::Control::Ptr matrix = (*product).find("fm.path.matrix");
-    const std::shared_ptr<gui_forms::AnchoredPopupLayer> matrix_layer = std::dynamic_pointer_cast<gui_forms::AnchoredPopupLayer>(
+    const std::shared_ptr<gui_forms::AnchoredOverlayLayer> matrix_layer = std::dynamic_pointer_cast<gui_forms::AnchoredOverlayLayer>(
         (*product).find("fm.path.matrix.layer"));
     require(matrix && matrix_layer && (*terminal).expanded_state() == true &&
                 (*matrix).absolute_bounds() == gui_forms::Rect{111,169,860,424} &&
@@ -626,12 +626,12 @@ int main() {
     (*criteria_edit).perform_layout();
     const gui_forms::Control::Ptr add_button =
         (*criteria_edit).find("fm.criteria.add");
-    const gui_forms::Control::Ptr add_popup = (*criteria_edit).find(
-        "fm.criteria.add.menu.popup.panel.0");
-    require(add_button && add_popup &&
-                (*add_popup).absolute_bounds().x >=
+    const gui_forms::Control::Ptr add_overlay = (*criteria_edit).find(
+        "fm.criteria.add.menu.overlay.panel.0");
+    require(add_button && add_overlay &&
+                (*add_overlay).absolute_bounds().x >=
                     (*add_button).absolute_bounds().x - 1.0 &&
-                (*add_popup).absolute_bounds().y >=
+                (*add_overlay).absolute_bounds().y >=
                     (*add_button).absolute_bounds().y +
                     (*add_button).absolute_bounds().height - 1.0 &&
                 (*criteria_edit).dispatch_key({gui_forms::KeyAction::down,
@@ -981,7 +981,7 @@ int main() {
             "object field must accept focus before context-menu exercise");
     secondary_click(*product,
                     virtual_item_center(*objects, "fm.object.obj-file-manager"));
-    require((*product).find("fm.context.object.popup.panel.0") != nullptr &&
+    require((*product).find("fm.context.object.overlay.panel.0") != nullptr &&
                 (*product).focus_scope_depth() == 1U &&
                 (*objects).selected_ids().size() == 2U,
             "object context menu did not preserve the existing multiselection");
@@ -991,19 +991,19 @@ int main() {
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::enter}),
             "object context menu must handle Enter");
-    const gui_forms::Control::Ptr context_popup_after_enter =
-        (*product).find("fm.context.object.popup.panel.0");
+    const gui_forms::Control::Ptr context_overlay_after_enter =
+        (*product).find("fm.context.object.overlay.panel.0");
     const gui_forms::Control::Ptr context_focus_after_enter = (*product).focused_control();
     const std::shared_ptr<gui_forms::Label> context_authority_after_enter =
         std::dynamic_pointer_cast<gui_forms::Label>(
             (*product).find("fm.status.authority"));
-    if (context_popup_after_enter || (*product).focus_scope_depth() != 0U ||
+    if (context_overlay_after_enter || (*product).focus_scope_depth() != 0U ||
         context_focus_after_enter != property_list || !context_authority_after_enter ||
         (*context_authority_after_enter).text().find("properties active") ==
             std::string::npos) {
         throw std::runtime_error(
-            "object context post-Enter mismatch: popup=" +
-            std::to_string(static_cast<bool>(context_popup_after_enter)) +
+            "object context post-Enter mismatch: overlay=" +
+            std::to_string(static_cast<bool>(context_overlay_after_enter)) +
             " scope-depth=" +
             std::to_string((*product).focus_scope_depth()) + " focus=" +
             (context_focus_after_enter
@@ -1018,7 +1018,7 @@ int main() {
     const gui_forms::Rect object_bounds = (*objects).absolute_bounds();
     secondary_click(*product, {object_bounds.x + object_bounds.width - 6.0,
                                object_bounds.y + object_bounds.height - 6.0});
-    require((*product).find("fm.context.background.popup.panel.0") != nullptr &&
+    require((*product).find("fm.context.background.overlay.panel.0") != nullptr &&
                 (*objects).selected_ids().empty(),
             "background context must clear object selection and expose its own menu");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
@@ -1096,7 +1096,7 @@ int main() {
         (*product).find("fm.ribbon.tabs"));
     require(menu && (*product).perform_semantic_action(
                 "fm.menu.help", gui_forms::SemanticAction::expand) &&
-                (*product).find("fm.ribbon.tabs.menu.popup.panel.0") != nullptr &&
+                (*product).find("fm.ribbon.tabs.menu.overlay.panel.0") != nullptr &&
                 (*product).dispatch_key({gui_forms::KeyAction::down,
                                        gui_forms::PhysicalKey::enter}) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(

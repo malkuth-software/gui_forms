@@ -29,7 +29,7 @@ void require(bool condition, const char* message) {
 std::shared_ptr<Button> sized_button(std::string id, double width, double height) {
     std::shared_ptr<Button> button = make_control<Button>(StableId(std::move(id)), "Item");
     (*button).set_requested_bounds({0.0, 0.0, width, height});
-    (*button).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*button).margin = {0.0, 0.0, 0.0, 0.0};
     return button;
 }
 
@@ -71,16 +71,16 @@ public:
 
 void test_dock_anchor_and_requested_bounds_mirror() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("direction.dock.root"));
-    (*root).set_padding({20.0, 10.0, 0.0, 10.0});
+    (*root).padding = {20.0, 10.0, 0.0, 10.0};
     std::shared_ptr<Button> left = sized_button("direction.dock.left", 30.0, 10.0);
     std::shared_ptr<Button> top = sized_button("direction.dock.top", 10.0, 20.0);
     std::shared_ptr<Button> placed = sized_button("direction.dock.placed", 50.0, 20.0);
     std::shared_ptr<Button> right = sized_button("direction.dock.right", 40.0, 20.0);
-    (*left).set_dock(DockStyle::left);
-    (*top).set_dock(DockStyle::top);
+    (*left).dock = DockStyle::left;
+    (*top).dock = DockStyle::top;
     (*placed).set_requested_bounds({10.0, 40.0, 50.0, 20.0});
     (*right).set_requested_bounds({200.0, 100.0, 40.0, 20.0});
-    (*right).set_anchor(AnchorStyles::top | AnchorStyles::right);
+    (*right).anchor = AnchorStyles::top | AnchorStyles::right;
     (*root).add_child(left);
     (*root).add_child(top);
     (*root).add_child(placed);
@@ -93,7 +93,7 @@ void test_dock_anchor_and_requested_bounds_mirror() {
                 (*placed).arranged_bounds() == Rect{10.0, 40.0, 50.0, 20.0},
             "left to right, dock and requested bounds are unchanged");
 
-    (*root).set_layout_direction(LayoutDirection::right_to_left);
+    (*root).layout_direction = LayoutDirection::right_to_left;
     window.perform_layout();
     require((*left).arranged_bounds() == Rect{250.0, 10.0, 30.0, 180.0} &&
                 (*top).arranged_bounds() == Rect{0.0, 10.0, 250.0, 20.0},
@@ -112,7 +112,7 @@ void test_dock_anchor_and_requested_bounds_mirror() {
     require(window.hit_test({345.0, 45.0}) == placed,
             "hit testing must follow the mirrored geometry");
 
-    (*root).set_layout_direction(LayoutDirection::left_to_right);
+    (*root).layout_direction = LayoutDirection::left_to_right;
     window.perform_layout();
     require((*left).arranged_bounds() == Rect{20.0, 10.0, 30.0, 180.0} &&
                 (*placed).arranged_bounds() == Rect{10.0, 40.0, 50.0, 20.0} &&
@@ -128,7 +128,7 @@ void test_flow_layout_starts_at_the_right() {
     (*flow).add_child(first);
     (*flow).add_child(second);
     (*flow).add_child(third);
-    (*flow).set_layout_direction(LayoutDirection::right_to_left);
+    (*flow).layout_direction = LayoutDirection::right_to_left;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(flow, Size{100.0, 50.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -151,14 +151,14 @@ void test_flow_layout_starts_at_the_right() {
             "right to left, a vertical flow's columns start at the right edge");
 
     (*flow).set_flow_direction(FlowDirection::left_to_right);
-    (*flow).set_padding({10.0, 0.0, 0.0, 0.0});
-    (*second).set_margin({5.0, 0.0, 0.0, 0.0});
+    (*flow).padding = {10.0, 0.0, 0.0, 0.0};
+    (*second).margin = {5.0, 0.0, 0.0, 0.0};
     window.perform_layout();
     require((*first).arranged_bounds().x == 50.0 && (*second).arranged_bounds().x == 5.0 &&
                 (*third).arranged_bounds() == Rect{50.0, 20.0, 40.0, 20.0},
             "right to left, padding and margins mirror with the layout");
 
-    (*flow).set_layout_direction(LayoutDirection::left_to_right);
+    (*flow).layout_direction = LayoutDirection::left_to_right;
     window.perform_layout();
     require((*first).arranged_bounds().x == 10.0 && (*second).arranged_bounds().x == 55.0,
             "left to right, the flow is unchanged");
@@ -169,7 +169,7 @@ void test_flow_scrolls_toward_the_left() {
     (*flow).set_auto_scroll(true);
     (*flow).set_wrap_contents(false);
     (*flow).set_item_spacing({4.0, 4.0});
-    (*flow).set_layout_direction(LayoutDirection::right_to_left);
+    (*flow).layout_direction = LayoutDirection::right_to_left;
     std::vector<std::shared_ptr<Button>> items;
     for (int index = 0; index < 8; ++index) {
         std::shared_ptr<Button> item =
@@ -197,7 +197,7 @@ void test_flow_scrolls_toward_the_left() {
 
 void test_table_layout_starts_at_the_right() {
     std::shared_ptr<TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("direction.table"));
-    (*table).set_padding({5.0, 5.0, 5.0, 5.0});
+    (*table).padding = {5.0, 5.0, 5.0, 5.0};
     (*table).set_column_count(2U);
     (*table).set_row_count(1U);
     (*table).set_column_style(0U, {TableSizeMode::absolute, 40.0});
@@ -222,7 +222,7 @@ void test_table_layout_starts_at_the_right() {
     require(left_to_right.xs == std::vector<double>{5.0, 45.0, 105.0},
             "left to right, the column lines start at the left padding");
 
-    (*table).set_layout_direction(LayoutDirection::right_to_left);
+    (*table).layout_direction = LayoutDirection::right_to_left;
     window.perform_layout();
     require((*first).arranged_bounds() == Rect{165.0, 5.0, 30.0, 20.0} &&
                 (*second).arranged_bounds() == Rect{105.0, 5.0, 50.0, 20.0},
@@ -241,11 +241,11 @@ void test_table_layout_starts_at_the_right() {
 
 void test_reentrant_measure_keeps_the_outer_pass() {
     std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("direction.reentrant.flow"));
-    (*flow).set_auto_size(true);
+    (*flow).auto_size = true;
     std::shared_ptr<ReentrantMeasureControl> nested =
         make_control<ReentrantMeasureControl>(StableId("direction.reentrant.flow.nested"));
     (*nested).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
-    (*nested).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*nested).margin = {0.0, 0.0, 0.0, 0.0};
     (*nested).parent_panel = flow;
     std::shared_ptr<Button> after = sized_button("direction.reentrant.flow.after", 40.0, 20.0);
     (*flow).add_child(nested);
@@ -255,12 +255,12 @@ void test_reentrant_measure_keeps_the_outer_pass() {
     (*root).add_child(flow);
 
     std::shared_ptr<TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("direction.reentrant.table"));
-    (*table).set_auto_size(true);
+    (*table).auto_size = true;
     (*table).set_column_count(2U);
     std::shared_ptr<ReentrantMeasureControl> cell =
         make_control<ReentrantMeasureControl>(StableId("direction.reentrant.table.nested"));
     (*cell).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
-    (*cell).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*cell).margin = {0.0, 0.0, 0.0, 0.0};
     (*cell).parent_panel = table;
     std::shared_ptr<Button> neighbour = sized_button("direction.reentrant.table.after", 40.0, 20.0);
     (*table).add_child(cell);

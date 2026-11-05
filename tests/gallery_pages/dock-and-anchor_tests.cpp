@@ -15,21 +15,21 @@ void test_dock_and_anchor(gui_forms::Window& window) {
     const std::shared_ptr<gui_forms::Button> top_second = std::dynamic_pointer_cast<Button>(
         window.find("gallery.dock.top.second"));
     require(dock_canvas && left && fill && top_first && top_second &&
-                (*left).dock() == DockStyle::left &&
-                (*fill).dock() == DockStyle::fill,
+                (*left).dock.read() == DockStyle::left &&
+                (*fill).dock.read() == DockStyle::fill,
             "dock page must use public Dock properties on stock controls");
     const std::shared_ptr<gui_forms::Button> toggle_left = std::dynamic_pointer_cast<Button>(
         window.find("gallery.dock.toggle-left"));
     const Rect fill_before = (*fill).arranged_bounds();
     click(window, toggle_left);
     window.perform_layout();
-    require(!(*left).visible() &&
+    require(!(*left).visible.read() &&
                 (*fill).arranged_bounds().width > fill_before.width + 70.0 &&
                 (*toggle_left).text() == "Restore left edge",
             "dock visibility command must release the hidden edge into Fill");
     click(window, toggle_left);
     window.perform_layout();
-    require((*left).visible() && (*fill).arranged_bounds() == fill_before &&
+    require((*left).visible.read() && (*fill).arranged_bounds() == fill_before &&
                 (*toggle_left).text() == "Hide left edge",
             "dock visibility restore must recover exact retained geometry");
 
@@ -52,9 +52,9 @@ void test_dock_and_anchor(gui_forms::Window& window) {
     const std::shared_ptr<gui_forms::Button> bottom_right = std::dynamic_pointer_cast<Button>(
         window.find("gallery.anchor.bottom-right"));
     require(fixed && stretch && centered && bottom_right &&
-                (*stretch).anchor() == (AnchorStyles::left | AnchorStyles::right |
+                (*stretch).anchor.read() == (AnchorStyles::left | AnchorStyles::right |
                                       AnchorStyles::top) &&
-                (*centered).anchor() == AnchorStyles::none,
+                (*centered).anchor.read() == AnchorStyles::none,
             "anchor page must retain public compound Anchor configurations");
     const Rect fixed_before = (*fixed).arranged_bounds();
     const Rect stretch_before = (*stretch).arranged_bounds();

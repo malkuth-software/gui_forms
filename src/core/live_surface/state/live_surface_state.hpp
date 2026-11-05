@@ -3,6 +3,7 @@
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
@@ -52,6 +53,12 @@ struct LiveSurfaceState final {
     std::uint64_t carried_generation{};
     std::uint64_t carried_content_tag{};
     std::vector<std::shared_ptr<LiveSurfaceWake>> wakes;
+    // Presentation feedback (design note sections 7 and 8): the presenter's
+    // last report, the wakes it signals, and the condition producers'
+    // pacers wait on (notified on every report and on LiveSurfacePacer::arm).
+    LivePresentationRecord presentation_record{};
+    std::vector<std::shared_ptr<LiveSurfaceWake>> presented_wakes;
+    std::condition_variable presented;
 };
 
 } // namespace gui_forms::detail

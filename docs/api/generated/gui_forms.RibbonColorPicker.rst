@@ -11,11 +11,11 @@ gui_forms::RibbonColorPicker
 
    ``#include <gui_forms/controls/ribbon_color_picker/ribbon_color_picker.hpp>``
 
-   A ribbon drop-down colour picker: a split button over a palette popup.
+   A ribbon drop-down colour picker: a split button over a palette overlay.
 
    A colour picker (stage RB, phase 6) is a small split button. Its face shows
    an icon over a bar of the current colour and applies that colour again; its
-   arrow opens a palette popup below it holding Automatic, a grid of palette
+   arrow opens a palette overlay below it holding Automatic, a grid of palette
    colours ten to a row, and the recent colours. Bound to a :cpp:class:`ColorCommand <gui_forms::ColorCommand>` the
    picker shows and commits the command's value; without one it keeps its own.
    A :cpp:class:`Ribbon <gui_forms::Ribbon>` hosts it as :cpp:enumerator:`RibbonCommandKind::color_picker <gui_forms::RibbonCommandKind::color_picker>` on one row.
@@ -55,7 +55,7 @@ gui_forms::RibbonColorPicker
       **palette_open** : ``bool``, read-only
          Whether the palette is open.
 
-      **palette_popup** : ``Control::Ptr``, read-only
+      **palette_overlay** : ``Control::Ptr``, read-only
          The palette's content control, null before the first opening.
 
       **parts** : ``Parts``, read-only
@@ -195,7 +195,7 @@ gui_forms::RibbonColorPicker
 
       Whether the palette is open.
 
-   .. cpp:function:: Control::Ptr palette_popup() const noexcept
+   .. cpp:function:: Control::Ptr palette_overlay() const noexcept
 
       The palette's content control, null before the first opening.
 

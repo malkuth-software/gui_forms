@@ -123,7 +123,7 @@ public:
     [[nodiscard]] bool focused_visual() const noexcept { return focused_; }
     [[nodiscard]] bool focus_cue_visible() const noexcept;
     [[nodiscard]] bool hovered_visual() const noexcept { return hovered_; }
-    // Optional disclosure state for buttons that own a popup or retained
+    // Optional disclosure state for buttons that own an overlay or retained
     // disclosure region. Nullopt is an ordinary push button; false/true expose
     // collapsed/expanded semantics without conflating visual pressed state.
     [[nodiscard]] std::optional<bool> expanded_state() const noexcept {

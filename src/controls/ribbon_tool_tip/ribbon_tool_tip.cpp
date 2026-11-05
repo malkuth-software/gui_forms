@@ -78,20 +78,20 @@ struct RibbonToolTip::StripFocusObserver final {
     }
 };
 
-struct RibbonToolTip::PopupRevocationObserver final {
+struct RibbonToolTip::OverlayRevocationObserver final {
     RibbonToolTip* provider{};
     std::weak_ptr<detail::WindowLifetime> window_lifetime;
 
     void operator()() const {
         const std::shared_ptr<detail::WindowLifetime> lifetime = window_lifetime.lock();
-        if (lifetime && (*lifetime).window != nullptr) (*provider).popup_revoked();
+        if (lifetime && (*lifetime).window != nullptr) (*provider).overlay_revoked();
     }
 };
 
-class RibbonToolTip::PopupHolder final {
+class RibbonToolTip::OverlayHolder final {
 public:
-    explicit PopupHolder(PopupToken value) : token(std::move(value)) {}
-    PopupToken token;
+    explicit OverlayHolder(OverlayToken value) : token(std::move(value)) {}
+    OverlayToken token;
 };
 
 class RibbonToolTip::AcceleratorHolder final {
@@ -124,7 +124,7 @@ RibbonToolTip::~RibbonToolTip() {
         try {
             dispose();
         } catch (...) {
-            popup_.reset();
+            overlay_.reset();
             accelerator_.reset();
             timer_.reset();
         }
@@ -180,7 +180,7 @@ void RibbonToolTip::set_tool_tip(const std::shared_ptr<Control>& target, RibbonT
     }
     // The target's plain tooltip can supply the title.
     if (!valid_content(content) ||
-        (content.title.empty() && !content.command && (*target).tool_tip_text().empty())) {
+        (content.title.empty() && !content.command && (*target).tool_tip_text.read().empty())) {
         throw std::invalid_argument(
             "GUI.Forms RibbonToolTip content needs valid UTF-8 and a title, a command or a plain tooltip");
     }
@@ -330,7 +330,7 @@ RibbonToolTipContent RibbonToolTip::resolve(const Control& target, std::string_v
 }
 
 std::string RibbonToolTip::plain_tool_tip(const Control& target, std::string_view item_id) const {
-    if (item_id.empty()) return target.tool_tip_text();
+    if (item_id.empty()) return target.tool_tip_text.read();
     const std::vector<SemanticNode> nodes = target.semantic_virtual_children();
     for (const SemanticNode& node : nodes) {
         if (node.stable_id == item_id) return node.tool_tip;
@@ -358,7 +358,7 @@ void RibbonToolTip::target_pointer(const std::shared_ptr<Control>& target, const
         return;
     }
     if (event.action != PointerAction::enter && event.action != PointerAction::move) {
-        // A press dismisses the tooltip, as ToolTip's owner popups are.
+        // A press dismisses the tooltip, as ToolTip's owner overlays are.
         if (event.action == PointerAction::down &&
             (pending_target_.lock() == target || visible_target_.lock() == target)) {
             hide();
@@ -499,17 +499,17 @@ void RibbonToolTip::show_now(const std::shared_ptr<Control>& target, const std::
 
     // The tooltip describes disabled targets too, so the owner need not be
     // enabled.
-    PopupToken token = (*owner).open_popup(target, layer, PopupOptions{.require_enabled_owner = false});
+    OverlayToken token = (*owner).open_overlay(target, layer, OverlayOptions{.require_enabled_owner = false});
     overlay_layer_ = layer;
     overlay_bubble_ = bubble;
     visible_target_ = target;
     visible_item_ = item_id;
     keyboard_initiated_ = keyboard_initiated;
     shown_content_ = resolved;
-    popup_ = std::make_unique<PopupHolder>(std::move(token));
+    overlay_ = std::make_unique<OverlayHolder>(std::move(token));
     const std::weak_ptr<detail::WindowLifetime> weak_window = window_lifetime_;
-    if (Event<>* closed = (*popup_).token.closed_event()) {
-        popup_subscription_ = (*closed).subscribe(*this, PopupRevocationObserver{this, weak_window});
+    if (Event<>* closed = (*overlay_).token.closed_event()) {
+        overlay_subscription_ = (*closed).subscribe(*this, OverlayRevocationObserver{this, weak_window});
     }
     const RibbonToolTipEvent change{std::string((*target).stable_id().value()), item_id, resolved, true,
                                     keyboard_initiated};
@@ -527,7 +527,7 @@ void RibbonToolTip::hide() {
 }
 
 bool RibbonToolTip::visible() const noexcept {
-    const bool result = popup_ && (*popup_).token.connected();
+    const bool result = overlay_ && (*overlay_).token.connected();
     return result;
 }
 
@@ -543,11 +543,11 @@ Rect RibbonToolTip::overlay_bounds() const {
 void RibbonToolTip::close_overlay(bool emit_change) {
     const std::shared_ptr<Control> target = visible_target_.lock();
     const bool was_visible = visible();
-    popup_subscription_.disconnect();
-    std::unique_ptr<PopupHolder> popup = std::move(popup_);
+    overlay_subscription_.disconnect();
+    std::unique_ptr<OverlayHolder> overlay = std::move(overlay_);
     // As in ToolTip: keep the overlay tree alive until disconnect lets the
     // Window detach it and release its stable IDs.
-    if (popup) (*popup).token.disconnect();
+    if (overlay) (*overlay).token.disconnect();
     overlay_layer_.reset();
     overlay_bubble_.reset();
     visible_target_.reset();
@@ -560,10 +560,10 @@ void RibbonToolTip::close_overlay(bool emit_change) {
     }
 }
 
-void RibbonToolTip::popup_revoked() {
+void RibbonToolTip::overlay_revoked() {
     const std::shared_ptr<Control> target = visible_target_.lock();
-    popup_subscription_.disconnect();
-    popup_.reset();
+    overlay_subscription_.disconnect();
+    overlay_.reset();
     overlay_layer_.reset();
     overlay_bubble_.reset();
     visible_target_.reset();

@@ -43,7 +43,7 @@ std::string_view list_suffix(DockNavigatorList list) noexcept {
 
 DockNavigator::DockNavigator(StableId stable_id) : Control(std::move(stable_id)) {
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
 }
 
@@ -334,8 +334,8 @@ std::string DockNavigator::entry_identity(DockNavigatorList list, const DockPane
 SemanticDescriptor DockNavigator::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name().empty() ? "Active windows" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? "Active windows" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     const std::optional<DockPanelId> panel = current_panel();
     if (panel) {
         const std::vector<DockNavigatorEntry>& held = list_entries(list_);

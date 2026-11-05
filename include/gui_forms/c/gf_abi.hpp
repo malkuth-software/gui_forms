@@ -1151,19 +1151,19 @@ private:
     gf_text_editing_table table_;
 };
 
-// gf_popups_table, negotiated as GF_TABLE_POPUPS.
-class PopupsTable {
+// gf_overlays_table, negotiated as GF_TABLE_OVERLAYS.
+class OverlaysTable {
 public:
-    PopupsTable() noexcept : table_{} {}
+    OverlaysTable() noexcept : table_{} {}
 
     // Negotiates the table at the header's version into output; a refusal
     // leaves output serving nothing.
-    [[nodiscard]] static gf_status negotiate(PopupsTable& output) noexcept {
-        gf_popups_table negotiated_table{};
-        const gf_status negotiated = gf_abi_get_table(GF_TABLE_POPUPS, GF_ABI_MAJOR, GF_ABI_MINOR,
+    [[nodiscard]] static gf_status negotiate(OverlaysTable& output) noexcept {
+        gf_overlays_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_OVERLAYS, GF_ABI_MAJOR, GF_ABI_MINOR,
                                                       &negotiated_table, sizeof(negotiated_table));
         if (negotiated != GF_STATUS_OK) {
-            output = PopupsTable{};
+            output = OverlaysTable{};
             return negotiated;
         }
         output.table_ = negotiated_table;
@@ -1171,27 +1171,27 @@ public:
     }
 
     // A table the caller negotiated through gf_abi_get_table.
-    [[nodiscard]] static PopupsTable adopt(const gf_popups_table& adopted_table) noexcept {
-        PopupsTable adopted;
+    [[nodiscard]] static OverlaysTable adopt(const gf_overlays_table& adopted_table) noexcept {
+        OverlaysTable adopted;
         adopted.table_ = adopted_table;
         return adopted;
     }
 
-    [[nodiscard]] const gf_popups_table& c_table() const noexcept { return table_; }
+    [[nodiscard]] const gf_overlays_table& c_table() const noexcept { return table_; }
 
-    [[nodiscard]] gf_status open_popup(gf_object owner, gf_object popup) const noexcept {
-        if (table_.struct_size < 16u || table_.open_popup == nullptr) {
+    [[nodiscard]] gf_status open_overlay(gf_object owner, gf_object overlay) const noexcept {
+        if (table_.struct_size < 16u || table_.open_overlay == nullptr) {
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
-        const gf_status called = table_.open_popup(owner, popup);
+        const gf_status called = table_.open_overlay(owner, overlay);
         return called;
     }
 
-    [[nodiscard]] gf_status close_popup(gf_object popup) const noexcept {
-        if (table_.struct_size < 24u || table_.close_popup == nullptr) {
+    [[nodiscard]] gf_status close_overlay(gf_object overlay) const noexcept {
+        if (table_.struct_size < 24u || table_.close_overlay == nullptr) {
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
-        const gf_status called = table_.close_popup(popup);
+        const gf_status called = table_.close_overlay(overlay);
         return called;
     }
 
@@ -1220,7 +1220,7 @@ public:
     }
 
 private:
-    gf_popups_table table_;
+    gf_overlays_table table_;
 };
 
 // gf_property_grid_table, negotiated as GF_TABLE_PROPERTY_GRID.

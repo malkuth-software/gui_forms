@@ -80,14 +80,14 @@ RibbonColorPicker::RibbonColorPicker(StableId stable_id) : Control(std::move(sta
 }
 
 RibbonColorPicker::~RibbonColorPicker() {
-    if (palette_popup_) (*palette_popup_).detach();
+    if (palette_overlay_) (*palette_overlay_).detach();
 }
 
 void RibbonColorPicker::on_dispose() noexcept {
     close_palette();
     command_value_.disconnect();
     command_state_.disconnect();
-    if (palette_popup_) (*palette_popup_).detach();
+    if (palette_overlay_) (*palette_overlay_).detach();
     if (layer_) (*layer_).dispose();
 }
 
@@ -96,7 +96,7 @@ void RibbonColorPicker::on_dispose() noexcept {
 void RibbonColorPicker::CommandValueChanged::operator()(const std::optional<Color>& value) const {
     if (picker == nullptr || !(*picker).is_alive()) return;
     (*picker).invalidate(Dirty::paint | Dirty::semantics);
-    if ((*picker).palette_popup_) (*(*picker).palette_popup_).invalidate(Dirty::arrange | Dirty::paint);
+    if ((*picker).palette_overlay_) (*(*picker).palette_overlay_).invalidate(Dirty::arrange | Dirty::paint);
     (*picker).value_changed_.emit(value);
 }
 
@@ -412,7 +412,7 @@ void RibbonColorPicker::on_paint(Painter& painter, Rect) {
 // Paints the palette on its content control, `surface`, whose theme and
 // text scale the parts take.
 void RibbonColorPicker::palette_paint(Painter& painter) const {
-    const Control& surface = *palette_popup_;
+    const Control& surface = *palette_overlay_;
     const std::vector<Cell> all = cells();
     const Size size = palette_size();
     PartPaint part;
@@ -514,8 +514,8 @@ void RibbonColorPicker::on_focus_changed(bool focused) {
 }
 
 void RibbonColorPicker::palette_pointer(PointerEvent& event) {
-    if (!palette_open_ || !palette_popup_) return;
-    const Rect absolute = (*palette_popup_).absolute_bounds();
+    if (!palette_open_ || !palette_overlay_) return;
+    const Rect absolute = (*palette_overlay_).absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
     const std::vector<Cell> all = cells();
     std::optional<std::size_t> hit{};
@@ -527,7 +527,7 @@ void RibbonColorPicker::palette_pointer(PointerEvent& event) {
         event.action == PointerAction::enter) {
         if (hot_entry_ != hit) {
             hot_entry_ = hit;
-            (*palette_popup_).invalidate(Dirty::paint);
+            (*palette_overlay_).invalidate(Dirty::paint);
         }
         return;
     }
@@ -581,32 +581,32 @@ void RibbonColorPicker::palette_key(KeyEvent& event) {
     }
     if (!next) return;
     focus_entry_ = next;
-    (*palette_popup_).invalidate(Dirty::paint | Dirty::semantics);
+    (*palette_overlay_).invalidate(Dirty::paint | Dirty::semantics);
     event.handled = true;
 }
 
-// -- popup ---------------------------------------------------------------------
+// -- overlay ---------------------------------------------------------------------
 
 bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     require_mutable();
     Window* const window = attached_window();
     if (palette_open_ || window == nullptr || !enabled_to_use()) return false;
     const Control::Ptr self = shared_from_this();
-    AnchoredPopupPlacement placement;
-    placement.horizontal_alignment = PopupHorizontalAlignment::near;
-    placement.vertical_preference = PopupVerticalPreference::below;
+    AnchoredOverlayPlacement placement;
+    placement.horizontal_alignment = OverlayHorizontalAlignment::near;
+    placement.vertical_preference = OverlayVerticalPreference::below;
     placement.gap = 1.0;
-    if (!palette_popup_) {
+    if (!palette_overlay_) {
         const std::string prefix(stable_id().value());
-        palette_popup_ = make_control<RibbonColorPalette>(StableId(prefix + ".palette"), *this);
-        layer_ = make_control<AnchoredPopupLayer>(StableId(prefix + ".palette.layer"), self, placement);
-        (*layer_).set_content(palette_popup_);
+        palette_overlay_ = make_control<RibbonColorPalette>(StableId(prefix + ".palette"), *this);
+        layer_ = make_control<AnchoredOverlayLayer>(StableId(prefix + ".palette.layer"), self, placement);
+        (*layer_).set_content(palette_overlay_);
         layer_dismissed_ = (*layer_).dismiss_requested().subscribe(
-            Delegate<PopupDismissReason>::bind<RibbonColorPicker, &RibbonColorPicker::on_layer_dismissed>(*this));
+            Delegate<OverlayDismissReason>::bind<RibbonColorPicker, &RibbonColorPicker::on_layer_dismissed>(*this));
     }
     placement.preferred_size = palette_size();
     (*layer_).set_placement(placement);
-    (*palette_popup_).set_accessible_name(parse_mnemonic_text(text_).display_text);
+    (*palette_overlay_).accessible_name = parse_mnemonic_text(text_).display_text;
     const Size client = (*window).client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     hot_entry_.reset();
@@ -619,13 +619,13 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     } else {
         focus_entry_ = current.value_or(0U);
     }
-    popup_ = (*window).open_popup(self, layer_);
+    overlay_ = (*window).open_overlay(self, layer_);
     palette_open_ = true;
-    if (Event<>* closed = popup_.closed_event()) {
-        popup_revoked_ =
-            (*closed).subscribe(*this, Delegate<>::bind<RibbonColorPicker, &RibbonColorPicker::on_popup_revoked>(*this));
+    if (Event<>* closed = overlay_.closed_event()) {
+        overlay_revoked_ =
+            (*closed).subscribe(*this, Delegate<>::bind<RibbonColorPicker, &RibbonColorPicker::on_overlay_revoked>(*this));
     }
-    scope_ = (*window).begin_focus_scope(layer_, palette_popup_);
+    scope_ = (*window).begin_focus_scope(layer_, palette_overlay_);
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(true);
     return true;
@@ -642,8 +642,8 @@ void RibbonColorPicker::close_palette() noexcept {
         }
     }
     scope_ = {};
-    popup_revoked_.disconnect();
-    popup_.disconnect();
+    overlay_revoked_.disconnect();
+    overlay_.disconnect();
     hot_entry_.reset();
     palette_focused_ = false;
     if (!is_alive()) return;
@@ -654,23 +654,23 @@ void RibbonColorPicker::close_palette() noexcept {
     }
 }
 
-void RibbonColorPicker::on_layer_dismissed(PopupDismissReason) {
+void RibbonColorPicker::on_layer_dismissed(OverlayDismissReason) {
     close_palette();
 }
 
-void RibbonColorPicker::on_popup_revoked() {
+void RibbonColorPicker::on_overlay_revoked() {
     if (!palette_open_) return;
     palette_open_ = false;
     scope_ = {};
-    popup_revoked_.disconnect();
+    overlay_revoked_.disconnect();
     hot_entry_.reset();
     palette_focused_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(false);
 }
 
-Control::Ptr RibbonColorPicker::palette_popup() const noexcept {
-    return palette_popup_;
+Control::Ptr RibbonColorPicker::palette_overlay() const noexcept {
+    return palette_overlay_;
 }
 
 std::vector<RibbonColorPicker::PaletteEntry> RibbonColorPicker::realized_entries() const {
@@ -700,10 +700,10 @@ std::vector<RibbonColorPicker::PaletteEntry> RibbonColorPicker::realized_entries
 SemanticDescriptor RibbonColorPicker::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::split_button;
-    descriptor.name = accessible_name().empty() ? parse_mnemonic_text(text_).display_text : accessible_name();
+    descriptor.name = accessible_name.read().empty() ? parse_mnemonic_text(text_).display_text : accessible_name.read();
     const std::optional<Color> shown = value();
     descriptor.value = shown ? color_name(*shown) : std::string("Automatic");
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.read();
     descriptor.has_popup = true;
     if (palette_open_) descriptor.states |= SemanticState::expanded;
     descriptor.actions = {SemanticAction::focus, SemanticAction::press, SemanticAction::show_menu,
@@ -733,9 +733,9 @@ bool RibbonColorPicker::on_semantic_action(SemanticAction action, std::string_vi
 
 std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
     std::vector<SemanticNode> nodes;
-    if (!palette_open_ || !palette_popup_) return nodes;
+    if (!palette_open_ || !palette_overlay_) return nodes;
     const std::vector<Cell> all = cells();
-    const Rect absolute = (*palette_popup_).absolute_bounds();
+    const Rect absolute = (*palette_overlay_).absolute_bounds();
     const std::optional<std::size_t> current = current_entry(all);
     const std::string prefix(stable_id().value());
     for (std::size_t entry = 0; entry < all.size(); ++entry) {
@@ -914,7 +914,7 @@ Insets RibbonColorPalette::visual_outsets() const noexcept {
 SemanticDescriptor RibbonColorPalette::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

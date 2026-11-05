@@ -286,7 +286,7 @@ bool DockSite::begin_drag(const DockSubject& subject, DockNodeId source_stack, b
     set_focusable(true);
     static_cast<void>((*host).request_focus(shared_from_this()));
     if (!keyboard) (*host).capture_pointer(shared_from_this(), drag_.pointer_id);
-    (*drag_layer_).set_visible(true);
+    (*drag_layer_).visible = true;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     (*drag_layer_).invalidate(Dirty::paint);
     announce_drag();
@@ -589,7 +589,7 @@ void DockSite::place_settle_target() {
 void DockSite::finish_settling() noexcept {
     reset_drag();
     try {
-        if (drag_layer_) (*drag_layer_).set_visible(false);
+        if (drag_layer_) (*drag_layer_).visible = false;
         if (is_alive()) invalidate(Dirty::paint | Dirty::semantics);
     } catch (...) {
     }
@@ -1085,7 +1085,7 @@ void DockSite::show_guest_drag(const DragSession& source, const MotionValue* sou
         static_cast<void>(stamp_motion_.animate_to(1.0));
     }
     drag_.stamp = stamp_at();
-    (*drag_layer_).set_visible(true);
+    (*drag_layer_).visible = true;
     plan_drag_targets();
     invalidate(Dirty::paint | Dirty::semantics);
     (*drag_layer_).invalidate(Dirty::paint);
@@ -1095,7 +1095,7 @@ void DockSite::leave_guest_drag() noexcept {
     if (!drag_.guest) return;
     reset_drag();
     try {
-        if (drag_layer_) (*drag_layer_).set_visible(false);
+        if (drag_layer_) (*drag_layer_).visible = false;
         if (is_alive()) invalidate(Dirty::paint | Dirty::semantics);
     } catch (...) {
     }

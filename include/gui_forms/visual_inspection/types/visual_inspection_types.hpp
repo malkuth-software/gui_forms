@@ -127,7 +127,7 @@ struct VisualControlInspection final {
     std::optional<RuntimeId> parent_runtime_id;
     std::string parent_stable_id;
     std::size_t depth{};
-    bool popup_tree{};
+    bool overlay_tree{};
     VisualControlLayoutSnapshot layout;
     VisualControlStateSnapshot state;
     Dirty dirty{Dirty::none};

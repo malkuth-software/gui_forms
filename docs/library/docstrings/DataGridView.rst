@@ -429,7 +429,7 @@ See Also
 ObjectView : A virtual list of objects with icon and details views.
 BindingSource : Records with a current position, shared by bound controls.
 TextBox : The editor text cells edit in.
-ContextMenu : The popup that shows a combo box cell's choices.
+ContextMenu : The overlay that shows a combo box cell's choices.
 
 Notes
 -----

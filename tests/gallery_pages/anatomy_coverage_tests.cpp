@@ -268,22 +268,22 @@ void test_anatomy_coverage() {
         inspect_tree(window.root(), seen_ids, inspected);
     }
     // Registry types the Gallery does not attach to its root tree: base
-    // types reached only through subclasses, and popups.
+    // types reached only through subclasses, and overlays.
     const std::shared_ptr<ButtonBase> button_base =
         make_control<ButtonBase>(StableId("anatomy.coverage.button-base"), "Base");
     const std::shared_ptr<ScrollBar> scroll_bar =
         make_control<ScrollBar>(StableId("anatomy.coverage.scroll-bar"));
-    // Popups and dialogs open only on demand and live outside the root tree.
-    const std::shared_ptr<AnchoredPopupLayer> popup_layer = make_control<AnchoredPopupLayer>(
-        StableId("anatomy.coverage.anchored-popup-layer"), button_base,
-        AnchoredPopupPlacement{});
+    // Overlays and dialogs open only on demand and live outside the root tree.
+    const std::shared_ptr<AnchoredOverlayLayer> overlay_layer = make_control<AnchoredOverlayLayer>(
+        StableId("anatomy.coverage.anchored-overlay-layer"), button_base,
+        AnchoredOverlayPlacement{});
     const std::shared_ptr<RangeControl> range_control =
         make_control<RangeControl>(StableId("anatomy.coverage.range-control"));
     const std::shared_ptr<TaskDialog> task_dialog =
         make_control<TaskDialog>(StableId("anatomy.coverage.task-dialog"));
     inspect_control(*button_base, seen_ids);
     inspect_control(*scroll_bar, seen_ids);
-    inspect_control(*popup_layer, seen_ids);
+    inspect_control(*overlay_layer, seen_ids);
     inspect_control(*range_control, seen_ids);
     // A dialog opens on demand, outside the root tree.
     const std::shared_ptr<FontDialog> font_dialog =

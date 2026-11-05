@@ -85,13 +85,13 @@ private:
     void build_base_container(const std::shared_ptr<Surface>& page) {
         base_container_ = make_control<ContainerControl>(
             StableId("gallery.containers.base"));
-        (*base_container_).set_accessible_name("Base ContainerControl specimen");
+        (*base_container_).accessible_name = "Base ContainerControl specimen";
         (*page).add_at(base_container_, {24.0, 548.0, 450.0, 82.0});
         std::shared_ptr<Panel> face = make_control<Panel>(
             StableId("gallery.containers.base.face"));
         (*face).set_background(Color::rgba(232, 239, 245));
         (*face).set_border_style(BorderStyle::line);
-        (*face).set_dock(DockStyle::fill);
+        (*face).dock = DockStyle::fill;
         (*base_container_).add_child(face);
         std::shared_ptr<Label> copy = label(
             "gallery.containers.base.copy",
@@ -108,13 +108,13 @@ private:
     void build_user_control(const std::shared_ptr<Surface>& page) {
         user_control_ = make_control<UserControl>(
             StableId("gallery.containers.user"));
-        (*user_control_).set_accessible_name("UserControl lifecycle specimen");
+        (*user_control_).accessible_name = "UserControl lifecycle specimen";
         (*page).add_at(user_control_, {488.0, 548.0, 466.0, 82.0});
         std::shared_ptr<Panel> face = make_control<Panel>(
             StableId("gallery.containers.user.face"));
         (*face).set_background(Color::rgba(238, 244, 236));
         (*face).set_border_style(BorderStyle::line);
-        (*face).set_dock(DockStyle::fill);
+        (*face).dock = DockStyle::fill;
         (*user_control_).add_child(face);
         user_status_ = label("gallery.containers.user.status",
                              "UserControl · awaiting one-shot Loaded lifecycle",
@@ -185,7 +185,7 @@ private:
         pinned.edits.push_back(DockEdit::auto_hide(DockSubject::of_stack(output_stack), DockSide::bottom, 120.0));
         static_cast<void>((*workspace_).apply(pinned));
         dock_site_ = make_control<DockSite>(StableId("gallery.containers.dock"), *workspace_);
-        (*dock_site_).set_accessible_name("Docked workspace specimen");
+        (*dock_site_).accessible_name = "Docked workspace specimen";
         (*docking).add_at(dock_site_, {20.0, 36.0, 600.0, 344.0});
         dock_status_ = label("gallery.containers.docking.status", "Active: none", 11.0, 600, green);
         (*docking).add_at(dock_status_, {640.0, 36.0, 270.0, 44.0});
@@ -212,7 +212,7 @@ private:
         (*content).add_child(copy);
         std::shared_ptr<TextBox> field =
             make_control<TextBox>(StableId("gallery.containers.dock.field." + creation.panel.value));
-        (*field).set_accessible_name(title);
+        (*field).accessible_name = title;
         (*field).set_requested_bounds({8.0, 36.0, 150.0, 24.0});
         (*content).add_child(field);
         creation.content = content;

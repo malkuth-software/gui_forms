@@ -300,14 +300,14 @@ clipboard of the host attached to the window, and return false when there is
 none.
 
 The control publishes the accessibility role `text_box`. Its name is the
-accessible name only, so give every box one with `set_accessible_name`; the
+accessible name only, so give every box one by writing `accessible_name`; the
 placeholder becomes the description, not the name. The value is the text, or
 empty when masked, together with the protected-content state. The box also
 publishes whether it is multiline and, unless masked, its selection as an
 anchor and a caret. It reports
 read-only when `read_only` is true, and otherwise offers a set-value action,
 which replaces the whole text as one undoable edit within `maximum_length`.
-A box that suggests also publishes that it opens a popup, and the expanded
+A box that suggests also publishes that it opens an overlay, and the expanded
 state while its list is open; the open list publishes the role `list` with
 `list_item` rows.
 
@@ -324,7 +324,7 @@ A search field that acts when the user presses Enter:
 
        Search() {
            (*field).set_placeholder_text("Search");
-           (*field).set_accessible_name("Search");
+           (*field).accessible_name = "Search";
            (*field).set_accepts_enter(true);
            gf::on((*field).committed(), *this, &Search::on_commit);
        }

@@ -3,7 +3,7 @@
 Status: **GIVEN interface behavior for deterministic fixtures; host and control
 implementation remain in GUI.Forms**.
 
-All interactions run through public GUI.Forms event, command, focus, popup,
+All interactions run through public GUI.Forms event, command, focus, overlay,
 text, drag, semantic, and retained-state contracts. Mouse-only success is
 incomplete.
 
@@ -16,7 +16,7 @@ incomplete.
 4. Navigation changes location immediately and records history.
 5. Destructive-looking actions alter only session fixtures and are resettable.
 6. No action depends on sound, color, hover, or animation alone.
-7. Popups close predictably and restore focus.
+7. Overlays close predictably and restore focus.
 8. State updates synchronously on the UI thread; asynchronous-looking fixture
    outcomes use deterministic scheduled generations.
 9. Motion may decorate a completed state change; it never delays authority.
@@ -101,14 +101,14 @@ closed
 Activating the trailing `./` terminal:
 
 - opens the anchored matrix if closed;
-- closes it if it is already the active popup;
-- keeps the `./` control as popup owner;
+- closes it if it is already the active overlay;
+- keeps the `./` control as overlay owner;
 - exposes `aria-expanded`/native expanded state;
-- initially focuses the current final segment or popup container according to
-  host popup convention;
+- initially focuses the current final segment or overlay container according to
+  host overlay convention;
 - displays the full drive-rooted current stack plus exactly five recent stacks;
 - does not change location merely by opening;
-- does not emit a sound merely because a popup opened.
+- does not emit a sound merely because an overlay opened.
 
 ### Browse current/recent stacks
 
@@ -116,7 +116,7 @@ Activating the trailing `./` terminal:
 - activating a recent stack navigates to its complete path;
 - each recent row is one location option but exposes its breadcrumb components
   as descriptive structure;
-- navigation closes the popup and restores focus to the most appropriate
+- navigation closes the overlay and restores focus to the most appropriate
   location control (`./` or breadcrumb current segment);
 - navigation emits one location sound/status event.
 
@@ -125,10 +125,10 @@ Activating the trailing `./` terminal:
 Activating the open tail immediately after the last current breadcrumb:
 
 - replaces the visual current stack with a dark terminal-like text editor
-  inside the same popup identity;
+  inside the same overlay identity;
 - preloads the complete current path with trailing separator;
 - moves the caret to the end and selects nothing;
-- preserves popup size/anchor;
+- preserves overlay size/anchor;
 - shows completion and resolution regions;
 - does not open another modal or dialog.
 
@@ -269,7 +269,7 @@ Rules:
 - it is initially pointer-neutral;
 - it has a keyboard/focus equivalent;
 - it does not change selection, focus, or authority;
-- it closes on target loss, Escape, navigation, or conflicting popup;
+- it closes on target loss, Escape, navigation, or conflicting overlay;
 - richer/pinned interaction requires the admitted inspection-popover path and
   is not approximated as a tooltip;
 - no sound.
@@ -326,7 +326,7 @@ space does not override a user-collapsed pane.
 
 ### Opens with
 
-- opens a GUI.Forms choice popup with fixture handlers;
+- opens a GUI.Forms choice overlay with fixture handlers;
 - changing the handler is session-only and emits option-committed sound;
 - merely opening the menu is silent;
 - no host application enumeration occurs.
@@ -468,7 +468,7 @@ Normal same-volume fixture:
 - immediate acceptance;
 - status changes to operation progress if duration exceeds brief threshold;
 - completion status and reversible fake outcome;
-- no popup.
+- no overlay.
 
 Different-volume fixture:
 
@@ -511,7 +511,7 @@ Controller selection performs one retained theme transaction:
 3. replace color/material roles;
 4. invalidate style, measure only if the selected construction truly changes
    metrics, then paint;
-5. preserve focus, selection, popups when compatible;
+5. preserve focus, selection, overlays when compatible;
 6. record fallback faults;
 7. emit one option-committed sound.
 

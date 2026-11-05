@@ -234,7 +234,7 @@ void validation_and_removal() {
 // thing; removing it hands the thing back to the plain presenter.
 void plain_text_and_covering() {
     Fixture fixture;
-    (*fixture.button).set_tool_tip_text("Copy formatting to other text.");
+    (*fixture.button).tool_tip_text = "Copy formatting to other text.";
     ToolTipSettings settings = fixture.window.tool_tip_settings();
     settings.initial_delay = 1ms;
     settings.auto_pop_delay = 0ms;

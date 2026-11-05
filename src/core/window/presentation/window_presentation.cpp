@@ -9,7 +9,7 @@
 #include "../../display/recording_painter/recording_painter.hpp"
 #include "../../display/replay/replay_display_chunk.hpp"
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
-#include "../popup/popup_attachment.hpp"
+#include "../overlay/overlay_attachment.hpp"
 
 #include <algorithm>
 #include <array>
@@ -477,8 +477,8 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
 
     paint_checkpoints_.clear();
     collect_paint_checkpoints(root_, paint_checkpoints_);
-    for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-        collect_paint_checkpoints((*popup).popup(), paint_checkpoints_);
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        collect_paint_checkpoints((*overlay).overlay(), paint_checkpoints_);
     }
 
     const std::uint64_t lease_revision = content_revision_;
@@ -512,7 +512,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         backplane_context.high_contrast = presentation_settings_.high_contrast;
         backplane_context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
         // Over a non-opaque grant, the theme's base for it (stage T5).
-        const SurfaceMaterial& backplane = backplane_base(backplane_context);
+        const SurfaceMaterial backplane = backplane_base(backplane_context);
         // A window granted a non-opaque backdrop (stage T5) starts each
         // painted rectangle clear: its backplane is drawn in a copy group,
         // which replaces the previous frame's pixels, transparent included,
@@ -533,13 +533,14 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                 paint_backplane_rectangle(candidate, painted[index], backplane, starts_clear);
             }
         }
-        std::vector<Control::Ptr> popup_roots;
-        popup_roots.reserve(popups_.size());
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) popup_roots.push_back((*popup).popup());
+        std::vector<Control::Ptr> overlay_roots;
+        overlay_roots.reserve(overlays_.size());
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) overlay_roots.push_back((*overlay).overlay());
         // Complete the application root across every paint plane before any
-        // popup root. A popup is one composited retained surface; interleaving
+        // overlay root. An overlay is one composited retained surface; interleaving
         // its backplane with later application planes lets ordinary content
-        // paint over the popup and leaves only overlay-plane pixels visible.
+        // paint over the overlay root, leaving visible only those of its pixels
+        // that lie in the overlay paint plane.
         // Painted rectangles are disjoint, so each is a separate clip; a
         // chunk that touches several is replayed once per rectangle and
         // rebuilt at most once.
@@ -567,9 +568,9 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
                                       chunks_reused, commands_replayed);
             }
         }
-        // Window-owned popup roots are composited after all application
+        // Window-owned overlay roots are composited after all application
         // content, in opening order and independently of consumer layout.
-        for (const Control::Ptr& overlay : popup_roots) {
+        for (const Control::Ptr& overlay : overlay_roots) {
             if (!overlay || !(*overlay).is_alive() || (*overlay).surface_root_ != this) {
                 continue;
             }
@@ -871,10 +872,10 @@ Window::take_live_surface_presentations(const bool include_unchanged,
     // lane to paint over the menu.
     std::vector<Rect> overlay_rectangles;
     collect_visible_overlay_rectangles(root_, overlay_rectangles);
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (popup) {
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (overlay) {
             collect_visible_overlay_rectangles(
-                (*popup).popup(), overlay_rectangles);
+                (*overlay).overlay(), overlay_rectangles);
         }
     }
     for (LiveSurfaceRegistrationMap::iterator iterator =
@@ -897,7 +898,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         // Hidden/covered generations must not cause an endless idle rearm.
         registration.observed_epoch = snapshot.epoch;
         registration.observed_generation = snapshot.published_generation;
-        if (occluded_ || !popups_.empty() || !(*control).visible_ ||
+        if (occluded_ || !overlays_.empty() || !(*control).visible.read() ||
             !(*control).effectively_visible()) {
             // Retained painting owns these pixels until the next presentation.
             registration.placed = false;
@@ -931,7 +932,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
              ancestor && valid && !clip.empty();
              ancestor = (*ancestor).parent()) {
             if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this ||
-                !(*ancestor).visible_) {
+                !(*ancestor).visible.read()) {
                 valid = false;
                 break;
             }

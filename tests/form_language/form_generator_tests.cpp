@@ -339,7 +339,9 @@ void test_refusals() {
 }
 
 // Fonts and text items (owner decisions FD6-3 and FD6-4): written, loaded
-// and generated alike; malformed values refused, located.
+// and generated alike; malformed values refused, located. A font in a form
+// is content only (a TypographySpecimen's); every other font belongs to
+// the project theme (E813).
 void test_fonts_and_items() {
     SampleOwner owner{};
     form_generated::SampleDialogForm<SampleOwner> form{};
@@ -350,15 +352,14 @@ void test_fonts_and_items() {
     require(form.sample_band != nullptr && (*form.sample_band).items().size() == 3U &&
                 (*form.sample_band).items()[0] == "HF",
             "items: the domain's items");
-    const gui_forms::FontSpec heading{gui_forms::FontRole::control, 14.0, 700, true};
-    require(form.sample_heading != nullptr && (*form.sample_heading).font() == heading, "fonts: the heading's font");
+    require(form.sample_heading != nullptr, "fonts: the heading, its font left to the theme");
 
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
     const std::string_view document = "user-control app.root {\n"
-                                      "  label app.a { font: control 12; }\n"
-                                      "  label app.b { font: serif 12 400; }\n"
-                                      "  label app.c { font: control 12 1001; }\n"
-                                      "  label app.d { font: control 12 700 bold; }\n"
+                                      "  typography-specimen app.a { font: control 12; }\n"
+                                      "  typography-specimen app.b { font: serif 12 400; }\n"
+                                      "  typography-specimen app.c { font: control 12 1001; }\n"
+                                      "  typography-specimen app.d { font: control 12 700 bold; }\n"
                                       "  list-box app.e { items: \"one\" 2; }\n"
                                       "}\n";
     Workspace workspace{};
@@ -366,33 +367,31 @@ void test_fonts_and_items() {
     const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
     // Each refusal at the token it stopped at.
     const bool located = records.size() == 5U && records[0].code == DiagnosticCode::form_value_invalid &&
-                         records[0].position.line.value == 2U && records[0].position.column.value == 31U &&
-                         records[1].position.line.value == 3U && records[1].position.column.value == 23U &&
-                         records[2].position.line.value == 4U && records[2].position.column.value == 34U &&
-                         records[3].position.line.value == 5U && records[3].position.column.value == 38U &&
+                         records[0].position.line.value == 2U && records[0].position.column.value == 45U &&
+                         records[1].position.line.value == 3U && records[1].position.column.value == 37U &&
+                         records[2].position.line.value == 4U && records[2].position.column.value == 48U &&
+                         records[3].position.line.value == 5U && records[3].position.column.value == 52U &&
                          records[4].position.line.value == 6U && records[4].position.column.value == 33U;
     if (!located) print_diagnostics(workspace);
     require(located, "values: each malformed font and item, located");
 }
 
-// FD6.3's descriptors: letter spacing in a font, a group box's caption
-// font, the scaled containers' design size (their children placed by their
-// own bounds, read in design coordinates), a panel's face colour, and the
-// choice controls' indicator style.
+// FD6.3's descriptors: letter spacing in a content font, the scaled
+// containers' design size (their children placed by their
+// own bounds, read in design coordinates), and the choice controls'
+// indicator style.
 void test_page_descriptors() {
     const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
     const std::string_view document = "scaled-panel app.root {\n"
                                       "  design-size: 200 100;\n"
-                                      "  back-color: #E1EBF3;\n"
                                       "  scaled-group-box app.group {\n"
                                       "    text: \"Group\";\n"
-                                      "    font: control 12 700 spacing 0.24;\n"
                                       "    design-size: 50 50;\n"
                                       "    bounds: 100 0 100 100;\n"
                                       "    check-box app.check { indicator-style: toggle; bounds: 0 0 25 10; }\n"
                                       "  }\n"
                                       "  radio-button app.radio { indicator-style: modern; bounds: 0 50 100 50; }\n"
-                                      "  label app.italic { font: content 13 400 italic spacing 0.5; }\n"
+                                      "  typography-specimen app.italic { font: content 13 400 italic spacing 0.5; }\n"
                                       "}\n";
     Workspace workspace{};
     const bool read = read_document(workspace, "page.form", document, schema);
@@ -414,17 +413,13 @@ void test_page_descriptors() {
         std::dynamic_pointer_cast<gui_forms::CheckBox>(find_control(loaded.root, "app.check"));
     const std::shared_ptr<gui_forms::RadioButton> radio =
         std::dynamic_pointer_cast<gui_forms::RadioButton>(find_control(loaded.root, "app.radio"));
-    const std::shared_ptr<gui_forms::Label> italic =
-        std::dynamic_pointer_cast<gui_forms::Label>(find_control(loaded.root, "app.italic"));
+    const std::shared_ptr<gui_forms::TypographySpecimen> italic =
+        std::dynamic_pointer_cast<gui_forms::TypographySpecimen>(find_control(loaded.root, "app.italic"));
     require(root != nullptr && group != nullptr && check != nullptr && radio != nullptr && italic != nullptr,
             "page descriptors: every object made");
     if (root == nullptr || group == nullptr || check == nullptr || radio == nullptr || italic == nullptr) return;
     require((*root).design_size() == gui_forms::Size{200.0, 100.0}, "page descriptors: the panel's design size");
     require((*group).design_size() == gui_forms::Size{50.0, 50.0}, "page descriptors: the group's design size");
-    require((*root).background() == gui_forms::Color::rgba(0xE1, 0xEB, 0xF3),
-            "page descriptors: a panel's back colour is its face");
-    const gui_forms::FontSpec caption{gui_forms::FontRole::control, 12.0, 700, false, 0.24};
-    require((*group).font() == caption, "page descriptors: the caption font with its letter spacing");
     const gui_forms::FontSpec body{gui_forms::FontRole::content, 13.0, 400, true, 0.5};
     require((*italic).font() == body, "page descriptors: italic, then spacing");
     require((*check).indicator_style() == gui_forms::ChoiceIndicatorStyle::toggle,
@@ -440,9 +435,9 @@ void test_page_descriptors() {
             "page descriptors: a second child, scaled");
 
     const std::string_view refused = "user-control app.root {\n"
-                                     "  label app.a { font: control 12 700 spacing; }\n"
-                                     "  label app.b { font: control 12 700 spacing 13; }\n"
-                                     "  label app.c { font: control 12 700 spacing 1 italic; }\n"
+                                     "  typography-specimen app.a { font: control 12 700 spacing; }\n"
+                                     "  typography-specimen app.b { font: control 12 700 spacing 13; }\n"
+                                     "  typography-specimen app.c { font: control 12 700 spacing 1 italic; }\n"
                                      "  check-box app.d { indicator-style: round; }\n"
                                      "}\n";
     Workspace refusing{};
@@ -451,6 +446,29 @@ void test_page_descriptors() {
     const bool counted = records.size() == 4U && records[0].code == DiagnosticCode::form_value_invalid;
     if (!counted) print_diagnostics(refusing);
     require(counted, "page descriptors: one refusal each");
+}
+
+// A font is presentation (owner, 2026-11-04): on a label or a group box it
+// is refused with E813, which names the project theme; a typography
+// specimen's font is content and stays.
+void test_presentation_fonts() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "user-control app.root {\n"
+                                      "  label app.a { font: control 12; }\n"
+                                      "  group-box app.b { font: control 12 700; }\n"
+                                      "  typography-specimen app.c { font: content 20 400 italic; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    require(!read_document(workspace, "fonts.form", document, schema), "presentation fonts: refused");
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    const bool refused = records.size() == 2U &&
+                         records[0].code == DiagnosticCode::form_presentation_property &&
+                         records[0].position.line.value == 2U &&
+                         records[1].code == DiagnosticCode::form_presentation_property &&
+                         records[1].position.line.value == 3U &&
+                         records[0].detail.find("project theme") != std::string::npos;
+    if (!refused) print_diagnostics(workspace);
+    require(refused, "presentation fonts: each refused at its name, pointing at the theme; content stays");
 }
 
 void test_member_names() {
@@ -469,6 +487,7 @@ int main() {
     test_handlers();
     test_golden();
     test_fonts_and_items();
+    test_presentation_fonts();
     test_page_descriptors();
     test_refusals();
     test_member_names();

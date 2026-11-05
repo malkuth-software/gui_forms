@@ -200,7 +200,9 @@ RuleSpecificity rule_specificity(const RuleSelector& selector) noexcept {
     RuleSpecificity result{};
     result.ids = selector.stable_id.empty() ? 0U : 1U;
     result.classes = static_cast<std::uint32_t>(selector.classes.size());
-    result.types = selector.control_type.empty() ? 0U : 1U;
+    // A surface selector counts as a type selector, as CSS's `window` would.
+    const bool typed = !selector.control_type.empty() || selector.surface != SurfaceKind::none;
+    result.types = typed ? 1U : 0U;
     const std::uint32_t named = selector.part.empty() ? 0U : 1U;
     const std::uint32_t role = selector.role ? 1U : 0U;
     result.parts = named + role;
@@ -265,6 +267,7 @@ std::string_view rule_diagnostic_name(RuleDiagnosticKind kind) noexcept {
     case RuleDiagnosticKind::expression_invalid: return "expression_invalid";
     case RuleDiagnosticKind::expression_reads_colour: return "expression_reads_colour";
     case RuleDiagnosticKind::rule_empty: return "rule_empty";
+    case RuleDiagnosticKind::backdrop_invalid: return "backdrop_invalid";
     case RuleDiagnosticKind::transition_property_unknown: return "transition_property_unknown";
     case RuleDiagnosticKind::transition_property_not_animated: return "transition_property_not_animated";
     case RuleDiagnosticKind::transition_invalid: return "transition_invalid";
@@ -1492,6 +1495,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
         add_ambient(result.diagnostics_, index, rule, compiled);
         add_materials(result.diagnostics_, index, rule, compiled);
         add_recipe_fields(result.diagnostics_, index, rule, compiled);
+        add_backdrop(result.diagnostics_, index, rule, compiled);
         if (!add_scoped(result.diagnostics_, index, rule, result, compiled)) continue;
         if (!add_reads(result.diagnostics_, index, rule, result, compiled)) continue;
         const bool declares = compiled.selects || !compiled.parameters.empty() || !compiled.transitions.empty() ||
@@ -1499,7 +1503,7 @@ void CompiledThemeRules::add_rules(CompiledThemeRules& result, const ThemeRuleSh
                               compiled.effect.has_value() || compiled.effect_primary.has_value() ||
                               compiled.effect_secondary.has_value() ||
                               !compiled.materials.empty() || !compiled.recipe_fields.empty() ||
-                              !compiled.scoped_definitions.empty();
+                              !compiled.scoped_definitions.empty() || compiled.backdrop.has_value();
         // A rule of definitions no condition reads declares nothing the
         // cascade uses, and is dropped without a diagnostic.
         if (!declares && !rule.scoped_definitions.empty()) continue;
@@ -1742,6 +1746,39 @@ bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept 
     default: break;
     }
     return false;
+}
+
+bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept {
+    if (backdrop.length > BackdropDeclaration::maximum_steps) return false;
+    std::size_t blurs = 0U;
+    for (std::size_t index = 0U; index < backdrop.length; ++index) {
+        const BackdropStep& step = backdrop.steps[index];
+        if (!std::isfinite(step.amount)) return false;
+        switch (step.kind) {
+        case BackdropStepKind::blur:
+            blurs = blurs + 1U;
+            if (step.amount < 0.0 || step.amount > maximum_backdrop_blur) return false;
+            break;
+        case BackdropStepKind::saturate:
+            if (step.amount < 0.0 || step.amount > maximum_backdrop_saturation) return false;
+            break;
+        case BackdropStepKind::tint: break;
+        default: return false;
+        }
+    }
+    const bool one_blur = blurs <= 1U;
+    return one_blur;
+}
+
+void CompiledThemeRules::add_backdrop(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
+                                      const ThemeRule& rule, CompiledRule& compiled) {
+    if (!rule.backdrop) return;
+    const bool on_surface = rule.selector.surface != SurfaceKind::none;
+    if (!on_surface || !backdrop_declaration_valid(*rule.backdrop)) {
+        diagnostics.push_back(diagnostic(RuleDiagnosticKind::backdrop_invalid, index, rule, "backdrop"));
+        return;
+    }
+    compiled.backdrop = rule.backdrop;
 }
 
 void CompiledThemeRules::add_recipe_fields(std::vector<RuleDiagnostic>& diagnostics, std::size_t index,
@@ -2108,6 +2145,7 @@ void CompiledThemeRules::number_machines() noexcept {
 bool CompiledThemeRules::matches(const CompiledRule& rule, const PartFacts& facts) noexcept {
     const RuleSelector& selector = rule.selector;
     if (!media_condition_holds(rule.media, facts.media)) return false;
+    if (selector.surface != facts.surface) return false;
     if (!selector.control_type.empty() && selector.control_type != facts.control_type) return false;
     if (!selector.stable_id.empty() && selector.stable_id != facts.stable_id) return false;
     if (!selector.part.empty() && selector.part != facts.part) return false;
@@ -2350,6 +2388,22 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
         result.authored = true;
     }
     return result;
+}
+
+const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts& facts) const noexcept {
+    // Only a surface rule holds a backdrop (add_backdrop). Rules are walked
+    // in ascending precedence, so the last match wins.
+    if (facts.surface == SurfaceKind::none) return nullptr;
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    const BackdropDeclaration* winner = nullptr;
+    RuleWalk walk(*this, facts, false, &winners);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        if (!rule.backdrop || !matches(rule, facts)) continue;
+        winner = &*rule.backdrop;
+    }
+    return winner;
 }
 
 void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const ScopedWinners& winners,

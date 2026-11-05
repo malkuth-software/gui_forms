@@ -40,9 +40,9 @@ SplitterGrip::SplitterGrip(StableId stable_id)
 void SplitterGrip::set_orientation(Orientation orientation) {
     if (orientation_ == orientation) return;
     orientation_ = orientation;
-    set_cursor(orientation == Orientation::vertical
+    cursor = orientation == Orientation::vertical
                    ? CursorKind::resize_horizontal
-                   : CursorKind::resize_vertical);
+                   : CursorKind::resize_vertical;
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
 }
 
@@ -332,6 +332,11 @@ void SplitterGrip::on_paint(Painter& painter, Rect) {
                                     std::max(0.0, bounds.height - height));
         band.bounds = {0.0, y, bounds.width, height};
     }
+    // A band narrower than 2 px is a hairline: its face is the whole line,
+    // and an edge stroke would draw over it.
+    const double thickness = orientation_ == Orientation::vertical ? band.bounds.width
+                                                                  : band.bounds.height;
+    band.frame = thickness < 2.0 ? PartFrame::none : PartFrame::drawn;
     paint_part(painter, *this, band);
     if (collapse_panel_ == SplitFixedPanel::none) return;
 

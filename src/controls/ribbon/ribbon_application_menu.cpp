@@ -190,7 +190,7 @@ void RibbonApplicationMenu::activate(const Row& row) {
     Ribbon& ribbon = *ribbon_;
     const Control::Ptr lifetime = shared_from_this();
     const Control::Ptr owner = ribbon.shared_from_this();
-    ribbon.close_application_popup();
+    ribbon.close_application_overlay();
     const std::string ribbon_id(ribbon.stable_id().value());
     if (row.recent) {
         const RibbonRecentItemInvocation invoked{ribbon_id, ribbon.recent_items_[row.index].stable_id};
@@ -228,7 +228,7 @@ void RibbonApplicationMenu::on_pointer(PointerEvent& event) {
     // A press outside the panel closes the menu, as a click away does.
     if (event.action == PointerAction::down && !placed.panel.contains(local)) {
         const Control::Ptr lifetime = shared_from_this();
-        (*ribbon_).close_application_popup();
+        (*ribbon_).close_application_overlay();
         return;
     }
     // A click is a release over a row, as in a menu.
@@ -267,7 +267,7 @@ void RibbonApplicationMenu::on_key_preview(KeyEvent& event) {
     if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape || !ribbon_alive()) return;
     event.handled = true;
     const Control::Ptr lifetime = shared_from_this();
-    (*ribbon_).close_application_popup();
+    (*ribbon_).close_application_overlay();
 }
 
 // Up and Down move within a pane, Left and Right between the panes, Enter

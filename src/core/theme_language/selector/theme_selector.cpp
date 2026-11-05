@@ -89,7 +89,7 @@ template <std::size_t Count>
     RuleSpecificity one{};
     if (kind == SimpleKind::stable_id) one.ids = 1U;
     if (kind == SimpleKind::style_class) one.classes = 1U;
-    if (kind == SimpleKind::control_type) one.types = 1U;
+    if (kind == SimpleKind::control_type || kind == SimpleKind::surface) one.types = 1U;
     if (kind == SimpleKind::part || kind == SimpleKind::role) one.parts = 1U;
     if (kind == SimpleKind::state) one.states = 1U;
     return one;
@@ -100,6 +100,14 @@ template <std::size_t Count>
     if (specificity.ids != 0U) return CascadeLevel::stable_id_rule;
     if (specificity.classes != 0U) return CascadeLevel::class_rule;
     return CascadeLevel::theme_sheet;
+}
+
+// The surface a registered name selects, or none: `window` and `popup`
+// (owner decision 2026-11-04).
+[[nodiscard]] SurfaceKind surface_named(std::string_view registered) noexcept {
+    if (registered == "window") return SurfaceKind::window;
+    if (registered == "popup") return SurfaceKind::popup;
+    return SurfaceKind::none;
 }
 
 // The anatomy of the control type `registered`, or null when the
@@ -272,6 +280,18 @@ bool SelectorPass::read_simple() {
         const std::string_view name = token_text(index_);
         const std::string registered = registered_name_from_kebab(name);
         frame.compound_started = true;
+        // The surface selectors are not control types: no anatomy declares
+        // them, and they come before the vocabulary is consulted.
+        const SurfaceKind surface = surface_named(registered);
+        if (surface != SurfaceKind::none) {
+            Simple simple{};
+            simple.kind = SimpleKind::surface;
+            simple.token = index_;
+            simple.name = name;
+            simple.surface = surface;
+            ++index_;
+            return add_simple(simple);
+        }
         const bool known = !registered.empty() && find_control(vocabulary_, registered) != nullptr;
         if (!known) {
             note_unknown(index_, name);
@@ -589,6 +609,7 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
     LoweredSelector lowered{};
     RuleSelector& selector = lowered.selector;
     std::uint32_t part_token = 0U;
+    std::uint32_t surface_token = 0U;
     for (std::uint32_t position = 0U; position < alternative.count; ++position) {
         const Simple& simple = workspace_.simples[alternative.simples[position]];
         if (simple.kind == SimpleKind::control_type || simple.kind == SimpleKind::part) {
@@ -601,6 +622,13 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
             }
             field = registered;
             if (simple.kind == SimpleKind::part) part_token = simple.token;
+        } else if (simple.kind == SimpleKind::surface) {
+            if (selector.surface != SurfaceKind::none && selector.surface != simple.surface) {
+                report(DiagnosticCode::selector_syntax, simple.token, "two surfaces");
+                return false;
+            }
+            selector.surface = simple.surface;
+            surface_token = simple.token;
         } else if (simple.kind == SimpleKind::stable_id) {
             if (!selector.stable_id.empty() && selector.stable_id != simple.name) {
                 report(DiagnosticCode::selector_syntax, simple.token, "two stable IDs");
@@ -626,6 +654,16 @@ bool SelectorPass::materialize(const Alternative& alternative, RuleSpecificity s
             }
             if (!present) selector.states.push_back(simple.state);
         }
+    }
+    // A surface selector names the surface and its root's classes and ID
+    // only: its rules style no part of a control.
+    const bool surface_with_more = selector.surface != SurfaceKind::none &&
+                                   (!selector.control_type.empty() || !selector.part.empty() || selector.role ||
+                                    !selector.states.empty());
+    if (surface_with_more) {
+        report(DiagnosticCode::selector_syntax, surface_token,
+               "a window or popup selector takes only classes and a stable ID");
+        return false;
     }
     if (!selector.part.empty() && !dropped_) {
         bool declared = false;

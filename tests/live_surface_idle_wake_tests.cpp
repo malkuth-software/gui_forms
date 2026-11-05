@@ -127,7 +127,7 @@ int main() {
             require(wakes.load() == round + 2U, "racing publication lost or duplicated wake");
         }
         worker.join();
-        (*root).set_visible(false);
+        (*root).visible = false;
         publish(*surface);
         static_cast<void>(window.take_live_surface_presentations());
         window.set_live_surface_idle_waiting(true);

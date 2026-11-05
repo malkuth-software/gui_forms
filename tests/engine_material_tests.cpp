@@ -1097,7 +1097,7 @@ public:
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, size.width, size.height};
         part.key = PartKey{"face", {}, {}};
-        if (!enabled()) part.states.insert(AnatomyState::disabled);
+        if (!enabled.read()) part.states.insert(AnatomyState::disabled);
         return part;
     }
     Size size{40.0, 24.0};
@@ -1188,7 +1188,7 @@ void engine_draws_the_material() {
     (*made.pad).invalidate(Dirty::paint);
     repaint(made);
     require(bakes(window) == first_bakes, "an unchanged part is composited from its cached raster");
-    (*made.pad).set_enabled(false);
+    (*made.pad).enabled = false;
     repaint(made);
     require(bakes(window) == first_bakes + 1U, "a state change bakes once");
     require(pixels_hash(*made.painter.last) != normal, "a disabled control draws its disabled material");

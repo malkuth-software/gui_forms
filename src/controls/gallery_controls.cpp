@@ -155,7 +155,7 @@ void GalleryContext::synchronize(std::string_view cause)
         drop_status.clear();
         invalidate_subtrees(mount_controls());
     }
-    (*document.gallery_diagnostics).set_visible(state.diagnostics_visible);
+    (*document.gallery_diagnostics).visible = state.diagnostics_visible;
 
     const BasicControlStyle style = gallery_basic_style(state.style_mode == StyleMode::quiet_relief);
     apply_relief_style(mount_controls(), style);

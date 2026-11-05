@@ -640,7 +640,7 @@ void semantics() {
     require(pages.set_closable(PageId{"p1"}, true) == PageEditStatus::applied, "p1 is closable");
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
     (*strip).set_item_sizing(PageItemSizing::fixed);
-    (*strip).set_accessible_name("Sections");
+    (*strip).accessible_name = "Sections";
     Window window(strip, {400.0, 26.0});
     window.perform_layout();
     const SemanticSnapshot snapshot = window.semantic_snapshot();

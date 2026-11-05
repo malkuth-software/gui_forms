@@ -62,7 +62,7 @@ perform_drop_down
 
 See Also
 --------
-ContextMenu : The popup menu to show from `drop_down_requested`.
+ContextMenu : The overlay menu to show from `drop_down_requested`.
 Button : A push button with a single action.
 CommandBar : A row of command buttons.
 ComboBox : A drop-down list for choosing a value.

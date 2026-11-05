@@ -759,7 +759,7 @@ void test_shared_commands() {
         }
         allocations = owned_event_allocation_probe::attempts;
     }
-    require(allocations == 0U && !first.enabled() && !second.enabled(),
+    require(allocations == 0U && !first.enabled.read() && !second.enabled.read(),
             "command state propagation must allocate nothing");
     require(!first.perform_click() && observer.invocations == 1,
             "disabled bound commands cannot be invoked");
@@ -816,7 +816,7 @@ void test_command_bar_rebuild_and_keyboard() {
                 (*bar).item(1).arranged_bounds().x == 150.0,
             "collection geometry must survive Window layout-slot traversal");
     run.set_enabled(false);
-    require(!(*bar).item(0).tab_stop() && (*bar).item(1).tab_stop(),
+    require(!(*bar).item(0).tab_stop.read() && (*bar).item(1).tab_stop.read(),
             "disabling the tab-stop command must leave an available bar entry reachable");
     run.set_enabled(true);
     gf::Button* const reused = &(*bar).item(0);
@@ -835,7 +835,7 @@ void test_command_bar_rebuild_and_keyboard() {
     gf::KeyEvent right{.physical_key = gf::PhysicalKey::right};
     (*bar).on_key(right);
     require(right.handled && window.focused_control().get() == reused &&
-                !(*bar).item(0).tab_stop() && (*bar).item(1).tab_stop(),
+                !(*bar).item(0).tab_stop.read() && (*bar).item(1).tab_stop.read(),
             "arrow navigation must maintain a single tab stop");
     gf::KeyEvent tab{.physical_key = gf::PhysicalKey::tab};
     (*bar).on_key(tab);
@@ -901,9 +901,9 @@ void test_expandable_sections_state() {
                           {.id = 2, .label = "Second", .content = second, .expanded = &second_open}});
     CollectionObserver observer{};
     gf::on((*sections).toggled(), observer, &CollectionObserver::toggle);
-    require((*first).visible() && !(*second).visible(), "section model wins at attachment");
+    require((*first).visible.read() && !(*second).visible.read(), "section model wins at attachment");
     second_open.set(true);
-    require(!first_open.get() && second_open.get() && !(*first).visible() && (*second).visible(),
+    require(!first_open.get() && second_open.get() && !(*first).visible.read() && (*second).visible.read(),
             "single-open sections must close the other model and retained body");
     const gf::SemanticDescriptor header = (*(*sections).part("header", 1)).semantic_descriptor();
     require(gf::has_semantic_state(header.states, gf::SemanticState::expanded),
@@ -972,7 +972,7 @@ void test_nested_command_change_keeps_latest_state() {
     CheckDuringEnableChange observer(command);
     gf::on(button.enabled_changed(), observer, &CheckDuringEnableChange::change);
     command.set_enabled(false);
-    require(command.state().checked && button.checked() && !button.enabled(),
+    require(command.state().checked && button.checked() && !button.enabled.read(),
             "a nested command update must not be overwritten by an older projection");
 }
 
@@ -1050,7 +1050,7 @@ void test_choice_images_and_section_keyboard() {
     static_cast<void>(section_window.request_focus(header.shared_from_this()));
     static_cast<void>(section_window.dispatch_key({.action = gf::KeyAction::down, .physical_key = gf::PhysicalKey::space}));
     static_cast<void>(section_window.dispatch_key({.action = gf::KeyAction::up, .physical_key = gf::PhysicalKey::space}));
-    require((*sections).expanded(0) && (*body).visible(),
+    require((*sections).expanded(0) && (*body).visible.read(),
             "keyboard activation must expand the section through its retained state");
 }
 

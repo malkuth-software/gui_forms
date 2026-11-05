@@ -472,8 +472,6 @@
         "set_wrap_contents": "Toggles wrapping and invalidates the retained layout result.",
         "item_spacing": "Returns explicit main-axis item and cross-axis line separation as logical dimensions.",
         "set_item_spacing": "Accepts finite zero-to-256 spacing, applies it between items and lines without trailing gaps, and invalidates layout.",
-        "auto_size": "Returns whether desired size follows the packed child extent.",
-        "set_auto_size": "Commits content-driven sizing through the base Control property while preserving flow-specific invalidation.",
         "set_flow_break": "Requires a direct child and records whether it terminates the current line/column after itself.",
         "flow_break": "Returns the retained break bit for a current direct child.",
         "measure": "Packs stable child snapshots without assignment and returns the bounded flow extent when auto-sized.",
@@ -494,8 +492,6 @@
         "set_row_count": "Validates the bounded nonzero count, resizes style storage, reconciles placement, and invalidates layout.",
         "grow_style": "Returns fixed-size, add-rows, or add-columns automatic placement policy.",
         "set_grow_style": "Validates growth vocabulary and invalidates the table solution.",
-        "auto_size": "Returns whether desired size follows the resolved grid extent.",
-        "set_auto_size": "Commits content-driven sizing and invalidates table measurement/arrangement.",
         "cell_border_style": "Returns none, single, inset, or outset cell-frame policy.",
         "set_cell_border_style": "Validates the closed border vocabulary and invalidates painting and semantics.",
         "column_styles": "Returns a read-only span over current authored column track policies.",
@@ -783,44 +779,44 @@
       "capture_note": "M4 Complete Showcase crop showing the anchored ComboBox transient surface governed by DropDownLayer dismissal policy.",
       "summary": "DropDownLayer is ComboBox's source-private transient modal boundary. It owns outside-click and Escape dismissal while leaving item selection and value commit with ComboBox.",
       "methods": {
-        "DropDownLayer": "Constructs a full-window transient panel around the owned popup list.",
+        "DropDownLayer": "Constructs a full-window transient panel around the owned overlay list.",
         "dismissed": "Returns the event raised when outside pointer or Escape requests closure.",
-        "on_pointer": "Dismisses a primary press outside the popup bounds and consumes the transient gesture.",
+        "on_pointer": "Dismisses a primary press outside the overlay bounds and consumes the transient gesture.",
         "on_key_preview": "Dismisses Escape before descendant routing."
       }
     },
     "ComboBox": {
       "status": "OBSERVED: bundle 004 split and drop-down-width enhancement; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/list_box_combo_box.png",
-      "capture_note": "M4 Complete Showcase collection crop showing retained field state and its bounded anchored ListBox popup.",
-      "summary": "ComboBox is a retained noneditable choice field with authoritative item selection, placeholder projection, keyboard cycling, a source-private transient ListBox, bounded item count, independent popup width, focus-safe lifetime handling, and option semantics.",
+      "capture_note": "M4 Complete Showcase collection crop showing retained field state and its bounded anchored ListBox overlay.",
+      "summary": "ComboBox is a retained noneditable choice field with authoritative item selection, placeholder projection, keyboard cycling, a source-private transient ListBox, bounded item count, independent overlay width, focus-safe lifetime handling, and option semantics.",
       "methods": {
-        "ComboBox": "Constructs a focusable choice field with handoff-ready transient popup ownership.",
+        "ComboBox": "Constructs a focusable choice field with handoff-ready transient overlay ownership.",
         "items": "Returns the authoritative ordered option strings.",
-        "set_items": "Replaces options, repairs selection, synchronizes any open popup, and publishes coherent changes.",
-        "add_item": "Appends one option, synchronizes the open popup, and invalidates retained state.",
+        "set_items": "Replaces options, repairs selection, synchronizes any open overlay, and publishes coherent changes.",
+        "add_item": "Appends one option, synchronizes the open overlay, and invalidates retained state.",
         "selected_index": "Returns the selected option index or no value.",
-        "set_selected_index": "Validates the optional index, commits selection, synchronizes popup state, and publishes a real change.",
+        "set_selected_index": "Validates the optional index, commits selection, synchronizes overlay state, and publishes a real change.",
         "selected_text": "Returns selected option text or an empty view when nothing is selected.",
         "placeholder_text": "Returns the hint shown when no option is selected.",
         "set_placeholder_text": "Commits placeholder text and invalidates field paint and semantics.",
-        "dropped_down": "Reports whether this control currently owns its transient popup lease.",
+        "dropped_down": "Reports whether this control currently owns its transient overlay lease.",
         "set_dropped_down": "Opens or closes through the common transient-owner state machine.",
-        "maximum_drop_down_items": "Returns the positive cap on visible popup rows.",
-        "set_maximum_drop_down_items": "Accepts a bounded positive row count and rebuilds popup geometry when open.",
-        "drop_down_width": "Returns zero for field-tracking width or an explicit logical popup width.",
-        "set_drop_down_width": "Accepts zero or a bounded finite width and repositions an open popup within client bounds.",
-        "font": "Returns the retained field and popup FontSpec.",
-        "set_font": "Validates typography, synchronizes the popup, and invalidates size, paint, and semantics.",
+        "maximum_drop_down_items": "Returns the positive cap on visible overlay rows.",
+        "set_maximum_drop_down_items": "Accepts a bounded positive row count and rebuilds overlay geometry when open.",
+        "drop_down_width": "Returns zero for field-tracking width or an explicit logical overlay width.",
+        "set_drop_down_width": "Accepts zero or a bounded finite width and repositions an open overlay within client bounds.",
+        "font": "Returns the retained field and overlay FontSpec.",
+        "set_font": "Validates typography, synchronizes the overlay, and invalidates size, paint, and semantics.",
         "selected_index_changed": "Returns the event published after selected option commits.",
         "drop_down_changed": "Returns the event published after transient ownership opens or closes.",
         "items_changed": "Returns the event published after option collection mutation.",
         "on_paint": "Records framed field, selected/placeholder text, focus cue, and disclosure arrow.",
-        "on_pointer": "Acquires focus and toggles popup ownership for a qualified primary click.",
+        "on_pointer": "Acquires focus and toggles overlay ownership for a qualified primary click.",
         "on_key": "Handles open/close, option cycling, commit, and cancellation keys.",
         "on_focus_changed": "Updates focus painting while transient closure follows owner/revocation policy.",
         "semantic_descriptor": "Projects a combo-box role, current option, expanded state, and selection actions.",
-        "on_semantic_action": "Routes press/expand/collapse and set-value through ordinary selection and popup state."
+        "on_semantic_action": "Routes press/expand/collapse and set-value through ordinary selection and overlay state."
       }
     },
     "SpinButtons": {
@@ -1016,7 +1012,7 @@
     "DateTimeValue": {
       "status": "OBSERVED: bundle 004 value-type split and calendar arithmetic review; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/date_time_picker.png",
-      "capture_note": "M4 Complete Showcase crop showing the formatted field and selected popup day represented by DateTimeValue.",
+      "capture_note": "M4 Complete Showcase crop showing the formatted field and selected overlay day represented by DateTimeValue.",
       "summary": "DateTimeValue is DateTimePicker's timezone-free civil date/time value. Ordering is lexicographic across validated year-through-second fields so range constraint and calendar selection remain deterministic.",
       "methods": {
         "operator<=>": "Orders values chronologically by year, month, day, hour, minute, then second."
@@ -1025,37 +1021,37 @@
     "DateTimeFormatProvider": {
       "status": "OBSERVED: bundle 004 value-provider split; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/date_time_picker.png",
-      "capture_note": "M4 Complete Showcase crop showing provider-owned month/day names and short/long/time patterns in field and calendar popup.",
+      "capture_note": "M4 Complete Showcase crop showing provider-owned month/day names and short/long/time patterns in field and calendar overlay.",
       "summary": "DateTimeFormatProvider is an immutable caller-substitutable vocabulary and pattern bundle for DateTimePicker formatting. It separates locale-shaped presentation from civil-value authority without introducing a platform locale runtime dependency.",
       "methods": {
         "english_united_states": "Returns the library's canonical English month/day names and short, long, time, and month-year patterns."
       }
     },
-    "CalendarPopupLayer": {
+    "CalendarOverlayLayer": {
       "status": "OBSERVED: bundle 004 source-private state-machine split; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/date_time_picker.png",
-      "capture_note": "M4 Complete Showcase crop with DateTimePicker's calendar open; CalendarPopupLayer supplies the full-window outside-click dismissal boundary.",
-      "summary": "CalendarPopupLayer is DateTimePicker's source-private transient boundary. It owns outside-click dismissal around the anchored CalendarPopup while leaving date navigation and commit with the popup and picker.",
+      "capture_note": "M4 Complete Showcase crop with DateTimePicker's calendar open; CalendarOverlayLayer supplies the full-window outside-click dismissal boundary.",
+      "summary": "CalendarOverlayLayer is DateTimePicker's source-private transient boundary. It owns outside-click dismissal around the anchored CalendarOverlay while leaving date navigation and commit with the overlay and picker.",
       "methods": {
-        "CalendarPopupLayer": "Constructs a full-window transient panel around the owned calendar bounds.",
+        "CalendarOverlayLayer": "Constructs a full-window transient panel around the owned calendar bounds.",
         "dismissed": "Returns the event raised when an outside primary press requests closure.",
-        "on_pointer": "Dismisses and consumes a primary press outside the popup, while inside gestures continue to the child."
+        "on_pointer": "Dismisses and consumes a primary press outside the overlay, while inside gestures continue to the child."
       }
     },
-    "CalendarPopup": {
+    "CalendarOverlay": {
       "status": "OBSERVED: bundle 004 source-private calendar state-machine split; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/date_time_picker.png",
       "capture_note": "M4 Complete Showcase crop showing the live month header, navigation buttons, weekday labels, 42 day cells, selected day, adjacent-month days, hover, and focus.",
-      "summary": "CalendarPopup is DateTimePicker's source-private retained month grid. It owns displayed month, constrained candidate selection, pointer/keyboard navigation, commit/cancel events, stable virtual day identities, and calendar semantics while the picker retains final value authority.",
+      "summary": "CalendarOverlay is DateTimePicker's source-private retained month grid. It owns displayed month, constrained candidate selection, pointer/keyboard navigation, commit/cancel events, stable virtual day identities, and calendar semantics while the picker retains final value authority.",
       "methods": {
-        "CalendarPopup": "Constructs a focusable month grid from current value, admitted range, format provider, font, and style.",
-        "~CalendarPopup": "Releases the source-private popup through its isolated translation-unit boundary.",
+        "CalendarOverlay": "Constructs a focusable month grid from current value, admitted range, format provider, font, and style.",
+        "~CalendarOverlay": "Releases the source-private overlay through its isolated translation-unit boundary.",
         "committed": "Returns the event carrying the selected DateTimeValue after qualified day activation.",
         "cancelled": "Returns the event raised by Escape without modifying picker value.",
         "on_paint": "Records calendar frame, month navigation, weekday headings, 42 day cells, range-disabled states, selection, hover, and focus.",
         "on_pointer": "Handles month buttons, day selection, hover, capture qualification, and same-cell commit.",
         "on_key": "Implements day/week/month/year navigation, home/end boundaries, commit, and cancellation under range constraints.",
-        "on_focus_changed": "Commits popup focus state and invalidates the selected-day cue.",
+        "on_focus_changed": "Commits overlay focus state and invalidates the selected-day cue.",
         "semantic_descriptor": "Projects a calendar role with displayed month and selected ISO date.",
         "semantic_virtual_children": "Exposes each visible day as a stable selectable virtual cell with selected/disabled metadata.",
         "on_semantic_child_action": "Maps virtual day selection or press to constrained selection and commit."
@@ -1064,41 +1060,41 @@
     "DateTimePicker": {
       "status": "OBSERVED: bundle 004 split and drop-down-alignment enhancement; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/date_time_picker.png",
-      "capture_note": "M4 Complete Showcase crop showing focused field, check-box policy, disclosure button, right/left anchored live calendar popup, selected date, and navigation controls.",
-      "summary": "DateTimePicker is a retained civil date/time field with validated bounds, four formatting policies, caller-supplied format vocabulary, optional check state, calendar or spin presentation, configurable popup alignment, source-private transient ownership, keyboard/pointer/semantic control, and ordered typed events.",
+      "capture_note": "M4 Complete Showcase crop showing focused field, check-box policy, disclosure button, right/left anchored live calendar overlay, selected date, and navigation controls.",
+      "summary": "DateTimePicker is a retained civil date/time field with validated bounds, four formatting policies, caller-supplied format vocabulary, optional check state, calendar or spin presentation, configurable overlay alignment, source-private transient ownership, keyboard/pointer/semantic control, and ordered typed events.",
       "methods": {
         "DateTimePicker": "Constructs a focusable picker with validated civil value/range defaults and disclosure cursor policy.",
         "value": "Returns the authoritative constrained civil date/time value.",
         "set_value": "Validates the civil value, clamps to the admitted range, and publishes a real change.",
         "minimum": "Returns the inclusive earliest admitted civil value.",
         "maximum": "Returns the inclusive latest admitted civil value.",
-        "set_range": "Validates both civil values and chronological order, constrains current value, and refreshes popup/semantics coherently.",
+        "set_range": "Validates both civil values and chronological order, constrains current value, and refreshes overlay/semantics coherently.",
         "format": "Returns long-date, short-date, time, or custom presentation policy.",
         "set_format": "Validates the format vocabulary and invalidates measure, paint, and semantics.",
         "custom_format": "Returns the token pattern used when custom formatting is selected.",
         "set_custom_format": "Validates and commits the caller pattern, then refreshes formatted projection.",
         "format_provider": "Returns the shared immutable vocabulary/pattern provider.",
-        "set_format_provider": "Requires a provider, commits shared ownership, and refreshes field and open popup presentation.",
+        "set_format_provider": "Requires a provider, commits shared ownership, and refreshes field and open overlay presentation.",
         "formatted_value": "Formats the current civil value through active format and provider without changing authority.",
         "show_check_box": "Reports whether an enable/disable checkbox is painted and interactive.",
         "set_show_check_box": "Toggles checkbox composition and invalidates measure, paint, and semantics.",
         "checked": "Returns the retained enabled state when check-box presentation is used.",
-        "set_checked": "Commits enabled state, closes disallowed popups, and publishes a real checked transition.",
+        "set_checked": "Commits enabled state, closes disallowed overlays, and publishes a real checked transition.",
         "show_up_down": "Reports whether compact day stepping replaces calendar disclosure.",
-        "set_show_up_down": "Switches between spin and popup affordances, closing transient state when required.",
+        "set_show_up_down": "Switches between spin and overlay affordances, closing transient state when required.",
         "dropped_down": "Reports whether this picker currently owns its calendar transient lease.",
         "set_dropped_down": "Opens or closes through the common calendar ownership state machine.",
-        "drop_down_alignment": "Returns left-edge or right-edge popup anchoring policy.",
-        "set_drop_down_alignment": "Validates alignment, commits it, and repositions an open popup within client bounds.",
+        "drop_down_alignment": "Returns left-edge or right-edge overlay anchoring policy.",
+        "set_drop_down_alignment": "Validates alignment, commits it, and repositions an open overlay within client bounds.",
         "font": "Returns the retained field and calendar FontSpec.",
-        "set_font": "Validates typography, refreshes open popup presentation, and invalidates geometry and paint.",
+        "set_font": "Validates typography, refreshes open overlay presentation, and invalidates geometry and paint.",
         "style": "Returns the compatibility field/calendar BasicControlStyle.",
-        "set_style": "Commits compatibility colors and refreshes field and open popup appearance.",
+        "set_style": "Commits compatibility colors and refreshes field and open overlay appearance.",
         "value_changed": "Returns the event published after authoritative value commits.",
         "checked_changed": "Returns the event published after optional checked state commits.",
         "drop_down_changed": "Returns the event published after transient calendar ownership opens or closes.",
         "on_paint": "Records checkbox, formatted value, focus, and either spin or disclosure affordance from retained state.",
-        "on_pointer": "Qualifies checkbox toggling, day stepping, field focus, and popup disclosure by local part.",
+        "on_pointer": "Qualifies checkbox toggling, day stepping, field focus, and overlay disclosure by local part.",
         "on_key": "Handles open/close, day stepping, commit, cancellation, and checked-state toggling.",
         "on_focus_changed": "Commits focus appearance while transient lifetime remains governed by owner/revocation policy.",
         "on_activate": "Invokes the primary check, spin, or calendar action through normal state transitions.",
@@ -1243,18 +1239,18 @@
       "status": "OBSERVED: bundle 005 split and preferred-width enhancement; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/context_menu_menu_strip.png",
       "capture_note": "M4 File Manager Demoboard crop showing a live ContextMenu, keyboard-ready rows, separators, shortcut text, and its MenuStrip owner.",
-      "summary": "ContextMenu is a nonvisual owner for a retained, focus-scoped popup menu tree. Its implementation controls transient lifetime, submenu chains, enabled/check state, root handoff, outside-pointer policy, invocation ordering, and caller-configurable preferred width without exposing implementation rows as reusable public controls.",
+      "summary": "ContextMenu is a nonvisual owner for a retained, focus-scoped overlay menu tree. Its implementation controls transient lifetime, submenu chains, enabled/check state, root handoff, outside-pointer policy, invocation ordering, and caller-configurable preferred width without exposing implementation rows as reusable public controls.",
       "methods": {
         "ContextMenu": "Constructs a menu owner with stable identity and detached authored item state.",
-        "~ContextMenu": "Revokes popup leases, focus scope, subscriptions, and implementation controls before destruction.",
-        "stable_id": "Returns the stable identity prefix used for popup layers, panels, rows, and semantics.",
+        "~ContextMenu": "Revokes overlay leases, focus scope, subscriptions, and implementation controls before destruction.",
+        "stable_id": "Returns the stable identity prefix used for overlay layers, panels, rows, and semantics.",
         "items": "Returns the authored root menu-item tree.",
         "set_items": "Validates item identities and submenu topology, replaces the model, and rebuilds an open presentation safely.",
         "preferred_width": "Returns the logical minimum width requested for each menu panel.",
         "set_preferred_width": "Validates bounded panel width and rebuilds live menu geometry when open.",
-        "show": "Opens the menu relative to an invoker and anchor point under a new popup and focus-scope lease.",
+        "show": "Opens the menu relative to an invoker and anchor point under a new overlay and focus-scope lease.",
         "close": "Closes the complete submenu chain, revokes transient ownership, and publishes a real open-state transition.",
-        "is_open": "Reports whether the root popup lease remains connected.",
+        "is_open": "Reports whether the root overlay lease remains connected.",
         "item_invoked": "Returns the event published after an enabled leaf is committed and the transient chain closes.",
         "open_changed": "Returns the event published when root transient ownership opens or closes."
       }
@@ -1262,7 +1258,7 @@
     "MenuStrip": {
       "status": "OBSERVED: bundle 005 split and item-padding enhancement; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/context_menu_menu_strip.png",
-      "capture_note": "M4 File Manager Demoboard crop showing the active top-level MenuStrip and its owned ContextMenu popup.",
+      "capture_note": "M4 File Manager Demoboard crop showing the active top-level MenuStrip and its owned ContextMenu overlay.",
       "summary": "MenuStrip is the retained top-level menu coordinator. It lays out root items, tracks hot and active identities, transfers navigation across an owned ContextMenu, supports mnemonic and semantic entry, and exposes caller-controlled item padding while keeping invocation and open-state events ordered.",
       "methods": {
         "MenuStrip": "Constructs a focusable menu bar and its lifetime-bound ContextMenu coordinator.",
@@ -1276,51 +1272,51 @@
         "active_index": "Returns the currently open top-level item index, if any.",
         "open": "Validates and opens an enabled top-level item's submenu with root-navigation handoff.",
         "close": "Closes the owned ContextMenu and clears active and hot root state.",
-        "is_open": "Reports whether the owned menu popup currently has transient ownership.",
+        "is_open": "Reports whether the owned menu overlay currently has transient ownership.",
         "item_invoked": "Returns the event forwarding a committed leaf invocation from the owned context menu.",
         "open_changed": "Returns the event forwarding real changes to the menu strip's open state.",
         "measure": "Computes desired menu-bar width from labels, mnemonics, font metrics, and item padding.",
         "on_paint": "Records menu-bar background, hot/active states, labels, access-key cues, disabled state, and focus.",
         "on_pointer": "Handles hover transfer, root switching, outside routing, press qualification, and dismissal.",
         "on_key": "Implements root traversal, open/close, submenu handoff, activation, and Escape behavior.",
-        "on_focus_changed": "Clears transient hot state when focus leaves unless the owned popup retains the interaction scope.",
+        "on_focus_changed": "Clears transient hot state when focus leaves unless the owned overlay retains the interaction scope.",
         "semantic_descriptor": "Projects the control as a menu bar with expanded state.",
         "semantic_virtual_children": "Exposes stable root menu items with enabled, focused, and expanded metadata.",
         "on_semantic_child_action": "Maps virtual focus, expand, collapse, and press to the normal menu coordinator."
       }
     },
-    "AnchoredPopupPlacement": {
+    "AnchoredOverlayPlacement": {
       "status": "OBSERVED: bundle 005 value-policy split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/anchored_popup_layer.png",
-      "capture_note": "M4 File Manager Demoboard crop showing the resolved path-matrix popup below and far-aligned to its path anchor.",
-      "summary": "AnchoredPopupPlacement is the caller-authored geometry policy for preferred size, horizontal alignment, preferred vertical side, gap, viewport margin, and optional vertical flipping. It contains no transient ownership or rendering state."
+      "capture": "captures/anchored_overlay_layer.png",
+      "capture_note": "M4 File Manager Demoboard crop showing the resolved path-matrix overlay below and far-aligned to its path anchor.",
+      "summary": "AnchoredOverlayPlacement is the caller-authored geometry policy for preferred size, horizontal alignment, preferred vertical side, gap, viewport margin, and optional vertical flipping. It contains no transient ownership or rendering state."
     },
-    "AnchoredPopupPlacementResult": {
+    "AnchoredOverlayPlacementResult": {
       "status": "OBSERVED: bundle 005 deterministic-result split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/anchored_popup_layer.png",
+      "capture": "captures/anchored_overlay_layer.png",
       "capture_note": "M4 File Manager Demoboard crop showing the bounded placement represented by result bounds and clamp/side flags.",
-      "summary": "AnchoredPopupPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the popup moved above its anchor or had either dimension clamped."
+      "summary": "AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped."
     },
-    "AnchoredPopupLayer": {
+    "AnchoredOverlayLayer": {
       "status": "OBSERVED: bundle 005 split; M4 build, focused tests, and Screen Sharing pass",
-      "capture": "captures/anchored_popup_layer.png",
-      "capture_note": "M4 File Manager Demoboard crop showing AnchoredPopupLayer hosting the complete path matrix inside the window-client overlay boundary.",
-      "summary": "AnchoredPopupLayer is a renderer-neutral retained popup boundary tied to a live anchor. It owns one content control, resolves and updates bounded client-relative geometry, centralizes click-away and Escape dismissal requests, and projects dialog semantics while the Window retains the actual popup lease.",
+      "capture": "captures/anchored_overlay_layer.png",
+      "capture_note": "M4 File Manager Demoboard crop showing AnchoredOverlayLayer hosting the complete path matrix inside the window-client overlay boundary.",
+      "summary": "AnchoredOverlayLayer is a renderer-neutral retained overlay boundary tied to a live anchor. It owns one content control, resolves and updates bounded client-relative geometry, centralizes click-away and Escape dismissal requests, and projects dialog semantics while the Window retains the actual overlay lease.",
       "methods": {
-        "AnchoredPopupLayer": "Constructs a full-client popup boundary around a required live anchor and validated placement policy.",
+        "AnchoredOverlayLayer": "Constructs a full-client overlay boundary around a required live anchor and validated placement policy.",
         "anchor": "Returns the current strong anchor reference used for geometry and ownership association.",
         "set_anchor": "Validates and replaces the anchor, then resolves geometry against the next arrangement.",
-        "content": "Returns the optional retained control hosted inside the resolved popup bounds.",
+        "content": "Returns the optional retained control hosted inside the resolved overlay bounds.",
         "set_content": "Replaces the single content role with normal parent/attachment bookkeeping and layout invalidation.",
-        "placement": "Returns the caller-authored popup geometry policy.",
+        "placement": "Returns the caller-authored overlay geometry policy.",
         "set_placement": "Validates and commits placement policy, then invalidates geometry and semantics.",
         "resolved_placement": "Returns the last arranged bounds and side/clamping result.",
         "dismiss_on_click_away": "Reports whether primary presses outside resolved bounds request dismissal.",
-        "set_dismiss_on_click_away": "Toggles click-away policy without changing popup ownership.",
+        "set_dismiss_on_click_away": "Toggles click-away policy without changing overlay ownership.",
         "dismiss_on_escape": "Reports whether Escape preview requests dismissal.",
-        "set_dismiss_on_escape": "Toggles Escape policy without changing focus or popup leases.",
+        "set_dismiss_on_escape": "Toggles Escape policy without changing focus or overlay leases.",
         "dismiss_requested": "Returns the event carrying click-away or Escape reason for the owning coordinator to close.",
-        "measure": "Consumes the available client boundary while measuring content against preferred popup size.",
+        "measure": "Consumes the available client boundary while measuring content against preferred overlay size.",
         "arrange": "Resolves placement against live anchor/client geometry and arranges content inside exact bounded results.",
         "on_pointer": "Detects qualified outside primary presses, raises dismissal, and prevents click-through.",
         "on_key_preview": "Intercepts Escape before descendants when enabled and raises a typed dismissal request.",
@@ -1337,10 +1333,10 @@
       "status": "OBSERVED: bundle 005 split and maximum-width enhancement; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing a focus-triggered retained tooltip, the provider controls, and an independently anchored target.",
-      "summary": "ToolTip is a nonvisual window-bound provider that tokenizes help text to live controls and coordinates hover/focus/manual presentation through one scheduler-backed state machine. It owns delayed show, reshow, auto-pop, movement tracking, popup revocation, input-transparent overlay composition, configurable maximum width, and exact visibility events.",
+      "summary": "ToolTip is a nonvisual window-bound provider that tokenizes help text to live controls and coordinates hover/focus/manual presentation through one scheduler-backed state machine. It owns delayed show, reshow, auto-pop, movement tracking, overlay revocation, input-transparent overlay composition, configurable maximum width, and exact visibility events.",
       "methods": {
         "ToolTip": "Binds a nonvisual tooltip provider to one live Window lifetime and creates its UI-thread scheduler.",
-        "~ToolTip": "Closes overlays and releases target, timer, popup, and lifetime subscriptions before destruction.",
+        "~ToolTip": "Closes overlays and releases target, timer, overlay, and lifetime subscriptions before destruction.",
         "set_tool_tip": "Validates a live target, tokenizes or replaces its help text, installs movement/input subscriptions, and removes empty mappings.",
         "tool_tip": "Returns authored help text for a currently mapped target.",
         "remove_tool_tip": "Disconnects one target mapping and hides it first when it owns the visible or pending tooltip.",
@@ -1361,7 +1357,7 @@
         "set_maximum_width": "Validates a bounded width, then remeasures and repositions any visible bubble.",
         "show": "Immediately presents a mapped target with either default or caller-supplied duration using the common overlay path.",
         "hide": "Cancels pending work and closes the active overlay with a hidden event.",
-        "visible": "Reports whether both visible target and connected popup lease remain live.",
+        "visible": "Reports whether both visible target and connected overlay lease remain live.",
         "active_control": "Returns the target currently owning visible presentation, if any.",
         "visibility_changed": "Returns the event published after a tooltip becomes visible or hidden."
       }
@@ -1380,7 +1376,7 @@
       "status": "OBSERVED: the window's one tooltip presenter (W tooltip build, 2026-10-31); M4 build and focused tests",
       "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "Crop showing a plain tooltip's themed face, overlay shadow and wrapped text.",
-      "summary": "ToolTipBubble is the window tooltip presenter's source-private retained visual. It holds the text already broken into measured lines, paints the tool_tip family's face and shadow and each line as a label part, rejects hit testing, and publishes the tool_tip role named by its text; waiting, placement and popup lifetime remain in the presenter.",
+      "summary": "ToolTipBubble is the window tooltip presenter's source-private retained visual. It holds the text already broken into measured lines, paints the tool_tip family's face and shadow and each line as a label part, rejects hit testing, and publishes the tool_tip role named by its text; waiting, placement and overlay lifetime remain in the presenter.",
       "methods": {
         "ToolTipBubble": "Constructs an input-transparent bubble from its text and the lines measured for the window's maximum width.",
         "face_size": "Reports the face's size: the widest line and the lines' height inside the bubble's margins.",
@@ -1400,7 +1396,7 @@
       "status": "OBSERVED: bundle 005 diagnostic value split; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/tool_tip_error_provider.png",
       "capture_note": "M4 Complete Showcase crop showing the live red error glyph represented by exact bounds, availability, presentation, and blink flags.",
-      "summary": "ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, popup presentation, blink activity, and current phase visibility."
+      "summary": "ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility."
     },
     "ErrorProviderSnapshot": {
       "status": "OBSERVED: bundle 005 diagnostic aggregate split; M4 build, focused tests, and Screen Sharing pass",
@@ -1415,7 +1411,7 @@
       "summary": "ErrorProvider is a nonvisual validation-adornment provider bound to a Window lifetime. It tokenizes messages and per-target alignment/padding, composes independent source-private glyph overlays and tooltip text, schedules blink through the shared frame scheduler, mirrors policy for right-to-left layout, optionally imports binding errors, and exposes caller-configurable icon size and exact snapshots.",
       "methods": {
         "ErrorProvider": "Binds the provider to a live Window and subscribes to target availability, presentation, and root-geometry changes.",
-        "~ErrorProvider": "Closes glyph popups and disconnects target, binding, tooltip, scheduler, and lifetime state before destruction.",
+        "~ErrorProvider": "Closes glyph overlays and disconnects target, binding, tooltip, scheduler, and lifetime state before destruction.",
         "can_extend": "Reports whether a shared control is live, belongs to the bound Window, and can accept provider metadata.",
         "set_error": "Validates a target, commits or clears its message, refreshes semantic and visual adornment, and publishes a real transition.",
         "error": "Returns the current retained message for a target.",
@@ -1695,7 +1691,7 @@
       "status": "OBSERVED: bundle 006 split with source-private module control; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/instrument_rack.png",
       "capture_note": "M4 File Manager Demoboard crop showing live and staged criteria modules, real choice controls, enable/remove actions, status text, and the Apply action subtree.",
-      "summary": "InstrumentRack is a bounded retained editor rack that reconciles stable module/field identities across model replacements, owns real choice/text/check/button/status controls, preserves surviving focus and popup state, responsively wraps or compacts modules, scrolls one plane, emits typed commit/toggle/remove/reorder events, and hosts an optional caller-owned action subtree.",
+      "summary": "InstrumentRack is a bounded retained editor rack that reconciles stable module/field identities across model replacements, owns real choice/text/check/button/status controls, preserves surviving focus and overlay state, responsively wraps or compacts modules, scrolls one plane, emits typed commit/toggle/remove/reorder events, and hosts an optional caller-owned action subtree.",
       "methods": {
         "InstrumentRack": "Constructs the rack coordinator, source-private module shells, and default layout policy.",
         "~InstrumentRack": "Releases reconciled module state and owned subscriptions after normal Control disposal.",
@@ -1939,26 +1935,26 @@
       }
     },
     "FlagsValueEditor": {
-      "status": "OBSERVED: bundle 006 split and popup-width enhancement; M4 build, focused tests, and Screen Sharing pass",
+      "status": "OBSERVED: bundle 006 split and overlay-width enhancement; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/property_grid.png",
-      "capture_note": "M4 Complete Showcase crop showing the PropertyGrid service surface that owns the FlagsValueEditor; its popup uses the same retained checked-list/focus-scope path verified on the M4.",
-      "summary": "FlagsValueEditor is a compact retained editor for independent-bit enumeration values. It validates descriptor/value membership, formats canonical names, owns a source-private dismissal layer and real CheckedListBox popup under Window popup/focus-scope leases, synchronizes checks without feedback, commits typed values immediately, and exposes configurable popup width.",
+      "capture_note": "M4 Complete Showcase crop showing the PropertyGrid service surface that owns the FlagsValueEditor; its overlay uses the same retained checked-list/focus-scope path verified on the M4.",
+      "summary": "FlagsValueEditor is a compact retained editor for independent-bit enumeration values. It validates descriptor/value membership, formats canonical names, owns a source-private dismissal layer and real CheckedListBox overlay under Window overlay/focus-scope leases, synchronizes checks without feedback, commits typed values immediately, and exposes configurable overlay width.",
       "methods": {
         "FlagsValueEditor": "Constructs a focusable sunken flags field and validates initial descriptor/value.",
         "descriptor": "Returns the authoritative flags enumeration descriptor.",
-        "set_descriptor": "Validates flags topology and reconciles current value, popup checks, paint, and semantics.",
+        "set_descriptor": "Validates flags topology and reconciles current value, overlay checks, paint, and semantics.",
         "value": "Returns the current typed PropertyEnumValue.",
-        "set_value": "Normalizes against the descriptor, commits a distinct typed value, and synchronizes an open popup without user feedback.",
-        "dropped_down": "Reports whether the editor owns a connected popup/focus-scope lease.",
+        "set_value": "Normalizes against the descriptor, commits a distinct typed value, and synchronizes an open overlay without user feedback.",
+        "dropped_down": "Reports whether the editor owns a connected overlay/focus-scope lease.",
         "set_dropped_down": "Opens or closes through the common transient ownership state machine.",
-        "popup_width": "Returns preferred logical width for the checked-list popup.",
-        "set_popup_width": "Validates [80, 1024] and rebuilds an open popup against client bounds.",
+        "overlay_width": "Returns preferred logical width for the checked-list overlay.",
+        "set_overlay_width": "Validates [80, 1024] and rebuilds an open overlay against client bounds.",
         "value_changed": "Returns the event published after a typed flags commit.",
         "drop_down_changed": "Returns the event published after transient ownership opens or closes.",
         "on_paint": "Records field frame, canonical flags text, disclosure affordance, focus, and invalid state.",
-        "on_pointer": "Qualifies primary field activation and opens/closes the popup.",
+        "on_pointer": "Qualifies primary field activation and opens/closes the overlay.",
         "on_key": "Handles disclosure, commit navigation, and Escape closure.",
-        "on_focus_changed": "Commits focus appearance independently of popup lifetime.",
+        "on_focus_changed": "Commits focus appearance independently of overlay lifetime.",
         "semantic_descriptor": "Projects combo-box role, canonical typed value, expanded/invalid state, and actions.",
         "on_semantic_action": "Maps press/expand/collapse to normal transient state changes."
       }
@@ -1966,8 +1962,8 @@
     "PropertyEditorDropDownLayer": {
       "status": "OBSERVED: bundle 006 source-private transient split; M4 build, focused tests, and Screen Sharing pass",
       "capture": "captures/property_grid.png",
-      "capture_note": "M4 Complete Showcase crop of the owning PropertyGrid; PropertyEditorDropDownLayer supplies the full-client outside-click and Escape boundary for flags popups.",
-      "summary": "PropertyEditorDropDownLayer is FlagsValueEditor's source-private transient boundary. It owns no value state; it converts outside primary presses and Escape preview into a single dismissal event while the editor owns popup and focus leases.",
+      "capture_note": "M4 Complete Showcase crop of the owning PropertyGrid; PropertyEditorDropDownLayer supplies the full-client outside-click and Escape boundary for flags overlays.",
+      "summary": "PropertyEditorDropDownLayer is FlagsValueEditor's source-private transient boundary. It owns no value state; it converts outside primary presses and Escape preview into a single dismissal event while the editor owns overlay and focus leases.",
       "methods": {
         "PropertyEditorDropDownLayer": "Constructs a transparent overlay-plane panel for the complete client boundary.",
         "dismissed": "Returns the unified outside-click/Escape dismissal event.",
@@ -2001,7 +1997,7 @@
     "SurfaceRoot": {
       "status": "OBSERVED: threaded sub-surfaces stages S1.1 (thread identity, dispatcher and metrics) and S1.2 (the control root, in place) moved out of Window; Windows build and focused tests pass",
       "method_scope": "all",
-      "summary": "SurfaceRoot is the root of one retained control tree and the thread that owns it: the thread identity every mutation is checked against, the bounded dispatcher queue that thread drains, and the structured metrics its work reports into. Since stage S1.2 it also holds the control tree with its layout, focus, input, painting, popups, accelerators, tooltips and command routing. Window is a SurfaceRoot presented through a native host and adds only the host binding: resizing and scale, the cursor, the presentation declaration and the live-surface presentation queue.",
+      "summary": "SurfaceRoot is the root of one retained control tree and the thread that owns it: the thread identity every mutation is checked against, the bounded dispatcher queue that thread drains, and the structured metrics its work reports into. Since stage S1.2 it also holds the control tree with its layout, focus, input, painting, overlays, accelerators, tooltips and command routing. Window is a SurfaceRoot presented through a native host and adds only the host binding: resizing and scale, the cursor, the presentation declaration and the live-surface presentation queue.",
       "methods": {
         "check_access": "Compares the caller with the root's immutable thread affinity.",
         "verify_access": "Throws a named wrong-thread failure and records its metric when access is invalid.",
@@ -2082,7 +2078,7 @@
         "captured_pointer_id": "Returns the captured pointer identity or zero.",
         "pointer_capture_changed": "Returns capture transitions consumed by HostSession services.",
         "control_availability_changed": "Returns effective visibility/enabled transitions for providers and native projection.",
-        "open_popup": "Validates owner policy and a live detached popup root, attaches it as a retained overlay, binds revocable owner lifetime, and returns the close token.",
+        "open_overlay": "Validates owner policy and a live detached overlay root, attaches it as a retained overlay, binds revocable owner lifetime, and returns the close token.",
         "register_accelerator": "Validates owner/gesture/callback, records priority policy, binds owner lifetime, and returns the revocation token.",
         "pressed_control": "Returns the control retaining qualified pointer press state.",
         "dispatch_pointer": "Defers safely under a paint lease or routes preview/target/bubble pointer input with hover, press, capture, focus, and mutation revalidation.",
@@ -2097,11 +2093,11 @@
         "attach_subtree": "Recursively validates ownership and stable identity, installs Window/dispatcher affinity, and publishes lifecycle attachment.",
         "detach_subtree": "Revokes interaction/transients, unregisters identity/dispatcher affinity, and publishes lifecycle detachment without implicit disposal.",
         "dispose_subtree": "Performs noexcept retained teardown, revoking dependents before irreversible disposed state.",
-        "revoke_interaction_for_subtree": "Clears focus, capture, pressed, hover, drag, dialogs, scopes, popups, accelerators, and scheduled work owned by a departing subtree.",
+        "revoke_interaction_for_subtree": "Clears focus, capture, pressed, hover, drag, dialogs, scopes, overlays, accelerators, and scheduled work owned by a departing subtree.",
         "close_focus_scopes_for_subtree": "Closes active scopes rooted within a subtree through ordinary notifications.",
         "revoke_focus_scopes_for_subtree": "Noexcept-removes departing scope state during teardown.",
-        "close_popups_for_subtree": "Disconnects every popup whose owner belongs to the named subtree.",
-        "close_popup": "Revokes overlay ownership, detaches its retained root, and publishes close through the owner's ordered change channel when possible.",
+        "close_overlays_for_subtree": "Disconnects every overlay whose owner belongs to the named subtree.",
+        "close_overlay": "Revokes overlay ownership, detaches its retained root, and publishes close through the owner's ordered change channel when possible.",
         "close_accelerator": "Revokes and removes one exact accelerator attachment.",
         "dispatch_accelerator": "Tests a stable reverse-registration snapshot at the requested preemptive phase and invokes only live owners.",
         "focus_allowed_by_active_scope": "Checks containment against the innermost active focus scope.",
@@ -2165,10 +2161,10 @@
       "method_scope": "all",
       "capture": "captures/native_window_host.png",
       "capture_note": "M4 Screen Sharing crop of the real AppKit-hosted Complete Showcase after the lifecycle, dispatcher, host-session, and native-service split.",
-      "summary": "Window is GUI.Forms' portable retained-root coordinator. It owns exact tree identity, update/layout/paint transactions, damage and presentation receipts, live layers, frame requests, UI-thread dispatch, resources, focus/validation/dialog keys, pointer/drag/deferred input, popups and accelerators, metrics, and semantic projection; native adapters reach it only through the host session and wake seams.",
+      "summary": "Window is GUI.Forms' portable retained-root coordinator. It owns exact tree identity, update/layout/paint transactions, damage and presentation receipts, live layers, frame requests, UI-thread dispatch, resources, focus/validation/dialog keys, pointer/drag/deferred input, overlays and accelerators, metrics, and semantic projection; native adapters reach it only through the host session and wake seams.",
       "methods": {
         "Window": "Constructs one retained root on the creating UI thread, creates bounded dispatcher/frame lifetime state, attaches the tree, and seeds complete initial damage; copying is prohibited because identity and native attachment are singular.",
-        "~Window": "Revokes wakes, deferred input, dispatch work, accelerators, popups, focus scopes, frame requests, and retained attachment in dependency order before retiring the shared lifetime token.",
+        "~Window": "Revokes wakes, deferred input, dispatch work, accelerators, overlays, focus scopes, frame requests, and retained attachment in dependency order before retiring the shared lifetime token.",
         "operator=": "Is deleted so retained identity, UI-thread affinity, leases, and native-host association cannot be duplicated.",
         "resize": "Validates nonnegative logical extent, advances the surface epoch, damages the old extent, and invalidates root and overlay geometry.",
         "set_scale": "Validates a finite positive device scale, advances the surface epoch, and conservatively invalidates all retained roots.",
@@ -2190,14 +2186,14 @@
         "close": "Atomically clears its Window pointer and leaves exactly one update level."
       }
     },
-    "PopupToken": {
+    "OverlayToken": {
       "status": "OBSERVED: bundle 007 token/attachment split; M4 build and focused tests pass",
       "capture": "captures/native_window_host.png",
       "capture_note": "The native-hosted retained window supplies the overlay ownership boundary represented by this token.",
-      "summary": "PopupToken is a move-only revocation handle for one Window-owned retained overlay root; dropping or disconnecting it closes the overlay through the same ordered state machine.",
+      "summary": "OverlayToken is a move-only revocation handle for one Window-owned retained overlay root; dropping or disconnecting it closes the overlay through the same ordered state machine.",
       "methods": {
-        "PopupToken": "Creates an empty token, transfers one attachment on move, prohibits copying, or is privately constructed by Window for an opened overlay.",
-        "~PopupToken": "Disconnects any remaining popup lease.",
+        "OverlayToken": "Creates an empty token, transfers one attachment on move, prohibits copying, or is privately constructed by Window for an opened overlay.",
+        "~OverlayToken": "Disconnects any remaining overlay lease.",
         "operator=": "Closes the current lease before accepting a moved attachment.",
         "disconnect": "Idempotently closes the Window attachment and releases the observation handle.",
         "connected": "Reports whether the underlying attachment remains live.",
@@ -2363,19 +2359,19 @@
         "DispatcherState": "Binds the immutable UI-thread identity and initializes an accepting empty queue."
       }
     },
-    "PopupAttachment": {
-      "status": "OBSERVED: bundle 007 source-private popup attachment split; M4 build and focused tests pass",
+    "OverlayAttachment": {
+      "status": "OBSERVED: bundle 007 source-private overlay attachment split; M4 build and focused tests pass",
       "capture": "captures/native_window_host.png",
       "capture_note": "The captured Window owns retained overlay attachment even though this source-private state has no independent visual surface.",
-      "summary": "PopupAttachment is the source-private revocable edge among Window, weak owner, weak overlay root, and ordered close event.",
+      "summary": "OverlayAttachment is the source-private revocable edge among Window, weak owner, weak overlay root, and ordered close event.",
       "methods": {
-        "PopupAttachment": "Binds one Window and weak retained owner/popup pair.",
+        "OverlayAttachment": "Binds one Window and weak retained owner/overlay pair.",
         "disconnect": "Requests ordinary Window close while the edge remains connected.",
         "connected": "Reports whether Window ownership remains live.",
-        "owner": "Locks and returns the retained popup owner.",
-        "popup": "Locks and returns the detached-overlay retained root.",
+        "owner": "Locks and returns the retained overlay owner.",
+        "overlay": "Locks and returns the detached-overlay retained root.",
         "closed": "Returns the ordered close event.",
-        "revoke": "Severs Window/owner/popup state and optionally publishes close.",
+        "revoke": "Severs Window/owner/overlay state and optionally publishes close.",
         "publish_closed": "Publishes the deferred close event through the chosen ordering channel."
       }
     },
@@ -2402,7 +2398,7 @@
     },
     "AcceleratorOptions": {
       "status": "OBSERVED: bundle 007 accelerator policy isolation; M4 build and focused tests pass",
-      "summary": "AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active popup/focus scopes retain first refusal."
+      "summary": "AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active overlay/focus scopes retain first refusal."
     },
     "PointerCaptureChange": {
       "status": "OBSERVED: bundle 007 window interaction value review; M4 build and focused tests pass",
@@ -2412,9 +2408,9 @@
       "status": "OBSERVED: bundle 007 lifecycle value review; M4 build and focused tests pass",
       "summary": "ControlAvailabilityChange carries authoritative runtime/stable identity and effective visibility/enabled state after retained lifecycle change."
     },
-    "PopupOptions": {
-      "status": "OBSERVED: bundle 007 popup policy review; M4 build and focused tests pass",
-      "summary": "PopupOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment."
+    "OverlayOptions": {
+      "status": "OBSERVED: bundle 007 overlay policy review; M4 build and focused tests pass",
+      "summary": "OverlayOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment."
     },
     "FocusScopeId": {
       "status": "OBSERVED: bundle 007 focus-scope identity review; M4 build and focused tests pass",
@@ -3581,7 +3577,7 @@
     "MasterDetailPresentationChange": {"status": "OBSERVED: bundle 011 master-detail event review", "summary": "MasterDetailPresentationChange reports previous/current compact or expanded presentation and active pane."},
     "MenuItemSpec": {"status": "OBSERVED: bundle 011 context-menu item review", "summary": "MenuItemSpec owns stable identity, mnemonic text, shortcut display, enabled/checked/separator state, optional command, and nested items for one context-menu entry."},
     "MenuItemInvocation": {"status": "OBSERVED: bundle 011 context-menu invocation review", "summary": "MenuItemInvocation reports the exact stable item identity and source owner for one accepted menu activation."},
-    "MenuStripItemSpec": {"status": "OBSERVED: bundle 011 menu-strip item review", "summary": "MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the popup item tree for one top-level menu."},
+    "MenuStripItemSpec": {"status": "OBSERVED: bundle 011 menu-strip item review", "summary": "MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the overlay item tree for one top-level menu."},
     "MenuStripInvocation": {"status": "OBSERVED: bundle 011 menu-strip invocation review", "summary": "MenuStripInvocation correlates a top-level menu and exact nested item identity after accepted activation."},
     "ObjectViewItem": {"status": "OBSERVED: bundle 011 object-view value review", "summary": "ObjectViewItem owns stable identity, primary/secondary text, icon/status metadata, and optional command data for one flat object row."},
     "ObjectSelectionChange": {"status": "OBSERVED: bundle 011 object-view event review", "summary": "ObjectSelectionChange reports previous/current optional identities and interaction source."},
@@ -3668,7 +3664,7 @@
     "CompatibilityPaintWrite": {"status": "OBSERVED: bundle 010 Windows paint write-lease review; complete M4 MinGW build passes", "summary": "CompatibilityPaintWrite owns one endpoint during an active device-context write and records the exact DC and acquiring thread required to end it."},
     "SubscriptionRecord": {"status": "OBSERVED: bundle 010 private ABI subscription review; native ABI tests and complete M4 MinGW build pass", "summary": "SubscriptionRecord owns exactly one C callback flavor, caller context, owner thread, native SubscriptionToken, event kind, and connected state."},
     "DispatchRecord": {"status": "OBSERVED: bundle 010 private ABI dispatch review; native ABI tests and complete M4 MinGW build pass", "summary": "DispatchRecord owns one queued C callback plus caller context until Window dispatch executes or retirement cancels it."},
-    "ControlRecord": {"status": "OBSERVED: bundle 010 private ABI control record review; native ABI tests and complete M4 MinGW build pass", "summary": "ControlRecord is the registry-owned state for one ABI handle: retained control, owner thread/window, host phase, popup attachment, paint-plane overrides, dialog/tooltip/clipboard services, pending dispatch, and callback-fault telemetry."},
+    "ControlRecord": {"status": "OBSERVED: bundle 010 private ABI control record review; native ABI tests and complete M4 MinGW build pass", "summary": "ControlRecord is the registry-owned state for one ABI handle: retained control, owner thread/window, host phase, overlay attachment, paint-plane overrides, dialog/tooltip/clipboard services, pending dispatch, and callback-fault telemetry."},
     "RegistrySlot": {"status": "OBSERVED: bundle 010 private ABI slot review; native ABI tests and complete M4 MinGW build pass", "summary": "RegistrySlot combines generation, closed slot kind, reference count, and either control or subscription ownership so stale handles fail deterministically."},
     "Registry": {
       "status": "OBSERVED: bundle 010 private ABI registry state-machine split; native C11/C++/export tests and complete M4 MinGW build pass",
@@ -3746,8 +3742,8 @@
         "get_control_absolute_bounds": "Flushes required layout and returns exact window-relative bounds.",
         "add_child": "Validates owner threads, tree identity, and cycle/ownership rules before retained attachment.",
         "remove_child": "Detaches one exact retained child.",
-        "attach_popup": "Registers an owned popup plane through Window and records its revocable token.",
-        "detach_popup": "Revokes one popup token and clears attachment state.",
+        "attach_overlay": "Registers an owned overlay root through Window and records its revocable token.",
+        "detach_overlay": "Revokes one overlay token and clears attachment state.",
         "subscribe": "Allocates a generational subscription slot for the legacy event callback surface.",
         "disconnect": "Disconnects native observation and invalidates the subscription slot.",
         "subscribe_v2": "Allocates a typed extended-event callback subscription.",
@@ -3780,7 +3776,7 @@
         "subscription_locked": "Validates slot kind/generation and returns SubscriptionRecord under mutex.",
         "slot_locked": "Decodes handle index/generation and rejects stale or empty slots.",
         "allocate_locked": "Reuses or appends a slot, preserving nonzero generation, and returns an encoded handle.",
-        "invalidate_control_locked": "Revokes popup/host/pending work, detaches hierarchy, disposes native state, and advances generation.",
+        "invalidate_control_locked": "Revokes overlay/host/pending work, detaches hierarchy, disposes native state, and advances generation.",
         "invalidate_slot_locked": "Disconnects and clears subscription state and advances generation.",
         "emit_changed": "Snapshots matching legacy callbacks and emits state change without holding registry mutation ownership."
       }
@@ -3811,7 +3807,7 @@
     },
     "DropDownButton": {
       "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
-      "summary": "DropDownButton specializes Button with an explicit disclosure actuator: menu mode routes the whole button to the owned popup, while split mode retains a primary Click region and a bounded disclosure region at the trailing edge."
+      "summary": "DropDownButton specializes Button with an explicit disclosure actuator: menu mode routes the whole button to the owned overlay, while split mode retains a primary Click region and a bounded disclosure region at the trailing edge."
     },
     "ResponsiveTrackPanel": {
       "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
@@ -3819,7 +3815,7 @@
     },
     "CommandOverflowPanel": {
       "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",
-      "summary": "CommandOverflowPanel is a horizontal ContainerControl projection of command groups that owns only layout collapse and the overflow actuator's effective availability; command authority and popup composition stay with the consumer through the stable IDs in layout_snapshot()."
+      "summary": "CommandOverflowPanel is a horizontal ContainerControl projection of command groups that owns only layout collapse and the overflow actuator's effective availability; command authority and overlay composition stay with the consumer through the stable IDs in layout_snapshot()."
     },
     "BreadcrumbTrail": {
       "status": "OBSERVED declaration inventory; declaration-derived method narrative; capture pending",

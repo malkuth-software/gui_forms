@@ -44,14 +44,6 @@
       "reviewed": false,
       "summary": "Accepts finite zero-to-256 spacing, applies it between items and lines without trailing gaps, and invalidates layout."
     },
-    "gui_forms::FlowLayoutPanelCompat::auto_size|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns whether desired size follows the packed child extent."
-    },
-    "gui_forms::FlowLayoutPanelCompat::set_auto_size|void (bool)": {
-      "reviewed": false,
-      "summary": "Commits content-driven sizing through the base Control property while preserving flow-specific invalidation."
-    },
     "gui_forms::FlowLayoutPanelCompat::set_flow_break|void (const Control &, bool)": {
       "reviewed": false,
       "summary": "Requires a direct child and records whether it terminates the current line/column after itself."

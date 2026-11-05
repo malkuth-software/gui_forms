@@ -1,0 +1,177 @@
+/* The Gallery's control-spectrum page (stage FD, phase FD6.3): the four
+   public Button styles, check boxes and radio buttons in their three
+   indicator systems, label typography roles and the semantic sound cues.
+   gui_forms_add_form() compiles this document into
+   control-spectrum_form.hpp at build time.
+
+   gallery.controls.document is a declared boundary only: the page moves its
+   children into the shell's page body (a 1000 x 660 design surface), where
+   each is placed by its bounds in design coordinates. Behaviour stays in
+   the page (src/controls/gallery/pages/control-spectrum.cpp): the click,
+   state and cue handlers, the sound Value<bool> and the style buttons'
+   page style. */
+scaled-panel gallery.controls.document {
+  design-size: 1000 660;
+
+  label gallery.controls.heading {
+    text: "CONTROL SPECTRUM";
+    classes: "heading" "page-title";
+    bounds: 24 18 500 34;
+  }
+  label gallery.controls.lead {
+    text: "Every public stock control, variant, state, and keyboard path lives here.";
+    classes: "muted" "body";
+    bounds: 26 52 760 24;
+  }
+
+  scaled-group-box gallery.controls.buttons {
+    text: "Buttons · four public styles";
+    classes: "paper" "group-caption";
+    design-size: 930 142;
+    bounds: 24 92 930 142;
+    button gallery.controls.button.0 {
+      text: "&Standard";
+      visual-style: standard;
+      bounds: 24 42 185 42;
+    }
+    button gallery.controls.button.1 {
+      text: "&Flat";
+      visual-style: flat;
+      bounds: 239 42 185 42;
+    }
+    button gallery.controls.button.2 {
+      text: "&Accent";
+      visual-style: accent;
+      bounds: 454 42 185 42;
+    }
+    button gallery.controls.button.3 {
+      text: "&Command";
+      visual-style: command;
+      bounds: 669 42 185 42;
+    }
+    button gallery.controls.button.disabled {
+      text: "Disabled state";
+      enabled: false;
+      bounds: 24 92 185 30;
+    }
+    button gallery.controls.button.default {
+      text: "&Default action";
+      bounds: 239 92 185 30;
+    }
+    link-label gallery.controls.link {
+      text: "LinkLabel · visited on activation";
+      bounds: 454 92 260 30;
+    }
+  }
+
+  scaled-group-box gallery.controls.checks {
+    text: "Check boxes · classic, modern, toggle";
+    classes: "paper" "group-caption";
+    design-size: 450 210;
+    bounds: 24 252 450 210;
+    check-box gallery.controls.check.0 {
+      text: "&Classic checkbox";
+      indicator-style: classic;
+      bounds: 24 42 300 28;
+    }
+    check-box gallery.controls.check.1 {
+      text: "&Modern checkbox";
+      indicator-style: modern;
+      checked: true;
+      bounds: 24 84 300 28;
+    }
+    check-box gallery.controls.check.2 {
+      text: "&Toggle checkbox";
+      indicator-style: toggle;
+      checked: true;
+      bounds: 24 126 300 28;
+    }
+    check-box gallery.controls.check.tri {
+      text: "Three-state indeterminate";
+      three-state: true;
+      check-state: indeterminate;
+      bounds: 24 168 300 28;
+    }
+  }
+
+  scaled-group-box gallery.controls.radios {
+    text: "Radio buttons · three indicator systems";
+    classes: "paper" "group-caption";
+    design-size: 460 210;
+    bounds: 494 252 460 210;
+    radio-button gallery.controls.radio.0 {
+      text: "Classic radio";
+      indicator-style: classic;
+      group-name: "gallery-radio-style";
+      bounds: 24 42 310 28;
+    }
+    radio-button gallery.controls.radio.1 {
+      text: "Modern radio";
+      indicator-style: modern;
+      group-name: "gallery-radio-style";
+      checked: true;
+      bounds: 24 84 310 28;
+    }
+    radio-button gallery.controls.radio.2 {
+      text: "Toggle radio";
+      indicator-style: toggle;
+      group-name: "gallery-radio-style";
+      bounds: 24 126 310 28;
+    }
+  }
+
+  scaled-group-box gallery.controls.typography {
+    text: "Labels and typography roles";
+    classes: "paper" "group-caption";
+    design-size: 930 150;
+    bounds: 24 480 930 150;
+    label gallery.controls.type.title {
+      text: "Portsmouth Rapids control title";
+      classes: "heading" "control-title";
+      bounds: 24 38 420 30;
+    }
+    label gallery.controls.type.content {
+      text: "Carlito body specimen: editable and field text stays quiet, clear, and host-independent.";
+      classes: "ink" "body";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 24 76 430 48;
+    }
+    label gallery.controls.type.center {
+      text: "Centered label";
+      classes: "accent-text" "body-emphasis";
+      alignment: center;
+      bounds: 24 118 250 20;
+    }
+    label gallery.controls.sound.title {
+      text: "SEMANTIC SOUND CUES · OPTIONAL HOST";
+      classes: "heading" "strong";
+      bounds: 500 34 390 22;
+    }
+    check-box gallery.controls.sound.enabled {
+      text: "Sound enabled";
+      indicator-style: modern;
+      bounds: 500 108 160 26;
+    }
+    button gallery.controls.sound.0 {
+      text: "Notice";
+      visual-style: command;
+      bounds: 500 64 88 32;
+    }
+    button gallery.controls.sound.1 {
+      text: "Success";
+      visual-style: command;
+      bounds: 598 64 88 32;
+    }
+    button gallery.controls.sound.2 {
+      text: "Warning";
+      visual-style: command;
+      bounds: 696 64 88 32;
+    }
+    button gallery.controls.sound.3 {
+      text: "Error";
+      visual-style: standard;
+      bounds: 794 64 88 32;
+    }
+  }
+}

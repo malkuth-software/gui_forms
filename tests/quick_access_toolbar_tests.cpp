@@ -239,7 +239,7 @@ void unknown_ids_and_semantics() {
     require(children.size() == 3U && children[0].role == SemanticRole::button &&
                 children[2].role == SemanticRole::menu_button && children[2].has_popup &&
                 children[2].stable_id == "qat.customize",
-            "its buttons are buttons and the customize button a menu button with a popup");
+            "its buttons are buttons and the customize button a menu button with an overlay");
     require((*toolbar).on_semantic_child_action("qat.customize", SemanticAction::expand, {}) &&
                 (*toolbar).customize_menu_open(),
             "expanding the customize node opens the menu");

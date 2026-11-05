@@ -270,7 +270,7 @@ RibbonGallery::Parts RibbonGallery::gallery_parts(const Geometry& layout) const 
     if (pressed_zone_ == HitZone::scroll_up) record.scroll_up.states.insert(AnatomyState::pressed);
     if (pressed_zone_ == HitZone::scroll_down) record.scroll_down.states.insert(AnatomyState::pressed);
     if (pressed_zone_ == HitZone::more) record.more_button.states.insert(AnatomyState::pressed);
-    if (more_gallery_ && (*more_gallery_).popup_open()) {
+    if (more_gallery_ && (*more_gallery_).overlay_open()) {
         record.more_button.states.insert(AnatomyState::open);
         record.more_glyph.states.insert(AnatomyState::open);
     }
@@ -649,7 +649,7 @@ namespace {
 // The events RibbonGallery adds to those of Control, in declaration order.
 constexpr std::array<InteractionDeclaration, 2> ribbon_gallery_interactions{{
     {.name = "selection_changed", .payload = "std::optional<std::string>", .mutable_payload = false},
-    {.name = "popup_open_changed", .payload = "bool", .mutable_payload = false},
+    {.name = "overlay_open_changed", .payload = "bool", .mutable_payload = false},
 }};
 
 } // namespace

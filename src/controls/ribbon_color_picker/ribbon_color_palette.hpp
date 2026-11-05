@@ -4,9 +4,9 @@
 
 namespace gui_forms {
 
-// The content of a colour picker's palette popup: Automatic, the palette and
+// The content of a colour picker's palette overlay: Automatic, the palette and
 // the recent colours on a panel that casts the overlay shadow. Private to the
-// picker, which owns it and closes the popup before it goes; `picker`
+// picker, which owns it and closes the overlay before it goes; `picker`
 // observes the owner (house style §4) and is cleared by detach().
 // Interaction state lives in the picker.
 class RibbonColorPalette final : public Control {

@@ -12,7 +12,7 @@
 #include "../display/replay/replay_display_chunk.hpp"
 #include "../scheduler/request/scheduled_frame_request.hpp"
 #include "accelerator/accelerator_attachment.hpp"
-#include "popup/popup_attachment.hpp"
+#include "overlay/overlay_attachment.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
 
 #include <algorithm>
@@ -262,7 +262,7 @@ void append_semantic_nodes(const Control::Ptr& control,
     node.large_step = descriptor.large_step;
     node.text_selection = descriptor.text_selection;
     node.multiline = descriptor.multiline;
-    node.tool_tip = (*control).tool_tip_text();
+    node.tool_tip = (*control).tool_tip_text.read();
     node.bounds = (*control).absolute_bounds();
     if (!current_semantic_identity(control, expected_parent, owner)) return;
     node.states |= descriptor.states;
@@ -560,58 +560,58 @@ bool SurfaceRoot::dispatch_accelerator(const KeyEvent& event, bool preemptive) {
     return false;
 }
 
-PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
-                              const Control::Ptr& popup,
-                              PopupOptions options) {
-    require_root_thread("popup attachment");
+OverlayToken SurfaceRoot::open_overlay(const Control::Ptr& owner,
+                              const Control::Ptr& overlay,
+                              OverlayOptions options) {
+    require_root_thread("overlay attachment");
     const bool owner_available = owner && (*owner).surface_root_ == this &&
         (*owner).is_alive() && (*owner).effectively_visible() &&
         (!options.require_enabled_owner || (*owner).effectively_enabled());
     if (!owner_available) {
         throw std::logic_error(
             options.require_enabled_owner
-                ? "GUI.Forms popup requires an enabled, visible attached owner"
-                : "GUI.Forms passive popup requires a visible attached owner");
+                ? "GUI.Forms overlay requires an enabled, visible attached owner"
+                : "GUI.Forms passive overlay requires a visible attached owner");
     }
-    if (!popup || (*popup).surface_root_ != nullptr || (*popup).parent() || !(*popup).is_alive()) {
-        throw std::logic_error("GUI.Forms popup must be a live detached root");
+    if (!overlay || (*overlay).surface_root_ != nullptr || (*overlay).parent() || !(*overlay).is_alive()) {
+        throw std::logic_error("GUI.Forms overlay must be a live detached root");
     }
-    // Popups are window overlays, not children in the consumer's layout
+    // Overlays are window-owned roots, not children in the consumer's layout
     // vocabulary. Attaching one to root_ lets a TableLayoutPanelCompat, Flow panel,
     // or docking root assign it an application cell and silently collapse the
     // overlay. Keep it as a separate retained root while still registering the
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
-    attach_subtree(popup, {});
-    std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = std::make_shared<detail::PopupAttachment>(*this, owner, popup);
-    popups_.push_back(attachment);
+    attach_subtree(overlay, {});
+    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = std::make_shared<detail::OverlayAttachment>(*this, owner, overlay);
+    overlays_.push_back(attachment);
     (*owner).own_revocable(attachment);
-    return PopupToken(std::move(attachment));
+    return OverlayToken(std::move(attachment));
 }
 
-void SurfaceRoot::close_popup(detail::PopupAttachment& popup) noexcept {
-    PopupList::iterator found = popups_.begin();
-    while (found != popups_.end() && (*found).get() != &popup) {
+void SurfaceRoot::close_overlay(detail::OverlayAttachment& overlay) noexcept {
+    OverlayList::iterator found = overlays_.begin();
+    while (found != overlays_.end() && (*found).get() != &overlay) {
         ++found;
     }
-    if (found == popups_.end()) {
-        popup.revoke();
+    if (found == overlays_.end()) {
+        overlay.revoke();
         return;
     }
-    const std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = *found;
+    const std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = *found;
     const Control::Ptr owner = (*attachment).owner();
-    const Control::Ptr overlay = (*attachment).popup();
+    const Control::Ptr overlay_root = (*attachment).overlay();
     (*attachment).revoke(false);
-    popups_.erase(found);
-    if (overlay && !(*overlay).parent() && (*overlay).surface_root_ == this &&
-        overlay != root_ && !in_lifecycle_notification_) {
+    overlays_.erase(found);
+    if (overlay_root && !(*overlay_root).parent() && (*overlay_root).surface_root_ == this &&
+        overlay_root != root_ && !in_lifecycle_notification_) {
         try {
-            detach_subtree(overlay);
+            detach_subtree(overlay_root);
         } catch (...) {
         }
     }
     const detail::BoundMemberFunction<
-        void (detail::PopupAttachment::*)()> publish_closed(
-            *attachment, &detail::PopupAttachment::publish_closed);
+        void (detail::OverlayAttachment::*)()> publish_closed(
+            *attachment, &detail::OverlayAttachment::publish_closed);
     if (owner && (*owner).is_alive() && (*owner).surface_root_ == this) {
         (*owner).publish_change(
             static_cast<const void*>(&(*attachment).closed()), publish_closed);
@@ -620,15 +620,15 @@ void SurfaceRoot::close_popup(detail::PopupAttachment& popup) noexcept {
     }
 }
 
-void SurfaceRoot::close_popups_for_subtree(const Control::Ptr& control) noexcept {
-    std::vector<std::shared_ptr<detail::PopupAttachment>> closing;
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (contains_control(control, (*popup).owner())) {
-            closing.push_back(popup);
+void SurfaceRoot::close_overlays_for_subtree(const Control::Ptr& control) noexcept {
+    std::vector<std::shared_ptr<detail::OverlayAttachment>> closing;
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (contains_control(control, (*overlay).owner())) {
+            closing.push_back(overlay);
         }
     }
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : closing) {
-        (*popup).disconnect();
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : closing) {
+        (*overlay).disconnect();
     }
 }
 
@@ -647,15 +647,15 @@ Control::Ptr SurfaceRoot::hit_test(Point position) {
         ensure_layout(true);
         const std::uint64_t generation = semantic_generation_;
         Control::Ptr target;
-        ControlList popup_roots;
-        popup_roots.reserve(popups_.size());
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) popup_roots.push_back((*popup).popup());
-        for (ControlList::reverse_iterator popup = popup_roots.rbegin();
-             popup != popup_roots.rend();
-             ++popup) {
-            if (const Control::Ptr& overlay = *popup;
-                overlay && (*overlay).is_alive() && (*overlay).surface_root_ == this) {
-                target = hit_test_recursive(overlay, position);
+        ControlList overlay_roots;
+        overlay_roots.reserve(overlays_.size());
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) overlay_roots.push_back((*overlay).overlay());
+        for (ControlList::reverse_iterator overlay = overlay_roots.rbegin();
+             overlay != overlay_roots.rend();
+             ++overlay) {
+            if (const Control::Ptr& overlay_root = *overlay;
+                overlay_root && (*overlay_root).is_alive() && (*overlay_root).surface_root_ == this) {
+                target = hit_test_recursive(overlay_root, position);
                 if (target) break;
             }
         }
@@ -728,7 +728,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         ++validation_reentrant_requests_rejected_;
         return false;
     }
-    if (previous && (!control || (*control).causes_validation())) {
+    if (previous && (!control || (*control).causes_validation.read())) {
         AutoValidate mode = AutoValidate::enable_prevent_focus_change;
         for (Control::Ptr current = previous; current; current = (*current).parent()) {
             const AutoValidate authored = (*current).authored_auto_validate();
@@ -764,6 +764,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     }
     if (control && eligible(control) && (*control).focusable_) {
         focused_ = control;
+        last_focus_traversal_ = pending_focus_traversal_;
         remember_region_focus(control);
         (*control).publish_change(
             static_cast<const void*>(&(*control).focus_observed_),
@@ -869,14 +870,14 @@ bool SurfaceRoot::tab_order_less(const Control::Ptr& left,
                             const Control::Ptr& right) noexcept {
     if (!left) return false;
     if (!right) return true;
-    return (*left).tab_index() < (*right).tab_index();
+    return (*left).tab_index.read() < (*right).tab_index.read();
 }
 
 void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
                                       ControlList& result,
                                       bool focusable_only) const {
     if (!control || !eligible(control)) return;
-    if (!focusable_only || ((*control).focusable_ && (*control).tab_stop_)) {
+    if (!focusable_only || ((*control).focusable_ && (*control).tab_stop.read())) {
         result.push_back(control);
     }
     ControlList children((*control).children_.begin(),
@@ -919,7 +920,7 @@ bool SurfaceRoot::move_focus_after(const Control::Ptr& origin) {
     if (found == ordered.end()) return false;
     for (ControlList::iterator current = std::next(found);
          current != ordered.end(); ++current) {
-        if ((*(*current)).focusable() && (*(*current)).tab_stop() &&
+        if ((*(*current)).focusable() && (*(*current)).tab_stop.read() &&
             request_focus(*current)) return true;
     }
     return false;
@@ -931,7 +932,7 @@ bool SurfaceRoot::validate_command_activation(const Control::Ptr& destination) {
         !focus_allowed_by_active_scope(destination)) return false;
     const Control::Ptr previous = focused_.lock();
     if (!previous || previous == destination ||
-        !(*destination).causes_validation()) return true;
+        !(*destination).causes_validation.read()) return true;
     if (validating_) {
         ++validation_reentrant_requests_rejected_;
         return false;
@@ -1115,7 +1116,7 @@ void SurfaceRoot::validate_children_recursive(
         }
         if (has_validation_constraint(
                 constraints, ValidationConstraints::tab_stop)) {
-            selected = selected && (*child).tab_stop();
+            selected = selected && (*child).tab_stop.read();
         }
         if (selected) {
             ++validation_attempts_;
@@ -1189,13 +1190,13 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
         if ((*current).options.contain_focus) {
             const Control::Ptr containing_root = (*current).root.lock();
             bool contained = contains_control(containing_root, root);
-            // Window-owned popup roots are outside the layout tree. They belong
+            // Window-owned overlay roots are outside the layout tree. They belong
             // to a containing scope only through their registered live owner.
             // This permits a ComboBox inside a dialog without allowing unrelated
             // controls or arbitrary overlays to escape modal focus containment.
-            for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-                if (contains_control((*popup).popup(), root) &&
-                    contains_control(containing_root, (*popup).owner())) {
+            for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+                if (contains_control((*overlay).overlay(), root) &&
+                    contains_control(containing_root, (*overlay).owner())) {
                     contained = true;
                     break;
                 }
@@ -1382,6 +1383,17 @@ std::vector<Control::Ptr> SurfaceRoot::focus_candidates(
     return result;
 }
 
+std::optional<Rect> SurfaceRoot::text_input_caret() {
+    require_root_thread("text input caret");
+    const Control::Ptr focused = focused_.lock();
+    if (!focused || !eligible(focused)) return std::nullopt;
+    const Rect bounds = (*focused).absolute_bounds();
+    const std::optional<Rect> local = (*focused).text_input_caret();
+    Rect caret{bounds.x, bounds.y, 1.0, bounds.height};
+    if (local) caret = Rect{bounds.x + (*local).x, bounds.y + (*local).y, (*local).width, (*local).height};
+    return caret;
+}
+
 bool SurfaceRoot::move_focus(bool forward) {
     require_root_thread("focus traversal");
     const Control::Ptr scope_root = active_focus_scope_root();
@@ -1393,6 +1405,11 @@ bool SurfaceRoot::move_focus(bool forward) {
     const Control::Ptr current = focused_.lock();
     const ControlList::iterator found =
         std::find(candidates.begin(), candidates.end(), current);
+    if (!focus_wraps_ && found != candidates.end()) {
+        const bool at_last = found + 1 == candidates.end();
+        const bool at_first = found == candidates.begin();
+        if ((forward && at_last) || (!forward && at_first)) return false;
+    }
     std::size_t index = 0;
     if (found == candidates.end()) {
         index = forward ? 0U : candidates.size() - 1U;
@@ -1405,7 +1422,10 @@ bool SurfaceRoot::move_focus(bool forward) {
         index = current_index == 0U ? candidates.size() - 1U
                                    : current_index - 1U;
     }
-    return request_focus(candidates[index]);
+    pending_focus_traversal_ = forward ? FocusTraversal::forward : FocusTraversal::backward;
+    const bool moved = request_focus(candidates[index]);
+    pending_focus_traversal_ = FocusTraversal::none;
+    return moved;
 }
 
 void SurfaceRoot::set_focus_regions(std::vector<Control::Ptr> regions) {
@@ -1726,23 +1746,10 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     if (event.action == KeyAction::down) {
         set_focus_cue_visible(true);
     }
-    const bool traversal_key = event.action == KeyAction::down &&
-        event.physical_key == PhysicalKey::tab;
-    // F6 and Shift+F6 cycle the focus regions; other modifiers leave F6 to
-    // the application.
-    const bool region_key = event.action == KeyAction::down &&
-        event.physical_key == PhysicalKey::f6 &&
-        (event.modifiers == Modifier::none || event.modifiers == Modifier::shift);
-    const bool forward =
-        (static_cast<std::uint8_t>(event.modifiers) &
-         static_cast<std::uint8_t>(Modifier::shift)) == 0U;
     if (focus_scopes_.empty() && dispatch_accelerator(event, true)) return true;
     Control::Ptr target = focused_.lock();
     if (!target || !eligible(target)) {
-        if (dispatch_accelerator(event, false)) return true;
-        if (dispatch_dialog_key(event)) return true;
-        if (region_key) return move_focus_region(forward);
-        return traversal_key && move_focus(forward);
+        return finish_unhandled_key(event);
     }
     const std::vector<Control::Ptr> route = route_to(target);
     event.phase = EventPhase::preview;
@@ -1776,17 +1783,46 @@ bool SurfaceRoot::route_key(KeyEvent event) {
             }
         }
     }
-    if (!event.handled && dispatch_accelerator(event, false)) {
-        return true;
+    if (event.handled) return true;
+    return finish_unhandled_key(event);
+}
+
+bool SurfaceRoot::finish_unhandled_key(const KeyEvent& event) {
+    const bool traversal_key = event.action == KeyAction::down &&
+        event.physical_key == PhysicalKey::tab;
+    // F6 and Shift+F6 cycle the focus regions; other modifiers leave F6 to
+    // the application.
+    const bool region_key = event.action == KeyAction::down &&
+        event.physical_key == PhysicalKey::f6 &&
+        (event.modifiers == Modifier::none || event.modifiers == Modifier::shift);
+    const bool forward =
+        (static_cast<std::uint8_t>(event.modifiers) &
+         static_cast<std::uint8_t>(Modifier::shift)) == 0U;
+    if (dispatch_accelerator(event, false)) return true;
+    if (dispatch_dialog_key(event)) return true;
+    if (traversal_key) return move_focus(forward);
+    if (region_key) return move_focus_region(forward);
+    return false;
+}
+
+bool SurfaceRoot::resume_unhandled_key(const Control::Ptr& from, KeyEvent event) {
+    require_root_thread("key dispatch");
+    // The key was counted as input when it first reached this root.
+    if (!from || !eligible(from)) return false;
+    const std::vector<Control::Ptr> route = route_to(from);
+    event.phase = EventPhase::bubble;
+    event.handled = false;
+    for (ControlList::const_reverse_iterator iterator = route.rbegin();
+         iterator != route.rend(); ++iterator) {
+        if (*iterator == from || !eligible(*iterator)) {
+            continue;
+        }
+        metrics_.record_callback_emitted();
+        (*(*iterator)).on_key_bubble(event);
+        if (event.handled) return true;
     }
-    if (!event.handled && dispatch_dialog_key(event)) return true;
-    if (!event.handled && traversal_key) {
-        return move_focus(forward);
-    }
-    if (!event.handled && region_key) {
-        return move_focus_region(forward);
-    }
-    return event.handled;
+    const bool handled = finish_unhandled_key(event);
+    return handled;
 }
 
 bool SurfaceRoot::dispatch_text(TextInputEvent event) {
@@ -1926,7 +1962,7 @@ void SurfaceRoot::abandon_deferred_drag() noexcept {
 
 Control::Ptr SurfaceRoot::drop_target_at(Point position) {
     for (Control::Ptr target = hit_test(position); target; target = (*target).parent()) {
-        if (eligible(target) && (*target).allow_drop()) {
+        if (eligible(target) && (*target).allow_drop.read()) {
             return target;
         }
     }
@@ -1935,7 +1971,7 @@ Control::Ptr SurfaceRoot::drop_target_at(Point position) {
 
 DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent event) {
     DragDispatchResult result;
-    if (!target || !eligible(target) || !(*target).allow_drop()) {
+    if (!target || !eligible(target) || !(*target).allow_drop.read()) {
         return result;
     }
     const std::vector<Control::Ptr> route = route_to(target);
@@ -1950,7 +1986,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
             break;
         }
     }
-    if (!event.handled && eligible(target) && (*target).allow_drop()) {
+    if (!event.handled && eligible(target) && (*target).allow_drop.read()) {
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_drag(event);
@@ -2128,15 +2164,33 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     }
 }
 
+void SurfaceRoot::forget_destroyed_subtree(Control& control) noexcept {
+    const std::size_t released = engine_parts_.release_control(control.stable_id_.value());
+    if (released > 0U) metrics_.record_engine_parts_released(released, engine_parts_.record_count());
+    motion_clock_.release_owner(control);
+    erase_containing_block_entries(control.runtime_id());
+    control_table_.release(control.surface_slot_);
+    control.surface_slot_ = {};
+    control.window_ = nullptr;
+    control.surface_root_ = nullptr;
+    {
+        std::scoped_lock lock(control.dispatcher_mutex_);
+        control.dispatcher_state_.reset();
+    }
+    for (const Control::Ptr& child : control.children_) {
+        if (child && (*child).surface_root_ == this) forget_destroyed_subtree(*child);
+    }
+}
+
 bool SurfaceRoot::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
                                      std::vector<ThemeCompileDiagnostic>& diagnostics) const {
     if (root_ && !(*root_).theme_override_) {
         if (!(*root_).collect_inline_restyles(theme, restyles, diagnostics)) return false;
     }
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        const Control::Ptr overlay = (*popup).popup();
-        if (!overlay || (*overlay).theme_override_) continue;
-        if (!(*overlay).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        const Control::Ptr overlay_root = (*overlay).overlay();
+        if (!overlay_root || (*overlay_root).theme_override_) continue;
+        if (!(*overlay_root).collect_inline_restyles(theme, restyles, diagnostics)) return false;
     }
     return true;
 }
@@ -2203,7 +2257,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
 void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     require_root_thread("visual-tree detachment");
     clear_dialog_targets_for_subtree(control);
-    close_popups_for_subtree(control);
+    close_overlays_for_subtree(control);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
     if ((*control).surface_root_ != this) {
@@ -2356,7 +2410,7 @@ void SurfaceRoot::revoke_focus_scopes_for_subtree(
 
 void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
-    close_popups_for_subtree(control);
+    close_overlays_for_subtree(control);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
 }
@@ -2539,9 +2593,9 @@ SemanticSnapshot SurfaceRoot::semantic_snapshot() {
         const Control::Ptr focused = focused_.lock();
         const Control::Ptr scoped = focus_allowed_by_active_scope(root_) ? Control::Ptr{} : active_focus_scope_root();
         std::vector<Control::Ptr> roots{scoped ? scoped : root_};
-        roots.reserve(1U + popups_.size());
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (!scoped || contains_control(scoped, (*popup).owner())) { roots.push_back((*popup).popup()); }
+        roots.reserve(1U + overlays_.size());
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (!scoped || contains_control(scoped, (*overlay).owner())) { roots.push_back((*overlay).overlay()); }
         }
         for (const Control::Ptr& root : roots) {
             if (!root || !(*root).is_alive() || (*root).surface_root_ != this ||
@@ -2578,27 +2632,27 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
         if (dispatch_semantic_child_action(scoped ? scoped : root_, stable_id, action, value)) {
             return true;
         }
-        ControlList popup_roots;
-        popup_roots.reserve(popups_.size());
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (!scoped || contains_control(scoped, (*popup).owner())) { popup_roots.push_back((*popup).popup()); }
+        ControlList overlay_roots;
+        overlay_roots.reserve(overlays_.size());
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (!scoped || contains_control(scoped, (*overlay).owner())) { overlay_roots.push_back((*overlay).overlay()); }
         }
-        for (ControlList::reverse_iterator popup = popup_roots.rbegin();
-             popup != popup_roots.rend();
-             ++popup) {
+        for (ControlList::reverse_iterator overlay = overlay_roots.rbegin();
+             overlay != overlay_roots.rend();
+             ++overlay) {
             if (dispatch_semantic_child_action(
-                    *popup, stable_id, action, value)) return true;
+                    *overlay, stable_id, action, value)) return true;
         }
         return false;
     }
     if (!eligible(control)) return false;
     if (!focus_allowed_by_active_scope(control)) {
-        bool closes_active_popup = false;
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (action == SemanticAction::collapse && (*popup).owner() == control &&
-                contains_control((*popup).popup(), scoped)) { closes_active_popup = true; break; }
+        bool closes_active_overlay = false;
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (action == SemanticAction::collapse && (*overlay).owner() == control &&
+                contains_control((*overlay).overlay(), scoped)) { closes_active_overlay = true; break; }
         }
-        if (!closes_active_popup) return false;
+        if (!closes_active_overlay) return false;
     }
     if (action == SemanticAction::focus) {
         set_focus_cue_visible(true);
@@ -2670,9 +2724,9 @@ SemanticTextResult SurfaceRoot::set_semantic_text_selection(RuntimeId control_id
 
 Control::Ptr SurfaceRoot::find_runtime_control(RuntimeId control) const {
     ControlList pending{root_};
-    pending.reserve(1U + popups_.size());
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        pending.push_back((*popup).popup());
+    pending.reserve(1U + overlays_.size());
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        pending.push_back((*overlay).overlay());
     }
     while (!pending.empty()) {
         const Control::Ptr current = pending.back();
@@ -2690,14 +2744,22 @@ Control::Ptr SurfaceRoot::find_runtime_control(RuntimeId control) const {
 bool SurfaceRoot::semantic_scope_reaches(const Control::Ptr& control) const {
     const Control::Ptr scoped = focus_allowed_by_active_scope(root_) ? Control::Ptr{} : active_focus_scope_root();
     if (!scoped || contains_control(scoped, control)) return true;
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (contains_control(scoped, (*popup).owner()) && contains_control((*popup).popup(), control)) return true;
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (contains_control(scoped, (*overlay).owner()) && contains_control((*overlay).overlay(), control)) return true;
     }
     return false;
 }
 
 void SurfaceRoot::apply_subtree_dirty(Control& control, Dirty requested_dirty,
                                  double& requested_damage_area) {
+    // A pending touch inside the subtree whose kinds the mark covers is
+    // redone by this walk; its own settle would only repeat it.
+    const detail::PendingTouch pending = control_table_.pending_touch(control.surface_slot_);
+    const Dirty pending_kinds = pending.requested | pending.subtree;
+    const bool damage_covered = !pending.damages_bounds || has_dirty(requested_dirty, Dirty::paint);
+    if (without_dirty(pending_kinds, requested_dirty) == Dirty::none && damage_covered) {
+        control_table_.forget(control.surface_slot_);
+    }
     control.add_dirty(requested_dirty);
     control.subtree_dirty_ |= requested_dirty;
     if (has_dirty(requested_dirty, Dirty::layout) &&
@@ -2728,27 +2790,12 @@ void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     if (has_dirty(requested_dirty, Dirty::measure)) {
         requested_dirty |= Dirty::arrange;
     }
-    double requested_damage_area = 0.0;
-    apply_subtree_dirty(control, requested_dirty, requested_damage_area);
-    // The subtree's root stands for the subtree in the table. Its
-    // bookkeeping is done here (M0.3 moves it to the settle), so the touch
-    // owes nothing.
-    control_table_.touch(control.surface_slot_, requested_dirty, detail::PendingTouch{});
-    for (Control::Ptr ancestor = control.parent(); ancestor;
-         ancestor = (*ancestor).parent()) {
-        (*ancestor).subtree_dirty_ |= requested_dirty;
-        if (has_dirty(requested_dirty, Dirty::layout) &&
-            (*ancestor).layout_suspend_depth_ != 0U) {
-            (*ancestor).layout_deferred_ = true;
-            ++(*ancestor).layout_requested_revision_;
-            if ((*ancestor).layout_requested_revision_ == 0U) {
-                ++(*ancestor).layout_requested_revision_;
-            }
-        }
-    }
-    if (has_dirty(requested_dirty, Dirty::layout)) {
-        mark_layout_ancestors(control);
-    }
+    // The subtree's root stands for the subtree in the table; the walk over
+    // the subtree, the ancestors and the damage wait for the settle
+    // (settle_subtree).
+    detail::PendingTouch owed{};
+    owed.subtree = requested_dirty;
+    control_table_.touch(control.surface_slot_, Dirty::none, owed);
     // Subtree mutation has the same semantic-generation contract as a
     // single-control mutation. Cached native accessibility trees must retire
     // hidden descendants even when their arranged geometry is unchanged.
@@ -2768,10 +2815,38 @@ void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     }
     if (has_dirty(requested_dirty, Dirty::paint)) {
         touch_paint();
-        metrics_.record_dirty_mark(requested_damage_area);
-    } else {
-        metrics_.record_dirty_mark(0.0);
     }
+    // Counted now; the subtree's damage area when it settles.
+    metrics_.record_dirty_mark(0.0);
+    if (in_layout_ || in_paint_) settle_dirty();
+}
+
+void SurfaceRoot::settle_subtree(Control& control, Dirty kinds) {
+    // The order is mark_subtree_dirty's when it did this at the write.
+    double requested_damage_area = 0.0;
+    apply_subtree_dirty(control, kinds, requested_damage_area);
+    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        (*ancestor).subtree_dirty_ |= kinds;
+        if (has_dirty(kinds, Dirty::layout) && (*ancestor).layout_suspend_depth_ != 0U) {
+            (*ancestor).layout_deferred_ = true;
+            ++(*ancestor).layout_requested_revision_;
+            if ((*ancestor).layout_requested_revision_ == 0U) {
+                ++(*ancestor).layout_requested_revision_;
+            }
+        }
+    }
+    if (has_dirty(kinds, Dirty::layout)) {
+        mark_layout_ancestors(control);
+    }
+    metrics_.record_requested_damage(requested_damage_area);
+}
+
+bool SurfaceRoot::covered_by_pending_subtree(const Control& control, Dirty kinds) const {
+    for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+        const detail::PendingTouch pending = control_table_.pending_touch((*ancestor).surface_slot_);
+        if (without_dirty(kinds, pending.subtree) == Dirty::none) return true;
+    }
+    return false;
 }
 
 void SurfaceRoot::change_paint_plane(Control& control, PaintPlane plane) {
@@ -2829,15 +2904,18 @@ void SurfaceRoot::add_resize_strip_damage(Rect before, Rect after, double band) 
     if (!below.empty()) add_damage_all_planes(below);
 }
 
-void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate) {
+void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate,
+                                 ResizeAxes relaid) {
     // Arrangement changes expose content below the moved control. The
     // compositor uses one target across ordered paint planes, so both the
     // vacated and occupied rectangles need full recomposition, except where
     // a control that kept its origin keeps its pixels (`escalate` false):
     // there only the strips between the two extents change. Its chunk is
     // recorded again at the new size either way (paint_recursive).
-    // `control` is for the hot-paths strip rules (material bands, viewports).
+    // `control` and `relaid` are for the hot-paths strip rules (material
+    // bands, viewports).
     static_cast<void>(control);
+    static_cast<void>(relaid);
     const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
     if (same_origin && !escalate) {
         add_resize_strip_damage(old_bounds, new_bounds, 0.0);
@@ -2923,6 +3001,23 @@ bool SurfaceRoot::settle_pending() const noexcept {
 }
 
 void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
+    // A container escalating some of the touch's kinds takes them as its
+    // own subtree mark (decision 9); the control keeps its own flags, set
+    // at the write, and the escalated walk covers its ancestors' flags.
+    Dirty remaining = owed.requested;
+    for (Control::Ptr ancestor = control.parent(); ancestor && remaining != Dirty::none;
+         ancestor = (*ancestor).parent()) {
+        const Dirty escalated = remaining & (*ancestor).child_touch_escalation();
+        if (escalated == Dirty::none) continue;
+        settle_subtree(*ancestor, escalated);
+        remaining = without_dirty(remaining, escalated);
+    }
+    if (remaining != owed.requested) {
+        // Escalated paint is the container's whole damage.
+        if (!has_dirty(remaining, Dirty::paint)) owed.damages_bounds = false;
+        if (!has_dirty(remaining, Dirty::layout)) owed.marks_layout_ancestors = false;
+        owed.requested = remaining;
+    }
     // The order is mark_dirty's when it did this at the write.
     if (has_dirty(owed.requested, Dirty::layout)) {
         note_suspended_layout_request(control);
@@ -2956,7 +3051,35 @@ void SurfaceRoot::settle_dirty() {
     // than one kind is settled at its first, and its later take_touch is
     // empty. A failure (a damage allocation) leaves the untaken touches
     // pending for the next settle.
+    // Subtree marks first (study 3.5, step 1). A mark inside an enclosing
+    // pending mark of the same kinds is dropped before any is applied, so
+    // the outcome does not depend on index order; applying a mark forgets
+    // the descendants' touches it covers, whose later take_touch is empty.
+    settle_indices_.clear();
+    static_cast<void>(control_table_.take(detail::DirtyKind::subtree, settle_indices_));
+    for (const std::uint32_t index : settle_indices_) {
+        Control* const control = control_table_.control_at_index(index);
+        if (control == nullptr) continue;
+        const detail::PendingTouch pending = control_table_.pending_touch((*control).surface_slot_);
+        if (covered_by_pending_subtree(*control, pending.subtree)) {
+            detail::PendingTouch reduced = control_table_.take_touch(index);
+            reduced.subtree = Dirty::none;
+            control_table_.touch((*control).surface_slot_, Dirty::none, reduced);
+        }
+    }
+    for (const std::uint32_t index : settle_indices_) {
+        Control* const control = control_table_.control_at_index(index);
+        if (control == nullptr) continue;
+        detail::PendingTouch pending = control_table_.take_touch(index);
+        const Dirty kinds = pending.subtree;
+        pending.subtree = Dirty::none;
+        // The control's own touch stays for its kind's pass below.
+        control_table_.touch((*control).surface_slot_, Dirty::none, pending);
+        if (kinds != Dirty::none) settle_subtree(*control, kinds);
+    }
+    // Then each other kind's touched indices, in index order.
     for (std::size_t kind = 0U; kind < detail::dirty_kind_count; ++kind) {
+        if (static_cast<detail::DirtyKind>(kind) == detail::DirtyKind::subtree) continue;
         settle_indices_.clear();
         static_cast<void>(control_table_.take(static_cast<detail::DirtyKind>(kind), settle_indices_));
         for (const std::uint32_t index : settle_indices_) {
@@ -3026,9 +3149,9 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
             std::uint64_t measure_visited = 0;
             std::uint64_t measured = 0;
             measure_dirty_recursive(root_, client_size_, measure_visited, measured);
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                if (const Control::Ptr overlay = (*popup).popup()) {
-                    measure_dirty_recursive(overlay, client_size_, measure_visited,
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                    measure_dirty_recursive(overlay_root, client_size_, measure_visited,
                                             measured);
                 }
             }
@@ -3039,47 +3162,47 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
             arrange_dirty_recursive(
                 root_, {0.0, 0.0, client_size_.width, client_size_.height},
                 arrange_visited, arranged);
-            // A tooltip below a control follows it before the popups are
+            // A tooltip below a control follows it before the overlays are
             // arranged.
             if (tool_tip_presenter_) (*tool_tip_presenter_).root_arranged();
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                if (const Control::Ptr overlay = (*popup).popup()) {
-                    arrange_dirty_recursive(overlay, (*overlay).requested_bounds_,
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                    arrange_dirty_recursive(overlay_root, (*overlay_root).requested_bounds_,
                                             arrange_visited, arranged);
                 }
             }
             metrics_.record_arrange(arrange_visited, arranged);
 
             static_cast<void>(recompute_subtree_dirty(root_));
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                if (const Control::Ptr overlay = (*popup).popup()) {
-                    static_cast<void>(recompute_subtree_dirty(overlay));
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                    static_cast<void>(recompute_subtree_dirty(overlay_root));
                 }
             }
             commit_layout_requests_recursive(root_);
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                commit_layout_requests_recursive((*popup).popup());
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                commit_layout_requests_recursive((*overlay).overlay());
             }
             ++pass;
         } while (has_any_runnable_layout_dirty() &&
                  pass < maximum_layout_passes);
         ++layout_pass_sequence_;
 
-        const bool popup_layout_dirty = has_popup_layout_dirty();
+        const bool overlay_layout_dirty = has_popup_layout_dirty();
         if (has_any_runnable_layout_dirty()) {
             metrics_.record_pass_limit_hit();
         }
         layout_dirty_ = has_dirty((*root_).subtree_dirty_, Dirty::layout) ||
-                        popup_layout_dirty;
+                        overlay_layout_dirty;
         hit_test_dirty_ = layout_dirty_;
         in_layout_ = false;
     } catch (...) {
         // A user layout callback may fail. Preserve dirty state for an
         // explicit later retry and always release the re-entry guard.
         static_cast<void>(recompute_subtree_dirty(root_));
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (const Control::Ptr overlay = (*popup).popup()) {
-                static_cast<void>(recompute_subtree_dirty(overlay));
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                static_cast<void>(recompute_subtree_dirty(overlay_root));
             }
         }
         layout_dirty_ = has_dirty((*root_).subtree_dirty_, Dirty::layout) ||
@@ -3136,7 +3259,7 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
         }
     }
     const Point local{window_position.x - bounds.x, window_position.y - bounds.y};
-    const bool hit = !(*control).hit_test_transparent_ &&
+    const bool hit = !(*control).hit_test_transparent.read() &&
                      (*control).hit_test_local(local);
     return hit && eligible(control) && (*control).surface_root_ == this &&
             (*control).parent_.lock().get() == retained_parent
@@ -3152,7 +3275,7 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
         return;
     }
     ++visited_nodes;
-    if (!(*control).is_alive() || !(*control).visible_ ||
+    if (!(*control).is_alive() || !(*control).visible.read() ||
         (*control).layout_collapsed_) {
         clear_layout_dirty_subtree(control);
         return;
@@ -3201,6 +3324,18 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
     }
 }
 
+namespace {
+
+// The axes along which an arranged extent changed.
+ResizeAxes resized_axes(Rect before, Rect after) noexcept {
+    ResizeAxes changed = ResizeAxes::none;
+    if (before.width != after.width) changed |= ResizeAxes::horizontal;
+    if (before.height != after.height) changed |= ResizeAxes::vertical;
+    return changed;
+}
+
+} // namespace
+
 void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                                      Rect final_bounds,
                                      std::uint64_t& visited_nodes,
@@ -3210,7 +3345,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         return;
     }
     ++visited_nodes;
-    if (!(*control).is_alive() || !(*control).visible_ ||
+    if (!(*control).is_alive() || !(*control).visible.read() ||
         (*control).layout_collapsed_) {
         clear_layout_dirty_subtree(control);
         return;
@@ -3221,6 +3356,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             *control, (*control).last_painted_visual_outsets_);
         const Rect old_arranged = (*control).arranged_bounds_;
         (*control).clear_dirty(Dirty::arrange | Dirty::hit_test);
+        (*control).arranged_by_dock_layout_ = false;
         try {
             (*control).arrange(final_bounds);
         } catch (...) {
@@ -3230,6 +3366,19 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         }
         ++callbacks;
         if (!(*control).is_alive() || (*control).surface_root_ != this) return;
+        // The resize registration (reduced M0.4): asked again whenever the
+        // size changes, which costs one pass over the children that arrange
+        // has just made, so no write has to keep it current. The first
+        // arrange from no extent is not counted as a resize.
+        const ResizeAxes resized = resized_axes(old_arranged, (*control).arranged_bounds_);
+        ResizeAxes relaid = ResizeAxes::none;
+        if (resized != ResizeAxes::none) {
+            const ResizeAxes response = (*control).layout_resize_response();
+            control_table_.set_resize_response((*control).surface_slot_, response);
+            relaid = response & resized;
+            const bool was_arranged = old_arranged.width > 0.0 || old_arranged.height > 0.0;
+            if (relaid != ResizeAxes::none && was_arranged) metrics_.record_resize_relayout();
+        }
         // The containers below whose absolutely positioned children were
         // placed against this control's box arrange in this same descent.
         if (!containing_block_watches_.empty() && (*control).arranged_bounds_ != old_arranged) {
@@ -3239,7 +3388,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             *control, (*control).effective_visual_outsets());
         if (old_bounds != new_bounds) {
             const bool escalate = !keeps_pixels_on_resize(*control);
-            damage_resized(*control, old_bounds, new_bounds, escalate);
+            damage_resized(*control, old_bounds, new_bounds, escalate, relaid);
             touch_paint();
             (*control).publish_change((*control).arranged_bounds_changed_,
                                     new_bounds);
@@ -3273,16 +3422,16 @@ bool SurfaceRoot::has_runnable_layout_dirty(
 
 bool SurfaceRoot::has_any_runnable_layout_dirty() const noexcept {
     if (has_runnable_layout_dirty(root_)) return true;
-    for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-        if (has_runnable_layout_dirty((*popup).popup())) return true;
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        if (has_runnable_layout_dirty((*overlay).overlay())) return true;
     }
     return false;
 }
 
 bool SurfaceRoot::has_popup_layout_dirty() const noexcept {
-    for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-        const Control::Ptr overlay = (*popup).popup();
-        if (overlay && has_dirty((*overlay).subtree_dirty_, Dirty::layout)) {
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        const Control::Ptr overlay_root = (*overlay).overlay();
+        if (overlay_root && has_dirty((*overlay_root).subtree_dirty_, Dirty::layout)) {
             return true;
         }
     }
@@ -3502,7 +3651,7 @@ void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcep
 
 bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Rect damage, const PaintPlane plane,
                               std::vector<Control::Ptr>& path) const {
-    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible_ ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible.read() ||
         (*control).layout_collapsed_) {
         return false;
     }
@@ -3617,7 +3766,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              std::uint64_t& commands_replayed) {
     ++visited_nodes;
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
-        !(*control).visible_ || (*control).layout_collapsed_) {
+        !(*control).visible.read() || (*control).layout_collapsed_) {
         clear_paint_dirty_subtree(control);
         return;
     }
@@ -3734,9 +3883,9 @@ std::uint64_t SurfaceRoot::display_cache_entries(const Control::Ptr& control) co
 
 void SurfaceRoot::update_display_cache_metrics() noexcept {
     std::uint64_t entries = root_ ? display_cache_entries(root_) : 0U;
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) {
-            entries += display_cache_entries(overlay);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            entries += display_cache_entries(overlay_root);
         }
     }
     metrics_.set_display_cache(entries, display_generation_);

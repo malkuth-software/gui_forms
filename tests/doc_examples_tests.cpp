@@ -9,7 +9,7 @@
 
 namespace gf = gui_forms;
 
-namespace doc_example_AnchoredPopupLayer_1 {
+namespace doc_example_AnchoredOverlayLayer_1 {
 struct Picker final : gf::Component {
     std::shared_ptr<gf::Panel> root =
         gf::make_control<gf::Panel>(gf::StableId("picker"));
@@ -19,31 +19,31 @@ struct Picker final : gf::Component {
         gf::make_control<gf::Panel>(gf::StableId("picker.content"));
     std::shared_ptr<gf::TextBox> value =
         gf::make_control<gf::TextBox>(gf::StableId("picker.value"), "#3366cc");
-    std::shared_ptr<gf::AnchoredPopupLayer> layer;
-    gf::PopupToken token;
+    std::shared_ptr<gf::AnchoredOverlayLayer> layer;
+    gf::OverlayToken token;
     gf::FocusScopeId scope{};
-    gf::PopupDismissReason last_reason = gf::PopupDismissReason::click_away;
+    gf::OverlayDismissReason last_reason = gf::OverlayDismissReason::click_away;
 
     Picker() {
         (*button).set_requested_bounds({20.0, 20.0, 100.0, 28.0});
         (*root).add_child(button);
         (*value).set_requested_bounds({8.0, 8.0, 160.0, 24.0});
         (*content).add_child(value);
-        gf::AnchoredPopupPlacement placement;
+        gf::AnchoredOverlayPlacement placement;
         placement.preferred_size = {180.0, 120.0};
         placement.gap = 4.0;
-        layer = gf::make_control<gf::AnchoredPopupLayer>(
+        layer = gf::make_control<gf::AnchoredOverlayLayer>(
             gf::StableId("picker.layer"), button, placement);
         (*layer).set_content(content);
         gf::on((*layer).dismiss_requested(), *this, &Picker::on_dismiss);
     }
 
     void open(gf::Window& window) {
-        token = window.open_popup(button, layer);
+        token = window.open_overlay(button, layer);
         scope = window.begin_focus_scope(layer, value);
     }
 
-    void on_dismiss(gf::PopupDismissReason reason) {
+    void on_dismiss(gf::OverlayDismissReason reason) {
         last_reason = reason;
         gf::Window* window = (*layer).attached_window();
         if (window != nullptr && scope) {
@@ -63,9 +63,9 @@ void example() {
     gf::KeyEvent escape;
     escape.physical_key = gf::PhysicalKey::escape;
     static_cast<void>(window.dispatch_key(escape));
-    // on_dismiss closed the popup; picker.last_reason is escape_key.
+    // on_dismiss closed the overlay; picker.last_reason is escape_key.
 }
-}  // namespace doc_example_AnchoredPopupLayer_1
+}  // namespace doc_example_AnchoredOverlayLayer_1
 
 namespace doc_example_AutoCompleteStringCollection_1 {
 void example() {
@@ -271,7 +271,7 @@ void example() {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
             gf::StableId("stack.button" + std::to_string(index)), "Button");
         (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-        (*button).set_margin({0.0, 10.0, 0.0, 10.0});
+        (*button).margin = {0.0, 10.0, 0.0, 10.0};
         (*stack).add_child(button);
         buttons.push_back(button);
     }
@@ -298,7 +298,7 @@ void example() {
     for (int index = 0; index < 3; ++index) {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
             gf::StableId("row.button" + std::to_string(index)), "Button");
-        (*button).set_margin({});
+        (*button).margin = gf::Insets{};
         (*row).add_child(button);
         (*row).set_item_layout(*button, atomic);
         buttons.push_back(button);
@@ -315,7 +315,7 @@ namespace doc_example_BreadcrumbTrail_1 {
 void example() {
     std::shared_ptr<gf::BreadcrumbTrail> trail =
         gf::make_control<gf::BreadcrumbTrail>(gf::StableId("browser.location"));
-    (*trail).set_accessible_name("Current folder");
+    (*trail).accessible_name = "Current folder";
     (*trail).set_segments({{"root", "Home", "Go to Home"},
                            {"projects", "Projects", "Go to Projects"},
                            {"site", "Site", "Current folder"}});
@@ -363,7 +363,7 @@ void example() {
     (*ok).set_dialog_result(gf::DialogResult::ok);
     (*ok).set_requested_bounds({8.0, 8.0, 80.0, 28.0});
     (*cancel).set_requested_bounds({96.0, 8.0, 80.0, 28.0});
-    (*cancel).set_causes_validation(false);
+    (*cancel).causes_validation = false;
     (*root).add_child(ok);
     (*root).add_child(cancel);
     gf::Window window(root, gf::Size{184.0, 44.0});
@@ -967,7 +967,7 @@ void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("dialog"));
     std::shared_ptr<gf::Button> ok = gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
     (*ok).set_bounds({300.0, 200.0, 80.0, 28.0});
-    (*ok).set_anchor(gf::AnchorStyles::right | gf::AnchorStyles::bottom);
+    (*ok).anchor = gf::AnchorStyles::right | gf::AnchorStyles::bottom;
     (*root).add_child(ok);
 
     gf::Window window(root, gf::Size{400.0, 240.0});
@@ -1358,7 +1358,7 @@ void example() {
     std::shared_ptr<gf::DrawingSurface> badge =
         gf::make_control<gf::DrawingSurface>(gf::StableId("status.badge"));
     (*badge).set_requested_bounds({0.0, 0.0, 24.0, 24.0});
-    (*badge).set_accessible_name("Connected");
+    (*badge).accessible_name = "Connected";
     (*badge).set_paint_callback(StatusBadge{gf::Color::rgba(46, 160, 67)});
 }
 }  // namespace doc_example_DrawingSurface_1
@@ -1606,7 +1606,7 @@ void example() {
     window.perform_layout();
     (*frame.edges).set_dropped_down(true);
     std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
-        window.find("frame.edges.popup.list"));
+        window.find("frame.edges.overlay.list"));
     if (list) (*list).set_item_checked(3U, true);   // the "Right" row
     // drawn is "Top, Left, Right"
     (*frame.edges).set_dropped_down(false);
@@ -1626,9 +1626,9 @@ void example() {
     (*fixed).set_requested_bounds({0.0, 0.0, 20.0, 10.0});
     (*narrow).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
     (*wide).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
-    (*fixed).set_margin({});
-    (*narrow).set_margin({});
-    (*wide).set_margin({});
+    (*fixed).margin = gf::Insets{};
+    (*narrow).margin = gf::Insets{};
+    (*wide).margin = gf::Insets{};
     (*row).add_child(fixed);
     (*row).add_child(narrow);
     (*row).add_child(wide);
@@ -1657,8 +1657,8 @@ void example() {
         gf::make_control<gf::Button>(gf::StableId("bar.close"), "Close");
     (*save).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
     (*close).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
-    (*save).set_margin({});
-    (*close).set_margin({});
+    (*save).margin = gf::Insets{};
+    (*close).margin = gf::Insets{};
     (*bar).add_child(save);
     (*bar).add_child(close);
     gf::FlexItemLayout pushed{};
@@ -1685,9 +1685,9 @@ void example() {
     (*cut).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
     (*copy).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
     (*paste).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
-    (*cut).set_margin({});
-    (*copy).set_margin({});
-    (*paste).set_margin({});
+    (*cut).margin = gf::Insets{};
+    (*copy).margin = gf::Insets{};
+    (*paste).margin = gf::Insets{};
     (*tools).add_child(cut);
     (*tools).add_child(copy);
     (*tools).add_child(paste);
@@ -1712,9 +1712,9 @@ void example() {
     (*fixed).set_requested_bounds({0.0, 0.0, 20.0, 10.0});
     (*narrow).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
     (*wide).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
-    (*fixed).set_margin({});
-    (*narrow).set_margin({});
-    (*wide).set_margin({});
+    (*fixed).margin = gf::Insets{};
+    (*narrow).margin = gf::Insets{};
+    (*wide).margin = gf::Insets{};
     (*row).add_child(fixed);
     (*row).add_child(narrow);
     (*row).add_child(wide);
@@ -1793,7 +1793,7 @@ void example() {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
             gf::StableId("form.button" + std::to_string(index)), "Button");
         (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-        (*button).set_margin({});
+        (*button).margin = gf::Insets{};
         (*form).add_child(button);
         buttons.push_back(button);
     }
@@ -1825,7 +1825,7 @@ void example() {
         std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
             gf::StableId("cards.button" + std::to_string(index)), "Card");
         (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-        (*button).set_margin({});
+        (*button).margin = gf::Insets{};
         (*cards).add_child(button);
         buttons.push_back(button);
     }
@@ -2020,7 +2020,7 @@ void example() {
         gf::make_control<gf::TextBox>(gf::StableId("form.name"));
     (*caption).set_requested_bounds({8.0, 8.0, 60.0, 24.0});
     (*name).set_requested_bounds({72.0, 8.0, 160.0, 24.0});
-    (*name).set_accessible_name("Name");
+    (*name).accessible_name = "Name";
     (*form).add_child(caption);
     (*form).add_child(name);
     gf::Window window(form, gf::Size{240.0, 40.0});
@@ -2149,7 +2149,7 @@ void example() {
     std::shared_ptr<gf::DrawingSurface> view =
         gf::make_control<gf::DrawingSurface>(gf::StableId("player.video"));
     (*view).set_requested_bounds({0.0, 0.0, 320.0, 180.0});
-    (*view).set_accessible_name("Video");
+    (*view).accessible_name = "Video";
     (*view).set_paint_callback(PresentLiveSurface{surface});
     gf::Window window(view, gf::Size{320.0, 180.0});
     window.perform_layout();
@@ -2268,7 +2268,7 @@ struct Editor final : gf::Component {
                 {"view.wrap", gf::MenuItemKind::check, wrap, "&Word wrap"},
             }},
         });
-        (*menu).set_dock(gf::DockStyle::top);
+        (*menu).dock = gf::DockStyle::top;
         (*root).add_child(menu);
         gf::on((*save).invoked(), *this, &Editor::on_save);
     }
@@ -2608,10 +2608,10 @@ void example() {
     std::shared_ptr<gf::Panel> status = gf::make_control<gf::Panel>(gf::StableId("shell.status"));
     std::shared_ptr<gf::Panel> content = gf::make_control<gf::Panel>(gf::StableId("shell.content"));
     (*toolbar).set_requested_bounds({0.0, 0.0, 0.0, 32.0});   // only the height is used
-    (*toolbar).set_dock(gf::DockStyle::top);
+    (*toolbar).dock = gf::DockStyle::top;
     (*status).set_requested_bounds({0.0, 0.0, 0.0, 22.0});
-    (*status).set_dock(gf::DockStyle::bottom);
-    (*content).set_dock(gf::DockStyle::fill);
+    (*status).dock = gf::DockStyle::bottom;
+    (*content).dock = gf::DockStyle::fill;
     (*shell).add_child(toolbar);
     (*shell).add_child(status);
     (*shell).add_child(content);
@@ -2628,7 +2628,7 @@ void example() {
     (*swatch).set_requested_bounds({12.0, 12.0, 120.0, 80.0});
     (*swatch).set_background(gf::Color::rgba(250, 240, 200));
     (*swatch).set_border_style(gf::BorderStyle::line);
-    (*swatch).set_accessible_name("Highlight colour");
+    (*swatch).accessible_name = "Highlight colour";
 }
 }  // namespace doc_example_Panel_2
 
@@ -2638,7 +2638,7 @@ void example() {
         gf::make_control<gf::PictureBox>(gf::StableId("preview"));
     (*preview).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
     (*preview).set_size_mode(gf::PictureBoxSizeMode::zoom);
-    (*preview).set_accessible_name("Preview");
+    (*preview).accessible_name = "Preview";
     gf::Window window(preview, gf::Size{100.0, 100.0});
     const std::vector<std::byte> pixels(4U * 2U * 4U, std::byte{0xff});   // 4 x 2, white
     const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(4U, 2U, 16U, pixels);
@@ -2653,7 +2653,7 @@ void example() {
     gf::Value<double> copied(0.0);
     std::shared_ptr<gf::ProgressBar> bar =
         gf::make_control<gf::ProgressBar>(gf::StableId("copy.progress"));
-    (*bar).set_accessible_name("Copying files");
+    (*bar).accessible_name = "Copying files";
     (*bar).set_range(0.0, 250.0);   // 250 files
     (*bar).bind(copied);
     copied.set(125.0);              // the bar is now half full
@@ -2664,7 +2664,7 @@ namespace doc_example_ProgressBar_2 {
 void example() {
     std::shared_ptr<gf::ProgressBar> busy =
         gf::make_control<gf::ProgressBar>(gf::StableId("sync.busy"));
-    (*busy).set_accessible_name("Synchronizing");
+    (*busy).accessible_name = "Synchronizing";
     (*busy).set_visual_style(gf::ProgressBarVisualStyle::marquee);
     gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
     (*busy).set_animation_paused(true);               // it stops, keeping its phase
@@ -2937,8 +2937,8 @@ void example() {
         gf::make_control<gf::Panel>(gf::StableId("shell.content"));
     std::shared_ptr<gf::Panel> inspector =
         gf::make_control<gf::Panel>(gf::StableId("shell.inspector"));
-    (*content).set_dock(gf::DockStyle::fill);
-    (*inspector).set_dock(gf::DockStyle::fill);
+    (*content).dock = gf::DockStyle::fill;
+    (*inspector).dock = gf::DockStyle::fill;
     (*shell).add_child(content);
     (*shell).add_child(inspector);
     (*shell).set_child_track(*content, 0U);
@@ -3283,8 +3283,8 @@ void example() {
         gf::make_control<gf::Panel>(gf::StableId("mail.folders"));
     std::shared_ptr<gf::Panel> messages =
         gf::make_control<gf::Panel>(gf::StableId("mail.messages"));
-    (*folders).set_dock(gf::DockStyle::fill);
-    (*messages).set_dock(gf::DockStyle::fill);
+    (*folders).dock = gf::DockStyle::fill;
+    (*messages).dock = gf::DockStyle::fill;
     std::shared_ptr<gf::SplitterPanel> left = (*split).first_panel();
     std::shared_ptr<gf::SplitterPanel> right = (*split).second_panel();
     (*left).add_child(folders);
@@ -3333,12 +3333,12 @@ namespace doc_example_Splitter_1 {
 void example() {
     std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("doc.root"));
     std::shared_ptr<gf::Panel> folders = gf::make_control<gf::Panel>(gf::StableId("doc.folders"));
-    (*folders).set_dock(gf::DockStyle::left);
+    (*folders).dock = gf::DockStyle::left;
     (*folders).set_requested_bounds({0.0, 0.0, 160.0, 0.0});
     std::shared_ptr<gf::Splitter> splitter = gf::make_control<gf::Splitter>(gf::StableId("doc.splitter"));
     (*splitter).set_min_size(80.0);
     std::shared_ptr<gf::Panel> files = gf::make_control<gf::Panel>(gf::StableId("doc.files"));
-    (*files).set_dock(gf::DockStyle::fill);
+    (*files).dock = gf::DockStyle::fill;
     (*root).add_child(folders);    // child order is dock order
     (*root).add_child(splitter);
     (*root).add_child(files);
@@ -3357,7 +3357,7 @@ void example() {
 
     std::shared_ptr<gf::Panel> content =
         gf::make_control<gf::Panel>(gf::StableId("library.sources"));
-    (*content).set_dock(gf::DockStyle::fill);
+    (*content).dock = gf::DockStyle::fill;
     (*sources).add_child(content);
 }
 }  // namespace doc_example_SplitterPanel_1
@@ -3483,8 +3483,8 @@ void example() {
         gf::make_control<gf::Label>(gf::StableId("form.email.label"), "Email:");
     std::shared_ptr<gf::TextBox> email =
         gf::make_control<gf::TextBox>(gf::StableId("form.email"));
-    (*name).set_anchor(gf::AnchorStyles::left | gf::AnchorStyles::right);
-    (*email).set_anchor(gf::AnchorStyles::left | gf::AnchorStyles::right);
+    (*name).anchor = gf::AnchorStyles::left | gf::AnchorStyles::right;
+    (*email).anchor = gf::AnchorStyles::left | gf::AnchorStyles::right;
 
     // Automatic placement fills the cells row by row.
     (*form).add_child(name_label);
@@ -3595,7 +3595,7 @@ struct Search final : gf::Component {
 
     Search() {
         (*field).set_placeholder_text("Search");
-        (*field).set_accessible_name("Search");
+        (*field).accessible_name = "Search";
         (*field).set_accepts_enter(true);
         gf::on((*field).committed(), *this, &Search::on_commit);
     }
@@ -4112,7 +4112,7 @@ void example() {
     gf::Window window(root, gf::Size{460.0, 460.0});
     window.perform_layout();
 
-    (*apply).set_enabled(false);
+    (*apply).enabled = false;
     (*inspector).refresh();
     gf::SemanticDescriptor summary = (*inspector).semantic_descriptor();
     // summary.value begins "lab.apply; visible · disabled"
@@ -4271,7 +4271,7 @@ int run(const char* name, void (*example)()) {
 
 int main() {
     int failures = 0;
-    failures += run("AnchoredPopupLayer example 1", &doc_example_AnchoredPopupLayer_1::example);
+    failures += run("AnchoredOverlayLayer example 1", &doc_example_AnchoredOverlayLayer_1::example);
     failures += run("AutoCompleteStringCollection example 1", &doc_example_AutoCompleteStringCollection_1::example);
     failures += run("BackgroundWorker example 1", &doc_example_BackgroundWorker_1::example);
     failures += run("BackstageView example 1", &doc_example_BackstageView_1::example);

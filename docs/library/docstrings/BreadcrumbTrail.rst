@@ -121,7 +121,7 @@ See Also
 --------
 TreeView : The whole hierarchy, expandable level by level.
 TextBox : The editor used for exact paths.
-ContextMenu : A pop-up menu for the hidden segments.
+ContextMenu : An overlay menu for the hidden segments.
 
 Notes
 -----
@@ -149,7 +149,7 @@ Show the path to the current folder with raised segments:
 
    std::shared_ptr<gf::BreadcrumbTrail> trail =
        gf::make_control<gf::BreadcrumbTrail>(gf::StableId("browser.location"));
-   (*trail).set_accessible_name("Current folder");
+   (*trail).accessible_name = "Current folder";
    (*trail).set_segments({{"root", "Home", "Go to Home"},
                           {"projects", "Projects", "Go to Projects"},
                           {"site", "Site", "Current folder"}});

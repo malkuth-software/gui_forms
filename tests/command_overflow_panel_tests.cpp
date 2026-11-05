@@ -48,7 +48,7 @@ void test_full_and_collapsed_projection() {
     require(!full.overflow_actuator_visible && !full.overflow &&
                 full.groups.size() == 2U && !full.groups[0].collapsed &&
                 !full.groups[1].collapsed &&
-                (*fixture.more).layout_collapsed() && (*fixture.more).visible(),
+                (*fixture.more).layout_collapsed() && (*fixture.more).visible.read(),
             "full shelf must retain both groups and layout-collapse only the actuator");
 
     fixture.window.resize({440.0, 66.0});

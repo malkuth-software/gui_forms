@@ -44,14 +44,14 @@ void test_states_and_diagnostics(gui_forms::Window& window,
     click(window, invoke);
     // The Command's disabled state projects to its bound button while the
     // worker waits; the posted completion step re-enables the Command.
-    require(invoke && !(*invoke).enabled() &&
+    require(invoke && !(*invoke).enabled.read() &&
                 (*status).text().find("Worker blocked") != std::string::npos,
             "dispatcher gallery must visibly expose a blocking worker Invoke");
     require_eventually(
         DispatcherHasOnePending(window),
         "gallery worker Invoke did not reach the dispatcher queue");
     const DispatchDrainResult invoked = host.pump_dispatcher();
-    require(invoked.invoked == 1U && (*invoke).enabled() &&
+    require(invoked.invoked == 1U && (*invoke).enabled.read() &&
                 (*status).text().find("Worker released after UI callback") !=
                     std::string::npos,
             "gallery worker must resume only after its callback ran on the UI thread");

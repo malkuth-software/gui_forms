@@ -52,6 +52,8 @@ void LiveSurfaceWakeConnection::disconnect() noexcept {
         std::scoped_lock lock((*state).mutex);
         std::erase_if((*state).wakes,
                       DisconnectedOrMatchingWake{(*wake_).sequence});
+        std::erase_if((*state).presented_wakes,
+                      DisconnectedOrMatchingWake{(*wake_).sequence});
     }
     state_.reset();
     wake_.reset();

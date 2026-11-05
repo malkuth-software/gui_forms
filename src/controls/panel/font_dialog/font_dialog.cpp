@@ -92,7 +92,7 @@ FontDialog::FontDialog(StableId stable_id) : Panel(std::move(stable_id)) {
 
 FontDialog::~FontDialog() {
     // Close without raising closed: there is no one left to tell.
-    popup_token_.disconnect();
+    overlay_token_.disconnect();
 }
 
 void FontDialog::initialize_control_tree() {
@@ -106,9 +106,9 @@ void FontDialog::initialize_control_tree() {
     ok_button_ = make_control<Button>(StableId(prefix + ".ok"), "OK");
     cancel_button_ = make_control<Button>(StableId(prefix + ".cancel"), "Cancel");
     apply_button_ = make_control<Button>(StableId(prefix + ".apply"), "Apply");
-    (*face_list_).set_accessible_name("Font");
-    (*style_list_).set_accessible_name("Font style");
-    (*size_box_).set_accessible_name("Size");
+    (*face_list_).accessible_name = "Font";
+    (*style_list_).accessible_name = "Font style";
+    (*size_box_).accessible_name = "Size";
     std::vector<std::string> faces;
     for (const BundledFontFace& face : bundled_faces) {
         faces.push_back(std::string(face.family) + " (" + std::string(face.use) + ")");
@@ -247,7 +247,7 @@ void FontDialog::set_show_apply(bool show) {
     require_mutable();
     if (show_apply_ == show) return;
     show_apply_ = show;
-    if (apply_button_) (*apply_button_).set_visible(show_apply_);
+    if (apply_button_) (*apply_button_).visible = show_apply_;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
 }
 
@@ -294,7 +294,7 @@ void FontDialog::on_key_preview(KeyEvent& event) {
     event.handled = true;
 }
 
-// -- the owned popup -------------------------------------------------------------
+// -- the owned overlay -------------------------------------------------------------
 
 bool FontDialog::show(const Control::Ptr& owner) {
     require_mutable();
@@ -315,31 +315,31 @@ bool FontDialog::show(const Control::Ptr& owner) {
     selection_ = normalized(font_);
     show_selection();
     (*layer).add_child(shared_from_this());
-    PopupToken token = host.open_popup(owner, layer);
-    popup_layer_ = layer;
-    popup_token_ = std::move(token);
-    if (Event<>* closed = popup_token_.closed_event()) {
+    OverlayToken token = host.open_overlay(owner, layer);
+    overlay_layer_ = layer;
+    overlay_token_ = std::move(token);
+    if (Event<>* closed = overlay_token_.closed_event()) {
         revocation_token_ = (*closed).subscribe(
-            *this, Delegate<>::bind<FontDialog, &FontDialog::on_popup_revoked>(*this));
+            *this, Delegate<>::bind<FontDialog, &FontDialog::on_overlay_revoked>(*this));
     }
-    popup_scope_ = host.begin_focus_scope(layer, face_list_).value;
+    overlay_scope_ = host.begin_focus_scope(layer, face_list_).value;
     open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
 
-void FontDialog::release_popup(FocusScopeCloseReason reason) {
+void FontDialog::release_overlay(FocusScopeCloseReason reason) {
     revocation_token_.disconnect();
     Window* const host = attached_window();
-    if (host != nullptr && popup_scope_ != 0U) {
-        static_cast<void>((*host).end_focus_scope(FocusScopeId{popup_scope_}, reason));
+    if (host != nullptr && overlay_scope_ != 0U) {
+        static_cast<void>((*host).end_focus_scope(FocusScopeId{overlay_scope_}, reason));
     }
-    popup_scope_ = 0U;
+    overlay_scope_ = 0U;
     // Keep this dialog alive past its layer: the application owns it.
     const Control::Ptr self = shared_from_this();
-    if (popup_layer_) static_cast<void>((*popup_layer_).remove_child(runtime_id()));
-    popup_token_.disconnect();
-    popup_layer_.reset();
+    if (overlay_layer_) static_cast<void>((*overlay_layer_).remove_child(runtime_id()));
+    overlay_token_.disconnect();
+    overlay_layer_.reset();
     set_paint_plane(PaintPlane::control);
     open_ = false;
 }
@@ -348,14 +348,14 @@ void FontDialog::close(DialogResult result) {
     require_mutable();
     if (!open_) return;
     if (result == DialogResult::ok) font_ = selection_;
-    release_popup(FocusScopeCloseReason::explicit_close);
+    release_overlay(FocusScopeCloseReason::explicit_close);
     const FontDialogResult closing{result, font_};
     closed_.emit(closing);
 }
 
-void FontDialog::on_popup_revoked() {
+void FontDialog::on_overlay_revoked() {
     if (!open_) return;
-    release_popup(FocusScopeCloseReason::owner_unavailable);
+    release_overlay(FocusScopeCloseReason::owner_unavailable);
     const FontDialogResult closing{DialogResult::cancel, font_};
     closed_.emit(closing);
 }
@@ -431,14 +431,14 @@ SemanticDescriptor FontDialog::semantic_descriptor() const {
     // (modal). Placed in a layout directly it is not modal.
     descriptor.role = SemanticRole::dialog;
     descriptor.modal = open_;
-    descriptor.name = accessible_name().empty() ? "Font" : accessible_name();
+    descriptor.name = accessible_name.read().empty() ? "Font" : accessible_name.read();
     const BundledFontFace& face = bundled_faces[face_index(selection_.role)];
     std::string value(face.family);
     value += selection_.weight >= 700U ? " Bold" : "";
     value += selection_.italic ? " Italic" : "";
     value += " " + std::to_string(static_cast<int>(std::lround(selection_.size)));
     descriptor.value = value;
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

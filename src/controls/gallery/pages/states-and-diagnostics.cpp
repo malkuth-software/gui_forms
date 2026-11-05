@@ -120,7 +120,7 @@ void StatesPage::build_specimens(const std::shared_ptr<Surface>& body) {
     (*lifecycle).add_at(indeterminate, {24.0, 82.0, 180.0, 28.0});
     std::shared_ptr<Button> unavailable = make_control<Button>(
         StableId("gallery.states.unavailable"), "Unavailable action");
-    (*unavailable).set_enabled(false);
+    (*unavailable).enabled = false;
     (*lifecycle).add_at(unavailable, {230.0, 42.0, 180.0, 34.0});
     std::shared_ptr<LinkLabel> visited = make_control<LinkLabel>(
         StableId("gallery.states.visited"), "Visited link state");

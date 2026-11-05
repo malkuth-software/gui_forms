@@ -113,7 +113,7 @@ Rect window_rect(Rect absolute, Rect local) noexcept {
 
 } // namespace
 
-// -- the content panel and the popup ------------------------------------------
+// -- the content panel and the overlay ------------------------------------------
 
 // The content panel: a tab_panel named by the selected page, holding that
 // page's control as its only child and sizing it to fill the panel.
@@ -151,7 +151,7 @@ private:
     std::string panel_name_{};
 };
 
-// The collapsed pane's popup: a window overlay root holding the content
+// The collapsed pane's overlay: a window overlay root holding the content
 // panel while it is open. It observes the pane, which owns it and releases
 // it (release_pane) before letting it go.
 class NavigationPane::Flyout final : public Control {
@@ -192,12 +192,12 @@ public:
         return shadow;
     }
 
-    // Escape closes the popup when nothing inside took it.
+    // Escape closes the overlay when nothing inside took it.
     void on_key(KeyEvent& event) override { close_on_escape(event); }
     void on_key_bubble(KeyEvent& event) override { close_on_escape(event); }
 
     void on_pointer(PointerEvent& event) override {
-        // A press on the popup's own surface stays in the popup.
+        // A press on the overlay's own surface stays in the overlay.
         if (event.action == PointerAction::down) event.handled = true;
     }
 
@@ -212,7 +212,7 @@ private:
     void close_on_escape(KeyEvent& event) {
         if (event.handled || event.action != KeyAction::down || event.physical_key != PhysicalKey::escape) return;
         if (pane_ == nullptr) return;
-        (*pane_).close_popup();
+        (*pane_).close_overlay();
         event.handled = true;
     }
 
@@ -223,10 +223,10 @@ private:
 
 NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id)) {
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // The pane sizes itself: its width follows collapsing (measure).
-    set_auto_size(true);
+    auto_size = true;
     const std::string prefix((*this).stable_id().value());
     menu_ = std::make_unique<ContextMenu>(prefix + ".menu");
     menu_invoked_ = (*menu_).item_invoked().subscribe(
@@ -251,17 +251,17 @@ void NavigationPane::initialize_control_tree() {
 }
 
 NavigationPane::~NavigationPane() {
-    // The popup's root may outlive the pane inside its window until the
+    // The overlay's root may outlive the pane inside its window until the
     // lease is dropped; it must not reach back.
     window_pointer_.disconnect();
-    popup_revoked_.disconnect();
+    overlay_revoked_.disconnect();
     if (flyout_) (*flyout_).release_pane();
-    popup_token_.disconnect();
+    overlay_token_.disconnect();
     if (menu_) (*menu_).close();
 }
 
 void NavigationPane::on_dispose() noexcept {
-    close_popup();
+    close_overlay();
     close_configure_menu();
     if (menu_) (*menu_).dispose();
     Control::on_dispose();
@@ -302,7 +302,7 @@ void NavigationPane::set_collapsed(bool collapsed) {
     if (collapsed) {
         close_configure_menu();
     } else {
-        close_popup();
+        close_overlay();
     }
     collapsed_ = collapsed;
     hot_ = {};
@@ -486,7 +486,7 @@ NavigationPaneRestore NavigationPane::apply_state(const NavigationPaneState& sav
     if (saved.collapsed) {
         close_configure_menu();
     } else {
-        close_popup();
+        close_overlay();
     }
     collapsed_ = saved.collapsed;
     button_count_ = saved.button_count;
@@ -814,10 +814,10 @@ void NavigationPane::arrange(Rect final_bounds) {
         set_child_layout_collapsed(host_, !shown);
         if (shown) set_child_layout(host_, placed.content);
     }
-    if (popup_open_ && flyout_) {
-        const FlyoutLayout popup = flyout_layout();
-        if (!((*flyout_).requested_bounds() == popup.window_bounds)) {
-            (*flyout_).set_requested_bounds(popup.window_bounds);
+    if (overlay_open_ && flyout_) {
+        const FlyoutLayout overlay = flyout_layout();
+        if (!((*flyout_).requested_bounds() == overlay.window_bounds)) {
+            (*flyout_).set_requested_bounds(overlay.window_bounds);
         }
     }
 }
@@ -872,7 +872,7 @@ AnatomyStateSet NavigationPane::target_states(const Target& target) const {
     if (pressed_ == target && target.kind != TargetKind::grip) states.insert(AnatomyState::pressed);
     if (target.kind == TargetKind::grip && grip_captured_) states.insert(AnatomyState::captured);
     if (target.kind == TargetKind::configure && configure_menu_open()) states.insert(AnatomyState::open);
-    if (target.kind == TargetKind::caption && popup_open_) states.insert(AnatomyState::open);
+    if (target.kind == TargetKind::caption && overlay_open_) states.insert(AnatomyState::open);
     const Window* const host = attached_window();
     if (focused_ && stop_ == target && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
@@ -1046,7 +1046,7 @@ void NavigationPane::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, focus);
 }
 
-// Paints the popup's surface into its own root; its content panel paints
+// Paints the overlay's surface into its own root; its content panel paints
 // itself above.
 void NavigationPane::paint_flyout(Painter& painter, const Control& surface) const {
     const FlyoutLayout placed = flyout_layout();
@@ -1160,14 +1160,14 @@ void NavigationPane::on_pointer(PointerEvent& event) {
     }
 }
 
-// A press outside the pane while the popup is open closes it; the press goes
+// A press outside the pane while the overlay is open closes it; the press goes
 // on to whatever is under it (owner decision DK-27, E2-1), so the event is
 // observed and never handled here.
 void NavigationPane::on_window_pointer(const PointerEvent& event) {
-    if (!popup_open_ || event.action != PointerAction::down) return;
+    if (!overlay_open_ || event.action != PointerAction::down) return;
     const Rect absolute = absolute_bounds();
     if (absolute.contains(event.position)) return;
-    close_popup();
+    close_overlay();
 }
 
 void NavigationPane::select_page(std::size_t position, PageSelectionCause cause) {
@@ -1181,10 +1181,10 @@ void NavigationPane::activate(const Target& target) {
         set_collapsed(!collapsed_);
         return;
     case TargetKind::caption:
-        if (popup_open_) {
-            close_popup();
+        if (overlay_open_) {
+            close_overlay();
         } else {
-            static_cast<void>(open_popup());
+            static_cast<void>(open_overlay());
         }
         return;
     case TargetKind::configure:
@@ -1287,8 +1287,8 @@ void NavigationPane::on_key(KeyEvent& event) {
     if (!focused_ || event.action != KeyAction::down || !effectively_enabled()) return;
     const std::uint32_t key = event.physical_key;
     if (key == PhysicalKey::escape) {
-        if (!popup_open_) return;
-        close_popup();
+        if (!overlay_open_) return;
+        close_overlay();
         event.handled = true;
         return;
     }
@@ -1350,9 +1350,9 @@ void NavigationPane::on_focus_changed(bool focused) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-// -- the popup -------------------------------------------------------------------------
+// -- the overlay -------------------------------------------------------------------------
 
-void NavigationPane::move_host_to_popup() {
+void NavigationPane::move_host_to_overlay() {
     if (!host_ || !flyout_ || (*host_).parent().get() != this) return;
     const Control::Ptr moved = remove_child((*host_).runtime_id());
     if (moved) (*flyout_).adopt(moved);
@@ -1364,82 +1364,82 @@ void NavigationPane::move_host_to_pane() {
     if (moved) add_child(moved);
 }
 
-bool NavigationPane::open_popup() {
+bool NavigationPane::open_overlay() {
     require_mutable();
-    if (popup_open_) return true;
+    if (overlay_open_) return true;
     Window* const host = attached_window();
     if (!collapsed_ || host == nullptr || !effectively_visible() || !effectively_enabled()) return false;
     close_configure_menu();
-    flyout_ = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".popup"), *this);
+    flyout_ = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".overlay"), *this);
     const FlyoutLayout placed = flyout_layout();
     (*flyout_).set_requested_bounds(placed.window_bounds);
-    popup_token_ = (*host).open_popup(shared_from_this(), flyout_);
-    if (Event<>* const closed = popup_token_.closed_event()) {
-        popup_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<NavigationPane, &NavigationPane::on_popup_revoked>(*this));
+    overlay_token_ = (*host).open_overlay(shared_from_this(), flyout_);
+    if (Event<>* const closed = overlay_token_.closed_event()) {
+        overlay_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<NavigationPane, &NavigationPane::on_overlay_revoked>(*this));
     }
-    move_host_to_popup();
+    move_host_to_overlay();
     if (const Control::Ptr root = (*host).root()) {
         window_pointer_ = (*root).pointer_preview_observed().subscribe(
             *this, Delegate<const PointerEvent&>::bind<NavigationPane, &NavigationPane::on_window_pointer>(*this));
     }
-    // Focus enters the popup's first Tab stop and returns when it closes.
-    // The scope does not contain focus: the bar stays usable while the popup
+    // Focus enters the overlay's first Tab stop and returns when it closes.
+    // The scope does not contain focus: the bar stays usable while the overlay
     // is open (its title closes it, its icons switch the page shown).
     FocusScopeOptions options{};
     options.contain_focus = false;
-    popup_scope_ = (*host).begin_focus_scope(flyout_, {}, options);
-    popup_open_ = true;
+    overlay_scope_ = (*host).begin_focus_scope(flyout_, {}, options);
+    overlay_open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
-    popup_open_changed_.emit(true);
+    overlay_open_changed_.emit(true);
     return true;
 }
 
-void NavigationPane::close_popup() noexcept {
-    if (!popup_open_ || popup_closing_) return;
-    release_popup(FocusScopeCloseReason::explicit_close);
+void NavigationPane::close_overlay() noexcept {
+    if (!overlay_open_ || overlay_closing_) return;
+    release_overlay(FocusScopeCloseReason::explicit_close);
 }
 
-// The window dropped the popup (its owner became unavailable): the content
-// panel comes back and the pane forgets the popup.
-void NavigationPane::on_popup_revoked() {
-    if (!popup_open_ || popup_closing_) return;
-    release_popup(FocusScopeCloseReason::owner_unavailable);
+// The window dropped the overlay (its owner became unavailable): the content
+// panel comes back and the pane forgets the overlay.
+void NavigationPane::on_overlay_revoked() {
+    if (!overlay_open_ || overlay_closing_) return;
+    release_overlay(FocusScopeCloseReason::owner_unavailable);
 }
 
-// Closing order, for either cause: focus leaves the popup (the scope
+// Closing order, for either cause: focus leaves the overlay (the scope
 // restores it), the content panel returns to the pane, the window drops the
-// popup (a revoked popup's window has already dropped it), then
-// popup_open_changed(false) is raised.
-void NavigationPane::release_popup(FocusScopeCloseReason reason) noexcept {
-    popup_closing_ = true;
+// overlay (a revoked overlay's window has already dropped it), then
+// overlay_open_changed(false) is raised.
+void NavigationPane::release_overlay(FocusScopeCloseReason reason) noexcept {
+    overlay_closing_ = true;
     Window* const host = attached_window();
-    if (host != nullptr && popup_scope_) {
+    if (host != nullptr && overlay_scope_) {
         try {
-            static_cast<void>((*host).end_focus_scope(popup_scope_, reason));
+            static_cast<void>((*host).end_focus_scope(overlay_scope_, reason));
         } catch (...) {
         }
     }
-    popup_scope_ = {};
-    popup_revoked_.disconnect();
+    overlay_scope_ = {};
+    overlay_revoked_.disconnect();
     if (flyout_) {
         try {
             move_host_to_pane();
         } catch (...) {
         }
     }
-    if (reason == FocusScopeCloseReason::explicit_close) popup_token_.disconnect();
-    finish_popup_close();
+    if (reason == FocusScopeCloseReason::explicit_close) overlay_token_.disconnect();
+    finish_overlay_close();
 }
 
-void NavigationPane::finish_popup_close() noexcept {
+void NavigationPane::finish_overlay_close() noexcept {
     window_pointer_.disconnect();
     if (flyout_) (*flyout_).release_pane();
     flyout_.reset();
-    popup_open_ = false;
-    popup_closing_ = false;
+    overlay_open_ = false;
+    overlay_closing_ = false;
     if (!is_alive()) return;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
-    popup_open_changed_.emit(false);
+    overlay_open_changed_.emit(false);
 }
 
 // -- the configure menu ------------------------------------------------------------
@@ -1539,8 +1539,8 @@ void NavigationPane::on_menu_item_invoked(const MenuItemInvocation& invocation) 
 SemanticDescriptor NavigationPane::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name().empty() ? "Navigation pane" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? "Navigation pane" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;
@@ -1580,9 +1580,9 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         node.has_popup = true;
         node.bounds = window_rect(absolute, placed.collapsed_label);
         node.states = base | SemanticState::focusable;
-        if (popup_open_) node.states |= SemanticState::expanded;
+        if (overlay_open_) node.states |= SemanticState::expanded;
         if (focused_ && stop_ == target) node.states |= SemanticState::focused;
-        node.actions = {SemanticAction::press, popup_open_ ? SemanticAction::collapse : SemanticAction::expand};
+        node.actions = {SemanticAction::press, overlay_open_ ? SemanticAction::collapse : SemanticAction::expand};
         nodes.push_back(std::move(node));
     }
     if (!placed.collapsed && !placed.grip_bar.empty()) {
@@ -1684,12 +1684,12 @@ bool NavigationPane::on_semantic_child_action(std::string_view id, SemanticActio
             return true;
         }
         if (action == SemanticAction::expand) {
-            const bool opened = open_popup();
+            const bool opened = open_overlay();
             return opened;
         }
         if (action == SemanticAction::collapse) {
-            if (!popup_open_) return false;
-            close_popup();
+            if (!overlay_open_) return false;
+            close_overlay();
             return true;
         }
     } else if (id == prefix + ".grip") {
@@ -1788,16 +1788,16 @@ constexpr std::array<PartField<PaneParts>, 21> navigation_pane_part_fields{{
     {.declaration = {.name = "collapsed_label", .role = PartRole::label, .composed_from = {},
                      .states = caption_states},
      .member = &PaneParts::collapsed_label},
-    {.declaration = {.name = "popup_shadow", .role = PartRole::shadow, .composed_from = {}},
-     .member = &PaneParts::popup_shadow},
-    {.declaration = {.name = "popup_face", .role = PartRole::face, .composed_from = {}},
-     .member = &PaneParts::popup_face},
-    {.declaration = {.name = "popup_header", .role = PartRole::face, .composed_from = {}},
-     .member = &PaneParts::popup_header},
-    {.declaration = {.name = "popup_label", .role = PartRole::caption, .composed_from = {}},
-     .member = &PaneParts::popup_label},
-    {.declaration = {.name = "popup_content", .role = PartRole::well, .composed_from = {}},
-     .member = &PaneParts::popup_content},
+    {.declaration = {.name = "overlay_shadow", .role = PartRole::shadow, .composed_from = {}},
+     .member = &PaneParts::overlay_shadow},
+    {.declaration = {.name = "overlay_face", .role = PartRole::face, .composed_from = {}},
+     .member = &PaneParts::overlay_face},
+    {.declaration = {.name = "overlay_header", .role = PartRole::face, .composed_from = {}},
+     .member = &PaneParts::overlay_header},
+    {.declaration = {.name = "overlay_label", .role = PartRole::caption, .composed_from = {}},
+     .member = &PaneParts::overlay_label},
+    {.declaration = {.name = "overlay_content", .role = PartRole::well, .composed_from = {}},
+     .member = &PaneParts::overlay_content},
     {.declaration = {.name = "focus", .role = PartRole::focus, .composed_from = {}}, .member = &PaneParts::focus},
 }};
 
@@ -1884,16 +1884,16 @@ void NavigationPane::publish_part_geometry(std::span<PartGeometry> geometry) con
     record.collapsed_bar = PartGeometry::from_bounds(placed.collapsed_bar);
     target.kind = TargetKind::caption;
     record.collapsed_label = part_with_states(placed.collapsed_label, target_states(target), caption_states);
-    if (popup_open_) {
-        const FlyoutLayout popup = flyout_layout();
+    if (overlay_open_) {
+        const FlyoutLayout overlay = flyout_layout();
         const Rect absolute = absolute_bounds();
-        const double dx = popup.window_bounds.x - absolute.x;
-        const double dy = popup.window_bounds.y - absolute.y;
-        record.popup_shadow = PartGeometry::from_bounds(offset_rect(popup.face, dx, dy));
-        record.popup_face = PartGeometry::from_bounds(offset_rect(popup.face, dx, dy));
-        record.popup_header = PartGeometry::from_bounds(offset_rect(popup.header, dx, dy));
-        record.popup_label = PartGeometry::from_bounds(offset_rect(popup.label, dx, dy));
-        record.popup_content = PartGeometry::from_bounds(offset_rect(popup.content, dx, dy));
+        const double dx = overlay.window_bounds.x - absolute.x;
+        const double dy = overlay.window_bounds.y - absolute.y;
+        record.overlay_shadow = PartGeometry::from_bounds(offset_rect(overlay.face, dx, dy));
+        record.overlay_face = PartGeometry::from_bounds(offset_rect(overlay.face, dx, dy));
+        record.overlay_header = PartGeometry::from_bounds(offset_rect(overlay.header, dx, dy));
+        record.overlay_label = PartGeometry::from_bounds(offset_rect(overlay.label, dx, dy));
+        record.overlay_content = PartGeometry::from_bounds(offset_rect(overlay.content, dx, dy));
     }
     const Target stop = stop_.kind == TargetKind::none ? default_stop(placed) : stop_;
     record.focus = PartGeometry::from_bounds(target_bounds(placed, stop));
@@ -1974,7 +1974,7 @@ namespace {
 constexpr std::array<InteractionDeclaration, 3> navigation_pane_interactions{{
     {.name = "options_requested", .payload = "NavigationPaneOptionsRequest", .mutable_payload = false},
     {.name = "state_changed", .payload = "NavigationPaneState", .mutable_payload = false},
-    {.name = "popup_open_changed", .payload = "bool", .mutable_payload = false},
+    {.name = "overlay_open_changed", .payload = "bool", .mutable_payload = false},
 }};
 
 } // namespace

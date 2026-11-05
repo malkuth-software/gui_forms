@@ -207,7 +207,7 @@ void test_pointer_capture_keyboard_and_disabled_state() {
     require(window.dispatch_key(page_up) && (*slider).value() == 10.0,
             "Page Up must apply the declared large change");
 
-    (*slider).set_enabled(false);
+    (*slider).enabled = false;
     const double disabled_value = (*slider).value();
     require(!window.dispatch_key(page_up) && (*slider).value() == disabled_value,
             "disabled range controls must reject keyboard mutation");
@@ -248,7 +248,7 @@ void test_progress_rendering_and_vertical_geometry() {
 void test_scrollbar_geometry_capture_repeat_and_orientation() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("scroll.root"));
     std::shared_ptr<gui_forms::HScrollBar> horizontal = make_control<HScrollBar>(StableId("scroll.horizontal"));
-    (*horizontal).set_accessible_name("Horizontal viewport");
+    (*horizontal).accessible_name = "Horizontal viewport";
     (*horizontal).set_requested_bounds({10.0, 10.0, 240.0, 18.0});
     (*horizontal).set_range(0.0, 100.0);
     (*horizontal).set_small_change(2.0);

@@ -84,7 +84,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_diagnostics.cpp
     src/abi/stable/tables/abi_controls.cpp
     src/abi/stable/tables/abi_text_editing.cpp
-    src/abi/stable/tables/abi_popups.cpp
+    src/abi/stable/tables/abi_overlays.cpp
     src/abi/stable/tables/abi_property_grid.cpp
     src/abi/stable/tables/abi_custom_controls.cpp
     src/abi/stable/tables/abi_bindings.cpp

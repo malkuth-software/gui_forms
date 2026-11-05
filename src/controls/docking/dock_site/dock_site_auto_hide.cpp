@@ -98,7 +98,7 @@ class DockSite::Flyout final : public Control {
 public:
     Flyout(StableId stable_id, DockSite& site) : Control(std::move(stable_id)), site_(&site) {
         set_paint_plane(PaintPlane::overlay);
-        set_cursor(CursorKind::arrow);
+        cursor = CursorKind::arrow;
         // Focus lands here when the panel has nothing focusable, so Escape
         // still reaches the flyout.
         set_focusable(true);
@@ -191,7 +191,7 @@ void DockSite::ensure_side_strip(DockSide edge) {
     strip.set_activation(PageStripActivation::manual);
     strip.set_mnemonics_enabled(false);
     strip.set_close_buttons(PageCloseButtons::none);
-    strip.set_accessible_name("Auto-hidden panels");
+    strip.accessible_name = "Auto-hidden panels";
     on(strip.page_invoked(), *this, &DockSite::on_side_tab_invoked, edge);
     add_child(entry.strip);
     set_child_layout_collapsed(entry.strip, true);
@@ -432,7 +432,7 @@ Control::Ptr DockSite::flyout_control() const noexcept {
 }
 
 // Moves the flyout to where its slide stands: the slot's rectangles (for
-// painting and the parts) and the popup's bounds in window coordinates.
+// painting and the parts) and the overlay's bounds in window coordinates.
 void DockSite::place_flyout() {
     const std::size_t index = flyout_slot_index();
     if (!flyout_ || index >= stacks_.size()) return;
@@ -545,7 +545,7 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     flyout_slide_.jump_to(0.0);
     static_cast<void>(flyout_slide_.animate_to(1.0));
     place_flyout();
-    flyout_token_ = (*host).open_popup(shared_from_this(), flyout_);
+    flyout_token_ = (*host).open_overlay(shared_from_this(), flyout_);
     if (Event<>* const closed = flyout_token_.closed_event()) {
         flyout_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_flyout_revoked>(*this));
     }
@@ -811,7 +811,7 @@ void DockSite::on_flyout_pointer(PointerEvent& event) {
             hot_ = hit;
             CursorKind cursor = CursorKind::arrow;
             if (hit.zone == Zone::grip) cursor = across(edge) ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
-            (*flyout_).set_cursor(cursor);
+            (*flyout_).cursor = cursor;
             (*flyout_).invalidate(Dirty::paint);
             invalidate(Dirty::paint);
         }

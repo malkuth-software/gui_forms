@@ -307,7 +307,7 @@ gui_forms::PageStrip
    the page is closable; they never offer ``press``. Until accessibility gains
    states for them, a tab's description reads ``pinned``, ``modified`` or
    ``pinned, modified``. While the strip overflows, its scroll buttons (under
-   ``scroll``) and its list button (a ``menu_button`` with a popup; under
+   ``scroll``) and its list button (a ``menu_button`` with an overlay; under
    ``shrink_then_list`` its description gives the hidden count) follow the
    tabs.
 

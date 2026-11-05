@@ -2,7 +2,7 @@ The retained model of one window: a tree of controls with its layout, focus, inp
 
 A `Window` owns a root control and everything that belongs to the window as
 a whole: which control has focus, which holds the pointer, what needs to be
-laid out and repainted, the queue of work posted to the UI thread, popups,
+laid out and repainted, the queue of work posted to the UI thread, overlays,
 keyboard accelerators and the instrumentation counters. It is a complete
 model on its own; a native host presents it, and `Application::run` is the
 usual way to do that. Without a host the same object runs in tests and
@@ -12,7 +12,7 @@ results.
 
 Everything but the native-host connection is declared on its base,
 `SurfaceRoot`: the control tree, layout, focus, input, painting, the
-posted-work queue, popups, accelerators, tooltips and the counters. `Window`
+posted-work queue, overlays, accelerators, tooltips and the counters. `Window`
 adds what binds that root to a native window: resizing and scale, the
 cursor, the presentation declaration, and the live-surface presentation
 queue.
@@ -68,7 +68,7 @@ window on its UI thread too: its destructor detaches the tree, and doing that
 from another thread terminates the program.
 
 Destroying a window cancels its queued work and removes its accelerators,
-popups, focus scopes and frame requests, then detaches the root. The root
+overlays, focus scopes and frame requests, then detaches the root. The root
 and its children are not disposed; dispose the root yourself if nothing else
 should use it.
 

@@ -259,9 +259,9 @@ struct PropertyList::Impl final {
                     std::shared_ptr<gui_forms::TextBox> editor = make_control<TextBox>(
                         StableId(row.stable_id + ".editor"), row.value);
                     (*editor).set_font({FontRole::content, 10.0, 400, false});
-                    (*editor).set_accessible_name(row.name);
-                    (*editor).set_accessible_description(row.description);
-                    (*editor).set_enabled(row.enabled);
+                    (*editor).accessible_name = row.name;
+                    (*editor).accessible_description = row.description;
+                    (*editor).enabled = row.enabled;
                     state.editor = editor;
                     owner.add_child(editor);
                 } else if (row.editor == PropertyEditorKind::choice) {
@@ -276,9 +276,9 @@ struct PropertyList::Impl final {
                             std::distance(row.choices.begin(), selected)));
                     }
                     (*editor).set_font({FontRole::content, 10.0, 400, false});
-                    (*editor).set_accessible_name(row.name);
-                    (*editor).set_accessible_description(row.description);
-                    (*editor).set_enabled(row.enabled);
+                    (*editor).accessible_name = row.name;
+                    (*editor).accessible_description = row.description;
+                    (*editor).enabled = row.enabled;
                     state.editor = editor;
                     owner.add_child(editor);
                 } else if (row.editor == PropertyEditorKind::boolean) {
@@ -289,9 +289,9 @@ struct PropertyList::Impl final {
                         checked ? "True" : "False");
                     (*editor).set_checked(checked);
                     (*editor).set_font({FontRole::content, 10.0, 400, false});
-                    (*editor).set_accessible_name(row.name);
-                    (*editor).set_accessible_description(row.description);
-                    (*editor).set_enabled(row.enabled);
+                    (*editor).accessible_name = row.name;
+                    (*editor).accessible_description = row.description;
+                    (*editor).enabled = row.enabled;
                     state.editor = editor;
                     owner.add_child(editor);
                 }
@@ -299,10 +299,9 @@ struct PropertyList::Impl final {
                     std::shared_ptr<gui_forms::Button> reset = make_control<Button>(
                         StableId(row.stable_id + ".reset"), "Reset");
                     (*reset).set_font({FontRole::control, 8.5, 600, false});
-                    (*reset).set_enabled(row.enabled && row.reset_enabled);
-                    (*reset).set_accessible_name("Reset " + row.name);
-                    (*reset).set_accessible_description(
-                        "Restore " + row.name + " to its declared default");
+                    (*reset).enabled = row.enabled && row.reset_enabled;
+                    (*reset).accessible_name = "Reset " + row.name;
+                    (*reset).accessible_description = "Restore " + row.name + " to its declared default";
                     state.reset_button = reset;
                     owner.add_child(reset);
                 }
@@ -438,10 +437,10 @@ struct PropertyList::Impl final {
             const bool visible = groups[state.group_index].expanded &&
                 row_visible(state);
             if (state.editor) {
-                (*state.editor).set_visible(visible);
+                (*state.editor).visible = visible;
             }
             if (state.reset_button) {
-                (*state.reset_button).set_visible(visible);
+                (*state.reset_button).visible = visible;
             }
             if (visible && state.editor) {
                 owner.set_child_layout(state.editor,
@@ -674,7 +673,7 @@ bool PropertyList::set_description(std::string_view row_id,
             if (!accessible.empty()) accessible += " · ";
             accessible += "Error: " + model.validation_message;
         }
-        (*(*row).editor).set_accessible_description(std::move(accessible));
+        (*(*row).editor).accessible_description = std::move(accessible);
     }
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
     return true;
@@ -694,7 +693,7 @@ bool PropertyList::set_validation(std::string_view row_id, std::string message) 
             if (!description.empty()) description += " · ";
             description += "Error: " + model.validation_message;
         }
-        (*(*row).editor).set_accessible_description(std::move(description));
+        (*(*row).editor).accessible_description = std::move(description);
     }
     (*impl_).recompute_geometry();
     (*impl_).arrange_editors();
@@ -710,7 +709,7 @@ bool PropertyList::set_reset_enabled(std::string_view row_id, bool enabled) {
     PropertyRowSpec& model = (*impl_).spec(*row);
     if (model.reset_enabled == enabled) return true;
     model.reset_enabled = enabled;
-    (*(*row).reset_button).set_enabled(model.enabled && enabled);
+    (*(*row).reset_button).enabled = model.enabled && enabled;
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
     return true;
 }
@@ -777,12 +776,12 @@ bool PropertyList::replace_editor(std::string_view id, Control::Ptr editor) {
             "PropertyList replacement editor must be an unattached live control");
     }
     PropertyRowSpec& model = (*impl_).spec(*row);
-    if (!model.enabled) (*editor).set_enabled(false);
-    if ((*editor).accessible_name().empty()) {
-        (*editor).set_accessible_name(model.name);
+    if (!model.enabled) (*editor).enabled = false;
+    if ((*editor).accessible_name.read().empty()) {
+        (*editor).accessible_name = model.name;
     }
-    if ((*editor).accessible_description().empty()) {
-        (*editor).set_accessible_description(model.description);
+    if ((*editor).accessible_description.read().empty()) {
+        (*editor).accessible_description = model.description;
     }
 
     // Attach first so an identity/lifecycle failure leaves the existing editor
@@ -1140,8 +1139,8 @@ void PropertyList::on_key(KeyEvent& event) {
 SemanticDescriptor PropertyList::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::property_grid;
-    descriptor.name = accessible_name().empty() ? "Properties" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? "Properties" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     descriptor.include_descendants = true;

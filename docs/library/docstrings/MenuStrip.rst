@@ -2,7 +2,7 @@ A window's menu bar: a row of top-level menus such as File, Edit and View.
 
 A menu strip shows one item per top-level menu. Clicking an item, pressing
 its mnemonic, or focusing the strip and pressing Down opens that menu below
-it; the menu itself is a `ContextMenu` popup that runs the shared `Command`
+it; the menu itself is a `ContextMenu` overlay that runs the shared `Command`
 of the item the user picks. While a menu is open, moving the pointer over
 another top-level item or pressing Left or Right switches to that menu. Dock
 the strip to the top of the window's root container. Use a `ContextMenu` on
@@ -12,7 +12,7 @@ command buttons.
 Parameters
 ----------
 stable_id
-    Identity of the strip, unique within its window. Its popup menu is named
+    Identity of the strip, unique within its window. Its overlay menu is named
     ``<stable_id>.menu``.
 
 Properties
@@ -75,7 +75,7 @@ close
 
 See Also
 --------
-ContextMenu : The popup menu each top-level item opens.
+ContextMenu : The overlay menu each top-level item opens.
 MenuStripItemSpec : The description of one top-level menu.
 Command : The shared command each menu item runs.
 CommandBar : A row of command buttons.
@@ -144,7 +144,7 @@ keyboard selects Save, so Enter runs it:
                    {"view.wrap", gf::MenuItemKind::check, wrap, "&Word wrap"},
                }},
            });
-           (*menu).set_dock(gf::DockStyle::top);
+           (*menu).dock = gf::DockStyle::top;
            (*root).add_child(menu);
            gf::on((*save).invoked(), *this, &Editor::on_save);
        }

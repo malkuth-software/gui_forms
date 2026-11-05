@@ -632,16 +632,16 @@ public static unsafe class Layout
             failures += expect(output, "gf_text_editing_table.clear_undo_history offset", (long)((byte*)&value.clear_undo_history - start), 56);
         }
         {
-            gf_popups_table value = default;
+            gf_overlays_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_popups_table size", sizeof(gf_popups_table), 48);
-            failures += expect(output, "gf_popups_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
-            failures += expect(output, "gf_popups_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
-            failures += expect(output, "gf_popups_table.open_popup offset", (long)((byte*)&value.open_popup - start), 8);
-            failures += expect(output, "gf_popups_table.close_popup offset", (long)((byte*)&value.close_popup - start), 16);
-            failures += expect(output, "gf_popups_table.set_tool_tip offset", (long)((byte*)&value.set_tool_tip - start), 24);
-            failures += expect(output, "gf_popups_table.show_tool_tip offset", (long)((byte*)&value.show_tool_tip - start), 32);
-            failures += expect(output, "gf_popups_table.hide_tool_tip offset", (long)((byte*)&value.hide_tool_tip - start), 40);
+            failures += expect(output, "gf_overlays_table size", sizeof(gf_overlays_table), 48);
+            failures += expect(output, "gf_overlays_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_overlays_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_overlays_table.open_overlay offset", (long)((byte*)&value.open_overlay - start), 8);
+            failures += expect(output, "gf_overlays_table.close_overlay offset", (long)((byte*)&value.close_overlay - start), 16);
+            failures += expect(output, "gf_overlays_table.set_tool_tip offset", (long)((byte*)&value.set_tool_tip - start), 24);
+            failures += expect(output, "gf_overlays_table.show_tool_tip offset", (long)((byte*)&value.show_tool_tip - start), 32);
+            failures += expect(output, "gf_overlays_table.hide_tool_tip offset", (long)((byte*)&value.hide_tool_tip - start), 40);
         }
         {
             gf_property_grid_table value = default;

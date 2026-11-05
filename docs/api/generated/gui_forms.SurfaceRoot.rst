@@ -23,7 +23,7 @@ gui_forms::SurfaceRoot
    The threaded sub-surfaces stage S1 moved the control-root part of :cpp:class:`Window <gui_forms::Window>`
    here with no change of behaviour: the thread identity, the dispatcher and
    the metrics (S1.1), then the control tree with its layout, focus, input,
-   painting, popups, accelerators, tooltips and command routing (S1.2). What
+   painting, overlays, accelerators, tooltips and command routing (S1.2). What
    binds a root to a native window (resizing and scale, the cursor, the
    presentation declaration and the live-surface presentation queue) stays on
    :cpp:class:`Window <gui_forms::Window>`.
@@ -63,7 +63,7 @@ gui_forms::SurfaceRoot
       **presentation_settings** : ``PresentationSettings``
          Text scale, high contrast, reduced motion and sound preferences. The
          text scale must lie between 0.5 and 4.0, and changing it closes open
-         popups. Any change remeasures the tree and raises
+         overlays. Any change remeasures the tree and raises
          :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
          value of the window at its end in the same call.
 
@@ -108,6 +108,11 @@ gui_forms::SurfaceRoot
          The request in force: the application's, else the theme's.
 
       **backdrop_grant** : ``WindowBackdropGrant``, read-only
+
+      **backdrop_chain** : ``std::optional<BackdropChain>``
+
+      **backdrop_chain_resolution** : ``std::optional<BackdropChainResolution>``, read-only
+         How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
 
       **host_services** : ``HostServices*``, read-only
          The services of the attached native host, or null when none is attached.
@@ -396,9 +401,11 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`find <gui_forms::SurfaceRoot::find>`
         - The attached control with the given stable ID, or null.
       * - :cpp:func:`hit_test <gui_forms::SurfaceRoot::hit_test>`
-        - The frontmost control eligible for input at a point in window coordinates, searching open popups first, or null.
+        - The frontmost control eligible for input at a point in window coordinates, searching open overlays first, or null.
       * - :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`
         - Moves keyboard focus to a control, or clears it with null.
+      * - :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`
+        - The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control.
       * - :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`
         - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
       * - :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`
@@ -421,8 +428,8 @@ gui_forms::SurfaceRoot
         - Routes pointer input to a control until :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, wherever the pointer goes.
       * - :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`
         - Releases pointer capture.
-      * - :cpp:func:`open_popup <gui_forms::SurfaceRoot::open_popup>`
-        - Shows a detached control as an overlay owned by another control, such as a menu or a drop-down, and returns a :cpp:class:`PopupToken <gui_forms::PopupToken>` that closes it.
+      * - :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`
+        - Shows a detached control as an overlay owned by another control, such as a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it.
       * - :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`
         - ``show_tool_tip(control)`` shows the control's tooltip at once, below it, for the auto-pop delay; ``show_tool_tip(control, duration)`` for ``duration``, where zero means until hidden.
       * - :cpp:func:`hide_tool_tip <gui_forms::SurfaceRoot::hide_tool_tip>`
@@ -539,7 +546,7 @@ gui_forms::SurfaceRoot
 
       Text scale, high contrast, reduced motion and sound preferences. The
       text scale must lie between 0.5 and 4.0, and changing it closes open
-      popups. Any change remeasures the tree and raises
+      overlays. Any change remeasures the tree and raises
       :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
       value of the window at its end in the same call.
 
@@ -612,6 +619,16 @@ gui_forms::SurfaceRoot
       The request in force: the application's, else the theme's.
 
    .. cpp:function:: const WindowBackdropGrant& backdrop_grant() const noexcept
+
+   .. cpp:function:: const std::optional<BackdropChain>& backdrop_chain() const noexcept
+
+   .. cpp:function:: void set_backdrop_chain(std::optional<BackdropChain> chain)
+
+      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
+
+   .. cpp:function:: std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
+
+      How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
 
    .. cpp:function:: HostServices* host_services() const noexcept
 
@@ -1077,7 +1094,7 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Control::Ptr hit_test(Point position)
 
       The frontmost control eligible for input at a point in window
-      coordinates, searching open popups first, or null.
+      coordinates, searching open overlays first, or null.
 
    .. cpp:function:: bool request_focus(const Control::Ptr& control)
 
@@ -1086,6 +1103,10 @@ gui_forms::SurfaceRoot
       if the control is not focusable or not eligible for input, lies outside
       the active focus scope, or validation of the control losing focus
       refused the move.
+
+   .. cpp:function:: std::optional<Rect> text_input_caret()
+
+      The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
 
    .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
 
@@ -1135,7 +1156,7 @@ gui_forms::SurfaceRoot
       region, forward enters the first region and backward the last. Regions
       that are detached, hidden, disabled or without a Tab stop are skipped.
       Returns false, leaving focus alone, when no other region can take focus
-      or a popup or dialog focus scope is active.
+      or an overlay or dialog focus scope is active.
 
    .. cpp:function:: void capture_pointer(const Control::Ptr& control, std::uint64_t pointer_id = 1)
 
@@ -1147,11 +1168,11 @@ gui_forms::SurfaceRoot
 
       Releases pointer capture.
 
-   .. cpp:function:: PopupToken open_popup(const Control::Ptr& owner, const Control::Ptr& popup, PopupOptions options = {})
+   .. cpp:function:: OverlayToken open_overlay(const Control::Ptr& owner, const Control::Ptr& overlay, OverlayOptions options = {})
 
       Shows a detached control as an overlay owned by another control, such as
-      a menu or a drop-down, and returns a :cpp:class:`PopupToken <gui_forms::PopupToken>` that closes it. The
-      popup closes on its own when its owner is hidden, disabled or detached.
+      a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it. The
+      overlay closes on its own when its owner is hidden, disabled or detached.
 
    .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration = std::nullopt)
 
@@ -1315,3 +1336,24 @@ gui_forms::SurfaceRoot
    .. cpp:function:: SemanticTextResult set_semantic_text_selection(RuntimeId control, SemanticTextSelection selection)
 
       Moves the text selection of the control with runtime identity ``control`` (A-T1); focus does not move. Refused as semantic_text_layout refuses, and also for a control outside the active focus scope (outside_focus_scope) or an offset off a grapheme boundary (off_boundary); a refusal changes nothing. A done change reaches hosts through the next snapshot's text_selection field.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: bool resize_surface(Size client_size)
+
+      *Protected.*
+
+      The surface side of a resize (Window::resize, SubSurface::apply_size): validates the size (std::invalid_argument when negative, changing nothing), then stores it, opens a new surface epoch and damages and marks what it touched. False, changing nothing, for the same size. Root thread; the caller checks it.
+
+   .. cpp:function:: bool set_surface_scale(double scale)
+
+      *Protected.*
+
+      The surface side of a scale change (Window::set_scale, SubSurface::apply_scale): validates it (std::invalid_argument unless finite and positive), then stores it, opens a new surface epoch and marks the whole tree. False, changing nothing, for the same scale.
+
+   .. cpp:function:: void release_tree() noexcept
+
+      *Protected.*
+
+      The owner's teardown of the tree, on the root's thread: stops paint and host wakes, tells the controls everything (popups, accelerators, focus scopes, the motion clock and frame requests go; the tree is detached) while the dispatcher still accepts their posts, then shuts the dispatcher down, cancelling what they posted.

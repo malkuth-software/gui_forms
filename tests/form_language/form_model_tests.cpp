@@ -73,7 +73,14 @@ FormSchema sample_schema() {
         gui_forms::make_control<gui_forms::CheckBox>(StableId("prototype"));
     const std::shared_ptr<gui_forms::Button> button = gui_forms::make_control<gui_forms::Button>(StableId("prototype"));
     const std::shared_ptr<gui_forms::Command> command = std::make_shared<gui_forms::Command>();
-    schema.types.push_back(describe_form_type("user_control", *user_control));
+    // A document refuses a presentation colour (E813); the user control's
+    // back colour is marked as content here, so that the colour's value
+    // forms stay covered.
+    FormSchemaType user_control_type = describe_form_type("user_control", *user_control);
+    for (PropertyDescriptor& property : user_control_type.properties) {
+        if (property.name == "back_color") property.content_value = true;
+    }
+    schema.types.push_back(std::move(user_control_type));
     schema.types.push_back(describe_form_type("group_box", *group_box));
     schema.types.push_back(describe_form_type("check_box", *check_box));
     schema.types.push_back(describe_form_type("button", *button));
@@ -147,7 +154,6 @@ void test_valid_document() {
                                       "      anchor: top left;\n"
                                       "      tab-index: 1;\n"
                                       "      on-checked-changed: autosave_changed;\n"
-                                      "      style { color: red; }\n"
                                       "    }\n"
                                       "  }\n"
                                       "  button settings.ok { text: \"OK\"; bounds: 10 20 80 24; on-clicked: accept; }\n"
@@ -168,7 +174,6 @@ void test_valid_document() {
     const std::vector<ObjectIndex> expected_children{ObjectIndex{1U}, ObjectIndex{3U}, ObjectIndex{4U}};
     require(model.objects[0].children == expected_children, "valid: the root's children in document order");
     require(model.objects[2].parent && (*model.objects[2].parent).value == 1U, "valid: the check box's parent");
-    require(model.objects[2].style.has_value() && !model.objects[1].style, "valid: the style block is recorded");
 
     const FormProperty* color = find_property(model, schema, 0U, "back_color");
     require(color != nullptr && std::get<gui_forms::Color>((*color).value) == gui_forms::Color{0x33, 0x66, 0x99, 255},
@@ -253,13 +258,14 @@ void test_defects_reported_together() {
                                       "  check-box app.d { on-clicked: has-dash; }\n"   // 8 E808
                                       "  command app.e { button app.f { } }\n"          // 9 E809
                                       "  sealed-box app.g { text: \"no\"; }\n"          // 10 E805
-                                      "  check-box app.h { style { } style { } }\n"     // 11 E810
+                                      "  check-box app.h { style { } }\n"               // 11 E810
                                       "  check-box app.i { image: x; }\n"               // 12 E999
                                       "  check-box app.j { tab-index: -1; }\n"          // 13 E807
                                       "  check-box app.k { text: \"x\" !important; }\n" // 14 E807
                                       "  check-box app.l { tab_index: 1; }\n"           // 15 E804
+                                      "  check-box app.m { fore-color: red; }\n"        // 16 E813
                                       "}\n";
-    const std::array<ExpectedDiagnostic, 15> expected{{
+    const std::array<ExpectedDiagnostic, 16> expected{{
         {DiagnosticCode::form_property_unknown, 2U, 3U},
         {DiagnosticCode::form_type_unknown, 3U, 3U},
         {DiagnosticCode::form_value_invalid, 4U, 30U},
@@ -270,11 +276,12 @@ void test_defects_reported_together() {
         {DiagnosticCode::form_handler_invalid, 8U, 33U},
         {DiagnosticCode::form_children_not_admitted, 9U, 19U},
         {DiagnosticCode::form_property_read_only, 10U, 22U},
-        {DiagnosticCode::form_style_repeated, 11U, 31U},
+        {DiagnosticCode::form_style_block, 11U, 21U},
         {DiagnosticCode::not_yet_built, 12U, 28U},
         {DiagnosticCode::form_value_invalid, 13U, 32U},
         {DiagnosticCode::form_value_invalid, 14U, 21U},
         {DiagnosticCode::form_property_unknown, 15U, 21U},
+        {DiagnosticCode::form_presentation_property, 16U, 21U},
     }};
     require(build(workspace, document, schema, model) == FormModelOutcome::refused, "defects: refused");
     check_diagnostics(workspace, expected, "defects: every defect at its place, in order");

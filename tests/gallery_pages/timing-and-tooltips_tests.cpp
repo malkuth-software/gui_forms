@@ -68,7 +68,7 @@ void test_timing_and_tooltips(gui_forms::Window& window) {
     require(window.semantic_snapshot().to_json().find(
                 "This action is disabled because no compatible device is selected") !=
                 std::string::npos,
-            "gallery must explain a disabled target through passive popup ownership");
+            "gallery must explain a disabled target through passive overlay ownership");
 }
 
 } // namespace gallery_pages_tests

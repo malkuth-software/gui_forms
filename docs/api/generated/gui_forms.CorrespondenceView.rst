@@ -173,7 +173,7 @@ gui_forms::CorrespondenceView
          A plain list of text rows.
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         A pop-up menu for the target of ``context_requested``.
+         An overlay menu for the target of ``context_requested``.
 
    .. rubric:: Notes
 

@@ -151,7 +151,7 @@ gui_forms::Label
           gf::make_control<gf::TextBox>(gf::StableId("form.name"));
       (*caption).set_requested_bounds({8.0, 8.0, 60.0, 24.0});
       (*name).set_requested_bounds({72.0, 8.0, 160.0, 24.0});
-      (*name).set_accessible_name("Name");
+      (*name).accessible_name = "Name";
       (*form).add_child(caption);
       (*form).add_child(name);
       gf::Window window(form, gf::Size{240.0, 40.0});
@@ -209,7 +209,7 @@ gui_forms::Label
 
       Sets :cpp:func:`text_style_role <gui_forms::Label::text_style_role>`; see the property's description above.
 
-   .. cpp:function:: Color foreground() const noexcept
+   .. cpp:function:: Color foreground() const
 
       The text colour: the one given to :cpp:func:`set_foreground <gui_forms::Label::set_foreground>`, or else the theme's
       text colour. :cpp:func:`clear_foreground <gui_forms::Label::clear_foreground>` returns to the theme's colour.

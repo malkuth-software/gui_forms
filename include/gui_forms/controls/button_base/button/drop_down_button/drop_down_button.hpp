@@ -14,7 +14,7 @@ enum class DropDownButtonMode : std::uint8_t {
 enum class DropDownButtonEdge : std::uint8_t { right, bottom };
 
 // Retained desktop command button with an explicit disclosure actuator.
-// Menu mode routes the whole button to the owned popup. Split mode retains a
+// Menu mode routes the whole button to the owned overlay. Split mode retains a
 // primary Click region and a bounded disclosure region at the trailing edge.
 class DropDownButton final : public Button {
 public:

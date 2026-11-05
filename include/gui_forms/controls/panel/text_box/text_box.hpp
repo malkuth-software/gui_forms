@@ -83,10 +83,10 @@ struct TextEdit final {
     Utf8Offset rewritten_caret{};
 };
 
-// The suggestion list's events (list_box.hpp, anchored_popup_layer.hpp).
+// The suggestion list's events (list_box.hpp, anchored_overlay_layer.hpp).
 struct ListSelectionChange;
 struct PartPaint;
-enum class PopupDismissReason : std::uint8_t;
+enum class OverlayDismissReason : std::uint8_t;
 
 namespace detail {
 // TextBox's auto-complete state (src/controls/panel/text_box).
@@ -365,7 +365,7 @@ private:
 
     // Auto-complete (text_box_auto_complete.cpp). The session holds the
     // typed text, the suggestions, a pending appended completion and the
-    // open popup; it is created on first use and owned by this box.
+    // open overlay; it is created on first use and owned by this box.
     [[nodiscard]] bool auto_complete_active() const noexcept;
     [[nodiscard]] detail::TextBoxAutoCompleteSession& auto_complete_session();
     // After a user edit of `kind` that changed the text. Composition input
@@ -391,8 +391,8 @@ private:
     void show_completion_text(std::string_view text, TextSelection selection);
     void auto_complete_list_selection_changed(const ListSelectionChange& change);
     void auto_complete_list_activated(std::size_t index);
-    void auto_complete_list_dismissed(PopupDismissReason reason);
-    void auto_complete_popup_revoked();
+    void auto_complete_list_dismissed(OverlayDismissReason reason);
+    void auto_complete_overlay_revoked();
     void auto_complete_collection_changed();
 
     // How the editing engine reaches this box (text_box.cpp).

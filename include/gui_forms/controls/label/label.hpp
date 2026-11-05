@@ -62,7 +62,7 @@ public:
         return text_style_role_;
     }
     void set_text_style_role(TextStyleRole role);
-    [[nodiscard]] Color foreground() const noexcept;
+    [[nodiscard]] Color foreground() const;
     [[nodiscard]] bool has_foreground_override() const noexcept {
         return foreground_override_.has_value();
     }

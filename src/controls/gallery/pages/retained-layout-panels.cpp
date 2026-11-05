@@ -49,10 +49,10 @@ private:
                                         40.0, 210.0, 156.0});
             std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(
                 StableId("gallery.layout.flow." + std::to_string(index)));
-            (*flow).set_accessible_name(std::string(directions[index].second) +
-                                        " flow layout");
+            (*flow).accessible_name = std::string(directions[index].second) +
+                                        " flow layout";
             (*flow).set_flow_direction(directions[index].first);
-            (*flow).set_padding({5.0, 5.0, 5.0, 5.0});
+            (*flow).padding = {5.0, 5.0, 5.0, 5.0};
             (*card).add_at(flow, {6.0, 26.0, 198.0, 122.0});
             std::shared_ptr<Button> break_item;
             for (std::size_t item_index = 0U; item_index < 5U; ++item_index) {
@@ -68,7 +68,7 @@ private:
                      index < 2U ? 48.0 + static_cast<double>(item_index % 2U) * 10.0
                                 : 52.0,
                      index < 2U ? 26.0 : 19.0});
-                (*item).set_margin({3.0, 2.0, 3.0, 2.0});
+                (*item).margin = {3.0, 2.0, 3.0, 2.0};
                 (*flow).add_child(item);
                 if (item_index == 1U) break_item = item;
             }
@@ -83,8 +83,8 @@ private:
             {930.0, 292.0});
         (*page).add_at(table_group, {24.0, 330.0, 930.0, 292.0});
         table_ = make_control<TableLayoutPanelCompat>(StableId("gallery.layout.table"));
-        (*table_).set_accessible_name("Mixed-track table layout specimen");
-        (*table_).set_padding({6.0, 6.0, 6.0, 6.0});
+        (*table_).accessible_name = "Mixed-track table layout specimen";
+        (*table_).padding = {6.0, 6.0, 6.0, 6.0};
         (*table_).set_column_count(4U);
         (*table_).set_row_count(3U);
         (*table_).set_column_style(0U, {TableSizeMode::absolute, 140.0});
@@ -102,7 +102,7 @@ private:
             "AUTHORED PREFERRED SIZE  →  RETAINED CELL SLOT  →  COMMITTED BOUNDS",
             12.0, 700, shell_blue_dark);
         (*header).set_requested_bounds({0.0, 0.0, 720.0, 26.0});
-        (*header).set_margin({8.0, 7.0, 8.0, 5.0});
+        (*header).margin = {8.0, 7.0, 8.0, 5.0};
         (*table_).add_child(header);
         (*table_).set_cell_position(*header, {0U, 0U});
         (*table_).set_column_span(*header, 4U);
@@ -130,7 +130,7 @@ private:
 
         std::shared_ptr<TrackBar> percent_two = make_control<TrackBar>(
             StableId("gallery.layout.table.percent.two"));
-        (*percent_two).set_accessible_name("Percent two-share cell slider");
+        (*percent_two).accessible_name = "Percent two-share cell slider";
         (*percent_two).set_visual_style(TrackBarVisualStyle::filled);
         (*percent_two).set_requested_bounds({0.0, 0.0, 230.0, 30.0});
         (*percent_two).bind(table_share_);

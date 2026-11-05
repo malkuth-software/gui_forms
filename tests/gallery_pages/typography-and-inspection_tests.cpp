@@ -36,7 +36,7 @@ void test_typography_and_inspection(gui_forms::Window& window) {
             "specimens must carry their authored runs, fonts and wrapping");
     require((*inspector).target_stable_id() == "gallery.typography.specimen.0" &&
                 (*overlay).target_stable_id() == "gallery.typography.specimen.0" &&
-                !(*overlay).visible(),
+                !(*overlay).visible.read(),
             "the inspector and overlay must start on the heading specimen, overlay hidden");
     const std::string semantics = window.semantic_snapshot().to_json();
     require(semantics.find("\"role\":\"static_text\"") != std::string::npos &&
@@ -49,13 +49,13 @@ void test_typography_and_inspection(gui_forms::Window& window) {
     require((*overlay_box).command_connected() && (*overlay_toggle).command_connected(),
             "overlay controls must bind the page's checkable Command");
     click(window, overlay_box);
-    require((*overlay).visible() && (*overlay_box).checked(),
+    require((*overlay).visible.read() && (*overlay_box).checked(),
             "checking the overlay box must show the overlay through the Command");
     click(window, overlay_toggle);
-    require(!(*overlay).visible() && !(*overlay_box).checked(),
+    require(!(*overlay).visible.read() && !(*overlay_box).checked(),
             "the shared Command must project the button's flip back to the check box");
     click(window, overlay_toggle);
-    require((*overlay).visible() && (*overlay_box).checked(),
+    require((*overlay).visible.read() && (*overlay_box).checked(),
             "a second flip must show the overlay and re-check the box");
 
     // The ChoiceGroup binds the target Value; selecting an item retargets

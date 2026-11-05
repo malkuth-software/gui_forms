@@ -20,12 +20,12 @@ void test_ranges_containers_and_animation() {
     test_animation_laboratory(window);
 }
 
-void test_text_collections_and_popup_lifecycle() {
+void test_text_collections_and_overlay_lifecycle() {
     std::unique_ptr<Window> owned = gallery::make_gallery();
     Window& window = *owned;
     host::HeadlessHost host(window);
     test_text_and_input(window, host);
-    test_collections_and_popups(window);
+    test_collections_and_overlays(window);
     test_values_and_spinners(window);
     test_images_and_drawing(window);
     test_tabs_and_pages(window);
@@ -83,7 +83,7 @@ void test_registry_pages_gallery() {
     test_choices_and_sections(window);
     test_value_editors(window);
     test_responsive_layouts(window);
-    test_anchored_popups(window);
+    test_anchored_overlays(window);
     test_live_surfaces(window);
     test_typography_and_inspection(window);
     test_semantic_feedback(window);
@@ -112,7 +112,7 @@ int main(int argc, char** argv) {
         test_catalog_pages_resolve_and_headers_describe_pages();
         test_gallery_semantic_surface();
         test_ranges_containers_and_animation();
-        test_text_collections_and_popup_lifecycle();
+        test_text_collections_and_overlay_lifecycle();
         test_timing_and_tooltip_runtime();
         test_binding_source_gallery_runtime();
         test_date_time_picker_gallery();

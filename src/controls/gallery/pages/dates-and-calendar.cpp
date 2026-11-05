@@ -13,7 +13,7 @@ public:
                              shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
         (*body).add_at(label(
             "gallery.date.lead",
-            "Validated civil time, caller-owned formats, nullable and spinner modes, retained popup focus, and semantic date cells.",
+            "Validated civil time, caller-owned formats, nullable and spinner modes, retained overlay focus, and semantic date cells.",
             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
         build_formats(body);
         build_modes(body);
@@ -42,7 +42,7 @@ private:
             make_control<DateTimePicker>(StableId(std::move(id)));
         (*picker).set_style(page_style());
         (*picker).set_value(specimen);
-        (*picker).set_accessible_name(std::move(accessible_name));
+        (*picker).accessible_name = std::move(accessible_name);
         return picker;
     }
 
@@ -104,7 +104,7 @@ private:
             "gallery.date.disabled", "Disabled date picker");
         (*disabled).set_custom_format("MMM d, yyyy");
         (*disabled).set_format(DateTimePickerFormat::custom);
-        (*disabled).set_enabled(false);
+        (*disabled).enabled = false;
         (*modes).add_at(label("gallery.date.disabled.caption", "Disabled state", 10.0, 700,
                               shell_blue_dark), {474.0, 102.0, 106.0, 22.0});
         (*modes).add_at(disabled, {584.0, 97.0, 320.0, 30.0});
@@ -112,7 +112,7 @@ private:
 
     void build_lifecycle(const std::shared_ptr<Surface>& body) {
         std::shared_ptr<LayoutGroup> lifecycle = group(
-            "gallery.date.lifecycle", "Popup lifecycle · commit, cancel, bounds, semantics",
+            "gallery.date.lifecycle", "Overlay lifecycle · commit, cancel, bounds, semantics",
             {930.0, 138.0});
         (*body).add_at(lifecycle, {24.0, 488.0, 930.0, 138.0});
         primary_ = make_picker("gallery.date.primary", "Bounded appointment date");
@@ -124,9 +124,9 @@ private:
         next_day_.set_text("Next day");
         next_day_.set_description("Move the appointment one day later");
         open_calendar_.set_text("Open calendar");
-        open_calendar_.set_description("Drop the retained calendar popup down");
+        open_calendar_.set_description("Drop the retained calendar overlay down");
         commands_ = make_control<CommandBar>(StableId("gallery.date.commands"));
-        (*commands_).set_accessible_name("Appointment commands");
+        (*commands_).accessible_name = "Appointment commands";
         (*commands_).set_items({
             {.id = command_previous, .label = "Previous day",
              .accessible_name = "Previous day", .command = &previous_day_},
@@ -151,7 +151,7 @@ private:
             {930.0, 280.0});
         (*body).add_at(months, {24.0, 644.0, 930.0, 280.0});
         month_ = make_control<MonthCalendar>(StableId("gallery.date.month.calendar"));
-        (*month_).set_accessible_name("Appointment calendar");
+        (*month_).accessible_name = "Appointment calendar";
         (*month_).set_today_date(specimen);
         (*month_).set_range({2026, 8U, 1U}, {2026, 12U, 31U});
         (*month_).set_calendar_dimensions({2U, 1U});
@@ -197,7 +197,7 @@ private:
     void drop_down_changed(const bool expanded) {
         (*status_).set_text(expanded
             ? "Calendar open · arrows navigate · Enter commits · Esc cancels"
-            : "Calendar closed · popup and focus scope revoked");
+            : "Calendar closed · overlay and focus scope revoked");
         project_commands();
     }
 

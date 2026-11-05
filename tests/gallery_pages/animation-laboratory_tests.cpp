@@ -67,7 +67,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
                 (*animated_progress).animation_phase() == reduced_progress_phase,
             "leaving reduced motion must preserve phase while restoring full cadence");
     click(window, window.find("gallery.status.live"));
-    require(!window.next_wake().has_value() && !(*pause_button).enabled() &&
+    require(!window.next_wake().has_value() && !(*pause_button).enabled.read() &&
                 (*pause_button).text() == "Motion disabled",
             "global live-off must quiesce motion and disable the page command");
     click(window, window.find("gallery.animation.reduced"));
@@ -75,7 +75,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "changing substitution while globally stopped must not restart motion");
     const std::vector<Rect> disabled_reduced_geometry = paint_fill_trace(easing);
     click(window, window.find("gallery.status.live"));
-    require(window.next_wake().has_value() && (*pause_button).enabled() &&
+    require(window.next_wake().has_value() && (*pause_button).enabled.read() &&
                 (*pause_button).text() == "Pause motion" &&
                 paint_fill_trace(easing) == disabled_reduced_geometry,
             "one global live-on action must restore the retained reduced animation policy");
@@ -106,10 +106,10 @@ void test_animation_laboratory(gui_forms::Window& window) {
     require(!window.next_wake().has_value(),
             "the repeated-toggle fixture must reach a quiescent paused state");
     click(window, window.find("gallery.status.live"));
-    require(!(*pause_button).enabled() && (*pause_button).text() == "Motion disabled",
+    require(!(*pause_button).enabled.read() && (*pause_button).text() == "Motion disabled",
             "the master gate must replace a paused command with one disabled state");
     click(window, window.find("gallery.status.live"));
-    require(!window.next_wake().has_value() && (*pause_button).enabled() &&
+    require(!window.next_wake().has_value() && (*pause_button).enabled.read() &&
                 (*pause_button).text() == "Resume motion",
             "the master gate must preserve the orthogonal page-local pause latch");
     click(window, window.find("gallery.animation.pause"));

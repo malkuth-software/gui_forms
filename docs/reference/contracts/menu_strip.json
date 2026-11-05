@@ -5,7 +5,7 @@
       "reviewed": true,
       "summary": "MenuStrip is the retained top-level menu coordinator. It lays out root items, tracks hot and active identities, transfers navigation across an owned ContextMenu, supports mnemonic and semantic entry, and exposes caller-controlled item padding while keeping invocation and open-state events ordered.",
       "remarks": [
-        "A retained focusable menu bar. Root items are laid out by the strip; popup rows share `Command` authority with pointer, keyboard, and semantic activation through an owned `ContextMenu`.",
+        "A retained focusable menu bar. Root items are laid out by the strip; overlay rows share `Command` authority with pointer, keyboard, and semantic activation through an owned `ContextMenu`.",
         "`use_mnemonic` removes markers from top-level width, paint, and semantics; duplicate top-level mnemonics cycle deterministically.",
         "Overflow and hosted ToolStrip controls remain open."
       ],
@@ -63,7 +63,7 @@
     },
     "gui_forms::MenuStrip::is_open|bool () const noexcept": {
       "reviewed": false,
-      "summary": "Reports whether the owned menu popup currently has transient ownership."
+      "summary": "Reports whether the owned menu overlay currently has transient ownership."
     },
     "gui_forms::MenuStrip::item_invoked|Event<const MenuStripInvocation &> &() noexcept": {
       "reviewed": false,
@@ -91,7 +91,7 @@
     },
     "gui_forms::MenuStrip::on_focus_changed|void (bool)": {
       "reviewed": false,
-      "summary": "Clears transient hot state when focus leaves unless the owned popup retains the interaction scope."
+      "summary": "Clears transient hot state when focus leaves unless the owned overlay retains the interaction scope."
     },
     "gui_forms::MenuStrip::semantic_descriptor|SemanticDescriptor () const": {
       "reviewed": false,

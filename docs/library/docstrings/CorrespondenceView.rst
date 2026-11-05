@@ -143,7 +143,7 @@ See Also
 --------
 ObjectView : Items of one size, as icons or details columns.
 ListBox : A plain list of text rows.
-ContextMenu : A pop-up menu for the target of `context_requested`.
+ContextMenu : An overlay menu for the target of `context_requested`.
 
 Notes
 -----

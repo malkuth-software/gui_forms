@@ -3,6 +3,7 @@
 #include "gui_forms/anatomy/types/anatomy_types.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/theme/types/theme_types.hpp"
+#include "gui_forms/window/backdrop/backdrop_chain.hpp"
 
 #include <array>
 #include <cstddef>
@@ -83,6 +84,22 @@ public:
     // font valid_font_spec admits, or a size outside minimum_rule_font_size
     // to maximum_rule_font_size, it is `own` with no field themed.
     [[nodiscard]] ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept;
+    // Whether the rules matching `control` at rest (its type, classes and
+    // stable ID, no part or role, the window's media and the control's user
+    // theme and inline style) declare it clear (owner decision 2026-11-04):
+    // `background: transparent`, a background colour of alpha 0 and no
+    // visible background layer, so that the surface's backdrop shows through
+    // it. A colour or layer left to the floor is not clear.
+    [[nodiscard]] bool declares_clarity(const Control& control) const noexcept;
+    // The backdrop chain the rules selecting `window` declare (`window {
+    // backdrop: ... }`, owner decisions 2026-11-05): the winning `backdrop:`
+    // among the theme's and the user theme's rules, matched against the
+    // window's media and its root control's classes and stable ID, lowered
+    // operation by operation. A role colour in tint() is the colour the
+    // matching rules give it under the window's scheme. Nullopt where no rule
+    // declares one or the winner is `none`. `popup` rules are not read here:
+    // they wait for native popup windows (stage T5).
+    [[nodiscard]] std::optional<BackdropChain> window_backdrop_chain(const Window& window) const noexcept;
     [[nodiscard]] const ThemeDefinition& definition() const noexcept {
         return definition_;
     }

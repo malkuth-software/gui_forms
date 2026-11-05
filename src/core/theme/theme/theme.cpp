@@ -1707,6 +1707,56 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     return themed;
 }
 
+std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) const noexcept {
+    const Control::Ptr root = window.root();
+    CompiledThemeRules::PartFacts facts{};
+    facts.surface = SurfaceKind::window;
+    facts.stable_id = (*root).stable_id().value();
+    facts.classes = (*root).classes();
+    facts.media = window_media_facts(window);
+    facts.user_rules = window.user_theme_rules();
+    const BackdropDeclaration* const declared = engine_.rules().resolve_backdrop(facts);
+    if (declared == nullptr || (*declared).length == 0U) return std::nullopt;
+    // The compiler and add_backdrop admitted the declaration, and the two
+    // chains share their capacity and ranges, so every operation appends.
+    static_assert(BackdropDeclaration::maximum_steps == BackdropChain::maximum_operations);
+    BackdropChain chain{};
+    for (std::size_t index = 0U; index < (*declared).length; ++index) {
+        const BackdropStep& step = (*declared).steps[index];
+        BackdropOperation operation = BackdropOperation::tint(step.colour);
+        if (step.kind == BackdropStepKind::blur) operation = BackdropOperation::blur(step.amount);
+        if (step.kind == BackdropStepKind::saturate) operation = BackdropOperation::saturate(step.amount);
+        static_cast<void>(chain.append(operation));
+    }
+    if (!backdrop_chain_valid(chain)) return std::nullopt;
+    return chain;
+}
+
+bool Theme::declares_clarity(const Control& control) const noexcept {
+    CompiledThemeRules::PartFacts facts{};
+    facts.control_type = control.anatomy().control_id;
+    facts.stable_id = control.stable_id().value();
+    facts.classes = control.classes();
+    facts.inline_rules = control.inline_style_rules();
+    facts.states = visual_context_states(ControlVisualContext{});
+    const Window* const window = control.attached_window();
+    if (window != nullptr) facts.media = window_media_facts(*window);
+    if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
+    const CompiledThemeRules::Resolution resolution = engine_.rules().resolve(facts);
+    if (!resolution.materials_authored) return false;
+    const MaterialDeclaration* const colour =
+        resolution.materials[static_cast<std::size_t>(MaterialField::background_colour)];
+    const MaterialDeclaration* const layers = resolution.materials[static_cast<std::size_t>(MaterialField::fills)];
+    if (colour == nullptr || layers == nullptr || (*colour).initial || (*layers).initial) return false;
+    if ((*colour).colour.alpha != 0U) return false;
+    // Every declared layer must show nothing: a solid layer of alpha 0.
+    for (const MaterialFillLayer& layer : (*layers).fills) {
+        const bool invisible = layer.kind == MaterialFillKind::solid && layer.color.alpha == 0U;
+        if (!invisible) return false;
+    }
+    return true;
+}
+
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role, ControlVisualContext context,
                                      AnatomyStateSet states) const {
     const ControlVisualRecipe& floor = resolve(role, context);

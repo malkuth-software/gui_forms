@@ -60,7 +60,7 @@ A window can ask the window system to show what lies behind it (stage T5,
 a platform material: `WindowBackdrop::opaque` (every window today),
 `transparent` (clear pixels show the desktop, unblurred),
 `window_material` and `transient_material` (the system's materials for a
-main window and for popups). GUI.Forms never reads or blurs the desktop
+main window and for overlays). GUI.Forms never reads or blurs the desktop
 itself.
 
 - **Declare it.** Set `ApplicationWindowOptions::non_opaque` (or call
@@ -129,6 +129,21 @@ to report, so `PresentationSettings` stay the application's. Clear pixels
 still receive the pointer. A server without the 32-bit visual leaves the
 window opaque (`host_unsupported`). The measurements behind this are in
 [`planning/stages/T5-compositor/MEASUREMENTS.md`](https://github.com/malkuth-software/notes/blob/gui_forms/planning/stages/T5-compositor/MEASUREMENTS.md).
+
+**Owned and popup windows.** What a host can grant a window owned by
+another (a floating panel, and in time a native popup, menu or tooltip)
+is reported in that window's own `CompositorState`, as for any window:
+
+| Owned or popup window | macOS | Windows | X11 |
+|---|---|---|---|
+| per-pixel alpha (`transparent`) | yes | yes | while a compositing manager runs |
+| system material (blur) | `NSVisualEffectView` in the owned window or panel | DWM system backdrop on the owned window (Windows 11 22H2 and later) | none; any blur is the compositing manager's own |
+| saturation of the material | no | no | no |
+
+Menus, drop-downs and tooltips drawn inside their owner's surface are
+overlays, the window's own pixels, and paint with the theme's materials
+([Transparency, glass and reflections](transparency.md), "Window
+backdrops").
 
 The headless reference host simulates these capabilities
 (`HeadlessApplication::simulate_compositor_state`).

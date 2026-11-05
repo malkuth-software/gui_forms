@@ -46,6 +46,8 @@ public:
     static constexpr double border_width = 1.0;
 
     HeadlessWindowing(HeadlessApplication& application, HostCapabilities capabilities);
+    // The headless host opens native popups (stage T5, phase (a)).
+    [[nodiscard]] bool supports_popup_windows() const noexcept override;
 
     // Replaces the simulated monitors (desktop logical units). An empty
     // list is ignored.
@@ -74,8 +76,10 @@ public:
     [[nodiscard]] std::vector<HostWindowId> z_order() const;
 
     // Native bookkeeping used by HeadlessApplication.
+    // `decorated` false for a popup: no title bar or border, so its outer
+    // frame is its client area.
     void create_native(HostWindowId window, std::string_view stable_id, Rect content,
-                       Size minimum_size);
+                       Size minimum_size, bool decorated);
     void remove_native(HostWindowId window) noexcept;
     void set_native_visible(HostWindowId window, bool visible);
     // Moves or resizes the native window as the user would and reports it.
@@ -101,6 +105,7 @@ private:
         Rect content{};
         Size minimum_size{};
         bool visible{};
+        bool decorated{true};
     };
     [[nodiscard]] NativeWindow* native(HostWindowId window) noexcept;
     [[nodiscard]] const NativeWindow* native(HostWindowId window) const noexcept;

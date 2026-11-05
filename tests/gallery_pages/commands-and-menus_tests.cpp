@@ -37,24 +37,24 @@ void test_commands_and_menus(gui_forms::Window& window) {
                 (*saves).text() == "Saves: 2" && !(*save_item).effectively_enabled(),
             "the CommandBar shortcut must execute the shared Save Command");
 
-    // MenuStrip: keyboard opening presents the File menu as a ContextMenu popup
+    // MenuStrip: keyboard opening presents the File menu as a ContextMenu overlay
     // whose Save row executes the very same Command.
     click(window, modified);
     const Control::Ptr strip = window.find("gallery.commands.menu");
     require(strip && window.request_focus(strip) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::down}) &&
-                window.find("gallery.commands.menu.menu.popup.panel.0") != nullptr &&
+                window.find("gallery.commands.menu.menu.overlay.panel.0") != nullptr &&
                 window.focus_scope_depth() == 1U,
-            "Down on the focused MenuStrip must open its first menu as a popup root");
+            "Down on the focused MenuStrip must open its first menu as an overlay root");
     window.perform_layout();
-    const Control::Ptr menu_save = window.find("gallery.commands.menu.menu.popup.row.file.save");
+    const Control::Ptr menu_save = window.find("gallery.commands.menu.menu.overlay.row.file.save");
     require(menu_save && (*menu_save).effectively_enabled(),
             "the File menu must present the enabled Save Command as a row");
     click(window, menu_save);
     require((*saves).text() == "Saves: 3" &&
                 (*status).text().find("Save #3 invoked from") == 0U &&
                 (*status).text().find("menu gallery.commands.menu.file") != std::string::npos &&
-                window.find("gallery.commands.menu.menu.popup.panel.0") == nullptr &&
+                window.find("gallery.commands.menu.menu.overlay.panel.0") == nullptr &&
                 window.focus_scope_depth() == 0U,
             "a MenuStrip row must execute the shared Command, report its menu and close");
     std::string semantics = window.semantic_snapshot().to_json();
@@ -72,22 +72,22 @@ void test_commands_and_menus(gui_forms::Window& window) {
     require(wrap && wrap_item && context_button && !(*wrap).checked() && !(*wrap_item).selected(),
             "word wrap must start off on the check box and the bar item");
     click(window, context_button);
-    require(window.find("gallery.commands.context.popup.panel.0") != nullptr &&
+    require(window.find("gallery.commands.context.overlay.panel.0") != nullptr &&
                 window.focus_scope_depth() == 1U,
-            "the context button must open the ContextMenu as a focus-contained popup");
+            "the context button must open the ContextMenu as a focus-contained overlay");
     window.perform_layout();
-    click(window, window.find("gallery.commands.context.popup.row.wrap"));
+    click(window, window.find("gallery.commands.context.overlay.row.wrap"));
     require((*wrap).checked() && (*wrap_item).selected() &&
-                window.find("gallery.commands.context.popup.panel.0") == nullptr,
+                window.find("gallery.commands.context.overlay.panel.0") == nullptr,
             "the context-menu check row must toggle the shared state everywhere and close");
     click(window, wrap_item);
     require(!(*wrap).checked() && !(*wrap_item).selected(),
             "the bar's Word wrap item must toggle the same Value back");
     click(window, context_button);
-    require(window.find("gallery.commands.context.popup.panel.0") != nullptr,
+    require(window.find("gallery.commands.context.overlay.panel.0") != nullptr,
             "the context menu must reopen");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
-                window.find("gallery.commands.context.popup.panel.0") == nullptr &&
+                window.find("gallery.commands.context.overlay.panel.0") == nullptr &&
                 window.focus_scope_depth() == 0U && window.focused_control() == context_button,
             "Escape must revoke the context menu and restore the invoker's focus");
 
@@ -99,12 +99,12 @@ void test_commands_and_menus(gui_forms::Window& window) {
             "the Export drop-down must start closed");
     click(window, export_button);
     require((*export_button).drop_down_open() &&
-                window.find("gallery.commands.export.menu.popup.panel.0") != nullptr,
+                window.find("gallery.commands.export.menu.overlay.panel.0") != nullptr,
             "clicking a menu-mode DropDownButton must open its menu and mark itself open");
     window.perform_layout();
-    click(window, window.find("gallery.commands.export.menu.popup.row.export.png"));
+    click(window, window.find("gallery.commands.export.menu.overlay.row.export.png"));
     require((*status).text().find("Export PNG") == 0U && !(*export_button).drop_down_open() &&
-                window.find("gallery.commands.export.menu.popup.panel.0") == nullptr,
+                window.find("gallery.commands.export.menu.overlay.panel.0") == nullptr,
             "an export row must execute its Command and close the drop-down");
 
     // DropDownButton (split mode): the primary region keeps the ordinary Click
@@ -124,7 +124,7 @@ void test_commands_and_menus(gui_forms::Window& window) {
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, disclosure}) &&
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, disclosure}) &&
                 (*run_button).drop_down_open() &&
-                window.find("gallery.commands.run.menu.popup.row.run.watch") != nullptr,
+                window.find("gallery.commands.run.menu.overlay.row.run.watch") != nullptr,
             "the split button's trailing region must open the options menu");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 !(*run_button).drop_down_open() && window.focus_scope_depth() == 0U,

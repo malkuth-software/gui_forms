@@ -85,7 +85,7 @@ void require_bounds(const Control& control, double x, double y, double width, do
 std::shared_ptr<Panel> box(const std::string& id, double width, double height) {
     std::shared_ptr<Panel> made = make_control<Panel>(StableId(id));
     (*made).set_bounds({0.0, 0.0, width, height});
-    (*made).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
 
@@ -184,7 +184,7 @@ protected:
 
 void test_tracks_gaps_and_stretch() {
     std::shared_ptr<GridPanel> panel = make_control<GridPanel>(StableId("grid.tracks"));
-    (*panel).set_padding({10.0, 10.0, 10.0, 10.0});
+    (*panel).padding = {10.0, 10.0, 10.0, 10.0};
     (*panel).set_template_columns(tracks({fixed(100.0), fraction(1.0)}));
     (*panel).set_column_gap(px(10.0));
     (*panel).set_row_gap(px(5.0));
@@ -305,7 +305,7 @@ void test_nested_intrinsic_columns() {
     std::shared_ptr<GridPanel> inner = make_control<GridPanel>(StableId("grid.outer.inner"));
     (*inner).set_template_columns(tracks({fixed(30.0), fixed(40.0)}));
     (*inner).set_column_gap(px(5.0));
-    (*inner).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*inner).margin = {0.0, 0.0, 0.0, 0.0};
     std::shared_ptr<Panel> first = box("grid.outer.inner.a", 10.0, 20.0);
     std::shared_ptr<Panel> second = box("grid.outer.inner.b", 10.0, 12.0);
     (*inner).add_child(first);
@@ -344,7 +344,7 @@ void test_cell_limit_refuses() {
 std::shared_ptr<Button> sized_button(const std::string& id) {
     std::shared_ptr<Button> made = make_control<Button>(StableId(id), "Button");
     (*made).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-    (*made).set_margin({});
+    (*made).margin = Insets{};
     return made;
 }
 

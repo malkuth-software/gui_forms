@@ -166,7 +166,7 @@ struct PageDoubleClick final {
 // place without being moved. Layout keeps the selected page visible: a
 // selection, an edit, a resize or a setting brings it into view. Only the
 // scroll buttons and the wheel move it out of view, until the next of those.
-// The list popup is the existing ContextMenu.
+// The list overlay is the existing ContextMenu.
 //
 // Document features (owner decision DK-38, interview P16 to P26): a close
 // button on closable tabs (see PageCloseButtons) with a plate while hot; a

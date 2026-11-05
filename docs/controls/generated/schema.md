@@ -12,7 +12,7 @@ typed records (`(*bar).parts().thumb`) and registers handlers through each type'
 (`(*button).clicked()`). An interaction's payload is the handler's argument types; *by
 reference* marks a payload the handler receives by mutable reference.
 
-Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `cursor`, `dock`, `enabled`, `fore_color`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
+Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `fore_color`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
 Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
 
@@ -207,7 +207,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`, `invalid`, `pending`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `text` (text).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `multiline` (boolean), `placeholder_text` (text), `read_only` (boolean), `text` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -1054,7 +1054,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `hot`, `pressed`, `checked`, `indeterminate`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `check_state` (enumeration), `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
+Properties beyond every control's: `check_state` (enumeration), `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration), `three_state` (boolean).
 
 | Interaction | Payload |
 |---|---|
@@ -1077,7 +1077,7 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 
 States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
+Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
@@ -1806,11 +1806,11 @@ Properties beyond every control's: none.
 | `configure_glyph` | glyph |  | hot, pressed, open, focus_visible |
 | `collapsed_bar` | face |  |  |
 | `collapsed_label` | label |  | hot, pressed, open, focus_visible |
-| `popup_shadow` | shadow |  |  |
-| `popup_face` | face |  |  |
-| `popup_header` | face |  |  |
-| `popup_label` | caption |  |  |
-| `popup_content` | well |  |  |
+| `overlay_shadow` | shadow |  |  |
+| `overlay_face` | face |  |  |
+| `overlay_header` | face |  |  |
+| `overlay_label` | caption |  |  |
+| `overlay_content` | well |  |  |
 | `focus` | focus |  |  |
 
 States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
@@ -1841,7 +1841,7 @@ Properties beyond every control's: none.
 |---|---|
 | `options_requested` | `NavigationPaneOptionsRequest` |
 | `state_changed` | `NavigationPaneState` |
-| `popup_open_changed` | `bool` |
+| `overlay_open_changed` | `bool` |
 
 ## `dock_site` (DockSite, control)
 
@@ -2544,7 +2544,7 @@ Properties beyond every control's: none.
 | Interaction | Payload |
 |---|---|
 | `selection_changed` | `std::optional<std::string>` |
-| `popup_open_changed` | `bool` |
+| `overlay_open_changed` | `bool` |
 
 ## `status_strip` (StatusStrip, control)
 
@@ -2817,7 +2817,7 @@ Properties beyond every control's: none.
 | `preview_requested` | `GalleryPreview` |
 | `preview_cancelled` | `GalleryPreview` |
 
-## `anchored_popup_layer` (AnchoredPopupLayer, control)
+## `anchored_overlay_layer` (AnchoredOverlayLayer, control)
 
 | Part | Role | Reuses | Own states |
 |---|---|---|---|
@@ -2843,7 +2843,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
-| `dismiss_requested` | `PopupDismissReason` |
+| `dismiss_requested` | `OverlayDismissReason` |
 
 ## `font_dialog` (FontDialog, control)
 
@@ -2979,6 +2979,20 @@ Interactions beyond every control's: none.
 ## `live_surface` (LiveSurface, service)
 
 Interactions: none.
+
+## `sub_surface_host` (SubSurfaceHost, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `content` | content |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: none.
+
+Interactions beyond every control's: none.
 
 ## `easing_preview` (EasingPreview, control)
 

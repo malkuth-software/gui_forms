@@ -165,7 +165,7 @@ void test_hover_delay_cancel_and_accessible_overlay() {
     tips.set_initial_delay(30ms);
     tips.set_auto_pop_delay(200ms);
     tips.set_tool_tip(fixture.button, "Opens the calibrated input selector");
-    require((*fixture.button).tool_tip_text() == "Opens the calibrated input selector",
+    require((*fixture.button).tool_tip_text.read() == "Opens the calibrated input selector",
             "ToolTip writes the target's own tooltip text");
     int shown = 0;
     int hidden = 0;
@@ -177,7 +177,7 @@ void test_hover_delay_cancel_and_accessible_overlay() {
             "hover must arm the initial delay without opening synchronously");
     hover(fixture.window, {390.0, 210.0});
     require(!tips.visible() && !fixture.window.next_wake().has_value(),
-            "leaving before the delay must cancel the pending popup and wake");
+            "leaving before the delay must cancel the pending overlay and wake");
 
     hover(fixture.window, {60.0, 60.0});
     fire_next(fixture.window);
@@ -197,7 +197,7 @@ void test_hover_delay_cancel_and_accessible_overlay() {
     require(!tips.visible() && shown == 1 && hidden == 1 &&
                 !find_role(after_leave.roots,
                            SemanticRole::tool_tip),
-            "leave must remove both the retained popup and its semantic node");
+            "leave must remove both the retained overlay and its semantic node");
 }
 
 // The pointer must rest for the whole delay: a motion over the target before
@@ -207,7 +207,7 @@ void test_motion_restarts_the_rest() {
     ToolTipSettings settings = fixture.window.tool_tip_settings();
     settings.initial_delay = 40ms;
     fixture.window.set_tool_tip_settings(settings);
-    (*fixture.button).set_tool_tip_text("Resting help");
+    (*fixture.button).tool_tip_text = "Resting help";
     hover(fixture.window, {60.0, 60.0});
     const std::optional<FrameTime> first = fixture.window.next_wake();
     require(first.has_value(), "hover arms a wake");
@@ -301,7 +301,7 @@ void test_one_presenter_for_every_provider_and_owner_disposal() {
     ToolTip second(fixture.window);
     first.set_tool_tip(fixture.button, "First provider");
     second.set_tool_tip(fixture.button, "Second provider");
-    require((*fixture.button).tool_tip_text() == "Second provider", "the last text set holds");
+    require((*fixture.button).tool_tip_text.read() == "Second provider", "the last text set holds");
     first.show(fixture.button, 0ms);
     second.show(fixture.button, 0ms);
     require(first.visible() && second.visible() && tool_tip_nodes(fixture.window) == 1U,
@@ -313,7 +313,7 @@ void test_one_presenter_for_every_provider_and_owner_disposal() {
     (*fixture.button).dispose();
     require(!first.visible() && !second.visible() && !first.active_control() &&
                 !fixture.window.tool_tip_visible(),
-            "disposing a target must synchronously revoke the popup");
+            "disposing a target must synchronously revoke the overlay");
     require(tool_tip_nodes(fixture.window) == 0U,
             "owner disposal must leave no stale tooltip semantic nodes");
 }
@@ -324,7 +324,7 @@ void test_mapping_removal_and_provider_disposal_are_quiescent() {
     (*tips).set_initial_delay(20ms);
     (*tips).set_tool_tip(fixture.button, "Disposable mapping");
     hover(fixture.window, {60.0, 60.0});
-    require((*tips).remove_tool_tip(*fixture.button) && (*fixture.button).tool_tip_text().empty(),
+    require((*tips).remove_tool_tip(*fixture.button) && (*fixture.button).tool_tip_text.read().empty(),
             "removing a mapping clears the target's text");
     hover(fixture.window, {61.0, 60.0});
     require(!fixture.window.next_wake(), "a target without text arms nothing");
@@ -340,15 +340,15 @@ void test_mapping_removal_and_provider_disposal_are_quiescent() {
             "programmatic ToolTip show must anchor to its target, not the client origin");
     (*tips).dispose();
     require(!fixture.window.next_wake() && tool_tip_nodes(fixture.window) == 0U &&
-                (*fixture.button).tool_tip_text().empty(),
-            "provider disposal clears its text and removes popup and scheduled work");
+                (*fixture.button).tool_tip_text.read().empty(),
+            "provider disposal clears its text and removes overlay and scheduled work");
 }
 
 void test_show_always_supports_a_disabled_visible_owner() {
     Fixture fixture;
     ToolTip tips(fixture.window);
     tips.set_tool_tip(fixture.button, "Why this command is unavailable");
-    (*fixture.button).set_enabled(false);
+    (*fixture.button).enabled = false;
     tips.show(fixture.button, 0ms);
     require(!tips.visible(), "a disabled control shows no tooltip by default");
     tips.set_show_always(true);
@@ -397,7 +397,7 @@ void test_window_and_program_switches() {
     ToolTipSettings settings = fixture.window.tool_tip_settings();
     settings.initial_delay = 1ms;
     fixture.window.set_tool_tip_settings(settings);
-    (*fixture.button).set_tool_tip_text("Switched help");
+    (*fixture.button).tool_tip_text = "Switched help";
     require(!fixture.window.tool_tips_shown_setting() && fixture.window.tool_tips_shown(),
             "a window follows the program, which shows tooltips by default");
     hover(fixture.window, {60.0, 60.0});
@@ -434,12 +434,12 @@ void test_press_hides_and_text_changes_follow() {
     settings.initial_delay = 1ms;
     settings.auto_pop_delay = 0ms;
     fixture.window.set_tool_tip_settings(settings);
-    (*fixture.button).set_tool_tip_text("Before");
+    (*fixture.button).tool_tip_text = "Before";
     hover(fixture.window, {60.0, 60.0});
     fire_next(fixture.window);
     require(fixture.window.tool_tip_text() == "Before" && !fixture.window.next_wake(),
             "a zero auto-pop keeps the tooltip without a wake");
-    (*fixture.button).set_tool_tip_text("After");
+    (*fixture.button).tool_tip_text = "After";
     require(fixture.window.tool_tip_visible() && fixture.window.tool_tip_text() == "After",
             "a tooltip that shows shows its thing's new text");
     fixture.window.perform_layout();
@@ -454,16 +454,16 @@ void test_press_hides_and_text_changes_follow() {
     hover(fixture.window, {390.0, 210.0});
     hover(fixture.window, {60.0, 60.0});
     require(fixture.window.next_wake().has_value(), "back over the thing, its tooltip waits again");
-    (*fixture.button).set_tool_tip_text({});
+    (*fixture.button).tool_tip_text = std::string{};
     require(!fixture.window.next_wake() && !fixture.window.tool_tip_visible(),
             "emptying the text of a waiting thing cancels the wait");
     bool refused = false;
     try {
-        (*fixture.button).set_tool_tip_text(std::string("\xff", 1U));
+        (*fixture.button).tool_tip_text = std::string("\xff", 1U);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*fixture.button).tool_tip_text().empty(), "invalid UTF-8 is refused, changing nothing");
+    require(refused && (*fixture.button).tool_tip_text.read().empty(), "invalid UTF-8 is refused, changing nothing");
     require((*fixture.button).has_bindable_property("tool_tip_text"), "the text is a bindable property");
     bool explicit_refused = false;
     try {
@@ -513,7 +513,7 @@ void test_strip_item_tooltips() {
     // An item's tooltip only overrides where it exists: over an item without
     // one, the strip's own text shows.
     hover(window, {390.0, 150.0});
-    (*strip).set_tool_tip_text("Commands");
+    (*strip).tool_tip_text = "Commands";
     hover(window, {save_bounds.x + 4.0, save_bounds.y + 4.0});
     fire_next(window);
     require(window.tool_tip_text() == "Save (Ctrl+S)", "an item's tooltip overrides the strip's");
@@ -521,7 +521,7 @@ void test_strip_item_tooltips() {
     if (window.next_wake()) fire_next(window);
     require(window.tool_tip_visible() && window.tool_tip_text() == "Commands" && window.tool_tip_item_id().empty(),
             "an item without a tooltip shows the strip's own");
-    (*strip).set_tool_tip_text("");
+    (*strip).tool_tip_text = "";
     hover(window, {390.0, 150.0});
     if (window.next_wake()) fire_next(window);
 
@@ -547,7 +547,7 @@ void test_tab_header_tooltips() {
     (*tabs).set_requested_bounds({0.0, 0.0, 400.0, 240.0});
     std::shared_ptr<TabPage> first = make_control<TabPage>(StableId("tab-tips.first"), "General");
     std::shared_ptr<TabPage> second = make_control<TabPage>(StableId("tab-tips.second"), "Advanced");
-    (*second).set_tool_tip_text("Network and cache settings");
+    (*second).tool_tip_text = "Network and cache settings";
     (*tabs).add_page(first);
     (*tabs).add_page(second);
     Window window(tabs, {400.0, 240.0});
@@ -586,11 +586,11 @@ void test_typed_text_fields_show_hints() {
     (*search).set_requested_bounds({20.0, 60.0, 200.0, 28.0});
     (*copies).set_requested_bounds({20.0, 100.0, 120.0, 28.0});
     (*notes).set_requested_bounds({20.0, 140.0, 300.0, 160.0});
-    (*name).set_tool_tip_text("Your full name");
-    (*search).set_tool_tip_text("Searches every folder");
+    (*name).tool_tip_text = "Your full name";
+    (*search).tool_tip_text = "Searches every folder";
     (*search).set_placeholder_text("Search");
-    (*copies).set_tool_tip_text("How many copies");
-    (*notes).set_tool_tip_text("Notes for the reviewer");
+    (*copies).tool_tip_text = "How many copies";
+    (*notes).tool_tip_text = "Notes for the reviewer";
     (*root).add_child(name);
     (*root).add_child(search);
     (*root).add_child(copies);
@@ -623,7 +623,7 @@ void test_typed_text_fields_show_hints() {
     (*copies_editor).set_text({});
     const std::string editor_id((*copies_editor).stable_id().value());
     require(painted_text(window, editor_id, "How many copies"), "an emptied up-down field shows the up-down's hint");
-    (*copies).set_tool_tip_text("Copies to print");
+    (*copies).tool_tip_text = "Copies to print";
     require(painted_text(window, editor_id, "Copies to print"), "the edit field follows its owner's new text");
 
     // An editable combo box: its hint shows in the empty edit field, and a
@@ -631,7 +631,7 @@ void test_typed_text_fields_show_hints() {
     std::shared_ptr<ComboBox> city = make_control<ComboBox>(StableId("hint.city"));
     (*city).set_drop_down_style(ComboBoxStyle::drop_down);
     (*city).set_requested_bounds({240.0, 20.0, 160.0, 28.0});
-    (*city).set_tool_tip_text("The city you live in");
+    (*city).tool_tip_text = "The city you live in";
     (*root).add_child(city);
     window.perform_layout();
     const std::shared_ptr<TextBox> city_editor = (*city).editor();

@@ -47,7 +47,7 @@ Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
 
 std::optional<Color> Panel::face_colour() const noexcept {
     if (background_override_) return background_override_;
-    const std::optional<Color> own = back_color();
+    const std::optional<Color> own = back_color.read();
     if (!own) return std::nullopt;
     const Window* const attached = window();
     const bool high_contrast = attached != nullptr && (*attached).presentation_settings().high_contrast;
@@ -80,12 +80,13 @@ void Panel::set_background(Color color) {
     invalidate(Dirty::paint);
 }
 
-Color Panel::background() const noexcept {
-    const std::optional<Color> face = face_colour();
-    if (face) return *face;
-    const ControlVisualRecipe& recipe = effective_theme().resolve(
-        visual_role_, visual_context());
-    const MaterialFillLayer& fill = recipe.material.fills.front();
+namespace {
+
+// The one colour a material shows: a solid fill's colour, a gradient's first
+// stop, a procedural fill's ground, else the layer's colour.
+Color material_ground(const SurfaceMaterial& material) noexcept {
+    if (material.fills.empty()) return Color{};
+    const MaterialFillLayer& fill = material.fills.front();
     switch (fill.kind) {
     case MaterialFillKind::solid:
         return fill.color;
@@ -104,6 +105,51 @@ Color Panel::background() const noexcept {
     }
     // A kind outside the enumeration: the layer's colour.
     return fill.color;
+}
+
+} // namespace
+
+Color Panel::background() const {
+    const std::optional<Color> face = face_colour();
+    if (face) return *face;
+    SurfaceMaterial assembled{};
+    if (rule_face_material(assembled)) return material_ground(assembled);
+    const ControlVisualRecipe& recipe = effective_theme().resolve(
+        visual_role_, visual_context());
+    return material_ground(recipe.material);
+}
+
+PartPaint Panel::face_part(Rect bounds) const noexcept {
+    PartPaint face;
+    face.family = visual_role_;
+    face.role = PartRole::face;
+    face.bounds = bounds;
+    face.key = PartKey{"face", {}, {}};
+    if (border_style_ == BorderStyle::sunken) {
+        face.family = ControlVisualRole::editor;
+        face.role = PartRole::well;
+    } else if (border_style_ == BorderStyle::raised) {
+        face.family = ControlVisualRole::button;
+    }
+    return face;
+}
+
+bool Panel::face_selected_by_rule() const noexcept {
+    const PartPaint face = face_part(local_bounds());
+    const ThemeEngine::PartPlan decided = effective_theme().engine().plan(*this, face);
+    const bool selected = decided.drawing == ThemeEngine::PartDrawing::primitive;
+    return selected;
+}
+
+bool Panel::rule_face_material(SurfaceMaterial& material) const {
+    const PartPaint face = face_part(local_bounds());
+    const ThemeEngine::PartPlan decided = effective_theme().engine().plan(*this, face);
+    if (decided.drawing != ThemeEngine::PartDrawing::primitive) return false;
+    if (!decided.resolution.materials_authored) return false;
+    const ControlVisualRecipe& floor = effective_theme().resolve(face.family, visual_context());
+    assemble_material(floor.material, decided.resolution.materials, Size{face.bounds.width, face.bounds.height},
+                      material);
+    return true;
 }
 
 void Panel::clear_background() {
@@ -153,16 +199,7 @@ Rect Panel::local_bounds() const noexcept {
 // one the button's face; a line border is four keylines around the face. A
 // background or style override supplies the face's ground (T4-1).
 void Panel::paint_panel(Painter& painter, Rect bounds) const {
-    PartPaint face;
-    face.family = visual_role_;
-    face.role = PartRole::face;
-    face.bounds = bounds;
-    if (border_style_ == BorderStyle::sunken) {
-        face.family = ControlVisualRole::editor;
-        face.role = PartRole::well;
-    } else if (border_style_ == BorderStyle::raised) {
-        face.family = ControlVisualRole::button;
-    }
+    PartPaint face = face_part(bounds);
     // The panel's own colour (face_colour) or a style override supplies the
     // face's ground.
     const std::optional<Color> face_ground = face_colour();
@@ -190,14 +227,20 @@ void Panel::paint_panel(Painter& painter, Rect bounds) const {
 bool Panel::paint_depends_on_size() const noexcept {
     if (border_style_ != BorderStyle::none || hscroll() || vscroll()) return true;
     if (background_override_ || style_override_) return false;
+    // A rule's material may read the face's box (relative corners).
+    if (face_selected_by_rule()) return true;
     const bool invariant = surface_material_size_invariant(
         effective_theme().resolve(visual_role_, visual_context()).material);
     return !invariant;
 }
 
 // An authored background keeps the material's border and shadows (T4-1),
-// so the outsets are the material's either way.
+// so the outsets are the material's either way: the rule's material where
+// a rule's fields select the face (G3). Assembling it allocates; a failure
+// to allocate here ends the program, as under any noexcept.
 Insets Panel::visual_outsets() const noexcept {
+    SurfaceMaterial assembled{};
+    if (rule_face_material(assembled)) return surface_material_visual_outsets(assembled);
     return surface_material_visual_outsets(
         effective_theme().resolve(visual_role_, visual_context()).material);
 }
@@ -207,18 +250,30 @@ void Panel::on_paint(Painter& painter, Rect) {
     paint_panel(painter, bounds);
     // The face paint_panel drew first: an opaque background colour, or an
     // opaque material without outsets. The border draws over it.
+    // A face a rule selects is opaque only as the rule's own material is;
+    // a rule's other primitive reports nothing (G3).
     const bool overridden = face_colour() || style_override_;
-    const bool opaque = overridden
-        ? background().alpha == 255U
-        : surface_material_opaque(effective_theme().resolve(visual_role_, visual_context()).material);
-    if (opaque) report_opaque_cover(painter, bounds);
+    bool opaque = false;
+    SurfaceMaterial assembled{};
+    if (overridden) {
+        opaque = background().alpha == 255U;
+    } else if (rule_face_material(assembled)) {
+        opaque = surface_material_opaque(assembled);
+    } else if (!face_selected_by_rule()) {
+        opaque = surface_material_opaque(effective_theme().resolve(visual_role_, visual_context()).material);
+    }
+    // A panel its theme declares clear draws its face from the theme's
+    // transparent background and covers nothing; an overridden face is the
+    // panel's own fill, reported (report_opaque_cover warns of it).
+    const bool themed_clear = !overridden && declares_clarity();
+    if (opaque && !themed_clear) report_opaque_cover(painter, bounds);
 }
 
 SemanticDescriptor Panel::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() ||
                          !descriptor.description.empty();
     return descriptor;

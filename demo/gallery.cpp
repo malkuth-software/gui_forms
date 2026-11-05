@@ -3,6 +3,7 @@
 #include "gallery_assets.hpp"
 #include "gallery_controls.hpp"
 #include "gallery_pages.hpp"
+#include "gallery_theme_package.hpp"
 
 #include <algorithm>
 #include <array>
@@ -172,7 +173,7 @@ void install_page_fixtures(Window& window) {
         window.set_accept_button(accept);
     }
     if (const Control::Ptr cancel = window.find("gallery.controls.button.3")) {
-        (*cancel).set_causes_validation(false);
+        (*cancel).causes_validation = false;
         window.set_cancel_button(cancel);
     }
     const std::vector<std::byte> pixels = make_test_card();
@@ -274,6 +275,29 @@ void install_page_fixtures(Window& window) {
     }
 }
 
+// Compiles the Gallery's project theme (demo/themes/gallery) into the
+// window's resources and selects it for every window sharing them. The
+// package is embedded and checked at build time, so a refusal or any
+// finding is a defect of the build: std::logic_error, naming the first.
+void select_gallery_theme(Window& window) {
+    const std::shared_ptr<ApplicationResources> resources = window.resources();
+    const ThemeLibrary library{};
+    // The stock anatomies name the parts the sheet selects (::part(face)).
+    ThemeCompileOptions options{};
+    options.controls = stock_control_anatomies();
+    const ThemeCompileResult result =
+        (*resources).compile_theme_package(gallery_theme_package(), library, options);
+    if (!result.succeeded() || !result.diagnostics().empty()) {
+        std::string finding = "the Gallery theme package was not compiled cleanly";
+        if (!result.diagnostics().empty()) {
+            const ThemeCompileDiagnostic& first = result.diagnostics().front();
+            finding += ": " + first.code + " " + first.name + " in " + first.file;
+        }
+        throw std::logic_error(finding);
+    }
+    (*resources).set_theme(result.theme());
+}
+
 }  // namespace
 
 std::unique_ptr<Window> make_gallery()
@@ -282,6 +306,7 @@ std::unique_ptr<Window> make_gallery()
     GalleryShell shell = build_gallery_shell(tree);
     std::unique_ptr<gui_forms::Window> window =
         std::make_unique<Window>(std::move(shell.root), gallery_default_size);
+    select_gallery_theme(*window);
     (*tree.context).window = window.get();
     (*tree.context).synchronize("gallery.initial");
     const ImageLoadResult status_badge =

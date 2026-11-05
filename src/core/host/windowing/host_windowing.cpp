@@ -109,11 +109,18 @@ HostWindowKindTraits host_window_kind_traits(HostWindowKind kind) noexcept {
         traits.joins_main_full_screen = true;
         traits.hides_when_application_inactive = kind == HostWindowKind::floating_tool;
     }
+    traits.popup = kind == HostWindowKind::popup;
     return traits;
 }
 
+const char* host_popup_focus_name(HostPopupFocus focus) noexcept {
+    if (focus == HostPopupFocus::takes_focus) return "takes_focus";
+    return "passive";
+}
+
 HostWindowKind host_window_kind(bool has_owner, bool tool_window,
-                                HostWindowFloating floating) noexcept {
+                                HostWindowFloating floating, bool popup) noexcept {
+    if (popup) return HostWindowKind::popup;
     if (floating == HostWindowFloating::tool) return HostWindowKind::floating_tool;
     if (floating == HostWindowFloating::document) return HostWindowKind::floating_document;
     if (tool_window) return HostWindowKind::tool;
@@ -143,6 +150,7 @@ const char* host_window_kind_name(HostWindowKind kind) noexcept {
     case HostWindowKind::tool: return "tool";
     case HostWindowKind::floating_tool: return "floating_tool";
     case HostWindowKind::floating_document: return "floating_document";
+    case HostWindowKind::popup: return "popup";
     }
     return "unknown";
 }
@@ -355,10 +363,15 @@ bool HostWindowing::admission_valid(const HostWindowDescription& description) co
     }
     if (!primary_.valid()) return false;
     if (description.kind == HostWindowKind::standard && !has_owner) return false;
+    if (description.kind == HostWindowKind::popup && !has_owner) return false;
     // A floating window is owned by the primary window itself.
     const bool floating = host_window_kind_traits(description.kind).floating;
     if (floating && description.owner != primary_) return false;
     return true;
+}
+
+bool HostWindowing::supports_popup_windows() const noexcept {
+    return false;
 }
 
 HostWindowAdmission HostWindowing::admit(const HostWindowDescription& description) {
@@ -372,6 +385,10 @@ HostWindowAdmission HostWindowing::admit(const HostWindowDescription& descriptio
         return result;
     }
     if (snapshot_.started && !snapshot_.capabilities.supports(HostCapability::runtime_windows)) {
+        result.status = reject(HostServiceError::unsupported);
+        return result;
+    }
+    if (description.kind == HostWindowKind::popup && !supports_popup_windows()) {
         result.status = reject(HostServiceError::unsupported);
         return result;
     }

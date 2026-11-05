@@ -29,7 +29,7 @@ void require(bool condition, const char *message) {
 }
 struct Root final : Control {
   explicit Root(StableId id) : Control(std::move(id)) {
-    set_allow_drop(true);
+    allow_drop = true;
     set_focusable(true);
   }
   unsigned keys{};

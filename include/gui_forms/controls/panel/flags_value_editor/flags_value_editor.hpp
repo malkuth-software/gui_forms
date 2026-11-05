@@ -24,8 +24,8 @@ public:
     void set_value(PropertyEnumValue value);
     [[nodiscard]] bool dropped_down() const noexcept { return dropped_down_; }
     void set_dropped_down(bool dropped_down);
-    [[nodiscard]] double popup_width() const noexcept { return popup_width_; }
-    void set_popup_width(double width);
+    [[nodiscard]] double overlay_width() const noexcept { return overlay_width_; }
+    void set_overlay_width(double width);
     [[nodiscard]] Event<const PropertyEnumValue&>& value_changed() noexcept {
         return value_changed_;
     }
@@ -76,25 +76,25 @@ protected:
 private:
     void open_drop_down();
     void close_drop_down();
-    void on_popup_revoked();
-    void synchronize_popup();
-    void apply_popup_choice(std::size_t popup_index, CheckState state);
+    void on_overlay_revoked();
+    void synchronize_overlay();
+    void apply_overlay_choice(std::size_t overlay_index, CheckState state);
 
     PropertyEnumDescriptor descriptor_;
     PropertyEnumValue value_;
-    std::shared_ptr<Panel> popup_layer_;
-    std::shared_ptr<CheckedListBox> popup_list_;
-    std::vector<std::size_t> popup_choice_indices_;
-    std::uint64_t popup_scope_{};
-    PopupToken popup_token_;
-    SubscriptionToken popup_check_;
-    SubscriptionToken popup_dismissal_;
-    SubscriptionToken popup_revocation_;
-    double popup_width_{240.0};
+    std::shared_ptr<Panel> overlay_layer_;
+    std::shared_ptr<CheckedListBox> overlay_list_;
+    std::vector<std::size_t> overlay_choice_indices_;
+    std::uint64_t overlay_scope_{};
+    OverlayToken overlay_token_;
+    SubscriptionToken overlay_check_;
+    SubscriptionToken overlay_dismissal_;
+    SubscriptionToken overlay_revocation_;
+    double overlay_width_{240.0};
     bool dropped_down_{};
     bool focused_{};
-    bool synchronizing_popup_{};
-    bool closing_popup_{};
+    bool synchronizing_overlay_{};
+    bool closing_overlay_{};
     Event<const PropertyEnumValue&> value_changed_;
     Event<bool> drop_down_changed_;
 };

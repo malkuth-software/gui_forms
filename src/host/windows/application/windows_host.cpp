@@ -2215,7 +2215,14 @@ private:
             timing.qpcRefreshPeriod > 0U && timing.qpcVBlank > 0U) {
             period = static_cast<LONGLONG>(timing.qpcRefreshPeriod);
             anchor = static_cast<LONGLONG>(timing.qpcVBlank) + period / 2;
+            live_timing_vblank_ = static_cast<LONGLONG>(timing.qpcVBlank);
+            live_timing_source_ = LiveTimingSource::display_phased;
+        } else {
+            // The cadence's own phase stands in for the vertical blank.
+            live_timing_vblank_ = anchor;
+            live_timing_source_ = LiveTimingSource::fallback;
         }
+        live_timing_period_ = period;
         LONGLONG earliest = now.QuadPart + 1;
         if (live_clock_deadline_ != 0) {
             earliest = (std::max)(earliest, live_clock_deadline_ + period / 2);
@@ -2231,6 +2238,32 @@ private:
         live_clock_armed_ = SetWaitableTimer(live_frame_clock_, &due, 0, nullptr, nullptr,
                                              FALSE) != FALSE;
         if (live_clock_armed_) live_clock_deadline_ = deadline;
+    }
+
+    // The display timing the live clock was last phased to, in FrameClock
+    // time, for the surfaces' presentation reports (design note section 8);
+    // empty before the clock was first armed.
+    [[nodiscard]] LiveDisplayTiming live_display_timing() const noexcept {
+        LiveDisplayTiming timing;
+        if (qpc_frequency_ <= 0 || live_timing_period_ <= 0) return timing;
+        LARGE_INTEGER now{};
+        QueryPerformanceCounter(&now);
+        const FrameTime steady_now = FrameClock::now();
+        timing.refresh_period = std::chrono::duration_cast<FrameInterval>(
+            std::chrono::nanoseconds(qpc_nanoseconds(live_timing_period_)));
+        timing.last_vblank = steady_now - std::chrono::duration_cast<FrameInterval>(
+            std::chrono::nanoseconds(qpc_nanoseconds(now.QuadPart - live_timing_vblank_)));
+        timing.source = live_timing_source_;
+        return timing;
+    }
+
+    // QueryPerformanceCounter ticks as nanoseconds, split so that a long
+    // interval does not overflow.
+    [[nodiscard]] LONGLONG qpc_nanoseconds(LONGLONG ticks) const noexcept {
+        const LONGLONG seconds = ticks / qpc_frequency_;
+        const LONGLONG remainder = ticks % qpc_frequency_;
+        const LONGLONG nanoseconds = seconds * 1'000'000'000LL + remainder * 1'000'000'000LL / qpc_frequency_;
+        return nanoseconds;
     }
 
     // Starts the modal live clock (WM_ENTERSIZEMOVE): arms the live frame
@@ -2426,6 +2459,19 @@ private:
             return;
         }
         live_updates_presented_ += live_composed;
+        // Each surface shown learns the generation it showed and the display
+        // timing of this tick (design note sections 7 and 8), once per tick.
+        const LiveDisplayTiming display_timing = live_display_timing();
+        for (std::size_t index = 0; index < updates.size(); ++index) {
+            const std::size_t source = live_frame_sources_[index];
+            bool first = true;
+            for (std::size_t earlier = 0; earlier < index; ++earlier) {
+                if (live_frame_sources_[earlier] == source) first = false;
+            }
+            if (!first || !updates[index].surface || !live_frames_[source]) continue;
+            if (composed_live_rectangles_[source] == 0U) continue;
+            (*updates[index].surface).notify_presented(live_frames_[source].generation(), display_timing);
+        }
         const std::uint64_t live_duration = live_composed == 0U ? 0U :
             (receipt ? live_elapsed : elapsed) / live_composed;
         // One report per surface frame; its fragments are its rectangles.
@@ -3134,6 +3180,11 @@ private:
     // timing query (null without dwmapi).
     LONGLONG live_clock_deadline_{};
     LONGLONG qpc_frequency_{};
+    // The phase the clock was last armed to (live_display_timing): the
+    // vertical blank and refresh period in counter ticks, and their source.
+    LONGLONG live_timing_vblank_{};
+    LONGLONG live_timing_period_{};
+    LiveTimingSource live_timing_source_{LiveTimingSource::none};
     DwmCompositionTimingFunction dwm_composition_timing_{};
     bool live_frame_due_{};
     std::uint64_t live_clock_signals_{};

@@ -269,7 +269,7 @@ Related types
 
    ``#include <gui_forms/controls/pages/navigation_pane/navigation_pane.hpp>``
 
-   Stage T1 anatomy, as dot members; its states are Control's. The popup parts are in the pane's coordinates although the popup lies outside it, and are present only while it is open.
+   Stage T1 anatomy, as dot members; its states are Control's. The overlay parts are in the pane's coordinates although the overlay lies outside it, and are present only while it is open.
 
    .. cpp:member:: PartGeometry region
 
@@ -301,15 +301,15 @@ Related types
 
    .. cpp:member:: PartGeometry collapsed_label
 
-   .. cpp:member:: PartGeometry popup_shadow
+   .. cpp:member:: PartGeometry overlay_shadow
 
-   .. cpp:member:: PartGeometry popup_face
+   .. cpp:member:: PartGeometry overlay_face
 
-   .. cpp:member:: PartGeometry popup_header
+   .. cpp:member:: PartGeometry overlay_header
 
-   .. cpp:member:: PartGeometry popup_label
+   .. cpp:member:: PartGeometry overlay_label
 
-   .. cpp:member:: PartGeometry popup_content
+   .. cpp:member:: PartGeometry overlay_content
 
    .. cpp:member:: PartGeometry focus
 

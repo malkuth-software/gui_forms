@@ -33,7 +33,7 @@ struct DockNavigatorChoice final {
 // The two-list Ctrl+Tab switcher of docking (owner decision DK-30; docking
 // study 5.7): "Active Tool Windows" on the left, "Active Files" on the
 // right, each a list of rows with one current row in the current list. A
-// DockSite opens it in a popup on Ctrl+Tab (documents) or Alt+F7 (tool
+// DockSite opens it in an overlay on Ctrl+Tab (documents) or Alt+F7 (tool
 // panels) and activates the chosen panel; it can also stand on its own, as
 // in the Gallery.
 //

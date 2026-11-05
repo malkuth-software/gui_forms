@@ -1,0 +1,7 @@
+/* forms: selector.surface property.backdrop */
+:root { ink-on-paper: #1b2733 on #f4f6fa }
+window { backdrop: blur(12px) saturate(140%) tint(role(ink-on-paper) / 0.6) }
+window#settings.tool { backdrop: tint(#ffffff / 50%) saturate(1.2) }
+popup.alert { backdrop: none }
+popup, window.plain { backdrop: blur(0) tint(white) }
+window.other { opacity: 1; backdrop: tint(black / 25%) }

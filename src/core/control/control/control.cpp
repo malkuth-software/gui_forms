@@ -1,6 +1,7 @@
 #include "gui_forms/control.hpp"
 
 #include "gui_forms/binding.hpp"
+#include "gui_forms/binding/value/property_collection_value/property_collection_value.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -15,6 +16,7 @@
 #include <cstdio>
 #include <functional>
 #include <limits>
+#include <new>
 #include <stdexcept>
 
 namespace gui_forms {
@@ -285,10 +287,61 @@ std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
 
 } // namespace
 
+PropertyType PropertyValueTraits<DockStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, dock_style_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<DockStyle>::to_binding(DockStyle value) {
+    const BindingValue general =
+        current_enum_property_value_impl(dock_style_property_enum_impl(), static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<AnchorStyles>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, anchor_styles_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<AnchorStyles>::to_binding(AnchorStyles value) {
+    const BindingValue general = current_enum_property_value_impl(anchor_styles_property_enum_impl(),
+                                                                  static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<AutoSizeMode>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, auto_size_mode_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<AutoSizeMode>::to_binding(AutoSizeMode value) {
+    const BindingValue general = current_enum_property_value_impl(auto_size_mode_property_enum_impl(),
+                                                                  static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<LayoutDirection>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, layout_direction_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<LayoutDirection>::to_binding(LayoutDirection value) {
+    const BindingValue general = current_enum_property_value_impl(layout_direction_property_enum_impl(),
+                                                                  static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<std::optional<CursorKind>>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, cursor_kind_property_enum()};
+}
+
+BindingValue PropertyValueTraits<std::optional<CursorKind>>::to_binding(std::optional<CursorKind> value) {
+    std::int64_t encoded = 0;
+    if (value) encoded = static_cast<std::int64_t>(*value) + 1;
+    const BindingValue general = current_enum_property_value_impl(cursor_kind_property_enum(), encoded);
+    return general;
+}
+
 BindingValue Control::cursor_property_value() const {
     std::int64_t value = 0;
-    if (cursor_) {
-        value = static_cast<std::int64_t>(*cursor_) + 1;
+    if (cursor.read()) {
+        value = static_cast<std::int64_t>(*cursor.read()) + 1;
     }
     const BindingValue current = current_enum_property_value(cursor_kind_property_enum(), value);
     return current;
@@ -297,40 +350,60 @@ BindingValue Control::cursor_property_value() const {
 void Control::set_cursor_property_value(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
     if (choice.value == 0) {
-        set_cursor(std::nullopt);
+        cursor = std::nullopt;
         return;
     }
-    set_cursor(static_cast<CursorKind>(choice.value - 1));
+    cursor = static_cast<CursorKind>(choice.value - 1);
+}
+
+BindingValue Control::classes_property_value() const {
+    std::vector<BindingValue> names{};
+    names.reserve(classes_.size());
+    for (const std::string& name : classes_) names.emplace_back(name);
+    BindingValue value{make_property_collection("String", BindingValueKind::text, std::move(names))};
+    return value;
+}
+
+void Control::set_classes_property_value(const BindingValue& value) {
+    const PropertyCollectionValue* collection = std::get_if<PropertyCollectionValue>(&value);
+    if (collection == nullptr || !*collection || (*collection).item_kind() != BindingValueKind::text) {
+        throw std::invalid_argument("Control.Classes requires a homogeneous text collection");
+    }
+    const std::span<const BindingValue> items = property_collection_items(*collection);
+    std::vector<std::string> names{};
+    names.reserve(items.size());
+    for (const BindingValue& item : items) names.push_back(std::get<std::string>(item));
+    set_classes(std::move(names));
 }
 
 BindingValue Control::back_color_property_value() const {
-    if (!back_color_) {
+    if (!back_color.read()) {
         return BindingValue{};
     }
-    return BindingValue{*back_color_};
+    return BindingValue{*back_color.read()};
 }
 
 void Control::set_back_color_property_value(const BindingValue& value) {
     if (std::holds_alternative<std::monostate>(value)) {
-        clear_back_color();
+        back_color = std::nullopt;
         return;
     }
-    set_back_color(std::get<Color>(value));
+    back_color = std::get<Color>(value);
 }
 
 BindingValue Control::fore_color_property_value() const {
-    if (!fore_color_) {
+    if (!fore_color.read()) {
         return BindingValue{};
     }
-    return BindingValue{*fore_color_};
+    return BindingValue{*fore_color.read()};
 }
 
 void Control::set_fore_color_property_value(const BindingValue& value) {
     if (std::holds_alternative<std::monostate>(value)) {
-        clear_fore_color();
+        fore_color = std::nullopt;
         return;
     }
-    set_fore_color(std::get<Color>(value));
+    fore_color = std::get<Color>(value);
 }
 
 std::shared_ptr<const PropertyEnumDescriptor>
@@ -448,103 +521,16 @@ std::atomic<std::uint64_t> Control::next_runtime_id_{1};
 
 Control::Control(StableId stable_id)
     : runtime_id_{next_runtime_id_.fetch_add(1, std::memory_order_relaxed)},
-      stable_id_(std::move(stable_id)), name_(stable_id_.value()) {
+      stable_id_(std::move(stable_id)) {
+    // The name cell is a base, constructed before stable_id_.
+    name = std::string(stable_id_.value());
     define_bindable_property({
         {"name", BindingValueKind::text, "Design",
          "Stable authoring name used by inspection and generated surfaces.",
-         BindingValue{name_}, Dirty::semantics | Dirty::accessibility},
+         BindingValue{name.read()}, Dirty::semantics | Dirty::accessibility},
         RegisteredPropertyGetter<RegisteredProperty::name>{this},
         RegisteredPropertySetter<RegisteredProperty::name>{this},
         RegisteredPropertyConnector<RegisteredProperty::name>{this}, {}, {}});
-    define_bindable_property({
-        {"visible", BindingValueKind::boolean, "Behavior",
-         "Whether this control participates in retained presentation and input.",
-         BindingValue{true}, invalidation::visibility, true},
-        RegisteredPropertyGetter<RegisteredProperty::visible>{this},
-        RegisteredPropertySetter<RegisteredProperty::visible>{this},
-        RegisteredPropertyConnector<RegisteredProperty::visible>{this}, {},
-        {}});
-    define_bindable_property({
-        {"enabled", BindingValueKind::boolean, "Behavior",
-         "Whether this control can receive ordinary user input.",
-         BindingValue{true}, invalidation::enabled},
-        RegisteredPropertyGetter<RegisteredProperty::enabled>{this},
-        RegisteredPropertySetter<RegisteredProperty::enabled>{this},
-        RegisteredPropertyConnector<RegisteredProperty::enabled>{this}, {},
-        {}});
-    define_bindable_property({
-        {"auto_size", BindingValueKind::boolean, "Layout",
-         "Whether retained measurement determines this control's size.",
-         BindingValue{false}, Dirty::measure | Dirty::arrange |
-             Dirty::hit_test | Dirty::semantics | Dirty::accessibility},
-        RegisteredPropertyGetter<RegisteredProperty::auto_size>{this},
-        RegisteredPropertySetter<RegisteredProperty::auto_size>{this},
-        RegisteredPropertyConnector<RegisteredProperty::auto_size>{this}, {},
-        {}});
-    define_bindable_property({
-        {"causes_validation", BindingValueKind::boolean, "Behavior",
-         "Whether moving focus from this control initiates validation.",
-         BindingValue{true}, Dirty::none},
-        RegisteredPropertyGetter<RegisteredProperty::causes_validation>{this},
-        RegisteredPropertySetter<RegisteredProperty::causes_validation>{this},
-        RegisteredPropertyConnector<RegisteredProperty::causes_validation>{
-            this},
-        {}, {}});
-    define_bindable_property({
-        {"tool_tip_text", BindingValueKind::text, "Behavior",
-         "Plain tooltip text the window's presenter shows; empty never shows.",
-         BindingValue{std::string{}}, Dirty::semantics},
-        RegisteredPropertyGetter<RegisteredProperty::tool_tip_text>{this},
-        RegisteredPropertySetter<RegisteredProperty::tool_tip_text>{this},
-        RegisteredPropertyConnector<RegisteredProperty::tool_tip_text>{this},
-        {}, {}});
-
-    PropertyDescriptor cursor;
-    cursor.name = "cursor";
-    cursor.kind = BindingValueKind::enumeration;
-    cursor.category = "Appearance";
-    cursor.description = "The pointer's cursor over this control; inherit uses the parent's.";
-    cursor.invalidation_effects = Dirty::none;
-    cursor.bindable = false;
-    cursor.enumeration = cursor_kind_property_enum();
-    define_bindable_property({
-        std::move(cursor),
-        detail::BoundMemberFunction<BindingValue (Control::*)() const>(*this, &Control::cursor_property_value),
-        detail::BoundMemberFunction<void (Control::*)(const BindingValue&)>(*this,
-                                                                             &Control::set_cursor_property_value),
-        {}, {}, {}});
-
-    // The authored colours (BackColor, ForeColor): null when the control has
-    // none of its own, so it shows its parent's (ambient_back_color).
-    PropertyDescriptor back_color;
-    back_color.name = "back_color";
-    back_color.kind = BindingValueKind::color;
-    back_color.category = "Appearance";
-    back_color.description = "The control's own background colour; null takes its parent's.";
-    back_color.invalidation_effects = Dirty::paint;
-    back_color.invalidates_subtree = true;
-    back_color.nullable = true;
-    define_bindable_property({
-        std::move(back_color),
-        detail::BoundMemberFunction<BindingValue (Control::*)() const>(*this, &Control::back_color_property_value),
-        detail::BoundMemberFunction<void (Control::*)(const BindingValue&)>(*this,
-                                                                             &Control::set_back_color_property_value),
-        {}, detail::BoundMemberFunction<void (Control::*)()>(*this, &Control::clear_back_color), {}, {}});
-
-    PropertyDescriptor fore_color;
-    fore_color.name = "fore_color";
-    fore_color.kind = BindingValueKind::color;
-    fore_color.category = "Appearance";
-    fore_color.description = "The control's own text colour; null takes its parent's.";
-    fore_color.invalidation_effects = Dirty::paint;
-    fore_color.invalidates_subtree = true;
-    fore_color.nullable = true;
-    define_bindable_property({
-        std::move(fore_color),
-        detail::BoundMemberFunction<BindingValue (Control::*)() const>(*this, &Control::fore_color_property_value),
-        detail::BoundMemberFunction<void (Control::*)(const BindingValue&)>(*this,
-                                                                             &Control::set_fore_color_property_value),
-        {}, detail::BoundMemberFunction<void (Control::*)()>(*this, &Control::clear_fore_color), {}, {}});
 
     PropertyDescriptor bounds;
     bounds.name = "bounds";
@@ -557,56 +543,6 @@ Control::Control(StableId stable_id)
         std::move(bounds),
         RegisteredPropertyGetter<RegisteredProperty::bounds>{this},
         RegisteredPropertySetter<RegisteredProperty::bounds>{this});
-
-    PropertyDescriptor minimum_size;
-    minimum_size.name = "minimum_size";
-    minimum_size.kind = BindingValueKind::size;
-    minimum_size.category = "Layout";
-    minimum_size.description = "Minimum retained layout size.";
-    minimum_size.default_value = BindingValue{Size{}};
-    minimum_size.invalidation_effects = invalidation::bounds;
-    define_structural_property(
-        std::move(minimum_size),
-        RegisteredPropertyGetter<RegisteredProperty::minimum_size>{this},
-        RegisteredPropertySetter<RegisteredProperty::minimum_size>{this});
-
-    PropertyDescriptor maximum_size;
-    maximum_size.name = "maximum_size";
-    maximum_size.kind = BindingValueKind::size;
-    maximum_size.category = "Layout";
-    maximum_size.description =
-        "Maximum retained layout size; zero dimensions are unbounded.";
-    maximum_size.default_value = BindingValue{Size{}};
-    maximum_size.invalidation_effects = invalidation::bounds;
-    define_structural_property(
-        std::move(maximum_size),
-        RegisteredPropertyGetter<RegisteredProperty::maximum_size>{this},
-        RegisteredPropertySetter<RegisteredProperty::maximum_size>{this});
-
-    PropertyDescriptor margin;
-    margin.name = "margin";
-    margin.kind = BindingValueKind::insets;
-    margin.category = "Layout";
-    margin.description = "External logical spacing requested from a layout owner.";
-    margin.default_value = BindingValue{Insets{3.0, 3.0, 3.0, 3.0}};
-    margin.invalidation_effects = Dirty::measure | Dirty::arrange |
-        Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
-    define_structural_property(
-        std::move(margin),
-        RegisteredPropertyGetter<RegisteredProperty::margin>{this},
-        RegisteredPropertySetter<RegisteredProperty::margin>{this});
-
-    PropertyDescriptor padding;
-    padding.name = "padding";
-    padding.kind = BindingValueKind::insets;
-    padding.category = "Layout";
-    padding.description = "Internal logical spacing around child content.";
-    padding.default_value = BindingValue{Insets{}};
-    padding.invalidation_effects = invalidation::bounds;
-    define_structural_property(
-        std::move(padding),
-        RegisteredPropertyGetter<RegisteredProperty::padding>{this},
-        RegisteredPropertySetter<RegisteredProperty::padding>{this});
 
     PropertyDescriptor auto_scroll_offset;
     auto_scroll_offset.name = "auto_scroll_offset";
@@ -622,144 +558,6 @@ Control::Control(StableId stable_id)
         RegisteredPropertyGetter<RegisteredProperty::auto_scroll_offset>{this},
         RegisteredPropertySetter<RegisteredProperty::auto_scroll_offset>{
             this});
-
-    PropertyDescriptor dock;
-    dock.name = "dock";
-    dock.kind = BindingValueKind::enumeration;
-    dock.category = "Layout";
-    dock.description = "Edge or fill participation in parent layout.";
-    dock.default_value = BindingValue{PropertyEnumValue{
-        "dock_style", "none", 0}};
-    dock.invalidation_effects = invalidation::bounds;
-    dock.enumeration = dock_style_property_enum();
-    define_structural_property(
-        std::move(dock),
-        RegisteredPropertyGetter<RegisteredProperty::dock>{this},
-        RegisteredPropertySetter<RegisteredProperty::dock>{this});
-
-    PropertyDescriptor anchor;
-    anchor.name = "anchor";
-    anchor.kind = BindingValueKind::enumeration;
-    anchor.category = "Layout";
-    anchor.description = "Flags retaining distances to parent client edges.";
-    anchor.default_value = BindingValue{PropertyEnumValue{
-        "anchor_styles", "top, left", 5}};
-    anchor.invalidation_effects = invalidation::bounds;
-    anchor.enumeration = anchor_styles_property_enum();
-    define_structural_property(
-        std::move(anchor),
-        RegisteredPropertyGetter<RegisteredProperty::anchor>{this},
-        RegisteredPropertySetter<RegisteredProperty::anchor>{this});
-
-    PropertyDescriptor auto_size_mode;
-    auto_size_mode.name = "auto_size_mode";
-    auto_size_mode.kind = BindingValueKind::enumeration;
-    auto_size_mode.category = "Layout";
-    auto_size_mode.description = "Whether automatic sizing may shrink.";
-    auto_size_mode.default_value = BindingValue{PropertyEnumValue{
-        "auto_size_mode", "grow_only", 1}};
-    auto_size_mode.invalidation_effects = Dirty::measure | Dirty::arrange |
-        Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
-    auto_size_mode.enumeration = auto_size_mode_property_enum();
-    define_structural_property(
-        std::move(auto_size_mode),
-        RegisteredPropertyGetter<RegisteredProperty::auto_size_mode>{this},
-        RegisteredPropertySetter<RegisteredProperty::auto_size_mode>{this});
-
-    PropertyDescriptor layout_direction;
-    layout_direction.name = "layout_direction";
-    layout_direction.kind = BindingValueKind::enumeration;
-    layout_direction.category = "Layout";
-    layout_direction.description =
-        "Inline direction of child layout: inherited, left to right, or mirrored right to left.";
-    layout_direction.default_value = BindingValue{PropertyEnumValue{
-        "layout_direction", "inherit", 0}};
-    layout_direction.invalidation_effects = Dirty::arrange | Dirty::paint |
-        Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
-    layout_direction.enumeration = layout_direction_property_enum();
-    define_structural_property(
-        std::move(layout_direction),
-        RegisteredPropertyGetter<RegisteredProperty::layout_direction>{this},
-        RegisteredPropertySetter<RegisteredProperty::layout_direction>{this});
-
-    PropertyDescriptor tab_index;
-    tab_index.name = "tab_index";
-    tab_index.kind = BindingValueKind::unsigned_integer;
-    tab_index.category = "Behavior";
-    tab_index.description = "Keyboard traversal order within the retained tree.";
-    tab_index.default_value = BindingValue{std::uint64_t{0}};
-    tab_index.invalidation_effects = Dirty::semantics | Dirty::accessibility;
-    define_structural_property(
-        std::move(tab_index),
-        RegisteredPropertyGetter<RegisteredProperty::tab_index>{this},
-        RegisteredPropertySetter<RegisteredProperty::tab_index>{this});
-
-    PropertyDescriptor tab_stop;
-    tab_stop.name = "tab_stop";
-    tab_stop.kind = BindingValueKind::boolean;
-    tab_stop.category = "Behavior";
-    tab_stop.description = "Whether keyboard traversal may focus this control.";
-    tab_stop.default_value = BindingValue{true};
-    tab_stop.invalidation_effects = Dirty::semantics | Dirty::accessibility;
-    define_structural_property(
-        std::move(tab_stop),
-        RegisteredPropertyGetter<RegisteredProperty::tab_stop>{this},
-        RegisteredPropertySetter<RegisteredProperty::tab_stop>{this});
-
-    PropertyDescriptor allow_drop;
-    allow_drop.name = "allow_drop";
-    allow_drop.kind = BindingValueKind::boolean;
-    allow_drop.category = "Behavior";
-    allow_drop.description = "Whether this control may receive drag data.";
-    allow_drop.default_value = BindingValue{false};
-    allow_drop.invalidation_effects = Dirty::semantics | Dirty::hit_test;
-    define_structural_property(
-        std::move(allow_drop),
-        RegisteredPropertyGetter<RegisteredProperty::allow_drop>{this},
-        RegisteredPropertySetter<RegisteredProperty::allow_drop>{this});
-
-    PropertyDescriptor hit_test_transparent;
-    hit_test_transparent.name = "hit_test_transparent";
-    hit_test_transparent.kind = BindingValueKind::boolean;
-    hit_test_transparent.category = "Behavior";
-    hit_test_transparent.description =
-        "Whether ordinary pointer routing passes through this control.";
-    hit_test_transparent.default_value = BindingValue{false};
-    hit_test_transparent.invalidation_effects =
-        Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
-    hit_test_transparent.browsable = false;
-    define_structural_property(
-        std::move(hit_test_transparent),
-        RegisteredPropertyGetter<RegisteredProperty::hit_test_transparent>{
-            this},
-        RegisteredPropertySetter<RegisteredProperty::hit_test_transparent>{
-            this});
-
-    PropertyDescriptor accessible_name;
-    accessible_name.name = "accessible_name";
-    accessible_name.kind = BindingValueKind::text;
-    accessible_name.category = "Accessibility";
-    accessible_name.description = "Authored assistive name override.";
-    accessible_name.default_value = BindingValue{std::string{}};
-    accessible_name.invalidation_effects = Dirty::semantics;
-    define_structural_property(
-        std::move(accessible_name),
-        RegisteredPropertyGetter<RegisteredProperty::accessible_name>{this},
-        RegisteredPropertySetter<RegisteredProperty::accessible_name>{this});
-
-    PropertyDescriptor accessible_description;
-    accessible_description.name = "accessible_description";
-    accessible_description.kind = BindingValueKind::text;
-    accessible_description.category = "Accessibility";
-    accessible_description.description = "Authored assistive description.";
-    accessible_description.default_value = BindingValue{std::string{}};
-    accessible_description.invalidation_effects = Dirty::semantics;
-    define_structural_property(
-        std::move(accessible_description),
-        RegisteredPropertyGetter<RegisteredProperty::accessible_description>{
-            this},
-        RegisteredPropertySetter<RegisteredProperty::accessible_description>{
-            this});
 }
 
 void Control::define_structural_property(
@@ -770,7 +568,378 @@ void Control::define_structural_property(
                               std::move(set), {}, {}, {}});
 }
 
-Control::~Control() = default;
+// The descriptors of Control's table, as the instance registrations wrote
+// them before M2: the structural ones are not bindable.
+PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
+    switch (property) {
+    case RegisteredProperty::visible: {
+        PropertyDescriptor descriptor{"visible", BindingValueKind::boolean, "Behavior",
+             "Whether this control participates in retained presentation and input.",
+             BindingValue{true}, invalidation::visibility, true};
+        return descriptor;
+    }
+    case RegisteredProperty::enabled: {
+        PropertyDescriptor descriptor{"enabled", BindingValueKind::boolean, "Behavior",
+             "Whether this control can receive ordinary user input.",
+             BindingValue{true}, invalidation::enabled};
+        return descriptor;
+    }
+    case RegisteredProperty::auto_size: {
+        PropertyDescriptor descriptor{"auto_size", BindingValueKind::boolean, "Layout",
+             "Whether retained measurement determines this control's size.",
+             BindingValue{false}, Dirty::measure | Dirty::arrange |
+                 Dirty::hit_test | Dirty::semantics | Dirty::accessibility};
+        return descriptor;
+    }
+    case RegisteredProperty::causes_validation: {
+        PropertyDescriptor descriptor{"causes_validation", BindingValueKind::boolean, "Behavior",
+             "Whether moving focus from this control initiates validation.",
+             BindingValue{true}, Dirty::none};
+        return descriptor;
+    }
+    case RegisteredProperty::tool_tip_text: {
+        PropertyDescriptor descriptor{"tool_tip_text", BindingValueKind::text, "Behavior",
+             "Plain tooltip text the window's presenter shows; empty never shows.",
+             BindingValue{std::string{}}, Dirty::semantics};
+        return descriptor;
+    }
+    case RegisteredProperty::cursor: {
+        PropertyDescriptor cursor;
+        cursor.name = "cursor";
+        cursor.kind = BindingValueKind::enumeration;
+        cursor.category = "Appearance";
+        cursor.description = "The pointer's cursor over this control; inherit uses the parent's.";
+        cursor.invalidation_effects = Dirty::none;
+        cursor.bindable = false;
+        cursor.enumeration = cursor_kind_property_enum();
+        return cursor;
+    }
+    case RegisteredProperty::classes: {
+        // The style classes a theme's class rules select (owner ruling of
+        // 2026-11-04): the ontology names a control's role, the project theme
+        // gives the role its look.
+        PropertyDescriptor classes;
+        classes.name = "classes";
+        classes.kind = BindingValueKind::collection;
+        classes.category = "Appearance";
+        classes.description = "The style classes the theme's class rules select, in order; repeated names are dropped.";
+        classes.default_value = BindingValue{make_property_collection("String", BindingValueKind::text, {})};
+        classes.invalidation_effects = Dirty::style | Dirty::paint;
+        classes.serialization_visibility = PropertySerializationVisibility::content;
+        classes.bindable = false;
+        return classes;
+    }
+    case RegisteredProperty::back_color: {
+        PropertyDescriptor back_color;
+        back_color.name = "back_color";
+        back_color.kind = BindingValueKind::color;
+        back_color.category = "Appearance";
+        back_color.description = "The control's own background colour; null takes its parent's.";
+        back_color.invalidation_effects = Dirty::paint;
+        back_color.invalidates_subtree = true;
+        back_color.nullable = true;
+        return back_color;
+    }
+    case RegisteredProperty::fore_color: {
+        PropertyDescriptor fore_color;
+        fore_color.name = "fore_color";
+        fore_color.kind = BindingValueKind::color;
+        fore_color.category = "Appearance";
+        fore_color.description = "The control's own text colour; null takes its parent's.";
+        fore_color.invalidation_effects = Dirty::paint;
+        fore_color.invalidates_subtree = true;
+        fore_color.nullable = true;
+        return fore_color;
+    }
+    case RegisteredProperty::minimum_size: {
+        PropertyDescriptor minimum_size;
+        minimum_size.name = "minimum_size";
+        minimum_size.kind = BindingValueKind::size;
+        minimum_size.category = "Layout";
+        minimum_size.description = "Minimum retained layout size.";
+        minimum_size.default_value = BindingValue{Size{}};
+        minimum_size.invalidation_effects = invalidation::bounds;
+        minimum_size.bindable = false;
+        return minimum_size;
+    }
+    case RegisteredProperty::maximum_size: {
+        PropertyDescriptor maximum_size;
+        maximum_size.name = "maximum_size";
+        maximum_size.kind = BindingValueKind::size;
+        maximum_size.category = "Layout";
+        maximum_size.description =
+            "Maximum retained layout size; zero dimensions are unbounded.";
+        maximum_size.default_value = BindingValue{Size{}};
+        maximum_size.invalidation_effects = invalidation::bounds;
+        maximum_size.bindable = false;
+        return maximum_size;
+    }
+    case RegisteredProperty::margin: {
+        PropertyDescriptor margin;
+        margin.name = "margin";
+        margin.kind = BindingValueKind::insets;
+        margin.category = "Layout";
+        margin.description = "External logical spacing requested from a layout owner.";
+        margin.default_value = BindingValue{Insets{3.0, 3.0, 3.0, 3.0}};
+        margin.invalidation_effects = Dirty::measure | Dirty::arrange |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        margin.bindable = false;
+        return margin;
+    }
+    case RegisteredProperty::padding: {
+        PropertyDescriptor padding;
+        padding.name = "padding";
+        padding.kind = BindingValueKind::insets;
+        padding.category = "Layout";
+        padding.description = "Internal logical spacing around child content.";
+        padding.default_value = BindingValue{Insets{}};
+        padding.invalidation_effects = invalidation::bounds;
+        padding.bindable = false;
+        return padding;
+    }
+    case RegisteredProperty::dock: {
+        PropertyDescriptor dock;
+        dock.name = "dock";
+        dock.kind = BindingValueKind::enumeration;
+        dock.category = "Layout";
+        dock.description = "Edge or fill participation in parent layout.";
+        dock.default_value = BindingValue{PropertyEnumValue{
+            "dock_style", "none", 0}};
+        dock.invalidation_effects = invalidation::bounds;
+        dock.enumeration = dock_style_property_enum();
+        dock.bindable = false;
+        return dock;
+    }
+    case RegisteredProperty::anchor: {
+        PropertyDescriptor anchor;
+        anchor.name = "anchor";
+        anchor.kind = BindingValueKind::enumeration;
+        anchor.category = "Layout";
+        anchor.description = "Flags retaining distances to parent client edges.";
+        anchor.default_value = BindingValue{PropertyEnumValue{
+            "anchor_styles", "top, left", 5}};
+        anchor.invalidation_effects = invalidation::bounds;
+        anchor.enumeration = anchor_styles_property_enum();
+        anchor.bindable = false;
+        return anchor;
+    }
+    case RegisteredProperty::auto_size_mode: {
+        PropertyDescriptor auto_size_mode;
+        auto_size_mode.name = "auto_size_mode";
+        auto_size_mode.kind = BindingValueKind::enumeration;
+        auto_size_mode.category = "Layout";
+        auto_size_mode.description = "Whether automatic sizing may shrink.";
+        auto_size_mode.default_value = BindingValue{PropertyEnumValue{
+            "auto_size_mode", "grow_only", 1}};
+        auto_size_mode.invalidation_effects = Dirty::measure | Dirty::arrange |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        auto_size_mode.enumeration = auto_size_mode_property_enum();
+        auto_size_mode.bindable = false;
+        return auto_size_mode;
+    }
+    case RegisteredProperty::layout_direction: {
+        PropertyDescriptor layout_direction;
+        layout_direction.name = "layout_direction";
+        layout_direction.kind = BindingValueKind::enumeration;
+        layout_direction.category = "Layout";
+        layout_direction.description =
+            "Inline direction of child layout: inherited, left to right, or mirrored right to left.";
+        layout_direction.default_value = BindingValue{PropertyEnumValue{
+            "layout_direction", "inherit", 0}};
+        layout_direction.invalidation_effects = Dirty::arrange | Dirty::paint |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        layout_direction.enumeration = layout_direction_property_enum();
+        layout_direction.bindable = false;
+        return layout_direction;
+    }
+    case RegisteredProperty::tab_index: {
+        PropertyDescriptor tab_index;
+        tab_index.name = "tab_index";
+        tab_index.kind = BindingValueKind::unsigned_integer;
+        tab_index.category = "Behavior";
+        tab_index.description = "Keyboard traversal order within the retained tree.";
+        tab_index.default_value = BindingValue{std::uint64_t{0}};
+        tab_index.invalidation_effects = Dirty::semantics | Dirty::accessibility;
+        tab_index.bindable = false;
+        return tab_index;
+    }
+    case RegisteredProperty::tab_stop: {
+        PropertyDescriptor tab_stop;
+        tab_stop.name = "tab_stop";
+        tab_stop.kind = BindingValueKind::boolean;
+        tab_stop.category = "Behavior";
+        tab_stop.description = "Whether keyboard traversal may focus this control.";
+        tab_stop.default_value = BindingValue{true};
+        tab_stop.invalidation_effects = Dirty::semantics | Dirty::accessibility;
+        tab_stop.bindable = false;
+        return tab_stop;
+    }
+    case RegisteredProperty::allow_drop: {
+        PropertyDescriptor allow_drop;
+        allow_drop.name = "allow_drop";
+        allow_drop.kind = BindingValueKind::boolean;
+        allow_drop.category = "Behavior";
+        allow_drop.description = "Whether this control may receive drag data.";
+        allow_drop.default_value = BindingValue{false};
+        allow_drop.invalidation_effects = Dirty::semantics | Dirty::hit_test;
+        allow_drop.bindable = false;
+        return allow_drop;
+    }
+    case RegisteredProperty::hit_test_transparent: {
+        PropertyDescriptor hit_test_transparent;
+        hit_test_transparent.name = "hit_test_transparent";
+        hit_test_transparent.kind = BindingValueKind::boolean;
+        hit_test_transparent.category = "Behavior";
+        hit_test_transparent.description =
+            "Whether ordinary pointer routing passes through this control.";
+        hit_test_transparent.default_value = BindingValue{false};
+        hit_test_transparent.invalidation_effects =
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        hit_test_transparent.browsable = false;
+        hit_test_transparent.bindable = false;
+        return hit_test_transparent;
+    }
+    case RegisteredProperty::accessible_name: {
+        PropertyDescriptor accessible_name;
+        accessible_name.name = "accessible_name";
+        accessible_name.kind = BindingValueKind::text;
+        accessible_name.category = "Accessibility";
+        accessible_name.description = "Authored assistive name override.";
+        accessible_name.default_value = BindingValue{std::string{}};
+        accessible_name.invalidation_effects = Dirty::semantics;
+        accessible_name.bindable = false;
+        return accessible_name;
+    }
+    case RegisteredProperty::accessible_description: {
+        PropertyDescriptor accessible_description;
+        accessible_description.name = "accessible_description";
+        accessible_description.kind = BindingValueKind::text;
+        accessible_description.category = "Accessibility";
+        accessible_description.description = "Authored assistive description.";
+        accessible_description.default_value = BindingValue{std::string{}};
+        accessible_description.invalidation_effects = Dirty::semantics;
+        accessible_description.bindable = false;
+        return accessible_description;
+    }
+    case RegisteredProperty::name:
+    case RegisteredProperty::bounds:
+    case RegisteredProperty::auto_scroll_offset:
+        throw std::logic_error("GUI.Forms property is an instance registration, not a table entry");
+    }
+    throw std::logic_error("GUI.Forms registered property is unknown");
+}
+
+template <Control::RegisteredProperty Property>
+const PropertyDescriptor& Control::describe_registered() {
+    constexpr bool resettable = Property == RegisteredProperty::back_color ||
+                                Property == RegisteredProperty::fore_color;
+    constexpr bool raises_change = Property == RegisteredProperty::visible ||
+                                   Property == RegisteredProperty::enabled ||
+                                   Property == RegisteredProperty::auto_size ||
+                                   Property == RegisteredProperty::causes_validation ||
+                                   Property == RegisteredProperty::tool_tip_text;
+    static const PropertyDescriptor descriptor =
+        property_table_descriptor(registered_descriptor(Property), PropertyOperations{true, true, resettable,
+                                                                                      raises_change});
+    return descriptor;
+}
+
+template <Control::RegisteredProperty Property>
+BindingValue Control::read_registered(const Component& owner) {
+    const Control& control = static_cast<const Control&>(owner);
+    const BindingValue value = RegisteredPropertyGetter<Property>{&control}();
+    return value;
+}
+
+template <Control::RegisteredProperty Property>
+void Control::write_registered(Component& owner, const BindingValue& value) {
+    Control& control = static_cast<Control&>(owner);
+    RegisteredPropertySetter<Property>{&control}(value);
+}
+
+template <Control::RegisteredProperty Property>
+void Control::reset_registered(Component& owner) {
+    Control& control = static_cast<Control&>(owner);
+    if constexpr (Property == RegisteredProperty::back_color) {
+        control.back_color = std::nullopt;
+    } else {
+        static_assert(Property == RegisteredProperty::fore_color);
+        control.fore_color = std::nullopt;
+    }
+}
+
+template <Control::RegisteredProperty Property>
+SubscriptionToken Control::connect_registered(Component& owner, Component& subscriber,
+                                              std::function<void()> changed) {
+    Control& control = static_cast<Control&>(owner);
+    SubscriptionToken token = RegisteredPropertyConnector<Property>{&control}(subscriber, std::move(changed));
+    return token;
+}
+
+const std::array<PropertyEntry, Control::control_property_count>& Control::control_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, control_property_count> entries{{
+        {"visible", &describe_registered<RegisteredProperty::visible>, &read_registered<RegisteredProperty::visible>,
+         &write_registered<RegisteredProperty::visible>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::visible>},
+        {"enabled", &describe_registered<RegisteredProperty::enabled>, &read_registered<RegisteredProperty::enabled>,
+         &write_registered<RegisteredProperty::enabled>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::enabled>},
+        {"auto_size", &describe_registered<RegisteredProperty::auto_size>, &read_registered<RegisteredProperty::auto_size>,
+         &write_registered<RegisteredProperty::auto_size>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::auto_size>},
+        {"causes_validation", &describe_registered<RegisteredProperty::causes_validation>, &read_registered<RegisteredProperty::causes_validation>,
+         &write_registered<RegisteredProperty::causes_validation>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::causes_validation>},
+        {"tool_tip_text", &describe_registered<RegisteredProperty::tool_tip_text>, &read_registered<RegisteredProperty::tool_tip_text>,
+         &write_registered<RegisteredProperty::tool_tip_text>, nullptr, nullptr, nullptr, &connect_registered<RegisteredProperty::tool_tip_text>},
+        {"cursor", &describe_registered<RegisteredProperty::cursor>, &read_registered<RegisteredProperty::cursor>,
+         &write_registered<RegisteredProperty::cursor>, nullptr, nullptr, nullptr, nullptr},
+        {"classes", &describe_registered<RegisteredProperty::classes>, &read_registered<RegisteredProperty::classes>,
+         &write_registered<RegisteredProperty::classes>, nullptr, nullptr, nullptr, nullptr},
+        {"back_color", &describe_registered<RegisteredProperty::back_color>, &read_registered<RegisteredProperty::back_color>,
+         &write_registered<RegisteredProperty::back_color>, &reset_registered<RegisteredProperty::back_color>, nullptr, nullptr, nullptr},
+        {"fore_color", &describe_registered<RegisteredProperty::fore_color>, &read_registered<RegisteredProperty::fore_color>,
+         &write_registered<RegisteredProperty::fore_color>, &reset_registered<RegisteredProperty::fore_color>, nullptr, nullptr, nullptr},
+        {"minimum_size", &describe_registered<RegisteredProperty::minimum_size>, &read_registered<RegisteredProperty::minimum_size>,
+         &write_registered<RegisteredProperty::minimum_size>, nullptr, nullptr, nullptr, nullptr},
+        {"maximum_size", &describe_registered<RegisteredProperty::maximum_size>, &read_registered<RegisteredProperty::maximum_size>,
+         &write_registered<RegisteredProperty::maximum_size>, nullptr, nullptr, nullptr, nullptr},
+        {"margin", &describe_registered<RegisteredProperty::margin>, &read_registered<RegisteredProperty::margin>,
+         &write_registered<RegisteredProperty::margin>, nullptr, nullptr, nullptr, nullptr},
+        {"padding", &describe_registered<RegisteredProperty::padding>, &read_registered<RegisteredProperty::padding>,
+         &write_registered<RegisteredProperty::padding>, nullptr, nullptr, nullptr, nullptr},
+        {"dock", &describe_registered<RegisteredProperty::dock>, &read_registered<RegisteredProperty::dock>,
+         &write_registered<RegisteredProperty::dock>, nullptr, nullptr, nullptr, nullptr},
+        {"anchor", &describe_registered<RegisteredProperty::anchor>, &read_registered<RegisteredProperty::anchor>,
+         &write_registered<RegisteredProperty::anchor>, nullptr, nullptr, nullptr, nullptr},
+        {"auto_size_mode", &describe_registered<RegisteredProperty::auto_size_mode>, &read_registered<RegisteredProperty::auto_size_mode>,
+         &write_registered<RegisteredProperty::auto_size_mode>, nullptr, nullptr, nullptr, nullptr},
+        {"layout_direction", &describe_registered<RegisteredProperty::layout_direction>, &read_registered<RegisteredProperty::layout_direction>,
+         &write_registered<RegisteredProperty::layout_direction>, nullptr, nullptr, nullptr, nullptr},
+        {"tab_index", &describe_registered<RegisteredProperty::tab_index>, &read_registered<RegisteredProperty::tab_index>,
+         &write_registered<RegisteredProperty::tab_index>, nullptr, nullptr, nullptr, nullptr},
+        {"tab_stop", &describe_registered<RegisteredProperty::tab_stop>, &read_registered<RegisteredProperty::tab_stop>,
+         &write_registered<RegisteredProperty::tab_stop>, nullptr, nullptr, nullptr, nullptr},
+        {"allow_drop", &describe_registered<RegisteredProperty::allow_drop>, &read_registered<RegisteredProperty::allow_drop>,
+         &write_registered<RegisteredProperty::allow_drop>, nullptr, nullptr, nullptr, nullptr},
+        {"hit_test_transparent", &describe_registered<RegisteredProperty::hit_test_transparent>, &read_registered<RegisteredProperty::hit_test_transparent>,
+         &write_registered<RegisteredProperty::hit_test_transparent>, nullptr, nullptr, nullptr, nullptr},
+        {"accessible_name", &describe_registered<RegisteredProperty::accessible_name>, &read_registered<RegisteredProperty::accessible_name>,
+         &write_registered<RegisteredProperty::accessible_name>, nullptr, nullptr, nullptr, nullptr},
+        {"accessible_description", &describe_registered<RegisteredProperty::accessible_description>, &read_registered<RegisteredProperty::accessible_description>,
+         &write_registered<RegisteredProperty::accessible_description>, nullptr, nullptr, nullptr, nullptr},
+    }};
+    static_assert(property_names_distinct(entries), "Control's property table names a property twice");
+    return entries;
+}
+
+std::span<const PropertyEntry> Control::property_table() const noexcept {
+    const std::array<PropertyEntry, control_property_count>& entries = control_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+Control::~Control() {
+    // Normally a control leaves its window (detach) before it is destroyed.
+    // One destroyed while still attached is forgotten here, so no window
+    // registry keeps its address (owner, 2026-11-05).
+    if (surface_root_ != nullptr) (*surface_root_).forget_destroyed_subtree(*this);
+}
 
 double Control::effective_text_scale() const noexcept {
     return surface_root_ != nullptr
@@ -824,7 +993,30 @@ void Control::set_font_from_code(bool from_code) noexcept {
     text_font_cache_.valid = false;
 }
 
+bool Control::declares_clarity() const noexcept {
+    const Theme& theme = effective_theme();
+    MediaFacts media{};
+    const CompiledThemeRules* user_rules = nullptr;
+    const Window* const window = attached_window();
+    if (window != nullptr) media = window_media_facts(*window);
+    if (window != nullptr) user_rules = (*window).user_theme_rules();
+    const CompiledThemeRules* const inline_rules = inline_style_rules();
+    ClarityCache& cache = clarity_cache_;
+    const bool current = cache.valid && cache.theme == &theme && cache.media == media &&
+                         cache.user_rules == user_rules && cache.inline_rules == inline_rules;
+    if (current) return cache.clear;
+    cache.clear = theme.declares_clarity(*this);
+    cache.theme = &theme;
+    cache.media = media;
+    cache.user_rules = user_rules;
+    cache.inline_rules = inline_rules;
+    cache.valid = true;
+    return cache.clear;
+}
+
 Dirty Control::refresh_text_font() noexcept {
+    // The classes may have changed: the clarity is resolved again too.
+    clarity_cache_.valid = false;
     TextFontCache& cache = text_font_cache_;
     if (!cache.valid) return Dirty::none;
     const ResolvedFont before = cache.resolved;
@@ -998,45 +1190,9 @@ void Control::clear_authored_surface_material() {
     invalidate(Dirty::style | Dirty::paint);
 }
 
-void Control::set_back_color(Color color) {
-    require_mutable();
-    if (back_color_ == color) return;
-    if (!back_color_warned_) {
-        back_color_warned_ = true;
-        warn_inline_colour("back_color");
-    }
-    back_color_ = color;
-    invalidate_subtree(Dirty::paint);
-}
-
-void Control::clear_back_color() {
-    require_mutable();
-    if (!back_color_) return;
-    back_color_.reset();
-    invalidate_subtree(Dirty::paint);
-}
-
-void Control::set_fore_color(Color color) {
-    require_mutable();
-    if (fore_color_ == color) return;
-    if (!fore_color_warned_) {
-        fore_color_warned_ = true;
-        warn_inline_colour("fore_color");
-    }
-    fore_color_ = color;
-    invalidate_subtree(Dirty::paint);
-}
-
-void Control::clear_fore_color() {
-    require_mutable();
-    if (!fore_color_) return;
-    fore_color_.reset();
-    invalidate_subtree(Dirty::paint);
-}
-
 std::optional<Color> Control::ambient_back_color() const noexcept {
     for (const Control* current = this; current != nullptr;) {
-        if ((*current).back_color_) return (*current).back_color_;
+        if ((*current).back_color.read()) return (*current).back_color.read();
         const std::shared_ptr<Control> parent = (*current).parent_.lock();
         current = parent.get();
     }
@@ -1045,7 +1201,7 @@ std::optional<Color> Control::ambient_back_color() const noexcept {
 
 std::optional<Color> Control::ambient_fore_color() const noexcept {
     for (const Control* current = this; current != nullptr;) {
-        if ((*current).fore_color_) return (*current).fore_color_;
+        if ((*current).fore_color.read()) return (*current).fore_color.read();
         const std::shared_ptr<Control> parent = (*current).parent_.lock();
         current = parent.get();
     }
@@ -1180,8 +1336,13 @@ void Control::set_tag(std::any tag) {
     tag_ = std::move(tag);
 }
 
-void Control::define_bindable_property(BindableProperty property) {
-    PropertyDescriptor& descriptor = property.descriptor;
+namespace {
+
+// define_bindable_property's checks, shared with the property tables:
+// returns `descriptor` with its registered name, converted default and
+// standard values, and resettable and change_notifications derived from
+// `operations`. Throws std::invalid_argument on a failed check.
+PropertyDescriptor checked_property_descriptor(PropertyDescriptor descriptor, PropertyOperations operations) {
     // Any spelling is accepted; the property is registered under its stored
     // snake_case name.
     const std::string canonical = registered_name(descriptor.name);
@@ -1235,11 +1396,11 @@ void Control::define_bindable_property(BindableProperty property) {
         normalized_standard_values.push_back(*converted);
     }
     descriptor.standard_values = std::move(normalized_standard_values);
-    if (descriptor.readable && !property.get) {
+    if (descriptor.readable && !operations.read) {
         throw std::invalid_argument(
             "GUI.Forms readable property requires a getter");
     }
-    if (descriptor.writable && !property.set) {
+    if (descriptor.writable && !operations.write) {
         throw std::invalid_argument(
             "GUI.Forms writable property requires a setter");
     }
@@ -1266,10 +1427,26 @@ void Control::define_bindable_property(BindableProperty property) {
         }
         descriptor.default_value = *converted;
     }
-    descriptor.resettable = static_cast<bool>(property.reset) ||
+    descriptor.resettable = operations.reset ||
         (descriptor.writable && descriptor.default_value.has_value());
     descriptor.change_notifications =
-        static_cast<bool>(property.connect_changed);
+        operations.change_event;
+    return descriptor;
+}
+
+} // namespace
+
+PropertyDescriptor property_table_descriptor(PropertyDescriptor descriptor, PropertyOperations operations) {
+    PropertyDescriptor checked = checked_property_descriptor(std::move(descriptor), operations);
+    return checked;
+}
+
+void Control::define_bindable_property(BindableProperty property) {
+    const PropertyOperations operations{static_cast<bool>(property.get), static_cast<bool>(property.set),
+                                        static_cast<bool>(property.reset),
+                                        static_cast<bool>(property.connect_changed)};
+    property.descriptor = checked_property_descriptor(std::move(property.descriptor), operations);
+    const std::string canonical = property.descriptor.name;
     // Derived stock controls may replace a base descriptor when they own a
     // more specific implementation of the same canonical property.
     bindable_properties_.insert_or_assign(canonical, std::move(property));
@@ -1290,17 +1467,21 @@ const BindableProperty* Control::find_bindable_property(
 }
 
 bool Control::has_bindable_property(std::string_view name) const {
-    return find_bindable_property(name) != nullptr;
+    if (find_bindable_property(name) != nullptr) return true;
+    const std::string canonical = registered_name(name);
+    if (bindable_properties_.find(canonical) != bindable_properties_.end()) return false;
+    const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+    const bool bindable = entry != nullptr && (*entry).describe().bindable;
+    return bindable;
 }
 
 std::vector<std::string> Control::bindable_property_names() const {
+    const std::vector<PropertyDescriptor> descriptors = property_descriptors();
     std::vector<std::string> result;
-    result.reserve(bindable_properties_.size());
-    for (const std::pair<const std::string, BindableProperty>& property_entry :
-         bindable_properties_) {
-        const BindableProperty& property = property_entry.second;
-        if (property.descriptor.bindable) {
-            result.push_back(property.descriptor.name);
+    result.reserve(descriptors.size());
+    for (const PropertyDescriptor& descriptor : descriptors) {
+        if (descriptor.bindable) {
+            result.push_back(descriptor.name);
         }
     }
     return result;
@@ -1308,20 +1489,39 @@ std::vector<std::string> Control::bindable_property_names() const {
 
 std::optional<PropertyDescriptor> Control::property_descriptor(
     std::string_view name) const {
-    const BindablePropertyMap::const_iterator found =
-        bindable_properties_.find(registered_name(name));
-    if (found == bindable_properties_.end()) return std::nullopt;
-    return (*found).second.descriptor;
+    const std::string canonical = registered_name(name);
+    const BindablePropertyMap::const_iterator found = bindable_properties_.find(canonical);
+    if (found != bindable_properties_.end()) return (*found).second.descriptor;
+    const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+    if (entry == nullptr) return std::nullopt;
+    return (*entry).describe();
 }
 
+namespace {
+
+bool descriptor_name_less(const PropertyDescriptor& left, const PropertyDescriptor& right) {
+    return left.name < right.name;
+}
+
+} // namespace
+
 std::vector<PropertyDescriptor> Control::property_descriptors() const {
+    // The registry's descriptors, then the table's that no registration
+    // replaces, in registered-name order (the registry's own order).
+    const std::span<const PropertyEntry> table = property_table();
     std::vector<PropertyDescriptor> result;
-    result.reserve(bindable_properties_.size());
+    result.reserve(bindable_properties_.size() + table.size());
     for (const std::pair<const std::string, BindableProperty>& property_entry :
          bindable_properties_) {
         const BindableProperty& property = property_entry.second;
         result.push_back(property.descriptor);
     }
+    if (table.empty()) return result;
+    for (const PropertyEntry& entry : table) {
+        if (bindable_properties_.find(std::string(entry.name)) != bindable_properties_.end()) continue;
+        result.push_back(entry.describe());
+    }
+    std::sort(result.begin(), result.end(), descriptor_name_less);
     return result;
 }
 
@@ -1330,20 +1530,22 @@ std::optional<BindingValue> Control::property_value(std::string_view name) const
         throw std::logic_error("GUI.Forms cannot query a disposed control property");
     }
     if (surface_root_) (*surface_root_).require_root_thread("control property query");
-    const BindablePropertyMap::const_iterator found =
-        bindable_properties_.find(registered_name(name));
-    if (found == bindable_properties_.end() ||
-        !(*found).second.descriptor.readable || !(*found).second.get) {
-        return std::nullopt;
+    const std::string canonical = registered_name(name);
+    const BindablePropertyMap::const_iterator found = bindable_properties_.find(canonical);
+    if (found == bindable_properties_.end()) {
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+        if (entry == nullptr) return std::nullopt;
+        std::optional<BindingValue> table_value = read_property_entry(*this, *entry);
+        return table_value;
     }
+    if (!(*found).second.descriptor.readable || !(*found).second.get) return std::nullopt;
     const PropertyRegistration::Getter getter = (*found).second.get;
     const BindingValue value = getter();
-    const std::optional<BindingValue> normalized = convert_property_value(
-        value, (*found).second.descriptor);
+    const PropertyDescriptor* const descriptor = &(*found).second.descriptor;
+    const std::optional<BindingValue> normalized = convert_property_value(value, *descriptor);
     if (!normalized || !valid_property_value_tree(*normalized)) {
         throw std::logic_error(
-            "GUI.Forms property getter violated its declared schema: " +
-            (*found).second.descriptor.name);
+            "GUI.Forms property getter violated its declared schema: " + (*descriptor).name);
     }
     return normalized;
 }
@@ -1354,8 +1556,12 @@ void Control::set_property_value(std::string_view name, BindingValue value) {
     const BindablePropertyMap::iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        throw std::invalid_argument("GUI.Forms property is not registered: " +
-                                    canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+        if (entry == nullptr) {
+            throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
+        }
+        write_property_entry(*this, *entry, value);
+        return;
     }
     const PropertyRegistration registration = (*found).second;
     if (!registration.descriptor.writable || !registration.set) {
@@ -1379,8 +1585,12 @@ SubscriptionToken Control::subscribe_property_changed(
     const BindablePropertyMap::iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        throw std::invalid_argument("GUI.Forms property is not registered: " +
-                                    canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+        if (entry == nullptr) {
+            throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
+        }
+        SubscriptionToken token = connect_property_entry(*this, *entry, owner, std::move(changed));
+        return token;
     }
     const PropertyRegistration::ChangeConnector connector =
         (*found).second.connect_changed;
@@ -1390,9 +1600,14 @@ SubscriptionToken Control::subscribe_property_changed(
 
 bool Control::reset_property(std::string_view name) {
     require_mutable();
-    const BindablePropertyMap::iterator found =
-        bindable_properties_.find(registered_name(name));
-    if (found == bindable_properties_.end()) return false;
+    const std::string canonical = registered_name(name);
+    const BindablePropertyMap::iterator found = bindable_properties_.find(canonical);
+    if (found == bindable_properties_.end()) {
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+        if (entry == nullptr) return false;
+        const bool reset = reset_property_entry(*this, *entry);
+        return reset;
+    }
     const PropertyRegistration registration = (*found).second;
     if (registration.reset) {
         registration.reset();
@@ -1416,8 +1631,12 @@ bool Control::should_serialize_property(std::string_view name) const {
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        throw std::invalid_argument("GUI.Forms property is not registered: " +
-                                    canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+        if (entry == nullptr) {
+            throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
+        }
+        const bool serialized = property_entry_should_serialize(*this, *entry);
+        return serialized;
     }
     const PropertyRegistration registration = (*found).second;
     if (registration.descriptor.serialization_visibility ==
@@ -1445,8 +1664,12 @@ PropertyValueOrigin Control::property_value_origin(
     const BindablePropertyMap::const_iterator found =
         bindable_properties_.find(canonical);
     if (found == bindable_properties_.end()) {
-        throw std::invalid_argument("GUI.Forms property is not registered: " +
-                                    canonical);
+        const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
+        if (entry == nullptr) {
+            throw std::invalid_argument("GUI.Forms property is not registered: " + canonical);
+        }
+        const PropertyValueOrigin origin = property_entry_origin(*this, *entry);
+        return origin;
     }
     const PropertyRegistration registration = (*found).second;
     if (registration.origin) return registration.origin();
@@ -1474,14 +1697,6 @@ const ControlBindingsCollection& Control::data_bindings() const {
             *const_cast<Control*>(this));
     }
     return *data_bindings_;
-}
-
-void Control::set_name(std::string name) {
-    require_mutable();
-    if (name_ == name) return;
-    name_ = std::move(name);
-    invalidate(Dirty::semantics | Dirty::accessibility);
-    publish_change(name_changed_, name_);
 }
 
 void Control::set_style(ControlStyles style, bool enabled) {
@@ -1737,13 +1952,13 @@ void Control::set_requested_bounds(Rect bounds) {
         throw std::invalid_argument(
             "GUI.Forms control bounds must be finite with nonnegative size");
     }
-    bounds.width = std::max(bounds.width, minimum_size_.width);
-    bounds.height = std::max(bounds.height, minimum_size_.height);
-    if (maximum_size_.width > 0.0) {
-        bounds.width = std::min(bounds.width, maximum_size_.width);
+    bounds.width = std::max(bounds.width, minimum_size.read().width);
+    bounds.height = std::max(bounds.height, minimum_size.read().height);
+    if (maximum_size.read().width > 0.0) {
+        bounds.width = std::min(bounds.width, maximum_size.read().width);
     }
-    if (maximum_size_.height > 0.0) {
-        bounds.height = std::min(bounds.height, maximum_size_.height);
+    if (maximum_size.read().height > 0.0) {
+        bounds.height = std::min(bounds.height, maximum_size.read().height);
     }
     if (requested_bounds_ == bounds) {
         return;
@@ -1769,46 +1984,6 @@ void Control::set_bounds(Rect values, BoundsSpecified specified) {
         next.height = values.height;
     }
     set_requested_bounds(next);
-}
-
-void Control::set_minimum_size(Size size) {
-    require_mutable();
-    if (!std::isfinite(size.width) || !std::isfinite(size.height) ||
-        size.width < 0.0 || size.height < 0.0 ||
-        (maximum_size_.width > 0.0 && size.width > maximum_size_.width) ||
-        (maximum_size_.height > 0.0 && size.height > maximum_size_.height)) {
-        throw std::invalid_argument("GUI.Forms minimum size is invalid");
-    }
-    if (minimum_size_ == size) return;
-    minimum_size_ = size;
-    Rect next = requested_bounds_;
-    next.width = std::max(next.width, size.width);
-    next.height = std::max(next.height, size.height);
-    if (next != requested_bounds_) {
-        set_requested_bounds(next);
-    } else {
-        invalidate(invalidation::bounds);
-    }
-}
-
-void Control::set_maximum_size(Size size) {
-    require_mutable();
-    if (!std::isfinite(size.width) || !std::isfinite(size.height) ||
-        size.width < 0.0 || size.height < 0.0 ||
-        (size.width > 0.0 && size.width < minimum_size_.width) ||
-        (size.height > 0.0 && size.height < minimum_size_.height)) {
-        throw std::invalid_argument("GUI.Forms maximum size is invalid");
-    }
-    if (maximum_size_ == size) return;
-    maximum_size_ = size;
-    Rect next = requested_bounds_;
-    if (size.width > 0.0) next.width = std::min(next.width, size.width);
-    if (size.height > 0.0) next.height = std::min(next.height, size.height);
-    if (next != requested_bounds_) {
-        set_requested_bounds(next);
-    } else {
-        invalidate(invalidation::bounds);
-    }
 }
 
 void Control::set_child_layout(const Ptr& child, Rect bounds) {
@@ -1863,32 +2038,15 @@ void Control::notify_positioning_changed(const Control& child) {
 }
 
 void Control::arrange_self(Rect final_bounds) noexcept {
-    final_bounds.width = std::max(final_bounds.width, minimum_size_.width);
-    final_bounds.height = std::max(final_bounds.height, minimum_size_.height);
-    if (maximum_size_.width > 0.0) {
-        final_bounds.width = std::min(final_bounds.width, maximum_size_.width);
+    final_bounds.width = std::max(final_bounds.width, minimum_size.read().width);
+    final_bounds.height = std::max(final_bounds.height, minimum_size.read().height);
+    if (maximum_size.read().width > 0.0) {
+        final_bounds.width = std::min(final_bounds.width, maximum_size.read().width);
     }
-    if (maximum_size_.height > 0.0) {
-        final_bounds.height = std::min(final_bounds.height, maximum_size_.height);
+    if (maximum_size.read().height > 0.0) {
+        final_bounds.height = std::min(final_bounds.height, maximum_size.read().height);
     }
     arranged_bounds_ = final_bounds;
-}
-
-void Control::set_margin(Insets margin) {
-    require_mutable();
-    validate_insets(margin, "GUI.Forms margin must be finite and nonnegative");
-    if (margin_ == margin) return;
-    margin_ = margin;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test |
-               Dirty::semantics | Dirty::accessibility);
-}
-
-void Control::set_padding(Insets padding) {
-    require_mutable();
-    validate_insets(padding, "GUI.Forms padding must be finite and nonnegative");
-    if (padding_ == padding) return;
-    padding_ = padding;
-    invalidate(invalidation::bounds);
 }
 
 void Control::set_auto_scroll_offset(Point offset) {
@@ -1902,73 +2060,348 @@ void Control::set_auto_scroll_offset(Point offset) {
     invalidate(Dirty::semantics | Dirty::accessibility);
 }
 
-void Control::set_dock(DockStyle dock) {
+// The capabilities' hooks (study section 14), in Control's property order.
+
+void Control::prepare_write(const decltype(name)&, std::string&) {
     require_mutable();
-    if (!valid_dock(dock)) {
+}
+
+void Control::written(const decltype(name)&) {
+    invalidate(Dirty::semantics | Dirty::accessibility);
+    publish_change(name_changed_, name.read());
+}
+
+void Control::prepare_write(const decltype(visible)&, bool&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(visible)&) {
+    if (surface_root_ && !visible.read()) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
+    }
+    if (!is_alive()) return;
+    invalidate_subtree(invalidation::visibility);
+    if (surface_root_) (*surface_root_).publish_control_availability(*this);
+    if (!is_alive()) return;
+    on_visible_changed();
+}
+
+void Control::on_visible_changed() {
+    publish_change(visible_changed_, visible.read());
+}
+
+void Control::prepare_write(const decltype(enabled)&, bool&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(enabled)&) {
+    if (surface_root_ && !enabled.read()) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
+    }
+    if (!is_alive()) return;
+    invalidate_declared(invalidation::enabled);
+    if (surface_root_) (*surface_root_).publish_control_availability(*this);
+    if (!is_alive()) return;
+    on_enabled_changed();
+}
+
+void Control::on_enabled_changed() {
+    publish_change(enabled_changed_, enabled.read());
+}
+
+void Control::prepare_write(const decltype(auto_size)&, bool&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(auto_size)&) {
+    anchor_reference_.reset();
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+    on_auto_size_changed();
+}
+
+void Control::on_auto_size_changed() {
+    publish_change(auto_size_changed_, auto_size.read());
+}
+
+void Control::prepare_write(const decltype(causes_validation)&, bool&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(causes_validation)&) {
+    on_causes_validation_changed();
+}
+
+void Control::on_causes_validation_changed() {
+    publish_change(causes_validation_changed_, causes_validation.read());
+}
+
+void Control::prepare_write(const decltype(tool_tip_text)&, std::string& value) {
+    require_mutable();
+    if (!validate_utf8(value).valid()) {
+        throw std::invalid_argument("GUI.Forms tooltip text must be valid UTF-8");
+    }
+}
+
+void Control::written(const decltype(tool_tip_text)&) {
+    // A field hint is painted by the field itself: this control, or the
+    // field_hint editors it encloses, which paint its text when they have
+    // none of their own.
+    const bool hinted = tool_tip_presentation_ == ToolTipPresentation::field_hint;
+    const Dirty effects = hinted ? Dirty::semantics | Dirty::paint : Dirty::semantics;
+    invalidate(effects);
+    if (hinted) {
+        for (const Ptr& child : children_) {
+            if ((*child).tool_tip_presentation_ == ToolTipPresentation::field_hint) (*child).invalidate(Dirty::paint);
+        }
+    }
+    publish_change(tool_tip_text_changed_, tool_tip_text.read());
+    if (surface_root_ != nullptr) (*surface_root_).tool_tip_text_changed(*this);
+}
+
+void Control::prepare_write(const decltype(cursor)&, std::optional<CursorKind>&) {
+    require_mutable();
+    // A stock cursor replaces a custom image even when the stock value is
+    // unchanged; the compare after this hook then skips the rest.
+    if (!cursor_images_) return;
+    cursor_images_.reset();
+    invalidate(Dirty::semantics);
+}
+
+void Control::written(const decltype(cursor)&) {
+    invalidate(Dirty::semantics);
+    on_cursor_changed();
+}
+
+void Control::on_cursor_changed() {}
+
+void Control::prepare_write(const decltype(back_color)&, std::optional<Color>& value) {
+    require_mutable();
+    if (!value || value == back_color.read() || back_color_warned_) return;
+    back_color_warned_ = true;
+    warn_inline_colour("back_color");
+}
+
+void Control::written(const decltype(back_color)&) {
+    invalidate_subtree(Dirty::paint);
+    on_back_color_changed();
+}
+
+void Control::on_back_color_changed() {}
+
+void Control::prepare_write(const decltype(fore_color)&, std::optional<Color>& value) {
+    require_mutable();
+    if (!value || value == fore_color.read() || fore_color_warned_) return;
+    fore_color_warned_ = true;
+    warn_inline_colour("fore_color");
+}
+
+void Control::written(const decltype(fore_color)&) {
+    invalidate_subtree(Dirty::paint);
+    on_fore_color_changed();
+}
+
+void Control::on_fore_color_changed() {}
+
+void Control::prepare_write(const decltype(minimum_size)&, Size& value) {
+    require_mutable();
+    const Size maximum = maximum_size.read();
+    if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
+        (maximum.width > 0.0 && value.width > maximum.width) ||
+        (maximum.height > 0.0 && value.height > maximum.height)) {
+        throw std::invalid_argument("GUI.Forms minimum size is invalid");
+    }
+}
+
+void Control::written(const decltype(minimum_size)&) {
+    const Size size = minimum_size.read();
+    Rect next = requested_bounds_;
+    next.width = std::max(next.width, size.width);
+    next.height = std::max(next.height, size.height);
+    if (next != requested_bounds_) {
+        set_requested_bounds(next);
+    } else {
+        invalidate(invalidation::bounds);
+    }
+}
+
+void Control::prepare_write(const decltype(maximum_size)&, Size& value) {
+    require_mutable();
+    const Size minimum = minimum_size.read();
+    if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
+        (value.width > 0.0 && value.width < minimum.width) ||
+        (value.height > 0.0 && value.height < minimum.height)) {
+        throw std::invalid_argument("GUI.Forms maximum size is invalid");
+    }
+}
+
+void Control::written(const decltype(maximum_size)&) {
+    const Size size = maximum_size.read();
+    Rect next = requested_bounds_;
+    if (size.width > 0.0) next.width = std::min(next.width, size.width);
+    if (size.height > 0.0) next.height = std::min(next.height, size.height);
+    if (next != requested_bounds_) {
+        set_requested_bounds(next);
+    } else {
+        invalidate(invalidation::bounds);
+    }
+}
+
+void Control::prepare_write(const decltype(margin)&, Insets& value) {
+    require_mutable();
+    validate_insets(value, "GUI.Forms margin must be finite and nonnegative");
+}
+
+void Control::written(const decltype(margin)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+    on_margin_changed();
+}
+
+void Control::on_margin_changed() {}
+
+void Control::prepare_write(const decltype(padding)&, Insets& value) {
+    require_mutable();
+    validate_insets(value, "GUI.Forms padding must be finite and nonnegative");
+}
+
+void Control::written(const decltype(padding)&) {
+    invalidate(invalidation::bounds);
+    on_padding_changed();
+}
+
+void Control::on_padding_changed() {}
+
+void Control::prepare_write(const decltype(dock)&, DockStyle& value) {
+    require_mutable();
+    if (!valid_dock(value)) {
         throw std::invalid_argument("GUI.Forms DockStyle value is invalid");
     }
-    if (dock_ == dock) return;
-    dock_ = dock;
-    anchor_reference_.reset();
-    if (dock_ == DockStyle::none) {
-        if (const Ptr owner = parent(); owner && (*owner).surface_root_ != nullptr &&
-            ((*owner).arranged_bounds_.width > 0.0 ||
-             (*owner).arranged_bounds_.height > 0.0) &&
-            (arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0)) {
-            anchor_reference_ = AnchorReference{
-                arranged_bounds_,
-                client_rect({(*owner).arranged_bounds_.width,
-                             (*owner).arranged_bounds_.height}, (*owner).padding_)};
-        }
-    }
-    invalidate(invalidation::bounds);
 }
 
-void Control::set_anchor(AnchorStyles anchor) {
+void Control::written(const decltype(dock)&) {
+    recapture_anchor_reference();
+    invalidate(invalidation::bounds);
+    on_dock_changed();
+}
+
+void Control::on_dock_changed() {}
+
+void Control::prepare_write(const decltype(anchor)&, AnchorStyles& value) {
     require_mutable();
-    if (!valid_anchor(anchor)) {
+    if (!valid_anchor(value)) {
         throw std::invalid_argument("GUI.Forms AnchorStyles contains unknown flags");
     }
-    if (anchor_ == anchor) return;
-    anchor_ = anchor;
-    anchor_reference_.reset();
-    if (dock_ == DockStyle::none) {
-        if (const Ptr owner = parent(); owner && (*owner).surface_root_ != nullptr &&
-            ((*owner).arranged_bounds_.width > 0.0 ||
-             (*owner).arranged_bounds_.height > 0.0) &&
-            (arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0)) {
-            anchor_reference_ = AnchorReference{
-                arranged_bounds_,
-                client_rect({(*owner).arranged_bounds_.width,
-                             (*owner).arranged_bounds_.height}, (*owner).padding_)};
-        }
-    }
+}
+
+void Control::written(const decltype(anchor)&) {
+    recapture_anchor_reference();
     invalidate(invalidation::bounds);
 }
 
-void Control::set_auto_size(bool auto_size) {
+void Control::prepare_write(const decltype(auto_size_mode)&, AutoSizeMode& value) {
     require_mutable();
-    if (auto_size_ == auto_size) return;
-    auto_size_ = auto_size;
-    anchor_reference_.reset();
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test |
-               Dirty::semantics | Dirty::accessibility);
-    publish_change(auto_size_changed_, auto_size_);
-}
-
-void Control::set_auto_size_mode(AutoSizeMode mode) {
-    require_mutable();
-    if (mode != AutoSizeMode::grow_and_shrink &&
-        mode != AutoSizeMode::grow_only) {
+    if (value != AutoSizeMode::grow_and_shrink && value != AutoSizeMode::grow_only) {
         throw std::invalid_argument("GUI.Forms AutoSizeMode value is invalid");
     }
-    if (auto_size_mode_ == mode) return;
-    auto_size_mode_ = mode;
-    if (auto_size_) {
-        anchor_reference_.reset();
-        invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test |
-                   Dirty::semantics | Dirty::accessibility);
+}
+
+void Control::written(const decltype(auto_size_mode)&) {
+    if (!auto_size.read()) return;
+    anchor_reference_.reset();
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+}
+
+void Control::prepare_write(const decltype(layout_direction)&, LayoutDirection& value) {
+    require_mutable();
+    if (value != LayoutDirection::inherit && value != LayoutDirection::left_to_right &&
+        value != LayoutDirection::right_to_left) {
+        throw std::invalid_argument("GUI.Forms LayoutDirection value is invalid");
     }
+}
+
+void Control::written(const decltype(layout_direction)&) {
+    // Direction mirrors where children and text are placed, never their
+    // measured sizes; every descendant that inherits it moves.
+    constexpr Dirty effects = Dirty::arrange | Dirty::paint | Dirty::hit_test |
+                              Dirty::semantics | Dirty::accessibility;
+    invalidate_subtree(effects);
+    on_layout_direction_changed();
+}
+
+void Control::on_layout_direction_changed() {}
+
+void Control::prepare_write(const decltype(tab_index)&, std::uint32_t&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(tab_index)&) {
+    invalidate(Dirty::semantics | Dirty::accessibility);
+    on_tab_index_changed();
+}
+
+void Control::on_tab_index_changed() {}
+
+void Control::prepare_write(const decltype(tab_stop)&, bool&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(tab_stop)&) {
+    invalidate(Dirty::semantics | Dirty::accessibility);
+    on_tab_stop_changed();
+}
+
+void Control::on_tab_stop_changed() {}
+
+void Control::prepare_write(const decltype(allow_drop)&, bool&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(allow_drop)&) {
+    if (surface_root_ && !allow_drop.read()) {
+        (*surface_root_).on_eligibility_changed(shared_from_this());
+    }
+    if (!is_alive()) return;
+    invalidate(Dirty::semantics | Dirty::hit_test);
+}
+
+void Control::prepare_write(const decltype(hit_test_transparent)&, bool&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(hit_test_transparent)&) {
+    if (surface_root_ && hit_test_transparent.read()) {
+        (*surface_root_).on_hit_test_transparency_changed(shared_from_this());
+    }
+    if (!is_alive()) return;
+    invalidate(Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+}
+
+void Control::prepare_write(const decltype(accessible_name)&, std::string&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(accessible_name)&) {
+    invalidate(Dirty::semantics);
+}
+
+void Control::prepare_write(const decltype(accessible_description)&, std::string&) {
+    require_mutable();
+}
+
+void Control::written(const decltype(accessible_description)&) {
+    invalidate(Dirty::semantics);
+}
+
+void Control::recapture_anchor_reference() {
+    anchor_reference_.reset();
+    if (dock.read() != DockStyle::none) return;
+    const Ptr owner = parent();
+    if (!owner || (*owner).surface_root_ == nullptr) return;
+    const Rect& owner_bounds = (*owner).arranged_bounds_;
+    const bool owner_arranged = owner_bounds.width > 0.0 || owner_bounds.height > 0.0;
+    const bool arranged = arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0;
+    if (!owner_arranged || !arranged) return;
+    const Rect client = client_rect({owner_bounds.width, owner_bounds.height}, (*owner).padding.read());
+    anchor_reference_ = AnchorReference{arranged_bounds_, client};
 }
 
 Size Control::get_preferred_size(Size proposed) {
@@ -2036,6 +2469,10 @@ LayoutTransactionState Control::layout_transaction_state() const {
     if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     return {layout_suspend_depth_, layout_deferred_, layout_requested_revision_,
             layout_committed_revision_};
+}
+
+Dirty Control::child_touch_escalation() const noexcept {
+    return Dirty::none;
 }
 
 Dirty Control::dirty() const {
@@ -2113,11 +2550,11 @@ Control::Ptr Control::get_child_at_point(
         const Ptr& child = *current;
         if (!child || !(*child).is_alive()) continue;
         if (has_child_skip(skip, GetChildAtPointSkip::invisible) &&
-            !(*child).visible_) continue;
+            !(*child).visible.read()) continue;
         if (has_child_skip(skip, GetChildAtPointSkip::disabled) &&
-            !(*child).enabled_) continue;
+            !(*child).enabled.read()) continue;
         if (has_child_skip(skip, GetChildAtPointSkip::transparent) &&
-            (*child).hit_test_transparent_) continue;
+            (*child).hit_test_transparent.read()) continue;
         if ((*child).arranged_bounds_.contains(client_point)) return child;
     }
     return {};
@@ -2144,7 +2581,7 @@ Control::Ptr Control::get_next_control(const Ptr& control,
 bool Control::tab_order_less(const Ptr& left, const Ptr& right) noexcept {
     if (!left) return false;
     if (!right) return true;
-    return (*left).tab_index_ < (*right).tab_index_;
+    return (*left).tab_index.read() < (*right).tab_index.read();
 }
 
 void Control::collect_tab_order_controls(const Control& owner,
@@ -2177,42 +2614,6 @@ void Control::send_to_back() {
     }
 }
 
-void Control::set_visible(bool visible) {
-    require_mutable();
-    if (visible_ == visible) {
-        return;
-    }
-    visible_ = visible;
-    if (surface_root_ && !visible) {
-        (*surface_root_).on_eligibility_changed(shared_from_this());
-    }
-    if (!is_alive()) {
-        return;
-    }
-    invalidate_subtree(invalidation::visibility);
-    if (surface_root_) (*surface_root_).publish_control_availability(*this);
-    if (!is_alive()) return;
-    publish_change(visible_changed_, visible_);
-}
-
-void Control::set_enabled(bool enabled) {
-    require_mutable();
-    if (enabled_ == enabled) {
-        return;
-    }
-    enabled_ = enabled;
-    if (surface_root_ && !enabled) {
-        (*surface_root_).on_eligibility_changed(shared_from_this());
-    }
-    if (!is_alive()) {
-        return;
-    }
-    invalidate_declared(invalidation::enabled);
-    if (surface_root_) (*surface_root_).publish_control_availability(*this);
-    if (!is_alive()) return;
-    publish_change(enabled_changed_, enabled_);
-}
-
 void Control::set_focusable(bool focusable) {
     require_mutable();
     if (focusable_ == focusable) {
@@ -2228,71 +2629,14 @@ void Control::set_focusable(bool focusable) {
     invalidate_declared(invalidation::focusability);
 }
 
-void Control::set_causes_validation(bool causes_validation) {
-    require_mutable();
-    if (causes_validation_ == causes_validation) return;
-    causes_validation_ = causes_validation;
-    publish_change(causes_validation_changed_, causes_validation_);
-}
-
 bool Control::perform_validation(Control* destination, bool bulk) {
     require_mutable();
-    if (!causes_validation_) return true;
+    if (!causes_validation.read()) return true;
     ControlValidationEvent event{this, destination, bulk, false};
     validating_.emit(event);
     if (!is_alive() || event.cancel) return !event.cancel;
     validated_.emit();
     return true;
-}
-
-void Control::set_tab_index(std::uint32_t index) {
-    require_mutable();
-    if (tab_index_ == index) return;
-    tab_index_ = index;
-    invalidate(Dirty::semantics | Dirty::accessibility);
-}
-
-void Control::set_tab_stop(bool enabled) {
-    require_mutable();
-    if (tab_stop_ == enabled) return;
-    tab_stop_ = enabled;
-    invalidate(Dirty::semantics | Dirty::accessibility);
-}
-
-void Control::set_allow_drop(bool allow_drop) {
-    require_mutable();
-    if (allow_drop_ == allow_drop) {
-        return;
-    }
-    allow_drop_ = allow_drop;
-    if (surface_root_ && !allow_drop) {
-        (*surface_root_).on_eligibility_changed(shared_from_this());
-    }
-    if (!is_alive()) {
-        return;
-    }
-    invalidate(Dirty::semantics | Dirty::hit_test);
-}
-
-void Control::set_hit_test_transparent(bool transparent) {
-    require_mutable();
-    if (hit_test_transparent_ == transparent) return;
-    hit_test_transparent_ = transparent;
-    if (surface_root_ && transparent) {
-        (*surface_root_).on_hit_test_transparency_changed(shared_from_this());
-    }
-    if (!is_alive()) return;
-    invalidate(Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
-}
-
-void Control::set_cursor(std::optional<CursorKind> cursor) {
-    require_mutable();
-    if (cursor_ == cursor && !cursor_images_) {
-        return;
-    }
-    cursor_images_.reset();
-    cursor_ = cursor;
-    invalidate(Dirty::semantics);
 }
 
 void Control::set_classes(std::vector<std::string> classes) {
@@ -2359,7 +2703,9 @@ InlineStyleResult Control::set_inline_style(std::string_view text) {
     if (text.empty()) {
         if (inline_style_ == nullptr) return InlineStyleResult::applied({});
         inline_style_.reset();
-        invalidate(Dirty::style | Dirty::paint);
+        // The caches keyed by the style's address are dropped: a later
+        // style may be allocated where this one was.
+        invalidate(Dirty::style | Dirty::paint | refresh_text_font());
         return InlineStyleResult::applied({});
     }
     const std::string file = "inline:" + std::string(stable_id().value());
@@ -2369,7 +2715,7 @@ InlineStyleResult Control::set_inline_style(std::string_view text) {
     // A refused style changes nothing (B2).
     if (compiled == nullptr) return InlineStyleResult::refused(std::move(diagnostics));
     inline_style_ = std::move(compiled);
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
     return InlineStyleResult::applied(std::move(diagnostics));
 }
 
@@ -2385,9 +2731,10 @@ const CompiledThemeRules* Control::inline_style_rules() const noexcept {
 
 void Control::set_custom_cursor(CursorImagesPtr images, CursorKind fallback) {
     require_mutable();
-    if (cursor_images_ == images && cursor_ == fallback) return;
+    if (cursor_images_ == images && cursor.read() == fallback) return;
+    // The stock write drops the old images first (its prepare hook).
+    cursor = fallback;
     cursor_images_ = std::move(images);
-    cursor_ = fallback;
     invalidate(Dirty::semantics);
 }
 
@@ -2395,54 +2742,18 @@ CursorImagesPtr Control::effective_cursor_images() const noexcept {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr) {
-        if ((*current).cursor_.has_value()) return (*current).cursor_images_;
+        if ((*current).cursor.read().has_value()) return (*current).cursor_images_;
         owner = (*current).parent_.lock();
         current = owner.get();
     }
     return {};
 }
 
-void Control::set_accessible_name(std::string name) {
-    require_mutable();
-    if (accessible_name_ == name) return;
-    accessible_name_ = std::move(name);
-    invalidate(Dirty::semantics);
-}
-
-void Control::set_accessible_description(std::string description) {
-    require_mutable();
-    if (accessible_description_ == description) return;
-    accessible_description_ = std::move(description);
-    invalidate(Dirty::semantics);
-}
-
-void Control::set_tool_tip_text(std::string text) {
-    require_mutable();
-    if (!validate_utf8(text).valid()) {
-        throw std::invalid_argument("GUI.Forms tooltip text must be valid UTF-8");
-    }
-    if (tool_tip_text_ == text) return;
-    tool_tip_text_ = std::move(text);
-    // A field hint is painted by the field itself: this control, or the
-    // field_hint editors it encloses, which paint its text when they have
-    // none of their own.
-    const bool hinted = tool_tip_presentation_ == ToolTipPresentation::field_hint;
-    const Dirty effects = hinted ? Dirty::semantics | Dirty::paint : Dirty::semantics;
-    invalidate(effects);
-    if (hinted) {
-        for (const Ptr& child : children_) {
-            if ((*child).tool_tip_presentation_ == ToolTipPresentation::field_hint) (*child).invalidate(Dirty::paint);
-        }
-    }
-    publish_change(tool_tip_text_changed_, tool_tip_text_);
-    if (surface_root_ != nullptr) (*surface_root_).tool_tip_text_changed(*this);
-}
-
 std::string Control::field_hint_text() const {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr && (*current).tool_tip_presentation_ == ToolTipPresentation::field_hint) {
-        if (!(*current).tool_tip_text_.empty()) return (*current).tool_tip_text_;
+        if (!(*current).tool_tip_text.read().empty()) return (*current).tool_tip_text.read();
         owner = (*current).parent_.lock();
         current = owner.get();
     }
@@ -2453,8 +2764,8 @@ CursorKind Control::effective_cursor() const noexcept {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr) {
-        if ((*current).cursor_.has_value()) {
-            return *(*current).cursor_;
+        if ((*current).cursor.read().has_value()) {
+            return *(*current).cursor.read();
         }
         owner = (*current).parent_.lock();
         current = owner.get();
@@ -2463,11 +2774,11 @@ CursorKind Control::effective_cursor() const noexcept {
 }
 
 bool Control::effectively_visible() const noexcept {
-    if (!visible_ || layout_collapsed_ || !is_alive()) {
+    if (!visible.read() || layout_collapsed_ || !is_alive()) {
         return false;
     }
     for (Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
-        if (!(*ancestor).visible_ || (*ancestor).layout_collapsed_ ||
+        if (!(*ancestor).visible.read() || (*ancestor).layout_collapsed_ ||
             !(*ancestor).is_alive()) {
             return false;
         }
@@ -2476,11 +2787,11 @@ bool Control::effectively_visible() const noexcept {
 }
 
 bool Control::effectively_enabled() const noexcept {
-    if (!enabled_ || !is_alive()) {
+    if (!enabled.read() || !is_alive()) {
         return false;
     }
     for (Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
-        if (!(*ancestor).enabled_ || !(*ancestor).is_alive()) {
+        if (!(*ancestor).enabled.read() || !(*ancestor).is_alive()) {
             return false;
         }
     }
@@ -2731,27 +3042,27 @@ Size Control::measure(Size available) {
     available = {std::max(0.0, available.width),
                  std::max(0.0, available.height)};
     Size desired{requested_bounds_.width, requested_bounds_.height};
-    if (auto_size_) {
-        double content_width = padding_.left + padding_.right;
-        double content_height = padding_.top + padding_.bottom;
+    if (auto_size.read()) {
+        double content_width = padding.read().left + padding.read().right;
+        double content_height = padding.read().top + padding.read().bottom;
         const std::vector<Ptr> retained = snapshot_layout_children();
         for (const Ptr& child : retained) {
-            if (!is_current_layout_child(child) || !(*child).visible_) continue;
+            if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
             const Size child_desired = (*child).get_preferred_size(available);
             if (!is_alive()) return {};
-            if (!is_current_layout_child(child) || !(*child).visible_) continue;
+            if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
             content_width = std::max(
                 content_width,
                 std::max(0.0, (*child).requested_bounds_.x) +
                     child_desired.width +
-                    (*child).margin_.right + padding_.right);
+                    (*child).margin.read().right + padding.read().right);
             content_height = std::max(
                 content_height,
                 std::max(0.0, (*child).requested_bounds_.y) +
                     child_desired.height +
-                    (*child).margin_.bottom + padding_.bottom);
+                    (*child).margin.read().bottom + padding.read().bottom);
         }
-        if (auto_size_mode_ == AutoSizeMode::grow_only) {
+        if (auto_size_mode.read() == AutoSizeMode::grow_only) {
             content_width = std::max(content_width, requested_bounds_.width);
             content_height = std::max(content_height, requested_bounds_.height);
         }
@@ -2759,10 +3070,10 @@ Size Control::measure(Size available) {
     }
     Size result{std::min(desired.width, available.width),
                 std::min(desired.height, available.height)};
-    result.width = std::max(result.width, minimum_size_.width);
-    result.height = std::max(result.height, minimum_size_.height);
-    if (maximum_size_.width > 0.0) result.width = std::min(result.width, maximum_size_.width);
-    if (maximum_size_.height > 0.0) result.height = std::min(result.height, maximum_size_.height);
+    result.width = std::max(result.width, minimum_size.read().width);
+    result.height = std::max(result.height, minimum_size.read().height);
+    if (maximum_size.read().width > 0.0) result.width = std::min(result.width, maximum_size.read().width);
+    if (maximum_size.read().height > 0.0) result.height = std::min(result.height, maximum_size.read().height);
     return result;
 }
 
@@ -2847,27 +3158,11 @@ bool Control::sizes_children_from_content() const noexcept { return true; }
 
 bool Control::measures_children_in_arrange() const noexcept { return false; }
 
-void Control::set_layout_direction(LayoutDirection direction) {
-    require_mutable();
-    if (direction != LayoutDirection::inherit &&
-        direction != LayoutDirection::left_to_right &&
-        direction != LayoutDirection::right_to_left) {
-        throw std::invalid_argument("GUI.Forms LayoutDirection value is invalid");
-    }
-    if (layout_direction_ == direction) return;
-    layout_direction_ = direction;
-    // Direction mirrors where children and text are placed, never their
-    // measured sizes; every descendant that inherits it moves.
-    constexpr Dirty effects = Dirty::arrange | Dirty::paint | Dirty::hit_test |
-                              Dirty::semantics | Dirty::accessibility;
-    invalidate_subtree(effects);
-}
-
 LayoutDirection Control::effective_layout_direction() const noexcept {
-    LayoutDirection direction = layout_direction_;
+    LayoutDirection direction = layout_direction.read();
     Ptr ancestor = parent_.lock();
     while (direction == LayoutDirection::inherit && ancestor) {
-        direction = (*ancestor).layout_direction_;
+        direction = (*ancestor).layout_direction.read();
         ancestor = (*ancestor).parent_.lock();
     }
     if (direction == LayoutDirection::inherit) direction = LayoutDirection::left_to_right;
@@ -2875,6 +3170,7 @@ LayoutDirection Control::effective_layout_direction() const noexcept {
 }
 
 void Control::arrange(Rect final_bounds) {
+    arranged_by_dock_layout_ = true;
     arrange_self(final_bounds);
     if (children_.empty()) return;
 
@@ -2882,10 +3178,10 @@ void Control::arrange(Rect final_bounds) {
 
     const Rect viewport = child_viewport_rectangle();
     const Rect client{
-        viewport.x + padding_.left,
-        viewport.y + padding_.top,
-        std::max(0.0, viewport.width - padding_.left - padding_.right),
-        std::max(0.0, viewport.height - padding_.top - padding_.bottom)};
+        viewport.x + padding.read().left,
+        viewport.y + padding.read().top,
+        std::max(0.0, viewport.width - padding.read().left - padding.read().right),
+        std::max(0.0, viewport.height - padding.read().top - padding.read().bottom)};
     Rect remaining = client;
     // In a right-to-left parent the dock and anchor layout is computed left
     // to right and mirrored about the viewport, padding included: dock
@@ -2897,48 +3193,48 @@ void Control::arrange(Rect final_bounds) {
     // Forms semantics while leaving index zero consistently topmost for public
     // child indexing, hit testing, BringToFront, and SendToBack.
     for (const Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible_ ||
-            (*child).dock_ == DockStyle::none) {
+        if (!is_current_layout_child(child) || !(*child).visible.read() ||
+            (*child).dock.read() == DockStyle::none) {
             continue;
         }
         const Size desired = (*child).measure({remaining.width, remaining.height});
         if (!is_alive()) return;
-        if (!is_current_layout_child(child) || !(*child).visible_ ||
-            (*child).dock_ == DockStyle::none) {
+        if (!is_current_layout_child(child) || !(*child).visible.read() ||
+            (*child).dock.read() == DockStyle::none) {
             continue;
         }
-        const double width = (*child).auto_size()
-            ? ((*child).auto_size_mode_ == AutoSizeMode::grow_only
+        const double width = (*child).auto_size.read()
+            ? ((*child).auto_size_mode.read() == AutoSizeMode::grow_only
                    ? std::max((*child).requested_bounds_.width, desired.width)
                    : desired.width)
             : ((*child).requested_bounds_.width > 0.0
                    ? (*child).requested_bounds_.width : desired.width);
-        const double height = (*child).auto_size()
-            ? ((*child).auto_size_mode_ == AutoSizeMode::grow_only
+        const double height = (*child).auto_size.read()
+            ? ((*child).auto_size_mode.read() == AutoSizeMode::grow_only
                    ? std::max((*child).requested_bounds_.height, desired.height)
                    : desired.height)
             : ((*child).requested_bounds_.height > 0.0
                    ? (*child).requested_bounds_.height : desired.height);
-        const Rect slot = take_dock_slot((*child).dock_, width, height, remaining);
+        const Rect slot = take_dock_slot((*child).dock.read(), width, height, remaining);
         (*child).anchor_reference_.reset();
         set_child_layout(child, mirrored ? mirror_horizontally(slot, viewport) : slot);
     }
 
     for (const Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible_ ||
-            (*child).dock_ != DockStyle::none) {
+        if (!is_current_layout_child(child) || !(*child).visible.read() ||
+            (*child).dock.read() != DockStyle::none) {
             continue;
         }
         Rect authored = (*child).requested_bounds_;
-        if ((*child).auto_size()) {
+        if ((*child).auto_size.read()) {
             const Size preferred = (*child).get_preferred_size(
                 {client.width, client.height});
             if (!is_alive()) return;
-            if (!is_current_layout_child(child) || !(*child).visible_ ||
-                (*child).dock_ != DockStyle::none) {
+            if (!is_current_layout_child(child) || !(*child).visible.read() ||
+                (*child).dock.read() != DockStyle::none) {
                 continue;
             }
-            if ((*child).auto_size_mode_ == AutoSizeMode::grow_only) {
+            if ((*child).auto_size_mode.read() == AutoSizeMode::grow_only) {
                 authored.width = std::max(authored.width, preferred.width);
                 authored.height = std::max(authored.height, preferred.height);
             } else {
@@ -2946,7 +3242,7 @@ void Control::arrange(Rect final_bounds) {
                 authored.height = preferred.height;
             }
         }
-        if ((*child).auto_size()) {
+        if ((*child).auto_size.read()) {
             (*child).anchor_reference_ = AnchorReference{authored, client};
         } else if (!(*child).anchor_reference_) {
             (*child).anchor_reference_ = AnchorReference{
@@ -2954,7 +3250,7 @@ void Control::arrange(Rect final_bounds) {
         }
         const Rect anchored = anchored_bounds((*(*child).anchor_reference_).bounds,
                                               (*(*child).anchor_reference_).client, client,
-                                              (*child).anchor_);
+                                              (*child).anchor.read());
         set_child_layout(child, mirrored ? mirror_horizontally(anchored, viewport) : anchored);
     }
 }
@@ -2988,14 +3284,40 @@ void Control::on_paint(Painter&, Rect) {}
 void Control::on_paint_overlay(Painter&, Rect) {}
 
 void Control::report_opaque_cover(const Painter& painter, const Rect local) const noexcept {
-    if (surface_root_ != nullptr) (*surface_root_).note_opaque_cover(*this, painter, local);
+    if (surface_root_ == nullptr) return;
+    // A control declared clear covers nothing, so that the backdrop is drawn
+    // beneath it; one that reports a cover painted a full face of its own.
+    if (declares_clarity()) {
+        warn_clear_face();
+        return;
+    }
+    (*surface_root_).note_opaque_cover(*this, painter, local);
+}
+
+void Control::warn_clear_face() const noexcept {
+    if (clear_face_warned_) return;
+    clear_face_warned_ = true;
+    // The warning is advice: one that cannot be built (no memory) is not
+    // written, and painting goes on.
+    try {
+        theme_language::ThemeDiagnostic warning{};
+        warning.code = theme_language::DiagnosticCode::clear_control_paints_face;
+        warning.file = "inline:" + std::string(stable_id().value());
+        warning.property = "background";
+        warning.detail = "the theme declares the control clear, but it paints a full-face fill of its own";
+        theme_language::ThemeDiagnosticList list{};
+        list.add(std::move(warning));
+        theme_language::write_theme_diagnostics(list, stderr);
+    } catch (const std::bad_alloc&) {
+        return;
+    }
 }
 
 void Control::paint_back_color(Painter& painter, Rect bounds) const {
-    if (!back_color_) return;
+    if (!back_color.read()) return;
     const bool high_contrast = surface_root_ != nullptr && (*surface_root_).presentation_settings().high_contrast;
     if (high_contrast || application_colours_suspended()) return;
-    painter.fill_rect(bounds, *back_color_);
+    painter.fill_rect(bounds, *back_color.read());
 }
 
 void Control::paint_authored_surface(Painter& painter, Rect bounds) const {
@@ -3071,6 +3393,52 @@ bool Control::on_ambient_frame(FrameTime) {
 bool Control::paint_depends_on_size() const noexcept {
     const bool depends = has_style(ControlStyles::resize_redraw);
     return depends;
+}
+
+namespace {
+
+// What one child's dock and anchor layout asks of its parent's extent
+// (Control::layout_resize_response). `mirrored`: the parent lays out right to
+// left, which exchanges the left and right anchors.
+ResizeAxes child_resize_demand(DockStyle dock, AnchorStyles anchor, bool mirrored) noexcept {
+    switch (dock) {
+    case DockStyle::fill:
+        return ResizeAxes::both;
+    case DockStyle::top:
+    case DockStyle::bottom:
+        return ResizeAxes::horizontal;
+    case DockStyle::left:
+    case DockStyle::right:
+        return ResizeAxes::vertical;
+    case DockStyle::none: {
+        const bool held_left = has_anchor(anchor, mirrored ? AnchorStyles::right : AnchorStyles::left);
+        const bool held_right = has_anchor(anchor, mirrored ? AnchorStyles::left : AnchorStyles::right);
+        const bool held_top = has_anchor(anchor, AnchorStyles::top);
+        const bool held_bottom = has_anchor(anchor, AnchorStyles::bottom);
+        ResizeAxes demand = ResizeAxes::none;
+        if (held_right || !held_left) demand |= ResizeAxes::horizontal;
+        if (held_bottom || !held_top) demand |= ResizeAxes::vertical;
+        return demand;
+    }
+    }
+    // An unknown dock value (set_dock rejects one): every axis, the safe answer.
+    return ResizeAxes::both;
+}
+
+} // namespace
+
+ResizeAxes Control::layout_resize_response() const noexcept {
+    if (children_.empty()) return ResizeAxes::none;
+    if (!arranged_by_dock_layout_) return ResizeAxes::both;
+    // Mirrors Control::arrange's dock and anchor layout.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    ResizeAxes response = ResizeAxes::none;
+    for (const Ptr& child : children_) {
+        if (!child || !(*child).visible.read()) continue;
+        response |= child_resize_demand((*child).dock.read(), (*child).anchor.read(), mirrored);
+        if (response == ResizeAxes::both) break;
+    }
+    return response;
 }
 
 bool Control::hit_test_local(Point local_point) const {
@@ -3154,8 +3522,8 @@ void Control::notify_default(bool) {}
 
 SemanticDescriptor Control::semantic_descriptor() const {
     SemanticDescriptor descriptor;
-    descriptor.name = accessible_name_;
-    descriptor.description = accessible_description_;
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     return descriptor;
 }
 
@@ -3204,6 +3572,7 @@ void Control::on_drag_preview(DragEvent&) {}
 void Control::on_drag(DragEvent&) {}
 void Control::on_drag_bubble(DragEvent&) {}
 void Control::on_focus_changed(bool) {}
+std::optional<Rect> Control::text_input_caret() const { return std::nullopt; }
 void Control::on_focus_cue_changed(bool) {}
 void Control::on_activate() {}
 

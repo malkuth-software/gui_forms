@@ -157,9 +157,9 @@ std::optional<PropertyEditorBinding> create_numeric_editor(
     (*editor).set_increment(0.1);
     (*editor).set_decimal_places(4U);
     (*editor).set_value(*number);
-    (*editor).set_enabled(request.writable);
-    (*editor).set_accessible_name(request.property_path);
-    (*editor).set_accessible_description(request.descriptor.description);
+    (*editor).enabled = request.writable;
+    (*editor).accessible_name = request.property_path;
+    (*editor).accessible_description = request.descriptor.description;
     const std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
@@ -190,9 +190,9 @@ std::optional<PropertyEditorBinding> create_flags_editor(
         make_control<FlagsValueEditor>(
             StableId(request.stable_id), *request.descriptor.enumeration,
             *value);
-    (*editor).set_enabled(request.writable);
-    (*editor).set_accessible_name(request.property_path);
-    (*editor).set_accessible_description(request.descriptor.description);
+    (*editor).enabled = request.writable;
+    (*editor).accessible_name = request.property_path;
+    (*editor).accessible_description = request.descriptor.description;
     const std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
@@ -208,13 +208,12 @@ std::optional<PropertyEditorBinding> create_color_editor(
     if (!value) return {};
     const std::shared_ptr<ColorValueEditor> editor =
         make_control<ColorValueEditor>(StableId(request.stable_id), *value);
-    (*editor).set_enabled(request.writable);
-    (*editor).set_accessible_name(request.property_path);
-    (*editor).set_accessible_description(request.descriptor.description);
+    (*editor).enabled = request.writable;
+    (*editor).accessible_name = request.property_path;
+    (*editor).accessible_description = request.descriptor.description;
     if ((*editor).editor()) {
-        (*(*editor).editor()).set_accessible_name(request.property_path);
-        (*(*editor).editor()).set_accessible_description(
-            request.descriptor.description);
+        (*(*editor).editor()).accessible_name = request.property_path;
+        (*(*editor).editor()).accessible_description = request.descriptor.description;
     }
     const std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
     PropertyEditorBinding binding;

@@ -23,8 +23,8 @@ namespace {
 
 RasterCanvas::RasterCanvas(StableId stable_id) : Control(std::move(stable_id)) {
     set_focusable(true);
-    set_tab_stop(true);
-    set_cursor(CursorKind::crosshair);
+    tab_stop = true;
+    cursor = CursorKind::crosshair;
 }
 
 void RasterCanvas::set_bitmap(std::shared_ptr<gui_drawing::Bitmap> bitmap) {
@@ -305,8 +305,8 @@ void RasterCanvas::on_paint(Painter& painter, Rect) {
 SemanticDescriptor RasterCanvas::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::image;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     if (bitmap_) {
         descriptor.value = std::to_string((*bitmap_).width()) + " x " +
             std::to_string((*bitmap_).height()) + " at " +

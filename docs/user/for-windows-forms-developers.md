@@ -25,20 +25,20 @@ every Forms type to its GUI.Forms counterpart.
 | `Form` and `Application.Run(form)` | `Window` and `Application::run(window, options)` | `Window` is a complete model that also runs without a native window, which is how tests run. `ApplicationWindowOptions` carries the title, sizes and the `ready`, `closing` and `closed` callbacks. Up to 64 windows run in one host. |
 | `FormClosing` with `e.Cancel` | `closing(HostCloseRequest&)` with `cancel` | The request carries its `reason`. |
 | `AcceptButton`, `CancelButton`, `DialogResult` | `Window::set_accept_button`, `set_cancel_button`, `Button::set_dialog_result` | Return and Escape activate the targets when the focused control does not use the key. A button copies its result to the window after its click handlers run. Assigning a cancel button gives it `DialogResult::cancel` if it had none. |
-| `ShowDialog()` | No modal run loop for your own windows | The window's `dialog_result()` is retained state and closes nothing; act on `dialog_result_changed()`. Use an owned popup (`AnchoredPopupLayer`, `Window::open_popup`) with a focus scope, or a second window. |
+| `ShowDialog()` | No modal run loop for your own windows | The window's `dialog_result()` is retained state and closes nothing; act on `dialog_result_changed()`. Use an owned overlay (`AnchoredOverlayLayer`, `Window::open_overlay`) with a focus scope, or a second window. |
 | `MessageBox`, `OpenFileDialog`, `SaveFileDialog`, `FolderBrowserDialog`, `ColorDialog` | Typed requests to `Window::host_services()->show_dialog(...)` | Each request returns a typed result. A host that cannot show a dialog reports `unsupported`. |
-| `InvokeRequired`, `Invoke`, `BeginInvoke` | `invoke_required()`, `invoke`, `begin_invoke` | `begin_invoke` returns a `DispatchOperation` with explicit `cancel()`. A setter called from the wrong thread on an attached control throws. There is no `DoEvents`. See [Threading](threading). |
+| `InvokeRequired`, `Invoke`, `BeginInvoke` | `invoke_required()`, `invoke`, `begin_invoke` | `begin_invoke` returns a `DispatchOperation` with explicit `cancel()`. A property write or setter called from the wrong thread on an attached control throws. There is no `DoEvents`. See [Threading](threading). |
 | `BackgroundWorker` | `Worker` and `CancellationFlag`, then `begin_invoke` | The worker never touches a control; it posts results to the UI thread. |
 | `System.Windows.Forms.Timer` | `Timer(Window&)` with `tick()` | Bound to one window and fires on its UI thread. |
-| `Dock`, `Anchor` | `set_dock(DockStyle)`, `set_anchor(AnchorStyles)` | Same values. The default anchor is top and left. Dock places children backmost first. |
+| `Dock`, `Anchor` | `dock = DockStyle::fill`, `anchor = AnchorStyles::top` (properties: assign to write, `.read()` to read) | Same values. The default anchor is top and left. Dock places children backmost first. |
 | Integer pixels, `AutoScaleMode` | Logical pixels as `double`; the window's `scale` | `Rect{x, y, width, height}` is in the parent's client space. `set_bounds` takes `BoundsSpecified` with the Forms flag values. See [Layout](layout). |
 | `DataBindings.Add("Text", source, "Name")` | `data_bindings().add("text", source, "name", options)` | `BindingSource` holds `BindingRecord` rows with named fields, not reflected objects. `Value<T>` holds scalar application state shared between controls. |
 | `CausesValidation`, `Validating`, `Validated`, `AutoValidate` | `causes_validation`, `validating()`, `validated()`, `AutoValidate` | Under the default `AutoValidate` policy, cancelling `validating` keeps focus where it is. See [Input and focus](input-and-focus). |
-| `TabIndex`, `TabStop`, `Focus()` | `set_tab_index`, `set_tab_stop`, `Window::request_focus(control)` | Mnemonics use the same `&File` convention; `&&` shows one ampersand. |
+| `TabIndex`, `TabStop`, `Focus()` | `tab_index`, `tab_stop`, `Window::request_focus(control)` | Mnemonics use the same `&File` convention; `&&` shows one ampersand. |
 | `Tag` | `set_tag(std::any)` | The value is released when the control is disposed. |
-| `ToolTip.SetToolTip`, `ErrorProvider.SetError` | `Control::set_tool_tip_text(text)` or `ToolTip::set_tool_tip(control, text)`; `ErrorProvider::set_error(control, text)` | Tooltip text belongs to the control, and `ToolTip` writes it there. Each window shows tooltips through one presenter, with the timing every `ToolTip` of the window shares; `Window::set_tool_tips_shown` and `Application::set_tool_tips_shown` turn them off. A text box, or another control you type into, shows its tooltip as grey hint text in its empty field when it has focus; a placeholder takes precedence. Providers are components bound to one window. |
+| `ToolTip.SetToolTip`, `ErrorProvider.SetError` | `(*control).tool_tip_text = text` or `ToolTip::set_tool_tip(control, text)`; `ErrorProvider::set_error(control, text)` | Tooltip text belongs to the control, and `ToolTip` writes it there. Each window shows tooltips through one presenter, with the timing every `ToolTip` of the window shares; `Window::set_tool_tips_shown` and `Application::set_tool_tips_shown` turn them off. A text box, or another control you type into, shows its tooltip as grey hint text in its empty field when it has focus; a placeholder takes precedence. Providers are components bound to one window. |
 | `ListViewItem.ToolTipText`, `ListView.ShowItemToolTips`, `TreeNode.ToolTipText`, `TreeView.ShowNodeToolTips`, `TabControl.ShowToolTips` | None | GUI.Forms does not provide these members. Data items, such as list rows and tree nodes, have no tooltips. When an item's text is cut off, `ListView` (in the details and list views) and `TreeView` show the whole text in place while the pointer is over it. A tab header shows its `TabPage`'s own tooltip text, and empty text shows nothing. |
-| `AccessibleName`, `AccessibleDescription` | `set_accessible_name`, `set_accessible_description` | Optional. Every stock control already publishes a role, name and state. |
+| `AccessibleName`, `AccessibleDescription` | `accessible_name`, `accessible_description` | Optional. Every stock control already publishes a role, name and state. |
 | System fonts, visual styles, `SystemColors` | Bundled fonts and a `Theme` set on the window | GUI.Forms draws every control itself and never uses host fonts for control text. |
 | Designer, `InitializeComponent`, `.resx` | Code | Trees are built in C++. |
 
@@ -53,8 +53,8 @@ public:
         cancel = gf::make_control<gf::Button>(gf::StableId("confirm.cancel"), "Cancel");
         (*ok).set_bounds({200.0, 96.0, 88.0, 32.0});
         (*cancel).set_bounds({296.0, 96.0, 88.0, 32.0});
-        (*ok).set_anchor(gf::AnchorStyles::bottom | gf::AnchorStyles::right);
-        (*cancel).set_anchor(gf::AnchorStyles::bottom | gf::AnchorStyles::right);
+        (*ok).anchor = gf::AnchorStyles::bottom | gf::AnchorStyles::right;
+        (*cancel).anchor = gf::AnchorStyles::bottom | gf::AnchorStyles::right;
         (*ok).set_dialog_result(gf::DialogResult::ok);
         (*root).add_child(ok);
         (*root).add_child(cancel);
@@ -150,7 +150,7 @@ controls but play the role of the Forms type.
 | Grouping | [`Card`](../api/generated/gui_forms.Card.rst), [`MaterialPanel`](../api/generated/gui_forms.MaterialPanel.rst), [`ScaledGroupBox`](../api/generated/gui_forms.ScaledGroupBox.rst), [`ExpandableSections`](../api/generated/gui_forms.ExpandableSections.rst) (provisional) |
 | Layout | [`MasterDetailView`](../api/generated/gui_forms.MasterDetailView.rst), [`ScaledPanel`](../api/generated/gui_forms.ScaledPanel.rst), [`ResponsiveTrackPanel`](../api/generated/gui_forms.ResponsiveTrackPanel.rst) (provisional), [`CommandOverflowPanel`](../api/generated/gui_forms.CommandOverflowPanel.rst) (provisional) |
 | Menus and commands | [`Command`](../api/generated/gui_forms.Command.rst) |
-| Dialogs and popups | [`AnchoredPopupLayer`](../api/generated/gui_forms.AnchoredPopupLayer.rst) |
+| Dialogs and overlays | [`AnchoredOverlayLayer`](../api/generated/gui_forms.AnchoredOverlayLayer.rst) |
 | Drawing | [`DrawingSurface`](../api/generated/gui_forms.DrawingSurface.rst), [`RasterCanvas`](../api/generated/gui_forms.RasterCanvas.rst), [`LiveSurface`](../api/generated/gui_forms.LiveSurface.rst) |
 | Components | [`SemanticFeedback`](../api/generated/gui_forms.SemanticFeedback.rst) |
 | Diagnostics (lab) | [`MetricsView`](../api/generated/gui_forms.MetricsView.rst), [`VisualInspectorView`](../api/generated/gui_forms.VisualInspectorView.rst), [`VisualInspectorOverlay`](../api/generated/gui_forms.VisualInspectorOverlay.rst), [`TypographySpecimen`](../api/generated/gui_forms.TypographySpecimen.rst), [`EasingPreview`](../api/generated/gui_forms.EasingPreview.rst) |

@@ -95,8 +95,6 @@ public:
     [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept { return arranged_ids_; }
     std::span<const RuntimeId> laid_out_children() const&& = delete;
 
-    [[nodiscard]] bool auto_size() const noexcept override { return Control::auto_size(); }
-    void set_auto_size(bool auto_size) override;
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     // The arrange asks each item its max-content size and its height at

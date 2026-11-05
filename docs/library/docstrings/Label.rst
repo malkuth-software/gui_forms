@@ -105,7 +105,7 @@ Give a text field a caption and an Alt shortcut:
        gf::make_control<gf::TextBox>(gf::StableId("form.name"));
    (*caption).set_requested_bounds({8.0, 8.0, 60.0, 24.0});
    (*name).set_requested_bounds({72.0, 8.0, 160.0, 24.0});
-   (*name).set_accessible_name("Name");
+   (*name).accessible_name = "Name";
    (*form).add_child(caption);
    (*form).add_child(name);
    gf::Window window(form, gf::Size{240.0, 40.0});

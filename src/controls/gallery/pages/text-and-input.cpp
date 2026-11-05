@@ -40,7 +40,7 @@ private:
         (*editing).add_at(label("gallery.text.primary.caption", "Primary field", 11.0, 600, muted),
                           {24.0, 42.0, 130.0, 24.0});
         primary_ = make_control<TextBox>(StableId("gallery.text.primary"));
-        (*primary_).set_accessible_name("Primary field");
+        (*primary_).accessible_name = "Primary field";
         (*primary_).set_placeholder_text(
             "Click, type, drag-select, use Shift+Arrow, Cmd/Ctrl+A, Z, Y");
         (*editing).add_at(primary_, {154.0, 36.0, 700.0, 36.0});
@@ -49,14 +49,14 @@ private:
                           {24.0, 96.0, 130.0, 24.0});
         std::shared_ptr<TextBox> unicode = make_control<TextBox>(
             StableId("gallery.text.unicode"), "Graphemes: a\xCC\x81 · Ω · 日本語 · 🚀");
-        (*unicode).set_accessible_name("Unicode field");
+        (*unicode).accessible_name = "Unicode field";
         (*editing).add_at(unicode, {154.0, 90.0, 700.0, 36.0});
 
         (*editing).add_at(label("gallery.text.readonly.caption", "Read-only", 11.0, 600, muted),
                           {24.0, 150.0, 130.0, 24.0});
         std::shared_ptr<TextBox> read_only = make_control<TextBox>(
             StableId("gallery.text.readonly"), "Selection remains available; mutation is blocked.");
-        (*read_only).set_accessible_name("Read-only field");
+        (*read_only).accessible_name = "Read-only field";
         (*read_only).set_read_only(true);
         (*editing).add_at(read_only, {154.0, 144.0, 700.0, 36.0});
 
@@ -64,9 +64,8 @@ private:
                           {24.0, 204.0, 130.0, 24.0});
         std::shared_ptr<TextBox> password = make_control<TextBox>(
             StableId("gallery.text.password"), "Portsmouth-Ω-2026");
-        (*password).set_accessible_name("Protected credential field");
-        (*password).set_accessible_description(
-            "Password text is editable but excluded from paint traces, clipboard export, and semantic values.");
+        (*password).accessible_name = "Protected credential field";
+        (*password).accessible_description = "Password text is editable but excluded from paint traces, clipboard export, and semantic values.";
         (*password).set_use_system_password_character(true);
         (*editing).add_at(password, {154.0, 198.0, 700.0, 36.0});
 
@@ -87,7 +86,7 @@ private:
         // items dispatch through the bar's single group notification.
         bar_ = make_control<CommandBar>(StableId("gallery.text.command"));
         (*bar_).set_style(page_style());
-        (*bar_).set_accessible_name("Editing commands");
+        (*bar_).accessible_name = "Editing commands";
         (*bar_).set_items({
             {.id = command_select_all, .label = "Select all"},
             {.id = command_copy, .label = "Copy"},
@@ -129,13 +128,13 @@ private:
         (*masked).add_at(label("gallery.text.masked.phone.caption", "Telephone", 11.0, 600, muted),
                          {24.0, 42.0, 130.0, 24.0});
         phone_ = make_control<MaskedTextBox>(StableId("gallery.text.masked.phone"), "(000) 000-0000");
-        (*phone_).set_accessible_name("Telephone number");
+        (*phone_).accessible_name = "Telephone number";
         (*masked).add_at(phone_, {154.0, 36.0, 260.0, 36.0});
         (*masked).add_at(label("gallery.text.masked.code.caption", "Part code", 11.0, 600, muted),
                          {440.0, 42.0, 110.0, 24.0});
         std::shared_ptr<MaskedTextBox> code = make_control<MaskedTextBox>(
             StableId("gallery.text.masked.code"), ">LL-0000-<aa");
-        (*code).set_accessible_name("Part code");
+        (*code).accessible_name = "Part code";
         (*masked).add_at(code, {550.0, 36.0, 300.0, 36.0});
         masked_status_ = label("gallery.text.masked.status",
                                "Telephone: digits only; letters are refused and reported", 11.0, 600, green);
@@ -154,7 +153,7 @@ private:
         (*completion).add_at(label("gallery.text.complete.city.caption", "City", 11.0, 600, muted),
                              {24.0, 42.0, 130.0, 24.0});
         city_ = make_control<TextBox>(StableId("gallery.text.complete.city"));
-        (*city_).set_accessible_name("City");
+        (*city_).accessible_name = "City";
         (*city_).set_placeholder_text("Type a city: Ca, Ed, Lo");
         (*(*city_).auto_complete_custom_source()).add_range(
             {"Calgary", "Cambridge", "Canberra", "Cardiff", "Edinburgh", "Edmonton", "London", "Los Angeles"});
@@ -164,7 +163,7 @@ private:
         (*completion).add_at(label("gallery.text.complete.band.caption", "Band", 11.0, 600, muted),
                              {480.0, 42.0, 70.0, 24.0});
         band_ = make_control<ComboBox>(StableId("gallery.text.complete.band"));
-        (*band_).set_accessible_name("Band");
+        (*band_).accessible_name = "Band";
         (*band_).set_items({"Long wave", "Medium wave", "Short wave", "VHF FM", "UHF", "Microwave"});
         (*band_).set_drop_down_style(ComboBoxStyle::drop_down);
         (*band_).set_auto_complete_source(AutoCompleteSource::list_items);
@@ -187,7 +186,7 @@ private:
         (*tokens).add_at(label("gallery.text.tokens.caption", "Recipients", 11.0, 600, muted),
                          {24.0, 42.0, 130.0, 24.0});
         recipients_ = make_control<TokenBox>(StableId("gallery.text.tokens.recipients"));
-        (*recipients_).set_accessible_name("Recipients");
+        (*recipients_).accessible_name = "Recipients";
         (*(*recipients_).auto_complete_custom_source()).add_range(
             {"Ada Lovelace", "Alan Turing", "Grace Hopper", "Edsger Dijkstra", "Barbara Liskov"});
         (*recipients_).set_auto_complete_source(AutoCompleteSource::custom_source);
@@ -218,7 +217,7 @@ private:
                                           "- Ctrl+B and Ctrl+I format the selection\n"
                                           "- Ctrl+K makes a link\n\n"
                                           "```\nsave_rtf(document);\n```\n");
-        (*note_).set_accessible_name("Note");
+        (*note_).accessible_name = "Note";
         (*rich).add_at(note_, {154.0, 36.0, 700.0, 184.0});
         rich_status_ = label("gallery.text.rich.status", "Ctrl+click a link to open it", 11.0, 600, green);
         (*rich).add_at(rich_status_, {154.0, 228.0, 700.0, 26.0});

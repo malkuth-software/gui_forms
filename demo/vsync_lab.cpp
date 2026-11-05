@@ -112,7 +112,7 @@ public:
         : Control(std::move(stable_id)),
           surface_(LiveSurface::create(waterfall_description({surface_width, surface_height}))) {
         set_focusable(true);
-        set_accessible_name("High-rate waterfall and tearing diagnostic");
+        accessible_name = "High-rate waterfall and tearing diagnostic";
         const char* const trace_path = std::getenv("GUI_FORMS_VSYNC_LAB_TRACE");
         if (trace_path != nullptr && *trace_path != '\0') {
             trace_path_ = trace_path;
@@ -855,7 +855,7 @@ std::unique_ptr<Window> make_vsync_lab() {
 
     std::shared_ptr<gui_forms::Panel> header = make_control<Panel>(StableId("vsync.header"));
     (*header).set_requested_bounds({0.0, 0.0, 0.0, 72.0});
-    (*header).set_dock(DockStyle::top);
+    (*header).dock = DockStyle::top;
     (*header).set_background(Color::rgba(29, 47, 65));
     std::shared_ptr<Label> title = label("vsync.title", "GUI.Forms · live surface / input contention lab",
                        {22.0, 8.0, 760.0, 34.0}, TextStyleRole::title);
@@ -870,7 +870,7 @@ std::unique_ptr<Window> make_vsync_lab() {
 
     std::shared_ptr<gui_forms::Panel> footer = make_control<Panel>(StableId("vsync.footer"));
     (*footer).set_requested_bounds({0.0, 0.0, 0.0, 42.0});
-    (*footer).set_dock(DockStyle::bottom);
+    (*footer).dock = DockStyle::bottom;
     (*footer).set_background(Color::rgba(209, 218, 226));
     std::shared_ptr<Label> footer_text = label(
         "vsync.footer.text",
@@ -880,8 +880,8 @@ std::unique_ptr<Window> make_vsync_lab() {
 
     std::shared_ptr<gui_forms::Panel> controls = make_control<Panel>(StableId("vsync.controls"));
     (*controls).set_requested_bounds({0.0, 0.0, 300.0, 0.0});
-    (*controls).set_dock(DockStyle::left);
-    (*controls).set_padding({12.0, 12.0, 12.0, 12.0});
+    (*controls).dock = DockStyle::left;
+    (*controls).padding = {12.0, 12.0, 12.0, 12.0};
     (*controls).set_border_style(BorderStyle::sunken);
     (*controls).add_child(label("vsync.controls.heading", "PRODUCER + INPUT",
                               {18.0, 12.0, 250.0, 28.0},
@@ -963,8 +963,8 @@ std::unique_ptr<Window> make_vsync_lab() {
 
     std::shared_ptr<gui_forms::Panel> metrics_panel = make_control<Panel>(StableId("vsync.metrics.panel"));
     (*metrics_panel).set_requested_bounds({0.0, 0.0, 286.0, 0.0});
-    (*metrics_panel).set_dock(DockStyle::right);
-    (*metrics_panel).set_padding({12.0, 12.0, 12.0, 12.0});
+    (*metrics_panel).dock = DockStyle::right;
+    (*metrics_panel).padding = {12.0, 12.0, 12.0, 12.0};
     (*metrics_panel).set_border_style(BorderStyle::sunken);
     (*metrics_panel).add_child(label("vsync.metrics.heading", "LIVE TELEMETRY",
                                    {18.0, 12.0, 240.0, 28.0},
@@ -988,13 +988,13 @@ std::unique_ptr<Window> make_vsync_lab() {
     (*metrics_panel).add_child(expectations);
 
     std::shared_ptr<gui_forms::Panel> center = make_control<Panel>(StableId("vsync.center"));
-    (*center).set_dock(DockStyle::fill);
-    (*center).set_padding({12.0, 12.0, 12.0, 12.0});
+    (*center).dock = DockStyle::fill;
+    (*center).padding = {12.0, 12.0, 12.0, 12.0};
     (*center).set_background(Color::rgba(10, 17, 25));
     (*center).set_border_style(BorderStyle::sunken);
     (*context).waterfall =
         make_control<WaterfallSurface>(StableId("vsync.waterfall"));
-    (*(*context).waterfall).set_dock(DockStyle::fill);
+    (*(*context).waterfall).dock = DockStyle::fill;
     (*center).add_child((*context).waterfall);
 
     // Docking consumes backmost-to-topmost. Author edge reservations first and

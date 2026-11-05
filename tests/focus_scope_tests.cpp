@@ -24,13 +24,13 @@ void require(bool condition, const char* message) {
 struct FocusFixture final {
     FocusFixture() {
         (*outside).set_requested_bounds({0.0, 0.0, 80.0, 24.0});
-        (*popup).set_requested_bounds({0.0, 30.0, 160.0, 70.0});
+        (*overlay).set_requested_bounds({0.0, 30.0, 160.0, 70.0});
         (*first).set_requested_bounds({4.0, 4.0, 70.0, 24.0});
         (*second).set_requested_bounds({82.0, 4.0, 70.0, 24.0});
-        (*popup).add_child(first);
-        (*popup).add_child(second);
+        (*overlay).add_child(first);
+        (*overlay).add_child(second);
         (*root).add_child(outside);
-        (*root).add_child(popup);
+        (*root).add_child(overlay);
         window = std::make_unique<Window>(root, Size{200.0, 120.0});
         (*window).perform_layout();
     }
@@ -38,12 +38,12 @@ struct FocusFixture final {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("focus.root"));
     std::shared_ptr<Button> outside =
         make_control<Button>(StableId("focus.outside"), "Outside");
-    std::shared_ptr<Panel> popup =
-        make_control<Panel>(StableId("focus.popup"));
+    std::shared_ptr<Panel> overlay =
+        make_control<Panel>(StableId("focus.overlay"));
     std::shared_ptr<Button> first =
-        make_control<Button>(StableId("focus.popup.first"), "First");
+        make_control<Button>(StableId("focus.overlay.first"), "First");
     std::shared_ptr<Button> second =
-        make_control<Button>(StableId("focus.popup.second"), "Second");
+        make_control<Button>(StableId("focus.overlay.second"), "Second");
     std::unique_ptr<Window> window;
 };
 
@@ -81,13 +81,13 @@ private:
 class BeginFocusScopeOffThread final {
 public:
     BeginFocusScopeOffThread(Window& window,
-                             const std::shared_ptr<Panel>& popup,
+                             const std::shared_ptr<Panel>& overlay,
                              bool& rejected)
-        : window_(window), popup_(popup), rejected_(rejected) {}
+        : window_(window), overlay_(overlay), rejected_(rejected) {}
 
     void operator()() const {
         try {
-            static_cast<void>(window_.begin_focus_scope(popup_));
+            static_cast<void>(window_.begin_focus_scope(overlay_));
         } catch (const std::logic_error&) {
             rejected_ = true;
         }
@@ -95,7 +95,7 @@ public:
 
 private:
     Window& window_;
-    const std::shared_ptr<Panel>& popup_;
+    const std::shared_ptr<Panel>& overlay_;
     bool& rejected_;
 };
 
@@ -118,9 +118,9 @@ void test_containment_and_tab_traversal() {
     require((*fixture.window).request_focus(fixture.outside),
             "fixture outside control must accept focus");
     const FocusScopeId scope = (*fixture.window).begin_focus_scope(
-        fixture.popup, fixture.first);
+        fixture.overlay, fixture.first);
     require(scope && (*fixture.window).focus_scope_depth() == 1U &&
-                (*fixture.window).active_focus_scope_root() == fixture.popup &&
+                (*fixture.window).active_focus_scope_root() == fixture.overlay &&
                 (*fixture.window).focused_control() == fixture.first,
             "scope entry must publish identity and focus the preferred descendant");
     require(!(*fixture.window).request_focus(fixture.outside) &&
@@ -204,7 +204,7 @@ void test_owner_unavailable_cleanup_and_nesting_guard() {
     SubscriptionToken changed = (*fixture.window).focus_scope_changed().subscribe(
         ObserveFocusScopeClose(close_reason, saw_close));
     static_cast<void>((*fixture.window).begin_focus_scope(
-        fixture.popup, fixture.first));
+        fixture.overlay, fixture.first));
 
     bool rejected_foreign_nested_scope = false;
     try {
@@ -215,7 +215,7 @@ void test_owner_unavailable_cleanup_and_nesting_guard() {
     require(rejected_foreign_nested_scope,
             "a nested scope must remain inside the containing retained subtree");
 
-    (*fixture.popup).set_visible(false);
+    (*fixture.overlay).visible = false;
     require(saw_close &&
                 close_reason == FocusScopeCloseReason::owner_unavailable &&
                 (*fixture.window).focus_scope_depth() == 0U &&
@@ -234,7 +234,7 @@ void test_ui_thread_enforcement_and_empty_focus_traversal() {
 
     bool rejected = false;
     std::thread worker(BeginFocusScopeOffThread(
-        *fixture.window, fixture.popup, rejected));
+        *fixture.window, fixture.overlay, rejected));
     worker.join();
     require(rejected && (*fixture.window).focus_scope_depth() == 0U &&
                 (*fixture.window).metrics_snapshot().rejected_wrong_thread_operations == 1U,
@@ -245,11 +245,11 @@ void test_bounded_nesting() {
     FocusFixture fixture;
     std::array<FocusScopeId, maximum_focus_scope_depth> scopes{};
     for (FocusScopeId& scope : scopes) {
-        scope = (*fixture.window).begin_focus_scope(fixture.popup);
+        scope = (*fixture.window).begin_focus_scope(fixture.overlay);
     }
     bool rejected = false;
     try {
-        static_cast<void>((*fixture.window).begin_focus_scope(fixture.popup));
+        static_cast<void>((*fixture.window).begin_focus_scope(fixture.overlay));
     } catch (const std::length_error&) {
         rejected = true;
     }
@@ -275,21 +275,21 @@ void test_open_callback_may_close_without_late_focus() {
     SubscriptionToken changed = (*fixture.window).focus_scope_changed().subscribe(
         CloseOpenedFocusScope(*fixture.window));
     const FocusScopeId scope = (*fixture.window).begin_focus_scope(
-        fixture.popup, fixture.first);
+        fixture.overlay, fixture.first);
     require(scope && (*fixture.window).focus_scope_depth() == 0U &&
                 (*fixture.window).focused_control() == fixture.outside &&
                 !(*fixture.window).end_focus_scope(scope),
             "a synchronous open handler may close the scope without a late focus leak");
 }
 
-void test_combo_popup_in_modal_scope() {
+void test_combo_overlay_in_modal_scope() {
     FocusFixture fixture;
     std::shared_ptr<ComboBox> combo = make_control<ComboBox>(StableId("modal.combo"));
     (*combo).set_requested_bounds({4, 35, 100, 25});
     (*combo).set_items({"RGB", "OKHSL"});
-    (*fixture.popup).add_child(combo);
+    (*fixture.overlay).add_child(combo);
     (*fixture.window).perform_layout();
-    FocusScopeId modal = (*fixture.window).begin_focus_scope(fixture.popup, combo);
+    FocusScopeId modal = (*fixture.window).begin_focus_scope(fixture.overlay, combo);
     for (int iteration = 0; iteration < 3; ++iteration) {
         (*combo).set_dropped_down(true);
         (*fixture.window).perform_layout();
@@ -301,16 +301,16 @@ void test_combo_popup_in_modal_scope() {
         require((*fixture.window).focus_scope_depth() == 1 && (*fixture.window).focused_control() == combo,
                 "closing a nested combo restores its dialog owner");
     }
-    std::shared_ptr<Panel> foreign = make_control<Panel>(StableId("foreign.popup"));
-    PopupToken token = (*fixture.window).open_popup(fixture.outside, foreign);
+    std::shared_ptr<Panel> foreign = make_control<Panel>(StableId("foreign.overlay"));
+    OverlayToken token = (*fixture.window).open_overlay(fixture.outside, foreign);
     bool rejected = false;
     try { static_cast<void>((*fixture.window).begin_focus_scope(foreign)); }
     catch (const std::logic_error&) { rejected = true; }
     require(rejected && (*fixture.window).focus_scope_depth() == 1,
-            "a popup owned outside the modal scope cannot enter it");
+            "an overlay owned outside the modal scope cannot enter it");
     token.disconnect();
     (*combo).set_dropped_down(true);
-    (*fixture.popup).set_visible(false);
+    (*fixture.overlay).visible = false;
     require(!(*combo).dropped_down() && (*fixture.window).focus_scope_depth() == 0,
             "hiding a modal owner revokes its nested combo and both focus scopes");
     static_cast<void>((*fixture.window).end_focus_scope(modal));
@@ -321,10 +321,10 @@ void test_tab_index_and_tab_stop_define_deterministic_traversal() {
     std::shared_ptr<gui_forms::Button> late = make_control<Button>(StableId("tab.late"), "Late");
     std::shared_ptr<gui_forms::Button> skipped = make_control<Button>(StableId("tab.skipped"), "Skipped");
     std::shared_ptr<gui_forms::Button> first = make_control<Button>(StableId("tab.first"), "First");
-    (*late).set_tab_index(20U);
-    (*skipped).set_tab_index(10U);
-    (*skipped).set_tab_stop(false);
-    (*first).set_tab_index(0U);
+    (*late).tab_index = 20U;
+    (*skipped).tab_index = 10U;
+    (*skipped).tab_stop = false;
+    (*first).tab_index = 0U;
     (*root).add_child(late);
     (*root).add_child(skipped);
     (*root).add_child(first);
@@ -346,7 +346,7 @@ void test_tab_index_and_tab_stop_define_deterministic_traversal() {
 
 int main() {
     try {
-        test_combo_popup_in_modal_scope();
+        test_combo_overlay_in_modal_scope();
         test_containment_and_tab_traversal();
         test_nested_out_of_order_close_restores_outer_history();
         test_owner_unavailable_cleanup_and_nesting_guard();

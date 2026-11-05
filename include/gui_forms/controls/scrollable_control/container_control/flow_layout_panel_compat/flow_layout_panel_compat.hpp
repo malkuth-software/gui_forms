@@ -58,10 +58,6 @@ public:
         return cross_alignment_;
     }
     void set_cross_alignment(FlowCrossAlignment alignment);
-    [[nodiscard]] bool auto_size() const noexcept override {
-        return Control::auto_size();
-    }
-    void set_auto_size(bool auto_size) override;
     void set_flow_break(const Control& child, bool flow_break);
     [[nodiscard]] bool flow_break(const Control& child) const;
     void set_flex_grow(const Control& child, double grow);

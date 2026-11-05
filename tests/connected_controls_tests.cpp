@@ -180,9 +180,9 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
     (*first).set_requested_bounds({0.0, 0.0, 100.0, 36.0});
     (*middle).set_requested_bounds({100.0, 0.0, 100.0, 36.0});
     (*last).set_requested_bounds({200.0, 0.0, 100.0, 36.0});
-    (*first).set_tab_index(0U);
-    (*middle).set_tab_index(1U);
-    (*last).set_tab_index(2U);
+    (*first).tab_index = 0U;
+    (*middle).tab_index = 1U;
+    (*last).tab_index = 2U;
     (*root).add_child(first);
     (*root).add_child(middle);
     (*root).add_child(last);
@@ -299,7 +299,7 @@ void test_atomic_grouping_hit_cracks_focus_and_semantics() {
             "pressed state must not duplicate its physical seam");
     static_cast<void>(window.dispatch_pointer(
         {PointerAction::up, PointerButton::primary, {150.0, 18.0}}));
-    (*middle).set_enabled(false);
+    (*middle).enabled = false;
     static_cast<void>(window.paint(painter, window.take_damage().bounds()));
     require(operation_count("connected.test.middle",
                             VisualPaintOperation::draw_line) == 1U,

@@ -50,7 +50,7 @@ void add_states(const std::shared_ptr<Surface>& page,
 void add_text_input(const std::shared_ptr<Surface>& page,
                     const std::shared_ptr<PageContext>& context);
 
-// collections-and-popups
+// collections-and-overlays
 void add_collections(const std::shared_ptr<Surface>& page,
                      const std::shared_ptr<PageContext>& context);
 
@@ -93,7 +93,7 @@ void add_value_editors(const std::shared_ptr<Surface>& page,
                        const std::shared_ptr<PageContext>& context);
 void add_responsive_layouts(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context);
-void add_anchored_popups(const std::shared_ptr<Surface>& page,
+void add_anchored_overlays(const std::shared_ptr<Surface>& page,
                          const std::shared_ptr<PageContext>& context);
 void add_live_surfaces(const std::shared_ptr<Surface>& page,
                        const std::shared_ptr<PageContext>& context);

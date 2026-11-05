@@ -25,7 +25,7 @@
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/flags_value_editor/flags_value_editor.hpp"
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
@@ -43,7 +43,7 @@ namespace {
 
 // What a type create_with makes needs.
 enum class Recipe : std::uint8_t {
-    anchored_popup_layer,
+    anchored_overlay_layer,
     dock_site,
     page_strip,
     flags_value_editor,
@@ -60,7 +60,7 @@ struct NamedRecipe final {
 };
 
 constexpr std::array<NamedRecipe, 7> recipes{{
-    {"anchored_popup_layer", Recipe::anchored_popup_layer},
+    {"anchored_overlay_layer", Recipe::anchored_overlay_layer},
     {"dock_site", Recipe::dock_site},
     {"page_strip", Recipe::page_strip},
     {"flags_value_editor", Recipe::flags_value_editor},
@@ -194,13 +194,13 @@ gf_status create_from_request(const CreateRequest& request, StableId stable_id, 
         }
     }
     switch (recipe) {
-    case Recipe::anchored_popup_layer: {
+    case Recipe::anchored_overlay_layer: {
         Control::Ptr anchor;
         const gf_status owned = owner_as<Control>(request, slot, "a control (the anchor)", anchor);
         if (owned != GF_STATUS_OK) {
             return owned;
         }
-        made = make_control<AnchoredPopupLayer>(std::move(stable_id), anchor);
+        made = make_control<AnchoredOverlayLayer>(std::move(stable_id), anchor);
         return GF_STATUS_OK;
     }
     case Recipe::dock_site: {

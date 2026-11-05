@@ -48,6 +48,41 @@ keyword `backplane` it mirrors the backplane under the part instead, so a
 part reflects what is drawn behind it, and is drawn again when that
 changes. See [Theme language](theme-language.md) for the full syntax.
 
+## Window backdrops
+
+A window, and only a window, may carry a *backdrop chain*
+(`BackdropChain`, `gui_forms/window/backdrop/backdrop_chain.hpp`): an
+ordered list of operations in the manner of CSS `backdrop-filter`, for
+what lies behind the window, under everything the window draws. The
+operations are `blur(radius)` (radius in logical units, at most 32),
+`saturate(factor)` (at most 4) and `tint(colour)`; a chain holds at most
+eight and at most one blur.
+
+GUI.Forms never reads or blurs what lies outside a window's own surface:
+it cannot know whether the window beneath is its own or another
+application's. The window system supplies the blur.
+
+- `Window::set_backdrop_chain` sets a window's chain. Until the
+  application sets one, the window takes its theme's: the winning
+  `window { backdrop: ... }` rule, lowered again when the theme, the
+  presentation settings or the scale change. A chain with a blur asks for
+  the system material (`window_material`, falling back to `transparent`)
+  unless the application made its own request: Mica or Acrylic on
+  Windows, vibrancy on macOS, and whatever blur the compositor gives
+  elsewhere. GUI.Forms paints only the chain's tint, with its alpha, as
+  the window's base. No host material takes a saturation, so `saturate`
+  is dropped. `Window::backdrop_chain_resolution` reports what the
+  material gives, what was dropped and how the tint is drawn.
+- Menus, drop-downs and tooltips are overlays: they are composited into
+  their owner's surface, so everything beneath them is the window's own
+  pixels. They take no backdrop chain and paint with the theme's
+  materials, shadows and glass like any other content. A floating panel
+  or native popup in its own window carries a chain like any window.
+
+Under reduced transparency, or without a compositor, the window is
+opaque and the tint is painted opaque; under high contrast there is no
+backdrop.
+
 ## Fallbacks
 
 Every combination renders; nothing is an error. What each setting does:

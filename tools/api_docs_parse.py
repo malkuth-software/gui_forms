@@ -487,7 +487,7 @@ def declarations() -> tuple[list[TypeRecord], list[EnumRecord], list[HeaderScope
         relative = path.relative_to(GUI_FORMS).as_posix()
         ranges = scopes(clean)
         for match in type_pattern.finditer(clean):
-            # ``friend class detail::PopupAttachment`` is not a declaration.
+            # ``friend class detail::OverlayAttachment`` is not a declaration.
             line_prefix = clean[clean.rfind("\n", 0, match.start()) + 1:match.start()]
             if re.search(r"\bfriend\s*$", line_prefix):
                 continue

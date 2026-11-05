@@ -473,7 +473,7 @@ public:
         part.family = family;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
         if (keyed) part.key = PartKey{"face", {}, {}};
-        if (!enabled()) part.states.insert(AnatomyState::disabled);
+        if (!enabled.read()) part.states.insert(AnatomyState::disabled);
         return part;
     }
     ControlVisualRole family{ControlVisualRole::button};
@@ -606,8 +606,8 @@ void test_engine_equivalence() {
     repaint(*authored);
     require(assemblies(window) == 1U && bakes(window) == first_bakes,
             "a repaint reuses the assembly and the raster");
-    (*(*authored).pad).set_enabled(false);
-    (*(*written).pad).set_enabled(false);
+    (*(*authored).pad).enabled = false;
+    (*(*written).pad).enabled = false;
     repaint(*authored);
     repaint(*written);
     require(assemblies(window) == 2U && bakes(window) == first_bakes + 1U,

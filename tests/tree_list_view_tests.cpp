@@ -514,7 +514,7 @@ void selection_kept_by_id() {
 
 void semantics() {
     std::shared_ptr<TreeListView> view = sample_view();
-    (*view).set_accessible_name("Project");
+    (*view).accessible_name = "Project";
     Window window(view, {420.0, 260.0});
     window.perform_layout();
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();

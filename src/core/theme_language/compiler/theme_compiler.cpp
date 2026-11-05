@@ -114,6 +114,9 @@ enum class PropertyClass : std::uint8_t {
     effect,
     // `effect-primary` and `effect-secondary`: the effect's colour roles.
     effect_colour,
+    // `backdrop`: a window's or popup's backdrop chain (owner decision
+    // 2026-11-04).
+    backdrop,
     // A material property (P6b): its fields are lowered by the material
     // lowering.
     material,
@@ -139,6 +142,7 @@ enum class PropertyClass : std::uint8_t {
     if (name == font_property) return PropertyClass::font;
     if (name == effect_property) return PropertyClass::effect;
     if (name == "effect-primary" || name == "effect-secondary") return PropertyClass::effect_colour;
+    if (name == "backdrop") return PropertyClass::backdrop;
     if (material_property(name)) return PropertyClass::material;
     if (transition_property(name)) return PropertyClass::transition;
     if (animation_property(name)) return PropertyClass::animation;
@@ -467,6 +471,10 @@ private:
     // `effect-primary` and `effect-secondary`: one colour role, role(<name>)
     // (a pair's foreground unless its side is named).
     [[nodiscard]] bool lower_effect_colour(const SyntaxNode& node);
+    [[nodiscard]] bool lower_backdrop(const SyntaxNode& node);
+    // One backdrop function of value_ at `function` into `step`; false
+    // after an error.
+    [[nodiscard]] bool read_backdrop_step(std::size_t function, BackdropStepKind kind, BackdropStep& step);
     // Reports material_lowering_'s problem; true where the declaration is
     // only dropped.
     [[nodiscard]] bool report_material_problem();
@@ -511,6 +519,10 @@ private:
     // fields are the control's (P6f).
     [[nodiscard]] bool rule_selects_part() const noexcept;
     [[nodiscard]] bool rule_has_states() const noexcept;
+    // Whether any of the rule's selectors names a window or popup, and
+    // whether all of them do.
+    [[nodiscard]] bool rule_selects_surface() const noexcept;
+    [[nodiscard]] bool rule_selects_only_surfaces() const noexcept;
     // The lowered declarations as a rule for each selector (EmittedRule).
     [[nodiscard]] bool emit_rule(const EmittedRule& emitted, std::uint32_t at);
 
@@ -570,6 +582,8 @@ private:
     // The side role(<pair>) gives without one, as the property being
     // lowered sets it.
     std::optional<ColourRoleSide> bare_side_{};
+    // The backdrop the rule being lowered declares, or none.
+    std::optional<BackdropDeclaration> backdrop_{};
     // The roles the rule being lowered read, one bit a role.
     std::uint32_t rule_roles_read_{};
     // Whether a declaration whose var() reads a name no definition of which
@@ -1914,6 +1928,7 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
     declarations_.clear();
     materials_.clear();
     recipe_fields_.clear();
+    backdrop_.reset();
     clear_written_transitions(motion_.written);
     clear_written_animations(motion_.animations_written);
     for (std::size_t child = rule_index + 1U; child < end; child = tree_.nodes[child].subtree_end.value) {
@@ -1924,6 +1939,12 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
         fold_ascii(token_text(property), folded_);
         const PropertyClass kind = classify(folded_);
         if (kind == PropertyClass::custom || kind == PropertyClass::primitive) continue;
+        // A window or popup rule holds its backdrop alone (owner decision
+        // 2026-11-04): its surface has no part a control property styles.
+        if (kind != PropertyClass::backdrop && rule_selects_surface()) {
+            report(DiagnosticCode::property_not_admitted, property, property_ + " on a window or popup");
+            continue;
+        }
         if (important && !selection.selects && other.primitive != nullptr &&
             names_parameter((*other.primitive).descriptor(), folded_)) {
             // The parameter would select its primitive at the important
@@ -2016,6 +2037,7 @@ bool CompilePass::lower_declaration(const SyntaxNode& node, PropertyClass kind, 
     case PropertyClass::font: return lower_font(node);
     case PropertyClass::effect: return lower_effect(node);
     case PropertyClass::effect_colour: return lower_effect_colour(node);
+    case PropertyClass::backdrop: return lower_backdrop(node);
     case PropertyClass::transition: return lower_transition(node);
     case PropertyClass::animation: return lower_animation(node);
     case PropertyClass::later:
@@ -2435,6 +2457,164 @@ bool CompilePass::lower_effect_colour(const SyntaxNode& node) {
         RuleDeclaration::colour_value(primary ? effect_primary_property : effect_secondary_property, first.colour);
     lowered.declaration.origin = first.origin;
     add_lowered(std::move(lowered));
+    return true;
+}
+
+// `backdrop:` (owner decision 2026-11-04): `none` (or `initial`), or an
+// ordered list of blur(<length>), saturate(<number> | <percentage>) and
+// tint(<colour> [/ <alpha>]), the chain applied in order over what lies
+// beneath a window or popup. A role colour in tint() keeps its role. In a
+// rule that selects anything but surfaces the declaration is dropped
+// (backdrop_not_on_window); a second blur(), an amount out of its range or
+// more than BackdropDeclaration::maximum_steps operations refuse it.
+bool CompilePass::lower_backdrop(const SyntaxNode& node) {
+    const std::uint32_t property = node.tokens.first.value;
+    if (!rule_selects_only_surfaces()) {
+        report(DiagnosticCode::backdrop_not_on_window, property, property_);
+        return true;
+    }
+    parameter_names_.clear();
+    // role(<pair>) gives its background: a tint is laid as a fill.
+    bare_side_ = ColourRoleSide::background;
+    const bool read = read_value(node);
+    bare_side_.reset();
+    if (!read) return false;
+    const ValueComponent& first = value_.components[0];
+    const WideKeyword wide = wide_keyword();
+    if (wide == WideKeyword::inherit || wide == WideKeyword::outside) {
+        report(DiagnosticCode::value_form_not_admitted, first.token, clipped_theme_detail(first.text));
+        return false;
+    }
+    BackdropDeclaration chain{};
+    const std::size_t count = value_.components.size();
+    const bool written_none =
+        count == 1U && first.kind == ValueComponentKind::keyword && equals_ascii_folded(first.text, "none");
+    const bool none = wide == WideKeyword::initial || written_none;
+    bool blurred = false;
+    for (std::size_t index = 0U; index < count && !none; index = value_.components[index].subtree_end) {
+        const ValueComponent& component = value_.components[index];
+        std::optional<BackdropStepKind> kind{};
+        if (component.kind == ValueComponentKind::function) {
+            if (equals_ascii_folded(component.text, "blur")) kind = BackdropStepKind::blur;
+            if (equals_ascii_folded(component.text, "saturate")) kind = BackdropStepKind::saturate;
+            if (equals_ascii_folded(component.text, "tint")) kind = BackdropStepKind::tint;
+        }
+        if (!kind) {
+            report(DiagnosticCode::value_wrong_kind, component.token, "blur(), saturate() or tint()");
+            return false;
+        }
+        if (chain.length == BackdropDeclaration::maximum_steps) {
+            report(DiagnosticCode::value_out_of_range, component.token,
+                   "more than " + std::to_string(BackdropDeclaration::maximum_steps) + " backdrop operations");
+            return false;
+        }
+        if (*kind == BackdropStepKind::blur && blurred) {
+            report(DiagnosticCode::value_out_of_range, component.token, "a second blur()");
+            return false;
+        }
+        if (*kind == BackdropStepKind::blur) blurred = true;
+        if (!read_backdrop_step(index, *kind, chain.steps[chain.length])) return false;
+        chain.length = chain.length + 1U;
+    }
+    backdrop_ = chain;
+    return true;
+}
+
+bool CompilePass::read_backdrop_step(std::size_t function, BackdropStepKind kind, BackdropStep& step) {
+    const ValueComponent& written = value_.components[function];
+    // The function's arguments: its children, each a component or a
+    // function with its own; at most three (a colour, a slash, an alpha).
+    std::array<std::size_t, 3> arguments{};
+    std::size_t argument_count = 0U;
+    for (std::size_t index = function + 1U; index < written.subtree_end;
+         index = value_.components[index].subtree_end) {
+        if (argument_count == arguments.size()) {
+            report(DiagnosticCode::value_syntax, value_.components[index].token, clipped_theme_detail(written.text));
+            return false;
+        }
+        arguments[argument_count] = index;
+        argument_count = argument_count + 1U;
+    }
+    for (std::size_t argument = 0U; argument < argument_count; ++argument) {
+        const ValueComponent& component = value_.components[arguments[argument]];
+        if (component.kind == ValueComponentKind::expression) {
+            report(DiagnosticCode::value_form_not_admitted, component.token, "an expression that reads inputs");
+            return false;
+        }
+    }
+    step.kind = kind;
+    if (kind == BackdropStepKind::blur) {
+        // One length: px, or a unitless 0.
+        const ValueComponent* const length = argument_count == 1U ? &value_.components[arguments[0]] : nullptr;
+        const bool number = length != nullptr && (*length).kind == ValueComponentKind::number;
+        const bool unitless_zero = number && (*length).unit == ValueUnit::none && (*length).number == 0.0;
+        const bool pixels = number && ((*length).unit == ValueUnit::px || unitless_zero);
+        if (!pixels) {
+            report(DiagnosticCode::value_wrong_kind, written.token, "blur() takes one length");
+            return false;
+        }
+        const double radius = (*length).number;
+        if (!(radius >= 0.0 && radius <= maximum_backdrop_blur)) {
+            report(DiagnosticCode::value_out_of_range, (*length).token, "a blur() radius from 0 to " + std::to_string(static_cast<int>(maximum_backdrop_blur)) + "px");
+            return false;
+        }
+        step.amount = radius;
+        return true;
+    }
+    if (kind == BackdropStepKind::saturate) {
+        // One factor: a number, or a percentage of 1.
+        const ValueComponent* const factor = argument_count == 1U ? &value_.components[arguments[0]] : nullptr;
+        const bool number = factor != nullptr && (*factor).kind == ValueComponentKind::number;
+        const bool plain = number && (*factor).unit == ValueUnit::none;
+        const bool percent = number && (*factor).unit == ValueUnit::percent;
+        if (!plain && !percent) {
+            report(DiagnosticCode::value_wrong_kind, written.token, "saturate() takes a number or a percentage");
+            return false;
+        }
+        const double amount = percent ? (*factor).number / 100.0 : (*factor).number;
+        if (!(amount >= 0.0 && amount <= maximum_backdrop_saturation)) {
+            report(DiagnosticCode::value_out_of_range, (*factor).token, "a saturate() factor from 0 to " + std::to_string(static_cast<int>(maximum_backdrop_saturation)));
+            return false;
+        }
+        step.amount = amount;
+        return true;
+    }
+    // tint(<colour> [/ <alpha>]): the alpha, a number from 0 to 1 or a
+    // percentage, scales the colour's own.
+    const bool slashed =
+        argument_count == 3U && value_.components[arguments[1]].kind == ValueComponentKind::slash;
+    if (argument_count != 1U && !slashed) {
+        report(DiagnosticCode::value_syntax, written.token, "tint() takes a colour and an optional / alpha");
+        return false;
+    }
+    const ValueComponent& colour = value_.components[arguments[0]];
+    if (colour.kind == ValueComponentKind::colour) {
+        step.colour = colour.colour;
+        step.origin = colour.origin;
+    } else if (colour.kind == ValueComponentKind::keyword && named_colour(colour.text).has_value()) {
+        step.colour = *named_colour(colour.text);
+    } else {
+        report(DiagnosticCode::value_wrong_kind, colour.token, "a colour");
+        return false;
+    }
+    if (slashed) {
+        const ValueComponent& alpha = value_.components[arguments[2]];
+        const bool number = alpha.kind == ValueComponentKind::number;
+        const bool plain = number && alpha.unit == ValueUnit::none;
+        const bool percent = number && alpha.unit == ValueUnit::percent;
+        if (!plain && !percent) {
+            report(DiagnosticCode::value_wrong_kind, alpha.token, "an alpha, a number or a percentage");
+            return false;
+        }
+        const double fraction = percent ? alpha.number / 100.0 : alpha.number;
+        if (!(fraction >= 0.0 && fraction <= 1.0)) {
+            report(DiagnosticCode::value_out_of_range, alpha.token, "a tint() alpha from 0 to 1");
+            return false;
+        }
+        const double scaled = std::round(static_cast<double>(step.colour.alpha) * fraction);
+        step.colour.alpha = static_cast<std::uint8_t>(scaled);
+    }
+    step.amount = 0.0;
     return true;
 }
 
@@ -3091,6 +3271,20 @@ bool CompilePass::rule_has_states() const noexcept {
     return false;
 }
 
+bool CompilePass::rule_selects_surface() const noexcept {
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (lowered.selector.surface != SurfaceKind::none) return true;
+    }
+    return false;
+}
+
+bool CompilePass::rule_selects_only_surfaces() const noexcept {
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (lowered.selector.surface == SurfaceKind::none) return false;
+    }
+    return !lowered_selectors_.empty();
+}
+
 bool CompilePass::rule_selects_part() const noexcept {
     for (const LoweredSelector& lowered : lowered_selectors_) {
         if (!lowered.selector.part.empty() || lowered.selector.role.has_value()) return true;
@@ -3139,6 +3333,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     if (!apply_animations(selection, lowered)) return false;
     lowered.materials = materials_;
     lowered.recipe_fields = recipe_fields_;
+    lowered.backdrop = backdrop_;
     lowered.scoped_conditions = variations_.copy_conditions;
     // An inline style's own rules (P12b: alone, or lowered after a theme)
     // are not the theme's readers.
@@ -3148,7 +3343,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     // A borrowed selection alone declares nothing of the rule's own.
     const std::size_t owned = emitted.borrowed ? selections : 0U;
     if (lowered.declarations.size() == owned && lowered.transitions.empty() && lowered.materials.empty() &&
-        lowered.recipe_fields.empty() && !lowered.ambient) {
+        lowered.recipe_fields.empty() && !lowered.ambient && !lowered.backdrop) {
         return true;
     }
     std::size_t bytes = lowered_record_bytes + lowered.label.size();
@@ -3156,6 +3351,7 @@ bool CompilePass::emit_rule(const EmittedRule& emitted, std::uint32_t at) {
     for (const MaterialDeclaration& declaration : lowered.materials) bytes += material_bytes(declaration);
     for (const PropertyTransition& transition : lowered.transitions) bytes += transition_bytes(transition);
     bytes += lowered.recipe_fields.size() * lowered_record_bytes;
+    if (lowered.backdrop) bytes += lowered_record_bytes;
     for (const ScopedCondition& condition : lowered.scoped_conditions) {
         bytes += lowered_record_bytes + condition.name.size();
     }

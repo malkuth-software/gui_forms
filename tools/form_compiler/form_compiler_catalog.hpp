@@ -51,7 +51,7 @@
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
@@ -121,13 +121,14 @@
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 
 #include <array>
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 116> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 117> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -216,7 +217,7 @@ inline constexpr std::array<FormCatalogEntry, 116> form_catalog{{
     {"font_command", "FontCommand", "gui_forms/commands/font_command/font_command.hpp", &add_catalog_type<FontCommand>},
     {"color_command", "ColorCommand", "gui_forms/commands/color_command/color_command.hpp", &add_catalog_type<ColorCommand>},
     {"gallery_command", "GalleryCommand", "gui_forms/commands/gallery_command/gallery_command.hpp", &add_catalog_type<GalleryCommand>},
-    {"anchored_popup_layer", "AnchoredPopupLayer", "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp", &add_catalog_type<AnchoredPopupLayer>},
+    {"anchored_overlay_layer", "AnchoredOverlayLayer", "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp", &add_catalog_type<AnchoredOverlayLayer>},
     {"font_dialog", "FontDialog", "gui_forms/controls/panel/font_dialog/font_dialog.hpp", &add_catalog_type<FontDialog>},
     {"task_dialog", "TaskDialog", "gui_forms/controls/task_dialog/task_dialog.hpp", &add_catalog_type<TaskDialog>},
     {"thread_exception_dialog", "ThreadExceptionDialog", "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp", &add_catalog_type<ThreadExceptionDialog>},
@@ -227,6 +228,7 @@ inline constexpr std::array<FormCatalogEntry, 116> form_catalog{{
     {"drawing_surface", "DrawingSurface", "gui_forms/controls/drawing_surface/drawing_surface.hpp", &add_catalog_type<DrawingSurface>},
     {"raster_canvas", "RasterCanvas", "gui_forms/controls/raster_canvas/raster_canvas.hpp", &add_catalog_type<RasterCanvas>},
     {"live_surface", "LiveSurface", "gui_forms/live_surface/surface/live_surface.hpp", &add_catalog_type<LiveSurface>},
+    {"sub_surface_host", "SubSurfaceHost", "gui_forms/surface_root/sub_surface/sub_surface_host.hpp", &add_catalog_type<SubSurfaceHost>},
     {"easing_preview", "EasingPreview", "gui_forms/controls/easing_preview/easing_preview.hpp", &add_catalog_type<EasingPreview>},
     {"metrics_view", "MetricsView", "gui_forms/controls/metrics_view/metrics_view.hpp", &add_catalog_type<MetricsView>},
     {"typography_specimen", "TypographySpecimen", "gui_forms/controls/typography_specimen/typography_specimen.hpp", &add_catalog_type<TypographySpecimen>},

@@ -69,10 +69,9 @@ void AnimationPage::mount_document(const std::shared_ptr<Surface>& body) {
         Control::Ptr moved = root.remove_child((*child).runtime_id());
         (*body).add_child(std::move(moved));
     }
-    // What the form language does not state yet: the page style, and the
-    // group's paper face (Panel's own background, not the ambient back-color).
+    // The page style stays code; the group's paper face is the Gallery
+    // theme's `paper` class (demo/themes/gallery).
     ScaledGroupBox& controls = *document_.gallery_animation_controls;
-    controls.set_background(paper);
     controls.set_style(page_style());
 }
 

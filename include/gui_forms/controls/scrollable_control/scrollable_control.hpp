@@ -21,6 +21,9 @@ public:
     explicit ScrollableControl(StableId stable_id);
 
     [[nodiscard]] bool auto_scroll() const noexcept { return auto_scroll_; }
+    // With auto scroll, a size change can show or hide a scroll bar on
+    // either axis, which moves the client area every child is placed in.
+    [[nodiscard]] ResizeAxes layout_resize_response() const noexcept override;
     virtual void set_auto_scroll(bool enabled);
     [[nodiscard]] Size auto_scroll_margin() const noexcept {
         return auto_scroll_margin_;

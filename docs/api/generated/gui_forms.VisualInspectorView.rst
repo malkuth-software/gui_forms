@@ -112,7 +112,7 @@ gui_forms::VisualInspectorView
       gf::Window window(root, gf::Size{460.0, 460.0});
       window.perform_layout();
 
-      (*apply).set_enabled(false);
+      (*apply).enabled = false;
       (*inspector).refresh();
       gf::SemanticDescriptor summary = (*inspector).semantic_descriptor();
       // summary.value begins "lab.apply; visible · disabled"

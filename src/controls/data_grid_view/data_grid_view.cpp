@@ -208,7 +208,7 @@ struct DataGridView::SortingScope final {
 
 DataGridView::DataGridView(StableId stable_id) : Control(std::move(stable_id)) {
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // The error glyphs are the grid's interface, not its data: each shows
     // its error text as a part tooltip (owner decision, 2026-11-02). Cells
@@ -3394,7 +3394,7 @@ void DataGridView::on_pointer(PointerEvent& event) {
             hot_column_.reset();
             invalidate(Dirty::paint);
         }
-        if (cursor() != CursorKind::arrow) set_cursor(CursorKind::arrow);
+        if (cursor.read() != CursorKind::arrow) cursor = CursorKind::arrow;
         return;
     }
     const HitResult hit = hit_test(local);
@@ -3431,7 +3431,7 @@ void DataGridView::on_pointer(PointerEvent& event) {
         if (hit.zone == HitZone::column_divider && column_resizable(hit.column)) {
             wanted = CursorKind::resize_horizontal;
         }
-        if (cursor() != wanted) set_cursor(wanted);
+        if (cursor.read() != wanted) cursor = wanted;
         return;
     }
     if (event.action == PointerAction::wheel) {
@@ -3910,8 +3910,8 @@ SemanticDescriptor DataGridView::semantic_descriptor() const {
     descriptor.row_count = row_count();
     descriptor.column_count = columns_.size();
     if (multi_select_) descriptor.states |= SemanticState::multiselectable;
-    descriptor.name = accessible_name().empty() ? "Data grid" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? "Data grid" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     const std::optional<DataGridViewCellAddress> current = current_cell();
     if (current && (*current).column < columns_.size()) {
         descriptor.value = cell_text((*current).row, (*current).column);

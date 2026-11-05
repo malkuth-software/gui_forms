@@ -59,14 +59,6 @@
       "reviewed": false,
       "summary": "Returns the immutable authored stable identity."
     },
-    "gui_forms::Control::name|const std::string &() const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the mutable diagnostic name, distinct from the stable identity."
-    },
-    "gui_forms::Control::set_name|void (std::string)": {
-      "reviewed": false,
-      "summary": "Sets the mutable name and publishes `name_changed` (synchronously outside initialization)."
-    },
     "gui_forms::Control::name_changed|Event<const std::string &> &() noexcept": {
       "reviewed": false,
       "summary": "Tokenized event published after the name changes."
@@ -154,22 +146,6 @@
     "gui_forms::Control::bottom|double () const noexcept": {
       "reviewed": false,
       "summary": "Returns the requested bottom edge."
-    },
-    "gui_forms::Control::minimum_size|Size () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained minimum size constraint."
-    },
-    "gui_forms::Control::set_minimum_size|void (Size)": {
-      "reviewed": false,
-      "summary": "Sets the minimum size constraint applied to requested bounds and preferred size."
-    },
-    "gui_forms::Control::maximum_size|Size () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained maximum size constraint; zero means unbounded."
-    },
-    "gui_forms::Control::set_maximum_size|void (Size)": {
-      "reviewed": false,
-      "summary": "Sets the maximum size constraint; zero means unbounded."
     },
     "gui_forms::Control::arranged_bounds|Rect () const": {
       "reviewed": false,
@@ -311,22 +287,6 @@
       "reviewed": false,
       "summary": "Runs work on the owning Window's UI thread, synchronously when already there."
     },
-    "gui_forms::Control::margin|Insets () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the finite nonnegative outer margin in logical pixels."
-    },
-    "gui_forms::Control::set_margin|void (Insets)": {
-      "reviewed": false,
-      "summary": "Sets the outer margin consumed by parent layout containers."
-    },
-    "gui_forms::Control::padding|Insets () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the finite nonnegative inner padding in logical pixels."
-    },
-    "gui_forms::Control::set_padding|void (Insets)": {
-      "reviewed": false,
-      "summary": "Sets the inner padding that shrinks the display rectangle."
-    },
     "gui_forms::Control::auto_scroll_offset|Point () const noexcept": {
       "reviewed": false,
       "summary": "Returns the offset honored by `scroll_control_into_view`."
@@ -334,38 +294,6 @@
     "gui_forms::Control::set_auto_scroll_offset|void (Point)": {
       "reviewed": false,
       "summary": "Sets the offset honored by `scroll_control_into_view`."
-    },
-    "gui_forms::Control::dock|DockStyle () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained dock style."
-    },
-    "gui_forms::Control::set_dock|void (DockStyle)": {
-      "reviewed": false,
-      "summary": "Sets the dock style; default Dock consumes children backmost to topmost."
-    },
-    "gui_forms::Control::anchor|AnchorStyles () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained anchor styles."
-    },
-    "gui_forms::Control::set_anchor|void (AnchorStyles)": {
-      "reviewed": false,
-      "summary": "Sets the anchor styles applied on parent resize."
-    },
-    "gui_forms::Control::auto_size|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether the control sizes itself to content."
-    },
-    "gui_forms::Control::set_auto_size|void (bool)": {
-      "reviewed": false,
-      "summary": "Enables or disables content-driven sizing."
-    },
-    "gui_forms::Control::auto_size_mode|AutoSizeMode () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the GrowOnly or GrowAndShrink policy."
-    },
-    "gui_forms::Control::set_auto_size_mode|void (AutoSizeMode)": {
-      "reviewed": false,
-      "summary": "Sets the GrowOnly or GrowAndShrink policy."
     },
     "gui_forms::Control::auto_size_changed|Event<bool> &() noexcept": {
       "reviewed": false,
@@ -387,29 +315,13 @@
       "reviewed": false,
       "summary": "Runs layout for this control immediately."
     },
-    "gui_forms::Control::layout_transaction_state|LayoutTransactionState () const noexcept": {
+    "gui_forms::Control::layout_transaction_state|LayoutTransactionState () const": {
       "reviewed": false,
       "summary": "Returns the current layout transaction depth and pending flags."
-    },
-    "gui_forms::Control::visible|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained visible flag (not effective visibility)."
-    },
-    "gui_forms::Control::set_visible|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets the retained visible flag and publishes `visible_changed`."
     },
     "gui_forms::Control::layout_collapsed|bool () const noexcept": {
       "reviewed": false,
       "summary": "Reports whether a layout container has collapsed this control out of effective layout."
-    },
-    "gui_forms::Control::enabled|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained enabled flag."
-    },
-    "gui_forms::Control::set_enabled|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets the retained enabled flag and publishes `enabled_changed`."
     },
     "gui_forms::Control::focusable|bool () const noexcept": {
       "reviewed": false,
@@ -418,14 +330,6 @@
     "gui_forms::Control::set_focusable|void (bool)": {
       "reviewed": false,
       "summary": "Sets whether the control may receive focus."
-    },
-    "gui_forms::Control::causes_validation|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether leaving this control validates the previously focused control (default true)."
-    },
-    "gui_forms::Control::set_causes_validation|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets the causes-validation flag and publishes its change event."
     },
     "gui_forms::Control::causes_validation_changed|Event<bool> &() noexcept": {
       "reviewed": false,
@@ -438,38 +342,6 @@
     "gui_forms::Control::validated|Event<> &() noexcept": {
       "reviewed": false,
       "summary": "Event published only after an accepted validation."
-    },
-    "gui_forms::Control::tab_index|std::uint32_t () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the stable sibling traversal order."
-    },
-    "gui_forms::Control::set_tab_index|void (std::uint32_t)": {
-      "reviewed": false,
-      "summary": "Sets the stable sibling traversal order."
-    },
-    "gui_forms::Control::tab_stop|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether Tab traversal stops at this control."
-    },
-    "gui_forms::Control::set_tab_stop|void (bool)": {
-      "reviewed": false,
-      "summary": "Removes or restores the control in Tab traversal without preventing explicit focus."
-    },
-    "gui_forms::Control::allow_drop|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether the control accepts drag targets."
-    },
-    "gui_forms::Control::set_allow_drop|void (bool)": {
-      "reviewed": false,
-      "summary": "Sets whether the control accepts drag targets."
-    },
-    "gui_forms::Control::hit_test_transparent|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Reports whether ordinary pointer routing passes through this control."
-    },
-    "gui_forms::Control::set_hit_test_transparent|void (bool)": {
-      "reviewed": false,
-      "summary": "Makes ordinary pointer routing pass through this control."
     },
     "gui_forms::Control::styles|ControlStyles () const noexcept": {
       "reviewed": false,
@@ -491,14 +363,6 @@
       "reviewed": false,
       "summary": "Sets the retained double-buffering request."
     },
-    "gui_forms::Control::cursor|std::optional<CursorKind> () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the retained cursor override, or empty when the cursor is inherited."
-    },
-    "gui_forms::Control::set_cursor|void (std::optional<CursorKind>)": {
-      "reviewed": false,
-      "summary": "Sets or clears the retained cursor override."
-    },
     "gui_forms::Control::set_custom_cursor|void (CursorImagesPtr, CursorKind)": {
       "reviewed": false,
       "summary": "Installs a custom cursor image set with a `CursorKind` fallback for hosts that cannot show it."
@@ -506,22 +370,6 @@
     "gui_forms::Control::effective_cursor_images|CursorImagesPtr () const noexcept": {
       "reviewed": false,
       "summary": "Returns the custom cursor images in effect."
-    },
-    "gui_forms::Control::accessible_name|const std::string &() const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authored accessible name override."
-    },
-    "gui_forms::Control::set_accessible_name|void (std::string)": {
-      "reviewed": false,
-      "summary": "Sets the accessible name and invalidates semantics."
-    },
-    "gui_forms::Control::accessible_description|const std::string &() const noexcept": {
-      "reviewed": false,
-      "summary": "Returns the authored accessible description."
-    },
-    "gui_forms::Control::set_accessible_description|void (std::string)": {
-      "reviewed": false,
-      "summary": "Sets the accessible description and invalidates semantics."
     },
     "gui_forms::Control::effective_cursor|CursorKind () const noexcept": {
       "reviewed": false,
@@ -547,11 +395,11 @@
       "reviewed": false,
       "summary": "Reports whether this control holds pointer capture."
     },
-    "gui_forms::Control::dirty|Dirty () const noexcept": {
+    "gui_forms::Control::dirty|Dirty () const": {
       "reviewed": false,
       "summary": "Returns the control's own pending dirty flags."
     },
-    "gui_forms::Control::subtree_dirty|Dirty () const noexcept": {
+    "gui_forms::Control::subtree_dirty|Dirty () const": {
       "reviewed": false,
       "summary": "Returns dirty flags aggregated over the subtree."
     },

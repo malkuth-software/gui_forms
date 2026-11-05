@@ -12,7 +12,7 @@ in-ribbon `RibbonGallery` controls, `RibbonFontControl`s and
 File tab opens the application menu (in two panes beside recent items) or,
 when the ribbon has one, a `BackstageView`. As the ribbon narrows its groups shrink through their layouts in the
 tab's reduction order, down to collapsed group buttons that open the group in
-a popup, and below the narrowest layout the plane scrolls. Every part is
+an overlay, and below the narrowest layout the plane scrolls. Every part is
 painted through the by-role paint path.
 
 Parameters
@@ -77,10 +77,10 @@ first_visible_group
 scaling_counters
     `RibbonScalingCounters`: ladders built, the last ladder's entries and
     folded steps, ladder lookups and the ribbon's own text measurements.
-popup_group
-    The ID of the group whose popup is open, or none.
-group_popup
-    The popup's content control (null before the first popup); the popup's
+overlay_group
+    The ID of the group whose overlay is open, or none.
+group_overlay
+    The overlay's content control (null before the first overlay); the overlay's
     parts are in its local coordinates.
 application_text : default ``"File"``
     The File tab's text, with an optional mnemonic.
@@ -99,7 +99,7 @@ recent_items
     other kinds than commands and separators.
 recent_caption : default ``"Recent documents"``
     The recent pane's caption.
-application_menu_popup
+application_menu_overlay
     The two-pane menu's content control, null before its first opening.
 backstage
     The `BackstageView` the File tab opens instead of the application menu,
@@ -120,10 +120,10 @@ realized_groups
     The selected tab's groups and their parts.
 realized_commands
     The selected tab's commands, their parts and states.
-realized_popup_groups
-    The open popup's group and its parts, or nothing.
-realized_popup_commands
-    The open popup's commands, their parts and states.
+realized_overlay_groups
+    The open overlay's group and its parts, or nothing.
+realized_overlay_commands
+    The open overlay's commands, their parts and states.
 
 Events
 ------
@@ -163,13 +163,13 @@ show_drop_down
     another kind, a disabled command or one not on the selected tab.
 close_menus
     Closes any open menu.
-show_group_popup
-    Opens a collapsed group of the selected tab in a popup below the ribbon at
-    its largest layout; its hosted controls move into the popup while it is
+show_group_overlay
+    Opens a collapsed group of the selected tab in an overlay below the ribbon at
+    its largest layout; its hosted controls move into the overlay while it is
     open. Returns false for a group that is not collapsed or not on the
     selected tab, or without a window.
-close_group_popup
-    Closes the group popup; focus returns to the group's button.
+close_group_overlay
+    Closes the group overlay; focus returns to the group's button.
 group_layouts
     A group's layouts, largest first: as authored, or generated. Throws
     `std::out_of_range` for a tab or group past the end.
@@ -195,14 +195,14 @@ See Also
 --------
 ToolStrip : A strip of records and hosted controls.
 Command : The shared action a command carries.
-ContextMenu : The popups the ribbon opens.
+ContextMenu : The overlays the ribbon opens.
 
 Notes
 -----
 Clicking the selected tab minimizes the command plane, and clicking it again
 shows it; clicking another tab selects it and shows the plane (owner
 decision 19). There is no minimize button. The minimized ribbon's temporary
-popup comes in a later phase.
+overlay comes in a later phase.
 
 A large command shows a 32-unit icon over its label and fills the group's
 height; small and hosted commands take one of three rows, stacked in
@@ -234,9 +234,9 @@ first is clipped), and the keyboard's stop scrolls its group into view.
 A collapsed group is one button the plane's height with the group's icon
 (`RibbonGroupSpec::image`, else its first command image), its caption and a
 chevron (decision 27). Pressing it, Enter, Space or Down opens the group at
-its largest layout in a popup below the ribbon, casting the overlay shadow; a
+its largest layout in an overlay below the ribbon, casting the overlay shadow; a
 command run there, its launcher, a press elsewhere or Escape closes it, and it
-closes when the group grows back. In the popup the arrows and Tab move
+closes when the group grows back. In the overlay the arrows and Tab move
 through its commands.
 
 The hide rule (decisions 28, 34 to 36). The height the ribbon's parent offers
@@ -283,17 +283,17 @@ command texts (``&Home``) open, select or activate them. The ribbon adds
 itself to its window's F6 regions.
 
 To accessibility the ribbon is a group holding the File tab (a
-`menu_button` with a popup), the tab row (a `tab_group` of the shown tabs:
+`menu_button` with an overlay), the tab row (a `tab_group` of the shown tabs:
 core tabs positioned among the core tabs, a contextual tab among its set's,
 described by the set's caption)
 and the command plane (a group named after the selected tab, expanded while shown and collapsed while minimized or hidden; its expand and collapse actions restore and minimize it as a click on the selected tab does, owner decision 46)
 with its groups, named by caption, and their commands: `button`,
 `split_button` or `menu_button`, with positions in their group and
 has-popup, and each launcher as a button. A collapsed group is a
-`menu_button` with a popup (expanded while open), and the scroll buttons are
+`menu_button` with an overlay (expanded while open), and the scroll buttons are
 buttons. The File tab, the tabs and the commands publish their mnemonics
 as access keys. Hosted controls describe themselves as children of the
-ribbon, or of the popup while it is open.
+ribbon, or of the overlay while it is open.
 
 Contextual tab sets (owner decisions 14, 22 and 25). A tab whose
 `tab_set` names a set shows while the application makes the set available
@@ -325,7 +325,7 @@ or a definitive command closes it, a press on the File tab closes it, a
 press on a tab closes it and selects that tab, and it follows the window's
 size.
 
-Not yet: the Quick Access Toolbar, the minimized popup, icons in the
+Not yet: the Quick Access Toolbar, the minimized overlay, icons in the
 two-pane menu, right-to-left mirroring of the cycle, two-line large labels
 and ellipsized tab labels (decision 30 allows them; tabs past the row's end
 are clipped).

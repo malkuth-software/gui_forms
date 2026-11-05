@@ -11,7 +11,7 @@ gui_forms::ContextMenu
 
    ``#include <gui_forms/components/context_menu/context_menu.hpp>``
 
-   A popup menu of commands that the application opens at a point, such as on a right-click.
+   An overlay menu of commands that the application opens at a point, such as on a right-click.
 
    A context menu holds a tree of :cpp:class:`MenuItemSpec <gui_forms::MenuItemSpec>` items: commands, check and
    radio items, separators and submenus, each bound to a shared :cpp:class:`Command <gui_forms::Command>`. You
@@ -19,7 +19,7 @@ gui_forms::ContextMenu
    item with the pointer, the keyboard or a mnemonic, the item's command runs,
    and the menu closes. Clicking elsewhere or pressing Escape closes it without
    running anything. The menu is a :cpp:class:`Component <gui_forms::Component>`, not a control: it takes no
-   space in your layout and appears as a separate popup over the window. Use a
+   space in your layout and appears as a separate overlay over the window. Use a
    :cpp:class:`MenuStrip <gui_forms::MenuStrip>` for a window's menu bar, which opens the same kind of menu from
    its top-level items.
 
@@ -29,9 +29,9 @@ gui_forms::ContextMenu
 
       **stable_id** : ``std::string``
          Identity of the menu, following the :cpp:class:`StableId <gui_forms::StableId>` segment rule, or the
-         constructor throws ``std::invalid_argument``. The popup's controls are named after it:
-         ``<stable_id>.popup.panel.<depth>`` for each open menu level and
-         ``<stable_id>.popup.row.<item id>`` for each row.
+         constructor throws ``std::invalid_argument``. The overlay's controls are named after it:
+         ``<stable_id>.overlay.panel.<depth>`` for each open menu level and
+         ``<stable_id>.overlay.row.<item id>`` for each row.
 
    :Properties:
 
@@ -69,7 +69,7 @@ gui_forms::ContextMenu
       **open_changed** : ``Event<bool>``
          Raised with true after the menu opens and with false after it closes,
          however it closes: by an invoked item, Escape, a click outside, :cpp:func:`close <gui_forms::ContextMenu::close>`,
-         :cpp:func:`set_items <gui_forms::ContextMenu::set_items>`, or the window removing the popup because its owner went
+         :cpp:func:`set_items <gui_forms::ContextMenu::set_items>`, or the window removing the overlay because its owner went
          away. Showing a menu that is already open closes it first, so false is
          raised before true.
 
@@ -129,7 +129,7 @@ gui_forms::ContextMenu
    command is disabled are drawn dimmed, cannot be selected or activated, and
    a submenu whose items are all disabled is disabled too.
 
-   The popup publishes each menu level with the accessibility role ``menu`` and
+   The overlay publishes each menu level with the accessibility role ``menu`` and
    the name "Menu", and each item as a ``menu_item`` or ``separator`` named by its
    text without the ``&``. An item's description combines the command's
    description, its shortcut and, when it is disabled, its availability reason.
@@ -243,7 +243,7 @@ gui_forms::ContextMenu
 
       Raised with true after the menu opens and with false after it closes,
       however it closes: by an invoked item, Escape, a click outside, :cpp:func:`close <gui_forms::ContextMenu::close>`,
-      :cpp:func:`set_items <gui_forms::ContextMenu::set_items>`, or the window removing the popup because its owner went
+      :cpp:func:`set_items <gui_forms::ContextMenu::set_items>`, or the window removing the overlay because its owner went
       away. Showing a menu that is already open closes it first, so false is
       raised before true.
 

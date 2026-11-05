@@ -174,7 +174,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         ownerWindow = (*owner).window;
     }
     const gui_forms::HostWindowKind kind =
-        gui_forms::host_window_kind(owner_id.valid(), entry.tool_window, entry.floating);
+        gui_forms::host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, false);
     const bool floating = gui_forms::host_window_kind_traits(kind).floating;
     gui_forms::HostWindowDescription description;
     description.stable_id = entry.stable_id;

@@ -1,0 +1,93 @@
+/* The Gallery's semantic-feedback page (stage FD, phase FD6.3): the
+   CommandBar of transitions, the shared completion Command and sound
+   policy, and the published record history. gui_forms_add_form() compiles
+   this document into semantic-feedback_form.hpp at build time.
+
+   gallery.semantic-feedback.document is a declared boundary only: the page
+   moves its children into the shell's page body (a 1000 x 660 design
+   surface), where each is placed by its bounds in design coordinates.
+   Behaviour stays in the page (src/controls/gallery/pages/
+   semantic-feedback.cpp): the Commands and the CommandBar's items, the
+   sound Value<bool>, the SemanticFeedback component and its record text,
+   and the page style. */
+scaled-panel gallery.semantic-feedback.document {
+  design-size: 1000 660;
+
+  label gallery.semantic-feedback.heading {
+    text: "SEMANTIC FEEDBACK";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.semantic-feedback.lead {
+    text: "One-shot application transitions become bounded, traceable host sound cues; ordinary hover, focus and selection never do.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.semantic.transitions {
+    text: "SemanticFeedback · application transitions mapped to host cues";
+    classes: "paper" "group-caption";
+    design-size: 930 150;
+    bounds: 24 92 930 150;
+    command-bar gallery.semantic.commands {
+      accessible-name: "Semantic feedback transitions";
+      bounds: 22 40 886 40;
+    }
+    label gallery.semantic.transitions.note {
+      text: "Each item borrows an application-owned Command. Arrow keys move along the toolbar's single roving tab stop; Tab leaves it. The cue for each kind is fixed by SemanticFeedback::cue_for.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 92 886 44;
+    }
+  }
+
+  scaled-group-box gallery.semantic.policy {
+    text: "Shared Command and sound policy";
+    classes: "paper" "group-caption";
+    design-size: 930 112;
+    bounds: 24 262 930 112;
+    button gallery.semantic.complete {
+      text: "Announce completion";
+      visual-style: accent;
+      bounds: 22 40 200 34;
+    }
+    check-box gallery.semantic.sound {
+      text: "Sound cues enabled";
+      indicator-style: toggle;
+      bounds: 240 42 220 28;
+    }
+    button gallery.semantic.clear {
+      text: "Clear history";
+      visual-style: command;
+      bounds: 480 40 160 34;
+    }
+    label gallery.semantic.accounting {
+      classes: "heading" "note-strong";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 660 40 248 56;
+    }
+  }
+
+  scaled-group-box gallery.semantic.records {
+    text: "Published records · bounded history";
+    classes: "paper" "group-caption";
+    design-size: 930 230;
+    bounds: 24 392 930 230;
+    label gallery.semantic.latest {
+      text: "No transition announced yet";
+      classes: "positive" "emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 22 40 886 30;
+    }
+    text-box gallery.semantic.trace {
+      accessible-name: "Semantic feedback trace";
+      multiline: true;
+      read-only: true;
+      placeholder-text: "feedback=<kind> sequence=<n> cue=<cue> sound=<on|off> accepted=<bool> presented=<bool>";
+      bounds: 22 78 886 134;
+    }
+  }
+}

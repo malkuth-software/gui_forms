@@ -57,11 +57,11 @@ void test_readout_value_follows_its_target(Window& window) {
     const std::string moved = readout_value(window);
     require(moved != first, "moving the target changes the readout's value");
 
-    (*card).set_enabled(false);
+    (*card).enabled = false;
     const std::string disabled = readout_value(window);
     require(disabled.find("disabled") != std::string::npos,
             "disabling the target shows in the readout's value");
-    (*card).set_enabled(true);
+    (*card).enabled = true;
     (*card).set_requested_bounds(bounds);
     window.perform_layout();
     require(readout_value(window) == first, "restoring the target restores the readout's value");
@@ -122,7 +122,7 @@ int main() {
         require(!(*window).needs_frame(), "an idle inspector poll must not repaint");
         const Control::Ptr card_control = (*window).find("visual-inspector.specimen-card");
         require(card_control != nullptr, "lab must keep its inspected card");
-        (*card_control).set_enabled(false);
+        (*card_control).enabled = false;
         static_cast<void>((*window).paint(painter, {0.0, 0.0, 1160.0, 700.0}));
         static_cast<void>((*window).take_damage());
         const std::shared_ptr<VisualInspectorView> view =
@@ -136,7 +136,7 @@ int main() {
         require(!(*view).refresh_if_changed(), "a repainted inspector must settle after one poll");
         // Repaint only the card: the inspector now shows a stale state, and
         // only its poll can notice.
-        (*card_control).set_enabled(true);
+        (*card_control).enabled = true;
         static_cast<void>((*window).paint(painter, (*card_control).absolute_bounds()));
         static_cast<void>((*window).take_damage());
         require(!(*window).needs_frame(), "repainting the card must leave nothing pending");

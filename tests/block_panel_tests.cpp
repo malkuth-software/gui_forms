@@ -86,13 +86,13 @@ void require_bounds(const Control& control, double x, double y, double width, do
 std::shared_ptr<Panel> box(const std::string& id, double width, double height) {
     std::shared_ptr<Panel> made = make_control<Panel>(StableId(id));
     (*made).set_bounds({0.0, 0.0, width, height});
-    (*made).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
 
 std::shared_ptr<BlockPanel> flow(const std::string& id) {
     std::shared_ptr<BlockPanel> made = make_control<BlockPanel>(StableId(id));
-    (*made).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
 
@@ -108,7 +108,7 @@ SizeValue percent(double value) {
 
 // The margin setter's order is left, top, right, bottom (Insets).
 void set_vertical_margins(Control& control, double top, double bottom) {
-    control.set_margin({0.0, top, 0.0, bottom});
+    control.margin = {0.0, top, 0.0, bottom};
 }
 
 BlockFlowItemLayout inline_item(double width, double height) {
@@ -133,7 +133,7 @@ bool refuses_item(BlockPanel& panel, const Control& child, const BlockFlowItemLa
 // margins are nonnegative; the solver's tests cover negative ones.)
 void test_stacking_and_margin_collapsing() {
     std::shared_ptr<BlockPanel> root = flow("block.collapse");
-    (*root).set_padding({8.0, 8.0, 8.0, 8.0});
+    (*root).padding = {8.0, 8.0, 8.0, 8.0};
     std::shared_ptr<Panel> first = box("block.collapse.a", 0.0, 20.0);
     set_vertical_margins(*first, 0.0, 10.0);
     std::shared_ptr<Panel> second = box("block.collapse.b", 0.0, 20.0);
@@ -174,7 +174,7 @@ void test_stacking_and_margin_collapsing() {
     require((*root).layout_outcome() == BlockFlowSolveOutcome::solved, "the layout solved");
 
     // Top padding separates the nested block's margin from its child's.
-    (*nested).set_padding({0.0, 2.0, 0.0, 0.0});
+    (*nested).padding = {0.0, 2.0, 0.0, 0.0};
     (*held).perform_layout();
     require_bounds(*nested, 8.0, 88.0, 784.0, 47.0, "with padding the nested block keeps its own margin");
     require_bounds(*inner, 0.0, 27.0, 784.0, 20.0, "and its child's margin is inside it");
@@ -182,11 +182,11 @@ void test_stacking_and_margin_collapsing() {
 
 void test_widths_and_auto_margins() {
     std::shared_ptr<BlockPanel> root = flow("block.widths");
-    (*root).set_padding({8.0, 8.0, 8.0, 8.0});
+    (*root).padding = {8.0, 8.0, 8.0, 8.0};
     std::shared_ptr<Panel> centred = box("block.widths.a", 0.0, 10.0);
     std::shared_ptr<Panel> half = box("block.widths.b", 0.0, 10.0);
     std::shared_ptr<Panel> pushed = box("block.widths.c", 0.0, 10.0);
-    (*pushed).set_margin({0.0, 0.0, 40.0, 0.0});
+    (*pushed).margin = {0.0, 0.0, 40.0, 0.0};
     (*root).add_child(centred);
     (*root).add_child(half);
     (*root).add_child(pushed);
@@ -210,7 +210,7 @@ void test_widths_and_auto_margins() {
     require_bounds(*half, 204.0, 18.0, 392.0, 10.0, "half the width, centred");
     require_bounds(*pushed, 652.0, 28.0, 100.0, 10.0, "an auto left margin pushes it right");
 
-    (*root).set_layout_direction(LayoutDirection::right_to_left);
+    (*root).layout_direction = LayoutDirection::right_to_left;
     BlockFlowItemLayout plain{};
     plain.width = px(100.0);
     (*root).set_item_layout(*pushed, plain);
@@ -330,7 +330,7 @@ void test_documented_examples() {
         std::shared_ptr<Button> button =
             make_control<Button>(StableId("doc.stack.button" + std::to_string(index)), "Button");
         (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-        (*button).set_margin({0.0, 10.0, 0.0, 10.0});
+        (*button).margin = {0.0, 10.0, 0.0, 10.0};
         (*stack).add_child(button);
         buttons.push_back(button);
     }
@@ -348,7 +348,7 @@ void test_documented_examples() {
     for (int index = 0; index < 3; ++index) {
         std::shared_ptr<Button> button =
             make_control<Button>(StableId("doc.row.button" + std::to_string(index)), "Button");
-        (*button).set_margin({});
+        (*button).margin = Insets{};
         (*row).add_child(button);
         (*row).set_item_layout(*button, atomic);
         row_buttons.push_back(button);

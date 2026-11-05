@@ -2208,7 +2208,7 @@ void ListView::on_pointer(PointerEvent& event) {
         const std::optional<std::size_t> next_hot = on_item ? std::optional<std::size_t>(hit.index) : std::nullopt;
         const std::optional<std::size_t> next_column =
             on_header ? std::optional<std::size_t>(hit.index) : std::nullopt;
-        set_cursor(hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow);
+        cursor = hit.zone == HitZone::divider ? CursorKind::resize_horizontal : CursorKind::arrow;
         if (next_hot != hot_index_ || next_column != hot_column_) {
             hot_index_ = next_hot;
             hot_column_ = next_column;
@@ -2688,8 +2688,8 @@ SemanticDescriptor ListView::semantic_descriptor() const {
         descriptor.role = SemanticRole::list;
     }
     if (multi_select_) descriptor.states |= SemanticState::multiselectable;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     if (selected_count_ == 1U && focused_index_ && selected_[*focused_index_] != 0U) {
         ListViewItem scratch;
         descriptor.value = item_at(*focused_index_, scratch).text;

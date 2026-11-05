@@ -46,7 +46,7 @@ struct FontDialogResult final {
 // and a size, shows a preview, and returns a FontSpec.
 //
 // It is an in-window dialog built from GUI.Forms controls: show() opens it
-// as an owned popup over its owner's window, centred, with the focus held
+// as an owned overlay over its owner's window, centred, with the focus held
 // inside it until it closes; it may also be placed in a layout directly.
 // There is no modal loop: show() returns at once and closed reports the
 // result. OK takes the selection as font() and closes; Cancel closes and
@@ -141,10 +141,10 @@ private:
     void on_ok(ButtonBase& button);
     void on_cancel(ButtonBase& button);
     void on_apply(ButtonBase& button);
-    void on_popup_revoked();
-    // Leaves the popup: ends the focus scope, takes the dialog out of its
+    void on_overlay_revoked();
+    // Leaves the overlay: ends the focus scope, takes the dialog out of its
     // layer and releases the layer.
-    void release_popup(FocusScopeCloseReason reason);
+    void release_overlay(FocusScopeCloseReason reason);
 
     FontSpec font_{FontRole::content, 9.0, 400, false};
     FontSpec selection_{FontRole::content, 9.0, 400, false};
@@ -165,9 +165,9 @@ private:
     std::shared_ptr<Button> apply_button_;
     // The styles the style list shows for the selected face.
     std::vector<FontStyle> styles_;
-    std::shared_ptr<Panel> popup_layer_;
-    PopupToken popup_token_;
-    std::uint64_t popup_scope_{};
+    std::shared_ptr<Panel> overlay_layer_;
+    OverlayToken overlay_token_;
+    std::uint64_t overlay_scope_{};
     SubscriptionToken face_token_;
     SubscriptionToken style_token_;
     SubscriptionToken size_token_;

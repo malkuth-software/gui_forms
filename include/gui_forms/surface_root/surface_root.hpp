@@ -14,6 +14,7 @@
 #include "gui_forms/metrics.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
+#include "gui_forms/window/backdrop/backdrop_chain.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
 #include "gui_forms/resources.hpp"
@@ -58,11 +59,17 @@ class PaintFramebuffer;
 struct HelpRequestEvent;
 namespace detail {
 struct LiveSurfaceIdleWake;
-class PopupAttachment;
+class OverlayAttachment;
 class AcceleratorAttachment;
 class RecordingPainter;
 class ToolTipPresenter;
 class MessageBoxHelpRoute;
+
+} // namespace detail
+
+namespace detail {
+struct ApplicationWindowState;
+void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
 
 // What a window offers the help requests no handler of its own took
 // (Window::request_help): each HelpProvider of the window is one, offered in
@@ -76,21 +83,21 @@ protected:
 };
 }
 
-class PopupToken final {
+class OverlayToken final {
 public:
-    PopupToken() = default;
-    ~PopupToken() { disconnect(); }
-    PopupToken(PopupToken&& other) noexcept
+    OverlayToken() = default;
+    ~OverlayToken() { disconnect(); }
+    OverlayToken(OverlayToken&& other) noexcept
         : attachment_(std::move(other.attachment_)) {}
-    PopupToken& operator=(PopupToken&& other) noexcept {
+    OverlayToken& operator=(OverlayToken&& other) noexcept {
         if (this != &other) {
             disconnect();
             attachment_ = std::move(other.attachment_);
         }
         return *this;
     }
-    PopupToken(const PopupToken&) = delete;
-    PopupToken& operator=(const PopupToken&) = delete;
+    OverlayToken(const OverlayToken&) = delete;
+    OverlayToken& operator=(const OverlayToken&) = delete;
 
     void disconnect() noexcept;
     [[nodiscard]] bool connected() const noexcept;
@@ -99,9 +106,9 @@ public:
 private:
     friend class Window;
     friend class SurfaceRoot;
-    explicit PopupToken(std::shared_ptr<detail::PopupAttachment> attachment)
+    explicit OverlayToken(std::shared_ptr<detail::OverlayAttachment> attachment)
         : attachment_(std::move(attachment)) {}
-    std::shared_ptr<detail::PopupAttachment> attachment_;
+    std::shared_ptr<detail::OverlayAttachment> attachment_;
 };
 
 struct KeyGesture final {
@@ -123,7 +130,7 @@ struct KeyGesture final {
 
 struct AcceleratorOptions final {
     // Application navigation gestures such as Alt+Left may preempt ordinary
-    // editor word-navigation. Active popup/focus scopes always retain first
+    // editor word-navigation. Active overlay/focus scopes always retain first
     // refusal so menus and modal editors remain contained.
     bool before_focused_route{};
 };
@@ -199,7 +206,7 @@ struct ControlAvailabilityChange final {
     bool effectively_enabled{};
 };
 
-struct PopupOptions final {
+struct OverlayOptions final {
     // Interactive menus and editors require an enabled owner. Passive
     // providers such as ToolTip may opt out while still requiring a live,
     // attached, effectively visible owner.
@@ -482,6 +489,23 @@ public:
     [[nodiscard]] Event<const WindowBackdropGrant&>& backdrop_changed() noexcept {
         return backdrop_changed_;
     }
+    // The window's backdrop chain (owner, 2026-11-05;
+    // gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme
+    // engine from the theme's `backdrop:` property, or by the application;
+    // nullopt removes it. A chain with a blur asks for the system material
+    // (implied_backdrop_request); GUI.Forms paints only the chain's tint,
+    // as the window's base. A change repaints the window.
+    // std::invalid_argument, changing nothing, for a chain
+    // backdrop_chain_valid refuses. UI thread. Until the application sets
+    // one, the window follows its theme's (Theme::window_backdrop_chain),
+    // lowered again when the theme shown, the presentation settings or the
+    // scale change; from the first call on, the application's holds.
+    void set_backdrop_chain(std::optional<BackdropChain> chain);
+    [[nodiscard]] const std::optional<BackdropChain>& backdrop_chain() const noexcept { return backdrop_chain_; }
+    // How the chain is carried under the grant in force: what the material
+    // gives, what is dropped and how the tint is drawn; nullopt without a
+    // chain.
+    [[nodiscard]] std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
     // Non-owning portable service seam, installed for the lifetime of a
     // HostSession. Renderer-free and headless windows may legitimately return
     // null when no host is attached.
@@ -592,6 +616,12 @@ public:
     [[nodiscard]] Control::Ptr hit_test(Point position);
     bool request_focus(const Control::Ptr& control);
     [[nodiscard]] Control::Ptr focused_control() const noexcept { return focused_.lock(); }
+    // The box an input method places its windows by, in this root's
+    // coordinates: the focused control's Control::text_input_caret, or a
+    // one-unit-wide box at its left edge when it names none; none without
+    // an eligible focused control. Hosts read it when the input method
+    // asks. Root thread only.
+    [[nodiscard]] std::optional<Rect> text_input_caret();
     // Raised by request_focus after focus moved, once the controls' own
     // focus notifications (on_focus_changed, focus_observed) ran; not raised
     // when focus is dropped because the focused control left the window. A
@@ -665,7 +695,7 @@ public:
     // Moves focus as F6 (forward) or Shift+F6 does. From outside every
     // region, forward enters the first region and backward the last. Returns
     // false, leaving focus alone, when no other region can take focus or a
-    // focus scope (a popup or dialog) is active.
+    // focus scope (an overlay or dialog) is active.
     bool move_focus_region(bool forward = true);
     void set_accept_button(const Control::Ptr& control);
     void set_cancel_button(const Control::Ptr& control);
@@ -699,9 +729,9 @@ public:
     control_availability_changed() noexcept {
         return control_availability_changed_;
     }
-    [[nodiscard]] PopupToken open_popup(const Control::Ptr& owner,
-                                        const Control::Ptr& popup,
-                                        PopupOptions options = {});
+    [[nodiscard]] OverlayToken open_overlay(const Control::Ptr& owner,
+                                        const Control::Ptr& overlay,
+                                        OverlayOptions options = {});
 
     // Tooltips (owner, 2026-10-28). The window has one presenter, which
     // shows the plain tooltip text of its controls and of their authored
@@ -903,10 +933,34 @@ protected:
     // Not virtual: a root is destroyed as what it is, never through this
     // base. The owner's destructor detaches the tree first.
     ~SurfaceRoot();
+    // The surface side of a resize (Window::resize, SubSurface::apply_size):
+    // validates the size (std::invalid_argument when negative, changing
+    // nothing), then stores it, opens a new surface epoch and damages and
+    // marks what it touched. False, changing nothing, for the same size.
+    // Root thread; the caller checks it.
+    bool resize_surface(Size client_size);
+    // The surface side of a scale change (Window::set_scale,
+    // SubSurface::apply_scale): validates it (std::invalid_argument unless
+    // finite and positive), then stores it, opens a new surface epoch and
+    // marks the whole tree. False, changing nothing, for the same scale.
+    bool set_surface_scale(double scale);
+    // The owner's teardown of the tree, on the root's thread: stops paint
+    // and host wakes, tells the controls everything (popups, accelerators,
+    // focus scopes, the motion clock and frame requests go; the tree is
+    // detached) while the dispatcher still accepts their posts, then shuts
+    // the dispatcher down, cancelling what they posted.
+    void release_tree() noexcept;
 
 private:
     friend class Window;
+    friend class SubSurface;
+    friend class SubSurfaceHost;
     friend class SurfaceRoot;
+    friend class Control;
+    // How the newest focus change came about, for a control that forwards
+    // focus to another tree (SubSurfaceHost): through Tab, Shift+Tab, or
+    // anything else (none).
+    enum class FocusTraversal : std::uint8_t { none, forward, backward };
     // std::logic_error naming `operation`, counted as a wrong-thread
     // rejection, off the root's thread.
     void require_root_thread(std::string_view operation);
@@ -950,6 +1004,14 @@ private:
     void cover_tool_tip(RuntimeId control, std::string_view item_id, bool covered);
     // dispatch_key's routing, after the paint-lease check.
     bool route_key(KeyEvent event);
+    // What the window does with a key no control on `route` handled at the
+    // target or bubble phase: accelerators, dialog keys, Tab and F6.
+    bool finish_unhandled_key(const KeyEvent& event);
+    // A key `from` forwarded elsewhere and got back unhandled (a sub-surface's
+    // key return, design note section 4): bubbles from `from`'s parent up,
+    // then finish_unhandled_key. False, doing nothing, when `from` is no
+    // longer eligible. Root thread only.
+    bool resume_unhandled_key(const Control::Ptr& from, KeyEvent event);
     // Called by the tooltip presenter: a one-shot wake at `deadline` on the
     // UI thread, revoked by the token.
     [[nodiscard]] FrameRequestToken request_tool_tip_wake(
@@ -983,7 +1045,7 @@ private:
     // window takes the scheme the host last reported.
     void follow_host_colour_scheme(bool automatic);
     // Called by ApplicationResources before a theme change (P12b): the
-    // inline styles of the window's root and popups compiled again against
+    // inline styles of the window's root and overlays compiled again against
     // `theme` (Control::collect_inline_restyles).
     [[nodiscard]] bool collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
                                                std::vector<ThemeCompileDiagnostic>& diagnostics) const;
@@ -997,7 +1059,7 @@ private:
     friend class OpenFileDialog;
     friend class SaveFileDialog;
     friend class BindingContext;
-    friend class detail::PopupAttachment;
+    friend class detail::OverlayAttachment;
     friend class ThemeEngine;
     // An effect's backdrop (EP-7) samples the backplane through the same
     // engine calls a theme part uses, and joins its damage list.
@@ -1141,8 +1203,8 @@ private:
 
     using ControlList = std::vector<Control::Ptr>;
     using StableIdMap = std::unordered_map<std::string, Control::WeakPtr>;
-    using PopupList =
-        std::vector<std::shared_ptr<detail::PopupAttachment>>;
+    using OverlayList =
+        std::vector<std::shared_ptr<detail::OverlayAttachment>>;
     using AcceleratorList =
         std::vector<std::shared_ptr<detail::AcceleratorAttachment>>;
 
@@ -1184,6 +1246,16 @@ private:
     void detach_subtree(const Control::Ptr& control);
     void detach_subtree_state(const Control::Ptr& control,
                               ControlList& detached);
+    // The backstop for a control destroyed while still attached (owner,
+    // 2026-11-05), called from ~Control: the window forgets it and every
+    // descendant still attached here. That covers its control-table slot,
+    // its engine part records, its motion values, its containing-block
+    // entries, and its window, root and dispatcher links. No lifecycle
+    // notification runs, since the control is being destroyed.
+    // Registries that observe weakly (focus, hover, capture, stable IDs)
+    // expire on their own. A settle or paint walk in progress stays valid:
+    // it reads each slot again by index, and a released slot answers null.
+    void forget_destroyed_subtree(Control& control) noexcept;
     void dispose_subtree(const Control::Ptr& control) noexcept;
     void revoke_interaction_for_subtree(const Control::Ptr& control,
                                         bool notify_focus);
@@ -1192,8 +1264,8 @@ private:
         FocusScopeId scope, FocusScopeCloseReason reason,
         const Control::Ptr& notification_owner);
     void revoke_focus_scopes_for_subtree(const Control::Ptr& control) noexcept;
-    void close_popups_for_subtree(const Control::Ptr& control) noexcept;
-    void close_popup(detail::PopupAttachment& popup) noexcept;
+    void close_overlays_for_subtree(const Control::Ptr& control) noexcept;
+    void close_overlay(detail::OverlayAttachment& overlay) noexcept;
     void close_accelerator(detail::AcceleratorAttachment& accelerator) noexcept;
     [[nodiscard]] bool dispatch_accelerator(const KeyEvent& event,
                                             bool preemptive);
@@ -1254,16 +1326,28 @@ private:
     [[nodiscard]] bool settle_pending() const noexcept;
     // One control's owed bookkeeping (settle_dirty's body).
     void settle_touch(Control& control, detail::PendingTouch owed);
+    // A subtree mark's settle: every control of the subtree takes `kinds`
+    // (apply_subtree_dirty, which also forgets the descendants' touches it
+    // covers), the ancestors' flags and suspended notes, the layout
+    // ancestors, and the requested damage area.
+    void settle_subtree(Control& control, Dirty kinds);
+    // Whether an ancestor of `control` has a pending subtree mark covering
+    // `kinds`, so the control's own subtree mark is redundant.
+    [[nodiscard]] bool covered_by_pending_subtree(const Control& control, Dirty kinds) const;
     // The damage of a control whose visual bounds changed from `old_bounds`
     // to `new_bounds` (window coordinates) in an arrange: the whole of both
     // when `escalate` (its paint depends on its size) or its origin moved,
-    // else the exposed strips. The one seam for resize damage policy (the
-    // hot-paths worker's strip rules, M0.4's note_bounds_changed).
-    void damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate);
+    // else the exposed strips. `relaid` holds the resized axes the control
+    // registered as moving its children (Control::layout_resize_response);
+    // its children damage themselves as they are arranged, so the policy
+    // here does not read it yet. The one seam for resize damage policy (the
+    // hot-paths worker's strip rules).
+    void damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate,
+                        ResizeAxes relaid);
     // Marks for measure the controls a client-size change reaches (see
     // Window::resize): `control`, and below it each child whose parent
     // requests no extent on a changed axis.
-    // The surface side of a client resize, called by Window::resize: damages
+    // The surface side of a client resize, called by resize_surface: damages
     // the exposed strips and edge bands (or the whole window when its base
     // depends on its size), marks the root's layout slot and the measure the
     // new size reaches.
@@ -1303,12 +1387,12 @@ private:
         std::string value;
         RuntimeId owner{};
     };
-    // The attached control, in the root tree or a popup, with runtime
+    // The attached control, in the root tree or an overlay, with runtime
     // identity `control`, or empty.
     [[nodiscard]] Control::Ptr find_runtime_control(RuntimeId control) const;
     // Whether a semantic action may reach `control` under the active focus
     // scope: no scope contains focus, `control` lies inside the scope, or it
-    // lies in a popup whose owner does (the reach of the stable-identity
+    // lies in an overlay whose owner does (the reach of the stable-identity
     // overload's virtual-child search).
     [[nodiscard]] bool semantic_scope_reaches(const Control::Ptr& control) const;
     using DeferredInput = std::variant<
@@ -1467,6 +1551,15 @@ private:
     bool active_{true};
     StableIdMap stable_ids_;
     Control::WeakPtr focused_;
+    // Whether Tab past the last tab stop (or Shift+Tab before the first)
+    // wraps around. A sub-surface does not wrap: the key goes back to its
+    // parent, whose traversal moves focus past the host (design note
+    // section 4).
+    bool focus_wraps_{true};
+    // Set by move_focus around its request_focus; copied to
+    // last_focus_traversal_ when that request moves focus.
+    FocusTraversal pending_focus_traversal_{FocusTraversal::none};
+    FocusTraversal last_focus_traversal_{FocusTraversal::none};
     // One F6 region and the control that last had focus inside it. Both are
     // observed, never owned.
     struct FocusRegion final {
@@ -1522,10 +1615,10 @@ private:
     // provider removes its own on disposal.
     std::vector<detail::WindowHelpFallback*> help_fallbacks_;
     Event<const ControlAvailabilityChange&> control_availability_changed_;
-    PopupList popups_;
+    OverlayList overlays_;
     AcceleratorList accelerators_;
     // The window's one tooltip presenter; made with the window, shut down
-    // first in its destructor (it holds a popup).
+    // first in its destructor (it holds an overlay).
     std::unique_ptr<detail::ToolTipPresenter> tool_tip_presenter_;
     ToolTipSettings tool_tip_settings_{};
     std::optional<bool> tool_tips_shown_{};
@@ -1704,6 +1797,23 @@ private:
     bool application_backdrop_request_{};
     WindowBackdropGrant backdrop_grant_{};
     Event<const WindowBackdropGrant&> backdrop_changed_;
+    // The chain in force (set_backdrop_chain); none by default.
+    std::optional<BackdropChain> backdrop_chain_{};
+    // This window's state in its application run, while it is a ready
+    // window of one (detail::attach_application_window); observed, never
+    // owned. Empty for a window outside a run.
+    friend void detail::attach_application_window(SurfaceRoot& model,
+                                                  const std::shared_ptr<detail::ApplicationWindowState>& state) noexcept;
+    std::weak_ptr<detail::ApplicationWindowState> application_window_{};
+    // Whether backdrop_chain_ is the application's (set_backdrop_chain)
+    // rather than the theme's.
+    bool application_backdrop_chain_{};
+    // Puts `chain`, valid or none, in force: the implied request, the
+    // backplane and the repaint (set_backdrop_chain's effects).
+    void apply_backdrop_chain(const std::optional<BackdropChain>& chain);
+    // The theme's chain for this window (Theme::window_backdrop_chain), put
+    // in force unless the application set its own.
+    void lower_theme_backdrop_chain();
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.
@@ -1711,9 +1821,17 @@ private:
     // The material the window's backplane is drawn from (PLAN.md §4.1), by
     // the presentation and the engine's backplane image alike: the theme's
     // base for the granted backdrop when it has one, else the window
-    // recipe's material for `context`. Borrowed from theme_, valid until
-    // the theme is replaced.
-    [[nodiscard]] const SurfaceMaterial& backplane_base(const ControlVisualContext& context) const noexcept;
+    // recipe's material for `context`. With a backdrop chain that has a
+    // tint (and no high contrast) the tint takes the base's place: with its
+    // alpha over a non-opaque grant (what lies behind is the system's
+    // material: the CPU side adds only the tint), opaque over `opaque` (the
+    // chain's fallback, BackdropChainResolution::solid). A copy: the
+    // chain's tint is not held by the theme.
+    [[nodiscard]] SurfaceMaterial backplane_base(const ControlVisualContext& context) const;
+    // The request the window makes while its application has made none: a
+    // chain with a blur asks for the main window's material, falling back to
+    // transparent; otherwise the theme's request.
+    [[nodiscard]] WindowBackdropRequest implied_backdrop_request() const;
     // The keyboard commands' keys, shared with the application's other
     // windows (see key_map); never null.
     std::shared_ptr<KeyBindings> key_bindings_{std::make_shared<KeyBindings>()};

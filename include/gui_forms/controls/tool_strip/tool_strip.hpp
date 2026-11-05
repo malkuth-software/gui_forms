@@ -335,14 +335,14 @@ private:
     void set_hot(std::optional<std::size_t> index, ItemZone zone);
     void focus_item(std::optional<std::size_t> index);
     void paint_item(Painter& painter, std::size_t index, Rect bounds) const;
-    void on_popup_item_invoked(const MenuItemInvocation& invocation);
-    void on_popup_open_changed(bool open);
+    void on_overlay_item_invoked(const MenuItemInvocation& invocation);
+    void on_overlay_open_changed(bool open);
     void on_command_state(const CommandState& state);
     [[nodiscard]] std::vector<MenuItemSpec> overflow_menu() const;
 
     std::vector<ToolStripItemSpec> items_{};
     std::vector<ItemState> item_states_{};
-    std::unique_ptr<ContextMenu> popup_{};
+    std::unique_ptr<ContextMenu> overlay_{};
     // The item whose menu is open; none with the overflow menu or no menu.
     std::optional<std::size_t> open_index_{};
     bool overflow_open_{};
@@ -361,8 +361,8 @@ private:
     bool allow_merge_{true};
     // The merges into this strip, oldest first; none until the first.
     std::unique_ptr<detail::ToolStripMergeHistory> merge_history_{};
-    SubscriptionToken popup_invoked_{};
-    SubscriptionToken popup_changed_{};
+    SubscriptionToken overlay_invoked_{};
+    SubscriptionToken overlay_changed_{};
     // One per item command, so a command's enabled, visible, text or
     // checked change repaints the strip.
     std::vector<SubscriptionToken> command_tokens_{};

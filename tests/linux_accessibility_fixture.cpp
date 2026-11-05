@@ -21,9 +21,9 @@ int main() {
     std::shared_ptr<Button> button = make_control<Button>(StableId("press"), "Draw mark");
     (*button).set_requested_bounds({10, 10, 160, 30}); (*root).add_child(button);
     std::shared_ptr<NumericUpDown> number = make_control<NumericUpDown>(StableId("position"));
-    (*number).set_accessible_name("Canvas X"); (*number).set_range(0, 200); (*number).set_requested_bounds({10, 50, 160, 30}); (*root).add_child(number);
+    (*number).accessible_name = "Canvas X"; (*number).set_range(0, 200); (*number).set_requested_bounds({10, 50, 160, 30}); (*root).add_child(number);
     std::shared_ptr<TextBox> text = make_control<TextBox>(StableId("text"));
-    (*text).set_accessible_name("Artwork text"); (*text).set_requested_bounds({10, 90, 160, 30}); (*root).add_child(text);
+    (*text).accessible_name = "Artwork text"; (*text).set_requested_bounds({10, 90, 160, 30}); (*root).add_child(text);
     Fixture fixture; SubscriptionToken token = (*button).clicked().subscribe(Delegate<ButtonBase&>::bind<Fixture, &Fixture::pressed>(fixture));
     gui_forms::Window model(root, {400, 300}); model.perform_layout();
     LinuxAccessibility accessibility(display, native, model, "Plan accessibility fixture");

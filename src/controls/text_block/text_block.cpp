@@ -340,7 +340,7 @@ Size TextBlock::content_size(double width, Workspace& workspace) const {
 
 Size TextBlock::measure(Size available) {
     const Rect requested = requested_bounds();
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const double horizontal = inset.left + inset.right;
     const double vertical = inset.top + inset.bottom;
     const double outer_width = requested.width > 0.0 ? requested.width : available.width;
@@ -352,7 +352,7 @@ Size TextBlock::measure(Size available) {
 }
 
 Size TextBlock::measure_intrinsic(const LayoutConstraint& constraint) {
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const double horizontal = inset.left + inset.right;
     const double vertical = inset.top + inset.bottom;
     const FontSpec font = text_font((*this).font());
@@ -388,12 +388,12 @@ std::optional<double> TextBlock::first_baseline(double width) {
     static_cast<void>(width);
     if (!has_visible_text(text_)) return std::nullopt;
     const LineBoxMetrics metrics = line_metrics(text_font((*this).font()));
-    const double baseline = padding().top + metrics.baseline;
+    const double baseline = padding.read().top + metrics.baseline;
     return baseline;
 }
 
 std::optional<double> TextBlock::last_baseline(double width) {
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const Size content = content_size(std::max(0.0, width - (inset.left + inset.right)), workspace_);
     if (workspace_.lines.empty()) return std::nullopt;
     const LineBoxMetrics metrics = line_metrics(text_font((*this).font()));
@@ -416,7 +416,7 @@ double TextBlock::line_x(const TextLine& line, double content_width) const noexc
 
 void TextBlock::on_paint(Painter& painter, Rect) {
     const Rect client = client_rectangle();
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const double content_width = std::max(0.0, client.width - (inset.left + inset.right));
     static_cast<void>(content_size(content_width, workspace_));
     const FontSpec font = text_font((*this).font());
@@ -446,8 +446,8 @@ bool TextBlock::hit_test_local(Point) const {
 SemanticDescriptor TextBlock::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::static_text;
-    descriptor.name = accessible_name().empty() ? text_ : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? text_ : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty();
     return descriptor;
 }
@@ -494,7 +494,7 @@ void TextBlock::publish_part_geometry(std::span<PartGeometry> geometry) const {
     // lines align within it) and the lines' height. The method is const, so
     // it lays out into storage of its own.
     const Rect client = client_rectangle();
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const double content_width = std::max(0.0, client.width - (inset.left + inset.right));
     Workspace workspace{};
     const Size content = content_size(content_width, workspace);

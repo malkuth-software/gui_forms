@@ -164,7 +164,7 @@
       "type": "uint32"
     },
     {
-      "name": "GF_TABLE_POPUPS",
+      "name": "GF_TABLE_OVERLAYS",
       "value": 13,
       "type": "uint32"
     },
@@ -5324,7 +5324,7 @@
       ]
     },
     {
-      "name": "gf_popups_table",
+      "name": "gf_overlays_table",
       "kind": "table",
       "size": 48,
       "align": 8,
@@ -5342,7 +5342,7 @@
           "size": 4
         },
         {
-          "name": "open_popup",
+          "name": "open_overlay",
           "type": "function",
           "offset": 8,
           "size": 8,
@@ -5354,7 +5354,7 @@
                 "type": "gf_object"
               },
               {
-                "name": "popup",
+                "name": "overlay",
                 "type": "gf_object"
               }
             ]
@@ -5362,7 +5362,7 @@
           "since": "1.0"
         },
         {
-          "name": "close_popup",
+          "name": "close_overlay",
           "type": "function",
           "offset": 16,
           "size": 8,
@@ -5370,7 +5370,7 @@
             "returns": "gf_status",
             "parameters": [
               {
-                "name": "popup",
+                "name": "overlay",
                 "type": "gf_object"
               }
             ]

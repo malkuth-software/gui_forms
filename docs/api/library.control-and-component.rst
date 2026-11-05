@@ -38,14 +38,28 @@ Related types
      -  
    * - :cpp:class:`AccentIndex <gui_forms::AccentIndex>`
      - A position in the theme's accent ramp (design language §8.5; owner decision RB-22): the ordered colours a theme offers for telling sets of items apart, such as a ribbon's contextual tab sets.
+   * - :cpp:class:`AccessibleDescriptionCapability <gui_forms::AccessibleDescriptionCapability>`
+     - The description assistive technology announces.
+   * - :cpp:class:`AccessibleNameCapability <gui_forms::AccessibleNameCapability>`
+     - The name assistive technology announces.
+   * - :cpp:class:`AllowDropCapability <gui_forms::AllowDropCapability>`
+     - Whether the control accepts dropped data (AllowDrop).
    * - :cpp:class:`AnatomyStateSet <gui_forms::AnatomyStateSet>`
      - A bounded set of active standard and custom states.
    * - :cpp:class:`AnatomyValidation <gui_forms::AnatomyValidation>`
      - The result of validate_control_anatomy: the first defect found, or none.
+   * - :cpp:class:`AnchorCapability <gui_forms::AnchorCapability>`
+     - The parent edges the control keeps its distance to (Anchor).
    * - :cpp:class:`AutoLengthPercentage <gui_forms::AutoLengthPercentage>`
      - A margin or an inset: ``auto`` or a length-percentage, which may be negative.
+   * - :cpp:class:`AutoSizeCapability <gui_forms::AutoSizeCapability>`
+     - Whether measurement determines the control's size (AutoSize).
+   * - :cpp:class:`AutoSizeModeCapability <gui_forms::AutoSizeModeCapability>`
+     - Whether auto size may shrink the control (AutoSizeMode).
    * - :cpp:class:`AvailableExtent <gui_forms::AvailableExtent>`
      - One axis of a layout constraint.
+   * - :cpp:class:`BackColorCapability <gui_forms::BackColorCapability>`
+     - The own background colour; empty takes the parent's.
    * - :cpp:class:`BlockFlowContainerInput <gui_forms::BlockFlowContainerInput>`
      -  
    * - :cpp:class:`BlockFlowItemInput <gui_forms::BlockFlowItemInput>`
@@ -60,6 +74,8 @@ Related types
      - CSS Box Alignment's six properties, shared by flex and grid containers and their items.
    * - :cpp:class:`BoxSides <gui_forms::BoxSides>`
      - Top, right, bottom and left, CSS's shorthand order.
+   * - :cpp:class:`CausesValidationCapability <gui_forms::CausesValidationCapability>`
+     - Whether leaving the control starts validation (CausesValidation).
    * - :cpp:class:`CollapsedMargin <gui_forms::CollapsedMargin>`
      - A set of adjoining vertical margins (8.3.1): the largest positive margin and the most negative one; the collapsed margin is their sum.
    * - :cpp:class:`ComponentContainer <gui_forms::ComponentContainer>`
@@ -70,14 +86,22 @@ Related types
      -  
    * - :cpp:class:`ControlAnatomy <gui_forms::ControlAnatomy>`
      - The anatomy of one control type.
+   * - :cpp:class:`ControlCapabilities <gui_forms::ControlCapabilities>`
+     - Every Control capability, in the order Control lists them as bases.
    * - :cpp:class:`ControlFactory <gui_forms::ControlFactory>`
      - ControlFactory maps explicit type names to construction callbacks, rejects duplicates/unknown types, and recursively creates retained trees without a bundled scripting runtime.
    * - :cpp:class:`ControlValidationEvent <gui_forms::ControlValidationEvent>`
      - ControlValidationEvent carries source, destination, bulk-validation intent, and mutable cancellation through one validation turn.
+   * - :cpp:class:`CursorCapability <gui_forms::CursorCapability>`
+     - The pointer's cursor; empty takes the parent's (Cursor).
    * - :cpp:class:`CustomStateDeclaration <gui_forms::CustomStateDeclaration>`
      - One application-defined finite state, as written in ``:state(name)``.
    * - :cpp:class:`CustomStateIndex <gui_forms::CustomStateIndex>`
      - Position of an application-defined state in its control type's declaration list.
+   * - :cpp:class:`DockCapability <gui_forms::DockCapability>`
+     - The parent edge the control docks to (Dock).
+   * - :cpp:class:`EnabledCapability <gui_forms::EnabledCapability>`
+     - Whether the control receives ordinary user input (Enabled).
    * - :cpp:class:`FlexAvailableExtent <gui_forms::FlexAvailableExtent>`
      - One axis of the container's content box: a definite extent, or indefinite (sized from the items: the main axis never wraps then).
    * - :cpp:class:`FlexContainerInput <gui_forms::FlexContainerInput>`
@@ -100,6 +124,8 @@ Related types
      - One flex line, its items being order[first, first + count).
    * - :cpp:class:`FlexMargin <gui_forms::FlexMargin>`
      - One margin as the solver reads it: a resolved length, or ``auto``.
+   * - :cpp:class:`ForeColorCapability <gui_forms::ForeColorCapability>`
+     - The own text colour; empty takes the parent's.
    * - :cpp:class:`FractionFactor <gui_forms::FractionFactor>`
      -  
    * - :cpp:class:`GridAvailableExtent <gui_forms::GridAvailableExtent>`
@@ -138,6 +164,8 @@ Related types
      - A grid-template-columns or -rows value.
    * - :cpp:class:`GridTrackSize <gui_forms::GridTrackSize>`
      - A track size: one breadth (both ends equal, except that a lone ``<n>fr`` is CSS's ``minmax(auto, <n>fr)``), ``minmax(minimum, maximum)``, or ``fit-content(<length-percentage>)``, whose limit is ``fit_content_limit`` with minimum ``auto`` and maximum ``max-content``.
+   * - :cpp:class:`HitTestTransparentCapability <gui_forms::HitTestTransparentCapability>`
+     - Whether pointer hit testing passes through the control to what is under it.
    * - :cpp:class:`InteractionDeclaration <gui_forms::InteractionDeclaration>`
      - One interaction.
    * - :cpp:class:`InteractionValidation <gui_forms::InteractionValidation>`
@@ -152,6 +180,8 @@ Related types
      - A measure query on both axes.
    * - :cpp:class:`LayoutDiagnostic <gui_forms::LayoutDiagnostic>`
      -  
+   * - :cpp:class:`LayoutDirectionCapability <gui_forms::LayoutDirectionCapability>`
+     - The control's own layout direction; inherit takes the parent's (RightToLeft).
    * - :cpp:class:`LayoutStyle <gui_forms::LayoutStyle>`
      -  
    * - :cpp:class:`LayoutTransactionState <gui_forms::LayoutTransactionState>`
@@ -162,10 +192,20 @@ Related types
      - The strut every line box starts with (10.8.1): the container's ascent and descent above and below the baseline, as its font and line height give them, and the x-height ``vertical-align: middle`` aligns to.
    * - :cpp:class:`LogicalLength <gui_forms::LogicalLength>`
      - A layout length in logical units (device-independent pixels), the unit of every retained bound.
+   * - :cpp:class:`MarginCapability <gui_forms::MarginCapability>`
+     - The space kept outside the control (Margin).
+   * - :cpp:class:`MaximumSizeCapability <gui_forms::MaximumSizeCapability>`
+     - The largest size layout gives the control; zero is unbounded.
+   * - :cpp:class:`MinimumSizeCapability <gui_forms::MinimumSizeCapability>`
+     - The smallest size layout gives the control (MinimumSize).
    * - :cpp:class:`MnemonicText <gui_forms::MnemonicText>`
      - MnemonicText separates rendered UTF-8 from the optional activation scalar parsed from Forms-compatible ampersand notation.
+   * - :cpp:class:`NameCapability <gui_forms::NameCapability>`
+     - The stable authoring name (Control::Name).
    * - :cpp:class:`OwnerDecorationRecipe <gui_forms::OwnerDecorationRecipe>`
      -  
+   * - :cpp:class:`PaddingCapability <gui_forms::PaddingCapability>`
+     - The space kept inside the control around its content (Padding).
    * - :cpp:class:`PartDeclaration <gui_forms::PartDeclaration>`
      - One declared part.
    * - :cpp:class:`PartField <gui_forms::PartField>`
@@ -186,8 +226,16 @@ Related types
      - One member of a states record and the standard state it reports.
    * - :cpp:class:`StaticNode <gui_forms::StaticNode>`
      - StaticNode is an inert declarative node containing a registered type name, stable ID, and owned child descriptions.
+   * - :cpp:class:`TabIndexCapability <gui_forms::TabIndexCapability>`
+     - The control's place in its parent's tab order (TabIndex).
+   * - :cpp:class:`TabStopCapability <gui_forms::TabStopCapability>`
+     - Whether the Tab key stops at the control (TabStop).
+   * - :cpp:class:`ToolTipTextCapability <gui_forms::ToolTipTextCapability>`
+     - The plain tooltip text; empty never shows.
    * - :cpp:class:`TrackBreadth <gui_forms::TrackBreadth>`
      -  
+   * - :cpp:class:`VisibleCapability <gui_forms::VisibleCapability>`
+     - Whether the control takes part in presentation and input (Visible).
 
 .. cpp:namespace:: gui_forms
 
@@ -273,6 +321,53 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> AccessibleDescriptionCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The description assistive technology announces.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AccessibleDescriptionCapability& capability, std::string value)
+
+   .. cpp:member:: PropertyCell<std::string, AccessibleDescriptionCapability<Declaring>> accessible_description
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AccessibleNameCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The name assistive technology announces.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AccessibleNameCapability& capability, std::string value)
+
+   .. cpp:member:: PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AllowDropCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether the control accepts dropped data (AllowDrop).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AllowDropCapability& capability, bool value)
+
+   .. cpp:member:: PropertyCell<bool, AllowDropCapability<Declaring>> allow_drop
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: AnatomyStateSet final
 
    ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
@@ -321,6 +416,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> AnchorCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The parent edges the control keeps its distance to (Anchor).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AnchorCapability& capability, AnchorStyles value)
+
+   .. cpp:member:: PropertyCell<AnchorStyles, AnchorCapability<Declaring>> anchor
+
+      Default: ``{AnchorStyles::top | AnchorStyles::left}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: AutoLengthPercentage final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -330,6 +442,40 @@ Related types
    .. cpp:member:: bool automatic
 
    .. cpp:member:: LengthPercentage value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AutoSizeCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether measurement determines the control's size (AutoSize).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AutoSizeCapability& capability, bool value)
+
+   .. cpp:member:: PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AutoSizeModeCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether auto size may shrink the control (AutoSizeMode).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AutoSizeModeCapability& capability, AutoSizeMode value)
+
+   .. cpp:member:: PropertyCell<AutoSizeMode, AutoSizeModeCapability<Declaring>> auto_size_mode
+
+      Default: ``{AutoSizeMode::grow_only}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -344,6 +490,21 @@ Related types
       Default: ``{AvailableExtentKind::at_most}``.
 
    .. cpp:member:: LogicalLength extent
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> BackColorCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The own background colour; empty takes the parent's.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(BackColorCapability& capability, std::optional<Color> value)
+
+   .. cpp:member:: PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color
 
 .. cpp:namespace:: gui_forms
 
@@ -543,6 +704,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CausesValidationCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether leaving the control starts validation (CausesValidation).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CausesValidationCapability& capability, bool value)
+
+   .. cpp:member:: PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CollapsedMargin final
 
    ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
@@ -666,6 +844,109 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Every Control capability, in the order Control lists them as bases.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string name
+
+      The stable authoring name (Control::Name).
+
+   .. cpp:member:: bool visible
+
+      Whether the control takes part in presentation and input (Visible).
+
+   .. cpp:member:: bool enabled
+
+      Whether the control receives ordinary user input (Enabled).
+
+   .. cpp:member:: bool auto_size
+
+      Whether measurement determines the control's size (AutoSize).
+
+   .. cpp:member:: bool causes_validation
+
+      Whether leaving the control starts validation (CausesValidation).
+
+   .. cpp:member:: std::string tool_tip_text
+
+      The plain tooltip text; empty never shows.
+
+   .. cpp:member:: std::optional<CursorKind> cursor
+
+      The pointer's cursor; empty takes the parent's (Cursor).
+
+   .. cpp:member:: std::optional<Color> back_color
+
+      The own background colour; empty takes the parent's.
+
+   .. cpp:member:: std::optional<Color> fore_color
+
+      The own text colour; empty takes the parent's.
+
+   .. cpp:member:: Size minimum_size
+
+      The smallest size layout gives the control (MinimumSize).
+
+   .. cpp:member:: Size maximum_size
+
+      The largest size layout gives the control; zero is unbounded.
+
+   .. cpp:member:: Insets margin
+
+      The space kept outside the control (Margin).
+
+   .. cpp:member:: Insets padding
+
+      The space kept inside the control around its content (Padding).
+
+   .. cpp:member:: DockStyle dock
+
+      The parent edge the control docks to (Dock).
+
+   .. cpp:member:: AnchorStyles anchor
+
+      The parent edges the control keeps its distance to (Anchor).
+
+   .. cpp:member:: AutoSizeMode auto_size_mode
+
+      Whether auto size may shrink the control (AutoSizeMode).
+
+   .. cpp:member:: LayoutDirection layout_direction
+
+      The control's own layout direction; inherit takes the parent's (RightToLeft).
+
+   .. cpp:member:: std::uint32_t tab_index
+
+      The control's place in its parent's tab order (TabIndex).
+
+   .. cpp:member:: bool tab_stop
+
+      Whether the Tab key stops at the control (TabStop).
+
+   .. cpp:member:: bool allow_drop
+
+      Whether the control accepts dropped data (AllowDrop).
+
+   .. cpp:member:: bool hit_test_transparent
+
+      Whether pointer hit testing passes through the control to what is under it.
+
+   .. cpp:member:: std::string accessible_name
+
+      The name assistive technology announces.
+
+   .. cpp:member:: std::string accessible_description
+
+      The description assistive technology announces.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: ControlFactory
 
    ``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>``
@@ -699,6 +980,21 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> CursorCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The pointer's cursor; empty takes the parent's (Cursor).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CursorCapability& capability, std::optional<CursorKind> value)
+
+   .. cpp:member:: PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: CustomStateDeclaration final
 
    ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
@@ -716,6 +1012,40 @@ Related types
    Position of an application-defined state in its control type's declaration list.
 
    .. cpp:member:: std::uint8_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DockCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The parent edge the control docks to (Dock).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DockCapability& capability, DockStyle value)
+
+   .. cpp:member:: PropertyCell<DockStyle, DockCapability<Declaring>> dock
+
+      Default: ``{DockStyle::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> EnabledCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether the control receives ordinary user input (Enabled).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(EnabledCapability& capability, bool value)
+
+   .. cpp:member:: PropertyCell<bool, EnabledCapability<Declaring>> enabled
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -972,6 +1302,21 @@ Related types
    .. cpp:member:: double length
 
    .. cpp:member:: bool automatic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ForeColorCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The own text colour; empty takes the parent's.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ForeColorCapability& capability, std::optional<Color> value)
+
+   .. cpp:member:: PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color
 
 .. cpp:namespace:: gui_forms
 
@@ -1373,6 +1718,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> HitTestTransparentCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether pointer hit testing passes through the control to what is under it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(HitTestTransparentCapability& capability, bool value)
+
+   .. cpp:member:: PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent
+
+      Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: InteractionDeclaration final
 
    ``#include <gui_forms/schema/types/schema_types.hpp>``
@@ -1474,6 +1836,23 @@ Related types
       The stable identities of the child the pass placed and of the ancestor whose box it was placed in (the window's root control for its client area).
 
    .. cpp:member:: std::string ancestor
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> LayoutDirectionCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's own layout direction; inherit takes the parent's (RightToLeft).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(LayoutDirectionCapability& capability, LayoutDirection value)
+
+   .. cpp:member:: PropertyCell<LayoutDirection, LayoutDirectionCapability<Declaring>> layout_direction
+
+      Default: ``{LayoutDirection::inherit}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1599,6 +1978,53 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> MarginCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The space kept outside the control (Margin).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MarginCapability& capability, Insets value)
+
+   .. cpp:member:: PropertyCell<Insets, MarginCapability<Declaring>> margin
+
+      Default: ``{Insets{3.0, 3.0, 3.0, 3.0}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MaximumSizeCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The largest size layout gives the control; zero is unbounded.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MaximumSizeCapability& capability, Size value)
+
+   .. cpp:member:: PropertyCell<Size, MaximumSizeCapability<Declaring>> maximum_size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MinimumSizeCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The smallest size layout gives the control (MinimumSize).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MinimumSizeCapability& capability, Size value)
+
+   .. cpp:member:: PropertyCell<Size, MinimumSizeCapability<Declaring>> minimum_size
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MnemonicText final
 
    ``#include <gui_forms/control/control/control.hpp>``
@@ -1608,6 +2034,21 @@ Related types
    .. cpp:member:: std::string display_text
 
    .. cpp:member:: std::optional<char32_t> mnemonic
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> NameCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The stable authoring name (Control::Name).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(NameCapability& capability, std::string value)
+
+   .. cpp:member:: PropertyCell<std::string, NameCapability<Declaring>> name
 
 .. cpp:namespace:: gui_forms
 
@@ -1632,6 +2073,21 @@ Related types
    .. cpp:member:: double rotation_degrees
 
    .. cpp:member:: MaterialBorderEdges border_edges
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PaddingCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The space kept inside the control around its content (Padding).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PaddingCapability& capability, Insets value)
+
+   .. cpp:member:: PropertyCell<Insets, PaddingCapability<Declaring>> padding
 
 .. cpp:namespace:: gui_forms
 
@@ -1797,6 +2253,55 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TabIndexCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The control's place in its parent's tab order (TabIndex).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabIndexCapability& capability, std::uint32_t value)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, TabIndexCapability<Declaring>> tab_index
+
+      Default: ``{0U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TabStopCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether the Tab key stops at the control (TabStop).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TabStopCapability& capability, bool value)
+
+   .. cpp:member:: PropertyCell<bool, TabStopCapability<Declaring>> tab_stop
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolTipTextCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   The plain tooltip text; empty never shows.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolTipTextCapability& capability, std::string value)
+
+   .. cpp:member:: PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TrackBreadth final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -1808,6 +2313,23 @@ Related types
    .. cpp:member:: LengthPercentage length
 
    .. cpp:member:: FractionFactor fraction
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> VisibleCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Whether the control takes part in presentation and input (Visible).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(VisibleCapability& capability, bool value)
+
+   .. cpp:member:: PropertyCell<bool, VisibleCapability<Declaring>> visible
+
+      Default: ``{true}``.
 
 Enumerations
 ------------
@@ -1952,7 +2474,7 @@ Enumerations
 
 .. cpp:enum-class:: AnchorStyles
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1980,7 +2502,7 @@ Enumerations
 
 .. cpp:enum-class:: AutoSizeMode
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
 
    .. cpp:enumerator:: grow_and_shrink
 
@@ -2168,7 +2690,7 @@ Enumerations
 
 .. cpp:enum-class:: DockStyle
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -2757,9 +3279,29 @@ Functions, constants and aliases
 
 .. cpp:function:: constexpr bool has_child_skip(GetChildAtPointSkip value, GetChildAtPointSkip flag) noexcept
 
+.. cpp:function:: template <typename ControlType, typename... Arguments> std::shared_ptr<ControlType> make_control(StableId stable_id, Arguments&&... arguments)
+
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+
 .. cpp:function:: constexpr bool has_anchor(AnchorStyles value, AnchorStyles flag) noexcept
 
-.. cpp:function:: template <typename ControlType, typename... Arguments> std::shared_ptr<ControlType> make_control(StableId stable_id, Arguments&&... arguments)
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+
+.. cpp:var:: constexpr TypeTag<DockStyle> dock_style
+
+.. cpp:var:: constexpr TypeTag<AnchorStyles> anchor_styles
+
+.. cpp:var:: constexpr TypeTag<AutoSizeMode> auto_size_mode
 
 .. cpp:namespace:: gui_forms
 
@@ -2926,6 +3468,12 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double practical_unbounded_extent
 
    The extent Control::measure(Size) and get_preferred_size(Size{}) already use for "unbounded", kept finite so retained state never holds an infinity. Value: ``1.0e9``.
+
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/layout/types/layout_types.hpp>``
+
+.. cpp:var:: constexpr TypeTag<LayoutDirection> layout_direction
 
 .. cpp:namespace:: gui_forms
 

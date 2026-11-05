@@ -22,13 +22,13 @@ The test, in order:
    interfaces, actions in published order, numeric value and range, value
    text, position in set and set size, and the tab-to-panel relation.
 2. Every registry control type is accounted for: compared on a page, opened
-   by a default action (dialogs and popups), nonvisual (a component without
+   by a default action (dialogs and overlays), nonvisual (a component without
    a node of its own), or not exposed by the semantic tree.
 3. For one instance of each type, the default action (AT-SPI action 0) is
    performed through the Action interface; the client asks for the semantic
    tree again, compares the whole published tree with it, and requires an
    observed change (a click, the node's own state or value, another node,
-   an opened popup or dialog, or a retained mutation).
+   an opened overlay or dialog, or a retained mutation).
 4. Generational identity: a Button is disposed and replaced by one with the
    same stable identity. The old object must be refused (an error or a
    false result, never a crash or an action on the new button); the new
@@ -102,7 +102,7 @@ NONVISUAL: tuple[str, ...] = (
 OPENERS: tuple[tuple[str, str, str], ...] = (
     ('font_dialog', 'dialogs-and-host-services', 'gallery.host.font.choose'),
     ('task_dialog', 'dialogs-and-host-services', 'gallery.host.task-dialog.show'),
-    ('anchored_popup_layer', 'anchored-popups', 'gallery.popups.anchor.0'),
+    ('anchored_overlay_layer', 'anchored-overlays', 'gallery.overlays.anchor.0'),
 )
 
 # Defects this test finds and the ATK adapter cannot fix: the default action
@@ -808,7 +808,7 @@ def describe_change(before: dict[str, Any], after: dict[str, Any], target: Targe
 
 
 def opened_types(report: dict[str, Any]) -> set[str]:
-    """The registry types of the visible controls in a report, popups included."""
+    """The registry types of the visible controls in a report, overlays included."""
     found: set[str] = set()
     record: dict[str, Any]
     for record in report['controls']:

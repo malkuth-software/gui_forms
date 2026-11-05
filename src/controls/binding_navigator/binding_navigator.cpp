@@ -148,7 +148,7 @@ void BindingNavigator::refresh() {
         std::string shown_position("0");
         if (current) shown_position = std::to_string(position + 1);
         (*box).set_text(std::move(shown_position));
-        (*box).set_enabled(count != 0U);
+        (*box).enabled = count != 0U;
     }
 }
 
@@ -231,7 +231,7 @@ void BindingNavigator::on_source_disposed() {
 
 SemanticDescriptor BindingNavigator::semantic_descriptor() const {
     SemanticDescriptor descriptor = ToolStrip::semantic_descriptor();
-    descriptor.name = accessible_name().empty() ? "Binding navigator" : accessible_name();
+    descriptor.name = accessible_name.read().empty() ? "Binding navigator" : accessible_name.read();
     return descriptor;
 }
 

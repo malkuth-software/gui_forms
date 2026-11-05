@@ -52,7 +52,7 @@ it may sit anywhere in the tree.
 
 The overlay does not observe its target: it reads a snapshot of the window
 each time it paints. Call `refresh` when the target changes, or keep it live
-with `start_polling`. Hide it with `set_visible` when it is not
+with `start_polling`. Hide it by writing `visible = false` when it is not
 needed.
 
 Examples

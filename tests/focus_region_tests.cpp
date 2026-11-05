@@ -91,10 +91,10 @@ void cycles_three_regions() {
                 window.focused_control() == status.first,
             "Shift+F6 from outside every region enters the last region");
 
-    (*work.panel).set_enabled(false);
+    (*work.panel).enabled = false;
     require(window.request_focus(ribbon.first) && press(window) && window.focused_control() == status.first,
             "a disabled region is skipped");
-    (*work.panel).set_enabled(true);
+    (*work.panel).enabled = true;
     KeyEvent control_f6{KeyAction::down, PhysicalKey::f6};
     control_f6.modifiers = Modifier::control;
     static_cast<void>(window.dispatch_key(control_f6));

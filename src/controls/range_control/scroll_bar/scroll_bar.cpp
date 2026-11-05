@@ -20,7 +20,7 @@ ScrollBar::ScrollBar(StableId stable_id, Orientation orientation)
     : RangeControl(std::move(stable_id)) {
     set_orientation(orientation);
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     // What a form document sets besides the range (stage FD6.3); it raises
     // no change event.
     PropertyDescriptor large_change;
@@ -490,8 +490,8 @@ void ScrollBar::on_detached_from_window() noexcept {
 SemanticDescriptor ScrollBar::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::scroll_bar;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     std::ostringstream value_text;
     value_text << value();
     descriptor.value = value_text.str();

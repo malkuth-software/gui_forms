@@ -44,14 +44,6 @@
       "reviewed": false,
       "summary": "Validates growth vocabulary and invalidates the table solution."
     },
-    "gui_forms::TableLayoutPanelCompat::auto_size|bool () const noexcept": {
-      "reviewed": false,
-      "summary": "Returns whether desired size follows the resolved grid extent."
-    },
-    "gui_forms::TableLayoutPanelCompat::set_auto_size|void (bool)": {
-      "reviewed": false,
-      "summary": "Commits content-driven sizing and invalidates table measurement/arrangement."
-    },
     "gui_forms::TableLayoutPanelCompat::cell_border_style|TableCellBorderStyle () const noexcept": {
       "reviewed": false,
       "summary": "Returns none, single, inset, or outset cell-frame policy."

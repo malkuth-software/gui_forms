@@ -259,6 +259,24 @@ public:
 constexpr Color face_color = Color::rgba(1, 2, 3);
 constexpr Rect window_rect{0.0, 0.0, 200.0, 120.0};
 
+// Paints its whole bounds as one engine face of `role`, in an authored
+// colour: an opaque engine face reports its cover (owner, 2026-11-05).
+class FacePanel final : public Panel {
+public:
+    using Panel::Panel;
+    void on_paint(Painter& painter, Rect) override {
+        PartPaint part{};
+        part.role = role;
+        part.bounds = local_bounds();
+        part.family = ControlVisualRole::panel;
+        part.authored_background = colour;
+        part.corner_radius = 0.0;
+        paint_part(painter, *this, part);
+    }
+    PartRole role{PartRole::well};
+    Color colour{face_color};
+};
+
 struct PanelFixture {
     explicit PanelFixture(std::shared_ptr<Panel> panel) : root(std::move(panel)) {
         (*root).set_requested_bounds(window_rect);
@@ -290,6 +308,26 @@ void test_opaque_root_panel_skips_the_backplane() {
             "an opaque root panel must start the paint at its own face");
 }
 
+// Declared clarity (`background: transparent`, owner decision 2026-11-04):
+// a panel declared clear reports no cover, so the backplane (where a
+// window's backdrop lies) is still drawn beneath it, though its own face is
+// opaque (W405 is written once); without the declaration the face covers.
+void test_clear_panel_keeps_the_backplane() {
+    PanelFixture clear(make_control<Panel>(StableId("cover.clear")));
+    (*clear.root).set_background(face_color);
+    const InlineStyleResult styled = (*clear.root).set_inline_style("background: transparent");
+    require(styled.succeeded() && (*clear.root).declares_clarity(), "background: transparent declares the panel clear");
+    require(clear.paint_twice().backplane_fills(window_rect, face_color) == 1U,
+            "a clear panel must keep the backplane beneath its face");
+    const InlineStyleResult colour_only = (*clear.root).set_inline_style("background-color: transparent");
+    require(colour_only.succeeded() && !(*clear.root).declares_clarity(),
+            "a transparent colour over the floor's layers is not clear");
+    const InlineStyleResult removed = (*clear.root).set_inline_style("");
+    require(removed.succeeded() && !(*clear.root).declares_clarity(), "without a style the panel is not clear");
+    require(clear.paint_twice().backplane_fills(window_rect, face_color) == 0U,
+            "then its opaque face covers the backplane again");
+}
+
 void test_translucent_or_overridden_panels_keep_the_backplane() {
     PanelFixture translucent(make_control<Panel>(StableId("cover.translucent")));
     (*translucent.root).set_background(Color::rgba(1, 2, 3, 128));
@@ -299,6 +337,22 @@ void test_translucent_or_overridden_panels_keep_the_backplane() {
     (*text.root).set_background(face_color);
     require(text.paint_twice().backplane_fills(window_rect, face_color) == 1U,
             "a panel subclass that paints its own way must keep the backplane");
+}
+
+void test_opaque_engine_faces_report_their_cover() {
+    PanelFixture opaque(make_control<FacePanel>(StableId("cover.face")));
+    require(opaque.paint_twice().backplane_fills(window_rect, face_color) == 0U,
+            "an opaque square engine face must start the paint at itself");
+    std::shared_ptr<FacePanel> translucent_face = make_control<FacePanel>(StableId("cover.face.translucent"));
+    (*translucent_face).colour = Color::rgba(1, 2, 3, 128);
+    PanelFixture translucent(translucent_face);
+    require(translucent.paint_twice().backplane_fills(window_rect, Color::rgba(1, 2, 3, 128)) == 1U,
+            "a translucent engine face must keep the backplane beneath it");
+    std::shared_ptr<FacePanel> rule = make_control<FacePanel>(StableId("cover.face.rule"));
+    (*rule).role = PartRole::divider;
+    PanelFixture divider(rule);
+    require(divider.paint_twice().backplane_fills(window_rect, face_color) == 1U,
+            "a part that fills no surface must keep the backplane beneath it");
 }
 
 void test_a_cover_lost_during_paint_restores_what_it_skipped() {
@@ -461,7 +515,9 @@ int main() {
         test_invalid_plane_rejection_preserves_state();
         test_disposal_removes_cache_entry_and_returns_idle();
         test_opaque_root_panel_skips_the_backplane();
+        test_clear_panel_keeps_the_backplane();
         test_translucent_or_overridden_panels_keep_the_backplane();
+        test_opaque_engine_faces_report_their_cover();
         test_a_cover_lost_during_paint_restores_what_it_skipped();
         test_a_nested_cover_starts_the_paint_and_later_siblings_follow();
         test_recorded_covers_follow_the_painter_state();

@@ -1320,7 +1320,7 @@ public:
                     *this, &PathMatrixController::on_terminal_clicked));
     }
 
-    [[nodiscard]] bool open() const noexcept { return popup_token_.connected(); }
+    [[nodiscard]] bool open() const noexcept { return overlay_token_.connected(); }
     [[nodiscard]] bool editing() const noexcept { return editing_; }
     [[nodiscard]] std::uint64_t completion_generation() const noexcept {
         return completion_generation_;
@@ -1369,14 +1369,14 @@ private:
     void open_browse() {
         Window* window = (*refs_.path_terminal).attached_window();
         if (!window || open()) return;
-        build_popup();
-        AnchoredPopupPlacement placement;
+        build_overlay();
+        AnchoredOverlayPlacement placement;
         placement.preferred_size = {860.0, 424.0};
-        placement.horizontal_alignment = PopupHorizontalAlignment::far;
-        placement.vertical_preference = PopupVerticalPreference::below;
+        placement.horizontal_alignment = OverlayHorizontalAlignment::far;
+        placement.vertical_preference = OverlayVerticalPreference::below;
         placement.gap = 7.0;
         placement.viewport_margin = 4.0;
-        layer_ = make_control<AnchoredPopupLayer>(
+        layer_ = make_control<AnchoredOverlayLayer>(
             StableId("fm.path.matrix.layer"), refs_.path_terminal, placement);
         (*layer_).set_accessible_name("Complete path matrix");
         (*layer_).set_accessible_description(
@@ -1384,15 +1384,15 @@ private:
         (*layer_).set_content(content_);
         (*layer_).set_requested_bounds(
             {0.0, 0.0, (*window).client_size().width, (*window).client_size().height});
-        popup_dismissal_ = (*layer_).dismiss_requested().subscribe(
+        overlay_dismissal_ = (*layer_).dismiss_requested().subscribe(
             *this, detail::BoundMemberFunction<
-                void (PathMatrixController::*)(PopupDismissReason)>(
-                    *this, &PathMatrixController::on_popup_dismissed));
-        popup_token_ = (*window).open_popup(refs_.path_terminal, layer_);
-        if (Event<>* closed = popup_token_.closed_event()) {
-            popup_revocation_ = (*closed).subscribe(
+                void (PathMatrixController::*)(OverlayDismissReason)>(
+                    *this, &PathMatrixController::on_overlay_dismissed));
+        overlay_token_ = (*window).open_overlay(refs_.path_terminal, layer_);
+        if (Event<>* closed = overlay_token_.closed_event()) {
+            overlay_revocation_ = (*closed).subscribe(
                 *this, detail::BoundMemberFunction<void (PathMatrixController::*)()>(
-                    *this, &PathMatrixController::on_popup_revoked));
+                    *this, &PathMatrixController::on_overlay_revoked));
         }
         focus_scope_ = (*window).begin_focus_scope(layer_, current_tail_);
         (*refs_.path_terminal).set_expanded_state(true);
@@ -1401,7 +1401,7 @@ private:
         status_("Path matrix open · full current stack · five recent locations");
     }
 
-    void build_popup() {
+    void build_overlay() {
         content_ = make_control<PathMatrixContent>(StableId("fm.path.matrix"));
         (*content_).set_background(Color::rgba(229, 234, 235));
         (*content_).set_border_style(BorderStyle::raised);
@@ -1441,7 +1441,7 @@ private:
             const std::string destination = index + 1U == current.segments.size()
                 ? current.id : index == 0U ? "macintosh-hd"
                 : index <= 2U ? "quentin" : "work";
-            popup_controls_.push_back((*segment).clicked().subscribe(
+            overlay_controls_.push_back((*segment).clicked().subscribe(
                 *this, NavigateAndCloseCallback{this, destination}));
             x += widths[index];
             if (index + 1U < current.segments.size()) {
@@ -1461,7 +1461,7 @@ private:
         (*current_tail_).set_accessible_description(
             "Replace the current stack with a direct path editor");
         (*current_).add_at(current_tail_, (*current_tail_).requested_bounds());
-        popup_controls_.push_back((*current_tail_).clicked().subscribe(
+        overlay_controls_.push_back((*current_tail_).clicked().subscribe(
             *this, detail::BoundMemberFunction<
                 void (PathMatrixController::*)(ButtonBase&)>(
                     *this, &PathMatrixController::on_show_editing_clicked)));
@@ -1475,7 +1475,7 @@ private:
             "Type a fixture path or one of the admitted HOME and PROJECTS variables");
         (*editor_).set_visible(false);
         (*content_).add_at(editor_, {10.0, 48.0, 840.0, 33.0});
-        popup_controls_.push_back((*editor_).text_changed().subscribe(
+        overlay_controls_.push_back((*editor_).text_changed().subscribe(
             *this, detail::BoundMemberFunction<
                 void (PathMatrixController::*)(const std::string&)>(
                     *this, &PathMatrixController::on_path_text_changed)));
@@ -1488,7 +1488,7 @@ private:
         (*completions_).set_accessible_name("Path completions");
         (*completions_).set_visible(false);
         (*content_).add_at(completions_, {10.0, 85.0, 840.0, 79.0});
-        popup_controls_.push_back((*completions_).item_activated().subscribe(
+        overlay_controls_.push_back((*completions_).item_activated().subscribe(
             *this, detail::BoundMemberFunction<
                 void (PathMatrixController::*)(std::size_t)>(
                     *this, &PathMatrixController::accept_completion)));
@@ -1530,7 +1530,7 @@ private:
                     path.available ? "Navigate to this recent fixture stack"
                                    : "Navigate to stored offline fixture state");
                 (*row).add_at(segment, (*segment).requested_bounds());
-                popup_controls_.push_back((*segment).clicked().subscribe(
+                overlay_controls_.push_back((*segment).clicked().subscribe(
                     *this, NavigateAndCloseCallback{this, path.id}));
                 segment_x += width;
                 if (index + 1U < path.segments.size()) {
@@ -1678,8 +1678,8 @@ private:
         close();
     }
 
-    void on_popup_dismissed(PopupDismissReason reason) {
-        if (reason == PopupDismissReason::escape_key && editing_) {
+    void on_overlay_dismissed(OverlayDismissReason reason) {
+        if (reason == OverlayDismissReason::escape_key && editing_) {
             show_browse();
             return;
         }
@@ -1694,17 +1694,17 @@ private:
             static_cast<void>((*window).end_focus_scope(focus_scope_));
         }
         focus_scope_ = {};
-        popup_dismissal_.disconnect();
-        popup_token_.disconnect();
-        popup_revocation_.disconnect();
-        reset_popup();
+        overlay_dismissal_.disconnect();
+        overlay_token_.disconnect();
+        overlay_revocation_.disconnect();
+        reset_overlay();
         (*refs_.path_terminal).set_expanded_state(false);
         (*refs_.path_terminal).set_accessible_description(
             "Browse full fixture paths or edit a path directly");
         closing_ = false;
     }
 
-    void on_popup_revoked() {
+    void on_overlay_revoked() {
         if (closing_) return;
         closing_ = true;
         if (Window* window = (*refs_.path_terminal).attached_window();
@@ -1713,17 +1713,17 @@ private:
                 focus_scope_, FocusScopeCloseReason::owner_unavailable));
         }
         focus_scope_ = {};
-        popup_dismissal_.disconnect();
-        popup_revocation_.disconnect();
-        reset_popup();
+        overlay_dismissal_.disconnect();
+        overlay_revocation_.disconnect();
+        reset_overlay();
         (*refs_.path_terminal).set_expanded_state(false);
         closing_ = false;
     }
 
-    void reset_popup() {
+    void reset_overlay() {
         static_cast<void>(pending_completion_.cancel());
         pending_completion_ = {};
-        popup_controls_.clear();
+        overlay_controls_.clear();
         layer_.reset();
         content_.reset();
         current_.reset();
@@ -1738,7 +1738,7 @@ private:
     ProductRefs refs_;
     std::shared_ptr<NavigationSession> navigation_;
     std::function<void(std::string)> status_;
-    std::shared_ptr<AnchoredPopupLayer> layer_;
+    std::shared_ptr<AnchoredOverlayLayer> layer_;
     std::shared_ptr<PathMatrixContent> content_;
     std::shared_ptr<ScaledPanel> current_;
     std::shared_ptr<Button> current_tail_;
@@ -1746,12 +1746,12 @@ private:
     std::shared_ptr<ListBox> completions_;
     std::shared_ptr<Label> resolution_;
     std::shared_ptr<ScaledPanel> recents_;
-    PopupToken popup_token_;
+    OverlayToken overlay_token_;
     FocusScopeId focus_scope_;
     SubscriptionToken terminal_click_;
-    SubscriptionToken popup_dismissal_;
-    SubscriptionToken popup_revocation_;
-    std::vector<SubscriptionToken> popup_controls_;
+    SubscriptionToken overlay_dismissal_;
+    SubscriptionToken overlay_revocation_;
+    std::vector<SubscriptionToken> overlay_controls_;
     DispatchOperation pending_completion_;
     std::uint64_t completion_generation_{};
     bool editing_{};

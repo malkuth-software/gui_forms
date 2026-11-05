@@ -487,7 +487,7 @@ void test_property_metadata_defaults_reset_and_serialization() {
                 "name", "text", "tool_tip_text", "visible"},
             "bindable property enumeration must be deterministic and use the registered names");
     const std::vector<PropertyDescriptor> descriptors = (*editor).property_descriptors();
-    require(descriptors.size() == 31U &&
+    require(descriptors.size() == 35U &&
                 descriptors.front().name == "accessible_description" &&
                 descriptors.back().name == "visible",
             "property descriptor snapshots must follow deterministic canonical order");
@@ -509,11 +509,11 @@ void test_property_metadata_defaults_reset_and_serialization() {
     (*editor).set_property_value("Anchor", std::string("Bottom | Right"));
     (*editor).set_property_value("AutoSizeMode", std::string("GrowAndShrink"));
     require((*editor).requested_bounds() == Rect{4.0, 5.0, 120.0, 32.0} &&
-                (*editor).margin() == Insets{1.0, 2.0, 3.0, 4.0} &&
-                (*editor).dock() == DockStyle::fill &&
-                (*editor).anchor() ==
+                (*editor).margin.read() == Insets{1.0, 2.0, 3.0, 4.0} &&
+                (*editor).dock.read() == DockStyle::fill &&
+                (*editor).anchor.read() ==
                     (AnchorStyles::bottom | AnchorStyles::right) &&
-                (*editor).auto_size_mode() == AutoSizeMode::grow_and_shrink &&
+                (*editor).auto_size_mode.read() == AutoSizeMode::grow_and_shrink &&
                 std::get<PropertyEnumValue>(
                     *(*editor).property_value("Anchor")).name ==
                     "bottom, right" &&
@@ -534,7 +534,7 @@ void test_property_metadata_defaults_reset_and_serialization() {
         bad_geometry_rejected = true;
     }
     require(bad_enum_rejected && bad_geometry_rejected &&
-                (*editor).dock() == DockStyle::fill &&
+                (*editor).dock.read() == DockStyle::fill &&
                 (*editor).requested_bounds() == Rect{4.0, 5.0, 120.0, 32.0},
             "invalid enum and geometry values must fail before retained state mutation");
     require((*editor).reset_property("Bounds") &&
@@ -543,11 +543,11 @@ void test_property_metadata_defaults_reset_and_serialization() {
                 (*editor).reset_property("Anchor") &&
                 (*editor).reset_property("AutoSizeMode") &&
                 (*editor).requested_bounds() == Rect{} &&
-                (*editor).margin() == Insets{3.0, 3.0, 3.0, 3.0} &&
-                (*editor).dock() == DockStyle::none &&
-                (*editor).anchor() ==
+                (*editor).margin.read() == Insets{3.0, 3.0, 3.0, 3.0} &&
+                (*editor).dock.read() == DockStyle::none &&
+                (*editor).anchor.read() ==
                     (AnchorStyles::top | AnchorStyles::left) &&
-                (*editor).auto_size_mode() == AutoSizeMode::grow_only &&
+                (*editor).auto_size_mode.read() == AutoSizeMode::grow_only &&
                 !(*editor).should_serialize_property("Bounds"),
             "compound and enum defaults must reset through the same typed retained setter path");
 
@@ -629,7 +629,7 @@ void test_property_mutation_initialization_thread_and_lifetime_guards() {
     require(completions.size() == 1U && completions.front().second &&
                 has_dirty(completions.front().first, Dirty::measure) &&
                 has_dirty(completions.front().first, Dirty::paint) &&
-                (*editor).text() == "batched" && !(*editor).visible(),
+                (*editor).text() == "batched" && !(*editor).visible.read(),
             "the final EndInit must publish one union of real setter effects");
 
     bool query_rejected = false;
@@ -966,8 +966,8 @@ void test_collection_uniqueness_base_properties_and_cleanup() {
         "Enabled", fixture.source, "enabled_property");
     const std::shared_ptr<Binding> name = (*fixture.editor).data_bindings().add(
         "Name", fixture.source, "control_name");
-    require(visible && enabled && name && !(*fixture.editor).visible() &&
-                !(*fixture.editor).enabled() && (*fixture.editor).name() == "bound.editor",
+    require(visible && enabled && name && !(*fixture.editor).visible.read() &&
+                !(*fixture.editor).enabled.read() && (*fixture.editor).name.read() == "bound.editor",
             "base Control visibility, enabled state, and name must be first-class bindable properties");
 
     bool duplicate_rejected = false;

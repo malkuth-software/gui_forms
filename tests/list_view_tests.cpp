@@ -1072,7 +1072,7 @@ void virtual_mode() {
 
 void semantics() {
     std::shared_ptr<ListView> view = details_view(3U);
-    (*view).set_accessible_name("Files");
+    (*view).accessible_name = "Files";
     Window window(view, {400.0, 240.0});
     window.perform_layout();
     const SemanticDescriptor descriptor = (*view).semantic_descriptor();

@@ -31,7 +31,7 @@ centers. M12-P5 promotes retained binding/currency. M12-P6 promotes the exact
 validation enums/events/container calls and binding-aware ErrorProvider calls.
 M12-P7 promotes renderer-free mnemonic parsing/routing, programmatic button
 commands, and Window/Form accept/cancel dialog-key behavior.
-M12-P8 promotes stable duplicate arbitration, MenuStrip/popup mnemonic
+M12-P8 promotes stable duplicate arbitration, MenuStrip/overlay mnemonic
 behavior, exact DialogResult/IButtonControl centers, and Click-before-result
 propagation while retaining native modal closure as open host work.
 M12-P9 promotes the base Control geometry/order family: exact geometry enums,

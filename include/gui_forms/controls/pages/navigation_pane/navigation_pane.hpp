@@ -66,7 +66,7 @@ enum class NavigationPaneItemKind : std::uint8_t { large_button, icon };
 // the user hid and raises options_requested. Collapsed, the pane is a narrow
 // bar with an expand button, the selected page's title read bottom to top
 // (decision DK-42) and the large buttons as icons; the title opens the
-// content in a popup over the window, which an outside click closes and
+// content in an overlay over the window, which an outside click closes and
 // passes on (decision DK-27, E2-1) and Escape closes.
 //
 // The pane owns its PageSet (pinning off, neighbour fallback): pages are
@@ -98,7 +98,7 @@ public:
     [[nodiscard]] const PageSet& pages() const noexcept { return pages_; }
 
     [[nodiscard]] bool collapsed() const noexcept { return collapsed_; }
-    // Collapsing closes the configure menu; expanding closes the popup.
+    // Collapsing closes the configure menu; expanding closes the overlay.
     void set_collapsed(bool collapsed);
     // The number of large buttons the user chose; 4 by default.
     [[nodiscard]] std::size_t button_count() const noexcept { return button_count_; }
@@ -118,7 +118,7 @@ public:
     bool set_page_hidden(const PageId& page, bool hidden);
     // The hidden pages, in page order.
     [[nodiscard]] std::vector<PageId> hidden_pages() const;
-    // The width the pane asks for while expanded, and the popup's width;
+    // The width the pane asks for while expanded, and the overlay's width;
     // 220 by default. Throws std::out_of_range outside 80 to 1024.
     [[nodiscard]] double expanded_width() const noexcept { return expanded_width_; }
     void set_expanded_width(double width);
@@ -131,11 +131,11 @@ public:
     [[nodiscard]] bool focus_region() const noexcept { return focus_region_; }
     void set_focus_region(bool region);
 
-    // The collapsed pane's content popup. Opening is refused (false) unless
+    // The collapsed pane's content overlay. Opening is refused (false) unless
     // the pane is collapsed and attached to a window.
-    [[nodiscard]] bool popup_open() const noexcept { return popup_open_; }
-    bool open_popup();
-    void close_popup() noexcept;
+    [[nodiscard]] bool overlay_open() const noexcept { return overlay_open_; }
+    bool open_overlay();
+    void close_overlay() noexcept;
     // The configure menu. Opening is refused (false) while collapsed or
     // detached. Throws std::invalid_argument for an unknown mode.
     [[nodiscard]] bool configure_menu_open() const noexcept;
@@ -158,8 +158,8 @@ public:
     // Raised after any part of state() changed: collapsing or expanding, the
     // button count, a page hidden or shown, or the page order.
     [[nodiscard]] Event<const NavigationPaneState&>& state_changed() noexcept { return state_changed_; }
-    // Raised after the popup opened (true) or closed (false).
-    [[nodiscard]] Event<bool>& popup_open_changed() noexcept { return popup_open_changed_; }
+    // Raised after the overlay opened (true) or closed (false).
+    [[nodiscard]] Event<bool>& overlay_open_changed() noexcept { return overlay_open_changed_; }
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
@@ -176,8 +176,8 @@ public:
     [[nodiscard]] std::string realized_item_stable_id(std::size_t item) const override;
     [[nodiscard]] AnatomyStateSet realized_item_anatomy_states(std::size_t item) const override;
 
-    // Stage T1 anatomy, as dot members; its states are Control's. The popup
-    // parts are in the pane's coordinates although the popup lies outside
+    // Stage T1 anatomy, as dot members; its states are Control's. The overlay
+    // parts are in the pane's coordinates although the overlay lies outside
     // it, and are present only while it is open.
     struct Parts final {
         PartGeometry region;
@@ -195,11 +195,11 @@ public:
         PartGeometry configure_glyph;
         PartGeometry collapsed_bar;
         PartGeometry collapsed_label;
-        PartGeometry popup_shadow;
-        PartGeometry popup_face;
-        PartGeometry popup_header;
-        PartGeometry popup_label;
-        PartGeometry popup_content;
+        PartGeometry overlay_shadow;
+        PartGeometry overlay_face;
+        PartGeometry overlay_header;
+        PartGeometry overlay_label;
+        PartGeometry overlay_content;
         PartGeometry focus;
     };
     [[nodiscard]] Parts parts() const;
@@ -295,7 +295,7 @@ private:
         std::size_t button_capacity{};
         std::size_t large_count{};
     };
-    // The popup, in window coordinates, and its inner parts in its own.
+    // The overlay, in window coordinates, and its inner parts in its own.
     struct FlyoutLayout final {
         Rect window_bounds{};
         Rect face{};
@@ -341,15 +341,15 @@ private:
     void begin_grip_drag(Point local);
     void continue_grip_drag(Point local);
     void refresh_content();
-    void move_host_to_popup();
+    void move_host_to_overlay();
     void move_host_to_pane();
-    void release_popup(FocusScopeCloseReason reason) noexcept;
-    void finish_popup_close() noexcept;
+    void release_overlay(FocusScopeCloseReason reason) noexcept;
+    void finish_overlay_close() noexcept;
     void notify_state();
     void on_selected_page_changed(const PageSelectionChange& change);
     void on_pages_changed(const PageSetChange& change);
     void on_window_pointer(const PointerEvent& event);
-    void on_popup_revoked();
+    void on_overlay_revoked();
     void on_menu_item_invoked(const MenuItemInvocation& invocation);
     void on_menu_open_changed(bool open);
     void on_image_list_changed(const ImageListChange& change);
@@ -375,17 +375,17 @@ private:
     bool grip_captured_{};
     double grip_origin_y_{};
     std::size_t grip_origin_count_{};
-    // The content panel, a child of the pane or (while the popup is open) of
-    // the popup; it holds the selected page's control.
+    // The content panel, a child of the pane or (while the overlay is open) of
+    // the overlay; it holds the selected page's control.
     std::shared_ptr<ContentHost> host_{};
-    // The popup's root while it is open, its window lease and the window
+    // The overlay's root while it is open, its window lease and the window
     // whose root the pane watches for outside presses.
     std::shared_ptr<Flyout> flyout_{};
-    PopupToken popup_token_{};
-    FocusScopeId popup_scope_{};
-    bool popup_open_{};
-    bool popup_closing_{};
-    SubscriptionToken popup_revoked_{};
+    OverlayToken overlay_token_{};
+    FocusScopeId overlay_scope_{};
+    bool overlay_open_{};
+    bool overlay_closing_{};
+    SubscriptionToken overlay_revoked_{};
     SubscriptionToken window_pointer_{};
     std::unique_ptr<ContextMenu> menu_{};
     SubscriptionToken menu_invoked_{};
@@ -402,7 +402,7 @@ private:
     SubscriptionToken image_list_token_{};
     Event<const NavigationPaneOptionsRequest&> options_requested_{};
     Event<const NavigationPaneState&> state_changed_{};
-    Event<bool> popup_open_changed_{};
+    Event<bool> overlay_open_changed_{};
 };
 
 } // namespace gui_forms

@@ -58,8 +58,8 @@ void TabPage::invalidate_tab() {
 SemanticDescriptor TabPage::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::tab_panel;
-    descriptor.name = accessible_name().empty() ? text_ : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? text_ : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = true;
     return descriptor;
 }

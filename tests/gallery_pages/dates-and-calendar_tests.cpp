@@ -33,7 +33,7 @@ void test_dates_and_calendar(gui_forms::Window& window) {
                 (*provider).formatted_value() == "mercredi 5 août 2026",
             "date board must visibly distinguish all format and provider paths");
     require((*optional).show_check_box() && !(*optional).checked() &&
-                (*spinner).show_up_down() && !(*disabled).enabled(),
+                (*spinner).show_up_down() && !(*disabled).enabled.read(),
             "date board must retain nullable, spinner, and disabled states");
 
     const Rect optional_bounds = (*optional).absolute_bounds();
@@ -59,13 +59,13 @@ void test_dates_and_calendar(gui_forms::Window& window) {
 
     click(window, window.find("gallery.date.commands.item.3"));
     require((*primary).dropped_down() && window.focus_scope_depth() == 1U &&
-                window.find("gallery.date.primary.popup.calendar") &&
+                window.find("gallery.date.primary.overlay.calendar") &&
                 window.semantic_snapshot().to_json().find(
-                    "gallery.date.primary.popup.calendar.day.2026-08-12") !=
+                    "gallery.date.primary.overlay.calendar.day.2026-08-12") !=
                     std::string::npos,
             "date board must open one retained semantic calendar focus scope");
     require(window.perform_semantic_action(
-                "gallery.date.primary.popup.calendar.day.2026-08-12",
+                "gallery.date.primary.overlay.calendar.day.2026-08-12",
                 SemanticAction::press) && (*primary).value().day == 12U &&
                 !(*primary).dropped_down() && window.focus_scope_depth() == 0U,
             "semantic date-cell commit must share pointer commit and restore focus");
@@ -73,35 +73,35 @@ void test_dates_and_calendar(gui_forms::Window& window) {
     click(window, window.find("gallery.date.commands.item.3"));
     const std::shared_ptr<gui_forms::CommandBar> commands = std::dynamic_pointer_cast<CommandBar>(
         window.find("gallery.date.commands"));
-    require(commands && (*commands).items().size() == 3U && !(*commands).item(2).enabled(),
+    require(commands && (*commands).items().size() == 3U && !(*commands).item(2).enabled.read(),
             "the open-calendar Command must disable its button while the calendar is open");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::left}) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 (*primary).value().day == 12U && !(*primary).dropped_down() &&
-                (*commands).item(2).enabled(),
-            "calendar Escape must discard popup-local navigation without mutation");
+                (*commands).item(2).enabled.read(),
+            "calendar Escape must discard overlay-local navigation without mutation");
 
     // The previous/next Commands follow the bounded range; their buttons
     // project that enabled state and clicking one moves the date once.
     (*primary).set_value({2026, 8U, 31U});
-    require(!(*commands).item(1).enabled() && (*commands).item(0).enabled(),
+    require(!(*commands).item(1).enabled.read() && (*commands).item(0).enabled.read(),
             "the next-day Command must disable at the range maximum");
     click(window, window.find("gallery.date.commands.item.1"));
-    require((*primary).value().day == 30U && (*commands).item(1).enabled() &&
+    require((*primary).value().day == 30U && (*commands).item(1).enabled.read() &&
                 (*std::dynamic_pointer_cast<Label>(window.find("gallery.date.status")))
                         .text().find("Committed") != std::string::npos,
             "the previous-day Command must move the bounded date and re-enable next day");
     (*primary).set_value({2026, 8U, 1U});
-    require(!(*commands).item(0).enabled() && (*commands).item(1).enabled(),
+    require(!(*commands).item(0).enabled.read() && (*commands).item(1).enabled.read(),
             "the previous-day Command must disable at the range minimum");
     (*primary).set_value({2026, 8U, 12U});
 
     click(window, window.find("gallery.date.commands.item.3"));
-    (*window.find("gallery.surface.dates-and-calendar")).set_visible(false);
+    (*window.find("gallery.surface.dates-and-calendar")).visible = false;
     require(!(*primary).dropped_down() && window.focus_scope_depth() == 0U &&
-                !window.find("gallery.date.primary.popup.calendar"),
+                !window.find("gallery.date.primary.overlay.calendar"),
             "hiding a page must revoke its open calendar and contained focus");
-    (*window.find("gallery.surface.dates-and-calendar")).set_visible(true);
+    (*window.find("gallery.surface.dates-and-calendar")).visible = true;
 
     const std::shared_ptr<gui_forms::MonthCalendar> month = std::dynamic_pointer_cast<MonthCalendar>(
         window.find("gallery.date.month.calendar"));

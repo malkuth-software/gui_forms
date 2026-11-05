@@ -177,7 +177,7 @@ void font_control() {
     require(!(*family).selected_index() && (*size).selected_text() == "10.5" && runs == 2,
             "a value outside the lists shows that field empty; the program's change runs nothing");
     (*(*command).command()).set_enabled(false);
-    require(!(*family).enabled() && !(*size).enabled(), "a disabled command disables both fields");
+    require(!(*family).enabled.read() && !(*size).enabled.read(), "a disabled command disables both fields");
     bool threw = false;
     try {
         (*control).set_sizes({10.0, 9.0});
@@ -223,8 +223,8 @@ void color_picker() {
     static_cast<void>(window.paint(palette, {0.0, 0.0, 300.0, 300.0}));
     require(filled(palette, entries[3].parts.entry_sample.bounds, Color::rgba(255, 192, 0)),
             "the recording painter sees each swatch's content colour");
-    const Control::Ptr popup = (*picker).palette_popup();
-    click(window, centre(to_window(*popup, entries[2].parts.entry_face.bounds)));
+    const Control::Ptr overlay = (*picker).palette_overlay();
+    click(window, centre(to_window(*overlay, entries[2].parts.entry_face.bounds)));
     require(!(*picker).palette_open() && runs == 1 && (*command).value() == Color::rgba(255, 0, 0) &&
                 (*command).recent_colors().size() == 1U,
             "a click on a colour commits it and closes the palette");
@@ -313,12 +313,12 @@ void hosted_in_ribbon() {
     const std::vector<RibbonLadderEntry> ladder = (*ribbon).reduction_ladder(0U);
     window.resize({ladder.back().width, 300.0});
     window.perform_layout();
-    require((*ribbon).show_group_popup("font-group"), "the group collapses and opens in its popup");
+    require((*ribbon).show_group_overlay("font-group"), "the group collapses and opens in its overlay");
     window.perform_layout();
-    require((*font).parent() == (*ribbon).group_popup() && (*colour).parent() == (*ribbon).group_popup() &&
+    require((*font).parent() == (*ribbon).group_overlay() && (*colour).parent() == (*ribbon).group_overlay() &&
                 (*font).effectively_visible() && (*colour).effectively_visible(),
-            "in the popup they move with the group");
-    (*ribbon).close_group_popup();
+            "in the overlay they move with the group");
+    (*ribbon).close_group_overlay();
     require((*font).parent() == ribbon, "and return when it closes");
     std::vector<RibbonTabSpec> twice = std::vector<RibbonTabSpec>((*ribbon).tabs().begin(), (*ribbon).tabs().end());
     twice[1].groups[0].commands.push_back(
@@ -362,8 +362,8 @@ void recent_pane() {
     click(window, centre((*ribbon).parts().application_button.bounds));
     require((*ribbon).menu_open() && (*ribbon).parts().application_button.states.contains(AnatomyState::open),
             "with recent items the File tab opens the two-pane menu");
-    const Control::Ptr popup = (*ribbon).application_menu_popup();
-    std::vector<SemanticNode> rows = (*popup).semantic_virtual_children();
+    const Control::Ptr overlay = (*ribbon).application_menu_overlay();
+    std::vector<SemanticNode> rows = (*overlay).semantic_virtual_children();
     require(rows.size() == 4U && rows[0].name == "Open" && rows[1].name == "Save" && rows[2].name == "1 Report.txt" &&
                 rows[2].description == "C:\\Documents" && rows[3].position_in_set == std::size_t{2U} &&
                 rows[3].set_size == std::size_t{2U},
@@ -523,7 +523,7 @@ void arranged_within_maximum_size() {
     std::shared_ptr<BackstageView> view = make_control<BackstageView>(StableId("limited.backstage"));
     std::shared_ptr<Label> info = make_control<Label>(StableId("limited.backstage.info"), "Information");
     (*view).set_items({{.stable_id = "info", .kind = BackstageItemKind::topic, .text = "Info", .page = info}});
-    (*view).set_maximum_size({300.0, 0.0});
+    (*view).maximum_size = {300.0, 0.0};
     Window backstage_window(view, {900.0, 400.0});
     backstage_window.perform_layout();
     require((*view).committed_arranged_bounds().width == 300.0 &&
@@ -531,7 +531,7 @@ void arranged_within_maximum_size() {
             "a Backstage page sits on the published page part within the view's maximum width");
 
     std::shared_ptr<RibbonFontControl> font = make_control<RibbonFontControl>(StableId("limited.font"));
-    (*font).set_maximum_size({100.0, 0.0});
+    (*font).maximum_size = {100.0, 0.0};
     Window font_window(font, {200.0, 22.0});
     font_window.perform_layout();
     require((*font).committed_arranged_bounds().width == 100.0 &&

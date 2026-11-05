@@ -92,6 +92,21 @@ CheckBox::CheckBox(StableId stable_id, std::string text)
             *this, &CheckBox::indicator_style, button_base_detail::choice_indicator_style_enum()),
         detail::EnumerationPropertySetter<CheckBox, ChoiceIndicatorStyle>(*this, &CheckBox::set_indicator_style),
         {}, {}, {}});
+
+    // A document writes three_state before an indeterminate check_state:
+    // properties apply in document order.
+    PropertyDescriptor three_state;
+    three_state.name = "three_state";
+    three_state.kind = BindingValueKind::boolean;
+    three_state.category = "Behavior";
+    three_state.description = "Whether the box also takes the indeterminate state; clearing it clears that state.";
+    three_state.default_value = BindingValue{false};
+    three_state.invalidation_effects = Dirty::paint | Dirty::semantics;
+    three_state.bindable = false;
+    define_bindable_property({
+        std::move(three_state),
+        detail::BindingNoexceptMethodGetter<CheckBox, bool>(*this, &CheckBox::three_state),
+        detail::DirectPropertySetter<CheckBox, bool>(*this, &CheckBox::set_three_state), {}, {}, {}});
 }
 
 void CheckBox::set_check_state(CheckState state) {

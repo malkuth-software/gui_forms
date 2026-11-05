@@ -170,9 +170,9 @@ gui_forms::FlexPanel
       (*fixed).set_requested_bounds({0.0, 0.0, 20.0, 10.0});
       (*narrow).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
       (*wide).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
-      (*fixed).set_margin({});
-      (*narrow).set_margin({});
-      (*wide).set_margin({});
+      (*fixed).margin = gf::Insets{};
+      (*narrow).margin = gf::Insets{};
+      (*wide).margin = gf::Insets{};
       (*row).add_child(fixed);
       (*row).add_child(narrow);
       (*row).add_child(wide);
@@ -201,8 +201,8 @@ gui_forms::FlexPanel
           gf::make_control<gf::Button>(gf::StableId("bar.close"), "Close");
       (*save).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
       (*close).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
-      (*save).set_margin({});
-      (*close).set_margin({});
+      (*save).margin = gf::Insets{};
+      (*close).margin = gf::Insets{};
       (*bar).add_child(save);
       (*bar).add_child(close);
       gf::FlexItemLayout pushed{};
@@ -328,10 +328,6 @@ gui_forms::FlexPanel
 
 
    .. rubric:: Extension points
-
-   .. cpp:function:: bool auto_size() const noexcept override
-
-   .. cpp:function:: void set_auto_size(bool auto_size) override
 
    .. cpp:function:: Size measure(Size available) override
 

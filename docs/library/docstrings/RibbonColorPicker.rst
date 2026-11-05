@@ -1,8 +1,8 @@
-A ribbon drop-down colour picker: a split button over a palette popup.
+A ribbon drop-down colour picker: a split button over a palette overlay.
 
 A colour picker (stage RB, phase 6) is a small split button. Its face shows
 an icon over a bar of the current colour and applies that colour again; its
-arrow opens a palette popup below it holding Automatic, a grid of palette
+arrow opens a palette overlay below it holding Automatic, a grid of palette
 colours ten to a row, and the recent colours. Bound to a `ColorCommand` the
 picker shows and commits the command's value; without one it keeps its own.
 A `Ribbon` hosts it as `RibbonCommandKind::color_picker` on one row.
@@ -33,7 +33,7 @@ natural_size
     at text scale 1).
 palette_open
     Whether the palette is open.
-palette_popup
+palette_overlay
     The palette's content control, null before the first opening.
 realized_entries
     The open palette's entries, their parts and states, in the palette's

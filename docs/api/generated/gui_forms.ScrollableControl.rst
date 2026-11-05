@@ -425,6 +425,10 @@ gui_forms::ScrollableControl
 
    .. rubric:: Extension points
 
+   .. cpp:function:: ResizeAxes layout_resize_response() const noexcept override
+
+      With auto scroll, a size change can show or hide a scroll bar on either axis, which moves the client area every child is placed in.
+
    .. cpp:function:: Rect display_rectangle() const noexcept override
 
    .. cpp:function:: void arrange(Rect final_bounds) override

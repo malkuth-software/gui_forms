@@ -150,7 +150,7 @@ void anatomy_and_semantics() {
     require(descriptor.value == "LEVEL 42%", "its value is the caption and the percentage");
     require(descriptor.numeric_value == 42.0 && descriptor.minimum_value == 0.0 && descriptor.maximum_value == 100.0,
             "and its range");
-    (*scope).set_enabled(false);
+    (*scope).enabled = false;
     require((*scope).states().disabled, "a disabled scope reports it");
 }
 

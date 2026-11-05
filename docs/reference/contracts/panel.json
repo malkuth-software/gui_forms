@@ -28,7 +28,7 @@
       "reviewed": false,
       "summary": "Validates the closed border vocabulary, commits a real change, and invalidates paint and semantics atomically."
     },
-    "gui_forms::Panel::background|Color () const noexcept": {
+    "gui_forms::Panel::background|Color () const": {
       "reviewed": false,
       "summary": "Resolves the explicit background override or the leading color of the active theme material."
     },

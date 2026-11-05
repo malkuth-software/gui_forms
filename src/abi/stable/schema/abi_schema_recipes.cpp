@@ -64,10 +64,10 @@ void describe_command_extension(SchemaSample& sample) {
 } // namespace
 
 template <>
-void describe_type<AnchoredPopupLayer>(SchemaSample& sample) {
+void describe_type<AnchoredOverlayLayer>(SchemaSample& sample) {
     const std::shared_ptr<ButtonBase> anchor = make_control<ButtonBase>(sample_id());
-    const std::shared_ptr<AnchoredPopupLayer> layer =
-        make_control<AnchoredPopupLayer>(sample_id(), anchor, AnchoredPopupPlacement{});
+    const std::shared_ptr<AnchoredOverlayLayer> layer =
+        make_control<AnchoredOverlayLayer>(sample_id(), anchor, AnchoredOverlayPlacement{});
     record_control(*layer, sample);
 }
 

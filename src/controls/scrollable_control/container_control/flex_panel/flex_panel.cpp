@@ -279,17 +279,13 @@ void FlexPanel::forget_departed_children() {
     }
 }
 
-void FlexPanel::set_auto_size(bool auto_size) {
-    Control::set_auto_size(auto_size);
-}
-
 void FlexPanel::gather_children() {
     const std::span<const Control::Ptr> all = children();
     children_.clear();
     children_.reserve(all.size());
     absolute_children_.clear();
     for (const Control::Ptr& child : all) {
-        if (!child || !is_current_layout_child(child) || !(*child).visible()) continue;
+        if (!child || !is_current_layout_child(child) || !(*child).visible.read()) continue;
         if (record_for(*child).positioning.position == PositionKind::absolute) {
             absolute_children_.push_back(child);
             continue;
@@ -331,7 +327,7 @@ void FlexPanel::resolve_item_inputs(const SolveRequest& request) {
         input.shrink = layout.flex.shrink;
         input.order = layout.flex.order;
         input.align_self = layout.align_self;
-        const Insets margin = child.margin();
+        const Insets margin = child.margin.read();
         input.margin.top = FlexMargin{margin.top, layout.auto_margin.top};
         input.margin.right = FlexMargin{margin.right, layout.auto_margin.right};
         input.margin.bottom = FlexMargin{margin.bottom, layout.auto_margin.bottom};
@@ -344,8 +340,8 @@ void FlexPanel::resolve_item_inputs(const SolveRequest& request) {
         const SizeValue& minimum_cross = horizontal ? layout.min_height : layout.min_width;
         const SizeValue& maximum_cross = horizontal ? layout.max_height : layout.max_width;
         const double cross_margins = horizontal ? margin.top + margin.bottom : margin.left + margin.right;
-        const Size control_minimum = child.minimum_size();
-        const Size control_maximum = child.maximum_size();
+        const Size control_minimum = child.minimum_size.read();
+        const Size control_maximum = child.maximum_size.read();
         const double control_minimum_main = horizontal ? control_minimum.width : control_minimum.height;
         const double control_minimum_cross = horizontal ? control_minimum.height : control_minimum.width;
         const double control_maximum_main =
@@ -466,7 +462,7 @@ void FlexPanel::measure_item_crosses(const SolveRequest& request, const FlexLayo
         // available cross space (the content query already used a definite
         // width when the item is stretched against a definite container).
         double width = content.width;
-        const Insets margin = child.margin();
+        const Insets margin = child.margin.read();
         const double available = cross_basis.extent - (margin.left + margin.right);
         if (cross_basis.definite && width > available) {
             const LayoutConstraint minimum_constraint{min_content_extent(), query_extent(main)};
@@ -481,7 +477,7 @@ void FlexPanel::measure_item_crosses(const SolveRequest& request, const FlexLayo
 void FlexPanel::publish_slots(const FlexLayoutWorkspace& workspace, Size content_box) {
     const LayoutDirection direction = effective_layout_direction();
     const std::span<const FlexItemResult> results = workspace.items();
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const Point offset = scroll_position();
     arranged_ids_.clear();
     arranged_ids_.reserve(children_.size());
@@ -543,13 +539,13 @@ double FlexPanel::intrinsic_content_width(bool minimum) {
             width = child.measure_for_layout(LayoutConstraint{query, max_content_extent()}).width;
             if (!is_alive()) return 0.0;
         }
-        const Size control_minimum = child.minimum_size();
-        const Size control_maximum = child.maximum_size();
+        const Size control_minimum = child.minimum_size.read();
+        const Size control_maximum = child.maximum_size.read();
         const double low = std::max(resolve_minimum(layout.min_width, indefinite, width, width), control_minimum.width);
         const double high = std::min(resolve_maximum(layout.max_width, indefinite, width, width),
                                      maximum_or_unbounded(control_maximum.width));
         const double clamped = std::max(low, std::min(width, high));
-        const Insets margin = child.margin();
+        const Insets margin = child.margin.read();
         const double outer = clamped + margin.left + margin.right;
         sum += outer;
         largest = std::max(largest, outer);
@@ -565,7 +561,7 @@ double FlexPanel::intrinsic_content_width(bool minimum) {
 }
 
 Size FlexPanel::measure_intrinsic(const LayoutConstraint& constraint) {
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const double horizontal_padding = inset.left + inset.right;
     const double vertical_padding = inset.top + inset.bottom;
     const Rect requested = requested_bounds();
@@ -577,7 +573,7 @@ Size FlexPanel::measure_intrinsic(const LayoutConstraint& constraint) {
     const AvailableExtentKind width_kind = constraint.width.kind;
     if (width_kind == AvailableExtentKind::definite) {
         width = constraint.width.extent.value();
-    } else if (width_kind == AvailableExtentKind::at_most && !auto_size()) {
+    } else if (width_kind == AvailableExtentKind::at_most && !auto_size.read()) {
         const double available = constraint.width.extent.value();
         width = requested.width > 0.0 ? std::min(requested.width, available) : available;
     } else if (width_kind == AvailableExtentKind::min_content) {
@@ -596,7 +592,7 @@ Size FlexPanel::measure_intrinsic(const LayoutConstraint& constraint) {
     const AvailableExtentKind height_kind = constraint.height.kind;
     if (height_kind == AvailableExtentKind::definite) {
         height = constraint.height.extent.value();
-    } else if (height_kind == AvailableExtentKind::at_most && !auto_size()) {
+    } else if (height_kind == AvailableExtentKind::at_most && !auto_size.read()) {
         const double available = constraint.height.extent.value();
         height = requested.height > 0.0 ? std::min(requested.height, available) : available;
     } else {
@@ -610,8 +606,8 @@ Size FlexPanel::measure_intrinsic(const LayoutConstraint& constraint) {
             height = std::min(height, constraint.height.extent.value());
         }
     }
-    const Size minimum = minimum_size();
-    const Size maximum = maximum_size();
+    const Size minimum = minimum_size.read();
+    const Size maximum = maximum_size.read();
     width = std::min(std::max(width, minimum.width), maximum_or_unbounded(maximum.width));
     height = std::min(std::max(height, minimum.height), maximum_or_unbounded(maximum.height));
     const Size measured{width, height};
@@ -632,7 +628,7 @@ Size FlexPanel::measure(Size available) {
 void FlexPanel::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     forget_departed_children();
-    const Insets inset = padding();
+    const Insets inset = padding.read();
     const Size client{final_bounds.width, final_bounds.height};
     Size available = client;
     // With auto_scroll, the bars a content overflow needs narrow the
@@ -677,7 +673,7 @@ void FlexPanel::place_absolute_children(Size client) {
     set_containing_block_dependencies(dependency_path_);
     registered_dependencies_ = true;
     out_of_flow::AbsoluteContainer container{};
-    container.padding = padding();
+    container.padding = padding.read();
     container.size = client;
     container.scroll = scroll_position();
     container.direction = effective_layout_direction();
@@ -707,8 +703,8 @@ bool FlexPanel::measures_children_in_arrange() const noexcept {
 SemanticDescriptor FlexPanel::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }

@@ -514,6 +514,9 @@ std::shared_ptr<const DisplayChunk> RecordingPainter::finish(
 void RecordingPainter::mark_opaque_cover(const Rect rect) noexcept {
     const bool top_level = save_depth_ == 0U && open_groups_.empty() && !clipped_ && origin_ == Point{};
     if (!top_level || rect.empty() || !rect.finite()) return;
+    // Everything drawn since composites over the earlier cover, which stays
+    // opaque: keep the larger of the two.
+    if (opaque_cover_ && (*opaque_cover_).area() >= rect.area()) return;
     opaque_cover_ = rect;
 }
 

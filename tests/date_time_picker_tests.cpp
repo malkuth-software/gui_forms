@@ -33,7 +33,7 @@ const SemanticNode* find_node(std::vector<SemanticNode>&& nodes, std::string_vie
 struct Fixture final {
     Fixture() : window(root, {520.0, 390.0}) {
         (*picker).set_requested_bounds({24.0, 32.0, 270.0, 29.0});
-        (*picker).set_accessible_name("Appointment date");
+        (*picker).accessible_name = "Appointment date";
         (*picker).set_value({2026, 8U, 5U, 14U, 7U, 9U, 125U});
         (*root).add_child(picker);
         window.perform_layout();
@@ -180,14 +180,14 @@ void test_range_events_checkbox_and_spinner() {
             "stepping at the range edge must clamp without a spurious value event");
 }
 
-void test_popup_keyboard_commit_cancel_and_outside_dismissal() {
+void test_overlay_keyboard_commit_cancel_and_outside_dismissal() {
     Fixture fixture;
     (*fixture.picker).set_drop_down_alignment(DateTimeDropDownAlignment::right);
     std::vector<std::string> events;
     SubscriptionToken values = (*fixture.picker).value_changed().subscribe(
         test_support::PushConstant<std::vector<std::string>, std::string,
                                    DateTimeValue>(events, "value"));
-    SubscriptionToken popup = (*fixture.picker).drop_down_changed().subscribe(
+    SubscriptionToken overlay = (*fixture.picker).drop_down_changed().subscribe(
         RecordDropDownState(events));
 
     require(fixture.window.perform_semantic_action(
@@ -195,18 +195,18 @@ void test_popup_keyboard_commit_cancel_and_outside_dismissal() {
                 (*fixture.picker).dropped_down() &&
                 fixture.window.focus_scope_depth() == 1U &&
                 (*fixture.window.focused_control()).stable_id().value() ==
-                    "date.picker.popup.calendar",
+                    "date.picker.overlay.calendar",
             "expansion must open a retained calendar and contain keyboard focus");
     const SemanticSnapshot open = fixture.window.semantic_snapshot();
     const SemanticNode* calendar =
-        find_node(open.roots, "date.picker.popup.calendar");
+        find_node(open.roots, "date.picker.overlay.calendar");
     const SemanticNode* selected =
-        find_node(open.roots, "date.picker.popup.calendar.day.2026-08-05");
+        find_node(open.roots, "date.picker.overlay.calendar.day.2026-08-05");
     require(calendar && (*calendar).role == SemanticRole::calendar &&
                 (*calendar).bounds.x == 8.0 && selected &&
                 (*selected).role == SemanticRole::date_cell &&
                 has_semantic_state((*selected).states, SemanticState::selected),
-            "calendar popup must honor right alignment and expose stable virtual date cells and selection state");
+            "calendar overlay must honor right alignment and expose stable virtual date cells and selection state");
     bool invalid_alignment{};
     try {
         (*fixture.picker).set_drop_down_alignment(
@@ -217,7 +217,7 @@ void test_popup_keyboard_commit_cancel_and_outside_dismissal() {
     require(invalid_alignment &&
                 (*fixture.picker).drop_down_alignment() ==
                     DateTimeDropDownAlignment::right,
-            "DateTimePicker popup alignment must reject invalid vocabulary transactionally");
+            "DateTimePicker overlay alignment must reject invalid vocabulary transactionally");
     require(fixture.window.dispatch_key({KeyAction::down, PhysicalKey::right}) &&
                 fixture.window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*fixture.picker).value().day == 6U && !(*fixture.picker).dropped_down() &&
@@ -229,7 +229,7 @@ void test_popup_keyboard_commit_cancel_and_outside_dismissal() {
     require(fixture.window.dispatch_key({KeyAction::down, PhysicalKey::right}) &&
                 fixture.window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 (*fixture.picker).value().day == 6U && !(*fixture.picker).dropped_down(),
-            "Escape must discard popup-local selection and close the focus scope");
+            "Escape must discard overlay-local selection and close the focus scope");
 
     (*fixture.picker).set_dropped_down(true);
     const bool pressed = fixture.window.dispatch_pointer(
@@ -238,8 +238,8 @@ void test_popup_keyboard_commit_cancel_and_outside_dismissal() {
     require(pressed &&
                 !(*fixture.picker).dropped_down() &&
                 !find_node(dismissed.roots,
-                           "date.picker.popup.calendar"),
-            "outside press must dismiss the retained popup and its semantic subtree");
+                           "date.picker.overlay.calendar"),
+            "outside press must dismiss the retained overlay and its semantic subtree");
 }
 
 void test_semantic_date_cell_commit_and_iso_set_value() {
@@ -255,7 +255,7 @@ void test_semantic_date_cell_commit_and_iso_set_value() {
     (*fixture.picker).set_value({2026, 8U, 5U});
     (*fixture.picker).set_dropped_down(true);
     require(fixture.window.perform_semantic_action(
-                "date.picker.popup.calendar.day.2026-08-20",
+                "date.picker.overlay.calendar.day.2026-08-20",
                 SemanticAction::press) &&
                 (*fixture.picker).value() == DateTimeValue{2026, 8U, 20U} &&
                 !(*fixture.picker).dropped_down(),
@@ -286,9 +286,9 @@ void test_semantic_month_navigation_and_range_capability() {
     (*fixture.picker).set_dropped_down(true);
     SemanticSnapshot snapshot = fixture.window.semantic_snapshot();
     const SemanticNode* previous =
-        find_node(snapshot.roots, "date.picker.popup.calendar.previous-month");
+        find_node(snapshot.roots, "date.picker.overlay.calendar.previous-month");
     const SemanticNode* next =
-        find_node(snapshot.roots, "date.picker.popup.calendar.next-month");
+        find_node(snapshot.roots, "date.picker.overlay.calendar.next-month");
     require(previous && next &&
                 has_semantic_state((*previous).states, SemanticState::enabled) &&
                 has_semantic_state((*next).states, SemanticState::enabled) &&
@@ -296,16 +296,16 @@ void test_semantic_month_navigation_and_range_capability() {
                           SemanticAction::press) != (*next).actions.end(),
             "calendar header navigation must be exposed as enabled semantic buttons");
     require(fixture.window.perform_semantic_action(
-                "date.picker.popup.calendar.next-month", SemanticAction::press),
+                "date.picker.overlay.calendar.next-month", SemanticAction::press),
             "semantic next-month press must execute the calendar navigation path");
     snapshot = fixture.window.semantic_snapshot();
     const SemanticNode* calendar =
-        find_node(snapshot.roots, "date.picker.popup.calendar");
+        find_node(snapshot.roots, "date.picker.overlay.calendar");
     require(calendar && (*calendar).name == "September 2026" &&
                 (*calendar).value == "Saturday, September 5, 2026" &&
                 (*fixture.picker).value() ==
                     DateTimeValue{2026, 8U, 5U, 14U, 7U, 9U, 125U},
-            "month navigation must remain popup-local until an explicit commit");
+            "month navigation must remain overlay-local until an explicit commit");
     require(fixture.window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 !(*fixture.picker).dropped_down() &&
                 (*fixture.picker).value().month == 8U,
@@ -316,18 +316,18 @@ void test_semantic_month_navigation_and_range_capability() {
     (*fixture.picker).set_dropped_down(true);
     snapshot = fixture.window.semantic_snapshot();
     previous = find_node(snapshot.roots,
-                         "date.picker.popup.calendar.previous-month");
+                         "date.picker.overlay.calendar.previous-month");
     next = find_node(snapshot.roots,
-                     "date.picker.popup.calendar.next-month");
+                     "date.picker.overlay.calendar.next-month");
     require(previous && next &&
                 !has_semantic_state((*previous).states, SemanticState::enabled) &&
                 !has_semantic_state((*next).states, SemanticState::enabled) &&
                 (*previous).actions.empty() && (*next).actions.empty() &&
                 !fixture.window.perform_semantic_action(
-                    "date.picker.popup.calendar.previous-month",
+                    "date.picker.overlay.calendar.previous-month",
                     SemanticAction::press) &&
                 !fixture.window.perform_semantic_action(
-                    "date.picker.popup.calendar.next-month",
+                    "date.picker.overlay.calendar.next-month",
                     SemanticAction::press),
             "a single-month range must disable and reject both month buttons");
 }
@@ -335,16 +335,16 @@ void test_semantic_month_navigation_and_range_capability() {
 void test_owner_cleanup_and_ui_thread_enforcement() {
     Fixture fixture;
     (*fixture.picker).set_dropped_down(true);
-    (*fixture.picker).set_visible(false);
+    (*fixture.picker).visible = false;
     require(!(*fixture.picker).dropped_down() &&
                 fixture.window.focus_scope_depth() == 0U,
-            "hiding the popup owner must synchronously revoke popup and focus scope");
+            "hiding the overlay owner must synchronously revoke overlay and focus scope");
 
-    (*fixture.picker).set_visible(true);
+    (*fixture.picker).visible = true;
     (*fixture.picker).set_dropped_down(true);
     (*fixture.picker).dispose();
     require(fixture.window.focus_scope_depth() == 0U &&
-                !fixture.window.find("date.picker.popup.calendar"),
+                !fixture.window.find("date.picker.overlay.calendar"),
             "owner disposal must leave no retained calendar or focus scope");
 
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("date.thread.root"));
@@ -365,7 +365,7 @@ int main() {
         test_civil_arithmetic_and_validation();
         test_formats_provider_and_transactional_validation();
         test_range_events_checkbox_and_spinner();
-        test_popup_keyboard_commit_cancel_and_outside_dismissal();
+        test_overlay_keyboard_commit_cancel_and_outside_dismissal();
         test_semantic_date_cell_commit_and_iso_set_value();
         test_optional_semantic_toggle_and_value_activation();
         test_semantic_month_navigation_and_range_capability();

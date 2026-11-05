@@ -28,7 +28,7 @@ gui_forms::FlagsValueEditor
       **stable_id** : ``StableId``
          Identity of the control, unique within its window. Logs, automation and
          semantic actions address the control by this ID. The drop-down list is
-         created as ``<stable_id>.popup.list`` while it is open.
+         created as ``<stable_id>.overlay.list`` while it is open.
 
       **descriptor** : ``PropertyEnumDescriptor``
          The flags enumeration to edit. See :cpp:func:`descriptor <gui_forms::FlagsValueEditor::descriptor>` below.
@@ -61,7 +61,7 @@ gui_forms::FlagsValueEditor
          closed. In a window, opening it while the editor is hidden or disabled
          throws ``std::logic_error``.
 
-      **popup_width** : ``double``, default ``240``
+      **overlay_width** : ``double``, default ``240``
          The width of the list, from 80 to 1024; a width outside that range, or
          one that is not finite, throws ``std::invalid_argument``. The list is never
          wider than the window. An open list is rebuilt at the new width.
@@ -177,7 +177,7 @@ gui_forms::FlagsValueEditor
           window.perform_layout();
           (*frame.edges).set_dropped_down(true);
           std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
-              window.find("frame.edges.popup.list"));
+              window.find("frame.edges.overlay.list"));
           if (list) (*list).set_item_checked(3U, true);   // the "Right" row
           // drawn is "Top, Left, Right"
           (*frame.edges).set_dropped_down(false);
@@ -229,15 +229,15 @@ gui_forms::FlagsValueEditor
 
       Sets :cpp:func:`dropped_down <gui_forms::FlagsValueEditor::dropped_down>`; see the property's description above.
 
-   .. cpp:function:: double popup_width() const noexcept
+   .. cpp:function:: double overlay_width() const noexcept
 
       The width of the list, from 80 to 1024; a width outside that range, or
       one that is not finite, throws ``std::invalid_argument``. The list is never
       wider than the window. An open list is rebuilt at the new width.
 
-   .. cpp:function:: void set_popup_width(double width)
+   .. cpp:function:: void set_overlay_width(double width)
 
-      Sets :cpp:func:`popup_width <gui_forms::FlagsValueEditor::popup_width>`; see the property's description above.
+      Sets :cpp:func:`overlay_width <gui_forms::FlagsValueEditor::overlay_width>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

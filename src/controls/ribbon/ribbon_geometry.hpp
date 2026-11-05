@@ -45,8 +45,8 @@ inline constexpr double check_box_mark_width = 24.0;
 inline constexpr double maximum_hosted_width = 1024.0;
 // The scroll buttons at the plane's ends while it scrolls (owner decision 35).
 inline constexpr double scroll_button_width = 13.0;
-// The group popup's gap below the ribbon.
-inline constexpr double popup_gap = 1.0;
+// The group overlay's gap below the ribbon.
+inline constexpr double overlay_gap = 1.0;
 
 [[nodiscard]] inline bool hosted(RibbonCommandKind kind) noexcept {
     const bool result = kind == RibbonCommandKind::combo_box || kind == RibbonCommandKind::numeric_up_down ||

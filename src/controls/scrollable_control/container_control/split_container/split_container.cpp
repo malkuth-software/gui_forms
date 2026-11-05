@@ -256,7 +256,7 @@ void SplitContainer::set_first_collapsed(bool collapsed,
             automatic_collapse_threshold_) {
         automatic_collapse_suppressed_ = true;
     }
-    (*first_panel_).set_visible(!collapsed);
+    (*first_panel_).visible = !collapsed;
     static_cast<SplitterGrip&>(*splitter_).set_collapse_appearance(
         collapse_panel_, collapse_target_is_collapsed());
     const double total = axis_extent(committed_arranged_bounds());
@@ -291,7 +291,7 @@ void SplitContainer::set_second_collapsed(bool collapsed,
             automatic_collapse_threshold_) {
         automatic_collapse_suppressed_ = true;
     }
-    (*second_panel_).set_visible(!collapsed);
+    (*second_panel_).visible = !collapsed;
     static_cast<SplitterGrip&>(*splitter_).set_collapse_appearance(
         collapse_panel_, collapse_target_is_collapsed());
     const double total = axis_extent(committed_arranged_bounds());
@@ -511,8 +511,8 @@ void SplitContainer::on_key_preview(KeyEvent& event) {
 SemanticDescriptor SplitContainer::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::split_pane;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = std::to_string(effective_distance_);
     descriptor.numeric_value = effective_distance_;
     const double total = axis_extent(committed_arranged_bounds());

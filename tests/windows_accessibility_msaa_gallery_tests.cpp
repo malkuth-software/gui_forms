@@ -72,9 +72,9 @@ constexpr std::string_view host_services_page = "dialogs-and-host-services";
 // open on demand. It is enumerated and acted on like a Gallery page.
 constexpr std::string_view off_tree_page = "off-tree-controls";
 
-// The most popups the client closes with Escape after an action that opened
+// The most overlays the client closes with Escape after an action that opened
 // some (a menu inside a menu is two).
-constexpr int maximum_popup_closes = 4;
+constexpr int maximum_overlay_closes = 4;
 
 // One owned IAccessible reference. Move-only; releases on destruction.
 class AccessibleReference final {
@@ -844,9 +844,9 @@ void press_escape(Window& window) {
     static_cast<void>(window.dispatch_key(up));
 }
 
-// Closes popups an action opened, so the page's root set is restored.
-void close_popups(Window& window, std::size_t baseline_roots) {
-    for (int attempt = 0; attempt < maximum_popup_closes; ++attempt) {
+// Closes overlays an action opened, so the page's root set is restored.
+void close_overlays(Window& window, std::size_t baseline_roots) {
+    for (int attempt = 0; attempt < maximum_overlay_closes; ++attempt) {
         const SemanticSnapshot snapshot = window.semantic_snapshot();
         const bool open = snapshot.roots.size() > baseline_roots || window.focus_scope_depth() != 0U;
         if (!open) return;
@@ -864,10 +864,10 @@ struct InvocationCounter final {
     void invoked(const CommandInvocation&) { ++count; }
 };
 
-// True when an action opened a popup: the snapshot gained roots or nodes,
-// or a focus scope began (a modal popup, while it is open, is the
+// True when an action opened an overlay: the snapshot gained roots or nodes,
+// or a focus scope began (a modal overlay, while it is open, is the
 // snapshot's only root).
-bool popup_opened(const SemanticSnapshot& before, const SemanticSnapshot& after,
+bool overlay_opened(const SemanticSnapshot& before, const SemanticSnapshot& after,
                   std::size_t scopes_before, std::size_t scopes_after) noexcept {
     const bool opened = after.roots.size() > before.roots.size() ||
                         after.node_count > before.node_count || scopes_after > scopes_before;
@@ -962,7 +962,7 @@ ActionResult perform_candidate(Window& window, HWND hwnd, const std::string& key
     if (status != S_OK) {
         result.outcome = ActionOutcome::refused;
         result.evidence = "HRESULT " + hresult_text(status);
-        close_popups(window, baseline_roots);
+        close_overlays(window, baseline_roots);
         return result;
     }
     const SemanticSnapshot after = window.semantic_snapshot();
@@ -995,14 +995,14 @@ ActionResult perform_candidate(Window& window, HWND hwnd, const std::string& key
             result.outcome = ActionOutcome::changed;
             result.evidence = expanded_before ? "collapsed" : "expanded";
         } else if (kind == DefaultKind::expand &&
-                   popup_opened(before, after, scopes_before, scopes_after)) {
+                   overlay_opened(before, after, scopes_before, scopes_after)) {
             result.outcome = ActionOutcome::changed;
-            result.evidence = "a popup opened";
+            result.evidence = "an overlay opened";
         }
     } else if (kind == DefaultKind::show_menu) {
-        if (popup_opened(before, after, scopes_before, scopes_after)) {
+        if (overlay_opened(before, after, scopes_before, scopes_after)) {
             result.outcome = ActionOutcome::changed;
-            result.evidence = "a popup opened";
+            result.evidence = "an overlay opened";
         } else if (changed != nullptr &&
                    has_semantic_state((*changed).states, SemanticState::expanded)) {
             result.outcome = ActionOutcome::changed;
@@ -1020,9 +1020,9 @@ ActionResult perform_candidate(Window& window, HWND hwnd, const std::string& key
     } else if (invocations.count == 1) {
         result.outcome = ActionOutcome::changed;
         result.evidence = "its command invoked once";
-    } else if (popup_opened(before, after, scopes_before, scopes_after)) {
+    } else if (overlay_opened(before, after, scopes_before, scopes_after)) {
         result.outcome = ActionOutcome::changed;
-        result.evidence = "a popup opened";
+        result.evidence = "an overlay opened";
     } else if (window.semantic_generation() != generation_before) {
         result.outcome = ActionOutcome::changed;
         result.evidence = "the semantic tree changed";
@@ -1032,19 +1032,19 @@ ActionResult perform_candidate(Window& window, HWND hwnd, const std::string& key
         result.evidence = "clicked raised " + std::to_string(clicks.count) + " times";
     }
     // An expansion or a check box toggle is undone through the same
-    // default action, which proves the reverse as well; before any popup
+    // default action, which proves the reverse as well; before any overlay
     // is closed, since closing a drop-down collapses it.
     const bool reversible = result.outcome == ActionOutcome::changed &&
                             (kind == DefaultKind::expand || kind == DefaultKind::collapse ||
                              (kind == DefaultKind::press && is_check_role(node.role))) &&
-                            changed != nullptr && result.evidence != "a popup opened";
+                            changed != nullptr && result.evidence != "an overlay opened";
     if (reversible) {
         const bool undone = undo_by_default_action(window, hwnd, candidate, expanded_before,
                                                    checked_before);
         result.evidence += undone ? ", then restored" : ", but not restored";
         if (!undone) result.outcome = ActionOutcome::unobserved;
     }
-    close_popups(window, baseline_roots);
+    close_overlays(window, baseline_roots);
     return result;
 }
 
@@ -1266,7 +1266,7 @@ void run_gallery(Report& report, std::string_view window_kind,
 
 // Runs one window of `window_kind`, which compares its pages and then
 // performs its candidates page by page. An action whose change was not seen
-// may have met an earlier action's effects (a closed panel, a popup still
+// may have met an earlier action's effects (a closed panel, an overlay still
 // open); it runs again alone in a fresh window, and that result stands.
 void run_window_kind(Report& report, std::string_view window_kind) {
     const std::size_t first = report.actions.size();

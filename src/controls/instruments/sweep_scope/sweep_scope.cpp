@@ -365,8 +365,8 @@ bool SweepScope::hit_test_local(Point) const {
 SemanticDescriptor SweepScope::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::progress_bar;
-    descriptor.name = accessible_name().empty() ? caption_ : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read().empty() ? caption_ : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = caption_text();
     descriptor.numeric_value = value();
     descriptor.minimum_value = minimum();

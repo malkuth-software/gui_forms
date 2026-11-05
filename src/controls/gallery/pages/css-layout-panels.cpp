@@ -39,12 +39,12 @@ private:
 
         std::shared_ptr<FlexPanel> row = make_control<FlexPanel>(
             StableId("gallery.css-layout.flex.row"));
-        (*row).set_accessible_name("Growing flex row");
+        (*row).accessible_name = "Growing flex row";
         (*row).set_flex_wrap(FlexWrap::wrap);
         (*row).set_align_items(LayoutAlignment::center);
         (*row).set_column_gap(LengthPercentage{LogicalLength{8.0}, 0.0});
         (*row).set_row_gap(LengthPercentage{LogicalLength{6.0}, 0.0});
-        (*row).set_padding({6.0, 6.0, 6.0, 6.0});
+        (*row).padding = {6.0, 6.0, 6.0, 6.0};
         (*flex_group).add_at(row, {18.0, 38.0, 560.0, 114.0});
         constexpr std::array<double, 3> shares{1.0, 1.0, 2.0};
         for (std::size_t index = 0U; index < shares.size(); ++index) {
@@ -53,7 +53,7 @@ private:
                 "Grow " + std::to_string(static_cast<int>(shares[index])));
             (*item).set_visual_style(ButtonVisualStyle::command);
             (*item).set_requested_bounds({0.0, 0.0, 140.0, 28.0});
-            (*item).set_margin({0.0, 0.0, 0.0, 0.0});
+            (*item).margin = {0.0, 0.0, 0.0, 0.0};
             (*row).add_child(item);
             FlexItemLayout layout{};
             layout.flex.grow = FlexFactor{shares[index]};
@@ -63,7 +63,7 @@ private:
             StableId("gallery.css-layout.flex.row.pushed"), "Auto margin");
         (*pushed).set_visual_style(ButtonVisualStyle::accent);
         (*pushed).set_requested_bounds({0.0, 0.0, 120.0, 28.0});
-        (*pushed).set_margin({0.0, 0.0, 0.0, 0.0});
+        (*pushed).margin = {0.0, 0.0, 0.0, 0.0};
         (*row).add_child(pushed);
         FlexItemLayout pushed_layout{};
         pushed_layout.auto_margin.left = true;
@@ -71,7 +71,7 @@ private:
 
         std::shared_ptr<FlexPanel> column = make_control<FlexPanel>(
             StableId("gallery.css-layout.flex.column"));
-        (*column).set_accessible_name("Centred flex column");
+        (*column).accessible_name = "Centred flex column";
         (*column).set_flex_direction(FlexDirection::column);
         (*column).set_justify_content(LayoutAlignment::center);
         (*column).set_align_items(LayoutAlignment::center);
@@ -83,7 +83,7 @@ private:
                 std::string(index + 1U, 'W'));
             (*item).set_visual_style(ButtonVisualStyle::standard);
             (*item).set_requested_bounds({0.0, 0.0, 60.0 + static_cast<double>(index) * 40.0, 26.0});
-            (*item).set_margin({0.0, 0.0, 0.0, 0.0});
+            (*item).margin = {0.0, 0.0, 0.0, 0.0};
             (*column).add_child(item);
         }
     }
@@ -100,7 +100,7 @@ private:
 
         std::shared_ptr<GridPanel> areas = make_control<GridPanel>(
             StableId("gallery.css-layout.grid.areas"));
-        (*areas).set_accessible_name("Named grid areas");
+        (*areas).accessible_name = "Named grid areas";
         GridTrackList columns{};
         columns.tracks = {fixed_track(90.0), fraction_track(1.0)};
         (*areas).set_template_columns(columns);
@@ -121,7 +121,7 @@ private:
             std::shared_ptr<Button> item = make_control<Button>(
                 StableId(std::string("gallery.css-layout.grid.areas.") + name), name);
             (*item).set_visual_style(ButtonVisualStyle::command);
-            (*item).set_margin({0.0, 0.0, 0.0, 0.0});
+            (*item).margin = {0.0, 0.0, 0.0, 0.0};
             (*areas).add_child(item);
             GridLine line{};
             line.kind = GridLineKind::area;
@@ -133,7 +133,7 @@ private:
 
         std::shared_ptr<GridPanel> cards = make_control<GridPanel>(
             StableId("gallery.css-layout.grid.cards"));
-        (*cards).set_accessible_name("Auto-fill grid cards");
+        (*cards).accessible_name = "Auto-fill grid cards";
         GridTrackSize card{};
         card.minimum = TrackBreadth{TrackBreadthKind::length_percentage, LengthPercentage{LogicalLength{86.0}, 0.0},
                                     FractionFactor{}};
@@ -154,7 +154,7 @@ private:
             std::shared_ptr<Button> item = make_control<Button>(
                 StableId("gallery.css-layout.grid.cards.item." + std::to_string(index)), caption);
             (*item).set_visual_style(spans ? ButtonVisualStyle::accent : ButtonVisualStyle::standard);
-            (*item).set_margin({0.0, 0.0, 0.0, 0.0});
+            (*item).margin = {0.0, 0.0, 0.0, 0.0};
             (*cards).add_child(item);
             if (spans) {
                 GridItemLayout spanning{};
@@ -177,7 +177,7 @@ private:
 
         std::shared_ptr<BlockPanel> stack = make_control<BlockPanel>(
             StableId("gallery.css-layout.block.stack"));
-        (*stack).set_accessible_name("Stacked blocks");
+        (*stack).accessible_name = "Stacked blocks";
         (*block_group).add_at(stack, {18.0, 36.0, 400.0, 76.0});
         constexpr std::array<const char*, 3> captions{"Block", "Auto margins", "Block"};
         for (std::size_t index = 0U; index < captions.size(); ++index) {
@@ -186,7 +186,7 @@ private:
             (*item).set_visual_style(index == 1U ? ButtonVisualStyle::accent : ButtonVisualStyle::command);
             (*item).set_requested_bounds({0.0, 0.0, 0.0, 20.0});
             // 4 above and below: neighbours' margins collapse to 4.
-            (*item).set_margin({0.0, 4.0, 0.0, 4.0});
+            (*item).margin = {0.0, 4.0, 0.0, 4.0};
             (*stack).add_child(item);
             if (index == 1U) {
                 BlockFlowItemLayout centred{};
@@ -199,7 +199,7 @@ private:
 
         std::shared_ptr<BlockPanel> line = make_control<BlockPanel>(
             StableId("gallery.css-layout.block.line"));
-        (*line).set_accessible_name("Centred inline line");
+        (*line).accessible_name = "Centred inline line";
         (*line).set_text_align(TextAlignment::center);
         (*block_group).add_at(line, {436.0, 36.0, 476.0, 76.0});
         for (std::size_t index = 0U; index < 6U; ++index) {
@@ -208,7 +208,7 @@ private:
                 StableId("gallery.css-layout.block.line.item." + std::to_string(index)),
                 tall ? std::string("Middle") : "Inline " + std::to_string(index + 1U));
             (*item).set_visual_style(tall ? ButtonVisualStyle::accent : ButtonVisualStyle::standard);
-            (*item).set_margin({0.0, 0.0, 6.0, 0.0});
+            (*item).margin = {0.0, 0.0, 6.0, 0.0};
             (*line).add_child(item);
             BlockFlowItemLayout atomic{};
             atomic.level = BlockFlowLevel::inline_level;
@@ -231,19 +231,19 @@ private:
 
         std::shared_ptr<FlexPanel> rate = make_control<FlexPanel>(
             StableId("gallery.css-layout.text.rate"));
-        (*rate).set_accessible_name("Baseline-aligned text");
+        (*rate).accessible_name = "Baseline-aligned text";
         (*rate).set_align_items(LayoutAlignment::baseline);
         (*rate).set_column_gap(LengthPercentage{LogicalLength{8.0}, 0.0});
         (*text_group).add_at(rate, {18.0, 36.0, 400.0, 40.0});
         std::shared_ptr<TextBlock> caption = make_control<TextBlock>(
             StableId("gallery.css-layout.text.rate.caption"), "Transfer rate");
         (*caption).set_foreground(muted);
-        (*caption).set_margin({0.0, 0.0, 0.0, 0.0});
+        (*caption).margin = {0.0, 0.0, 0.0, 0.0};
         std::shared_ptr<TextBlock> value = make_control<TextBlock>(
             StableId("gallery.css-layout.text.rate.value"), "42 MB/s");
         (*value).set_font(FontSpec{FontRole::content, 26.0, 700, false, 0.0});
         (*value).set_foreground(shell_blue_dark);
-        (*value).set_margin({0.0, 0.0, 0.0, 0.0});
+        (*value).margin = {0.0, 0.0, 0.0, 0.0};
         (*rate).add_child(caption);
         (*rate).add_child(value);
 
@@ -251,7 +251,7 @@ private:
             StableId("gallery.css-layout.text.paragraph"),
             "TextBlock lays text out as CSS does: white space collapses, lines break where "
             "Unicode allows, and lines are line-height: normal.");
-        (*paragraph).set_accessible_name("Wrapped paragraph");
+        (*paragraph).accessible_name = "Wrapped paragraph";
         (*text_group).add_at(paragraph, {436.0, 36.0, 476.0, 40.0});
     }
 

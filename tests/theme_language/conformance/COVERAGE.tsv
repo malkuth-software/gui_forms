@@ -69,6 +69,7 @@ diagnostic.W104	diagnostic-W104
 diagnostic.W105	diagnostic-W105
 diagnostic.W106	diagnostic-W106
 diagnostic.W107	diagnostic-W107
+diagnostic.W110	diagnostic-W110
 diagnostic.W201	diagnostic-W201
 diagnostic.W301	newer-engine
 diagnostic.W302	newer-engine
@@ -123,6 +124,10 @@ motion.state-machine	motion-transitions
 motion.steps	motion-transitions
 motion.transition	motion-transitions
 motion.transition-longhands	motion-transitions
+property.backdrop	backdrop
+property.backdrop-count	backdrop-count
+property.backdrop-range	backdrop-range
+property.backdrop-second-blur	backdrop-second-blur
 property.background-blend-mode	fills
 property.background-color	fills
 property.background-image-url	finish-light-images-masks
@@ -202,6 +207,8 @@ selector.state.indeterminate	selectors-states
 selector.state.invalid	selectors-states
 selector.state.open	selectors-states
 selector.state.read-only	selectors-states
+selector.surface	backdrop
+selector.surface-alone	surface-alone
 selector.type	selectors-basic
 selector.type-kebab	selectors-basic
 source.bom	source-and-tokens
@@ -254,6 +261,7 @@ code-elsewhere W401	theme_inline_style_tests (reported by a window)
 code-elsewhere W402	theme_variant_tests (the package compile)
 code-elsewhere W403	theme_variant_tests (reported by a window)
 code-elsewhere W404	theme_variant_tests (reported by a control)
+code-elsewhere W405	display_chunk_tests (reported by a control declared clear)
 code-elsewhere W501	theme_user_theme_tests (an icon file a user theme has)
 code-elsewhere W502	theme_user_theme_tests (an icon file a user theme has)
 code-elsewhere W503	theme_user_theme_tests (an icon file a user theme has)
@@ -270,3 +278,4 @@ code-elsewhere E809	form_model_tests (form documents only)
 code-elsewhere E810	form_model_tests (form documents only)
 code-elsewhere E811	form_loader_tests (form documents only)
 code-elsewhere E812	form_generator_tests (form documents only)
+code-elsewhere E813	form_model_tests (form documents only)

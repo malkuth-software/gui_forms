@@ -138,13 +138,13 @@ public static unsafe partial class Exports
         }
     }
 
-    /// <summary>Negotiates gf_popups_table at the manifest's version; a refusal leaves it zeroed.</summary>
-    public static gf_status get_popups_table(out gf_popups_table table)
+    /// <summary>Negotiates gf_overlays_table at the manifest's version; a refusal leaves it zeroed.</summary>
+    public static gf_status get_overlays_table(out gf_overlays_table table)
     {
         table = default;
-        fixed (gf_popups_table* storage = &table)
+        fixed (gf_overlays_table* storage = &table)
         {
-            return gf_abi_get_table(Constants.GF_TABLE_POPUPS, Constants.GF_ABI_MAJOR, Constants.GF_ABI_MINOR, storage, (ulong)sizeof(gf_popups_table));
+            return gf_abi_get_table(Constants.GF_TABLE_OVERLAYS, Constants.GF_ABI_MAJOR, Constants.GF_ABI_MINOR, storage, (ulong)sizeof(gf_overlays_table));
         }
     }
 

@@ -858,8 +858,8 @@ bool ProgressBar::hit_test_local(Point local_point) const {
 SemanticDescriptor ProgressBar::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::progress_bar;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     std::ostringstream value_text;
     value_text << value();
     descriptor.value = value_text.str();

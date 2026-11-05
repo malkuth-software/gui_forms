@@ -187,6 +187,10 @@ gui_forms::Component
 
    .. rubric:: Extension points
 
+   .. cpp:function:: virtual std::span<const PropertyEntry> property_table() const noexcept
+
+      The type's constant property table (property-capabilities study, decision 5 and section 14, G7): its capabilities' entries, base class first, for controls and components alike. Empty by default, which costs no storage; a type with capabilities overrides it to return its static table. Control's name-based property API reads its instance registry, then this table (a registration replaces a table entry of the same name); find_property_entry and the entry operations in property_table.hpp read the table of any owner.
+
    .. cpp:function:: virtual void append_interactions(std::vector<InteractionDeclaration>& interactions) const
 
       *Protected.*

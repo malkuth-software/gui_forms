@@ -35,6 +35,8 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`ApplicationPopup <gui_forms::ApplicationPopup>`
+     - A native popup window entry (owner, 2026-11-04): opened only during the run, owned by ``owner_id``, never a tool or floating window.
    * - :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
      -  
    * - :cpp:class:`ApplicationWindow <gui_forms::ApplicationWindow>`
@@ -244,6 +246,22 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ApplicationPopup final
+
+   ``#include <gui_forms/application/application.hpp>``
+
+   A native popup window entry (owner, 2026-11-04): opened only during the run, owned by ``owner_id``, never a tool or floating window. Programs open popups through SurfaceRoot::open_native_popup, which fills this in.
+
+   .. cpp:member:: HostPopupFocus focus
+
+      Default: ``{HostPopupFocus::passive}``.
+
+   .. cpp:member:: DesktopLogicalPoint origin
+
+      The client area's origin in desktop logical units, each coordinate within HostWindowing::maximum_desktop_coordinate; the client size is ApplicationWindowOptions::initial_size.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ApplicationResult final
 
    ``#include <gui_forms/application/application.hpp>``
@@ -284,6 +302,10 @@ Related types
    .. cpp:member:: HostWindowFloating floating
 
       A floating window (stage DK decisions 1, 10 and 11): owned by the primary window (owner_id names it; tool_window stays false), no taskbar button, minimized with it, above it only, moved with it and clamped to the work area of the screen it lands on. A floating tool also hides while the application is inactive; a floating document does not. The policy decides when the window is on screen; show and hide on its handle say whether it is wanted. See HostWindowKindTraits. Default: ``{HostWindowFloating::none}``.
+
+   .. cpp:member:: std::optional<ApplicationPopup> popup
+
+      A native popup window (ApplicationPopup); none for every other kind.
 
 .. cpp:namespace:: gui_forms
 
@@ -1955,7 +1977,7 @@ Related types
 
    .. cpp:function:: HostWindowAdmission admit(const HostWindowDescription& description)
 
-      Validates and records a window before its native creation. Rules: the stable id is 1 to 1024 bytes of UTF-8 without NUL and unique among live windows; at most maximum_windows live windows; the owner, when given, is live; exactly one primary, admitted first, without an owner; a standard window has an owner; a floating window is owned by the primary window, and at most maximum_floating_windows are live. After mark_started() an admission needs runtime_windows and may not be primary. A refused admission changes nothing.
+      Validates and records a window before its native creation. Rules: the stable id is 1 to 1024 bytes of UTF-8 without NUL and unique among live windows; at most maximum_windows live windows; the owner, when given, is live; exactly one primary, admitted first, without an owner; a standard window has an owner; a floating window is owned by the primary window, and at most maximum_floating_windows are live; a popup has an owner and needs supports_popup_windows() (else unsupported). After mark_started() an admission needs runtime_windows and may not be primary. A refused admission changes nothing.
 
    .. cpp:function:: void window_created(HostWindowId window, bool initially_visible) noexcept
 
@@ -1991,6 +2013,10 @@ Related types
 
 
    .. rubric:: Extension points
+
+   .. cpp:function:: virtual bool supports_popup_windows() const noexcept
+
+      Whether the adapter opens native popup windows (HostWindowKind::popup) during the run. False unless the adapter says so; admit() refuses a popup as unsupported without it.
 
    .. cpp:function:: virtual HostWindowFrameResult frame_impl(HostWindowId window) = 0
 
@@ -2118,6 +2144,10 @@ Related types
    .. cpp:member:: bool joins_main_full_screen
 
       Joins the primary window's full-screen space where a host has such spaces (macOS); nothing elsewhere.
+
+   .. cpp:member:: bool popup
+
+      A native popup: no decorations, no taskbar button, above its owner, placed where the program puts it and never moved by the floating policy. Whether it is activated is declared per popup (HostPopupFocus).
 
 .. cpp:namespace:: gui_forms::host
 
@@ -3167,6 +3197,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: HostPopupFocus
+
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+
+   .. cpp:enumerator:: passive
+
+   .. cpp:enumerator:: takes_focus
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: HostServiceError
 
    ``#include <gui_forms/host/types/host_types.hpp>``
@@ -3262,6 +3302,8 @@ Enumerations
    .. cpp:enumerator:: floating_tool
 
    .. cpp:enumerator:: floating_document
+
+   .. cpp:enumerator:: popup
 
 .. cpp:namespace:: gui_forms::host
 
@@ -3562,9 +3604,11 @@ Functions, constants and aliases
 
 .. cpp:function:: HostWindowKindTraits host_window_kind_traits(HostWindowKind kind) noexcept
 
-.. cpp:function:: HostWindowKind host_window_kind(bool has_owner, bool tool_window, HostWindowFloating floating) noexcept
+.. cpp:function:: const char* host_popup_focus_name(HostPopupFocus focus) noexcept
 
-   The kind of a window entry, the one rule every adapter uses: a floating entry is floating_tool or floating_document; else a tool window is tool; else a window with an owner is standard and one without is primary.
+.. cpp:function:: HostWindowKind host_window_kind(bool has_owner, bool tool_window, HostWindowFloating floating, bool popup) noexcept
+
+   The kind of a window entry, the one rule every adapter uses: a popup entry is popup; else a floating entry is floating_tool or floating_document; else a tool window is tool; else a window with an owner is standard and one without is primary.
 
 .. cpp:function:: Rect clamp_to_work_area(Rect outer, Rect work_area) noexcept
 

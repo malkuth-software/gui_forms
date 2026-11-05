@@ -18,6 +18,9 @@ stable_id
 
 Properties
 ----------
+auto_size
+    Whether measurement sizes the control to its content. Off by default;
+    a write (`auto_size = true`) changes it and raises `auto_size_changed`.
 stable_id
     The identity given at construction. It never changes.
 runtime_id
@@ -319,11 +322,6 @@ clear_theme_override
     Removes `theme_override`, so the subtree inherits its theme again.
 has_style
     Whether every flag of a `ControlStyles` mask is set.
-auto_size
-    Whether measurement sizes the control to its content. Off by default;
-    `set_auto_size` changes it and raises `auto_size_changed`.
-set_auto_size
-    Turns content sizing on or off. See `auto_size`.
 suspend_layout
     Defers layout of this control's subtree until the matching
     `resume_layout`. Calls nest. While suspended, the subtree keeps its last
@@ -458,7 +456,7 @@ and by explicit `perform_click`, never by setters.
 
 Hiding or disabling a control, or one of its ancestors, removes focus from
 the subtree (nothing is focused afterwards), releases its pointer capture and
-press, and closes popups and focus scopes it owns. The window's
+press, and closes overlays and focus scopes it owns. The window's
 `control_availability_changed` is raised, then the control's own
 `visible_changed` or `enabled_changed`.
 
@@ -483,7 +481,7 @@ corner when the window grows:
    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("dialog"));
    std::shared_ptr<gf::Button> ok = gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
    (*ok).set_bounds({300.0, 200.0, 80.0, 28.0});
-   (*ok).set_anchor(gf::AnchorStyles::right | gf::AnchorStyles::bottom);
+   (*ok).anchor = gf::AnchorStyles::right | gf::AnchorStyles::bottom;
    (*root).add_child(ok);
 
    gf::Window window(root, gf::Size{400.0, 240.0});

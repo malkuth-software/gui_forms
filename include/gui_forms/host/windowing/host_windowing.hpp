@@ -48,6 +48,12 @@ enum class HostWindowKind : std::uint8_t {
     // A document torn out into its own window: the floating policy, but it
     // stays visible while the application is inactive.
     floating_document,
+    // A native popup (owner, 2026-11-04): an undecorated window owned by
+    // the window that opened it, with per-pixel alpha, placed by the
+    // program, without a taskbar button, above its owner. Only a host
+    // that opens popup windows admits it
+    // (HostWindowing::supports_popup_windows).
+    popup,
 };
 
 [[nodiscard]] const char* host_window_kind_name(HostWindowKind kind) noexcept;
@@ -69,6 +75,11 @@ struct HostWindowKindTraits final {
     // Joins the primary window's full-screen space where a host has such
     // spaces (macOS); nothing elsewhere.
     bool joins_main_full_screen{};
+    // A native popup: no decorations, no taskbar button, above its owner,
+    // placed where the program puts it and never moved by the floating
+    // policy. Whether it is activated is declared per popup
+    // (HostPopupFocus).
+    bool popup{};
 };
 
 [[nodiscard]] HostWindowKindTraits host_window_kind_traits(HostWindowKind kind) noexcept;
@@ -84,11 +95,25 @@ enum class HostWindowFloating : std::uint8_t {
     document,
 };
 
-// The kind of a window entry, the one rule every adapter uses: a floating
-// entry is floating_tool or floating_document; else a tool window is tool;
-// else a window with an owner is standard and one without is primary.
+// How a native popup takes part in activation and keyboard focus, declared
+// per popup; there is no global rule (owner, 2026-11-04).
+enum class HostPopupFocus : std::uint8_t {
+    // Never activated: the owner stays the active window and keeps keyboard
+    // focus, and the core routes keys to the popup.
+    passive,
+    // Activated and given keyboard focus when shown; the owner's focus is
+    // restored when it closes.
+    takes_focus,
+};
+
+[[nodiscard]] const char* host_popup_focus_name(HostPopupFocus focus) noexcept;
+
+// The kind of a window entry, the one rule every adapter uses: a popup
+// entry is popup; else a floating entry is floating_tool or
+// floating_document; else a tool window is tool; else a window with an
+// owner is standard and one without is primary.
 [[nodiscard]] HostWindowKind host_window_kind(bool has_owner, bool tool_window,
-                                              HostWindowFloating floating) noexcept;
+                                              HostWindowFloating floating, bool popup) noexcept;
 
 // Moves `outer` the least distance that puts it inside `work_area`; a
 // rectangle wider or taller than the work area is aligned with its left or
@@ -268,6 +293,10 @@ public:
     [[nodiscard]] const HostCapabilities& capabilities() const noexcept {
         return snapshot_.capabilities;
     }
+    // Whether the adapter opens native popup windows (HostWindowKind::popup)
+    // during the run. False unless the adapter says so; admit() refuses a
+    // popup as unsupported without it.
+    [[nodiscard]] virtual bool supports_popup_windows() const noexcept;
     [[nodiscard]] Event<const HostWindowFrameEvent&>& frame_changed() noexcept {
         return frame_changed_;
     }
@@ -284,9 +313,10 @@ public:
     // live windows; at most maximum_windows live windows; the owner, when
     // given, is live; exactly one primary, admitted first, without an
     // owner; a standard window has an owner; a floating window is owned by
-    // the primary window, and at most maximum_floating_windows are live.
-    // After mark_started() an admission needs runtime_windows and may not be
-    // primary. A refused admission changes nothing.
+    // the primary window, and at most maximum_floating_windows are live; a
+    // popup has an owner and needs supports_popup_windows() (else
+    // unsupported). After mark_started() an admission needs runtime_windows
+    // and may not be primary. A refused admission changes nothing.
     [[nodiscard]] HostWindowAdmission admit(const HostWindowDescription& description);
     // The native window exists, hidden. Records whether the program wants it
     // visible; the adapter then shows it if policy_visible() says so.

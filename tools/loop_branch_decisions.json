@@ -233,15 +233,15 @@
       "reason": "a loop over a control's few items; one select per item, and a split would duplicate the body"
     },
     {
-      "path": "src/controls/panel/date_time_picker/calendar_popup/calendar_popup.hpp",
-      "function": "gui_forms::CalendarPopup::on_semantic_child_action",
+      "path": "src/controls/panel/date_time_picker/calendar_overlay/calendar_overlay.hpp",
+      "function": "gui_forms::CalendarOverlay::on_semantic_child_action",
       "condition": "action == SemanticAction::press",
       "decision": "keep",
       "reason": "runs once, on the matching item, then returns"
     },
     {
-      "path": "src/controls/panel/date_time_picker/calendar_popup/calendar_popup.hpp",
-      "function": "gui_forms::CalendarPopup::semantic_virtual_children",
+      "path": "src/controls/panel/date_time_picker/calendar_overlay/calendar_overlay.hpp",
+      "function": "gui_forms::CalendarOverlay::semantic_virtual_children",
       "condition": "focused_",
       "decision": "keep",
       "reason": "a few calendar cells; focus is added only to the selected cell"
@@ -494,7 +494,7 @@
     {
       "path": "src/controls/ribbon/ribbon.cpp",
       "function": "gui_forms::append_group_node",
-      "condition": "popup_focused_ && popup_stop_",
+      "condition": "overlay_focused_ && overlay_stop_",
       "decision": "keep",
       "reason": "publishes one semantic node per item; the flag decides one field of each node"
     },
