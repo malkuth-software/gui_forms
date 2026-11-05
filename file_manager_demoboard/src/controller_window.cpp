@@ -101,7 +101,7 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> root = std::make_shared<FlowLayoutPanelCompat>(StableId("demo.controller.window"));
     (*root).set_flow_direction(FlowDirection::top_down);
     (*root).set_wrap_contents(false);
-    (*root).set_padding({10,10,10,10});
+    (*root).padding = {10,10,10,10};
 
     std::shared_ptr<gui_forms::Label> title = std::make_shared<Label>(StableId("demo.controller.title"),
                                          "DEMOboard controller · catalogue 001 / generation 86");
@@ -132,10 +132,10 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
     std::shared_ptr<gui_forms::ComboBox> text_scale = std::make_shared<ComboBox>(
         StableId("demo.accommodation.text-scale"));
     (*text_scale).set_requested_bounds({0,0,430,30});
-    (*text_scale).set_accessible_name("Product text size");
-    (*text_scale).set_accessible_description(
+    (*text_scale).accessible_name = "Product text size";
+    (*text_scale).accessible_description =
         "Changes logical text measurement and large-text accommodation without "
-        "changing the host display scale");
+        "changing the host display scale";
     (*text_scale).set_items({"100% text", "125% text", "150% text",
                            "200% text", "225% text"});
     (*text_scale).set_selected_index(0);
@@ -146,22 +146,22 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
         "Display scale: host-derived · text scale: 100%");
     (*density).set_requested_bounds({0,0,430,24});
     (*density).set_font({FontRole::content,10,400,false});
-    (*density).set_accessible_name("Presentation scale status");
+    (*density).accessible_name = "Presentation scale status";
     (*root).add_child(density);
 
     std::shared_ptr<gui_forms::CheckBox> sound = std::make_shared<CheckBox>(
         StableId("demo.accommodation.sound"), "Semantic state sounds");
     (*sound).set_requested_bounds({0,0,430,28});
     (*sound).set_checked(true);
-    (*sound).set_accessible_description(
-        "Mutes presentation only; visual state, semantics, and feedback trace remain identical");
+    (*sound).accessible_description =
+        "Mutes presentation only; visual state, semantics, and feedback trace remain identical";
     (*root).add_child(sound);
 
     std::shared_ptr<gui_forms::CheckBox> reduced_motion = std::make_shared<CheckBox>(
         StableId("demo.accommodation.reduced-motion"), "Reduced motion");
     (*reduced_motion).set_requested_bounds({0,0,430,28});
-    (*reduced_motion).set_accessible_description(
-        "Keeps live animation active at a calmer cadence and reduced excursion");
+    (*reduced_motion).accessible_description =
+        "Keeps live animation active at a calmer cadence and reduced excursion";
     (*root).add_child(reduced_motion);
 
     std::shared_ptr<gui_forms::ListBox> report = std::make_shared<ListBox>(StableId("demo.diagnostics"));
@@ -199,12 +199,12 @@ std::unique_ptr<gui_forms::Window> make_controller_window(
                 *root, PresentationSettingHandler{
                     product, PresentationSettingKind::reduced_motion}));
     } else {
-        (*text_scale).set_enabled(false);
-        (*text_scale).set_accessible_description(
-            "Attach a product window to exercise text accommodation");
+        (*text_scale).enabled = false;
+        (*text_scale).accessible_description =
+            "Attach a product window to exercise text accommodation";
         (*density).set_text("Display scale: host-derived · product not attached");
-        (*sound).set_enabled(false);
-        (*reduced_motion).set_enabled(false);
+        (*sound).enabled = false;
+        (*reduced_motion).enabled = false;
     }
 
     std::unique_ptr<gui_forms::Window> window = std::make_unique<Window>(root, Size{470,700});

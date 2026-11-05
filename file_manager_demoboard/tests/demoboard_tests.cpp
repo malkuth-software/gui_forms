@@ -276,7 +276,7 @@ int main() {
         (*product).find("fm.path.matrix.editor"));
     std::shared_ptr<gui_forms::ListBox> completions = std::dynamic_pointer_cast<gui_forms::ListBox>(
         (*product).find("fm.path.matrix.completions"));
-    require(path_editor && completions && (*path_editor).visible() &&
+    require(path_editor && completions && (*path_editor).visible.read() &&
                 (*path_editor).text() == "/Users/quentin/Work/Projects/" &&
                 (*path_editor).selection().empty() &&
                 (*path_editor).selection().caret.value() == (*path_editor).text().size() &&
@@ -331,7 +331,7 @@ int main() {
                 (*product).find("fm.path.matrix") &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.path.matrix.resolution"))
-                        ).accessible_description().starts_with("Error:") &&
+                        ).accessible_description.read().starts_with("Error:") &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.status.authority"))).text().find(
                         "Unknown variable") != std::string::npos,
@@ -339,7 +339,7 @@ int main() {
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::escape}) &&
                 (*product).find("fm.path.matrix") &&
-                !(*path_editor).visible() &&
+                !(*path_editor).visible.read() &&
                 (*product).focused_control() ==
                     (*product).find("fm.path.matrix.current.tail") &&
                 (*product).dispatch_key({gui_forms::KeyAction::down,
@@ -368,9 +368,9 @@ int main() {
     std::unique_ptr<gui_forms::Window> search_capture_product = file_manager_demoboard::make_product_window();
     require(file_manager_demoboard::apply_capture_state(
                 *search_capture_product, "search-pinned") &&
-                (*(*search_capture_product).find("fm.search.surface")).visible() &&
+                (*(*search_capture_product).find("fm.search.surface")).visible.read() &&
                 !(*(*search_capture_product).find(
-                    "fm.workspace.content-selection")).visible(),
+                    "fm.workspace.content-selection")).visible.read(),
             "Search capture state must use the same retained surface transition");
 
     std::unique_ptr<gui_forms::Window> search_product = file_manager_demoboard::make_product_window();
@@ -385,7 +385,7 @@ int main() {
     const gui_forms::Control::Ptr folder_surface = (*search_product).find(
         "fm.workspace.content-selection");
     require(search_results && search_surface && folder_surface &&
-                (*search_surface).visible() && !(*folder_surface).visible() &&
+                (*search_surface).visible.read() && !(*folder_surface).visible.read() &&
                 (*search_results).items().size() == 7U &&
                 (*search_results).children().empty() &&
                 (*search_results).compact_height() == 45.0 &&
@@ -464,7 +464,7 @@ int main() {
     require((*search_product).perform_semantic_action(
                 "fm.result.result-pages-offline",
                 gui_forms::SemanticAction::press) &&
-                (*search_surface).visible() &&
+                (*search_surface).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*search_product).find("fm.status.authority"))).text().find(
                         "source volume unavailable") != std::string::npos,
@@ -483,7 +483,7 @@ int main() {
             "Search keyboard focus and Space pinning must be independent and deterministic");
     require((*search_product).dispatch_key({gui_forms::KeyAction::down,
                                           gui_forms::PhysicalKey::enter}) &&
-                (*folder_surface).visible() && !(*search_surface).visible() &&
+                (*folder_surface).visible.read() && !(*search_surface).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*search_product).find("fm.title.text"))).text().ends_with(
                         "Orchard Study") &&
@@ -501,7 +501,7 @@ int main() {
     require(search_editor != nullptr, "Search requires the public navigation TextBox");
     (*search_editor).set_text("invoice");
     (*search_editor).set_text("invoice quartz");
-    require(!(*(*debounced_search).find("fm.search.surface")).visible() &&
+    require(!(*(*debounced_search).find("fm.search.surface")).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*debounced_search).find("fm.status.authority"))).text().find(
                         "Search pending") != std::string::npos,
@@ -509,8 +509,8 @@ int main() {
     static_cast<void>((*debounced_search).poll_frame_schedule(
         gui_forms::FrameClock::now() + std::chrono::seconds(1)));
     (*debounced_search).perform_layout();
-    require((*(*debounced_search).find("fm.search.surface")).visible() &&
-                !(*(*debounced_search).find("fm.workspace.content-selection")).visible() &&
+    require((*(*debounced_search).find("fm.search.surface")).visible.read() &&
+                !(*(*debounced_search).find("fm.workspace.content-selection")).visible.read() &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*debounced_search).find("fm.status.summary"))).text() ==
                     "5 of 7 results shown · 1 unavailable source" &&
@@ -556,9 +556,9 @@ int main() {
                 (*criteria_objects).items().size() == 31U &&
                 (*criteria_objects).selected_id() ==
                     "fm.object.obj-facade-study" &&
-                (*(*criteria_product).find("fm.workspace.content-selection")).visible() &&
-                !(*(*criteria_product).find("fm.folder.objects")).visible() &&
-                (*(*criteria_product).find("fm.selection.pane")).visible(),
+                (*(*criteria_product).find("fm.workspace.content-selection")).visible.read() &&
+                !(*(*criteria_product).find("fm.folder.objects")).visible.read() &&
+                (*(*criteria_product).find("fm.selection.pane")).visible.read(),
             "Criteria must retain three exact instruments, its virtual objects, and Selection");
     const gui_forms::SemanticSnapshot criteria_semantics =
         (*criteria_product).semantic_snapshot();
@@ -578,7 +578,7 @@ int main() {
     require((*criteria_product).perform_semantic_action(
                 "fm.criteria.apply", gui_forms::SemanticAction::press) &&
                 (*criteria_progress).animation_enabled() &&
-                !(*criteria_apply).enabled(),
+                !(*criteria_apply).enabled.read(),
             "Apply must enter one explicit pending state and reject duplicate activation");
     const gui_forms::FrameTime apply_clock = gui_forms::FrameClock::now() +
                                               std::chrono::seconds(1);
@@ -674,10 +674,10 @@ int main() {
     (*palette_product).perform_layout();
     const gui_forms::Control::Ptr palette_surface =
         (*palette_product).find("fm.review.palettes");
-    require(palette_surface && (*palette_surface).visible() &&
-                !(*(*palette_product).find("fm.workspace.content-selection")).visible() &&
-                !(*(*palette_product).find("fm.search.surface")).visible() &&
-                !(*(*palette_product).find("fm.criteria.surface")).visible(),
+    require(palette_surface && (*palette_surface).visible.read() &&
+                !(*(*palette_product).find("fm.workspace.content-selection")).visible.read() &&
+                !(*(*palette_product).find("fm.search.surface")).visible.read() &&
+                !(*(*palette_product).find("fm.criteria.surface")).visible.read(),
             "palette review must replace the daily content surface without hidden overlap");
     constexpr const char* palette_ids[] = {
         "cobalt", "amethyst", "miami", "orchid", "aqua", "apricot",
@@ -725,8 +725,8 @@ int main() {
             "palette cards must reflow inside the grown product surface");
     require(file_manager_demoboard::set_product_surface(
                 *palette_product, "folder") &&
-                !(*palette_surface).visible() &&
-                (*(*palette_product).find("fm.workspace.content-selection")).visible(),
+                !(*palette_surface).visible.read() &&
+                (*(*palette_product).find("fm.workspace.content-selection")).visible.read(),
             "leaving a review laboratory must restore the ordinary Folder projection");
 
     std::unique_ptr<gui_forms::Window> dna_product = file_manager_demoboard::make_product_window();
@@ -735,7 +735,7 @@ int main() {
     (*dna_product).perform_layout();
     const std::shared_ptr<gui_forms::MasterDetailView> dna_view = std::dynamic_pointer_cast<gui_forms::MasterDetailView>(
         (*dna_product).find("fm.review.dna"));
-    require(dna_view && (*dna_view).visible() && (*dna_view).master() &&
+    require(dna_view && (*dna_view).visible.read() && (*dna_view).master() &&
                 (*dna_view).detail() &&
                 (*dna_view).effective_display_mode() ==
                     gui_forms::MasterDetailDisplayMode::side_by_side,
@@ -850,7 +850,7 @@ int main() {
             std::string("duplicate session rename must restore the previous editor value; actual: ") +
                 std::string((*property_name).text()) + "; model: " +
                 (*property_list).value("fm.property.name").value_or("<missing>") +
-                "; accessible: " + (*property_name).accessible_description() +
+                "; accessible: " + (*property_name).accessible_description.read() +
                 "; status: " + (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.status.authority"))).text() +
                 "; connected/emitted/disconnected: " +
@@ -860,10 +860,10 @@ int main() {
                 "; selection count/id: " +
                 std::to_string((*objects).selected_ids().size()) + "/" +
                 std::string((*objects).selected_id()));
-    require((*property_name).accessible_description().find("already exists") !=
+    require((*property_name).accessible_description.read().find("already exists") !=
                 std::string::npos,
             "duplicate session rename must publish inline accessible validation; actual: " +
-                (*property_name).accessible_description());
+                (*property_name).accessible_description.read());
     require((*std::dynamic_pointer_cast<gui_forms::Label>(
                 (*product).find("fm.status.authority"))).text().find(
                 "rename rejected") != std::string::npos,
@@ -873,7 +873,7 @@ int main() {
                 (*product).dispatch_key({gui_forms::KeyAction::down,
                                        gui_forms::PhysicalKey::enter}) &&
                 (*property_list).value("fm.property.name") == "Facade Final.png" &&
-                (*property_name).accessible_description().find("Error:") ==
+                (*property_name).accessible_description.read().find("Error:") ==
                     std::string::npos &&
                 std::find_if((*objects).items().begin(), (*objects).items().end(),
                              is_renamed_facade_study) !=
@@ -889,11 +889,11 @@ int main() {
                     "handler committed") != std::string::npos,
             "choice property must commit through the shared PropertyList model");
     (*preview_disclosure).perform_click();
-    require(!(*preview).visible() && (*property_list).header_height() == 34.0 &&
+    require(!(*preview).visible.read() && (*property_list).header_height() == 34.0 &&
                 (*preview_disclosure).text() == "▶",
             "preview disclosure must collapse retained header content without replacing it");
     (*preview_disclosure).perform_click();
-    require((*preview).visible() && (*property_list).header_height() == 212.0 &&
+    require((*preview).visible.read() && (*property_list).header_height() == 212.0 &&
                 (*preview_disclosure).text() == "▼" &&
                 (*property_list).header_content() ==
                     (*product).find("fm.selection.summary"),
@@ -912,13 +912,13 @@ int main() {
     (*selection_collapse).perform_click();
     (*product).perform_layout();
     require((*selection_split).second_collapsed() &&
-                !(*(*selection_split).second_panel()).visible(),
+                !(*(*selection_split).second_panel()).visible.read(),
             "Selection caption affordance must collapse the reusable split pane");
     (*std::dynamic_pointer_cast<gui_forms::Button>(
         (*product).find("fm.ribbon.properties"))).perform_click();
     (*product).perform_layout();
     require(!(*selection_split).second_collapsed() &&
-                (*(*selection_split).second_panel()).visible() &&
+                (*(*selection_split).second_panel()).visible.read() &&
                 std::abs((*(*selection_split).second_panel()).arranged_bounds().width -
                          inspector_extent) < 0.01,
             "Selection-pane command must restore the remembered inspector extent");
@@ -1060,9 +1060,9 @@ int main() {
                     (*product).find("fm.title.text"))).text() ==
                     "File Manager  ·  Reference" &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
-                    (*product).find("fm.nav.back"))).enabled() &&
+                    (*product).find("fm.nav.back"))).enabled.read() &&
                 !(*std::dynamic_pointer_cast<gui_forms::Button>(
-                    (*product).find("fm.nav.forward"))).enabled(),
+                    (*product).find("fm.nav.forward"))).enabled.read(),
             "tree navigation did not atomically project location objects and history");
     require((*product).request_focus(objects) &&
                 (*product).dispatch_key({gui_forms::KeyAction::down,
@@ -1072,7 +1072,7 @@ int main() {
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.title.text"))).text().ends_with("Projects") &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
-                    (*product).find("fm.nav.forward"))).enabled(),
+                    (*product).find("fm.nav.forward"))).enabled.read(),
             "Alt+Left did not restore the exact retained Projects history entry");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::right,
@@ -1089,7 +1089,7 @@ int main() {
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
                     (*product).find("fm.title.text"))).text().ends_with("Work") &&
                 !(*std::dynamic_pointer_cast<gui_forms::Button>(
-                    (*product).find("fm.nav.forward"))).enabled(),
+                    (*product).find("fm.nav.forward"))).enabled.read(),
             "Alt+Up did not navigate to the parent and clear the forward branch");
 
     const std::shared_ptr<gui_forms::MenuStrip> menu = std::dynamic_pointer_cast<gui_forms::MenuStrip>(
@@ -1123,7 +1123,7 @@ int main() {
             "responsive fixture requires both split policies and shell bands");
     resize_and_layout_twice(*responsive, {1200, 760});
     require(!(*responsive_outer).first_collapsed() &&
-                !(*responsive_inner).second_collapsed() && (*ribbon_band).visible(),
+                !(*responsive_inner).second_collapsed() && (*ribbon_band).visible.read(),
             "common size must retain both panes and the full command shelf");
     resize_and_layout_twice(*responsive, {960, 680});
     require(!(*responsive_outer).first_collapsed() &&
@@ -1133,7 +1133,7 @@ int main() {
             "narrow size must automatically collapse Selection before the tree");
     resize_and_layout_twice(*responsive, {720, 520});
     require(!(*responsive_outer).first_collapsed() &&
-                (*responsive_inner).second_collapsed() && !(*ribbon_band).visible(),
+                (*responsive_inner).second_collapsed() && !(*ribbon_band).visible.read(),
             "compact size must preserve the tree and move ribbon vocabulary to menus");
     resize_and_layout_twice(*responsive, {480, 360});
     require((*responsive_outer).first_collapsed() &&
@@ -1146,17 +1146,17 @@ int main() {
                 (*responsive_objects).committed_arranged_bounds().height > 90.0,
             "extreme size must preserve a useful current-location content region");
     resize_and_layout_twice(*responsive, {150, 150});
-    require(!(*title_band).visible() && !(*ribbon_band).visible() &&
-                !(*status_band).visible() &&
+    require(!(*title_band).visible.read() && !(*ribbon_band).visible.read() &&
+                !(*status_band).visible.read() &&
                 (*responsive_objects).committed_arranged_bounds().width > 120.0 &&
                 (*responsive_objects).committed_arranged_bounds().height > 60.0 &&
-                (*(*responsive).find("fm.ribbon.tabs")).visible() &&
-                (*(*responsive).find("fm.navigation")).visible(),
+                (*(*responsive).find("fm.ribbon.tabs")).visible.read() &&
+                (*(*responsive).find("fm.navigation")).visible.read(),
             "enforced minimum must retain menu, location controls, and one usable region");
     resize_and_layout_twice(*responsive, {1450, 850});
     require(!(*responsive_outer).first_collapsed() &&
-                !(*responsive_inner).second_collapsed() && (*title_band).visible() &&
-                (*ribbon_band).visible() && (*status_band).visible(),
+                !(*responsive_inner).second_collapsed() && (*title_band).visible.read() &&
+                (*ribbon_band).visible.read() && (*status_band).visible.read(),
             "restoring reference size must restore only automatically hidden surfaces");
     const gui_forms::Rect reference_object_bounds =
         (*responsive_objects).committed_arranged_bounds();
@@ -1197,15 +1197,15 @@ int main() {
     (*responsive).perform_layout();
     (*responsive).perform_layout();
     require(!(*responsive_outer).first_collapsed() &&
-                (*responsive_inner).second_collapsed() && (*ribbon_band).visible(),
+                (*responsive_inner).second_collapsed() && (*ribbon_band).visible.read(),
             "150% text must stack inspector content and collapse Selection before tree");
     (*responsive).set_text_scale(2.0);
     (*responsive).perform_layout();
     (*responsive).perform_layout();
     require(!(*responsive_outer).first_collapsed() &&
-                (*responsive_inner).second_collapsed() && !(*ribbon_band).visible() &&
-                (*(*responsive).find("fm.ribbon.tabs")).visible() &&
-                (*(*responsive).find("fm.navigation")).visible(),
+                (*responsive_inner).second_collapsed() && !(*ribbon_band).visible.read() &&
+                (*(*responsive).find("fm.ribbon.tabs")).visible.read() &&
+                (*(*responsive).find("fm.navigation")).visible.read(),
             "200% text must withdraw the ribbon while preserving menu, location, and tree");
     (*responsive).set_text_scale(2.25);
     (*responsive).perform_layout();
@@ -1220,7 +1220,7 @@ int main() {
     (*responsive).perform_layout();
     (*responsive).perform_layout();
     require(!(*responsive_outer).first_collapsed() &&
-                !(*responsive_inner).second_collapsed() && (*ribbon_band).visible(),
+                !(*responsive_inner).second_collapsed() && (*ribbon_band).visible.read(),
             "returning to 100% must restore only automatically accommodated surfaces");
 
     std::unique_ptr<gui_forms::Window> controller = file_manager_demoboard::make_controller_window(responsive.get());
@@ -1232,7 +1232,7 @@ int main() {
             "controller capability report is absent");
     const std::shared_ptr<gui_forms::ComboBox> text_scale = std::dynamic_pointer_cast<gui_forms::ComboBox>(
         (*controller).find("demo.accommodation.text-scale"));
-    require(text_scale && (*text_scale).enabled(),
+    require(text_scale && (*text_scale).enabled.read(),
             "controller text-scale accommodation selector is absent");
     const std::shared_ptr<gui_forms::CheckBox> sound = std::dynamic_pointer_cast<gui_forms::CheckBox>(
         (*controller).find("demo.accommodation.sound"));
@@ -1243,30 +1243,30 @@ int main() {
     require(reduced_motion && !(*reduced_motion).checked(),
             "controller reduced-motion policy toggle is absent");
     (*surface_choice).set_selected_index(1U);
-    require((*(*responsive).find("fm.search.surface")).visible() &&
-                !(*(*responsive).find("fm.workspace.content-selection")).visible(),
+    require((*(*responsive).find("fm.search.surface")).visible.read() &&
+                !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Search choice must reach the public product-surface transition");
     (*surface_choice).set_selected_index(2U);
-    require((*(*responsive).find("fm.criteria.surface")).visible() &&
-                (*(*responsive).find("fm.workspace.content-selection")).visible() &&
-                !(*(*responsive).find("fm.folder.objects")).visible(),
+    require((*(*responsive).find("fm.criteria.surface")).visible.read() &&
+                (*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
+                !(*(*responsive).find("fm.folder.objects")).visible.read(),
             "controller Criteria choice must reach the public retained surface transition");
     (*surface_choice).set_selected_index(3U);
-    require((*(*responsive).find("fm.review.palettes")).visible() &&
-                !(*(*responsive).find("fm.workspace.content-selection")).visible() &&
-                !(*(*responsive).find("fm.search.surface")).visible() &&
-                !(*(*responsive).find("fm.criteria.surface")).visible(),
+    require((*(*responsive).find("fm.review.palettes")).visible.read() &&
+                !(*(*responsive).find("fm.workspace.content-selection")).visible.read() &&
+                !(*(*responsive).find("fm.search.surface")).visible.read() &&
+                !(*(*responsive).find("fm.criteria.surface")).visible.read(),
             "controller Palettes choice must reach the public Card laboratory");
     (*surface_choice).set_selected_index(6U);
-    require((*(*responsive).find("fm.review.dna")).visible() &&
-                !(*(*responsive).find("fm.review.palettes")).visible() &&
-                !(*(*responsive).find("fm.workspace.content-selection")).visible(),
+    require((*(*responsive).find("fm.review.dna")).visible.read() &&
+                !(*(*responsive).find("fm.review.palettes")).visible.read() &&
+                !(*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller DNA choice must reach the public MasterDetail laboratory");
     (*surface_choice).set_selected_index(0U);
-    require(!(*(*responsive).find("fm.search.surface")).visible() &&
-                !(*(*responsive).find("fm.review.palettes")).visible() &&
-                !(*(*responsive).find("fm.review.dna")).visible() &&
-                (*(*responsive).find("fm.workspace.content-selection")).visible(),
+    require(!(*(*responsive).find("fm.search.surface")).visible.read() &&
+                !(*(*responsive).find("fm.review.palettes")).visible.read() &&
+                !(*(*responsive).find("fm.review.dna")).visible.read() &&
+                (*(*responsive).find("fm.workspace.content-selection")).visible.read(),
             "controller Folder choice must restore the retained Folder projection");
     (*text_scale).set_selected_index(4U);
     require((*responsive).presentation_settings().text_scale == 2.25,
