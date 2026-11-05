@@ -116,6 +116,7 @@ struct PendingInspectionNode final {
 VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
     VisualInspectionOptions options) {
     require_root_thread("visual inspection snapshot");
+    settle_dirty();
     if (options.maximum_controls == 0U ||
         options.maximum_controls > VisualInspectionOptions::maximum_allowed_controls) {
         throw std::invalid_argument(

@@ -644,6 +644,7 @@ void ObjectView::set_top_row(const std::size_t row) {
 void ObjectView::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("ObjectView font is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
@@ -925,7 +926,7 @@ void ObjectView::on_paint(Painter& painter, Rect damage) {
         return;
     }
     const Rect bounds = local_bounds();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     painter.save();
     painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
                        std::max(0.0, bounds.height - 4.0)});
@@ -1724,7 +1725,7 @@ const std::string& ObjectView::details_text(Painter& painter,
 void ObjectView::paint_details(Painter& painter) {
     details_paint_work_ = {};
     clamp_horizontal_offset();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     if (details_cache_font_ != font) {
         clear_details_cache();
         details_cache_font_ = font;

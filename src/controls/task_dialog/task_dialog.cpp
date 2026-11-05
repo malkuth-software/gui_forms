@@ -628,7 +628,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
     const double band_height = row + band_inset * 2.0;
     parts.button_band = PartGeometry::from_bounds({0.0, y, width, band_height});
     parts.button_divider = PartGeometry::from_bounds({0.0, y, width, 1.0});
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     std::vector<double> widths(buttons_.size(), 0.0);
     double total = 0.0;
     for (std::size_t index = 0; index < buttons_.size(); ++index) {
@@ -711,7 +711,7 @@ void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeo
     // Standard icons are an accent chip with a mark or a letter: the
     // vocabulary has no information, warning, error or shield mark.
     part.family = ControlVisualRole::accent_button;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     if (plate.present) {
         part.role = PartRole::chip;
         part.bounds = plate.bounds;
@@ -742,7 +742,7 @@ void TaskDialog::on_paint(Painter& painter, Rect) {
     const Layout placed = layout(client_rectangle().width);
     const Parts& parts = placed.parts;
     PartPaint part;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.family = ControlVisualRole::card;
     part.role = PartRole::face;
     part.bounds = parts.face.bounds;

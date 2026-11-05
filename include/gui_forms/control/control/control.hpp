@@ -459,6 +459,18 @@ public:
     // painting so text, wrapping, hit geometry, and carets remain coherent.
     [[nodiscard]] double effective_text_scale() const noexcept;
     [[nodiscard]] FontSpec effective_font(FontSpec authored) const noexcept;
+    // The control's primary text font (T4 fonts, owner ruling of
+    // 2026-11-04), scaled as effective_font: `own`, the font the control
+    // holds, with its theme's font fields over it (Theme::resolve_font),
+    // unless code set the font (set_font_from_code), since inline code wins.
+    // Controls take it for the text a theme styles, for measurement and
+    // painting alike; their fixed secondary fonts take effective_font. The
+    // result is cached against the theme, the window's media facts and the
+    // control's rules, so a call costs a comparison once resolved.
+    [[nodiscard]] FontSpec text_font(FontSpec own) const noexcept;
+    // The primary text font before the text scale, with where each field
+    // came from.
+    [[nodiscard]] ResolvedFont resolved_text_font(FontSpec own) const noexcept;
     // Resolves an already-effective FontSpec (normally from effective_font)
     // through the attached terminal provider without applying text scale a
     // second time.
@@ -590,7 +602,8 @@ public:
     void suspend_layout();
     void resume_layout(bool perform_layout = true);
     void perform_layout();
-    [[nodiscard]] LayoutTransactionState layout_transaction_state() const noexcept;
+    // Settles the surface root's pending touches first (see dirty()).
+    [[nodiscard]] LayoutTransactionState layout_transaction_state() const;
 
     [[nodiscard]] bool visible() const noexcept { return visible_; }
     void set_visible(bool visible);
@@ -744,8 +757,11 @@ public:
     void set_pointer_capture(bool captured);
     [[nodiscard]] bool has_pointer_capture() const noexcept;
 
-    [[nodiscard]] Dirty dirty() const noexcept { return dirty_; }
-    [[nodiscard]] Dirty subtree_dirty() const noexcept { return subtree_dirty_; }
+    // An attached control's flags are read after its surface root settles
+    // the touches made since the last read (SurfaceRoot::settle_dirty): an
+    // ancestor's flags are set by its descendants' touches at the settle.
+    [[nodiscard]] Dirty dirty() const;
+    [[nodiscard]] Dirty subtree_dirty() const;
     // This control's slot in its surface root's control table, for
     // inspection (SurfaceRoot::control_table); unassigned while detached.
     [[nodiscard]] detail::ControlSlot surface_slot() const noexcept { return surface_slot_; }
@@ -832,10 +848,9 @@ public:
     [[nodiscard]] virtual std::optional<double> first_baseline(double width);
     [[nodiscard]] virtual std::optional<double> last_baseline(double width);
     // Advances whenever this control becomes measure-dirty; a cache entry
-    // stored under an earlier generation is never answered.
-    [[nodiscard]] std::uint64_t measure_generation() const noexcept {
-        return measure_generation_;
-    }
+    // stored under an earlier generation is never answered. Settles first
+    // (see dirty()): a descendant's touch advances it at the settle.
+    [[nodiscard]] std::uint64_t measure_generation() const;
     // Layout boundaries (stage L, PLAN section 3.3). A descendant's measure
     // dirtiness marks an ancestor for measure only while the ancestor's size
     // can depend on it: while the ancestor's own measure reads its children
@@ -991,6 +1006,11 @@ public:
 
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
+    // Whether code set the control's primary font (T4 fonts): a control's
+    // set_font marks it, after validating the font, and a clear_font that
+    // returns to the control's default unmarks it. Marked, text_font is
+    // `own` scaled, whatever the theme declares.
+    void set_font_from_code(bool from_code) noexcept;
     // The opaque cover hint (owner, 2026-10-28). Called from a paint
     // callback right after drawing an opaque solid fill of `local`, in this
     // control's coordinates, with nothing translated, clipped or grouped:
@@ -1136,6 +1156,10 @@ private:
     [[nodiscard]] const Theme& chosen_theme() const noexcept;
     // Writes W404 for `property` of this control.
     void warn_inline_colour(std::string_view property) const;
+    // After the control's classes or inline style change: drops the cached
+    // primary font, and returns Dirty::layout where it resolves differently
+    // now (a font is a layout input), else Dirty::none.
+    [[nodiscard]] Dirty refresh_text_font() noexcept;
     // P12b: compiles again, against `theme`, each inline style of this
     // subtree that defines custom properties and was compiled against
     // another theme, appending each to `restyles` uninstalled; a control
@@ -1311,6 +1335,21 @@ private:
     std::optional<Color> fore_color_;
     bool back_color_warned_{};
     bool fore_color_warned_{};
+    // The primary text font last resolved (text_font), and what it was
+    // resolved against: valid while the theme, the window's media facts,
+    // the user theme's and the inline style's rules and `own` are the same.
+    // The classes are not compared: set_classes drops it (refresh_text_font).
+    struct TextFontCache final {
+        bool valid{};
+        FontSpec own{};
+        const Theme* theme{};
+        MediaFacts media{};
+        const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* inline_rules{};
+        ResolvedFont resolved{};
+    };
+    mutable TextFontCache text_font_cache_{};
+    bool font_from_code_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
     std::string accessible_name_;

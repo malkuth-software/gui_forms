@@ -193,6 +193,7 @@ FontSpec TextBlock::font() const noexcept {
 void TextBlock::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("TextBlock font is invalid");
+    set_font_from_code(true);
     if (font_override_ && *font_override_ == font) return;
     font_override_ = font;
     invalidate(invalidation::text_content);
@@ -202,6 +203,7 @@ void TextBlock::clear_font() {
     require_mutable();
     if (!font_override_) return;
     font_override_.reset();
+    set_font_from_code(false);
     invalidate(invalidation::text_content);
 }
 
@@ -326,7 +328,7 @@ LineBoxMetrics TextBlock::line_metrics(FontSpec font) const {
 }
 
 Size TextBlock::content_size(double width, Workspace& workspace) const {
-    const FontSpec font = effective_font((*this).font());
+    const FontSpec font = text_font((*this).font());
     prepare_text(workspace);
     break_lines(width, font, workspace);
     double widest = 0.0;
@@ -353,7 +355,7 @@ Size TextBlock::measure_intrinsic(const LayoutConstraint& constraint) {
     const Insets inset = padding();
     const double horizontal = inset.left + inset.right;
     const double vertical = inset.top + inset.bottom;
-    const FontSpec font = effective_font((*this).font());
+    const FontSpec font = text_font((*this).font());
     double content_width = 0.0;
     switch (constraint.width.kind) {
     case AvailableExtentKind::min_content:
@@ -385,7 +387,7 @@ std::optional<double> TextBlock::first_baseline(double width) {
     // no text has no line box and so no baseline.
     static_cast<void>(width);
     if (!has_visible_text(text_)) return std::nullopt;
-    const LineBoxMetrics metrics = line_metrics(effective_font((*this).font()));
+    const LineBoxMetrics metrics = line_metrics(text_font((*this).font()));
     const double baseline = padding().top + metrics.baseline;
     return baseline;
 }
@@ -394,7 +396,7 @@ std::optional<double> TextBlock::last_baseline(double width) {
     const Insets inset = padding();
     const Size content = content_size(std::max(0.0, width - (inset.left + inset.right)), workspace_);
     if (workspace_.lines.empty()) return std::nullopt;
-    const LineBoxMetrics metrics = line_metrics(effective_font((*this).font()));
+    const LineBoxMetrics metrics = line_metrics(text_font((*this).font()));
     const double baseline = inset.top + content.height - metrics.height + metrics.baseline;
     return baseline;
 }
@@ -417,7 +419,7 @@ void TextBlock::on_paint(Painter& painter, Rect) {
     const Insets inset = padding();
     const double content_width = std::max(0.0, client.width - (inset.left + inset.right));
     static_cast<void>(content_size(content_width, workspace_));
-    const FontSpec font = effective_font((*this).font());
+    const FontSpec font = text_font((*this).font());
     const LineBoxMetrics metrics = line_metrics(font);
     // Each line is a label part placed by its baseline, in the theme's text
     // (disabled text while disabled) or the authored foreground (T4-1).

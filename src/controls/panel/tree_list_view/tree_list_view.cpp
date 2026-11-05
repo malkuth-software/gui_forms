@@ -691,6 +691,7 @@ void TreeListView::on_attached_to_window() {
 void TreeListView::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("TreeListView font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -699,7 +700,7 @@ void TreeListView::set_font(FontSpec font) {
 // -- layout --------------------------------------------------------------------------
 
 double TreeListView::text_line_height() const {
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", effective_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
     return metrics.logical_size.height;
 }
 
@@ -1012,7 +1013,7 @@ void TreeListView::paint_column(Painter& painter, const Layout& placed, std::siz
     const Rect cell = column_cell(placed, column);
     const ColumnParts parts = column_parts(placed, column, cell);
     PartPaint part;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.states = column_states(column);
     // Header cells are flat at rest and show a plate when hot or pressed:
     // the menu_item family's look, as ListView's headers.
@@ -1049,7 +1050,7 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
     const RowParts parts = row_parts(placed, row, bounds);
     const AnatomyStateSet states = row_states(row);
     PartPaint part;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.states = states;
     // The row is the selection family's part: transparent until hot or
     // selected, with the selection's text and glyph colours.

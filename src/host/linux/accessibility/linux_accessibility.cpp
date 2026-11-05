@@ -110,6 +110,7 @@ AtkRole native_role(SemanticRole role) {
     case SemanticRole::dialog: return ATK_ROLE_DIALOG;
     case SemanticRole::status_bar: return ATK_ROLE_STATUSBAR;
     case SemanticRole::live_region: return ATK_ROLE_PANEL;
+    case SemanticRole::meter: return ATK_ROLE_LEVEL_BAR;
     case SemanticRole::split_pane: return ATK_ROLE_SPLIT_PANE;
     case SemanticRole::date_picker: return ATK_ROLE_DATE_EDITOR;
     case SemanticRole::calendar: return ATK_ROLE_CALENDAR;

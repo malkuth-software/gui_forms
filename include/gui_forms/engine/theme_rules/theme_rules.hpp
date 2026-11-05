@@ -838,6 +838,16 @@ enum class RecipeField : std::uint8_t {
     // CSS `text-shadow`: the shadow under the recipe's text (data only
     // until the text stage draws it).
     text_shadow,
+    // The control's primary text font (T4 fonts, owner ruling of
+    // 2026-11-04): CSS `font-family` (a bundled FontRole, never a host
+    // font), `font-size`, `font-weight`, `font-style` and `letter-spacing`.
+    // The recipe does not draw them: the control reads them when it
+    // measures, at rest (Theme::resolve_font).
+    font_family,
+    font_size,
+    font_weight,
+    font_style,
+    letter_spacing,
     count,
 };
 
@@ -862,6 +872,13 @@ inline constexpr double maximum_recipe_outline_width = 16.0;
 inline constexpr double maximum_recipe_outline_offset = 64.0;
 inline constexpr double maximum_text_shadow_blur = 8.0;
 inline constexpr double maximum_text_shadow_offset = 16.0;
+// What a font field admits (T4 fonts): a size of 4 to 96 logical units
+// once its em part is resolved, a weight of 100 to 900, and a letter
+// spacing valid_font_spec admits at the size.
+inline constexpr double minimum_rule_font_size = 4.0;
+inline constexpr double maximum_rule_font_size = 96.0;
+inline constexpr double minimum_rule_font_weight = 100.0;
+inline constexpr double maximum_rule_font_weight = 900.0;
 
 // One recipe field's declared value. `initial` is CSS's `initial`: the
 // floor's value, and the declaration still wins over those beneath it; its
@@ -871,7 +888,11 @@ inline constexpr double maximum_text_shadow_offset = 16.0;
 // - outline_width (0 to maximum_recipe_outline_width) and outline_offset
 //   (within ±maximum_recipe_outline_offset): `number`, in logical units;
 // - text_shadow: `shadowed`, false for none; its `shadow_offset`,
-//   `shadow_blur` (the shadows' blur-radius convention) and `colour`.
+//   `shadow_blur` (the shadows' blur-radius convention) and `colour`;
+// - font_family: `font_role`; font_style: `italic`;
+// - font_size (in logical units, with em_lengths in the control's own
+//   font size), font_weight and letter_spacing (logical units, with
+//   em_lengths in the resolved size): `number`.
 struct RecipeDeclaration final {
     RecipeField field{RecipeField::text};
     bool initial{};
@@ -891,9 +912,12 @@ struct RecipeDeclaration final {
     bool inherit{};
     // Whether `colour` is CSS's currentcolor: the control's text colour.
     bool current_colour{};
+    FontRole font_role{FontRole::control};
+    bool italic{};
 
     friend bool operator==(const RecipeDeclaration& left, const RecipeDeclaration& right) noexcept {
         return left.field == right.field && left.initial == right.initial && left.colour == right.colour &&
+               left.font_role == right.font_role && left.italic == right.italic &&
                left.number == right.number && left.outline_style == right.outline_style &&
                left.shadowed == right.shadowed && left.shadow_offset == right.shadow_offset &&
                left.shadow_blur == right.shadow_blur && left.origin == right.origin &&

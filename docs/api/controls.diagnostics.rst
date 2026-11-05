@@ -155,6 +155,10 @@ Related types
 
       Counts a dirty mark and accumulates requested area.
 
+   .. cpp:function:: void record_requested_damage(double requested_damage_area) noexcept
+
+      Adds a settled mark's damage area; the mark was counted at its write.
+
    .. cpp:function:: void record_measure(std::uint64_t nodes_visited, std::uint64_t callbacks) noexcept
 
       Counts one measure pass, visited nodes, and callbacks.
@@ -344,6 +348,14 @@ Related types
    .. cpp:function:: void record_live_present(std::uint64_t duration_nanoseconds, std::uint64_t device_pixels, std::uint64_t rectangles) noexcept
 
       One live-surface frame copied to the screen.
+
+   .. cpp:function:: void record_live_pairing_wait() noexcept
+
+      One present tick a live surface waited for its required content.
+
+   .. cpp:function:: void record_live_unpaired_presentation() noexcept
+
+      One live frame presented although older than its required content.
 
    .. cpp:function:: void set_population(std::uint64_t controls, std::uint64_t stable_ids) noexcept
 
@@ -549,6 +561,12 @@ Related types
    .. cpp:member:: std::uint64_t live_rectangles_presented
 
    .. cpp:member:: std::uint64_t live_present_duration_nanoseconds
+
+   .. cpp:member:: std::uint64_t live_pairing_waits
+
+      Content pairing (Window::require_live_surface_content, stage S2): a wait is one present tick at which a surface kept its previous frame because its newest frame was older than the content it must show; an unpaired presentation is a frame presented anyway after that wait.
+
+   .. cpp:member:: std::uint64_t live_unpaired_presentations
 
    .. cpp:member:: std::uint64_t screen_copy_nanoseconds
 

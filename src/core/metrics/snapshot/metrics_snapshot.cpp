@@ -109,6 +109,8 @@ std::string MetricsSnapshot::to_json() const {
            << "\"live_pixels_presented\":" << live_pixels_presented << ','
            << "\"live_rectangles_presented\":" << live_rectangles_presented << ','
            << "\"live_present_duration_nanoseconds\":" << live_present_duration_nanoseconds << ','
+           << "\"live_pairing_waits\":" << live_pairing_waits << ','
+           << "\"live_unpaired_presentations\":" << live_unpaired_presentations << ','
            << "\"screen_copy_nanoseconds\":" << screen_copy_nanoseconds << ','
            << "\"engine_part_records\":" << engine_part_records << ','
            << "\"engine_part_index_fallbacks\":" << engine_part_index_fallbacks << ','

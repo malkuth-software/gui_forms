@@ -545,6 +545,7 @@ void Ribbon::set_application_menu(std::vector<MenuItemSpec> items) {
 void Ribbon::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("Ribbon font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -1003,7 +1004,7 @@ AnatomyStateSet Ribbon::group_button_states(std::size_t group) const {
 
 void Ribbon::on_paint(Painter& painter, Rect) {
     const Layout placed = layout();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const Parts own = control_parts(placed);
     PartPaint part;
     part.font = font;
@@ -1088,7 +1089,7 @@ void Ribbon::on_paint(Painter& painter, Rect) {
 // Paints the shown groups of `placed` (the plane or the popup), clipped by
 // the caller.
 void Ribbon::paint_groups(Painter& painter, const Layout& placed) const {
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     PartPaint part;
     part.font = font;
     const std::vector<RibbonGroupSpec>& groups = tabs_[*selected_tab_].groups;

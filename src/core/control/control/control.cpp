@@ -785,6 +785,55 @@ FontSpec Control::effective_font(FontSpec authored) const noexcept {
     return authored;
 }
 
+ResolvedFont Control::resolved_text_font(FontSpec own) const noexcept {
+    if (font_from_code_) {
+        ResolvedFont coded{};
+        coded.font = own;
+        coded.from_code = true;
+        return coded;
+    }
+    const Theme& theme = effective_theme();
+    MediaFacts media{};
+    const CompiledThemeRules* user_rules = nullptr;
+    const Window* const window = attached_window();
+    if (window != nullptr) media = window_media_facts(*window);
+    if (window != nullptr) user_rules = (*window).user_theme_rules();
+    const CompiledThemeRules* const inline_rules = inline_style_rules();
+    TextFontCache& cache = text_font_cache_;
+    const bool current = cache.valid && cache.own == own && cache.theme == &theme && cache.media == media &&
+                         cache.user_rules == user_rules && cache.inline_rules == inline_rules;
+    if (current) return cache.resolved;
+    cache.resolved = theme.resolve_font(*this, own);
+    cache.own = own;
+    cache.theme = &theme;
+    cache.media = media;
+    cache.user_rules = user_rules;
+    cache.inline_rules = inline_rules;
+    cache.valid = true;
+    return cache.resolved;
+}
+
+FontSpec Control::text_font(FontSpec own) const noexcept {
+    const ResolvedFont resolved = resolved_text_font(own);
+    const FontSpec scaled = effective_font(resolved.font);
+    return scaled;
+}
+
+void Control::set_font_from_code(bool from_code) noexcept {
+    font_from_code_ = from_code;
+    text_font_cache_.valid = false;
+}
+
+Dirty Control::refresh_text_font() noexcept {
+    TextFontCache& cache = text_font_cache_;
+    if (!cache.valid) return Dirty::none;
+    const ResolvedFont before = cache.resolved;
+    cache.valid = false;
+    const ResolvedFont after = resolved_text_font(cache.own);
+    if (after.font == before.font) return Dirty::none;
+    return Dirty::layout;
+}
+
 ResolvedTextLayout Control::resolve_text_layout_utf8(
     std::string_view utf8, FontSpec effective) const {
     return surface_root_ != nullptr
@@ -906,7 +955,7 @@ bool Control::collect_inline_restyles(const Theme& theme, std::vector<detail::In
 void Control::commit_inline_restyles(std::vector<detail::InlineRestyle>& restyles) {
     for (detail::InlineRestyle& restyle : restyles) {
         (*restyle.control).inline_style_ = std::move(restyle.style);
-        (*restyle.control).invalidate(Dirty::style | Dirty::paint);
+        (*restyle.control).invalidate(Dirty::style | Dirty::paint | (*restyle.control).refresh_text_font());
     }
     restyles.clear();
 }
@@ -926,7 +975,7 @@ void Control::refresh_inline_style() {
         return;
     }
     inline_style_ = std::move(compiled);
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
 }
 
 void Control::set_authored_surface_material(SurfaceMaterial material) {
@@ -1938,6 +1987,8 @@ void Control::suspend_layout() {
     if (layout_suspend_depth_ == std::numeric_limits<std::uint32_t>::max()) {
         throw std::overflow_error("GUI.Forms layout suspension depth overflow");
     }
+    // The subtree's layout flags are read; touches below settle first.
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     if (layout_suspend_depth_ == 0U &&
         has_dirty(subtree_dirty_, Dirty::layout)) {
         layout_deferred_ = true;
@@ -1952,6 +2003,9 @@ void Control::resume_layout(bool perform_pending_layout) {
     // WinForms tolerates an unmatched ResumeLayout. Keeping that behavior is
     // important for generated/designer code which may unwind conditionally.
     if (layout_suspend_depth_ == 0U) return;
+    // The pending touches note their requests while this control is still
+    // suspended, as they did at their writes.
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     --layout_suspend_depth_;
     if (layout_suspend_depth_ != 0U || !perform_pending_layout ||
         !layout_deferred_) {
@@ -1978,9 +2032,25 @@ void Control::perform_layout() {
     }
 }
 
-LayoutTransactionState Control::layout_transaction_state() const noexcept {
+LayoutTransactionState Control::layout_transaction_state() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     return {layout_suspend_depth_, layout_deferred_, layout_requested_revision_,
             layout_committed_revision_};
+}
+
+Dirty Control::dirty() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
+    return dirty_;
+}
+
+std::uint64_t Control::measure_generation() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
+    return measure_generation_;
+}
+
+Dirty Control::subtree_dirty() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
+    return subtree_dirty_;
 }
 
 Rect Control::absolute_bounds() const {
@@ -2238,7 +2308,7 @@ void Control::set_classes(std::vector<std::string> classes) {
     }
     if (unique == classes_) return;
     classes_ = std::move(unique);
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
 }
 
 void Control::set_ceremonial(bool ceremonial) {
@@ -2264,7 +2334,7 @@ bool Control::add_class(std::string_view name) {
     }
     if (has_class(name)) return false;
     classes_.emplace_back(name);
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
     return true;
 }
 
@@ -2273,7 +2343,7 @@ bool Control::remove_class(std::string_view name) {
     const std::vector<std::string>::iterator found = std::find(classes_.begin(), classes_.end(), name);
     if (found == classes_.end()) return false;
     classes_.erase(found);
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
     return true;
 }
 
@@ -2703,6 +2773,9 @@ Size Control::measure_for_layout(const LayoutConstraint& constraint) {
         throw std::invalid_argument(
             "GUI.Forms layout constraint extents must be finite and nonnegative");
     }
+    // A descendant's pending touch advances this control's generation at
+    // the settle (mark_layout_ancestors).
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     const std::uint64_t generation = measure_generation_;
     for (const MeasureCacheEntry& entry : measure_cache_) {
         if (entry.generation == generation && entry.constraint == constraint) {

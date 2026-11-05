@@ -162,6 +162,7 @@ const char* semantic_role_name(SemanticRole role) noexcept {
     case SemanticRole::dialog: return "dialog";
     case SemanticRole::status_bar: return "status_bar";
     case SemanticRole::live_region: return "live_region";
+    case SemanticRole::meter: return "meter";
     case SemanticRole::count: return "generic";
     }
     return "generic";

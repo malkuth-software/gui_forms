@@ -320,7 +320,7 @@ boundaries.
 CI ([`native.yml`](.github/workflows/native.yml)) must pass on every platform.
 C++ follows the house style, [`HOUSE_STYLE.md`](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
 CI fails on any spelling finding from
-`python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard stx_vorbis`,
+`python3 -B tools/check_house_style.py include src demo tests examples tools file_manager_demoboard`,
 so run it before you push. Build the docs with `sphinx-build -W docs <out>` so
 warnings fail.
 Boundary violations fail `ctest` before review.

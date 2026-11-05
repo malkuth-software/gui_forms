@@ -267,6 +267,7 @@ void RichTextBox::set_control_bar_visible(bool visible) {
 void RichTextBox::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("RichTextBox font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);

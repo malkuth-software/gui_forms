@@ -53,6 +53,7 @@ bool LiveSurface::reconfigure(LiveSurfaceDescription description) {
             (*state_).carried = (*state_).buffers[(*state_).published_slot];
             (*state_).carried_epoch = (*state_).epoch;
             (*state_).carried_generation = (*state_).generation;
+            (*state_).carried_content_tag = (*state_).content_tag;
         }
         (*state_).description = description;
         (*state_).buffers = std::move(replacement);
@@ -109,12 +110,13 @@ LiveSurfaceFrame LiveSurface::acquire_latest() const noexcept {
         if (!(*state_).carried) return {};
         ++(*state_).read_acquires;
         return {(*state_).carried, (*state_).carried_epoch, (*state_).carried_generation,
-                detail::full_live_surface_damage((*(*state_).carried).description)};
+                detail::full_live_surface_damage((*(*state_).carried).description),
+                (*state_).carried_content_tag};
     }
     ++(*state_).read_acquires;
     (*state_).last_read_generation = (*state_).generation;
     return {(*state_).buffers[(*state_).published_slot], (*state_).epoch,
-            (*state_).generation, (*state_).damage};
+            (*state_).generation, (*state_).damage, (*state_).content_tag};
 }
 
 LiveSurfaceFrame LiveSurface::acquire_for_presentation(const void* const presenter) noexcept {
@@ -127,7 +129,8 @@ LiveSurfaceFrame LiveSurface::acquire_for_presentation(const void* const present
         ++(*state_).read_acquires;
         (*state_).presenter = presenter;
         return {(*state_).carried, (*state_).carried_epoch, (*state_).carried_generation,
-                detail::full_live_surface_damage((*(*state_).carried).description)};
+                detail::full_live_surface_damage((*(*state_).carried).description),
+                (*state_).carried_content_tag};
     }
     ++(*state_).read_acquires;
     (*state_).last_read_generation = (*state_).generation;
@@ -139,8 +142,20 @@ LiveSurfaceFrame LiveSurface::acquire_for_presentation(const void* const present
     }
     (*state_).presentation_region = {};
     return {(*state_).buffers[(*state_).published_slot], (*state_).epoch,
-            (*state_).generation, region};
+            (*state_).generation, region, (*state_).content_tag};
 }
+
+namespace {
+
+// The tag of the frame acquire_latest() would return: the published one, or
+// the carried one between reconfigure and the new epoch's first frame.
+std::uint64_t snapshot_content_tag(const detail::LiveSurfaceState& state) noexcept {
+    if (state.published_slot < state.buffers.size()) return state.content_tag;
+    if (state.carried) return state.carried_content_tag;
+    return 0U;
+}
+
+} // namespace
 
 LiveSurfaceSnapshot LiveSurface::snapshot() const noexcept {
     if (!state_) return {};
@@ -150,7 +165,8 @@ LiveSurfaceSnapshot LiveSurface::snapshot() const noexcept {
             (*state_).read_acquires, (*state_).last_read_generation,
             (*state_).writing_slot < (*state_).buffers.size(),
             (*state_).published_slot < (*state_).buffers.size(),
-            (*state_).published_slot >= (*state_).buffers.size() && (*state_).carried != nullptr};
+            (*state_).published_slot >= (*state_).buffers.size() && (*state_).carried != nullptr,
+            snapshot_content_tag(*state_)};
 }
 
 LiveSurfaceWakeConnection LiveSurface::connect_presentation_wake(

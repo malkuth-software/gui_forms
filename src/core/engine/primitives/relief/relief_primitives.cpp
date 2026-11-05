@@ -310,7 +310,8 @@ const PrimitiveDescriptor gold_descriptor{
 
 // -- the inset well --------------------------------------------------------------
 
-const PartRole well_roles[] = {PartRole::well, PartRole::track};
+// An instrument's plot (W-5) is a well a reading is drawn in.
+const PartRole well_roles[] = {PartRole::well, PartRole::track, PartRole::plot};
 
 enum WellParameter : std::size_t {
     well_shape,
@@ -342,7 +343,8 @@ const PrimitiveDescriptor well_descriptor{
 
 // -- the etched divider and the seam ---------------------------------------------
 
-const PartRole divider_roles[] = {PartRole::divider};
+// An instrument's graticule (W-5) is ruled as a divider.
+const PartRole divider_roles[] = {PartRole::divider, PartRole::graticule};
 const PartRole seam_roles[] = {PartRole::seam};
 
 const PrimitiveParameterDeclaration divider_parameters[] = {

@@ -118,10 +118,12 @@ ControlSlot ControlTable::assign(Control& control) {
     controls_.reserve(count);
     generations_.reserve(count);
     responses_.reserve(count);
+    touches_.reserve(count);
     free_.reserve(count);
     controls_.push_back(&control);
     generations_.push_back(0U);
     responses_.push_back(ResizeAxes::none);
+    touches_.push_back(PendingTouch{});
     ++live_;
     const ControlSlot made{index, 0U};
     return made;
@@ -138,6 +140,7 @@ void ControlTable::release(ControlSlot slot) noexcept {
     for (DirtyBitset& bits : pending_) bits.reset(slot.index);
     controls_[slot.index] = nullptr;
     responses_[slot.index] = ResizeAxes::none;
+    touches_[slot.index] = PendingTouch{};
     // A generation that wraps reuses an old one only after 2^32 reuses of
     // this one index.
     ++generations_[slot.index];
@@ -156,11 +159,29 @@ Control* ControlTable::control_at_index(std::uint32_t index) const noexcept {
     return controls_[index];
 }
 
-void ControlTable::touch(ControlSlot slot, Dirty dirty) noexcept {
+void ControlTable::touch(ControlSlot slot, Dirty dirty, PendingTouch owed) noexcept {
     if (!live(slot)) return;
     for (std::size_t kind = 0U; kind < dirty_kind_count; ++kind) {
         if (dirty_reaches(dirty, static_cast<DirtyKind>(kind))) pending_[kind].set(slot.index);
     }
+    PendingTouch& pending_touch = touches_[slot.index];
+    pending_touch.requested |= owed.requested;
+    pending_touch.marks_layout_ancestors = pending_touch.marks_layout_ancestors || owed.marks_layout_ancestors;
+    pending_touch.damages_bounds = pending_touch.damages_bounds || owed.damages_bounds;
+}
+
+PendingTouch ControlTable::take_touch(std::uint32_t index) noexcept {
+    if (index >= controls_.size() || controls_[index] == nullptr) return PendingTouch{};
+    const PendingTouch taken = touches_[index];
+    touches_[index] = PendingTouch{};
+    return taken;
+}
+
+bool ControlTable::any_pending() const noexcept {
+    for (const DirtyBitset& bits : pending_) {
+        if (bits.any()) return true;
+    }
+    return false;
 }
 
 bool ControlTable::pending(DirtyKind kind) const noexcept {

@@ -113,6 +113,12 @@ struct MetricsSnapshot {
     std::uint64_t live_pixels_presented{};
     std::uint64_t live_rectangles_presented{};
     std::uint64_t live_present_duration_nanoseconds{};
+    // Content pairing (Window::require_live_surface_content, stage S2): a
+    // wait is one present tick at which a surface kept its previous frame
+    // because its newest frame was older than the content it must show; an
+    // unpaired presentation is a frame presented anyway after that wait.
+    std::uint64_t live_pairing_waits{};
+    std::uint64_t live_unpaired_presentations{};
     // The time hosts spent only copying pixels to the screen (conversion and
     // the native copy), retained and live together. The present durations
     // above also cover painting and composing; this one compares the copy

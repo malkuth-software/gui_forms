@@ -152,6 +152,7 @@ void TreeView::set_top_row(std::size_t row) {
 void TreeView::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("TreeView font is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
@@ -234,7 +235,7 @@ void TreeView::reveal_cut_off_text(std::size_t visible_row) {
         conceal_cut_off_text();
         return;
     }
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const bool selected = item.stable_id == selected_id_;
     // The reveal shows under the pointer, so its row is hot, as the row's
     // own plate is.
@@ -309,7 +310,7 @@ void TreeView::arrange(Rect final_bounds) {
 void TreeView::on_paint(Painter& painter, Rect damage) {
     Panel::on_paint(painter, damage);
     const Rect bounds = local_bounds();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double text_scale = effective_text_scale();
     const double row_height = item_height_ * text_scale;
     painter.save();
@@ -745,7 +746,7 @@ void TreeView::publish_realized_item_geometry(std::size_t item,
         }
     }
     const double text_width =
-        resolve_text_layout_utf8(node.text, effective_font(font_)).logical_size.width;
+        resolve_text_layout_utf8(node.text, text_font(font_)).logical_size.width;
     const Rect label{content_x, y, text_width, row_height};
     record.row = PartGeometry::from_bounds(Rect::intersection(row, content));
     record.label = PartGeometry::from_bounds(Rect::intersection(Rect::intersection(label, row), content));

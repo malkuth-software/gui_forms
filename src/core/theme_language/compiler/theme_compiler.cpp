@@ -25,20 +25,22 @@ namespace {
 // -- the property tables (PLAN.md section 1.7) ------------------------------------
 
 // Known CSS properties the language leaves out (W107): layout belongs to
-// forms and stage L, typography to the text stage, and geometry to the
-// engine. Sorted, for binary_search. A property in one of the families
+// forms and stage L, the rest of typography to the text stage, and
+// geometry to the engine. The font longhands T4 admits (font-family,
+// font-size, font-style, font-weight, letter-spacing) are material
+// properties, found before these. Sorted, for binary_search. A property in one of the families
 // below is left out too.
-constexpr std::array<std::string_view, 147> not_admitted_properties{
+constexpr std::array<std::string_view, 142> not_admitted_properties{
     "accent-color", "align-content", "align-items", "align-self", "appearance", "aspect-ratio",
     "backface-visibility", "block-size", "bottom", "box-sizing", "caret-color", "clear", "clip", "clip-path",
     "column-count", "column-fill", "column-gap", "column-rule", "column-span", "column-width", "columns", "contain",
     "content", "content-visibility", "counter-increment", "counter-reset", "cursor", "direction", "display", "flex",
-    "flex-basis", "flex-direction", "flex-flow", "flex-grow", "flex-shrink", "flex-wrap", "float", "font-family",
-    "font-feature-settings", "font-kerning", "font-size", "font-stretch", "font-style", "font-variant", "font-weight",
+    "flex-basis", "flex-direction", "flex-flow", "flex-grow", "flex-shrink", "flex-wrap", "float",
+    "font-feature-settings", "font-kerning", "font-stretch", "font-variant",
     "gap", "grid", "grid-area", "grid-auto-columns", "grid-auto-flow", "grid-auto-rows", "grid-column",
     "grid-column-end", "grid-column-start", "grid-row", "grid-row-end", "grid-row-start", "grid-template",
     "grid-template-areas", "grid-template-columns", "grid-template-rows", "height", "hyphens", "inline-size", "inset",
-    "inset-block", "inset-inline", "justify-content", "justify-items", "justify-self", "left", "letter-spacing",
+    "inset-block", "inset-inline", "justify-content", "justify-items", "justify-self", "left",
     "line-height", "list-style", "margin", "margin-block", "margin-bottom", "margin-inline", "margin-left",
     "margin-right", "margin-top", "max-block-size", "max-height", "max-inline-size", "max-width", "min-block-size",
     "min-height", "min-inline-size", "min-width", "object-fit", "object-position", "order", "overflow",
@@ -145,6 +147,14 @@ enum class PropertyClass : std::uint8_t {
         return PropertyClass::not_admitted;
     }
     return PropertyClass::other;
+}
+
+// Whether `property` is one of the font longhands (T4 fonts).
+[[nodiscard]] bool font_property_of(MaterialProperty property) noexcept {
+    const bool font = property == MaterialProperty::font_family || property == MaterialProperty::font_size ||
+                      property == MaterialProperty::font_style || property == MaterialProperty::font_weight ||
+                      property == MaterialProperty::letter_spacing;
+    return font;
 }
 
 // The CSS-wide keywords: `initial` is the built-in recipe's value (the
@@ -500,6 +510,7 @@ private:
     // Whether a selector of the rule names a part or a role: the recipe's
     // fields are the control's (P6f).
     [[nodiscard]] bool rule_selects_part() const noexcept;
+    [[nodiscard]] bool rule_has_states() const noexcept;
     // The lowered declarations as a rule for each selector (EmittedRule).
     [[nodiscard]] bool emit_rule(const EmittedRule& emitted, std::uint32_t at);
 
@@ -2439,6 +2450,12 @@ bool CompilePass::lower_material(const SyntaxNode& node) {
         report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " on a part or a role");
         return true;
     }
+    // A font is a layout input, and a control's states change without a
+    // layout: the font longhands are the control's at rest (T4 fonts).
+    if (font_property_of(property) && rule_has_states()) {
+        report(DiagnosticCode::property_not_admitted, node.tokens.first.value, property_ + " in a state rule");
+        return true;
+    }
     parameter_names_.clear();
     // role(<pair>) gives its foreground in `color`, its background in
     // `background` and `background-color`.
@@ -3065,6 +3082,13 @@ void CompilePass::add_recipe_field(const RecipeDeclaration& declaration) {
         break;
     }
     recipe_fields_.push_back(declaration);
+}
+
+bool CompilePass::rule_has_states() const noexcept {
+    for (const LoweredSelector& lowered : lowered_selectors_) {
+        if (!lowered.selector.states.empty()) return true;
+    }
+    return false;
 }
 
 bool CompilePass::rule_selects_part() const noexcept {

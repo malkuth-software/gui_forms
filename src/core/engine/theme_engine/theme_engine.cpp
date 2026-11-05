@@ -979,7 +979,12 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
         record = (*window).note_engine_part(control, *part.key, part.states);
     }
     const CompiledThemeRules::Resolution& resolution = decided.resolution;
-    const bool primitive_draws = decided.drawing == PartDrawing::primitive && window != nullptr;
+    // A frameless part (PartPaint::frame) is its material's ground; a
+    // primitive that draws no theme material has no ground apart from its
+    // frame, so the built-in recipe draws such a part.
+    const bool groundless = decided.drawing == PartDrawing::primitive && part.frame == PartFrame::none &&
+                            !(*resolution.primitive).theme_material(resolution.parameters, part.family);
+    const bool primitive_draws = decided.drawing == PartDrawing::primitive && window != nullptr && !groundless;
     // Where the part lands, and what it reads: the inputs are delivered and
     // damaged only for a part with a record (E6).
     Window::EnginePaintPlace place{};
@@ -1139,6 +1144,7 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
     std::optional<SurfaceMaterial> unkept_material{};
     std::optional<SurfaceMaterial> authored_ground{};
     std::optional<SurfaceMaterial> unreflected{};
+    std::optional<SurfaceMaterial> ground{};
     const std::optional<ControlVisualRole> material_role =
         (*request.primitive).theme_material(request.parameters, part.family);
     if (material_role) {
@@ -1212,6 +1218,14 @@ void ThemeEngine::paint_planned(Painter& painter, const Control& control, const 
             unreflected.emplace(*request.target.material);
             (*unreflected).reflection.reset();
             request.target.material = &*unreflected;
+        }
+        // A frameless part draws the material's ground alone, without its
+        // borders (PartPaint::frame), for this paint only.
+        if (part.frame == PartFrame::none) {
+            ground.emplace(*request.target.material);
+            (*ground).border.reset();
+            (*ground).border_edges = MaterialBorderEdges{};
+            request.target.material = &*ground;
         }
         request.target.corner_radius = part.corner_radius;
         request.target.images = &(*window).image_resources();

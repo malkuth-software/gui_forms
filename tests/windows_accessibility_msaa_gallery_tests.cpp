@@ -235,6 +235,7 @@ LONG expected_role(SemanticRole role) noexcept {
     case SemanticRole::dialog: return ROLE_SYSTEM_DIALOG;
     case SemanticRole::status_bar: return ROLE_SYSTEM_STATUSBAR;
     case SemanticRole::live_region: return ROLE_SYSTEM_GROUPING;
+    case SemanticRole::meter: return ROLE_SYSTEM_PROGRESSBAR;
     case SemanticRole::count: return ROLE_SYSTEM_GROUPING;
     }
     return ROLE_SYSTEM_GROUPING;

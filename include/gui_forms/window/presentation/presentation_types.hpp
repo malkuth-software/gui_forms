@@ -97,6 +97,10 @@ struct LiveSurfacePresentation final {
     // presentation may then copy only the surface's presentation region
     // (LiveSurface::acquire_for_presentation). False means copy all of clip.
     bool damage_limited{};
+    // False when the frame is older than the content the window requires of
+    // the surface (Window::require_live_surface_content) and is presented
+    // anyway, one present tick after the window waited for it.
+    bool paired{true};
 };
 
 enum class PaintLeaseState : std::uint8_t {

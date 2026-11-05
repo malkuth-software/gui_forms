@@ -48,7 +48,7 @@ static_assert(recipe_names.size() == static_cast<std::size_t>(ControlVisualRole:
               "one choice per recipe role, then the family's");
 
 const PartRole material_roles[] = {PartRole::region, PartRole::face,  PartRole::actuator, PartRole::well,
-                                   PartRole::track,  PartRole::thumb, PartRole::chip};
+                                   PartRole::track,  PartRole::thumb, PartRole::chip, PartRole::plot};
 
 // The states part_visual_context reads to choose the recipe's state. The
 // raster is also redrawn whenever the material lent for the state differs.

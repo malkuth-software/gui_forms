@@ -58,6 +58,7 @@ void GroupBox::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("GroupBox font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) {
         return;
     }
@@ -74,7 +75,7 @@ void GroupBox::set_use_mnemonic(bool value) {
 
 void GroupBox::on_paint(Painter& painter, Rect) {
     const Rect bounds = local_bounds();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const std::string caption = caption_text();
     const double caption_height = std::max(16.0, font.size + 4.0);
     const double rule_y = std::max(10.5, caption_height * 0.66);
@@ -160,7 +161,7 @@ std::string GroupBox::caption_text() const {
 
 Rect GroupBox::caption_bounds() const {
     const Rect bounds = local_bounds();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double caption_height = std::max(16.0, font.size + 4.0);
     const double caption_width = std::min(
         std::max(0.0, bounds.width - 18.0),
@@ -175,7 +176,7 @@ const ControlAnatomy& GroupBox::anatomy() const noexcept {
 
 void GroupBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const Rect bounds = local_bounds();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double caption_height = std::max(16.0, font.size + 4.0);
     const double rule_y = std::max(10.5, caption_height * 0.66);
     // The one-unit frame stroked half a unit inside the rule line.

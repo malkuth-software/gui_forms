@@ -7,6 +7,7 @@ import json
 import contextlib
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 from typing import Any
 
@@ -55,10 +56,37 @@ class ManifestTests(unittest.TestCase):
             names = [notice["name"] for notice in data["notices"]
                      if not notice.get("platforms") or platform in notice["platforms"]]
             self.assertEqual(len(names), len(set(names)), platform)
+        # The stx checkout the $STX notices resolve from, when this host names one
+        # (a build's fetched checkout is found by the packaging run itself).
+        stx = pp.stx_source_directory(None, None)
         for notice in data["notices"]:
-            # A $PREFIX source comes from a toolchain prefix given at packaging time.
-            if not notice.get("optional") and not notice["source"].startswith("$"):
-                self.assertTrue((pp.ROOT / notice["source"]).is_file(), notice["source"])
+            source: str = notice["source"]
+            if source.startswith(pp.STX_PREFIX + "/"):
+                relative: str = source[len(pp.STX_PREFIX) + 1:]
+                # Never a tree path: GUI.Forms holds no stx sources.
+                self.assertFalse((pp.ROOT / relative).exists(), source)
+                if stx is not None and not notice.get("optional"):
+                    self.assertTrue((stx / relative).is_file(), source)
+            # Any other $PREFIX source comes from a toolchain prefix given at packaging time.
+            elif not notice.get("optional") and not source.startswith("$"):
+                self.assertTrue((pp.ROOT / source).is_file(), source)
+
+    def test_stx_notices_resolve_from_the_build_checkout(self) -> None:
+        # The variable would name a checkout ahead of the build's; this test reads the build's.
+        with mock.patch.dict(pp.os.environ), tempfile.TemporaryDirectory() as temporary:
+            pp.os.environ.pop("GUI_FORMS_STX_SOURCE_DIR", None)
+            build = Path(temporary) / "build"
+            (build / "_deps").mkdir(parents=True)
+            self.assertIsNone(pp.stx_source_directory(build, None))
+            local = Path(temporary) / "stx"
+            (local / "stx_zlib").mkdir(parents=True)
+            (local / "stx_zlib" / "CMakeLists.txt").write_text("", encoding="utf-8")
+            (build / "CMakeCache.txt").write_text(
+                pp.STX_OVERRIDE_VARIABLE + ":PATH=" + str(local) + "\n", encoding="utf-8")
+            self.assertEqual(pp.stx_source_directory(build, None), local)
+            self.assertEqual(pp.stx_source_directory(None, local), local)
+            with self.assertRaisesRegex(RuntimeError, "not an stx checkout"):
+                pp.stx_source_directory(None, build)
 
     def test_windows_runtime_imports_are_recognised(self) -> None:
         for name in ("libgcc_s_seh-1.dll", "libstdc++-6.dll", "LIBSTDC++-6.DLL", "libc++.dll", "libunwind.dll",

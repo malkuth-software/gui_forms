@@ -45,6 +45,7 @@ for-windows-forms-developers
 threading
 lifecycle
 hosts-and-capabilities
+transparency
 audio
 localizable-literals
 effect-verification

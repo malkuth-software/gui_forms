@@ -256,6 +256,7 @@ void MonthCalendar::set_format_provider(DateTimeFormatProvider provider) {
 void MonthCalendar::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("MonthCalendar font specification is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     invalidate(Dirty::measure | Dirty::paint);
@@ -652,7 +653,7 @@ void MonthCalendar::paint_day(Painter& painter, std::size_t month, std::size_t d
     paint_part(painter, *this, part);
     part.role = PartRole::content;
     part.bounds = parts.day_text.bounds;
-    FontSpec font = effective_font(font_);
+    FontSpec font = text_font(font_);
     // A bolded day's number is set in bold.
     if (states.contains(bolded_state)) font.weight = 700;
     part.font = font;
@@ -678,7 +679,7 @@ void MonthCalendar::on_paint(Painter& painter, Rect) {
     part.role = PartRole::face;
     part.bounds = control.face.bounds;
     paint_part(painter, *this, part);
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     FontSpec title_font = font;
     title_font.weight = 700;
     for (std::size_t month = 0U; month < month_count(); ++month) {

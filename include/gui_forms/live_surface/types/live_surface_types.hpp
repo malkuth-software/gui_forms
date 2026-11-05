@@ -51,6 +51,9 @@ struct LiveSurfaceSnapshot final {
     // while acquire_latest()/acquire_for_presentation() return the previous
     // epoch's last frame (at its own size) instead of nothing.
     bool carries_previous_frame{};
+    // The content tag of the frame acquire_latest() returns (the carried
+    // frame's while carries_previous_frame); zero when there is none.
+    std::uint64_t content_tag{};
 };
 
 } // namespace gui_forms

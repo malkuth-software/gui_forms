@@ -2088,6 +2088,9 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     // caller's rollback of `attached`.
     attached.push_back(control);
     (*control).surface_slot_ = control_table_.assign(*control);
+    // A settle takes at most one index per slot; reserving here keeps the
+    // settle itself from growing the storage.
+    settle_indices_.reserve(control_table_.slot_count());
     (*control).window_ = presenting_window_;
     (*control).surface_root_ = this;
     {
@@ -2206,6 +2209,9 @@ void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     if ((*control).surface_root_ != this) {
         return;
     }
+    // The subtree's pending touches settle while its controls still have
+    // their place, so their damage and ancestor marks land where they were.
+    settle_dirty();
     const Rect old_bounds = absolute_bounds_of(*control);
     add_subtree_damage(control);
     unregister_subtree(control);
@@ -2434,10 +2440,15 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
     }
     control.add_dirty(requested_dirty);
     control.subtree_dirty_ |= requested_dirty;
-    control_table_.touch(control.surface_slot_, requested_dirty);
+    const bool layout_requested = has_dirty(requested_dirty, Dirty::layout);
+    const bool paint_requested = has_dirty(requested_dirty, Dirty::paint);
+    const detail::PendingTouch owed{requested_dirty, layout_requested, paint_requested};
+    control_table_.touch(control.surface_slot_, requested_dirty, owed);
     metrics_.record_mutation();
+    // The mark is counted now; its damage area when it settles.
+    metrics_.record_dirty_mark(0.0);
 
-    if (has_dirty(requested_dirty, Dirty::layout)) {
+    if (layout_requested) {
         static std::atomic<std::uint64_t> traced_layout_invalidations{};
         if (layout_invalidation_traced()) {
             const std::uint64_t sequence =
@@ -2452,16 +2463,10 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
                     static_cast<unsigned>(requested_dirty));
             }
         }
-        note_suspended_layout_request(control);
-        mark_layout_ancestors(control);
         layout_dirty_ = true;
         if (in_layout_) {
             second_layout_pass_requested_ = true;
         }
-    }
-    for (Control::Ptr ancestor = control.parent(); ancestor;
-         ancestor = (*ancestor).parent()) {
-        (*ancestor).subtree_dirty_ |= requested_dirty;
     }
     if (has_dirty(requested_dirty, Dirty::hit_test)) {
         hit_test_dirty_ = true;
@@ -2470,17 +2475,10 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
         ++semantic_generation_;
         if (semantic_generation_ == 0U) ++semantic_generation_;
     }
-    if (has_dirty(requested_dirty, Dirty::paint)) {
+    if (paint_requested) {
         touch_paint();
-        Rect bounds = paint_damage_bounds_of(control);
-        if (bounds.empty()) {
-            bounds = control.requested_bounds_;
-        }
-        add_damage(bounds, control.paint_plane_);
-        metrics_.record_dirty_mark(bounds.area());
-    } else {
-        metrics_.record_dirty_mark(0.0);
     }
+    if (in_layout_ || in_paint_) settle_dirty();
 }
 
 void SurfaceRoot::mark_paint_dirty(Control& control, Rect local_damage) {
@@ -2492,21 +2490,16 @@ void SurfaceRoot::mark_paint_dirty(Control& control, Rect local_damage) {
     local_damage = Rect::intersection(local_damage, control.client_rectangle());
     if (local_damage.empty()) return;
 
+    // The only allocation of the mark, before anything changes.
+    pending_local_damage_.push_back(PendingLocalDamage{control.surface_slot_, local_damage});
     control.dirty_ |= Dirty::paint;
     control.subtree_dirty_ |= Dirty::paint;
-    control_table_.touch(control.surface_slot_, Dirty::paint);
-    for (Control::Ptr ancestor = control.parent(); ancestor;
-         ancestor = (*ancestor).parent()) {
-        (*ancestor).subtree_dirty_ |= Dirty::paint;
-    }
+    const detail::PendingTouch owed{Dirty::paint, false, false};
+    control_table_.touch(control.surface_slot_, Dirty::paint, owed);
     metrics_.record_mutation();
+    metrics_.record_dirty_mark(0.0);
     touch_paint();
-    const Rect bounds = absolute_bounds_of(control);
-    const Rect window_damage{bounds.x + local_damage.x,
-                             bounds.y + local_damage.y,
-                             local_damage.width, local_damage.height};
-    add_damage(window_damage, control.paint_plane_);
-    metrics_.record_dirty_mark(window_damage.area());
+    if (in_layout_ || in_paint_) settle_dirty();
 }
 
 void SurfaceRoot::mark_child_layout_slot(Control& control) {
@@ -2514,17 +2507,16 @@ void SurfaceRoot::mark_child_layout_slot(Control& control) {
     constexpr Dirty effects = Dirty::arrange | Dirty::hit_test |
                               Dirty::semantics | Dirty::accessibility;
     control.dirty_ |= effects;
-    control_table_.touch(control.surface_slot_, effects);
-    note_suspended_layout_request(control);
     control.subtree_dirty_ |= effects;
-    for (Control::Ptr ancestor = control.parent(); ancestor;
-         ancestor = (*ancestor).parent()) {
-        (*ancestor).subtree_dirty_ |= effects;
-    }
+    // The suspended-layout notes and the ancestors' flags are owed, the
+    // layout ancestors are not: the slot's parent is laying out already.
+    const detail::PendingTouch owed{effects, false, false};
+    control_table_.touch(control.surface_slot_, effects, owed);
     layout_dirty_ = true;
     hit_test_dirty_ = true;
     ++semantic_generation_;
     if (semantic_generation_ == 0U) ++semantic_generation_;
+    if (in_layout_ || in_paint_) settle_dirty();
 }
 
 SemanticSnapshot SurfaceRoot::semantic_snapshot() {
@@ -2738,8 +2730,10 @@ void SurfaceRoot::mark_subtree_dirty(Control& control, Dirty requested_dirty) {
     }
     double requested_damage_area = 0.0;
     apply_subtree_dirty(control, requested_dirty, requested_damage_area);
-    // The subtree's root stands for the subtree in the table.
-    control_table_.touch(control.surface_slot_, requested_dirty);
+    // The subtree's root stands for the subtree in the table. Its
+    // bookkeeping is done here (M0.3 moves it to the settle), so the touch
+    // owes nothing.
+    control_table_.touch(control.surface_slot_, requested_dirty, detail::PendingTouch{});
     for (Control::Ptr ancestor = control.parent(); ancestor;
          ancestor = (*ancestor).parent()) {
         (*ancestor).subtree_dirty_ |= requested_dirty;
@@ -2835,6 +2829,24 @@ void SurfaceRoot::add_resize_strip_damage(Rect before, Rect after, double band) 
     if (!below.empty()) add_damage_all_planes(below);
 }
 
+void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate) {
+    // Arrangement changes expose content below the moved control. The
+    // compositor uses one target across ordered paint planes, so both the
+    // vacated and occupied rectangles need full recomposition, except where
+    // a control that kept its origin keeps its pixels (`escalate` false):
+    // there only the strips between the two extents change. Its chunk is
+    // recorded again at the new size either way (paint_recursive).
+    // `control` is for the hot-paths strip rules (material bands, viewports).
+    static_cast<void>(control);
+    const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
+    if (same_origin && !escalate) {
+        add_resize_strip_damage(old_bounds, new_bounds, 0.0);
+    } else {
+        add_damage_all_planes(old_bounds);
+        add_damage_all_planes(new_bounds);
+    }
+}
+
 bool SurfaceRoot::keeps_pixels_on_resize(const Control& control) const noexcept {
     if (control.paint_depends_on_size()) return false;
     if (!(control.effective_visual_outsets() == Insets{})) return false;
@@ -2905,15 +2917,80 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     }
 }
 
+bool SurfaceRoot::settle_pending() const noexcept {
+    const bool pending = control_table_.any_pending() || !pending_local_damage_.empty();
+    return pending;
+}
+
+void SurfaceRoot::settle_touch(Control& control, detail::PendingTouch owed) {
+    // The order is mark_dirty's when it did this at the write.
+    if (has_dirty(owed.requested, Dirty::layout)) {
+        note_suspended_layout_request(control);
+    }
+    if (owed.marks_layout_ancestors) {
+        mark_layout_ancestors(control);
+    }
+    if (owed.requested != Dirty::none) {
+        for (Control::Ptr ancestor = control.parent(); ancestor; ancestor = (*ancestor).parent()) {
+            (*ancestor).subtree_dirty_ |= owed.requested;
+        }
+    }
+    if (owed.damages_bounds) {
+        Rect bounds = paint_damage_bounds_of(control);
+        if (bounds.empty()) {
+            bounds = control.requested_bounds_;
+        }
+        add_damage(bounds, control.paint_plane_);
+        metrics_.record_requested_damage(bounds.area());
+    }
+}
+
 void SurfaceRoot::settle_dirty() {
-    // The bookkeeping of a touch (ancestor marks, damage, generations) is
-    // still done at the write; settling drains the table's bits so that they
-    // name the controls touched since the previous read.
+    if (settling_ || !settle_pending()) return;
+    settling_ = true;
+    struct Reset final {
+        bool& value;
+        ~Reset() { value = false; }
+    } reset{settling_};
+    // Each kind's touched indices, in index order; a control pending more
+    // than one kind is settled at its first, and its later take_touch is
+    // empty. A failure (a damage allocation) leaves the untaken touches
+    // pending for the next settle.
     for (std::size_t kind = 0U; kind < detail::dirty_kind_count; ++kind) {
         settle_indices_.clear();
         static_cast<void>(control_table_.take(static_cast<detail::DirtyKind>(kind), settle_indices_));
+        for (const std::uint32_t index : settle_indices_) {
+            const detail::PendingTouch owed = control_table_.take_touch(index);
+            Control* const control = control_table_.control_at_index(index);
+            if (control == nullptr) continue;
+            settle_touch(*control, owed);
+        }
     }
     settle_indices_.clear();
+    // Localized damage after the controls' own, in mark order. A slot
+    // released since its mark has nothing to place (a detach settles first,
+    // so this is a slot released by a failed attach).
+    for (const PendingLocalDamage& pending : pending_local_damage_) {
+        const Control* const control = control_table_.control_at(pending.slot);
+        if (control == nullptr) continue;
+        const Rect bounds = absolute_bounds_of(*control);
+        const Rect window_damage{bounds.x + pending.local_damage.x, bounds.y + pending.local_damage.y,
+                                 pending.local_damage.width, pending.local_damage.height};
+        add_damage(window_damage, (*control).paint_plane_);
+        metrics_.record_requested_damage(window_damage.area());
+    }
+    pending_local_damage_.clear();
+}
+
+MetricsSnapshot SurfaceRoot::metrics_snapshot() {
+    settle_dirty();
+    const MetricsSnapshot snapshot = metrics_.snapshot();
+    return snapshot;
+}
+
+void SurfaceRoot::reset_activity_metrics() {
+    settle_dirty();
+    metrics_.reset_activity();
 }
 
 void SurfaceRoot::ensure_layout(bool read_barrier) {
@@ -3161,20 +3238,8 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         const Rect new_bounds = visual_bounds_of(
             *control, (*control).effective_visual_outsets());
         if (old_bounds != new_bounds) {
-            // Arrangement changes expose content below the moved control. The
-            // compositor uses one target across ordered paint planes, so both
-            // the vacated and occupied rectangles need full recomposition,
-            // except where a control that kept its origin keeps its pixels
-            // (keeps_pixels_on_resize): there only the strips between the
-            // two extents change. Its chunk is recorded again at the new
-            // size either way (paint_recursive).
-            const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
-            if (same_origin && keeps_pixels_on_resize(*control)) {
-                add_resize_strip_damage(old_bounds, new_bounds, 0.0);
-            } else {
-                add_damage_all_planes(old_bounds);
-                add_damage_all_planes(new_bounds);
-            }
+            const bool escalate = !keeps_pixels_on_resize(*control);
+            damage_resized(*control, old_bounds, new_bounds, escalate);
             touch_paint();
             (*control).publish_change((*control).arranged_bounds_changed_,
                                     new_bounds);

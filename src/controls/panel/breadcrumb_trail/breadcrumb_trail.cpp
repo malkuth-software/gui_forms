@@ -75,6 +75,7 @@ void BreadcrumbTrail::initialize_control_tree() {
 void BreadcrumbTrail::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("BreadcrumbTrail font is invalid");
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     if (editor_) (*editor_).set_font(font);
@@ -204,7 +205,7 @@ void BreadcrumbTrail::begin_edit(std::string text, bool select_all) {
 
 double BreadcrumbTrail::natural_width(
     const BreadcrumbSegment& segment) const {
-    FontSpec font = effective_font(font_);
+    FontSpec font = text_font(font_);
     if (!segments_.empty() && &segment == &segments_.back()) {
         font.weight = 700;
     }
@@ -347,7 +348,7 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
         paint_raised(painter);
         return;
     }
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double baseline = snap_text_baseline(std::max(
         font.size, committed_arranged_bounds().height * 0.5 + font.size * 0.34));
     painter.save();
@@ -449,7 +450,7 @@ void BreadcrumbTrail::on_paint(Painter& painter, Rect damage) {
 // and the active segment's focus ring are parts too. Faces are painted
 // back to front, so each nose lies whole over its successor.
 void BreadcrumbTrail::paint_raised(Painter& painter) {
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double baseline = snap_text_baseline(std::max(
         font.size, committed_arranged_bounds().height * 0.5 + font.size * 0.34));
     AnatomyStateSet states = anatomy_states();
@@ -797,7 +798,7 @@ void BreadcrumbTrail::publish_realized_item_geometry(std::size_t item,
 
     const VisibleItem& visible = visible_items_[item];
     const Rect bounds = visible.bounds;
-    FontSpec item_font = effective_font(font_);
+    FontSpec item_font = text_font(font_);
     std::string_view text{};
     if (visible.kind == VisibleKind::edit) {
         text = "./";

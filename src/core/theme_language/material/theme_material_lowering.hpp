@@ -79,6 +79,13 @@ enum class MaterialProperty : std::uint8_t {
     outline_style,
     outline_width,
     text_shadow,
+    // The font longhands (T4 fonts): recipe fields, the control's primary
+    // text font.
+    font_family,
+    font_size,
+    font_style,
+    font_weight,
+    letter_spacing,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image

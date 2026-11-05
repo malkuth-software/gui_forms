@@ -595,6 +595,49 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
             "the snapshot's JSON carries every stage A field");
 }
 
+// A read-only reading within a range, as an instrument publishes one.
+class MeterProbe final : public Control {
+public:
+    explicit MeterProbe(StableId stable_id) : Control(std::move(stable_id)) {}
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override {
+        SemanticDescriptor descriptor;
+        descriptor.role = SemanticRole::meter;
+        descriptor.name = "Signal level";
+        descriptor.value = "-12 dB";
+        descriptor.numeric_value = -12.0;
+        descriptor.minimum_value = -60.0;
+        descriptor.maximum_value = 0.0;
+        descriptor.states = SemanticState::read_only;
+        descriptor.exposed = true;
+        return descriptor;
+    }
+};
+
+// The instrument vocabulary (W-5): the meter role has its name, comes after
+// every earlier role (names are only added), and reaches the snapshot with
+// its reading and range.
+void test_meter_role_reaches_the_snapshot() {
+    require(std::string_view(semantic_role_name(SemanticRole::meter)) == "meter",
+            "the meter role has its name");
+    require(static_cast<std::size_t>(SemanticRole::meter) + 1U == semantic_role_count,
+            "the meter role is appended after live_region");
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("meter.root"));
+    std::shared_ptr<MeterProbe> meter = make_control<MeterProbe>(StableId("meter.level"));
+    (*meter).set_requested_bounds({0, 0, 80, 20});
+    (*root).add_child(meter);
+    Window window(root, {100, 50});
+    const SemanticSnapshot snapshot = window.semantic_snapshot();
+    const SemanticNode* node = find_node(snapshot.roots, "meter.level");
+    require(node != nullptr && (*node).role == SemanticRole::meter && (*node).name == "Signal level" &&
+                (*node).numeric_value == std::optional<double>{-12.0} &&
+                (*node).minimum_value == std::optional<double>{-60.0} &&
+                (*node).maximum_value == std::optional<double>{0.0} &&
+                has_semantic_state((*node).states, SemanticState::read_only),
+            "a meter node carries its reading, its range and read-only");
+    const std::string json = snapshot.to_json();
+    require(json.find("\"role\":\"meter\"") != std::string::npos, "the snapshot's JSON names the meter role");
+}
+
 // The helper every control's virtual semantic children used to copy, kept
 // verbatim as the reference the shared helper must match byte for byte.
 std::uint64_t former_copy(std::string_view id) noexcept {
@@ -807,6 +850,7 @@ int main() {
         test_semantic_focus_reaches_composites();
         test_hidden_focus_is_published_on_the_composite();
         test_stage_a_vocabulary_reaches_the_snapshot();
+        test_meter_role_reaches_the_snapshot();
         test_semantics_enforce_ui_thread();
         std::cout << "gui_forms_semantic_tests: all tests passed\n";
         return EXIT_SUCCESS;

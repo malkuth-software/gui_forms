@@ -22,7 +22,11 @@ namespace gui_forms {
 // hierarchy of items), table, row, cell, column_header and row_header (a
 // grid of cells), tree_grid (a table whose rows are tree items), dialog,
 // status_bar, and live_region (a region whose changes are announced, owner
-// decision DK-51). `count` is not a role; it sizes tables over the roles.
+// decision DK-51). meter (W-5; the 0.5 closure's ruling 2 admits the
+// instrument vocabulary only) is a read-only reading within a known range,
+// such as a level, a gauge or a scope: unlike progress_bar it measures, it
+// does not report a task's progress. `count` is not a role; it sizes tables
+// over the roles.
 enum class SemanticRole : std::uint8_t {
     generic, group, static_text, button, check_box, radio_button, link,
     text_box, list, list_item, check_list_item, combo_box, slider,
@@ -31,7 +35,7 @@ enum class SemanticRole : std::uint8_t {
     property_group, property_row, menu_bar, menu_bar_item, menu, menu_item,
     separator, toolbar, radio_group, split_button, menu_button, pane,
     tab_panel, tree, tree_item, table, row, cell, column_header, row_header,
-    tree_grid, dialog, status_bar, live_region,
+    tree_grid, dialog, status_bar, live_region, meter,
     count,
 };
 

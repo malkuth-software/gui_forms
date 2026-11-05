@@ -90,6 +90,10 @@ enum class PartTextAlignment : std::uint8_t { start, center, end };
 // muted ink. Disabled text of either tone is the theme's disabled text.
 enum class PartTextTone : std::uint8_t { ordinary, secondary };
 
+// Whether a surface part draws its frame (FD6 sweep defect D12): drawn, or
+// none, when the part is its material's ground alone.
+enum class PartFrame : std::uint8_t { drawn, none };
+
 // The region the dock_shape mark fills (design language §8.5; owner
 // decision DK-35, question J2): a drop on that side of a pane splits it and
 // puts the panel there; tab_into puts the panel into the pane's stack as a
@@ -133,6 +137,16 @@ struct PartPaint final {
     // surface roles read it; none is a rectangle. Hit testing uses the same
     // shape (pointed_face_contains).
     std::optional<double> point{};
+    // Whether the part draws its frame. A surface part with frame none is
+    // its material's ground: the material's border and per-edge borders are
+    // left out, and its fills, keylines, shadows and shape are kept. It is
+    // the field of a borderless TextBox (Windows Forms BorderStyle.None),
+    // whose composite (a ComboBox, an up-down, the grid's cell editor) draws
+    // the frame itself. A primitive that draws no theme material has no
+    // ground apart from its frame, so a frameless part it would draw is
+    // drawn by the built-in recipe instead. A pointed face with frame none
+    // draws no nose edges. Roles that are not surfaces ignore it.
+    PartFrame frame{PartFrame::drawn};
     // The part's position in the theme's accent ramp (§8.5), or none. A
     // surface part with an accent is tinted from the ramp over its
     // material; text and mark roles ignore it.

@@ -241,7 +241,7 @@ AnatomyStateSet BackstageView::item_states(std::size_t item) const {
 void BackstageView::on_paint(Painter& painter, Rect) {
     const Geometry placed = geometry();
     PartPaint part;
-    part.font = effective_font(font_);
+    part.font = text_font(font_);
     part.role = PartRole::face;
     part.family = ControlVisualRole::window;
     part.bounds = placed.page;

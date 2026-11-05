@@ -683,6 +683,7 @@ void ComboBox::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("ComboBox font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     if (editor_) (*editor_).set_font(font);
@@ -922,7 +923,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     if (ink && effectively_enabled() && selected_index_) text_ink = *ink;
     // The content part centres its line box on its bounds, so the bounds are
     // that box on the field's baseline, ending left of the button.
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const Size measured = painter.measure_text_utf8(text, font);
     const double box_height = std::max(measured.height, font.size * 1.2);
     const double box_ascent = std::max(font.size, box_height * 0.82);

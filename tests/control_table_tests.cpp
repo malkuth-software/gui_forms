@@ -3,6 +3,8 @@
 // released, its generation advanced so that the old slot is rejected, and
 // reused by the next attachment; writes touch their control's bit by kind
 // and a read of settled state (a layout pass, a paint) drains the bits.
+// M0.2: a write only touches; the settle before a read does the ancestor
+// marks and places the damage at the bounds as they are then.
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/control_table/control_table.hpp"
 
@@ -20,6 +22,7 @@ using detail::ControlSlot;
 using detail::ControlTable;
 using detail::DirtyBitset;
 using detail::DirtyKind;
+using detail::PendingTouch;
 
 void expect(const bool condition, const std::string_view message) {
     if (condition) return;
@@ -61,7 +64,7 @@ void test_table_slots() {
     const ControlSlot b = table.assign(*second);
     expect(a.index == 0U && b.index == 1U, "slots are dense");
     expect(table.live_count() == 2U && table.slot_count() == 2U, "two live slots");
-    table.touch(b, Dirty::paint | Dirty::semantics);
+    table.touch(b, Dirty::paint | Dirty::semantics, PendingTouch{});
     expect(table.pending(b, DirtyKind::paint) && table.pending(b, DirtyKind::other) &&
                !table.pending(b, DirtyKind::layout),
            "a touch sets the kinds it reaches");
@@ -69,7 +72,7 @@ void test_table_slots() {
     table.release(b);
     expect(table.control_at(b) == nullptr, "a released slot reaches no control");
     expect(!table.pending(DirtyKind::paint), "release clears the slot's bits");
-    table.touch(b, Dirty::paint);
+    table.touch(b, Dirty::paint, PendingTouch{});
     expect(!table.pending(DirtyKind::paint), "a stale slot's touch changes nothing");
     const ControlSlot c = table.assign(*third);
     expect(c.index == b.index && c.generation != b.generation, "the released index is reused with a new generation");
@@ -114,12 +117,62 @@ void test_window_lifecycle() {
            "the re-attached grandchild's slot reaches it");
 }
 
+// M0.2: the bookkeeping waits for the settle. A paint touch leaves its bit
+// pending until a read; the read sets the ancestors' flags and places the
+// damage. Two touches of one control settle once: the marks are counted
+// at the writes, the damage area once. Localized damage lands at the
+// control's place in the window. A detach settles first.
+void test_settle_defers_bookkeeping() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("settle.root"));
+    std::shared_ptr<Panel> child = make_control<Panel>(StableId("settle.child"));
+    std::shared_ptr<Panel> grandchild = make_control<Panel>(StableId("settle.grandchild"));
+    (*child).set_bounds(Rect{10.0, 20.0, 100.0, 50.0});
+    (*grandchild).set_bounds(Rect{5.0, 5.0, 30.0, 20.0});
+    (*child).add_child(grandchild);
+    (*root).add_child(child);
+    Window window(root, Size{200.0, 100.0});
+    const ControlTable& table = window.control_table();
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    const Rect placed = (*grandchild).absolute_bounds();
+    expect(placed == Rect{15.0, 25.0, 30.0, 20.0}, "the grandchild is placed inside the child");
+
+    (*grandchild).invalidate(Dirty::paint);
+    expect(table.pending((*grandchild).surface_slot(), DirtyKind::paint), "a paint write touches its bit");
+    expect(has_dirty((*root).subtree_dirty(), Dirty::paint), "reading an ancestor's flags settles the touch");
+    expect(!table.pending(DirtyKind::paint), "the settle drains the bit");
+    const DamageRegion whole = window.take_damage();
+    expect(whole.bounds() == placed, "the settled damage is the control's bounds");
+
+    window.reset_activity_metrics();
+    (*grandchild).invalidate(Dirty::paint);
+    (*grandchild).invalidate(Dirty::paint);
+    const MetricsSnapshot twice = window.metrics_snapshot();
+    expect(twice.dirty_marks == 2U, "each write counts as a mark");
+    expect(twice.requested_damage_area == placed.area(), "two touches of one control damage it once");
+    static_cast<void>(window.take_damage());
+
+    (*grandchild).invalidate(Rect{1.0, 2.0, 3.0, 4.0});
+    expect(table.pending(DirtyKind::paint), "a localized paint write touches the bit");
+    const DamageRegion local = window.take_damage();
+    expect(local.bounds() == (Rect{16.0, 27.0, 3.0, 4.0}), "localized damage lands at the control's place");
+
+    (*grandchild).invalidate(Dirty::paint);
+    (*grandchild).invalidate(Rect{1.0, 1.0, 2.0, 2.0});
+    Control::Ptr removed = (*root).remove_child((*child).runtime_id());
+    expect(!(*grandchild).surface_slot().assigned(), "the detached grandchild's slot is released");
+    const DamageRegion vacated = window.take_damage();
+    expect(vacated.bounds().contains(placed), "the detached grandchild's place is damaged");
+    (*root).add_child(std::move(removed));
+}
+
 } // namespace
 
 int main() {
     test_bitset_take_order();
     test_table_slots();
     test_window_lifecycle();
+    test_settle_defers_bookkeeping();
     std::cout << "control table tests passed\n";
     return EXIT_SUCCESS;
 }

@@ -118,6 +118,9 @@ void Window::resize(Size client_size) {
     if (client_size_ == client_size) {
         return;
     }
+    // Pending touches place their damage in the client area they were made
+    // in.
+    settle_dirty();
     const Rect old_bounds{0.0, 0.0, client_size_.width, client_size_.height};
     const Rect new_bounds{0.0, 0.0, client_size.width, client_size.height};
     const bool width_changed = client_size_.width != client_size.width;

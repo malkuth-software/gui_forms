@@ -161,14 +161,11 @@ if(WIN32 AND NOT MSVC)
     add_link_options(-static)
 endif()
 include(CMakePackageConfigHelpers)
-# stx_auxlib::simd, the process-wide SIMD level stx_conv selects its kernels by.
-include(cmake/StxAuxlib.cmake)
-add_subdirectory(stx_zlib)
-add_subdirectory(stx_png)
-add_subdirectory(stx_conv)
-# The rich-text library: one document model, the markdown-like dialect and
-# RTF (notes:planning/stages/RT-rich-text/PLAN.md).
-add_subdirectory(stx_rtf2md)
+# The stx libraries (malkuth-software/stx at stx.lock's commit): stx_zlib,
+# stx_png, stx_conv with its SIMD level (stx_auxlib::simd), the rich-text
+# library stx_rtf2md (notes:planning/stages/RT-rich-text/PLAN.md) and, for
+# audio builds, stx_vorbis, installed into a prefix and found by find_package.
+include(cmake/Stx.cmake)
 # stx_skia/ is the CPU Skia derivative the Skia adapters draw with, built from source as part
 # of this tree; its headers are system headers here, as the imported Skia's were. Without the
 # adapters only its red/blue swap kernel, stx_skia::swizzle, is built: it links no Skia code,
@@ -422,6 +419,9 @@ add_library(gui_forms_core STATIC
     src/core/commands/command_route/command_route.cpp
 )
 target_link_libraries(gui_forms_core PUBLIC Threads::Threads GUIForms::Threading stx_zlib::stx_zlib stx_png::stx_png)
+if(TARGET gui_forms_stx_refresh)
+    add_dependencies(gui_forms_core gui_forms_stx_refresh)
+endif()
 # The interpolation seam's private engine; no stx_conv type is public.
 target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
 # rtf_conversion's reader and writer; no stx_rtf2md type is public.
@@ -1656,6 +1656,17 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_layered_material_lab_model PUBLIC
         gui_forms_controls)
 
+    # Stage T5's compositor lab (phase C8): a declared window with glass,
+    # reflections and the backdrop named by --backdrop.
+    add_library(gui_forms_compositor_lab_model STATIC
+        demo/compositor_lab.cpp
+    )
+    target_include_directories(gui_forms_compositor_lab_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+    )
+    target_link_libraries(gui_forms_compositor_lab_model PUBLIC
+        gui_forms_controls)
+
     add_library(gui_forms_custom_chrome_lab_model STATIC
         demo/custom_chrome_lab.cpp
     )
@@ -1778,6 +1789,24 @@ if(GUI_FORMS_BUILD_GALLERY)
             MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Layered Material Fidelity Lab"
+        )
+
+        add_executable(gui_forms_compositor_lab MACOSX_BUNDLE
+            src/host/macos/compositor_lab_main.mm
+            ${GUI_FORMS_GALLERY_FONTS}
+            ${GUI_FORMS_GALLERY_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_compositor_lab PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_compositor_lab PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_compositor_lab PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Compositor Lab"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.compositor-lab"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "0.2"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Compositor Lab"
         )
 
         add_executable(gui_forms_custom_chrome_lab MACOSX_BUNDLE
@@ -1916,6 +1945,17 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Layered Material Fidelity Lab"
         )
 
+        add_executable(gui_forms_compositor_lab_windows
+            src/host/windows/compositor_lab_main.cpp
+        )
+        target_link_libraries(gui_forms_compositor_lab_windows PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_compositor_lab_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Compositor Lab"
+        )
+
         add_executable(gui_forms_custom_chrome_lab_windows
             src/host/windows/custom_chrome_lab_main.cpp
         )
@@ -2028,6 +2068,17 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_gallery_linux PROPERTIES
             OUTPUT_NAME "gui-forms-gallery"
+        )
+
+        add_executable(gui_forms_compositor_lab_linux
+            src/host/linux/compositor_lab_main.cpp
+        )
+        target_link_libraries(gui_forms_compositor_lab_linux PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_compositor_lab_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-compositor-lab"
         )
 
         # The X11 host discovers bundled faces in <executable dir>/fonts (or
@@ -2475,6 +2526,16 @@ if(GUI_FORMS_BUILD_TESTS)
             COMMENT "Extracting native C++ API and rendering authored contracts"
             VERBATIM)
     endif()
+    # No test checks with bare assert(): a Release (NDEBUG) build compiles
+    # it out, and the test then checks nothing.
+    if(Python3_Interpreter_FOUND)
+        add_test(NAME gui_forms_test_assert_check
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/tools/check_test_asserts.py
+                --root ${CMAKE_CURRENT_SOURCE_DIR})
+        add_test(NAME gui_forms_test_assert_check_unit
+            COMMAND ${Python3_EXECUTABLE} -B -m unittest discover -s ${CMAKE_CURRENT_SOURCE_DIR}/tools
+                -p test_check_test_asserts.py)
+    endif()
     add_executable(gui_drawing_core_tests tests/drawing_core_tests.cpp)
     target_link_libraries(gui_drawing_core_tests PRIVATE gui_drawing_core)
     add_test(NAME gui_drawing_core_tests COMMAND gui_drawing_core_tests)
@@ -2597,10 +2658,6 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_host_image_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_host_image_tests COMMAND gui_forms_host_image_tests)
 
-    add_executable(gui_forms_inflate_tests tests/compression/inflate_tests.cpp)
-    target_link_libraries(gui_forms_inflate_tests PRIVATE gui_forms_core)
-    add_test(NAME gui_forms_inflate_tests COMMAND gui_forms_inflate_tests)
-
     # The deflate contract harness's standalone inputs, in the normal suite.
     add_executable(gui_forms_deflate_fuzz_tests fuzz/deflate_fuzz.cpp)
     target_link_libraries(gui_forms_deflate_fuzz_tests PRIVATE stx_zlib::stx_zlib)
@@ -2611,10 +2668,6 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_inflate_protocol_tests PRIVATE gui_forms_core)
     target_compile_definitions(gui_forms_inflate_protocol_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
     add_test(NAME gui_forms_inflate_protocol_tests COMMAND gui_forms_inflate_protocol_tests)
-
-    add_executable(gui_forms_png_decoder_tests tests/image/png_decoder_tests.cpp)
-    target_link_libraries(gui_forms_png_decoder_tests PRIVATE gui_forms_core)
-    add_test(NAME gui_forms_png_decoder_tests COMMAND gui_forms_png_decoder_tests)
 
     add_executable(gui_forms_png_pixels_tests tests/image/png_pixels_tests.cpp)
     target_link_libraries(gui_forms_png_pixels_tests PRIVATE gui_forms_core)
@@ -2933,8 +2986,11 @@ if(GUI_FORMS_BUILD_TESTS)
     # stx_rtf2md's normative reader over its dialect corpus, and RTF round trips.
     add_executable(gui_forms_markdown_tests tests/markdown_tests.cpp)
     target_link_libraries(gui_forms_markdown_tests PRIVATE gui_forms_core stx_rtf2md::stx_rtf2md)
-    add_test(NAME gui_forms_markdown_tests
-        COMMAND gui_forms_markdown_tests ${CMAKE_CURRENT_SOURCE_DIR}/stx_rtf2md/tests/corpus)
+    # The corpus is stx's; a build from an installed stx prefix alone has none.
+    if(NOT GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
+        add_test(NAME gui_forms_markdown_tests
+            COMMAND gui_forms_markdown_tests ${GUI_FORMS_STX_SOURCE_DIR}/stx_rtf2md/tests/corpus)
+    endif()
     add_executable(gui_forms_markdown_fuzz_tests fuzz/markdown_fuzz.cpp)
     target_link_libraries(gui_forms_markdown_fuzz_tests PRIVATE gui_forms_core)
     target_compile_definitions(gui_forms_markdown_fuzz_tests PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
@@ -3074,6 +3130,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_theme_variant_tests tests/theme_variant_tests.cpp)
     target_link_libraries(gui_forms_theme_variant_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_variant_tests COMMAND gui_forms_theme_variant_tests)
+    add_executable(gui_forms_theme_font_tests tests/theme_font_tests.cpp)
+    target_link_libraries(gui_forms_theme_font_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_theme_font_tests COMMAND gui_forms_theme_font_tests)
     add_executable(gui_forms_theme_escape_tests tests/theme_language/theme_escape_tests.cpp)
     target_link_libraries(gui_forms_theme_escape_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_theme_escape_tests COMMAND gui_forms_theme_escape_tests)
@@ -4032,6 +4091,21 @@ if(GUI_FORMS_BUILD_TESTS)
         endif()
     endif()
 
+    if(TARGET gui_forms_compositor_lab_model AND TARGET gui_forms_skia)
+        # The lab in each compositor state, drawn on the Skia raster every
+        # host presents with: grants, fallbacks and the frame's alpha.
+        add_executable(gui_forms_compositor_lab_tests
+            tests/compositor_lab_tests.cpp)
+        target_include_directories(gui_forms_compositor_lab_tests PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/demo
+            ${CMAKE_CURRENT_SOURCE_DIR}/src/render/skia/raster)
+        target_link_libraries(gui_forms_compositor_lab_tests PRIVATE
+            gui_forms_compositor_lab_model
+            gui_forms_skia)
+        add_test(NAME gui_forms_compositor_lab_tests
+                 COMMAND gui_forms_compositor_lab_tests)
+    endif()
+
     if(TARGET gui_forms_custom_chrome_lab_model)
         add_executable(gui_forms_custom_chrome_lab_tests
             tests/custom_chrome_lab_tests.cpp)
@@ -4489,6 +4563,10 @@ if(GUI_FORMS_BUILD_TESTS)
 endif()
 
 if(GUI_FORMS_BUILD_FUZZERS)
+    # The codec fuzzers compile stx sources, so they need the stx checkout.
+    if(GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
+        message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS needs the stx source; GUI_FORMS_STX_PREFIX has none")
+    endif()
     if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS currently requires Clang libFuzzer")
     endif()
@@ -4499,9 +4577,10 @@ if(GUI_FORMS_BUILD_FUZZERS)
         GUI_FORMS_HAS_LIBFUZZER_RUNTIME
     )
     unset(CMAKE_REQUIRED_FLAGS)
+    # The inflate and PNG decode harnesses are stx's (stx_zlib/fuzz, stx_png/fuzz).
     add_executable(gui_forms_inflate_fuzz
-        fuzz/inflate_fuzz.cpp stx_zlib/src/inflate.cpp stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_inflate_fuzz PRIVATE include stx_zlib/include)
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/fuzz/inflate_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
+    target_include_directories(gui_forms_inflate_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
     target_compile_options(gui_forms_inflate_fuzz PRIVATE
         -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
     target_link_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=address,undefined)
@@ -4509,12 +4588,12 @@ if(GUI_FORMS_BUILD_FUZZERS)
         target_compile_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=fuzzer)
         target_link_options(gui_forms_inflate_fuzz PRIVATE -fsanitize=fuzzer)
     else()
-        target_compile_definitions(gui_forms_inflate_fuzz PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
+        target_compile_definitions(gui_forms_inflate_fuzz PRIVATE STX_ZLIB_FUZZ_STANDALONE=1)
     endif()
 
     add_executable(gui_forms_inflate_protocol_fuzz
-        fuzz/inflate_protocol_fuzz.cpp stx_zlib/src/inflate.cpp stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_inflate_protocol_fuzz PRIVATE include stx_zlib/include)
+        fuzz/inflate_protocol_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
+    target_include_directories(gui_forms_inflate_protocol_fuzz PRIVATE include ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
     target_compile_options(gui_forms_inflate_protocol_fuzz PRIVATE
         -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
     target_link_options(gui_forms_inflate_protocol_fuzz PRIVATE -fsanitize=address,undefined)
@@ -4526,8 +4605,8 @@ if(GUI_FORMS_BUILD_FUZZERS)
     endif()
 
     add_executable(gui_forms_deflate_fuzz
-        fuzz/deflate_fuzz.cpp stx_zlib/src/inflate.cpp stx_zlib/src/deflate.cpp stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_deflate_fuzz PRIVATE stx_zlib/include)
+        fuzz/deflate_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/deflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
+    target_include_directories(gui_forms_deflate_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
     target_compile_options(gui_forms_deflate_fuzz PRIVATE
         -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
     target_link_options(gui_forms_deflate_fuzz PRIVATE -fsanitize=address,undefined)
@@ -4539,10 +4618,10 @@ if(GUI_FORMS_BUILD_FUZZERS)
     endif()
 
     add_executable(gui_forms_png_decode_fuzz
-        fuzz/png_decode_fuzz.cpp stx_png/src/decoder.cpp
-        stx_png/src/encoder.cpp stx_zlib/src/inflate.cpp stx_zlib/src/deflate.cpp
-        stx_zlib/src/checksum.cpp)
-    target_include_directories(gui_forms_png_decode_fuzz PRIVATE stx_png/include stx_zlib/include)
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/fuzz/png_decode_fuzz.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/src/decoder.cpp
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/src/encoder.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/inflate.cpp ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/deflate.cpp
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp)
+    target_include_directories(gui_forms_png_decode_fuzz PRIVATE ${GUI_FORMS_STX_SOURCE_DIR}/stx_png/include ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include)
     target_compile_options(gui_forms_png_decode_fuzz PRIVATE
         -fsanitize=address,undefined -fno-sanitize-recover=undefined -fno-omit-frame-pointer)
     target_link_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=address,undefined)
@@ -4550,17 +4629,17 @@ if(GUI_FORMS_BUILD_FUZZERS)
         target_compile_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=fuzzer)
         target_link_options(gui_forms_png_decode_fuzz PRIVATE -fsanitize=fuzzer)
     else()
-        target_compile_definitions(gui_forms_png_decode_fuzz PRIVATE GUI_FORMS_FUZZ_STANDALONE=1)
+        target_compile_definitions(gui_forms_png_decode_fuzz PRIVATE STX_PNG_FUZZ_STANDALONE=1)
     endif()
 
     add_executable(gui_forms_png_registry_fuzz
         fuzz/png_registry_fuzz.cpp
         src/core/resources/image_registry/image_registry.cpp
-        stx_zlib/src/checksum.cpp
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/src/checksum.cpp
     )
     target_include_directories(gui_forms_png_registry_fuzz PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/stx_zlib/include
+        ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib/include
     )
     target_compile_features(gui_forms_png_registry_fuzz PRIVATE cxx_std_20)
     if(GUI_FORMS_HAS_LIBFUZZER_RUNTIME)
@@ -4729,18 +4808,23 @@ include(cmake/CAbi.cmake)
 
 install(FILES cmake/llvm22.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
 install(FILES src/core/threading/atomic_pool/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME threadpool_atomic_fast-LICENSE.txt)
-# stx_zlib, stx_png, stx_conv and stx_rtf2md install their own licences and provenance under
-# share/licenses/<package>; the SDK also carries them beside GUI.Forms' others.
-install(FILES stx_zlib/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-LICENSE.txt)
-install(FILES stx_zlib/LICENSE-puff.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-LICENSE-puff.txt)
-install(FILES stx_zlib/LICENSE-zlib.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-LICENSE-zlib.txt)
-install(FILES stx_zlib/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-PROVENANCE.md)
-install(FILES stx_png/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-LICENSE.txt)
-install(FILES stx_rtf2md/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_rtf2md-LICENSE.txt)
-install(FILES stx_rtf2md/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_rtf2md-PROVENANCE.md)
-install(FILES stx_png/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-PROVENANCE.md)
-install(FILES stx_conv/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-LICENSE.txt)
-install(FILES stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
+# The SDK carries the stx prefix it was built with whole (libraries, headers,
+# package configs, and the licences and provenance under share/licenses/<package>),
+# so GUIFormsConfig's find_dependency calls find the packages beside GUI.Forms.
+# The licences are also copied beside GUI.Forms' others.
+install(DIRECTORY "${GUI_FORMS_STX_PREFIX_DIR}/" DESTINATION .
+        PATTERN gui-forms-stx.stamp EXCLUDE)
+set(gui_forms_stx_licenses "${GUI_FORMS_STX_PREFIX_DIR}/share/licenses")
+install(FILES ${gui_forms_stx_licenses}/stx_zlib/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stx_zlib/LICENSE-puff.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-LICENSE-puff.txt)
+install(FILES ${gui_forms_stx_licenses}/stx_zlib/LICENSE-zlib.txt DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-LICENSE-zlib.txt)
+install(FILES ${gui_forms_stx_licenses}/stx_zlib/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_zlib-PROVENANCE.md)
+install(FILES ${gui_forms_stx_licenses}/stx_png/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stx_rtf2md/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_rtf2md-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stx_rtf2md/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_rtf2md-PROVENANCE.md)
+install(FILES ${gui_forms_stx_licenses}/stx_png/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_png-PROVENANCE.md)
+install(FILES ${gui_forms_stx_licenses}/stx_conv/LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-LICENSE.txt)
+install(FILES ${gui_forms_stx_licenses}/stx_conv/PROVENANCE.md DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms RENAME stx_conv-PROVENANCE.md)
 install(FILES LICENSE DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms)
 # Every third-party component the SDK and the programs ship, with its licence
 # and the FreeType credit (THIRD_PARTY_NOTICES.md).
@@ -5006,15 +5090,15 @@ endforeach()
 # Every test carries one area label (cmake/TestAreas.cmake, tools/test_areas.json).
 if(GUI_FORMS_BUILD_TESTS)
     include(cmake/TestAreas.cmake)
-    gui_forms_label_test_areas(stx_zlib stx_png stx_conv)
+    gui_forms_label_test_areas()
 endif()
 
 # No floating-point contraction in first-party code (owner, 2026-11-01): Clang's default
 # fuses a * b + c within an expression where the target has a fused multiply-add, which
 # arm64 always has and the x86-64 baseline never does, so the same source gave different
 # bits on the two. Every target this directory defines gets -ffp-contract=off; the
-# first-party subprojects (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on
-# their own targets. A kernel that wants fusion spells it std::fma, so the choice is
+# stx libraries (stx_zlib, stx_png, stx_conv, stx_rtf2md, stx_vorbis) set it on their own
+# targets in their own build. A kernel that wants fusion spells it std::fma, so the choice is
 # visible and gives the same bits everywhere. Third-party code (FreeType, HarfBuzz) keeps
 # its own flags, as do the targets here that compile only third-party sources (md4c,
 # SheenBidi, libunibreak and its conformance driver); miniaudio is compiled inside

@@ -34,6 +34,12 @@ during the normal compile of every file that registers an effect (each
 Every rejection is a compiler error at the construct, followed by a note
 naming the effect.
 
+On CI, the `effect-pass` job (`.github/workflows/effect-pass.yml`) builds
+the plugin on Linux with Clang 22's development headers and runs the effect
+tests with the pass on, for pull requests that touch the effect engine, the
+plugin, the effect tests or a file that registers effects. The native jobs
+build without those headers, so their effects are unverified.
+
 ## Turning it off
 
 The `GUI_FORMS_EFFECT_VERIFY` option is on by default, and turning it off is

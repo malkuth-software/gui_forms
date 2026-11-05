@@ -36,7 +36,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 47> material_properties{{
+constexpr std::array<NamedMaterialProperty, 52> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -73,8 +73,13 @@ constexpr std::array<NamedMaterialProperty, 47> material_properties{{
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
     {.name = "color", .property = MaterialProperty::color},
     {.name = "filter", .property = MaterialProperty::filter},
+    {.name = "font-family", .property = MaterialProperty::font_family},
+    {.name = "font-size", .property = MaterialProperty::font_size},
+    {.name = "font-style", .property = MaterialProperty::font_style},
+    {.name = "font-weight", .property = MaterialProperty::font_weight},
     {.name = "glow", .property = MaterialProperty::glow},
     {.name = "glow-placement", .property = MaterialProperty::glow_placement},
+    {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
     {.name = "outline", .property = MaterialProperty::outline},
     {.name = "outline-color", .property = MaterialProperty::outline_color},
@@ -92,13 +97,18 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 6> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 11> recipe_longhands{{
     {.property = MaterialProperty::color, .field = RecipeField::text},
     {.property = MaterialProperty::outline_color, .field = RecipeField::outline_colour},
     {.property = MaterialProperty::outline_offset, .field = RecipeField::outline_offset},
     {.property = MaterialProperty::outline_style, .field = RecipeField::outline_style},
     {.property = MaterialProperty::outline_width, .field = RecipeField::outline_width},
     {.property = MaterialProperty::text_shadow, .field = RecipeField::text_shadow},
+    {.property = MaterialProperty::font_family, .field = RecipeField::font_family},
+    {.property = MaterialProperty::font_size, .field = RecipeField::font_size},
+    {.property = MaterialProperty::font_style, .field = RecipeField::font_style},
+    {.property = MaterialProperty::font_weight, .field = RecipeField::font_weight},
+    {.property = MaterialProperty::letter_spacing, .field = RecipeField::letter_spacing},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -373,6 +383,11 @@ private:
     bool lower_outline_width();
     bool lower_outline_offset();
     bool lower_text_shadow();
+    bool lower_font_family();
+    bool lower_font_size();
+    bool lower_font_style();
+    bool lower_font_weight();
+    bool lower_letter_spacing();
 
     const ThemeValue& value_;
     std::uint32_t start_{};
@@ -2188,6 +2203,137 @@ bool MaterialReader::lower_outline_offset() {
     return true;
 }
 
+// `font-family` (T4 fonts): one bundled font role, `control`, `content` or
+// `monospace`. A family name, quoted or not, a generic family and a list
+// are refused: GUI.Forms draws its bundled faces, never a host font.
+bool MaterialReader::lower_font_family() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_form_not_admitted, value_.components[next(0U)].token,
+                    "one bundled font role");
+    }
+    const ValueComponent& component = value_.components[0];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "a bundled font role");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::font_family);
+    if (keyword(0U, "control")) {
+        declaration.font_role = FontRole::control;
+    } else if (keyword(0U, "content")) {
+        declaration.font_role = FontRole::content;
+    } else if (keyword(0U, "monospace")) {
+        declaration.font_role = FontRole::monospace;
+    } else {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `font-size`: one length, in px from minimum_rule_font_size to
+// maximum_rule_font_size, or in em above 0 (of the control's own size,
+// bounded when it resolves).
+bool MaterialReader::lower_font_size() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+    }
+    BoxLength length{};
+    if (!read_length(0U, false, false, length)) return false;
+    const ValueComponent& component = value_.components[0];
+    const bool in_em = component.unit == ValueUnit::em;
+    const bool sized = in_em ? component.number > 0.0
+                             : length.units >= minimum_rule_font_size && length.units <= maximum_rule_font_size;
+    if (!sized) {
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::font_size);
+    declaration.number = length.units;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `font-style`: normal or italic; oblique, which the bundled faces do not
+// draw, is refused.
+bool MaterialReader::lower_font_style() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_form_not_admitted, value_.components[next(0U)].token, "normal or italic");
+    }
+    const ValueComponent& component = value_.components[0];
+    if (component.kind != ValueComponentKind::keyword) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "normal or italic");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::font_style);
+    if (keyword(0U, "oblique")) {
+        return fail(DiagnosticCode::value_form_not_admitted, component.token, clipped_theme_detail(component.text));
+    }
+    if (keyword(0U, "italic")) {
+        declaration.italic = true;
+    } else if (!keyword(0U, "normal")) {
+        return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+    }
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `font-weight`: normal (400), bold (700), or a whole number from 100 to
+// 900. bolder and lighter, relative to a parent's weight, are refused.
+bool MaterialReader::lower_font_weight() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one weight");
+    }
+    const ValueComponent& component = value_.components[0];
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::font_weight);
+    if (component.kind == ValueComponentKind::keyword) {
+        if (keyword(0U, "bolder") || keyword(0U, "lighter")) {
+            return fail(DiagnosticCode::value_form_not_admitted, component.token,
+                        clipped_theme_detail(component.text));
+        }
+        if (keyword(0U, "normal")) {
+            declaration.number = 400.0;
+        } else if (keyword(0U, "bold")) {
+            declaration.number = 700.0;
+        } else {
+            return fail(DiagnosticCode::keyword_unknown, component.token, clipped_theme_detail(component.text));
+        }
+        lowering_.recipe_fields.push_back(declaration);
+        return true;
+    }
+    if (component.kind != ValueComponentKind::number || component.unit != ValueUnit::none) {
+        return fail(DiagnosticCode::value_wrong_kind, component.token, "a weight");
+    }
+    const bool whole = std::floor(component.number) == component.number;
+    if (!whole || component.number < minimum_rule_font_weight || component.number > maximum_rule_font_weight) {
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    declaration.number = component.number;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `letter-spacing`: normal (0), or one length, negative or not, in px or
+// em (of the resolved size); valid_font_spec bounds it at that size.
+bool MaterialReader::lower_letter_spacing() {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one length");
+    }
+    RecipeDeclaration declaration = recipe_declaration(RecipeField::letter_spacing);
+    if (keyword(0U, "normal")) {
+        lowering_.recipe_fields.push_back(declaration);
+        return true;
+    }
+    BoxLength length{};
+    if (!read_length(0U, false, true, length)) return false;
+    const ValueComponent& component = value_.components[0];
+    const bool in_em = component.unit == ValueUnit::em;
+    const bool bounded = in_em || (length.units >= -maximum_rule_font_size * 0.25 &&
+                                   length.units <= maximum_rule_font_size);
+    if (!bounded) {
+        return fail(DiagnosticCode::value_out_of_range, component.token, clipped_theme_detail(component.text));
+    }
+    declaration.number = length.units;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
 // `text-shadow`: none, or one shadow: two or three adjacent lengths (the
 // offset and the blur) and a colour, in either order. The recipe carries
 // one shadow; its colour by default currentcolor.
@@ -2293,6 +2439,11 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::outline_style: static_cast<void>(lower_outline_style()); return;
     case MaterialProperty::outline_width: static_cast<void>(lower_outline_width()); return;
     case MaterialProperty::text_shadow: static_cast<void>(lower_text_shadow()); return;
+    case MaterialProperty::font_family: static_cast<void>(lower_font_family()); return;
+    case MaterialProperty::font_size: static_cast<void>(lower_font_size()); return;
+    case MaterialProperty::font_style: static_cast<void>(lower_font_style()); return;
+    case MaterialProperty::font_weight: static_cast<void>(lower_font_weight()); return;
+    case MaterialProperty::letter_spacing: static_cast<void>(lower_letter_spacing()); return;
     // A value outside the enumeration names no property: nothing is lowered.
     default: return;
     }
@@ -2396,7 +2547,12 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::outline_offset:
     case MaterialProperty::outline_style:
     case MaterialProperty::outline_width:
-    case MaterialProperty::text_shadow: return;
+    case MaterialProperty::text_shadow:
+    case MaterialProperty::font_family:
+    case MaterialProperty::font_size:
+    case MaterialProperty::font_style:
+    case MaterialProperty::font_weight:
+    case MaterialProperty::letter_spacing: return;
     // A value outside the enumeration names no property: it sets no field.
     default: return;
     }

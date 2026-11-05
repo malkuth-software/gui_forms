@@ -38,8 +38,10 @@ public:
     // Damage promises that every pixel outside it equals the previous
     // publication; a presenter may copy only the damage. Acquire with
     // preserve_published_contents or repair the buffer completely. Empty or
-    // out-of-bounds damage means the whole surface.
-    [[nodiscard]] std::uint64_t publish(Rect damage = {});
+    // out-of-bounds damage means the whole surface. The content tag is the
+    // producer's own label for what the frame shows (a sub-surface's content
+    // epoch, stage S2); the surface keeps it with the frame and never reads it.
+    [[nodiscard]] std::uint64_t publish(Rect damage = {}, std::uint64_t content_tag = 0U);
     void abandon() noexcept;
 
 private:

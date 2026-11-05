@@ -52,7 +52,7 @@ std::span<std::byte> LiveSurfaceWriteLease::pixels() noexcept {
                    : std::span<std::byte>{};
 }
 
-std::uint64_t LiveSurfaceWriteLease::publish(Rect damage) {
+std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t content_tag) {
     if (!state_ || !buffer_) return 0U;
     std::vector<std::shared_ptr<detail::LiveSurfaceWake>> wakes;
     std::uint64_t published{};
@@ -71,6 +71,7 @@ std::uint64_t LiveSurfaceWriteLease::publish(Rect damage) {
         (*state_).published_slot = slot_;
         (*state_).writing_slot = (*state_).buffers.size();
         (*state_).carried.reset();
+        (*state_).content_tag = content_tag;
         (*state_).damage = damage.empty() ? bounds : damage;
         (*state_).presentation_region = Rect::united(
             (*state_).presentation_region, (*state_).damage);

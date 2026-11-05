@@ -147,7 +147,7 @@ void BlockPanel::clear_line_strut() {
 
 LineStrut BlockPanel::used_line_strut() const {
     if (line_strut_) return *line_strut_;
-    const FontSpec used = effective_font((*this).font());
+    const FontSpec used = text_font((*this).font());
     const ResolvedTextLayout primary = resolve_text_layout_utf8(" ", used);
     const LineBoxMetrics line = line_box_metrics(primary, std::nullopt);
     const LineStrut strut{line.baseline, std::max(0.0, line.height - line.baseline), line.x_height};
@@ -162,6 +162,7 @@ FontSpec BlockPanel::font() const noexcept {
 void BlockPanel::set_font(FontSpec font) {
     require_mutable();
     if (!valid_font_spec(font)) throw std::invalid_argument("BlockPanel font is invalid");
+    set_font_from_code(true);
     if (font_override_ && *font_override_ == font) return;
     font_override_ = font;
     if (!line_strut_) invalidate(invalidation::bounds);
@@ -171,6 +172,7 @@ void BlockPanel::clear_font() {
     require_mutable();
     if (!font_override_) return;
     font_override_.reset();
+    set_font_from_code(false);
     if (!line_strut_) invalidate(invalidation::bounds);
 }
 

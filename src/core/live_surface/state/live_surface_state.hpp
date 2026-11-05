@@ -30,6 +30,8 @@ struct LiveSurfaceState final {
     std::size_t writing_slot{};
     std::uint64_t epoch{1};
     std::uint64_t generation{};
+    // The content tag of the published frame (LiveSurfaceWriteLease::publish).
+    std::uint64_t content_tag{};
     std::uint64_t publishes{};
     std::uint64_t dropped_acquires{};
     std::uint64_t read_acquires{};
@@ -48,6 +50,7 @@ struct LiveSurfaceState final {
     std::shared_ptr<LiveSurfaceBuffer> carried;
     std::uint64_t carried_epoch{};
     std::uint64_t carried_generation{};
+    std::uint64_t carried_content_tag{};
     std::vector<std::shared_ptr<LiveSurfaceWake>> wakes;
 };
 

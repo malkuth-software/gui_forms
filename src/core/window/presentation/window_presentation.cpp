@@ -231,6 +231,7 @@ bool SurfaceRoot::has_plane_damage() const noexcept {
 
 bool SurfaceRoot::paint_pending() const noexcept {
     if (dirty_after_render_) return true;
+    if (control_table_.pending(detail::DirtyKind::paint) || !pending_local_damage_.empty()) return true;
     const bool damaged = has_plane_damage();
     return damaged;
 }
@@ -765,6 +766,20 @@ bool Window::queue_live_surface_presentation(
     return true;
 }
 
+bool Window::require_live_surface_content(const Control::Ptr& control,
+                                          const std::uint64_t content_tag) {
+    require_root_thread("live-surface content pairing");
+    if (!control) return false;
+    const LiveSurfaceRegistrationMap::iterator entry =
+        live_surface_registrations_.find((*control).runtime_id().value);
+    if (entry == live_surface_registrations_.end()) return false;
+    LiveSurfaceRegistration& registration = (*entry).second;
+    if (content_tag > registration.required_content_tag) {
+        registration.required_content_tag = content_tag;
+    }
+    return true;
+}
+
 void Window::set_live_surface_idle_wake_handler(std::function<void()> wake) {
     require_root_thread("live-surface idle handler");
     std::shared_ptr<detail::LiveSurfaceIdleWake> replacement{};
@@ -895,6 +910,18 @@ Window::take_live_surface_presentations(const bool include_unchanged,
             ++iterator;
             continue;
         }
+        // Pairing (design note section 6, decision 6): a frame older than the
+        // required content waits one present tick, keeping the previous
+        // frame on screen, and is presented unpaired at the next.
+        const bool content_behind = snapshot.content_tag < registration.required_content_tag;
+        if (!content_behind) {
+            registration.pairing_waited = false;
+        } else if (!registration.pairing_waited && registration.placed) {
+            registration.pairing_waited = true;
+            metrics_.record_live_pairing_wait();
+            ++iterator;
+            continue;
+        }
 
         const Rect destination = absolute_bounds_of(*control);
         Rect clip = Rect::intersection(
@@ -977,8 +1004,9 @@ Window::take_live_surface_presentations(const bool include_unchanged,
                 for (const Rect& visible_clip : clips) {
                     result.push_back(LiveSurfacePresentation{
                         (*control).runtime_id(), registration.surface,
-                        destination, visible_clip, damage_limited});
+                        destination, visible_clip, damage_limited, !content_behind});
                 }
+                if (content_behind && !clips.empty()) metrics_.record_live_unpaired_presentation();
             }
             registration.sampled_epoch = snapshot.epoch;
             registration.sampled_generation = snapshot.published_generation;

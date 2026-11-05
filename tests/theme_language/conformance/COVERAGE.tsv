@@ -149,11 +149,16 @@ property.effect-none	effects
 property.filter-blur	shadows-opacity-filters
 property.filter-colour	shadows-opacity-filters
 property.filter-drop-shadow	shadows-opacity-filters
+property.font-family	fonts
 property.font-role	transforms-text
+property.font-size	fonts
+property.font-style	fonts
+property.font-weight	fonts
 property.glow	finish-light-images-masks
 property.glow-placement	finish-light-images-masks
 property.isolation	shadows-opacity-filters
 property.layout	not-admitted
+property.letter-spacing	fonts
 property.linear-gradient	fills
 property.mask-image	finish-light-images-masks
 property.mix-blend-mode	shadows-opacity-filters

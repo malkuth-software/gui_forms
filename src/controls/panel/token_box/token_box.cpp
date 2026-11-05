@@ -177,6 +177,7 @@ void TokenBox::set_font(FontSpec font) {
     if (!valid_font_spec(font)) {
         throw std::invalid_argument("TokenBox font specification is invalid");
     }
+    set_font_from_code(true);
     if (font_ == font) return;
     font_ = font;
     if (editor_) (*editor_).set_font(font);
@@ -283,7 +284,7 @@ TokenBox::Layout TokenBox::layout_for(double width, double height) const {
     const double face_height = token_height * scale;
     const double pitch = line_pitch * scale;
     const double inner_right = std::max(padding, width - padding);
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     double x = padding;
     double y = padding;
     placed.tokens.reserve(tokens_.size());
@@ -369,7 +370,7 @@ void TokenBox::on_paint(Painter& painter, Rect) {
                    .family = ControlVisualRole::editor};
     paint_part(painter, *this, well);
     const Layout placed = layout();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     for (const TokenPlacement& placement : placed.tokens) {
         const Token& token = tokens_[placement.index];
         const AnatomyStateSet states = token_states(placement.index);

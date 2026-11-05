@@ -34,6 +34,7 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::cap:
     case PartRole::activity:
     case PartRole::selection:
+    case PartRole::plot:
         return true;
     case PartRole::region:
     case PartRole::shadow:
@@ -57,6 +58,8 @@ bool surface_role(PartRole role) noexcept {
     case PartRole::validation:
     case PartRole::drop:
     case PartRole::image:
+    case PartRole::graticule:
+    case PartRole::trace:
     case PartRole::count:
         return false;
     }
@@ -92,12 +95,19 @@ bool any_state(AnatomyStateSet states, AnatomyState first, AnatomyState second) 
 
 // The surface of a part whose role is a plate, well or mark ground.
 void paint_surface(Painter& painter, const PartPaint& part, const ControlVisualRecipe& recipe) {
-    if (!part.corner_radius) {
+    const bool frameless = part.frame == PartFrame::none;
+    if (!part.corner_radius && !frameless) {
         paint_surface_material(painter, part.bounds, recipe.material);
         return;
     }
+    // A copy for this paint: the part's corner radius, and a frameless
+    // part's ground without the material's borders (PartPaint::frame).
     SurfaceMaterial shaped = recipe.material;
-    shaped.corner_radius = std::max(0.0, *part.corner_radius);
+    if (part.corner_radius) shaped.corner_radius = std::max(0.0, *part.corner_radius);
+    if (frameless) {
+        shaped.border.reset();
+        shaped.border_edges = MaterialBorderEdges{};
+    }
     paint_surface_material(painter, part.bounds, shaped);
 }
 
@@ -581,12 +591,14 @@ void paint_content_color(Painter& painter, const PartPaint& part, Color color) {
     painter.fill_rect(part.bounds, color);
 }
 
-// Whether `part` paints a ground: a surface role, or an indicator or glyph
-// without a mark (paint_part_from_recipe paints those as surfaces too).
+// Whether `part` paints a ground: a surface role, or an indicator, trace or
+// glyph without a mark (paint_part_from_recipe paints those as surfaces too).
 bool ground_role(const PartPaint& part) noexcept {
     if (surface_role(part.role)) return true;
     const bool marked = part.mark != PartMark::none;
-    const bool ground = (part.role == PartRole::indicator || part.role == PartRole::glyph) && !marked;
+    const bool pointer_like = part.role == PartRole::indicator || part.role == PartRole::trace ||
+                              part.role == PartRole::glyph;
+    const bool ground = pointer_like && !marked;
     return ground;
 }
 
@@ -613,6 +625,7 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
         }
         return;
     case PartRole::indicator:
+    case PartRole::trace:
     case PartRole::glyph:
     case PartRole::disclosure:
     case PartRole::grip:
@@ -621,6 +634,7 @@ void apply_authored_colours(const PartPaint& part, bool disabled, bool important
     case PartRole::keyline:
     case PartRole::divider:
     case PartRole::seam:
+    case PartRole::graticule:
         // paint_rule draws in the border's colour, else the muted text's.
         if (recipe.material.border) {
             (*recipe.material.border).color = ink;
@@ -736,7 +750,7 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
     }
     const ControlVisualContext context = part_visual_context(control, part.states);
     const ControlVisualRecipe& recipe = control.effective_theme().resolve(part.family, context);
-    if (!recipe.material.border) return;
+    if (part.frame == PartFrame::none || !recipe.material.border) return;
     const Color edge = (*recipe.material.border).color;
     const Point tip{bounds.x + bounds.width - 0.5, bounds.y + bounds.height * 0.5};
     painter.draw_line({shoulder, bounds.y + 0.5}, tip, edge, 1.0);
@@ -872,9 +886,11 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::selection:
     case PartRole::drop:
     case PartRole::validation:
+    case PartRole::plot:
         paint_surface(painter, part, recipe);
         return;
     case PartRole::indicator:
+    case PartRole::trace:
     case PartRole::glyph:
         if (part.mark == PartMark::none) {
             paint_surface(painter, part, recipe);
@@ -885,6 +901,7 @@ void paint_part_from_recipe(Painter& painter, const PartPaint& part,
     case PartRole::keyline:
     case PartRole::divider:
     case PartRole::seam:
+    case PartRole::graticule:
         paint_rule(painter, part.bounds, recipe);
         return;
     case PartRole::grip: {

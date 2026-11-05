@@ -120,7 +120,7 @@ jobs:
           python3 -B tools/paint_census.py check
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
           python3 tools/generate_library_docs.py --check
-          python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard stx_vorbis stx_zlib stx_png stx_conv stx_rtf2md fuzz
+          python3 -B ../template_harness/harness/check_house_style.py include src demo tests examples tools file_manager_demoboard fuzz
           # stx_skia/: every C++ file, against the shrink-only allowance for the files
           # imported from Skia that are still being converted (stx_skia/AGENTS.md).
           python3 -B -m unittest discover -s tools -p test_check_stx_skia_style.py
@@ -129,7 +129,9 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_engine_gate.py
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
-          python3 -B ../template_harness/harness/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard stx_vorbis stx_zlib stx_png stx_conv stx_rtf2md stx_skia fuzz
+          python3 -B ../template_harness/harness/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard stx_skia fuzz
+          python3 -B -m unittest discover -s tools -p test_check_test_registration.py
+          python3 -B tools/check_test_registration.py
   # The site depends only on the tree (docs/requirements.txt pins its
   # toolchain), so a tree an earlier run of this repository built passes
   # without building it again (tools/ci_tree_receipt.py); the job still

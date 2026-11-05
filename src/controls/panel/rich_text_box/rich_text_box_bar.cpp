@@ -49,7 +49,7 @@ constexpr double arrow_width = 12.0;
 
 double RichTextBox::bar_height() const noexcept {
     if (!control_bar_visible_) return 0.0;
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double height = std::max(24.0, std::round(font.size * 1.4) + 2.0 * bar_padding + 4.0);
     return height;
 }
@@ -57,7 +57,7 @@ double RichTextBox::bar_height() const noexcept {
 std::array<Rect, rich_text_bar_button_count> RichTextBox::bar_buttons() const {
     std::array<Rect, rich_text_bar_button_count> buttons{};
     if (!control_bar_visible_) return buttons;
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     const double height = bar_height() - 2.0 * bar_padding;
     double x = bar_padding + 1.0;
     for (std::size_t index = 0U; index < rich_text_bar_button_count; ++index) {
@@ -141,7 +141,7 @@ void RichTextBox::paint_bar(Painter& painter) const {
     strip.bounds = {1.0, height - 1.0, std::max(0.0, bounds.width - 2.0), 1.0};
     paint_part(painter, *this, strip);
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
-    const FontSpec font = effective_font(font_);
+    const FontSpec font = text_font(font_);
     painter.save();
     painter.clip_rect({0.0, 0.0, bounds.width, height});
     for (std::size_t index = 0U; index < buttons.size(); ++index) {
