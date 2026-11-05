@@ -84,6 +84,16 @@ enum class ThemeRuleSet : std::uint8_t { program, user };
 //   selector that names one.
 // - `role`: the part's role.
 // - `states`: states the part must all be in.
+// - `surface`: a surface selector (`window`, `popup`; owner decision
+//   2026-11-05) names a surface, not a control: its classes and ID are the
+//   surface root control's, and it sets no control type, part, role or
+//   state. A surface rule never matches a control's part, nor a control
+//   rule a surface (PartFacts::surface).
+// The surface a rule may select (owner decision 2026-11-05): none (a
+// control), a window (a top-level window, an owned window or a floating
+// panel in its own window) or a popup (a menu, tooltip or drop-down).
+enum class SurfaceKind : std::uint8_t { none, window, popup };
+
 struct RuleSelector final {
     std::string control_type{};
     std::string stable_id{};
@@ -91,11 +101,12 @@ struct RuleSelector final {
     std::string part{};
     std::optional<PartRole> role{};
     std::vector<AnatomyState> states{};
+    SurfaceKind surface{SurfaceKind::none};
 
     friend bool operator==(const RuleSelector& left, const RuleSelector& right) noexcept {
         return left.control_type == right.control_type && left.stable_id == right.stable_id &&
                left.classes == right.classes && left.part == right.part && left.role == right.role &&
-               left.states == right.states;
+               left.states == right.states && left.surface == right.surface;
     }
 };
 
@@ -257,6 +268,54 @@ struct ColourOrigin final {
         return left.source == right.source && left.role == right.role && left.side == right.side;
     }
 };
+
+// A surface's backdrop as a theme declares it (`backdrop:`, owner decision
+// 2026-11-04): an ordered chain of operations over what lies beneath the
+// surface, applied in order. Blur asks the compositor for its blurred
+// backing (the system material; owner, 2026-11-04): GUI.Forms never samples
+// other windows' pixels. Blur's amount is a radius in logical units
+// (0 to maximum_backdrop_blur), saturate's a factor (0 to
+// maximum_backdrop_saturation, 1 unchanged); a tint composites `colour`
+// (straight alpha, source over) and keeps where it came from, so that a
+// role colour follows the scheme and forced high contrast. A chain holds at
+// most maximum_steps operations and at most one blur; the compiler refuses
+// any other.
+enum class BackdropStepKind : std::uint8_t { blur, saturate, tint };
+
+inline constexpr double maximum_backdrop_blur = 32.0;
+inline constexpr double maximum_backdrop_saturation = 4.0;
+
+struct BackdropStep final {
+    BackdropStepKind kind{BackdropStepKind::tint};
+    double amount{};
+    Color colour{};
+    ColourOrigin origin{};
+
+    friend bool operator==(const BackdropStep& left, const BackdropStep& right) noexcept {
+        return left.kind == right.kind && left.amount == right.amount && left.colour == right.colour &&
+               left.origin == right.origin;
+    }
+};
+
+struct BackdropDeclaration final {
+    static constexpr std::size_t maximum_steps = 8U;
+    // The first `length` entries are the chain, in order; the rest are
+    // value-initialized and never read.
+    std::array<BackdropStep, maximum_steps> steps{};
+    std::size_t length{};
+
+    friend bool operator==(const BackdropDeclaration& left, const BackdropDeclaration& right) noexcept {
+        if (left.length != right.length) return false;
+        for (std::size_t index = 0U; index < left.length && index < maximum_steps; ++index) {
+            if (!(left.steps[index] == right.steps[index])) return false;
+        }
+        return true;
+    }
+};
+
+// Whether `backdrop` is a chain the engine admits: its length within
+// capacity, every amount finite and in its range, and at most one blur.
+[[nodiscard]] bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept;
 
 // Where a colour is drawn, as forced high contrast reads it: a fill (a
 // plate), an edge (a border, a keyline or a ring) or text; `none` for a
@@ -1035,6 +1094,8 @@ struct ThemeRule final {
     // places such a copy among the theme's rules; 0 for none.
     std::vector<std::string> reads{};
     std::uint32_t source_position{};
+    // A surface rule's backdrop (`backdrop:`), or none.
+    std::optional<BackdropDeclaration> backdrop{};
 
     friend bool operator==(const ThemeRule& left, const ThemeRule& right) noexcept {
         return left.label == right.label && left.level == right.level && left.selector == right.selector &&
@@ -1044,7 +1105,7 @@ struct ThemeRule final {
                left.recipe_fields == right.recipe_fields && left.media == right.media &&
                left.scoped_definitions == right.scoped_definitions &&
                left.scoped_conditions == right.scoped_conditions && left.reads == right.reads &&
-               left.source_position == right.source_position;
+               left.source_position == right.source_position && left.backdrop == right.backdrop;
     }
 };
 
@@ -1120,6 +1181,10 @@ enum class RuleDiagnosticKind : std::uint8_t {
     expression_reads_colour,
     // A rule left with no declarations after the drops above is dropped.
     rule_empty,
+    // A backdrop (ThemeRule::backdrop) on a rule that selects no surface, or
+    // one that is not a valid chain (backdrop_declaration_valid); the
+    // backdrop is dropped.
+    backdrop_invalid,
     // A transition (E7) is dropped: its property is neither opacity nor a
     // parameter of the rule's primitive; the parameter is not animated or
     // not a number; or it has no states or more than
@@ -1299,6 +1364,9 @@ public:
         // lying under the pass; its presentation (transitions, ambient
         // effect, blend and font) from every matching rule.
         bool forced_high_contrast{};
+        // The surface whose rules are resolved, or none for a control's
+        // part: a rule matches only facts of its own surface kind.
+        SurfaceKind surface{SurfaceKind::none};
     };
 
     // Why a part resolved as it did.
@@ -1491,6 +1559,8 @@ private:
         std::vector<MaterialDeclaration> materials{};
         // Checked recipe fields, at most one per field.
         std::vector<RecipeDeclaration> recipe_fields{};
+        // A surface rule's checked backdrop.
+        std::optional<BackdropDeclaration> backdrop{};
         // Scoped custom properties (P12), by position in scoped_names_.
         std::vector<CompiledScoped> scoped_definitions{};
         std::vector<CompiledScoped> scoped_conditions{};
@@ -1560,6 +1630,10 @@ private:
     // diagnostic.
     static void add_recipe_fields(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
                                   CompiledRule& compiled);
+    // A rule's backdrop, checked; one on a rule that selects no surface, or
+    // an invalid chain, is dropped with a diagnostic.
+    static void add_backdrop(std::vector<RuleDiagnostic>& diagnostics, std::size_t index, const ThemeRule& rule,
+                             CompiledRule& compiled);
 
     [[nodiscard]] static bool matches(const CompiledRule& rule, const PartFacts& facts) noexcept;
     // These rules, a part's user theme's and its inline style's, merged in

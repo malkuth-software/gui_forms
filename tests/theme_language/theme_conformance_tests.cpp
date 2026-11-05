@@ -153,6 +153,8 @@ std::string states_text(std::span<const AnatomyState> states) {
 
 std::string selector_text(const RuleSelector& selector) {
     std::string text{};
+    if (selector.surface == SurfaceKind::window) text += "surface=window ";
+    if (selector.surface == SurfaceKind::popup) text += "surface=popup ";
     if (!selector.control_type.empty()) text += "type=" + selector.control_type + " ";
     if (!selector.stable_id.empty()) text += "id=" + selector.stable_id + " ";
     for (const std::string& name : selector.classes) text += "class=" + name + " ";
@@ -310,6 +312,23 @@ std::string material_text(const MaterialDeclaration& declaration) {
     return text + "\n";
 }
 
+// A surface's backdrop chain (owner decision 2026-11-05): each step in order.
+std::string backdrop_text(const BackdropDeclaration& backdrop) {
+    std::string text = "  backdrop";
+    if (backdrop.length == 0U) text += " none";
+    for (std::size_t index = 0U; index < backdrop.length && index < BackdropDeclaration::maximum_steps; ++index) {
+        const BackdropStep& step = backdrop.steps[index];
+        if (step.kind == BackdropStepKind::blur) text += " blur(" + number_text(step.amount) + ")";
+        if (step.kind == BackdropStepKind::saturate) text += " saturate(" + number_text(step.amount) + ")";
+        if (step.kind == BackdropStepKind::tint) {
+            text += " tint(" + colour_text(step.colour);
+            if (step.origin.source == ColourSource::role) text += " role";
+            text += ")";
+        }
+    }
+    return text + "\n";
+}
+
 std::string recipe_text(const RecipeDeclaration& declaration) {
     std::string text = "  recipe " + std::string(recipe_field_name(declaration.field));
     if (declaration.initial) text += " initial";
@@ -356,6 +375,7 @@ std::string rule_text(std::size_t index, const ThemeRule& rule) {
     }
     for (const MaterialDeclaration& declaration : rule.materials) text += material_text(declaration);
     for (const RecipeDeclaration& declaration : rule.recipe_fields) text += recipe_text(declaration);
+    if (rule.backdrop) text += backdrop_text(*rule.backdrop);
     for (const ScopedDefinition& definition : rule.scoped_definitions) {
         text += "  defines " + definition.name + " #" + std::to_string(definition.definition) + "\n";
     }

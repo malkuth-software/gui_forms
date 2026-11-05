@@ -308,6 +308,26 @@ void test_opaque_root_panel_skips_the_backplane() {
             "an opaque root panel must start the paint at its own face");
 }
 
+// Declared clarity (`background: transparent`, owner decision 2026-11-05):
+// a panel declared clear reports no cover, so the backplane (where a
+// window's backdrop lies) is still drawn beneath it, though its own face is
+// opaque (W405 is written once); without the declaration the face covers.
+void test_clear_panel_keeps_the_backplane() {
+    PanelFixture clear(make_control<Panel>(StableId("cover.clear")));
+    (*clear.root).set_background(face_color);
+    const InlineStyleResult styled = (*clear.root).set_inline_style("background: transparent");
+    require(styled.succeeded() && (*clear.root).declares_clarity(), "background: transparent declares the panel clear");
+    require(clear.paint_twice().backplane_fills(window_rect, face_color) == 1U,
+            "a clear panel must keep the backplane beneath its face");
+    const InlineStyleResult colour_only = (*clear.root).set_inline_style("background-color: transparent");
+    require(colour_only.succeeded() && !(*clear.root).declares_clarity(),
+            "a transparent colour over the floor's layers is not clear");
+    const InlineStyleResult removed = (*clear.root).set_inline_style("");
+    require(removed.succeeded() && !(*clear.root).declares_clarity(), "without a style the panel is not clear");
+    require(clear.paint_twice().backplane_fills(window_rect, face_color) == 0U,
+            "then its opaque face covers the backplane again");
+}
+
 void test_translucent_or_overridden_panels_keep_the_backplane() {
     PanelFixture translucent(make_control<Panel>(StableId("cover.translucent")));
     (*translucent.root).set_background(Color::rgba(1, 2, 3, 128));
@@ -495,6 +515,7 @@ int main() {
         test_invalid_plane_rejection_preserves_state();
         test_disposal_removes_cache_entry_and_returns_idle();
         test_opaque_root_panel_skips_the_backplane();
+        test_clear_panel_keeps_the_backplane();
         test_translucent_or_overridden_panels_keep_the_backplane();
         test_opaque_engine_faces_report_their_cover();
         test_a_cover_lost_during_paint_restores_what_it_skipped();

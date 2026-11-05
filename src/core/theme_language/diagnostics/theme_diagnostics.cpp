@@ -106,6 +106,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::property_not_admitted:
     case DiagnosticCode::primitive_over_budget:
     case DiagnosticCode::primitive_cost_unbounded:
+    case DiagnosticCode::backdrop_not_on_window:
     case DiagnosticCode::needs_newer_engine:
     case DiagnosticCode::keyword_from_newer_engine:
     case DiagnosticCode::literal_colour_unremappable:
@@ -113,6 +114,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::scheme_rules_without_variant:
     case DiagnosticCode::theme_variant_missing:
     case DiagnosticCode::inline_colour:
+    case DiagnosticCode::clear_control_paints_face:
     case DiagnosticCode::icon_unknown:
     case DiagnosticCode::icon_not_overridable:
     case DiagnosticCode::icon_refused:
@@ -203,6 +205,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::property_not_admitted: return "property_not_admitted";
     case DiagnosticCode::primitive_over_budget: return "primitive_over_budget";
     case DiagnosticCode::primitive_cost_unbounded: return "primitive_cost_unbounded";
+    case DiagnosticCode::backdrop_not_on_window: return "backdrop_not_on_window";
     case DiagnosticCode::needs_newer_engine: return "needs_newer_engine";
     case DiagnosticCode::keyword_from_newer_engine: return "keyword_from_newer_engine";
     case DiagnosticCode::literal_colour_unremappable: return "literal_colour_unremappable";
@@ -210,6 +213,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::scheme_rules_without_variant: return "scheme_rules_without_variant";
     case DiagnosticCode::theme_variant_missing: return "theme_variant_missing";
     case DiagnosticCode::inline_colour: return "inline_colour";
+    case DiagnosticCode::clear_control_paints_face: return "clear_control_paints_face";
     case DiagnosticCode::icon_unknown: return "icon_unknown";
     case DiagnosticCode::icon_not_overridable: return "icon_not_overridable";
     case DiagnosticCode::icon_refused: return "icon_refused";

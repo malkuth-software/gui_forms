@@ -22,6 +22,10 @@ Types
      - A gradient as written: - ``kind``: linear_gradient, radial_gradient or conic_gradient; - ``repeating``: CSS's repeating- form; - ``angle_degrees``: a linear gradient's CSS angle (0 up, 90 right), unless ``corner`` names one, or a conic gradient's ``from``; - ``centre_x``, ``centre_y``: a radial or conic gradient's centre, across and down the box; - ``circle``, ``extent``, ``radius_x``, ``radius_y``: a radial gradient's shape and size; with ``lengths``, an ellipse's radii, each along its own axis, or a circle's radius, radius_x's units; - ``stops``: at least one, at most maximum_authored_gradient_stops.
    * - :cpp:class:`AuthoredGradientStop <gui_forms::AuthoredGradientStop>`
      - One colour stop.
+   * - :cpp:class:`BackdropDeclaration <gui_forms::BackdropDeclaration>`
+     -  
+   * - :cpp:class:`BackdropStep <gui_forms::BackdropStep>`
+     -  
    * - :cpp:class:`BackplaneRegion <gui_forms::BackplaneRegion>`
      - One backplane image's region (E9-B): ``extent`` device pixels at ``scale``, its top-left pixel at ``origin`` in the window's device pixels (the window's logical origin times the scale; possibly fractional).
    * - :cpp:class:`BasicControlStyle <gui_forms::BasicControlStyle>`
@@ -297,7 +301,7 @@ Types
    * - :cpp:class:`RuleDiagnostic <gui_forms::RuleDiagnostic>`
      -  
    * - :cpp:class:`RuleSelector <gui_forms::RuleSelector>`
-     - What a rule applies to.
+     -  
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
      - A selector's specificity: the stable ID, the classes, the control type, the part (its name or role, one each) and the states, compared in that order (T2 plan, E4).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
@@ -456,6 +460,38 @@ Types
    .. cpp:member:: bool positioned
 
    .. cpp:member:: BoxLength position
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropDeclaration final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:member:: constexpr std::size_t maximum_steps
+
+      Default: ``8U``.
+
+   .. cpp:member:: std::array<BackdropStep, maximum_steps> steps
+
+      The first ``length`` entries are the chain, in order; the rest are value-initialized and never read.
+
+   .. cpp:member:: std::size_t length
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropStep final
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:member:: BackdropStepKind kind
+
+      Default: ``{BackdropStepKind::tint}``.
+
+   .. cpp:member:: double amount
+
+   .. cpp:member:: Color colour
+
+   .. cpp:member:: ColourOrigin origin
 
 .. cpp:namespace:: gui_forms
 
@@ -823,6 +859,10 @@ Types
    .. cpp:member:: bool forced_high_contrast
 
       Forced high contrast's pass (E1): the part's drawing (its primitive and parameters, its material and recipe fields) comes from the important_inline_style rules alone, every lower level lying under the pass; its presentation (transitions, ambient effect, blend and font) from every matching rule.
+
+   .. cpp:member:: SurfaceKind surface
+
+      The surface whose rules are resolved, or none for a control's part: a rule matches only facts of its own surface kind. Default: ``{SurfaceKind::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4343,8 +4383,6 @@ Types
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
 
-   What a rule applies to. Every field it sets must match; an empty field matches anything. No combinators: a selector names one part of one control. - ``control_type``: the control's anatomy id (ControlAnatomy::control_id, its id in manifests/controls.json). - ``stable_id``: the control's stable ID. - ``classes``: classes the control must all have (Control::classes). - ``part``: the part's declared name. A part is known by name only when it is painted with a key (PartPaint::key); an unkeyed part never matches a selector that names one. - ``role``: the part's role. - ``states``: states the part must all be in.
-
    .. cpp:member:: std::string control_type
 
    .. cpp:member:: std::string stable_id
@@ -4356,6 +4394,10 @@ Types
    .. cpp:member:: std::optional<PartRole> role
 
    .. cpp:member:: std::vector<AnatomyState> states
+
+   .. cpp:member:: SurfaceKind surface
+
+      Default: ``{SurfaceKind::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4565,6 +4607,10 @@ Types
    .. cpp:function:: ResolvedFont resolve_font(const Control& control, FontSpec own) const noexcept
 
       ``control``'s primary text font (T4 fonts): ``own``, the font it holds, with the font fields (RecipeField::font_family to letter_spacing) of the theme's rules matching it at rest in place: no part, the region role, and the states of a default ControlVisualContext. Forced high contrast keeps them: they are not colours. An em size is of ``own``'s size, an em spacing of the resolved size. Where the fields make no font valid_font_spec admits, or a size outside minimum_rule_font_size to maximum_rule_font_size, it is ``own`` with no field themed.
+
+   .. cpp:function:: bool declares_clarity(const Control& control) const noexcept
+
+      Whether the rules matching ``control`` at rest (its type, classes and stable ID, no part or role, the window's media and the control's user theme and inline style) declare it clear (owner decision 2026-11-05): ``background: transparent``, a background colour of alpha 0 and no visible background layer, so that the surface's backdrop shows through it. A colour or layer left to the floor is not clear.
 
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 
@@ -4990,6 +5036,10 @@ Types
 
    .. cpp:member:: std::uint32_t source_position
 
+   .. cpp:member:: std::optional<BackdropDeclaration> backdrop
+
+      A surface rule's backdrop (``backdrop:``), or none.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: ThemeRuleSheet final
@@ -5151,6 +5201,18 @@ Types
 
 Enumerations
 ------------
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: BackdropStepKind
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: blur
+
+   .. cpp:enumerator:: saturate
+
+   .. cpp:enumerator:: tint
 
 .. cpp:namespace:: gui_forms
 
@@ -6430,6 +6492,8 @@ Enumerations
 
    .. cpp:enumerator:: rule_empty
 
+   .. cpp:enumerator:: backdrop_invalid
+
    .. cpp:enumerator:: transition_property_unknown
 
    .. cpp:enumerator:: transition_property_not_animated
@@ -6489,6 +6553,18 @@ Enumerations
    .. cpp:enumerator:: fractional
 
    .. cpp:enumerator:: too_small
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SurfaceKind
+
+   ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: window
+
+   .. cpp:enumerator:: popup
 
 .. cpp:namespace:: gui_forms
 
@@ -7039,6 +7115,10 @@ Functions, constants and aliases
 
    Whether the role is a pair (a foreground on a background) rather than a single colour.
 
+.. cpp:function:: bool backdrop_declaration_valid(const BackdropDeclaration& backdrop) noexcept
+
+   Whether ``backdrop`` is a chain the engine admits: its length within capacity, every amount finite and in its range, and at most one blur.
+
 .. cpp:function:: std::string_view text_role_name(TextRole role) noexcept
 
    The role's name in a sheet: ``ui``, ``field``, ``caption``, ``heading``, ``title``, ``monospace``.
@@ -7142,6 +7222,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t colour_role_count
 
    Value: ``static_cast<std::size_t>(ColourRole::count)``.
+
+.. cpp:var:: constexpr double maximum_backdrop_blur
+
+   Value: ``32.0``.
+
+.. cpp:var:: constexpr double maximum_backdrop_saturation
+
+   Value: ``4.0``.
 
 .. cpp:var:: constexpr std::string_view opacity_property
 

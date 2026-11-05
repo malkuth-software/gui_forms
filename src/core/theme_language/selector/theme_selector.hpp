@@ -104,7 +104,9 @@ struct Alternative final {
 };
 
 // A simple selector read from the list.
-enum class SimpleKind : std::uint8_t { control_type, stable_id, style_class, state, part, role };
+// `surface` is `window` or `popup` (owner decision 2026-11-05), written
+// where a control type would be.
+enum class SimpleKind : std::uint8_t { control_type, stable_id, style_class, state, part, role, surface };
 struct Simple final {
     SimpleKind kind{SimpleKind::control_type};
     // The token that wrote it, for diagnostics.
@@ -114,6 +116,7 @@ struct Simple final {
     std::string_view name{};
     AnatomyState state{AnatomyState::normal};
     PartRole role{PartRole::region};
+    SurfaceKind surface{SurfaceKind::none};
 };
 
 // One compound selector being read, and, for an `:is()`, the union of

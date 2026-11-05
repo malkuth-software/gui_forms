@@ -479,6 +479,62 @@ void paint_path() {
 
 } // namespace
 
+// Surface rules (`window`, `popup`; owner decision 2026-11-05): a surface
+// rule matches only its own surface's facts, never a control's part, and a
+// control rule never a surface; a backdrop stands only on a surface rule and
+// only as a valid chain.
+void surface_rules() {
+    const std::vector<std::string> none{};
+    RuleSelector window{};
+    window.surface = SurfaceKind::window;
+    ThemeRule backdrop_rule = rule("window", CascadeLevel::theme_sheet, window, bulge(0.9));
+    BackdropDeclaration chain{};
+    chain.steps[0].kind = BackdropStepKind::blur;
+    chain.steps[0].amount = 12.0;
+    chain.steps[1].kind = BackdropStepKind::tint;
+    chain.steps[1].colour = Color::rgba(255, 255, 255, 128);
+    chain.length = 2U;
+    backdrop_rule.backdrop = chain;
+    ThemeRuleSheet sheet{};
+    sheet.rules.push_back(rule("any", CascadeLevel::theme_sheet, RuleSelector{}, bulge(0.4)));
+    sheet.rules.push_back(backdrop_rule);
+    // A backdrop on a control rule, and an invalid chain (two blurs, one out
+    // of range), are dropped.
+    ThemeRule on_control = rule("control", CascadeLevel::theme_sheet, by_type(), bulge(0.6));
+    on_control.backdrop = chain;
+    sheet.rules.push_back(on_control);
+    BackdropDeclaration invalid = chain;
+    invalid.steps[1].kind = BackdropStepKind::blur;
+    invalid.steps[1].amount = 40.0;
+    require(!backdrop_declaration_valid(invalid), "two blurs, one over 32, are no chain");
+    ThemeRule invalid_rule = rule("invalid", CascadeLevel::theme_sheet, window, bulge(0.2));
+    invalid_rule.backdrop = invalid;
+    sheet.rules.push_back(invalid_rule);
+    const CompiledThemeRules rules = CompiledThemeRules::compile(sheet, builtin_primitive_registry());
+    require(has_diagnostic(rules, RuleDiagnosticKind::backdrop_invalid, "control", "backdrop"),
+            "a backdrop on a control rule is dropped");
+    require(has_diagnostic(rules, RuleDiagnosticKind::backdrop_invalid, "invalid", "backdrop"),
+            "an invalid chain is dropped");
+    require(!has_diagnostic(rules, RuleDiagnosticKind::backdrop_invalid, "window", "backdrop"),
+            "a valid chain on a window rule stands");
+    // A control's part: the surface rules never apply, though the window
+    // rule is later and as specific as the type rule.
+    require(amplitude_of(rules.resolve(face_of("x", none))) == 0.6, "a surface rule matches no control");
+    CompiledThemeRules::PartFacts surface{};
+    surface.surface = SurfaceKind::window;
+    surface.classes = none;
+    // The bulge paints a face: the facts name that role, so that the rule's
+    // primitive is resolved rather than refused for its role.
+    surface.role = PartRole::face;
+    require(amplitude_of(rules.resolve(surface)) == 0.2, "a window's facts match the window rules only");
+    surface.surface = SurfaceKind::popup;
+    require(rules.resolve(surface).primitive == nullptr, "a popup's facts match no window rule");
+    RuleSelector specific = window;
+    specific.stable_id = "settings";
+    require(rule_specificity(specific).types == 1U && rule_specificity(specific).ids == 1U,
+            "a surface selector counts as a type");
+}
+
 int main() {
     levels_in_order();
     specificity_and_ties();
@@ -487,6 +543,7 @@ int main() {
     newer_engine_rules_fall_back();
     style_classes();
     paint_path();
+    surface_rules();
     std::cout << "theme cascade: levels, specificity, diagnostics, budgets, engine versions, classes and the paint "
                  "path passed\n";
     return EXIT_SUCCESS;

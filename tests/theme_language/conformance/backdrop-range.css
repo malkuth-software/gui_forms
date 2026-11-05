@@ -1,0 +1,2 @@
+/* forms: property.backdrop-range */
+window { backdrop: saturate(1) blur(40px) }

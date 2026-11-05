@@ -1,0 +1,2 @@
+/* forms: property.backdrop-second-blur */
+window { backdrop: blur(4px) tint(white) blur(2px) }

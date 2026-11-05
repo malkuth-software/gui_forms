@@ -425,6 +425,11 @@ public:
     // The primary text font before the text scale, with where each field
     // came from.
     [[nodiscard]] ResolvedFont resolved_text_font(FontSpec own) const noexcept;
+    // Whether the control's theme declares it clear (Theme::declares_clarity,
+    // owner decision 2026-11-05): a clear control reports no opaque cover
+    // (report_opaque_cover), so that a surface's backdrop is drawn beneath
+    // it. Cached as text_font is, and dropped with it.
+    [[nodiscard]] bool declares_clarity() const noexcept;
     // Resolves an already-effective FontSpec (normally from effective_font)
     // through the attached terminal provider without applying text scale a
     // second time.
@@ -1115,6 +1120,9 @@ private:
     [[nodiscard]] const Theme& chosen_theme() const noexcept;
     // Writes W404 for `property` of this control.
     void warn_inline_colour(std::string_view property) const;
+    // W405 clear_control_paints_face, once per control: a control declared
+    // clear painted a full-face fill of its own.
+    void warn_clear_face() const noexcept;
     // After the control's classes or inline style change: drops the cached
     // primary font, and returns Dirty::layout where it resolves differently
     // now (a font is a layout input), else Dirty::none.
@@ -1377,6 +1385,18 @@ private:
         ResolvedFont resolved{};
     };
     mutable TextFontCache text_font_cache_{};
+    // Whether the theme declares the control clear (declares_clarity), as
+    // last resolved, and what it was resolved against.
+    struct ClarityCache final {
+        bool valid{};
+        const Theme* theme{};
+        MediaFacts media{};
+        const CompiledThemeRules* user_rules{};
+        const CompiledThemeRules* inline_rules{};
+        bool clear{};
+    };
+    mutable ClarityCache clarity_cache_{};
+    mutable bool clear_face_warned_{};
     bool font_from_code_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};

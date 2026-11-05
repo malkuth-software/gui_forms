@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <functional>
 #include <limits>
+#include <new>
 #include <stdexcept>
 
 namespace gui_forms {
@@ -949,7 +950,30 @@ void Control::set_font_from_code(bool from_code) noexcept {
     text_font_cache_.valid = false;
 }
 
+bool Control::declares_clarity() const noexcept {
+    const Theme& theme = effective_theme();
+    MediaFacts media{};
+    const CompiledThemeRules* user_rules = nullptr;
+    const Window* const window = attached_window();
+    if (window != nullptr) media = window_media_facts(*window);
+    if (window != nullptr) user_rules = (*window).user_theme_rules();
+    const CompiledThemeRules* const inline_rules = inline_style_rules();
+    ClarityCache& cache = clarity_cache_;
+    const bool current = cache.valid && cache.theme == &theme && cache.media == media &&
+                         cache.user_rules == user_rules && cache.inline_rules == inline_rules;
+    if (current) return cache.clear;
+    cache.clear = theme.declares_clarity(*this);
+    cache.theme = &theme;
+    cache.media = media;
+    cache.user_rules = user_rules;
+    cache.inline_rules = inline_rules;
+    cache.valid = true;
+    return cache.clear;
+}
+
 Dirty Control::refresh_text_font() noexcept {
+    // The classes may have changed: the clarity is resolved again too.
+    clarity_cache_.valid = false;
     TextFontCache& cache = text_font_cache_;
     if (!cache.valid) return Dirty::none;
     const ResolvedFont before = cache.resolved;
@@ -2636,7 +2660,9 @@ InlineStyleResult Control::set_inline_style(std::string_view text) {
     if (text.empty()) {
         if (inline_style_ == nullptr) return InlineStyleResult::applied({});
         inline_style_.reset();
-        invalidate(Dirty::style | Dirty::paint);
+        // The caches keyed by the style's address are dropped: a later
+        // style may be allocated where this one was.
+        invalidate(Dirty::style | Dirty::paint | refresh_text_font());
         return InlineStyleResult::applied({});
     }
     const std::string file = "inline:" + std::string(stable_id().value());
@@ -2646,7 +2672,7 @@ InlineStyleResult Control::set_inline_style(std::string_view text) {
     // A refused style changes nothing (B2).
     if (compiled == nullptr) return InlineStyleResult::refused(std::move(diagnostics));
     inline_style_ = std::move(compiled);
-    invalidate(Dirty::style | Dirty::paint);
+    invalidate(Dirty::style | Dirty::paint | refresh_text_font());
     return InlineStyleResult::applied(std::move(diagnostics));
 }
 
@@ -3215,7 +3241,33 @@ void Control::on_paint(Painter&, Rect) {}
 void Control::on_paint_overlay(Painter&, Rect) {}
 
 void Control::report_opaque_cover(const Painter& painter, const Rect local) const noexcept {
-    if (surface_root_ != nullptr) (*surface_root_).note_opaque_cover(*this, painter, local);
+    if (surface_root_ == nullptr) return;
+    // A control declared clear covers nothing, so that the backdrop is drawn
+    // beneath it; one that reports a cover painted a full face of its own.
+    if (declares_clarity()) {
+        warn_clear_face();
+        return;
+    }
+    (*surface_root_).note_opaque_cover(*this, painter, local);
+}
+
+void Control::warn_clear_face() const noexcept {
+    if (clear_face_warned_) return;
+    clear_face_warned_ = true;
+    // The warning is advice: one that cannot be built (no memory) is not
+    // written, and painting goes on.
+    try {
+        theme_language::ThemeDiagnostic warning{};
+        warning.code = theme_language::DiagnosticCode::clear_control_paints_face;
+        warning.file = "inline:" + std::string(stable_id().value());
+        warning.property = "background";
+        warning.detail = "the theme declares the control clear, but it paints a full-face fill of its own";
+        theme_language::ThemeDiagnosticList list{};
+        list.add(std::move(warning));
+        theme_language::write_theme_diagnostics(list, stderr);
+    } catch (const std::bad_alloc&) {
+        return;
+    }
 }
 
 void Control::paint_back_color(Painter& painter, Rect bounds) const {

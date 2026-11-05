@@ -217,6 +217,9 @@ gui_forms::Control
          :cpp:func:`effective_font <gui_forms::Control::effective_font>` applies it to a font; custom controls use the result for
          both measuring and painting text.
 
+      **declares_clarity** : ``bool``, read-only
+         Whether the control's theme declares it clear (Theme::declares_clarity, owner decision 2026-11-05): a clear control reports no opaque cover (report_opaque_cover), so that a surface's backdrop is drawn beneath it. Cached as text_font is, and dropped with it.
+
       **effective_theme** : ``Theme``, read-only
          The theme in use: the nearest :cpp:func:`theme_override <gui_forms::Control::theme_override>` on this control or an
          ancestor, else the window's theme, else the default theme.
@@ -902,6 +905,10 @@ gui_forms::Control
       The attached window's presentation text scale, or 1 when detached.
       :cpp:func:`effective_font <gui_forms::Control::effective_font>` applies it to a font; custom controls use the result for
       both measuring and painting text.
+
+   .. cpp:function:: bool declares_clarity() const noexcept
+
+      Whether the control's theme declares it clear (Theme::declares_clarity, owner decision 2026-11-05): a clear control reports no opaque cover (report_opaque_cover), so that a surface's backdrop is drawn beneath it. Cached as text_font is, and dropped with it.
 
    .. cpp:function:: const Theme& effective_theme() const noexcept
 

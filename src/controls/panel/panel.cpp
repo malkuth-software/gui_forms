@@ -211,7 +211,11 @@ void Panel::on_paint(Painter& painter, Rect) {
     const bool opaque = overridden
         ? background().alpha == 255U
         : surface_material_opaque(effective_theme().resolve(visual_role_, visual_context()).material);
-    if (opaque) report_opaque_cover(painter, bounds);
+    // A panel its theme declares clear draws its face from the theme's
+    // transparent background and covers nothing; an overridden face is the
+    // panel's own fill, reported (report_opaque_cover warns of it).
+    const bool themed_clear = !overridden && declares_clarity();
+    if (opaque && !themed_clear) report_opaque_cover(painter, bounds);
 }
 
 SemanticDescriptor Panel::semantic_descriptor() const {

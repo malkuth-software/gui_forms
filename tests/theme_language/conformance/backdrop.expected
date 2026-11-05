@@ -1,0 +1,20 @@
+compiled
+W107 property_not_admitted 7:16 rule=window.other property=opacity detail=opacity on a window or popup
+rule 0 theme_sheet surface=window
+  label window
+  backdrop blur(12) saturate(1.4) tint(#f4f6fa99 role)
+rule 1 stable_id_rule surface=window id=settings class=tool
+  label window#settings.tool
+  backdrop tint(#ffffff80) saturate(1.2)
+rule 2 class_rule surface=popup class=menu
+  label popup.menu
+  backdrop none
+rule 3 theme_sheet surface=popup
+  label popup, window.plain
+  backdrop blur(0) tint(#ffffffff)
+rule 4 class_rule surface=window class=plain
+  label popup, window.plain
+  backdrop blur(0) tint(#ffffffff)
+rule 5 class_rule surface=window class=other
+  label window.other
+  backdrop tint(#00000040)

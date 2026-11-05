@@ -64,11 +64,20 @@ are no combinators.
 | state | `:hover` `:active` `:focus` `:focus-visible` `:checked` `:indeterminate` `:disabled` `:enabled` `:read-only` `:invalid` `:open` `:default`, and every other published state as `:state(drag-proximate)` |
 | either of | `button:is(:hover, :focus-visible)::part(face)` (at most 32 arguments) |
 | selector list | `button, check-box { ... }` |
+| surface | `window`, `popup`, with the surface root's classes and stable ID: `window#settings`, `popup.menu` |
 
 `:not()`, `:where()`, `:has()`, attribute selectors, combinators and `&`
 are errors. An unknown control type, part, state or pseudo-class is a
 warning that drops the rule. Specificity counts stable IDs, then classes,
 control types, parts and states.
+
+`window` and `popup` select a surface, not a control: a top-level window,
+an owned window or a floating panel in its own window is a `window`; a
+menu, a tooltip or a drop-down is a `popup`. Their classes and stable ID
+are the surface root control's. A surface selector takes no control type,
+part, role or state, and a surface rule holds `backdrop` alone (any other
+property is a warning). A surface selector counts as a control type in
+specificity.
 
 ## Values
 
@@ -163,6 +172,20 @@ may differ by colour scheme under `@media (prefers-color-scheme: dark)`.
 A font set in code (`set_font`) wins over the theme's. A change of the
 resolved font measures the control again. `font-variant`, `font-stretch`,
 `line-height` and the rest of CSS typography are warnings.
+
+`backdrop` belongs to `window` and `popup` rules: the chain of operations
+over what lies beneath the surface, applied in order. It is `none`, or a list
+of `blur(<length>)` (a radius, 0 to 32px; at most one), `saturate(<number> |
+<percentage>)` (0 to 4, 1 unchanged) and `tint(<colour> [/ <alpha>])` (the
+alpha, 0 to 1 or a percentage, scales the colour's own), at most 8
+operations. Windows and popups are native, partially transparent windows,
+and blurring is the operating system's work: `blur()` asks the compositor for
+its blurred backing (the system material), and GUI.Forms never samples other
+windows' pixels. A role colour in `tint()` (`tint(role(ink-on-paper) / 0.6)`)
+follows the colour scheme and forced high contrast. In any other rule
+`backdrop` is warning W110 (`backdrop_not_on_window`) and is dropped; a
+second blur, an amount out of range or a ninth operation is an error. For
+example, `window { backdrop: blur(12px) saturate(140%) tint(role(ink-on-paper) / 0.6) }`.
 
 `clip-path`, `rotate`, `transform`, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are
