@@ -2164,6 +2164,24 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     }
 }
 
+void SurfaceRoot::forget_destroyed_subtree(Control& control) noexcept {
+    const std::size_t released = engine_parts_.release_control(control.stable_id_.value());
+    if (released > 0U) metrics_.record_engine_parts_released(released, engine_parts_.record_count());
+    motion_clock_.release_owner(control);
+    erase_containing_block_entries(control.runtime_id());
+    control_table_.release(control.surface_slot_);
+    control.surface_slot_ = {};
+    control.window_ = nullptr;
+    control.surface_root_ = nullptr;
+    {
+        std::scoped_lock lock(control.dispatcher_mutex_);
+        control.dispatcher_state_.reset();
+    }
+    for (const Control::Ptr& child : control.children_) {
+        if (child && (*child).surface_root_ == this) forget_destroyed_subtree(*child);
+    }
+}
+
 bool SurfaceRoot::collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
                                      std::vector<ThemeCompileDiagnostic>& diagnostics) const {
     if (root_ && !(*root_).theme_override_) {

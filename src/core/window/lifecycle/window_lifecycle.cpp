@@ -105,8 +105,17 @@ void SurfaceRoot::release_tree() noexcept {
     shutdown_dispatcher();
 }
 
-// Here, where every type the root owns is complete.
-SurfaceRoot::~SurfaceRoot() = default;
+// Here, where every type the root owns is complete. The owners call
+// release_tree first; a root whose construction failed part way did not, so
+// whatever is still attached is forgotten before the members it would reach
+// from ~Control are destroyed.
+SurfaceRoot::~SurfaceRoot() {
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        const Control::Ptr overlay_root = (*overlay).overlay();
+        if (overlay_root && (*overlay_root).surface_root_ == this) forget_destroyed_subtree(*overlay_root);
+    }
+    if (root_ && (*root_).surface_root_ == this) forget_destroyed_subtree(*root_);
+}
 
 void SurfaceRoot::shutdown_dispatcher() noexcept {
     // Input deferred during a paint would be drained by posted work the

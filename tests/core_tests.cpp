@@ -1233,6 +1233,63 @@ void test_overlay_surface_composites_after_every_application_plane() {
             "an overlay root's backplane must composite after the application's overlay paint plane");
 }
 
+// The window owns a shown overlay root (owner, 2026-11-05): a caller that
+// passes a temporary still sees it shown until it closes it.
+void test_window_owns_a_shown_overlay() {
+    Fixture fixture;
+    Window& window = *fixture.window;
+    OverlayToken token = window.open_overlay(
+        fixture.root, make_control<ProbeControl>(StableId("owned-overlay.root")));
+    window.perform_layout();
+    paint_pending(window, fixture.painter);
+    const Control::Ptr shown = window.find("owned-overlay.root");
+    require(token.connected() && shown && (*shown).attached_surface_root() == &window,
+            "an overlay whose caller kept no handle stays shown");
+    const Control::WeakPtr observed = shown;
+    token.disconnect();
+    require(!window.find("owned-overlay.root") && !token.connected() && !observed.expired(),
+            "closing it detaches it while the test still holds it");
+}
+
+// A control that closes an overlay from its own attach notification: the
+// window does not detach during a lifecycle notification, so the overlay,
+// which only the window owned, is destroyed while still attached.
+class ClosesOverlayOnAttach final : public ProbeControl {
+public:
+    explicit ClosesOverlayOnAttach(StableId id) : ProbeControl(std::move(id)) {}
+    void on_attached_to_window() override {
+        ProbeControl::on_attached_to_window();
+        if (token != nullptr) (*token).disconnect();
+    }
+    OverlayToken* token{};
+};
+
+// The destructor backstop (owner, 2026-11-05): a control destroyed while
+// attached leaves no address in the window's registries, so its pending
+// touch is dropped and the next settle, layout and paint run safely.
+void test_destroyed_attached_control_is_forgotten() {
+    Fixture fixture;
+    Window& window = *fixture.window;
+    OverlayToken token = window.open_overlay(
+        fixture.root, make_control<ProbeControl>(StableId("forgotten-overlay.root")));
+    Control::Ptr overlay = window.find("forgotten-overlay.root");
+    require(overlay != nullptr, "the overlay is attached");
+    const Control::WeakPtr observed = overlay;
+    // A pending touch for the settle to reach.
+    (*overlay).set_requested_bounds({5.0, 5.0, 30.0, 20.0});
+    // The test lets go of the overlay; only the window holds it now.
+    overlay.reset();
+    std::shared_ptr<ClosesOverlayOnAttach> closer =
+        make_control<ClosesOverlayOnAttach>(StableId("forgotten-overlay.closer"));
+    (*closer).token = &token;
+    (*fixture.root).add_child(closer);
+    require(observed.expired(), "the overlay was destroyed while attached");
+    window.perform_layout();
+    paint_pending(window, fixture.painter);
+    require(!window.find("forgotten-overlay.root") && !token.connected(),
+            "the destroyed overlay is gone from the window");
+}
+
 void test_tokenized_accelerator_runs_after_focused_route() {
     Fixture fixture;
     require((*fixture.window).request_focus(fixture.child),
@@ -1412,6 +1469,8 @@ int main() {
         test_control_identity_geometry_constraints_and_z_order();
         test_damage_and_idle_metrics();
         test_overlay_surface_composites_after_every_application_plane();
+        test_window_owns_a_shown_overlay();
+        test_destroyed_attached_control_is_forgotten();
         test_tokenized_accelerator_runs_after_focused_route();
         test_presentation_settings_separate_text_and_device_scale();
         test_semantic_feedback_is_clocked_bounded_and_sound_optional();

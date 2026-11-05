@@ -934,7 +934,12 @@ std::span<const PropertyEntry> Control::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-Control::~Control() = default;
+Control::~Control() {
+    // Normally a control leaves its window (detach) before it is destroyed.
+    // One destroyed while still attached is forgotten here, so no window
+    // registry keeps its address (owner, 2026-11-05).
+    if (surface_root_ != nullptr) (*surface_root_).forget_destroyed_subtree(*this);
+}
 
 double Control::effective_text_scale() const noexcept {
     return surface_root_ != nullptr

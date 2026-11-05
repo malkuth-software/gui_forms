@@ -956,6 +956,7 @@ private:
     friend class SubSurface;
     friend class SubSurfaceHost;
     friend class SurfaceRoot;
+    friend class Control;
     // How the newest focus change came about, for a control that forwards
     // focus to another tree (SubSurfaceHost): through Tab, Shift+Tab, or
     // anything else (none).
@@ -1245,6 +1246,16 @@ private:
     void detach_subtree(const Control::Ptr& control);
     void detach_subtree_state(const Control::Ptr& control,
                               ControlList& detached);
+    // The backstop for a control destroyed while still attached (owner,
+    // 2026-11-05), called from ~Control: the window forgets it and every
+    // descendant still attached here. That covers its control-table slot,
+    // its engine part records, its motion values, its containing-block
+    // entries, and its window, root and dispatcher links. No lifecycle
+    // notification runs, since the control is being destroyed.
+    // Registries that observe weakly (focus, hover, capture, stable IDs)
+    // expire on their own. A settle or paint walk in progress stays valid:
+    // it reads each slot again by index, and a released slot answers null.
+    void forget_destroyed_subtree(Control& control) noexcept;
     void dispose_subtree(const Control::Ptr& control) noexcept;
     void revoke_interaction_for_subtree(const Control::Ptr& control,
                                         bool notify_focus);
