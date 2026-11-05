@@ -70,7 +70,7 @@ private:
         const bool checkable = state.checkable;
         const std::uint64_t generation = state.generation;
         ButtonBase& button = button_;
-        button.set_enabled(enabled);
+        button.enabled = enabled;
         // set_enabled may remove this connection; use only the retained control.
         if (!button.is_alive() || !state_.connected()) return;
         if (command_.state().generation != generation) return;
@@ -217,7 +217,7 @@ Size combined_content_size(TextImageRelation relation, Size text, Size image, do
 ButtonBase::ButtonBase(StableId stable_id, std::string text)
     : Control(std::move(stable_id)), text_(std::move(text)) {
     set_focusable(true);
-    set_cursor(CursorKind::hand);
+    cursor = CursorKind::hand;
 
     PropertyDescriptor text_alignment;
     text_alignment.name = "text_alignment";
@@ -1141,8 +1141,8 @@ void ButtonBase::on_activate() {
 SemanticDescriptor ButtonBase::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::button;
-    descriptor.name = accessible_name().empty() ? display_text() : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? display_text() : accessible_name.type();
+    descriptor.description = accessible_description.type();
     if (use_mnemonic_) descriptor.access_key = mnemonic_access_key(text_);
     descriptor.actions = {SemanticAction::focus, SemanticAction::press};
     if (visual_status() == ControlVisualStatus::pending) {

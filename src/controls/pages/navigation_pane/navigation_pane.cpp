@@ -223,10 +223,10 @@ private:
 
 NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id)) {
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // The pane sizes itself: its width follows collapsing (measure).
-    set_auto_size(true);
+    auto_size = true;
     const std::string prefix((*this).stable_id().value());
     menu_ = std::make_unique<ContextMenu>(prefix + ".menu");
     menu_invoked_ = (*menu_).item_invoked().subscribe(
@@ -1539,8 +1539,8 @@ void NavigationPane::on_menu_item_invoked(const MenuItemInvocation& invocation) 
 SemanticDescriptor NavigationPane::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name().empty() ? "Navigation pane" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Navigation pane" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

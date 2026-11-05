@@ -149,7 +149,7 @@ gui_forms::ProgressBar
 
    The control publishes the accessibility role ``progress_bar``, with the value
    as text and as a number together with the minimum and maximum. It reports busy
-   while it is animating. Give it a name with ``set_accessible_name`` that says
+   while it is animating. Give it a name by writing ``accessible_name`` that says
    what is in progress.
 
    .. rubric:: Examples
@@ -162,7 +162,7 @@ gui_forms::ProgressBar
       gf::Value<double> copied(0.0);
       std::shared_ptr<gf::ProgressBar> bar =
           gf::make_control<gf::ProgressBar>(gf::StableId("copy.progress"));
-      (*bar).set_accessible_name("Copying files");
+      (*bar).accessible_name = "Copying files";
       (*bar).set_range(0.0, 250.0);   // 250 files
       (*bar).bind(copied);
       copied.set(125.0);              // the bar is now half full
@@ -173,7 +173,7 @@ gui_forms::ProgressBar
 
       std::shared_ptr<gf::ProgressBar> busy =
           gf::make_control<gf::ProgressBar>(gf::StableId("sync.busy"));
-      (*busy).set_accessible_name("Synchronizing");
+      (*busy).accessible_name = "Synchronizing";
       (*busy).set_visual_style(gf::ProgressBarVisualStyle::marquee);
       gf::Window window(busy, gf::Size{160.0, 20.0});   // the band now animates
       (*busy).set_animation_paused(true);               // it stops, keeping its phase

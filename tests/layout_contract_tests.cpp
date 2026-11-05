@@ -452,11 +452,11 @@ void test_layout_direction_inheritance_and_invalidation() {
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{200.0, 100.0});
     Window& window = *held_window;
     window.perform_layout();
-    require((*grandchild).layout_direction() == LayoutDirection::inherit &&
+    require((*grandchild).layout_direction.type() == LayoutDirection::inherit &&
                 (*grandchild).effective_layout_direction() == LayoutDirection::left_to_right,
             "an inheriting control under a default root lays out left to right");
 
-    (*root).set_layout_direction(LayoutDirection::right_to_left);
+    (*root).layout_direction = LayoutDirection::right_to_left;
     require((*child).effective_layout_direction() == LayoutDirection::right_to_left &&
                 (*grandchild).effective_layout_direction() == LayoutDirection::right_to_left,
             "inheriting descendants must take the nearest explicit direction");
@@ -464,17 +464,17 @@ void test_layout_direction_inheritance_and_invalidation() {
                 !has_dirty((*grandchild).dirty(), Dirty::measure),
             "a direction change must re-arrange the subtree without re-measuring it");
     window.perform_layout();
-    (*root).set_layout_direction(LayoutDirection::right_to_left);
+    (*root).layout_direction = LayoutDirection::right_to_left;
     require(!has_dirty((*grandchild).dirty(), Dirty::layout),
             "setting the same direction must not invalidate");
 
-    (*child).set_layout_direction(LayoutDirection::left_to_right);
+    (*child).layout_direction = LayoutDirection::left_to_right;
     require((*grandchild).effective_layout_direction() == LayoutDirection::left_to_right &&
                 (*root).effective_layout_direction() == LayoutDirection::right_to_left,
             "an explicit direction must override its ancestors for its own subtree only");
 
     std::shared_ptr<CountingControl> other = counting_control("contract.direction.other", 50.0, 50.0);
-    (*other).set_layout_direction(LayoutDirection::right_to_left);
+    (*other).layout_direction = LayoutDirection::right_to_left;
     const Control::Ptr moved = (*child).remove_child((*grandchild).runtime_id());
     require((*moved).effective_layout_direction() == LayoutDirection::left_to_right,
             "a detached root lays out left to right");
@@ -484,11 +484,11 @@ void test_layout_direction_inheritance_and_invalidation() {
 
     bool rejected = false;
     try {
-        (*root).set_layout_direction(static_cast<LayoutDirection>(7));
+        (*root).layout_direction = static_cast<LayoutDirection>(7);
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*root).layout_direction() == LayoutDirection::right_to_left,
+    require(rejected && (*root).layout_direction.type() == LayoutDirection::right_to_left,
             "an out-of-range direction must be refused and leave the direction unchanged");
 }
 
@@ -513,12 +513,12 @@ void test_logical_boxes_identical_at_four_scales() {
     (*flow).set_wrap_contents(true);
     (*flow).add_child(wrapping_label("contract.scale.flow.a", "Proportional advances decide wrapping"));
     std::shared_ptr<Button> button = std::make_shared<Button>(StableId("contract.scale.flow.b"), "Apply changes");
-    (*button).set_auto_size(true);
+    (*button).auto_size = true;
     (*flow).add_child(button);
     (*flow).add_child(wrapping_label("contract.scale.flow.c", "short"));
     std::shared_ptr<Label> docked = wrapping_label("contract.scale.docked",
                                                    "A docked label wraps at the panel's width.");
-    (*docked).set_dock(DockStyle::bottom);
+    (*docked).dock = DockStyle::bottom;
     (*docked).set_requested_bounds({0.0, 0.0, 0.0, 41.0});
     std::shared_ptr<Label> anchored = wrapping_label("contract.scale.anchored", "Anchored text");
     (*anchored).set_requested_bounds({281.0, 9.0, 0.0, 0.0});

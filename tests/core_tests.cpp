@@ -285,8 +285,7 @@ public:
 
     void operator()() const {
         alternate_ = !alternate_;
-        control_.set_accessible_name(
-            alternate_ ? "Semantic oscillation A" : "Semantic oscillation B");
+        control_.accessible_name = alternate_ ? "Semantic oscillation A" : "Semantic oscillation B";
     }
 
 private:
@@ -792,10 +791,10 @@ void test_callback_arbitration_snapshots_paint_hit_semantics_and_validation() {
         std::shared_ptr<CallbackArbitrationControl> added =
             make_control<CallbackArbitrationControl>(
             StableId("callback.semantic.added"));
-        (*root).set_accessible_name("Semantic root");
-        (*mutator).set_accessible_name("Semantic mutator");
-        (*removed).set_accessible_name("Semantic removed");
-        (*added).set_accessible_name("Semantic added");
+        (*root).accessible_name = "Semantic root";
+        (*mutator).accessible_name = "Semantic mutator";
+        (*removed).accessible_name = "Semantic removed";
+        (*added).accessible_name = "Semantic added";
         (*root).add_child(mutator);
         (*root).add_child(removed);
         bool changed_once{};
@@ -953,7 +952,7 @@ void test_capture_released_before_release_callback() {
 
 void test_disabled_control_is_ineligible() {
     Fixture fixture;
-    (*fixture.child).set_enabled(false);
+    (*fixture.child).enabled = false;
     require(!(*fixture.window).request_focus(fixture.child),
             "disabled control must reject focus");
     (*fixture.window).dispatch_pointer({PointerAction::down, PointerButton::primary,
@@ -1030,13 +1029,13 @@ void test_cursor_inheritance_and_override() {
     Fixture fixture;
     require((*fixture.child).effective_cursor() == CursorKind::arrow,
             "controls must default to the portable arrow cursor");
-    (*fixture.root).set_cursor(CursorKind::hand);
+    (*fixture.root).cursor = CursorKind::hand;
     require((*fixture.child).effective_cursor() == CursorKind::hand,
             "unset child cursor must inherit from the retained parent");
-    (*fixture.child).set_cursor(CursorKind::text);
+    (*fixture.child).cursor = CursorKind::text;
     require((*fixture.child).effective_cursor() == CursorKind::text,
             "explicit child cursor must override inherited cursor");
-    (*fixture.child).set_cursor(std::nullopt);
+    (*fixture.child).cursor = std::nullopt;
     require((*fixture.child).effective_cursor() == CursorKind::hand,
             "clearing a cursor override must restore inheritance");
 }
@@ -1049,14 +1048,14 @@ void test_control_identity_geometry_constraints_and_z_order() {
     std::string observed_name;
     SubscriptionToken changed = (*first).name_changed().subscribe(
         RecordValue<std::string>(observed_name));
-    (*first).set_name("primary-field");
-    require((*first).name() == "primary-field" &&
+    (*first).name = "primary-field";
+    require((*first).name.type() == "primary-field" &&
                 observed_name == "primary-field" &&
                 (*first).stable_id().value() == "control.first",
             "mutable Forms Name must remain distinct from immutable retained identity");
 
-    (*first).set_minimum_size({40.0, 20.0});
-    (*first).set_maximum_size({80.0, 60.0});
+    (*first).minimum_size = {40.0, 20.0};
+    (*first).maximum_size = {80.0, 60.0};
     (*first).set_requested_bounds({10.0, 12.0, 5.0, 100.0});
     require((*first).requested_bounds() == Rect{10.0, 12.0, 40.0, 60.0} &&
                 (*first).left() == 10.0 && (*first).top() == 12.0 &&
@@ -1073,9 +1072,9 @@ void test_control_identity_geometry_constraints_and_z_order() {
 
     (*second).set_requested_bounds({10.0, 12.0, 40.0, 60.0});
     (*nested).set_requested_bounds({2.0, 2.0, 8.0, 8.0});
-    (*nested).set_tab_index(5U);
-    (*second).set_tab_index(10U);
-    (*first).set_tab_index(20U);
+    (*nested).tab_index = 5U;
+    (*second).tab_index = 10U;
+    (*first).tab_index = 20U;
     (*second).add_child(nested);
     (*root).add_child(first);
     (*root).add_child(second);
@@ -1097,23 +1096,23 @@ void test_control_identity_geometry_constraints_and_z_order() {
     require((*root).get_child_at_point({20.0, 20.0}) == second,
             "direct child lookup must return the topmost overlapping child");
     window.capture_pointer(second, 1U);
-    (*second).set_hit_test_transparent(true);
+    (*second).hit_test_transparent = true;
     require((*root).get_child_at_point(
                 {20.0, 20.0}, GetChildAtPointSkip::transparent) == first &&
                 window.hit_test({20.0, 20.0}) == first &&
                 window.captured_control() == nullptr,
             "transparent child lookup and ordinary pointer routing must pass through and revoke capture coherently");
-    (*second).set_hit_test_transparent(false);
-    (*second).set_enabled(false);
+    (*second).hit_test_transparent = false;
+    (*second).enabled = false;
     require((*root).get_child_at_point(
                 {20.0, 20.0}, GetChildAtPointSkip::disabled) == first,
             "disabled child lookup exclusion must reveal the next z-order candidate");
-    (*second).set_enabled(true);
-    (*second).set_visible(false);
+    (*second).enabled = true;
+    (*second).visible = false;
     require((*root).get_child_at_point(
                 {20.0, 20.0}, GetChildAtPointSkip::invisible) == first,
             "invisible child lookup exclusion must reveal the next z-order candidate");
-    (*second).set_visible(true);
+    (*second).visible = true;
     require((*root).get_next_control({}, true) == second &&
                 (*root).get_next_control(second, true) == nested &&
                 (*root).get_next_control(nested, true) == first &&
@@ -1146,17 +1145,17 @@ void test_control_identity_geometry_constraints_and_z_order() {
     std::shared_ptr<gui_forms::Control> sizing = make_control<Control>(StableId("control.autosize"));
     std::shared_ptr<gui_forms::Control> content = make_control<Control>(StableId("control.autosize.content"));
     (*sizing).set_requested_bounds({0.0, 0.0, 100.0, 80.0});
-    (*sizing).set_padding({2.0, 2.0, 2.0, 2.0});
+    (*sizing).padding = {2.0, 2.0, 2.0, 2.0};
     (*content).set_requested_bounds({10.0, 8.0, 40.0, 20.0});
     (*sizing).add_child(content);
     std::size_t auto_size_events{};
     SubscriptionToken auto_size_token = (*sizing).auto_size_changed().subscribe(
         CountTrueValues(auto_size_events));
-    (*sizing).set_auto_size(true);
+    (*sizing).auto_size = true;
     require((*sizing).get_preferred_size({200.0, 200.0}) == Size{100.0, 80.0} &&
                 auto_size_events == 1U,
             "GrowOnly AutoSize must retain authored minimum extent and publish one change");
-    (*sizing).set_auto_size_mode(AutoSizeMode::grow_and_shrink);
+    (*sizing).auto_size_mode = AutoSizeMode::grow_and_shrink;
     require((*sizing).get_preferred_size({200.0, 200.0}) == Size{55.0, 33.0},
             "GrowAndShrink AutoSize must derive deterministic child, margin, and padding extent");
 }

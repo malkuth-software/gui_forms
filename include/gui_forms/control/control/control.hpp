@@ -7,6 +7,8 @@
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/binding_types.hpp"
 #include "gui_forms/binding/property_table/property_table.hpp"
+#include "gui_forms/control/control_capabilities/control_capabilities.hpp"
+#include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
 #include "gui_forms/display.hpp"
 #include "gui_forms/dispatcher.hpp"
 #include "gui_forms/dirty.hpp"
@@ -91,23 +93,6 @@ struct RuntimeId {
     }
 };
 
-enum class DockStyle : std::uint8_t {
-    none,
-    top,
-    bottom,
-    left,
-    right,
-    fill,
-};
-
-enum class AnchorStyles : std::uint8_t {
-    none = 0U,
-    top = 1U << 0U,
-    bottom = 1U << 1U,
-    left = 1U << 2U,
-    right = 1U << 3U,
-};
-
 // Exact WinForms flag values. Masked bounds mutation is kept in the portable
 // retained core because layout authors and generated facades need one coherent
 // source of truth for partial geometry updates.
@@ -127,11 +112,6 @@ enum class GetChildAtPointSkip : std::uint8_t {
     invisible = 1U,
     disabled = 2U,
     transparent = 4U,
-};
-
-enum class AutoSizeMode : std::uint8_t {
-    grow_and_shrink = 0U,
-    grow_only = 1U,
 };
 
 enum class OwnerDecorationLayer : std::uint8_t {
@@ -306,24 +286,6 @@ constexpr ControlStyles& operator|=(ControlStyles& left,
     return left;
 }
 
-[[nodiscard]] constexpr AnchorStyles operator|(AnchorStyles left,
-                                                AnchorStyles right) noexcept {
-    return static_cast<AnchorStyles>(static_cast<std::uint8_t>(left) |
-                                     static_cast<std::uint8_t>(right));
-}
-
-[[nodiscard]] constexpr AnchorStyles operator&(AnchorStyles left,
-                                                AnchorStyles right) noexcept {
-    return static_cast<AnchorStyles>(static_cast<std::uint8_t>(left) &
-                                     static_cast<std::uint8_t>(right));
-}
-
-constexpr AnchorStyles& operator|=(AnchorStyles& left,
-                                   AnchorStyles right) noexcept {
-    left = left | right;
-    return left;
-}
-
 [[nodiscard]] constexpr BoundsSpecified operator|(BoundsSpecified left,
                                                    BoundsSpecified right) noexcept {
     return static_cast<BoundsSpecified>(static_cast<std::uint8_t>(left) |
@@ -358,12 +320,9 @@ constexpr AnchorStyles& operator|=(AnchorStyles& left,
     return (value & flag) != GetChildAtPointSkip::none;
 }
 
-[[nodiscard]] constexpr bool has_anchor(AnchorStyles value,
-                                        AnchorStyles flag) noexcept {
-    return (value & flag) != AnchorStyles::none;
-}
-
-class Control : public Component, public std::enable_shared_from_this<Control> {
+class Control : public Component,
+                public std::enable_shared_from_this<Control>,
+                public ControlCapabilities<Control> {
 public:
     using Ptr = std::shared_ptr<Control>;
     using WeakPtr = std::weak_ptr<Control>;
@@ -378,8 +337,6 @@ public:
 
     [[nodiscard]] RuntimeId runtime_id() const noexcept { return runtime_id_; }
     [[nodiscard]] const StableId& stable_id() const noexcept { return stable_id_; }
-    [[nodiscard]] const std::string& name() const noexcept { return name_; }
-    void set_name(std::string name);
     [[nodiscard]] Event<const std::string&>& name_changed() noexcept {
         return name_changed_;
     }
@@ -418,12 +375,6 @@ public:
     [[nodiscard]] double bottom() const noexcept {
         return requested_bounds_.y + requested_bounds_.height;
     }
-    [[nodiscard]] Size minimum_size() const noexcept { return minimum_size_; }
-    void set_minimum_size(Size size);
-    // A zero maximum dimension is unbounded, matching the familiar Forms
-    // convention without using infinities in serialized retained state.
-    [[nodiscard]] Size maximum_size() const noexcept { return maximum_size_; }
-    void set_maximum_size(Size size);
     [[nodiscard]] Rect arranged_bounds() const;
     [[nodiscard]] Rect committed_arranged_bounds() const noexcept { return arranged_bounds_; }
     // The slot a parent's arrange just assigned, before the window commits
@@ -543,14 +494,8 @@ public:
     // text and list boxes keep SystemColors.Window under a coloured form.
     // A check box's box is a well too: it keeps the theme's colour under an
     // inherited background, but the check box's own background fills it,
-    // where WinForms' box stays white. Setting or clearing one repaints the
-    // control and its descendants.
-    [[nodiscard]] std::optional<Color> back_color() const noexcept { return back_color_; }
-    void set_back_color(Color color);
-    void clear_back_color();
-    [[nodiscard]] std::optional<Color> fore_color() const noexcept { return fore_color_; }
-    void set_fore_color(Color color);
-    void clear_fore_color();
+    // where WinForms' box stays white. Writing one (std::nullopt clears it)
+    // repaints the control and its descendants.
     // This control's own colour, else its nearest ancestor's, else none.
     [[nodiscard]] std::optional<Color> ambient_back_color() const noexcept;
     [[nodiscard]] std::optional<Color> ambient_fore_color() const noexcept;
@@ -574,24 +519,10 @@ public:
     // pumping until the installed host drains the callback, then receives the
     // original exception or DispatchCancelledError.
     void invoke(std::function<void()> callback);
-    [[nodiscard]] Insets margin() const noexcept { return margin_; }
-    void set_margin(Insets margin);
-    [[nodiscard]] Insets padding() const noexcept { return padding_; }
-    void set_padding(Insets padding);
     [[nodiscard]] Point auto_scroll_offset() const noexcept {
         return auto_scroll_offset_;
     }
     void set_auto_scroll_offset(Point offset);
-    [[nodiscard]] DockStyle dock() const noexcept { return dock_; }
-    void set_dock(DockStyle dock);
-    [[nodiscard]] AnchorStyles anchor() const noexcept { return anchor_; }
-    void set_anchor(AnchorStyles anchor);
-    [[nodiscard]] virtual bool auto_size() const noexcept { return auto_size_; }
-    virtual void set_auto_size(bool auto_size);
-    [[nodiscard]] AutoSizeMode auto_size_mode() const noexcept {
-        return auto_size_mode_;
-    }
-    void set_auto_size_mode(AutoSizeMode mode);
     [[nodiscard]] Event<bool>& auto_size_changed() noexcept {
         return auto_size_changed_;
     }
@@ -606,22 +537,14 @@ public:
     // Settles the surface root's pending touches first (see dirty()).
     [[nodiscard]] LayoutTransactionState layout_transaction_state() const;
 
-    [[nodiscard]] bool visible() const noexcept { return visible_; }
-    void set_visible(bool visible);
     // Layout collapse is assigned only by a retained parent layout. It does
     // not mutate authored visibility, but it removes the subtree from the
     // effective visual/input/semantic surface until the parent reveals it.
     [[nodiscard]] bool layout_collapsed() const noexcept {
         return layout_collapsed_;
     }
-    [[nodiscard]] bool enabled() const noexcept { return enabled_; }
-    void set_enabled(bool enabled);
     [[nodiscard]] bool focusable() const noexcept { return focusable_; }
     void set_focusable(bool focusable);
-    [[nodiscard]] bool causes_validation() const noexcept {
-        return causes_validation_;
-    }
-    void set_causes_validation(bool causes_validation);
     [[nodiscard]] Event<bool>& causes_validation_changed() noexcept {
         return causes_validation_changed_;
     }
@@ -629,20 +552,11 @@ public:
         return validating_;
     }
     [[nodiscard]] Event<>& validated() noexcept { return validated_; }
-    [[nodiscard]] std::uint32_t tab_index() const noexcept { return tab_index_; }
-    void set_tab_index(std::uint32_t index);
-    [[nodiscard]] bool tab_stop() const noexcept { return tab_stop_; }
-    void set_tab_stop(bool enabled);
-    [[nodiscard]] bool allow_drop() const noexcept { return allow_drop_; }
-    void set_allow_drop(bool allow_drop);
-    // A transparent hit target remains paintable and queryable, but ordinary
+    // hit_test_transparent: a transparent hit target remains paintable and
+    // queryable, but ordinary
     // pointer routing passes through it. GetChildAtPoint can include it or skip
     // it explicitly, matching the purpose of GetChildAtPointSkip::Transparent
     // without importing a platform window-style bit into the core.
-    [[nodiscard]] bool hit_test_transparent() const noexcept {
-        return hit_test_transparent_;
-    }
-    void set_hit_test_transparent(bool transparent);
     [[nodiscard]] ControlStyles styles() const noexcept { return styles_; }
     [[nodiscard]] bool has_style(ControlStyles style) const noexcept {
         return (styles_ & style) == style;
@@ -653,8 +567,6 @@ public:
                has_style(ControlStyles::optimized_double_buffer);
     }
     void set_double_buffered(bool enabled);
-    [[nodiscard]] std::optional<CursorKind> cursor() const noexcept { return cursor_; }
-    void set_cursor(std::optional<CursorKind> cursor);
     // Style classes (T2 plan, E4): names a theme's class rules select, in
     // the order they were added, without duplicates. A class name is 1 to 64
     // characters of lowercase ASCII letters, digits, '-' and '_', starting
@@ -707,23 +619,14 @@ public:
     // A stock assignment clears the image override. Null images select fallback.
     void set_custom_cursor(CursorImagesPtr images, CursorKind fallback = CursorKind::arrow);
     [[nodiscard]] CursorImagesPtr effective_cursor_images() const noexcept;
-    [[nodiscard]] const std::string& accessible_name() const noexcept {
-        return accessible_name_;
-    }
-    void set_accessible_name(GUI_FORMS_LOCALIZABLE(accessible_name) std::string name);
-    [[nodiscard]] const std::string& accessible_description() const noexcept {
-        return accessible_description_;
-    }
-    void set_accessible_description(GUI_FORMS_LOCALIZABLE(accessible_description) std::string description);
-    // The control's plain tooltip (owner, 2026-10-28): text, never markup,
+    // tool_tip_text, the control's plain tooltip (owner, 2026-10-28): text,
+    // never markup,
     // that its window's tooltip presenter shows as tool_tip_presentation()
     // says, when the window's and the program's switches allow. Empty, the
     // default, never shows. The text also reaches the control's semantic
     // node (SemanticNode::tool_tip). Throws std::invalid_argument for text
     // that is not valid UTF-8, changing nothing. Raises tool_tip_text_changed
     // when the text changes. Bindable as "tool_tip_text".
-    [[nodiscard]] const std::string& tool_tip_text() const noexcept { return tool_tip_text_; }
-    void set_tool_tip_text(GUI_FORMS_LOCALIZABLE(tool_tip) std::string text);
     [[nodiscard]] Event<const std::string&>& tool_tip_text_changed() noexcept {
         return tool_tip_text_changed_;
     }
@@ -806,6 +709,11 @@ public:
     }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
+    // Control's own table (its capabilities' entries); a derived type joins
+    // it first (join_property_tables) and returns the joined table.
+    static constexpr std::size_t control_property_count = 22U;
+    [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
     // (define_bindable_property) and the type's table's (Component::
     // property_table) together; a registration replaces a table entry of the
@@ -885,12 +793,9 @@ public:
     // callback). False by default, which keeps every existing container's
     // measure pass unchanged.
     [[nodiscard]] virtual bool measures_children_in_arrange() const noexcept;
-    // The authored inline direction, `inherit` by default (stage L, PLAN
-    // section 4). Setting it invalidates this subtree's arrangement.
-    [[nodiscard]] LayoutDirection layout_direction() const noexcept {
-        return layout_direction_;
-    }
-    void set_layout_direction(LayoutDirection direction);
+    // layout_direction is the authored inline direction, `inherit` by
+    // default (stage L, PLAN section 4); writing it invalidates this
+    // subtree's arrangement.
     // The direction this control lays out in: its own when not `inherit`,
     // otherwise the nearest ancestor's, and left to right at a root.
     [[nodiscard]] LayoutDirection effective_layout_direction() const noexcept;
@@ -1032,6 +937,26 @@ public:
         std::size_t item) const;
 
 protected:
+    // Raised after a changed write of the property, its touch and side
+    // effects done (P-8, option 1b; Windows Forms' OnVisibleChanged and
+    // the others). The base raises the property's change event where the
+    // control has one (visible, enabled, auto_size, causes_validation) and
+    // does nothing for the rest until their events exist. An override
+    // calls the base.
+    virtual void on_visible_changed();
+    virtual void on_enabled_changed();
+    virtual void on_auto_size_changed();
+    virtual void on_causes_validation_changed();
+    virtual void on_cursor_changed();
+    virtual void on_back_color_changed();
+    virtual void on_fore_color_changed();
+    virtual void on_margin_changed();
+    virtual void on_padding_changed();
+    virtual void on_dock_changed();
+    virtual void on_layout_direction_changed();
+    virtual void on_tab_index_changed();
+    virtual void on_tab_stop_changed();
+
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     // Whether code set the control's primary font (T4 fonts): a control's
     // set_font marks it, after validating the font, and a clear_font that
@@ -1207,6 +1132,83 @@ private:
     void refresh_inline_style();
     friend class Window;
     friend class SurfaceRoot;
+    // The property capabilities (study section 14) reach the hooks below.
+    friend struct NameCapability<Control>;
+    friend struct VisibleCapability<Control>;
+    friend struct EnabledCapability<Control>;
+    friend struct AutoSizeCapability<Control>;
+    friend struct CausesValidationCapability<Control>;
+    friend struct ToolTipTextCapability<Control>;
+    friend struct CursorCapability<Control>;
+    friend struct BackColorCapability<Control>;
+    friend struct ForeColorCapability<Control>;
+    friend struct MinimumSizeCapability<Control>;
+    friend struct MaximumSizeCapability<Control>;
+    friend struct MarginCapability<Control>;
+    friend struct PaddingCapability<Control>;
+    friend struct DockCapability<Control>;
+    friend struct AnchorCapability<Control>;
+    friend struct AutoSizeModeCapability<Control>;
+    friend struct LayoutDirectionCapability<Control>;
+    friend struct TabIndexCapability<Control>;
+    friend struct TabStopCapability<Control>;
+    friend struct AllowDropCapability<Control>;
+    friend struct HitTestTransparentCapability<Control>;
+    friend struct AccessibleNameCapability<Control>;
+    friend struct AccessibleDescriptionCapability<Control>;
+    // The capabilities' hooks, one pair per property, chosen by the cell's
+    // type: prepare_write runs before the compare (require_mutable first,
+    // then the value's checks; it may adjust the value), written after the
+    // store (the touch, side effects, the change event through
+    // publish_change, and the on_<property>_changed virtual where Windows
+    // Forms has OnXChanged). A refused value throws from prepare_write and
+    // changes nothing.
+    void prepare_write(const decltype(name)& cell, std::string& value);
+    void written(const decltype(name)& cell);
+    void prepare_write(const decltype(visible)& cell, bool& value);
+    void written(const decltype(visible)& cell);
+    void prepare_write(const decltype(enabled)& cell, bool& value);
+    void written(const decltype(enabled)& cell);
+    void prepare_write(const decltype(auto_size)& cell, bool& value);
+    void written(const decltype(auto_size)& cell);
+    void prepare_write(const decltype(causes_validation)& cell, bool& value);
+    void written(const decltype(causes_validation)& cell);
+    void prepare_write(const decltype(tool_tip_text)& cell, std::string& value);
+    void written(const decltype(tool_tip_text)& cell);
+    void prepare_write(const decltype(cursor)& cell, std::optional<CursorKind>& value);
+    void written(const decltype(cursor)& cell);
+    void prepare_write(const decltype(back_color)& cell, std::optional<Color>& value);
+    void written(const decltype(back_color)& cell);
+    void prepare_write(const decltype(fore_color)& cell, std::optional<Color>& value);
+    void written(const decltype(fore_color)& cell);
+    void prepare_write(const decltype(minimum_size)& cell, Size& value);
+    void written(const decltype(minimum_size)& cell);
+    void prepare_write(const decltype(maximum_size)& cell, Size& value);
+    void written(const decltype(maximum_size)& cell);
+    void prepare_write(const decltype(margin)& cell, Insets& value);
+    void written(const decltype(margin)& cell);
+    void prepare_write(const decltype(padding)& cell, Insets& value);
+    void written(const decltype(padding)& cell);
+    void prepare_write(const decltype(dock)& cell, DockStyle& value);
+    void written(const decltype(dock)& cell);
+    void prepare_write(const decltype(anchor)& cell, AnchorStyles& value);
+    void written(const decltype(anchor)& cell);
+    void prepare_write(const decltype(auto_size_mode)& cell, AutoSizeMode& value);
+    void written(const decltype(auto_size_mode)& cell);
+    void prepare_write(const decltype(layout_direction)& cell, LayoutDirection& value);
+    void written(const decltype(layout_direction)& cell);
+    void prepare_write(const decltype(tab_index)& cell, std::uint32_t& value);
+    void written(const decltype(tab_index)& cell);
+    void prepare_write(const decltype(tab_stop)& cell, bool& value);
+    void written(const decltype(tab_stop)& cell);
+    void prepare_write(const decltype(allow_drop)& cell, bool& value);
+    void written(const decltype(allow_drop)& cell);
+    void prepare_write(const decltype(hit_test_transparent)& cell, bool& value);
+    void written(const decltype(hit_test_transparent)& cell);
+    void prepare_write(const decltype(accessible_name)& cell, std::string& value);
+    void written(const decltype(accessible_name)& cell);
+    void prepare_write(const decltype(accessible_description)& cell, std::string& value);
+    void written(const decltype(accessible_description)& cell);
     friend class ContainerControl;
     friend class ErrorProvider;
     friend class HelpProvider;
@@ -1292,7 +1294,6 @@ private:
     static std::atomic<std::uint64_t> next_runtime_id_;
     RuntimeId runtime_id_;
     StableId stable_id_;
-    std::string name_;
     std::any tag_;
     WeakPtr parent_;
     ChildList children_;
@@ -1308,8 +1309,6 @@ private:
     std::shared_ptr<detail::DispatcherState> dispatcher_state_;
     Rect requested_bounds_{};
     Rect arranged_bounds_{};
-    Size minimum_size_{};
-    Size maximum_size_{};
     // A layout container assigns this slot without destroying the child's
     // authored/preferred requested bounds. Unmanaged children leave it empty.
     std::optional<Rect> layout_slot_;
@@ -1318,37 +1317,27 @@ private:
         Rect client;
     };
     std::optional<AnchorReference> anchor_reference_;
-    Insets margin_{3.0, 3.0, 3.0, 3.0};
-    Insets padding_{};
+    // Drops the anchor reference and, when the control is undocked and it
+    // and its attached parent are arranged, captures the current one.
+    void recapture_anchor_reference();
     Point auto_scroll_offset_{};
-    DockStyle dock_{DockStyle::none};
-    AnchorStyles anchor_{AnchorStyles::top | AnchorStyles::left};
     // Whether the arrange the pass last called reached Control::arrange:
     // cleared by the arrange pass before it calls arrange, set by
     // Control::arrange (layout_resize_response's default).
     bool arranged_by_dock_layout_{};
-    bool auto_size_{};
-    AutoSizeMode auto_size_mode_{AutoSizeMode::grow_only};
     Dirty dirty_{Dirty::layout | Dirty::paint | Dirty::hit_test | Dirty::semantics};
     Dirty subtree_dirty_{Dirty::layout | Dirty::paint | Dirty::hit_test |
                          Dirty::semantics};
     PaintPlane paint_plane_{PaintPlane::control};
     std::shared_ptr<const detail::DisplayChunk> display_chunk_;
     Insets last_painted_visual_outsets_{};
-    bool visible_{true};
     bool layout_collapsed_{};
-    bool enabled_{true};
     bool focusable_{};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the
     // control sees the enter or leave; base_anatomy_states reports it as
     // hot.
     bool pointer_over_{};
-    bool causes_validation_{true};
-    std::uint32_t tab_index_{};
-    bool tab_stop_{true};
-    bool allow_drop_{};
-    bool hit_test_transparent_{};
     // resize_redraw is on by default (unlike Windows Forms): a control
     // repaints all of itself when its size changes unless it, or its
     // application, clears it, or it overrides paint_depends_on_size.
@@ -1357,15 +1346,12 @@ private:
                           ControlStyles::standard_click |
                           ControlStyles::selectable |
                           ControlStyles::all_painting_in_one_pass};
-    std::optional<CursorKind> cursor_;
     std::vector<std::string> classes_;
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
     bool ceremonial_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     std::optional<SurfaceMaterial> authored_surface_material_;
-    std::optional<Color> back_color_;
-    std::optional<Color> fore_color_;
     bool back_color_warned_{};
     bool fore_color_warned_{};
     // The primary text font last resolved (text_font), and what it was
@@ -1385,9 +1371,6 @@ private:
     bool font_from_code_{};
     std::vector<OwnerDecorationRecipe> owned_decorations_;
     ControlVisualStatus visual_status_{ControlVisualStatus::normal};
-    std::string accessible_name_;
-    std::string accessible_description_;
-    std::string tool_tip_text_;
     ToolTipPresentation tool_tip_presentation_{ToolTipPresentation::bubble};
     bool publishes_item_tool_tips_{};
     std::shared_ptr<CommandTarget> command_target_;
@@ -1433,7 +1416,6 @@ private:
     // and how many misses it answered in that pass.
     std::uint64_t measure_pass_sequence_{};
     std::uint64_t measure_pass_callbacks_{};
-    LayoutDirection layout_direction_{LayoutDirection::inherit};
     std::uint32_t layout_suspend_depth_{};
     bool layout_deferred_{};
     std::uint64_t layout_requested_revision_{};
@@ -1462,77 +1444,102 @@ private:
         accessible_name,
         accessible_description,
         tool_tip_text,
+        cursor,
+        back_color,
+        fore_color,
     };
+
+    // Control's table operations over the adapters below (study section
+    // 14): one entry per migrated property, built by
+    // control_property_entries.
+    [[nodiscard]] static PropertyDescriptor registered_descriptor(RegisteredProperty property);
+    template <RegisteredProperty Property>
+    [[nodiscard]] static const PropertyDescriptor& describe_registered();
+    template <RegisteredProperty Property>
+    [[nodiscard]] static BindingValue read_registered(const Component& owner);
+    template <RegisteredProperty Property>
+    static void write_registered(Component& owner, const BindingValue& value);
+    template <RegisteredProperty Property>
+    static void reset_registered(Component& owner);
+    template <RegisteredProperty Property>
+    [[nodiscard]] static SubscriptionToken connect_registered(Component& owner, Component& subscriber,
+                                                              std::function<void()> changed);
 
     template <RegisteredProperty Property>
     struct RegisteredPropertyGetter final {
-        Control* control{};
+        const Control* control{};
 
         BindingValue operator()() const {
             if constexpr (Property == RegisteredProperty::name) {
-                return BindingValue{(*control).name_};
+                return BindingValue{(*control).name.type()};
             } else if constexpr (Property == RegisteredProperty::visible) {
-                return BindingValue{(*control).visible_};
+                return BindingValue{(*control).visible.type()};
             } else if constexpr (Property == RegisteredProperty::enabled) {
-                return BindingValue{(*control).enabled_};
+                return BindingValue{(*control).enabled.type()};
             } else if constexpr (Property == RegisteredProperty::auto_size) {
-                return BindingValue{(*control).auto_size()};
+                return BindingValue{(*control).auto_size.type()};
             } else if constexpr (
                 Property == RegisteredProperty::causes_validation) {
-                return BindingValue{(*control).causes_validation_};
+                return BindingValue{(*control).causes_validation.type()};
             } else if constexpr (Property == RegisteredProperty::bounds) {
                 return BindingValue{(*control).requested_bounds_};
             } else if constexpr (
                 Property == RegisteredProperty::minimum_size) {
-                return BindingValue{(*control).minimum_size_};
+                return BindingValue{(*control).minimum_size.type()};
             } else if constexpr (
                 Property == RegisteredProperty::maximum_size) {
-                return BindingValue{(*control).maximum_size_};
+                return BindingValue{(*control).maximum_size.type()};
             } else if constexpr (Property == RegisteredProperty::margin) {
-                return BindingValue{(*control).margin_};
+                return BindingValue{(*control).margin.type()};
             } else if constexpr (Property == RegisteredProperty::padding) {
-                return BindingValue{(*control).padding_};
+                return BindingValue{(*control).padding.type()};
             } else if constexpr (
                 Property == RegisteredProperty::auto_scroll_offset) {
                 return BindingValue{(*control).auto_scroll_offset_};
             } else if constexpr (Property == RegisteredProperty::dock) {
                 return Control::current_enum_property_value(
                     Control::dock_style_property_enum(),
-                    static_cast<std::int64_t>((*control).dock_));
+                    static_cast<std::int64_t>((*control).dock.type()));
             } else if constexpr (Property == RegisteredProperty::anchor) {
                 return Control::current_enum_property_value(
                     Control::anchor_styles_property_enum(),
-                    static_cast<std::int64_t>((*control).anchor_));
+                    static_cast<std::int64_t>((*control).anchor.type()));
             } else if constexpr (
                 Property == RegisteredProperty::auto_size_mode) {
                 return Control::current_enum_property_value(
                     Control::auto_size_mode_property_enum(),
-                    static_cast<std::int64_t>((*control).auto_size_mode_));
+                    static_cast<std::int64_t>((*control).auto_size_mode.type()));
             } else if constexpr (
                 Property == RegisteredProperty::layout_direction) {
                 return Control::current_enum_property_value(
                     Control::layout_direction_property_enum(),
-                    static_cast<std::int64_t>((*control).layout_direction_));
+                    static_cast<std::int64_t>((*control).layout_direction.type()));
             } else if constexpr (Property == RegisteredProperty::tab_index) {
                 return BindingValue{static_cast<std::uint64_t>(
-                    (*control).tab_index_)};
+                    (*control).tab_index.type())};
             } else if constexpr (Property == RegisteredProperty::tab_stop) {
-                return BindingValue{(*control).tab_stop_};
+                return BindingValue{(*control).tab_stop.type()};
             } else if constexpr (Property == RegisteredProperty::allow_drop) {
-                return BindingValue{(*control).allow_drop_};
+                return BindingValue{(*control).allow_drop.type()};
             } else if constexpr (
                 Property == RegisteredProperty::hit_test_transparent) {
-                return BindingValue{(*control).hit_test_transparent_};
+                return BindingValue{(*control).hit_test_transparent.type()};
             } else if constexpr (
                 Property == RegisteredProperty::accessible_name) {
-                return BindingValue{(*control).accessible_name_};
+                return BindingValue{(*control).accessible_name.type()};
             } else if constexpr (
                 Property == RegisteredProperty::tool_tip_text) {
-                return BindingValue{(*control).tool_tip_text_};
+                return BindingValue{(*control).tool_tip_text.type()};
+            } else if constexpr (Property == RegisteredProperty::cursor) {
+                return (*control).cursor_property_value();
+            } else if constexpr (Property == RegisteredProperty::back_color) {
+                return (*control).back_color_property_value();
+            } else if constexpr (Property == RegisteredProperty::fore_color) {
+                return (*control).fore_color_property_value();
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
-                return BindingValue{(*control).accessible_description_};
+                return BindingValue{(*control).accessible_description.type()};
             }
         }
     };
@@ -1548,7 +1555,7 @@ private:
                 if (!converted) {
                     throw std::invalid_argument("Name binding requires text");
                 }
-                (*control).set_name(std::get<std::string>(*converted));
+                (*control).name = std::get<std::string>(*converted);
             } else if constexpr (Property == RegisteredProperty::visible) {
                 const std::optional<BindingValue> converted =
                     convert_binding_value(value, BindingValueKind::boolean);
@@ -1556,7 +1563,7 @@ private:
                     throw std::invalid_argument(
                         "Visible binding requires Boolean");
                 }
-                (*control).set_visible(std::get<bool>(*converted));
+                (*control).visible = std::get<bool>(*converted);
             } else if constexpr (Property == RegisteredProperty::enabled) {
                 const std::optional<BindingValue> converted =
                     convert_binding_value(value, BindingValueKind::boolean);
@@ -1564,58 +1571,58 @@ private:
                     throw std::invalid_argument(
                         "Enabled binding requires Boolean");
                 }
-                (*control).set_enabled(std::get<bool>(*converted));
+                (*control).enabled = std::get<bool>(*converted);
             } else if constexpr (Property == RegisteredProperty::auto_size) {
-                (*control).set_auto_size(std::get<bool>(value));
+                (*control).auto_size = std::get<bool>(value);
             } else if constexpr (
                 Property == RegisteredProperty::causes_validation) {
-                (*control).set_causes_validation(std::get<bool>(value));
+                (*control).causes_validation = std::get<bool>(value);
             } else if constexpr (Property == RegisteredProperty::bounds) {
                 (*control).set_requested_bounds(std::get<Rect>(value));
             } else if constexpr (
                 Property == RegisteredProperty::minimum_size) {
-                (*control).set_minimum_size(std::get<Size>(value));
+                (*control).minimum_size = std::get<Size>(value);
             } else if constexpr (
                 Property == RegisteredProperty::maximum_size) {
-                (*control).set_maximum_size(std::get<Size>(value));
+                (*control).maximum_size = std::get<Size>(value);
             } else if constexpr (Property == RegisteredProperty::margin) {
-                (*control).set_margin(std::get<Insets>(value));
+                (*control).margin = std::get<Insets>(value);
             } else if constexpr (Property == RegisteredProperty::padding) {
-                (*control).set_padding(std::get<Insets>(value));
+                (*control).padding = std::get<Insets>(value);
             } else if constexpr (
                 Property == RegisteredProperty::auto_scroll_offset) {
                 (*control).set_auto_scroll_offset(std::get<Point>(value));
             } else if constexpr (Property == RegisteredProperty::dock) {
-                (*control).set_dock(static_cast<DockStyle>(
-                    std::get<PropertyEnumValue>(value).value));
+                (*control).dock = static_cast<DockStyle>(
+                    std::get<PropertyEnumValue>(value).value);
             } else if constexpr (Property == RegisteredProperty::anchor) {
-                (*control).set_anchor(static_cast<AnchorStyles>(
-                    std::get<PropertyEnumValue>(value).value));
+                (*control).anchor = static_cast<AnchorStyles>(
+                    std::get<PropertyEnumValue>(value).value);
             } else if constexpr (
                 Property == RegisteredProperty::auto_size_mode) {
-                (*control).set_auto_size_mode(static_cast<AutoSizeMode>(
-                    std::get<PropertyEnumValue>(value).value));
+                (*control).auto_size_mode = static_cast<AutoSizeMode>(
+                    std::get<PropertyEnumValue>(value).value);
             } else if constexpr (
                 Property == RegisteredProperty::layout_direction) {
-                (*control).set_layout_direction(static_cast<LayoutDirection>(
-                    std::get<PropertyEnumValue>(value).value));
+                (*control).layout_direction = static_cast<LayoutDirection>(
+                    std::get<PropertyEnumValue>(value).value);
             } else if constexpr (Property == RegisteredProperty::tab_index) {
                 const std::uint64_t index = std::get<std::uint64_t>(value);
                 if (index > std::numeric_limits<std::uint32_t>::max()) {
                     throw std::out_of_range(
                         "GUI.Forms TabIndex exceeds UInt32");
                 }
-                (*control).set_tab_index(static_cast<std::uint32_t>(index));
+                (*control).tab_index = static_cast<std::uint32_t>(index);
             } else if constexpr (Property == RegisteredProperty::tab_stop) {
-                (*control).set_tab_stop(std::get<bool>(value));
+                (*control).tab_stop = std::get<bool>(value);
             } else if constexpr (Property == RegisteredProperty::allow_drop) {
-                (*control).set_allow_drop(std::get<bool>(value));
+                (*control).allow_drop = std::get<bool>(value);
             } else if constexpr (
                 Property == RegisteredProperty::hit_test_transparent) {
-                (*control).set_hit_test_transparent(std::get<bool>(value));
+                (*control).hit_test_transparent = std::get<bool>(value);
             } else if constexpr (
                 Property == RegisteredProperty::accessible_name) {
-                (*control).set_accessible_name(std::get<std::string>(value));
+                (*control).accessible_name = std::get<std::string>(value);
             } else if constexpr (
                 Property == RegisteredProperty::tool_tip_text) {
                 const std::optional<BindingValue> converted =
@@ -1624,12 +1631,17 @@ private:
                     throw std::invalid_argument(
                         "ToolTipText binding requires text");
                 }
-                (*control).set_tool_tip_text(std::get<std::string>(*converted));
+                (*control).tool_tip_text = std::get<std::string>(*converted);
+            } else if constexpr (Property == RegisteredProperty::cursor) {
+                (*control).set_cursor_property_value(value);
+            } else if constexpr (Property == RegisteredProperty::back_color) {
+                (*control).set_back_color_property_value(value);
+            } else if constexpr (Property == RegisteredProperty::fore_color) {
+                (*control).set_fore_color_property_value(value);
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
-                (*control).set_accessible_description(
-                    std::get<std::string>(value));
+                (*control).accessible_description = std::get<std::string>(value);
             }
         }
     };

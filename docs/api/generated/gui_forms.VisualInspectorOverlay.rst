@@ -79,7 +79,7 @@ gui_forms::VisualInspectorOverlay
 
    The overlay does not observe its target: it reads a snapshot of the window
    each time it paints. Call :cpp:func:`refresh <gui_forms::VisualInspectorOverlay::refresh>` when the target changes, or keep it live
-   with :cpp:func:`start_polling <gui_forms::VisualInspectorOverlay::start_polling>`. Hide it with ``set_visible`` when it is not
+   with :cpp:func:`start_polling <gui_forms::VisualInspectorOverlay::start_polling>`. Hide it by writing ``visible = false`` when it is not
    needed.
 
    .. rubric:: Examples

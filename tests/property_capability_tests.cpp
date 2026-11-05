@@ -367,6 +367,172 @@ void test_window_touch() {
            "an attached write touches its control");
 }
 
+
+// Control's family (M2): a derived control sees a changed write through
+// the P-8 virtual after the base's touch; the base raises the event.
+class VisibilityProbe final : public Control {
+public:
+    explicit VisibilityProbe(StableId stable_id) : Control(std::move(stable_id)) {}
+
+    int visible_calls_{};
+    bool event_seen_before_override_{};
+    int* events_{};
+
+protected:
+    void on_visible_changed() override {
+        Control::on_visible_changed();
+        ++visible_calls_;
+        event_seen_before_override_ = events_ != nullptr && *events_ == visible_calls_;
+    }
+};
+
+struct BoolChangeCounter final {
+    int* count;
+    void operator()(bool) const { ++*count; }
+};
+
+void test_control_family() {
+    std::shared_ptr<VisibilityProbe> probe = make_control<VisibilityProbe>(StableId("family.probe"));
+    int events = 0;
+    (*probe).events_ = &events;
+    const SubscriptionToken token = (*probe).visible_changed().subscribe(BoolChangeCounter{&events});
+    (*probe).visible = true;
+    expect((*probe).visible_calls_ == 0 && events == 0, "an equal write raises nothing");
+    (*probe).visible = false;
+    expect(!(*probe).visible.type() && (*probe).visible_calls_ == 1 && events == 1,
+           "a changed write runs on_visible_changed once and raises visible_changed once");
+    expect((*probe).event_seen_before_override_, "the base raises the event before the override's own work");
+    static_cast<void>(token);
+
+    expect((*probe).name.type() == "family.probe", "name starts as the stable id");
+    const std::optional<PropertyDescriptor> name = (*probe).property_descriptor("name");
+    expect(name && (*name).default_value && std::get<std::string>(*(*name).default_value) == "family.probe",
+           "name stays an instance registration whose default is the stable id");
+
+    expect(Control::control_property_entries().size() == Control::control_property_count,
+           "Control's table holds every migrated property");
+    const std::optional<PropertyDescriptor> visible = (*probe).property_descriptor("visible");
+    expect(visible && (*visible).bindable && (*visible).change_notifications && (*visible).invalidates_subtree,
+           "visible's table descriptor matches its old registration");
+    const std::optional<PropertyDescriptor> margin = (*probe).property_descriptor("margin");
+    expect(margin && !(*margin).bindable && (*margin).resettable, "structural properties stay unbindable");
+
+    (*probe).set_property_value("margin", BindingValue{Insets{1.0, 2.0, 3.0, 4.0}});
+    expect((*probe).margin.type() == Insets{1.0, 2.0, 3.0, 4.0}, "a write by name reaches margin's cell");
+    bool refused = false;
+    try {
+        (*probe).margin = Insets{-1.0, 0.0, 0.0, 0.0};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    expect(refused && (*probe).margin.type() == Insets{1.0, 2.0, 3.0, 4.0}, "a refused margin changes nothing");
+    expect((*probe).reset_property("margin") && (*probe).margin.type() == Insets{3.0, 3.0, 3.0, 3.0},
+           "reset writes margin's default");
+
+    (*probe).back_color = Color::rgba(10, 20, 30);
+    expect((*probe).should_serialize_property("back_color"), "an own back colour serializes");
+    expect((*probe).reset_property("back_color") && !(*probe).back_color.type(), "reset clears the back colour");
+}
+
+// G11: a themed Panel's face takes its own back_color (outside high
+// contrast), and clearing it returns the material.
+void test_panel_back_color_when_themed() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("family.panel"));
+    Window window(root, Size{120.0, 80.0});
+    const Color themed = (*root).background();
+    const Color own = Color::rgba(200, 30, 30);
+    (*root).back_color = own;
+    expect((*root).background() == own, "a themed panel's face is its back colour");
+    (*root).back_color = std::nullopt;
+    expect((*root).background() == themed, "clearing the back colour returns the material's ground");
+}
+
+
+class NullPainter final : public Painter {
+public:
+    void save() override {}
+    void restore() override {}
+    void translate(Point) override {}
+    void clip_rect(Rect) override {}
+    void fill_rect(Rect, Color) override {}
+    void stroke_rect(Rect, Color, double) override {}
+    void draw_line(Point, Point, Color, double) override {}
+    void draw_text_utf8(Point, std::string_view, FontSpec, Color) override {}
+    void draw_image(ImageId, Rect, double) override {}
+};
+
+class PaintCounter final : public Control {
+public:
+    explicit PaintCounter(StableId stable_id) : Control(std::move(stable_id)) {}
+
+    int paints_{};
+
+    void on_paint(Painter&, Rect) override { ++paints_; }
+};
+
+// The named setters forward to the cells and store (a forwarder whose
+// parameter shadows the cell once assigned the parameter to itself, so
+// nothing was ever hidden or disabled).
+void test_setters_store() {
+    std::shared_ptr<Control> control = make_control<PaintCounter>(StableId("family.setters"));
+    (*control).name = "renamed";
+    (*control).visible = false;
+    (*control).enabled = false;
+    (*control).auto_size = true;
+    (*control).causes_validation = false;
+    (*control).tab_stop = false;
+    (*control).allow_drop = true;
+    (*control).hit_test_transparent = true;
+    (*control).tab_index = 7U;
+    (*control).margin = Insets{1.0, 1.0, 1.0, 1.0};
+    (*control).padding = Insets{2.0, 2.0, 2.0, 2.0};
+    (*control).dock = DockStyle::fill;
+    (*control).anchor = AnchorStyles::right;
+    (*control).auto_size_mode = AutoSizeMode::grow_and_shrink;
+    (*control).layout_direction = LayoutDirection::right_to_left;
+    (*control).minimum_size = Size{4.0, 4.0};
+    (*control).maximum_size = Size{40.0, 40.0};
+    (*control).cursor = CursorKind::hand;
+    (*control).back_color = Color::rgba(1, 2, 3);
+    (*control).fore_color = Color::rgba(4, 5, 6);
+    (*control).accessible_name = "a";
+    (*control).accessible_description = "d";
+    (*control).tool_tip_text = "t";
+    expect((*control).name.type() == "renamed" && !(*control).visible.type() && !(*control).enabled.type() &&
+               (*control).auto_size.type() && !(*control).causes_validation.type() && !(*control).tab_stop.type() &&
+               (*control).allow_drop.type() && (*control).hit_test_transparent.type() &&
+               (*control).tab_index.type() == 7U && (*control).margin.type() == Insets{1.0, 1.0, 1.0, 1.0} &&
+               (*control).padding.type() == Insets{2.0, 2.0, 2.0, 2.0} &&
+               (*control).dock.type() == DockStyle::fill && (*control).anchor.type() == AnchorStyles::right &&
+               (*control).auto_size_mode.type() == AutoSizeMode::grow_and_shrink &&
+               (*control).layout_direction.type() == LayoutDirection::right_to_left &&
+               (*control).minimum_size.type() == Size{4.0, 4.0} &&
+               (*control).maximum_size.type() == Size{40.0, 40.0} &&
+               (*control).cursor.type() == CursorKind::hand && (*control).back_color.type() &&
+               (*control).fore_color.type() && (*control).accessible_name.type() == "a" &&
+               (*control).accessible_description.type() == "d" && (*control).tool_tip_text.type() == "t",
+           "every named setter stores its value");
+}
+
+// A hidden control (a Gallery page, a tab page) is neither painted nor hit.
+void test_hidden_is_not_painted_or_hit() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("family.hidden.root"));
+    std::shared_ptr<PaintCounter> page = make_control<PaintCounter>(StableId("family.hidden.page"));
+    (*page).dock = DockStyle::fill;
+    (*root).add_child(page);
+    Window window(root, Size{120.0, 80.0});
+    window.perform_layout();
+    NullPainter painter;
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 120.0, 80.0}));
+    const Point centre{60.0, 40.0};
+    expect((*page).paints_ == 1 && window.hit_test(centre) == page, "a shown page is painted and hit");
+    (*page).visible = false;
+    window.perform_layout();
+    static_cast<void>(window.paint(painter, {0.0, 0.0, 120.0, 80.0}));
+    expect((*page).paints_ == 1, "a hidden page is not painted");
+    expect(window.hit_test(centre) != page, "a hidden page is not hit");
+}
+
 } // namespace
 
 int main() {
@@ -376,6 +542,10 @@ int main() {
     test_wrong_thread_write();
     test_view_and_component_table();
     test_window_touch();
+    test_control_family();
+    test_panel_back_color_when_themed();
+    test_setters_store();
+    test_hidden_is_not_painted_or_hit();
     std::cout << "property capability tests passed\n";
     return EXIT_SUCCESS;
 }

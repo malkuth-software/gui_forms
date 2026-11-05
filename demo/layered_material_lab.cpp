@@ -36,7 +36,7 @@ void add_at(const std::shared_ptr<Parent>& parent,
             const std::shared_ptr<Child>& child, Rect bounds,
             AnchorStyles anchor = AnchorStyles::top | AnchorStyles::left) {
     (*child).set_requested_bounds(bounds);
-    (*child).set_anchor(anchor);
+    (*child).anchor = anchor;
     (*parent).add_child(child);
 }
 
@@ -446,7 +446,7 @@ std::unique_ptr<Window> make_layered_material_lab() {
     std::shared_ptr<Button> disabled = make_control<Button>(
         StableId("layered-material.live-disabled"), "Actually disabled");
     (*disabled).set_visual_recipes(office_pearl_state_recipes());
-    (*disabled).set_enabled(false);
+    (*disabled).enabled = false;
     add_at(root, disabled, {400.0, 560.0, 190.0, 42.0});
 
     const bool rejected = over_budget_recipe_is_rejected();

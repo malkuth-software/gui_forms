@@ -414,7 +414,7 @@ void HostServicesPage::build_services(const std::shared_ptr<Surface>& body) {
     (*body).add_at(services_group, {24.0, 402.0, 930.0, 224.0});
     clipboard_ = make_control<TextBox>(StableId("gallery.host.clipboard.editor"));
     (*clipboard_).set_text("GUI.Forms clipboard probe Ω");
-    (*clipboard_).set_accessible_name("Clipboard probe text");
+    (*clipboard_).accessible_name = "Clipboard probe text";
     (*services_group).add_at(clipboard_, {24.0, 42.0, 432.0, 32.0});
 
     for (std::size_t index = 0U; index < service_labels.size(); ++index) {

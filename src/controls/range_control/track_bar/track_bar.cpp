@@ -31,7 +31,7 @@ std::shared_ptr<const PropertyEnumDescriptor> track_bar_visual_style_enum() {
 TrackBar::TrackBar(StableId stable_id)
     : RangeControl(std::move(stable_id)) {
     set_focusable(true);
-    set_cursor(CursorKind::hand);
+    cursor = CursorKind::hand;
     PropertyDescriptor tick_frequency;
     tick_frequency.name = "tick_frequency";
     tick_frequency.kind = BindingValueKind::number;
@@ -441,8 +441,8 @@ void TrackBar::on_focus_changed(bool focused) {
 SemanticDescriptor TrackBar::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::slider;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     std::ostringstream value_text;
     value_text << value();
     descriptor.value = value_text.str();

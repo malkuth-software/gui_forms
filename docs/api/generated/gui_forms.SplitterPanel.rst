@@ -77,7 +77,7 @@ gui_forms::SplitterPanel
 
       std::shared_ptr<gf::Panel> content =
           gf::make_control<gf::Panel>(gf::StableId("library.sources"));
-      (*content).set_dock(gf::DockStyle::fill);
+      (*content).dock = gf::DockStyle::fill;
       (*sources).add_child(content);
 
 

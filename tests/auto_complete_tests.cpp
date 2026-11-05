@@ -396,7 +396,7 @@ void pointer_and_dismissal() {
             "losing the focus closes the list and keeps the text");
     require(window.request_focus(fixture.box) && type(window, "g") && box.auto_complete_open(),
             "the list opens again");
-    box.set_visible(false);
+    box.visible = false;
     require(!box.auto_complete_open() && !window.find("ac.pointer.auto-complete"),
             "hiding the box revokes its list");
 }

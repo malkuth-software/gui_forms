@@ -98,7 +98,7 @@ class DockSite::Flyout final : public Control {
 public:
     Flyout(StableId stable_id, DockSite& site) : Control(std::move(stable_id)), site_(&site) {
         set_paint_plane(PaintPlane::overlay);
-        set_cursor(CursorKind::arrow);
+        cursor = CursorKind::arrow;
         // Focus lands here when the panel has nothing focusable, so Escape
         // still reaches the flyout.
         set_focusable(true);
@@ -191,7 +191,7 @@ void DockSite::ensure_side_strip(DockSide edge) {
     strip.set_activation(PageStripActivation::manual);
     strip.set_mnemonics_enabled(false);
     strip.set_close_buttons(PageCloseButtons::none);
-    strip.set_accessible_name("Auto-hidden panels");
+    strip.accessible_name = "Auto-hidden panels";
     on(strip.page_invoked(), *this, &DockSite::on_side_tab_invoked, edge);
     add_child(entry.strip);
     set_child_layout_collapsed(entry.strip, true);
@@ -811,7 +811,7 @@ void DockSite::on_flyout_pointer(PointerEvent& event) {
             hot_ = hit;
             CursorKind cursor = CursorKind::arrow;
             if (hit.zone == Zone::grip) cursor = across(edge) ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
-            (*flyout_).set_cursor(cursor);
+            (*flyout_).cursor = cursor;
             (*flyout_).invalidate(Dirty::paint);
             invalidate(Dirty::paint);
         }

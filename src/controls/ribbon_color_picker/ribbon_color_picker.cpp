@@ -606,7 +606,7 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     }
     placement.preferred_size = palette_size();
     (*layer_).set_placement(placement);
-    (*palette_popup_).set_accessible_name(parse_mnemonic_text(text_).display_text);
+    (*palette_popup_).accessible_name = parse_mnemonic_text(text_).display_text;
     const Size client = (*window).client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
     hot_entry_.reset();
@@ -700,10 +700,10 @@ std::vector<RibbonColorPicker::PaletteEntry> RibbonColorPicker::realized_entries
 SemanticDescriptor RibbonColorPicker::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::split_button;
-    descriptor.name = accessible_name().empty() ? parse_mnemonic_text(text_).display_text : accessible_name();
+    descriptor.name = accessible_name.type().empty() ? parse_mnemonic_text(text_).display_text : accessible_name.type();
     const std::optional<Color> shown = value();
     descriptor.value = shown ? color_name(*shown) : std::string("Automatic");
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.type();
     descriptor.has_popup = true;
     if (palette_open_) descriptor.states |= SemanticState::expanded;
     descriptor.actions = {SemanticAction::focus, SemanticAction::press, SemanticAction::show_menu,
@@ -914,7 +914,7 @@ Insets RibbonColorPalette::visual_outsets() const noexcept {
 SemanticDescriptor RibbonColorPalette::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

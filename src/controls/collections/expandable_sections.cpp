@@ -48,7 +48,7 @@ struct ExpandableSections::HeadingChange final {
 
 ExpandableSections::ExpandableSections(StableId id) : Panel(std::move(id)) {
     set_focusable(false);
-    set_tab_stop(false);
+    tab_stop = false;
 }
 ExpandableSections::~ExpandableSections() = default;
 std::span<const SectionItem> ExpandableSections::items() const noexcept {
@@ -162,12 +162,12 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
             item.content = value.content;
             CheckBox& heading = *item.heading;
             heading.set_text(value.label);
-            heading.set_tab_index(static_cast<std::uint32_t>(index * 2U));
+            heading.tab_index = static_cast<std::uint32_t>(index * 2U);
             if (value.expanded != nullptr) heading.bind(*value.expanded);
             if (single_open_ && opened && heading.checked()) heading.set_checked(false);
             opened = opened || heading.checked();
             heading.set_expanded_state(heading.checked());
-            (*item.content).set_visible(heading.checked());
+            (*item.content).visible = heading.checked();
             if (!heading.parent()) add_child(item.heading);
             if (!(*item.content).parent()) add_child(item.content);
             item.change = heading.checked_changed().subscribe(*this, HeadingChange{*this, value.id});
@@ -194,7 +194,7 @@ void ExpandableSections::on_toggled(const int id, const bool expanded) {
         if (item.id != id) continue;
         (*item.heading).set_expanded_state(expanded);
         if (!is_alive() || revision_ != revision) return;
-        (*item.content).set_visible(expanded);
+        (*item.content).visible = expanded;
         if (!is_alive() || revision_ != revision) return;
         if (expanded && single_open_) {
             for (const std::shared_ptr<Entry>& other : (*revision).entries) {

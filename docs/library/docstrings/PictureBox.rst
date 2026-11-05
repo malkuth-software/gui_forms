@@ -70,7 +70,7 @@ The control publishes the accessibility role `image`. Its name and
 description are the accessible name and description, and its value is the
 image's pixel size, such as `"4 x 2"`. It is exposed when it has a valid
 image or a name or description, so give a meaningful picture an accessible
-name with `set_accessible_name`.
+name by writing `accessible_name`.
 
 Examples
 --------
@@ -82,7 +82,7 @@ Show an image scaled to fit, keeping its aspect ratio:
        gf::make_control<gf::PictureBox>(gf::StableId("preview"));
    (*preview).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
    (*preview).set_size_mode(gf::PictureBoxSizeMode::zoom);
-   (*preview).set_accessible_name("Preview");
+   (*preview).accessible_name = "Preview";
    gf::Window window(preview, gf::Size{100.0, 100.0});
    const std::vector<std::byte> pixels(4U * 2U * 4U, std::byte{0xff});   // 4 x 2, white
    const gf::ImageLoadResult loaded = window.load_bgra32_premultiplied(4U, 2U, 16U, pixels);

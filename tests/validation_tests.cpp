@@ -20,7 +20,7 @@ struct Fixture final {
         (*editor).set_requested_bounds({20.0, 20.0, 200.0, 30.0});
         (*destination).set_requested_bounds({20.0, 70.0, 120.0, 30.0});
         (*bypass).set_requested_bounds({155.0, 70.0, 120.0, 30.0});
-        (*bypass).set_causes_validation(false);
+        (*bypass).causes_validation = false;
         (*root).add_child(editor);
         (*root).add_child(destination);
         (*root).add_child(bypass);
@@ -214,7 +214,7 @@ void test_reentrancy_and_bulk_constraints_are_bounded() {
         (*fixture.editor).validating().subscribe(CountBulkValidation(bulk));
     SubscriptionToken destination_validation =
         (*fixture.destination).validating().subscribe(CountBulkValidation(bulk));
-    (*fixture.destination).set_enabled(false);
+    (*fixture.destination).enabled = false;
     require((*fixture.root).validate_children(
                 ValidationConstraints::selectable |
                 ValidationConstraints::enabled) && bulk == 1U,

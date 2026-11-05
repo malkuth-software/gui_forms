@@ -178,7 +178,7 @@ Lay four buttons in a fixed 80-wide column and a flexible one:
        std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
            gf::StableId("form.button" + std::to_string(index)), "Button");
        (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-       (*button).set_margin({});
+       (*button).margin = gf::Insets{};
        (*form).add_child(button);
        buttons.push_back(button);
    }
@@ -210,7 +210,7 @@ Repeat 100-wide columns as often as they fit, sharing what is left:
        std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
            gf::StableId("cards.button" + std::to_string(index)), "Card");
        (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-       (*button).set_margin({});
+       (*button).margin = gf::Insets{};
        (*cards).add_child(button);
        buttons.push_back(button);
    }

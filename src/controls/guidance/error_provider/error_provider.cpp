@@ -583,14 +583,14 @@ void ErrorProvider::refresh_visual(Entry& entry, bool error_changed) {
         PopupToken popup = (*owner).open_popup(
             target, entry.layer, PopupOptions{.require_enabled_owner = false});
         entry.popup = std::make_unique<PopupToken>(std::move(popup));
-        (*entry.glyph).set_tool_tip_text(entry.error);
+        (*entry.glyph).tool_tip_text = entry.error;
         return;
     }
 
     (*entry.glyph).set_error(entry.error);
     (*entry.glyph).set_icon(icon_);
     (*entry.glyph).configure_blink(blink_style_, blink_rate_, error_changed);
-    (*entry.glyph).set_tool_tip_text(entry.error);
+    (*entry.glyph).tool_tip_text = entry.error;
     position_visual(entry);
 }
 

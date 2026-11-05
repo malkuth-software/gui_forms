@@ -70,7 +70,7 @@ private:
 Fixture make_fixture() {
     Fixture value;
     value.tabs = make_control<TabControl>(StableId("tabs"));
-    (*value.tabs).set_accessible_name("Workspace tabs");
+    (*value.tabs).accessible_name = "Workspace tabs";
     (*value.tabs).set_requested_bounds({0.0, 0.0, 480.0, 260.0});
     value.first = make_control<TabPage>(StableId("tabs.first"), "Overview");
     value.second = make_control<TabPage>(StableId("tabs.second"), "Details");
@@ -99,8 +99,8 @@ void test_page_ownership_layout_and_visibility() {
     window.perform_layout();
     require((*fixture.tabs).page_count() == 3U &&
                 (*fixture.tabs).selected_index() == 0U &&
-                (*fixture.first).visible() && !(*fixture.second).visible() &&
-                !(*fixture.third).visible(),
+                (*fixture.first).visible.type() && !(*fixture.second).visible.type() &&
+                !(*fixture.third).visible.type(),
             "TabControl must own pages and expose exactly one selected page");
     require((*fixture.tabs).display_bounds() == Rect{0.0, 29.0, 480.0, 231.0} &&
                 (*fixture.first).committed_arranged_bounds() ==
@@ -115,8 +115,8 @@ void test_page_ownership_layout_and_visibility() {
     (*fixture.tabs).set_selected_index(1U);
     window.perform_layout();
     require(changes == 1U && observed.old_index == 0U &&
-                observed.new_index == 1U && !(*fixture.first).visible() &&
-                (*fixture.second).visible(),
+                observed.new_index == 1U && !(*fixture.first).visible.type() &&
+                (*fixture.second).visible.type(),
             "TabControl selection must mutate visibility before one ordered event");
     require(window.hit_test({30.0, 70.0}) != fixture.first_button,
             "a hidden TabPage subtree must not remain hit-testable");
@@ -230,7 +230,7 @@ void test_selecting_events() {
     cancel = "selecting:2";
     (*fixture.tabs).set_selected_index(2U);
     require(seen == std::vector<std::string>{"deselecting:1", "selecting:2"} &&
-                (*fixture.tabs).selected_index() == 1U && (*fixture.second).visible(),
+                (*fixture.tabs).selected_index() == 1U && (*fixture.second).visible.type(),
             "a cancelled selecting keeps the page");
 
     seen.clear();
@@ -318,7 +318,7 @@ void test_page_removal_and_disposal_reconciliation() {
     window.perform_layout();
     require((*fixture.tabs).page_count() == 1U &&
                 (*fixture.tabs).selected_tab() == fixture.first &&
-                (*fixture.tabs).selected_index() == 0U && (*fixture.first).visible(),
+                (*fixture.tabs).selected_index() == 0U && (*fixture.first).visible.type(),
             "direct selected-page disposal must reconcile without stale ownership");
 }
 

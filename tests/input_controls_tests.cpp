@@ -262,7 +262,7 @@ void test_clipboard_commands_and_protected_text() {
     std::shared_ptr<gui_forms::TextBox> password = make_control<TextBox>(StableId("input.password"),
                                           "sëcret🚀");
     (*password).set_requested_bounds({0.0, 40.0, 240.0, 30.0});
-    (*password).set_accessible_name("Protected credential");
+    (*password).accessible_name = "Protected credential";
     (*password).set_use_system_password_character(true);
     (*root).add_child(password);
     Window window(root, {260.0, 90.0});
@@ -394,7 +394,7 @@ void test_combo_box_scrollbar_reaches_last_item() {
     window.perform_layout();
     const std::shared_ptr<ListBox> list = std::dynamic_pointer_cast<ListBox>(window.find("scroll.combo.popup.list"));
     const std::shared_ptr<ScrollBar> bar = std::dynamic_pointer_cast<ScrollBar>(window.find("scroll.combo.popup.list.scrollbar"));
-    require(list && bar && (*bar).visible(), "overflow choices have a visible, operable scrollbar");
+    require(list && bar && (*bar).visible.type(), "overflow choices have a visible, operable scrollbar");
     const Rect bounds = (*list).absolute_bounds();
     require(bounds.y >= 0 && bounds.y + bounds.height <= 220, "tall popup fits a short window");
     (*bar).set_value((*bar).maximum());
@@ -510,7 +510,7 @@ void test_combo_box_popup_commit_dismiss_and_owner_revocation() {
             "Escape inside the popup focus scope must close ComboBox and restore focus");
 
     (*combo).set_dropped_down(true);
-    (*combo).set_visible(false);
+    (*combo).visible = false;
     require(!(*combo).dropped_down() && !window.find("combo.field.popup.layer") &&
                 window.focus_scope_depth() == 0U,
             "popup controller must revoke a ComboBox overlay when its owner becomes ineligible");

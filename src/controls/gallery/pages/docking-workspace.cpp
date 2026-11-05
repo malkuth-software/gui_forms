@@ -92,7 +92,7 @@ private:
         first_tabs.edits.push_back(DockEdit::select(DockPanelId(std::string(document_ids[0]))));
         static_cast<void>((*workspace_).apply(first_tabs));
         site_ = make_control<DockSite>(StableId("gallery.docking.site"), *workspace_);
-        (*site_).set_accessible_name("Docking workspace");
+        (*site_).accessible_name = "Docking workspace";
         (*docking).add_at(site_, {18.0, 36.0, 636.0, 504.0});
     }
 
@@ -119,16 +119,16 @@ private:
         save_ = make_control<Button>(StableId("gallery.docking.save"), "Save layout");
         (*docking).add_at(save_, {x, 176.0, 116.0, 28.0});
         restore_ = make_control<Button>(StableId("gallery.docking.restore"), "Restore");
-        (*restore_).set_enabled(false);
+        (*restore_).enabled = false;
         (*docking).add_at(restore_, {x + 124.0, 176.0, 116.0, 28.0});
         name_ = make_control<TextBox>(StableId("gallery.docking.name"), "Wide");
-        (*name_).set_accessible_name("Layout name");
+        (*name_).accessible_name = "Layout name";
         (*name_).set_placeholder_text("Layout name");
         (*docking).add_at(name_, {x, 222.0, 140.0, 26.0});
         save_named_ = make_control<Button>(StableId("gallery.docking.save-named"), "Save as");
         (*docking).add_at(save_named_, {x + 148.0, 222.0, 92.0, 26.0});
         named_ = make_control<ListBox>(StableId("gallery.docking.named"));
-        (*named_).set_accessible_name("Named layouts");
+        (*named_).accessible_name = "Named layouts";
         (*docking).add_at(named_, {x, 254.0, width, 96.0});
         apply_named_ = make_control<Button>(StableId("gallery.docking.apply-named"), "Apply named layout");
         (*docking).add_at(apply_named_, {x, 356.0, width, 28.0});
@@ -147,7 +147,7 @@ private:
         (*copy).set_requested_bounds({8.0, 8.0, 160.0, 22.0});
         (*content).add_child(copy);
         std::shared_ptr<TextBox> field = make_control<TextBox>(StableId("gallery.docking.field." + creation.panel.value));
-        (*field).set_accessible_name(title);
+        (*field).accessible_name = title;
         (*field).set_requested_bounds({8.0, 36.0, 100.0, 24.0});
         (*content).add_child(field);
         creation.content = content;
@@ -192,7 +192,7 @@ private:
         const DockLayoutWriteResult written = (*workspace_).save_layout();
         if (!written) return;
         saved_ = written.text;
-        (*restore_).set_enabled(true);
+        (*restore_).enabled = true;
         (*closing_).set_text("Layout saved");
     }
 

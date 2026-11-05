@@ -129,8 +129,6 @@ public:
     // 1,048,576 cells), in which case no child slot was published.
     [[nodiscard]] GridSolveOutcome layout_outcome() const noexcept { return arranged_outcome_; }
 
-    [[nodiscard]] bool auto_size() const noexcept override { return Control::auto_size(); }
-    void set_auto_size(bool auto_size) override;
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     // The arrange asks each item its content widths and its height at its

@@ -82,7 +82,7 @@ class DockSite::DragLayer final : public Control {
 public:
     DragLayer(StableId stable_id, DockSite& site) : Control(std::move(stable_id)), site_(&site) {
         set_paint_plane(PaintPlane::control);
-        set_visible(false);
+        visible = false;
     }
 
     void release_site() noexcept { site_ = nullptr; }

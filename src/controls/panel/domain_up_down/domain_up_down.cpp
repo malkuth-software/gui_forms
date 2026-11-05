@@ -333,7 +333,7 @@ void DomainUpDown::arrange(Rect final_bounds) {
 }
 
 void DomainUpDown::on_key_preview(KeyEvent& event) {
-    if (!enabled() || event.action != KeyAction::down) return;
+    if (!enabled.type() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::up) {
         up_button();
         event.handled = true;
@@ -344,7 +344,7 @@ void DomainUpDown::on_key_preview(KeyEvent& event) {
 }
 
 void DomainUpDown::on_pointer_preview(PointerEvent& event) {
-    if (!enabled() || event.action != PointerAction::wheel || event.wheel_delta.y == 0.0) return;
+    if (!enabled.type() || event.action != PointerAction::wheel || event.wheel_delta.y == 0.0) return;
     // Wheel up moves up the list.
     if (event.wheel_delta.y > 0.0) {
         up_button();
@@ -357,9 +357,9 @@ void DomainUpDown::on_pointer_preview(PointerEvent& event) {
 SemanticDescriptor DomainUpDown::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::combo_box;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.type();
     descriptor.value = std::string(text());
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
     if (read_only_) descriptor.states |= SemanticState::read_only;

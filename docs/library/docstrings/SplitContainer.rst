@@ -193,8 +193,8 @@ A folder pane beside a message pane, with minimum widths for both:
        gf::make_control<gf::Panel>(gf::StableId("mail.folders"));
    std::shared_ptr<gf::Panel> messages =
        gf::make_control<gf::Panel>(gf::StableId("mail.messages"));
-   (*folders).set_dock(gf::DockStyle::fill);
-   (*messages).set_dock(gf::DockStyle::fill);
+   (*folders).dock = gf::DockStyle::fill;
+   (*messages).dock = gf::DockStyle::fill;
    std::shared_ptr<gf::SplitterPanel> left = (*split).first_panel();
    std::shared_ptr<gf::SplitterPanel> right = (*split).second_panel();
    (*left).add_child(folders);

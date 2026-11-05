@@ -53,7 +53,7 @@ private:
         }
         std::shared_ptr<Button> disabled = make_control<Button>(
             StableId("gallery.controls.button.disabled"), "Disabled state");
-        (*disabled).set_enabled(false);
+        (*disabled).enabled = false;
         (*button_group).add_at(disabled, {24.0, 92.0, 185.0, 30.0});
         std::shared_ptr<Button> default_button = make_control<Button>(
             StableId("gallery.controls.button.default"), "&Default action");

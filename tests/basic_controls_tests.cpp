@@ -252,7 +252,7 @@ void click(Window& window, const Control::Ptr& control) {
 
 void test_public_controls_render_with_role_policy() {
     std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("controls.panel"));
-    (*panel).set_accessible_name("Public panel group");
+    (*panel).accessible_name = "Public panel group";
     (*panel).set_requested_bounds({0.0, 0.0, 360.0, 180.0});
     (*panel).set_border_style(BorderStyle::line);
     std::shared_ptr<gui_forms::GroupBox> group = make_control<GroupBox>(StableId("controls.group"), "Reusable controls");
@@ -491,7 +491,7 @@ void test_button_authored_state_recipes_are_owned_and_retained() {
                 (*button).visual_outsets().bottom == 1.0,
             "authored pressed transform must move the whole visual without changing layout");
 
-    (*button).set_enabled(false);
+    (*button).enabled = false;
     RecordingPainter disabled_painter{};
     (*button).on_paint(disabled_painter, (*button).absolute_bounds());
     require(disabled_painter.last_fill_color == disabled_color,
@@ -581,7 +581,7 @@ void test_control_back_color_paints_background_once() {
     std::shared_ptr<Control> child = make_control<Control>(StableId("back-color.child"));
     (*child).set_requested_bounds({10.0, 10.0, 60.0, 24.0});
     (*root).add_child(child);
-    (*root).set_back_color(root_color);
+    (*root).back_color = root_color;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{100.0, 60.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -592,7 +592,7 @@ void test_control_back_color_paints_background_once() {
                 (*child).ambient_back_color() == root_color,
             "an inherited background must paint once, on the control that sets it");
 
-    (*child).set_back_color(child_color);
+    (*child).back_color = child_color;
     RecordingPainter own_painter{};
     window.paint(own_painter, {0.0, 0.0, 100.0, 60.0});
     require(std::count(own_painter.fill_colors.begin(), own_painter.fill_colors.end(), root_color) == 1 &&
@@ -633,7 +633,7 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     (*run_duplicate).set_requested_bounds({4.0, 68.0, 70.0, 28.0});
     (*accept).set_requested_bounds({80.0, 36.0, 70.0, 28.0});
     (*cancel).set_requested_bounds({156.0, 36.0, 70.0, 28.0});
-    (*cancel).set_causes_validation(false);
+    (*cancel).causes_validation = false;
     (*root).add_child(label);
     (*root).add_child(field);
     (*root).add_child(run);
@@ -675,12 +675,12 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     mnemonic.action = KeyAction::down;
     mnemonic.physical_key = PhysicalKey::r;
     mnemonic.modifiers = Modifier::alt;
-    (*run).set_causes_validation(false);
+    (*run).causes_validation = false;
     const bool operation_check_20 = window.dispatch_key(mnemonic);
     require(operation_check_20, "Alt plus a marked character must invoke the first eligible retained command");
     const bool operation_check_21 = run_clicks == 1U;
     require(operation_check_21, "Alt plus a marked character must invoke the first eligible retained command");
-    (*run_duplicate).set_causes_validation(false);
+    (*run_duplicate).causes_validation = false;
     const bool operation_check_22 = window.dispatch_key(mnemonic);
     require(operation_check_22, "duplicate mnemonics must advance through one stable retained arbitration ring");
     const bool operation_check_23 = duplicate_clicks == 1U;
@@ -715,7 +715,7 @@ void test_mnemonics_and_dialog_buttons_are_retained_commands() {
     require(operation_check_29, "a rejected default command must be consumed without activation or focus theft");
     const bool operation_check_30 = window.focused_control() == field;
     require(operation_check_30, "a rejected default command must be consumed without activation or focus theft");
-    (*accept).set_causes_validation(false);
+    (*accept).causes_validation = false;
     const bool operation_check_31 = window.dispatch_key(enter);
     require(operation_check_31, "CausesValidation false must run Click before publishing the retained dialog result");
     const bool operation_check_32 = accept_clicks == 1U;
@@ -885,7 +885,7 @@ void test_link_families() {
     (*link).set_visited(true);
     require(painted_link_color(*link) == defaults.visited_link,
             "a visited link must keep the default visited colour");
-    (*link).set_enabled(false);
+    (*link).enabled = false;
     // A disabled link is a disabled label part: the theme's own disabled text,
     // the text of its family in the disabled state (owner ruling, 2026-11-02).
     AnatomyStateSet disabled_states;
@@ -894,7 +894,7 @@ void test_link_families() {
     const Color disabled_ink =
         (*link).effective_theme().resolve(ControlVisualRole::visited_link, disabled_context).text;
     require(painted_link_color(*link) == disabled_ink, "a disabled link must take the theme's disabled ink");
-    (*link).set_enabled(true);
+    (*link).enabled = true;
 
     const std::unique_ptr<ThemeDefinition> held_definition = test_support::professional_definition();
     ThemeDefinition& definition = *held_definition;
@@ -979,7 +979,7 @@ void test_fixed_label_text_is_paint_only() {
                 fixed.paint_passes == 1U,
             "fixed label text must repaint without remeasuring its ancestors");
 
-    (*label).set_auto_size(true);
+    (*label).auto_size = true;
     window.perform_layout();
     window.reset_activity_metrics();
     (*label).set_text("content-sized telemetry");
@@ -1026,7 +1026,7 @@ void test_fixed_label_measurement_does_not_resolve_unused_text() {
             "fixed label layout must not resolve text whose metrics cannot affect either dimension");
 
     // AutoSize does not change Label's existing explicit-bounds precedence.
-    (*label).set_auto_size(true);
+    (*label).auto_size = true;
     window.set_text_scale(1.5);
     provider.calls = 0U;
     const Size scaled = (*label).measure({300.0, 200.0});
@@ -1421,7 +1421,7 @@ void test_picture_box_modes_registry_and_semantics() {
     std::shared_ptr<gui_forms::PictureBox> picture = make_control<PictureBox>(StableId("picture"));
     (*picture).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
     (*picture).set_border_style(BorderStyle::line);
-    (*picture).set_accessible_name("Professional test card");
+    (*picture).accessible_name = "Professional test card";
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(picture, Size{100.0, 100.0});
     Window& window = *held_window;
     const std::vector<std::byte> pixels(4U * 2U * 4U, std::byte{0xff});
@@ -1525,7 +1525,7 @@ void test_public_drawing_metrics_and_control_tag() {
     std::shared_ptr<gui_forms::DrawingSurface> drawing = make_control<DrawingSurface>(
         StableId("controls.diagnostics.drawing"));
     (*drawing).set_requested_bounds({0.0, 0.0, 120.0, 60.0});
-    (*drawing).set_accessible_name("Public owner drawing");
+    (*drawing).accessible_name = "Public owner drawing";
     (*drawing).set_background(Color::rgba(8, 9, 10));
     std::uint64_t callback_count = 0U;
     Rect callback_bounds{};
@@ -1729,7 +1729,7 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
     require(painter.lines >= 1U && painter.fills >= 4U,
             "open drop-down paint includes a filled indicator and bounded open edge");
 
-    (*menu).set_enabled(false);
+    (*menu).enabled = false;
     const bool operation_check_67 = !(*menu).perform_drop_down();
     require(operation_check_67, "disabled drop-down button must retain discoverability without invocation");
     const bool operation_check_68 = menu_requests == 3U;
@@ -1835,7 +1835,7 @@ void test_image_list_state_density_ownership_and_button_layout() {
                 dense.image_destinations.front().width == 16.0,
             "ImageList must select a 2x source without changing logical Button geometry");
 
-    (*button).set_enabled(false);
+    (*button).enabled = false;
     window.set_scale(1.0);
     RecordingPainter disabled{};
     (*button).on_paint(disabled, {0.0, 0.0, 150.0, 36.0});

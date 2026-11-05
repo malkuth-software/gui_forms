@@ -54,7 +54,7 @@ private:
         (*page).add_at(primary_group, {24.0, 92.0, 930.0, 280.0});
         primary_ = make_control<TabControl>(StableId("gallery.tabs.primary"));
         (*primary_).set_style(page_style());
-        (*primary_).set_accessible_name("Primary workspace tabs");
+        (*primary_).accessible_name = "Primary workspace tabs";
         (*primary_).set_item_size({150.0, 30.0});
         (*primary_group).add_at(primary_, {20.0, 36.0, 890.0, 220.0});
         for (std::size_t index = 0U; index < primary_names.size(); ++index) {
@@ -118,7 +118,7 @@ private:
             StableId("gallery.tabs.primary.diagnostics.progress"));
         (*value).set_range(0.0, 100.0);
         (*value).set_value(78.0);
-        (*value).set_accessible_name("Diagnostics completion");
+        (*value).accessible_name = "Diagnostics completion";
         (*value).set_requested_bounds({22.0, 108.0, 360.0, 24.0});
         return value;
     }
@@ -142,8 +142,7 @@ private:
             (*variants).add_at(caption, {x, 34.0, 280.0, 22.0});
             std::shared_ptr<TabControl> tabs = make_control<TabControl>(
                 StableId("gallery.tabs.variant." + std::to_string(index)));
-            (*tabs).set_accessible_name(
-                std::string(std::get<2>(variants_spec[index])) + " tabs");
+            (*tabs).accessible_name = std::string(std::get<2>(variants_spec[index])) + " tabs";
             (*tabs).set_style(page_style());
             (*tabs).set_alignment(std::get<0>(variants_spec[index]));
             (*tabs).set_appearance(std::get<1>(variants_spec[index]));
@@ -181,7 +180,7 @@ private:
             static_cast<void>(strip_pages_.insert(record, PagePlacement::end_of_group()));
         }
         strip_ = make_control<PageStrip>(StableId("gallery.tabs.strip"), strip_pages_);
-        (*strip_).set_accessible_name("Section tabs");
+        (*strip_).accessible_name = "Section tabs";
         (*strip_group).add_at(strip_, {20.0, 40.0, 620.0, 28.0});
         strip_status_ = label("gallery.tabs.strip.status", "Strip · Overview selected", 11.0, 600, green);
         (*strip_group).add_at(strip_status_, {660.0, 42.0, 250.0, 24.0});
@@ -203,11 +202,11 @@ private:
         static_cast<void>((*view_).add_page(view_record("summary", "&Summary"), summary));
         std::shared_ptr<Panel> details = make_control<Panel>(StableId("gallery.tabs.view.details"));
         std::shared_ptr<TextBox> name = make_control<TextBox>(StableId("gallery.tabs.view.details.name"));
-        (*name).set_accessible_name("Name");
+        (*name).accessible_name = "Name";
         (*name).set_requested_bounds({16.0, 16.0, 240.0, 26.0});
         (*details).add_child(name);
         std::shared_ptr<TextBox> notes = make_control<TextBox>(StableId("gallery.tabs.view.details.notes"));
-        (*notes).set_accessible_name("Notes");
+        (*notes).accessible_name = "Notes";
         (*notes).set_requested_bounds({16.0, 52.0, 240.0, 26.0});
         (*details).add_child(notes);
         static_cast<void>((*view_).add_page(view_record("details", "&Details"), details));
@@ -233,7 +232,7 @@ private:
         options.preset = PageViewPreset::document;
         options.pinning_enabled = true;
         documents_ = make_control<PageView>(StableId("gallery.tabs.documents"), options);
-        (*documents_).set_accessible_name("Open documents");
+        (*documents_).accessible_name = "Open documents";
         PageItemWidths widths{};
         widths.minimum = 80.0;
         (*(*documents_).strip()).set_item_widths(widths);
@@ -290,7 +289,7 @@ private:
             const std::string prefix = "gallery.tabs.side." + std::string(names[edge]);
             std::shared_ptr<PageView> view = make_control<PageView>(StableId(prefix));
             (*(*view).strip()).set_placement(edges[edge]);
-            (*view).set_accessible_name(std::string(names[edge]) + " side pages");
+            (*view).accessible_name = std::string(names[edge]) + " side pages";
             for (std::size_t index = 0U; index < side_titles.size(); ++index) {
                 PageRecord record{};
                 record.id = PageId{std::string(names[edge]) + "." + std::to_string(index)};
@@ -344,7 +343,7 @@ private:
             {930.0, 380.0});
         (*page).add_at(navigation_group, {24.0, 1616.0, 930.0, 380.0});
         navigation_ = make_control<NavigationPane>(StableId("gallery.tabs.navigation"));
-        (*navigation_).set_accessible_name("Gallery navigation");
+        (*navigation_).accessible_name = "Gallery navigation";
         (*navigation_group).add_at(navigation_, {20.0, 36.0, 240.0, 324.0});
         (*navigation_).set_expanded_width(240.0);
         PageSet& pages = (*navigation_).pages();

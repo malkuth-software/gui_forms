@@ -33,7 +33,7 @@ void add_at(const std::shared_ptr<Parent>& parent,
             const std::shared_ptr<Child>& child, const Rect bounds,
             const AnchorStyles anchor = AnchorStyles::top | AnchorStyles::left) {
     (*child).set_requested_bounds(bounds);
-    (*child).set_anchor(anchor);
+    (*child).anchor = anchor;
     (*parent).add_child(child);
 }
 
@@ -167,7 +167,7 @@ std::shared_ptr<ButtonType> segment(std::string id, std::string text,
     std::shared_ptr<ButtonType> result = make_control<ButtonType>(
         StableId(std::move(id)), std::move(text));
     (*result).set_font({FontRole::control, 10.0, 600, false, 0.08});
-    (*result).set_margin({});
+    (*result).margin = Insets{};
     add_at(root, result, bounds);
     return result;
 }
@@ -283,7 +283,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
     (*three_checked).set_checked(true);
     std::shared_ptr<Button> three_disabled = segment<Button>(
         "connected-controls.three.disabled", "Disabled", {286.0, 262.0, 138.0, 42.0}, root);
-    (*three_disabled).set_enabled(false);
+    (*three_disabled).enabled = false;
     const std::array<std::shared_ptr<ButtonBase>, 3U> three_group{
         three_default, three_checked, three_disabled};
     connect_button_group(three_group, ConnectedControlAxis::horizontal);
@@ -299,7 +299,7 @@ std::unique_ptr<Window> make_connected_controls_lab() {
             std::array<const char*, 4U>{"Cut", "Copy", "Paste", "Delete"}[index],
             {24.0 + static_cast<double>(index) * 112.0, 343.0, 112.0, 42.0}, root);
         if (index == 1U) (*item).set_selected(true);
-        if (index == 2U) (*item).set_enabled(false);
+        if (index == 2U) (*item).enabled = false;
         if (index == 3U) (*item).set_visual_status(ControlVisualStatus::pending);
         five_group[index] = item;
     }

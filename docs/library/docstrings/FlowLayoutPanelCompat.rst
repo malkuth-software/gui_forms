@@ -112,9 +112,9 @@ after the second, so it starts the second line:
    (*cut).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
    (*copy).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
    (*paste).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
-   (*cut).set_margin({});
-   (*copy).set_margin({});
-   (*paste).set_margin({});
+   (*cut).margin = gf::Insets{};
+   (*copy).margin = gf::Insets{};
+   (*paste).margin = gf::Insets{};
    (*tools).add_child(cut);
    (*tools).add_child(copy);
    (*tools).add_child(paste);
@@ -139,9 +139,9 @@ Let two children share the free space of a line in the ratio 1 to 2:
    (*fixed).set_requested_bounds({0.0, 0.0, 20.0, 10.0});
    (*narrow).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
    (*wide).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
-   (*fixed).set_margin({});
-   (*narrow).set_margin({});
-   (*wide).set_margin({});
+   (*fixed).margin = gf::Insets{};
+   (*narrow).margin = gf::Insets{};
+   (*wide).margin = gf::Insets{};
    (*row).add_child(fixed);
    (*row).add_child(narrow);
    (*row).add_child(wide);

@@ -45,7 +45,7 @@ private:
                                 {24.0, 44.0 + row, 170.0, 26.0});
             std::shared_ptr<NumericUpDown> numeric = make_control<NumericUpDown>(
                 StableId("gallery.values.numeric." + std::to_string(index)));
-            (*numeric).set_accessible_name(std::string(captions[index]));
+            (*numeric).accessible_name = std::string(captions[index]);
             if (index == 0U) {
                 (*numeric).set_range(0.0, 100.0);
                 (*numeric).set_value(42.0);
@@ -76,7 +76,7 @@ private:
         (*group_box).add_at(label("gallery.values.caption.domain", "Domain (wraps)", 11.0, 600, muted),
                             {24.0, 44.0 + row, 170.0, 26.0});
         domain_ = make_control<DomainUpDown>(StableId("gallery.values.domain"));
-        (*domain_).set_accessible_name("Demodulation mode");
+        (*domain_).accessible_name = "Demodulation mode";
         (*domain_).set_items({"AM", "FM", "WFM", "USB", "LSB", "CW"});
         (*domain_).set_wrap(true);
         (*domain_).set_selected_index(1U);
@@ -86,11 +86,11 @@ private:
 
     void build_inspector(const std::shared_ptr<LayoutGroup>& group_box) {
         inspector_ = make_control<PropertyGrid>(StableId("gallery.values.property-grid"));
-        (*inspector_).set_accessible_name("Decimal control property grid");
+        (*inspector_).accessible_name = "Decimal control property grid";
         (*inspector_).set_selected_object(numerics_[1]);
         static_cast<void>((*inspector_).set_property_expanded("bounds", true));
         items_target_ = make_control<ComboBox>(StableId("gallery.values.items-target"));
-        (*items_target_).set_accessible_name("Inspectable mode collection");
+        (*items_target_).accessible_name = "Inspectable mode collection";
         (*items_target_).set_items({"AM", "FM", "WFM"});
         (*items_target_).set_selected_index(1U);
         (*group_box).add_at(items_target_, {486.0, 34.0, 174.0, 30.0});
@@ -104,7 +104,7 @@ private:
         add_item_.set_text("Add CW");
         add_item_.set_description("Insert CW through the ComboBox.Items setter");
         commands_ = make_control<CommandBar>(StableId("gallery.values.inspector-commands"));
-        (*commands_).set_accessible_name("Inspector commands");
+        (*commands_).accessible_name = "Inspector commands";
         (*commands_).set_items({
             {.id = command_inspect_numeric, .label = "Numeric",
              .accessible_name = "Inspect numeric", .command = &inspect_numeric_},
@@ -136,7 +136,7 @@ private:
             "BindingSource · currency, edit, conversion, two-way controls · BindingNavigator", {930.0, 196.0});
         (*body).add_at(binding, {24.0, 474.0, 930.0, 196.0});
         (*context).binding_editor = make_control<TextBox>(StableId("gallery.values.binding.name"));
-        (*(*context).binding_editor).set_accessible_name("Bound profile name");
+        (*(*context).binding_editor).accessible_name = "Bound profile name";
         (*context).binding_enabled = make_control<CheckBox>(
             StableId("gallery.values.binding.enabled"), "Enabled");
         (*context).binding_gain = make_control<TrackBar>(StableId("gallery.values.binding.gain"));
@@ -158,7 +158,7 @@ private:
         (*binding).add_at((*context).binding_status, {20.0, 94.0, 880.0, 26.0});
         // A BindingNavigator over the same source; the shell binds it.
         (*context).binding_navigator = make_control<BindingNavigator>(StableId("gallery.values.binding.navigator"));
-        (*(*context).binding_navigator).set_accessible_name("Profile navigator");
+        (*(*context).binding_navigator).accessible_name = "Profile navigator";
         (*binding).add_at((*context).binding_navigator, {20.0, 128.0, 520.0, 27.0});
     }
 

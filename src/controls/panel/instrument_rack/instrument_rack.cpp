@@ -408,11 +408,11 @@ struct InstrumentRack::Impl final {
             (*text).set_font(field_font);
             editor = text;
         }
-        (*editor).set_margin({});
-        (*editor).set_accessible_name(field.name);
-        (*editor).set_accessible_description(field.validation_message.empty()
+        (*editor).margin = Insets{};
+        (*editor).accessible_name = field.name;
+        (*editor).accessible_description = field.validation_message.empty()
             ? module.spec.name + " criterion field"
-            : field.validation_message);
+            : field.validation_message;
         (*module.panel).add_child(editor);
         return editor;
     }
@@ -450,13 +450,13 @@ struct InstrumentRack::Impl final {
         module.spec = std::move(spec);
         module.panel = make_control<RackModulePanel>(
             StableId(module.spec.stable_id));
-        (*module.panel).set_accessible_name(module.spec.name);
+        (*module.panel).accessible_name = module.spec.name;
         const std::string module_id = module.spec.stable_id;
         (*module.panel).move_request = MoveRequest{this, module_id};
         module.enable = make_control<CheckBox>(
             StableId(module.spec.stable_id + ".enable"));
-        (*module.enable).set_accessible_name("Enable " + module.spec.name);
-        (*module.enable).set_margin({});
+        (*module.enable).accessible_name = "Enable " + module.spec.name;
+        (*module.enable).margin = Insets{};
         (*module.panel).add_child(module.enable);
         for (std::size_t index = 0; index < module.spec.fields.size(); ++index) {
             FieldState field;
@@ -468,14 +468,14 @@ struct InstrumentRack::Impl final {
             module.spec.status_text);
         (*module.status).set_font({FontRole::control, 9.5, 600, false, 0.30});
         (*module.status).set_foreground(Color::rgba(92, 113, 128));
-        (*module.status).set_margin({});
-        (*module.status).set_accessible_name("Application state");
+        (*module.status).margin = Insets{};
+        (*module.status).accessible_name = "Application state";
         (*module.panel).add_child(module.status);
         module.remove = make_control<Button>(
             StableId(module.spec.stable_id + ".remove"), "×");
         (*module.remove).set_visual_style(ButtonVisualStyle::flat);
-        (*module.remove).set_accessible_name("Remove " + module.spec.name);
-        (*module.remove).set_margin({});
+        (*module.remove).accessible_name = "Remove " + module.spec.name;
+        (*module.remove).margin = Insets{};
         (*module.panel).add_child(module.remove);
         (*module.panel).enable = module.enable;
         (*module.panel).status = module.status;
@@ -508,28 +508,26 @@ struct InstrumentRack::Impl final {
         (*module.enable).set_checked(module.spec.enabled);
         synchronizing = false;
         const bool pending = module.spec.state == InstrumentModuleState::pending;
-        (*module.enable).set_enabled(!pending);
-        (*module.remove).set_enabled(module.spec.removable && !pending);
-        (*module.remove).set_visible(module.spec.removable);
+        (*module.enable).enabled = !pending;
+        (*module.remove).enabled = module.spec.removable && !pending;
+        (*module.remove).visible = module.spec.removable;
         (*module.remove).set_style(style);
         (*module.status).set_text(module.spec.status_text);
-        (*module.status).set_accessible_description(module.spec.status_text);
+        (*module.status).accessible_description = module.spec.status_text;
         (*module.status).set_foreground(
             module.spec.state == InstrumentModuleState::invalid
                 ? Color::rgba(130, 59, 57)
                 : module.spec.state == InstrumentModuleState::staged
                     ? Color::rgba(121, 93, 131)
                     : Color::rgba(92, 113, 128));
-        (*module.panel).set_accessible_description(
-            module.spec.status_text +
-            " · Alt+Left and Alt+Right request reordering");
+        (*module.panel).accessible_description = module.spec.status_text +
+            " · Alt+Left and Alt+Right request reordering";
         for (std::size_t index = 0; index < module.fields.size(); ++index) {
             const InstrumentFieldSpec& field = module.spec.fields[index];
-            (*module.fields[index].editor).set_enabled(module.spec.enabled && !pending);
-            (*module.fields[index].editor).set_accessible_description(
-                field.validation_message.empty()
+            (*module.fields[index].editor).enabled = module.spec.enabled && !pending;
+            (*module.fields[index].editor).accessible_description = field.validation_message.empty()
                     ? module.spec.name + " criterion field"
-                    : field.validation_message);
+                    : field.validation_message;
             if (const std::shared_ptr<gui_forms::Panel> panel = std::dynamic_pointer_cast<Panel>(
                     module.fields[index].editor)) {
                 (*panel).set_style(style);
@@ -554,14 +552,14 @@ struct InstrumentRack::Impl final {
             return;
         }
         state.spec = std::move(incoming);
-        (*state.panel).set_accessible_name(state.spec.name);
+        (*state.panel).accessible_name = state.spec.name;
         (*state.panel).field_weights.clear();
         synchronizing = true;
         for (std::size_t index = 0; index < state.fields.size(); ++index) {
             InstrumentFieldSpec& field = state.spec.fields[index];
             FieldState& field_state = state.fields[index];
             field_state.committed_value = field.value;
-            (*field_state.editor).set_accessible_name(field.name);
+            (*field_state.editor).accessible_name = field.name;
             if (const std::shared_ptr<gui_forms::ComboBox> choice = std::dynamic_pointer_cast<ComboBox>(
                     field_state.editor)) {
                 (*choice).set_items(field.choices);
@@ -613,7 +611,7 @@ struct InstrumentRack::Impl final {
 
     std::vector<Slot> compute_slots(double available_width) const {
         const double s = scale();
-        const Insets inset = owner.padding();
+        const Insets inset = owner.padding.type();
         const double width = std::max(
             0.0, available_width - inset.left - inset.right);
         const double gap = rack_gap * s;
@@ -702,8 +700,8 @@ InstrumentRack::InstrumentRack(StableId stable_id)
     : Panel(std::move(stable_id)), impl_(std::make_unique<Impl>(*this)) {
     set_background(Color::rgba(242, 247, 250));
     set_border_style(BorderStyle::none);
-    set_padding({});
-    set_accessible_name("Editing instrument rack");
+    padding = Insets{};
+    accessible_name = "Editing instrument rack";
 }
 
 InstrumentRack::~InstrumentRack() = default;
@@ -949,7 +947,7 @@ void InstrumentRack::set_action_content(Control::Ptr content,
     (*impl_).action_content = std::move(content);
     (*impl_).action_minimum_width = minimum_width;
     if ((*impl_).action_content) {
-        (*(*impl_).action_content).set_margin({});
+        (*(*impl_).action_content).margin = Insets{};
         add_child((*impl_).action_content);
     }
     invalidate(invalidation::bounds | Dirty::semantics);
@@ -1062,9 +1060,9 @@ void InstrumentRack::on_key_preview(KeyEvent& event) {
 SemanticDescriptor InstrumentRack::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name().empty()
-        ? "Editing instrument rack" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty()
+        ? "Editing instrument rack" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.value = std::to_string((*impl_).states.size()) + " modules";
     descriptor.states = SemanticState::enabled | SemanticState::visible;
     descriptor.exposed = true;

@@ -262,7 +262,7 @@ void append_semantic_nodes(const Control::Ptr& control,
     node.large_step = descriptor.large_step;
     node.text_selection = descriptor.text_selection;
     node.multiline = descriptor.multiline;
-    node.tool_tip = (*control).tool_tip_text();
+    node.tool_tip = (*control).tool_tip_text.type();
     node.bounds = (*control).absolute_bounds();
     if (!current_semantic_identity(control, expected_parent, owner)) return;
     node.states |= descriptor.states;
@@ -728,7 +728,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         ++validation_reentrant_requests_rejected_;
         return false;
     }
-    if (previous && (!control || (*control).causes_validation())) {
+    if (previous && (!control || (*control).causes_validation.type())) {
         AutoValidate mode = AutoValidate::enable_prevent_focus_change;
         for (Control::Ptr current = previous; current; current = (*current).parent()) {
             const AutoValidate authored = (*current).authored_auto_validate();
@@ -869,14 +869,14 @@ bool SurfaceRoot::tab_order_less(const Control::Ptr& left,
                             const Control::Ptr& right) noexcept {
     if (!left) return false;
     if (!right) return true;
-    return (*left).tab_index() < (*right).tab_index();
+    return (*left).tab_index.type() < (*right).tab_index.type();
 }
 
 void SurfaceRoot::collect_focus_candidates(const Control::Ptr& control,
                                       ControlList& result,
                                       bool focusable_only) const {
     if (!control || !eligible(control)) return;
-    if (!focusable_only || ((*control).focusable_ && (*control).tab_stop_)) {
+    if (!focusable_only || ((*control).focusable_ && (*control).tab_stop.type())) {
         result.push_back(control);
     }
     ControlList children((*control).children_.begin(),
@@ -919,7 +919,7 @@ bool SurfaceRoot::move_focus_after(const Control::Ptr& origin) {
     if (found == ordered.end()) return false;
     for (ControlList::iterator current = std::next(found);
          current != ordered.end(); ++current) {
-        if ((*(*current)).focusable() && (*(*current)).tab_stop() &&
+        if ((*(*current)).focusable() && (*(*current)).tab_stop.type() &&
             request_focus(*current)) return true;
     }
     return false;
@@ -931,7 +931,7 @@ bool SurfaceRoot::validate_command_activation(const Control::Ptr& destination) {
         !focus_allowed_by_active_scope(destination)) return false;
     const Control::Ptr previous = focused_.lock();
     if (!previous || previous == destination ||
-        !(*destination).causes_validation()) return true;
+        !(*destination).causes_validation.type()) return true;
     if (validating_) {
         ++validation_reentrant_requests_rejected_;
         return false;
@@ -1115,7 +1115,7 @@ void SurfaceRoot::validate_children_recursive(
         }
         if (has_validation_constraint(
                 constraints, ValidationConstraints::tab_stop)) {
-            selected = selected && (*child).tab_stop();
+            selected = selected && (*child).tab_stop.type();
         }
         if (selected) {
             ++validation_attempts_;
@@ -1926,7 +1926,7 @@ void SurfaceRoot::abandon_deferred_drag() noexcept {
 
 Control::Ptr SurfaceRoot::drop_target_at(Point position) {
     for (Control::Ptr target = hit_test(position); target; target = (*target).parent()) {
-        if (eligible(target) && (*target).allow_drop()) {
+        if (eligible(target) && (*target).allow_drop.type()) {
             return target;
         }
     }
@@ -1935,7 +1935,7 @@ Control::Ptr SurfaceRoot::drop_target_at(Point position) {
 
 DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent event) {
     DragDispatchResult result;
-    if (!target || !eligible(target) || !(*target).allow_drop()) {
+    if (!target || !eligible(target) || !(*target).allow_drop.type()) {
         return result;
     }
     const std::vector<Control::Ptr> route = route_to(target);
@@ -1950,7 +1950,7 @@ DragDispatchResult SurfaceRoot::route_drag(const Control::Ptr& target, DragEvent
             break;
         }
     }
-    if (!event.handled && eligible(target) && (*target).allow_drop()) {
+    if (!event.handled && eligible(target) && (*target).allow_drop.type()) {
         event.phase = EventPhase::target;
         metrics_.record_callback_emitted();
         (*target).on_drag(event);
@@ -3205,7 +3205,7 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control,
         }
     }
     const Point local{window_position.x - bounds.x, window_position.y - bounds.y};
-    const bool hit = !(*control).hit_test_transparent_ &&
+    const bool hit = !(*control).hit_test_transparent.type() &&
                      (*control).hit_test_local(local);
     return hit && eligible(control) && (*control).surface_root_ == this &&
             (*control).parent_.lock().get() == retained_parent
@@ -3221,7 +3221,7 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
         return;
     }
     ++visited_nodes;
-    if (!(*control).is_alive() || !(*control).visible_ ||
+    if (!(*control).is_alive() || !(*control).visible.type() ||
         (*control).layout_collapsed_) {
         clear_layout_dirty_subtree(control);
         return;
@@ -3291,7 +3291,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         return;
     }
     ++visited_nodes;
-    if (!(*control).is_alive() || !(*control).visible_ ||
+    if (!(*control).is_alive() || !(*control).visible.type() ||
         (*control).layout_collapsed_) {
         clear_layout_dirty_subtree(control);
         return;
@@ -3597,7 +3597,7 @@ void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcep
 
 bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Rect damage, const PaintPlane plane,
                               std::vector<Control::Ptr>& path) const {
-    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible_ ||
+    if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible.type() ||
         (*control).layout_collapsed_) {
         return false;
     }
@@ -3712,7 +3712,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                              std::uint64_t& commands_replayed) {
     ++visited_nodes;
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
-        !(*control).visible_ || (*control).layout_collapsed_) {
+        !(*control).visible.type() || (*control).layout_collapsed_) {
         clear_paint_dirty_subtree(control);
         return;
     }

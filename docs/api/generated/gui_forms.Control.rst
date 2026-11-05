@@ -7,7 +7,7 @@ gui_forms::Control
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Control : public Component, public std::enable_shared_from_this<Control>
+.. cpp:class:: Control : public Component, public std::enable_shared_from_this<Control>, public ControlCapabilities<Control>
 
    ``#include <gui_forms/control/control/control.hpp>``
 
@@ -31,6 +31,116 @@ gui_forms::Control
 
    :Properties:
 
+      **name** : ``std::string``
+         A mutable display name for designers and inspection. It starts as the
+         stable ID's string. Setting it raises :cpp:func:`name_changed <gui_forms::Control::name_changed>`.
+
+      **visible** : ``bool``, default ``true``
+         Whether the application wants the control shown. A hidden control and
+         its children are not laid out, painted, hit or focused. Setting it
+         raises :cpp:func:`visible_changed <gui_forms::Control::visible_changed>`.
+
+      **enabled** : ``bool``, default ``true``
+         Whether the control accepts input. A disabled control is painted
+         disabled and receives no pointer, key or text input; its children are
+         disabled with it. Setting it raises :cpp:func:`enabled_changed <gui_forms::Control::enabled_changed>`.
+
+      **auto_size** : ``bool``
+         Whether measurement sizes the control to its content. Off by default;
+         a write (``auto_size = true``) changes it and raises :cpp:func:`auto_size_changed <gui_forms::Control::auto_size_changed>`.
+
+      **causes_validation** : ``bool``, default ``true``
+         Whether moving focus to this control validates the control losing focus,
+         and whether this control raises :cpp:func:`validating <gui_forms::Control::validating>` when it is validated.
+
+      **tool_tip_text** : ``std::string``
+         Short help text about the control, shown by its window's one tooltip
+         presenter when the pointer rests on the control, or below the control
+         when keyboard focus reaches it with the focus cue showing. Controls you
+         type into show it as grey hint text in their empty field while they
+         have focus instead, unless a placeholder is set. Empty by default, and
+         empty text never shows. It must be valid UTF-8, or
+         ``std::invalid_argument`` is thrown. It is bindable and published as the
+         semantic field ``tool_tip``. Data items such as list rows have none.
+
+      **cursor** : ``std::optional<CursorKind>``
+         The pointer shape over the control, or none to use the parent's.
+         :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
+
+      **back_color** : ``std::optional<Color>``
+         The own background colour; empty takes the parent's.
+
+      **fore_color** : ``std::optional<Color>``
+         The own text colour; empty takes the parent's.
+
+      **minimum_size** : ``Size``, default ``{0, 0}``
+         The smallest size layout may give the control. A minimum larger than a
+         nonzero :cpp:func:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
+
+      **maximum_size** : ``Size``, default ``{0, 0}``
+         The largest size layout may give the control. A zero dimension is
+         unbounded; a nonzero dimension below :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` throws
+         ``std::invalid_argument``.
+
+      **margin** : ``Insets``, default ``{3, 3, 3, 3}``
+         Space that flow and table layout panels leave around the control. The
+         base dock and anchor layout ignores it; auto-size measurement and scroll
+         extents include its right and bottom parts. Values must be finite and
+         nonnegative.
+
+      **padding** : ``Insets``, default ``{0, 0, 0, 0}``
+         Space inside the control's edges that docked children leave free.
+         Anchored children keep their distances to these padded edges when the
+         control resizes.
+
+      **dock** : ``DockStyle``, default ``DockStyle::none``
+         Attach the control to an edge of its parent, or :cpp:enumerator:`DockStyle::fill <gui_forms::DockStyle::fill>` the
+         remaining space. Docked children take their space in paint order, so the
+         backmost docked child takes the outermost edge.
+
+      **anchor** : ``AnchorStyles``, default ``AnchorStyles::top | AnchorStyles::left``
+         For an undocked control, the parent edges whose distance stays fixed
+         when the parent resizes. Anchored to both left and right, the control
+         stretches; anchored to neither, it keeps its centre offset.
+
+      **auto_size_mode** : ``AutoSizeMode``, default ``AutoSizeMode::grow_only``
+         With :cpp:func:`auto_size <gui_forms::Control::auto_size>` on, whether measurement may shrink the control below
+         its requested size (:cpp:enumerator:`AutoSizeMode::grow_and_shrink <gui_forms::AutoSizeMode::grow_and_shrink>`) or only grow it.
+
+      **layout_direction** : ``LayoutDirection``, default ``LayoutDirection::inherit``
+         The inline direction the control lays its children out in;
+         :cpp:enumerator:`LayoutDirection::inherit <gui_forms::LayoutDirection::inherit>` takes the parent's, and a control with no
+         parent is left to right. Right to left mirrors docking, anchoring and
+         requested bounds, as Windows Forms' ``RightToLeftLayout``: the layout is
+         computed left to right and mirrored about the control's viewport, so
+         :cpp:enumerator:`DockStyle::left <gui_forms::DockStyle::left>` docks at the right, an anchor to the left keeps the
+         distance to the right edge, a requested x is measured from the right
+         edge, and padding and margins mirror too. The CSS containers keep their
+         own start and end model.
+
+      **tab_index** : ``std::uint32_t``, default ``0``
+         The order of Tab traversal among siblings. Ties keep child order; the
+         traversal visits a control before its children.
+
+      **tab_stop** : ``bool``, default ``true``
+         Whether Tab and Shift+Tab stop at the control. A focusable control with
+         :cpp:func:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
+         ``Window::request_focus``.
+
+      **allow_drop** : ``bool``, default ``false``
+         Whether the control is offered drag-and-drop data.
+
+      **hit_test_transparent** : ``bool``, default ``false``
+         Whether pointer input passes through the control to what lies beneath.
+         The control is still painted, and its children are still hit tested.
+
+      **accessible_name** : ``std::string``
+         A name for assistive technology that overrides the control's own text.
+         Empty by default.
+
+      **accessible_description** : ``std::string``
+         A longer description for assistive technology. Empty by default.
+
       **runtime_id** : ``RuntimeId``, read-only
          A process-local number, unique among the controls of one process run.
          Use it for fast lookup within a run, for example with :cpp:func:`remove_child <gui_forms::Control::remove_child>`;
@@ -38,10 +148,6 @@ gui_forms::Control
 
       **stable_id** : ``StableId``, read-only
          The identity given at construction. It never changes.
-
-      **name** : ``std::string``
-         A mutable display name for designers and inspection. It starts as the
-         stable ID's string. Setting it raises :cpp:func:`name_changed <gui_forms::Control::name_changed>`.
 
       **tag** : ``std::any``
          Any value the application wants to attach, stored as ``std::any`` with its
@@ -79,15 +185,6 @@ gui_forms::Control
       **right** : ``double``, read-only
 
       **bottom** : ``double``, read-only
-
-      **minimum_size** : ``Size``, default ``{0, 0}``
-         The smallest size layout may give the control. A minimum larger than a
-         nonzero :cpp:func:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
-
-      **maximum_size** : ``Size``, default ``{0, 0}``
-         The largest size layout may give the control. A zero dimension is
-         unbounded; a nonzero dimension below :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` throws
-         ``std::invalid_argument``.
 
       **arranged_bounds** : ``Rect``, read-only
          Where layout actually put the control, relative to its parent. Reading it
@@ -142,13 +239,8 @@ gui_forms::Control
 
       **authored_surface_material** : ``std::optional<SurfaceMaterial>``
 
-      **back_color** : ``std::optional<Color>``
-         The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Setting or clearing one repaints the control and its descendants.
-
-      **fore_color** : ``std::optional<Color>``
-
       **ambient_back_color** : ``std::optional<Color>``, read-only
-         This control's own colour, else its nearest ancestor's, else none.
+         The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Setting or clearing one repaints the control and its descendants. This control's own colour, else its nearest ancestor's, else none.
 
       **ambient_fore_color** : ``std::optional<Color>``, read-only
 
@@ -165,77 +257,22 @@ gui_forms::Control
          is not on its window's UI thread. A detached control always reports
          false.
 
-      **margin** : ``Insets``, default ``{3, 3, 3, 3}``
-         Space that flow and table layout panels leave around the control. The
-         base dock and anchor layout ignores it; auto-size measurement and scroll
-         extents include its right and bottom parts. Values must be finite and
-         nonnegative.
-
-      **padding** : ``Insets``, default ``{0, 0, 0, 0}``
-         Space inside the control's edges that docked children leave free.
-         Anchored children keep their distances to these padded edges when the
-         control resizes.
-
       **auto_scroll_offset** : ``Point``
          An offset a scrolling parent uses when it scrolls this control into
          view.
 
-      **dock** : ``DockStyle``, default ``DockStyle::none``
-         Attach the control to an edge of its parent, or :cpp:enumerator:`DockStyle::fill <gui_forms::DockStyle::fill>` the
-         remaining space. Docked children take their space in paint order, so the
-         backmost docked child takes the outermost edge.
-
-      **anchor** : ``AnchorStyles``, default ``AnchorStyles::top | AnchorStyles::left``
-         For an undocked control, the parent edges whose distance stays fixed
-         when the parent resizes. Anchored to both left and right, the control
-         stretches; anchored to neither, it keeps its centre offset.
-
-      **auto_size_mode** : ``AutoSizeMode``, default ``AutoSizeMode::grow_only``
-         With ``auto_size`` on, whether measurement may shrink the control below
-         its requested size (:cpp:enumerator:`AutoSizeMode::grow_and_shrink <gui_forms::AutoSizeMode::grow_and_shrink>`) or only grow it.
-
       **layout_transaction_state** : ``LayoutTransactionState``, read-only
          The depth of :cpp:func:`suspend_layout <gui_forms::Control::suspend_layout>` calls and whether layout is pending, with
          revision counters for tests.
-
-      **visible** : ``bool``, default ``true``
-         Whether the application wants the control shown. A hidden control and
-         its children are not laid out, painted, hit or focused. Setting it
-         raises :cpp:func:`visible_changed <gui_forms::Control::visible_changed>`.
 
       **layout_collapsed** : ``bool``, read-only
          Whether a parent layout has collapsed this control, for example a closed
          section of an expandable list. It hides the control like :cpp:func:`visible <gui_forms::Control::visible>`
          false, without changing :cpp:func:`visible <gui_forms::Control::visible>`.
 
-      **enabled** : ``bool``, default ``true``
-         Whether the control accepts input. A disabled control is painted
-         disabled and receives no pointer, key or text input; its children are
-         disabled with it. Setting it raises :cpp:func:`enabled_changed <gui_forms::Control::enabled_changed>`.
-
       **focusable** : ``bool``, default ``false``
          Whether the control can take keyboard focus. Interactive stock controls
          such as buttons and text boxes turn it on.
-
-      **causes_validation** : ``bool``, default ``true``
-         Whether moving focus to this control validates the control losing focus,
-         and whether this control raises :cpp:func:`validating <gui_forms::Control::validating>` when it is validated.
-
-      **tab_index** : ``std::uint32_t``, default ``0``
-         The order of Tab traversal among siblings. Ties keep child order; the
-         traversal visits a control before its children.
-
-      **tab_stop** : ``bool``, default ``true``
-         Whether Tab and Shift+Tab stop at the control. A focusable control with
-         :cpp:func:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
-         ``Window::request_focus``.
-
-      **allow_drop** : ``bool``, default ``false``
-         Whether the control is offered drag-and-drop data.
-
-      **hit_test_transparent** : ``bool``, default ``false``
-         Whether pointer input passes through the control to what lies beneath.
-         The control is still painted, and its children are still hit tested.
 
       **styles** : ``ControlStyles``, read-only
          The :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags kept for Windows Forms compatibility;
@@ -244,10 +281,6 @@ gui_forms::Control
       **double_buffered** : ``bool``
          Whether both buffering styles are set. GUI.Forms always presents whole
          composited frames, so the flag changes nothing visible.
-
-      **cursor** : ``std::optional<CursorKind>``
-         The pointer shape over the control, or none to use the parent's.
-         :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
 
       **classes** : ``std::span<const std::string>``
          The style classes a theme's class rules select (T2 cascade), in the order
@@ -274,23 +307,6 @@ gui_forms::Control
          Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
 
       **effective_cursor_images** : ``CursorImagesPtr``, read-only
-
-      **accessible_name** : ``std::string``
-         A name for assistive technology that overrides the control's own text.
-         Empty by default.
-
-      **accessible_description** : ``std::string``
-         A longer description for assistive technology. Empty by default.
-
-      **tool_tip_text** : ``std::string``
-         Short help text about the control, shown by its window's one tooltip
-         presenter when the pointer rests on the control, or below the control
-         when keyboard focus reaches it with the focus cue showing. Controls you
-         type into show it as grey hint text in their empty field while they
-         have focus instead, unless a placeholder is set. Empty by default, and
-         empty text never shows. It must be valid UTF-8, or
-         ``std::invalid_argument`` is thrown. It is bindable and published as the
-         semantic field ``tool_tip``. Data items such as list rows have none.
 
       **tool_tip_presentation** : ``ToolTipPresentation``, read-only
 
@@ -350,19 +366,8 @@ gui_forms::Control
       **measure_generation** : ``std::uint64_t``, read-only
          Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
-      **layout_direction** : ``LayoutDirection``, default ``LayoutDirection::inherit``
-         The inline direction the control lays its children out in;
-         :cpp:enumerator:`LayoutDirection::inherit <gui_forms::LayoutDirection::inherit>` takes the parent's, and a control with no
-         parent is left to right. Right to left mirrors docking, anchoring and
-         requested bounds, as Windows Forms' ``RightToLeftLayout``: the layout is
-         computed left to right and mirrored about the control's viewport, so
-         :cpp:enumerator:`DockStyle::left <gui_forms::DockStyle::left>` docks at the right, an anchor to the left keeps the
-         distance to the right edge, a requested x is measured from the right
-         edge, and padding and margins mirror too. The CSS containers keep their
-         own start and end model.
-
       **effective_layout_direction** : ``LayoutDirection``, read-only
-         The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
+         The authored inline direction, ``inherit`` by default (stage L, PLAN section 4). Setting it invalidates this subtree's arrangement. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
 
       **parts** : ``Parts``, read-only
 
@@ -381,7 +386,7 @@ gui_forms::Control
          Raised after :cpp:func:`enabled <gui_forms::Control::enabled>` changes, with the new value.
 
       **auto_size_changed** : ``Event<bool>``
-         Raised after ``auto_size`` changes, with the new value.
+         Raised after :cpp:func:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
 
       **causes_validation_changed** : ``Event<bool>``
          Raised after :cpp:func:`causes_validation <gui_forms::Control::causes_validation>` changes, with the new value.
@@ -477,10 +482,6 @@ gui_forms::Control
         - Removes :cpp:func:`theme_override <gui_forms::Control::theme_override>`, so the subtree inherits its theme again.
       * - :cpp:func:`clear_authored_surface_material <gui_forms::Control::clear_authored_surface_material>`
         -  
-      * - :cpp:func:`clear_back_color <gui_forms::Control::clear_back_color>`
-        -  
-      * - :cpp:func:`clear_fore_color <gui_forms::Control::clear_fore_color>`
-        -  
       * - :cpp:func:`clear_owned_decorations <gui_forms::Control::clear_owned_decorations>`
         -  
       * - :cpp:func:`visual_context <gui_forms::Control::visual_context>`
@@ -515,8 +516,10 @@ gui_forms::Control
         - Ends one :cpp:func:`begin_init <gui_forms::Control::begin_init>`.
       * - :cpp:func:`data_bindings <gui_forms::Control::data_bindings>`
         - The control's :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`, created on first use.
-      * - :cpp:func:`has_bindable_property <gui_forms::Control::has_bindable_property>`
+      * - :cpp:func:`control_property_entries <gui_forms::Control::control_property_entries>`
         -  
+      * - :cpp:func:`has_bindable_property <gui_forms::Control::has_bindable_property>`
+        - The properties below are the instance registry's (define_bindable_property) and the type's table's (Component:: property_table) together; a registration replaces a table entry of the same name.
       * - :cpp:func:`property_descriptor <gui_forms::Control::property_descriptor>`
         -  
       * - :cpp:func:`property_value <gui_forms::Control::property_value>`
@@ -543,8 +546,6 @@ gui_forms::Control
         - Moves a child to a z-order index, where 0 is frontmost.
       * - :cpp:func:`set_bounds <gui_forms::Control::set_bounds>`
         - Changes the fields of :cpp:func:`requested_bounds <gui_forms::Control::requested_bounds>` selected by :cpp:enum:`BoundsSpecified <gui_forms::BoundsSpecified>`, all of them by default.
-      * - :cpp:func:`set_auto_size <gui_forms::Control::set_auto_size>`
-        - Turns content sizing on or off.
       * - :cpp:func:`set_style <gui_forms::Control::set_style>`
         - Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms compatibility.
       * - :cpp:func:`set_custom_cursor <gui_forms::Control::set_custom_cursor>`
@@ -618,7 +619,7 @@ gui_forms::Control
       std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("dialog"));
       std::shared_ptr<gf::Button> ok = gf::make_control<gf::Button>(gf::StableId("dialog.ok"), "OK");
       (*ok).set_bounds({300.0, 200.0, 80.0, 28.0});
-      (*ok).set_anchor(gf::AnchorStyles::right | gf::AnchorStyles::bottom);
+      (*ok).anchor = gf::AnchorStyles::right | gf::AnchorStyles::bottom;
       (*root).add_child(ok);
 
       gf::Window window(root, gf::Size{400.0, 240.0});
@@ -669,6 +670,139 @@ gui_forms::Control
 
    .. rubric:: Properties
 
+   .. cpp:member:: std::string name
+
+      A mutable display name for designers and inspection. It starts as the
+      stable ID's string. Setting it raises :cpp:func:`name_changed <gui_forms::Control::name_changed>`.
+
+   .. cpp:member:: bool visible
+
+      Whether the application wants the control shown. A hidden control and
+      its children are not laid out, painted, hit or focused. Setting it
+      raises :cpp:func:`visible_changed <gui_forms::Control::visible_changed>`.
+
+   .. cpp:member:: bool enabled
+
+      Whether the control accepts input. A disabled control is painted
+      disabled and receives no pointer, key or text input; its children are
+      disabled with it. Setting it raises :cpp:func:`enabled_changed <gui_forms::Control::enabled_changed>`.
+
+   .. cpp:member:: bool auto_size
+
+      Whether measurement sizes the control to its content. Off by default;
+      a write (``auto_size = true``) changes it and raises :cpp:func:`auto_size_changed <gui_forms::Control::auto_size_changed>`.
+
+   .. cpp:member:: bool causes_validation
+
+      Whether moving focus to this control validates the control losing focus,
+      and whether this control raises :cpp:func:`validating <gui_forms::Control::validating>` when it is validated.
+
+   .. cpp:member:: std::string tool_tip_text
+
+      Short help text about the control, shown by its window's one tooltip
+      presenter when the pointer rests on the control, or below the control
+      when keyboard focus reaches it with the focus cue showing. Controls you
+      type into show it as grey hint text in their empty field while they
+      have focus instead, unless a placeholder is set. Empty by default, and
+      empty text never shows. It must be valid UTF-8, or
+      ``std::invalid_argument`` is thrown. It is bindable and published as the
+      semantic field ``tool_tip``. Data items such as list rows have none.
+
+   .. cpp:member:: std::optional<CursorKind> cursor
+
+      The pointer shape over the control, or none to use the parent's.
+      :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
+
+   .. cpp:member:: std::optional<Color> back_color
+
+      The own background colour; empty takes the parent's.
+
+   .. cpp:member:: std::optional<Color> fore_color
+
+      The own text colour; empty takes the parent's.
+
+   .. cpp:member:: Size minimum_size
+
+      The smallest size layout may give the control. A minimum larger than a
+      nonzero :cpp:func:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
+
+   .. cpp:member:: Size maximum_size
+
+      The largest size layout may give the control. A zero dimension is
+      unbounded; a nonzero dimension below :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` throws
+      ``std::invalid_argument``.
+
+   .. cpp:member:: Insets margin
+
+      Space that flow and table layout panels leave around the control. The
+      base dock and anchor layout ignores it; auto-size measurement and scroll
+      extents include its right and bottom parts. Values must be finite and
+      nonnegative.
+
+   .. cpp:member:: Insets padding
+
+      Space inside the control's edges that docked children leave free.
+      Anchored children keep their distances to these padded edges when the
+      control resizes.
+
+   .. cpp:member:: DockStyle dock
+
+      Attach the control to an edge of its parent, or :cpp:enumerator:`DockStyle::fill <gui_forms::DockStyle::fill>` the
+      remaining space. Docked children take their space in paint order, so the
+      backmost docked child takes the outermost edge.
+
+   .. cpp:member:: AnchorStyles anchor
+
+      For an undocked control, the parent edges whose distance stays fixed
+      when the parent resizes. Anchored to both left and right, the control
+      stretches; anchored to neither, it keeps its centre offset.
+
+   .. cpp:member:: AutoSizeMode auto_size_mode
+
+      With :cpp:func:`auto_size <gui_forms::Control::auto_size>` on, whether measurement may shrink the control below
+      its requested size (:cpp:enumerator:`AutoSizeMode::grow_and_shrink <gui_forms::AutoSizeMode::grow_and_shrink>`) or only grow it.
+
+   .. cpp:member:: LayoutDirection layout_direction
+
+      The inline direction the control lays its children out in;
+      :cpp:enumerator:`LayoutDirection::inherit <gui_forms::LayoutDirection::inherit>` takes the parent's, and a control with no
+      parent is left to right. Right to left mirrors docking, anchoring and
+      requested bounds, as Windows Forms' ``RightToLeftLayout``: the layout is
+      computed left to right and mirrored about the control's viewport, so
+      :cpp:enumerator:`DockStyle::left <gui_forms::DockStyle::left>` docks at the right, an anchor to the left keeps the
+      distance to the right edge, a requested x is measured from the right
+      edge, and padding and margins mirror too. The CSS containers keep their
+      own start and end model.
+
+   .. cpp:member:: std::uint32_t tab_index
+
+      The order of Tab traversal among siblings. Ties keep child order; the
+      traversal visits a control before its children.
+
+   .. cpp:member:: bool tab_stop
+
+      Whether Tab and Shift+Tab stop at the control. A focusable control with
+      :cpp:func:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
+      ``Window::request_focus``.
+
+   .. cpp:member:: bool allow_drop
+
+      Whether the control is offered drag-and-drop data.
+
+   .. cpp:member:: bool hit_test_transparent
+
+      Whether pointer input passes through the control to what lies beneath.
+      The control is still painted, and its children are still hit tested.
+
+   .. cpp:member:: std::string accessible_name
+
+      A name for assistive technology that overrides the control's own text.
+      Empty by default.
+
+   .. cpp:member:: std::string accessible_description
+
+      A longer description for assistive technology. Empty by default.
+
    .. cpp:function:: RuntimeId runtime_id() const noexcept
 
       A process-local number, unique among the controls of one process run.
@@ -678,15 +812,6 @@ gui_forms::Control
    .. cpp:function:: const StableId& stable_id() const noexcept
 
       The identity given at construction. It never changes.
-
-   .. cpp:function:: const std::string& name() const noexcept
-
-      A mutable display name for designers and inspection. It starts as the
-      stable ID's string. Setting it raises :cpp:func:`name_changed <gui_forms::Control::name_changed>`.
-
-   .. cpp:function:: void set_name(std::string name)
-
-      Sets :cpp:func:`name <gui_forms::Control::name>`; see the property's description above.
 
    .. cpp:function:: const std::any& tag() const noexcept
 
@@ -738,25 +863,6 @@ gui_forms::Control
    .. cpp:function:: double right() const noexcept
 
    .. cpp:function:: double bottom() const noexcept
-
-   .. cpp:function:: Size minimum_size() const noexcept
-
-      The smallest size layout may give the control. A minimum larger than a
-      nonzero :cpp:func:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
-
-   .. cpp:function:: void set_minimum_size(Size size)
-
-      Sets :cpp:func:`minimum_size <gui_forms::Control::minimum_size>`; see the property's description above.
-
-   .. cpp:function:: Size maximum_size() const noexcept
-
-      The largest size layout may give the control. A zero dimension is
-      unbounded; a nonzero dimension below :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` throws
-      ``std::invalid_argument``.
-
-   .. cpp:function:: void set_maximum_size(Size size)
-
-      Sets :cpp:func:`maximum_size <gui_forms::Control::maximum_size>`; see the property's description above.
 
    .. cpp:function:: Rect arranged_bounds() const
 
@@ -830,19 +936,9 @@ gui_forms::Control
 
    .. cpp:function:: void set_authored_surface_material(SurfaceMaterial material)
 
-   .. cpp:function:: std::optional<Color> back_color() const noexcept
-
-      The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Setting or clearing one repaints the control and its descendants.
-
-   .. cpp:function:: void set_back_color(Color color)
-
-   .. cpp:function:: std::optional<Color> fore_color() const noexcept
-
-   .. cpp:function:: void set_fore_color(Color color)
-
    .. cpp:function:: std::optional<Color> ambient_back_color() const noexcept
 
-      This control's own colour, else its nearest ancestor's, else none.
+      The background and foreground colours the application authored for this control (WinForms' BackColor and ForeColor), or none: the theme's colours stand. They are the T4-1 authored colours of the control's parts (PartPaint::authored_background and authored_foreground), with the same rules: a part's own authored colour, the most specific, stands over them; the theme's important declarations stand over them; forced high contrast drops them; and a disabled part keeps the theme's disabled colours, so disabled text stays greyed. - The background paints the control's bounds before its content, as WinForms' OnPaintBackground does, and fills the control's grounds (faces, wells, plates) flat, keeping their borders. - The foreground draws the control's text, marks and rules. They reach what a control paints through paint_part; a control that draws its own text or surfaces directly reads ambient_back_color and ambient_fore_color. Ambient inheritance, as WinForms: a control without its own colour takes its nearest ancestor's (ambient_back_color, ambient_fore_color), so a colour set on a container flows to every descendant that sets none. An inherited background is not painted again over the bounds (the ancestor already painted it) and does not fill a well: an editor's or a list's well keeps the theme's window colour, as WinForms' text and list boxes keep SystemColors.Window under a coloured form. A check box's box is a well too: it keeps the theme's colour under an inherited background, but the check box's own background fills it, where WinForms' box stays white. Setting or clearing one repaints the control and its descendants. This control's own colour, else its nearest ancestor's, else none.
 
    .. cpp:function:: std::optional<Color> ambient_fore_color() const noexcept
 
@@ -867,27 +963,6 @@ gui_forms::Control
       is not on its window's UI thread. A detached control always reports
       false.
 
-   .. cpp:function:: Insets margin() const noexcept
-
-      Space that flow and table layout panels leave around the control. The
-      base dock and anchor layout ignores it; auto-size measurement and scroll
-      extents include its right and bottom parts. Values must be finite and
-      nonnegative.
-
-   .. cpp:function:: void set_margin(Insets margin)
-
-      Sets :cpp:func:`margin <gui_forms::Control::margin>`; see the property's description above.
-
-   .. cpp:function:: Insets padding() const noexcept
-
-      Space inside the control's edges that docked children leave free.
-      Anchored children keep their distances to these padded edges when the
-      control resizes.
-
-   .. cpp:function:: void set_padding(Insets padding)
-
-      Sets :cpp:func:`padding <gui_forms::Control::padding>`; see the property's description above.
-
    .. cpp:function:: Point auto_scroll_offset() const noexcept
 
       An offset a scrolling parent uses when it scrolls this control into
@@ -897,65 +972,16 @@ gui_forms::Control
 
       Sets :cpp:func:`auto_scroll_offset <gui_forms::Control::auto_scroll_offset>`; see the property's description above.
 
-   .. cpp:function:: DockStyle dock() const noexcept
-
-      Attach the control to an edge of its parent, or :cpp:enumerator:`DockStyle::fill <gui_forms::DockStyle::fill>` the
-      remaining space. Docked children take their space in paint order, so the
-      backmost docked child takes the outermost edge.
-
-   .. cpp:function:: void set_dock(DockStyle dock)
-
-      Sets :cpp:func:`dock <gui_forms::Control::dock>`; see the property's description above.
-
-   .. cpp:function:: AnchorStyles anchor() const noexcept
-
-      For an undocked control, the parent edges whose distance stays fixed
-      when the parent resizes. Anchored to both left and right, the control
-      stretches; anchored to neither, it keeps its centre offset.
-
-   .. cpp:function:: void set_anchor(AnchorStyles anchor)
-
-      Sets :cpp:func:`anchor <gui_forms::Control::anchor>`; see the property's description above.
-
-   .. cpp:function:: AutoSizeMode auto_size_mode() const noexcept
-
-      With ``auto_size`` on, whether measurement may shrink the control below
-      its requested size (:cpp:enumerator:`AutoSizeMode::grow_and_shrink <gui_forms::AutoSizeMode::grow_and_shrink>`) or only grow it.
-
-   .. cpp:function:: void set_auto_size_mode(AutoSizeMode mode)
-
-      Sets :cpp:func:`auto_size_mode <gui_forms::Control::auto_size_mode>`; see the property's description above.
-
    .. cpp:function:: LayoutTransactionState layout_transaction_state() const
 
       The depth of :cpp:func:`suspend_layout <gui_forms::Control::suspend_layout>` calls and whether layout is pending, with
       revision counters for tests.
-
-   .. cpp:function:: bool visible() const noexcept
-
-      Whether the application wants the control shown. A hidden control and
-      its children are not laid out, painted, hit or focused. Setting it
-      raises :cpp:func:`visible_changed <gui_forms::Control::visible_changed>`.
-
-   .. cpp:function:: void set_visible(bool visible)
-
-      Sets :cpp:func:`visible <gui_forms::Control::visible>`; see the property's description above.
 
    .. cpp:function:: bool layout_collapsed() const noexcept
 
       Whether a parent layout has collapsed this control, for example a closed
       section of an expandable list. It hides the control like :cpp:func:`visible <gui_forms::Control::visible>`
       false, without changing :cpp:func:`visible <gui_forms::Control::visible>`.
-
-   .. cpp:function:: bool enabled() const noexcept
-
-      Whether the control accepts input. A disabled control is painted
-      disabled and receives no pointer, key or text input; its children are
-      disabled with it. Setting it raises :cpp:func:`enabled_changed <gui_forms::Control::enabled_changed>`.
-
-   .. cpp:function:: void set_enabled(bool enabled)
-
-      Sets :cpp:func:`enabled <gui_forms::Control::enabled>`; see the property's description above.
 
    .. cpp:function:: bool focusable() const noexcept
 
@@ -965,51 +991,6 @@ gui_forms::Control
    .. cpp:function:: void set_focusable(bool focusable)
 
       Sets :cpp:func:`focusable <gui_forms::Control::focusable>`; see the property's description above.
-
-   .. cpp:function:: bool causes_validation() const noexcept
-
-      Whether moving focus to this control validates the control losing focus,
-      and whether this control raises :cpp:func:`validating <gui_forms::Control::validating>` when it is validated.
-
-   .. cpp:function:: void set_causes_validation(bool causes_validation)
-
-      Sets :cpp:func:`causes_validation <gui_forms::Control::causes_validation>`; see the property's description above.
-
-   .. cpp:function:: std::uint32_t tab_index() const noexcept
-
-      The order of Tab traversal among siblings. Ties keep child order; the
-      traversal visits a control before its children.
-
-   .. cpp:function:: void set_tab_index(std::uint32_t index)
-
-      Sets :cpp:func:`tab_index <gui_forms::Control::tab_index>`; see the property's description above.
-
-   .. cpp:function:: bool tab_stop() const noexcept
-
-      Whether Tab and Shift+Tab stop at the control. A focusable control with
-      :cpp:func:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
-      ``Window::request_focus``.
-
-   .. cpp:function:: void set_tab_stop(bool enabled)
-
-      Sets :cpp:func:`tab_stop <gui_forms::Control::tab_stop>`; see the property's description above.
-
-   .. cpp:function:: bool allow_drop() const noexcept
-
-      Whether the control is offered drag-and-drop data.
-
-   .. cpp:function:: void set_allow_drop(bool allow_drop)
-
-      Sets :cpp:func:`allow_drop <gui_forms::Control::allow_drop>`; see the property's description above.
-
-   .. cpp:function:: bool hit_test_transparent() const noexcept
-
-      Whether pointer input passes through the control to what lies beneath.
-      The control is still painted, and its children are still hit tested.
-
-   .. cpp:function:: void set_hit_test_transparent(bool transparent)
-
-      Sets :cpp:func:`hit_test_transparent <gui_forms::Control::hit_test_transparent>`; see the property's description above.
 
    .. cpp:function:: ControlStyles styles() const noexcept
 
@@ -1024,15 +1005,6 @@ gui_forms::Control
    .. cpp:function:: void set_double_buffered(bool enabled)
 
       Sets :cpp:func:`double_buffered <gui_forms::Control::double_buffered>`; see the property's description above.
-
-   .. cpp:function:: std::optional<CursorKind> cursor() const noexcept
-
-      The pointer shape over the control, or none to use the parent's.
-      :cpp:func:`effective_cursor <gui_forms::Control::effective_cursor>` resolves it; the default at the root is the arrow.
-
-   .. cpp:function:: void set_cursor(std::optional<CursorKind> cursor)
-
-      Sets :cpp:func:`cursor <gui_forms::Control::cursor>`; see the property's description above.
 
    .. cpp:function:: std::span<const std::string> classes() const noexcept
 
@@ -1076,38 +1048,6 @@ gui_forms::Control
       Whether this control or one of its ancestors is marked :cpp:func:`ceremonial <gui_forms::Control::ceremonial>`.
 
    .. cpp:function:: CursorImagesPtr effective_cursor_images() const noexcept
-
-   .. cpp:function:: const std::string& accessible_name() const noexcept
-
-      A name for assistive technology that overrides the control's own text.
-      Empty by default.
-
-   .. cpp:function:: void set_accessible_name(std::string name)
-
-      Sets :cpp:func:`accessible_name <gui_forms::Control::accessible_name>`; see the property's description above.
-
-   .. cpp:function:: const std::string& accessible_description() const noexcept
-
-      A longer description for assistive technology. Empty by default.
-
-   .. cpp:function:: void set_accessible_description(std::string description)
-
-      Sets :cpp:func:`accessible_description <gui_forms::Control::accessible_description>`; see the property's description above.
-
-   .. cpp:function:: const std::string& tool_tip_text() const noexcept
-
-      Short help text about the control, shown by its window's one tooltip
-      presenter when the pointer rests on the control, or below the control
-      when keyboard focus reaches it with the focus cue showing. Controls you
-      type into show it as grey hint text in their empty field while they
-      have focus instead, unless a placeholder is set. Empty by default, and
-      empty text never shows. It must be valid UTF-8, or
-      ``std::invalid_argument`` is thrown. It is bindable and published as the
-      semantic field ``tool_tip``. Data items such as list rows have none.
-
-   .. cpp:function:: void set_tool_tip_text(std::string text)
-
-      Sets :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>`; see the property's description above.
 
    .. cpp:function:: ToolTipPresentation tool_tip_presentation() const noexcept
 
@@ -1189,25 +1129,9 @@ gui_forms::Control
 
       Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
-   .. cpp:function:: LayoutDirection layout_direction() const noexcept
-
-      The inline direction the control lays its children out in;
-      :cpp:enumerator:`LayoutDirection::inherit <gui_forms::LayoutDirection::inherit>` takes the parent's, and a control with no
-      parent is left to right. Right to left mirrors docking, anchoring and
-      requested bounds, as Windows Forms' ``RightToLeftLayout``: the layout is
-      computed left to right and mirrored about the control's viewport, so
-      :cpp:enumerator:`DockStyle::left <gui_forms::DockStyle::left>` docks at the right, an anchor to the left keeps the
-      distance to the right edge, a requested x is measured from the right
-      edge, and padding and margins mirror too. The CSS containers keep their
-      own start and end model.
-
-   .. cpp:function:: void set_layout_direction(LayoutDirection direction)
-
-      Sets :cpp:func:`layout_direction <gui_forms::Control::layout_direction>`; see the property's description above.
-
    .. cpp:function:: LayoutDirection effective_layout_direction() const noexcept
 
-      The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
+      The authored inline direction, ``inherit`` by default (stage L, PLAN section 4). Setting it invalidates this subtree's arrangement. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root.
 
    .. cpp:function:: Parts parts() const
 
@@ -1231,7 +1155,7 @@ gui_forms::Control
 
    .. cpp:function:: Event<bool>& auto_size_changed() noexcept
 
-      Raised after ``auto_size`` changes, with the new value.
+      Raised after :cpp:func:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
 
    .. cpp:function:: Event<bool>& causes_validation_changed() noexcept
 
@@ -1380,10 +1304,6 @@ gui_forms::Control
 
    .. cpp:function:: void clear_authored_surface_material()
 
-   .. cpp:function:: void clear_back_color()
-
-   .. cpp:function:: void clear_fore_color()
-
    .. cpp:function:: void clear_owned_decorations()
 
    .. cpp:function:: ControlVisualContext visual_context(bool hovered = false, bool pressed = false, bool selected = false, bool focused = false, bool defaulted = false) const noexcept
@@ -1475,7 +1395,11 @@ gui_forms::Control
 
       The control's :cpp:class:`ControlBindingsCollection <gui_forms::ControlBindingsCollection>`, created on first use.
 
+   .. cpp:function:: static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept
+
    .. cpp:function:: bool has_bindable_property(std::string_view name) const
+
+      The properties below are the instance registry's (define_bindable_property) and the type's table's (Component:: property_table) together; a registration replaces a table entry of the same name.
 
    .. cpp:function:: std::optional<PropertyDescriptor> property_descriptor(std::string_view name) const
 
@@ -1521,10 +1445,6 @@ gui_forms::Control
       Changes the fields of :cpp:func:`requested_bounds <gui_forms::Control::requested_bounds>` selected by :cpp:enum:`BoundsSpecified <gui_forms::BoundsSpecified>`,
       all of them by default.
 
-   .. cpp:function:: virtual void set_auto_size(bool auto_size)
-
-      Turns content sizing on or off. See ``auto_size``.
-
    .. cpp:function:: void set_style(ControlStyles style, bool enabled)
 
       Sets or clears :cpp:enum:`ControlStyles <gui_forms::ControlStyles>` flags, retained for Windows Forms
@@ -1547,24 +1467,17 @@ gui_forms::Control
 
    .. cpp:function:: virtual Rect display_rectangle() const noexcept
 
-   .. cpp:function:: virtual bool auto_size() const noexcept
-
-      Whether measurement sizes the control to its content. Off by default;
-      :cpp:func:`set_auto_size <gui_forms::Control::set_auto_size>` changes it and raises :cpp:func:`auto_size_changed <gui_forms::Control::auto_size_changed>`.
-
    .. cpp:function:: virtual Size get_preferred_size(Size proposed)
 
       Measures the control with a proposed size, where a zero dimension means
       unconstrained.
 
-   .. cpp:function:: virtual std::span<const PropertyEntry> property_table() const noexcept
-
-      The type's constant property table (property-capabilities study, decision 5): its capabilities' entries, base class first. The properties below are the instance registry's (define_bindable_property) and the table's together; a registration replaces a table entry of the same name. The default table is empty; a type with capabilities overrides it to return its static table.
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
    .. cpp:function:: virtual Size measure(Size available)
 
       Override to report the size the control wants within the available
-      size. The base version returns the requested size, or with ``auto_size``
+      size. The base version returns the requested size, or with :cpp:func:`auto_size <gui_forms::Control::auto_size>`
       the extent of the visible children, limited to the available size and
       then clamped to the minimum and maximum sizes.
 
@@ -1707,6 +1620,60 @@ gui_forms::Control
    .. cpp:function:: virtual std::string realized_item_stable_id(std::size_t item) const
 
    .. cpp:function:: virtual AnatomyStateSet realized_item_anatomy_states(std::size_t item) const
+
+   .. cpp:function:: virtual void on_visible_changed()
+
+      *Protected.*
+
+      Raised after a changed write of the property, its touch and side effects done (P-8, option 1b; Windows Forms' OnVisibleChanged and the others). The base raises the property's change event where the control has one (visible, enabled, auto_size, causes_validation) and does nothing for the rest until their events exist. An override calls the base.
+
+   .. cpp:function:: virtual void on_enabled_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_auto_size_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_causes_validation_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_cursor_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_back_color_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_fore_color_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_margin_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_padding_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_dock_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_layout_direction_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_tab_index_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_tab_stop_changed()
+
+      *Protected.*
 
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
@@ -1939,3 +1906,7 @@ gui_forms::Control
    .. cpp:member:: constexpr bool initialize_tree_after_construction
 
       Compound controls opt in explicitly by hiding this constant with true. make_control never infers lifecycle behavior from method presence. Default: ``false``.
+
+   .. cpp:member:: constexpr std::size_t control_property_count
+
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``22U``.

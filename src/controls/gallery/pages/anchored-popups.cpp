@@ -43,7 +43,7 @@ private:
         std::shared_ptr<ChoiceGroup> alignment = make_control<ChoiceGroup>(
             StableId("gallery.popups.alignment"));
         (*alignment).set_style(page_style());
-        (*alignment).set_accessible_name("Horizontal alignment");
+        (*alignment).accessible_name = "Horizontal alignment";
         (*alignment).set_items({{.id = 0, .label = "Near"}, {.id = 1, .label = "Center"},
                                 {.id = 2, .label = "Far"}});
         (*alignment).bind(alignment_);
@@ -99,7 +99,7 @@ private:
         (*content_).set_background(paper);
         (*content_).set_style(page_style());
         (*content_).set_border_style(BorderStyle::raised);
-        (*content_).set_accessible_name("Anchored popup");
+        (*content_).accessible_name = "Anchored popup";
         std::shared_ptr<Label> title = label("gallery.popups.content.title",
                                              "Anchored popup · focus contained", 12.0, 700,
                                              shell_blue_dark);
@@ -107,7 +107,7 @@ private:
         (*content_).add_child(title);
         field_ = make_control<TextBox>(StableId("gallery.popups.field"));
         (*field_).set_placeholder_text("Type here; Tab stays inside");
-        (*field_).set_accessible_name("Popup field");
+        (*field_).accessible_name = "Popup field";
         (*field_).set_requested_bounds({14.0, 44.0, 250.0, 32.0});
         (*content_).add_child(field_);
         std::shared_ptr<Label> note = label("gallery.popups.content.note",
@@ -125,7 +125,7 @@ private:
         layer_ = make_control<AnchoredPopupLayer>(StableId("gallery.popups.layer"), anchors_[0],
                                                   placement());
         (*layer_).set_content(content_);
-        (*layer_).set_accessible_name("Anchored popup layer");
+        (*layer_).accessible_name = "Anchored popup layer";
         on((*layer_).dismiss_requested(), *this, &AnchoredPopupsPage::on_dismiss_requested);
     }
 

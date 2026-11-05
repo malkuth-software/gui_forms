@@ -733,7 +733,7 @@ private:
         built.control = text_leaf ? make_control<TextBlock>(StableId(*identity), *leaf_text)
                                   : make_kind(kind, *identity);
         Control& control = *built.control;
-        control.set_margin({0.0, 0.0, 0.0, 0.0});
+        control.margin = {0.0, 0.0, 0.0, 0.0};
         identities_.push_back(BuiltIdentity{*identity, built.control, text_leaf});
 
         const std::string* style_text = attribute(element, "style");
@@ -767,7 +767,7 @@ private:
             own.line_height = -1.0;
         }
         if (text.text_align) own.text_align = *text.text_align;
-        if (text.direction) control.set_layout_direction(*text.direction);
+        if (text.direction) control.layout_direction = *text.direction;
         if (style_text != nullptr) style_text = &layout_style;
         const bool reader_context = reader_kind(kind) || (parent_kind && reader_kind(*parent_kind));
         if (reader_context) {
@@ -920,7 +920,7 @@ private:
         margins.top = margin_length(margin.top, where);
         margins.right = margin_length(margin.right, where);
         margins.bottom = margin_length(margin.bottom, where);
-        control.set_margin(margins);
+        control.margin = margins;
         const BoxSides<LengthPercentage>& padding = style.padding;
         if (padding.top.percent != 0.0 || padding.right.percent != 0.0 || padding.bottom.percent != 0.0 ||
             padding.left.percent != 0.0) {
@@ -931,7 +931,7 @@ private:
         paddings.top = padding.top.length.value();
         paddings.right = padding.right.length.value();
         paddings.bottom = padding.bottom.length.value();
-        control.set_padding(paddings);
+        control.padding = paddings;
 
         if (roles.flex_container) {
             FlexPanel& panel = static_cast<FlexPanel&>(control);
@@ -1144,11 +1144,11 @@ private:
             return true;
         }
         if (declaration.name == "margin") {
-            control.set_margin(parse_box_shorthand(declaration.value, where));
+            control.margin = parse_box_shorthand(declaration.value, where);
             return true;
         }
         if (declaration.name == "padding") {
-            control.set_padding(parse_box_shorthand(declaration.value, where));
+            control.padding = parse_box_shorthand(declaration.value, where);
             return true;
         }
         return false;
@@ -1358,8 +1358,8 @@ private:
         table.set_row_span(control, layout.row.span);
         const CellAlignment justify = layout.justify_self.value_or(defaults.justify_items);
         const CellAlignment align = layout.align_self.value_or(defaults.align_items);
-        control.set_dock(DockStyle::none);
-        control.set_anchor(cell_anchor(justify, align, layout));
+        control.dock = DockStyle::none;
+        control.anchor = cell_anchor(justify, align, layout);
     }
 
     std::string fixture_name_;
@@ -1534,7 +1534,7 @@ bool run_fixture(const std::filesystem::path& corpus_root, const Corpus& corpus,
         }
         FixtureBuilder builder(name, text_fixture);
         const Control::Ptr root = builder.build(fixture);
-        if (right_to_left(profile)) (*root).set_layout_direction(LayoutDirection::right_to_left);
+        if (right_to_left(profile)) (*root).layout_direction = LayoutDirection::right_to_left;
         const std::unique_ptr<Window> held_window = std::make_unique<Window>(
             root, Size{static_cast<double>(profile.width), static_cast<double>(profile.height)});
         Window& window = *held_window;

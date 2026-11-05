@@ -142,9 +142,9 @@ gui_forms::FlowLayoutPanelCompat
       (*cut).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
       (*copy).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
       (*paste).set_requested_bounds({0.0, 0.0, 30.0, 20.0});
-      (*cut).set_margin({});
-      (*copy).set_margin({});
-      (*paste).set_margin({});
+      (*cut).margin = gf::Insets{};
+      (*copy).margin = gf::Insets{};
+      (*paste).margin = gf::Insets{};
       (*tools).add_child(cut);
       (*tools).add_child(copy);
       (*tools).add_child(paste);
@@ -169,9 +169,9 @@ gui_forms::FlowLayoutPanelCompat
       (*fixed).set_requested_bounds({0.0, 0.0, 20.0, 10.0});
       (*narrow).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
       (*wide).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
-      (*fixed).set_margin({});
-      (*narrow).set_margin({});
-      (*wide).set_margin({});
+      (*fixed).margin = gf::Insets{};
+      (*narrow).margin = gf::Insets{};
+      (*wide).margin = gf::Insets{};
       (*row).add_child(fixed);
       (*row).add_child(narrow);
       (*row).add_child(wide);
@@ -270,10 +270,6 @@ gui_forms::FlowLayoutPanelCompat
 
 
    .. rubric:: Extension points
-
-   .. cpp:function:: bool auto_size() const noexcept override
-
-   .. cpp:function:: void set_auto_size(bool auto_size) override
 
    .. cpp:function:: Size measure(Size available) override
 

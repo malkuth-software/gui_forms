@@ -177,7 +177,7 @@ void font_control() {
     require(!(*family).selected_index() && (*size).selected_text() == "10.5" && runs == 2,
             "a value outside the lists shows that field empty; the program's change runs nothing");
     (*(*command).command()).set_enabled(false);
-    require(!(*family).enabled() && !(*size).enabled(), "a disabled command disables both fields");
+    require(!(*family).enabled.type() && !(*size).enabled.type(), "a disabled command disables both fields");
     bool threw = false;
     try {
         (*control).set_sizes({10.0, 9.0});
@@ -523,7 +523,7 @@ void arranged_within_maximum_size() {
     std::shared_ptr<BackstageView> view = make_control<BackstageView>(StableId("limited.backstage"));
     std::shared_ptr<Label> info = make_control<Label>(StableId("limited.backstage.info"), "Information");
     (*view).set_items({{.stable_id = "info", .kind = BackstageItemKind::topic, .text = "Info", .page = info}});
-    (*view).set_maximum_size({300.0, 0.0});
+    (*view).maximum_size = {300.0, 0.0};
     Window backstage_window(view, {900.0, 400.0});
     backstage_window.perform_layout();
     require((*view).committed_arranged_bounds().width == 300.0 &&
@@ -531,7 +531,7 @@ void arranged_within_maximum_size() {
             "a Backstage page sits on the published page part within the view's maximum width");
 
     std::shared_ptr<RibbonFontControl> font = make_control<RibbonFontControl>(StableId("limited.font"));
-    (*font).set_maximum_size({100.0, 0.0});
+    (*font).maximum_size = {100.0, 0.0};
     Window font_window(font, {200.0, 22.0});
     font_window.perform_layout();
     require((*font).committed_arranged_bounds().width == 100.0 &&

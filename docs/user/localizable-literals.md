@@ -20,10 +20,10 @@ A parameter or field is localizable when its declaration carries
 | Property | Where |
 | --- | --- |
 | `text` | `set_text` of Label, ButtonBase, GroupBox, TabPage, TextBlock, RibbonColorPicker, Command and NotifyIcon; the text of menu, tool strip, menu strip, ribbon, backstage, list view, tree view, choice, section and command bar items |
-| `tool_tip` | `Control::set_tool_tip_text` (also a TabPage's header tooltip and a field's hint), `ToolTip::set_tool_tip`, a tool strip item's `tool_tip_text`, and `RibbonToolTipContent`'s `title`, `description` and `disabled_reason` (not its `shortcut`, which comes from the key binding) |
+| `tool_tip` | the `Control::tool_tip_text` property cell (also a TabPage's header tooltip and a field's hint), `ToolTip::set_tool_tip`, a tool strip item's `tool_tip_text`, and `RibbonToolTipContent`'s `title`, `description` and `disabled_reason` (not its `shortcut`, which comes from the key binding) |
 | `title` | `set_title` of ColorDialog, OpenFileDialog and SaveFileDialog |
 | `placeholder` | `set_placeholder_text` of TextBox and ComboBox |
-| `accessible_name`, `accessible_description` | the Control setters, and the accessible names of choice and command bar items |
+| `accessible_name`, `accessible_description` | the Control property cells, and the accessible names of choice and command bar items |
 | `header` | list view and tree list view column text, list view group headers, `DataGridViewColumn::header_text` |
 | `items` | `set_items` and `add_item` of ComboBox, ListBox, CheckedListBox and DomainUpDown |
 

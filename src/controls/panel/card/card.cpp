@@ -326,8 +326,8 @@ void Card::on_activate() {
 
 SemanticDescriptor Card::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.exposed = interactive_ || !descriptor.name.empty() ||
                          !descriptor.description.empty();
     if (interactive_) {

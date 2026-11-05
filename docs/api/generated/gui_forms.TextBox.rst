@@ -335,7 +335,7 @@ gui_forms::TextBox
    none.
 
    The control publishes the accessibility role ``text_box``. Its name is the
-   accessible name only, so give every box one with ``set_accessible_name``; the
+   accessible name only, so give every box one by writing ``accessible_name``; the
    placeholder becomes the description, not the name. The value is the text, or
    empty when masked, together with the protected-content state. The box also
    publishes whether it is multiline and, unless masked, its selection as an
@@ -359,7 +359,7 @@ gui_forms::TextBox
 
           Search() {
               (*field).set_placeholder_text("Search");
-              (*field).set_accessible_name("Search");
+              (*field).accessible_name = "Search";
               (*field).set_accepts_enter(true);
               gf::on((*field).committed(), *this, &Search::on_commit);
           }

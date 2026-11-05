@@ -84,7 +84,7 @@ void require_bounds(const Control& control, double x, double y, double width, do
 std::shared_ptr<Panel> box(const std::string& id, double width, double height) {
     std::shared_ptr<Panel> made = make_control<Panel>(StableId(id));
     (*made).set_bounds({0.0, 0.0, width, height});
-    (*made).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
 
@@ -111,7 +111,7 @@ protected:
 
 void test_row_grows_and_stretches() {
     std::shared_ptr<FlexPanel> panel = make_control<FlexPanel>(StableId("flex.row"));
-    (*panel).set_padding({10.0, 5.0, 10.0, 5.0});
+    (*panel).padding = {10.0, 5.0, 10.0, 5.0};
     (*panel).set_column_gap(LengthPercentage{LogicalLength{6.0}, 0.0});
     std::vector<std::shared_ptr<Panel>> boxes;
     for (int index = 0; index < 3; ++index) {
@@ -183,7 +183,7 @@ void test_nested_columns_size_from_content() {
     std::shared_ptr<Panel> second = box("flex.column.row.b", 40.0, 18.0);
     (*inner).add_child(first);
     (*inner).add_child(second);
-    (*inner).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*inner).margin = {0.0, 0.0, 0.0, 0.0};
     std::shared_ptr<Panel> after = box("flex.column.after", 25.0, 10.0);
     (*column).add_child(inner);
     (*column).add_child(after);
@@ -204,9 +204,9 @@ void test_documented_examples() {
     (*fixed).set_requested_bounds({0.0, 0.0, 20.0, 10.0});
     (*narrow).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
     (*wide).set_requested_bounds({0.0, 0.0, 10.0, 10.0});
-    (*fixed).set_margin({});
-    (*narrow).set_margin({});
-    (*wide).set_margin({});
+    (*fixed).margin = Insets{};
+    (*narrow).margin = Insets{};
+    (*wide).margin = Insets{};
     (*row).add_child(fixed);
     (*row).add_child(narrow);
     (*row).add_child(wide);
@@ -224,8 +224,8 @@ void test_documented_examples() {
     std::shared_ptr<Button> close = make_control<Button>(StableId("doc.bar.close"), "Close");
     (*save).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
     (*close).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
-    (*save).set_margin({});
-    (*close).set_margin({});
+    (*save).margin = Insets{};
+    (*close).margin = Insets{};
     (*bar).add_child(save);
     (*bar).add_child(close);
     FlexItemLayout pushed{};

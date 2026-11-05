@@ -37,7 +37,7 @@ void add_at(const std::shared_ptr<Parent>& parent,
             const std::shared_ptr<Child>& child, Rect bounds,
             AnchorStyles anchor = AnchorStyles::top | AnchorStyles::left) {
     (*child).set_requested_bounds(bounds);
-    (*child).set_anchor(anchor);
+    (*child).anchor = anchor;
     (*parent).add_child(child);
 }
 
@@ -74,7 +74,7 @@ std::shared_ptr<SplitContainer> make_split(
     (*split).set_second_minimum(54.0);
     (*split).set_keyboard_increment(4.0);
     (*split).set_collapse_panel(collapse_panel);
-    (*split).set_accessible_name("Adjustable physical pane seam");
+    (*split).accessible_name = "Adjustable physical pane seam";
     (*(*split).first_panel()).set_background(paper);
     (*(*split).second_panel()).set_background(cool_well);
     return split;
@@ -136,7 +136,7 @@ struct ToggleDisabled final {
     RefreshReadout readout;
     void operator()(ButtonBase&) const {
         if (const std::shared_ptr<SplitContainer> target = split.lock()) {
-            (*target).set_enabled(!(*target).enabled());
+            (*target).enabled = !(*target).enabled.type();
             readout.refresh();
         }
     }
@@ -300,7 +300,7 @@ std::unique_ptr<Window> make_seam_proximity_lab() {
     std::shared_ptr<SplitContainer> disabled = make_split("seam-proximity.disabled",
         Orientation::vertical, reference_seam_geometry(), 82.0,
         SplitFixedPanel::second);
-    (*disabled).set_enabled(false);
+    (*disabled).enabled = false;
     add_at(root, disabled, {430.0, 364.0, 180.0, 178.0});
 
     add_at(root,

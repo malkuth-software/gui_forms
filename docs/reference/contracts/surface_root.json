@@ -369,7 +369,7 @@
       "reviewed": false,
       "summary": "Returns mutable structured instrumentation for internal coordinated emitters."
     },
-    "gui_forms::SurfaceRoot::reset_activity_metrics|void () noexcept": {
+    "gui_forms::SurfaceRoot::reset_activity_metrics|void ()": {
       "reviewed": false,
       "summary": "Resets interval activity counters without erasing lifetime/identity state."
     },

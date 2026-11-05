@@ -72,17 +72,17 @@ void test_snapshot_roles_states_hierarchy_and_json() {
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("semantics.label"), "Frequency");
     (*label).set_requested_bounds({12.0, 24.0, 100.0, 24.0});
     std::shared_ptr<gui_forms::TextBox> field = make_control<TextBox>(StableId("semantics.field"), "101.500");
-    (*field).set_accessible_name("Frequency in MHz");
+    (*field).accessible_name = "Frequency in MHz";
     (*field).set_requested_bounds({112.0, 24.0, 150.0, 28.0});
     std::shared_ptr<gui_forms::CheckBox> check = make_control<CheckBox>(StableId("semantics.check"), "Noise reduction");
     (*check).set_checked(true);
     (*check).set_requested_bounds({12.0, 62.0, 180.0, 28.0});
     std::shared_ptr<gui_forms::ProgressBar> progress = make_control<ProgressBar>(StableId("semantics.progress"));
-    (*progress).set_accessible_name("Signal buffer");
+    (*progress).accessible_name = "Signal buffer";
     (*progress).set_value(42.0);
     (*progress).set_requested_bounds({12.0, 104.0, 220.0, 20.0});
     std::shared_ptr<gui_forms::Button> hidden = make_control<Button>(StableId("semantics.hidden"), "Hidden");
-    (*hidden).set_visible(false);
+    (*hidden).visible = false;
     (*group).add_child(label);
     (*group).add_child(field);
     (*group).add_child(check);
@@ -132,11 +132,11 @@ void test_subtree_visibility_advances_semantic_generation() {
     (*group).add_child(button); (*root).add_child(group);
     Window window(root, {300, 200});
     const SemanticSnapshot visible = window.semantic_snapshot();
-    (*group).set_visible(false);
+    (*group).visible = false;
     const SemanticSnapshot hidden = window.semantic_snapshot();
     require(hidden.generation > visible.generation && hidden.node_count == 0U,
             "hiding an unfocused subtree must invalidate cached semantic trees");
-    (*group).set_visible(true);
+    (*group).visible = true;
     const SemanticSnapshot restored = window.semantic_snapshot();
     require(restored.generation > hidden.generation && restored.node_count == visible.node_count,
             "restoring a subtree must advance semantic generation independently of layout");
@@ -218,7 +218,7 @@ void test_semantics_enforce_ui_thread() {
 
 void test_virtual_list_items_are_selectable() {
     std::shared_ptr<gui_forms::ListBox> list = make_control<ListBox>(StableId("virtual.list"));
-    (*list).set_accessible_name("Saved locations");
+    (*list).accessible_name = "Saved locations";
     (*list).set_items({"Desktop", "Documents", "Downloads"});
     (*list).set_requested_bounds({10.0, 20.0, 180.0, 82.0});
     Window window(list, {220.0, 130.0});
@@ -458,7 +458,7 @@ void test_semantic_focus_reaches_composites() {
                 window.focused_control() == button,
             "a focusable control still takes focus directly");
 
-    (*numeric).set_enabled(false);
+    (*numeric).enabled = false;
     require(!window.perform_semantic_action("focus.numeric", SemanticAction::focus) &&
                 window.focused_control() == button,
             "a disabled composite is refused");
@@ -529,7 +529,7 @@ void test_hidden_focus_is_published_on_the_composite() {
                 has_semantic_state((*editor_node).states, SemanticState::focused),
             "TokenBox's published editor is the focused node, not the list");
 
-    (*numeric).set_enabled(false);
+    (*numeric).enabled = false;
     const SemanticSnapshot disabled = window.semantic_snapshot();
     numeric_node = find_node(disabled.roots, "hidden.numeric");
     require(numeric_node && !has_semantic_state((*numeric_node).states, SemanticState::focusable),

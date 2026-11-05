@@ -51,8 +51,8 @@ void RibbonFontControl::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     family_ = make_control<ComboBox>(StableId(prefix + ".family"));
     size_ = make_control<ComboBox>(StableId(prefix + ".size"));
-    (*family_).set_accessible_name("Font");
-    (*size_).set_accessible_name("Font size");
+    (*family_).accessible_name = "Font";
+    (*size_).accessible_name = "Font size";
     (*size_).set_items(size_texts(sizes_));
     add_child(family_);
     add_child(size_);
@@ -218,8 +218,8 @@ void RibbonFontControl::show(const FontChoice& value) {
 
 void RibbonFontControl::sync_enabled() {
     const bool enabled = !command_ || (*command_).state().enabled;
-    (*family_).set_enabled(enabled);
-    (*size_).set_enabled(enabled);
+    (*family_).enabled = enabled;
+    (*size_).enabled = enabled;
 }
 
 // -- layout --------------------------------------------------------------------
@@ -262,8 +262,8 @@ void RibbonFontControl::arrange(Rect final_bounds) {
 SemanticDescriptor RibbonFontControl::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name().empty() ? "Font" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Font" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.exposed = true;
     return descriptor;
 }

@@ -426,7 +426,7 @@ Control::Ptr Ribbon::make_hosted(const RibbonCommandSpec& command) const {
 }
 
 void Ribbon::configure_hosted(const RibbonCommandSpec& command, Control& control) const {
-    control.set_accessible_name(parse_mnemonic_text(command.text).display_text);
+    control.accessible_name = parse_mnemonic_text(command.text).display_text;
     if (command.kind == RibbonCommandKind::combo_box) {
         ComboBox& combo = static_cast<ComboBox&>(control);
         const std::span<const std::string> current = combo.items();
@@ -1888,7 +1888,7 @@ bool Ribbon::show_group_popup(std::string_view group_id, MenuOpenMode mode) {
     popup_group_ = group;
     popup_stop_.reset();
     const RibbonGroupSpec& spec = tabs_[*selected_tab_].groups[group];
-    (*group_popup_).set_accessible_name(spec.caption);
+    (*group_popup_).accessible_name = spec.caption;
     move_hosted_to_popup(group);
     // The content runs from the ribbon's left edge (near alignment) to the
     // panel's right; the panel starts under the group's button.
@@ -2020,8 +2020,8 @@ void Ribbon::on_group_popup_revoked() {
 SemanticDescriptor Ribbon::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name().empty() ? "Ribbon" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Ribbon" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

@@ -11,7 +11,7 @@ SemanticDescriptor StatusStrip::semantic_descriptor() const {
     // A status bar (12.13).
     SemanticDescriptor descriptor = ToolStrip::semantic_descriptor();
     descriptor.role = SemanticRole::status_bar;
-    descriptor.name = accessible_name().empty() ? "Status" : accessible_name();
+    descriptor.name = accessible_name.type().empty() ? "Status" : accessible_name.type();
     return descriptor;
 }
 

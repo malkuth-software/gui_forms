@@ -217,7 +217,7 @@ int main()
     expect(images.resource_count == 8 && images.encoded_bytes == 46306 &&
                images.decoded_bytes > 16U * 16U * 4U,
            "Gallery status badge is owned and bounded by the core PNG registry");
-    expect(!(*(*window).find("gallery.diagnostics")).visible(),
+    expect(!(*(*window).find("gallery.diagnostics")).visible.type(),
            "diagnostics begin hidden");
     for (const std::string_view id : gallery_form_ids) {
         const gui_forms::Control::Ptr control = (*window).find(id);
@@ -389,7 +389,7 @@ int main()
            "Gallery exposes the accepted typed drop without platform payloads");
 
     click(*window, "gallery.command.diagnostics");
-    expect((*(*window).find("gallery.diagnostics")).visible(),
+    expect((*(*window).find("gallery.diagnostics")).visible.type(),
            "diagnostics command reveals structured metrics panel");
     const std::shared_ptr<gui_forms::Label> diagnostic = std::dynamic_pointer_cast<gui_forms::Label>(
         (*window).find("gallery.diagnostics.input"));

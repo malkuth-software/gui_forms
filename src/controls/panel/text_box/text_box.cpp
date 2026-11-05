@@ -112,7 +112,7 @@ TextBox::TextBox(StableId stable_id, std::string text)
     set_paint_plane(PaintPlane::control);
     set_border_style(BorderStyle::sunken);
     set_focusable(true);
-    set_cursor(CursorKind::text);
+    cursor = CursorKind::text;
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     auto_complete_custom_source_ = std::make_shared<AutoCompleteStringCollection>();
     define_bindable_property({
@@ -1023,7 +1023,7 @@ void TextBox::on_pointer(PointerEvent& event) {
 }
 
 void TextBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled() || event.action != KeyAction::down) {
+    if (!focused_ || !enabled.type() || event.action != KeyAction::down) {
         return;
     }
     if (auto_complete_key(event)) {
@@ -1122,7 +1122,7 @@ void TextBox::on_key(KeyEvent& event) {
 }
 
 void TextBox::on_text_input(TextInputEvent& event) {
-    if (!focused_ || !enabled()) {
+    if (!focused_ || !enabled.type()) {
         return;
     }
     (*editing_).handle_text_input(event);
@@ -1241,10 +1241,10 @@ bool TextBox::caret_damage_current() const {
 SemanticDescriptor TextBox::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::text_box;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.type();
     descriptor.value = password_protected() ? std::string{} : std::string(text());
-    descriptor.description = accessible_description().empty()
-        ? placeholder_ : accessible_description();
+    descriptor.description = accessible_description.type().empty()
+        ? placeholder_ : accessible_description.type();
     if ((*editing_).read_only()) descriptor.states |= SemanticState::read_only;
     if (password_protected()) descriptor.states |= SemanticState::protected_content;
     // The selection and caret index the value (A-T1, 12.13); a password box

@@ -308,7 +308,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        (*(*record).control).set_enabled(enabled != 0U);
+        (*(*record).control).enabled = enabled != 0U;
         emit_changed(handle, record);
         return GF_OK;
     }
@@ -321,7 +321,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        *enabled = (*(*record).control).enabled() ? 1U : 0U;
+        *enabled = (*(*record).control).enabled.type() ? 1U : 0U;
         return GF_OK;
     }
 
@@ -335,10 +335,10 @@ public:
             return result;
         }
         if (cursor_kind == GF_CURSOR_INHERIT) {
-            (*(*record).control).set_cursor(std::nullopt);
+            (*(*record).control).cursor = std::nullopt;
         } else {
-            (*(*record).control).set_cursor(static_cast<gui_forms::CursorKind>(
-                cursor_kind - GF_CURSOR_ARROW));
+            (*(*record).control).cursor = static_cast<gui_forms::CursorKind>(
+                cursor_kind - GF_CURSOR_ARROW);
         }
         return GF_OK;
     }
@@ -351,7 +351,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        const std::optional<CursorKind> value = (*(*record).control).cursor();
+        const std::optional<CursorKind> value = (*(*record).control).cursor.type();
         *cursor_kind = value.has_value()
             ? static_cast<std::uint32_t>(*value) +
                   static_cast<std::uint32_t>(GF_CURSOR_ARROW)
@@ -2018,7 +2018,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        (*(*record).control).set_visible(visible != 0U);
+        (*(*record).control).visible = visible != 0U;
         emit_changed(handle, record);
         return GF_OK;
     }
@@ -2031,7 +2031,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        *visible = (*(*record).control).visible() ? 1U : 0U;
+        *visible = (*(*record).control).visible.type() ? 1U : 0U;
         return GF_OK;
     }
 

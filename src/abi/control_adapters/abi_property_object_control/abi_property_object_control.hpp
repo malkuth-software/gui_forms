@@ -189,9 +189,9 @@ struct ForeignPropertyEditorFactory final {
         const ForeignEditorTextUpdater<State> update_text{
             std::weak_ptr<gui_forms::Button>(button), state};
         update_text(*current);
-        (*button).set_accessible_name(request.property_path);
-        (*button).set_accessible_description(request.descriptor.description);
-        (*button).set_enabled(request.writable);
+        (*button).accessible_name = request.property_path;
+        (*button).accessible_description = request.descriptor.description;
+        (*button).enabled = request.writable;
 
         gui_forms::PropertyEditorBinding binding;
         binding.control = button;
@@ -218,6 +218,12 @@ public:
     explicit AbiPropertyObjectControl(StableId stable_id)
         : Control(std::move(stable_id)) {
         clear_bindable_properties();
+    }
+
+    // Only the foreign registrations are this object's properties, not
+    // Control's table.
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override {
+        return {};
     }
 
     void define(const gf_property_descriptor_v1& authored,

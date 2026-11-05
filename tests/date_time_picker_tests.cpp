@@ -33,7 +33,7 @@ const SemanticNode* find_node(std::vector<SemanticNode>&& nodes, std::string_vie
 struct Fixture final {
     Fixture() : window(root, {520.0, 390.0}) {
         (*picker).set_requested_bounds({24.0, 32.0, 270.0, 29.0});
-        (*picker).set_accessible_name("Appointment date");
+        (*picker).accessible_name = "Appointment date";
         (*picker).set_value({2026, 8U, 5U, 14U, 7U, 9U, 125U});
         (*root).add_child(picker);
         window.perform_layout();
@@ -335,12 +335,12 @@ void test_semantic_month_navigation_and_range_capability() {
 void test_owner_cleanup_and_ui_thread_enforcement() {
     Fixture fixture;
     (*fixture.picker).set_dropped_down(true);
-    (*fixture.picker).set_visible(false);
+    (*fixture.picker).visible = false;
     require(!(*fixture.picker).dropped_down() &&
                 fixture.window.focus_scope_depth() == 0U,
             "hiding the popup owner must synchronously revoke popup and focus scope");
 
-    (*fixture.picker).set_visible(true);
+    (*fixture.picker).visible = true;
     (*fixture.picker).set_dropped_down(true);
     (*fixture.picker).dispose();
     require(fixture.window.focus_scope_depth() == 0U &&

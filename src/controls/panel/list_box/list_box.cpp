@@ -453,7 +453,7 @@ void ListBox::on_pointer(PointerEvent& event) {
 }
 
 void ListBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled() || event.action != KeyAction::down || items_.empty()) return;
+    if (!focused_ || !enabled.type() || event.action != KeyAction::down || items_.empty()) return;
     if (event.physical_key == PhysicalKey::enter && active_index_) {
         item_activated_.emit(*active_index_);
         event.handled = true;
@@ -484,8 +484,8 @@ SemanticDescriptor ListBox::semantic_descriptor() const {
     if (selection_mode_ == ListSelectionMode::multiple_extended) {
         descriptor.states |= SemanticState::multiselectable;
     }
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     if (const std::optional<std::size_t> selected = selected_index()) {
         descriptor.value = items_[*selected];
     } else if (!selected_.empty()) {

@@ -99,9 +99,8 @@ void LiveSurfacesPage::build_presenter(const std::shared_ptr<Surface>& body) {
         {930.0, 336.0});
     (*body).add_at(presenter, {24.0, 92.0, 930.0, 336.0});
     view_ = make_control<DrawingSurface>(StableId("gallery.live-surfaces.view"));
-    (*view_).set_accessible_name("Live surface presentation");
-    (*view_).set_accessible_description(
-        "Latest published frame of the page-owned LiveSurface");
+    (*view_).accessible_name = "Live surface presentation";
+    (*view_).accessible_description = "Latest published frame of the page-owned LiveSurface";
     (*view_).set_paint_callback(LiveSurfacePaint(surface_));
     (*presenter).add_at(view_, {22.0, 40.0, 480.0, 270.0});
 
@@ -164,7 +163,7 @@ void LiveSurfacesPage::build_producer(const std::shared_ptr<Surface>& body) {
         make_control<TrackBar>(StableId("gallery.live-surfaces.interval"));
     (*interval).set_range(60.0, 500.0);
     (*interval).set_tick_frequency(4U);
-    (*interval).set_accessible_name("Producer tick interval in milliseconds");
+    (*interval).accessible_name = "Producer tick interval in milliseconds";
     (*interval).bind(interval_);
     (*producer).add_at(interval, {22.0, 112.0, 320.0, 44.0});
     std::shared_ptr<Label> policy = label(

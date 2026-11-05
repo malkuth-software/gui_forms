@@ -96,7 +96,7 @@ DockSite::DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floa
       stamp_motion_(*this, drag_gesture::stamp_curve(), 1.0),
       tile_fade_(*this, MotionCurve::timed(tile_fade_duration, MotionEasing::linear), 1.0),
       flyout_slide_(*this, MotionCurve::timed(flyout_slide_duration, MotionEasing::linear), 1.0) {
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     stamp_motion_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
     tile_fade_.set_listener(MotionListener::bind<DockSite, &DockSite::on_drag_motion>(*this));
@@ -431,8 +431,8 @@ void DockSite::sync_pages(StackSlot& slot, const DockNode& node) {
     const bool strip_shown = (node.kind == DockNodeKind::document_stack || pages.count() >= 2U) &&
                              !slot.auto_hidden && !slot.in_flyout;
     PageStrip& strip = *view.strip();
-    if (strip.visible() != strip_shown) {
-        strip.set_visible(strip_shown);
+    if (strip.visible.type() != strip_shown) {
+        strip.visible = strip_shown;
         view.invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test);
     }
 }
@@ -817,7 +817,7 @@ void DockSite::move_view_to_flyout(StackSlot& slot) {
     slot.in_flyout = true;
     flyout_adopt(view);
     const std::shared_ptr<PageStrip>& strip = (*slot.view).strip();
-    if (strip && (*strip).visible()) (*strip).set_visible(false);
+    if (strip && (*strip).visible.type()) (*strip).visible = false;
     // The side tab chose the panel: the view shows it without a layout edit.
     syncing_ = true;
     static_cast<void>((*slot.view).pages().select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
@@ -1410,7 +1410,7 @@ void DockSite::set_hot(Hit hit) {
         cursor = seams_[hit.index].axis == DockAxis::horizontal ? CursorKind::resize_horizontal
                                                                 : CursorKind::resize_vertical;
     }
-    set_cursor(cursor);
+    cursor = cursor;
     invalidate(Dirty::paint);
 }
 
@@ -1516,7 +1516,7 @@ void DockSite::on_pointer_preview(PointerEvent& event) {
         if (slot.collapsed || !slot.view) continue;
         if (!(*slot.view).absolute_bounds().contains(event.position)) continue;
         const std::shared_ptr<PageStrip>& strip = (*slot.view).strip();
-        if (strip && (*strip).visible() && (*strip).absolute_bounds().contains(event.position)) return;
+        if (strip && (*strip).visible.type() && (*strip).absolute_bounds().contains(event.position)) return;
         const std::optional<DockPanelId> panel = selected_panel(slot);
         const std::optional<DockPanelId>& active = (*workspace_).active_panel();
         if (panel && !(active && *active == *panel)) {
@@ -2300,8 +2300,8 @@ std::string DockSite::stack_identity(DockNodeId stack) const {
 SemanticDescriptor DockSite::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name().empty() ? "Docking workspace" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Docking workspace" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

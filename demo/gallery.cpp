@@ -172,7 +172,7 @@ void install_page_fixtures(Window& window) {
         window.set_accept_button(accept);
     }
     if (const Control::Ptr cancel = window.find("gallery.controls.button.3")) {
-        (*cancel).set_causes_validation(false);
+        (*cancel).causes_validation = false;
         window.set_cancel_button(cancel);
     }
     const std::vector<std::byte> pixels = make_test_card();

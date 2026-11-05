@@ -70,10 +70,6 @@ public:
         return grow_style_;
     }
     void set_grow_style(TableLayoutGrowStyle style);
-    [[nodiscard]] bool auto_size() const noexcept override {
-        return Control::auto_size();
-    }
-    void set_auto_size(bool auto_size) override;
     [[nodiscard]] TableCellBorderStyle cell_border_style() const noexcept {
         return cell_border_style_;
     }

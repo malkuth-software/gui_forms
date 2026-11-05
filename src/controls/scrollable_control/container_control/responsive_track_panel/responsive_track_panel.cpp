@@ -494,7 +494,7 @@ void ResponsiveTrackPanel::reconcile_metadata() {
 ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
     Size available, bool assign) {
     reconcile_metadata();
-    const Insets inset = padding();
+    const Insets inset = padding.type();
     const Size inner{
         std::max(0.0, available.width - horizontal_extent(inset)),
         std::max(0.0, available.height - vertical_extent(inset))};
@@ -517,7 +517,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
     std::size_t automatic_track = 0U;
     const std::vector<Control::Ptr> retained = snapshot_layout_children();
     for (const Control::Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible()) continue;
+        if (!is_current_layout_child(child) || !(*child).visible.type()) continue;
         std::size_t track = track_specs_.size();
         const ChildTrackMap::const_iterator authored =
             child_tracks_.find((*child).runtime_id().value);
@@ -533,8 +533,8 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
         if (track >= track_specs_.size()) continue;
         const Size desired = preferred_child_size(child, inner);
         if (!is_alive()) return {};
-        if (!is_current_layout_child(child) || !(*child).visible()) continue;
-        const Insets margin = (*child).margin();
+        if (!is_current_layout_child(child) || !(*child).visible.type()) continue;
+        const Insets margin = (*child).margin.type();
         const double demand = horizontal
             ? desired.width + horizontal_extent(margin)
             : desired.height + vertical_extent(margin);
@@ -621,7 +621,7 @@ ResponsiveTrackResolution ResponsiveTrackPanel::layout_children(
                 0.0, cell.height - vertical_extent(item.margin));
             const Rect area{cell.x + item.margin.left, cell.y + item.margin.top,
                             available_width, available_height};
-            const Rect placed = place_in_cell((*item.control).dock(), (*item.control).anchor(),
+            const Rect placed = place_in_cell((*item.control).dock.type(), (*item.control).anchor.type(),
                                               area, item.desired);
             set_child_layout(item.control, placed);
         }
@@ -641,8 +641,8 @@ Size ResponsiveTrackPanel::measure(Size available) {
                  std::max(0.0, available.height)};
     const ResponsiveTrackResolution resolution =
         layout_children(available, false);
-    const Insets inset = padding();
-    if (auto_size()) {
+    const Insets inset = padding.type();
+    if (auto_size.type()) {
         if (orientation_ == ResponsiveTrackOrientation::horizontal) {
             return {std::min(available.width,
                              resolution.desired_extent + horizontal_extent(inset)),
@@ -668,8 +668,8 @@ void ResponsiveTrackPanel::arrange(Rect final_bounds) {
 SemanticDescriptor ResponsiveTrackPanel::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.exposed = !descriptor.name.empty() ||
                          !descriptor.description.empty();
     return descriptor;

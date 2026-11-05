@@ -86,11 +86,11 @@ void test_sized_panel_keeps_its_labels_measures() {
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
     std::shared_ptr<Panel> sized = make_control<Panel>(StableId("sized"));
     (*sized).set_requested_bounds({0.0, 0.0, 800.0, 600.0});
-    (*sized).set_anchor(AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left |
-                        AnchorStyles::right);
+    (*sized).anchor = AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left |
+                        AnchorStyles::right;
     (*root).add_child(sized);
     const std::shared_ptr<CountingLabel> last = add_labels(*sized, "sized.", measures);
-    (*last).set_anchor(AnchorStyles::top | AnchorStyles::right);
+    (*last).anchor = AnchorStyles::top | AnchorStyles::right;
     const std::unique_ptr<Window> held = std::make_unique<Window>(root, Size{1000.0, 700.0});
     Window& window = *held;
     window.perform_layout();

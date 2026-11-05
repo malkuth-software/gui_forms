@@ -234,11 +234,11 @@ void test_resize_registrations() {
     std::shared_ptr<Panel> filler = make_control<Panel>(StableId("resize.filler"));
     std::shared_ptr<Panel> filler_mark = make_control<Panel>(StableId("resize.filler.mark"));
     (*strip).set_requested_bounds(Rect{0.0, 0.0, 200.0, 30.0});
-    (*strip).set_dock(DockStyle::top);
+    (*strip).dock = DockStyle::top;
     (*strip_mark).set_requested_bounds(Rect{170.0, 5.0, 20.0, 20.0});
-    (*strip_mark).set_anchor(AnchorStyles::top | AnchorStyles::right);
+    (*strip_mark).anchor = AnchorStyles::top | AnchorStyles::right;
     (*strip).add_child(strip_mark);
-    (*filler).set_dock(DockStyle::fill);
+    (*filler).dock = DockStyle::fill;
     (*filler_mark).set_requested_bounds(Rect{5.0, 5.0, 20.0, 20.0});
     (*filler).add_child(filler_mark);
     (*root).add_child(strip);

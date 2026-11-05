@@ -27,7 +27,7 @@ void add_at(const std::shared_ptr<Parent>& parent,
             const std::shared_ptr<Child>& child, Rect bounds,
             AnchorStyles anchor = AnchorStyles::top | AnchorStyles::left) {
     (*child).set_requested_bounds(bounds);
-    (*child).set_anchor(anchor);
+    (*child).anchor = anchor;
     (*parent).add_child(child);
 }
 
@@ -176,20 +176,20 @@ std::unique_ptr<Window> make_custom_chrome_lab() {
     std::shared_ptr<Control> mark = make_control<Control>(
         StableId("custom-chrome.mark"));
     (*mark).set_authored_surface_material(glass_mark_material());
-    (*mark).set_hit_test_transparent(true);
+    (*mark).hit_test_transparent = true;
     add_at(title, mark, {88.0, 8.0, 24.0, 24.0});
 
     std::shared_ptr<Label> app_title = label(
         "custom-chrome.title", "File Manager",
         {FontRole::control, 13.0, 700, false, 0.15},
         Color::rgba(255, 255, 255));
-    (*app_title).set_hit_test_transparent(true);
+    (*app_title).hit_test_transparent = true;
     add_at(title, app_title, {122.0, 7.0, 160.0, 24.0});
     std::shared_ptr<Label> location = label(
         "custom-chrome.location", "Projects — quentin",
         {FontRole::content, 10.0, 400, false},
         Color::rgba(230, 241, 255));
-    (*location).set_hit_test_transparent(true);
+    (*location).hit_test_transparent = true;
     add_at(title, location, {236.0, 10.0, 240.0, 20.0});
 
     std::shared_ptr<Button> interactive = make_control<Button>(

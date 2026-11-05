@@ -26,19 +26,19 @@ std::shared_ptr<Panel> band(std::string id, std::string text,
     const std::string label_id = id + ".text";
     std::shared_ptr<Panel> value = make_control<Panel>(StableId(std::move(id)));
     (*value).set_background(background);
-    (*value).set_auto_size(true);
-    (*value).set_auto_size_mode(AutoSizeMode::grow_and_shrink);
-    (*value).set_margin({});
-    (*value).set_dock(DockStyle::fill);
+    (*value).auto_size = true;
+    (*value).auto_size_mode = AutoSizeMode::grow_and_shrink;
+    (*value).margin = Insets{};
+    (*value).dock = DockStyle::fill;
     std::shared_ptr<Label> label = make_control<Label>(
         StableId(label_id), std::move(text));
     (*label).set_foreground(foreground);
     (*label).set_font(font);
     (*label).set_text_wrapping(wrapping);
     (*label).set_vertical_alignment(VerticalAlignment::center);
-    (*label).set_margin({});
-    (*label).set_padding({7.0, 3.0, 7.0, 3.0});
-    (*label).set_dock(DockStyle::fill);
+    (*label).margin = Insets{};
+    (*label).padding = {7.0, 3.0, 7.0, 3.0};
+    (*label).dock = DockStyle::fill;
     (*value).add_child(label);
     return value;
 }
@@ -61,7 +61,7 @@ public:
         const std::vector<Control::Ptr> retained(children().begin(),
                                                  children().end());
         for (const Control::Ptr& child : retained) {
-            if (!child || !(*child).visible()) continue;
+            if (!child || !(*child).visible.type()) continue;
             set_child_layout(child, seam_at_right_
                 ? Rect{0.0, 0.0, std::max(0.0, final_bounds.width - 3.0),
                        final_bounds.height}
@@ -103,7 +103,7 @@ private:
 class LayoutDiagnosticsView final : public Control {
 public:
     explicit LayoutDiagnosticsView(StableId id) : Control(std::move(id)) {
-        set_hit_test_transparent(true);
+        hit_test_transparent = true;
     }
 
     void set_sources(std::shared_ptr<ResponsiveTrackPanel> rows,
@@ -288,7 +288,7 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
         {ResponsiveTrackSizeMode::content, 24.0, 24.0, 80.0, 1.0,
          false, 20U},
     });
-    (*surface).set_dock(DockStyle::fill);
+    (*surface).dock = DockStyle::fill;
 
     std::vector<std::shared_ptr<Panel>> bands{
         band("responsive.band.title", "Projects — File Manager",
@@ -321,15 +321,15 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
         {ResponsiveTrackSizeMode::fixed, 163.0, 291.0, 360.0, 1.0,
          false, 10U},
     });
-    (*workspace).set_dock(DockStyle::fill);
-    (*workspace).set_margin({});
+    (*workspace).dock = DockStyle::fill;
+    (*workspace).margin = Insets{};
     bands[4] = nullptr;
 
     std::shared_ptr<SidePane> tree =
         make_control<SidePane>(StableId("responsive.pane.tree"), true);
     (*tree).set_background(Color::rgba(232, 237, 239));
-    (*tree).set_dock(DockStyle::fill);
-    (*tree).set_margin({});
+    (*tree).dock = DockStyle::fill;
+    (*tree).margin = Insets{};
     std::shared_ptr<Panel> tree_text = band(
         "responsive.pane.tree.content",
         "FOLDERS\nProjects\n  Facade Study\nDocuments\nDownloads",
@@ -340,8 +340,8 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
     std::shared_ptr<ContentPane> content =
         make_control<ContentPane>(StableId("responsive.pane.content"));
     (*content).set_background(paper);
-    (*content).set_dock(DockStyle::fill);
-    (*content).set_margin({});
+    (*content).dock = DockStyle::fill;
+    (*content).margin = Insets{};
     std::shared_ptr<Button> primary = make_control<Button>(
         StableId("responsive.content.primary"),
         "Facade Study");
@@ -363,8 +363,8 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
     std::shared_ptr<SelectionPane> selection =
         make_control<SelectionPane>(StableId("responsive.pane.selection"));
     (*selection).set_background(Color::rgba(245, 243, 235));
-    (*selection).set_dock(DockStyle::fill);
-    (*selection).set_margin({});
+    (*selection).dock = DockStyle::fill;
+    (*selection).margin = Insets{};
     std::shared_ptr<Button> selection_action = make_control<Button>(
         StableId("responsive.selection.action"), "Selection inspector");
     std::shared_ptr<VisualInspectorView> inspector =

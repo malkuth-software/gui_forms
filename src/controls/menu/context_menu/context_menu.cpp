@@ -197,11 +197,11 @@ struct ContextMenu::Impl final {
             : Control(std::move(id)), impl_(impl), depth_(depth), index_(index),
               item_(item) {
             set_paint_plane(PaintPlane::overlay);
-            set_enabled(item.kind != MenuItemKind::separator && enabled_item());
+            enabled = item.kind != MenuItemKind::separator && enabled_item();
             set_focusable(item.kind != MenuItemKind::separator && enabled_item());
-            set_cursor(item.kind != MenuItemKind::separator && enabled_item()
+            cursor = item.kind != MenuItemKind::separator && enabled_item()
                 ? std::optional<CursorKind>{CursorKind::hand}
-                : std::optional<CursorKind>{});
+                : std::optional<CursorKind>{};
         }
 
         [[nodiscard]] bool enabled_item() const noexcept {
@@ -582,8 +582,7 @@ struct ContextMenu::Impl final {
             (*state.rows[index]).set_requested_bounds(
                 {menu_border, y,
                  std::max(0.0, state.width - menu_border * 2.0), height});
-            (*state.rows[index]).set_visible(
-                y + height > menu_border && y < state.viewport_height - menu_border);
+            (*state.rows[index]).visible = y + height > menu_border && y < state.viewport_height - menu_border;
             y += height;
         }
     }

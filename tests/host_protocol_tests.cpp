@@ -29,7 +29,7 @@ class InputProbe final : public Control {
 public:
     explicit InputProbe(StableId id) : Control(std::move(id)) {
         set_focusable(true);
-        set_allow_drop(true);
+        allow_drop = true;
     }
 
     void on_pointer(PointerEvent& event) override {
@@ -87,7 +87,7 @@ class HostLeaseInputProbe final : public Control {
 public:
     explicit HostLeaseInputProbe(StableId id) : Control(std::move(id)) {
         set_focusable(true);
-        set_allow_drop(true);
+        allow_drop = true;
     }
 
     void on_paint(Painter& painter, Rect damage) override {
@@ -810,8 +810,8 @@ void test_typed_drag_destination_routing_and_bounds() {
                 (*right).drag_actions ==
                 std::vector<DragAction>{DragAction::enter, DragAction::over},
             "target crossing must deterministically leave old, enter new, then deliver over");
-    (*right).set_enabled(false);
-    (*right).set_enabled(true);
+    (*right).enabled = false;
+    (*right).enabled = true;
     static_cast<void>(transition_host.dispatch(
         drag_event(DragAction::leave, 93, {60.0, 10.0}), 3));
     require((*right).drag_actions.size() == 2,
@@ -950,13 +950,13 @@ void test_display_capture_and_occlusion_synchronization() {
     require(fixture.host.dispatch(down, 6).handled &&
                 fixture.host.services().snapshot().pointer_captured,
             "a second retained capture must synchronize before revocation");
-    (*fixture.probe).set_enabled(false);
+    (*fixture.probe).enabled = false;
     require(!fixture.window.captured_control() &&
                 !fixture.host.services().snapshot().pointer_captured &&
                 fixture.host.services().snapshot().pointer_capture_updates == 4 &&
                 fixture.window.metrics_snapshot().capture_revocations == 1,
             "eligibility revocation must release retained and host capture once");
-    (*fixture.probe).set_enabled(true);
+    (*fixture.probe).enabled = true;
 
     const FrameTime base{};
     FrameRequestToken active = fixture.window.schedule_paint(

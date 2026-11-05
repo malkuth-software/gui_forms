@@ -142,7 +142,7 @@ std::shared_ptr<InstrumentRack> make_rack() {
     std::shared_ptr<gui_forms::InstrumentRack> rack = make_control<InstrumentRack>(StableId("criteria.rack"));
     (*rack).set_modules(default_modules());
     std::shared_ptr<gui_forms::Panel> actions = make_control<Panel>(StableId("criteria.actions"));
-    (*actions).set_accessible_name("Criteria actions");
+    (*actions).accessible_name = "Criteria actions";
     std::shared_ptr<gui_forms::Button> add = make_control<Button>(StableId("criteria.add"), "+ module");
     (*add).set_requested_bounds({4.0, 5.0, 92.0, 28.0});
     std::shared_ptr<gui_forms::Button> apply = make_control<Button>(StableId("criteria.apply"), "Apply 1");

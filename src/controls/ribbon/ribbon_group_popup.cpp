@@ -95,7 +95,7 @@ Insets RibbonGroupPopup::visual_outsets() const noexcept {
 SemanticDescriptor RibbonGroupPopup::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

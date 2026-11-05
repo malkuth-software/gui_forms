@@ -90,18 +90,18 @@ std::unique_ptr<Scene> make_scene(Size size, double scale) {
     (*scene.root).set_background(Color::rgba(225, 231, 237, 255));
     const std::shared_ptr<Band> header = make_control<Band>(StableId("header"));
     (*header).set_requested_bounds(Rect{0.0, 0.0, size.width, header_height});
-    (*header).set_dock(DockStyle::top);
+    (*header).dock = DockStyle::top;
     const std::shared_ptr<Panel> footer = make_control<Panel>(StableId("footer"));
     (*footer).set_requested_bounds(Rect{0.0, 0.0, size.width, footer_height});
-    (*footer).set_dock(DockStyle::bottom);
+    (*footer).dock = DockStyle::bottom;
     (*footer).set_background(Color::rgba(209, 218, 226, 255));
     const std::shared_ptr<Mark> corner_mark = make_control<Mark>(StableId("footer.mark"));
     (*corner_mark).set_requested_bounds(Rect{size.width - 24.0, 4.0, 16.0, 16.0});
-    (*corner_mark).set_anchor(AnchorStyles::top | AnchorStyles::right);
+    (*corner_mark).anchor = AnchorStyles::top | AnchorStyles::right;
     (*footer).add_child(corner_mark);
     const std::shared_ptr<Panel> column = make_control<Panel>(StableId("column"));
     (*column).set_requested_bounds(Rect{0.0, 0.0, column_width, size.height});
-    (*column).set_dock(DockStyle::left);
+    (*column).dock = DockStyle::left;
     (*column).set_background(Color::rgba(240, 244, 247, 255));
     const std::shared_ptr<Mark> column_mark = make_control<Mark>(StableId("column.mark"));
     (*column_mark).set_requested_bounds(Rect{8.0, 8.0, 16.0, 16.0});
@@ -110,10 +110,10 @@ std::unique_ptr<Scene> make_scene(Size size, double scale) {
     (*box).set_border_style(BorderStyle::line);
     const double box_height = size.height - header_height - footer_height - 40.0;
     (*box).set_requested_bounds(Rect{8.0, 32.0, column_width - 16.0, box_height});
-    (*box).set_anchor(AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left);
+    (*box).anchor = AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left;
     (*column).add_child(box);
     const std::shared_ptr<Gauge> gauge = make_control<Gauge>(StableId("gauge"));
-    (*gauge).set_dock(DockStyle::fill);
+    (*gauge).dock = DockStyle::fill;
     // Dock order: the edges claim their sides first, the fill takes the rest.
     (*scene.root).add_child(header);
     (*scene.root).add_child(footer);

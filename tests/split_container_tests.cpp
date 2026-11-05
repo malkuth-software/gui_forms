@@ -230,7 +230,7 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
 
     (*split).set_first_collapsed(true);
     window.perform_layout();
-    require(!(*(*split).first_panel()).visible() &&
+    require(!(*(*split).first_panel()).visible.type() &&
                 window.focused_control() == (*split).splitter_control() &&
                 near((*(*split).second_panel()).arranged_bounds().width, 397.0),
             "collapsing a pane must remove it from input and transfer focus to its seam");
@@ -245,7 +245,7 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
 
     (*split).set_first_collapsed(false);
     window.perform_layout();
-    require((*(*split).first_panel()).visible() && near((*split).splitter_distance(), 110.0),
+    require((*(*split).first_panel()).visible.type() && near((*split).splitter_distance(), 110.0),
             "restoring a panel must recover its remembered extent");
 
     (*split).set_fixed_panel(SplitFixedPanel::second);
@@ -278,7 +278,7 @@ void test_seam_tab_pointer_keyboard_and_semantic_collapse() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.seam-tab"));
     (*split).set_splitter_distance(270.0);
     (*split).set_collapse_panel(SplitFixedPanel::second);
-    (*split).set_accessible_name("Inspector split");
+    (*split).accessible_name = "Inspector split";
     Window window(split, {400.0, 180.0});
     window.perform_layout();
     const double remembered = (*(*split).second_panel()).arranged_bounds().width;
@@ -297,7 +297,7 @@ void test_seam_tab_pointer_keyboard_and_semantic_collapse() {
     require(window.dispatch_pointer(up) && (*split).second_collapsed(),
             "seam collapse tab activation must collapse its declared panel");
     window.perform_layout();
-    require(!(*(*split).second_panel()).visible() &&
+    require(!(*(*split).second_panel()).visible.type() &&
                 window.perform_semantic_action("split.seam-tab",
                                                SemanticAction::expand),
             "collapsed seam must leave the pane out of task order and expose restore");
@@ -618,12 +618,12 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     static_cast<void>(window.dispatch_pointer(down));
     require(window.captured_control() == (*split).splitter_control(),
             "disable fixture must begin with retained seam capture");
-    (*split).set_enabled(false);
+    (*split).enabled = false;
     require(!window.captured_control() &&
                 (*split).splitter_seam_snapshot().state ==
                     SplitSeamState::disabled,
             "disabling an ancestor seam control must revoke capture and expose disabled state");
-    (*split).set_enabled(true);
+    (*split).enabled = true;
     static_cast<void>(window.dispatch_pointer(
         {PointerAction::move, PointerButton::none, {20.0, 170.0}}));
     (*split).set_second_collapsed(true, SplitCollapseOrigin::user);

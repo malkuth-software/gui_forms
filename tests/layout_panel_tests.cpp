@@ -83,20 +83,20 @@ std::shared_ptr<Button> sized_button(std::string id, double width,
                                      double height) {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId(std::move(id)), "Item");
     (*button).set_requested_bounds({0.0, 0.0, width, height});
-    (*button).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*button).margin = {0.0, 0.0, 0.0, 0.0};
     return button;
 }
 
 void test_margin_padding_validation_and_retained_slots() {
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("layout.flow.slots"));
-    (*flow).set_accessible_name("Wrapping flow specimen");
-    (*flow).set_padding({5.0, 5.0, 5.0, 5.0});
+    (*flow).accessible_name = "Wrapping flow specimen";
+    (*flow).padding = {5.0, 5.0, 5.0, 5.0};
     std::shared_ptr<Button> first = sized_button("layout.flow.first", 40.0, 20.0);
     std::shared_ptr<Button> second = sized_button("layout.flow.second", 50.0, 20.0);
     std::shared_ptr<Button> third = sized_button("layout.flow.third", 30.0, 20.0);
-    (*first).set_margin({2.0, 1.0, 3.0, 1.0});
-    (*second).set_margin({4.0, 1.0, 4.0, 1.0});
-    (*third).set_margin({3.0, 2.0, 3.0, 2.0});
+    (*first).margin = {2.0, 1.0, 3.0, 1.0};
+    (*second).margin = {4.0, 1.0, 4.0, 1.0};
+    (*third).margin = {3.0, 2.0, 3.0, 2.0};
     (*flow).add_child(first);
     (*flow).add_child(second);
     (*flow).add_child(third);
@@ -127,12 +127,12 @@ void test_margin_padding_validation_and_retained_slots() {
     bool margin_rejected = false;
     bool padding_rejected = false;
     try {
-        (*first).set_margin({-1.0, 0.0, 0.0, 0.0});
+        (*first).margin = {-1.0, 0.0, 0.0, 0.0};
     } catch (const std::invalid_argument&) {
         margin_rejected = true;
     }
     try {
-        (*flow).set_padding({0.0, 0.0, INFINITY, 0.0});
+        (*flow).padding = {0.0, 0.0, INFINITY, 0.0};
     } catch (const std::invalid_argument&) {
         padding_rejected = true;
     }
@@ -166,14 +166,14 @@ void test_flow_direction_break_visibility_and_resize() {
                 (*third).arranged_bounds().y == 20.0,
             "right-to-left flow must mirror each wrapped row without reversing ownership");
 
-    (*second).set_visible(false);
+    (*second).visible = false;
     window.perform_layout();
     require((*first).arranged_bounds().x == 60.0 &&
                 (*third).arranged_bounds().x == 20.0 &&
                 (*third).arranged_bounds().y == 0.0,
             "hidden flow children must consume neither main-axis nor wrap space");
 
-    (*second).set_visible(true);
+    (*second).visible = true;
     (*flow).set_flow_direction(FlowDirection::bottom_up);
     (*flow).set_wrap_contents(false);
     window.perform_layout();
@@ -221,17 +221,17 @@ void test_flow_auto_size_mode_preserves_authored_extent() {
         make_control<FlowLayoutPanelCompat>(StableId("layout.flow.auto-size-mode"));
     std::shared_ptr<Button> child =
         sized_button("layout.flow.auto-size-mode.child", 72.0, 43.0);
-    (*flow).set_padding({5.0, 2.0, 5.0, 0.0});
+    (*flow).padding = {5.0, 2.0, 5.0, 0.0};
     (*flow).set_requested_bounds({0.0, 0.0, 176.0, 60.0});
-    (*flow).set_minimum_size({100.0, 50.0});
-    (*flow).set_auto_size(true);
+    (*flow).minimum_size = {100.0, 50.0};
+    (*flow).auto_size = true;
     (*flow).add_child(child);
 
-    require((*flow).auto_size_mode() == AutoSizeMode::grow_only &&
+    require((*flow).auto_size_mode.type() == AutoSizeMode::grow_only &&
                 (*flow).measure({500.0, 500.0}) == Size{176.0, 60.0},
             "GrowOnly FlowLayoutPanelCompat AutoSize must retain authored extent");
 
-    (*flow).set_auto_size_mode(AutoSizeMode::grow_and_shrink);
+    (*flow).auto_size_mode = AutoSizeMode::grow_and_shrink;
     require((*flow).measure({500.0, 500.0}) == Size{100.0, 50.0},
             "GrowAndShrink FlowLayoutPanelCompat AutoSize must derive content while honoring minimum size");
 }
@@ -386,8 +386,8 @@ void test_layout_panels_revalidate_snapshot_after_measure_callback() {
 
 void test_table_mixed_tracks_spans_and_lookup() {
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> table = make_control<TableLayoutPanelCompat>(StableId("layout.table.mixed"));
-    (*table).set_accessible_name("Mixed table specimen");
-    (*table).set_padding({5.0, 5.0, 5.0, 5.0});
+    (*table).accessible_name = "Mixed table specimen";
+    (*table).padding = {5.0, 5.0, 5.0, 5.0};
     (*table).set_column_count(4U);
     (*table).set_row_count(2U);
     (*table).set_column_style(0U, {TableSizeMode::absolute, 40.0});
@@ -439,7 +439,7 @@ void test_table_mixed_tracks_spans_and_lookup() {
                 (*table).semantic_descriptor().exposed,
             "named table layouts must expose their child geometry as a semantic group");
 
-    (*table).set_auto_size(true);
+    (*table).auto_size = true;
     const Size desired = (*table).measure({1000.0, 1000.0});
     require(near(desired.width, 330.0) && near(desired.height, 70.0),
             "auto-sized table measurement must preserve percent ratios while satisfying content minima");
@@ -464,14 +464,14 @@ void test_table_growth_hidden_children_and_fixed_overflow() {
                     std::optional(TableLayoutCellPosition{0U, 1U}),
             "AddRows must create the minimum runtime track for automatic overflow");
 
-    (*second).set_visible(false);
+    (*second).visible = false;
     window.perform_layout();
     require((*table).row_heights().size() == 1U &&
                 (*table).cell_position(*third) ==
                     std::optional(TableLayoutCellPosition{1U, 0U}),
             "hidden table children must release occupancy and collapse runtime tracks");
 
-    (*second).set_visible(true);
+    (*second).visible = true;
     (*table).set_grow_style(TableLayoutGrowStyle::fixed_size);
     window.perform_layout();
     require((*table).layout_overflowed() && (*third).arranged_bounds().empty() &&
@@ -501,8 +501,8 @@ void test_table_cell_dock_fill_consumes_growth() {
     (*table).set_column_style(0U, {TableSizeMode::percent, 100.0});
     (*table).set_row_style(0U, {TableSizeMode::percent, 100.0});
     std::shared_ptr<Button> child = sized_button("layout.table.fill.child", 120.0, 60.0);
-    (*child).set_margin({});
-    (*child).set_dock(DockStyle::fill);
+    (*child).margin = Insets{};
+    (*child).dock = DockStyle::fill;
     (*table).add_child(child);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{240.0, 120.0});
     Window& window = *held_window;
@@ -529,8 +529,8 @@ void test_table_track_spacing_is_relational_and_bounded() {
         sized_button("layout.table.spacing.first", 20.0, 20.0);
     std::shared_ptr<Button> second =
         sized_button("layout.table.spacing.second", 20.0, 20.0);
-    (*first).set_dock(DockStyle::fill);
-    (*second).set_dock(DockStyle::fill);
+    (*first).dock = DockStyle::fill;
+    (*second).dock = DockStyle::fill;
     (*table).add_child(first);
     (*table).add_child(second);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(table, Size{218.0, 80.0});
@@ -644,17 +644,17 @@ void test_scaled_panel_and_group_are_public_layout_controls() {
 
 void test_default_dock_layout_all_directions_and_z_order() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("layout.dock.root"));
-    (*root).set_padding({10.0, 10.0, 10.0, 10.0});
+    (*root).padding = {10.0, 10.0, 10.0, 10.0};
     std::shared_ptr<Button> fill = sized_button("layout.dock.fill", 10.0, 10.0);
     std::shared_ptr<Button> bottom = sized_button("layout.dock.bottom", 10.0, 25.0);
     std::shared_ptr<Button> right = sized_button("layout.dock.right", 40.0, 10.0);
     std::shared_ptr<Button> top = sized_button("layout.dock.top", 10.0, 20.0);
     std::shared_ptr<Button> left = sized_button("layout.dock.left", 30.0, 10.0);
-    (*fill).set_dock(DockStyle::fill);
-    (*bottom).set_dock(DockStyle::bottom);
-    (*right).set_dock(DockStyle::right);
-    (*top).set_dock(DockStyle::top);
-    (*left).set_dock(DockStyle::left);
+    (*fill).dock = DockStyle::fill;
+    (*bottom).dock = DockStyle::bottom;
+    (*right).dock = DockStyle::right;
+    (*top).dock = DockStyle::top;
+    (*left).dock = DockStyle::left;
     (*root).add_child(left);
     (*root).add_child(top);
     (*root).add_child(right);
@@ -676,7 +676,7 @@ void test_default_dock_layout_all_directions_and_z_order() {
                 window.metrics_snapshot().bounded_pass_limit_hits == 0U,
             "Dock slots must preserve preferred bounds and converge");
 
-    (*left).set_visible(false);
+    (*left).visible = false;
     window.perform_layout();
     require((*top).arranged_bounds() == Rect{10.0, 10.0, 280.0, 20.0} &&
                 (*fill).arranged_bounds() == Rect{10.0, 30.0, 240.0, 135.0},
@@ -685,8 +685,8 @@ void test_default_dock_layout_all_directions_and_z_order() {
     std::shared_ptr<gui_forms::Panel> order_root = make_control<Panel>(StableId("layout.dock.order.root"));
     std::shared_ptr<Button> first = sized_button("layout.dock.order.first", 10.0, 20.0);
     std::shared_ptr<Button> second = sized_button("layout.dock.order.second", 10.0, 30.0);
-    (*first).set_dock(DockStyle::top);
-    (*second).set_dock(DockStyle::top);
+    (*first).dock = DockStyle::top;
+    (*second).dock = DockStyle::top;
     (*order_root).add_child(first);
     (*order_root).add_child(second);
     const std::unique_ptr<Window> held_order_window = std::make_unique<Window>(order_root, Size{100.0, 100.0});
@@ -705,19 +705,19 @@ void test_default_dock_layout_all_directions_and_z_order() {
 
 void test_compound_anchor_resize_runtime_rebase_and_validation() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("layout.anchor.root"));
-    (*root).set_padding({10.0, 10.0, 10.0, 10.0});
+    (*root).padding = {10.0, 10.0, 10.0, 10.0};
     std::shared_ptr<Button> fixed = sized_button("layout.anchor.fixed", 50.0, 20.0);
     (*fixed).set_requested_bounds({20.0, 20.0, 50.0, 20.0});
     std::shared_ptr<Button> stretch = sized_button("layout.anchor.stretch", 100.0, 20.0);
     (*stretch).set_requested_bounds({20.0, 50.0, 100.0, 20.0});
-    (*stretch).set_anchor(AnchorStyles::left | AnchorStyles::right |
-                        AnchorStyles::top);
+    (*stretch).anchor = AnchorStyles::left | AnchorStyles::right |
+                        AnchorStyles::top;
     std::shared_ptr<Button> bottom_right = sized_button("layout.anchor.bottom-right", 50.0, 20.0);
     (*bottom_right).set_requested_bounds({130.0, 60.0, 50.0, 20.0});
-    (*bottom_right).set_anchor(AnchorStyles::right | AnchorStyles::bottom);
+    (*bottom_right).anchor = AnchorStyles::right | AnchorStyles::bottom;
     std::shared_ptr<Button> centered = sized_button("layout.anchor.centered", 50.0, 20.0);
     (*centered).set_requested_bounds({75.0, 40.0, 50.0, 20.0});
-    (*centered).set_anchor(AnchorStyles::none);
+    (*centered).anchor = AnchorStyles::none;
     (*root).add_child(fixed);
     (*root).add_child(stretch);
     (*root).add_child(bottom_right);
@@ -736,7 +736,7 @@ void test_compound_anchor_resize_runtime_rebase_and_validation() {
     require((*stretch).requested_bounds() == Rect{20.0, 50.0, 100.0, 20.0},
             "Anchor resize must not rewrite the authored preferred rectangle");
 
-    (*fixed).set_anchor(AnchorStyles::right | AnchorStyles::bottom);
+    (*fixed).anchor = AnchorStyles::right | AnchorStyles::bottom;
     window.resize({350.0, 180.0});
     window.perform_layout();
     require((*fixed).arranged_bounds() == Rect{70.0, 50.0, 50.0, 20.0},
@@ -754,12 +754,12 @@ void test_compound_anchor_resize_runtime_rebase_and_validation() {
     bool invalid_dock_rejected = false;
     bool invalid_anchor_rejected = false;
     try {
-        (*fixed).set_dock(static_cast<DockStyle>(255U));
+        (*fixed).dock = static_cast<DockStyle>(255U);
     } catch (const std::invalid_argument&) {
         invalid_dock_rejected = true;
     }
     try {
-        (*fixed).set_anchor(static_cast<AnchorStyles>(0x80U));
+        (*fixed).anchor = static_cast<AnchorStyles>(0x80U);
     } catch (const std::invalid_argument&) {
         invalid_anchor_rejected = true;
     }

@@ -47,7 +47,7 @@ Types
    * - :cpp:class:`PropertyDescriptor <gui_forms::PropertyDescriptor>`
      - PropertyDescriptor exposes renderer/language-neutral schema, serialization, mutability, invalidation, enum, standard-value, converter, and editor metadata without executable callbacks.
    * - :cpp:class:`PropertyEntry <gui_forms::PropertyEntry>`
-     - One property of a control type's constant property table (property- capabilities study, section 4 and decision 5): what the run-time registry, the form loader, binding, the schema export and the C ABI read, once per type instead of a registration per instance.
+     - One property of a property-owning type's constant table (property- capabilities study, section 4 and decision 5): what the run-time registry, the form loader, binding, the schema export and the C ABI read, once per type instead of a registration per instance.
    * - :cpp:class:`PropertyEnumChoice <gui_forms::PropertyEnumChoice>`
      - PropertyEnumChoice maps one canonical display/name token to a signed enum value.
    * - :cpp:class:`PropertyEnumDescriptor <gui_forms::PropertyEnumDescriptor>`
@@ -64,6 +64,8 @@ Types
      - Which operations a property has, for the descriptor checks.
    * - :cpp:class:`PropertyRegistration <gui_forms::PropertyRegistration>`
      - PropertyRegistration privately couples an inert descriptor to explicit getter, setter, change, reset, serialization, and origin callbacks registered by a retained Control.
+   * - :cpp:class:`PropertyView <gui_forms::PropertyView>`
+     - A property whose value has another owner (study section 14, G2: an editing engine's text, a selection derived from item state): the capability's only member, with PropertyCell's spelling and no storage.
 
 .. cpp:namespace:: gui_forms
 
@@ -674,7 +676,7 @@ Types
 
    ``#include <gui_forms/binding/property_table/property_table.hpp>``
 
-   One property of a control type's constant property table (property- capabilities study, section 4 and decision 5): what the run-time registry, the form loader, binding, the schema export and the C ABI read, once per type instead of a registration per instance. Every operation is a plain function taking the control; a null operation means the descriptor's default rule applies, as for a PropertyRegistration without it.
+   One property of a property-owning type's constant table (property- capabilities study, section 4 and decision 5): what the run-time registry, the form loader, binding, the schema export and the C ABI read, once per type instead of a registration per instance. Every operation is a plain function taking the owner, a Component (study section 14, G7: controls and components alike); the operation static_casts it to its declaring class, which derives from Component non-virtually. A null operation means the descriptor's default rule applies, as for a PropertyRegistration without it.
 
    .. cpp:member:: std::string_view name
 
@@ -684,27 +686,27 @@ Types
 
       The inert descriptor, built once per type and property on first use and kept for the program's life. Its own checks are Control::define_bindable_property's (property_table_descriptor).
 
-   .. cpp:member:: BindingValue (*read)(const Control& control)
+   .. cpp:member:: BindingValue (*read)(const Component& owner)
 
       The current value; null when the property is not readable.
 
-   .. cpp:member:: void (*write)(Control& control, const BindingValue& value)
+   .. cpp:member:: void (*write)(Component& owner, const BindingValue& value)
 
       Writes a value already converted to the descriptor's kind; null when the property is not writable.
 
-   .. cpp:member:: void (*reset)(Control& control)
+   .. cpp:member:: void (*reset)(Component& owner)
 
       Restores the default; null: write the descriptor's default value.
 
-   .. cpp:member:: bool (*should_serialize)(const Control& control)
+   .. cpp:member:: bool (*should_serialize)(const Component& owner)
 
       Whether the value is serialized; null: compare with the default.
 
-   .. cpp:member:: PropertyValueOrigin (*origin)(const Control& control)
+   .. cpp:member:: PropertyValueOrigin (*origin)(const Component& owner)
 
       Where the value comes from; null: defaulted or local by the default.
 
-   .. cpp:member:: SubscriptionToken (*connect_changed)(Control& control, Component& owner, std::function<void()> changed)
+   .. cpp:member:: SubscriptionToken (*connect_changed)(Component& owner, Component& subscriber, std::function<void()> changed)
 
       Connects ``changed`` to the property's change event for ``owner``'s lifetime; null when the property raises none.
 
@@ -884,6 +886,26 @@ Types
    .. cpp:member:: ShouldSerialize should_serialize
 
    .. cpp:member:: OriginProvider origin
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Value, typename Capability> PropertyView final
+
+   ``#include <gui_forms/binding/property_cell/property_cell.hpp>``
+
+   A property whose value has another owner (study section 14, G2: an editing engine's text, a selection derived from item state): the capability's only member, with PropertyCell's spelling and no storage. The write calls ``Capability::assign``, which writes the owner; the read calls ``Capability::read``, which returns the owner's value by value. template <typename Declaring> struct EditedTextCapability { PropertyView<std::string, EditedTextCapability<Declaring>> text; static void assign(EditedTextCapability& capability, std::string value); static std::string read(const EditedTextCapability& capability); }; Like a cell, a view has no conversion operator and no ==, and it cannot be copied. It is empty, and as its capability's first and only member it is pointer-interconvertible with the capability, as a cell is.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PropertyView() = default
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Value type() const
+
+      The read, through the owner.
 
 Enumerations
 ------------
@@ -1071,9 +1093,37 @@ Functions, constants and aliases
 
    A declaring class's table after its base's: the base's entries first, then its own, so a type's slots are stable and gap-free.
 
+.. cpp:function:: template <std::size_t BaseCount, std::size_t OverrideCount> constexpr std::array<PropertyEntry, BaseCount> override_property_entries(const std::array<PropertyEntry, BaseCount>& base, const std::array<PropertyEntry, OverrideCount>& overrides)
+
+   A derived type's refinement of base entries (study section 14, G3): the base's table with each entry of ``overrides`` replacing the base entry of the same name, in the base entry's slot. An override that names no base entry throws, which fails the constant evaluation of the table that uses it, so the mistake does not compile.
+
 .. cpp:function:: PropertyDescriptor property_table_descriptor(PropertyDescriptor descriptor, PropertyOperations operations)
 
    Builds and checks a table entry's descriptor with the checks of Control::define_bindable_property (a registered name, kind, effects, enumeration, standard values, a default converting to the kind, a reader when readable and a writer when writable) and derives resettable and change_notifications from ``operations``. Throws std::invalid_argument on a failed check. For an entry's describe().
+
+.. cpp:function:: const PropertyEntry* find_property_entry(const Component& owner, std::string_view registered)
+
+   Table access for any property owner (study section 14, G7): the entry of ``owner``'s table with the registered name ``registered``, or null. The operations below apply one entry's rules (a null operation's default included) and check the values against its descriptor; they do not check the owner's thread or liveness, which their callers do (Control's member API) and the entries' writes do through their prepare hooks.
+
+.. cpp:function:: std::optional<BindingValue> read_property_entry(const Component& owner, const PropertyEntry& entry)
+
+   The converted current value; nullopt when the entry is not readable. Throws std::logic_error when the read violates the descriptor.
+
+.. cpp:function:: void write_property_entry(Component& owner, const PropertyEntry& entry, const BindingValue& value)
+
+   Converts ``value`` to the entry's kind and writes it. Throws std::logic_error for a read-only entry and std::invalid_argument for a value that does not convert.
+
+.. cpp:function:: bool reset_property_entry(Component& owner, const PropertyEntry& entry)
+
+   Restores the default; false when the entry has none and no reset.
+
+.. cpp:function:: bool property_entry_should_serialize(const Component& owner, const PropertyEntry& entry)
+
+.. cpp:function:: PropertyValueOrigin property_entry_origin(const Component& owner, const PropertyEntry& entry)
+
+.. cpp:function:: SubscriptionToken connect_property_entry(Component& owner, const PropertyEntry& entry, Component& subscriber, std::function<void()> changed)
+
+   Connects ``changed`` for ``subscriber``'s lifetime; an empty token when the entry raises no change or ``changed`` is empty.
 
 .. cpp:namespace:: gui_forms
 

@@ -80,7 +80,7 @@ accessible name exposes it as an image:
        std::shared_ptr<gf::DrawingSurface> badge =
            gf::make_control<gf::DrawingSurface>(gf::StableId("status.badge"));
        (*badge).set_requested_bounds({0.0, 0.0, 24.0, 24.0});
-       (*badge).set_accessible_name("Connected");
+       (*badge).accessible_name = "Connected";
        (*badge).set_paint_callback(StatusBadge{gf::Color::rgba(46, 160, 67)});
    }
 

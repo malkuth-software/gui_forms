@@ -60,7 +60,7 @@ void ToolTip::set_tool_tip(const std::shared_ptr<Control>& target, std::string t
     }
     const std::string key((*target).stable_id().value());
     const bool removing = text.empty();
-    (*target).set_tool_tip_text(std::move(text));
+    (*target).tool_tip_text = std::move(text);
     if (removing) {
         targets_.erase(key);
         return;
@@ -69,14 +69,14 @@ void ToolTip::set_tool_tip(const std::shared_ptr<Control>& target, std::string t
 }
 
 std::string ToolTip::tool_tip(const Control& target) const {
-    return target.tool_tip_text();
+    return target.tool_tip_text.type();
 }
 
 bool ToolTip::remove_tool_tip(Control& target) {
     static_cast<void>(require_access("ToolTip mapping removal"));
     if (!owns(target)) return false;
     targets_.erase(std::string(target.stable_id().value()));
-    if (target.is_alive()) target.set_tool_tip_text({});
+    if (target.is_alive()) target.tool_tip_text = std::string{};
     return true;
 }
 
@@ -88,7 +88,7 @@ void ToolTip::clear() {
     targets_.clear();
     for (const std::pair<const std::string, std::weak_ptr<Control>>& entry : cleared) {
         const std::shared_ptr<Control> target = entry.second.lock();
-        if (target && (*target).is_alive()) (*target).set_tool_tip_text({});
+        if (target && (*target).is_alive()) (*target).tool_tip_text = std::string{};
     }
 }
 
@@ -229,7 +229,7 @@ void ToolTip::on_dispose() noexcept {
         const std::shared_ptr<Control> target = entry.second.lock();
         if (!target || !(*target).is_alive() || bound_window() == nullptr) continue;
         try {
-            (*target).set_tool_tip_text({});
+            (*target).tool_tip_text = std::string{};
         } catch (...) {
             // A target the window can no longer change keeps its text; its
             // tooltip closes with it.

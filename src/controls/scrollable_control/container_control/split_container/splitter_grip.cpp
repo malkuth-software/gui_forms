@@ -40,9 +40,9 @@ SplitterGrip::SplitterGrip(StableId stable_id)
 void SplitterGrip::set_orientation(Orientation orientation) {
     if (orientation_ == orientation) return;
     orientation_ = orientation;
-    set_cursor(orientation == Orientation::vertical
+    cursor = orientation == Orientation::vertical
                    ? CursorKind::resize_horizontal
-                   : CursorKind::resize_vertical);
+                   : CursorKind::resize_vertical;
     invalidate(Dirty::paint | Dirty::semantics | Dirty::accessibility);
 }
 

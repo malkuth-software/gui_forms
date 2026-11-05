@@ -36,7 +36,7 @@ MenuStrip::MenuStrip(StableId stable_id)
       popup_(std::make_unique<ContextMenu>(
           std::string((*this).stable_id().value()) + ".menu")) {
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     // This owner retains the popup and subscriptions. Bound handlers borrow
     // this MenuStrip; disposal closes the popup before owner teardown.
@@ -441,8 +441,8 @@ void MenuStrip::on_focus_changed(bool focused) {
 SemanticDescriptor MenuStrip::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::menu_bar;
-    descriptor.name = accessible_name().empty() ? "Application menu" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Application menu" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

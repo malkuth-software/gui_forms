@@ -132,8 +132,6 @@ public:
     // from their caches).
     [[nodiscard]] BlockFlowSharedMargins shared_margins(double width);
 
-    [[nodiscard]] bool auto_size() const noexcept override { return Control::auto_size(); }
-    void set_auto_size(bool auto_size) override;
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
     [[nodiscard]] bool measures_children_in_arrange() const noexcept override;

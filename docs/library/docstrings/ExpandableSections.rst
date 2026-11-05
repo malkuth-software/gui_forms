@@ -85,7 +85,7 @@ on in the order of `items`, but content controls keep their own tab index, 0
 by default, so with the defaults Tab visits the first header, then the
 focusable controls of every open section, then the other headers. To keep
 each section's controls after its header, give each content control its
-header's tab index plus one with `set_tab_index`.
+header's tab index plus one by writing `tab_index`.
 
 The control is published to accessibility as a `group`. Each header is a
 `button` named by its label, with the expanded state while its section is

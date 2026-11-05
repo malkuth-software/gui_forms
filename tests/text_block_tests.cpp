@@ -118,7 +118,7 @@ FontSpec carlito(double size) {
 std::shared_ptr<TextBlock> text_block(const std::string& id, const std::string& text) {
     std::shared_ptr<TextBlock> made = make_control<TextBlock>(StableId(id), text);
     (*made).set_font(carlito(13.0));
-    (*made).set_margin({0.0, 0.0, 0.0, 0.0});
+    (*made).margin = {0.0, 0.0, 0.0, 0.0};
     return made;
 }
 
@@ -177,7 +177,7 @@ void test_white_space_collapses() {
 void test_intrinsic_sizes_and_padding() {
     CarlitoProportions metrics{};
     std::shared_ptr<TextBlock> block = text_block("text.intrinsic", "aaa bbbbb cc");
-    (*block).set_padding({2.0, 3.0, 4.0, 5.0});
+    (*block).padding = {2.0, 3.0, 4.0, 5.0};
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{800.0, 600.0});
     (*held).set_text_metrics_provider(&metrics);
     const Size minimum = measured_at(*block, LayoutConstraint{min_content_extent(), max_content_extent()});
@@ -238,7 +238,7 @@ void test_breaks_come_from_the_provider() {
 void test_alignment_and_paint() {
     CarlitoProportions metrics{};
     std::shared_ptr<TextBlock> block = text_block("text.align", "aaa bbb cc");
-    (*block).set_padding({1.0, 2.0, 0.0, 0.0});
+    (*block).padding = {1.0, 2.0, 0.0, 0.0};
     (*block).set_bounds({0.0, 0.0, 51.0, 32.0});
     const std::unique_ptr<Window> held = std::make_unique<Window>(block, Size{51.0, 32.0});
     (*held).set_text_metrics_provider(&metrics);
@@ -250,7 +250,7 @@ void test_alignment_and_paint() {
     require_near(start.origins[0].x, 1.0, "start is left in left to right");
     require_near(start.origins[0].y, 2.0 + 12.0, "the first line's baseline");
     require_near(start.origins[1].y, 2.0 + 15.0 + 12.0, "the second line's baseline");
-    (*block).set_layout_direction(LayoutDirection::right_to_left);
+    (*block).layout_direction = LayoutDirection::right_to_left;
     TextPainter mirrored{};
     (*block).on_paint(mirrored, Rect{0.0, 0.0, 51.0, 32.0});
     require_near(mirrored.origins[1].x, 1.0 + 50.0 - 14.0, "start is right in right to left");

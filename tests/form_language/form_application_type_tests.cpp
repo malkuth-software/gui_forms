@@ -45,7 +45,7 @@ void test_generated_application_type() {
     form_generated::NoteDialogForm<NoteOwner> form{};
     form.initialize_component(owner);
     const std::shared_ptr<form_generated::NoteCard> card = form.notes_card;
-    require(card != nullptr && (*card).back_color() == gui_forms::Color{0x11, 0x22, 0x33, 255},
+    require(card != nullptr && (*card).back_color.type() == gui_forms::Color{0x11, 0x22, 0x33, 255},
             "generated: the application type, with its base type's property");
     require(form.root_control() != nullptr && (*form.root_control()).children().size() == 1U &&
                 (*form.root_control()).children()[0] == card,

@@ -15,7 +15,7 @@ DropDownList::DropDownList(StableId id) : ListBox(std::move(id)) {}
 void DropDownList::initialize_control_tree() {
     scrollbar_ = make_control<ScrollBar>(StableId(std::string(stable_id().value()) + ".scrollbar"));
     (*scrollbar_).set_paint_plane(PaintPlane::overlay);
-    (*scrollbar_).set_accessible_name("Scroll choices");
+    (*scrollbar_).accessible_name = "Scroll choices";
     scroll_subscription_ = (*scrollbar_).value_changed().subscribe(
         *this, Delegate<double>::bind<DropDownList, &DropDownList::scroll_changed>(*this));
     add_child(scrollbar_);
@@ -26,7 +26,7 @@ void DropDownList::synchronize_scroll() {
         std::floor(std::max(0.0, local_bounds().height - 4) / (item_height() * effective_text_scale()))));
     const std::size_t maximum = items().size() > visible ? items().size() - visible : 0;
     synchronizing_ = true;
-    (*scrollbar_).set_visible(maximum != 0);
+    (*scrollbar_).visible = maximum != 0;
     (*scrollbar_).set_range(0, static_cast<double>(std::max<std::size_t>(1, maximum)));
     (*scrollbar_).set_small_change(1);
     (*scrollbar_).set_large_change(static_cast<double>(visible));
@@ -47,7 +47,7 @@ void DropDownList::scroll_changed(double value) {
 }
 
 void DropDownList::on_pointer(PointerEvent& event) {
-    if ((*scrollbar_).visible() && (*scrollbar_).absolute_bounds().contains(event.position) &&
+    if ((*scrollbar_).visible.type() && (*scrollbar_).absolute_bounds().contains(event.position) &&
         event.action != PointerAction::wheel) return;
     ListBox::on_pointer(event);
     synchronize_scroll();

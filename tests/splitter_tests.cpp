@@ -71,13 +71,13 @@ Fixture make_fixture(DockStyle edge) {
     Fixture fixture;
     fixture.root = make_control<Panel>(StableId("split.root"));
     fixture.pane = make_control<Panel>(StableId("split.pane"));
-    (*fixture.pane).set_dock(edge);
+    (*fixture.pane).dock = edge;
     (*fixture.pane).set_requested_bounds({0.0, 0.0, 100.0, 100.0});
     fixture.splitter = make_control<Splitter>(StableId("split.splitter"));
-    (*fixture.splitter).set_dock(edge);
+    (*fixture.splitter).dock = edge;
     (*fixture.splitter).set_requested_bounds({0.0, 0.0, 4.0, 4.0});
     fixture.rest = make_control<Panel>(StableId("split.rest"));
-    (*fixture.rest).set_dock(DockStyle::fill);
+    (*fixture.rest).dock = DockStyle::fill;
     (*fixture.root).add_child(fixture.pane);
     (*fixture.root).add_child(fixture.splitter);
     (*fixture.root).add_child(fixture.rest);
@@ -211,7 +211,7 @@ void other_edges() {
 void without_a_target() {
     Fixture fixture = make_fixture(DockStyle::left);
     Splitter& splitter = *fixture.splitter;
-    splitter.set_dock(DockStyle::none);
+    splitter.dock = DockStyle::none;
     (*fixture.window).perform_layout();
     require(splitter.target() == nullptr && !splitter.split_position(), "an undocked splitter has no target");
     splitter.set_split_position(150.0);
@@ -224,7 +224,7 @@ void without_a_target() {
     pointer(*fixture.window, PointerAction::up, centre(splitter));
 
     Fixture hidden = make_fixture(DockStyle::left);
-    (*hidden.pane).set_visible(false);
+    (*hidden.pane).visible = false;
     (*hidden.window).perform_layout();
     require((*hidden.splitter).target() == nullptr, "a hidden sibling is not a target");
 }

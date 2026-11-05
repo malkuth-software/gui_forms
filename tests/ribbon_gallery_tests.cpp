@@ -370,7 +370,7 @@ void popups() {
 
 void semantics() {
     std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("semantics.gallery", 9U);
-    (*gallery).set_accessible_name("Styles");
+    (*gallery).accessible_name = "Styles";
     Window window(gallery, (*gallery).measure({1000.0, 1000.0}));
     window.perform_layout();
     const SemanticDescriptor descriptor = (*gallery).semantic_descriptor();

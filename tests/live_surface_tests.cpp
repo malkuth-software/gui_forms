@@ -191,7 +191,7 @@ int main() {
                                   {20.0, 20.0, 30.0, 20.0}).empty(), "Rect::intersection(presentation.clip, {20.0, 20.0, 30.0, 20.0}).empty()");
     }
 
-    (*overlay).set_visible(false);
+    (*overlay).visible = false;
     LiveSurfaceWriteLease resumed_write =
         (*composited_surface).try_acquire_write();
     require(static_cast<bool>(resumed_write), "resumed_write");

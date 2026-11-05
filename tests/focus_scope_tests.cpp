@@ -215,7 +215,7 @@ void test_owner_unavailable_cleanup_and_nesting_guard() {
     require(rejected_foreign_nested_scope,
             "a nested scope must remain inside the containing retained subtree");
 
-    (*fixture.popup).set_visible(false);
+    (*fixture.popup).visible = false;
     require(saw_close &&
                 close_reason == FocusScopeCloseReason::owner_unavailable &&
                 (*fixture.window).focus_scope_depth() == 0U &&
@@ -310,7 +310,7 @@ void test_combo_popup_in_modal_scope() {
             "a popup owned outside the modal scope cannot enter it");
     token.disconnect();
     (*combo).set_dropped_down(true);
-    (*fixture.popup).set_visible(false);
+    (*fixture.popup).visible = false;
     require(!(*combo).dropped_down() && (*fixture.window).focus_scope_depth() == 0,
             "hiding a modal owner revokes its nested combo and both focus scopes");
     static_cast<void>((*fixture.window).end_focus_scope(modal));
@@ -321,10 +321,10 @@ void test_tab_index_and_tab_stop_define_deterministic_traversal() {
     std::shared_ptr<gui_forms::Button> late = make_control<Button>(StableId("tab.late"), "Late");
     std::shared_ptr<gui_forms::Button> skipped = make_control<Button>(StableId("tab.skipped"), "Skipped");
     std::shared_ptr<gui_forms::Button> first = make_control<Button>(StableId("tab.first"), "First");
-    (*late).set_tab_index(20U);
-    (*skipped).set_tab_index(10U);
-    (*skipped).set_tab_stop(false);
-    (*first).set_tab_index(0U);
+    (*late).tab_index = 20U;
+    (*skipped).tab_index = 10U;
+    (*skipped).tab_stop = false;
+    (*first).tab_index = 0U;
     (*root).add_child(late);
     (*root).add_child(skipped);
     (*root).add_child(first);

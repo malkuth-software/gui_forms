@@ -110,7 +110,7 @@ void ToolStrip::construct() {
     set_focusable(true);
     // Items carry their own tooltips in their semantic nodes.
     set_publishes_item_tool_tips(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     popup_ = std::make_unique<ContextMenu>(std::string(stable_id().value()) + ".menu");
     popup_invoked_ = (*popup_).item_invoked().subscribe(
@@ -244,9 +244,9 @@ Control::Ptr ToolStrip::make_hosted(const ToolStripItemSpec& item) const {
 }
 
 void ToolStrip::configure_hosted(const ToolStripItemSpec& item, Control& control) const {
-    control.set_accessible_name(item.text);
-    control.set_tool_tip_text(item.tool_tip_text);
-    control.set_enabled(item.enabled);
+    control.accessible_name = item.text;
+    control.tool_tip_text = item.tool_tip_text;
+    control.enabled = item.enabled;
     if (item.kind == ToolStripItemKind::combo_box) {
         ComboBox& combo = static_cast<ComboBox&>(control);
         const std::span<const std::string> current = combo.items();
@@ -316,7 +316,7 @@ void ToolStrip::set_item_text(std::string_view item_id, std::string text) {
     if (!validate_utf8(text).valid()) throw std::invalid_argument("ToolStrip item text must be valid UTF-8");
     if (items_[*index].text == text) return;
     items_[*index].text = std::move(text);
-    if (item_states_[*index].hosted) (*item_states_[*index].hosted).set_accessible_name(items_[*index].text);
+    if (item_states_[*index].hosted) (*item_states_[*index].hosted).accessible_name = items_[*index].text;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -1098,8 +1098,8 @@ void ToolStrip::on_popup_item_invoked(const MenuItemInvocation& invocation) {
 SemanticDescriptor ToolStrip::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::toolbar;
-    descriptor.name = accessible_name().empty() ? "Tool strip" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Tool strip" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

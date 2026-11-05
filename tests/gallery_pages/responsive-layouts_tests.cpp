@@ -45,7 +45,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 !(*shelf).layout_snapshot().overflow_actuator_visible &&
                 (*more).layout_collapsed() &&
                 (*view).effective_display_mode() == MasterDetailDisplayMode::side_by_side &&
-                !(*show_detail).enabled() && !(*show_master).enabled() &&
+                !(*show_detail).enabled.type() && !(*show_master).enabled.type() &&
                 (*scroller).hscroll(),
             "the full stage must fit every track and command group, with only the scroller overflowing");
 
@@ -71,7 +71,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
                 mid_shelf.groups[1].stable_id == "gallery.responsive.shelf.arrange" &&
                 (*arrange).layout_collapsed() && !(*more).layout_collapsed() &&
                 (*view).effective_display_mode() == MasterDetailDisplayMode::master_only &&
-                (*show_detail).enabled() && !(*show_master).enabled(),
+                (*show_detail).enabled.type() && !(*show_master).enabled.type(),
             "a 600 px stage must collapse the lowest-priority track and group and go compact");
     click(window, more);
     require((*shelf_status).text().find("gallery.responsive.shelf.arrange") != std::string::npos,
@@ -94,7 +94,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
     click(window, show_detail);
     relayout(window);
     require((*view).effective_display_mode() == MasterDetailDisplayMode::detail_only &&
-                !(*show_detail).enabled() && (*show_master).enabled() &&
+                !(*show_detail).enabled.type() && (*show_master).enabled.type() &&
                 (*(*view).detail()).effectively_visible() &&
                 !(*(*view).master()).effectively_visible() &&
                 view_status && (*view_status).text().find("detail only") != std::string::npos,
@@ -102,7 +102,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
     click(window, show_master);
     relayout(window);
     require((*view).effective_display_mode() == MasterDetailDisplayMode::master_only &&
-                (*show_detail).enabled() && !(*show_master).enabled(),
+                (*show_detail).enabled.type() && !(*show_master).enabled.type(),
             "Show master must return to the compact master presentation");
 
     // Scroll paging is a Command too; the page observes the input-only
@@ -129,7 +129,7 @@ void test_responsive_layouts(gui_forms::Window& window) {
     require((*tracks).layout_snapshot().resolution.collapse_order.empty() &&
                 !(*shelf).layout_snapshot().overflow_actuator_visible &&
                 (*view).effective_display_mode() == MasterDetailDisplayMode::side_by_side &&
-                !(*show_detail).enabled() && !(*show_master).enabled(),
+                !(*show_detail).enabled.type() && !(*show_master).enabled.type(),
             "restoring the stage width must restore every automatically collapsed role");
 }
 

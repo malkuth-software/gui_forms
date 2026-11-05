@@ -232,7 +232,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         std::shared_ptr<gui_forms::ScrollableControl> viewport = make_control<ScrollableControl>(
             StableId(surface_id + ".viewport"));
         (*viewport).set_auto_scroll(true);
-        (*viewport).set_visible(index == 0U);
+        (*viewport).visible = index == 0U;
         (*content).add_at(viewport, {20.0, 0.0, 1022.0, 742.0});
         std::shared_ptr<gui_forms::ScaledPanel> page = make_control<Surface>(
             StableId(surface_id), Size{1000.0, strip_height + 660.0});
@@ -499,7 +499,7 @@ void initialize_gallery_runtime(Window& window) {
         hover, "Retained hover help is delayed, cancellable, clipped to the client, and input-transparent.");
     // Tooltip text belongs to the control; the ToolTip provider is only the
     // Windows Forms way to set it.
-    (*keyboard).set_tool_tip_text("Keyboard focus shows the same text, below the control, without changing its accessible name.");
+    (*keyboard).tool_tip_text = "Keyboard focus shows the same text, below the control, without changing its accessible name.";
     (*(*context).tooltips).set_tool_tip(
         persistent, "Click to hold this tooltip open until another interaction dismisses it.");
     (*(*context).tooltips).set_tool_tip(

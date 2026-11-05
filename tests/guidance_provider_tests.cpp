@@ -226,10 +226,10 @@ void test_error_semantics_geometry_rtl_and_lifetime() {
     require(moved.icons.front().bounds != mirrored.icons.front().bounds,
             "error adornments must follow committed retained layout changes");
 
-    (*fixture.panel).set_visible(false);
+    (*fixture.panel).visible = false;
     require(errors.snapshot().presented_icons == 0U,
             "hiding an ancestor must synchronously revoke descendant adornments");
-    (*fixture.panel).set_visible(true);
+    (*fixture.panel).visible = true;
     fixture.window.perform_layout();
     require(errors.snapshot().presented_icons == 1U,
             "restoring an ancestor must rebuild descendant adornments without reauthoring errors");

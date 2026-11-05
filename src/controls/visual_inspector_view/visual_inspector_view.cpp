@@ -256,7 +256,7 @@ VisualInspectorView::VisualInspectorView(StableId stable_id,
                                          std::string target_stable_id)
     : Control(std::move(stable_id)),
       target_stable_id_(std::move(target_stable_id)) {
-    set_accessible_name("Visual state inspector");
+    accessible_name = "Visual state inspector";
     // The inspected control's stable ID, for a form document (FD6.3).
     PropertyDescriptor target_property;
     target_property.name = "target_stable_id";
@@ -408,7 +408,7 @@ VisualInspectorOverlay::VisualInspectorOverlay(StableId stable_id,
                                                std::string target_stable_id)
     : Control(std::move(stable_id)),
       target_stable_id_(std::move(target_stable_id)) {
-    set_hit_test_transparent(true);
+    hit_test_transparent = true;
     set_paint_plane(PaintPlane::overlay);
     // The inspected control's stable ID, for a form document (FD6.3).
     PropertyDescriptor target_property;

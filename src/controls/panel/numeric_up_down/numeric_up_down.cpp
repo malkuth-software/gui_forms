@@ -194,7 +194,7 @@ void NumericUpDown::arrange(Rect final_bounds) {
 }
 
 void NumericUpDown::on_key_preview(KeyEvent& event) {
-    if (!enabled() || event.action != KeyAction::down) return;
+    if (!enabled.type() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::up || event.physical_key == PhysicalKey::down) {
         step(event.physical_key == PhysicalKey::up ? 1 : -1);
         event.handled = true;
@@ -206,7 +206,7 @@ void NumericUpDown::on_key_preview(KeyEvent& event) {
 }
 
 void NumericUpDown::on_pointer_preview(PointerEvent& event) {
-    if (!enabled() || event.action != PointerAction::wheel || event.wheel_delta.y == 0.0) return;
+    if (!enabled.type() || event.action != PointerAction::wheel || event.wheel_delta.y == 0.0) return;
     step(event.wheel_delta.y > 0.0 ? 1 : -1);
     event.handled = true;
 }
@@ -214,7 +214,7 @@ void NumericUpDown::on_pointer_preview(PointerEvent& event) {
 SemanticDescriptor NumericUpDown::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::numeric_field;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.type();
     descriptor.value = formatted_value();
     descriptor.numeric_value = value_;
     descriptor.minimum_value = minimum_;
@@ -222,7 +222,7 @@ SemanticDescriptor NumericUpDown::semantic_descriptor() const {
     // The arrow keys and the spin buttons move by the increment; there is no
     // larger step, so none is published (owner decision, stage A gap 7).
     descriptor.small_step = increment_;
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
     descriptor.exposed = true;

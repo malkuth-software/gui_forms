@@ -118,7 +118,7 @@ RichTextBox::RichTextBox(StableId stable_id, std::string_view markdown)
     set_paint_plane(PaintPlane::control);
     set_border_style(BorderStyle::sunken);
     set_focusable(true);
-    set_cursor(CursorKind::text);
+    cursor = CursorKind::text;
     set_tool_tip_presentation(ToolTipPresentation::field_hint);
     Panel::set_auto_scroll(true);
     reparse();
@@ -432,7 +432,7 @@ bool RichTextBox::vertical_key(const KeyEvent& event, bool extend, bool command)
 }
 
 void RichTextBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled() || event.action != KeyAction::down) return;
+    if (!focused_ || !enabled.type() || event.action != KeyAction::down) return;
     const bool extend = includes(event.modifiers, Modifier::shift);
     const bool command = command_modifier(event.modifiers);
     if (accepts_tab_ && event.physical_key == PhysicalKey::tab && !command) {
@@ -485,7 +485,7 @@ void RichTextBox::on_key(KeyEvent& event) {
 }
 
 void RichTextBox::on_text_input(TextInputEvent& event) {
-    if (!focused_ || !enabled()) return;
+    if (!focused_ || !enabled.type()) return;
     (*editing_).handle_text_input(event);
 }
 
@@ -548,7 +548,7 @@ void RichTextBox::on_pointer(PointerEvent& event) {
         // elsewhere.
         const bool over_link = command && link_at(local_x, local_y).has_value();
         const CursorKind wanted = over_link ? CursorKind::hand : CursorKind::text;
-        if (cursor() != wanted) set_cursor(wanted);
+        if (cursor.type() != wanted) cursor = wanted;
         return;
     }
     if (event.action == PointerAction::up && event.button == PointerButton::primary && selecting_) {
@@ -672,11 +672,11 @@ SemanticDescriptor RichTextBox::semantic_descriptor() const {
     const TextSelection selection = (*editing_).selection();
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::text_box;
-    descriptor.name = accessible_name();
+    descriptor.name = accessible_name.type();
     // The value is the source, as shown: the text layout and the selection
     // are offsets into it.
     descriptor.value = std::string((*editing_).text());
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.type();
     if (read_only()) descriptor.states |= SemanticState::read_only;
     descriptor.text_selection = SemanticTextSelection{.anchor = selection.anchor, .caret = selection.caret};
     descriptor.multiline = true;

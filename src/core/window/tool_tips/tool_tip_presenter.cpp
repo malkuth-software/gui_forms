@@ -149,9 +149,9 @@ ToolTipSubject ToolTipPresenter::resolve_pointer(const Control::Ptr& hovered, Po
             }
         }
         if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text().empty()) {
+            !(*current).tool_tip_text.type().empty()) {
             if (covered(*current, {})) return nothing_over(bounds);
-            return subject_of(current, {}, (*current).tool_tip_text(), bounds);
+            return subject_of(current, {}, (*current).tool_tip_text.type(), bounds);
         }
     }
     const Rect region = hovered ? (*hovered).absolute_bounds() : Rect{};
@@ -178,9 +178,9 @@ ToolTipSubject ToolTipPresenter::resolve_focus(const Control::Ptr& focused) cons
             }
         }
         if ((*current).tool_tip_presentation() != ToolTipPresentation::owner_item &&
-            !(*current).tool_tip_text().empty()) {
+            !(*current).tool_tip_text.type().empty()) {
             if (covered(*current, {})) return nothing_over(bounds);
-            return subject_of(current, {}, (*current).tool_tip_text(), bounds);
+            return subject_of(current, {}, (*current).tool_tip_text.type(), bounds);
         }
     }
     return nothing_over({});
@@ -538,7 +538,7 @@ void ToolTipPresenter::text_changed(const Control& control) {
         // A thing waiting to show whose text went waits no longer; the wake
         // finds the thing again, so new text needs nothing here.
         if ((*waiting).subject.item_id.empty() && (*waiting).subject.control.lock().get() == &control &&
-            control.tool_tip_text().empty()) {
+            control.tool_tip_text.type().empty()) {
             state_ = Idle{};
             wake_.disconnect();
         }
@@ -549,13 +549,13 @@ void ToolTipPresenter::text_changed(const Control& control) {
         (*showing).subject.control.lock().get() != &control) {
         return;
     }
-    if (control.tool_tip_text().empty()) {
+    if (control.tool_tip_text.type().empty()) {
         raise(close(Idle{}));
         return;
     }
     const ToolTipOrigin origin = (*showing).origin;
     ToolTipSubject subject = (*showing).subject;
-    subject.text = control.tool_tip_text();
+    subject.text = control.tool_tip_text.type();
     replace(origin, std::move(subject), std::nullopt);
 }
 
@@ -599,7 +599,7 @@ void ToolTipPresenter::cover(RuntimeId control, std::string_view item_id, bool c
 
 void ToolTipPresenter::show_program(const Control::Ptr& target,
                                     std::optional<std::chrono::milliseconds> duration) {
-    ToolTipSubject subject = subject_of(target, {}, (*target).tool_tip_text(), (*target).absolute_bounds());
+    ToolTipSubject subject = subject_of(target, {}, (*target).tool_tip_text.type(), (*target).absolute_bounds());
     replace(ToolTipOrigin::program, std::move(subject), duration);
 }
 

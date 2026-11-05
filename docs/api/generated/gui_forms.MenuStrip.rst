@@ -183,7 +183,7 @@ gui_forms::MenuStrip
                       {"view.wrap", gf::MenuItemKind::check, wrap, "&Word wrap"},
                   }},
               });
-              (*menu).set_dock(gf::DockStyle::top);
+              (*menu).dock = gf::DockStyle::top;
               (*root).add_child(menu);
               gf::on((*save).invoked(), *this, &Editor::on_save);
           }

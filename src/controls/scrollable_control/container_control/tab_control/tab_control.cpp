@@ -205,7 +205,7 @@ void TabControl::add_page(std::shared_ptr<TabPage> page) {
     if (inserted != PageEditStatus::applied) {
         throw std::logic_error("TabControl could not add the page's tab");
     }
-    (*page).set_visible(false);
+    (*page).visible = false;
     try {
         add_child(page);
     } catch (...) {
@@ -219,7 +219,7 @@ void TabControl::add_page(std::shared_ptr<TabPage> page) {
     if (strip_) (*strip_).bring_to_front();
     if (!selected_page_.lock()) {
         selected_page_ = page;
-        (*page).set_visible(true);
+        (*page).visible = true;
         select_in_tab_set(page);
         const TabSelectionChange change{std::nullopt, 0U};
         publish_change(selected_index_changed_, change);
@@ -259,7 +259,7 @@ std::shared_ptr<TabPage> TabControl::remove_page(const TabPage& page) {
         if (!live_after.empty()) {
             const std::size_t next = std::min(removed_index, live_after.size() - 1U);
             selected_page_ = live_after[next];
-            (*live_after[next]).set_visible(true);
+            (*live_after[next]).visible = true;
         }
     }
     synchronize_tab_set();
@@ -305,10 +305,10 @@ void TabControl::show_selected(std::size_t index, const std::vector<std::shared_
         const Control::Ptr focused = (*window()).focused_control();
         selection_owned_focus = within(focused, old_page);
         remember_page_focus(old_page);
-        (*old_page).set_visible(false);
+        (*old_page).visible = false;
     }
     selected_page_ = live[index];
-    (*live[index]).set_visible(true);
+    (*live[index]).visible = true;
     select_in_tab_set(live[index]);
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
@@ -657,7 +657,7 @@ void TabControl::reconcile_pages() {
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     if (!live.empty()) {
         selected_page_ = live.front();
-        (*live.front()).set_visible(true);
+        (*live.front()).visible = true;
     }
 }
 
@@ -670,7 +670,7 @@ void TabControl::arrange(Rect final_bounds) {
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
     for (const std::shared_ptr<TabPage>& page : pages()) {
         set_child_layout(page, display);
-        (*page).set_visible(page == selected);
+        (*page).visible = page == selected;
     }
 }
 
@@ -721,7 +721,7 @@ void TabControl::select_relative(int delta) {
 // wrapping. A TabControl nested inside this one, holding the focus, takes
 // them instead.
 void TabControl::on_key_preview(KeyEvent& event) {
-    if (event.action != KeyAction::down || !enabled() || page_count() == 0U ||
+    if (event.action != KeyAction::down || !enabled.type() || page_count() == 0U ||
         window() == nullptr) return;
     if (nested_tab_control_has_focus()) return;
     const KeyMap& keys = effective_key_map();
@@ -763,8 +763,8 @@ void TabControl::on_focus_changed(bool focused) {
 SemanticDescriptor TabControl::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::tab_group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
     if (selected) descriptor.value = (*selected).text();
     const bool row = alignment_ == TabAlignment::top || alignment_ == TabAlignment::bottom;
@@ -788,7 +788,7 @@ std::vector<SemanticNode> TabControl::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::tab;
         node.name = (*live[index]).text();
-        node.tool_tip = (*live[index]).tool_tip_text();
+        node.tool_tip = (*live[index]).tool_tip_text.type();
         const Rect local = tab_parts(*live[index]).tab.bounds;
         if (!local.empty()) {
             node.bounds = {absolute.x + local.x, absolute.y + local.y,

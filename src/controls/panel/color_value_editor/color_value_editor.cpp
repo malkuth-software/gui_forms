@@ -222,9 +222,9 @@ void ColorValueEditor::on_paint(Painter& painter, Rect) {
 SemanticDescriptor ColorValueEditor::semantic_descriptor() const {
     SemanticDescriptor result;
     result.role = SemanticRole::group;
-    result.name = accessible_name();
+    result.name = accessible_name.type();
     result.value = format_value(value_);
-    result.description = accessible_description();
+    result.description = accessible_description.type();
     result.exposed = true;
     if (visual_status() == ControlVisualStatus::invalid) {
         result.states |= SemanticState::invalid;

@@ -635,7 +635,7 @@ struct PropertyGrid::Impl final {
         if (!object) {
             selected.clear();
             (*list).set_groups({});
-            (*list).set_accessible_name("Properties");
+            (*list).accessible_name = "Properties";
             return;
         }
 
@@ -718,8 +718,7 @@ struct PropertyGrid::Impl final {
             }
         }
         (*list).set_groups(std::move(groups));
-        (*list).set_accessible_name(
-            std::string((*object).stable_id().value()) + " properties");
+        (*list).accessible_name = std::string((*object).stable_id().value()) + " properties";
 
         install_custom_editors();
 
@@ -1454,7 +1453,7 @@ bool PropertyGrid::try_set_property_text(std::string_view property_name,
 bool PropertyGrid::activate_property_editor(std::string_view property_name) {
     require_mutable();
     const Control::Ptr retained = editor(property_name);
-    return retained && (*retained).is_alive() && (*retained).enabled() &&
+    return retained && (*retained).is_alive() && (*retained).enabled.type() &&
         (*retained).on_semantic_action(SemanticAction::press, {});
 }
 

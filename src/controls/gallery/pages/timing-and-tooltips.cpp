@@ -90,7 +90,7 @@ void TimingPage::build_timer(const std::shared_ptr<Surface>& body, PageContext& 
         make_control<TrackBar>(StableId("gallery.timing.interval"));
     (*interval).set_range(80.0, 600.0);
     (*interval).set_tick_frequency(4U);
-    (*interval).set_accessible_name("UI timer interval in milliseconds");
+    (*interval).accessible_name = "UI timer interval in milliseconds";
     (*interval).bind(interval_);
     (*timer_group).add_at(interval, {326.0, 98.0, 260.0, 44.0});
     context.timer_interval = interval;
@@ -99,7 +99,7 @@ void TimingPage::build_timer(const std::shared_ptr<Surface>& body, PageContext& 
         make_control<ProgressBar>(StableId("gallery.timing.progress"));
     (*progress).set_range(0.0, 100.0);
     (*progress).set_value(0.0);
-    (*progress).set_accessible_name("Timer cycle");
+    (*progress).accessible_name = "Timer cycle";
     (*timer_group).add_at(progress, {22.0, 164.0, 564.0, 24.0});
     context.timer_progress = progress;
 
@@ -151,7 +151,7 @@ void TimingPage::build_tooltips(const std::shared_ptr<Surface>& body,
     (*tips_group).add_at(persistent, {406.0, 44.0, 190.0, 36.0});
     std::shared_ptr<Button> disabled_target = make_control<Button>(
         StableId("gallery.timing.tooltip.disabled"), "Disabled target");
-    (*disabled_target).set_enabled(false);
+    (*disabled_target).enabled = false;
     std::shared_ptr<Button> show_disabled = make_control<Button>(
         StableId("gallery.timing.tooltip.show-disabled"), "Explain disabled control");
     (*tips_group).add_at(disabled_target, {22.0, 102.0, 176.0, 36.0});
@@ -176,7 +176,7 @@ void TimingPage::build_tooltips(const std::shared_ptr<Surface>& body,
 
     std::shared_ptr<TextBox> endpoint = make_control<TextBox>(
         StableId("gallery.timing.provider.field"), "192.168.1.96:5555");
-    (*endpoint).set_accessible_name("Remote endpoint");
+    (*endpoint).accessible_name = "Remote endpoint";
     std::shared_ptr<Button> toggle =
         make_control<Button>(StableId("gallery.timing.provider.toggle"), "Clear");
     (*toggle).set_visual_style(ButtonVisualStyle::command);
@@ -209,7 +209,7 @@ void TimingPage::build_worker(const std::shared_ptr<Surface>& body) {
     (*worker_group).add_at(cancel, {194.0, 38.0, 104.0, 34.0});
     work_progress_ = make_control<ProgressBar>(StableId("gallery.timing.worker.progress"));
     (*work_progress_).set_range(0.0, 100.0);
-    (*work_progress_).set_accessible_name("Background work");
+    (*work_progress_).accessible_name = "Background work";
     (*worker_group).add_at(work_progress_, {322.0, 44.0, 264.0, 24.0});
     work_status_ = label("gallery.timing.worker.status", "Idle", 11.0, 700, shell_blue_dark);
     (*worker_group).add_at(work_status_, {612.0, 40.0, 294.0, 28.0});

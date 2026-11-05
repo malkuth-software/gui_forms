@@ -40,9 +40,8 @@ EasingPreview::EasingPreview(StableId stable_id)
     specification.easing = EasingCurve::linear;
     timeline_.set_specification(specification);
     tracks_ = default_easing_tracks(style_);
-    set_accessible_name("Animation easing preview");
-    set_accessible_description(
-        "Retained timeline tracks comparing configured easing curves");
+    accessible_name = "Animation easing preview";
+    accessible_description = "Retained timeline tracks comparing configured easing curves";
     // The run-time schema of a preview (stage FD6.3): what a form document
     // sets on it. The tracks stay in code (a list of records). It raises no
     // change event.
@@ -253,8 +252,8 @@ bool EasingPreview::hit_test_local(Point) const { return false; }
 SemanticDescriptor EasingPreview::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::image;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     const MotionPolicy policy = effective_motion_policy();
     const double presented = policy.presentation_phase(phase_);
     descriptor.value = motion_readout(presented);

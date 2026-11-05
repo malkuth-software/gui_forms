@@ -37,7 +37,7 @@ const SemanticNode* find_semantic(std::vector<SemanticNode>&& nodes, std::string
 std::shared_ptr<PropertyList> make_properties() {
     std::shared_ptr<gui_forms::PropertyList> properties = make_control<PropertyList>(StableId("inspection.properties"));
     (*properties).set_requested_bounds({0.0, 0.0, 288.0, 260.0});
-    (*properties).set_accessible_name("Selection properties");
+    (*properties).accessible_name = "Selection properties";
     (*properties).set_groups({
         {"inspection.identity", "IDENTITY", {
             {"inspection.kind", "Kind", "PNG image", "Fixture kind"},
@@ -531,12 +531,12 @@ void test_grouped_editors_commit_cancel_validation_and_semantics() {
 
     require(window.perform_semantic_action("inspection.editable",
                                            SemanticAction::collapse) &&
-                !(*name).visible() && !(*handler).visible() &&
+                !(*name).visible.type() && !(*handler).visible.type() &&
                 (*properties).content_height() < height_before,
             "semantic group collapse must remove its editors from layout and task order");
     require(window.perform_semantic_action("inspection.editable",
                                            SemanticAction::expand) &&
-                (*name).visible() && (*handler).visible(),
+                (*name).visible.type() && (*handler).visible.type(),
             "semantic group expansion must restore retained editor instances");
 }
 
@@ -605,11 +605,11 @@ void test_property_row_hierarchy_pointer_and_reset_contract() {
         (*properties).reset_requested().subscribe(
             MatchResetRequest(reset_requested,
                               "inspection.hierarchy.bounds"));
-    require(child_editor && !(*child_editor).visible() && reset && (*reset).enabled() &&
+    require(child_editor && !(*child_editor).visible.type() && reset && (*reset).enabled.type() &&
                 window.dispatch_pointer({PointerAction::down,
                     PointerButton::primary, {10.0, 31.0}}) &&
                 (*properties).row_expanded(parent.stable_id) == true &&
-                (*child_editor).visible(),
+                (*child_editor).visible.type(),
             "row disclosure hit testing must expand the same retained hierarchy used by layout");
     require((*reset).perform_click() && reset_requested,
             "generic PropertyList Reset buttons must publish an exact row request for their metadata owner");
@@ -670,10 +670,10 @@ void test_property_origins_and_metadata_driven_property_grid() {
                 changes.back().property_name == "text",
             "truthful target change notifications must refresh the live editor without rebuilding the grid");
 
-    const std::uint32_t tab_index_before = (*target).tab_index();
+    const std::uint32_t tab_index_before = (*target).tab_index.type();
     require(!(*grid).try_set_property_value(
                 "TabIndex", BindingValue{std::string("-1")}) &&
-                (*target).tab_index() == tab_index_before &&
+                (*target).tab_index.type() == tab_index_before &&
                 (*grid).last_error().has_value() && !failures.empty() &&
                 failures.back().property_name == "tab_index",
             "invalid scalar edits must preserve the target and publish inline diagnostic state");
@@ -687,9 +687,9 @@ void test_property_origins_and_metadata_driven_property_grid() {
     const std::shared_ptr<gui_forms::NumericUpDown> bounds_x = std::dynamic_pointer_cast<NumericUpDown>(
         (*grid).editor("Bounds.X"));
     require(bounds_x && (*grid).property_expanded("Bounds") == false &&
-                !(*bounds_x).visible() &&
+                !(*bounds_x).visible.type() &&
                 (*grid).set_property_expanded("Bounds", true) &&
-                (*bounds_x).visible(),
+                (*bounds_x).visible.type(),
             "compound properties must retain stable hidden field editors and reveal them through an explicit expansion state");
     require((*grid).try_set_property_value(
                 "Bounds.X", BindingValue{std::string("31.5")}) &&
@@ -709,12 +709,12 @@ void test_property_origins_and_metadata_driven_property_grid() {
     require((*grid).set_property_expanded("Padding", true) &&
                 (*grid).try_set_property_value(
                     "Padding.Left", BindingValue{std::string("12")}) &&
-                (*target).padding().left == 12.0,
+                (*target).padding.type().left == 12.0,
             "spacing content must be editable as typed retained subproperties");
     const std::shared_ptr<Button> padding_reset = (*grid).reset_button("Padding");
-    require(padding_reset && (*padding_reset).enabled() &&
+    require(padding_reset && (*padding_reset).enabled.type() &&
                 (*padding_reset).perform_click() &&
-                (*target).padding() == Insets{} && !(*padding_reset).enabled() &&
+                (*target).padding.type() == Insets{} && !(*padding_reset).enabled.type() &&
                 changes.back().property_name == "padding" &&
                 changes.back().reset,
             "the visible Reset control must invoke the owning property's actual reset contract and disable at default");
@@ -733,13 +733,13 @@ void test_property_origins_and_metadata_driven_property_grid() {
     require(window.perform_semantic_action(
                 "inspection.grid.property.bounds", SemanticAction::collapse) &&
                 (*grid).property_expanded("Bounds") == false &&
-                !(*bounds_x).visible() &&
+                !(*bounds_x).visible.type() &&
                 window.perform_semantic_action(
                     "inspection.grid.property.bounds", SemanticAction::expand) &&
-                (*bounds_x).visible(),
+                (*bounds_x).visible.type(),
             "compound disclosure must use the same retained state through semantic and pointer-facing actions");
 
-    (*target).set_hit_test_transparent(true);
+    (*target).hit_test_transparent = true;
     require((*target).should_serialize_property("HitTestTransparent") &&
                 (*target).property_value_origin("HitTestTransparent") ==
                     PropertyValueOrigin::local,
@@ -977,7 +977,7 @@ void test_default_flags_and_color_property_editors() {
                 (*choices).item_checked(1U) && (*choices).item_checked(3U),
             "the flags popup must expose zero and each independent bit with synchronized checks");
     (*choices).set_item_checked(4U, true);
-    require(has_anchor((*target).anchor(), AnchorStyles::right) &&
+    require(has_anchor((*target).anchor.type(), AnchorStyles::right) &&
                 (*flags).value().name == "top, left, right",
             "checking a flags row must immediately commit the typed enum through PropertyGrid");
     (*flags).set_dropped_down(false);
@@ -1040,12 +1040,12 @@ void test_recursive_object_and_collection_projection_and_mutation() {
                 BindingValueKind::text &&
                 (*grid).editor("Settings.Endpoint.Host") != nullptr &&
                 (*grid).editor("Settings.Modes[0]") != nullptr &&
-                !(*(*grid).editor("Settings.Endpoint.Host")).visible() &&
+                !(*(*grid).editor("Settings.Endpoint.Host")).visible.type() &&
                 (*grid).set_property_expanded("Settings", true) &&
                 (*grid).set_property_expanded("Settings.Endpoint", true) &&
                 (*grid).set_property_expanded("Settings.Modes", true) &&
-                (*(*grid).editor("Settings.Endpoint.Host")).visible() &&
-                (*(*grid).editor("Settings.Modes[0]")).visible(),
+                (*(*grid).editor("Settings.Endpoint.Host")).visible.type() &&
+                (*(*grid).editor("Settings.Modes[0]")).visible.type(),
             "PropertyGrid must recursively project stable object-member and collection-index paths through retained disclosure state");
 
     std::vector<std::string> changed_paths;

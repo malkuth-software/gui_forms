@@ -478,7 +478,7 @@ void TreeView::on_pointer(PointerEvent& event) {
 }
 
 void TreeView::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled() || event.action != KeyAction::down || visible_.empty()) return;
+    if (!focused_ || !enabled.type() || event.action != KeyAction::down || visible_.empty()) return;
     std::optional<std::size_t> active_index_value = item_index(active_id_);
     std::vector<std::size_t>::iterator active_row_iterator = active_index_value
         ? std::find(visible_.begin(), visible_.end(), *active_index_value)
@@ -536,7 +536,7 @@ void TreeView::type_select(std::string_view text) {
 }
 
 void TreeView::on_text_input(TextInputEvent& event) {
-    if (!focused_ || !enabled() || event.composing || event.text_utf8.empty() ||
+    if (!focused_ || !enabled.type() || event.composing || event.text_utf8.empty() ||
         !validate_utf8(event.text_utf8).valid()) return;
     type_select(event.text_utf8);
     event.handled = true;
@@ -553,8 +553,8 @@ void TreeView::on_focus_changed(bool focused) {
 SemanticDescriptor TreeView::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::tree;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.value = selected_id_;
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;

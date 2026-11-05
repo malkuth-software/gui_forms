@@ -79,7 +79,7 @@ constexpr CustomStateIndex modified_state{1U};
 
 PageStrip::PageStrip(StableId stable_id, PageSet& pages) : Control(std::move(stable_id)), pages_(&pages) {
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
     pages_changed_token_ = (*pages_).pages_changed().subscribe(
         *this, Delegate<const PageSetChange&>::bind<PageStrip, &PageStrip::on_pages_changed>(*this));
@@ -2076,8 +2076,8 @@ std::optional<std::size_t> PageStrip::position_of_tab_identity(std::string_view 
 SemanticDescriptor PageStrip::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::tab_group;
-    descriptor.name = accessible_name().empty() ? "Pages" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Pages" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     const std::optional<std::size_t> selected = selected_position();
     if (selected) descriptor.value = layout().tabs[*selected].label;
     descriptor.orientation = horizontal() ? SemanticOrientation::horizontal : SemanticOrientation::vertical;

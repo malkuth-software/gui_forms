@@ -313,7 +313,7 @@ bool inside(Rect inner, Rect outer) noexcept {
 // Whether `control` shows whole: visible and enabled, at least 8 units each
 // way, and inside the window and every ancestor.
 bool shows_whole(const Window& window, const Control& control) {
-    if (!control.effectively_visible() || !control.enabled()) return false;
+    if (!control.effectively_visible() || !control.enabled.type()) return false;
     const Rect bounds = control.absolute_bounds();
     if (bounds.width < 8.0 || bounds.height < 8.0) return false;
     const Rect client{0.0, 0.0, window.client_size().width, window.client_size().height};
@@ -420,7 +420,7 @@ bool drive(Window& window, const Control::Ptr& control, SpecimenState state) {
         }
         return false;
     case SpecimenState::disabled:
-        (*control).set_enabled(false);
+        (*control).enabled = false;
         return true;
     case SpecimenState::invalid:
         (*control).set_visual_status(ControlVisualStatus::invalid);

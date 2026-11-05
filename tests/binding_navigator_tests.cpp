@@ -73,7 +73,7 @@ void standard_items_and_states() {
             "the navigator lays out its standard items");
     require(!enabled((*navigator).move_first_command()) && !enabled((*navigator).add_new_command()) &&
                 !enabled((*navigator).delete_command()) && count_text(*navigator) == "of 0" &&
-                !(*(*navigator).text_box("position")).enabled(),
+                !(*(*navigator).text_box("position")).enabled.type(),
             "without a source every action is disabled");
 
     std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);

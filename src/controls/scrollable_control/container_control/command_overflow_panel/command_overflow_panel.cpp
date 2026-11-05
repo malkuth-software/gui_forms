@@ -160,7 +160,7 @@ void CommandOverflowPanel::reconcile_metadata() {
 CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
     Size available, bool assign) {
     reconcile_metadata();
-    const Insets inset = padding();
+    const Insets inset = padding.type();
     const Size inner{
         std::max(0.0, available.width - horizontal_extent(inset)),
         std::max(0.0, available.height - vertical_extent(inset))};
@@ -172,23 +172,23 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
     };
     std::vector<Item> items;
     for (const Control::Ptr& child : snapshot_layout_children()) {
-        if (!is_current_layout_child(child) || !(*child).visible() ||
+        if (!is_current_layout_child(child) || !(*child).visible.type() ||
             child == overflow_actuator_.lock()) {
             continue;
         }
         const Size desired = preferred_child_size(child, inner);
         if (!is_alive()) return {};
-        if (!is_current_layout_child(child) || !(*child).visible()) continue;
+        if (!is_current_layout_child(child) || !(*child).visible.type()) continue;
         const GroupSpecMap::iterator found = group_specs_.find((*child).runtime_id().value);
         CommandOverflowGroupSpec spec;
         if (found == group_specs_.end()) {
-            spec.minimum = desired.width + horizontal_extent((*child).margin());
+            spec.minimum = desired.width + horizontal_extent((*child).margin.type());
             spec.preferred = spec.minimum;
             spec.maximum = spec.minimum;
         } else {
             spec = (*found).second;
         }
-        items.push_back({child, spec, desired, (*child).margin()});
+        items.push_back({child, spec, desired, (*child).margin.type()});
     }
     if (items.size() > maximum_command_groups) {
         throw std::logic_error("CommandOverflowPanel retained group count exceeds 32");
@@ -227,9 +227,9 @@ CommandOverflowPanel::LayoutResult CommandOverflowPanel::layout_groups(
     Size actuator_desired{};
     Insets actuator_margin{};
     double actuator_extent = 0.0;
-    if (actuator && (*actuator).visible()) {
+    if (actuator && (*actuator).visible.type()) {
         actuator_desired = preferred_child_size(actuator, inner);
-        actuator_margin = (*actuator).margin();
+        actuator_margin = (*actuator).margin.type();
         actuator_extent = actuator_desired.width + horizontal_extent(actuator_margin);
     }
     if (needs_actuator && actuator) {
@@ -318,7 +318,7 @@ Size CommandOverflowPanel::measure(Size available) {
     available = {std::max(0.0, available.width),
                  std::max(0.0, available.height)};
     const LayoutResult result = layout_groups(available, false);
-    if (auto_size()) {
+    if (auto_size.type()) {
         return {std::min(available.width, result.desired.width),
                 std::min(available.height, result.desired.height)};
     }
@@ -338,8 +338,8 @@ void CommandOverflowPanel::arrange(Rect final_bounds) {
 SemanticDescriptor CommandOverflowPanel::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type();
+    descriptor.description = accessible_description.type();
     descriptor.exposed = true;
     return descriptor;
 }

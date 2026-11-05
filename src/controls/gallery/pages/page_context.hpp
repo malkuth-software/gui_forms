@@ -161,7 +161,7 @@ struct PageContext final {
             (*progress).set_motion_policy(policy);
         }
         if (motion_pause) {
-            (*motion_pause).set_enabled(live_motion);
+            (*motion_pause).enabled = live_motion;
             (*motion_pause).set_text(!live_motion ? "Motion disabled"
                                                    : user_paused ? "Resume motion"
                                                                  : "Pause motion");
@@ -175,7 +175,7 @@ struct PageContext final {
         }
         selected_page = index;
         for (std::size_t page = 0; page < pages.size(); ++page) {
-            (*pages[page]).set_visible(page == selected_page);
+            (*pages[page]).visible = page == selected_page;
             BasicControlStyle style = page_style();
             if (page == selected_page) {
                 style.face = Color::rgba(198, 222, 241);

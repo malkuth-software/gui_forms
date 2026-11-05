@@ -38,14 +38,14 @@ private:
             "gallery.choices.ring-group", "ChoiceGroup · one Value<int>, two views", {930.0, 120.0});
         (*body).add_at(choices, {24.0, 92.0, 930.0, 120.0});
         ring_row_ = make_control<ChoiceGroup>(StableId("gallery.choices.ring"));
-        (*ring_row_).set_accessible_name("Deployment ring");
+        (*ring_row_).accessible_name = "Deployment ring";
         (*ring_row_).set_items({{.id = 10, .label = "Canary", .accessible_name = "Canary ring"},
                                 {.id = 20, .label = "Staged", .accessible_name = "Staged ring"},
                                 {.id = 30, .label = "Full", .accessible_name = "Full ring"}});
         (*ring_row_).bind(ring_);
         (*choices).add_at(ring_row_, {20.0, 38.0, 480.0, 32.0});
         ring_chips_ = make_control<ChoiceGroup>(StableId("gallery.choices.ring-chips"));
-        (*ring_chips_).set_accessible_name("Deployment ring (glyphs)");
+        (*ring_chips_).accessible_name = "Deployment ring (glyphs)";
         (*ring_chips_).set_items({{.id = 10, .glyph = "◔", .accessible_name = "Canary ring"},
                                   {.id = 20, .glyph = "◑", .accessible_name = "Staged ring"},
                                   {.id = 30, .glyph = "●", .accessible_name = "Full ring"}});
@@ -66,7 +66,7 @@ private:
 
     void build_sections(const std::shared_ptr<Surface>& body) {
         sections_ = make_control<ExpandableSections>(StableId("gallery.choices.sections"));
-        (*sections_).set_accessible_name("Review sections");
+        (*sections_).accessible_name = "Review sections";
         (*sections_).set_items({
             {.id = 1, .label = "Checklist",
              .content = section_body("gallery.choices.sections.checklist",
@@ -95,7 +95,7 @@ private:
         (*state_).set_background(paper);
         (*state_).set_style(page_style());
         (*state_).set_font({FontRole::control, 12.0, 700, false, 0.24});
-        (*state_).set_accessible_name("Section state");
+        (*state_).accessible_name = "Section state";
         (*body).add_at(state_, {494.0, 230.0, 460.0, 120.0});
         add_toggle("gallery.choices.state.checklist", "Checklist", checklist_open_, 0.0);
         add_toggle("gallery.choices.state.notes", "Notes", notes_open_, 1.0);
@@ -114,7 +114,7 @@ private:
 
     void build_cards(const std::shared_ptr<Surface>& body) {
         card_ = make_control<Card>(StableId("gallery.choices.card"));
-        (*card_).set_accessible_name("Rollout plan card");
+        (*card_).accessible_name = "Rollout plan card";
         (*card_).set_interactive(true);
         (*card_).set_selection_behavior(CardSelectionBehavior::select_on_activation);
         static_cast<void>((*card_).set_header(
@@ -129,7 +129,7 @@ private:
         (*body).add_at(card_, {494.0, 368.0, 220.0, 196.0});
 
         review_ = make_control<ReviewCard>(StableId("gallery.choices.review"));
-        (*review_).set_accessible_name("Rollout review");
+        (*review_).accessible_name = "Rollout review";
         (*body).add_at(review_, {730.0, 368.0, 224.0, 196.0});
     }
 

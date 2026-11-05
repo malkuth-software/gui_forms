@@ -99,7 +99,7 @@ void LifecycleCard::on_loaded() {
 // ---- CollectionList -----------------------------------------------------------
 
 CollectionList::CollectionList(StableId stable_id) : ListBox(std::move(stable_id)) {
-    set_allow_drop(true);
+    allow_drop = true;
 }
 
 void CollectionList::on_paint(Painter& painter, Rect local_damage) {

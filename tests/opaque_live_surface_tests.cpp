@@ -118,7 +118,7 @@ void refreshed_presentations(const LiveSurfacePixelFormat format) {
     (*second).set_requested_bounds({4.0, 0.0, 4.0, 8.0});
     (*overlay).set_requested_bounds({0.0, 0.0, 4.0, 8.0});
     (*overlay).set_paint_plane(PaintPlane::overlay);
-    (*overlay).set_visible(false);
+    (*overlay).visible = false;
     (*root).add_child(first);
     (*root).add_child(second);
     (*root).add_child(overlay);
@@ -145,8 +145,8 @@ void refreshed_presentations(const LiveSurfacePixelFormat format) {
     require(write_b.publish() != 0U, "only second advances");
     const std::vector<LiveSurfacePresentation> retry = window.take_live_surface_presentations(true);
     require(retry.size() == 2U, "refresh retains unchanged failed surface A");
-    (*overlay).set_visible(true);
-    (*second).set_visible(false);
+    (*overlay).visible = true;
+    (*second).visible = false;
     window.perform_layout();
     require(window.take_live_surface_presentations(true).empty(), "refresh discards newly covered and hidden surfaces");
 }
@@ -231,14 +231,14 @@ void overlay_presentations() {
     require(window.take_live_surface_presentations().empty(), "the moved overlay settles");
     require(all_damage_limited(window.take_live_surface_presentations(true), false), "retries copy complete clips");
 
-    (*capsule).set_visible(false);
+    (*capsule).visible = false;
     window.perform_layout();
     const std::vector<LiveSurfacePresentation> uncovered = window.take_live_surface_presentations();
     require(uncovered.size() == 1U && all_damage_limited(uncovered, false), "a removed overlay re-presents completely");
 
-    (*scene).set_visible(false);
+    (*scene).visible = false;
     require(window.take_live_surface_presentations().empty(), "hidden surface is not presented");
-    (*scene).set_visible(true);
+    (*scene).visible = true;
     const std::vector<LiveSurfacePresentation> shown = window.take_live_surface_presentations();
     require(shown.size() == 1U && all_damage_limited(shown, false), "a re-shown surface copies completely");
 }

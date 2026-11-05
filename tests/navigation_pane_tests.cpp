@@ -117,7 +117,7 @@ std::unique_ptr<Fixture> make_fixture(Size client = {640.0, 420.0}) {
     std::unique_ptr<Fixture> fixture = std::make_unique<Fixture>();
     (*fixture).root = make_control<Panel>(StableId("root"));
     (*fixture).pane = make_control<NavigationPane>(StableId("nav"));
-    (*(*fixture).pane).set_dock(DockStyle::left);
+    (*(*fixture).pane).dock = DockStyle::left;
     (*(*fixture).root).add_child((*fixture).pane);
     (*fixture).outside = make_control<Button>(StableId("outside"), "Outside");
     (*(*fixture).outside).set_requested_bounds({400.0, 20.0, 120.0, 30.0});

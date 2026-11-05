@@ -106,9 +106,9 @@ void FontDialog::initialize_control_tree() {
     ok_button_ = make_control<Button>(StableId(prefix + ".ok"), "OK");
     cancel_button_ = make_control<Button>(StableId(prefix + ".cancel"), "Cancel");
     apply_button_ = make_control<Button>(StableId(prefix + ".apply"), "Apply");
-    (*face_list_).set_accessible_name("Font");
-    (*style_list_).set_accessible_name("Font style");
-    (*size_box_).set_accessible_name("Size");
+    (*face_list_).accessible_name = "Font";
+    (*style_list_).accessible_name = "Font style";
+    (*size_box_).accessible_name = "Size";
     std::vector<std::string> faces;
     for (const BundledFontFace& face : bundled_faces) {
         faces.push_back(std::string(face.family) + " (" + std::string(face.use) + ")");
@@ -247,7 +247,7 @@ void FontDialog::set_show_apply(bool show) {
     require_mutable();
     if (show_apply_ == show) return;
     show_apply_ = show;
-    if (apply_button_) (*apply_button_).set_visible(show_apply_);
+    if (apply_button_) (*apply_button_).visible = show_apply_;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
 }
 
@@ -431,14 +431,14 @@ SemanticDescriptor FontDialog::semantic_descriptor() const {
     // (modal). Placed in a layout directly it is not modal.
     descriptor.role = SemanticRole::dialog;
     descriptor.modal = open_;
-    descriptor.name = accessible_name().empty() ? "Font" : accessible_name();
+    descriptor.name = accessible_name.type().empty() ? "Font" : accessible_name.type();
     const BundledFontFace& face = bundled_faces[face_index(selection_.role)];
     std::string value(face.family);
     value += selection_.weight >= 700U ? " Bold" : "";
     value += selection_.italic ? " Italic" : "";
     value += " " + std::to_string(static_cast<int>(std::lround(selection_.size)));
     descriptor.value = value;
-    descriptor.description = accessible_description();
+    descriptor.description = accessible_description.type();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

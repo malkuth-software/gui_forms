@@ -51,7 +51,7 @@ constexpr double search_width = 220.0;
     std::shared_ptr<Label> label = make_control<Label>(StableId(std::string(id)));
     (*label).set_font(font);
     (*label).set_foreground(color);
-    (*label).set_dock(DockStyle::top);
+    (*label).dock = DockStyle::top;
     (*label).set_requested_bounds({0.0, 0.0, 0.0, height});
     (*label).set_use_mnemonic(false);
     return label;
@@ -129,7 +129,7 @@ CorrespondenceShell::CorrespondenceShell(StableId stable_id)
     : Panel(std::move(stable_id)) {
     set_background(canvas);
     set_style(correspondence_style());
-    set_accessible_name("GUI.Forms Correspondence");
+    accessible_name = "GUI.Forms Correspondence";
 }
 
 void CorrespondenceShell::initialize_control_tree() {
@@ -143,10 +143,10 @@ void CorrespondenceShell::initialize_control_tree() {
     status_ = make_control<Label>(StableId(std::string(ids::status)));
     (*status_).set_font(status_font);
     (*status_).set_foreground(muted);
-    (*status_).set_dock(DockStyle::bottom);
+    (*status_).dock = DockStyle::bottom;
     (*status_).set_requested_bounds({0.0, 0.0, 0.0, status_height});
     (*status_).set_use_mnemonic(false);
-    (*status_).set_accessible_name("Status");
+    (*status_).accessible_name = "Status";
     add_child(status_);
     build_panes();
     synchronize();
@@ -197,7 +197,7 @@ void CorrespondenceShell::build_commands() {
 void CorrespondenceShell::build_menu() {
     menu_ = make_control<MenuStrip>(StableId(std::string(ids::menu)));
     (*menu_).set_font(chrome_font);
-    (*menu_).set_dock(DockStyle::top);
+    (*menu_).dock = DockStyle::top;
     std::vector<MenuItemSpec> view_items;
     for (std::size_t index = 0; index < all_folders.size(); ++index) {
         view_items.push_back(menu_item(
@@ -239,9 +239,9 @@ void CorrespondenceShell::build_command_row() {
     command_row_ = make_control<Panel>(StableId(std::string(ids::commands)));
     (*command_row_).set_background(Color::rgba(248, 250, 252));
     (*command_row_).set_style(correspondence_style());
-    (*command_row_).set_dock(DockStyle::top);
+    (*command_row_).dock = DockStyle::top;
     (*command_row_).set_requested_bounds({0.0, 0.0, 0.0, command_row_height});
-    (*command_row_).set_padding({10.0, 7.0, 10.0, 7.0});
+    (*command_row_).padding = {10.0, 7.0, 10.0, 7.0};
     add_child(command_row_);
 
     // The search field docks right before the bar fills the remainder.
@@ -249,17 +249,17 @@ void CorrespondenceShell::build_command_row() {
     (*search_).set_placeholder_text("Search this folder");
     (*search_).set_font(detail_font);
     (*search_).set_style(correspondence_style());
-    (*search_).set_dock(DockStyle::right);
+    (*search_).dock = DockStyle::right;
     (*search_).set_requested_bounds({0.0, 0.0, search_width, 0.0});
-    (*search_).set_accessible_name("Search this folder");
+    (*search_).accessible_name = "Search this folder";
     (*command_row_).add_child(search_);
     on((*search_).text_changed(), *this, &CorrespondenceShell::on_search_changed);
 
     bar_ = make_control<CommandBar>(StableId(std::string(ids::command_bar)));
     (*bar_).set_background(Color::rgba(248, 250, 252));
     (*bar_).set_style(correspondence_style());
-    (*bar_).set_dock(DockStyle::fill);
-    (*bar_).set_accessible_name("Message commands");
+    (*bar_).dock = DockStyle::fill;
+    (*bar_).accessible_name = "Message commands";
     (*command_row_).add_child(bar_);
     std::vector<CommandItem> items;
     items.push_back({.id = command_new_message, .label = "New message",
@@ -296,7 +296,7 @@ void CorrespondenceShell::build_panes() {
     (*split_).set_splitter_distance(200.0);
     (*split_).set_first_minimum(140.0);
     (*split_).set_second_minimum(320.0);
-    (*split_).set_dock(DockStyle::fill);
+    (*split_).dock = DockStyle::fill;
     add_child(split_);
     (*(*split_).first_panel()).set_background(navigation);
     (*(*split_).second_panel()).set_background(canvas);
@@ -308,8 +308,8 @@ void CorrespondenceShell::build_panes() {
     (*folders_).set_font(folder_font);
     (*folders_).set_background(navigation);
     (*folders_).set_style(correspondence_style());
-    (*folders_).set_dock(DockStyle::fill);
-    (*folders_).set_accessible_name("Folders");
+    (*folders_).dock = DockStyle::fill;
+    (*folders_).accessible_name = "Folders";
     (*(*split_).first_panel()).add_child(folders_);
     on((*folders_).selection_changed(), *this, &CorrespondenceShell::on_folder_selected);
 
@@ -320,7 +320,7 @@ void CorrespondenceShell::build_panes() {
     // block takes about 90 logical pixels, so 180 keeps the body readable.
     (*content_split_).set_first_minimum(100.0);
     (*content_split_).set_second_minimum(180.0);
-    (*content_split_).set_dock(DockStyle::fill);
+    (*content_split_).dock = DockStyle::fill;
     (*(*split_).second_panel()).add_child(content_split_);
     (*(*content_split_).first_panel()).set_background(paper);
     (*(*content_split_).second_panel()).set_background(paper);
@@ -330,8 +330,8 @@ void CorrespondenceShell::build_panes() {
     (*messages_).set_compact_height(48.0);
     (*messages_).set_expanded_height(132.0);
     (*messages_).set_style(correspondence_style());
-    (*messages_).set_dock(DockStyle::fill);
-    (*messages_).set_accessible_name("Messages");
+    (*messages_).dock = DockStyle::fill;
+    (*messages_).accessible_name = "Messages";
     (*(*content_split_).first_panel()).add_child(messages_);
     on((*messages_).selection_changed(), *this, &CorrespondenceShell::on_message_selected);
     on((*messages_).item_activated(), *this, &CorrespondenceShell::on_message_activated);
@@ -340,19 +340,19 @@ void CorrespondenceShell::build_panes() {
     reading_ = make_control<Panel>(StableId(std::string(ids::reading)));
     (*reading_).set_background(paper);
     (*reading_).set_style(correspondence_style());
-    (*reading_).set_padding({18.0, 14.0, 18.0, 14.0});
-    (*reading_).set_dock(DockStyle::fill);
-    (*reading_).set_accessible_name("Reading pane");
+    (*reading_).padding = {18.0, 14.0, 18.0, 14.0};
+    (*reading_).dock = DockStyle::fill;
+    (*reading_).accessible_name = "Reading pane";
     (*(*content_split_).second_panel()).add_child(reading_);
 
     reading_subject_ = make_label(ids::reading_subject, subject_font, shell_blue_dark, 30.0);
-    (*reading_subject_).set_accessible_name("Subject");
+    (*reading_subject_).accessible_name = "Subject";
     (*reading_).add_child(reading_subject_);
     reading_correspondent_ = make_label(ids::reading_correspondent, detail_font, ink, 22.0);
-    (*reading_correspondent_).set_accessible_name("Correspondent");
+    (*reading_correspondent_).accessible_name = "Correspondent";
     (*reading_).add_child(reading_correspondent_);
     reading_date_ = make_label(ids::reading_date, detail_font, muted, 26.0);
-    (*reading_date_).set_accessible_name("Date");
+    (*reading_date_).accessible_name = "Date";
     (*reading_).add_child(reading_date_);
 
     reading_body_ = make_control<TextBox>(StableId(std::string(ids::reading_body)));
@@ -362,8 +362,8 @@ void CorrespondenceShell::build_panes() {
     (*reading_body_).set_font(body_font);
     (*reading_body_).set_style(correspondence_style());
     (*reading_body_).set_border_style(BorderStyle::none);
-    (*reading_body_).set_dock(DockStyle::fill);
-    (*reading_body_).set_accessible_name("Message body");
+    (*reading_body_).dock = DockStyle::fill;
+    (*reading_body_).accessible_name = "Message body";
     (*reading_).add_child(reading_body_);
 }
 

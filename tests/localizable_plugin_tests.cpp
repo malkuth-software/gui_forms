@@ -104,7 +104,7 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
     ToolTip tips(window);
     tips.set_tool_tip(controls.button, std::string(search_hint));
     (*controls.box).set_placeholder_text(std::string{search_hint});
-    (*controls.button).set_accessible_name("Close window");
+    (*controls.button).accessible_name = "Close window";
     (*controls.button).set_text("OK");
     (*controls.combo).set_items({"Small", "Medium"});
     (*controls.combo).add_item("Large");

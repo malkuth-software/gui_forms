@@ -154,7 +154,7 @@ void container() {
     (*(*frame).left_panel()).join(left);
     (*(*frame).bottom_panel()).join(status);
     std::shared_ptr<Button> body = make_control<Button>(StableId("body"), "Body");
-    (*body).set_dock(DockStyle::fill);
+    (*body).dock = DockStyle::fill;
     (*(*frame).content_panel()).add_child(body);
     Window window(frame, {600.0, 400.0});
     window.perform_layout();

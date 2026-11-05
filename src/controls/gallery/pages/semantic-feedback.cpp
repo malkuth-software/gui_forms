@@ -83,7 +83,7 @@ void SemanticFeedbackPage::build_commands(const std::shared_ptr<Surface>& body) 
     }
     bar_ = make_control<CommandBar>(StableId("gallery.semantic.commands"));
     (*bar_).set_style(page_style());
-    (*bar_).set_accessible_name("Semantic feedback transitions");
+    (*bar_).accessible_name = "Semantic feedback transitions";
     (*bar_).set_items(std::move(items));
     (*transitions).add_at(bar_, {22.0, 40.0, 886.0, 40.0});
     std::shared_ptr<Label> note = label(
@@ -137,7 +137,7 @@ void SemanticFeedbackPage::build_records(const std::shared_ptr<Surface>& body) {
     trace_ = make_control<TextBox>(StableId("gallery.semantic.trace"));
     (*trace_).set_multiline(true);
     (*trace_).set_read_only(true);
-    (*trace_).set_accessible_name("Semantic feedback trace");
+    (*trace_).accessible_name = "Semantic feedback trace";
     (*trace_).set_placeholder_text("feedback=<kind> sequence=<n> cue=<cue> sound=<on|off> accepted=<bool> presented=<bool>");
     (*records).add_at(trace_, {22.0, 78.0, 886.0, 134.0});
 }

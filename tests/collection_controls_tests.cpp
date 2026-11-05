@@ -175,7 +175,7 @@ void test_breadcrumb_identity_overflow_edit_and_input() {
     std::shared_ptr<BreadcrumbTrail> trail = make_control<BreadcrumbTrail>(
         StableId("breadcrumb"), "breadcrumb.exact-editor");
     (*trail).set_requested_bounds({0.0, 0.0, 160.0, 28.0});
-    (*trail).set_accessible_name("Current location breadcrumb");
+    (*trail).accessible_name = "Current location breadcrumb";
     (*trail).set_segments({
         {"path.root", "Home", "Navigate to Home"},
         {"path.one", "Projects", "Navigate to Projects"},
@@ -243,7 +243,7 @@ void test_breadcrumb_identity_overflow_edit_and_input() {
     require(operation_check_10, "End and Enter must replace the trail presentation with its owned editor");
     const bool operation_check_11 = (*trail).editing();
     require(operation_check_11, "End and Enter must replace the trail presentation with its owned editor");
-    const bool operation_check_12 = (*(*trail).editor()).visible();
+    const bool operation_check_12 = (*(*trail).editor()).visible.type();
     require(operation_check_12, "End and Enter must replace the trail presentation with its owned editor");
     const bool operation_check_13 = starts == 1U;
     require(operation_check_13, "End and Enter must replace the trail presentation with its owned editor");
@@ -818,20 +818,20 @@ void test_shared_command_binding() {
     (*command).set_enabled(false);
     const bool operation_check_63 = !(*ribbon).perform_click();
     require(operation_check_63, "disabled command presentation must reject public click execution");
-    require(!(*ribbon).enabled() && !(*status).enabled() &&
+    require(!(*ribbon).enabled.type() && !(*status).enabled.type() &&
                 trace == "view.mode@ribbon.view\nview.mode@status.view\n",
             "disabled command state must synchronize and reject execution");
 
     std::shared_ptr<gui_forms::Command> local_command = std::make_shared<Command>("local.enabled", "Local");
     std::shared_ptr<gui_forms::Button> local_button = make_control<Button>(StableId("local.enabled.button"),
                                              "Local");
-    (*local_button).set_enabled(false);
+    (*local_button).enabled = false;
     CommandBindingOptions local_options{};
     local_options.synchronize_enabled = false;
     CommandBinding local_binding(local_command, local_button, local_options);
     (*local_command).set_enabled(false);
     (*local_command).set_enabled(true);
-    require(!(*local_button).enabled(),
+    require(!(*local_button).enabled.type(),
             "command bindings may preserve locally managed enabled state");
 
     const CommandBindingOptions legacy_aggregate{false, true, true};
@@ -884,7 +884,7 @@ void test_correspondence_virtualization_and_anchor_stability() {
         StableId("correspondence.records"));
     (*records).set_requested_bounds({0.0, 0.0, 820.0, 230.0});
     (*records).set_items(correspondence_fixture(10000U));
-    (*records).set_accessible_name("Evidence correspondence");
+    (*records).accessible_name = "Evidence correspondence";
     Window window(records, {820.0, 230.0});
     window.perform_layout();
     require((*records).children().empty(),

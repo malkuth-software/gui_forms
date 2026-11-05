@@ -135,7 +135,7 @@ gui_forms::LiveSurface
           std::shared_ptr<gf::DrawingSurface> view =
               gf::make_control<gf::DrawingSurface>(gf::StableId("player.video"));
           (*view).set_requested_bounds({0.0, 0.0, 320.0, 180.0});
-          (*view).set_accessible_name("Video");
+          (*view).accessible_name = "Video";
           (*view).set_paint_callback(PresentLiveSurface{surface});
           gf::Window window(view, gf::Size{320.0, 180.0});
           window.perform_layout();

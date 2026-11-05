@@ -162,7 +162,7 @@ public:
 
 TaskDialog::TaskDialog(StableId stable_id) : Control(std::move(stable_id)) {
     set_paint_plane(PaintPlane::overlay);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
 }
 
 TaskDialog::~TaskDialog() {
@@ -284,7 +284,7 @@ void TaskDialog::rebuild_children() {
         std::shared_ptr<RadioButton> control =
             make_control<RadioButton>(StableId(prefix + ".radio." + radio.stable_id), radio.text);
         (*control).set_checked(radio.checked);
-        (*control).set_enabled(radio.enabled);
+        (*control).enabled = radio.enabled;
         add_child(control);
         child_tokens_.push_back((*control).checked_changed().subscribe(
             *this, Delegate<bool>::bind<TaskDialog, &TaskDialog::on_radio>(*this)));
@@ -313,7 +313,7 @@ void TaskDialog::rebuild_children() {
     for (const TaskDialogButton& definition : page_.buttons) {
         std::shared_ptr<Button> control =
             make_control<Button>(StableId(prefix + ".button." + definition.stable_id), definition.text);
-        (*control).set_enabled(definition.enabled);
+        (*control).enabled = definition.enabled;
         if (definition.stable_id == preferred) (*control).set_visual_style(ButtonVisualStyle::accent);
         add_child(control);
         child_tokens_.push_back((*control).clicked().subscribe(
@@ -797,8 +797,8 @@ SemanticDescriptor TaskDialog::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::dialog;
     descriptor.modal = shown_;
-    if (!accessible_name().empty()) {
-        descriptor.name = accessible_name();
+    if (!accessible_name.type().empty()) {
+        descriptor.name = accessible_name.type();
     } else if (!page_.caption.empty()) {
         descriptor.name = page_.caption;
     } else {

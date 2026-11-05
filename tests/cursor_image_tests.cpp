@@ -73,11 +73,11 @@ int main() {
         (*parent).add_child(child);
         (*parent).set_custom_cursor(images, CursorKind::crosshair);
         require((*child).effective_cursor_images() == images && (*child).effective_cursor() == CursorKind::crosshair, "custom inheritance");
-        (*child).set_cursor(CursorKind::hand);
+        (*child).cursor = CursorKind::hand;
         require(!(*child).effective_cursor_images(), "stock override leaks parent image");
-        (*child).set_cursor(std::nullopt);
+        (*child).cursor = std::nullopt;
         require((*child).effective_cursor_images() == images, "inherit reset");
-        (*parent).set_cursor(CursorKind::crosshair);
+        (*parent).cursor = CursorKind::crosshair;
         require(!(*child).effective_cursor_images(), "same stock fallback fails to reset");
         services.shutdown();
         require(!services.set_custom_cursor(images, 1).accepted(), "shutdown accepted mutation");

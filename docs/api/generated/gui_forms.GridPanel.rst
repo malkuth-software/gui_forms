@@ -217,7 +217,7 @@ gui_forms::GridPanel
           std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
               gf::StableId("form.button" + std::to_string(index)), "Button");
           (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-          (*button).set_margin({});
+          (*button).margin = gf::Insets{};
           (*form).add_child(button);
           buttons.push_back(button);
       }
@@ -249,7 +249,7 @@ gui_forms::GridPanel
           std::shared_ptr<gf::Button> button = gf::make_control<gf::Button>(
               gf::StableId("cards.button" + std::to_string(index)), "Card");
           (*button).set_requested_bounds({0.0, 0.0, 10.0, 20.0});
-          (*button).set_margin({});
+          (*button).margin = gf::Insets{};
           (*cards).add_child(button);
           buttons.push_back(button);
       }
@@ -437,10 +437,6 @@ gui_forms::GridPanel
 
 
    .. rubric:: Extension points
-
-   .. cpp:function:: bool auto_size() const noexcept override
-
-   .. cpp:function:: void set_auto_size(bool auto_size) override
 
    .. cpp:function:: Size measure(Size available) override
 

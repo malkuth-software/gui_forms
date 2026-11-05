@@ -317,6 +317,7 @@ def load_model() -> Model:
     manual = json.loads(MANUAL_PATH.read_text(encoding="utf-8"))
     all_types, all_enums, all_scopes = declarations()
     validate(all_types, manual)
+    rst.register_capabilities(all_types)
     types = [record for record in all_types
              if is_public(record.header, record.namespace) and record.nested_access == "public"]
     enums = [record for record in all_enums

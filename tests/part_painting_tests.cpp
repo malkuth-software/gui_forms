@@ -524,9 +524,9 @@ void control_colors() {
     const std::shared_ptr<Control> parent = make_control<Control>(StableId("part.colors"));
     const std::shared_ptr<Control> child = make_control<Control>(StableId("part.colors.child"));
     (*parent).add_child(child);
-    (*parent).set_back_color(ground);
-    (*parent).set_fore_color(ink);
-    require(!(*child).back_color() && !(*child).fore_color() && (*child).ambient_back_color() == ground &&
+    (*parent).back_color = ground;
+    (*parent).fore_color = ink;
+    require(!(*child).back_color.type() && !(*child).fore_color.type() && (*child).ambient_back_color() == ground &&
                 (*child).ambient_fore_color() == ink,
             "a control without its own colours takes its parent's");
 
@@ -544,7 +544,7 @@ void control_colors() {
     paint_part(inherited_well, *child, well);
     require(!recorded(inherited_well, "fill", ground) && !recorded(inherited_well, "fill_rounded", ground),
             "an inherited background leaves a well alone");
-    (*child).set_back_color(own);
+    (*child).back_color = own;
     RecordingPainter own_well;
     paint_part(own_well, *child, well);
     require(recorded(own_well, "fill", own) || recorded(own_well, "fill_rounded", own),
@@ -572,10 +572,10 @@ void control_colors() {
     require(recorded(disabled_label, "text", disabled_text) && !recorded(disabled_label, "text", ink),
             "a disabled label keeps the theme's disabled text under a control's foreground");
 
-    (*child).clear_back_color();
+    (*child).back_color = std::nullopt;
     require((*child).ambient_back_color() == ground, "clearing a control's colour restores its parent's");
-    (*parent).clear_back_color();
-    (*parent).clear_fore_color();
+    (*parent).back_color = std::nullopt;
+    (*parent).fore_color = std::nullopt;
     require(!(*child).ambient_back_color() && !(*child).ambient_fore_color(),
             "with no colours set anywhere the theme's stand");
 }

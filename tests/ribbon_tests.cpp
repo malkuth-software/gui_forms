@@ -401,7 +401,7 @@ void semantics_and_region() {
 void arranged_within_maximum_size() {
     const Commands commands;
     std::shared_ptr<Ribbon> ribbon = sample_ribbon(commands);
-    (*ribbon).set_maximum_size({150.0, 0.0});
+    (*ribbon).maximum_size = {150.0, 0.0};
     Window window(ribbon, {900.0, 112.0});
     window.perform_layout();
     require((*ribbon).committed_arranged_bounds().width == 150.0, "the ribbon is arranged at its maximum width");

@@ -203,7 +203,7 @@ void test_fallback() {
     SubscriptionToken subscription = window.theme_changed().subscribe(RecordThemeChange{&changes});
     require(!window.theme_fallback() && window.theme().id() == "windows-professional",
             "a light window shows its light theme");
-    (*pad).set_back_color(Color::rgba(200, 30, 30));
+    (*pad).back_color = Color::rgba(200, 30, 30);
     require((*pad).back_color_warned() && !(*pad).fore_color_warned(), "a colour set on a control is warned");
     require(!(*pad).application_colours_suspended(), "and applies under the application's theme");
 

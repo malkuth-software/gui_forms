@@ -67,7 +67,7 @@ void test_layer_dismissal_focus_and_resize() {
     std::shared_ptr<gui_forms::AnchoredPopupLayer> layer = make_control<AnchoredPopupLayer>(
         StableId("popup.layer"), owner, placement);
     (*layer).set_content(content);
-    (*layer).set_accessible_name("Anchored test popup");
+    (*layer).accessible_name = "Anchored test popup";
     (*layer).set_requested_bounds({0.0, 0.0, 200.0, 150.0});
     std::vector<PopupDismissReason> dismissals;
     SubscriptionToken dismissal = (*layer).dismiss_requested().subscribe(

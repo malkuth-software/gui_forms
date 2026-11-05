@@ -411,7 +411,7 @@ void measure_control(std::string_view name) {
 
         start = Clock::now();
         for (std::size_t index = 0U; index < set_iterations; ++index) {
-            (*control).set_tab_index(static_cast<std::uint32_t>(index & 1U));
+            (*control).tab_index = static_cast<std::uint32_t>(index & 1U);
         }
         typed = std::min(typed, nanoseconds_since(start, set_iterations));
 

@@ -52,7 +52,7 @@ RibbonGallery::RibbonGallery(StableId stable_id, RibbonGalleryForm form)
         throw std::invalid_argument("RibbonGallery form is invalid");
     }
     set_focusable(true);
-    set_cursor(CursorKind::arrow);
+    cursor = CursorKind::arrow;
     set_paint_plane(form_ == RibbonGalleryForm::drop_down ? PaintPlane::overlay : PaintPlane::control);
 }
 
@@ -639,7 +639,7 @@ bool RibbonGallery::show_more() {
         more.set_drop_down_size(drop_down_columns_, drop_down_rows_);
         more.set_items(categories_, items_);
         more.set_command(command_);
-        more.set_accessible_name(accessible_name());
+        more.accessible_name = accessible_name.type();
         more_open_changed_ = more.popup_open_changed().subscribe(
             Delegate<bool>::bind<RibbonGallery, &RibbonGallery::on_more_open_changed>(*this));
     }
@@ -666,8 +666,8 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
     // The vocabulary has no grid role: a gallery is a list of items.
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::list;
-    descriptor.name = accessible_name().empty() ? "Gallery" : accessible_name();
-    descriptor.description = accessible_description();
+    descriptor.name = accessible_name.type().empty() ? "Gallery" : accessible_name.type();
+    descriptor.description = accessible_description.type();
     const std::optional<std::string> selected = selected_id();
     const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
     if (position) descriptor.value = items_[order_[*position]].label;

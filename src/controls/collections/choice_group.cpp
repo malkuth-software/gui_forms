@@ -54,18 +54,18 @@ void ChoiceGroup::refresh_tab_stop() {
     int selected = -1;
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
         const std::shared_ptr<Button> button = (*(*revision).entries[index]).button;
-        if (!(*button).enabled() || !(*button).visible()) continue;
-        if (selected < 0 || (*button).tab_stop()) selected = static_cast<int>(index);
+        if (!(*button).enabled.type() || !(*button).visible.type()) continue;
+        if (selected < 0 || (*button).tab_stop.type()) selected = static_cast<int>(index);
         if (button == focused) { selected = static_cast<int>(index); break; }
     }
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
-        (*(*(*revision).entries[index]).button).set_tab_stop(static_cast<int>(index) == selected);
+        (*(*(*revision).entries[index]).button).tab_stop = static_cast<int>(index) == selected;
     }
 }
 
 ChoiceGroup::ChoiceGroup(StableId id) : Panel(std::move(id)) {
     set_focusable(false);
-    set_tab_stop(false);
+    tab_stop = false;
     on(selection_.validating(), *this, &ChoiceGroup::validate_local_selection);
     on(selection_.changed(), *this, &ChoiceGroup::apply_selection);
 }
@@ -125,7 +125,7 @@ void ChoiceGroup::apply_selection(const int selected) {
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
         Button& button = *(*(*revision).entries[index]).button;
         button.set_selected(static_cast<int>(index) == selected);
-        button.set_tab_stop(static_cast<int>(index) == tab_stop);
+        button.tab_stop = static_cast<int>(index) == tab_stop;
         if (!is_alive() || revision_ != revision) return;
     }
     refresh_tab_stop();
@@ -190,8 +190,8 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
             const std::string text = value.glyph.empty() ? value.label : value.glyph + " " + value.label;
             button.set_text(text);
             button.set_image(value.image);
-            button.set_accessible_name(value.accessible_name.empty() ? value.label : value.accessible_name);
-            button.set_tab_index(static_cast<std::uint32_t>(index));
+            button.accessible_name = value.accessible_name.empty() ? value.label : value.accessible_name;
+            button.tab_index = static_cast<std::uint32_t>(index);
             if (!button.parent()) add_child((*(*next).entries[index]).button);
         }
         for (std::size_t index = 0U; index < (*next).entries.size(); ++index) {
@@ -240,7 +240,7 @@ void ChoiceGroup::arrange(const Rect bounds) {
 }
 void ChoiceGroup::on_key_bubble(KeyEvent& event) { on_key(event); }
 void ChoiceGroup::on_key(KeyEvent& event) {
-    if (event.handled || event.action != KeyAction::down || !enabled() || !revision_) return;
+    if (event.handled || event.action != KeyAction::down || !enabled.type() || !revision_) return;
     const bool backward = event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::up;
     const bool forward = event.physical_key == PhysicalKey::right || event.physical_key == PhysicalKey::down;
     if (!backward && !forward) return;
@@ -252,7 +252,7 @@ void ChoiceGroup::on_key(KeyEvent& event) {
         if (backward) next = next == 0 ? count - 1 : next - 1;
         else next = next + 1 == count ? 0 : next + 1;
         const std::shared_ptr<Button> button = (*(*revision).entries[static_cast<std::size_t>(next)]).button;
-        if (!(*button).enabled() || !(*button).visible()) continue;
+        if (!(*button).enabled.type() || !(*button).visible.type()) continue;
         const int id = (*revision).items[static_cast<std::size_t>(next)].id;
         event.handled = true;
         const Control::Ptr retained = shared_from_this();

@@ -176,7 +176,7 @@ gui_forms::BreadcrumbTrail
 
       std::shared_ptr<gf::BreadcrumbTrail> trail =
           gf::make_control<gf::BreadcrumbTrail>(gf::StableId("browser.location"));
-      (*trail).set_accessible_name("Current folder");
+      (*trail).accessible_name = "Current folder";
       (*trail).set_segments({{"root", "Home", "Go to Home"},
                              {"projects", "Projects", "Go to Projects"},
                              {"site", "Site", "Current folder"}});

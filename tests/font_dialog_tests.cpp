@@ -126,11 +126,11 @@ void popup_ok_cancel_apply() {
             "OK takes the selection and closes");
 
     require(dialog.show(fixture.owner), "the dialog opens a third time");
-    (*fixture.owner).set_visible(false);
+    (*fixture.owner).visible = false;
     require(!dialog.is_open() && closed.size() == 3U && closed[2].result == DialogResult::cancel &&
                 window.focus_scope_depth() == 0U,
             "hiding the owner revokes the dialog as a cancel");
-    (*fixture.owner).set_visible(true);
+    (*fixture.owner).visible = true;
     require(dialog.show(fixture.owner) && dialog.is_open(), "the dialog survives its revocation");
     dialog.close(DialogResult::cancel);
 }
@@ -173,7 +173,7 @@ void embedded_semantics_and_anatomy() {
     }
     require(threw, "invalid preview text is refused");
     dialog.set_show_apply(false);
-    require(!(*dialog.apply_button()).visible(), "Apply can be hidden");
+    require(!(*dialog.apply_button()).visible.type(), "Apply can be hidden");
 }
 
 } // namespace

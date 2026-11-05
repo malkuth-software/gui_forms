@@ -25,6 +25,54 @@ class Property:
     type: str
     getter: Method
     setters: list[Method] = field(default_factory=list)
+    # A property capability's cell (property-capabilities study): written
+    # with `=`, read with `.read()`; `getter` then holds the cell's
+    # declaration, not a function.
+    cell: bool = False
+
+
+# Property capabilities, by struct name: the cell's member name, value type
+# and leading comment; and the capability bundles (a struct deriving only
+# from capabilities), by struct name: their capabilities' names. Filled by
+# register_capabilities before any shape is taken.
+CAPABILITY_CELLS: dict[str, tuple[str, str, str]] = {}
+CAPABILITY_BUNDLES: dict[str, list[str]] = {}
+CELL_FIELD = re.compile(r"^(?:GUI_FORMS_LOCALIZABLE\(\w+\)\s*)?Property(?:Cell|View)<(.*),\s*\w+Capability<\w+>>\s+(\w+)")
+
+
+def template_name(base: str) -> str:
+    return re.sub(r"<.*$", "", base).strip()
+
+
+def register_capabilities(types: list[TypeRecord]) -> None:
+    """Finds the property capabilities and their bundles among `types`."""
+    for record in types:
+        if not record.name.endswith("Capability"):
+            continue
+        for item in record.fields:
+            match = CELL_FIELD.match(item.text.strip())
+            if match:
+                CAPABILITY_CELLS[record.name] = (match.group(2), match.group(1).strip(), record.comment)
+    for record in types:
+        names = [template_name(base) for base in record.bases]
+        if names and all(name in CAPABILITY_CELLS for name in names):
+            CAPABILITY_BUNDLES[record.name] = names
+
+
+def capability_properties(record: TypeRecord) -> list[Property]:
+    """The cells `record` takes from the capabilities among its bases."""
+    found: list[Property] = []
+    for base in record.bases:
+        name = template_name(base)
+        capabilities = CAPABILITY_BUNDLES.get(name, [name])
+        for capability in capabilities:
+            cell = CAPABILITY_CELLS.get(capability)
+            if cell is None:
+                continue
+            member, value, comment = cell
+            declaration = Method(member, f"{value} {member}", "public", comment)
+            found.append(Property(member, display_type(value), declaration, [], True))
+    return found
 
 
 @dataclass
@@ -145,6 +193,7 @@ def is_const(method: Method) -> bool:
 
 def shape_of(record: TypeRecord) -> Shape:
     shape = Shape()
+    shape.properties.extend(capability_properties(record))
     getters: dict[str, Property] = {}
     setters: list[Method] = []
     for method in record.methods:
@@ -384,7 +433,8 @@ def member_entries(record: TypeRecord, shape: Shape, sources: Sources, linker: L
             continue
         lines += ["", f".. rubric:: {heading}", ""]
         for method, description in entries:
-            lines.append(function_directive(method))
+            cell = heading == "Properties" and any(prop.cell and prop.getter is method for prop in shape.properties)
+            lines.append(f".. cpp:member:: {clean_signature(method.signature)}" if cell else function_directive(method))
             if method.access == "protected":
                 lines += ["", INDENT + "*Protected.*"]
             text = linker.prose(first_paragraph(description), sources.qualified, members)
@@ -493,7 +543,7 @@ def type_page(record: TypeRecord, sources: Sources, registry_entry: dict | None,
             classifier = literal(prop.type)
             if entry and entry.classifier:
                 classifier += ", " + entry.classifier
-            if not prop.setters:
+            if not prop.setters and not prop.cell:
                 classifier += ", read-only"
             description = entry.description if entry else (
                 sources.manual.get("methods", {}).get(prop.name, "") or prop.getter.comment)

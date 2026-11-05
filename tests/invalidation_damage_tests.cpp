@@ -465,19 +465,19 @@ void test_full_subtree_invalidation_is_explicit() {
 void test_damage_take_commits_layout_generated_geometry_damage() {
     std::shared_ptr<CountingControl> root =
         make_control<CountingControl>(StableId("damage.layout.root"));
-    (*root).set_padding({10.0, 10.0, 10.0, 10.0});
+    (*root).padding = {10.0, 10.0, 10.0, 10.0};
     std::shared_ptr<CountingControl> fill =
         make_control<CountingControl>(StableId("damage.layout.fill"));
     (*fill).set_requested_bounds({0.0, 0.0, 20.0, 20.0});
-    (*fill).set_dock(DockStyle::fill);
+    (*fill).dock = DockStyle::fill;
     std::shared_ptr<CountingControl> top =
         make_control<CountingControl>(StableId("damage.layout.top"));
     (*top).set_requested_bounds({0.0, 0.0, 20.0, 24.0});
-    (*top).set_dock(DockStyle::top);
+    (*top).dock = DockStyle::top;
     std::shared_ptr<CountingControl> left =
         make_control<CountingControl>(StableId("damage.layout.left"));
     (*left).set_requested_bounds({0.0, 0.0, 50.0, 20.0});
-    (*left).set_dock(DockStyle::left);
+    (*left).dock = DockStyle::left;
     (*root).add_child(left);
     (*root).add_child(top);
     (*root).add_child(fill);
@@ -490,7 +490,7 @@ void test_damage_take_commits_layout_generated_geometry_damage() {
     const Rect old_top = (*top).arranged_bounds();
     const Rect old_fill = (*fill).arranged_bounds();
 
-    (*left).set_visible(false);
+    (*left).visible = false;
     DamageRegion geometry_damage = window.take_damage();
     const Rect new_top = (*top).arranged_bounds();
     const Rect new_fill = (*fill).arranged_bounds();
@@ -545,10 +545,10 @@ void test_hovered_control_is_hot() {
     std::shared_ptr<CountingControl> root = make_control<CountingControl>(StableId("hover.root"));
     std::shared_ptr<HotPad> pad = make_control<HotPad>(StableId("hover.pad"));
     (*pad).set_requested_bounds({0.0, 0.0, 50.0, 40.0});
-    (*pad).set_dock(DockStyle::left);
+    (*pad).dock = DockStyle::left;
     std::shared_ptr<CountingControl> quiet = make_control<CountingControl>(StableId("hover.quiet"));
     (*quiet).set_requested_bounds({0.0, 0.0, 50.0, 40.0});
-    (*quiet).set_dock(DockStyle::left);
+    (*quiet).dock = DockStyle::left;
     (*root).add_child(pad);
     (*root).add_child(quiet);
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{200.0, 40.0});
@@ -580,7 +580,7 @@ void test_hovered_control_is_hot() {
     move_pointer(window, PointerAction::move, Point{10.0, 10.0});
     require(is_hot(*pad), "and returning makes the control under it hot again");
 
-    (*pad).set_enabled(false);
+    (*pad).enabled = false;
     require(!is_hot(*pad), "a hovered control leaving the interaction is no longer hot");
 }
 

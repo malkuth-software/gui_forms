@@ -37,7 +37,7 @@ private:
         std::shared_ptr<Button> button = make_control<Button>(StableId(id), text);
         (*button).set_visual_style(style);
         (*button).set_requested_bounds({0.0, 0.0, size.width, size.height});
-        (*button).set_dock(dock);
+        (*button).dock = dock;
         return button;
     }
 
@@ -48,10 +48,10 @@ private:
             {930.0, 260.0});
         (*page).add_at(dock_group, {24.0, 92.0, 930.0, 260.0});
         dock_canvas_ = make_control<Panel>(StableId("gallery.dock.canvas"));
-        (*dock_canvas_).set_accessible_name("Dock layout specimen");
+        (*dock_canvas_).accessible_name = "Dock layout specimen";
         (*dock_canvas_).set_background(Color::rgba(238, 243, 247));
         (*dock_canvas_).set_border_style(BorderStyle::sunken);
-        (*dock_canvas_).set_padding({8.0, 8.0, 8.0, 8.0});
+        (*dock_canvas_).padding = {8.0, 8.0, 8.0, 8.0};
         (*dock_group).add_at(dock_canvas_, {18.0, 38.0, 610.0, 190.0});
 
         // Child order is dock order: Left, Top A, Top B, Right, Bottom, Fill.
@@ -94,10 +94,10 @@ private:
             {930.0, 250.0});
         (*page).add_at(anchor_group_, {24.0, 374.0, 930.0, 250.0});
         anchor_canvas_ = make_control<Panel>(StableId("gallery.anchor.canvas"));
-        (*anchor_canvas_).set_accessible_name("Compound anchor specimen");
+        (*anchor_canvas_).accessible_name = "Compound anchor specimen";
         (*anchor_canvas_).set_background(Color::rgba(247, 249, 251));
         (*anchor_canvas_).set_border_style(BorderStyle::line);
-        (*anchor_canvas_).set_padding({8.0, 8.0, 8.0, 8.0});
+        (*anchor_canvas_).padding = {8.0, 8.0, 8.0, 8.0};
         (*anchor_group_).add_at(anchor_canvas_, {18.0, 38.0, 600.0, 170.0});
 
         std::shared_ptr<Button> fixed = make_control<Button>(
@@ -107,17 +107,17 @@ private:
             StableId("gallery.anchor.stretch"), "Left + Right · stretches");
         (*stretch).set_visual_style(ButtonVisualStyle::accent);
         (*stretch).set_requested_bounds({18.0, 56.0, 280.0, 28.0});
-        (*stretch).set_anchor(AnchorStyles::left | AnchorStyles::right |
-                              AnchorStyles::top);
+        (*stretch).anchor = AnchorStyles::left | AnchorStyles::right |
+                              AnchorStyles::top;
         std::shared_ptr<Button> centered = make_control<Button>(
             StableId("gallery.anchor.centered"), "No edges · centered");
         (*centered).set_requested_bounds({190.0, 106.0, 152.0, 28.0});
-        (*centered).set_anchor(AnchorStyles::none);
+        (*centered).anchor = AnchorStyles::none;
         std::shared_ptr<Button> bottom_right = make_control<Button>(
             StableId("gallery.anchor.bottom-right"), "Right + Bottom");
         (*bottom_right).set_visual_style(ButtonVisualStyle::command);
         (*bottom_right).set_requested_bounds({424.0, 126.0, 142.0, 28.0});
-        (*bottom_right).set_anchor(AnchorStyles::right | AnchorStyles::bottom);
+        (*bottom_right).anchor = AnchorStyles::right | AnchorStyles::bottom;
         (*anchor_canvas_).add_child(fixed);
         (*anchor_canvas_).add_child(stretch);
         (*anchor_canvas_).add_child(centered);
@@ -145,26 +145,26 @@ private:
             {930.0, 190.0});
         (*page).add_at(splitter_group, {24.0, 646.0, 930.0, 190.0});
         std::shared_ptr<Panel> canvas = make_control<Panel>(StableId("gallery.splitter.canvas"));
-        (*canvas).set_accessible_name("Splitter specimen");
+        (*canvas).accessible_name = "Splitter specimen";
         (*canvas).set_background(Color::rgba(247, 249, 251));
         (*canvas).set_border_style(BorderStyle::line);
         (*splitter_group).add_at(canvas, {18.0, 38.0, 610.0, 130.0});
         std::shared_ptr<Panel> folders = make_control<Panel>(StableId("gallery.splitter.folders"));
         (*folders).set_background(Color::rgba(225, 235, 243));
-        (*folders).set_dock(DockStyle::left);
+        (*folders).dock = DockStyle::left;
         (*folders).set_requested_bounds({0.0, 0.0, 160.0, 0.0});
         std::shared_ptr<Label> folders_title = label("gallery.splitter.folders.title", "Folders",
                                                      11.0, 700, shell_blue_dark);
         (*folders_title).set_requested_bounds({8.0, 8.0, 120.0, 20.0});
         (*folders).add_child(folders_title);
         splitter_ = make_control<Splitter>(StableId("gallery.splitter"));
-        (*splitter_).set_accessible_name("Folders and files splitter");
+        (*splitter_).accessible_name = "Folders and files splitter";
         (*splitter_).set_requested_bounds({0.0, 0.0, 4.0, 0.0});
         (*splitter_).set_min_size(80.0);
         (*splitter_).set_min_extra(120.0);
         std::shared_ptr<Panel> files = make_control<Panel>(StableId("gallery.splitter.files"));
         (*files).set_background(paper);
-        (*files).set_dock(DockStyle::fill);
+        (*files).dock = DockStyle::fill;
         std::shared_ptr<Label> files_title = label("gallery.splitter.files.title", "Files",
                                                    11.0, 700, shell_blue_dark);
         (*files_title).set_requested_bounds({8.0, 8.0, 120.0, 20.0});
@@ -190,8 +190,8 @@ private:
     }
 
     void on_toggle_left() {
-        const bool visible = !(*left_).visible();
-        (*left_).set_visible(visible);
+        const bool visible = !(*left_).visible.type();
+        (*left_).visible = visible;
         (*toggle_left_).set_text(visible ? "Hide left edge" : "Restore left edge");
         report(visible ? "Dock · left edge restored · fill contracted"
                        : "Dock · hidden edge released · fill expanded");
