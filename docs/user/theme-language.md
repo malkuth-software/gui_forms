@@ -261,6 +261,16 @@ Colour belongs in the theme: setting `back_color` or `fore_color` on a
 control still applies, for compatibility, but writes the warning W404
 `inline_colour` once per control and property.
 
+`tools/relocate_colours.py` moves the colours a form document writes
+(`fore-color`, `back-color` as literal hexadecimal colours) into a theme
+sheet: one rule per control, keyed by its escaped stable ID, with the light
+value as written and a dark value under `@media (prefers-color-scheme:
+dark)` seeded by the dark colour rule (the `gui_forms_dark_colour` filter
+the build makes), a starting point to edit. It declares `:root {
+color-scheme: light dark }` when the sheet declares no scheme, removes the
+statements from the document, and leaves alone any other colour form and any
+control the sheet already selects. It prints a diff unless given `--write`.
+
 ## Inline styles
 
 `Control::set_inline_style` takes the same language for one control: its

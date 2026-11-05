@@ -2967,6 +2967,9 @@ if(GUI_FORMS_BUILD_TESTS)
 
     add_executable(gui_forms_callback_lab tools/callback_lab.cpp)
     target_link_libraries(gui_forms_callback_lab PRIVATE gui_forms_core)
+    # The dark colour rule as a filter, for tools/relocate_colours.py.
+    add_executable(gui_forms_dark_colour tools/dark_colour.cpp)
+    target_link_libraries(gui_forms_dark_colour PRIVATE gui_forms_core)
 
     if(TARGET gui_forms_skia)
         add_executable(gui_forms_concise_authoring_lab tools/concise_authoring_lab.cpp)
