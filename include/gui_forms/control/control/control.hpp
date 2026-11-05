@@ -602,7 +602,8 @@ public:
     void suspend_layout();
     void resume_layout(bool perform_layout = true);
     void perform_layout();
-    [[nodiscard]] LayoutTransactionState layout_transaction_state() const noexcept;
+    // Settles the surface root's pending touches first (see dirty()).
+    [[nodiscard]] LayoutTransactionState layout_transaction_state() const;
 
     [[nodiscard]] bool visible() const noexcept { return visible_; }
     void set_visible(bool visible);
@@ -756,8 +757,11 @@ public:
     void set_pointer_capture(bool captured);
     [[nodiscard]] bool has_pointer_capture() const noexcept;
 
-    [[nodiscard]] Dirty dirty() const noexcept { return dirty_; }
-    [[nodiscard]] Dirty subtree_dirty() const noexcept { return subtree_dirty_; }
+    // An attached control's flags are read after its surface root settles
+    // the touches made since the last read (SurfaceRoot::settle_dirty): an
+    // ancestor's flags are set by its descendants' touches at the settle.
+    [[nodiscard]] Dirty dirty() const;
+    [[nodiscard]] Dirty subtree_dirty() const;
     // This control's slot in its surface root's control table, for
     // inspection (SurfaceRoot::control_table); unassigned while detached.
     [[nodiscard]] detail::ControlSlot surface_slot() const noexcept { return surface_slot_; }
@@ -844,10 +848,9 @@ public:
     [[nodiscard]] virtual std::optional<double> first_baseline(double width);
     [[nodiscard]] virtual std::optional<double> last_baseline(double width);
     // Advances whenever this control becomes measure-dirty; a cache entry
-    // stored under an earlier generation is never answered.
-    [[nodiscard]] std::uint64_t measure_generation() const noexcept {
-        return measure_generation_;
-    }
+    // stored under an earlier generation is never answered. Settles first
+    // (see dirty()): a descendant's touch advances it at the settle.
+    [[nodiscard]] std::uint64_t measure_generation() const;
     // Layout boundaries (stage L, PLAN section 3.3). A descendant's measure
     // dirtiness marks an ancestor for measure only while the ancestor's size
     // can depend on it: while the ancestor's own measure reads its children

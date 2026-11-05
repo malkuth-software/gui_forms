@@ -53,6 +53,9 @@ void Metrics::record_dirty_mark(double area) noexcept {
     ++values_.dirty_marks;
     values_.requested_damage_area += area;
 }
+void Metrics::record_requested_damage(double area) noexcept {
+    values_.requested_damage_area += area;
+}
 void Metrics::record_measure(std::uint64_t nodes_visited,
                              std::uint64_t callbacks) noexcept {
     ++values_.measure_passes;

@@ -331,6 +331,8 @@ gui_forms::SurfaceRoot
         - Runs a callback on the root's thread and waits for it.
       * - :cpp:func:`drain_posted_work <gui_forms::SurfaceRoot::drain_posted_work>`
         - Runs one turn of posted work on the root's thread: the callbacks that were queued when it started, up to the given bound.
+      * - :cpp:func:`metrics_snapshot <gui_forms::SurfaceRoot::metrics_snapshot>`
+        - A copy of the root's instrumentation counters: layout passes, flushes, mutations, damage, input, focus, disposals, wrong-thread rejections and more.
       * - :cpp:func:`metrics <gui_forms::SurfaceRoot::metrics>`
         - The live instrumentation counters, for hosts and renderers that record into them.
       * - :cpp:func:`reset_activity_metrics <gui_forms::SurfaceRoot::reset_activity_metrics>`
@@ -920,12 +922,18 @@ gui_forms::SurfaceRoot
       were queued when it started, up to the given bound. Hosts call it; tests
       call it to run posted work without a host.
 
+   .. cpp:function:: MetricsSnapshot metrics_snapshot()
+
+      A copy of the root's instrumentation counters: layout passes, flushes,
+      mutations, damage, input, focus, disposals, wrong-thread rejections and
+      more. ``MetricsSnapshot::to_json`` serializes it.
+
    .. cpp:function:: Metrics& metrics() noexcept
 
       The live instrumentation counters, for hosts and renderers that record
       into them.
 
-   .. cpp:function:: void reset_activity_metrics() noexcept
+   .. cpp:function:: void reset_activity_metrics()
 
       Zeroes the activity counters, keeping the population and depth values,
       so a test can measure one workload.

@@ -17,6 +17,8 @@ public:
     void set_population(std::uint64_t controls, std::uint64_t stable_ids) noexcept;
     void record_mutation() noexcept;
     void record_dirty_mark(double requested_damage_area) noexcept;
+    // Adds a settled mark's damage area; the mark was counted at its write.
+    void record_requested_damage(double requested_damage_area) noexcept;
     void record_measure(std::uint64_t nodes_visited,
                         std::uint64_t callbacks) noexcept;
     void record_measure_cache_hit() noexcept;

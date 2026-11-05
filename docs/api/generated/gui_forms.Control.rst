@@ -348,7 +348,7 @@ gui_forms::Control
       **property_descriptors** : ``std::vector<PropertyDescriptor>``, read-only
 
       **measure_generation** : ``std::uint64_t``, read-only
-         Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered.
+         Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
       **layout_direction** : ``LayoutDirection``, default ``LayoutDirection::inherit``
          The inline direction the control lays its children out in;
@@ -926,7 +926,7 @@ gui_forms::Control
 
       Sets :cpp:func:`auto_size_mode <gui_forms::Control::auto_size_mode>`; see the property's description above.
 
-   .. cpp:function:: LayoutTransactionState layout_transaction_state() const noexcept
+   .. cpp:function:: LayoutTransactionState layout_transaction_state() const
 
       The depth of :cpp:func:`suspend_layout <gui_forms::Control::suspend_layout>` calls and whether layout is pending, with
       revision counters for tests.
@@ -1146,11 +1146,11 @@ gui_forms::Control
       Whether the window currently routes pointer input to this control
       regardless of position. :cpp:func:`set_pointer_capture <gui_forms::Control::set_pointer_capture>` changes it.
 
-   .. cpp:function:: Dirty dirty() const noexcept
+   .. cpp:function:: Dirty dirty() const
 
       The invalidation flags pending on this control itself.
 
-   .. cpp:function:: Dirty subtree_dirty() const noexcept
+   .. cpp:function:: Dirty subtree_dirty() const
 
       The invalidation flags pending on this control or any descendant.
 
@@ -1185,9 +1185,9 @@ gui_forms::Control
 
    .. cpp:function:: std::vector<PropertyDescriptor> property_descriptors() const
 
-   .. cpp:function:: std::uint64_t measure_generation() const noexcept
+   .. cpp:function:: std::uint64_t measure_generation() const
 
-      Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered.
+      Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
    .. cpp:function:: LayoutDirection layout_direction() const noexcept
 

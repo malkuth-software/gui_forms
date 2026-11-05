@@ -1987,6 +1987,8 @@ void Control::suspend_layout() {
     if (layout_suspend_depth_ == std::numeric_limits<std::uint32_t>::max()) {
         throw std::overflow_error("GUI.Forms layout suspension depth overflow");
     }
+    // The subtree's layout flags are read; touches below settle first.
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     if (layout_suspend_depth_ == 0U &&
         has_dirty(subtree_dirty_, Dirty::layout)) {
         layout_deferred_ = true;
@@ -2001,6 +2003,9 @@ void Control::resume_layout(bool perform_pending_layout) {
     // WinForms tolerates an unmatched ResumeLayout. Keeping that behavior is
     // important for generated/designer code which may unwind conditionally.
     if (layout_suspend_depth_ == 0U) return;
+    // The pending touches note their requests while this control is still
+    // suspended, as they did at their writes.
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     --layout_suspend_depth_;
     if (layout_suspend_depth_ != 0U || !perform_pending_layout ||
         !layout_deferred_) {
@@ -2027,9 +2032,25 @@ void Control::perform_layout() {
     }
 }
 
-LayoutTransactionState Control::layout_transaction_state() const noexcept {
+LayoutTransactionState Control::layout_transaction_state() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     return {layout_suspend_depth_, layout_deferred_, layout_requested_revision_,
             layout_committed_revision_};
+}
+
+Dirty Control::dirty() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
+    return dirty_;
+}
+
+std::uint64_t Control::measure_generation() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
+    return measure_generation_;
+}
+
+Dirty Control::subtree_dirty() const {
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
+    return subtree_dirty_;
 }
 
 Rect Control::absolute_bounds() const {
@@ -2752,6 +2773,9 @@ Size Control::measure_for_layout(const LayoutConstraint& constraint) {
         throw std::invalid_argument(
             "GUI.Forms layout constraint extents must be finite and nonnegative");
     }
+    // A descendant's pending touch advances this control's generation at
+    // the settle (mark_layout_ancestors).
+    if (surface_root_ != nullptr) (*surface_root_).settle_dirty();
     const std::uint64_t generation = measure_generation_;
     for (const MeasureCacheEntry& entry : measure_cache_) {
         if (entry.generation == generation && entry.constraint == constraint) {

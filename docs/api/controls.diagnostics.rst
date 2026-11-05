@@ -155,6 +155,10 @@ Related types
 
       Counts a dirty mark and accumulates requested area.
 
+   .. cpp:function:: void record_requested_damage(double requested_damage_area) noexcept
+
+      Adds a settled mark's damage area; the mark was counted at its write.
+
    .. cpp:function:: void record_measure(std::uint64_t nodes_visited, std::uint64_t callbacks) noexcept
 
       Counts one measure pass, visited nodes, and callbacks.

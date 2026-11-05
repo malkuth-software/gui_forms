@@ -76,6 +76,21 @@ private:
     std::vector<std::uint64_t> summary_{};
 };
 
+// The settlement a touch owes, kept per slot until the next settle (M0.2):
+// SurfaceRoot::settle_dirty does at the settle what mark_dirty once did at
+// the write. Touches between two settles merge: the kinds unite and each
+// piece of work is owed once.
+struct PendingTouch final {
+    // The kinds to add to every ancestor's subtree flags.
+    Dirty requested{Dirty::none};
+    // Whether the layout ancestors are marked (SurfaceRoot::
+    // mark_layout_ancestors) and suspended ancestors note a request.
+    bool marks_layout_ancestors{};
+    // Whether the control's paint bounds, as they are at the settle, are
+    // added to the damage.
+    bool damages_bounds{};
+};
+
 // The control table of one surface root: one slot per attached control,
 // the per-kind pending bitsets and each slot's resize registration. It
 // observes its controls (the tree owns them): a slot is released before
@@ -91,8 +106,14 @@ public:
     void release(ControlSlot slot) noexcept;
     // The control holding `slot`, or null when the slot was released since.
     [[nodiscard]] Control* control_at(ControlSlot slot) const noexcept;
-    // Sets, for a live slot, the bit of every kind `dirty` reaches.
-    void touch(ControlSlot slot, Dirty dirty) noexcept;
+    // Sets, for a live slot, the bit of every kind `dirty` reaches, and
+    // merges `owed` into the slot's pending touch.
+    void touch(ControlSlot slot, Dirty dirty, PendingTouch owed) noexcept;
+    // Returns the pending touch of a live index and clears it (the bits
+    // stay; take() clears them). A released index answers an empty touch.
+    [[nodiscard]] PendingTouch take_touch(std::uint32_t index) noexcept;
+    // Whether any kind has a bit set.
+    [[nodiscard]] bool any_pending() const noexcept;
     [[nodiscard]] bool pending(DirtyKind kind) const noexcept;
     [[nodiscard]] bool pending(ControlSlot slot, DirtyKind kind) const noexcept;
     // Appends the indices pending `kind` (see DirtyBitset::take) and clears
@@ -113,11 +134,13 @@ public:
 private:
     [[nodiscard]] bool live(ControlSlot slot) const noexcept;
 
-    // By index: the control (null while released), its current generation
-    // and its resize registration. The three have slot_count() elements.
+    // By index: the control (null while released), its current generation,
+    // its resize registration and its pending touch. The four have
+    // slot_count() elements.
     std::vector<Control*> controls_{};
     std::vector<std::uint32_t> generations_{};
     std::vector<ResizeAxes> responses_{};
+    std::vector<PendingTouch> touches_{};
     // Released indices, reused last in, first out.
     std::vector<std::uint32_t> free_{};
     std::array<DirtyBitset, dirty_kind_count> pending_{};

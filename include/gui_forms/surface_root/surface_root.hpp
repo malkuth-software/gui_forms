@@ -335,9 +335,16 @@ public:
     // handlers take none of GUI.Forms' or the application's.
     void set_dispatch_wake_handler(std::function<void()> wake);
 
+    // The metrics after settling the pending touches (settle_dirty), so the
+    // requested damage area and layout boundary stops include every write.
+    [[nodiscard]] MetricsSnapshot metrics_snapshot();
+    // The metrics as of the last settle: a const root cannot settle, so the
+    // requested damage area and boundary stops of touches since then are
+    // not yet counted. Every other metric is current.
     [[nodiscard]] MetricsSnapshot metrics_snapshot() const { return metrics_.snapshot(); }
     Metrics& metrics() noexcept { return metrics_; }
-    void reset_activity_metrics() noexcept { metrics_.reset_activity(); }
+    // Settles first, so no touch made before the reset is counted after it.
+    void reset_activity_metrics();
 
     [[nodiscard]] Control::Ptr root() const noexcept { return root_; }
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
@@ -1231,10 +1238,28 @@ private:
     void mark_dirty(Control& control, Dirty dirty);
     void mark_paint_dirty(Control& control, Rect local_damage);
     void mark_subtree_dirty(Control& control, Dirty dirty);
-    // Processes the controls touched since the last settle and clears their
-    // table bits. Called before every read of settled state: a layout pass,
-    // a paint, taking damage, hit testing and a semantic snapshot.
+    // Does the bookkeeping owed by the touches since the last settle (M0.2)
+    // and clears their table bits: ancestors' subtree flags, layout
+    // ancestors and suspended-layout notes, damage at the controls' bounds
+    // as they are now, and the requested damage area. A write only touches
+    // (mark_dirty, mark_paint_dirty, mark_child_layout_slot); every read of
+    // settled state settles first: a layout pass, a paint, taking damage,
+    // the metrics, a detach, a resize and a control's dirty, subtree-dirty,
+    // layout-transaction and measure reads. Inside a layout pass or a paint
+    // a touch settles at once, as the flush is already reading. Reentry
+    // (a virtual asked during the settle reading a control's flags) returns
+    // at once; the touch it would see is the one being settled.
     void settle_dirty();
+    // Whether a touch is waiting for settle_dirty.
+    [[nodiscard]] bool settle_pending() const noexcept;
+    // One control's owed bookkeeping (settle_dirty's body).
+    void settle_touch(Control& control, detail::PendingTouch owed);
+    // The damage of a control whose visual bounds changed from `old_bounds`
+    // to `new_bounds` (window coordinates) in an arrange: the whole of both
+    // when `escalate` (its paint depends on its size) or its origin moved,
+    // else the exposed strips. The one seam for resize damage policy (the
+    // hot-paths worker's strip rules, M0.4's note_bounds_changed).
+    void damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate);
     // Marks for measure the controls a client-size change reaches (see
     // Window::resize): `control`, and below it each child whose parent
     // requests no extent on a changed axis.
@@ -1534,8 +1559,9 @@ private:
     [[nodiscard]] Rect plane_paint_bounds(std::size_t index, Rect rectangle,
                                           bool explicit_request) const;
     [[nodiscard]] bool has_plane_damage() const noexcept;
-    // Whether a paint is owed: a change during the last render, or damage on
-    // any plane. Damage is clipped to the client area and recorded for every
+    // Whether a paint is owed: a change during the last render, damage on
+    // any plane, or a paint touch not yet settled (counted as owed until the
+    // settle places it; a const root cannot settle). Damage is clipped to the client area and recorded for every
     // visible change, so it is what a paint can discharge. A control's own
     // paint-dirty mark is not owed: it only rebuilds the control's chunk when
     // a paint next reaches it, and a control outside the client area or a
@@ -1550,8 +1576,18 @@ private:
     // containers' resize registrations. A slot is assigned at attach and
     // released at detach.
     detail::ControlTable control_table_;
-    // settle_dirty's index storage, reused across settles.
+    // settle_dirty's index storage, reused across settles; reserved to the
+    // table's slot count at attach, so a settle does not grow it.
     std::vector<std::uint32_t> settle_indices_;
+    // A localized paint mark's damage (mark_paint_dirty), in the control's
+    // client coordinates, placed in the window at the settle. In mark order.
+    struct PendingLocalDamage final {
+        detail::ControlSlot slot{};
+        Rect local_damage{};
+    };
+    std::vector<PendingLocalDamage> pending_local_damage_;
+    // settle_dirty is running (its reentry guard).
+    bool settling_{};
     // Reports into the base's metrics, which outlive it.
     MotionClock motion_clock_{*this};
     // The values the application publishes for the engine, in publication
