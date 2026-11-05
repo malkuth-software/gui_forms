@@ -130,6 +130,8 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
           python3 -B -m unittest discover -s tools/layout_oracle -p test_layout_oracle.py
           python3 -B ../template_harness/harness/check_lifetime_rules.py include src demo tests examples tools file_manager_demoboard stx_skia fuzz
+          python3 -B -m unittest discover -s tools -p test_check_test_registration.py
+          python3 -B tools/check_test_registration.py
   # The site depends only on the tree (docs/requirements.txt pins its
   # toolchain), so a tree an earlier run of this repository built passes
   # without building it again (tools/ci_tree_receipt.py); the job still
