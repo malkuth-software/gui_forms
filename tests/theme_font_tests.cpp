@@ -51,7 +51,7 @@ Compilation compile(std::string_view text) {
     source.text = text;
     ThemeCompileInput input{.source = source,
                             .registry = registry,
-                            .vocabulary = SelectorVocabulary{},
+                            .vocabulary = SelectorVocabulary{stock_control_anatomies()},
                             .published_values = {},
                             .resources = {},
                             .images = {},
@@ -132,7 +132,7 @@ void test_lowering() {
     }
     const Compilation stated = compile("#a:hover { font-size: 20px }");
     require(has_code(stated, DiagnosticCode::property_not_admitted), "a state rule's font is not admitted");
-    const Compilation part = compile("button::label { font-weight: bold }");
+    const Compilation part = compile("button::part(label) { font-weight: bold }");
     require(part.outcome == CompileOutcome::refused || has_code(part, DiagnosticCode::property_not_admitted),
             "a part rule's font is not admitted");
     const Compilation left_out = compile("#a { font-variant: small-caps }");
