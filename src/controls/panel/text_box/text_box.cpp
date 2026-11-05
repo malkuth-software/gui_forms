@@ -125,6 +125,48 @@ TextBox::TextBox(StableId stable_id, std::string text)
             *this, &TextBox::set_text, BindingValueKind::text,
             "TextBox.Text binding requires text"),
         detail::EventChangeConnector<const std::string&>(text_changed_), {}, {}});
+
+    // What a form document sets besides the text (stage FD6.3). None raises
+    // a change event. A document writes multiline before a text of several
+    // lines: properties apply in document order.
+    PropertyDescriptor multiline;
+    multiline.name = "multiline";
+    multiline.kind = BindingValueKind::boolean;
+    multiline.category = "Behavior";
+    multiline.description = "Whether the box holds several lines, wrapping and scrolling vertically.";
+    multiline.default_value = BindingValue{false};
+    multiline.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    multiline.bindable = false;
+    define_bindable_property({
+        std::move(multiline),
+        detail::BindingNoexceptMethodGetter<TextBox, bool>(*this, &TextBox::multiline),
+        detail::DirectPropertySetter<TextBox, bool>(*this, &TextBox::set_multiline), {}, {}, {}});
+
+    PropertyDescriptor read_only;
+    read_only.name = "read_only";
+    read_only.kind = BindingValueKind::boolean;
+    read_only.category = "Behavior";
+    read_only.description = "Whether the user may select and copy the text but not change it.";
+    read_only.default_value = BindingValue{false};
+    read_only.invalidation_effects = Dirty::paint | Dirty::semantics;
+    read_only.bindable = false;
+    define_bindable_property({
+        std::move(read_only),
+        detail::BindingNoexceptMethodGetter<TextBox, bool>(*this, &TextBox::read_only),
+        detail::DirectPropertySetter<TextBox, bool>(*this, &TextBox::set_read_only), {}, {}, {}});
+
+    PropertyDescriptor placeholder;
+    placeholder.name = "placeholder_text";
+    placeholder.kind = BindingValueKind::text;
+    placeholder.category = "Appearance";
+    placeholder.description = "The hint the box shows while it is empty.";
+    placeholder.default_value = BindingValue{std::string{}};
+    placeholder.invalidation_effects = Dirty::paint | Dirty::semantics;
+    placeholder.bindable = false;
+    define_bindable_property({
+        std::move(placeholder),
+        detail::BindingMemberGetter<TextBox, std::string>(*this, &TextBox::placeholder_),
+        detail::DirectPropertySetter<TextBox, std::string>(*this, &TextBox::set_placeholder_text), {}, {}, {}});
 }
 
 TextBox::~TextBox() {

@@ -96,6 +96,9 @@ TypographySpecimen::TypographySpecimen(StableId stable_id, std::string text)
     font.kind = BindingValueKind::font;
     font.category = "Appearance";
     font.description = "The FontSpec the run is committed with.";
+    // The specimen shows this font: it is content, which a form document
+    // may set, not presentation the project theme gives.
+    font.content_value = true;
     font.default_value = BindingValue{FontSpec{}};
     font.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
     font.bindable = false;

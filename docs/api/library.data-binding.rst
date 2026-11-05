@@ -673,6 +673,10 @@ Types
 
       ``kind`` is the non-null payload kind. A nullable property may hold the ordinary BindingValue monostate without weakening that declared schema.
 
+   .. cpp:member:: bool content_value
+
+      Whether the value is the control's content although its kind is a presentation kind (colour, font): a typography specimen's font is what it shows. A form document may set such a property; it refuses other colour and font properties (form_presentation_property) and leaves them to the project theme (owner ruling of 2026-11-04).
+
    .. cpp:member:: std::shared_ptr<const PropertyEnumDescriptor> enumeration
 
    .. cpp:member:: std::vector<BindingValue> standard_values

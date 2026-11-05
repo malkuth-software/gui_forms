@@ -12,7 +12,7 @@ typed records (`(*bar).parts().thumb`) and registers handlers through each type'
 (`(*button).clicked()`). An interaction's payload is the handler's argument types; *by
 reference* marks a payload the handler receives by mutable reference.
 
-Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `cursor`, `dock`, `enabled`, `fore_color`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
+Every control also has these properties: `accessible_description`, `accessible_name`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `fore_color`, `hit_test_transparent`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
 Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `focus_observed`, `arranged_bounds_changed`, `help_requested`.
 
@@ -207,7 +207,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`, `read_only`, `invalid`, `pending`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `text` (text).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `multiline` (boolean), `placeholder_text` (text), `read_only` (boolean), `text` (text).
 
 | Interaction | Payload |
 |---|---|
@@ -1054,7 +1054,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `hot`, `pressed`, `checked`, `indeterminate`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `check_state` (enumeration), `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
+Properties beyond every control's: `check_state` (enumeration), `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration), `three_state` (boolean).
 
 | Interaction | Payload |
 |---|---|
@@ -1077,7 +1077,7 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 
 States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
 
-Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
+Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|
