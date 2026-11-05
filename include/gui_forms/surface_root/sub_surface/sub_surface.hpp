@@ -122,6 +122,23 @@ enum class SubSurfaceInputKind : std::uint8_t {
     // The host lost keyboard focus or its window was deactivated: the
     // sub-surface becomes inactive and keeps its focused control.
     focus_leave,
+    // An assistive technology acted on one of the sub-surface's semantic
+    // nodes through the parent window (design note section 5, decision 5:
+    // actions are posted, never performed across the threads).
+    semantic_action,
+};
+
+// A semantic action for a node of the sub-surface's own tree, named as a
+// host names a node to SurfaceRoot::perform_semantic_action: the runtime
+// identity of a control of the sub-surface and, for one of its virtual
+// children, that child's stable identity (empty for the control's own
+// node). Runtime identities are never reused, so an action for a control
+// the sub-surface has since replaced is refused there.
+struct SubSurfaceSemanticAction final {
+    RuntimeId control{};
+    std::string virtual_child{};
+    SemanticAction action{SemanticAction::focus};
+    std::string value{};
 };
 
 // One input event forwarded from the host to the sub-surface's thread
@@ -133,6 +150,7 @@ struct SubSurfaceInput final {
     KeyEvent key{};
     TextInputEvent text{};
     SubSurfaceFocusEntry focus_entry{SubSurfaceFocusEntry::restore};
+    SubSurfaceSemanticAction semantic{};
 };
 
 // Where a sub-surface returns the key events its tree left unhandled
@@ -218,6 +236,17 @@ public:
     virtual void receive_revoke(std::uint64_t id) = 0;
 };
 
+// Told that a sub-surface published a new semantic snapshot (design note
+// section 5). Called on the parent's thread only, through the parent's
+// dispatcher; one notice stands for every snapshot published until the
+// parent takes the newest (SubSurfaceThread::take_semantics). A target the
+// parent has released receives nothing.
+class SubSurfaceSemanticsListener {
+public:
+    virtual ~SubSurfaceSemanticsListener() = default;
+    virtual void sub_surface_semantics_changed() = 0;
+};
+
 // Where a sub-surface is in its life, as its parent last saw it.
 enum class SubSurfaceState : std::uint8_t {
     // The thread is building the content's tree.
@@ -275,6 +304,12 @@ struct SubSurfaceStatistics final {
     std::uint64_t requests_revoked{};
     std::uint64_t outcomes_received{};
     std::uint64_t outcomes_stale{};
+    // Accessibility (design note section 5): semantic snapshots published
+    // (one per turn in which the tree's semantic generation moved), and the
+    // posted semantic actions the tree performed and refused.
+    std::uint64_t semantic_snapshots_published{};
+    std::uint64_t semantic_actions_performed{};
+    std::uint64_t semantic_actions_refused{};
 };
 
 // A SurfaceRoot whose output is a LiveSurface and whose host is a control of
@@ -378,6 +413,15 @@ public:
     // flush (an answer to request_tool_tip goes on to that request's
     // answer target). Discarded after stop() or a failure.
     void post_request_outcome(const SurfaceRequestOutcome& outcome);
+    // Where semantic snapshot notices go: posted through `parent` to
+    // `target`, held weakly, as set_key_return. Replaces any earlier target.
+    void set_semantics_listener(WindowDispatcher parent, std::weak_ptr<SubSurfaceSemanticsListener> target);
+    // The newest semantic snapshot the sub-surface published (design note
+    // section 5: an immutable snapshot, shared and never mutated across the
+    // threads; its nodes are in the sub-surface's own coordinates and
+    // runtime identities); null before the first. Taking it re-arms the
+    // notice: the next publication posts a new one.
+    [[nodiscard]] std::shared_ptr<const SemanticSnapshot> take_semantics();
     // Revokes the sub-surface (it publishes no frame from now on), asks its
     // loop to stop, and joins the thread: the loop finishes its current
     // flush, releases its tree on its own thread and exits (design note

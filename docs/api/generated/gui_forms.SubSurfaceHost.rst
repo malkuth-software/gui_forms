@@ -145,6 +145,14 @@ gui_forms::SubSurfaceHost
 
       A pane of its own, named by the accessible name ("Sub-surface" without one), whose default action focuses it: the host is the tab stop through which focus enters the sub-surface. The sub-surface's tree publishes its nodes in its own root, not under this one.
 
+   .. cpp:function:: std::vector<SemanticNode> semantic_virtual_children() const override
+
+      The sub-surface's newest semantic snapshot taken by the host, translated into the window (see the class comment); empty before the first and while no sub-surface runs.
+
+   .. cpp:function:: bool on_semantic_child_action(std::string_view stable_id, SemanticAction action, std::string_view value) override
+
+      Posts the action to the sub-surface when ``stable_id`` names one of the nodes semantic_virtual_children publishes and that node offers it (focus: a focusable node). True when posted; the sub-surface performs or refuses it on its own thread (SubSurfaceStatistics).
+
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*

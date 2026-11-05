@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <cmath>
@@ -39,6 +40,57 @@ constexpr std::string_view request_item_prefix = "sub-surface-request.";
     const std::from_chars_result parsed = std::from_chars(digits.data(), digits.data() + digits.size(), id);
     if (parsed.ec != std::errc{} || parsed.ptr != digits.data() + digits.size()) return 0U;
     return id;
+}
+
+// Translates the sub-surface's nodes into the window, in place (the class
+// comment of SubSurfaceHost): `prefix` is the host's stable identity and a
+// '.', `offset` the host's position in the window, `keep_focus` whether the
+// sub-surface has keyboard focus.
+void translate_sub_surface_nodes(std::vector<SemanticNode>& nodes, const std::string& prefix, Point offset,
+                                 bool keep_focus) {
+    for (SemanticNode& node : nodes) {
+        std::string identity = prefix;
+        identity.back() = '#';
+        identity += std::to_string(node.runtime_id);
+        node.runtime_id = virtual_semantic_runtime_id(identity);
+        node.stable_id.insert(0U, prefix);
+        if (!node.controlled_panel.empty()) node.controlled_panel.insert(0U, prefix);
+        node.bounds.x += offset.x;
+        node.bounds.y += offset.y;
+        if (!keep_focus) {
+            const std::uint32_t focused_bit = static_cast<std::uint32_t>(SemanticState::focused);
+            node.states = static_cast<SemanticState>(static_cast<std::uint32_t>(node.states) & ~focused_bit);
+        }
+        translate_sub_surface_nodes(node.children, prefix, offset, keep_focus);
+    }
+}
+
+// Where an action for one translated node goes in the sub-surface.
+struct SubSurfaceNodeTarget final {
+    const SemanticNode* node{};
+    // The node's control, or the nearest control above a virtual child.
+    RuntimeId control{};
+    // The virtual child's stable identity; empty for a control's own node.
+    std::string_view virtual_child{};
+};
+
+// Finds the node of the sub-surface's own snapshot whose stable identity is
+// `inner`, depth first in publication order, under the control `owner`.
+// False when there is none.
+bool find_sub_surface_node(const std::vector<SemanticNode>& nodes, std::string_view inner, RuntimeId owner,
+                           SubSurfaceNodeTarget& found) {
+    for (const SemanticNode& node : nodes) {
+        const bool virtual_node = is_virtual_semantic_runtime_id(node.runtime_id);
+        const RuntimeId control = virtual_node ? owner : RuntimeId{node.runtime_id};
+        if (node.stable_id == inner) {
+            found.node = &node;
+            found.control = control;
+            found.virtual_child = virtual_node ? std::string_view(node.stable_id) : std::string_view{};
+            return true;
+        }
+        if (find_sub_surface_node(node.children, inner, control, found)) return true;
+    }
+    return false;
 }
 
 } // namespace
@@ -92,6 +144,21 @@ private:
     SubSurfaceHost* host_{};
 };
 
+class SubSurfaceHost::SemanticsNotice final : public SubSurfaceSemanticsListener {
+public:
+    explicit SemanticsNotice(SubSurfaceHost& host) noexcept : host_(&host) {}
+    void sub_surface_semantics_changed() override {
+        if (host_ == nullptr) return;
+        (*host_).take_sub_surface_semantics();
+    }
+    // The host stopped this target's thread or is going away.
+    void revoke() noexcept { host_ = nullptr; }
+
+private:
+    // Observes the host that owns this object; null once revoked.
+    SubSurfaceHost* host_{};
+};
+
 SubSurfaceHost::SubSurfaceHost(StableId stable_id)
     : Control(std::move(stable_id)) {
     set_focusable(true);
@@ -106,6 +173,7 @@ SubSurfaceHost::~SubSurfaceHost() {
 void SubSurfaceHost::set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque) {
     require_mutable();
     const bool had_requests = !requests_.empty();
+    const bool had_semantics = static_cast<bool>(semantics_);
     stop_thread();
     // A tooltip the old content asked for closes.
     SurfaceRoot* const root = attached_surface_root();
@@ -115,7 +183,7 @@ void SubSurfaceHost::set_content(std::unique_ptr<SubSurfaceContent> content, boo
     redraw_requested_ = false;
     pending_update_.reset();
     configure_region();
-    invalidate(Dirty::paint);
+    invalidate(had_semantics ? Dirty::paint | Dirty::semantics : Dirty::paint);
 }
 
 std::uint64_t SubSurfaceHost::redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update) {
@@ -203,6 +271,58 @@ SemanticDescriptor SubSurfaceHost::semantic_descriptor() const {
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;
+}
+
+std::vector<SemanticNode> SubSurfaceHost::semantic_virtual_children() const {
+    if (!semantics_) return {};
+    std::vector<SemanticNode> nodes = (*semantics_).roots;
+    std::string prefix(stable_id().value());
+    prefix += '.';
+    const Rect bounds = absolute_bounds();
+    translate_sub_surface_nodes(nodes, prefix, Point{bounds.x, bounds.y}, keyboard_inside_);
+    return nodes;
+}
+
+bool SubSurfaceHost::on_semantic_child_action(std::string_view stable_id_text, SemanticAction action,
+                                              std::string_view value) {
+    if (!semantics_ || !thread_) return false;
+    const std::string_view own = stable_id().value();
+    const bool prefixed = stable_id_text.size() > own.size() + 1U && stable_id_text.substr(0U, own.size()) == own &&
+                          stable_id_text[own.size()] == '.';
+    if (!prefixed) return false;
+    const std::string_view inner = stable_id_text.substr(own.size() + 1U);
+    SubSurfaceNodeTarget target;
+    if (!find_sub_surface_node((*semantics_).roots, inner, RuntimeId{}, target) || target.control.value == 0U) {
+        return false;
+    }
+    const SemanticNode& node = *target.node;
+    const bool offered = std::find(node.actions.begin(), node.actions.end(), action) != node.actions.end();
+    const bool focusable = action == SemanticAction::focus && has_semantic_state(node.states, SemanticState::focusable);
+    if (!offered && !focusable) return false;
+    SubSurfaceInput input;
+    input.kind = SubSurfaceInputKind::semantic_action;
+    input.semantic.control = target.control;
+    input.semantic.virtual_child = std::string(target.virtual_child);
+    input.semantic.action = action;
+    input.semantic.value = std::string(value);
+    const std::uint64_t sequence = (*thread_).post_input(input);
+    if (sequence == 0U) return false;
+    // Keyboard focus enters the sub-surface through the host. The entry is
+    // posted after the action and restores the control focused then, which
+    // is the one the action focused.
+    if (action == SemanticAction::focus) {
+        SurfaceRoot* const root = attached_surface_root();
+        if (root != nullptr) static_cast<void>((*root).request_focus(shared_from_this()));
+    }
+    return true;
+}
+
+void SubSurfaceHost::take_sub_surface_semantics() {
+    if (!thread_) return;
+    std::shared_ptr<const SemanticSnapshot> taken = (*thread_).take_semantics();
+    if (taken == semantics_) return;
+    semantics_ = std::move(taken);
+    invalidate(Dirty::semantics);
 }
 
 const ControlAnatomy& SubSurfaceHost::anatomy() const noexcept {
@@ -367,6 +487,8 @@ void SubSurfaceHost::update_keyboard_focus(SubSurfaceFocusEntry entry) {
     }
     if (inside == keyboard_inside_) return;
     keyboard_inside_ = inside;
+    // The sub-surface's nodes are focused only while it has keyboard focus.
+    if (semantics_) invalidate(Dirty::semantics);
     SubSurfaceInput input;
     input.kind = inside ? SubSurfaceInputKind::focus_enter : SubSurfaceInputKind::focus_leave;
     input.focus_entry = entry;
@@ -604,6 +726,8 @@ void SubSurfaceHost::configure_region() {
         (*thread_).set_request_target((*window).dispatcher(), request_target_);
         pointer_left_sequence_ = 0U;
         focus_left_sequence_ = 0U;
+        semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
+        (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
         keyboard_inside_ = false;
         update_keyboard_focus(SubSurfaceFocusEntry::restore);
     }
@@ -659,6 +783,11 @@ void SubSurfaceHost::stop_thread() noexcept {
         if (root != nullptr) (*root).withdraw_alert(alert.raised);
     }
     alerts_.clear();
+    // Snapshot notices already posted find the target revoked; the nodes go
+    // with the thread.
+    (*semantics_notice_).revoke();
+    semantics_notice_.reset();
+    semantics_.reset();
     keyboard_inside_ = false;
     pressed_buttons_ = 0U;
     took_capture_ = false;

@@ -65,6 +65,10 @@ Related types
      - Counters of a host's side of its sub-surface's requests (design note section 15).
    * - :cpp:class:`SubSurfaceRequestTarget <gui_forms::SubSurfaceRequestTarget>`
      - Where a sub-surface's requests go: called on the parent's thread only, through the parent's dispatcher, in the order the sub-surface posted.
+   * - :cpp:class:`SubSurfaceSemanticAction <gui_forms::SubSurfaceSemanticAction>`
+     - A semantic action for a node of the sub-surface's own tree, named as a host names a node to SurfaceRoot::perform_semantic_action: the runtime identity of a control of the sub-surface and, for one of its virtual children, that child's stable identity (empty for the control's own node).
+   * - :cpp:class:`SubSurfaceSemanticsListener <gui_forms::SubSurfaceSemanticsListener>`
+     - Told that a sub-surface published a new semantic snapshot (design note section 5).
    * - :cpp:class:`SubSurfaceStatistics <gui_forms::SubSurfaceStatistics>`
      - Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
    * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
@@ -291,6 +295,8 @@ Related types
 
       Default: ``{SubSurfaceFocusEntry::restore}``.
 
+   .. cpp:member:: SubSurfaceSemanticAction semantic
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: SubSurfaceKeyReturn
@@ -413,6 +419,37 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SubSurfaceSemanticAction final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   A semantic action for a node of the sub-surface's own tree, named as a host names a node to SurfaceRoot::perform_semantic_action: the runtime identity of a control of the sub-surface and, for one of its virtual children, that child's stable identity (empty for the control's own node). Runtime identities are never reused, so an action for a control the sub-surface has since replaced is refused there.
+
+   .. cpp:member:: RuntimeId control
+
+   .. cpp:member:: std::string virtual_child
+
+   .. cpp:member:: SemanticAction action
+
+      Default: ``{SemanticAction::focus}``.
+
+   .. cpp:member:: std::string value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceSemanticsListener
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   Told that a sub-surface published a new semantic snapshot (design note section 5). Called on the parent's thread only, through the parent's dispatcher; one notice stands for every snapshot published until the parent takes the newest (SubSurfaceThread::take_semantics). A target the parent has released receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void sub_surface_semantics_changed() = 0
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SubSurfaceStatistics final
 
    ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
@@ -477,6 +514,14 @@ Related types
 
    .. cpp:member:: std::uint64_t outcomes_stale
 
+   .. cpp:member:: std::uint64_t semantic_snapshots_published
+
+      Accessibility (design note section 5): semantic snapshots published (one per turn in which the tree's semantic generation moved), and the posted semantic actions the tree performed and refused.
+
+   .. cpp:member:: std::uint64_t semantic_actions_performed
+
+   .. cpp:member:: std::uint64_t semantic_actions_refused
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: SubSurfaceThread final
@@ -526,6 +571,10 @@ Related types
 
       Queues the parent's answer to a request and wakes the sub-surface, which hands it to its tooltip route after its input, before its flush (an answer to request_tool_tip goes on to that request's answer target). Discarded after stop() or a failure.
 
+   .. cpp:function:: std::shared_ptr<const SemanticSnapshot> take_semantics()
+
+      The newest semantic snapshot the sub-surface published (design note section 5: an immutable snapshot, shared and never mutated across the threads; its nodes are in the sub-surface's own coordinates and runtime identities); null before the first. Taking it re-arms the notice: the next publication posts a new one.
+
    .. cpp:function:: void stop() noexcept
 
       Revokes the sub-surface (it publishes no frame from now on), asks its loop to stop, and joins the thread: the loop finishes its current flush, releases its tree on its own thread and exits (design note section 9). Idempotent.
@@ -537,6 +586,10 @@ Related types
    .. cpp:function:: void set_request_target(WindowDispatcher parent, std::weak_ptr<SubSurfaceRequestTarget> target)
 
       Where requests go (design note section 15): posted through ``parent`` to ``target``, held weakly. Replaces any earlier target; an empty one receives nothing and the sub-surface posts nothing.
+
+   .. cpp:function:: void set_semantics_listener(WindowDispatcher parent, std::weak_ptr<SubSurfaceSemanticsListener> target)
+
+      Where semantic snapshot notices go: posted through ``parent`` to ``target``, held weakly, as set_key_return. Replaces any earlier target.
 
 Enumerations
 ------------
@@ -568,6 +621,8 @@ Enumerations
    .. cpp:enumerator:: focus_enter
 
    .. cpp:enumerator:: focus_leave
+
+   .. cpp:enumerator:: semantic_action
 
 .. cpp:namespace:: gui_forms
 

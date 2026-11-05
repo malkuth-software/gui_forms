@@ -46,6 +46,14 @@ struct SubSurfaceChannel final {
     // The parent's answers not yet handed to the tree, in posting order;
     // swapped whole into the loop as the input is.
     std::vector<SurfaceRequestOutcome> outcomes{};
+    // Where semantic snapshot notices go (SubSurfaceThread::set_semantics_listener),
+    // the newest snapshot published, and whether a notice is posted and not
+    // yet answered by take_semantics (one notice stands for every
+    // publication until then).
+    WindowDispatcher semantics_dispatcher{};
+    std::weak_ptr<SubSurfaceSemanticsListener> semantics_listener{};
+    std::shared_ptr<const SemanticSnapshot> semantics{};
+    bool semantics_notice_pending{};
     // The newest text input caret, in the sub-surface's coordinates.
     std::optional<Rect> text_input_caret{};
     bool stop_requested{};
