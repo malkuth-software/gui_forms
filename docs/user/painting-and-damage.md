@@ -157,6 +157,12 @@ newest wins). Work for the sub-surface is posted through
 leaves its window the thread is stopped and joined, and the tree is released
 on its own thread.
 
+A sub-surface shows the window's environment: the application theme, the
+presentation settings (with reduced motion) and a layered user theme. Its
+themed parts, motion values and ambient effects run on its own thread, and
+ambient frames tick on the display time its pacer names. An effect reading
+the backdrop samples the sub-surface's own backplane, never the window's.
+
 ### Pacing producers
 
 A producer paces itself with a `LiveSurfacePacer`, never with a sleep loop.

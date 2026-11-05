@@ -463,8 +463,9 @@ bool EffectInstance::note_pointer(const PointerEvent& event, Point part_origin) 
 
 std::shared_ptr<const PartRaster> EffectInstance::sample_backdrop(Painter& painter, const Control& host,
                                                                  Rect layer, double scale) {
-    // The window is the host's surface root (Window derives from SurfaceRoot).
-    SurfaceRoot* const root = host.attached_window();
+    // The host's own surface root: a window, or a sub-surface, which samples
+    // within its own surface (design note section 14).
+    SurfaceRoot* const root = host.attached_surface_root();
     if (root == nullptr) return {};
     const SurfaceRoot::EnginePaintPlace place = (*root).engine_paint_place(host, painter);
     // A part recorded in the backplane plane would sample itself.

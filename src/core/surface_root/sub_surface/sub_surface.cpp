@@ -187,9 +187,11 @@ class SubSurfaceLoop final {
 public:
     SubSurfaceLoop(std::shared_ptr<detail::SubSurfaceChannel> channel,
                    std::unique_ptr<SubSurfaceContent> content, std::shared_ptr<LiveSurface> surface,
-                   std::shared_ptr<const Theme> theme, std::unique_ptr<PaintFramebuffer> text_measure) noexcept
+                   std::shared_ptr<const Theme> theme, std::shared_ptr<const Theme> user_theme,
+                   std::unique_ptr<PaintFramebuffer> text_measure) noexcept
         : channel_(std::move(channel)), content_(std::move(content)), surface_(std::move(surface)),
-          theme_(std::move(theme)), text_measure_(std::move(text_measure)), pacer_(surface_) {}
+          theme_(std::move(theme)), user_theme_(std::move(user_theme)), text_measure_(std::move(text_measure)),
+          pacer_(surface_) {}
 
     // The thread's entry. Owns the loop and destroys it before returning, so
     // the content, its controls and both framebuffers die on this thread.
@@ -218,6 +220,8 @@ private:
     std::unique_ptr<SubSurfaceContent> content_;
     std::shared_ptr<LiveSurface> surface_;
     std::shared_ptr<const Theme> theme_;
+    // The parent's layered user theme, or null; immutable and shared.
+    std::shared_ptr<const Theme> user_theme_;
     std::unique_ptr<PaintFramebuffer> text_measure_;
     std::unique_ptr<PaintFramebuffer> framebuffer_{};
     std::uint64_t content_epoch_{};
@@ -237,6 +241,8 @@ private:
     // until the window showed the last one, or one and a half refreshes.
     LiveSurfacePacer pacer_;
     std::optional<FrameTime> pacing_wake_{};
+    // The display time the frame schedule was last polled at.
+    FrameTime motion_time_{};
     // The input wait() took from the channel; empty between turns.
     std::vector<detail::SubSurfaceInputRecord> inputs_{};
     std::vector<SurfaceRequestOutcome> outcomes_{};
@@ -266,6 +272,8 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
 
 void SubSurfaceLoop::run_tree() {
     std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    // A user theme is chosen before the first root shares the resources.
+    if (user_theme_) (*resources).set_user_theme(user_theme_);
     (*resources).set_theme(theme_);
     Control::Ptr built = (*content_).build_root();
     if (!built) {
@@ -299,7 +307,13 @@ void SubSurfaceLoop::run_tree() {
             const std::lock_guard<std::mutex> lock((*channel_).mutex);
             (*channel_).signalled = true;
         }
-        static_cast<void>(root.poll_frame_schedule(FrameClock::now()));
+        // Motion ticks on display time (design note section 8): the
+        // vertical blank the next frame would be shown at, never earlier
+        // than the last one used (a host that re-arms its clock may move
+        // the phase back).
+        const FrameTime shown = pacer_.display_time(FrameClock::now());
+        if (shown > motion_time_) motion_time_ = shown;
+        static_cast<void>(root.poll_frame_schedule(motion_time_));
         root.flush();
         // After the flush, so the things are measured in the new
         // configuration.
@@ -534,13 +548,19 @@ void SubSurfaceLoop::publish() {
 SubSurfaceThread::SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content,
                                    std::shared_ptr<LiveSurface> surface,
                                    std::shared_ptr<const Theme> theme,
-                                   std::unique_ptr<PaintFramebuffer> text_measure)
+                                   std::unique_ptr<PaintFramebuffer> text_measure,
+                                   std::shared_ptr<const Theme> layered_user_theme)
     : channel_(std::make_shared<detail::SubSurfaceChannel>()) {
     if (!content || !surface || !theme) {
         throw std::invalid_argument("GUI.Forms sub-surface requires content, a LiveSurface and a theme");
     }
+    // Checked here, so the thread's set_user_theme cannot refuse it.
+    if (layered_user_theme && (*layered_user_theme).definition().rule_set != ThemeRuleSet::user) {
+        throw std::invalid_argument("a sub-surface's layered user theme is compiled as a user theme");
+    }
     std::unique_ptr<detail::SubSurfaceLoop> loop = std::make_unique<detail::SubSurfaceLoop>(
-        channel_, std::move(content), std::move(surface), std::move(theme), std::move(text_measure));
+        channel_, std::move(content), std::move(surface), std::move(theme), std::move(layered_user_theme),
+        std::move(text_measure));
     thread_ = std::thread(&detail::SubSurfaceLoop::run, std::move(loop));
 }
 

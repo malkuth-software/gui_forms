@@ -501,8 +501,14 @@ void SubSurfaceHost::configure_region() {
         if (!surface) return;
         std::unique_ptr<PaintFramebuffer> text_measure = (*window).create_framebuffer(Size{1.0, 1.0}, scale);
         const std::shared_ptr<ApplicationResources> start_resources = (*window).resources();
-        thread_ = std::make_unique<SubSurfaceThread>(std::move(content_), surface,
-                                                     (*start_resources).theme_ptr(), std::move(text_measure));
+        // The parent's user theme: layered, it is layered there too; replacing,
+        // it is theme_ptr() already.
+        std::shared_ptr<const Theme> layered_user_theme{};
+        if ((*start_resources).user_theme_policy() == UserThemePolicy::layered) {
+            layered_user_theme = (*start_resources).user_theme_ptr();
+        }
+        thread_ = std::make_unique<SubSurfaceThread>(std::move(content_), surface, (*start_resources).theme_ptr(),
+                                                     std::move(text_measure), std::move(layered_user_theme));
         surface_ = std::move(surface);
         key_return_ = std::make_shared<KeyReturn>(*this);
         (*thread_).set_key_return((*window).dispatcher(), key_return_);

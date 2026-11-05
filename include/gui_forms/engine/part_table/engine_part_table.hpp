@@ -142,7 +142,7 @@ struct AssembledPartMaterial final {
     SurfaceMaterial material{};
 };
 
-class Window;
+class SurfaceRoot;
 
 // One property's transition on a part (E7): an engine property or the
 // parameter at `parameter`, the machine and the state of it the part was
@@ -169,7 +169,7 @@ struct PartTransitionChannel final {
 // with its control, which releases the values from the clock.
 class PartMotion final {
 public:
-    PartMotion(Window& window, PartRecordHandle record) noexcept;
+    PartMotion(SurfaceRoot& window, PartRecordHandle record) noexcept;
     PartMotion(const PartMotion&) = delete;
     PartMotion& operator=(const PartMotion&) = delete;
 
@@ -182,7 +182,7 @@ public:
 
 private:
     // Observed: the window owns the table that owns this record.
-    Window* window_;
+    SurfaceRoot* window_;
     PartRecordHandle record_;
 };
 

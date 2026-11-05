@@ -50,6 +50,17 @@ private:
 LiveSurfacePacer::LiveSurfacePacer(std::shared_ptr<LiveSurface> surface) noexcept
     : surface_(std::move(surface)) {}
 
+FrameTime LiveSurfacePacer::display_time(FrameTime now) const {
+    if (!surface_ || !(*surface_).state_) return now;
+    detail::LiveSurfaceState& state = *(*surface_).state_;
+    const std::scoped_lock lock(state.mutex);
+    const LiveDisplayTiming timing = state.presentation_record.timing;
+    const FrameInterval period =
+        timing.refresh_period > FrameInterval::zero() ? timing.refresh_period : fallback_refresh_period;
+    const FrameTime shown = next_vblank(now, timing, period);
+    return shown;
+}
+
 LivePacingResult LiveSurfacePacer::plan(FrameTime now) {
     if (!surface_ || !(*surface_).state_) {
         LivePacingResult result;

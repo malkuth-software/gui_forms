@@ -1,12 +1,13 @@
 // Stage S2.2: a SubSurface built, laid out and painted on its own thread,
 // publishing into a LiveSurface its SubSurfaceHost composes (threaded
 // sub-surfaces design note sections 2, 6, 7 and 9), stage S3, input and
-// focus forwarding (section 4), and S3.3, tooltips asked of the parent
-// (section 15).
+// focus forwarding (section 4), S3.3, tooltips asked of the parent
+// (section 15), and S4, effects on a sub-surface (section 14).
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
+#include "support/theme_definition_heap.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -14,6 +15,7 @@
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -1117,6 +1119,264 @@ void sub_surface_forwards_tool_tip_requests() {
     static_cast<void>((*root).remove_child((*host).runtime_id()));
 }
 
+// Stage S4: effects on a sub-surface (design note section 14).
+
+// What an ambient control on a sub-surface saw, written on its thread.
+struct AmbientLog final {
+    std::mutex mutex;
+    std::vector<FrameTime> ticks;
+    // Paints while ambient motion was suppressed: the still pose.
+    std::uint64_t still_paints{};
+};
+
+// Enlists itself on its root's motion clock whenever it paints, as a
+// control hosting an effect program does, and records each frame's time.
+class AmbientProbe final : public Control {
+public:
+    AmbientProbe(StableId stable_id, std::shared_ptr<AmbientLog> log)
+        : Control(std::move(stable_id)), log_(std::move(log)) {}
+    void on_paint(Painter& painter, Rect local_damage) override {
+        Control::on_paint(painter, local_damage);
+        painted_ = true;
+        SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return;
+        MotionClock& clock = (*root).motion_clock();
+        if (clock.ambient_suppressed()) {
+            const std::lock_guard<std::mutex> lock((*log_).mutex);
+            ++(*log_).still_paints;
+            return;
+        }
+        static_cast<void>(clock.enlist_control_ambient(*this, std::chrono::milliseconds(4)));
+    }
+    bool on_ambient_frame(FrameTime now) override {
+        const bool shown = painted_;
+        painted_ = false;
+        {
+            const std::lock_guard<std::mutex> lock((*log_).mutex);
+            (*log_).ticks.push_back(now);
+        }
+        invalidate(Dirty::paint);
+        return shown;
+    }
+
+private:
+    std::shared_ptr<AmbientLog> log_;
+    bool painted_{};
+};
+
+class AmbientContent final : public SubSurfaceContent {
+public:
+    explicit AmbientContent(std::shared_ptr<AmbientLog> log) : log_(std::move(log)) {}
+    Control::Ptr build_root() override {
+        return std::make_shared<AmbientProbe>(StableId("ambient.probe"), log_);
+    }
+
+private:
+    std::shared_ptr<AmbientLog> log_;
+};
+
+[[nodiscard]] std::size_t ticks_of(AmbientLog& log) {
+    const std::lock_guard<std::mutex> lock(log.mutex);
+    return log.ticks.size();
+}
+
+[[nodiscard]] bool wait_for_ticks(AmbientLog& log, std::size_t ticks) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (ticks_of(log) >= ticks) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// Measurement M3's test: the UI thread blocks for 200 ms and the
+// sub-surface's ambient control keeps ticking; once the window reports
+// display timing, the ticks fall on its vertical blanks; reduced motion
+// from the window stills it (it paints its still pose and stops ticking),
+// and turning it off resumes the ticks.
+void ambient_effect_ticks_off_the_ui_thread() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("ambient.window"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("ambient.host"));
+    (*host).set_requested_bounds(Rect{10.0, 10.0, 60.0, 30.0});
+    std::shared_ptr<AmbientLog> log = std::make_shared<AmbientLog>();
+    (*host).set_content(std::make_unique<AmbientContent>(log), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require(wait_for_ticks(*log, 3U), "the ambient control ticks on the sub-surface");
+
+    // The UI thread blocks; the sub-surface goes on.
+    const std::size_t before_block = ticks_of(*log);
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    require(ticks_of(*log) >= before_block + 3U, "ticks continue while the UI thread is blocked");
+
+    // Display timing: a 10 ms refresh phased at `phase`. Later ticks are on
+    // its vertical blanks.
+    const std::shared_ptr<LiveSurface> surface = (*host).live_surface();
+    LiveDisplayTiming timing;
+    timing.refresh_period = std::chrono::duration_cast<FrameInterval>(std::chrono::milliseconds(10));
+    timing.last_vblank = FrameClock::now();
+    timing.source = LiveTimingSource::display_phased;
+    (*surface).notify_presented((*surface).snapshot().published_generation, timing);
+    const std::size_t after_timing = ticks_of(*log) + 2U;
+    require(wait_for_ticks(*log, after_timing + 3U), "ticks continue with display timing");
+    {
+        const std::lock_guard<std::mutex> lock((*log).mutex);
+        for (std::size_t index = after_timing; index < (*log).ticks.size(); ++index) {
+            const FrameInterval offset = (*log).ticks[index] - timing.last_vblank;
+            require(offset.count() >= 0 && offset % timing.refresh_period == FrameInterval::zero(),
+                    "an ambient frame's time is a vertical blank of the window's display");
+        }
+    }
+
+    // Reduced motion: still pose, no more ticks.
+    PresentationSettings settings = window.presentation_settings();
+    settings.reduced_motion = true;
+    window.set_presentation_settings(settings);
+    window.flush();
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    bool stilled = false;
+    while (!stilled && std::chrono::steady_clock::now() < limit) {
+        {
+            const std::lock_guard<std::mutex> lock((*log).mutex);
+            stilled = (*log).still_paints > 0U;
+        }
+        if (!stilled) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(stilled, "reduced motion paints the still pose on the sub-surface");
+    const std::size_t stilled_ticks = ticks_of(*log);
+    std::this_thread::sleep_for(std::chrono::milliseconds(60));
+    require(ticks_of(*log) == stilled_ticks, "no ambient frame runs while motion is reduced");
+
+    // Motion back: the ticks resume.
+    settings.reduced_motion = false;
+    window.set_presentation_settings(settings);
+    window.flush();
+    require(wait_for_ticks(*log, stilled_ticks + 3U), "turning reduced motion off resumes the ticks");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+}
+
+// What a sub-surface's control saw of its root's environment, written on
+// the sub-surface's thread.
+struct EnvironmentLog final {
+    std::mutex mutex;
+    // The root's user theme rules at the first paint (an address compared,
+    // never followed, on the test's thread).
+    std::uintptr_t user_rules{};
+    bool painted{};
+    // MetricsSnapshot::engine_input_changes at the last pointer move.
+    std::uint64_t engine_input_changes{};
+    std::uint64_t pointer_moves{};
+};
+
+class EnvironmentProbe final : public Control {
+public:
+    EnvironmentProbe(StableId stable_id, std::shared_ptr<EnvironmentLog> log)
+        : Control(std::move(stable_id)), log_(std::move(log)) {}
+    void on_paint(Painter& painter, Rect local_damage) override {
+        Control::on_paint(painter, local_damage);
+        const SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return;
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        if ((*log_).painted) return;
+        (*log_).painted = true;
+        (*log_).user_rules = reinterpret_cast<std::uintptr_t>((*root).user_theme_rules());
+    }
+    void on_pointer(PointerEvent& event) override {
+        Control::on_pointer(event);
+        if (event.action != PointerAction::move) return;
+        const SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return;
+        // The root noted the position for its engine parts before routing.
+        const std::uint64_t changes = (*root).metrics_snapshot().engine_input_changes;
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        (*log_).engine_input_changes = changes;
+        ++(*log_).pointer_moves;
+    }
+
+private:
+    std::shared_ptr<EnvironmentLog> log_;
+};
+
+class EnvironmentContent final : public SubSurfaceContent {
+public:
+    explicit EnvironmentContent(std::shared_ptr<EnvironmentLog> log) : log_(std::move(log)) {}
+    Control::Ptr build_root() override {
+        return std::make_shared<EnvironmentProbe>(StableId("environment.probe"), log_);
+    }
+
+private:
+    std::shared_ptr<EnvironmentLog> log_;
+};
+
+[[nodiscard]] std::shared_ptr<const Theme> user_theme_of_test() {
+    std::unique_ptr<ThemeDefinition> definition = test_support::professional_definition();
+    (*definition).rule_set = ThemeRuleSet::user;
+    std::shared_ptr<const Theme> theme = Theme::create(*definition);
+    return theme;
+}
+
+// Gap 3: the window's layered user theme is the sub-surface's, the same
+// immutable theme and so the same rules. Gap 5: pointer input the window
+// forwards reaches the sub-surface's engine inputs (the position its
+// themed parts' expressions read).
+void user_theme_and_engine_input_reach_the_sub_surface() {
+    const std::shared_ptr<const Theme> user = user_theme_of_test();
+    const std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    (*resources).set_user_theme(user);
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("environment.window"));
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("environment.host"));
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    std::shared_ptr<EnvironmentLog> log = std::make_shared<EnvironmentLog>();
+    (*host).set_content(std::make_unique<EnvironmentContent>(log), true);
+    (*root).add_child(host);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0}, resources);
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require(wait_for_content_tag(*(*host).live_surface(), 1U), "the sub-surface is configured");
+    const std::chrono::steady_clock::time_point painted_limit = std::chrono::steady_clock::now() + wait_limit;
+    bool painted = false;
+    while (!painted && std::chrono::steady_clock::now() < painted_limit) {
+        {
+            const std::lock_guard<std::mutex> lock((*log).mutex);
+            painted = (*log).painted;
+        }
+        if (!painted) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(painted, "the sub-surface's control paints");
+    {
+        const std::lock_guard<std::mutex> lock((*log).mutex);
+        require((*log).user_rules == reinterpret_cast<std::uintptr_t>(&(*user).engine().rules()),
+                "the window's layered user theme rules are the sub-surface's");
+    }
+
+    // Moves waiting together coalesce (the newest wins), so each is sent
+    // once the last arrived.
+    std::uint64_t changes = 0U;
+    std::uint64_t moves = 0U;
+    const Point positions[2] = {Point{20.0 + 10.0, 40.0 + 10.0}, Point{20.0 + 30.0, 40.0 + 12.0}};
+    for (std::uint64_t index = 0U; index < 2U; ++index) {
+        static_cast<void>(window.dispatch_pointer(pointer_move(positions[index])));
+        const std::chrono::steady_clock::time_point moved_limit = std::chrono::steady_clock::now() + wait_limit;
+        while (moves <= index && std::chrono::steady_clock::now() < moved_limit) {
+            {
+                const std::lock_guard<std::mutex> lock((*log).mutex);
+                changes = (*log).engine_input_changes;
+                moves = (*log).pointer_moves;
+            }
+            if (moves <= index) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+    require(moves == 2U, "both pointer moves reach the sub-surface's control");
+    // The count is the root's activity since its metrics were last reset,
+    // so only the move just noted is certain to be in it.
+    require(changes >= 1U, "a forwarded move changes the sub-surface's engine pointer input");
+    static_cast<void>((*root).remove_child((*host).runtime_id()));
+}
+
 // A sub-surface made on the test's thread, without a SubSurfaceThread: its
 // tooltip API works and asks nowhere (it used to reach a window's absent
 // presenter).
@@ -1132,9 +1392,9 @@ void tool_tips_without_a_parent_ask_nowhere() {
     require(!surface.tool_tip_visible(), "and hiding changes nothing");
 }
 
-} // namespace
-
-int main() {
+// The failing check's message goes to stderr: an uncaught exception would
+// end the process without it.
+int run_all() {
     thread_produces_tagged_frames();
     content_failure_is_reported();
     start_stop_stress();
@@ -1146,5 +1406,18 @@ int main() {
     tool_tips_without_a_parent_ask_nowhere();
     window_handles_tool_tip_requests();
     sub_surface_forwards_tool_tip_requests();
+    ambient_effect_ticks_off_the_ui_thread();
+    user_theme_and_engine_input_reach_the_sub_surface();
     return 0;
+}
+
+} // namespace
+
+int main() {
+    try {
+        return run_all();
+    } catch (const std::exception& error) {
+        std::fprintf(stderr, "gui_forms_sub_surface_tests: %s\n", error.what());
+        return 1;
+    }
 }

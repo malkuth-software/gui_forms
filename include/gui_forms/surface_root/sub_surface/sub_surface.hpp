@@ -288,13 +288,20 @@ public:
     // reconfiguring it whenever the device size changes. `text_measure`, if
     // not null, is a framebuffer made by the parent whose painter measures
     // the sub-surface's text for its whole life (any size; one pixel will
-    // do); without one, text is measured by the estimate. Null content,
-    // surface or theme is std::invalid_argument; a thread the system
-    // refuses is std::system_error.
+    // do); without one, text is measured by the estimate. `layered_user_theme`,
+    // if not null, is the parent's user theme under the layered policy
+    // (ApplicationResources::user_theme_ptr), selected in the sub-surface's
+    // resources before its root exists, so its rules reach every part there
+    // as they do in the parent (design note section 14); a user theme
+    // replacing the program's arrives as `theme` itself. Null content,
+    // surface or theme, or a `layered_user_theme` not compiled as a user
+    // theme, is std::invalid_argument; a thread the system refuses is
+    // std::system_error.
     SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content,
                      std::shared_ptr<LiveSurface> surface,
                      std::shared_ptr<const Theme> theme,
-                     std::unique_ptr<PaintFramebuffer> text_measure);
+                     std::unique_ptr<PaintFramebuffer> text_measure,
+                     std::shared_ptr<const Theme> layered_user_theme = {});
     // Stops and joins (stop()).
     ~SubSurfaceThread();
     SubSurfaceThread(const SubSurfaceThread&) = delete;
