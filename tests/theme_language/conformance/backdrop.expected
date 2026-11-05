@@ -6,8 +6,8 @@ rule 0 theme_sheet surface=window
 rule 1 stable_id_rule surface=window id=settings class=tool
   label window#settings.tool
   backdrop tint(#ffffff80) saturate(1.2)
-rule 2 class_rule surface=popup class=menu
-  label popup.menu
+rule 2 class_rule surface=popup class=alert
+  label popup.alert
   backdrop none
 rule 3 theme_sheet surface=popup
   label popup, window.plain

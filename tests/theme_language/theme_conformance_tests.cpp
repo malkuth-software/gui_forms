@@ -312,7 +312,7 @@ std::string material_text(const MaterialDeclaration& declaration) {
     return text + "\n";
 }
 
-// A surface's backdrop chain (owner decision 2026-11-05): each step in order.
+// A surface's backdrop chain (owner decision 2026-11-04): each step in order.
 std::string backdrop_text(const BackdropDeclaration& backdrop) {
     std::string text = "  backdrop";
     if (backdrop.length == 0U) text += " none";

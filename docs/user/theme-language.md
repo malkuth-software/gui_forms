@@ -64,7 +64,7 @@ are no combinators.
 | state | `:hover` `:active` `:focus` `:focus-visible` `:checked` `:indeterminate` `:disabled` `:enabled` `:read-only` `:invalid` `:open` `:default`, and every other published state as `:state(drag-proximate)` |
 | either of | `button:is(:hover, :focus-visible)::part(face)` (at most 32 arguments) |
 | selector list | `button, check-box { ... }` |
-| surface | `window`, `popup`, with the surface root's classes and stable ID: `window#settings`, `popup.menu` |
+| surface | `window`, `popup`, with the surface root's classes and stable ID: `window#settings`, `popup.alert` |
 
 `:not()`, `:where()`, `:has()`, attribute selectors, combinators and `&`
 are errors. An unknown control type, part, state or pseudo-class is a
@@ -73,7 +73,10 @@ control types, parts and states.
 
 `window` and `popup` select a surface, not a control: a top-level window,
 an owned window or a floating panel in its own window is a `window`; a
-menu, a tooltip or a drop-down is a `popup`. Their classes and stable ID
+native popup window (an alert-like owned window, such as a task dialog's or
+a font dialog's panel) is a `popup`. Menus, drop-downs and tooltips are
+overlays: GUI.Forms draws them in the surface's own pixels, so ordinary
+control rules style them and they take no backdrop. Their classes and stable ID
 are the surface root control's. A surface selector takes no control type,
 part, role or state, and a surface rule holds `backdrop` alone (any other
 property is a warning). A surface selector counts as a control type in

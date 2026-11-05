@@ -115,7 +115,7 @@ enum class PropertyClass : std::uint8_t {
     // `effect-primary` and `effect-secondary`: the effect's colour roles.
     effect_colour,
     // `backdrop`: a window's or popup's backdrop chain (owner decision
-    // 2026-11-05).
+    // 2026-11-04).
     backdrop,
     // A material property (P6b): its fields are lowered by the material
     // lowering.
@@ -1940,7 +1940,7 @@ bool CompilePass::lower_declarations(std::size_t rule_index, bool important, con
         const PropertyClass kind = classify(folded_);
         if (kind == PropertyClass::custom || kind == PropertyClass::primitive) continue;
         // A window or popup rule holds its backdrop alone (owner decision
-        // 2026-11-05): its surface has no part a control property styles.
+        // 2026-11-04): its surface has no part a control property styles.
         if (kind != PropertyClass::backdrop && rule_selects_surface()) {
             report(DiagnosticCode::property_not_admitted, property, property_ + " on a window or popup");
             continue;
@@ -2460,7 +2460,7 @@ bool CompilePass::lower_effect_colour(const SyntaxNode& node) {
     return true;
 }
 
-// `backdrop:` (owner decision 2026-11-05): `none` (or `initial`), or an
+// `backdrop:` (owner decision 2026-11-04): `none` (or `initial`), or an
 // ordered list of blur(<length>), saturate(<number> | <percentage>) and
 // tint(<colour> [/ <alpha>]), the chain applied in order over what lies
 // beneath a window or popup. A role colour in tint() keeps its role. In a

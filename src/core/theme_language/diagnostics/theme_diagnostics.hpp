@@ -228,7 +228,7 @@ enum class DiagnosticCode : std::uint16_t {
     primitive_over_budget = 1108,
     primitive_cost_unbounded = 1109,
     // A `backdrop:` in a rule whose selector is not a window or popup
-    // selector (owner decision 2026-11-05): a backdrop belongs to a surface
+    // selector (owner decision 2026-11-04): a backdrop belongs to a surface
     // only. The declaration is dropped.
     backdrop_not_on_window = 1110,
     // W3xx versions (R2-07): the sheet declares a newer engine than the
@@ -263,7 +263,7 @@ enum class DiagnosticCode : std::uint16_t {
     // (`inline:<control>`), the property the property.
     inline_colour = 1404,
     // A control the theme declares clear (`background: transparent`, owner
-    // decision 2026-11-05) that still painted a full-face fill of its own:
+    // decision 2026-11-04) that still painted a full-face fill of its own:
     // its cover is not reported, so the backdrop is drawn beneath a face
     // that hides it. Reported once per control; the file names the control
     // (`inline:<control>`).

@@ -308,7 +308,7 @@ void test_opaque_root_panel_skips_the_backplane() {
             "an opaque root panel must start the paint at its own face");
 }
 
-// Declared clarity (`background: transparent`, owner decision 2026-11-05):
+// Declared clarity (`background: transparent`, owner decision 2026-11-04):
 // a panel declared clear reports no cover, so the backplane (where a
 // window's backdrop lies) is still drawn beneath it, though its own face is
 // opaque (W405 is written once); without the declaration the face covers.

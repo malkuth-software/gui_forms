@@ -104,7 +104,7 @@ struct Alternative final {
 };
 
 // A simple selector read from the list.
-// `surface` is `window` or `popup` (owner decision 2026-11-05), written
+// `surface` is `window` or `popup` (owner decision 2026-11-04), written
 // where a control type would be.
 enum class SimpleKind : std::uint8_t { control_type, stable_id, style_class, state, part, role, surface };
 struct Simple final {

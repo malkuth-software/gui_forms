@@ -85,13 +85,15 @@ enum class ThemeRuleSet : std::uint8_t { program, user };
 // - `role`: the part's role.
 // - `states`: states the part must all be in.
 // - `surface`: a surface selector (`window`, `popup`; owner decision
-//   2026-11-05) names a surface, not a control: its classes and ID are the
+//   2026-11-04) names a surface, not a control: its classes and ID are the
 //   surface root control's, and it sets no control type, part, role or
 //   state. A surface rule never matches a control's part, nor a control
 //   rule a surface (PartFacts::surface).
-// The surface a rule may select (owner decision 2026-11-05): none (a
+// The surface a rule may select (owner decision 2026-11-04): none (a
 // control), a window (a top-level window, an owned window or a floating
-// panel in its own window) or a popup (a menu, tooltip or drop-down).
+// panel in its own window) or a popup (a native, alert-like owned window;
+// owner, 2026-11-04). Menus, drop-downs and tooltips are overlays drawn in
+// the surface's own pixels, styled by control rules, never a popup.
 enum class SurfaceKind : std::uint8_t { none, window, popup };
 
 struct RuleSelector final {

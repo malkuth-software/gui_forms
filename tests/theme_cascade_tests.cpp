@@ -479,7 +479,7 @@ void paint_path() {
 
 } // namespace
 
-// Surface rules (`window`, `popup`; owner decision 2026-11-05): a surface
+// Surface rules (`window`, `popup`; owner decision 2026-11-04): a surface
 // rule matches only its own surface's facts, never a control's part, and a
 // control rule never a surface; a backdrop stands only on a surface rule and
 // only as a valid chain.

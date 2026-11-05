@@ -4610,7 +4610,7 @@ Types
 
    .. cpp:function:: bool declares_clarity(const Control& control) const noexcept
 
-      Whether the rules matching ``control`` at rest (its type, classes and stable ID, no part or role, the window's media and the control's user theme and inline style) declare it clear (owner decision 2026-11-05): ``background: transparent``, a background colour of alpha 0 and no visible background layer, so that the surface's backdrop shows through it. A colour or layer left to the floor is not clear.
+      Whether the rules matching ``control`` at rest (its type, classes and stable ID, no part or role, the window's media and the control's user theme and inline style) declare it clear (owner decision 2026-11-04): ``background: transparent``, a background colour of alpha 0 and no visible background layer, so that the surface's backdrop shows through it. A colour or layer left to the floor is not clear.
 
    .. cpp:function:: bool supports(ColourScheme scheme) const noexcept
 

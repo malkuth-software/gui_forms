@@ -103,7 +103,7 @@ template <std::size_t Count>
 }
 
 // The surface a registered name selects, or none: `window` and `popup`
-// (owner decision 2026-11-05).
+// (owner decision 2026-11-04).
 [[nodiscard]] SurfaceKind surface_named(std::string_view registered) noexcept {
     if (registered == "window") return SurfaceKind::window;
     if (registered == "popup") return SurfaceKind::popup;

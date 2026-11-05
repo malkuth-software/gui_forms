@@ -426,7 +426,7 @@ public:
     // came from.
     [[nodiscard]] ResolvedFont resolved_text_font(FontSpec own) const noexcept;
     // Whether the control's theme declares it clear (Theme::declares_clarity,
-    // owner decision 2026-11-05): a clear control reports no opaque cover
+    // owner decision 2026-11-04): a clear control reports no opaque cover
     // (report_opaque_cover), so that a surface's backdrop is drawn beneath
     // it. Cached as text_font is, and dropped with it.
     [[nodiscard]] bool declares_clarity() const noexcept;
