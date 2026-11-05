@@ -971,4 +971,10 @@ void ScrollableControl::append_interactions(std::vector<InteractionDeclaration>&
     interactions.insert(interactions.end(), scrollable_control_interactions.begin(), scrollable_control_interactions.end());
 }
 
+ResizeAxes ScrollableControl::layout_resize_response() const noexcept {
+    if (!auto_scroll_) return Control::layout_resize_response();
+    if (children().empty()) return ResizeAxes::none;
+    return ResizeAxes::both;
+}
+
 } // namespace gui_forms

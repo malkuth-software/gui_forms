@@ -220,6 +220,54 @@ void test_subtree_marks_settle() {
            "the escalating container takes its child's paint as its subtree mark");
 }
 
+// Reduced M0.4: a control's resize registration is asked again when its
+// arranged size changes and kept in its slot; resize_relayouts counts the
+// size changes along an axis the children follow. The root holds a strip
+// docked top (a mark anchored to its right edge) and a filler docked fill
+// (a mark at its top left). A wider window moves the strip's mark and the
+// root's children; a taller one leaves the strip alone and moves nothing in
+// the filler.
+void test_resize_registrations() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("resize.root"));
+    std::shared_ptr<Panel> strip = make_control<Panel>(StableId("resize.strip"));
+    std::shared_ptr<Panel> strip_mark = make_control<Panel>(StableId("resize.strip.mark"));
+    std::shared_ptr<Panel> filler = make_control<Panel>(StableId("resize.filler"));
+    std::shared_ptr<Panel> filler_mark = make_control<Panel>(StableId("resize.filler.mark"));
+    (*strip).set_requested_bounds(Rect{0.0, 0.0, 200.0, 30.0});
+    (*strip).set_dock(DockStyle::top);
+    (*strip_mark).set_requested_bounds(Rect{170.0, 5.0, 20.0, 20.0});
+    (*strip_mark).set_anchor(AnchorStyles::top | AnchorStyles::right);
+    (*strip).add_child(strip_mark);
+    (*filler).set_dock(DockStyle::fill);
+    (*filler_mark).set_requested_bounds(Rect{5.0, 5.0, 20.0, 20.0});
+    (*filler).add_child(filler_mark);
+    (*root).add_child(strip);
+    (*root).add_child(filler);
+    Window window(root, Size{200.0, 100.0});
+    const ControlTable& table = window.control_table();
+    window.perform_layout();
+    expect(window.metrics_snapshot().resize_relayouts == 0U, "the first arrange is not a resize");
+
+    window.resize(Size{240.0, 100.0});
+    window.perform_layout();
+    expect(table.resize_response((*root).surface_slot()) == ResizeAxes::both,
+           "a root with a filling child registers both axes");
+    expect(table.resize_response((*strip).surface_slot()) == ResizeAxes::horizontal,
+           "a strip holding a right-anchored mark registers the horizontal axis");
+    expect(table.resize_response((*filler).surface_slot()) == ResizeAxes::none,
+           "a filler holding a top-left mark registers no axis");
+    expect(window.metrics_snapshot().resize_relayouts == 2U,
+           "a wider window relays out the root and the strip, not the filler");
+    expect((*strip_mark).arranged_bounds().x == 210.0, "the right-anchored mark follows the wider strip");
+
+    window.resize(Size{240.0, 140.0});
+    window.perform_layout();
+    expect(window.metrics_snapshot().resize_relayouts == 3U,
+           "a taller window relays out the root only: the strip keeps its size, the filler's mark stays");
+    expect(table.resize_response((*strip).surface_slot()) == ResizeAxes::horizontal,
+           "a control whose size did not change keeps its registration");
+}
+
 } // namespace
 
 int main() {
@@ -228,6 +276,7 @@ int main() {
     test_window_lifecycle();
     test_settle_defers_bookkeeping();
     test_subtree_marks_settle();
+    test_resize_registrations();
     std::cout << "control table tests passed\n";
     return EXIT_SUCCESS;
 }

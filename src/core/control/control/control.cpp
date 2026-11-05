@@ -2989,6 +2989,7 @@ LayoutDirection Control::effective_layout_direction() const noexcept {
 }
 
 void Control::arrange(Rect final_bounds) {
+    arranged_by_dock_layout_ = true;
     arrange_self(final_bounds);
     if (children_.empty()) return;
 
@@ -3185,6 +3186,52 @@ bool Control::on_ambient_frame(FrameTime) {
 bool Control::paint_depends_on_size() const noexcept {
     const bool depends = has_style(ControlStyles::resize_redraw);
     return depends;
+}
+
+namespace {
+
+// What one child's dock and anchor layout asks of its parent's extent
+// (Control::layout_resize_response). `mirrored`: the parent lays out right to
+// left, which exchanges the left and right anchors.
+ResizeAxes child_resize_demand(DockStyle dock, AnchorStyles anchor, bool mirrored) noexcept {
+    switch (dock) {
+    case DockStyle::fill:
+        return ResizeAxes::both;
+    case DockStyle::top:
+    case DockStyle::bottom:
+        return ResizeAxes::horizontal;
+    case DockStyle::left:
+    case DockStyle::right:
+        return ResizeAxes::vertical;
+    case DockStyle::none: {
+        const bool held_left = has_anchor(anchor, mirrored ? AnchorStyles::right : AnchorStyles::left);
+        const bool held_right = has_anchor(anchor, mirrored ? AnchorStyles::left : AnchorStyles::right);
+        const bool held_top = has_anchor(anchor, AnchorStyles::top);
+        const bool held_bottom = has_anchor(anchor, AnchorStyles::bottom);
+        ResizeAxes demand = ResizeAxes::none;
+        if (held_right || !held_left) demand |= ResizeAxes::horizontal;
+        if (held_bottom || !held_top) demand |= ResizeAxes::vertical;
+        return demand;
+    }
+    }
+    // An unknown dock value (set_dock rejects one): every axis, the safe answer.
+    return ResizeAxes::both;
+}
+
+} // namespace
+
+ResizeAxes Control::layout_resize_response() const noexcept {
+    if (children_.empty()) return ResizeAxes::none;
+    if (!arranged_by_dock_layout_) return ResizeAxes::both;
+    // Mirrors Control::arrange's dock and anchor layout.
+    const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
+    ResizeAxes response = ResizeAxes::none;
+    for (const Ptr& child : children_) {
+        if (!child || !(*child).visible_) continue;
+        response |= child_resize_demand((*child).dock_, (*child).anchor_, mirrored);
+        if (response == ResizeAxes::both) break;
+    }
+    return response;
 }
 
 bool Control::hit_test_local(Point local_point) const {

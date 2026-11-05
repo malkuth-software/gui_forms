@@ -1265,9 +1265,13 @@ private:
     // The damage of a control whose visual bounds changed from `old_bounds`
     // to `new_bounds` (window coordinates) in an arrange: the whole of both
     // when `escalate` (its paint depends on its size) or its origin moved,
-    // else the exposed strips. The one seam for resize damage policy (the
-    // hot-paths worker's strip rules, M0.4's note_bounds_changed).
-    void damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate);
+    // else the exposed strips. `relaid` holds the resized axes the control
+    // registered as moving its children (Control::layout_resize_response);
+    // its children damage themselves as they are arranged, so the policy
+    // here does not read it yet. The one seam for resize damage policy (the
+    // hot-paths worker's strip rules).
+    void damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate,
+                        ResizeAxes relaid);
     // Marks for measure the controls a client-size change reaches (see
     // Window::resize): `control`, and below it each child whose parent
     // requests no extent on a changed axis.

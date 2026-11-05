@@ -32,6 +32,9 @@ struct MetricsSnapshot {
     // negative or non-finite dimension clamped to zero.
     std::uint64_t layout_boundary_stops{};
     std::uint64_t layout_measure_clamps{};
+    // Arranges that changed a control's size, after its first, along an
+    // axis its children's layout follows (Control::layout_resize_response).
+    std::uint64_t resize_relayouts{};
     std::uint64_t paint_invalidations_consumed{};
     std::uint64_t display_chunks_rebuilt{};
     std::uint64_t display_chunks_reused{};

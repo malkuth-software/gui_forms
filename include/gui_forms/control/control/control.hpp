@@ -915,6 +915,21 @@ public:
     // the strips the resize exposed or vacated are repainted. The default is
     // the resize_redraw style, which is on unless the control clears it.
     [[nodiscard]] virtual bool paint_depends_on_size() const noexcept;
+    // The axes of the control's own size along which its children's layout
+    // changes: a resize along another axis leaves every child where it was.
+    // Read by the arrange pass when the control's size changes and kept as
+    // its resize registration in the control table, for resize damage and
+    // the resize_relayouts counter; arrange runs either way (reduced M0.4).
+    // When the last arrange ran Control::arrange (the dock and anchor
+    // layout), the default reads that layout over the visible children:
+    // docked fill answers both axes, top or bottom horizontal, left or
+    // right vertical; undocked, a child held by its right edge (or by
+    // neither side) answers horizontal and one held by its bottom edge (or
+    // by neither) vertical, with left and right exchanged in a
+    // right-to-left layout. A control whose arrange places its children by
+    // another engine answers both axes when it has children, unless it
+    // overrides this with its engine's answer.
+    [[nodiscard]] virtual ResizeAxes layout_resize_response() const noexcept;
     [[nodiscard]] virtual bool hit_test_local(Point local_point) const;
 
     virtual void on_pointer_preview(PointerEvent& event);
@@ -1312,6 +1327,10 @@ private:
     Point auto_scroll_offset_{};
     DockStyle dock_{DockStyle::none};
     AnchorStyles anchor_{AnchorStyles::top | AnchorStyles::left};
+    // Whether the arrange the pass last called reached Control::arrange:
+    // cleared by the arrange pass before it calls arrange, set by
+    // Control::arrange (layout_resize_response's default).
+    bool arranged_by_dock_layout_{};
     bool auto_size_{};
     AutoSizeMode auto_size_mode_{AutoSizeMode::grow_only};
     Dirty dirty_{Dirty::layout | Dirty::paint | Dirty::hit_test | Dirty::semantics};

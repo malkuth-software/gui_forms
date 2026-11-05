@@ -27,6 +27,7 @@ public:
     void record_measure_cache_miss(std::uint64_t control_pass_misses) noexcept;
     void record_layout_boundary_stop() noexcept;
     void record_layout_measure_clamp() noexcept;
+    void record_resize_relayout() noexcept;
     void record_arrange(std::uint64_t nodes_visited,
                         std::uint64_t callbacks) noexcept;
     void record_paint(std::uint64_t nodes_visited,

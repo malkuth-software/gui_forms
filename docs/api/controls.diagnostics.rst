@@ -173,6 +173,8 @@ Related types
 
    .. cpp:function:: void record_layout_measure_clamp() noexcept
 
+   .. cpp:function:: void record_resize_relayout() noexcept
+
    .. cpp:function:: void record_arrange(std::uint64_t nodes_visited, std::uint64_t callbacks) noexcept
 
       Counts one arrange pass, visited nodes, and callbacks.
@@ -429,6 +431,10 @@ Related types
       Measure propagations stopped at a layout boundary (Control::size_depends_on_content), and measure results with a negative or non-finite dimension clamped to zero.
 
    .. cpp:member:: std::uint64_t layout_measure_clamps
+
+   .. cpp:member:: std::uint64_t resize_relayouts
+
+      Arranges that changed a control's size, after its first, along an axis its children's layout follows (Control::layout_resize_response).
 
    .. cpp:member:: std::uint64_t paint_invalidations_consumed
 

@@ -45,6 +45,7 @@ std::string MetricsSnapshot::to_json() const {
            << "\"maximum_measures_per_control_pass\":" << maximum_measures_per_control_pass << ','
            << "\"layout_boundary_stops\":" << layout_boundary_stops << ','
            << "\"layout_measure_clamps\":" << layout_measure_clamps << ','
+           << "\"resize_relayouts\":" << resize_relayouts << ','
            << "\"paint_invalidations_consumed\":" << paint_invalidations_consumed << ','
            << "\"display_chunks_rebuilt\":" << display_chunks_rebuilt << ','
            << "\"display_chunks_reused\":" << display_chunks_reused << ','

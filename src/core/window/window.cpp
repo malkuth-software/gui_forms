@@ -2850,15 +2850,18 @@ void SurfaceRoot::add_resize_strip_damage(Rect before, Rect after, double band) 
     if (!below.empty()) add_damage_all_planes(below);
 }
 
-void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate) {
+void SurfaceRoot::damage_resized(Control& control, Rect old_bounds, Rect new_bounds, bool escalate,
+                                 ResizeAxes relaid) {
     // Arrangement changes expose content below the moved control. The
     // compositor uses one target across ordered paint planes, so both the
     // vacated and occupied rectangles need full recomposition, except where
     // a control that kept its origin keeps its pixels (`escalate` false):
     // there only the strips between the two extents change. Its chunk is
     // recorded again at the new size either way (paint_recursive).
-    // `control` is for the hot-paths strip rules (material bands, viewports).
+    // `control` and `relaid` are for the hot-paths strip rules (material
+    // bands, viewports).
     static_cast<void>(control);
+    static_cast<void>(relaid);
     const bool same_origin = old_bounds.x == new_bounds.x && old_bounds.y == new_bounds.y;
     if (same_origin && !escalate) {
         add_resize_strip_damage(old_bounds, new_bounds, 0.0);
@@ -3267,6 +3270,18 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
     }
 }
 
+namespace {
+
+// The axes along which an arranged extent changed.
+ResizeAxes resized_axes(Rect before, Rect after) noexcept {
+    ResizeAxes changed = ResizeAxes::none;
+    if (before.width != after.width) changed |= ResizeAxes::horizontal;
+    if (before.height != after.height) changed |= ResizeAxes::vertical;
+    return changed;
+}
+
+} // namespace
+
 void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                                      Rect final_bounds,
                                      std::uint64_t& visited_nodes,
@@ -3287,6 +3302,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             *control, (*control).last_painted_visual_outsets_);
         const Rect old_arranged = (*control).arranged_bounds_;
         (*control).clear_dirty(Dirty::arrange | Dirty::hit_test);
+        (*control).arranged_by_dock_layout_ = false;
         try {
             (*control).arrange(final_bounds);
         } catch (...) {
@@ -3296,6 +3312,19 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
         }
         ++callbacks;
         if (!(*control).is_alive() || (*control).surface_root_ != this) return;
+        // The resize registration (reduced M0.4): asked again whenever the
+        // size changes, which costs one pass over the children that arrange
+        // has just made, so no write has to keep it current. The first
+        // arrange from no extent is not counted as a resize.
+        const ResizeAxes resized = resized_axes(old_arranged, (*control).arranged_bounds_);
+        ResizeAxes relaid = ResizeAxes::none;
+        if (resized != ResizeAxes::none) {
+            const ResizeAxes response = (*control).layout_resize_response();
+            control_table_.set_resize_response((*control).surface_slot_, response);
+            relaid = response & resized;
+            const bool was_arranged = old_arranged.width > 0.0 || old_arranged.height > 0.0;
+            if (relaid != ResizeAxes::none && was_arranged) metrics_.record_resize_relayout();
+        }
         // The containers below whose absolutely positioned children were
         // placed against this control's box arrange in this same descent.
         if (!containing_block_watches_.empty() && (*control).arranged_bounds_ != old_arranged) {
@@ -3305,7 +3334,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             *control, (*control).effective_visual_outsets());
         if (old_bounds != new_bounds) {
             const bool escalate = !keeps_pixels_on_resize(*control);
-            damage_resized(*control, old_bounds, new_bounds, escalate);
+            damage_resized(*control, old_bounds, new_bounds, escalate, relaid);
             touch_paint();
             (*control).publish_change((*control).arranged_bounds_changed_,
                                     new_bounds);
