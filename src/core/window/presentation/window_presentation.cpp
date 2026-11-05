@@ -105,6 +105,8 @@ void SurfaceRoot::set_framebuffer_painter(Painter* const painter) {
     // The backplane replay's framebuffer belongs to the previous renderer.
     backplane_framebuffer_.reset();
     backplane_framebuffer_scale_ = 0.0;
+    backdrop_framebuffer_.reset();
+    backdrop_framebuffer_scale_ = 0.0;
 }
 
 // Four stages: validate the request; record the subtree's planes into one
@@ -512,7 +514,7 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         backplane_context.high_contrast = presentation_settings_.high_contrast;
         backplane_context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
         // Over a non-opaque grant, the theme's base for it (stage T5).
-        const SurfaceMaterial& backplane = backplane_base(backplane_context);
+        const SurfaceMaterial backplane = backplane_base(backplane_context);
         // A window granted a non-opaque backdrop (stage T5) starts each
         // painted rectangle clear: its backplane is drawn in a copy group,
         // which replaces the previous frame's pixels, transparent included,
@@ -569,9 +571,18 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         }
         // Window-owned popup roots are composited after all application
         // content, in opening order and independently of consumer layout.
-        for (const Control::Ptr& overlay : popup_roots) {
+        for (std::size_t popup_index = 0U; popup_index < popup_roots.size(); ++popup_index) {
+            const Control::Ptr& overlay = popup_roots[popup_index];
             if (!overlay || !(*overlay).is_alive() || (*overlay).surface_root_ != this) {
                 continue;
+            }
+            // Its backdrop first, under all of its content (owner,
+            // 2026-11-05). A callback may have closed it since the roots
+            // were listed: then its attachment differs and it is skipped.
+            if (popup_index < popups_.size() && (*popups_[popup_index]).popup() == overlay) {
+                for (std::size_t rectangle = 0; rectangle < painted.size(); ++rectangle) {
+                    paint_popup_backdrop(candidate, *popups_[popup_index], painted[rectangle]);
+                }
             }
             for (std::size_t index = 0; index < paint_plane_count; ++index) {
                 const PaintPlane plane = static_cast<PaintPlane>(index);

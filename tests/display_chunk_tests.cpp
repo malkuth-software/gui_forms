@@ -259,6 +259,24 @@ public:
 constexpr Color face_color = Color::rgba(1, 2, 3);
 constexpr Rect window_rect{0.0, 0.0, 200.0, 120.0};
 
+// Paints its whole bounds as one engine face of `role`, in an authored
+// colour: an opaque engine face reports its cover (owner, 2026-11-05).
+class FacePanel final : public Panel {
+public:
+    using Panel::Panel;
+    void on_paint(Painter& painter, Rect) override {
+        PartPaint part{};
+        part.role = role;
+        part.bounds = local_bounds();
+        part.family = ControlVisualRole::panel;
+        part.authored_background = colour;
+        part.corner_radius = 0.0;
+        paint_part(painter, *this, part);
+    }
+    PartRole role{PartRole::well};
+    Color colour{face_color};
+};
+
 struct PanelFixture {
     explicit PanelFixture(std::shared_ptr<Panel> panel) : root(std::move(panel)) {
         (*root).set_requested_bounds(window_rect);
@@ -299,6 +317,22 @@ void test_translucent_or_overridden_panels_keep_the_backplane() {
     (*text.root).set_background(face_color);
     require(text.paint_twice().backplane_fills(window_rect, face_color) == 1U,
             "a panel subclass that paints its own way must keep the backplane");
+}
+
+void test_opaque_engine_faces_report_their_cover() {
+    PanelFixture opaque(make_control<FacePanel>(StableId("cover.face")));
+    require(opaque.paint_twice().backplane_fills(window_rect, face_color) == 0U,
+            "an opaque square engine face must start the paint at itself");
+    std::shared_ptr<FacePanel> translucent_face = make_control<FacePanel>(StableId("cover.face.translucent"));
+    (*translucent_face).colour = Color::rgba(1, 2, 3, 128);
+    PanelFixture translucent(translucent_face);
+    require(translucent.paint_twice().backplane_fills(window_rect, Color::rgba(1, 2, 3, 128)) == 1U,
+            "a translucent engine face must keep the backplane beneath it");
+    std::shared_ptr<FacePanel> rule = make_control<FacePanel>(StableId("cover.face.rule"));
+    (*rule).role = PartRole::divider;
+    PanelFixture divider(rule);
+    require(divider.paint_twice().backplane_fills(window_rect, face_color) == 1U,
+            "a part that fills no surface must keep the backplane beneath it");
 }
 
 void test_a_cover_lost_during_paint_restores_what_it_skipped() {
@@ -462,6 +496,7 @@ int main() {
         test_disposal_removes_cache_entry_and_returns_idle();
         test_opaque_root_panel_skips_the_backplane();
         test_translucent_or_overridden_panels_keep_the_backplane();
+        test_opaque_engine_faces_report_their_cover();
         test_a_cover_lost_during_paint_restores_what_it_skipped();
         test_a_nested_cover_starts_the_paint_and_later_siblings_follow();
         test_recorded_covers_follow_the_painter_state();

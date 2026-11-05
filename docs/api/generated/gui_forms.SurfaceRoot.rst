@@ -109,6 +109,11 @@ gui_forms::SurfaceRoot
 
       **backdrop_grant** : ``WindowBackdropGrant``, read-only
 
+      **backdrop_chain** : ``std::optional<BackdropChain>``
+
+      **backdrop_statistics** : ``BackdropStatistics``, read-only
+         What the window's popup backdrops cost so far (BackdropStatistics).
+
       **host_services** : ``HostServices*``, read-only
          The services of the attached native host, or null when none is attached.
 
@@ -614,6 +619,16 @@ gui_forms::SurfaceRoot
       The request in force: the application's, else the theme's.
 
    .. cpp:function:: const WindowBackdropGrant& backdrop_grant() const noexcept
+
+   .. cpp:function:: const std::optional<BackdropChain>& backdrop_chain() const noexcept
+
+   .. cpp:function:: void set_backdrop_chain(std::optional<BackdropChain> chain)
+
+      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A change repaints the window and recomputes the backdrop. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread.
+
+   .. cpp:function:: const BackdropStatistics& backdrop_statistics() const noexcept
+
+      What the window's popup backdrops cost so far (BackdropStatistics).
 
    .. cpp:function:: HostServices* host_services() const noexcept
 

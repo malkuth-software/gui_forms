@@ -36,6 +36,12 @@ Related types
      - AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active popup/focus scopes retain first refusal.
    * - :cpp:class:`AcceleratorToken <gui_forms::AcceleratorToken>`
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
+   * - :cpp:class:`BackdropChain <gui_forms::BackdropChain>`
+     - The chain: ``length`` live operations, applied in order, in a fixed array.
+   * - :cpp:class:`BackdropOperation <gui_forms::BackdropOperation>`
+     -  
+   * - :cpp:class:`BackdropStatistics <gui_forms::BackdropStatistics>`
+     - What a window's backdrops have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
    * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
@@ -155,6 +161,88 @@ Related types
    .. cpp:function:: void disconnect() noexcept
 
       Idempotently removes the exact accelerator from its Window.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropChain final
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+   The chain: ``length`` live operations, applied in order, in a fixed array.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool append(const BackdropOperation& operation) noexcept
+
+      Appends ``operation``; false, changing nothing, when the chain is full.
+
+   .. cpp:member:: constexpr std::size_t maximum_operations
+
+      Default: ``8U``.
+
+   .. cpp:member:: std::array<BackdropOperation, maximum_operations> operations
+
+   .. cpp:member:: std::size_t length
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropOperation final
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static BackdropOperation blur(double radius) noexcept
+
+   .. cpp:function:: static BackdropOperation saturate(double factor) noexcept
+
+   .. cpp:function:: static BackdropOperation tint(Color colour) noexcept
+
+   .. cpp:member:: BackdropOperationKind kind
+
+      Default: ``{BackdropOperationKind::tint}``.
+
+   .. cpp:member:: double amount
+
+      blur: radius, 0 to backdrop_maximum_blur; saturate: factor, 0 to backdrop_maximum_saturation; unused for tint (0).
+
+   .. cpp:member:: Color colour
+
+      tint only (transparent black otherwise).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropStatistics final
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+   What a window's backdrops have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
+
+   .. cpp:member:: std::uint64_t computations
+
+      Computations of the chain over a strip of cache tiles, and the device pixels they wrote.
+
+   .. cpp:member:: std::uint64_t computed_pixels
+
+   .. cpp:member:: std::uint64_t draws
+
+      Exposed rectangles drawn from the cache, and their device pixels.
+
+   .. cpp:member:: std::uint64_t drawn_pixels
+
+   .. cpp:member:: std::uint64_t occluded
+
+      Painted rectangles in which the backdrop was wholly covered by opaque content, so nothing was computed or drawn.
+
+   .. cpp:member:: std::uint64_t solid_fallbacks
+
+      Draws of the solid fallback (reduced transparency, or no source).
+
+   .. cpp:member:: std::uint64_t invalidated_tiles
+
+      Cache tiles invalidated by damage under them.
 
 .. cpp:namespace:: gui_forms
 
@@ -658,6 +746,10 @@ Related types
 
       Interactive menus and editors require an enabled owner. Passive providers such as ToolTip may opt out while still requiring a live, attached, effectively visible owner. Default: ``{true}``.
 
+   .. cpp:member:: std::optional<BackdropChain> backdrop
+
+      The popup's backdrop (owner, 2026-11-05): a popup counts as a window, and its chain is applied to the window's finished content under it, where the popup's content is clear. None by default.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: PopupToken final
@@ -1023,6 +1115,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BackdropOperationKind
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+   .. cpp:enumerator:: blur
+
+   .. cpp:enumerator:: saturate
+
+   .. cpp:enumerator:: tint
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ColourScheme
 
    ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
@@ -1303,6 +1407,32 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_focus_scope_depth
 
    Value: ``32U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+.. cpp:function:: const char* backdrop_operation_name(BackdropOperationKind kind) noexcept
+
+.. cpp:function:: bool backdrop_chain_valid(const BackdropChain& chain) noexcept
+
+   Valid: at most maximum_operations live, every amount finite and within its range, a tint's amount 0, at most one blur.
+
+.. cpp:function:: Color backdrop_chain_solid(const BackdropChain& chain) noexcept
+
+   The chain's fallback: its tints composited in order over clear, as one solid colour in straight alpha; transparent black when it has none.
+
+.. cpp:function:: double backdrop_chain_blur(const BackdropChain& chain) noexcept
+
+   The largest blur radius in the chain, in logical units; 0 without one.
+
+.. cpp:var:: constexpr double backdrop_maximum_blur
+
+   The largest blur radius, in logical units, and the largest saturation factor, that a valid chain may carry. Value: ``32.0``.
+
+.. cpp:var:: constexpr double backdrop_maximum_saturation
+
+   Value: ``4.0``.
 
 .. cpp:namespace:: gui_forms
 

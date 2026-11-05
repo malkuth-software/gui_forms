@@ -75,7 +75,7 @@ SurfaceRoot::EngineBackplane SurfaceRoot::engine_backplane(Point raster_origin, 
     context.surface = active_ ? ControlSurfaceState::normal : ControlSurfaceState::deactivated;
     context.high_contrast = presentation_settings_.high_contrast;
     context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
-    const SurfaceMaterial& material = backplane_base(context);
+    const SurfaceMaterial material = backplane_base(context);
     engine_parts_.bake_backplane_material(material, client_size_, region, &image_resources(), image,
                                           paint_leases_completed_);
     if (engine_parts_.patterns_waiting()) arm_engine_idle();
@@ -85,7 +85,7 @@ SurfaceRoot::EngineBackplane SurfaceRoot::engine_backplane(Point raster_origin, 
     const double width = static_cast<double>(region.extent.width) / scale.value;
     const double height = static_cast<double>(region.extent.height) / scale.value;
     const Rect covered{region.origin.x / scale.value, region.origin.y / scale.value, width, height};
-    const bool replayed = replay_backplane(covered, region, image);
+    const bool replayed = replay_backplane(covered, region, image, false);
     if (!replayed && root_) composite_backplane_subtree(root_, covered, region, image, skipped);
     metrics_.set_backplane_replay(replayed);
     engine_parts_.hold_backplane(region, backplane_generation_, made, skipped, replayed, paint_leases_completed_);
@@ -93,7 +93,8 @@ SurfaceRoot::EngineBackplane SurfaceRoot::engine_backplane(Point raster_origin, 
     return lent;
 }
 
-bool SurfaceRoot::replay_backplane(Rect covered, const BackplaneRegion& region, const PartRasterView& image) {
+bool SurfaceRoot::replay_backplane(Rect covered, const BackplaneRegion& region, const PartRasterView& image,
+                                   bool every_plane) {
     if (framebuffer_painter_ == nullptr || !root_) return false;
     const DeviceExtent extent = region.extent;
     if (extent.width == 0U || extent.height == 0U) return false;
@@ -103,15 +104,18 @@ bool SurfaceRoot::replay_backplane(Rect covered, const BackplaneRegion& region, 
     // scale's binary error.
     const Size logical{(static_cast<double>(extent.width) - 0.25) / scale,
                        (static_cast<double>(extent.height) - 0.25) / scale};
-    PaintFramebuffer* framebuffer = backplane_framebuffer_.get();
-    const bool reusable = framebuffer != nullptr && backplane_framebuffer_scale_ == scale &&
+    // A popup backdrop's source and the backplane each keep their own.
+    std::unique_ptr<PaintFramebuffer>& slot = every_plane ? backdrop_framebuffer_ : backplane_framebuffer_;
+    double& slot_scale = every_plane ? backdrop_framebuffer_scale_ : backplane_framebuffer_scale_;
+    PaintFramebuffer* framebuffer = slot.get();
+    const bool reusable = framebuffer != nullptr && slot_scale == scale &&
                           (*framebuffer).width() == extent.width && (*framebuffer).height() == extent.height;
     if (!reusable) {
-        backplane_framebuffer_.reset();
-        backplane_framebuffer_scale_ = 0.0;
-        backplane_framebuffer_ = (*framebuffer_painter_).create_framebuffer(logical, scale);
-        backplane_framebuffer_scale_ = scale;
-        framebuffer = backplane_framebuffer_.get();
+        slot.reset();
+        slot_scale = 0.0;
+        slot = (*framebuffer_painter_).create_framebuffer(logical, scale);
+        slot_scale = scale;
+        framebuffer = slot.get();
     }
     // Validated before anything is drawn: the exact extent, whole rows.
     if (framebuffer == nullptr || (*framebuffer).width() != extent.width ||
@@ -131,22 +135,28 @@ bool SurfaceRoot::replay_backplane(Rect covered, const BackplaneRegion& region, 
     Painter& painter = (*framebuffer).painter();
     painter.save();
     painter.translate(Point{-covered.x, -covered.y});
-    replay_backplane_subtree(root_, covered, painter);
+    if (every_plane) {
+        for (std::size_t index = 0U; index < paint_plane_count; ++index) {
+            replay_backplane_subtree(root_, covered, painter, static_cast<PaintPlane>(index));
+        }
+    } else {
+        replay_backplane_subtree(root_, covered, painter, PaintPlane::backplane);
+    }
     painter.restore();
     (*framebuffer).end();
     copy_framebuffer_rows(image, *framebuffer, extent.width, extent.height, FramebufferCopy::from_framebuffer);
     return true;
 }
 
-void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter) const {
+void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter,
+                                           PaintPlane plane) const {
     const Control& node = *control;
     if (!node.is_alive() || node.surface_root_ != this || !node.visible.read() || node.layout_collapsed_) return;
     const Rect bounds = absolute_bounds_of(node);
     const Rect visual = visual_bounds_of(node, node.effective_visual_outsets());
     const Rect drawn = Rect::intersection(visual, clip);
     const std::shared_ptr<const detail::DisplayChunk>& chunk = node.display_chunk_;
-    if (!drawn.empty() && node.paint_plane_ == PaintPlane::backplane && chunk &&
-        (*chunk).plane() == PaintPlane::backplane) {
+    if (!drawn.empty() && node.paint_plane_ == plane && chunk && (*chunk).plane() == plane) {
         // As the window paint replays a chunk: at the control's corner,
         // clipped to what it draws there.
         painter.save();
@@ -161,7 +171,7 @@ void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect cli
     if (children_clip.empty()) return;
     for (const Control::Ptr& child : node.children_) {
         if (!child) continue;
-        replay_backplane_subtree(child, children_clip, painter);
+        replay_backplane_subtree(child, children_clip, painter, plane);
     }
 }
 

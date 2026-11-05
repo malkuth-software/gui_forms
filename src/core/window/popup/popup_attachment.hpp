@@ -1,6 +1,11 @@
 #pragma once
 
+#include "../backdrop/backdrop_cache.hpp"
+
 #include "gui_forms/window.hpp"
+
+#include <optional>
+#include <vector>
 
 namespace gui_forms::detail {
 
@@ -26,6 +31,14 @@ public:
         popup_.reset();
     }
     void publish_closed() { closed_.emit(); }
+
+    // The popup's backdrop (PopupOptions::backdrop) and its cache, with the
+    // strips scratch of its computation; owned here, used by the window's
+    // paint on the UI thread, released with the attachment.
+    std::optional<BackdropChain> backdrop_chain{};
+    BackdropCache backdrop_cache{};
+    std::vector<BackdropStrip> backdrop_missing{};
+    std::vector<BackdropStrip> backdrop_strips{};
 
 private:
     SurfaceRoot* window_{};

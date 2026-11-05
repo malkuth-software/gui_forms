@@ -48,6 +48,34 @@ keyword `backplane` it mirrors the backplane under the part instead, so a
 part reflects what is drawn behind it, and is drawn again when that
 changes. See [Theme language](theme-language.md) for the full syntax.
 
+## Window backdrops
+
+A window, and only a window, may carry a *backdrop chain*
+(`BackdropChain`, `gui_forms/window/backdrop/backdrop_chain.hpp`): an
+ordered list of operations in the manner of CSS `backdrop-filter`, applied
+once to what lies behind the window, under everything the window draws.
+The operations are `blur(radius)` (a Gaussian, radius in logical units, at
+most 32), `saturate(factor)` (at most 4) and `tint(colour)`, applied in
+order; a chain holds at most eight and at most one blur.
+
+- A popup counts as a window: `PopupOptions::backdrop` gives it a chain,
+  applied to its owner window's finished pixels under it (the owner's own
+  backdrop result included, never another popup's). The result is cached
+  tile by tile and recomputed only where the owner's content changes under
+  the popup; the popup's own changes never recompute it.
+- A top-level window takes its chain through `Window::set_backdrop_chain`
+  (the theme's `backdrop:` property is to lower into it). A chain with a blur
+  asks the window system for its material (falling back to `transparent`);
+  GUI.Forms applies only the tints itself, as the window's base.
+- Content is opaque by default and occludes the backdrop: it is computed
+  only where clear content (`background: transparent`) exposes it. A popup
+  whose opaque content covers it entirely costs nothing to draw.
+
+Under reduced transparency, or without a compositor, a chain collapses to
+its tints as one solid colour; under high contrast there is no backdrop.
+`Window::backdrop_statistics` counts computations, cached draws, occluded
+paints, solid fallbacks and invalidated tiles.
+
 ## Fallbacks
 
 Every combination renders; nothing is an error. What each setting does:

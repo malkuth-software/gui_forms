@@ -93,7 +93,8 @@ public:
     // it (DisplayChunk::opaque_cover) only if the fill was drawn untranslated
     // and unclipped, outside any save and group, and no later group replaces
     // pixels (PaintGroupComposite::copy); anything else drawn after it
-    // composites over it and leaves it opaque.
+    // composites over it and leaves it opaque. Of two marks the larger is
+    // kept.
     void mark_opaque_cover(Rect rect) noexcept;
 
     // Lets this recording keep the renderer caches of `previous`, the chunk

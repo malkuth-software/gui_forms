@@ -46,6 +46,8 @@ namespace gui_forms {
 class Window;
 class SurfaceRoot;
 class Control;
+class Painter;
+struct PartPaint;
 class ContainerControl;
 class CommandTarget;
 class ErrorProvider;
@@ -1215,6 +1217,8 @@ private:
     void prepare_write(const decltype(accessible_description)& cell, std::string& value);
     void written(const decltype(accessible_description)& cell);
     friend class ContainerControl;
+    // Reports an opaque engine face's cover (report_opaque_cover).
+    friend void paint_part_with_built_in_recipe(Painter& painter, const Control& control, const PartPaint& part);
     friend class ErrorProvider;
     friend class HelpProvider;
     friend class Binding;

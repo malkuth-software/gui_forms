@@ -105,12 +105,61 @@ void SurfaceRoot::refresh_backdrop() {
     backdrop_changed_.emit(emitted);
 }
 
-const SurfaceMaterial& SurfaceRoot::backplane_base(const ControlVisualContext& context) const noexcept {
+void SurfaceRoot::set_backdrop_chain(std::optional<BackdropChain> chain) {
+    require_root_thread("backdrop chain");
+    if (chain.has_value() && !backdrop_chain_valid(*chain)) {
+        throw std::invalid_argument(
+            "GUI.Forms backdrop chain needs at most eight operations in range with at most one blur");
+    }
+    if (chain == backdrop_chain_) return;
+    backdrop_chain_ = chain;
+    // A window following its theme's request follows the chain's instead
+    // while the chain has a blur (implied_backdrop_request).
+    if (!application_backdrop_request_) {
+        backdrop_request_ = implied_backdrop_request();
+        refresh_backdrop();
+    }
+    // The backdrop lies under everything: every part that sampled the
+    // backplane is baked again, and the window repaints.
+    damage_backplane_readers(nullptr);
+    mark_subtree_dirty(*root_, Dirty::paint);
+    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
+        if (const Control::Ptr overlay = (*popup).popup()) mark_subtree_dirty(*overlay, Dirty::paint);
+    }
+}
+
+SurfaceMaterial SurfaceRoot::backplane_base(const ControlVisualContext& context) const {
     const ThemeWindowBackdrop& themed = (*theme_).definition().window_backdrop;
+    const bool clear_grant = backdrop_grant_.granted != WindowBackdrop::opaque;
+    const bool chained = backdrop_chain_.has_value() && !context.high_contrast;
+    if (chained && clear_grant) {
+        SurfaceMaterial tinted{};
+        tinted.fills.clear();
+        tinted.fills.push_back(MaterialFillLayer::solid(backdrop_chain_solid(*backdrop_chain_)));
+        return tinted;
+    }
     const SurfaceMaterial* const base = themed.base_for(backdrop_grant_.granted);
-    if (backdrop_grant_.granted != WindowBackdrop::opaque && base != nullptr) return *base;
-    const SurfaceMaterial& recipe = (*theme_).resolve(ControlVisualRole::window, context).material;
+    if (clear_grant && base != nullptr) {
+        SurfaceMaterial copied = *base;
+        return copied;
+    }
+    SurfaceMaterial recipe = (*theme_).resolve(ControlVisualRole::window, context).material;
+    // Fills draw in order, the last on top (paint_surface_material); a
+    // recipe already at the fill cap keeps its look without the tint.
+    if (chained && recipe.fills.size() < SurfaceMaterial::maximum_fill_layers) {
+        recipe.fills.push_back(MaterialFillLayer::solid(backdrop_chain_solid(*backdrop_chain_)));
+    }
     return recipe;
+}
+
+WindowBackdropRequest SurfaceRoot::implied_backdrop_request() const {
+    if (backdrop_chain_.has_value() && backdrop_chain_blur(*backdrop_chain_) > 0.0) {
+        const WindowBackdropRequest material =
+            WindowBackdropRequest::with_fallback(WindowBackdrop::window_material, WindowBackdrop::transparent);
+        return material;
+    }
+    const WindowBackdropRequest themed = (*theme_).definition().window_backdrop.request;
+    return themed;
 }
 
 } // namespace gui_forms

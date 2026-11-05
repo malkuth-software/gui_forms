@@ -759,6 +759,22 @@ void paint_pointed_part(Painter& painter, const Control& control, const PartPain
 
 } // namespace
 
+namespace {
+
+// Whether the built-in recipe fills all of `part`'s bounds opaquely with
+// `material`: a surface role painted with the material, square, unpointed,
+// and the material opaque (surface_material_opaque).
+bool opaque_surface_part(const PartPaint& part, const SurfaceMaterial& material) noexcept {
+    // A fill with a content colour paints that colour, not the material.
+    const bool content = part.role == PartRole::fill && part.content_color;
+    if (!surface_role(part.role) || content || part.point) return false;
+    if (part.corner_radius && *part.corner_radius != 0.0) return false;
+    const bool opaque = surface_material_opaque(material);
+    return opaque;
+}
+
+} // namespace
+
 bool pointed_face_contains(Rect bounds, double point, Point position) noexcept {
     if (!bounds.contains(position)) return false;
     const double half_height = bounds.height * 0.5;
@@ -837,14 +853,21 @@ void paint_part_with_built_in_recipe(Painter& painter, const Control& control, c
     // Authored colours (owner decision T4-1) stand in a copy of the recipe,
     // made only for a part that carries them, and never in high contrast.
     const bool authored = (part.authored_background || part.authored_foreground) && !context.high_contrast;
+    bool opaque_face = false;
     if (authored) {
         ControlVisualRecipe styled = recipe;
         const bool disabled = context.surface == ControlSurfaceState::disabled;
         apply_authored_colours(part, disabled, resolved.important_text(), styled);
         paint_part_from_recipe(painter, part, styled, context);
+        opaque_face = opaque_surface_part(part, styled.material);
     } else {
         paint_part_from_recipe(painter, part, recipe, context);
+        opaque_face = opaque_surface_part(part, recipe.material);
     }
+    // An opaque engine face (owner, 2026-11-05): what lies beneath it, a
+    // window's backdrop included, need not be painted. The window keeps the
+    // cover only when the face was drawn untranslated and unclipped.
+    if (opaque_face) control.report_opaque_cover(painter, part.bounds);
     if (!part.accent || !surface_role(part.role)) return;
     // Provisional accent (design language §8.5): the ramp colour, which
     // carries its own translucency, laid over the part's material in the

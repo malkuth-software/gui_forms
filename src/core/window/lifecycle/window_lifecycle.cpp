@@ -346,7 +346,7 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     // theme's, and its grant is resolved again before theme_changed is
     // raised, so handlers see the grant the theme brings.
     if (!application_backdrop_request_) {
-        backdrop_request_ = (*theme_).definition().window_backdrop.request;
+        backdrop_request_ = implied_backdrop_request();
         refresh_backdrop();
     }
     // Themes include structural spacing/geometry/type tokens as well as paint
