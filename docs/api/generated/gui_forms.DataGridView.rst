@@ -553,7 +553,7 @@ gui_forms::DataGridView
          The editor text cells edit in.
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         The popup that shows a combo box cell's choices.
+         The overlay that shows a combo box cell's choices.
 
    .. rubric:: Notes
 

@@ -967,23 +967,23 @@ void test_default_flags_and_color_property_editors() {
     require(flags && (*flags).value().name == "top, left" &&
                 (*flags).semantic_descriptor().role == SemanticRole::combo_box,
             "the default enum editor service must project flags through a retained multi-choice editor");
-    (*flags).set_popup_width(286.0);
-    require((*flags).popup_width() == 286.0,
-            "flags editor popup width must retain caller customization");
+    (*flags).set_overlay_width(286.0);
+    require((*flags).overlay_width() == 286.0,
+            "flags editor overlay width must retain caller customization");
     (*flags).set_dropped_down(true);
     std::shared_ptr<gui_forms::CheckedListBox> choices = std::dynamic_pointer_cast<CheckedListBox>(window.find(
-        std::string((*flags).stable_id().value()) + ".popup.list"));
+        std::string((*flags).stable_id().value()) + ".overlay.list"));
     require(choices && (*choices).items().size() == 5U &&
                 (*choices).item_checked(1U) && (*choices).item_checked(3U),
-            "the flags popup must expose zero and each independent bit with synchronized checks");
+            "the flags overlay must expose zero and each independent bit with synchronized checks");
     (*choices).set_item_checked(4U, true);
     require(has_anchor((*target).anchor.read(), AnchorStyles::right) &&
                 (*flags).value().name == "top, left, right",
             "checking a flags row must immediately commit the typed enum through PropertyGrid");
     (*flags).set_dropped_down(false);
     require(!window.find(std::string((*flags).stable_id().value()) +
-                         ".popup.list"),
-            "closing a flags editor must synchronously unregister its popup subtree");
+                         ".overlay.list"),
+            "closing a flags editor must synchronously unregister its overlay subtree");
 
     std::shared_ptr<gui_forms::ColorValueEditor> color = std::dynamic_pointer_cast<ColorValueEditor>(
         (*grid).editor("ForeColor"));

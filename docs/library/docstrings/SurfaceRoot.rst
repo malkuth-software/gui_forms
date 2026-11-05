@@ -10,7 +10,7 @@ to the thread that constructs it and never changes thread.
 The threaded sub-surfaces stage S1 moved the control-root part of `Window`
 here with no change of behaviour: the thread identity, the dispatcher and
 the metrics (S1.1), then the control tree with its layout, focus, input,
-painting, popups, accelerators, tooltips and command routing (S1.2). What
+painting, overlays, accelerators, tooltips and command routing (S1.2). What
 binds a root to a native window (resizing and scale, the cursor, the
 presentation declaration and the live-surface presentation queue) stays on
 `Window`.
@@ -49,7 +49,7 @@ scale : default ``1.0``
 presentation_settings
     Text scale, high contrast, reduced motion and sound preferences. The
     text scale must lie between 0.5 and 4.0, and changing it closes open
-    popups. Any change remeasures the tree and raises
+    overlays. Any change remeasures the tree and raises
     `presentation_changed`. Turning reduced motion on puts every motion
     value of the window at its end in the same call.
 theme
@@ -227,7 +227,7 @@ find
     The attached control with the given stable ID, or null.
 hit_test
     The frontmost control eligible for input at a point in window
-    coordinates, searching open popups first, or null.
+    coordinates, searching open overlays first, or null.
 request_focus
     Moves keyboard focus to a control, or clears it with null. Returns true
     if the control has focus afterwards. Returns false, without moving focus,
@@ -253,7 +253,7 @@ move_focus_region
     region, forward enters the first region and backward the last. Regions
     that are detached, hidden, disabled or without a Tab stop are skipped.
     Returns false, leaving focus alone, when no other region can take focus
-    or a popup or dialog focus scope is active.
+    or an overlay or dialog focus scope is active.
 capture_pointer
     Routes pointer input to a control until `release_pointer`, wherever the
     pointer goes. Throws `std::logic_error` if the control is not eligible
@@ -327,10 +327,10 @@ route_command
     runs the first handler for its command identity. Exactly one handler
     runs, or none; a routing nested more than eight deep inside handlers is
     refused. `Command::execute_routed` is the usual caller.
-open_popup
+open_overlay
     Shows a detached control as an overlay owned by another control, such as
-    a menu or a drop-down, and returns a `PopupToken` that closes it. The
-    popup closes on its own when its owner is hidden, disabled or detached.
+    a menu or a drop-down, and returns a `OverlayToken` that closes it. The
+    overlay closes on its own when its owner is hidden, disabled or detached.
 show_tool_tip
     `show_tool_tip(control)` shows the control's tooltip at once, below it,
     for the auto-pop delay; `show_tool_tip(control, duration)` for

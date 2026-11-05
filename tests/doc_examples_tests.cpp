@@ -9,7 +9,7 @@
 
 namespace gf = gui_forms;
 
-namespace doc_example_AnchoredPopupLayer_1 {
+namespace doc_example_AnchoredOverlayLayer_1 {
 struct Picker final : gf::Component {
     std::shared_ptr<gf::Panel> root =
         gf::make_control<gf::Panel>(gf::StableId("picker"));
@@ -19,31 +19,31 @@ struct Picker final : gf::Component {
         gf::make_control<gf::Panel>(gf::StableId("picker.content"));
     std::shared_ptr<gf::TextBox> value =
         gf::make_control<gf::TextBox>(gf::StableId("picker.value"), "#3366cc");
-    std::shared_ptr<gf::AnchoredPopupLayer> layer;
-    gf::PopupToken token;
+    std::shared_ptr<gf::AnchoredOverlayLayer> layer;
+    gf::OverlayToken token;
     gf::FocusScopeId scope{};
-    gf::PopupDismissReason last_reason = gf::PopupDismissReason::click_away;
+    gf::OverlayDismissReason last_reason = gf::OverlayDismissReason::click_away;
 
     Picker() {
         (*button).set_requested_bounds({20.0, 20.0, 100.0, 28.0});
         (*root).add_child(button);
         (*value).set_requested_bounds({8.0, 8.0, 160.0, 24.0});
         (*content).add_child(value);
-        gf::AnchoredPopupPlacement placement;
+        gf::AnchoredOverlayPlacement placement;
         placement.preferred_size = {180.0, 120.0};
         placement.gap = 4.0;
-        layer = gf::make_control<gf::AnchoredPopupLayer>(
+        layer = gf::make_control<gf::AnchoredOverlayLayer>(
             gf::StableId("picker.layer"), button, placement);
         (*layer).set_content(content);
         gf::on((*layer).dismiss_requested(), *this, &Picker::on_dismiss);
     }
 
     void open(gf::Window& window) {
-        token = window.open_popup(button, layer);
+        token = window.open_overlay(button, layer);
         scope = window.begin_focus_scope(layer, value);
     }
 
-    void on_dismiss(gf::PopupDismissReason reason) {
+    void on_dismiss(gf::OverlayDismissReason reason) {
         last_reason = reason;
         gf::Window* window = (*layer).attached_window();
         if (window != nullptr && scope) {
@@ -63,9 +63,9 @@ void example() {
     gf::KeyEvent escape;
     escape.physical_key = gf::PhysicalKey::escape;
     static_cast<void>(window.dispatch_key(escape));
-    // on_dismiss closed the popup; picker.last_reason is escape_key.
+    // on_dismiss closed the overlay; picker.last_reason is escape_key.
 }
-}  // namespace doc_example_AnchoredPopupLayer_1
+}  // namespace doc_example_AnchoredOverlayLayer_1
 
 namespace doc_example_AutoCompleteStringCollection_1 {
 void example() {
@@ -1606,7 +1606,7 @@ void example() {
     window.perform_layout();
     (*frame.edges).set_dropped_down(true);
     std::shared_ptr<gf::CheckedListBox> list = std::dynamic_pointer_cast<gf::CheckedListBox>(
-        window.find("frame.edges.popup.list"));
+        window.find("frame.edges.overlay.list"));
     if (list) (*list).set_item_checked(3U, true);   // the "Right" row
     // drawn is "Top, Left, Right"
     (*frame.edges).set_dropped_down(false);
@@ -4271,7 +4271,7 @@ int run(const char* name, void (*example)()) {
 
 int main() {
     int failures = 0;
-    failures += run("AnchoredPopupLayer example 1", &doc_example_AnchoredPopupLayer_1::example);
+    failures += run("AnchoredOverlayLayer example 1", &doc_example_AnchoredOverlayLayer_1::example);
     failures += run("AutoCompleteStringCollection example 1", &doc_example_AutoCompleteStringCollection_1::example);
     failures += run("BackgroundWorker example 1", &doc_example_BackgroundWorker_1::example);
     failures += run("BackstageView example 1", &doc_example_BackstageView_1::example);

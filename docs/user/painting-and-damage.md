@@ -19,10 +19,10 @@ bounding box when its fixed capacity is exceeded; `damage_region_compactions` an
 records the peak count held.
 
 Paint planes let a control choose where it paints: the ordinary content
-plane, or an overlay plane for popups, tooltips and drag images. Damage is
-tracked separately and can be consumed with `take_damage(plane)`, but this
-does not guarantee separate native surfaces or eliminate repainting beneath
-an overlay.
+plane, or the overlay paint plane (`PaintPlane::overlay`), which overlays,
+tooltips and drag images use. Damage is tracked separately and can be consumed
+with `take_damage(plane)`, but this does not guarantee separate native surfaces
+or eliminate repainting beneath an overlay.
 
 `Window::paint` takes either one rectangle or a set of rectangles. Given a
 set, one paint pass paints each rectangle under its own clip, so pixels

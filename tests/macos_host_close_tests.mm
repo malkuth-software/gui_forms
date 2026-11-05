@@ -498,7 +498,7 @@ bool test_isolated_macos_services() {
         {101, "test.window", std::move(message_request)});
     gui_forms::HostOpenFileDialogRequest open_request;
     open_request.title = "M3d open";
-    // Two filters put the filter popup in the panel, starting on the second.
+    // Two filters put the filter overlay in the panel, starting on the second.
     open_request.filters = {{"Text", {"txt"}}, {"Logs", {"log"}}};
     open_request.initial_filter = 1U;
     const gui_forms::HostDialogResult open = (*services).show_dialog(

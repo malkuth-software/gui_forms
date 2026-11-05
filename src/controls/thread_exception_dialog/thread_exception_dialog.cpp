@@ -107,7 +107,7 @@ void ThreadExceptionDialog::release_task_dialog() noexcept {
         (*dialog).dispose();
     } catch (...) {
         // Disposal off the UI thread throws; the window closes the dialog's
-        // popup when it shuts down.
+        // overlay when it shuts down.
     }
 }
 

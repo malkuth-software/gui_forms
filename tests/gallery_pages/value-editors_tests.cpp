@@ -53,20 +53,20 @@ void test_value_editors(gui_forms::Window& window) {
                 (*rack_tint).text() == "#2A6FB4FF",
             "a typed color commit must reach the preview, the list row and the rack field");
 
-    // FlagsValueEditor: the popup is a real CheckedListBox; a check commits.
+    // FlagsValueEditor: the overlay is a real CheckedListBox; a check commits.
     (*flags).set_dropped_down(true);
     const std::shared_ptr<gui_forms::CheckedListBox> bits = std::dynamic_pointer_cast<CheckedListBox>(
-        window.find("gallery.value-editors.flags.popup.list"));
+        window.find("gallery.value-editors.flags.overlay.list"));
     require(bits && (*bits).items().size() == 5U && (*bits).item_checked(1U) &&
                 (*bits).item_checked(2U) && !(*bits).item_checked(3U),
-            "the flags popup must expose every edge bit with synchronized checks");
+            "the flags overlay must expose every edge bit with synchronized checks");
     (*bits).set_item_checked(3U, true);
     require((*flags).value().name == "Top, Left, Right" && (*flags).value().value == 7 &&
                 (*properties).value("gallery.value-editors.properties.edges") == "Top, Left, Right",
             "checking a flags bit must commit the typed value and project it into the list");
     (*flags).set_dropped_down(false);
-    require(!window.find("gallery.value-editors.flags.popup.list"),
-            "closing the flags editor must unregister its popup subtree");
+    require(!window.find("gallery.value-editors.flags.overlay.list"),
+            "closing the flags editor must unregister its overlay subtree");
 
     // PropertyList text commit reaches the rack; Reset restores the fixture.
     const std::shared_ptr<gui_forms::TextBox> name = std::dynamic_pointer_cast<TextBox>(

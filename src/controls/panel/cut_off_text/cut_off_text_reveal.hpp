@@ -40,11 +40,11 @@ struct CutOffText final {
 
 class CutOffTextFace;
 
-// Shows at most one reveal for its owner control, in a popup layer of the
+// Shows at most one reveal for its owner control, in an overlay layer of the
 // owner's window. The owner keeps it as a member and calls `reveal` when
 // the pointer reaches a new item and `conceal` when it leaves, presses,
 // scrolls or the items change. Closing the owner's window or hiding or
-// disposing the owner revokes the popup; the revealer then reveals
+// disposing the owner revokes the overlay; the revealer then reveals
 // nothing until the next `reveal`. UI thread only.
 class CutOffTextRevealer final {
 public:
@@ -55,7 +55,7 @@ public:
 
     // Reveals `text` over its row when its cell cuts it off, replacing any
     // other reveal; conceals and returns false when the text fits, the
-    // owner is not attached to a window or the window refuses the popup.
+    // owner is not attached to a window or the window refuses the overlay.
     bool reveal(const std::shared_ptr<Control>& owner, CutOffText text);
     void conceal() noexcept;
     [[nodiscard]] bool revealing() const noexcept;
@@ -67,7 +67,7 @@ public:
 private:
     std::shared_ptr<Control> layer_{};
     std::shared_ptr<CutOffTextFace> face_{};
-    PopupToken token_{};
+    OverlayToken token_{};
     std::string key_{};
     Rect bounds_{};
 };

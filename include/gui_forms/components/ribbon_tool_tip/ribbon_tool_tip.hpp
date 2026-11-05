@@ -136,13 +136,13 @@ private:
     struct TargetPointerObserver;
     struct TargetFocusObserver;
     struct StripFocusObserver;
-    struct PopupRevocationObserver;
+    struct OverlayRevocationObserver;
     struct HelpAccelerator final {
         RibbonToolTip* provider{};
 
         bool operator()() const;
     };
-    class PopupHolder;
+    class OverlayHolder;
     class AcceleratorHolder;
     using EntryMap = std::unordered_map<std::uint64_t, std::unique_ptr<Entry>>;
     enum class PendingAction : std::uint8_t { none, show, auto_hide };
@@ -172,7 +172,7 @@ private:
     void timer_tick();
     void show_now(const std::shared_ptr<Control>& target, const std::string& item_id, bool keyboard_initiated);
     void close_overlay(bool emit_change);
-    void popup_revoked();
+    void overlay_revoked();
     bool request_help();
 
     std::weak_ptr<detail::WindowLifetime> window_lifetime_;
@@ -185,10 +185,10 @@ private:
     RibbonToolTipContent shown_content_;
     std::shared_ptr<Control> overlay_layer_;
     std::shared_ptr<Control> overlay_bubble_;
-    std::unique_ptr<PopupHolder> popup_;
+    std::unique_ptr<OverlayHolder> overlay_;
     std::unique_ptr<AcceleratorHolder> accelerator_;
     SubscriptionToken timer_subscription_;
-    SubscriptionToken popup_subscription_;
+    SubscriptionToken overlay_subscription_;
     Event<const RibbonToolTipEvent&> visibility_changed_;
     Event<const RibbonToolTipHelpRequest&> help_requested_;
     std::chrono::milliseconds initial_delay_{500};

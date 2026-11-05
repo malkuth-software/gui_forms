@@ -51,7 +51,7 @@
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
@@ -576,6 +576,15 @@ struct EnumerationChoices<ObjectSortDirection> {
 };
 
 template <>
+struct EnumerationChoices<OverlayDismissReason> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 2> choices{{
+        {"click_away", static_cast<std::int64_t>(OverlayDismissReason::click_away)},
+        {"escape_key", static_cast<std::int64_t>(OverlayDismissReason::escape_key)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<PageCloseCause> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 4> choices{{
@@ -629,15 +638,6 @@ struct EnumerationChoices<PointerButton> {
         {"primary", static_cast<std::int64_t>(PointerButton::primary)},
         {"secondary", static_cast<std::int64_t>(PointerButton::secondary)},
         {"middle", static_cast<std::int64_t>(PointerButton::middle)},
-    }};
-};
-
-template <>
-struct EnumerationChoices<PopupDismissReason> {
-    static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 2> choices{{
-        {"click_away", static_cast<std::int64_t>(PopupDismissReason::click_away)},
-        {"escape_key", static_cast<std::int64_t>(PopupDismissReason::escape_key)},
     }};
 };
 
@@ -3323,8 +3323,8 @@ inline SubscriptionToken connect_window_dialog_result_changed(Component& source,
     return token;
 }
 
-inline SubscriptionToken connect_anchored_popup_layer_dismiss_requested(Component& source, const EventSink& sink) {
-    AnchoredPopupLayer* typed = dynamic_cast<AnchoredPopupLayer*>(&source);
+inline SubscriptionToken connect_anchored_overlay_layer_dismiss_requested(Component& source, const EventSink& sink) {
+    AnchoredOverlayLayer* typed = dynamic_cast<AnchoredOverlayLayer*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4033,6 +4033,24 @@ inline SubscriptionToken connect_breadcrumb_trail_overflow_activated(Component& 
     return token;
 }
 
+inline SubscriptionToken connect_navigation_pane_overlay_open_changed(Component& source, const EventSink& sink) {
+    NavigationPane* typed = dynamic_cast<NavigationPane*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).overlay_open_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_ribbon_gallery_overlay_open_changed(Component& source, const EventSink& sink) {
+    RibbonGallery* typed = dynamic_cast<RibbonGallery*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).overlay_open_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_masked_text_box_overwrite_mode_changed(Component& source, const EventSink& sink) {
     MaskedTextBox* typed = dynamic_cast<MaskedTextBox*>(&source);
     if (typed == nullptr) {
@@ -4147,24 +4165,6 @@ inline SubscriptionToken connect_control_pointer_preview_observed(Component& sou
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).pointer_preview_observed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_navigation_pane_popup_open_changed(Component& source, const EventSink& sink) {
-    NavigationPane* typed = dynamic_cast<NavigationPane*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).popup_open_changed(), sink);
-    return token;
-}
-
-inline SubscriptionToken connect_ribbon_gallery_popup_open_changed(Component& source, const EventSink& sink) {
-    RibbonGallery* typed = dynamic_cast<RibbonGallery*>(&source);
-    if (typed == nullptr) {
-        return SubscriptionToken{};
-    }
-    SubscriptionToken token = subscribe_forwarded((*typed).popup_open_changed(), sink);
     return token;
 }
 
@@ -5106,7 +5106,7 @@ inline constexpr std::array<EventConnector, 269> event_connectors{{
     {"dialog_launcher_clicked", "Ribbon", &connect_ribbon_dialog_launcher_clicked},
     {"dialog_result_changed", "Button", &connect_button_dialog_result_changed},
     {"dialog_result_changed", "Window", &connect_window_dialog_result_changed},
-    {"dismiss_requested", "AnchoredPopupLayer", &connect_anchored_popup_layer_dismiss_requested},
+    {"dismiss_requested", "AnchoredOverlayLayer", &connect_anchored_overlay_layer_dismiss_requested},
     {"disposed_event", "BindingSource", &connect_binding_source_disposed_event},
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
     {"double_click", "NotifyIcon", &connect_notify_icon_double_click},
@@ -5184,6 +5184,8 @@ inline constexpr std::array<EventConnector, 269> event_connectors{{
     {"open_changed", "MenuStrip", &connect_menu_strip_open_changed},
     {"options_requested", "NavigationPane", &connect_navigation_pane_options_requested},
     {"overflow_activated", "BreadcrumbTrail", &connect_breadcrumb_trail_overflow_activated},
+    {"overlay_open_changed", "NavigationPane", &connect_navigation_pane_overlay_open_changed},
+    {"overlay_open_changed", "RibbonGallery", &connect_ribbon_gallery_overlay_open_changed},
     {"overwrite_mode_changed", "MaskedTextBox", &connect_masked_text_box_overwrite_mode_changed},
     {"page_close_requested", "PageStrip", &connect_page_strip_page_close_requested},
     {"page_context_menu_requested", "PageStrip", &connect_page_strip_page_context_menu_requested},
@@ -5197,8 +5199,6 @@ inline constexpr std::array<EventConnector, 269> event_connectors{{
     {"placement_changed", "QuickAccessToolbar", &connect_quick_access_toolbar_placement_changed},
     {"pointer_observed", "Control", &connect_control_pointer_observed},
     {"pointer_preview_observed", "Control", &connect_control_pointer_preview_observed},
-    {"popup_open_changed", "NavigationPane", &connect_navigation_pane_popup_open_changed},
-    {"popup_open_changed", "RibbonGallery", &connect_ribbon_gallery_popup_open_changed},
     {"position_changed", "BindingSource", &connect_binding_source_position_changed},
     {"presentation_changed", "MasterDetailView", &connect_master_detail_view_presentation_changed},
     {"presentation_changed", "Window", &connect_window_presentation_changed},

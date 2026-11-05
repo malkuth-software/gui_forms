@@ -85,7 +85,7 @@ Revealed revealed(Window& window, std::string_view owner) {
     const std::string face_id = std::string(owner) + ".reveal.face";
     Revealed result{};
     for (const VisualControlInspection& control : snapshot.controls) {
-        if (control.stable_id != face_id || !control.popup_tree) continue;
+        if (control.stable_id != face_id || !control.overlay_tree) continue;
         result.shown = true;
         result.bounds = control.layout.absolute_bounds;
         for (const VisualPaintOperationSnapshot& operation : control.display_operations) {

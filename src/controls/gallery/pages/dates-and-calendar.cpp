@@ -13,7 +13,7 @@ public:
                              shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
         (*body).add_at(label(
             "gallery.date.lead",
-            "Validated civil time, caller-owned formats, nullable and spinner modes, retained popup focus, and semantic date cells.",
+            "Validated civil time, caller-owned formats, nullable and spinner modes, retained overlay focus, and semantic date cells.",
             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
         build_formats(body);
         build_modes(body);
@@ -112,7 +112,7 @@ private:
 
     void build_lifecycle(const std::shared_ptr<Surface>& body) {
         std::shared_ptr<LayoutGroup> lifecycle = group(
-            "gallery.date.lifecycle", "Popup lifecycle · commit, cancel, bounds, semantics",
+            "gallery.date.lifecycle", "Overlay lifecycle · commit, cancel, bounds, semantics",
             {930.0, 138.0});
         (*body).add_at(lifecycle, {24.0, 488.0, 930.0, 138.0});
         primary_ = make_picker("gallery.date.primary", "Bounded appointment date");
@@ -124,7 +124,7 @@ private:
         next_day_.set_text("Next day");
         next_day_.set_description("Move the appointment one day later");
         open_calendar_.set_text("Open calendar");
-        open_calendar_.set_description("Drop the retained calendar popup down");
+        open_calendar_.set_description("Drop the retained calendar overlay down");
         commands_ = make_control<CommandBar>(StableId("gallery.date.commands"));
         (*commands_).accessible_name = "Appointment commands";
         (*commands_).set_items({
@@ -197,7 +197,7 @@ private:
     void drop_down_changed(const bool expanded) {
         (*status_).set_text(expanded
             ? "Calendar open · arrows navigate · Enter commits · Esc cancels"
-            : "Calendar closed · popup and focus scope revoked");
+            : "Calendar closed · overlay and focus scope revoked");
         project_commands();
     }
 

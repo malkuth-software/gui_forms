@@ -78,7 +78,7 @@ Tab order
   field you left.
 
 Focus scopes
-: `begin_focus_scope(options)` opens a nested scope for a popup, a menu or a
+: `begin_focus_scope(options)` opens a nested scope for an overlay, a menu or a
   modal panel. While the scope is open, traversal and mnemonics are confined
   to its subtree; `end_focus_scope` restores the previously focused control.
   Scopes nest to `maximum_focus_scope_depth` (32) and every open, close,

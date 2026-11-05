@@ -78,7 +78,7 @@ private:
                                                 edges_descriptor(),
                                                 PropertyEnumValue{"Edges", "Top, Left", 3});
         (*flags_).accessible_name = "Lamp edges";
-        (*flags_).set_popup_width(236.0);
+        (*flags_).set_overlay_width(236.0);
         (*editors).add_at(flags_, {84.0, 91.0, 236.0, 30.0});
         editor_status_ = label("gallery.value-editors.editor-status",
                                "Enter commits · Esc restores · F4 drops the flags list down",

@@ -1,20 +1,20 @@
-/* The Gallery's collections-and-popups page (stage FD, phase FD6.3): two
+/* The Gallery's collections-and-overlays page (stage FD, phase FD6.3): two
    ListBoxes (single and extended selection) and three ComboBoxes (a fixed
    list, one with a placeholder, a searchable field) with a status line.
    gui_forms_add_form() compiles this document into
-   collections-and-popups_form.hpp at build time.
+   collections-and-overlays_form.hpp at build time.
 
    gallery.collections.document is a declared boundary only: the page moves
    its children into the shell's page body (a 1000 x 660 design surface),
    where each is placed by its bounds in design coordinates. Behaviour stays
-   in the page (src/controls/gallery/pages/collections-and-popups.cpp): the
+   in the page (src/controls/gallery/pages/collections-and-overlays.cpp): the
    lists' initial selections, the status line's reports and the page
    style. */
 scaled-panel gallery.collections.document {
   design-size: 1000 660;
 
   label gallery.collections.heading {
-    text: "COLLECTIONS AND POPUPS";
+    text: "COLLECTIONS AND OVERLAYS";
     classes: "heading" "page-title";
     bounds: 24 18 620 34;
   }
@@ -46,13 +46,13 @@ scaled-panel gallery.collections.document {
       accessible-name: "Extended-selection framework features";
       selection-mode: multiple-extended;
       items: "CPU renderer" "Retained tree" "Damage regions" "Tokenized events" "Unicode store"
-        "Focus scopes" "Popup controller" "Frame deadlines" "Host protocol" "Drawing recorder";
+        "Focus scopes" "Overlay controller" "Frame deadlines" "Host protocol" "Drawing recorder";
       bounds: 24 38 410 280;
     }
   }
 
   scaled-group-box gallery.collections.combos {
-    text: "ComboBox · retained overlay popup";
+    text: "ComboBox · retained overlay";
     design-size: 930 160;
     bounds: 24 474 930 160;
     classes: "paper" "group-caption";
@@ -80,7 +80,7 @@ scaled-panel gallery.collections.document {
       bounds: 622 42 284 36;
     }
     label gallery.collections.status {
-      text: "Popup overlays are root-attached, owner-revoked, and focus-contained.";
+      text: "Overlays are root-attached, owner-revoked, and focus-contained.";
       classes: "positive" "emphasis";
       bounds: 24 96 780 26;
     }

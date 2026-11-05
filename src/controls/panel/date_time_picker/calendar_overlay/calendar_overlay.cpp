@@ -1,10 +1,10 @@
-#include "calendar_popup.hpp"
+#include "calendar_overlay.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 namespace gui_forms {
 
-CalendarPopup::~CalendarPopup() {}
+CalendarOverlay::~CalendarOverlay() {}
 
 namespace {
 
@@ -16,16 +16,16 @@ Rect mark_square(Point centre, double side) noexcept {
 
 } // namespace
 
-// The popup lies over the window's content, so it casts the theme's overlay
+// The overlay lies over the window's content, so it casts the theme's overlay
 // shadow from its square face (owner decision RB-37). The face is the
 // panel's; the month title, weekday names and hint are labels, the names
 // and the hint in the secondary tone; each month arrow is a menu item's
 // actuator and arrow mark, unavailable at the end of the range. A day is a
 // menu item's plate (selected, hot under the pointer, disabled outside the
 // range) with its number as content: days of the neighbouring months are
-// secondary text. The focus ring marks the selected day while the popup has
+// secondary text. The focus ring marks the selected day while the overlay has
 // focus.
-void CalendarPopup::on_paint(Painter& painter, Rect) {
+void CalendarOverlay::on_paint(Painter& painter, Rect) {
     const Rect arranged = committed_arranged_bounds();
     const double s = effective_text_scale();
     const Rect body{0.0, 0.0, std::max(0.0, arranged.width - 3.0 * s),
@@ -77,7 +77,7 @@ void CalendarPopup::on_paint(Painter& painter, Rect) {
     label.tone = PartTextTone::secondary;
     label.font = effective_font({FontRole::control, 10.0, 700, false});
     for (std::size_t column = 0U; column < narrow_days.size(); ++column) {
-        const Rect cell = calendar_detail::month_grid_cell_bounds(calendar_popup_grid, column, s);
+        const Rect cell = calendar_detail::month_grid_cell_bounds(calendar_overlay_grid, column, s);
         label.bounds = {cell.x, 44.0 * s, cell.width, 18.0 * s};
         label.text = narrow_days[column];
         paint_part(painter, *this, label);
@@ -101,7 +101,7 @@ void CalendarPopup::on_paint(Painter& painter, Rect) {
         if (selected) day.states.insert(AnatomyState::selected);
         if (!selected && in_range && hovered_cell_ == cell) day.states.insert(AnatomyState::hot);
         if (!in_range) day.states.insert(AnatomyState::disabled);
-        day.bounds = calendar_detail::month_grid_cell_bounds(calendar_popup_grid, cell, s);
+        day.bounds = calendar_detail::month_grid_cell_bounds(calendar_overlay_grid, cell, s);
         day.role = PartRole::face;
         paint_part(painter, *this, day);
         day.role = PartRole::content;
@@ -129,7 +129,7 @@ void CalendarPopup::on_paint(Painter& painter, Rect) {
     paint_text_part_at(painter, *this, label, {10.0 * s, 248.0 * s}, std::max(0.0, body.width - 20.0 * s));
 }
 
-Insets CalendarPopup::visual_outsets() const noexcept {
+Insets CalendarOverlay::visual_outsets() const noexcept {
     const Insets result = overlay_shadow_outsets(*this);
     return result;
 }

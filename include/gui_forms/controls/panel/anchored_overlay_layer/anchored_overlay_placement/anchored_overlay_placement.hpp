@@ -7,40 +7,40 @@
 
 namespace gui_forms {
 
-enum class PopupHorizontalAlignment : std::uint8_t {
+enum class OverlayHorizontalAlignment : std::uint8_t {
     near,
     center,
     far,
 };
 
-enum class PopupVerticalPreference : std::uint8_t {
+enum class OverlayVerticalPreference : std::uint8_t {
     below,
     above,
 };
 
-struct AnchoredPopupPlacement final {
+struct AnchoredOverlayPlacement final {
     Size preferred_size{};
-    PopupHorizontalAlignment horizontal_alignment{
-        PopupHorizontalAlignment::near};
-    PopupVerticalPreference vertical_preference{
-        PopupVerticalPreference::below};
+    OverlayHorizontalAlignment horizontal_alignment{
+        OverlayHorizontalAlignment::near};
+    OverlayVerticalPreference vertical_preference{
+        OverlayVerticalPreference::below};
     double gap{};
     double viewport_margin{4.0};
     bool allow_vertical_flip{true};
 };
 
-struct AnchoredPopupPlacementResult final {
+struct AnchoredOverlayPlacementResult final {
     Rect bounds{};
     bool placed_above{};
     bool width_clamped{};
     bool height_clamped{};
 };
 
-// Resolves an owner-relative popup into logical window-client coordinates.
+// Resolves an owner-relative overlay into logical window-client coordinates.
 // The result is deterministic, bounded to the client margin, and flips across
 // the anchor only when the preferred side cannot contain the requested height.
-[[nodiscard]] AnchoredPopupPlacementResult resolve_anchored_popup(
+[[nodiscard]] AnchoredOverlayPlacementResult resolve_anchored_overlay(
     Rect anchor_bounds, Size client_size,
-    AnchoredPopupPlacement placement);
+    AnchoredOverlayPlacement placement);
 
 } // namespace gui_forms

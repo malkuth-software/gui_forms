@@ -456,7 +456,7 @@ and by explicit `perform_click`, never by setters.
 
 Hiding or disabling a control, or one of its ancestors, removes focus from
 the subtree (nothing is focused afterwards), releases its pointer capture and
-press, and closes popups and focus scopes it owns. The window's
+press, and closes overlays and focus scopes it owns. The window's
 `control_availability_changed` is raised, then the control's own
 `visible_changed` or `enabled_changed`.
 

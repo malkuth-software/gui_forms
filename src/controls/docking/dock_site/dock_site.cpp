@@ -1167,7 +1167,7 @@ void DockSite::arrange_side_strips(const std::array<bool, 4>& edges, const std::
 }
 
 // A collapsed stack's flyout whose stack has room again closes once the pass
-// is over (the window's popups are not edited during layout); one still
+// is over (the window's overlays are not edited during layout); one still
 // behind side tabs follows the pass.
 void DockSite::follow_flyout_after_pass() {
     if (!flyout_panel_) return;
@@ -2216,7 +2216,7 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
         *this, Delegate<const DockNavigatorChoice&>::bind<DockSite, &DockSite::on_navigator_chosen>(*this));
     navigator_cancelled_ =
         (*navigator_).cancelled().subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_navigator_cancelled>(*this));
-    navigator_token_ = (*host).open_popup(shared_from_this(), navigator_);
+    navigator_token_ = (*host).open_overlay(shared_from_this(), navigator_);
     if (Event<>* const closed = navigator_token_.closed_event()) {
         navigator_revoked_ =
             (*closed).subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_navigator_revoked>(*this));
@@ -2234,7 +2234,7 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
 }
 
 // Closing order: focus returns (the scope restores it), the window drops the
-// popup, then the site forgets it.
+// overlay, then the site forgets it.
 void DockSite::close_navigator() noexcept {
     if (!navigator_open_ || navigator_closing_) return;
     navigator_closing_ = true;

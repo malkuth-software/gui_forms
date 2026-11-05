@@ -579,7 +579,7 @@ void place_menus(FixtureBuilder& builder) {
     builder.fixture().color_command = std::make_shared<ColorCommand>(font_colour);
     (*colour).set_command(builder.fixture().color_command);
 
-    builder.omit("context_menu", "component; a popup that exists only while open");
+    builder.omit("context_menu", "component; an overlay that exists only while open");
     builder.omit("command", "component; published through the menus, strips and ribbon that present it");
     builder.omit("font_command", "component; published through RibbonFontControl");
     builder.omit("color_command", "component; published through RibbonColorPicker");
@@ -587,12 +587,12 @@ void place_menus(FixtureBuilder& builder) {
 }
 
 void place_dialogs(FixtureBuilder& builder, const Control::Ptr& anchor) {
-    AnchoredPopupPlacement placement;
+    AnchoredOverlayPlacement placement;
     placement.preferred_size = {160.0, 60.0};
-    std::shared_ptr<AnchoredPopupLayer> layer = builder.place(
-        make_control<AnchoredPopupLayer>(StableId("anchored-popup-layer"), anchor, placement), 60.0);
-    (*layer).set_accessible_name("Anchored popup");
-    (*layer).set_content(make_control<Label>(StableId("anchored-popup-layer.content"), "Popup body"));
+    std::shared_ptr<AnchoredOverlayLayer> layer = builder.place(
+        make_control<AnchoredOverlayLayer>(StableId("anchored-overlay-layer"), anchor, placement), 60.0);
+    (*layer).set_accessible_name("Anchored overlay");
+    (*layer).set_content(make_control<Label>(StableId("anchored-overlay-layer.content"), "Overlay body"));
     std::shared_ptr<FontDialog> font = builder.place(make_control<FontDialog>(StableId("font-dialog")), 300.0);
     static_cast<void>(font);
     std::shared_ptr<TaskDialog> task = builder.place(make_control<TaskDialog>(StableId("task-dialog")), 160.0);
@@ -601,8 +601,8 @@ void place_dialogs(FixtureBuilder& builder, const Control::Ptr& anchor) {
     page.heading = "Export the bundle?";
     page.buttons = {{.stable_id = "export", .text = "Export"}, {.standard = TaskDialogStandardButton::cancel}};
     (*task).set_page(std::move(page));
-    builder.omit("tool_tip", "component; a popup shown on hover");
-    builder.omit("ribbon_tool_tip", "component; a popup shown on hover");
+    builder.omit("tool_tip", "component; an overlay shown on hover");
+    builder.omit("ribbon_tool_tip", "component; an overlay shown on hover");
 }
 
 void place_drawing(FixtureBuilder& builder) {
@@ -707,9 +707,9 @@ StockControlFixture make_stock_control_fixture() {
     place_docking(builder);
     // Copied out of the entry list, which grows as controls are placed.
     const Control::Ptr property_target = (*find_stock_control(fixture, "label")).control;
-    const Control::Ptr popup_anchor = (*find_stock_control(fixture, "button")).control;
+    const Control::Ptr overlay_anchor = (*find_stock_control(fixture, "button")).control;
     place_property_grid(builder, property_target);
-    place_dialogs(builder, popup_anchor);
+    place_dialogs(builder, overlay_anchor);
     place_drawing(builder);
     place_diagnostics(builder);
     omit_components(builder);

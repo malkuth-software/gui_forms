@@ -724,7 +724,7 @@ Related types
 
    .. cpp:member:: std::size_t depth
 
-   .. cpp:member:: bool popup_tree
+   .. cpp:member:: bool overlay_tree
 
    .. cpp:member:: VisualControlLayoutSnapshot layout
 

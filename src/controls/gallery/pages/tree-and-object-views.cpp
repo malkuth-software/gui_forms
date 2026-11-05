@@ -33,7 +33,7 @@ constexpr std::array<ProjectNode, 15> project{{
     {"button.cpp", "button.cpp", 2, false, ObjectGlyph::code, "C++ source", "18 KB", "2026-10-09", "Dialog results and the four visual styles"},
     {"tree-view.cpp", "tree_view.cpp", 2, false, ObjectGlyph::code, "C++ source", "42 KB", "2026-10-10", "Visible-row virtualization and type-select"},
     {"core", "core", 1, true, ObjectGlyph::folder, "Folder", "", "2026-10-08", "Window and scheduler"},
-    {"window.cpp", "window.cpp", 5, false, ObjectGlyph::code, "C++ source", "96 KB", "2026-10-08", "Popup leases and focus scopes"},
+    {"window.cpp", "window.cpp", 5, false, ObjectGlyph::code, "C++ source", "96 KB", "2026-10-08", "Overlay leases and focus scopes"},
     {"docs", "docs", 0, true, ObjectGlyph::folder, "Folder", "", "2026-10-07", "Atlas and manual"},
     {"atlas.md", "atlas.md", 7, false, ObjectGlyph::document, "Markdown", "7 KB", "2026-10-07", "Generated control atlas"},
     {"manual.json", "manual.json", 7, false, ObjectGlyph::code, "JSON", "121 KB", "2026-10-06", "Hand-reviewed narratives"},

@@ -65,8 +65,8 @@ const SemanticNode* node_with_state(std::vector<SemanticNode>&& nodes, SemanticS
 } // namespace
 
 ToolTipPresenter::Overlay::Overlay(std::shared_ptr<ToolTipLayer> layer_control,
-                                   std::shared_ptr<ToolTipBubble> bubble_control, PopupToken popup_token) noexcept
-    : layer(std::move(layer_control)), bubble(std::move(bubble_control)), token(std::move(popup_token)) {}
+                                   std::shared_ptr<ToolTipBubble> bubble_control, OverlayToken overlay_token) noexcept
+    : layer(std::move(layer_control)), bubble(std::move(bubble_control)), token(std::move(overlay_token)) {}
 
 ToolTipPresenter::Overlay::~Overlay() {
     closed.disconnect();
@@ -79,8 +79,8 @@ void ToolTipPresenter::Wake::operator()(FrameTime now) const {
     (*presenter).woke(now);
 }
 
-void ToolTipPresenter::PopupClosed::operator()() const {
-    (*presenter).popup_closed();
+void ToolTipPresenter::OverlayClosed::operator()() const {
+    (*presenter).overlay_closed();
 }
 
 ToolTipPresenter::ToolTipPresenter(Window& window) noexcept : window_(window) {}
@@ -91,7 +91,7 @@ ToolTipPresenter::~ToolTipPresenter() {
 
 void ToolTipPresenter::shutdown() noexcept {
     wake_.disconnect();
-    // The overlay's destructor disconnects its popup before the state goes.
+    // The overlay's destructor disconnects its overlay before the state goes.
     state_ = Idle{};
     keyboard_subject_ = ToolTipSubject{};
 }
@@ -296,13 +296,13 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
     (*bubble).set_requested_bounds({0.0, 0.0, face.width, face.height});
     (*layer).add_child(bubble);
 
-    PopupOptions options{};
+    OverlayOptions options{};
     options.require_enabled_owner = !settings.show_when_disabled;
-    PopupToken token = window_.open_popup(control, layer, options);
+    OverlayToken token = window_.open_overlay(control, layer, options);
     std::unique_ptr<Overlay> overlay =
         std::make_unique<Overlay>(std::move(layer), std::move(bubble), std::move(token));
     if (Event<>* closed = (*overlay).token.closed_event()) {
-        (*overlay).closed = (*closed).subscribe(PopupClosed{this});
+        (*overlay).closed = (*closed).subscribe(OverlayClosed{this});
     }
 
     ToolTipEvent change{};
@@ -340,7 +340,7 @@ std::optional<ToolTipEvent> ToolTipPresenter::close(State next) {
     change.shown = false;
     change.keyboard_initiated = (*showing).origin == ToolTipOrigin::keyboard;
     // Moving the state out first leaves the presenter consistent while the
-    // overlay's destructor detaches the popup.
+    // overlay's destructor detaches the overlay.
     State previous = std::move(state_);
     state_ = std::move(next);
     if (!std::holds_alternative<Waiting>(state_)) wake_.disconnect();
@@ -381,7 +381,7 @@ void ToolTipPresenter::raise(const std::optional<ToolTipEvent>& change) {
     if (change) window_.tool_tip_visibility_changed_.emit(*change);
 }
 
-void ToolTipPresenter::popup_closed() {
+void ToolTipPresenter::overlay_closed() {
     raise(close(Idle{}));
 }
 

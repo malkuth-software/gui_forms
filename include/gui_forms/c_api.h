@@ -318,7 +318,7 @@ typedef enum gf_window_run_flag {
     GF_WINDOW_RUN_AUTOMATION_CLOSE = 1 << 0,
     GF_WINDOW_RUN_FORCE_HEADLESS = 1 << 1,
     GF_WINDOW_RUN_AUTOMATION_ACTIVATE = 1 << 2,
-    /* Run an unattached custom surface as a transient retained popup. */
+    /* Run an unattached custom surface as a transient retained overlay. */
     GF_WINDOW_RUN_POPUP = 1 << 3
 } gf_window_run_flag;
 
@@ -620,12 +620,12 @@ typedef struct gf_api_v0 {
                                         uint32_t border_style);
 
     /*
-     * ABI 0.26: attach a detached retained root to the window-owned popup
+     * ABI 0.26: attach a detached retained root to the window-owned overlay
      * composition lane. The owner remains the lifetime/input authority; the
-     * popup is laid out in root-client coordinates and is not a layout child.
+     * overlay is laid out in root-client coordinates and is not a layout child.
      */
-    gf_result (*attach_popup)(gf_handle owner, gf_handle popup);
-    gf_result (*detach_popup)(gf_handle popup);
+    gf_result (*attach_overlay)(gf_handle owner, gf_handle overlay);
+    gf_result (*detach_overlay)(gf_handle overlay);
 } gf_api_v0;
 
 /*

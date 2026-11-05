@@ -392,11 +392,11 @@ void test_combo_box_scrollbar_reaches_last_item() {
     window.perform_layout();
     (*combo).set_dropped_down(true);
     window.perform_layout();
-    const std::shared_ptr<ListBox> list = std::dynamic_pointer_cast<ListBox>(window.find("scroll.combo.popup.list"));
-    const std::shared_ptr<ScrollBar> bar = std::dynamic_pointer_cast<ScrollBar>(window.find("scroll.combo.popup.list.scrollbar"));
+    const std::shared_ptr<ListBox> list = std::dynamic_pointer_cast<ListBox>(window.find("scroll.combo.overlay.list"));
+    const std::shared_ptr<ScrollBar> bar = std::dynamic_pointer_cast<ScrollBar>(window.find("scroll.combo.overlay.list.scrollbar"));
     require(list && bar && (*bar).visible.read(), "overflow choices have a visible, operable scrollbar");
     const Rect bounds = (*list).absolute_bounds();
-    require(bounds.y >= 0 && bounds.y + bounds.height <= 220, "tall popup fits a short window");
+    require(bounds.y >= 0 && bounds.y + bounds.height <= 220, "tall overlay fits a short window");
     (*bar).set_value((*bar).maximum());
     require((*list).top_index() > 0, "scrollbar changes the list viewport");
     const Point last{bounds.x + 15, bounds.y + 2 + (23 - (*list).top_index()) * 26.0 + 13};
@@ -406,7 +406,7 @@ void test_combo_box_scrollbar_reaches_last_item() {
             "the last language is reachable without a mouse wheel");
 }
 
-void test_combo_box_popup_commit_dismiss_and_owner_revocation() {
+void test_combo_box_overlay_commit_dismiss_and_owner_revocation() {
     std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("combo.root"));
     std::shared_ptr<gui_forms::ComboBox> combo = make_control<ComboBox>(StableId("combo.field"));
     (*combo).set_items({"Low latency", "Balanced", "High fidelity", "Archive"});
@@ -453,13 +453,13 @@ void test_combo_box_popup_commit_dismiss_and_owner_revocation() {
 
     (*combo).set_dropped_down(true);
     require((*combo).dropped_down() && window.focus_scope_depth() == 1U &&
-                window.find("combo.field.popup.list"),
+                window.find("combo.field.overlay.list"),
             "ComboBox must publish a retained overlay and contained focus scope");
-    const Control::Ptr popup = window.find("combo.field.popup.list");
+    const Control::Ptr overlay = window.find("combo.field.overlay.list");
     window.perform_layout();
-    const Rect bounds = (*popup).absolute_bounds();
+    const Rect bounds = (*overlay).absolute_bounds();
     require(bounds.width == 260.0 && (*combo).drop_down_width() == 260.0,
-            "ComboBox must honor an explicit bounded popup width independently of its field width");
+            "ComboBox must honor an explicit bounded overlay width independently of its field width");
     const DamageRegion opening_damage = window.take_damage();
     RecordingPainter opening_painter;
     window.paint(opening_painter, opening_damage.bounds());
@@ -469,51 +469,51 @@ void test_combo_box_popup_commit_dismiss_and_owner_revocation() {
                 window.dispatch_pointer({PointerAction::up, PointerButton::primary, third}) &&
                 (*combo).selected_index() == 2U && !(*combo).dropped_down() &&
                 window.focus_scope_depth() == 0U &&
-                !window.find("combo.field.popup.layer") &&
+                !window.find("combo.field.overlay.layer") &&
                 order == "open\nselection\nclose\n",
-            "ComboBox popup activation must commit, close, restore focus, and detach overlay");
+            "ComboBox overlay activation must commit, close, restore focus, and detach overlay");
     const Rect close_damage = window.take_damage().bounds();
     require(Rect::intersection(close_damage, bounds) == bounds,
-            "detaching a ComboBox overlay must damage every formerly painted popup pixel");
+            "detaching a ComboBox overlay must damage every formerly painted overlay pixel");
 
     (*combo).set_dropped_down(true);
     window.perform_layout();
-    const Rect semantic_popup_bounds =
-        (*window.find("combo.field.popup.list")).absolute_bounds();
+    const Rect semantic_overlay_bounds =
+        (*window.find("combo.field.overlay.list")).absolute_bounds();
     const DamageRegion semantic_open_damage = window.take_damage();
     RecordingPainter semantic_open_painter;
     window.paint(semantic_open_painter, semantic_open_damage.bounds());
     window.notify_presented();
     require(window.perform_semantic_action(
-                "combo.field.popup.list.item.1", SemanticAction::press) &&
+                "combo.field.overlay.list.item.1", SemanticAction::press) &&
                 !(*combo).dropped_down(),
             "semantic ComboBox row press must commit and close its overlay");
     const DamageRegion semantic_close_region = window.take_damage();
     const Rect semantic_close_damage = semantic_close_region.bounds();
-    require(Rect::intersection(semantic_close_damage, semantic_popup_bounds) ==
-                semantic_popup_bounds,
-            "semantic popup close must damage every formerly painted popup pixel");
+    require(Rect::intersection(semantic_close_damage, semantic_overlay_bounds) ==
+                semantic_overlay_bounds,
+            "semantic overlay close must damage every formerly painted overlay pixel");
     RecordingPainter semantic_close_painter;
     window.paint(semantic_close_painter, semantic_close_damage);
     require(semantic_close_painter.saw_window_backplane,
-            "popup removal repaint must restore an opaque themed Window backplane");
+            "overlay removal repaint must restore an opaque themed Window backplane");
 
     (*combo).set_dropped_down(true);
     const Point outside{5.0, 5.0};
     require(window.dispatch_pointer({PointerAction::down, PointerButton::primary, outside}) &&
                 !(*combo).dropped_down(),
-            "ComboBox popup layer must dismiss an outside pointer press");
+            "ComboBox overlay layer must dismiss an outside pointer press");
 
     (*combo).set_dropped_down(true);
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 !(*combo).dropped_down() && window.focus_scope_depth() == 0U,
-            "Escape inside the popup focus scope must close ComboBox and restore focus");
+            "Escape inside the overlay focus scope must close ComboBox and restore focus");
 
     (*combo).set_dropped_down(true);
     (*combo).visible = false;
-    require(!(*combo).dropped_down() && !window.find("combo.field.popup.layer") &&
+    require(!(*combo).dropped_down() && !window.find("combo.field.overlay.layer") &&
                 window.focus_scope_depth() == 0U,
-            "popup controller must revoke a ComboBox overlay when its owner becomes ineligible");
+            "overlay controller must revoke a ComboBox overlay when its owner becomes ineligible");
 }
 
 void test_numeric_up_down_composite_edit_spinner_and_keys() {
@@ -603,7 +603,7 @@ int main() {
         test_word_navigation_and_deletion();
         test_clipboard_commands_and_protected_text();
         test_list_box_selection_navigation_and_mutation();
-        test_combo_box_popup_commit_dismiss_and_owner_revocation();
+        test_combo_box_overlay_commit_dismiss_and_owner_revocation();
         test_combo_box_scrollbar_reaches_last_item();
         test_numeric_up_down_composite_edit_spinner_and_keys();
         test_list_box_model_stable_item_ids();

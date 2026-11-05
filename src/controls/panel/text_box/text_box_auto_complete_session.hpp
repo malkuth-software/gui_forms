@@ -6,7 +6,7 @@
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
 
 #include "../combo_box/drop_down_layer.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/window.hpp"
 
 #include <cstdint>
@@ -21,8 +21,8 @@ namespace gui_forms::detail {
 // left, restored by Escape; `shown_revision` is the text store's revision
 // right after the box last showed completion text (an appended completion or
 // a highlighted suggestion), so a later edit of the user's is never undone
-// by Escape. The popup members are set while the list is open. The
-// revocation subscription is declared after the popup token so that it is
+// by Escape. The overlay members are set while the list is open. The
+// revocation subscription is declared after the overlay token so that it is
 // disconnected first when the session is destroyed.
 struct TextBoxAutoCompleteSession final {
     std::string typed{};
@@ -43,9 +43,9 @@ struct TextBoxAutoCompleteSession final {
     // Set while the box closes the list, so the revocation the close raises
     // is not taken as the window closing it.
     bool closing{};
-    std::shared_ptr<AnchoredPopupLayer> layer{};
+    std::shared_ptr<AnchoredOverlayLayer> layer{};
     std::shared_ptr<DropDownList> list{};
-    PopupToken token{};
+    OverlayToken token{};
     SubscriptionToken list_selection{};
     SubscriptionToken list_activation{};
     SubscriptionToken dismissal{};

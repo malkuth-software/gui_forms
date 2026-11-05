@@ -281,12 +281,12 @@ gf_result api_set_panel_border_style(gf_handle panel,
     return translate(&Registry::set_panel_border_style, &registry(), panel, border_style);
 }
 
-gf_result api_attach_popup(gf_handle owner, gf_handle popup) noexcept {
-    return translate(&Registry::attach_popup, &registry(), owner, popup);
+gf_result api_attach_overlay(gf_handle owner, gf_handle overlay) noexcept {
+    return translate(&Registry::attach_overlay, &registry(), owner, overlay);
 }
 
-gf_result api_detach_popup(gf_handle popup) noexcept {
-    return translate(&Registry::detach_popup, &registry(), popup);
+gf_result api_detach_overlay(gf_handle overlay) noexcept {
+    return translate(&Registry::detach_overlay, &registry(), overlay);
 }
 gf_result api_subscribe_pointer(gf_handle sender, gf_pointer_callback callback,
                                 void* context, gf_event_token* token) noexcept {
@@ -690,8 +690,8 @@ extern "C" GF_C_API_EXPORT gf_result gf_get_api_v0(std::uint32_t requested_versi
         &api_set_control_text_alignment,
         &api_set_button_appearance,
         &api_set_panel_border_style,
-        &api_attach_popup,
-        &api_detach_popup,
+        &api_attach_overlay,
+        &api_detach_overlay,
     };
     const std::size_t copy_size = std::min<std::size_t>(caller_size, sizeof(implementation));
     std::memcpy(table, &implementation, copy_size);

@@ -160,9 +160,9 @@ TableBytes find_table(gf_table_id table_id) noexcept {
         found.data = &gui_forms::abi1::text_editing_table();
         found.size = sizeof(gf_text_editing_table);
         break;
-    case GF_TABLE_POPUPS:
-        found.data = &gui_forms::abi1::popups_table();
-        found.size = sizeof(gf_popups_table);
+    case GF_TABLE_OVERLAYS:
+        found.data = &gui_forms::abi1::overlays_table();
+        found.size = sizeof(gf_overlays_table);
         break;
     case GF_TABLE_PROPERTY_GRID:
         found.data = &gui_forms::abi1::property_grid_table();

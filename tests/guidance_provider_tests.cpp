@@ -386,7 +386,7 @@ void test_multiple_providers_and_disposal_cleanup() {
     (*fixture.target).dispose();
     require((*second).snapshot().presented_icons == 0U &&
                 !fixture.window.next_wake(),
-            "target disposal must revoke provider popup and frame work synchronously");
+            "target disposal must revoke provider overlay and frame work synchronously");
 }
 
 } // namespace

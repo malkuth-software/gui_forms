@@ -432,7 +432,7 @@ Control::Ptr DockSite::flyout_control() const noexcept {
 }
 
 // Moves the flyout to where its slide stands: the slot's rectangles (for
-// painting and the parts) and the popup's bounds in window coordinates.
+// painting and the parts) and the overlay's bounds in window coordinates.
 void DockSite::place_flyout() {
     const std::size_t index = flyout_slot_index();
     if (!flyout_ || index >= stacks_.size()) return;
@@ -545,7 +545,7 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     flyout_slide_.jump_to(0.0);
     static_cast<void>(flyout_slide_.animate_to(1.0));
     place_flyout();
-    flyout_token_ = (*host).open_popup(shared_from_this(), flyout_);
+    flyout_token_ = (*host).open_overlay(shared_from_this(), flyout_);
     if (Event<>* const closed = flyout_token_.closed_event()) {
         flyout_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_flyout_revoked>(*this));
     }

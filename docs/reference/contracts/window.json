@@ -3,14 +3,14 @@
   "symbols": {
     "gui_forms::Window": {
       "reviewed": true,
-      "summary": "Window is GUI.Forms' portable retained-root coordinator. It owns exact tree identity, update/layout/paint transactions, damage and presentation receipts, live layers, frame requests, UI-thread dispatch, resources, focus/validation/dialog keys, pointer/drag/deferred input, popups and accelerators, metrics, and semantic projection; native adapters reach it only through the host session and wake seams.",
+      "summary": "Window is GUI.Forms' portable retained-root coordinator. It owns exact tree identity, update/layout/paint transactions, damage and presentation receipts, live layers, frame requests, UI-thread dispatch, resources, focus/validation/dialog keys, pointer/drag/deferred input, overlays and accelerators, metrics, and semantic projection; native adapters reach it only through the host session and wake seams.",
       "remarks": [
         "Provides resize and logical scale; nested update scopes, explicit layout, flush, paint, and per-plane damage; retained lookup by stable ID and recursive hit testing; focus, pointer capture, pressed state, and routed input dispatch.",
         "Owns the retained accept/cancel targets and the exact retained `DialogResult`; dialog keys route to live targets only after the focused route declines them and never move focus.",
         "A paint pass holds one exclusive UI-thread lease. `paint` returns an exact `PaintReceipt` only after complete backend replay; native hosts present only a valid receipt and then call `notify_presented`. Duplicate, backward, forged-future, and replaced-epoch receipts are rejected and counted.",
         "Exposes frame scheduling, occlusion and wake deadlines, UI timer callbacks, validated PNG resource loading, renderer-free semantic snapshots, and structured metrics."
       ],
-      "ownership": "Owns one retained root control tree and one UI thread. The application constructs the Window and keeps it alive for the lifetime of its tree; a native host adapter attaches to it. Window shutdown synchronously revokes timers, popups, paint leases, and pending dispatcher work.",
+      "ownership": "Owns one retained root control tree and one UI thread. The application constructs the Window and keeps it alive for the lifetime of its tree; a native host adapter attaches to it. Window shutdown synchronously revokes timers, overlays, paint leases, and pending dispatcher work.",
       "threading": "The Window defines the UI thread. `check_access` reports whether the caller is on it and `verify_access` rejects any other caller; `begin_invoke`/`invoke` marshal work onto it. Only the dispatcher entry points may be called from other threads.",
       "availability": "Renderer-neutral core (`gui_forms_controls`). Available wherever the GUI.Forms core builds: the macOS AppKit host, the Windows Win32 host, and the opt-in Linux X11 host. The public API is not yet stable.",
       "see_also": [
@@ -29,7 +29,7 @@
     },
     "gui_forms::Window::~Window|void ()": {
       "reviewed": false,
-      "summary": "Revokes wakes, deferred input, dispatch work, accelerators, popups, focus scopes, frame requests, and retained attachment in dependency order before retiring the shared lifetime token."
+      "summary": "Revokes wakes, deferred input, dispatch work, accelerators, overlays, focus scopes, frame requests, and retained attachment in dependency order before retiring the shared lifetime token."
     },
     "gui_forms::Window::Window|void (const Window &)": {
       "reviewed": false,

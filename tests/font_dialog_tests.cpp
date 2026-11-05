@@ -1,5 +1,5 @@
 // FontDialog (stage W): the bundled faces it offers, styles per face, size
-// range, preview, Apply, OK and Cancel, the owned popup with its focus scope
+// range, preview, Apply, OK and Cancel, the owned overlay with its focus scope
 // and revocation, Escape, semantics (focus goes to the font list) and the
 // published anatomy.
 
@@ -87,7 +87,7 @@ void faces_and_styles() {
             "changing the selection leaves font() until OK or Apply");
 }
 
-void popup_ok_cancel_apply() {
+void overlay_ok_cancel_apply() {
     Fixture fixture = make_fixture();
     Window& window = *fixture.window;
     FontDialog& dialog = *fixture.dialog;
@@ -115,7 +115,7 @@ void popup_ok_cancel_apply() {
                 closed.size() == 1U && closed[0].result == DialogResult::cancel &&
                 dialog.font().size == 12.0 && window.focus_scope_depth() == 0U &&
                 window.find("font") == nullptr,
-            "Escape cancels: the applied font stays and the popup and its focus scope go");
+            "Escape cancels: the applied font stays and the overlay and its focus scope go");
 
     require(dialog.show(fixture.owner), "the dialog opens again");
     require(dialog.selection().size == 12.0, "a reopened dialog starts from font()");
@@ -143,7 +143,7 @@ void embedded_semantics_and_anatomy() {
     dialog.set_requested_bounds({0.0, 60.0, 460.0, 332.0});
     (*fixture.root).add_child(fixture.dialog);
     (*fixture.window).perform_layout();
-    require(!dialog.show(fixture.owner), "a dialog placed in a layout does not open as a popup");
+    require(!dialog.show(fixture.owner), "a dialog placed in a layout does not open as an overlay");
     (*dialog.style_list()).select_index(1U);
     require((*dialog.ok_button()).perform_click() && closed.size() == 1U && closed[0].result == DialogResult::ok &&
                 dialog.font().weight == 700U,
@@ -180,8 +180,8 @@ void embedded_semantics_and_anatomy() {
 
 int main() {
     faces_and_styles();
-    popup_ok_cancel_apply();
+    overlay_ok_cancel_apply();
     embedded_semantics_and_anatomy();
-    std::cout << "FontDialog: faces, styles, sizes, popup, OK, Cancel, Apply, revocation, semantics and anatomy passed\n";
+    std::cout << "FontDialog: faces, styles, sizes, overlay, OK, Cancel, Apply, revocation, semantics and anatomy passed\n";
     return 0;
 }

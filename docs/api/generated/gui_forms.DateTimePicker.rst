@@ -28,7 +28,7 @@ gui_forms::DateTimePicker
       **stable_id** : ``StableId``
          Identity of the control, unique within its window. Logs, automation and
          semantic actions address the control by this ID. The calendar is
-         created as ``<stable_id>.popup.calendar`` while it is open.
+         created as ``<stable_id>.overlay.calendar`` while it is open.
 
    :Properties:
 
@@ -182,7 +182,7 @@ gui_forms::DateTimePicker
    shown; and :cpp:enumerator:`SemanticAction::expand <gui_forms::SemanticAction::expand>` and :cpp:enumerator:`SemanticAction::collapse <gui_forms::SemanticAction::collapse>` outside
    up-down mode. The open calendar is published with the role ``calendar``, its
    days as ``date_cell`` nodes named
-   ``<stable_id>.popup.calendar.day.<yyyy-mm-dd>``, and buttons for the
+   ``<stable_id>.overlay.calendar.day.<yyyy-mm-dd>``, and buttons for the
    previous and next month.
 
    .. rubric:: Examples

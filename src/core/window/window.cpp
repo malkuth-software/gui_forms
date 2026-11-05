@@ -12,7 +12,7 @@
 #include "../display/replay/replay_display_chunk.hpp"
 #include "../scheduler/request/scheduled_frame_request.hpp"
 #include "accelerator/accelerator_attachment.hpp"
-#include "popup/popup_attachment.hpp"
+#include "overlay/overlay_attachment.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
 
 #include <algorithm>
@@ -560,58 +560,58 @@ bool SurfaceRoot::dispatch_accelerator(const KeyEvent& event, bool preemptive) {
     return false;
 }
 
-PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
-                              const Control::Ptr& popup,
-                              PopupOptions options) {
-    require_root_thread("popup attachment");
+OverlayToken SurfaceRoot::open_overlay(const Control::Ptr& owner,
+                              const Control::Ptr& overlay,
+                              OverlayOptions options) {
+    require_root_thread("overlay attachment");
     const bool owner_available = owner && (*owner).surface_root_ == this &&
         (*owner).is_alive() && (*owner).effectively_visible() &&
         (!options.require_enabled_owner || (*owner).effectively_enabled());
     if (!owner_available) {
         throw std::logic_error(
             options.require_enabled_owner
-                ? "GUI.Forms popup requires an enabled, visible attached owner"
-                : "GUI.Forms passive popup requires a visible attached owner");
+                ? "GUI.Forms overlay requires an enabled, visible attached owner"
+                : "GUI.Forms passive overlay requires a visible attached owner");
     }
-    if (!popup || (*popup).surface_root_ != nullptr || (*popup).parent() || !(*popup).is_alive()) {
-        throw std::logic_error("GUI.Forms popup must be a live detached root");
+    if (!overlay || (*overlay).surface_root_ != nullptr || (*overlay).parent() || !(*overlay).is_alive()) {
+        throw std::logic_error("GUI.Forms overlay must be a live detached root");
     }
-    // Popups are window overlays, not children in the consumer's layout
+    // Overlays are window-owned roots, not children in the consumer's layout
     // vocabulary. Attaching one to root_ lets a TableLayoutPanelCompat, Flow panel,
     // or docking root assign it an application cell and silently collapse the
     // overlay. Keep it as a separate retained root while still registering the
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
-    attach_subtree(popup, {});
-    std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = std::make_shared<detail::PopupAttachment>(*this, owner, popup);
-    popups_.push_back(attachment);
+    attach_subtree(overlay, {});
+    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = std::make_shared<detail::OverlayAttachment>(*this, owner, overlay);
+    overlays_.push_back(attachment);
     (*owner).own_revocable(attachment);
-    return PopupToken(std::move(attachment));
+    return OverlayToken(std::move(attachment));
 }
 
-void SurfaceRoot::close_popup(detail::PopupAttachment& popup) noexcept {
-    PopupList::iterator found = popups_.begin();
-    while (found != popups_.end() && (*found).get() != &popup) {
+void SurfaceRoot::close_overlay(detail::OverlayAttachment& overlay) noexcept {
+    OverlayList::iterator found = overlays_.begin();
+    while (found != overlays_.end() && (*found).get() != &overlay) {
         ++found;
     }
-    if (found == popups_.end()) {
-        popup.revoke();
+    if (found == overlays_.end()) {
+        overlay.revoke();
         return;
     }
-    const std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = *found;
+    const std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = *found;
     const Control::Ptr owner = (*attachment).owner();
-    const Control::Ptr overlay = (*attachment).popup();
+    const Control::Ptr overlay_root = (*attachment).overlay();
     (*attachment).revoke(false);
-    popups_.erase(found);
-    if (overlay && !(*overlay).parent() && (*overlay).surface_root_ == this &&
-        overlay != root_ && !in_lifecycle_notification_) {
+    overlays_.erase(found);
+    if (overlay_root && !(*overlay_root).parent() && (*overlay_root).surface_root_ == this &&
+        overlay_root != root_ && !in_lifecycle_notification_) {
         try {
-            detach_subtree(overlay);
+            detach_subtree(overlay_root);
         } catch (...) {
         }
     }
     const detail::BoundMemberFunction<
-        void (detail::PopupAttachment::*)()> publish_closed(
-            *attachment, &detail::PopupAttachment::publish_closed);
+        void (detail::OverlayAttachment::*)()> publish_closed(
+            *attachment, &detail::OverlayAttachment::publish_closed);
     if (owner && (*owner).is_alive() && (*owner).surface_root_ == this) {
         (*owner).publish_change(
             static_cast<const void*>(&(*attachment).closed()), publish_closed);
@@ -620,15 +620,15 @@ void SurfaceRoot::close_popup(detail::PopupAttachment& popup) noexcept {
     }
 }
 
-void SurfaceRoot::close_popups_for_subtree(const Control::Ptr& control) noexcept {
-    std::vector<std::shared_ptr<detail::PopupAttachment>> closing;
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (contains_control(control, (*popup).owner())) {
-            closing.push_back(popup);
+void SurfaceRoot::close_overlays_for_subtree(const Control::Ptr& control) noexcept {
+    std::vector<std::shared_ptr<detail::OverlayAttachment>> closing;
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (contains_control(control, (*overlay).owner())) {
+            closing.push_back(overlay);
         }
     }
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : closing) {
-        (*popup).disconnect();
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : closing) {
+        (*overlay).disconnect();
     }
 }
 
@@ -647,15 +647,15 @@ Control::Ptr SurfaceRoot::hit_test(Point position) {
         ensure_layout(true);
         const std::uint64_t generation = semantic_generation_;
         Control::Ptr target;
-        ControlList popup_roots;
-        popup_roots.reserve(popups_.size());
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) popup_roots.push_back((*popup).popup());
-        for (ControlList::reverse_iterator popup = popup_roots.rbegin();
-             popup != popup_roots.rend();
-             ++popup) {
-            if (const Control::Ptr& overlay = *popup;
-                overlay && (*overlay).is_alive() && (*overlay).surface_root_ == this) {
-                target = hit_test_recursive(overlay, position);
+        ControlList overlay_roots;
+        overlay_roots.reserve(overlays_.size());
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) overlay_roots.push_back((*overlay).overlay());
+        for (ControlList::reverse_iterator overlay = overlay_roots.rbegin();
+             overlay != overlay_roots.rend();
+             ++overlay) {
+            if (const Control::Ptr& overlay_root = *overlay;
+                overlay_root && (*overlay_root).is_alive() && (*overlay_root).surface_root_ == this) {
+                target = hit_test_recursive(overlay_root, position);
                 if (target) break;
             }
         }
@@ -1190,13 +1190,13 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
         if ((*current).options.contain_focus) {
             const Control::Ptr containing_root = (*current).root.lock();
             bool contained = contains_control(containing_root, root);
-            // Window-owned popup roots are outside the layout tree. They belong
+            // Window-owned overlay roots are outside the layout tree. They belong
             // to a containing scope only through their registered live owner.
             // This permits a ComboBox inside a dialog without allowing unrelated
             // controls or arbitrary overlays to escape modal focus containment.
-            for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-                if (contains_control((*popup).popup(), root) &&
-                    contains_control(containing_root, (*popup).owner())) {
+            for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+                if (contains_control((*overlay).overlay(), root) &&
+                    contains_control(containing_root, (*overlay).owner())) {
                     contained = true;
                     break;
                 }
@@ -2169,10 +2169,10 @@ bool SurfaceRoot::collect_inline_restyles(const Theme& theme, std::vector<detail
     if (root_ && !(*root_).theme_override_) {
         if (!(*root_).collect_inline_restyles(theme, restyles, diagnostics)) return false;
     }
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        const Control::Ptr overlay = (*popup).popup();
-        if (!overlay || (*overlay).theme_override_) continue;
-        if (!(*overlay).collect_inline_restyles(theme, restyles, diagnostics)) return false;
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        const Control::Ptr overlay_root = (*overlay).overlay();
+        if (!overlay_root || (*overlay_root).theme_override_) continue;
+        if (!(*overlay_root).collect_inline_restyles(theme, restyles, diagnostics)) return false;
     }
     return true;
 }
@@ -2239,7 +2239,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
 void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     require_root_thread("visual-tree detachment");
     clear_dialog_targets_for_subtree(control);
-    close_popups_for_subtree(control);
+    close_overlays_for_subtree(control);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
     if ((*control).surface_root_ != this) {
@@ -2392,7 +2392,7 @@ void SurfaceRoot::revoke_focus_scopes_for_subtree(
 
 void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
-    close_popups_for_subtree(control);
+    close_overlays_for_subtree(control);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
 }
@@ -2575,9 +2575,9 @@ SemanticSnapshot SurfaceRoot::semantic_snapshot() {
         const Control::Ptr focused = focused_.lock();
         const Control::Ptr scoped = focus_allowed_by_active_scope(root_) ? Control::Ptr{} : active_focus_scope_root();
         std::vector<Control::Ptr> roots{scoped ? scoped : root_};
-        roots.reserve(1U + popups_.size());
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (!scoped || contains_control(scoped, (*popup).owner())) { roots.push_back((*popup).popup()); }
+        roots.reserve(1U + overlays_.size());
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (!scoped || contains_control(scoped, (*overlay).owner())) { roots.push_back((*overlay).overlay()); }
         }
         for (const Control::Ptr& root : roots) {
             if (!root || !(*root).is_alive() || (*root).surface_root_ != this ||
@@ -2614,27 +2614,27 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
         if (dispatch_semantic_child_action(scoped ? scoped : root_, stable_id, action, value)) {
             return true;
         }
-        ControlList popup_roots;
-        popup_roots.reserve(popups_.size());
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (!scoped || contains_control(scoped, (*popup).owner())) { popup_roots.push_back((*popup).popup()); }
+        ControlList overlay_roots;
+        overlay_roots.reserve(overlays_.size());
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (!scoped || contains_control(scoped, (*overlay).owner())) { overlay_roots.push_back((*overlay).overlay()); }
         }
-        for (ControlList::reverse_iterator popup = popup_roots.rbegin();
-             popup != popup_roots.rend();
-             ++popup) {
+        for (ControlList::reverse_iterator overlay = overlay_roots.rbegin();
+             overlay != overlay_roots.rend();
+             ++overlay) {
             if (dispatch_semantic_child_action(
-                    *popup, stable_id, action, value)) return true;
+                    *overlay, stable_id, action, value)) return true;
         }
         return false;
     }
     if (!eligible(control)) return false;
     if (!focus_allowed_by_active_scope(control)) {
-        bool closes_active_popup = false;
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (action == SemanticAction::collapse && (*popup).owner() == control &&
-                contains_control((*popup).popup(), scoped)) { closes_active_popup = true; break; }
+        bool closes_active_overlay = false;
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (action == SemanticAction::collapse && (*overlay).owner() == control &&
+                contains_control((*overlay).overlay(), scoped)) { closes_active_overlay = true; break; }
         }
-        if (!closes_active_popup) return false;
+        if (!closes_active_overlay) return false;
     }
     if (action == SemanticAction::focus) {
         set_focus_cue_visible(true);
@@ -2706,9 +2706,9 @@ SemanticTextResult SurfaceRoot::set_semantic_text_selection(RuntimeId control_id
 
 Control::Ptr SurfaceRoot::find_runtime_control(RuntimeId control) const {
     ControlList pending{root_};
-    pending.reserve(1U + popups_.size());
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        pending.push_back((*popup).popup());
+    pending.reserve(1U + overlays_.size());
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        pending.push_back((*overlay).overlay());
     }
     while (!pending.empty()) {
         const Control::Ptr current = pending.back();
@@ -2726,8 +2726,8 @@ Control::Ptr SurfaceRoot::find_runtime_control(RuntimeId control) const {
 bool SurfaceRoot::semantic_scope_reaches(const Control::Ptr& control) const {
     const Control::Ptr scoped = focus_allowed_by_active_scope(root_) ? Control::Ptr{} : active_focus_scope_root();
     if (!scoped || contains_control(scoped, control)) return true;
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (contains_control(scoped, (*popup).owner()) && contains_control((*popup).popup(), control)) return true;
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (contains_control(scoped, (*overlay).owner()) && contains_control((*overlay).overlay(), control)) return true;
     }
     return false;
 }
@@ -3131,9 +3131,9 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
             std::uint64_t measure_visited = 0;
             std::uint64_t measured = 0;
             measure_dirty_recursive(root_, client_size_, measure_visited, measured);
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                if (const Control::Ptr overlay = (*popup).popup()) {
-                    measure_dirty_recursive(overlay, client_size_, measure_visited,
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                    measure_dirty_recursive(overlay_root, client_size_, measure_visited,
                                             measured);
                 }
             }
@@ -3144,47 +3144,47 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
             arrange_dirty_recursive(
                 root_, {0.0, 0.0, client_size_.width, client_size_.height},
                 arrange_visited, arranged);
-            // A tooltip below a control follows it before the popups are
+            // A tooltip below a control follows it before the overlays are
             // arranged.
             if (tool_tip_presenter_) (*tool_tip_presenter_).root_arranged();
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                if (const Control::Ptr overlay = (*popup).popup()) {
-                    arrange_dirty_recursive(overlay, (*overlay).requested_bounds_,
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                    arrange_dirty_recursive(overlay_root, (*overlay_root).requested_bounds_,
                                             arrange_visited, arranged);
                 }
             }
             metrics_.record_arrange(arrange_visited, arranged);
 
             static_cast<void>(recompute_subtree_dirty(root_));
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                if (const Control::Ptr overlay = (*popup).popup()) {
-                    static_cast<void>(recompute_subtree_dirty(overlay));
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                    static_cast<void>(recompute_subtree_dirty(overlay_root));
                 }
             }
             commit_layout_requests_recursive(root_);
-            for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-                commit_layout_requests_recursive((*popup).popup());
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                commit_layout_requests_recursive((*overlay).overlay());
             }
             ++pass;
         } while (has_any_runnable_layout_dirty() &&
                  pass < maximum_layout_passes);
         ++layout_pass_sequence_;
 
-        const bool popup_layout_dirty = has_popup_layout_dirty();
+        const bool overlay_layout_dirty = has_popup_layout_dirty();
         if (has_any_runnable_layout_dirty()) {
             metrics_.record_pass_limit_hit();
         }
         layout_dirty_ = has_dirty((*root_).subtree_dirty_, Dirty::layout) ||
-                        popup_layout_dirty;
+                        overlay_layout_dirty;
         hit_test_dirty_ = layout_dirty_;
         in_layout_ = false;
     } catch (...) {
         // A user layout callback may fail. Preserve dirty state for an
         // explicit later retry and always release the re-entry guard.
         static_cast<void>(recompute_subtree_dirty(root_));
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (const Control::Ptr overlay = (*popup).popup()) {
-                static_cast<void>(recompute_subtree_dirty(overlay));
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+                static_cast<void>(recompute_subtree_dirty(overlay_root));
             }
         }
         layout_dirty_ = has_dirty((*root_).subtree_dirty_, Dirty::layout) ||
@@ -3404,16 +3404,16 @@ bool SurfaceRoot::has_runnable_layout_dirty(
 
 bool SurfaceRoot::has_any_runnable_layout_dirty() const noexcept {
     if (has_runnable_layout_dirty(root_)) return true;
-    for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-        if (has_runnable_layout_dirty((*popup).popup())) return true;
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        if (has_runnable_layout_dirty((*overlay).overlay())) return true;
     }
     return false;
 }
 
 bool SurfaceRoot::has_popup_layout_dirty() const noexcept {
-    for (const std::shared_ptr<detail::PopupAttachment>& popup : popups_) {
-        const Control::Ptr overlay = (*popup).popup();
-        if (overlay && has_dirty((*overlay).subtree_dirty_, Dirty::layout)) {
+    for (const std::shared_ptr<detail::OverlayAttachment>& overlay : overlays_) {
+        const Control::Ptr overlay_root = (*overlay).overlay();
+        if (overlay_root && has_dirty((*overlay_root).subtree_dirty_, Dirty::layout)) {
             return true;
         }
     }
@@ -3865,9 +3865,9 @@ std::uint64_t SurfaceRoot::display_cache_entries(const Control::Ptr& control) co
 
 void SurfaceRoot::update_display_cache_metrics() noexcept {
     std::uint64_t entries = root_ ? display_cache_entries(root_) : 0U;
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) {
-            entries += display_cache_entries(overlay);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            entries += display_cache_entries(overlay_root);
         }
     }
     metrics_.set_display_cache(entries, display_generation_);

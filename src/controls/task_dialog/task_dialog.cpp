@@ -166,8 +166,8 @@ TaskDialog::TaskDialog(StableId stable_id) : Control(std::move(stable_id)) {
 }
 
 TaskDialog::~TaskDialog() {
-    popup_revoked_.disconnect();
-    popup_.disconnect();
+    overlay_revoked_.disconnect();
+    overlay_.disconnect();
 }
 
 // -- page ----------------------------------------------------------------------
@@ -483,12 +483,12 @@ bool TaskDialog::show(const Control::Ptr& owner) {
     Control::Ptr layer = make_control<TaskDialogLayer>(StableId(std::string(stable_id().value()) + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     (*layer).add_child(shared_from_this());
-    popup_ = host.open_popup(owner, layer);
+    overlay_ = host.open_overlay(owner, layer);
     layer_ = layer;
     shown_ = true;
     result_.reset();
-    if (Event<>* revoked = popup_.closed_event()) {
-        popup_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_popup_revoked>(*this));
+    if (Event<>* revoked = overlay_.closed_event()) {
+        overlay_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
     scope_ = host.begin_focus_scope(layer, button(default_button_id()));
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
@@ -500,7 +500,7 @@ void TaskDialog::close(std::string_view button_id) {
     finish(std::string(button_id));
 }
 
-void TaskDialog::on_popup_revoked() {
+void TaskDialog::on_overlay_revoked() {
     // The owner left its window: the dialog closes as cancelled.
     finish(cancel_button_id());
 }
@@ -512,11 +512,11 @@ void TaskDialog::finish(std::string button_id) {
     Window* const host = attached_window();
     if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
     scope_ = {};
-    popup_revoked_.disconnect();
+    overlay_revoked_.disconnect();
     const Control::Ptr layer = layer_;
     layer_.reset();
     if (layer) static_cast<void>((*layer).remove_child(runtime_id()));
-    popup_.disconnect();
+    overlay_.disconnect();
     result_ = outcome;
     closed_.emit(outcome);
 }
@@ -524,17 +524,17 @@ void TaskDialog::finish(std::string button_id) {
 void TaskDialog::on_dispose() noexcept {
     // A disposed dialog closes without raising closed.
     shown_ = false;
-    popup_revoked_.disconnect();
+    overlay_revoked_.disconnect();
     Window* const host = attached_window();
     if (scope_ && host != nullptr) {
         try {
             static_cast<void>((*host).end_focus_scope(scope_));
         } catch (...) {
-            // Disposal must not throw; the window ends the scope with the popup.
+            // Disposal must not throw; the window ends the scope with the overlay.
         }
     }
     scope_ = {};
-    popup_.disconnect();
+    overlay_.disconnect();
     layer_.reset();
     child_tokens_.clear();
     Control::on_dispose();

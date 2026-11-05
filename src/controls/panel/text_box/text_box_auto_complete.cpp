@@ -58,22 +58,22 @@ bool contains_or_is(const Control& ancestor, const Control& control) {
     return false;
 }
 
-// How a session lets go of its open popup: closing it (the box closes the
+// How a session lets go of its open overlay: closing it (the box closes the
 // list, so the token is disconnected and its revocation with it), or after
 // the window already closed it (the token is spent and its revocation is
 // the callback running).
-enum class PopupRelease : std::uint8_t { close, already_closed };
+enum class OverlayRelease : std::uint8_t { close, already_closed };
 
 // Disconnects the open list's subscriptions in the order they were made (the
 // list's events, the revocation, the collection change), then the token,
 // and drops the session's references to the list and its layer.
-void release_popup(detail::TextBoxAutoCompleteSession& session, PopupRelease release) noexcept {
+void release_overlay(detail::TextBoxAutoCompleteSession& session, OverlayRelease release) noexcept {
     session.list_selection.disconnect();
     session.list_activation.disconnect();
     session.dismissal.disconnect();
-    if (release == PopupRelease::close) session.revocation.disconnect();
+    if (release == OverlayRelease::close) session.revocation.disconnect();
     session.collection_change.disconnect();
-    if (release == PopupRelease::close) session.token.disconnect();
+    if (release == OverlayRelease::close) session.token.disconnect();
     session.list.reset();
     session.layer.reset();
 }
@@ -397,8 +397,8 @@ void TextBox::open_auto_complete_list() {
     Control::Ptr anchor = auto_complete_anchor_.lock();
     if (!anchor || !contains_or_is(*anchor, *this)) anchor = shared_from_this();
     const std::string prefix(stable_id().value());
-    std::shared_ptr<AnchoredPopupLayer> layer =
-        make_control<AnchoredPopupLayer>(StableId(prefix + ".auto-complete"), anchor);
+    std::shared_ptr<AnchoredOverlayLayer> layer =
+        make_control<AnchoredOverlayLayer>(StableId(prefix + ".auto-complete"), anchor);
     std::shared_ptr<DropDownList> list = make_control<DropDownList>(StableId(prefix + ".auto-complete.list"));
     // The list never takes focus: typing stays in this box.
     (*list).set_focusable(false);
@@ -407,7 +407,7 @@ void TextBox::open_auto_complete_list() {
     (*list).set_items(session.suggestions);
     (*list).set_matches(prefix_matches(session.suggestions.size(), session.typed.size()));
     (*layer).set_content(list);
-    PopupToken token = (*window()).open_popup(shared_from_this(), layer);
+    OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
     session.layer = layer;
     session.list = list;
     session.token = std::move(token);
@@ -416,10 +416,10 @@ void TextBox::open_auto_complete_list() {
     session.list_activation = (*list).item_activated().subscribe(*this,
         Delegate<std::size_t>::bind<TextBox, &TextBox::auto_complete_list_activated>(*this));
     session.dismissal = (*layer).dismiss_requested().subscribe(*this,
-        Delegate<PopupDismissReason>::bind<TextBox, &TextBox::auto_complete_list_dismissed>(*this));
+        Delegate<OverlayDismissReason>::bind<TextBox, &TextBox::auto_complete_list_dismissed>(*this));
     if (Event<>* closed = session.token.closed_event()) {
         session.revocation = (*closed).subscribe(*this,
-            Delegate<>::bind<TextBox, &TextBox::auto_complete_popup_revoked>(*this));
+            Delegate<>::bind<TextBox, &TextBox::auto_complete_overlay_revoked>(*this));
     }
     if (auto_complete_source_ == AutoCompleteSource::custom_source) {
         session.collection_change = (*auto_complete_custom_source_).changed().subscribe(*this,
@@ -439,7 +439,7 @@ void TextBox::place_auto_complete_list() {
     const std::size_t rows = std::min(auto_complete_visible_rows, session.suggestions.size());
     const double row_height = (*session.list).item_height() * effective_text_scale();
     const double height = static_cast<double>(rows) * row_height + 4.0;
-    AnchoredPopupPlacement placement{};
+    AnchoredOverlayPlacement placement{};
     placement.preferred_size = Size{std::max(width, 80.0), height};
     (*session.layer).set_placement(placement);
 }
@@ -449,7 +449,7 @@ void TextBox::close_auto_complete_list() {
     detail::TextBoxAutoCompleteSession& session = *auto_complete_session_;
     if (!session.open && !session.layer) return;
     session.closing = true;
-    release_popup(session, PopupRelease::close);
+    release_overlay(session, OverlayRelease::close);
     const bool changed = session.open;
     session.open = false;
     session.closing = false;
@@ -462,7 +462,7 @@ void TextBox::discard_auto_complete_list() noexcept {
     if (!auto_complete_session_) return;
     detail::TextBoxAutoCompleteSession& session = *auto_complete_session_;
     session.closing = true;
-    release_popup(session, PopupRelease::close);
+    release_overlay(session, OverlayRelease::close);
     session.open = false;
     session.shown = false;
     session.appended = false;
@@ -485,16 +485,16 @@ void TextBox::auto_complete_list_activated(std::size_t index) {
     accept_auto_complete(std::move(accepted));
 }
 
-void TextBox::auto_complete_list_dismissed(PopupDismissReason) {
+void TextBox::auto_complete_list_dismissed(OverlayDismissReason) {
     // A press outside the list closes it and keeps the text.
     end_auto_complete(false);
 }
 
-void TextBox::auto_complete_popup_revoked() {
+void TextBox::auto_complete_overlay_revoked() {
     detail::TextBoxAutoCompleteSession& session = auto_complete_session();
     if (session.closing) return;
     // The window closed the list (this box was hidden, disabled or removed).
-    release_popup(session, PopupRelease::already_closed);
+    release_overlay(session, OverlayRelease::already_closed);
     const bool changed = session.open;
     session.open = false;
     session.highlighted.reset();

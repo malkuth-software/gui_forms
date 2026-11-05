@@ -19,7 +19,7 @@ namespace gui_forms::abi1 {
 [[nodiscard]] const gf_diagnostics_table& diagnostics_table() noexcept;
 [[nodiscard]] const gf_controls_table& controls_table() noexcept;
 [[nodiscard]] const gf_text_editing_table& text_editing_table() noexcept;
-[[nodiscard]] const gf_popups_table& popups_table() noexcept;
+[[nodiscard]] const gf_overlays_table& overlays_table() noexcept;
 [[nodiscard]] const gf_property_grid_table& property_grid_table() noexcept;
 [[nodiscard]] const gf_custom_controls_table& custom_controls_table() noexcept;
 [[nodiscard]] const gf_bindings_table& bindings_table() noexcept;

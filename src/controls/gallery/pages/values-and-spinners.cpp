@@ -178,7 +178,7 @@ private:
     void inspect_style() {
         (*inspector_).set_selected_object(status_);
         static_cast<void>((*inspector_).set_property_expanded("fore-color", true));
-        (*status_).set_text("PropertyGrid · flags popup and canonical color editor services");
+        (*status_).set_text("PropertyGrid · flags overlay and canonical color editor services");
     }
 
     void add_item() {

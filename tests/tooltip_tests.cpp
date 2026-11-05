@@ -177,7 +177,7 @@ void test_hover_delay_cancel_and_accessible_overlay() {
             "hover must arm the initial delay without opening synchronously");
     hover(fixture.window, {390.0, 210.0});
     require(!tips.visible() && !fixture.window.next_wake().has_value(),
-            "leaving before the delay must cancel the pending popup and wake");
+            "leaving before the delay must cancel the pending overlay and wake");
 
     hover(fixture.window, {60.0, 60.0});
     fire_next(fixture.window);
@@ -197,7 +197,7 @@ void test_hover_delay_cancel_and_accessible_overlay() {
     require(!tips.visible() && shown == 1 && hidden == 1 &&
                 !find_role(after_leave.roots,
                            SemanticRole::tool_tip),
-            "leave must remove both the retained popup and its semantic node");
+            "leave must remove both the retained overlay and its semantic node");
 }
 
 // The pointer must rest for the whole delay: a motion over the target before
@@ -313,7 +313,7 @@ void test_one_presenter_for_every_provider_and_owner_disposal() {
     (*fixture.button).dispose();
     require(!first.visible() && !second.visible() && !first.active_control() &&
                 !fixture.window.tool_tip_visible(),
-            "disposing a target must synchronously revoke the popup");
+            "disposing a target must synchronously revoke the overlay");
     require(tool_tip_nodes(fixture.window) == 0U,
             "owner disposal must leave no stale tooltip semantic nodes");
 }
@@ -341,7 +341,7 @@ void test_mapping_removal_and_provider_disposal_are_quiescent() {
     (*tips).dispose();
     require(!fixture.window.next_wake() && tool_tip_nodes(fixture.window) == 0U &&
                 (*fixture.button).tool_tip_text.read().empty(),
-            "provider disposal clears its text and removes popup and scheduled work");
+            "provider disposal clears its text and removes overlay and scheduled work");
 }
 
 void test_show_always_supports_a_disabled_visible_owner() {

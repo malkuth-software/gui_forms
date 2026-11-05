@@ -162,13 +162,13 @@ static void property_grid(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.release(grid), GF_STATUS_OK, "release the grid");
 }
 
-static void popups(gf_kit* kit) {
-    const gf_object root = gf_kit_create(kit, "panel", "kit.families.popups.root");
-    const gf_object owner = gf_kit_create(kit, "button", "kit.families.popups.owner");
-    const gf_object popup = gf_kit_create(kit, "panel", "kit.families.popups.popup");
-    gf_kit_status(kit, (*kit).popups.open_popup(owner, popup), GF_STATUS_INVALID_STATE,
-                  "an owner outside a window cannot open a popup");
-    gf_kit_status(kit, (*kit).popups.close_popup(popup), GF_STATUS_NOT_FOUND, "a popup not open is not found");
+static void overlays(gf_kit* kit) {
+    const gf_object root = gf_kit_create(kit, "panel", "kit.families.overlays.root");
+    const gf_object owner = gf_kit_create(kit, "button", "kit.families.overlays.owner");
+    const gf_object overlay = gf_kit_create(kit, "panel", "kit.families.overlays.overlay");
+    gf_kit_status(kit, (*kit).overlays.open_overlay(owner, overlay), GF_STATUS_INVALID_STATE,
+                  "an owner outside a window cannot open an overlay");
+    gf_kit_status(kit, (*kit).overlays.close_overlay(overlay), GF_STATUS_NOT_FOUND, "an overlay not open is not found");
     gf_kit_status(kit, (*kit).objects.insert_child(root, owner, 0u), GF_STATUS_OK, "put the owner in the root");
     gf_object window = 0u;
     gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "a window over the root");
@@ -178,16 +178,16 @@ static void popups(gf_kit* kit) {
     gf_kit_status(kit, (*kit).objects.create_with(gf_kit_text("tool_tip"), gf_kit_text("kit.families.tips"),
                                                   &arguments, &tips),
                   GF_STATUS_OK, "a tool_tip bound to the window");
-    gf_kit_status(kit, (*kit).popups.set_tool_tip(tips, owner, gf_kit_text("Help")), GF_STATUS_OK,
+    gf_kit_status(kit, (*kit).overlays.set_tool_tip(tips, owner, gf_kit_text("Help")), GF_STATUS_OK,
                   "give the owner a tooltip");
-    gf_kit_status(kit, (*kit).popups.show_tool_tip(tips, owner, 0u), GF_STATUS_OK, "show it");
-    gf_kit_status(kit, (*kit).popups.show_tool_tip(tips, owner, 500u), GF_STATUS_OK, "show it for a while");
-    gf_kit_status(kit, (*kit).popups.hide_tool_tip(tips), GF_STATUS_OK, "hide it");
-    gf_kit_status(kit, (*kit).popups.hide_tool_tip(owner), GF_STATUS_WRONG_HANDLE_KIND,
+    gf_kit_status(kit, (*kit).overlays.show_tool_tip(tips, owner, 0u), GF_STATUS_OK, "show it");
+    gf_kit_status(kit, (*kit).overlays.show_tool_tip(tips, owner, 500u), GF_STATUS_OK, "show it for a while");
+    gf_kit_status(kit, (*kit).overlays.hide_tool_tip(tips), GF_STATUS_OK, "hide it");
+    gf_kit_status(kit, (*kit).overlays.hide_tool_tip(owner), GF_STATUS_WRONG_HANDLE_KIND,
                   "a button is not a tool_tip");
     gf_kit_status(kit, (*kit).objects.release(tips), GF_STATUS_OK, "release the tool_tip");
     gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the window");
-    gf_kit_status(kit, (*kit).objects.release(popup), GF_STATUS_OK, "release the popup");
+    gf_kit_status(kit, (*kit).objects.release(overlay), GF_STATUS_OK, "release the overlay");
     gf_kit_status(kit, (*kit).objects.release(owner), GF_STATUS_OK, "release the owner");
     gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release the root");
 }
@@ -212,6 +212,6 @@ void gf_kit_families(gf_kit* kit) {
     scrolling(kit);
     text_editing(kit);
     property_grid(kit);
-    popups(kit);
+    overlays(kit);
     pixels(kit);
 }

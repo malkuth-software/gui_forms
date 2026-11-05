@@ -60,7 +60,7 @@ A window can ask the window system to show what lies behind it (stage T5,
 a platform material: `WindowBackdrop::opaque` (every window today),
 `transparent` (clear pixels show the desktop, unblurred),
 `window_material` and `transient_material` (the system's materials for a
-main window and for popups). GUI.Forms never reads or blurs the desktop
+main window and for overlays). GUI.Forms never reads or blurs the desktop
 itself.
 
 - **Declare it.** Set `ApplicationWindowOptions::non_opaque` (or call

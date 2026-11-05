@@ -307,7 +307,7 @@ publishes whether it is multiline and, unless masked, its selection as an
 anchor and a caret. It reports
 read-only when `read_only` is true, and otherwise offers a set-value action,
 which replaces the whole text as one undoable edit within `maximum_length`.
-A box that suggests also publishes that it opens a popup, and the expanded
+A box that suggests also publishes that it opens an overlay, and the expanded
 state while its list is open; the open list publishes the role `list` with
 `list_item` rows.
 

@@ -188,9 +188,9 @@ void roles_and_fields() {
     const SemanticDescriptor menu_semantics = (*menu).semantic_descriptor();
     const SemanticDescriptor split_semantics = (*split).semantic_descriptor();
     require(menu_semantics.role == SemanticRole::menu_button && menu_semantics.has_popup,
-            "a menu-mode DropDownButton is a menu button with a popup");
+            "a menu-mode DropDownButton is a menu button with an overlay");
     require(split_semantics.role == SemanticRole::split_button && split_semantics.has_popup,
-            "a split-mode DropDownButton is a split button with a popup");
+            "a split-mode DropDownButton is a split button with an overlay");
     const std::vector<SemanticNode> rows = (*list).semantic_virtual_children();
     require(rows.size() == 3U && rows[1].position_in_set == std::size_t{2U} && rows[1].set_size == std::size_t{3U},
             "list items publish their position in the set and the set's size");
@@ -219,7 +219,7 @@ void tool_strip_roles() {
     require(children.size() == 3U && children[0].role == SemanticRole::button && !children[0].has_popup &&
                 children[1].role == SemanticRole::menu_button && children[1].has_popup &&
                 children[2].role == SemanticRole::split_button && children[2].has_popup,
-            "a strip's drop-down and split buttons are menu and split buttons with popups");
+            "a strip's drop-down and split buttons are menu and split buttons with overlays");
 
     window.resize({120.0, 25.0});
     window.perform_layout();
@@ -244,6 +244,6 @@ int main() {
     accents();
     roles_and_fields();
     tool_strip_roles();
-    std::cout << "Ribbon vocabulary: marks, accent ramp, split and menu buttons, set positions and popups passed\n";
+    std::cout << "Ribbon vocabulary: marks, accent ramp, split and menu buttons, set positions and overlays passed\n";
     return 0;
 }

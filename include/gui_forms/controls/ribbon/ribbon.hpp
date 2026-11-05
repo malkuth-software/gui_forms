@@ -27,7 +27,7 @@
 
 namespace gui_forms {
 
-class RibbonGroupPopup;
+class RibbonGroupOverlay;
 class RibbonApplicationMenu;
 
 // The kinds of ribbon command (stage RB, owner decision 2: commands are
@@ -99,7 +99,7 @@ struct RibbonCommandSpec final {
 // A group's size in one of its layouts, named after the Windows Ribbon
 // Framework's group sizes, largest first. A collapsed group shows one button
 // (its icon, caption and a chevron, owner decision 27) that opens the group
-// at its largest layout in a popup.
+// at its largest layout in an overlay.
 enum class RibbonGroupSize : std::uint8_t { large, medium, small, collapsed };
 
 // One layout of a group (the WPF/MFC model, owner decision 5): the image size
@@ -280,7 +280,7 @@ struct RibbonTabChange final {
 // one, else the application menu, in two panes while there are recent items.
 //
 // Not yet: hosting the QuickAccessToolbar on the tab row (it is a separate
-// control the application places), the minimized ribbon's temporary popup,
+// control the application places), the minimized ribbon's temporary overlay,
 // right-to-left mirroring and two-line large labels.
 class Ribbon final : public Control {
 public:
@@ -406,7 +406,7 @@ public:
     [[nodiscard]] const std::string& recent_caption() const noexcept { return recent_caption_; }
     void set_recent_caption(std::string caption);
     // The two-pane menu's content control, null before its first opening.
-    [[nodiscard]] Control::Ptr application_menu_popup() const noexcept;
+    [[nodiscard]] Control::Ptr application_menu_overlay() const noexcept;
     // Backstage (phase 6; owner decisions 3, 26): a BackstageView the File
     // tab opens over everything below the tab row, instead of the
     // application menu. Escape, the File tab, another tab or a definitive
@@ -422,19 +422,19 @@ public:
     bool show_drop_down(std::string_view command_id, MenuOpenMode mode = MenuOpenMode::keyboard);
     void close_menus() noexcept;
     [[nodiscard]] bool menu_open() const noexcept;
-    // Opens a collapsed group of the selected tab in a popup below the ribbon,
+    // Opens a collapsed group of the selected tab in an overlay below the ribbon,
     // at its largest layout (owner decision 27); the group's hosted controls
-    // move into the popup while it is open. False for a group that is not
+    // move into the overlay while it is open. False for a group that is not
     // collapsed, not on the selected tab, or without a window. With
-    // MenuOpenMode::keyboard focus goes to the popup's first command.
-    bool show_group_popup(std::string_view group_id, MenuOpenMode mode = MenuOpenMode::keyboard);
-    // Closes the group popup; focus returns to the group's button.
-    void close_group_popup() noexcept;
-    // The open popup's group ID, or none.
-    [[nodiscard]] std::optional<std::string> popup_group() const;
-    // The popup's content control (its parts are in its local coordinates),
-    // null before the first popup.
-    [[nodiscard]] Control::Ptr group_popup() const noexcept;
+    // MenuOpenMode::keyboard focus goes to the overlay's first command.
+    bool show_group_overlay(std::string_view group_id, MenuOpenMode mode = MenuOpenMode::keyboard);
+    // Closes the group overlay; focus returns to the group's button.
+    void close_group_overlay() noexcept;
+    // The open overlay's group ID, or none.
+    [[nodiscard]] std::optional<std::string> overlay_group() const;
+    // The overlay's content control (its parts are in its local coordinates),
+    // null before the first overlay.
+    [[nodiscard]] Control::Ptr group_overlay() const noexcept;
 
     // The hosted control of a command. Throws std::out_of_range for an ID
     // that names no command of that kind.
@@ -574,10 +574,10 @@ public:
         CommandStates states;
     };
     [[nodiscard]] std::vector<CommandItem> realized_commands() const;
-    // The open group popup's group and commands, in the popup's local
-    // coordinates; empty while no popup is open.
-    [[nodiscard]] std::vector<Group> realized_popup_groups() const;
-    [[nodiscard]] std::vector<CommandItem> realized_popup_commands() const;
+    // The open group overlay's group and commands, in the overlay's local
+    // coordinates; empty while no overlay is open.
+    [[nodiscard]] std::vector<Group> realized_overlay_groups() const;
+    [[nodiscard]] std::vector<CommandItem> realized_overlay_commands() const;
 
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
@@ -590,7 +590,7 @@ protected:
     void publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const override;
 
 private:
-    friend class RibbonGroupPopup;
+    friend class RibbonGroupOverlay;
     friend class RibbonApplicationMenu;
 
     // A command's position in the selected tab: its group and its place.
@@ -634,8 +634,8 @@ private:
     };
     // Where everything sits, from one layout pass: the ribbon's own view
     // (the tab row and the selected tab's plane at one ladder entry), or the
-    // group popup's view (`popup`: only the popup's group, at its largest
-    // layout, in the popup's local coordinates; no tab row).
+    // group overlay's view (`overlay`: only the overlay's group, at its largest
+    // layout, in the overlay's local coordinates; no tab row).
     struct Layout final {
         Rect tab_rail{};
         Rect application{};
@@ -647,7 +647,7 @@ private:
         Rect scroll_right{};
         std::optional<std::size_t> step{};
         bool scrolling{};
-        bool popup{};
+        bool overlay{};
         // Per group of the selected tab: bounds (empty when not shown), the
         // layout index and size, and gallery columns.
         std::vector<Rect> groups;
@@ -796,7 +796,7 @@ private:
     [[nodiscard]] std::vector<RealizedItem> realized_list(const Layout& placed) const;
     [[nodiscard]] Layout layout() const;
     [[nodiscard]] Layout layout_for(Rect client) const;
-    [[nodiscard]] Layout popup_layout(Rect panel) const;
+    [[nodiscard]] Layout overlay_layout(Rect panel) const;
     void reset_layout_groups(Layout& placed) const;
     void place_plane(Layout& placed) const;
     [[nodiscard]] double place_group(const TabScaling& scaling, std::size_t tab, std::size_t group,
@@ -836,7 +836,7 @@ private:
     [[nodiscard]] Hit hit_test(const Layout& placed, Point local) const;
     [[nodiscard]] std::vector<Stop> stops() const;
     [[nodiscard]] std::vector<Stop> stops_for(const Layout& placed) const;
-    [[nodiscard]] std::vector<Stop> popup_stops() const;
+    [[nodiscard]] std::vector<Stop> overlay_stops() const;
     [[nodiscard]] Stop resolve_stop(const std::vector<Stop>& all, const Stop& stop) const;
     [[nodiscard]] std::optional<CommandAddress> find_command(std::string_view command_id) const;
     [[nodiscard]] std::optional<std::size_t> find_group(std::string_view group_id) const;
@@ -861,31 +861,31 @@ private:
     void release(const Hit& hit, PointerEvent& event);
     void command_state_changed(std::size_t tab, std::size_t group, std::size_t command);
     void invalidate_views(Dirty dirty);
-    void on_popup_item_invoked(const MenuItemInvocation& invocation);
-    void on_popup_open_changed(bool open);
+    void on_overlay_item_invoked(const MenuItemInvocation& invocation);
+    void on_overlay_open_changed(bool open);
 
-    // The group popup (owner decision 27), driven by its content control
-    // (ribbon_group_popup.cpp). `panel` is the group's rectangle in the
+    // The group overlay (owner decision 27), driven by its content control
+    // (ribbon_group_overlay.cpp). `panel` is the group's rectangle in the
     // content control's local coordinates.
-    void popup_paint(Painter& painter, Rect panel) const;
-    void popup_pointer(PointerEvent& event, Rect panel);
-    void popup_key(KeyEvent& event);
-    void popup_focus_changed(bool focused);
-    [[nodiscard]] std::vector<SemanticNode> popup_semantic_children(Rect panel) const;
-    bool popup_semantic_action(std::string_view stable_id, SemanticAction action);
-    [[nodiscard]] Size popup_panel_size() const;
-    void move_hosted_to_popup(std::size_t group);
+    void overlay_paint(Painter& painter, Rect panel) const;
+    void overlay_pointer(PointerEvent& event, Rect panel);
+    void overlay_key(KeyEvent& event);
+    void overlay_focus_changed(bool focused);
+    [[nodiscard]] std::vector<SemanticNode> overlay_semantic_children(Rect panel) const;
+    bool overlay_semantic_action(std::string_view stable_id, SemanticAction action);
+    [[nodiscard]] Size overlay_panel_size() const;
+    void move_hosted_to_overlay(std::size_t group);
     void move_hosted_to_ribbon() noexcept;
-    void finish_group_popup() noexcept;
-    void on_group_layer_dismissed(PopupDismissReason reason);
-    void on_group_popup_revoked();
+    void finish_group_overlay() noexcept;
+    void on_group_layer_dismissed(OverlayDismissReason reason);
+    void on_group_overlay_revoked();
 
     // The file area (ribbon_file_area.cpp): the two-pane application menu
     // and Backstage.
     [[nodiscard]] bool file_area_open() const noexcept;
-    bool show_application_popup(MenuOpenMode mode);
-    void close_application_popup() noexcept;
-    void on_application_popup_revoked();
+    bool show_application_overlay(MenuOpenMode mode);
+    void close_application_overlay() noexcept;
+    void on_application_overlay_revoked();
     void place_backstage();
     void on_backstage_close_requested();
     void on_backstage_revoked();
@@ -907,10 +907,10 @@ private:
     bool minimized_{};
     std::string application_text_{"File"};
     std::vector<MenuItemSpec> application_menu_{};
-    std::unique_ptr<ContextMenu> popup_{};
-    SubscriptionToken popup_invoked_{};
-    SubscriptionToken popup_changed_{};
-    // Which menu the popup shows: the application menu, or a command's.
+    std::unique_ptr<ContextMenu> overlay_{};
+    SubscriptionToken overlay_invoked_{};
+    SubscriptionToken overlay_changed_{};
+    // Which menu the overlay shows: the application menu, or a command's.
     bool application_open_{};
     std::optional<CommandAddress> open_command_{};
     Hit hot_{};
@@ -932,7 +932,7 @@ private:
     mutable std::vector<TabScaling> scaling_{};
     mutable RowMetrics row_metrics_{};
     // Scratch for the command rectangles place_group fills while only a
-    // width is wanted (state_width, popup_panel_size); its contents mean
+    // width is wanted (state_width, overlay_panel_size); its contents mean
     // nothing between calls, and its capacity is kept for the next.
     mutable std::vector<Rect> scratch_commands_{};
     mutable RibbonScalingCounters counters_{};
@@ -942,18 +942,18 @@ private:
     double document_minimum_height_{};
     bool plane_hidden_{};
 
-    // The group popup: its content control and layer (made on first use),
-    // the popup lease and focus scope while open, and the open group with
+    // The group overlay: its content control and layer (made on first use),
+    // the overlay lease and focus scope while open, and the open group with
     // the keyboard's stop in it.
-    std::shared_ptr<RibbonGroupPopup> group_popup_{};
-    std::shared_ptr<AnchoredPopupLayer> group_layer_{};
-    PopupToken group_popup_token_{};
+    std::shared_ptr<RibbonGroupOverlay> group_overlay_{};
+    std::shared_ptr<AnchoredOverlayLayer> group_layer_{};
+    OverlayToken group_overlay_token_{};
     FocusScopeId group_scope_{};
     SubscriptionToken group_layer_dismissed_{};
-    SubscriptionToken group_popup_revoked_{};
-    std::optional<std::size_t> popup_group_{};
-    std::optional<Stop> popup_stop_{};
-    bool popup_focused_{};
+    SubscriptionToken group_overlay_revoked_{};
+    std::optional<std::size_t> overlay_group_{};
+    std::optional<Stop> overlay_stop_{};
+    bool overlay_focused_{};
 
     Event<const RibbonCommandClick&> command_clicked_{};
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};
@@ -965,14 +965,14 @@ private:
     // The file area: recent items, the two-pane menu while open, Backstage.
     std::vector<RibbonRecentItem> recent_items_{};
     std::string recent_caption_{"Recent documents"};
-    std::shared_ptr<RibbonApplicationMenu> application_popup_{};
-    PopupToken application_popup_token_{};
+    std::shared_ptr<RibbonApplicationMenu> application_overlay_{};
+    OverlayToken application_overlay_token_{};
     FocusScopeId application_scope_{};
-    SubscriptionToken application_popup_revoked_{};
-    bool application_popup_open_{};
+    SubscriptionToken application_overlay_revoked_{};
+    bool application_overlay_open_{};
     std::shared_ptr<BackstageView> backstage_{};
     SubscriptionToken backstage_close_{};
-    PopupToken backstage_token_{};
+    OverlayToken backstage_token_{};
     FocusScopeId backstage_scope_{};
     SubscriptionToken backstage_revoked_{};
     bool backstage_open_{};

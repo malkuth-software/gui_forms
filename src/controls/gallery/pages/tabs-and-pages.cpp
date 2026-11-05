@@ -336,7 +336,7 @@ private:
 
     // A NavigationPane: six pages with content, four large buttons, the
     // overflow icons and the configure menu; collapsing it shows the bar and
-    // the popup. Its state is shown as the program would save it.
+    // the overlay. Its state is shown as the program would save it.
     void build_navigation(const std::shared_ptr<Surface>& page) {
         std::shared_ptr<LayoutGroup> navigation_group = group(
             "gallery.tabs.navigation.group", "NavigationPane · grip, overflow strip, configure menu and collapse",

@@ -95,7 +95,7 @@ gui_forms::Command
          Buttons and check boxes bind to a command with ``bind``.
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         A popup menu whose items run commands.
+         An overlay menu whose items run commands.
 
       :cpp:class:`MenuStrip <gui_forms::MenuStrip>`
          A menu bar whose menus run commands.

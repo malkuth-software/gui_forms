@@ -94,7 +94,7 @@ radio_button
 See Also
 --------
 HostServices : The platform's own message, file and color dialogs.
-AnchoredPopupLayer : A popup anchored to a control.
+AnchoredOverlayLayer : An overlay anchored to a control.
 Button : The command buttons a page shows.
 
 Notes

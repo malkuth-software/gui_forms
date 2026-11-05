@@ -5,24 +5,24 @@
 #include <cstdint>
 #include <memory>
 
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_placement/anchored_popup_placement.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
 
 namespace gui_forms {
-enum class PopupDismissReason : std::uint8_t {
+enum class OverlayDismissReason : std::uint8_t {
     click_away,
     escape_key,
 };
 
-// Full-client retained overlay for interactive popups. The layer owns one
+// Full-client retained overlay for interactive overlays. The layer owns one
 // ordinary retained content subtree, continuously re-resolves its anchored
 // bounds on host resize, and reports (rather than privately acting on)
-// click-away and Escape dismissal requests. Popup lifetime and focus scope stay
+// click-away and Escape dismissal requests. Overlay lifetime and focus scope stay
 // with Window, allowing product composites to implement staged Escape behavior
 // without duplicating overlay hit testing or edge avoidance.
-class AnchoredPopupLayer final : public Panel {
+class AnchoredOverlayLayer final : public Panel {
 public:
-    AnchoredPopupLayer(StableId stable_id, Control::Ptr anchor,
-                       AnchoredPopupPlacement placement = {});
+    AnchoredOverlayLayer(StableId stable_id, Control::Ptr anchor,
+                       AnchoredOverlayPlacement placement = {});
 
     [[nodiscard]] Control::Ptr anchor() const noexcept { return anchor_.lock(); }
     void set_anchor(Control::Ptr anchor);
@@ -30,14 +30,14 @@ public:
     void set_content(Control::Ptr content);
     // Removes the content and releases the layer's reference to it, leaving
     // the layer empty. A control that owns its own layer (a drop-down that
-    // is the layer's content) calls this when its popup closes: otherwise
+    // is the layer's content) calls this when its overlay closes: otherwise
     // the owner and its layer would hold each other and never be freed.
     void clear_content();
-    [[nodiscard]] AnchoredPopupPlacement placement() const noexcept {
+    [[nodiscard]] AnchoredOverlayPlacement placement() const noexcept {
         return placement_;
     }
-    void set_placement(AnchoredPopupPlacement placement);
-    [[nodiscard]] AnchoredPopupPlacementResult resolved_placement() const noexcept {
+    void set_placement(AnchoredOverlayPlacement placement);
+    [[nodiscard]] AnchoredOverlayPlacementResult resolved_placement() const noexcept {
         return resolved_;
     }
     [[nodiscard]] bool dismiss_on_click_away() const noexcept {
@@ -48,7 +48,7 @@ public:
         return dismiss_on_escape_;
     }
     void set_dismiss_on_escape(bool enabled);
-    [[nodiscard]] Event<PopupDismissReason>& dismiss_requested() noexcept {
+    [[nodiscard]] Event<OverlayDismissReason>& dismiss_requested() noexcept {
         return dismiss_requested_;
     }
 
@@ -68,11 +68,11 @@ private:
 
     Control::WeakPtr anchor_;
     Control::Ptr content_;
-    AnchoredPopupPlacement placement_;
-    AnchoredPopupPlacementResult resolved_;
+    AnchoredOverlayPlacement placement_;
+    AnchoredOverlayPlacementResult resolved_;
     bool dismiss_on_click_away_{true};
     bool dismiss_on_escape_{true};
-    Event<PopupDismissReason> dismiss_requested_;
+    Event<OverlayDismissReason> dismiss_requested_;
 };
 
 } // namespace gui_forms

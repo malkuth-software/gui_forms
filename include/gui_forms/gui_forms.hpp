@@ -40,7 +40,7 @@
 #include "gui_forms/menu_controls.hpp"
 #include "gui_forms/material.hpp"
 #include "gui_forms/live_surface.hpp"
-#include "gui_forms/popup_controls.hpp"
+#include "gui_forms/overlay_controls.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/metrics.hpp"
 #include "gui_forms/pages.hpp"

@@ -3,7 +3,7 @@
 // cycle, refusals), gallery column steps, golden layouts at a width ladder at
 // text scales 1 and 1.5, the WordPad ladders observed in phase 2a, scrolling
 // at any width, the document-area hide rule with its hysteresis, collapsed
-// group buttons and their popups, and the measurement caches.
+// group buttons and their overlays, and the measurement caches.
 //
 // Text is measured by FixedMetrics (half the font size per byte), so the
 // golden numbers depend on no font engine.
@@ -854,7 +854,7 @@ void hide_rule() {
     require((*larger.ribbon).plane_hidden(), "and hides one unit below");
 }
 
-void group_popup() {
+void group_overlay() {
     FixedMetrics metrics;
     std::vector<RibbonTabSpec> tabs;
     tabs.push_back(wordpad_home(true));
@@ -880,39 +880,39 @@ void group_popup() {
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, point}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, point}));
     window.perform_layout();
-    require(ribbon.popup_group() == std::string("font") &&
+    require(ribbon.overlay_group() == std::string("font") &&
                 ribbon.realized_groups()[1].parts.group_button.states.contains(AnatomyState::open),
-            "a click on the button opens the group's popup");
-    const Control::Ptr popup = ribbon.group_popup();
-    const std::vector<Ribbon::Group> popup_groups = ribbon.realized_popup_groups();
-    require(popup && popup_groups.size() == 1U && !popup_groups[0].collapsed && popup_groups[0].layout == 0U &&
-                popup_groups[0].parts.group_caption.present && popup_groups[0].parts.group_launcher.present,
-            "the popup shows the group at its largest layout with its caption and launcher");
-    require((*family).parent() == popup && (*family).effectively_visible(),
-            "the group's hosted controls move into the popup");
-    const std::vector<Ribbon::CommandItem> popup_commands = ribbon.realized_popup_commands();
+            "a click on the button opens the group's overlay");
+    const Control::Ptr overlay = ribbon.group_overlay();
+    const std::vector<Ribbon::Group> overlay_groups = ribbon.realized_overlay_groups();
+    require(overlay && overlay_groups.size() == 1U && !overlay_groups[0].collapsed && overlay_groups[0].layout == 0U &&
+                overlay_groups[0].parts.group_caption.present && overlay_groups[0].parts.group_launcher.present,
+            "the overlay shows the group at its largest layout with its caption and launcher");
+    require((*family).parent() == overlay && (*family).effectively_visible(),
+            "the group's hosted controls move into the overlay");
+    const std::vector<Ribbon::CommandItem> overlay_commands = ribbon.realized_overlay_commands();
     const Ribbon::CommandItem* bold = nullptr;
-    for (const Ribbon::CommandItem& item : popup_commands) {
+    for (const Ribbon::CommandItem& item : overlay_commands) {
         if (item.stable_id == "bold") bold = &item;
         if (item.stable_id == "font-family") {
             require(item.parts.command_combo_box.bounds == (*family).committed_arranged_bounds(),
-                    "a hosted control sits at its place in the popup");
+                    "a hosted control sits at its place in the overlay");
         }
     }
-    require(bold != nullptr && (*bold).parts.command_icon.present, "the popup realizes its commands");
+    require(bold != nullptr && (*bold).parts.command_icon.present, "the overlay realizes its commands");
     int bolds = 0;
     SubscriptionToken counted =
         (*ribbon.tabs()[0].groups[1].commands[2].command).invoked().subscribe(CountInvocation{&bolds});
-    const Rect absolute = (*popup).absolute_bounds();
+    const Rect absolute = (*overlay).absolute_bounds();
     const Rect face = (*bold).parts.command_face.bounds;
     const Point bold_point{absolute.x + face.x + face.width * 0.5, absolute.y + face.y + face.height * 0.5};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, bold_point}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, bold_point}));
     window.perform_layout();
-    require(bolds == 1 && !ribbon.popup_group() && (*family).parent() == fixture.ribbon,
-            "a command in the popup runs once and closes the popup, returning the hosted controls");
+    require(bolds == 1 && !ribbon.overlay_group() && (*family).parent() == fixture.ribbon,
+            "a command in the overlay runs once and closes the overlay, returning the hosted controls");
 
-    // Keyboard: the group's button opens the popup with focus on its first
+    // Keyboard: the group's button opens the overlay with focus on its first
     // command; Escape closes it and returns to the button.
     require(window.request_focus(fixture.ribbon), "the ribbon takes focus");
     KeyEvent down{KeyAction::down, PhysicalKey::down};
@@ -922,51 +922,51 @@ void group_popup() {
     KeyEvent enter{KeyAction::down, PhysicalKey::enter};
     static_cast<void>(window.dispatch_key(enter));
     window.perform_layout();
-    require(ribbon.popup_group() == std::string("font") && window.focused_control() == popup,
-            "Enter on a collapsed group's button opens its popup with focus in it");
+    require(ribbon.overlay_group() == std::string("font") && window.focused_control() == overlay,
+            "Enter on a collapsed group's button opens its overlay with focus in it");
     KeyEvent next{KeyAction::down, PhysicalKey::right};
     static_cast<void>(window.dispatch_key(next));
-    const std::vector<Ribbon::CommandItem> focused = ribbon.realized_popup_commands();
+    const std::vector<Ribbon::CommandItem> focused = ribbon.realized_overlay_commands();
     bool italic_focus = false;
     for (const Ribbon::CommandItem& item : focused) {
         if (item.stable_id == "italic") italic_focus = item.states.focus_visible;
     }
-    require(italic_focus, "the arrows move through the popup's commands");
+    require(italic_focus, "the arrows move through the overlay's commands");
     KeyEvent escape{KeyAction::down, PhysicalKey::escape};
     static_cast<void>(window.dispatch_key(escape));
     window.perform_layout();
-    require(!ribbon.popup_group() && window.focused_control() == fixture.ribbon &&
+    require(!ribbon.overlay_group() && window.focused_control() == fixture.ribbon &&
                 ribbon.realized_groups()[1].parts.group_button.states.contains(AnatomyState::focus_visible),
-            "Escape closes the popup and focus returns to the group's button");
+            "Escape closes the overlay and focus returns to the group's button");
 
-    // Semantics: the collapsed group is a menu button with a popup.
+    // Semantics: the collapsed group is a menu button with an overlay.
     const std::vector<SemanticNode> nodes = ribbon.semantic_virtual_children();
     const SemanticNode& plane = nodes[2];
     require(plane.children.size() == 5U && plane.children[1].role == SemanticRole::menu_button &&
                 plane.children[1].has_popup && plane.children[1].name == "Font",
             "a collapsed group is a menu button to accessibility");
     require(ribbon.on_semantic_child_action("ribbon.group.font", SemanticAction::expand, {}) &&
-                ribbon.popup_group() == std::string("font"),
-            "expanding the node opens the popup");
+                ribbon.overlay_group() == std::string("font"),
+            "expanding the node opens the overlay");
     window.perform_layout();
     const Point away{ladder.back().width - 4.0, 396.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, away}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, away}));
     window.perform_layout();
-    require(!ribbon.popup_group() && (*family).parent() == fixture.ribbon, "a click away closes the popup");
+    require(!ribbon.overlay_group() && (*family).parent() == fixture.ribbon, "a click away closes the overlay");
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, point}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, point}));
     window.perform_layout();
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, point}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, point}));
     window.perform_layout();
-    require(!ribbon.popup_group(), "a second click on the group's button closes its popup");
-    require(ribbon.show_group_popup("font"), "the popup opens by its group's ID");
+    require(!ribbon.overlay_group(), "a second click on the group's button closes its overlay");
+    require(ribbon.show_group_overlay("font"), "the overlay opens by its group's ID");
     window.perform_layout();
-    // Widening until the group grows back closes the popup.
+    // Widening until the group grows back closes the overlay.
     resize(fixture, {1400.0, 400.0});
-    require(!ribbon.popup_group() && (*family).parent() == fixture.ribbon && (*family).effectively_visible(),
-            "a popup whose group grows back closes");
+    require(!ribbon.overlay_group() && (*family).parent() == fixture.ribbon && (*family).effectively_visible(),
+            "an overlay whose group grows back closes");
 }
 
 void caches() {
@@ -1009,10 +1009,10 @@ int main() {
     labels_never_drop();
     scrolling_never_hides();
     hide_rule();
-    group_popup();
+    group_overlay();
     caches();
     std::cout << "Ribbon scaling: generated layouts, the default cycle, the authored order, refusals, gallery "
                  "columns, the WordPad ladders, golden layouts at text scales 1 and 1.5, labels kept, scrolling at "
-                 "any width, the hide rule with hysteresis, group popups and caches passed\n";
+                 "any width, the hide rule with hysteresis, group overlays and caches passed\n";
     return 0;
 }

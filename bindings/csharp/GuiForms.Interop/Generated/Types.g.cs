@@ -675,14 +675,14 @@ public unsafe struct gf_text_editing_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> clear_undo_history;
 }
 
-/// <summary>gf_popups_table (table, 48 bytes).</summary>
+/// <summary>gf_overlays_table (table, 48 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
-public unsafe struct gf_popups_table
+public unsafe struct gf_overlays_table
 {
     public uint struct_size;
     public uint abi_minor;
-    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> open_popup;
-    public delegate* unmanaged[Cdecl]<gf_object, gf_status> close_popup;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> open_overlay;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_status> close_overlay;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_utf8_view, gf_status> set_tool_tip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, ulong, gf_status> show_tool_tip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_status> hide_tool_tip;

@@ -149,7 +149,7 @@ Implement the owner-specified trailing `./` matrix and direct path editing.
 
 ### Deliver
 
-- anchored popup;
+- anchored overlay;
 - full current drive-rooted stack;
 - exactly five recent full stacks;
 - open-tail conversion to text editor;

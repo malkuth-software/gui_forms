@@ -5,7 +5,7 @@
 #include "../../dispatcher/state/dispatcher_state.hpp"
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "../accelerator/accelerator_attachment.hpp"
-#include "../popup/popup_attachment.hpp"
+#include "../overlay/overlay_attachment.hpp"
 #include "../tool_tips/tool_tip_presenter.hpp"
 
 #include <algorithm>
@@ -66,7 +66,7 @@ Window::Window(Control::Ptr root, Size client_size,
     (*resources_).attach(*this);
 }
 Window::~Window() {
-    // The tooltip presenter goes first: it holds a popup and a wake, and
+    // The tooltip presenter goes first: it holds an overlay and a wake, and
     // raises nothing while it shuts down.
     if (tool_tip_presenter_) (*tool_tip_presenter_).shutdown();
     invalidate_cursor_interaction(CursorError::closing);
@@ -80,7 +80,7 @@ void SurfaceRoot::release_tree() noexcept {
     paint_wake_pending_ = false;
     abandon_deferred_input();
     // Teardown order (house style §4): the controls are told everything
-    // (popups closing, capture and focus revoked, the tree detached) while
+    // (overlays closing, capture and focus revoked, the tree detached) while
     // the dispatcher still accepts work, and the dispatcher is shut down
     // only after them, which cancels whatever they posted. If a host shut it
     // down already (it closed the window), a post from these notifications
@@ -89,8 +89,8 @@ void SurfaceRoot::release_tree() noexcept {
     while (!accelerators_.empty()) {
         (*accelerators_.back()).disconnect();
     }
-    while (!popups_.empty()) {
-        (*popups_.back()).disconnect();
+    while (!overlays_.empty()) {
+        (*overlays_.back()).disconnect();
     }
     focus_scopes_.clear();
     // The clock is cancelled by name before its request goes with the rest.
@@ -141,9 +141,9 @@ bool SurfaceRoot::resize_surface(Size client_size) {
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     apply_client_resize(old_bounds, new_bounds, width_changed, height_changed);
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) {
-            mark_subtree_dirty(*overlay, invalidation::bounds);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            mark_subtree_dirty(*overlay_root, invalidation::bounds);
         }
     }
     return true;
@@ -222,9 +222,9 @@ bool SurfaceRoot::set_surface_scale(double scale) {
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) {
-            mark_subtree_dirty(*overlay, invalidation::conservative_subtree);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            mark_subtree_dirty(*overlay_root, invalidation::conservative_subtree);
         }
     }
     return true;
@@ -267,14 +267,14 @@ void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
     // rebuilds rows, hit regions, focus scope, and screen-edge placement from
     // the new logical metrics.
     if (text_scale_changed) {
-        while (!popups_.empty()) {
-            (*popups_.back()).disconnect();
+        while (!overlays_.empty()) {
+            (*overlays_.back()).disconnect();
         }
     }
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) {
-            mark_subtree_dirty(*overlay, invalidation::conservative_subtree);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            mark_subtree_dirty(*overlay_root, invalidation::conservative_subtree);
         }
     }
     // Reduced motion (GIVEN D2-1, design language §9.5): every value jumps
@@ -364,9 +364,9 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     // Themes include structural spacing/geometry/type tokens as well as paint
     // recipes, so replacement must remeasure and re-hit-test inherited content.
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) {
-            mark_subtree_dirty(*overlay,
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            mark_subtree_dirty(*overlay_root,
                                Dirty::style | Dirty::paint | Dirty::semantics);
         }
     }
@@ -386,9 +386,9 @@ void SurfaceRoot::set_active(bool active) {
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);
     mark_subtree_dirty(*root_, Dirty::style | Dirty::paint | Dirty::semantics);
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) {
-            mark_subtree_dirty(*overlay,
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) {
+            mark_subtree_dirty(*overlay_root,
                                Dirty::style | Dirty::paint | Dirty::semantics);
         }
     }

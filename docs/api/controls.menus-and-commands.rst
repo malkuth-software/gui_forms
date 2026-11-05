@@ -18,7 +18,7 @@ Commands, menu strips and context menus.
    * - :cpp:class:`RibbonFontControl <gui_forms::RibbonFontControl>`
      - A ribbon font control: a family list and a size list choosing one font.
    * - :cpp:class:`RibbonColorPicker <gui_forms::RibbonColorPicker>`
-     - A ribbon drop-down colour picker: a split button over a palette popup.
+     - A ribbon drop-down colour picker: a split button over a palette overlay.
    * - :cpp:class:`BackstageView <gui_forms::BackstageView>`
      - The File tab's full page: a column of commands and topics beside the topic's page.
    * - :cpp:class:`RibbonGallery <gui_forms::RibbonGallery>`
@@ -36,7 +36,7 @@ Commands, menu strips and context menus.
    * - :cpp:class:`Ribbon <gui_forms::Ribbon>`
      - A ribbon: the File tab and core tabs over a command plane of groups.
    * - :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-     - A popup menu of commands that the application opens at a point, such as on a right-click.
+     - An overlay menu of commands that the application opens at a point, such as on a right-click.
    * - :cpp:class:`Command <gui_forms::Command>`
      - An application action, such as Save or Copy, shared by every button, menu item and shortcut that triggers it.
    * - :cpp:class:`FontCommand <gui_forms::FontCommand>`
@@ -107,7 +107,7 @@ Related types
    * - :cpp:class:`MenuStripInvocation <gui_forms::MenuStripInvocation>`
      - MenuStripInvocation correlates a top-level menu and exact nested item identity after accepted activation.
    * - :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>`
-     - MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the popup item tree for one top-level menu.
+     - MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the overlay item tree for one top-level menu.
    * - :cpp:class:`QuickAccessToolbar::Parts <gui_forms::QuickAccessToolbar::Parts>`
      - Stage T1 anatomy, as dot members: ToolStrip's parts and the customize button.
    * - :cpp:class:`QuickAccessToolbarCommand <gui_forms::QuickAccessToolbarCommand>`
@@ -486,7 +486,7 @@ Related types
 
    ``#include <gui_forms/controls/menu_strip/menu_strip.hpp>``
 
-   MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the popup item tree for one top-level menu.
+   MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the overlay item tree for one top-level menu.
 
    .. cpp:member:: std::string stable_id
 

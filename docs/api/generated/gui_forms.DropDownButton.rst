@@ -101,7 +101,7 @@ gui_forms::DropDownButton
    .. seealso::
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         The popup menu to show from ``drop_down_requested``.
+         The overlay menu to show from ``drop_down_requested``.
 
       :cpp:class:`Button <gui_forms::Button>`
          A push button with a single action.

@@ -13,7 +13,7 @@ gui_forms::ComboBox
 
    A field that shows one selected item and drops down a list of the others.
 
-   A combo box takes the space of one line and opens a pop-up list when the
+   A combo box takes the space of one line and opens an overlay list when the
    user clicks it or presses F4, Alt+Down or Space. Choosing a row in the
    list selects it and closes the list; Up, Down, Home and End change the
    selection without opening it. In the default ``drop_down_list`` style the
@@ -30,9 +30,9 @@ gui_forms::ComboBox
 
       **stable_id** : ``StableId``
          Identity of the control, unique within its window. Logs, automation and
-         semantic actions address the control by this ID. The pop-up list is
-         named after it, ``<stable_id>.popup.list``, and its rows
-         ``<stable_id>.popup.list.item.<index>``; the drop_down style's editor is
+         semantic actions address the control by this ID. The overlay list is
+         named after it, ``<stable_id>.overlay.list``, and its rows
+         ``<stable_id>.overlay.list.item.<index>``; the drop_down style's editor is
          ``<stable_id>.editor``.
 
    :Properties:
@@ -63,7 +63,7 @@ gui_forms::ComboBox
          be valid UTF-8, or ``std::invalid_argument`` is thrown.
 
       **dropped_down** : ``bool``, default ``false``
-         Whether the pop-up list is open. Opening has no effect, and leaves the
+         Whether the overlay list is open. Opening has no effect, and leaves the
          property false, while the control is not attached to a window or has
          no items.
 
@@ -74,12 +74,12 @@ gui_forms::ComboBox
          Changing it while the list is open closes and reopens the list.
 
       **drop_down_width** : ``double``, default ``0.0``
-         Width of the pop-up list in logical pixels. Zero makes the list as wide
+         Width of the overlay list in logical pixels. Zero makes the list as wide
          as the field. The list never exceeds the window width. Values outside 0
          to 4096, or not finite, throw ``std::out_of_range``.
 
       **font** : ``FontSpec``, default ``FontSpec{FontRole::content, 12.0, 400, false}``
-         The font of the field and of the pop-up rows. An invalid specification
+         The font of the field and of the overlay rows. An invalid specification
          throws ``std::invalid_argument``.
 
       **drop_down_style** : ``ComboBoxStyle``, default ``ComboBoxStyle::drop_down_list``
@@ -140,7 +140,7 @@ gui_forms::ComboBox
          index, or no value. Setting the current index again raises nothing.
 
       **drop_down_changed** : ``Event<bool>``
-         Raised with ``true`` after the pop-up list opens and with ``false`` after
+         Raised with ``true`` after the overlay list opens and with ``false`` after
          it closes, whichever way it closed.
 
       **items_changed** : ``Event<>``
@@ -189,7 +189,7 @@ gui_forms::ComboBox
    nothing is selected Up and Down count from the first item, so Down selects
    the second. The drop_down_list style has no type-ahead search.
 
-   The open list is a :cpp:class:`ListBox <gui_forms::ListBox>` in a pop-up layer over the window, and it
+   The open list is a :cpp:class:`ListBox <gui_forms::ListBox>` in an overlay layer over the window, and it
    takes the keyboard focus. Moving through it with the arrow keys selects
    each row as it is reached, raising :cpp:func:`selected_index_changed <gui_forms::ComboBox::selected_index_changed>` each time.
    Clicking a row, or pressing Enter, selects it and closes the list; a
@@ -355,7 +355,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: bool dropped_down() const noexcept
 
-      Whether the pop-up list is open. Opening has no effect, and leaves the
+      Whether the overlay list is open. Opening has no effect, and leaves the
       property false, while the control is not attached to a window or has
       no items.
 
@@ -376,7 +376,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: double drop_down_width() const noexcept
 
-      Width of the pop-up list in logical pixels. Zero makes the list as wide
+      Width of the overlay list in logical pixels. Zero makes the list as wide
       as the field. The list never exceeds the window width. Values outside 0
       to 4096, or not finite, throw ``std::out_of_range``.
 
@@ -386,7 +386,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: FontSpec font() const noexcept
 
-      The font of the field and of the pop-up rows. An invalid specification
+      The font of the field and of the overlay rows. An invalid specification
       throws ``std::invalid_argument``.
 
    .. cpp:function:: void set_font(FontSpec font)
@@ -486,7 +486,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: Event<bool>& drop_down_changed() noexcept
 
-      Raised with ``true`` after the pop-up list opens and with ``false`` after
+      Raised with ``true`` after the overlay list opens and with ``false`` after
       it closes, whichever way it closed.
 
    .. cpp:function:: Event<>& items_changed() noexcept
@@ -519,7 +519,7 @@ gui_forms::ComboBox
 
    .. cpp:function:: void on_pointer(PointerEvent& event) override
 
-      Opens the pop-up list on a primary press. The window calls it.
+      Opens the overlay list on a primary press. The window calls it.
 
    .. cpp:function:: void on_key_preview(KeyEvent& event) override
 

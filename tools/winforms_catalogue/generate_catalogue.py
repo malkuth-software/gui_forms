@@ -217,7 +217,7 @@ def form_family(owner: str) -> str:
     if any(word in leaf for word in ("List", "Tree", "Grid", "Binding", "Currency")):
         return "collections_binding_virtualization"
     if any(word in leaf for word in ("Menu", "Strip", "ToolTip", "Help", "ErrorProvider")):
-        return "commands_popups_guidance"
+        return "commands_overlays_guidance"
     if any(word in leaf for word in ("Dialog", "ColorDialog", "FileDialog", "FolderBrowser")):
         return "dialogs_host_services"
     if any(word in leaf for word in ("Mouse", "Key", "Drag", "Clipboard", "Cursor", "DataObject")):
@@ -497,7 +497,7 @@ def classify_forms(owner: str, member: str) -> tuple[str, str]:
         "System.Windows.Forms.ToolStripMenuItem",
         "System.Windows.Forms.ToolStripItem",
     } and member.startswith("ProcessMnemonic("):
-        return "measured_partial", "M12-P8 retained MenuStrip and popup rows prove marker-free presentation, top-level duplicate cycling, contained submenu mnemonic activation, and shared command execution; protected generated ToolStrip override identity and remaining item subclasses stay open"
+        return "measured_partial", "M12-P8 retained MenuStrip and overlay rows prove marker-free presentation, top-level duplicate cycling, contained submenu mnemonic activation, and shared command execution; protected generated ToolStrip override identity and remaining item subclasses stay open"
     if owner == "System.Windows.Forms.HelpNavigator" and member != "TopicId = -2147483641":
         return "measured_partial", "M12-P4 retains six help navigation intents; TopicId and raw managed enum-value projection remain open"
     if owner in {

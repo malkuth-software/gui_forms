@@ -1,16 +1,16 @@
 #include "pages.hpp"
 
-#include "collections-and-popups_form.hpp"
+#include "collections-and-overlays_form.hpp"
 
 namespace gui_forms::gallery::pages {
 namespace {
 
-// Owns the collections page: the controls demo/pages/collections-and-popups.form
+// Owns the collections page: the controls demo/pages/collections-and-overlays.form
 // describes (two ListBoxes, three ComboBoxes and the status line) and their
 // behaviour: the lists' initial selections and the status line's reports.
-class CollectionsAndPopupsPage final : public Component {
+class CollectionsAndOverlaysPage final : public Component {
 public:
-    explicit CollectionsAndPopupsPage(const std::shared_ptr<Surface>& body) {
+    explicit CollectionsAndOverlaysPage(const std::shared_ptr<Surface>& body) {
         document_.initialize_component(*this);
         mount_document(body);
         single_ = document_.gallery_collections_single_list;
@@ -22,17 +22,17 @@ public:
         (*single_).select_index(2U);
         // selection_changed is the state event; item_activated (double-click,
         // Enter) is input only, so a programmatic select never "opens" a row.
-        on((*single_).selection_changed(), *this, &CollectionsAndPopupsPage::on_location_selected);
-        on((*single_).item_activated(), *this, &CollectionsAndPopupsPage::on_location_activated);
+        on((*single_).selection_changed(), *this, &CollectionsAndOverlaysPage::on_location_selected);
+        on((*single_).item_activated(), *this, &CollectionsAndOverlaysPage::on_location_activated);
         (*multi_).select_index(1U);
         (*multi_).select_index(4U, true, false);
-        on((*multi_).selection_changed(), *this, &CollectionsAndPopupsPage::on_features_selected);
+        on((*multi_).selection_changed(), *this, &CollectionsAndOverlaysPage::on_features_selected);
 
         on((*profile_).selected_index_changed(), *this,
-           &CollectionsAndPopupsPage::on_profile_committed);
+           &CollectionsAndOverlaysPage::on_profile_committed);
         on((*document_.gallery_collections_combo_density).drop_down_changed(), *this,
-           &CollectionsAndPopupsPage::on_density_popup);
-        on((*search_).drop_down_changed(), *this, &CollectionsAndPopupsPage::on_search_popup);
+           &CollectionsAndOverlaysPage::on_density_overlay);
+        on((*search_).drop_down_changed(), *this, &CollectionsAndOverlaysPage::on_search_overlay);
     }
 
 private:
@@ -58,7 +58,7 @@ private:
         }
     }
 
-    void on_search_popup(const bool open) {
+    void on_search_overlay(const bool open) {
         (*status_).set_text(open ? "Stations matching \"" + std::string((*search_).text()) + "\": " +
                                        std::to_string((*search_).drop_down_items().size())
                                  : "Station search closed · the editor kept the focus");
@@ -86,14 +86,14 @@ private:
                             " · overlay detached · focus restored");
     }
 
-    void on_density_popup(const bool open) {
-        (*status_).set_text(open ? "Density popup: OPEN · contained ListBox focus scope"
-                                 : "Density popup: CLOSED · owner focus restored");
+    void on_density_overlay(const bool open) {
+        (*status_).set_text(open ? "Density overlay: OPEN · contained ListBox focus scope"
+                                 : "Density overlay: CLOSED · owner focus restored");
     }
 
     // Owns the document's controls; the shell's page body holds them too once
     // mount_document() has moved them there.
-    CollectionsDocument<CollectionsAndPopupsPage> document_{};
+    CollectionsDocument<CollectionsAndOverlaysPage> document_{};
     std::shared_ptr<ListBox> single_;
     std::shared_ptr<ListBox> multi_;
     std::shared_ptr<ComboBox> profile_;
@@ -105,7 +105,7 @@ private:
 
 void add_collections(const std::shared_ptr<Surface>& page,
                      const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<CollectionsAndPopupsPage>(page));
+    (*context).components.add(std::make_shared<CollectionsAndOverlaysPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

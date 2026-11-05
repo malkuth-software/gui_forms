@@ -36,7 +36,7 @@ public static class Constants
     public const uint GF_TABLE_DIAGNOSTICS = 10u;
     public const uint GF_TABLE_CONTROLS = 11u;
     public const uint GF_TABLE_TEXT_EDITING = 12u;
-    public const uint GF_TABLE_POPUPS = 13u;
+    public const uint GF_TABLE_OVERLAYS = 13u;
     public const uint GF_TABLE_PROPERTY_GRID = 14u;
     public const uint GF_TABLE_CUSTOM_CONTROLS = 15u;
     public const uint GF_TABLE_BINDINGS = 16u;

@@ -14,7 +14,7 @@ fake in domain authority:
 
 - every visible folder, file, property, search result, criterion, index state,
   transfer, failure, and recent path comes from versioned in-memory fixtures;
-- every interaction is real GUI.Forms input, focus, command, popup, layout,
+- every interaction is real GUI.Forms input, focus, command, overlay, layout,
   retained-state, accessibility, and drawing behavior;
 - no operation touches the real filesystem;
 - no Engine or Orchestrator process is started;

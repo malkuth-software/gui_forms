@@ -445,7 +445,7 @@ void append_control(std::ostringstream& output,
     output << ",\"parent_stable_id\":";
     append_json_string(output, control.parent_stable_id);
     output << ",\"depth\":" << control.depth
-           << ",\"popup_tree\":" << (control.popup_tree ? "true" : "false")
+           << ",\"overlay_tree\":" << (control.overlay_tree ? "true" : "false")
            << ",\"layout\":{\"requested_bounds\":";
     append_rect(output, control.layout.requested_bounds);
     output << ",\"arranged_bounds\":";

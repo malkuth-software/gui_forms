@@ -325,9 +325,9 @@
       "reviewed": false,
       "summary": "Returns effective visibility/enabled transitions for providers and native projection."
     },
-    "gui_forms::SurfaceRoot::open_popup|PopupToken (const Control::Ptr &, const Control::Ptr &, PopupOptions)": {
+    "gui_forms::SurfaceRoot::open_overlay|OverlayToken (const Control::Ptr &, const Control::Ptr &, OverlayOptions)": {
       "reviewed": false,
-      "summary": "Validates owner policy and a live detached popup root, attaches it as a retained overlay, binds revocable owner lifetime, and returns the close token."
+      "summary": "Validates owner policy and a live detached overlay root, attaches it as a retained overlay, binds revocable owner lifetime, and returns the close token."
     },
     "gui_forms::SurfaceRoot::register_accelerator|AcceleratorToken (Component &, KeyGesture, std::function<bool ()>, AcceleratorOptions)": {
       "reviewed": false,

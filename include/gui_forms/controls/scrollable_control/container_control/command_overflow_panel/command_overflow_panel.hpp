@@ -67,7 +67,7 @@ struct CommandOverflowSnapshot final {
 
 // Horizontal retained command-group projection. It owns only layout collapse
 // and the overflow actuator's effective availability. Command authority and
-// popup item composition remain with the consumer and can use the stable IDs
+// overlay item composition remain with the consumer and can use the stable IDs
 // published by layout_snapshot().
 class CommandOverflowPanel final : public ContainerControl {
 public:

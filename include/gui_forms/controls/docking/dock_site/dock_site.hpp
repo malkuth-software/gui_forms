@@ -441,7 +441,7 @@ public:
     [[nodiscard]] bool position_command_enabled(const DockPanelId& panel, DockPositionCommand command) const;
     bool run_position_command(const DockPanelId& panel, DockPositionCommand command);
 
-    // The navigator popup, centred over the site, on `list` with the row
+    // The navigator overlay, centred over the site, on `list` with the row
     // after the active one current (`direction` +1) or the last (-1);
     // releasing `release` (control or alt; none for Enter only) chooses.
     // False when both lists are empty or the site is detached.
@@ -733,7 +733,7 @@ private:
     // The open flyout's rectangles in the site's coordinates: `full` is the
     // whole flyout where it stands in its slide (it starts under the strip
     // and moves out), `revealed` the part past the strip's band, which is the
-    // popup's bounds; caption, content and grip lie inside `full`.
+    // overlay's bounds; caption, content and grip lie inside `full`.
     struct FlyoutGeometry final {
         Rect full{};
         Rect revealed{};
@@ -1114,7 +1114,7 @@ private:
     std::size_t menu_stack_{};
     bool menu_open_{};
     std::shared_ptr<DockNavigator> navigator_{};
-    PopupToken navigator_token_{};
+    OverlayToken navigator_token_{};
     FocusScopeId navigator_scope_{};
     bool navigator_open_{};
     bool navigator_closing_{};
@@ -1158,7 +1158,7 @@ private:
     // The same control as a Control, for the sources that see Flyout only
     // declared.
     Control::Ptr flyout_root_{};
-    PopupToken flyout_token_{};
+    OverlayToken flyout_token_{};
     SubscriptionToken flyout_revoked_{};
     std::optional<DockPanelId> flyout_panel_{};
     DockNodeId flyout_stack_{};

@@ -7,7 +7,7 @@
 /* The types create refuses: those that need another object (create_with
  * makes them), the components a window owns, and the service. */
 static const char* const refused_by_create[] = {
-    "anchored_popup_layer", "dock_site", "flags_value_editor", "page_strip",
+    "anchored_overlay_layer", "dock_site", "flags_value_editor", "page_strip",
     "color_command", "font_command", "gallery_command",
     "background_worker", "binding", "binding_context", "binding_source", "error_provider",
     "help_provider", "image_list", "notify_icon", "ribbon_tool_tip", "semantic_feedback",
@@ -91,7 +91,7 @@ gf_object gf_kit_make_any(gf_kit* kit, gf_utf8_view id, const char* stable_id, g
             return 0u;
         }
         arguments.owner = *owner;
-    } else if (gf_kit_view_equals(id, "anchored_popup_layer")) {
+    } else if (gf_kit_view_equals(id, "anchored_overlay_layer")) {
         owner_type = "button";
     } else if (gf_kit_view_equals(id, "dock_site")) {
         owner_type = "dock_workspace";

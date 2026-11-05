@@ -138,12 +138,12 @@ Types
      -  
    * - :cpp:class:`gf_objects_table <gf_objects_table>`
      -  
+   * - :cpp:class:`gf_overlays_table <gf_overlays_table>`
+     -  
    * - :cpp:class:`gf_paint_target <gf_paint_target>`
      -  
    * - :cpp:class:`gf_point <gf_point>`
      - gf_point projects renderer-neutral logical coordinates across the stable C ABI.
-   * - :cpp:class:`gf_popups_table <gf_popups_table>`
-     -  
    * - :cpp:class:`gf_properties_table <gf_properties_table>`
      -  
    * - :cpp:class:`gf_property_callbacks_v1 <gf_property_callbacks_v1>`
@@ -226,8 +226,8 @@ Types
      - One reference to a library object, released (objects.release) when the owner goes or resets.
    * - :cpp:class:`ObjectsTable <gui_forms::abi::ObjectsTable>`
      - gf_objects_table, negotiated as GF_TABLE_OBJECTS.
-   * - :cpp:class:`PopupsTable <gui_forms::abi::PopupsTable>`
-     - gf_popups_table, negotiated as GF_TABLE_POPUPS.
+   * - :cpp:class:`OverlaysTable <gui_forms::abi::OverlaysTable>`
+     - gf_overlays_table, negotiated as GF_TABLE_OVERLAYS.
    * - :cpp:class:`PropertiesTable <gui_forms::abi::PropertiesTable>`
      - gf_properties_table, negotiated as GF_TABLE_PROPERTIES.
    * - :cpp:class:`PropertyGridTable <gui_forms::abi::PropertyGridTable>`
@@ -1247,9 +1247,9 @@ Types
 
    .. cpp:member:: gf_result (*set_panel_border_style)(gf_handle panel, uint32_t border_style)
 
-   .. cpp:member:: gf_result (*attach_popup)(gf_handle owner, gf_handle popup)
+   .. cpp:member:: gf_result (*attach_overlay)(gf_handle owner, gf_handle overlay)
 
-   .. cpp:member:: gf_result (*detach_popup)(gf_handle popup)
+   .. cpp:member:: gf_result (*detach_overlay)(gf_handle overlay)
 
 .. cpp:namespace:: 0
 
@@ -1919,6 +1919,29 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_overlays_table
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*open_overlay)(gf_object owner, gf_object overlay)
+
+   .. cpp:member:: gf_status (*close_overlay)(gf_object overlay)
+
+   .. cpp:member:: gf_status (*set_tool_tip)(gf_object tool_tip, gf_object target, gf_utf8_view text)
+
+   .. cpp:member:: gf_status (*show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms)
+
+   .. cpp:member:: gf_status (*hide_tool_tip)(gf_object tool_tip)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_paint_target
 
    ``#include <gui_forms/c/gf_abi.h>``
@@ -1950,29 +1973,6 @@ Types
    .. cpp:member:: double x
 
    .. cpp:member:: double y
-
-.. cpp:namespace:: 0
-
-.. cpp:struct:: gf_popups_table
-
-   ``#include <gui_forms/c/gf_abi.h>``
-
-
-   .. rubric:: Methods
-
-   .. cpp:member:: gf_status (*open_popup)(gf_object owner, gf_object popup)
-
-   .. cpp:member:: gf_status (*close_popup)(gf_object popup)
-
-   .. cpp:member:: gf_status (*set_tool_tip)(gf_object tool_tip, gf_object target, gf_utf8_view text)
-
-   .. cpp:member:: gf_status (*show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms)
-
-   .. cpp:member:: gf_status (*hide_tool_tip)(gf_object tool_tip)
-
-   .. cpp:member:: uint32_t struct_size
-
-   .. cpp:member:: uint32_t abi_minor
 
 .. cpp:namespace:: 0
 
@@ -2991,36 +2991,36 @@ Types
 
 .. cpp:namespace:: gui_forms::abi
 
-.. cpp:class:: PopupsTable
+.. cpp:class:: OverlaysTable
 
    ``#include <gui_forms/c/gf_abi.hpp>``
 
-   gf_popups_table, negotiated as GF_TABLE_POPUPS.
+   gf_overlays_table, negotiated as GF_TABLE_OVERLAYS.
 
 
    .. rubric:: Construction
 
-   .. cpp:function:: PopupsTable() noexcept
+   .. cpp:function:: OverlaysTable() noexcept
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const gf_popups_table& c_table() const noexcept
+   .. cpp:function:: const gf_overlays_table& c_table() const noexcept
 
 
    .. rubric:: Methods
 
-   .. cpp:function:: static gf_status negotiate(PopupsTable& output) noexcept
+   .. cpp:function:: static gf_status negotiate(OverlaysTable& output) noexcept
 
       Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
 
-   .. cpp:function:: static PopupsTable adopt(const gf_popups_table& adopted_table) noexcept
+   .. cpp:function:: static OverlaysTable adopt(const gf_overlays_table& adopted_table) noexcept
 
       A table the caller negotiated through gf_abi_get_table.
 
-   .. cpp:function:: gf_status open_popup(gf_object owner, gf_object popup) const noexcept
+   .. cpp:function:: gf_status open_overlay(gf_object owner, gf_object overlay) const noexcept
 
-   .. cpp:function:: gf_status close_popup(gf_object popup) const noexcept
+   .. cpp:function:: gf_status close_overlay(gf_object overlay) const noexcept
 
    .. cpp:function:: gf_status show_tool_tip(gf_object tool_tip, gf_object target, uint64_t duration_ms) const noexcept
 

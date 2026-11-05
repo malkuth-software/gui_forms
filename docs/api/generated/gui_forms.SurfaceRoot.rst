@@ -23,7 +23,7 @@ gui_forms::SurfaceRoot
    The threaded sub-surfaces stage S1 moved the control-root part of :cpp:class:`Window <gui_forms::Window>`
    here with no change of behaviour: the thread identity, the dispatcher and
    the metrics (S1.1), then the control tree with its layout, focus, input,
-   painting, popups, accelerators, tooltips and command routing (S1.2). What
+   painting, overlays, accelerators, tooltips and command routing (S1.2). What
    binds a root to a native window (resizing and scale, the cursor, the
    presentation declaration and the live-surface presentation queue) stays on
    :cpp:class:`Window <gui_forms::Window>`.
@@ -63,7 +63,7 @@ gui_forms::SurfaceRoot
       **presentation_settings** : ``PresentationSettings``
          Text scale, high contrast, reduced motion and sound preferences. The
          text scale must lie between 0.5 and 4.0, and changing it closes open
-         popups. Any change remeasures the tree and raises
+         overlays. Any change remeasures the tree and raises
          :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
          value of the window at its end in the same call.
 
@@ -401,7 +401,7 @@ gui_forms::SurfaceRoot
       * - :cpp:func:`find <gui_forms::SurfaceRoot::find>`
         - The attached control with the given stable ID, or null.
       * - :cpp:func:`hit_test <gui_forms::SurfaceRoot::hit_test>`
-        - The frontmost control eligible for input at a point in window coordinates, searching open popups first, or null.
+        - The frontmost control eligible for input at a point in window coordinates, searching open overlays first, or null.
       * - :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`
         - Moves keyboard focus to a control, or clears it with null.
       * - :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`
@@ -428,8 +428,8 @@ gui_forms::SurfaceRoot
         - Routes pointer input to a control until :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`, wherever the pointer goes.
       * - :cpp:func:`release_pointer <gui_forms::SurfaceRoot::release_pointer>`
         - Releases pointer capture.
-      * - :cpp:func:`open_popup <gui_forms::SurfaceRoot::open_popup>`
-        - Shows a detached control as an overlay owned by another control, such as a menu or a drop-down, and returns a :cpp:class:`PopupToken <gui_forms::PopupToken>` that closes it.
+      * - :cpp:func:`open_overlay <gui_forms::SurfaceRoot::open_overlay>`
+        - Shows a detached control as an overlay owned by another control, such as a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it.
       * - :cpp:func:`show_tool_tip <gui_forms::SurfaceRoot::show_tool_tip>`
         - ``show_tool_tip(control)`` shows the control's tooltip at once, below it, for the auto-pop delay; ``show_tool_tip(control, duration)`` for ``duration``, where zero means until hidden.
       * - :cpp:func:`hide_tool_tip <gui_forms::SurfaceRoot::hide_tool_tip>`
@@ -546,7 +546,7 @@ gui_forms::SurfaceRoot
 
       Text scale, high contrast, reduced motion and sound preferences. The
       text scale must lie between 0.5 and 4.0, and changing it closes open
-      popups. Any change remeasures the tree and raises
+      overlays. Any change remeasures the tree and raises
       :cpp:func:`presentation_changed <gui_forms::SurfaceRoot::presentation_changed>`. Turning reduced motion on puts every motion
       value of the window at its end in the same call.
 
@@ -1094,7 +1094,7 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Control::Ptr hit_test(Point position)
 
       The frontmost control eligible for input at a point in window
-      coordinates, searching open popups first, or null.
+      coordinates, searching open overlays first, or null.
 
    .. cpp:function:: bool request_focus(const Control::Ptr& control)
 
@@ -1156,7 +1156,7 @@ gui_forms::SurfaceRoot
       region, forward enters the first region and backward the last. Regions
       that are detached, hidden, disabled or without a Tab stop are skipped.
       Returns false, leaving focus alone, when no other region can take focus
-      or a popup or dialog focus scope is active.
+      or an overlay or dialog focus scope is active.
 
    .. cpp:function:: void capture_pointer(const Control::Ptr& control, std::uint64_t pointer_id = 1)
 
@@ -1168,11 +1168,11 @@ gui_forms::SurfaceRoot
 
       Releases pointer capture.
 
-   .. cpp:function:: PopupToken open_popup(const Control::Ptr& owner, const Control::Ptr& popup, PopupOptions options = {})
+   .. cpp:function:: OverlayToken open_overlay(const Control::Ptr& owner, const Control::Ptr& overlay, OverlayOptions options = {})
 
       Shows a detached control as an overlay owned by another control, such as
-      a menu or a drop-down, and returns a :cpp:class:`PopupToken <gui_forms::PopupToken>` that closes it. The
-      popup closes on its own when its owner is hidden, disabled or detached.
+      a menu or a drop-down, and returns a :cpp:class:`OverlayToken <gui_forms::OverlayToken>` that closes it. The
+      overlay closes on its own when its owner is hidden, disabled or detached.
 
    .. cpp:function:: void show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration = std::nullopt)
 

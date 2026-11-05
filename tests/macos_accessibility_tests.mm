@@ -372,7 +372,7 @@ bool perform_through_element(id element, SemanticAction action, const SemanticNo
 }
 
 // Puts the window back after a default action that opened something: a node
-// left expanded is collapsed through the model, and an open popup, which
+// left expanded is collapsed through the model, and an open overlay, which
 // replaces the window's semantic roots, is closed with Escape (at most three
 // presses).
 void restore_after_action(gui_forms::Window& window, const std::string& target_id,

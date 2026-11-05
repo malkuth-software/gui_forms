@@ -60,7 +60,7 @@ CATEGORIES: tuple[str, ...] = (
     "Layout",
     "Scrolling",
     "Menus and commands",
-    "Dialogs and popups",
+    "Dialogs and overlays",
     "Drawing",
     "Diagnostics",
     "Components",

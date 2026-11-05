@@ -77,20 +77,20 @@ constexpr std::array<std::string_view, 24> nonvisual_entries{
 
 // Registry controls that publish no node of their own: presentational
 // containers whose children are published in their place (a scrollable
-// control publishes only its scroll bars, as virtual children), the popup
-// layer that only hosts a popup's content, and RangeControl, the value base
+// control publishes only its scroll bars, as virtual children), the overlay
+// layer that only hosts an overlay's content, and RangeControl, the value base
 // whose subclasses (track bar, scroll bars) publish their own roles. The
 // test fails when this list and the published tree disagree in either
 // direction.
 constexpr std::array<std::string_view, 8> unexposed_entries{
     "scaled_panel", "splitter_panel", "tool_strip_panel", "property_grid",
-    "scrollable_control", "anchored_popup_layer", "visual_inspector_overlay",
+    "scrollable_control", "anchored_overlay_layer", "visual_inspector_overlay",
     "range_control",
 };
 
-// The most popups an action's clean-up closes with Escape (a menu inside a
+// The most overlays an action's clean-up closes with Escape (a menu inside a
 // menu is two).
-constexpr int maximum_popup_closes = 4;
+constexpr int maximum_overlay_closes = 4;
 
 bool listed(std::span<const std::string_view> list, std::string_view id) noexcept {
     for (const std::string_view entry : list) {
@@ -557,9 +557,9 @@ void press_escape(Window& window) {
     static_cast<void>(window.dispatch_key(up));
 }
 
-// Closes popups an action opened, so the page's root set is restored.
-void close_popups(Window& window, std::size_t baseline_roots) {
-    for (int attempt = 0; attempt < maximum_popup_closes; ++attempt) {
+// Closes overlays an action opened, so the page's root set is restored.
+void close_overlays(Window& window, std::size_t baseline_roots) {
+    for (int attempt = 0; attempt < maximum_overlay_closes; ++attempt) {
         const SemanticSnapshot snapshot = window.semantic_snapshot();
         const bool open = snapshot.roots.size() > baseline_roots || window.focus_scope_depth() != 0U;
         if (!open) return;
@@ -577,9 +577,9 @@ struct InvocationCounter final {
     void invoked(const CommandInvocation&) { ++count; }
 };
 
-// True when an action opened a popup: the snapshot gained roots or nodes,
+// True when an action opened an overlay: the snapshot gained roots or nodes,
 // or a focus scope began.
-bool popup_opened(const SemanticSnapshot& before, const SemanticSnapshot& after, std::size_t scopes_before,
+bool overlay_opened(const SemanticSnapshot& before, const SemanticSnapshot& after, std::size_t scopes_before,
                   std::size_t scopes_after) noexcept {
     const bool opened = after.roots.size() > before.roots.size() || after.node_count > before.node_count ||
                         scopes_after > scopes_before;
@@ -632,7 +632,7 @@ ActionResult judge(Window& window, const ActionCandidate& candidate, const Seman
     const bool checked_before = has_semantic_state(node.states, SemanticState::checked);
     const bool mixed_before = has_semantic_state(node.states, SemanticState::mixed);
     const bool expanded_before = has_semantic_state(node.states, SemanticState::expanded);
-    const bool opened = popup_opened(before, after, scopes_before, scopes_after);
+    const bool opened = overlay_opened(before, after, scopes_before, scopes_after);
     const bool radio_press = rules == ClientRules::uia && kind == DefaultKind::press &&
                              node.role == SemanticRole::radio_button;
     result.outcome = ActionOutcome::unobserved;
@@ -663,12 +663,12 @@ ActionResult judge(Window& window, const ActionCandidate& candidate, const Seman
             result.evidence = expanded_before ? "collapsed" : "expanded";
         } else if (kind == DefaultKind::expand && opened) {
             result.outcome = ActionOutcome::changed;
-            result.evidence = "a popup opened";
+            result.evidence = "an overlay opened";
         }
     } else if (kind == DefaultKind::show_menu) {
         if (opened) {
             result.outcome = ActionOutcome::changed;
-            result.evidence = "a popup opened";
+            result.evidence = "an overlay opened";
         } else if (changed != nullptr && has_semantic_state((*changed).states, SemanticState::expanded)) {
             result.outcome = ActionOutcome::changed;
             result.evidence = "expanded";
@@ -686,7 +686,7 @@ ActionResult judge(Window& window, const ActionCandidate& candidate, const Seman
         result.evidence = "its command invoked once";
     } else if (opened) {
         result.outcome = ActionOutcome::changed;
-        result.evidence = "a popup opened";
+        result.evidence = "an overlay opened";
     } else if (window.semantic_generation() != generation_before) {
         result.outcome = ActionOutcome::changed;
         result.evidence = "the semantic tree changed";
@@ -699,7 +699,7 @@ ActionResult judge(Window& window, const ActionCandidate& candidate, const Seman
     reversible = result.outcome == ActionOutcome::changed &&
                  (kind == DefaultKind::expand || kind == DefaultKind::collapse ||
                   (kind == DefaultKind::press && reversed_press)) &&
-                 changed != nullptr && result.evidence != "a popup opened";
+                 changed != nullptr && result.evidence != "an overlay opened";
     return result;
 }
 
@@ -743,7 +743,7 @@ ActionResult perform_candidate(Window& window, const std::string& key, const Act
     if (action && !perform_as_adapter(window, named, *action)) {
         result.outcome = ActionOutcome::refused;
         result.evidence = std::string("Window::perform_semantic_action refused ") + semantic_action_name(*action);
-        close_popups(window, baseline_roots);
+        close_overlays(window, baseline_roots);
         return result;
     }
     bool reversible = false;
@@ -758,7 +758,7 @@ ActionResult perform_candidate(Window& window, const std::string& key, const Act
         result.evidence += undone ? ", then restored" : ", but not restored";
         if (!undone) result.outcome = ActionOutcome::unobserved;
     }
-    close_popups(window, baseline_roots);
+    close_overlays(window, baseline_roots);
     return result;
 }
 

@@ -2,7 +2,7 @@
 
 #include "../../display/chunk/display_chunk.hpp"
 #include "../../display/command/display_command.hpp"
-#include "../popup/popup_attachment.hpp"
+#include "../overlay/overlay_attachment.hpp"
 #include "../../text/prepared/prepared_storage.hpp"
 
 #include <algorithm>
@@ -106,7 +106,7 @@ struct PendingInspectionNode final {
     std::optional<RuntimeId> parent_runtime_id;
     std::string parent_stable_id;
     std::size_t depth{};
-    bool popup_tree{};
+    bool overlay_tree{};
     Rect ancestor_clip{};
     std::size_t ancestor_clip_count{};
 };
@@ -150,19 +150,19 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
         snapshot.pending_damage[index].assign(rectangles.begin(), rectangles.end());
     }
     snapshot.controls.reserve(std::min(options.maximum_controls,
-                                       stable_ids_.size() + popups_.size()));
+                                       stable_ids_.size() + overlays_.size()));
 
     const Rect window_clip{0.0, 0.0, client_size_.width, client_size_.height};
     std::vector<PendingInspectionNode> pending;
     if (root_) {
         pending.push_back({root_, std::nullopt, {}, 0U, false, window_clip, 0U});
     }
-    for (PopupList::reverse_iterator iterator = popups_.rbegin();
-         iterator != popups_.rend(); ++iterator) {
+    for (OverlayList::reverse_iterator iterator = overlays_.rbegin();
+         iterator != overlays_.rend(); ++iterator) {
         if (!*iterator || !(*(*iterator)).connected()) continue;
-        const Control::Ptr popup = (*(*iterator)).popup();
-        if (popup) {
-            pending.push_back({popup, std::nullopt, {}, 0U, true, window_clip, 0U});
+        const Control::Ptr overlay = (*(*iterator)).overlay();
+        if (overlay) {
+            pending.push_back({overlay, std::nullopt, {}, 0U, true, window_clip, 0U});
         }
     }
 
@@ -195,7 +195,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             inspected.parent_runtime_id = current.parent_runtime_id;
             inspected.parent_stable_id = current.parent_stable_id;
             inspected.depth = current.depth;
-            inspected.popup_tree = current.popup_tree;
+            inspected.overlay_tree = current.overlay_tree;
             inspected.layout.requested_bounds = (*control).requested_bounds_;
             inspected.layout.arranged_bounds = (*control).arranged_bounds_;
             inspected.layout.absolute_bounds = absolute;
@@ -289,7 +289,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
                                std::optional<RuntimeId>{(*control).runtime_id_},
                                std::string((*control).stable_id_.value()),
                                current.depth + 1U,
-                               current.popup_tree, child_clip,
+                               current.overlay_tree, child_clip,
                                current.ancestor_clip_count + 1U});
         }
     }

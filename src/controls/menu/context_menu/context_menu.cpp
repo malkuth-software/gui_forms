@@ -474,13 +474,13 @@ struct ContextMenu::Impl final {
         owner_control = invoker;
         const Size client = (*window).client_size();
         layer = make_control<MenuLayer>(
-            StableId(owner.stable_id_ + ".popup.layer"), *this);
+            StableId(owner.stable_id_ + ".overlay.layer"), *this);
         (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
         open_panel(0U, snapshot, position.x, position.y, {});
-        popup_token = (*window).open_popup(invoker, layer);
-        if (Event<>* closed = popup_token.closed_event()) {
-            popup_revocation = (*closed).subscribe(
-                owner, Delegate<>::bind<Impl, &Impl::on_popup_revoked>(*this));
+        overlay_token = (*window).open_overlay(invoker, layer);
+        if (Event<>* closed = overlay_token.closed_event()) {
+            overlay_revocation = (*closed).subscribe(
+                owner, Delegate<>::bind<Impl, &Impl::on_overlay_revoked>(*this));
         }
         Control::Ptr preferred = mode == MenuOpenMode::pointer ? panels[0U].panel : first_focusable(0U);
         if (!preferred) preferred = panels[0U].panel;
@@ -499,15 +499,15 @@ struct ContextMenu::Impl final {
             }
         }
         focus_scope = {};
-        popup_token.disconnect();
-        popup_revocation.disconnect();
+        overlay_token.disconnect();
+        overlay_revocation.disconnect();
         const bool changed = open;
         reset_visual_state();
         closing = false;
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
     }
 
-    void on_popup_revoked() noexcept {
+    void on_overlay_revoked() noexcept {
         if (closing) return;
         if (window && focus_scope) {
             try {
@@ -517,7 +517,7 @@ struct ContextMenu::Impl final {
             }
         }
         focus_scope = {};
-        popup_revocation.disconnect();
+        overlay_revocation.disconnect();
         const bool changed = open;
         reset_visual_state();
         if (changed && owner.is_alive()) owner.open_changed_.emit(false);
@@ -557,13 +557,13 @@ struct ContextMenu::Impl final {
         state.viewport_height = viewport;
         state.width = panel_width;
         state.panel = make_control<MenuPanel>(
-            StableId(owner.stable_id_ + ".popup.panel." + std::to_string(depth)),
+            StableId(owner.stable_id_ + ".overlay.panel." + std::to_string(depth)),
             *this, depth);
         (*state.panel).set_requested_bounds({x, y, panel_width, viewport});
         state.rows.reserve(items.size());
         for (std::size_t index = 0; index < items.size(); ++index) {
             std::shared_ptr<gui_forms::ContextMenu::Impl::MenuRow> row = make_control<MenuRow>(
-                StableId(owner.stable_id_ + ".popup.row." + items[index].stable_id),
+                StableId(owner.stable_id_ + ".overlay.row." + items[index].stable_id),
                 *this, depth, index, items[index]);
             (*state.panel).add_child(row);
             state.rows.push_back(std::move(row));
@@ -766,7 +766,7 @@ struct ContextMenu::Impl final {
         // Release containment and restore the invoker before application code
         // runs. A command may deliberately focus its resulting surface; doing
         // this after execution would overwrite that destination with the menu
-        // invoker during popup teardown.
+        // invoker during overlay teardown.
         if (window && focus_scope) {
             static_cast<void>((*window).end_focus_scope(focus_scope));
         }
@@ -838,8 +838,8 @@ struct ContextMenu::Impl final {
     std::shared_ptr<MenuLayer> layer;
     std::vector<MenuSnapshot> snapshot;
     std::vector<PanelState> panels;
-    PopupToken popup_token;
-    SubscriptionToken popup_revocation;
+    OverlayToken overlay_token;
+    SubscriptionToken overlay_revocation;
     FocusScopeId focus_scope{};
     bool open{};
     bool closing{};

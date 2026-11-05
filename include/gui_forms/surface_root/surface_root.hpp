@@ -59,7 +59,7 @@ class PaintFramebuffer;
 struct HelpRequestEvent;
 namespace detail {
 struct LiveSurfaceIdleWake;
-class PopupAttachment;
+class OverlayAttachment;
 class AcceleratorAttachment;
 class RecordingPainter;
 class ToolTipPresenter;
@@ -83,21 +83,21 @@ protected:
 };
 }
 
-class PopupToken final {
+class OverlayToken final {
 public:
-    PopupToken() = default;
-    ~PopupToken() { disconnect(); }
-    PopupToken(PopupToken&& other) noexcept
+    OverlayToken() = default;
+    ~OverlayToken() { disconnect(); }
+    OverlayToken(OverlayToken&& other) noexcept
         : attachment_(std::move(other.attachment_)) {}
-    PopupToken& operator=(PopupToken&& other) noexcept {
+    OverlayToken& operator=(OverlayToken&& other) noexcept {
         if (this != &other) {
             disconnect();
             attachment_ = std::move(other.attachment_);
         }
         return *this;
     }
-    PopupToken(const PopupToken&) = delete;
-    PopupToken& operator=(const PopupToken&) = delete;
+    OverlayToken(const OverlayToken&) = delete;
+    OverlayToken& operator=(const OverlayToken&) = delete;
 
     void disconnect() noexcept;
     [[nodiscard]] bool connected() const noexcept;
@@ -106,9 +106,9 @@ public:
 private:
     friend class Window;
     friend class SurfaceRoot;
-    explicit PopupToken(std::shared_ptr<detail::PopupAttachment> attachment)
+    explicit OverlayToken(std::shared_ptr<detail::OverlayAttachment> attachment)
         : attachment_(std::move(attachment)) {}
-    std::shared_ptr<detail::PopupAttachment> attachment_;
+    std::shared_ptr<detail::OverlayAttachment> attachment_;
 };
 
 struct KeyGesture final {
@@ -130,7 +130,7 @@ struct KeyGesture final {
 
 struct AcceleratorOptions final {
     // Application navigation gestures such as Alt+Left may preempt ordinary
-    // editor word-navigation. Active popup/focus scopes always retain first
+    // editor word-navigation. Active overlay/focus scopes always retain first
     // refusal so menus and modal editors remain contained.
     bool before_focused_route{};
 };
@@ -206,7 +206,7 @@ struct ControlAvailabilityChange final {
     bool effectively_enabled{};
 };
 
-struct PopupOptions final {
+struct OverlayOptions final {
     // Interactive menus and editors require an enabled owner. Passive
     // providers such as ToolTip may opt out while still requiring a live,
     // attached, effectively visible owner.
@@ -695,7 +695,7 @@ public:
     // Moves focus as F6 (forward) or Shift+F6 does. From outside every
     // region, forward enters the first region and backward the last. Returns
     // false, leaving focus alone, when no other region can take focus or a
-    // focus scope (a popup or dialog) is active.
+    // focus scope (an overlay or dialog) is active.
     bool move_focus_region(bool forward = true);
     void set_accept_button(const Control::Ptr& control);
     void set_cancel_button(const Control::Ptr& control);
@@ -729,9 +729,9 @@ public:
     control_availability_changed() noexcept {
         return control_availability_changed_;
     }
-    [[nodiscard]] PopupToken open_popup(const Control::Ptr& owner,
-                                        const Control::Ptr& popup,
-                                        PopupOptions options = {});
+    [[nodiscard]] OverlayToken open_overlay(const Control::Ptr& owner,
+                                        const Control::Ptr& overlay,
+                                        OverlayOptions options = {});
 
     // Tooltips (owner, 2026-10-28). The window has one presenter, which
     // shows the plain tooltip text of its controls and of their authored
@@ -1044,7 +1044,7 @@ private:
     // window takes the scheme the host last reported.
     void follow_host_colour_scheme(bool automatic);
     // Called by ApplicationResources before a theme change (P12b): the
-    // inline styles of the window's root and popups compiled again against
+    // inline styles of the window's root and overlays compiled again against
     // `theme` (Control::collect_inline_restyles).
     [[nodiscard]] bool collect_inline_restyles(const Theme& theme, std::vector<detail::InlineRestyle>& restyles,
                                                std::vector<ThemeCompileDiagnostic>& diagnostics) const;
@@ -1058,7 +1058,7 @@ private:
     friend class OpenFileDialog;
     friend class SaveFileDialog;
     friend class BindingContext;
-    friend class detail::PopupAttachment;
+    friend class detail::OverlayAttachment;
     friend class ThemeEngine;
     // An effect's backdrop (EP-7) samples the backplane through the same
     // engine calls a theme part uses, and joins its damage list.
@@ -1202,8 +1202,8 @@ private:
 
     using ControlList = std::vector<Control::Ptr>;
     using StableIdMap = std::unordered_map<std::string, Control::WeakPtr>;
-    using PopupList =
-        std::vector<std::shared_ptr<detail::PopupAttachment>>;
+    using OverlayList =
+        std::vector<std::shared_ptr<detail::OverlayAttachment>>;
     using AcceleratorList =
         std::vector<std::shared_ptr<detail::AcceleratorAttachment>>;
 
@@ -1253,8 +1253,8 @@ private:
         FocusScopeId scope, FocusScopeCloseReason reason,
         const Control::Ptr& notification_owner);
     void revoke_focus_scopes_for_subtree(const Control::Ptr& control) noexcept;
-    void close_popups_for_subtree(const Control::Ptr& control) noexcept;
-    void close_popup(detail::PopupAttachment& popup) noexcept;
+    void close_overlays_for_subtree(const Control::Ptr& control) noexcept;
+    void close_overlay(detail::OverlayAttachment& overlay) noexcept;
     void close_accelerator(detail::AcceleratorAttachment& accelerator) noexcept;
     [[nodiscard]] bool dispatch_accelerator(const KeyEvent& event,
                                             bool preemptive);
@@ -1376,12 +1376,12 @@ private:
         std::string value;
         RuntimeId owner{};
     };
-    // The attached control, in the root tree or a popup, with runtime
+    // The attached control, in the root tree or an overlay, with runtime
     // identity `control`, or empty.
     [[nodiscard]] Control::Ptr find_runtime_control(RuntimeId control) const;
     // Whether a semantic action may reach `control` under the active focus
     // scope: no scope contains focus, `control` lies inside the scope, or it
-    // lies in a popup whose owner does (the reach of the stable-identity
+    // lies in an overlay whose owner does (the reach of the stable-identity
     // overload's virtual-child search).
     [[nodiscard]] bool semantic_scope_reaches(const Control::Ptr& control) const;
     using DeferredInput = std::variant<
@@ -1604,10 +1604,10 @@ private:
     // provider removes its own on disposal.
     std::vector<detail::WindowHelpFallback*> help_fallbacks_;
     Event<const ControlAvailabilityChange&> control_availability_changed_;
-    PopupList popups_;
+    OverlayList overlays_;
     AcceleratorList accelerators_;
     // The window's one tooltip presenter; made with the window, shut down
-    // first in its destructor (it holds a popup).
+    // first in its destructor (it holds an overlay).
     std::unique_ptr<detail::ToolTipPresenter> tool_tip_presenter_;
     ToolTipSettings tool_tip_settings_{};
     std::optional<bool> tool_tips_shown_{};

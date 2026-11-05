@@ -27,7 +27,7 @@ typedef struct gf_kit {
     gf_diagnostics_table diagnostics;
     gf_controls_table controls;
     gf_text_editing_table text_editing;
-    gf_popups_table popups;
+    gf_overlays_table overlays;
     gf_property_grid_table property_grid;
     gf_custom_controls_table custom_controls;
     gf_bindings_table bindings;

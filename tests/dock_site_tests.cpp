@@ -891,7 +891,7 @@ void lifetime_and_refusals() {
             "a site binds to its workspace and realizes it");
     require(!(*site).open_navigator(DockNavigatorList::documents, 1, Modifier::control) &&
                 !(*site).show_position_menu(DockPanelId("doc.one")),
-            "a detached site opens no popup");
+            "a detached site opens no overlay");
     require(factory.made.empty(), "a site never laid out creates nothing");
     // The workspace goes first: the site empties and stays usable.
     workspace.reset();

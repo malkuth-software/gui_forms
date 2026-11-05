@@ -59,13 +59,13 @@ void test_dates_and_calendar(gui_forms::Window& window) {
 
     click(window, window.find("gallery.date.commands.item.3"));
     require((*primary).dropped_down() && window.focus_scope_depth() == 1U &&
-                window.find("gallery.date.primary.popup.calendar") &&
+                window.find("gallery.date.primary.overlay.calendar") &&
                 window.semantic_snapshot().to_json().find(
-                    "gallery.date.primary.popup.calendar.day.2026-08-12") !=
+                    "gallery.date.primary.overlay.calendar.day.2026-08-12") !=
                     std::string::npos,
             "date board must open one retained semantic calendar focus scope");
     require(window.perform_semantic_action(
-                "gallery.date.primary.popup.calendar.day.2026-08-12",
+                "gallery.date.primary.overlay.calendar.day.2026-08-12",
                 SemanticAction::press) && (*primary).value().day == 12U &&
                 !(*primary).dropped_down() && window.focus_scope_depth() == 0U,
             "semantic date-cell commit must share pointer commit and restore focus");
@@ -79,7 +79,7 @@ void test_dates_and_calendar(gui_forms::Window& window) {
                 window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 (*primary).value().day == 12U && !(*primary).dropped_down() &&
                 (*commands).item(2).enabled.read(),
-            "calendar Escape must discard popup-local navigation without mutation");
+            "calendar Escape must discard overlay-local navigation without mutation");
 
     // The previous/next Commands follow the bounded range; their buttons
     // project that enabled state and clicking one moves the date once.
@@ -99,7 +99,7 @@ void test_dates_and_calendar(gui_forms::Window& window) {
     click(window, window.find("gallery.date.commands.item.3"));
     (*window.find("gallery.surface.dates-and-calendar")).visible = false;
     require(!(*primary).dropped_down() && window.focus_scope_depth() == 0U &&
-                !window.find("gallery.date.primary.popup.calendar"),
+                !window.find("gallery.date.primary.overlay.calendar"),
             "hiding a page must revoke its open calendar and contained focus");
     (*window.find("gallery.surface.dates-and-calendar")).visible = true;
 

@@ -783,14 +783,14 @@ void test_schema_export() {
         make_control<ButtonBase>(StableId("schema.button-base"), "Base");
     const std::shared_ptr<ScrollBar> scroll_bar =
         make_control<ScrollBar>(StableId("schema.scroll-bar"));
-    const std::shared_ptr<AnchoredPopupLayer> popup_layer = make_control<AnchoredPopupLayer>(
-        StableId("schema.anchored-popup-layer"), button_base, AnchoredPopupPlacement{});
+    const std::shared_ptr<AnchoredOverlayLayer> overlay_layer = make_control<AnchoredOverlayLayer>(
+        StableId("schema.anchored-overlay-layer"), button_base, AnchoredOverlayPlacement{});
     const std::shared_ptr<RangeControl> range_control =
         make_control<RangeControl>(StableId("schema.range-control"));
     const std::shared_ptr<TaskDialog> task_dialog = make_control<TaskDialog>(StableId("schema.task-dialog"));
     record_control(*button_base, records);
     record_control(*scroll_bar, records);
-    record_control(*popup_layer, records);
+    record_control(*overlay_layer, records);
     record_control(*range_control, records);
     // A dialog opens on demand, outside the root tree.
     const std::shared_ptr<FontDialog> font_dialog = make_control<FontDialog>(StableId("schema.font-dialog"));

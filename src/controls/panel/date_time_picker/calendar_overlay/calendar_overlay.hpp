@@ -17,17 +17,17 @@
 namespace gui_forms {
 using namespace date_time_detail;
 
-// The popup's day grid, shared in form with MonthCalendar: cells 37 by 25
+// The overlay's day grid, shared in form with MonthCalendar: cells 37 by 25
 // on a 39 by 27 pitch, from (5, 66).
-inline constexpr calendar_detail::MonthGridMetrics calendar_popup_grid{
+inline constexpr calendar_detail::MonthGridMetrics calendar_overlay_grid{
     .cell_left = 5.0, .cell_top = 66.0, .column_pitch = 39.0, .row_pitch = 27.0,
     .cell_width = 37.0, .cell_height = 25.0};
 
-class CalendarPopup final : public Control {
+class CalendarOverlay final : public Control {
 public:
-    ~CalendarPopup() override;
+    ~CalendarOverlay() override;
 
-    CalendarPopup(StableId stable_id, DateTimeValue selected,
+    CalendarOverlay(StableId stable_id, DateTimeValue selected,
                   DateTimeValue minimum, DateTimeValue maximum,
                   DateTimeFormatProvider provider)
         : Control(std::move(stable_id)), selected_(selected), minimum_(minimum),
@@ -40,9 +40,9 @@ public:
     [[nodiscard]] Event<DateTimeValue>& committed() noexcept { return committed_; }
     [[nodiscard]] Event<>& cancelled() noexcept { return cancelled_; }
 
-    // The popup's face, its overlay shadow, month title, month arrows,
+    // The overlay's face, its overlay shadow, month title, month arrows,
     // weekday names, day plates and numbers, rule and hint are parts the
-    // theme's engine draws (calendar_popup.cpp).
+    // theme's engine draws (calendar_overlay.cpp).
     void on_paint(Painter& painter, Rect) override;
     [[nodiscard]] Insets visual_outsets() const noexcept override;
 
@@ -142,7 +142,7 @@ public:
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override {
         std::vector<SemanticNode> nodes;
         const std::array<DateTimeValue, 42> dates = cell_dates();
-        const Rect popup = absolute_bounds();
+        const Rect overlay = absolute_bounds();
         const double s = effective_text_scale();
         nodes.reserve(dates.size() + 2U);
         for (const int direction : {-1, 1}) {
@@ -153,9 +153,9 @@ public:
             node.role = SemanticRole::button;
             node.name = direction < 0 ? "Previous month" : "Next month";
             node.bounds = direction < 0
-                ? Rect{popup.x + 4.0 * s, popup.y + 3.0 * s,
+                ? Rect{overlay.x + 4.0 * s, overlay.y + 3.0 * s,
                        42.0 * s, 34.0 * s}
-                : Rect{popup.x + popup.width - 49.0 * s, popup.y + 3.0 * s,
+                : Rect{overlay.x + overlay.width - 49.0 * s, overlay.y + 3.0 * s,
                        42.0 * s, 34.0 * s};
             node.states = SemanticState::visible | SemanticState::focusable;
             if (can_change_month(direction)) {
@@ -173,8 +173,8 @@ public:
             node.name = format_date_time(date, provider_.long_date_pattern, provider_);
             node.value = iso_date(date);
             const Rect cell_bounds =
-                calendar_detail::month_grid_cell_bounds(calendar_popup_grid, cell, s);
-            node.bounds = {popup.x + cell_bounds.x, popup.y + cell_bounds.y,
+                calendar_detail::month_grid_cell_bounds(calendar_overlay_grid, cell, s);
+            node.bounds = {overlay.x + cell_bounds.x, overlay.y + cell_bounds.y,
                            cell_bounds.width, cell_bounds.height};
             node.states |= SemanticState::visible | SemanticState::focusable;
             if (civil_in_range(date, minimum_, maximum_)) {
@@ -227,7 +227,7 @@ private:
         first.year = display_year_;
         first.month = display_month_;
         first.day = 1U;
-        // Weeks start on Sunday in the popup.
+        // Weeks start on Sunday in the overlay.
         const std::array<DateTimeValue, 42> result = calendar_detail::month_page_dates(first, 0U);
         return result;
     }
@@ -235,7 +235,7 @@ private:
     [[nodiscard]] std::optional<std::size_t> cell_at(Point local) const noexcept {
         const double s = effective_text_scale();
         const std::optional<std::size_t> cell =
-            calendar_detail::month_grid_cell_at(calendar_popup_grid, local, s);
+            calendar_detail::month_grid_cell_at(calendar_overlay_grid, local, s);
         return cell;
     }
 

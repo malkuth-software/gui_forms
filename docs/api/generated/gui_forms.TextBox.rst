@@ -342,7 +342,7 @@ gui_forms::TextBox
    anchor and a caret. It reports
    read-only when :cpp:func:`read_only <gui_forms::TextBox::read_only>` is true, and otherwise offers a set-value action,
    which replaces the whole text as one undoable edit within :cpp:func:`maximum_length <gui_forms::TextBox::maximum_length>`.
-   A box that suggests also publishes that it opens a popup, and the expanded
+   A box that suggests also publishes that it opens an overlay, and the expanded
    state while its list is open; the open list publishes the role ``list`` with
    ``list_item`` rows.
 

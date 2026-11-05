@@ -46,7 +46,7 @@ struct MenuStripInvocation final {
 };
 
 // Retained top-level application menu. The bar stays in ordinary layout; its
-// active menu is presented by ContextMenu as a separate window popup root.
+// active menu is presented by ContextMenu as a separate window overlay root.
 // Pointer, keyboard, and semantic activation converge on the same shared
 // Command instances contained by MenuItemSpec.
 class MenuStrip final : public Control {
@@ -75,7 +75,7 @@ public:
         return selected_item_id_;
     }
     void set_selected_item_id(std::string_view stable_id);
-    // Unknown modes throw invalid_argument before reusing or replacing a popup.
+    // Unknown modes throw invalid_argument before reusing or replacing an overlay.
     bool open(const std::size_t index, const MenuOpenMode mode = MenuOpenMode::keyboard);
     void close() noexcept;
     [[nodiscard]] bool is_open() const noexcept;
@@ -152,13 +152,13 @@ private:
     [[nodiscard]] std::optional<std::size_t> next_enabled(
         std::size_t start, int direction) const;
     bool navigate_root(int direction);
-    bool handle_popup_pointer(const PointerEvent& event);
-    void on_popup_item_invoked(const MenuItemInvocation& invocation);
-    void on_popup_open_changed(bool open_state);
+    bool handle_overlay_pointer(const PointerEvent& event);
+    void on_overlay_item_invoked(const MenuItemInvocation& invocation);
+    void on_overlay_open_changed(bool open_state);
     void set_hot(std::optional<std::size_t> index);
 
     std::vector<MenuStripItemSpec> items_{};
-    std::unique_ptr<ContextMenu> popup_{};
+    std::unique_ptr<ContextMenu> overlay_{};
     std::optional<std::size_t> active_index_{};
     std::optional<std::size_t> hot_index_{};
     std::string selected_item_id_{};
@@ -170,8 +170,8 @@ private:
     std::unique_ptr<detail::MenuStripMergeHistory> merge_history_{};
     double item_padding_{11.0};
     FontSpec font_{FontRole::control, 10.5, 400, false, 0.12};
-    SubscriptionToken popup_invoked_{};
-    SubscriptionToken popup_changed_{};
+    SubscriptionToken overlay_invoked_{};
+    SubscriptionToken overlay_changed_{};
     Event<const MenuStripInvocation&> item_invoked_{};
     Event<std::optional<std::size_t>> open_changed_{};
 };

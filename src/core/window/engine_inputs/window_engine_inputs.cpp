@@ -9,7 +9,7 @@
 #include "gui_forms/engine/theme_rules/theme_rules.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "../../display/recording_painter/recording_painter.hpp"
-#include "../popup/popup_attachment.hpp"
+#include "../overlay/overlay_attachment.hpp"
 
 #include <cmath>
 #include <stdexcept>
@@ -166,8 +166,8 @@ void SurfaceRoot::damage_pattern_waiters(PatternGeneration generation) {
         // A part without a record drew a ground and recorded no place:
         // every control repaints, and glass sees the backplane again.
         mark_subtree_dirty(*root_, invalidation::paint_only);
-        for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-            if (const Control::Ptr overlay = (*popup).popup()) mark_subtree_dirty(*overlay, invalidation::paint_only);
+        for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+            if (const Control::Ptr overlay_root = (*overlay).overlay()) mark_subtree_dirty(*overlay_root, invalidation::paint_only);
         }
         damage_backplane_readers(nullptr);
         return;

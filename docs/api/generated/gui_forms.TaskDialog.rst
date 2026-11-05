@@ -128,8 +128,8 @@ gui_forms::TaskDialog
       :cpp:class:`HostServices <gui_forms::HostServices>`
          The platform's own message, file and color dialogs.
 
-      :cpp:class:`AnchoredPopupLayer <gui_forms::AnchoredPopupLayer>`
-         A popup anchored to a control.
+      :cpp:class:`AnchoredOverlayLayer <gui_forms::AnchoredOverlayLayer>`
+         An overlay anchored to a control.
 
       :cpp:class:`Button <gui_forms::Button>`
          The command buttons a page shows.

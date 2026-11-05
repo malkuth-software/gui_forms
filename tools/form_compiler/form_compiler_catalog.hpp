@@ -51,7 +51,7 @@
 #include "gui_forms/controls/pages/navigation_pane/navigation_pane.hpp"
 #include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/pages/page_view/page_view.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
 #include "gui_forms/controls/panel/card/review_card/review_card.hpp"
@@ -217,7 +217,7 @@ inline constexpr std::array<FormCatalogEntry, 117> form_catalog{{
     {"font_command", "FontCommand", "gui_forms/commands/font_command/font_command.hpp", &add_catalog_type<FontCommand>},
     {"color_command", "ColorCommand", "gui_forms/commands/color_command/color_command.hpp", &add_catalog_type<ColorCommand>},
     {"gallery_command", "GalleryCommand", "gui_forms/commands/gallery_command/gallery_command.hpp", &add_catalog_type<GalleryCommand>},
-    {"anchored_popup_layer", "AnchoredPopupLayer", "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp", &add_catalog_type<AnchoredPopupLayer>},
+    {"anchored_overlay_layer", "AnchoredOverlayLayer", "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp", &add_catalog_type<AnchoredOverlayLayer>},
     {"font_dialog", "FontDialog", "gui_forms/controls/panel/font_dialog/font_dialog.hpp", &add_catalog_type<FontDialog>},
     {"task_dialog", "TaskDialog", "gui_forms/controls/task_dialog/task_dialog.hpp", &add_catalog_type<TaskDialog>},
     {"thread_exception_dialog", "ThreadExceptionDialog", "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp", &add_catalog_type<ThreadExceptionDialog>},

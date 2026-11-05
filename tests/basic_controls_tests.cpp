@@ -1720,9 +1720,9 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
     SubscriptionToken close_requested = (*menu).drop_down_close_requested().subscribe(
         callbacks::IncrementCounter<std::size_t, DropDownButton&>(close_requests));
     const bool operation_check_65 = (*menu).on_semantic_action(SemanticAction::collapse, {});
-    require(operation_check_65, "semantic collapse must request closure from the popup owner");
+    require(operation_check_65, "semantic collapse must request closure from the overlay owner");
     const bool operation_check_66 = close_requests == 1U;
-    require(operation_check_66, "semantic collapse must request closure from the popup owner");
+    require(operation_check_66, "semantic collapse must request closure from the overlay owner");
 
     RecordingPainter painter{};
     (*menu).on_paint(painter, (*menu).absolute_bounds());

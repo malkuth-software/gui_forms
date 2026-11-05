@@ -1,4 +1,4 @@
-#include "ribbon_group_popup.hpp"
+#include "ribbon_group_overlay.hpp"
 
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
@@ -7,43 +7,43 @@
 
 namespace gui_forms {
 
-RibbonGroupPopup::RibbonGroupPopup(StableId stable_id, Ribbon& ribbon) : Control(std::move(stable_id)), ribbon_(&ribbon) {
+RibbonGroupOverlay::RibbonGroupOverlay(StableId stable_id, Ribbon& ribbon) : Control(std::move(stable_id)), ribbon_(&ribbon) {
     set_focusable(true);
     set_paint_plane(PaintPlane::control);
 }
 
-bool RibbonGroupPopup::ribbon_alive() const noexcept {
+bool RibbonGroupOverlay::ribbon_alive() const noexcept {
     const bool result = ribbon_ != nullptr && (*ribbon_).is_alive();
     return result;
 }
 
-void RibbonGroupPopup::set_anchor_x(double x) {
+void RibbonGroupOverlay::set_anchor_x(double x) {
     require_mutable();
     if (anchor_x_ == x) return;
     anchor_x_ = x;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test);
 }
 
-Size RibbonGroupPopup::measure(Size available) {
+Size RibbonGroupOverlay::measure(Size available) {
     return available;
 }
 
 // The panel at the group button's left, moved left only as far as the
 // content's bounds require; the group's hosted controls at their places in
 // the group's largest layout.
-void RibbonGroupPopup::arrange(Rect final_bounds) {
+void RibbonGroupOverlay::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     panel_ = {};
     if (!ribbon_alive()) return;
     const Ribbon& ribbon = *ribbon_;
-    const Size size = ribbon.popup_panel_size();
+    const Size size = ribbon.overlay_panel_size();
     const double room = std::max(0.0, final_bounds.width - size.width);
     const double x = std::clamp(anchor_x_ - final_bounds.x, 0.0, room);
     panel_ = {x, 0.0, size.width, std::min(size.height, final_bounds.height)};
-    if (!ribbon.selected_tab_ || !ribbon.popup_group_) return;
+    if (!ribbon.selected_tab_ || !ribbon.overlay_group_) return;
     const std::size_t tab = *ribbon.selected_tab_;
-    const std::size_t group = *ribbon.popup_group_;
-    const Ribbon::Layout placed = ribbon.popup_layout(panel_);
+    const std::size_t group = *ribbon.overlay_group_;
+    const Ribbon::Layout placed = ribbon.overlay_layout(panel_);
     const std::vector<Ribbon::CommandRecord>& records = ribbon.records_[tab][group];
     for (std::size_t command = 0; command < records.size(); ++command) {
         const Control::Ptr& control = records[command].hosted;
@@ -54,7 +54,7 @@ void RibbonGroupPopup::arrange(Rect final_bounds) {
     }
 }
 
-void RibbonGroupPopup::on_paint(Painter& painter, Rect) {
+void RibbonGroupOverlay::on_paint(Painter& painter, Rect) {
     if (!ribbon_alive() || panel_.empty()) return;
     PartPaint part;
     part.family = ControlVisualRole::panel;
@@ -63,36 +63,36 @@ void RibbonGroupPopup::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, part);
     part.role = PartRole::face;
     paint_part(painter, *this, part);
-    (*ribbon_).popup_paint(painter, panel_);
+    (*ribbon_).overlay_paint(painter, panel_);
 }
 
-void RibbonGroupPopup::on_pointer(PointerEvent& event) {
+void RibbonGroupOverlay::on_pointer(PointerEvent& event) {
     if (!ribbon_alive()) return;
-    // The popup may close (and detach) while the ribbon handles the event.
+    // The overlay may close (and detach) while the ribbon handles the event.
     const Control::Ptr lifetime = shared_from_this();
-    (*ribbon_).popup_pointer(event, panel_);
+    (*ribbon_).overlay_pointer(event, panel_);
 }
 
-void RibbonGroupPopup::on_key(KeyEvent& event) {
+void RibbonGroupOverlay::on_key(KeyEvent& event) {
     if (!ribbon_alive()) return;
     const Control::Ptr lifetime = shared_from_this();
-    (*ribbon_).popup_key(event);
+    (*ribbon_).overlay_key(event);
 }
 
-void RibbonGroupPopup::on_focus_changed(bool focused) {
-    if (ribbon_alive()) (*ribbon_).popup_focus_changed(focused);
+void RibbonGroupOverlay::on_focus_changed(bool focused) {
+    if (ribbon_alive()) (*ribbon_).overlay_focus_changed(focused);
 }
 
-bool RibbonGroupPopup::hit_test_local(Point local_point) const {
+bool RibbonGroupOverlay::hit_test_local(Point local_point) const {
     return panel_.contains(local_point);
 }
 
-Insets RibbonGroupPopup::visual_outsets() const noexcept {
+Insets RibbonGroupOverlay::visual_outsets() const noexcept {
     const Insets result = overlay_shadow_outsets(*this);
     return result;
 }
 
-SemanticDescriptor RibbonGroupPopup::semantic_descriptor() const {
+SemanticDescriptor RibbonGroupOverlay::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
     descriptor.name = accessible_name.read();
@@ -101,17 +101,17 @@ SemanticDescriptor RibbonGroupPopup::semantic_descriptor() const {
     return descriptor;
 }
 
-std::vector<SemanticNode> RibbonGroupPopup::semantic_virtual_children() const {
+std::vector<SemanticNode> RibbonGroupOverlay::semantic_virtual_children() const {
     if (!ribbon_alive()) return {};
-    std::vector<SemanticNode> nodes = (*ribbon_).popup_semantic_children(panel_);
+    std::vector<SemanticNode> nodes = (*ribbon_).overlay_semantic_children(panel_);
     return nodes;
 }
 
-bool RibbonGroupPopup::on_semantic_child_action(std::string_view stable_id, SemanticAction action,
+bool RibbonGroupOverlay::on_semantic_child_action(std::string_view stable_id, SemanticAction action,
                                                 std::string_view) {
     if (!ribbon_alive()) return false;
     const Control::Ptr lifetime = shared_from_this();
-    const bool handled = (*ribbon_).popup_semantic_action(stable_id, action);
+    const bool handled = (*ribbon_).overlay_semantic_action(stable_id, action);
     return handled;
 }
 

@@ -161,7 +161,7 @@ CONTROL_CATEGORIES: tuple[str, ...] = (
     "components",
     "date-setting",
     "diagnostics",
-    "dialogs-and-popups",
+    "dialogs-and-overlays",
     "drawing",
     "grouping",
     "information-display",

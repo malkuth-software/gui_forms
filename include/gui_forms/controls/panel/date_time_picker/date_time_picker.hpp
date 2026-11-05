@@ -123,8 +123,8 @@ private:
     void step_days(int days);
     void open_drop_down();
     void close_drop_down();
-    void commit_popup_value(DateTimeValue value);
-    void on_popup_revoked();
+    void commit_overlay_value(DateTimeValue value);
+    void on_overlay_revoked();
 
     DateTimeValue minimum_{1753, 1U, 1U};
     DateTimeValue maximum_{9998, 12U, 31U, 23U, 59U, 59U, 999U};
@@ -147,15 +147,15 @@ private:
     bool show_up_down_{};
     bool dropped_down_{};
     bool focused_{};
-    bool closing_popup_{};
-    std::shared_ptr<Panel> popup_layer_;
-    Control::Ptr popup_calendar_;
-    PopupToken popup_token_;
-    std::uint64_t popup_scope_{};
-    SubscriptionToken popup_commit_;
-    SubscriptionToken popup_cancel_;
-    SubscriptionToken popup_dismiss_;
-    SubscriptionToken popup_revocation_;
+    bool closing_overlay_{};
+    std::shared_ptr<Panel> overlay_layer_;
+    Control::Ptr overlay_calendar_;
+    OverlayToken overlay_token_;
+    std::uint64_t overlay_scope_{};
+    SubscriptionToken overlay_commit_;
+    SubscriptionToken overlay_cancel_;
+    SubscriptionToken overlay_dismiss_;
+    SubscriptionToken overlay_revocation_;
     Event<DateTimeValue> value_changed_;
     Event<bool> checked_changed_;
     Event<bool> drop_down_changed_;

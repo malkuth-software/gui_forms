@@ -407,7 +407,7 @@ struct PageDigest final {
 // ComboBox paints through the theme engine and declares hot (T4 phase 4):
 // the well, drop-down button, divider, arrow and ring are parts. Themed
 // combo boxes drew the same pixels, the arrow's four rows now listed tip
-// first (collections-and-popups, values-and-spinners, value-editors); the
+// first (collections-and-overlays, values-and-spinners, value-editors); the
 // overridden one on value-editors changed from the panel's flat face and
 // relief lines to the theme's rounded well and button in the override's
 // background. Those three pages were recorded again.
@@ -457,7 +457,7 @@ struct PageDigest final {
 // marks for the old glyphs and strokes, the property list's group bands and
 // thumb the theme's panel face, and its property names the theme's label
 // text in place of the muted ink. Recorded again: checked-collections,
-// collections-and-popups, responsive-layouts, tree-and-object-views,
+// collections-and-overlays, responsive-layouts, tree-and-object-views,
 // value-editors and values-and-spinners.
 //
 // ObjectView, CorrespondenceView and the plain BreadcrumbTrail paint
@@ -491,7 +491,7 @@ struct PageDigest final {
 // in place of a plate under it; the scroll bars are the ScrollBar's track,
 // buttons, arrow marks and thumb. Every page was recorded again.
 //
-// DateTimePicker and its calendar popup paint through the theme engine: the
+// DateTimePicker and its calendar overlay paint through the theme engine: the
 // drop-down button, divider and arrow mark (as the combo box's), the up-down
 // pair, the check box and the value's text (clipped to its line box) are
 // parts; dates-and-calendar was recorded again.
@@ -524,6 +524,13 @@ struct PageDigest final {
 // "windows-professional"). No other page moved; those three were recorded
 // again.
 //
+// The overlay rename (owner order, 2026-11-05) changed only wording: the
+// navigation sidebar's "Collections and overlays", "Dialogs and overlays" and
+// "Anchored overlays" entries on every page (their clip widths follow the
+// longer words), and the renamed texts on anchored-overlays,
+// collections-and-overlays, commands-and-menus and dates-and-calendar. Every
+// page was recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -538,7 +545,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"animation-laboratory", 0x9e6b2dc688c4f733ULL},
     {"states-and-diagnostics", 0x28a54f2b83e37a97ULL},
     {"text-and-input", 0xd63d5868c06666d0ULL},
-    {"collections-and-popups", 0x269da5a860f1ecb0ULL},
+    {"collections-and-overlays", 0x269da5a860f1ecb0ULL},
     {"values-and-spinners", 0x7d208b2ba561ffacULL},
     {"images-and-drawing", 0x32e1f240ea4e25ebULL},
     {"tabs-and-pages", 0x560a6fa02160dc77ULL},
@@ -555,7 +562,7 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"choices-and-sections", 0x4695234a6161e9c3ULL},
     {"value-editors", 0x529ff55217238635ULL},
     {"responsive-layouts", 0x69e0ea0983dd9cf8ULL},
-    {"anchored-popups", 0x837ef0d60de1508eULL},
+    {"anchored-overlays", 0x837ef0d60de1508eULL},
     {"live-surfaces", 0x7633da7d2d0cd584ULL},
     {"typography-and-inspection", 0xf49c41d11f381597ULL},
     {"semantic-feedback", 0xadd8151ebca966baULL},

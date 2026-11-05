@@ -151,7 +151,7 @@ gui_forms::ErrorProvider
    providers, their messages appear in the order in which the providers were
    created.
 
-   The icon is drawn in a popup layer above the window, sized :cpp:func:`icon_size <gui_forms::ErrorProvider::icon_size>` and
+   The icon is drawn in an overlay layer above the window, sized :cpp:func:`icon_size <gui_forms::ErrorProvider::icon_size>` and
    placed by the control's alignment and padding, kept inside the window. It
    follows the control when the control moves, is removed while the control or
    an ancestor is hidden, and returns when it is shown again. Resting the

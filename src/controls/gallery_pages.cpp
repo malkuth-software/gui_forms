@@ -76,7 +76,7 @@ void populate_page_body(std::string_view page_id,
     else if (page_id == "animation-laboratory") add_animation(body, context);
     else if (page_id == "states-and-diagnostics") add_states(body, context);
     else if (page_id == "text-and-input") add_text_input(body, context);
-    else if (page_id == "collections-and-popups") add_collections(body, context);
+    else if (page_id == "collections-and-overlays") add_collections(body, context);
     else if (page_id == "values-and-spinners") add_values(body, context);
     else if (page_id == "images-and-drawing") add_images_and_drawing(body, context);
     else if (page_id == "tabs-and-pages") add_tabs_and_pages(body, context);
@@ -93,7 +93,7 @@ void populate_page_body(std::string_view page_id,
     else if (page_id == "choices-and-sections") add_choices_and_sections(body, context);
     else if (page_id == "value-editors") add_value_editors(body, context);
     else if (page_id == "responsive-layouts") add_responsive_layouts(body, context);
-    else if (page_id == "anchored-popups") add_anchored_popups(body, context);
+    else if (page_id == "anchored-overlays") add_anchored_overlays(body, context);
     else if (page_id == "live-surfaces") add_live_surfaces(body, context);
     else if (page_id == "typography-and-inspection") add_typography_and_inspection(body, context);
     else if (page_id == "semantic-feedback") add_semantic_feedback(body, context);

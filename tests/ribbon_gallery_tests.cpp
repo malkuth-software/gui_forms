@@ -2,7 +2,7 @@
 // command and its preview protocol, in-ribbon layout and the column range,
 // the virtualization bound, the event order of hover and keyboard preview,
 // commit and cancel, the drop-down form with categories, the more button's
-// popup and focus, and semantics.
+// overlay and focus, and semantics.
 
 #include "gui_forms/gui_forms.hpp"
 
@@ -31,7 +31,7 @@ struct Log final {
     void on_preview(const GalleryPreview& preview) { entries.push_back("preview:" + preview.item_id); }
     void on_cancel(const GalleryPreview& preview) { entries.push_back("cancel:" + preview.item_id); }
     void on_invoked(const CommandInvocation&) { entries.push_back("invoked"); }
-    void on_popup(bool open) { entries.push_back(open ? "popup:open" : "popup:closed"); }
+    void on_overlay(bool open) { entries.push_back(open ? "overlay:open" : "overlay:closed"); }
     [[nodiscard]] std::string joined() const {
         std::string text;
         for (const std::string& entry : entries) text += entry + " ";
@@ -307,11 +307,11 @@ void keyboard() {
     require(fixture.log.joined() == "preview:item.28 cancel:item.28 ", "losing focus withdraws the preview");
 }
 
-void popups() {
+void overlays() {
     Fixture fixture;
-    Log popup_log;
-    std::shared_ptr<Panel> root = make_control<Panel>(StableId("popup.root"));
-    std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("popup.gallery", 30U);
+    Log overlay_log;
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("overlay.root"));
+    std::shared_ptr<RibbonGallery> gallery = in_ribbon_gallery("overlay.gallery", 30U);
     (*gallery).set_command(fixture.gallery_command);
     (*gallery).set_drop_down_size(6U, 4U);
     (*root).add_child(gallery);
@@ -321,10 +321,10 @@ void popups() {
     const Point more = centre(*gallery, (*gallery).parts().more_button.bounds);
     click_at(window, more);
     std::shared_ptr<RibbonGallery> full = (*gallery).more_gallery();
-    require(full && (*full).popup_open() && (*full).form() == RibbonGalleryForm::drop_down,
-            "the more button opens the full gallery as a popup");
-    SubscriptionToken popup_token = (*full).popup_open_changed().subscribe(
-        Delegate<bool>::bind<Log, &Log::on_popup>(fixture.log));
+    require(full && (*full).overlay_open() && (*full).form() == RibbonGalleryForm::drop_down,
+            "the more button opens the full gallery as an overlay");
+    SubscriptionToken overlay_token = (*full).overlay_open_changed().subscribe(
+        Delegate<bool>::bind<Log, &Log::on_overlay>(fixture.log));
     window.perform_layout();
     require((*gallery).parts().more_button.states.contains(AnatomyState::open), "the more button publishes open");
     require(window.focused_control() == std::static_pointer_cast<Control>(full) && (*full).focused_id(),
@@ -337,35 +337,35 @@ void popups() {
     move_to(window, target);
     elapse_dwell(window);
     require(key(window, PhysicalKey::escape), "Escape is taken");
-    require(!(*full).popup_open() && fixture.log.joined() == "preview:item.9 cancel:item.9 popup:closed ",
-            "Escape cancels the preview, then closes the popup");
+    require(!(*full).overlay_open() && fixture.log.joined() == "preview:item.9 cancel:item.9 overlay:closed ",
+            "Escape cancels the preview, then closes the overlay");
     fixture.log.entries.clear();
     click_at(window, more);
     window.perform_layout();
     const std::vector<RibbonGallery::Item> reopened = (*full).realized_items();
     const Point choice = centre(*full, item_named(reopened, "item.11").parts.item_face.bounds);
     click_at(window, choice);
-    require(fixture.log.joined() == "popup:open value:item.11 invoked popup:closed ",
-            "a click in the popup commits, then closes it");
+    require(fixture.log.joined() == "overlay:open value:item.11 invoked overlay:closed ",
+            "a click in the overlay commits, then closes it");
     require((*gallery).selected_id() == std::string("item.11"), "the in-ribbon gallery follows the committed value");
 
-    // A drop-down gallery as a button's popup.
-    std::shared_ptr<Button> anchor = make_control<Button>(StableId("popup.anchor"), "Styles");
+    // A drop-down gallery as a button's overlay.
+    std::shared_ptr<Button> anchor = make_control<Button>(StableId("overlay.anchor"), "Styles");
     (*root).add_child(anchor);
     (*anchor).set_requested_bounds({300.0, 10.0, 100.0, 30.0});
-    std::shared_ptr<RibbonGallery> drop_down = make_control<RibbonGallery>(StableId("popup.drop-down"),
+    std::shared_ptr<RibbonGallery> drop_down = make_control<RibbonGallery>(StableId("overlay.drop-down"),
                                                                           RibbonGalleryForm::drop_down);
     (*drop_down).set_items({}, numbered_items(8U));
     window.perform_layout();
-    require(!(*gallery).open_popup(anchor), "an in-ribbon gallery is not itself a popup");
-    require((*drop_down).open_popup(anchor) && (*drop_down).popup_open(), "a drop-down gallery opens under a button");
-    (*drop_down).close_popup();
-    require(!(*drop_down).popup_open(), "and closes");
+    require(!(*gallery).open_overlay(anchor), "an in-ribbon gallery is not itself an overlay");
+    require((*drop_down).open_overlay(anchor) && (*drop_down).overlay_open(), "a drop-down gallery opens under a button");
+    (*drop_down).close_overlay();
+    require(!(*drop_down).overlay_open(), "and closes");
 
-    require((*gallery).show_more() && (*full).popup_open(), "the full gallery opens again");
+    require((*gallery).show_more() && (*full).overlay_open(), "the full gallery opens again");
     static_cast<void>((*root).remove_child((*gallery).runtime_id()));
     (*gallery).dispose();
-    require(!(*full).is_alive() && !(*full).popup_open(), "disposing a gallery disposes and closes its full gallery");
+    require(!(*full).is_alive() && !(*full).overlay_open(), "disposing a gallery disposes and closes its full gallery");
 }
 
 void semantics() {
@@ -380,7 +380,7 @@ void semantics() {
                 nodes[0].set_size == 9U && nodes[8].position_in_set == 9U,
             "every item is a list item with its position in the set");
     const SemanticNode& more = nodes.back();
-    require(more.role == SemanticRole::menu_button && more.has_popup, "the more button is a menu button with a popup");
+    require(more.role == SemanticRole::menu_button && more.has_popup, "the more button is a menu button with an overlay");
     require((*gallery).on_semantic_child_action("item.4", SemanticAction::press, {}) &&
                 (*gallery).selected_id() == std::string("item.4"),
             "pressing an item node selects it");
@@ -405,9 +405,9 @@ int main() {
     virtualization();
     hover_preview_order();
     keyboard();
-    popups();
+    overlays();
     semantics();
     std::cout << "RibbonGallery: value command, layout, columns, virtualization, preview order, keyboard, "
-                 "popups and semantics passed\n";
+                 "overlays and semantics passed\n";
     return 0;
 }

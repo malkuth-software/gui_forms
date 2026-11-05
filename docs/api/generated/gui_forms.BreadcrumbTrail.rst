@@ -148,7 +148,7 @@ gui_forms::BreadcrumbTrail
          The editor used for exact paths.
 
       :cpp:class:`ContextMenu <gui_forms::ContextMenu>`
-         A pop-up menu for the hidden segments.
+         An overlay menu for the hidden segments.
 
    .. rubric:: Notes
 

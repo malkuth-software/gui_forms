@@ -733,7 +733,7 @@ void collect_entries(const Dump& dump, const SemanticNode& node, std::vector<std
 }
 
 // Puts the app back after an action: a node left expanded is pressed again
-// (AXPress collapses it), and an open popup, which replaces the roots, is
+// (AXPress collapses it), and an open overlay, which replaces the roots, is
 // closed with Escape.
 Dump restore_after_action(const std::string& path, AXUIElementRef surface_hint, const Dump& before,
                           const std::string& target_id, Dump current, pid_t pid) {

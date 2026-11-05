@@ -76,7 +76,7 @@ Related types
    * - :cpp:class:`DockPanelRegistration <gui_forms::DockPanelRegistration>`
      -  
    * - :cpp:class:`ErrorIconSnapshot <gui_forms::ErrorIconSnapshot>`
-     - ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, popup presentation, blink activity, and current phase visibility.
+     - ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility.
    * - :cpp:class:`ErrorProviderChange <gui_forms::ErrorProviderChange>`
      - ErrorProviderChange is the post-commit payload for a target error transition, carrying stable identity and the current message, which is empty once the error is cleared.
    * - :cpp:class:`ErrorProviderSnapshot <gui_forms::ErrorProviderSnapshot>`
@@ -232,7 +232,7 @@ Related types
 
    ``#include <gui_forms/components/error_provider/error_provider.hpp>``
 
-   ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, popup presentation, blink activity, and current phase visibility.
+   ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility.
 
    .. cpp:member:: std::string target_stable_id
 

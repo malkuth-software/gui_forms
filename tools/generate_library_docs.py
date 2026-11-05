@@ -153,7 +153,7 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
 # the components area's unregistered headers (the file dialogs' shared types)
 # with the dialogs.
 AREA_TO_CATEGORY: dict[str, str] = {
-    "components": "Dialogs and popups",
+    "components": "Dialogs and overlays",
     "inspection": "Value setting",
     "instrument": "Value setting",
     "metrics": "Diagnostics",
@@ -174,7 +174,7 @@ CATEGORY_DESCRIPTIONS: dict[str, str] = {
               "containers.",
     "Scrolling": "Scrollable containers and scroll bars.",
     "Menus and commands": "Commands, menu strips and context menus.",
-    "Dialogs and popups": "Anchored popups, tooltips, owned dialogs and the "
+    "Dialogs and overlays": "Anchored overlays, tooltips, owned dialogs and the "
                           "host's file and colour dialogs.",
     "Drawing": "Owner-drawn, live and raster surfaces.",
     "Diagnostics": "Metrics, easing, typography and visual-inspection views.",

@@ -1,4 +1,4 @@
-// GF_TABLE_POPUPS: popup roots and tooltips. See gf_abi.h.
+// GF_TABLE_OVERLAYS: overlay roots and tooltips. See gf_abi.h.
 
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
@@ -18,19 +18,19 @@
 namespace gui_forms::abi1 {
 namespace {
 
-constexpr SlotIdentity open_popup_slot{GF_TABLE_POPUPS, 0U};
-constexpr SlotIdentity close_popup_slot{GF_TABLE_POPUPS, 1U};
-constexpr SlotIdentity set_tool_tip_slot{GF_TABLE_POPUPS, 2U};
-constexpr SlotIdentity show_tool_tip_slot{GF_TABLE_POPUPS, 3U};
-constexpr SlotIdentity hide_tool_tip_slot{GF_TABLE_POPUPS, 4U};
+constexpr SlotIdentity open_overlay_slot{GF_TABLE_OVERLAYS, 0U};
+constexpr SlotIdentity close_overlay_slot{GF_TABLE_OVERLAYS, 1U};
+constexpr SlotIdentity set_tool_tip_slot{GF_TABLE_OVERLAYS, 2U};
+constexpr SlotIdentity show_tool_tip_slot{GF_TABLE_OVERLAYS, 3U};
+constexpr SlotIdentity hide_tool_tip_slot{GF_TABLE_OVERLAYS, 4U};
 
-// The open popups, by the popup's identity. Owned here and used on the UI
+// The open overlays, by the overlay's identity. Owned here and used on the UI
 // thread only. A token the window has closed (its owner left the window,
 // the window closed) is disconnected and is replaced or dropped on the next
-// open or close of that popup; the rest close when the process ends.
-std::unordered_map<gf_object, PopupToken>& open_popups() {
-    static std::unordered_map<gf_object, PopupToken> popups;
-    return popups;
+// open or close of that overlay; the rest close when the process ends.
+std::unordered_map<gf_object, OverlayToken>& open_overlays() {
+    static std::unordered_map<gf_object, OverlayToken> overlays;
+    return overlays;
 }
 
 gf_status enter_tool_tip(gf_object object, SlotIdentity slot, std::shared_ptr<ToolTip>& tool_tip) {
@@ -51,63 +51,63 @@ gf_status enter_tool_tip(gf_object object, SlotIdentity slot, std::shared_ptr<To
     return GF_STATUS_OK;
 }
 
-gf_status GF_CALL popups_open_popup(gf_object owner, gf_object popup) noexcept {
+gf_status GF_CALL overlays_open_overlay(gf_object owner, gf_object overlay) noexcept {
     try {
-        const ShadowFrameScope shadow_frame(open_popup_slot.table_id, open_popup_slot.slot_index);
+        const ShadowFrameScope shadow_frame(open_overlay_slot.table_id, open_overlay_slot.slot_index);
         Control::Ptr owner_control;
-        const gf_status entered = enter_live_control(owner, open_popup_slot, owner_control);
+        const gf_status entered = enter_live_control(owner, open_overlay_slot, owner_control);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        Control::Ptr popup_control;
-        const gf_status found = registry().find_object(popup, open_popup_slot, popup_control);
+        Control::Ptr overlay_control;
+        const gf_status found = registry().find_object(overlay, open_overlay_slot, overlay_control);
         if (found != GF_STATUS_OK) {
             return found;
         }
-        std::unordered_map<gf_object, PopupToken>& popups = open_popups();
-        const std::unordered_map<gf_object, PopupToken>::iterator existing = popups.find(popup);
-        if (existing != popups.end() && (*existing).second.connected()) {
-            return fail(GF_STATUS_INVALID_STATE, open_popup_slot, "the popup is already open");
+        std::unordered_map<gf_object, OverlayToken>& overlays = open_overlays();
+        const std::unordered_map<gf_object, OverlayToken>::iterator existing = overlays.find(overlay);
+        if (existing != overlays.end() && (*existing).second.connected()) {
+            return fail(GF_STATUS_INVALID_STATE, open_overlay_slot, "the overlay is already open");
         }
         Window* const window = (*owner_control).attached_window();
         if (window == nullptr) {
-            return fail(GF_STATUS_INVALID_STATE, open_popup_slot, "the owner is not in a window");
+            return fail(GF_STATUS_INVALID_STATE, open_overlay_slot, "the owner is not in a window");
         }
-        // Window::open_popup refuses a popup with a parent and an owner that
+        // Window::open_overlay refuses an overlay with a parent and an owner that
         // cannot own one (std::logic_error: GF_STATUS_INVALID_STATE).
-        PopupToken token = (*window).open_popup(owner_control, popup_control);
-        popups.insert_or_assign(popup, std::move(token));
+        OverlayToken token = (*window).open_overlay(owner_control, overlay_control);
+        overlays.insert_or_assign(overlay, std::move(token));
         return GF_STATUS_OK;
     } catch (...) {
-        return fail_with_current_exception(open_popup_slot);
+        return fail_with_current_exception(open_overlay_slot);
     }
 }
 
-gf_status GF_CALL popups_close_popup(gf_object popup) noexcept {
+gf_status GF_CALL overlays_close_overlay(gf_object overlay) noexcept {
     try {
-        const ShadowFrameScope shadow_frame(close_popup_slot.table_id, close_popup_slot.slot_index);
-        const gf_status entered = registry().enter_ui(close_popup_slot, false);
+        const ShadowFrameScope shadow_frame(close_overlay_slot.table_id, close_overlay_slot.slot_index);
+        const gf_status entered = registry().enter_ui(close_overlay_slot, false);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
-        std::unordered_map<gf_object, PopupToken>& popups = open_popups();
-        const std::unordered_map<gf_object, PopupToken>::iterator existing = popups.find(popup);
-        if (existing == popups.end()) {
-            return fail(GF_STATUS_NOT_FOUND, close_popup_slot, "the popup is not open");
+        std::unordered_map<gf_object, OverlayToken>& overlays = open_overlays();
+        const std::unordered_map<gf_object, OverlayToken>::iterator existing = overlays.find(overlay);
+        if (existing == overlays.end()) {
+            return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay is not open");
         }
         const bool was_open = (*existing).second.connected();
-        // Erasing the token disconnects it, closing the popup.
-        popups.erase(existing);
+        // Erasing the token disconnects it, closing the overlay.
+        overlays.erase(existing);
         if (!was_open) {
-            return fail(GF_STATUS_NOT_FOUND, close_popup_slot, "the popup was already closed by its window");
+            return fail(GF_STATUS_NOT_FOUND, close_overlay_slot, "the overlay was already closed by its window");
         }
         return GF_STATUS_OK;
     } catch (...) {
-        return fail_with_current_exception(close_popup_slot);
+        return fail_with_current_exception(close_overlay_slot);
     }
 }
 
-gf_status GF_CALL popups_set_tool_tip(gf_object tool_tip, gf_object target, gf_utf8_view text) noexcept {
+gf_status GF_CALL overlays_set_tool_tip(gf_object tool_tip, gf_object target, gf_utf8_view text) noexcept {
     try {
         const ShadowFrameScope shadow_frame(set_tool_tip_slot.table_id, set_tool_tip_slot.slot_index);
         std::shared_ptr<ToolTip> provider;
@@ -132,7 +132,7 @@ gf_status GF_CALL popups_set_tool_tip(gf_object tool_tip, gf_object target, gf_u
     }
 }
 
-gf_status GF_CALL popups_show_tool_tip(gf_object tool_tip, gf_object target, std::uint64_t duration_ms) noexcept {
+gf_status GF_CALL overlays_show_tool_tip(gf_object tool_tip, gf_object target, std::uint64_t duration_ms) noexcept {
     try {
         const ShadowFrameScope shadow_frame(show_tool_tip_slot.table_id, show_tool_tip_slot.slot_index);
         std::shared_ptr<ToolTip> provider;
@@ -157,7 +157,7 @@ gf_status GF_CALL popups_show_tool_tip(gf_object tool_tip, gf_object target, std
     }
 }
 
-gf_status GF_CALL popups_hide_tool_tip(gf_object tool_tip) noexcept {
+gf_status GF_CALL overlays_hide_tool_tip(gf_object tool_tip) noexcept {
     try {
         const ShadowFrameScope shadow_frame(hide_tool_tip_slot.table_id, hide_tool_tip_slot.slot_index);
         std::shared_ptr<ToolTip> provider;
@@ -172,19 +172,19 @@ gf_status GF_CALL popups_hide_tool_tip(gf_object tool_tip) noexcept {
     }
 }
 
-constexpr gf_popups_table table{
-    .struct_size = sizeof(gf_popups_table),
+constexpr gf_overlays_table table{
+    .struct_size = sizeof(gf_overlays_table),
     .abi_minor = GF_ABI_MINOR,
-    .open_popup = &popups_open_popup,
-    .close_popup = &popups_close_popup,
-    .set_tool_tip = &popups_set_tool_tip,
-    .show_tool_tip = &popups_show_tool_tip,
-    .hide_tool_tip = &popups_hide_tool_tip,
+    .open_overlay = &overlays_open_overlay,
+    .close_overlay = &overlays_close_overlay,
+    .set_tool_tip = &overlays_set_tool_tip,
+    .show_tool_tip = &overlays_show_tool_tip,
+    .hide_tool_tip = &overlays_hide_tool_tip,
 };
 
 } // namespace
 
-const gf_popups_table& popups_table() noexcept {
+const gf_overlays_table& overlays_table() noexcept {
     return table;
 }
 

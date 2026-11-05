@@ -60,7 +60,7 @@ See Also
 ResponsiveTrackPanel : General tracks that shrink and collapse in an authored order.
 CommandBar : A single row of commands bound to `Command` objects.
 DropDownButton : A button that asks the application to open a menu.
-ContextMenu : The popup menu an actuator can show for the hidden groups.
+ContextMenu : The overlay menu an actuator can show for the hidden groups.
 
 Notes
 -----

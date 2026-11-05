@@ -18,7 +18,7 @@
 namespace gui_forms {
 
 bool Ribbon::file_area_open() const noexcept {
-    const bool result = application_open_ || application_popup_open_ || backstage_open_;
+    const bool result = application_open_ || application_overlay_open_ || backstage_open_;
     return result;
 }
 
@@ -51,7 +51,7 @@ void Ribbon::set_recent_items(std::vector<RibbonRecentItem> items) {
         }
     }
     validate_two_pane(application_menu_, items.size());
-    close_application_popup();
+    close_application_overlay();
     recent_items_ = std::move(items);
     invalidate(Dirty::semantics);
 }
@@ -60,47 +60,47 @@ void Ribbon::set_recent_caption(std::string caption) {
     require_mutable();
     if (!validate_utf8(caption).valid()) throw std::invalid_argument("Ribbon recent caption must be valid UTF-8");
     recent_caption_ = std::move(caption);
-    if (application_popup_) (*application_popup_).invalidate(Dirty::paint);
+    if (application_overlay_) (*application_overlay_).invalidate(Dirty::paint);
 }
 
-Control::Ptr Ribbon::application_menu_popup() const noexcept {
-    return application_popup_;
+Control::Ptr Ribbon::application_menu_overlay() const noexcept {
+    return application_overlay_;
 }
 
-// Opens the two-pane menu as a popup covering the window client, its panel
+// Opens the two-pane menu as an overlay covering the window client, its panel
 // below the File tab, over the ribbon (owner decision 23).
-bool Ribbon::show_application_popup(MenuOpenMode mode) {
+bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     Window* const window = attached_window();
     if (window == nullptr) return false;
-    if (application_popup_open_) return true;
+    if (application_overlay_open_) return true;
     close_menus();
-    close_group_popup();
+    close_group_overlay();
     const Control::Ptr self = shared_from_this();
-    if (!application_popup_) {
-        application_popup_ =
+    if (!application_overlay_) {
+        application_overlay_ =
             make_control<RibbonApplicationMenu>(StableId(std::string(stable_id().value()) + ".application-menu"), *this);
     }
     const Layout placed = layout();
     const Rect absolute = absolute_bounds();
     const Size client = (*window).client_size();
-    (*application_popup_).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    (*application_popup_).set_origin(
+    (*application_overlay_).set_requested_bounds({0.0, 0.0, client.width, client.height});
+    (*application_overlay_).set_origin(
         {absolute.x + placed.application.x, absolute.y + placed.application.y + placed.application.height});
-    (*application_popup_).reset(mode == MenuOpenMode::keyboard);
-    application_popup_token_ = (*window).open_popup(self, application_popup_);
-    application_popup_open_ = true;
-    if (Event<>* closed = application_popup_token_.closed_event()) {
-        application_popup_revoked_ =
-            (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_application_popup_revoked>(*this));
+    (*application_overlay_).reset(mode == MenuOpenMode::keyboard);
+    application_overlay_token_ = (*window).open_overlay(self, application_overlay_);
+    application_overlay_open_ = true;
+    if (Event<>* closed = application_overlay_token_.closed_event()) {
+        application_overlay_revoked_ =
+            (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_application_overlay_revoked>(*this));
     }
-    application_scope_ = (*window).begin_focus_scope(application_popup_, application_popup_);
+    application_scope_ = (*window).begin_focus_scope(application_overlay_, application_overlay_);
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
 
-void Ribbon::close_application_popup() noexcept {
-    if (!application_popup_open_) return;
-    application_popup_open_ = false;
+void Ribbon::close_application_overlay() noexcept {
+    if (!application_overlay_open_) return;
+    application_overlay_open_ = false;
     Window* const window = attached_window();
     if (window != nullptr && application_scope_) {
         try {
@@ -109,8 +109,8 @@ void Ribbon::close_application_popup() noexcept {
         }
     }
     application_scope_ = {};
-    application_popup_revoked_.disconnect();
-    application_popup_token_.disconnect();
+    application_overlay_revoked_.disconnect();
+    application_overlay_token_.disconnect();
     if (!is_alive()) return;
     try {
         invalidate(Dirty::paint | Dirty::semantics);
@@ -118,11 +118,11 @@ void Ribbon::close_application_popup() noexcept {
     }
 }
 
-void Ribbon::on_application_popup_revoked() {
-    if (!application_popup_open_) return;
-    application_popup_open_ = false;
+void Ribbon::on_application_overlay_revoked() {
+    if (!application_overlay_open_) return;
+    application_overlay_open_ = false;
     application_scope_ = {};
-    application_popup_revoked_.disconnect();
+    application_overlay_revoked_.disconnect();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -159,9 +159,9 @@ bool Ribbon::show_backstage() {
     if (!backstage_ || window == nullptr || !effectively_enabled()) return false;
     if (backstage_open_) return true;
     close_menus();
-    close_group_popup();
+    close_group_overlay();
     place_backstage();
-    backstage_token_ = (*window).open_popup(shared_from_this(), backstage_);
+    backstage_token_ = (*window).open_overlay(shared_from_this(), backstage_);
     backstage_open_ = true;
     if (Event<>* closed = backstage_token_.closed_event()) {
         backstage_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_backstage_revoked>(*this));

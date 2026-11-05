@@ -368,7 +368,7 @@ void semantics_and_region() {
     const std::vector<SemanticNode> nodes = (*ribbon).semantic_virtual_children();
     require(nodes.size() == 3U && nodes[0].role == SemanticRole::menu_button && nodes[0].has_popup &&
                 nodes[0].name == "File",
-            "the File tab is a menu button with a popup");
+            "the File tab is a menu button with an overlay");
     require(nodes[1].role == SemanticRole::tab_group && nodes[1].children.size() == 2U &&
                 nodes[1].children[0].role == SemanticRole::tab && nodes[1].children[0].name == "Home" &&
                 nodes[1].children[1].position_in_set == std::size_t{2U} &&
@@ -383,7 +383,7 @@ void semantics_and_region() {
                 clipboard.children[0].has_popup && clipboard.children[0].position_in_set == std::size_t{1U} &&
                 clipboard.children[0].set_size == std::size_t{4U} &&
                 clipboard.children[4].name == "Clipboard dialog launcher",
-            "commands carry split roles, popups and positions; the launcher is a button");
+            "commands carry split roles, overlays and positions; the launcher is a button");
     require(nodes[1].children[0].access_key == "H" && nodes[1].children[1].access_key == "I" &&
                 clipboard.children[2].name == "Copy" && clipboard.children[2].access_key == "C" &&
                 clipboard.children[1].access_key.empty(),

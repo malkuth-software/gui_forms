@@ -92,8 +92,8 @@ constexpr std::string_view off_tree_page = "off-tree-controls";
 // items, nested scopes and most pattern kinds.
 constexpr std::string_view live_page = "tree-and-object-views";
 
-// The most popups the client closes with Escape after an action.
-constexpr int maximum_popup_closes = 4;
+// The most overlays the client closes with Escape after an action.
+constexpr int maximum_overlay_closes = 4;
 
 // -- COM ownership -----------------------------------------------------------
 
@@ -1605,7 +1605,7 @@ struct BeginAction final {
     }
 };
 
-bool popup_opened(const SemanticSnapshot& before, const SemanticSnapshot& after, std::size_t scopes_before,
+bool overlay_opened(const SemanticSnapshot& before, const SemanticSnapshot& after, std::size_t scopes_before,
                   std::size_t scopes_after) noexcept {
     const bool opened = after.roots.size() > before.roots.size() || after.node_count > before.node_count ||
                         scopes_after > scopes_before;
@@ -1634,7 +1634,7 @@ struct EndAction final {
         const bool checked_before = has_semantic_state(node.states, SemanticState::checked);
         const bool mixed_before = has_semantic_state(node.states, SemanticState::mixed);
         const bool expanded_before = has_semantic_state(node.states, SemanticState::expanded);
-        const bool opened = popup_opened(from.before, after, from.scopes_before, scopes_after);
+        const bool opened = overlay_opened(from.before, after, from.scopes_before, scopes_after);
         out.outcome = ActionOutcome::unobserved;
         if (kind == DefaultKind::none) {
             if (changed != nullptr && has_semantic_state((*changed).states, SemanticState::focused)) {
@@ -1654,12 +1654,12 @@ struct EndAction final {
                 out.evidence = expanded_before ? "collapsed" : "expanded";
             } else if (kind == DefaultKind::expand && opened) {
                 out.outcome = ActionOutcome::changed;
-                out.evidence = "a popup opened";
+                out.evidence = "an overlay opened";
             }
         } else if (kind == DefaultKind::show_menu) {
             if (opened) {
                 out.outcome = ActionOutcome::changed;
-                out.evidence = "a popup opened";
+                out.evidence = "an overlay opened";
             } else if (changed != nullptr && has_semantic_state((*changed).states, SemanticState::expanded)) {
                 out.outcome = ActionOutcome::changed;
                 out.evidence = "expanded";
@@ -1677,7 +1677,7 @@ struct EndAction final {
             out.evidence = "its command invoked once";
         } else if (opened) {
             out.outcome = ActionOutcome::changed;
-            out.evidence = "a popup opened";
+            out.evidence = "an overlay opened";
         } else if ((*window).semantic_generation() != from.generation_before) {
             out.outcome = ActionOutcome::changed;
             out.evidence = "the semantic tree changed";
@@ -1687,11 +1687,11 @@ struct EndAction final {
             out.evidence = "clicked raised " + std::to_string(from.clicks.count) + " times";
         }
         // An expansion or a toggle is undone through the same pattern,
-        // which proves the reverse too; before any popup closes.
+        // which proves the reverse too; before any overlay closes.
         *reversible = out.outcome == ActionOutcome::changed &&
                       (kind == DefaultKind::expand || kind == DefaultKind::collapse ||
                        (kind == DefaultKind::press && expects_toggle(node))) &&
-                      changed != nullptr && out.evidence != "a popup opened";
+                      changed != nullptr && out.evidence != "an overlay opened";
         ReleaseSubscriptions{state}();
     }
 };
@@ -1717,13 +1717,13 @@ struct CheckRestored final {
     }
 };
 
-// Closes popups an action opened, so the page's root set is restored, on
+// Closes overlays an action opened, so the page's root set is restored, on
 // the UI thread.
-struct ClosePopups final {
+struct CloseOverlays final {
     Window* window{};
     std::size_t baseline_roots{};
     void operator()() const {
-        for (int attempt = 0; attempt < maximum_popup_closes; ++attempt) {
+        for (int attempt = 0; attempt < maximum_overlay_closes; ++attempt) {
             const SemanticSnapshot snapshot = (*window).semantic_snapshot();
             const bool open = snapshot.roots.size() > baseline_roots || (*window).focus_scope_depth() != 0U;
             if (!open) return;
@@ -1916,7 +1916,7 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
         result.outcome = ActionOutcome::refused;
         result.evidence = "HRESULT " + hresult_text(status);
         on_ui_thread(run.dispatcher, std::function<void()>(ReleaseSubscriptions{&state}));
-        on_ui_thread(run.dispatcher, std::function<void()>(ClosePopups{run.window, baseline_roots}));
+        on_ui_thread(run.dispatcher, std::function<void()>(CloseOverlays{run.window, baseline_roots}));
         (*run.report).actions.push_back(std::move(result));
         return;
     }
@@ -1938,7 +1938,7 @@ void perform_job(ClientRun& run, IUIAutomationTreeWalker& walker, IUIAutomationE
         result.evidence += restored ? ", then restored" : ", but not restored";
         if (!restored) result.outcome = ActionOutcome::unobserved;
     }
-    on_ui_thread(run.dispatcher, std::function<void()>(ClosePopups{run.window, baseline_roots}));
+    on_ui_thread(run.dispatcher, std::function<void()>(CloseOverlays{run.window, baseline_roots}));
     (*run.report).actions.push_back(std::move(result));
 }
 

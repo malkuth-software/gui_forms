@@ -48,7 +48,7 @@ capability tranche.
   expose an honest unavailable state, and stop that slice. Implement the
   facility in its owning GUI.Forms milestone only under separate authority.
 - A demoboard-only composite may arrange public controls and translate fixture
-  state. It may not become a private TreeView, ribbon, popup manager, text
+  state. It may not become a private TreeView, ribbon, overlay manager, text
   editor, drag/drop stack, accessibility graph, or renderer.
 - Preserve the retained imperative model: create stable controls once, attach
   stable fixture identities, mutate properties synchronously on the UI thread,

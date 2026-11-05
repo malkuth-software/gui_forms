@@ -597,7 +597,7 @@ gui_forms::Control
 
    Hiding or disabling a control, or one of its ancestors, removes focus from
    the subtree (nothing is focused afterwards), releases its pointer capture and
-   press, and closes popups and focus scopes it owns. The window's
+   press, and closes overlays and focus scopes it owns. The window's
    ``control_availability_changed`` is raised, then the control's own
    :cpp:func:`visible_changed <gui_forms::Control::visible_changed>` or :cpp:func:`enabled_changed <gui_forms::Control::enabled_changed>`.
 

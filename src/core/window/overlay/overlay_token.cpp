@@ -1,19 +1,19 @@
-#include "popup_attachment.hpp"
+#include "overlay_attachment.hpp"
 
 namespace gui_forms {
 
-void PopupToken::disconnect() noexcept {
+void OverlayToken::disconnect() noexcept {
     if (attachment_) {
         (*attachment_).disconnect();
         attachment_.reset();
     }
 }
 
-bool PopupToken::connected() const noexcept {
+bool OverlayToken::connected() const noexcept {
     return attachment_ && (*attachment_).connected();
 }
 
-Event<>* PopupToken::closed_event() noexcept {
+Event<>* OverlayToken::closed_event() noexcept {
     return attachment_ ? &(*attachment_).closed() : nullptr;
 }
 

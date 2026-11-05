@@ -112,11 +112,11 @@ void ToolStrip::construct() {
     set_publishes_item_tool_tips(true);
     cursor = CursorKind::arrow;
     set_paint_plane(PaintPlane::control);
-    popup_ = std::make_unique<ContextMenu>(std::string(stable_id().value()) + ".menu");
-    popup_invoked_ = (*popup_).item_invoked().subscribe(
-        *this, Delegate<const MenuItemInvocation&>::bind<ToolStrip, &ToolStrip::on_popup_item_invoked>(*this));
-    popup_changed_ = (*popup_).open_changed().subscribe(
-        *this, Delegate<bool>::bind<ToolStrip, &ToolStrip::on_popup_open_changed>(*this));
+    overlay_ = std::make_unique<ContextMenu>(std::string(stable_id().value()) + ".menu");
+    overlay_invoked_ = (*overlay_).item_invoked().subscribe(
+        *this, Delegate<const MenuItemInvocation&>::bind<ToolStrip, &ToolStrip::on_overlay_item_invoked>(*this));
+    overlay_changed_ = (*overlay_).open_changed().subscribe(
+        *this, Delegate<bool>::bind<ToolStrip, &ToolStrip::on_overlay_open_changed>(*this));
 }
 
 ToolStrip::~ToolStrip() {
@@ -125,7 +125,7 @@ ToolStrip::~ToolStrip() {
 
 void ToolStrip::on_dispose() noexcept {
     close_drop_down();
-    if (popup_) (*popup_).dispose();
+    if (overlay_) (*overlay_).dispose();
 }
 
 // -- items -----------------------------------------------------------------
@@ -969,14 +969,14 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     const Layout placed = layout();
     const Rect bounds = placed.items[*index];
     if (bounds.empty()) return false;
-    if (open_index_ == index && (*popup_).is_open()) return true;
+    if (open_index_ == index && (*overlay_).is_open()) return true;
     close_drop_down();
-    (*popup_).set_items(std::move(menu));
+    (*overlay_).set_items(std::move(menu));
     const Rect absolute = absolute_bounds();
     // A menu opens below an item, or beside it on a vertical strip.
     Point anchor{absolute.x + bounds.x, absolute.y + bounds.y + bounds.height};
     if (vertical()) anchor = {absolute.x + bounds.x + bounds.width, absolute.y + bounds.y};
-    (*popup_).show(shared_from_this(), anchor, mode);
+    (*overlay_).show(shared_from_this(), anchor, mode);
     open_index_ = index;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
@@ -1028,13 +1028,13 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
     std::vector<MenuItemSpec> menu = overflow_menu();
     if (menu.empty()) return false;
     close_drop_down();
-    (*popup_).set_items(std::move(menu));
+    (*overlay_).set_items(std::move(menu));
     const Rect absolute = absolute_bounds();
     const double right = absolute.x + placed.overflow_button.x + placed.overflow_button.width;
-    Point anchor{std::max(absolute.x, right - (*popup_).preferred_width()),
+    Point anchor{std::max(absolute.x, right - (*overlay_).preferred_width()),
                  absolute.y + placed.overflow_button.y + placed.overflow_button.height};
     if (vertical()) anchor = {right, absolute.y + placed.overflow_button.y};
-    (*popup_).show(shared_from_this(), anchor, mode);
+    (*overlay_).show(shared_from_this(), anchor, mode);
     overflow_open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
@@ -1050,22 +1050,22 @@ std::vector<std::string> ToolStrip::overflow_item_ids() const {
 }
 
 void ToolStrip::close_drop_down() noexcept {
-    if (popup_) (*popup_).close();
+    if (overlay_) (*overlay_).close();
 }
 
 bool ToolStrip::drop_down_open() const noexcept {
-    const bool result = popup_ && (*popup_).is_open();
+    const bool result = overlay_ && (*overlay_).is_open();
     return result;
 }
 
-void ToolStrip::on_popup_open_changed(bool open) {
+void ToolStrip::on_overlay_open_changed(bool open) {
     if (open) return;
     open_index_.reset();
     overflow_open_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ToolStrip::on_popup_item_invoked(const MenuItemInvocation& invocation) {
+void ToolStrip::on_overlay_item_invoked(const MenuItemInvocation& invocation) {
     const std::string strip_id(stable_id().value());
     if (open_index_) {
         const ToolStripDropDownInvocation chosen{strip_id, items_[*open_index_].stable_id, invocation};

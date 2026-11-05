@@ -1178,22 +1178,22 @@ void test_damage_and_idle_metrics() {
             "machine snapshot must declare CPU-only renderer capability");
 }
 
-void test_popup_surface_composites_after_every_application_plane() {
+void test_overlay_surface_composites_after_every_application_plane() {
     const Color application_overlay = Color::rgba(170, 20, 30);
-    const Color popup_backplane = Color::rgba(20, 170, 30);
+    const Color overlay_backplane = Color::rgba(20, 170, 30);
     std::shared_ptr<ProbeControl> root =
-        make_control<ProbeControl>(StableId("popup-order.root"));
+        make_control<ProbeControl>(StableId("overlay-order.root"));
     (*root).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
     (*root).set_paint_plane(PaintPlane::overlay);
     std::shared_ptr<ProbeControl> owner =
-        make_control<ProbeControl>(StableId("popup-order.owner"));
+        make_control<ProbeControl>(StableId("overlay-order.owner"));
     (*owner).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
     (*root).add_child(owner);
     Window window(root, {120.0, 80.0});
 
-    class ColoredPopup final : public Control {
+    class ColoredOverlayRoot final : public Control {
     public:
-        ColoredPopup(StableId id, Color color)
+        ColoredOverlayRoot(StableId id, Color color)
             : Control(std::move(id)), color_(color) {
             set_paint_plane(PaintPlane::backplane);
         }
@@ -1204,11 +1204,11 @@ void test_popup_surface_composites_after_every_application_plane() {
         Color color_;
     };
 
-    // ProbeControl's fixed paint is replaced by a child overlay so the final
-    // application command has a distinctive color.
-    class ColoredOverlay final : public Control {
+    // ProbeControl's fixed paint is replaced by a child in the overlay paint
+    // plane so the final application command has a distinctive color.
+    class OverlayPlaneControl final : public Control {
     public:
-        ColoredOverlay(StableId id, Color color)
+        OverlayPlaneControl(StableId id, Color color)
             : Control(std::move(id)), color_(color) {
             set_paint_plane(PaintPlane::overlay);
         }
@@ -1218,19 +1218,19 @@ void test_popup_surface_composites_after_every_application_plane() {
     private:
         Color color_;
     };
-    std::shared_ptr<ColoredOverlay> application = make_control<ColoredOverlay>(
-        StableId("popup-order.application-overlay"), application_overlay);
+    std::shared_ptr<OverlayPlaneControl> application = make_control<OverlayPlaneControl>(
+        StableId("overlay-order.application-overlay"), application_overlay);
     (*application).set_requested_bounds({0.0, 0.0, 120.0, 80.0});
     (*root).add_child(application);
-    std::shared_ptr<ColoredPopup> popup = make_control<ColoredPopup>(
-        StableId("popup-order.popup"), popup_backplane);
-    (*popup).set_requested_bounds({10.0, 10.0, 60.0, 40.0});
-    PopupToken token = window.open_popup(owner, popup);
+    std::shared_ptr<ColoredOverlayRoot> overlay = make_control<ColoredOverlayRoot>(
+        StableId("overlay-order.overlay"), overlay_backplane);
+    (*overlay).set_requested_bounds({10.0, 10.0, 60.0, 40.0});
+    OverlayToken token = window.open_overlay(owner, overlay);
     RecordingPainter painter;
     window.paint(painter);
     require(token.connected() && !painter.fill_colors.empty() &&
-                painter.fill_colors.back() == popup_backplane,
-            "a popup backplane must composite after the application's overlay plane");
+                painter.fill_colors.back() == overlay_backplane,
+            "an overlay root's backplane must composite after the application's overlay paint plane");
 }
 
 void test_tokenized_accelerator_runs_after_focused_route() {
@@ -1272,10 +1272,10 @@ void test_presentation_settings_separate_text_and_device_scale() {
     std::shared_ptr<gui_forms::Component> owner = std::make_shared<Component>();
     SubscriptionToken token = window.presentation_changed().subscribe(
         *owner, CountCalls<const PresentationSettings&>(changes));
-    std::shared_ptr<ProbeControl> popup =
-        make_control<ProbeControl>(StableId("presentation.popup"));
-    (*popup).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
-    PopupToken popup_token = window.open_popup(label, popup);
+    std::shared_ptr<ProbeControl> overlay =
+        make_control<ProbeControl>(StableId("presentation.overlay"));
+    (*overlay).set_requested_bounds({0.0, 0.0, 40.0, 20.0});
+    OverlayToken overlay_token = window.open_overlay(label, overlay);
 
     window.set_scale(2.0);
     require(window.scale() == 2.0 && (*label).effective_text_scale() == 1.0,
@@ -1290,7 +1290,7 @@ void test_presentation_settings_separate_text_and_device_scale() {
                 enlarged.width > normal.width && enlarged.height > normal.height &&
                 changes == 1U,
             "text scale must coherently affect public effective fonts and measurement");
-    require(!popup_token.connected(),
+    require(!overlay_token.connected(),
             "text-scale changes must dismiss transient geometry resolved at the old scale");
     window.set_text_scale(2.0);
     require(changes == 1U,
@@ -1411,7 +1411,7 @@ int main() {
         test_cursor_inheritance_and_override();
         test_control_identity_geometry_constraints_and_z_order();
         test_damage_and_idle_metrics();
-        test_popup_surface_composites_after_every_application_plane();
+        test_overlay_surface_composites_after_every_application_plane();
         test_tokenized_accelerator_runs_after_focused_route();
         test_presentation_settings_separate_text_and_device_scale();
         test_semantic_feedback_is_clocked_bounded_and_sound_optional();

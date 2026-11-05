@@ -1,6 +1,6 @@
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_placement/anchored_popup_placement.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.hpp"
 
-#include "../anchored_popup_placement_utilities.hpp"
+#include "../anchored_overlay_placement_utilities.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -9,16 +9,16 @@
 
 namespace gui_forms {
 
-using namespace anchored_popup_detail;
-AnchoredPopupPlacementResult resolve_anchored_popup(
-    Rect anchor_bounds, Size client_size, AnchoredPopupPlacement placement) {
+using namespace anchored_overlay_detail;
+AnchoredOverlayPlacementResult resolve_anchored_overlay(
+    Rect anchor_bounds, Size client_size, AnchoredOverlayPlacement placement) {
     validate_placement(placement);
     if (!finite_rect(anchor_bounds) || anchor_bounds.width < 0.0 ||
         anchor_bounds.height < 0.0 || !std::isfinite(client_size.width) ||
         !std::isfinite(client_size.height) || client_size.width < 0.0 ||
         client_size.height < 0.0) {
         throw std::invalid_argument(
-            "anchored popup resolution requires finite nonnegative bounds");
+            "anchored overlay resolution requires finite nonnegative bounds");
     }
 
     const double margin_x = std::min(placement.viewport_margin,
@@ -35,9 +35,9 @@ AnchoredPopupPlacementResult resolve_anchored_popup(
                                    available_height);
 
     double x = anchor_bounds.x;
-    if (placement.horizontal_alignment == PopupHorizontalAlignment::center) {
+    if (placement.horizontal_alignment == OverlayHorizontalAlignment::center) {
         x = anchor_bounds.x + (anchor_bounds.width - width) * 0.5;
-    } else if (placement.horizontal_alignment == PopupHorizontalAlignment::far) {
+    } else if (placement.horizontal_alignment == OverlayHorizontalAlignment::far) {
         x = anchor_bounds.x + anchor_bounds.width - width;
     }
     x = std::clamp(x, margin_x,
@@ -47,7 +47,7 @@ AnchoredPopupPlacementResult resolve_anchored_popup(
     const double above_y = anchor_bounds.y - placement.gap - height;
     const bool fits_below = below_y + height <= client_size.height - margin_y;
     const bool fits_above = above_y >= margin_y;
-    bool above = placement.vertical_preference == PopupVerticalPreference::above;
+    bool above = placement.vertical_preference == OverlayVerticalPreference::above;
     if (placement.allow_vertical_flip) {
         if (!above && !fits_below && fits_above) above = true;
         else if (above && !fits_above && fits_below) above = false;

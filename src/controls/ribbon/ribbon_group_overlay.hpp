@@ -4,23 +4,23 @@
 
 namespace gui_forms {
 
-// The content of a collapsed group's popup (stage RB, phase 2b; owner
+// The content of a collapsed group's overlay (stage RB, phase 2b; owner
 // decision 27): the group at its largest layout on a panel that casts the
 // overlay shadow (decision 37). Private to the ribbon, which owns it, makes
-// it on the first popup and disposes it with itself; `ribbon` observes the
+// it on the first overlay and disposes it with itself; `ribbon` observes the
 // owner (house style §4: the back link does not extend its lifetime, and the
-// ribbon closes the popup before it goes).
+// ribbon closes the overlay before it goes).
 //
-// An AnchoredPopupLayer places the content below the ribbon, its left edge
+// An AnchoredOverlayLayer places the content below the ribbon, its left edge
 // at the ribbon's (near alignment), as wide as the ribbon's left edge to the
 // panel's right edge; the panel sits at the group button's left within it,
 // moved left only to stay inside the window. Outside the panel the content
 // is transparent to input, so a click there reaches the layer and dismisses
-// the popup. Interaction state lives in the ribbon: a command shows in the
-// plane or in the popup, never both.
-class RibbonGroupPopup final : public Control {
+// the overlay. Interaction state lives in the ribbon: a command shows in the
+// plane or in the overlay, never both.
+class RibbonGroupOverlay final : public Control {
 public:
-    RibbonGroupPopup(StableId stable_id, Ribbon& ribbon);
+    RibbonGroupOverlay(StableId stable_id, Ribbon& ribbon);
 
     // The panel's left edge in window coordinates, as the ribbon asks.
     void set_anchor_x(double x);

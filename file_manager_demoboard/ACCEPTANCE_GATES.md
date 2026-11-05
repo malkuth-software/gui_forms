@@ -77,14 +77,14 @@ Required scenarios:
 
 Pass only if:
 
-- `./` toggles one anchored popup;
+- `./` toggles one anchored overlay;
 - complete current drive-rooted stack appears;
 - exactly five recent full stacks appear with repeated roots;
 - open tail converts the current stack directly to editor;
 - autocomplete uses generation/cancellation semantics;
 - Tab accepts completion, Enter navigates, Escape stages are correct;
 - invalid path is visibly and semantically explained;
-- popup closes on click-away and restores focus;
+- overlay closes on click-away and restores focus;
 - editable path exposes real caret/selection/IME/text ranges;
 - location change updates title, breadcrumb, tree, content, status, and history
   in one transition.
@@ -143,7 +143,7 @@ At each size:
 - no zero-size focusable control traps focus;
 - no essential text draws outside bounds;
 - seams remain operable through keyboard and enlarged hit target;
-- popups stay on screen or choose an admitted alternate placement.
+- overlays stay on screen or choose an admitted alternate placement.
 
 Text-scale matrix: 100, 125, 150, 200, 225 percent. Display-scale matrix where
 available: 1.0, 1.25, 1.5, 2.0. High contrast and reduced motion are separate

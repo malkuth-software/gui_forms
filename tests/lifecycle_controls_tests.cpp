@@ -420,12 +420,12 @@ void test_initialization_revokes_interaction_until_commit() {
             "initialization interaction specimen requires focus");
     window.capture_pointer(button, 1U);
     const FocusScopeId scope = window.begin_focus_scope(button, button);
-    std::shared_ptr<gui_forms::Panel> popup = make_control<Panel>(StableId("init.interaction.popup"));
-    (*popup).set_requested_bounds({12.0, 12.0, 60.0, 24.0});
-    PopupToken popup_token = window.open_popup(button, popup);
+    std::shared_ptr<gui_forms::Panel> overlay = make_control<Panel>(StableId("init.interaction.overlay"));
+    (*overlay).set_requested_bounds({12.0, 12.0, 60.0, 24.0});
+    OverlayToken overlay_token = window.open_overlay(button, overlay);
 
     std::uint64_t clicks{};
-    std::uint64_t popup_closes{};
+    std::uint64_t overlay_closes{};
     std::uint64_t scope_closes{};
     std::vector<bool> focus_trace;
     std::vector<bool> capture_trace;
@@ -435,16 +435,16 @@ void test_initialization_revokes_interaction_until_commit() {
         RecordFocusObservation(focus_trace));
     SubscriptionToken captured = window.pointer_capture_changed().subscribe(
         RecordCaptureObservation(capture_trace));
-    SubscriptionToken popup_closed = (*popup_token.closed_event()).subscribe(
-        test_support::IncrementCounter<std::uint64_t>(popup_closes));
+    SubscriptionToken overlay_closed = (*overlay_token.closed_event()).subscribe(
+        test_support::IncrementCounter<std::uint64_t>(overlay_closes));
     SubscriptionToken scope_changed = window.focus_scope_changed().subscribe(
         CountFocusScopeClose(scope, scope_closes));
 
     (*button).begin_init();
     require(!(*button).eligible_for_input() && !window.focused_control() &&
                 !window.captured_control() && focus_trace.empty() &&
-                capture_trace.empty() && !popup_token.connected() &&
-                popup_closes == 0U && window.focus_scope_depth() == 0U &&
+                capture_trace.empty() && !overlay_token.connected() &&
+                overlay_closes == 0U && window.focus_scope_depth() == 0U &&
                 scope_closes == 0U &&
                 !window.dispatch_pointer(
                     {PointerAction::down, PointerButton::primary,
@@ -456,7 +456,7 @@ void test_initialization_revokes_interaction_until_commit() {
     require((*button).eligible_for_input() &&
                 focus_trace == std::vector<bool>{false} &&
                 capture_trace == std::vector<bool>{false} &&
-                popup_closes == 1U && scope_closes == 1U,
+                overlay_closes == 1U && scope_closes == 1U,
             "EndInit must publish deferred eligibility effects only after commit");
     const bool down = window.dispatch_pointer(
         {PointerAction::down, PointerButton::primary,

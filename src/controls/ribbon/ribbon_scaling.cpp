@@ -585,15 +585,15 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
     return placed;
 }
 
-// The popup's view: the popup's group at its largest layout, its gallery at
-// its widest, in `panel` (the popup content's local coordinates).
-Ribbon::Layout Ribbon::popup_layout(Rect panel) const {
+// The overlay's view: the overlay's group at its largest layout, its gallery at
+// its widest, in `panel` (the overlay content's local coordinates).
+Ribbon::Layout Ribbon::overlay_layout(Rect panel) const {
     Layout placed;
-    placed.popup = true;
-    if (!selected_tab_ || !popup_group_) return placed;
+    placed.overlay = true;
+    if (!selected_tab_ || !overlay_group_) return placed;
     reset_layout_groups(placed);
     const std::size_t tab = *selected_tab_;
-    const std::size_t group = *popup_group_;
+    const std::size_t group = *overlay_group_;
     const TabScaling& scaling = tab_scaling(tab);
     placed.plane = panel;
     placed.groups_area = panel;
@@ -608,10 +608,10 @@ Ribbon::Layout Ribbon::popup_layout(Rect panel) const {
     return placed;
 }
 
-Size Ribbon::popup_panel_size() const {
-    if (!selected_tab_ || !popup_group_) return {};
+Size Ribbon::overlay_panel_size() const {
+    if (!selected_tab_ || !overlay_group_) return {};
     const std::size_t tab = *selected_tab_;
-    const std::size_t group = *popup_group_;
+    const std::size_t group = *overlay_group_;
     const TabScaling& scaling = tab_scaling(tab);
     const std::size_t columns = scaling.galleries[group] ? scaling.gallery_metrics[group].maximum : 0U;
     const double width =
@@ -635,7 +635,7 @@ void Ribbon::scroll_groups(bool forward) {
 }
 
 bool Ribbon::group_collapsed(const Layout& placed, std::size_t group) const noexcept {
-    const bool result = !placed.popup && group < placed.group_sizes.size() &&
+    const bool result = !placed.overlay && group < placed.group_sizes.size() &&
                         placed.group_sizes[group] == RibbonGroupSize::collapsed;
     return result;
 }

@@ -4,9 +4,9 @@
 
 namespace gui_forms {
 
-class CalendarPopupLayer final : public Panel {
+class CalendarOverlayLayer final : public Panel {
 public:
-    explicit CalendarPopupLayer(StableId stable_id);
+    explicit CalendarOverlayLayer(StableId stable_id);
     [[nodiscard]] Event<>& dismissed() noexcept { return dismissed_; }
     void on_pointer(PointerEvent& event) override;
 

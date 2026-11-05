@@ -154,7 +154,7 @@ uint32_t gf_conformance_run(FILE* out, gf_conformance_flags flags) {
     load_table(&kit, GF_TABLE_CONTROLS, &kit.controls, sizeof(kit.controls), "load the controls table");
     load_table(&kit, GF_TABLE_TEXT_EDITING, &kit.text_editing, sizeof(kit.text_editing),
                "load the text editing table");
-    load_table(&kit, GF_TABLE_POPUPS, &kit.popups, sizeof(kit.popups), "load the popups table");
+    load_table(&kit, GF_TABLE_OVERLAYS, &kit.overlays, sizeof(kit.overlays), "load the overlays table");
     load_table(&kit, GF_TABLE_PROPERTY_GRID, &kit.property_grid, sizeof(kit.property_grid),
                "load the property grid table");
     load_table(&kit, GF_TABLE_CUSTOM_CONTROLS, &kit.custom_controls, sizeof(kit.custom_controls),

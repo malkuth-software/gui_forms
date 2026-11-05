@@ -26,7 +26,7 @@ enum class MenuItemKind : std::uint8_t {
     submenu,
 };
 
-// Pointer opening keeps the popup focused without selecting a command until
+// Pointer opening keeps the overlay focused without selecting a command until
 // hover or keyboard navigation. Keyboard opening selects the first enabled row.
 enum class MenuOpenMode : std::uint8_t { keyboard, pointer };
 
@@ -87,9 +87,9 @@ struct MenuItemInvocation final {
 inline constexpr std::size_t maximum_menu_depth = 8U;
 inline constexpr std::size_t maximum_menu_items = 1024U;
 
-// Retained popup-menu controller. Its visual rows are temporary popup
+// Retained overlay-menu controller. Its visual rows are temporary overlay
 // presentations, while MenuItemSpec identities and bound Command instances are
-// stable application state. Click-away/Escape revoke the popup and restore the
+// stable application state. Click-away/Escape revoke the overlay and restore the
 // invoker's focus scope deterministically.
 class ContextMenu final : public Component {
 public:
@@ -108,7 +108,7 @@ public:
     }
     void set_preferred_width(double width);
 
-    // Unknown modes throw invalid_argument without closing an existing popup.
+    // Unknown modes throw invalid_argument without closing an existing overlay.
     void show(const Control::Ptr& owner, const Point window_position,
               const MenuOpenMode mode = MenuOpenMode::keyboard);
     void close() noexcept;

@@ -3,7 +3,7 @@
 #include "drop_down_layer.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "../input_control_utilities.hpp"
-#include "gui_forms/controls/panel/anchored_popup_layer/anchored_popup_layer.hpp"
+#include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/detail/property_binding_adapters.hpp"
 #include "gui_forms/detail/weak_member_callback.hpp"
@@ -390,8 +390,8 @@ double ComboBox::drop_down_height(std::size_t rows) const {
 }
 
 void ComboBox::show_rows() {
-    if (!popup_list_) return;
-    DropDownList& list = static_cast<DropDownList&>(*popup_list_);
+    if (!overlay_list_) return;
+    DropDownList& list = static_cast<DropDownList&>(*overlay_list_);
     std::vector<std::string> texts;
     texts.reserve(rows_.size());
     for (const std::size_t item : rows_) texts.push_back(items_[item]);
@@ -414,16 +414,16 @@ void ComboBox::show_rows() {
     }
     synchronizing_list_ = false;
     list.synchronize_scroll();
-    if (editor_ && popup_layer_ && window() != nullptr) {
-        AnchoredPopupLayer& layer = static_cast<AnchoredPopupLayer&>(*popup_layer_);
-        AnchoredPopupPlacement placement = layer.placement();
+    if (editor_ && overlay_layer_ && window() != nullptr) {
+        AnchoredOverlayLayer& layer = static_cast<AnchoredOverlayLayer&>(*overlay_layer_);
+        AnchoredOverlayPlacement placement = layer.placement();
         placement.preferred_size.height = drop_down_height(rows_.size());
         layer.set_placement(placement);
     }
 }
 
 void ComboBox::refresh_open_rows(std::string_view pattern) {
-    if (!popup_list_) return;
+    if (!overlay_list_) return;
     compute_rows(pattern);
     if (rows_.empty()) {
         close_drop_down();
@@ -511,15 +511,15 @@ void ComboBox::match_editor_text() {
     }
     if (selected_index_ == found) return;
     selected_index_ = found;
-    if (popup_list_) {
+    if (overlay_list_) {
         // Moving the list's row must not show the item's text over the
         // text the user is typing.
         synchronizing_list_ = true;
         const std::optional<std::size_t> row = row_of_item(found);
         if (row) {
-            (*popup_list_).select_index(*row);
+            (*overlay_list_).select_index(*row);
         } else {
-            (*popup_list_).clear_selection();
+            (*overlay_list_).clear_selection();
         }
         synchronizing_list_ = false;
     }
@@ -527,12 +527,12 @@ void ComboBox::match_editor_text() {
     publish_change(selected_index_changed_, selected_index_);
 }
 
-void ComboBox::popup_selection_changed(const ListSelectionChange& change) {
+void ComboBox::overlay_selection_changed(const ListSelectionChange& change) {
     if (synchronizing_list_ || !change.active_index || *change.active_index >= rows_.size()) return;
     set_selected_index(rows_[*change.active_index]);
 }
 
-void ComboBox::on_anchored_dismissal(PopupDismissReason) {
+void ComboBox::on_anchored_dismissal(OverlayDismissReason) {
     close_drop_down();
 }
 
@@ -621,11 +621,11 @@ void ComboBox::set_selected_index(std::optional<std::size_t> index) {
     }
     if (selected_index_ == index) return;
     selected_index_ = index;
-    if (popup_list_) {
+    if (overlay_list_) {
         synchronizing_list_ = true;
         const std::optional<std::size_t> row = row_of_item(index);
-        if (row) (*popup_list_).select_index(*row);
-        else (*popup_list_).clear_selection();
+        if (row) (*overlay_list_).select_index(*row);
+        else (*overlay_list_).clear_selection();
         synchronizing_list_ = false;
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -687,7 +687,7 @@ void ComboBox::set_font(FontSpec font) {
     if (font_ == font) return;
     font_ = font;
     if (editor_) (*editor_).set_font(font);
-    if (popup_list_) (*popup_list_).set_font(font);
+    if (overlay_list_) (*overlay_list_).set_font(font);
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
@@ -707,56 +707,56 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     if (!owner) return;
     const Rect combo = absolute_bounds();
     const Size client = (*window()).client_size();
-    const double popup_height = drop_down_height(rows_.size());
+    const double overlay_height = drop_down_height(rows_.size());
     const double requested_width = drop_down_width_ > 0.0
         ? drop_down_width_ : combo.width;
-    const double popup_width = std::min(requested_width, client.width);
-    const double popup_x = std::clamp(combo.x, 0.0,
-        std::max(0.0, client.width - popup_width));
-    const double popup_y = combo.y + combo.height + popup_height <= client.height
-        ? combo.y + combo.height : std::max(0.0, combo.y - popup_height);
+    const double overlay_width = std::min(requested_width, client.width);
+    const double overlay_x = std::clamp(combo.x, 0.0,
+        std::max(0.0, client.width - overlay_width));
+    const double overlay_y = combo.y + combo.height + overlay_height <= client.height
+        ? combo.y + combo.height : std::max(0.0, combo.y - overlay_height);
 
     if (editor_) {
-        open_field_list(requested_width, popup_height);
+        open_field_list(requested_width, overlay_height);
         return;
     }
     const std::string prefix(stable_id().value());
     const std::weak_ptr<ComboBox> weak =
         std::static_pointer_cast<ComboBox>(shared_from_this());
-    std::shared_ptr<gui_forms::DropDownLayer> layer = make_control<DropDownLayer>(StableId(prefix + ".popup.layer"));
+    std::shared_ptr<gui_forms::DropDownLayer> layer = make_control<DropDownLayer>(StableId(prefix + ".overlay.layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    std::shared_ptr<gui_forms::ListBox> list = make_control<DropDownList>(StableId(prefix + ".popup.list"));
+    std::shared_ptr<gui_forms::ListBox> list = make_control<DropDownList>(StableId(prefix + ".overlay.list"));
     (*list).set_paint_plane(PaintPlane::overlay);
     (*list).set_items(items_);
     (*list).set_font(font_);
     (*list).set_requested_bounds(
-        {popup_x, popup_y, popup_width, popup_height});
+        {overlay_x, overlay_y, overlay_width, overlay_height});
     if (selected_index_) {
         (*list).select_index(*selected_index_);
     }
     (*layer).add_child(list);
-    PopupToken popup_token = (*window()).open_popup(shared_from_this(), layer);
+    OverlayToken overlay_token = (*window()).open_overlay(shared_from_this(), layer);
 
-    popup_layer_ = layer;
-    popup_list_ = list;
-    popup_token_ = std::move(popup_token);
-    popup_selection_ = (*list).selection_changed().subscribe(
+    overlay_layer_ = layer;
+    overlay_list_ = list;
+    overlay_token_ = std::move(overlay_token);
+    overlay_selection_ = (*list).selection_changed().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(const ListSelectionChange&)>(
-                weak, &ComboBox::popup_selection_changed));
-    popup_activation_ = (*list).item_activated().subscribe(
+                weak, &ComboBox::overlay_selection_changed));
+    overlay_activation_ = (*list).item_activated().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(std::size_t)>(
-                weak, &ComboBox::commit_popup_selection));
-    popup_dismissal_ = (*layer).dismissed().subscribe(
+                weak, &ComboBox::commit_overlay_selection));
+    overlay_dismissal_ = (*layer).dismissed().subscribe(
         *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
             weak, &ComboBox::close_drop_down));
-    if (Event<>* closed = popup_token_.closed_event()) {
-        popup_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = overlay_token_.closed_event()) {
+        overlay_revocation_ = (*closed).subscribe(
             *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
-                weak, &ComboBox::on_popup_revoked));
+                weak, &ComboBox::on_overlay_revoked));
     }
-    popup_scope_ = (*window()).begin_focus_scope(layer, list).value;
+    overlay_scope_ = (*window()).begin_focus_scope(layer, list).value;
     dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
@@ -771,35 +771,35 @@ void ComboBox::open_field_list(double width, double height) {
     const std::weak_ptr<ComboBox> weak =
         std::static_pointer_cast<ComboBox>(shared_from_this());
     (*editor_).close_auto_complete();
-    AnchoredPopupPlacement placement{};
+    AnchoredOverlayPlacement placement{};
     placement.preferred_size = Size{width, height};
-    std::shared_ptr<AnchoredPopupLayer> anchored =
-        make_control<AnchoredPopupLayer>(StableId(prefix + ".popup.layer"), shared_from_this(), placement);
-    std::shared_ptr<gui_forms::ListBox> field_list = make_control<DropDownList>(StableId(prefix + ".popup.list"));
+    std::shared_ptr<AnchoredOverlayLayer> anchored =
+        make_control<AnchoredOverlayLayer>(StableId(prefix + ".overlay.layer"), shared_from_this(), placement);
+    std::shared_ptr<gui_forms::ListBox> field_list = make_control<DropDownList>(StableId(prefix + ".overlay.list"));
     (*field_list).set_focusable(false);
     (*field_list).set_paint_plane(PaintPlane::overlay);
     (*field_list).set_font(font_);
     (*anchored).set_content(field_list);
-    PopupToken field_token = (*window()).open_popup(shared_from_this(), anchored);
-    popup_layer_ = anchored;
-    popup_list_ = field_list;
-    popup_token_ = std::move(field_token);
+    OverlayToken field_token = (*window()).open_overlay(shared_from_this(), anchored);
+    overlay_layer_ = anchored;
+    overlay_list_ = field_list;
+    overlay_token_ = std::move(field_token);
     show_rows();
-    popup_selection_ = (*field_list).selection_changed().subscribe(
+    overlay_selection_ = (*field_list).selection_changed().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(const ListSelectionChange&)>(
-                weak, &ComboBox::popup_selection_changed));
-    popup_activation_ = (*field_list).item_activated().subscribe(
+                weak, &ComboBox::overlay_selection_changed));
+    overlay_activation_ = (*field_list).item_activated().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(std::size_t)>(
-                weak, &ComboBox::commit_popup_selection));
-    popup_dismissal_ = (*anchored).dismiss_requested().subscribe(
-        *this, detail::WeakMemberCallback<void (ComboBox::*)(PopupDismissReason)>(
+                weak, &ComboBox::commit_overlay_selection));
+    overlay_dismissal_ = (*anchored).dismiss_requested().subscribe(
+        *this, detail::WeakMemberCallback<void (ComboBox::*)(OverlayDismissReason)>(
             weak, &ComboBox::on_anchored_dismissal));
-    if (Event<>* closed = popup_token_.closed_event()) {
-        popup_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = overlay_token_.closed_event()) {
+        overlay_revocation_ = (*closed).subscribe(
             *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
-                weak, &ComboBox::on_popup_revoked));
+                weak, &ComboBox::on_overlay_revoked));
     }
     dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
@@ -813,40 +813,40 @@ void ComboBox::clear_rows() noexcept {
 }
 
 void ComboBox::close_drop_down() {
-    if (!dropped_down_ && !popup_layer_) return;
-    closing_popup_ = true;
-    popup_selection_.disconnect();
-    popup_activation_.disconnect();
-    popup_dismissal_.disconnect();
-    if (window() != nullptr && popup_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{popup_scope_}));
+    if (!dropped_down_ && !overlay_layer_) return;
+    closing_overlay_ = true;
+    overlay_selection_.disconnect();
+    overlay_activation_.disconnect();
+    overlay_dismissal_.disconnect();
+    if (window() != nullptr && overlay_scope_ != 0U) {
+        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
     }
-    popup_scope_ = 0U;
-    popup_token_.disconnect();
-    popup_revocation_.disconnect();
-    popup_list_.reset();
-    popup_layer_.reset();
+    overlay_scope_ = 0U;
+    overlay_token_.disconnect();
+    overlay_revocation_.disconnect();
+    overlay_list_.reset();
+    overlay_layer_.reset();
     const bool changed = dropped_down_;
     dropped_down_ = false;
-    closing_popup_ = false;
+    closing_overlay_ = false;
     clear_rows();
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
-void ComboBox::on_popup_revoked() {
-    if (closing_popup_) return;
-    popup_selection_.disconnect();
-    popup_activation_.disconnect();
-    popup_dismissal_.disconnect();
-    popup_revocation_.disconnect();
-    if (window() != nullptr && popup_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{popup_scope_},
+void ComboBox::on_overlay_revoked() {
+    if (closing_overlay_) return;
+    overlay_selection_.disconnect();
+    overlay_activation_.disconnect();
+    overlay_dismissal_.disconnect();
+    overlay_revocation_.disconnect();
+    if (window() != nullptr && overlay_scope_ != 0U) {
+        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_},
                                                      FocusScopeCloseReason::owner_unavailable));
     }
-    popup_scope_ = 0U;
-    popup_list_.reset();
-    popup_layer_.reset();
+    overlay_scope_ = 0U;
+    overlay_list_.reset();
+    overlay_layer_.reset();
     const bool changed = dropped_down_;
     dropped_down_ = false;
     clear_rows();
@@ -854,7 +854,7 @@ void ComboBox::on_popup_revoked() {
     if (changed) publish_change(drop_down_changed_, false);
 }
 
-void ComboBox::commit_popup_selection(std::size_t row) {
+void ComboBox::commit_overlay_selection(std::size_t row) {
     if (row >= rows_.size()) return;
     set_selected_index(rows_[row]);
     close_drop_down();
@@ -1077,14 +1077,14 @@ bool ComboBox::on_semantic_action(SemanticAction action, std::string_view value)
 }
 
 void ComboBox::on_detached_from_window() noexcept {
-    popup_selection_.disconnect();
-    popup_activation_.disconnect();
-    popup_dismissal_.disconnect();
-    popup_revocation_.disconnect();
-    popup_scope_ = 0U;
-    popup_token_.disconnect();
-    popup_list_.reset();
-    popup_layer_.reset();
+    overlay_selection_.disconnect();
+    overlay_activation_.disconnect();
+    overlay_dismissal_.disconnect();
+    overlay_revocation_.disconnect();
+    overlay_scope_ = 0U;
+    overlay_token_.disconnect();
+    overlay_list_.reset();
+    overlay_layer_.reset();
     dropped_down_ = false;
     focused_ = false;
     clear_rows();

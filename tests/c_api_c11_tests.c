@@ -284,7 +284,7 @@ static void test_version_negotiation(void) {
                 api.set_control_text_alignment != NULL &&
                 api.set_button_appearance != NULL &&
                 api.set_panel_border_style != NULL &&
-                api.attach_popup != NULL && api.detach_popup != NULL &&
+                api.attach_overlay != NULL && api.detach_overlay != NULL &&
                 api.abi_version == GF_ABI_VERSION_0_26,
             "negotiated ABI table is incomplete");
 

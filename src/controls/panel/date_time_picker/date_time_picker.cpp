@@ -1,8 +1,8 @@
 #include "gui_forms/controls/panel/date_time_picker/date_time_picker.hpp"
 #include "gui_forms/detail/weak_member_callback.hpp"
 
-#include "calendar_popup/calendar_popup.hpp"
-#include "calendar_popup_layer/calendar_popup_layer.hpp"
+#include "calendar_overlay/calendar_overlay.hpp"
+#include "calendar_overlay_layer/calendar_overlay_layer.hpp"
 #include "date_time_utilities.hpp"
 #include "gui_forms/text.hpp"
 #include "../panel_anatomy.hpp"
@@ -377,85 +377,85 @@ void DateTimePicker::open_drop_down() {
     const double y = below + height <= client.height ? below
         : std::max(0.0, picker.y - height);
     const std::string prefix(stable_id().value());
-    std::shared_ptr<gui_forms::CalendarPopupLayer> layer = make_control<CalendarPopupLayer>(StableId(prefix + ".popup.layer"));
+    std::shared_ptr<gui_forms::CalendarOverlayLayer> layer = make_control<CalendarOverlayLayer>(StableId(prefix + ".overlay.layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    std::shared_ptr<gui_forms::CalendarPopup> calendar = make_control<CalendarPopup>(
-        StableId(prefix + ".popup.calendar"), value_, minimum_, maximum_,
+    std::shared_ptr<gui_forms::CalendarOverlay> calendar = make_control<CalendarOverlay>(
+        StableId(prefix + ".overlay.calendar"), value_, minimum_, maximum_,
         format_provider_);
     (*calendar).set_requested_bounds({x, y, width, height});
     (*layer).add_child(calendar);
-    PopupToken token = (*window()).open_popup(owner, layer);
+    OverlayToken token = (*window()).open_overlay(owner, layer);
 
-    popup_layer_ = layer;
-    popup_calendar_ = calendar;
-    popup_token_ = std::move(token);
+    overlay_layer_ = layer;
+    overlay_calendar_ = calendar;
+    overlay_token_ = std::move(token);
     const std::weak_ptr<DateTimePicker> weak =
         std::static_pointer_cast<DateTimePicker>(shared_from_this());
-    popup_commit_ = (*calendar).committed().subscribe(
+    overlay_commit_ = (*calendar).committed().subscribe(
         *this,
         detail::WeakMemberCallback<void (DateTimePicker::*)(DateTimeValue)>(
-            weak, &DateTimePicker::commit_popup_value));
-    popup_cancel_ = (*calendar).cancelled().subscribe(
+            weak, &DateTimePicker::commit_overlay_value));
+    overlay_cancel_ = (*calendar).cancelled().subscribe(
         *this,
         detail::WeakMemberCallback<void (DateTimePicker::*)()>(
             weak, &DateTimePicker::close_drop_down));
-    popup_dismiss_ = (*layer).dismissed().subscribe(
+    overlay_dismiss_ = (*layer).dismissed().subscribe(
         *this,
         detail::WeakMemberCallback<void (DateTimePicker::*)()>(
             weak, &DateTimePicker::close_drop_down));
-    if (Event<>* closed = popup_token_.closed_event()) {
-        popup_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = overlay_token_.closed_event()) {
+        overlay_revocation_ = (*closed).subscribe(
             *this,
             detail::WeakMemberCallback<void (DateTimePicker::*)()>(
-                weak, &DateTimePicker::on_popup_revoked));
+                weak, &DateTimePicker::on_overlay_revoked));
     }
-    popup_scope_ = (*window()).begin_focus_scope(layer, calendar).value;
+    overlay_scope_ = (*window()).begin_focus_scope(layer, calendar).value;
     dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
 }
 
 void DateTimePicker::close_drop_down() {
-    if (!dropped_down_ && !popup_layer_) return;
-    closing_popup_ = true;
-    popup_commit_.disconnect();
-    popup_cancel_.disconnect();
-    popup_dismiss_.disconnect();
-    if (window() != nullptr && popup_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{popup_scope_}));
+    if (!dropped_down_ && !overlay_layer_) return;
+    closing_overlay_ = true;
+    overlay_commit_.disconnect();
+    overlay_cancel_.disconnect();
+    overlay_dismiss_.disconnect();
+    if (window() != nullptr && overlay_scope_ != 0U) {
+        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
     }
-    popup_scope_ = 0U;
-    popup_token_.disconnect();
-    popup_revocation_.disconnect();
-    popup_calendar_.reset();
-    popup_layer_.reset();
+    overlay_scope_ = 0U;
+    overlay_token_.disconnect();
+    overlay_revocation_.disconnect();
+    overlay_calendar_.reset();
+    overlay_layer_.reset();
     const bool changed = dropped_down_;
     dropped_down_ = false;
-    closing_popup_ = false;
+    closing_overlay_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
-void DateTimePicker::on_popup_revoked() {
-    if (closing_popup_) return;
-    popup_commit_.disconnect();
-    popup_cancel_.disconnect();
-    popup_dismiss_.disconnect();
-    popup_revocation_.disconnect();
-    if (window() != nullptr && popup_scope_ != 0U) {
+void DateTimePicker::on_overlay_revoked() {
+    if (closing_overlay_) return;
+    overlay_commit_.disconnect();
+    overlay_cancel_.disconnect();
+    overlay_dismiss_.disconnect();
+    overlay_revocation_.disconnect();
+    if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(
-            FocusScopeId{popup_scope_}, FocusScopeCloseReason::owner_unavailable));
+            FocusScopeId{overlay_scope_}, FocusScopeCloseReason::owner_unavailable));
     }
-    popup_scope_ = 0U;
-    popup_calendar_.reset();
-    popup_layer_.reset();
+    overlay_scope_ = 0U;
+    overlay_calendar_.reset();
+    overlay_layer_.reset();
     const bool changed = dropped_down_;
     dropped_down_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
-void DateTimePicker::commit_popup_value(DateTimeValue value) {
+void DateTimePicker::commit_overlay_value(DateTimeValue value) {
     set_value(value);
     close_drop_down();
 }

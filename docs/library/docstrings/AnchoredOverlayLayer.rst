@@ -1,10 +1,10 @@
-A transparent full-window overlay that shows one popup control next to an anchor control.
+A transparent full-window overlay that shows one overlay control next to an anchor control.
 
-An anchored popup layer holds one content control, such as a panel with a
+An anchored overlay layer holds one content control, such as a panel with a
 few fields, and keeps it positioned against an anchor, usually the button
 that opened it: below or above the anchor, aligned to its near edge, center
 or far edge, and always inside the window. You open the layer as a window
-popup with `Window::open_popup` and contain focus in it with
+overlay with `Window::open_overlay` and contain focus in it with
 `Window::begin_focus_scope`. When the user clicks outside the content or
 presses Escape, the layer raises `dismiss_requested`; it does not close
 itself, so your application decides what dismissal means. Use a
@@ -19,7 +19,7 @@ anchor
     constructor throws `std::invalid_argument`.
 placement
     The size and placement rules for the content, by default an
-    `AnchoredPopupPlacement{}`. Invalid geometry throws
+    `AnchoredOverlayPlacement{}`. Invalid geometry throws
     `std::invalid_argument`.
 
 Properties
@@ -27,17 +27,17 @@ Properties
 anchor
     The control the content is placed against, or null once it has been
     destroyed. The new anchor must be live, or `std::invalid_argument` is
-    thrown. Changing it moves an open popup at the next layout.
+    thrown. Changing it moves an open overlay at the next layout.
 content
-    The control shown in the popup, or null. `set_content` replaces the
+    The control shown in the overlay, or null. `set_content` replaces the
     previous content, which is removed from the layer. The new content must
     be live, without a parent and not attached to a window, or
     `std::invalid_argument` is thrown.
-placement : default ``AnchoredPopupPlacement{}``
+placement : default ``AnchoredOverlayPlacement{}``
     The content's preferred size (0 by 0 by default, so set it), its
     horizontal alignment to the anchor
-    (`PopupHorizontalAlignment::near` by default), the side it prefers
-    (`PopupVerticalPreference::below` by default), the gap between anchor and
+    (`OverlayHorizontalAlignment::near` by default), the side it prefers
+    (`OverlayVerticalPreference::below` by default), the gap between anchor and
     content (0), the margin kept from the window's edges (4), and whether it
     may flip to the other side (true). Sizes, gap and margin must be finite
     and nonnegative, or `std::invalid_argument` is thrown.
@@ -56,18 +56,18 @@ dismiss_on_escape : default ``true``
 Events
 ------
 dismiss_requested
-    Raised when the user asks to close the popup, with
-    `PopupDismissReason::click_away` or `PopupDismissReason::escape_key`.
-    The popup stays open until the application closes it, typically by
-    ending the focus scope and disconnecting its `PopupToken`. Escape is
+    Raised when the user asks to close the overlay, with
+    `OverlayDismissReason::click_away` or `OverlayDismissReason::escape_key`.
+    The overlay stays open until the application closes it, typically by
+    ending the focus scope and disconnecting its `OverlayToken`. Escape is
     reported before the focused control sees the key.
 
 See Also
 --------
-ContextMenu : A popup menu of commands with its own dismissal.
-PopupToken : Keeps a window popup open and closes it.
-ToolTip : An input-transparent help popup.
-AnchoredPopupPlacement : The placement rules for the content.
+ContextMenu : An overlay menu of commands with its own dismissal.
+OverlayToken : Keeps a window overlay open and closes it.
+ToolTip : An input-transparent help overlay.
+AnchoredOverlayPlacement : The placement rules for the content.
 
 Notes
 -----
@@ -80,13 +80,13 @@ to stay inside the window margin. The placement is resolved again each time
 the layer is laid out, which includes every window resize and every change of
 anchor or placement. The anchor's own area is left out of the layer's hit
 testing, so a click on the anchor reaches the anchor, for example to toggle
-the popup.
+the overlay.
 
-The application owns the popup's lifetime: `Window::open_popup` with the
-anchor and the layer returns the `PopupToken` that keeps it open, and
+The application owns the overlay's lifetime: `Window::open_overlay` with the
+anchor and the layer returns the `OverlayToken` that keeps it open, and
 disconnecting the token closes it. The window may also close it, for example
 when the anchor is hidden or destroyed; the token's `closed_event` tells you
-when. Ending the focus scope returns focus to where it was before the popup
+when. Ending the focus scope returns focus to where it was before the overlay
 opened.
 
 The layer publishes the accessibility role `group` only when it has an
@@ -108,31 +108,31 @@ outside:
            gf::make_control<gf::Panel>(gf::StableId("picker.content"));
        std::shared_ptr<gf::TextBox> value =
            gf::make_control<gf::TextBox>(gf::StableId("picker.value"), "#3366cc");
-       std::shared_ptr<gf::AnchoredPopupLayer> layer;
-       gf::PopupToken token;
+       std::shared_ptr<gf::AnchoredOverlayLayer> layer;
+       gf::OverlayToken token;
        gf::FocusScopeId scope{};
-       gf::PopupDismissReason last_reason = gf::PopupDismissReason::click_away;
+       gf::OverlayDismissReason last_reason = gf::OverlayDismissReason::click_away;
 
        Picker() {
            (*button).set_requested_bounds({20.0, 20.0, 100.0, 28.0});
            (*root).add_child(button);
            (*value).set_requested_bounds({8.0, 8.0, 160.0, 24.0});
            (*content).add_child(value);
-           gf::AnchoredPopupPlacement placement;
+           gf::AnchoredOverlayPlacement placement;
            placement.preferred_size = {180.0, 120.0};
            placement.gap = 4.0;
-           layer = gf::make_control<gf::AnchoredPopupLayer>(
+           layer = gf::make_control<gf::AnchoredOverlayLayer>(
                gf::StableId("picker.layer"), button, placement);
            (*layer).set_content(content);
            gf::on((*layer).dismiss_requested(), *this, &Picker::on_dismiss);
        }
 
        void open(gf::Window& window) {
-           token = window.open_popup(button, layer);
+           token = window.open_overlay(button, layer);
            scope = window.begin_focus_scope(layer, value);
        }
 
-       void on_dismiss(gf::PopupDismissReason reason) {
+       void on_dismiss(gf::OverlayDismissReason reason) {
            last_reason = reason;
            gf::Window* window = (*layer).attached_window();
            if (window != nullptr && scope) {
@@ -152,5 +152,5 @@ outside:
        gf::KeyEvent escape;
        escape.physical_key = gf::PhysicalKey::escape;
        static_cast<void>(window.dispatch_key(escape));
-       // on_dismiss closed the popup; picker.last_reason is escape_key.
+       // on_dismiss closed the overlay; picker.last_reason is escape_key.
    }

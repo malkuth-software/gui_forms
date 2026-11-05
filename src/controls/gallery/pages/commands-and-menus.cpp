@@ -262,7 +262,7 @@ private:
         on(context_menu_.open_changed(), *this, &CommandsAndMenusPage::on_context_open);
         std::shared_ptr<Label> note = label(
             "gallery.commands.context.note",
-            "Rows are temporary popup presentations over stable MenuItemSpec identities. Arrow keys and Enter invoke; Escape and click-away revoke the popup and restore the invoker's focus. Command state (enabled, checked, destructive, availability reason) is snapshotted as the menu opens.",
+            "Rows are temporary overlay presentations over stable MenuItemSpec identities. Arrow keys and Enter invoke; Escape and click-away revoke the overlay and restore the invoker's focus. Command state (enabled, checked, destructive, availability reason) is snapshotted as the menu opens.",
             10.0, 400, muted);
         (*note).set_text_wrapping(TextWrapping::word);
         (*note).set_vertical_alignment(VerticalAlignment::near);
@@ -434,7 +434,7 @@ private:
     // Two Ribbons of the same tab at two widths (stage RB, phase 2b): the
     // wider shows the ladder entry that fits (groups shrunk by the default
     // cycle, the gallery giving up columns, collapsed groups as buttons that
-    // open the group in a popup); the narrower is below its narrowest entry
+    // open the group in an overlay); the narrower is below its narrowest entry
     // and scrolls by whole groups.
     void build_scaling_ribbons(const std::shared_ptr<Surface>& body) {
         std::shared_ptr<LayoutGroup> scaling_group = group(
@@ -515,11 +515,11 @@ private:
     }
 
     void on_styles_button(ButtonBase&) {
-        if ((*drop_down_gallery_).popup_open()) {
-            (*drop_down_gallery_).close_popup();
+        if ((*drop_down_gallery_).overlay_open()) {
+            (*drop_down_gallery_).close_overlay();
             return;
         }
-        static_cast<void>((*drop_down_gallery_).open_popup(gallery_button_));
+        static_cast<void>((*drop_down_gallery_).open_overlay(gallery_button_));
     }
 
     void on_style_preview(const GalleryPreview& preview) {

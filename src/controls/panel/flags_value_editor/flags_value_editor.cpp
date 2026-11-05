@@ -90,7 +90,7 @@ void FlagsValueEditor::set_value(PropertyEnumValue value) {
     const PropertyEnumValue next = std::get<PropertyEnumValue>(*normalized);
     if (value_ == next) return;
     value_ = next;
-    synchronize_popup();
+    synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -101,14 +101,14 @@ void FlagsValueEditor::set_dropped_down(bool dropped_down) {
     else close_drop_down();
 }
 
-void FlagsValueEditor::set_popup_width(double width) {
+void FlagsValueEditor::set_overlay_width(double width) {
     require_mutable();
     if (!std::isfinite(width) || width < 80.0 || width > 1024.0) {
         throw std::invalid_argument(
-            "flags editor popup width must be within [80, 1024]");
+            "flags editor overlay width must be within [80, 1024]");
     }
-    if (popup_width_ == width) return;
-    popup_width_ = width;
+    if (overlay_width_ == width) return;
+    overlay_width_ = width;
     if (dropped_down_) {
         close_drop_down();
         open_drop_down();
@@ -122,13 +122,13 @@ void FlagsValueEditor::open_drop_down() {
     if (!root) return;
     const Rect editor = absolute_bounds();
     const Size client = (*window()).client_size();
-    popup_choice_indices_.clear();
+    overlay_choice_indices_.clear();
     std::vector<std::string> items;
     for (std::size_t index = 0U; index < descriptor_.choices.size(); ++index) {
         const std::int64_t choice = descriptor_.choices[index].value;
         if (choice == 0 || (choice > 0 &&
             std::has_single_bit(static_cast<std::uint64_t>(choice)))) {
-            popup_choice_indices_.push_back(index);
+            overlay_choice_indices_.push_back(index);
             items.push_back(display_label(descriptor_.choices[index].name));
         }
     }
@@ -140,111 +140,111 @@ void FlagsValueEditor::open_drop_down() {
         ? editor.y + editor.height : std::max(0.0, editor.y - height);
     const std::string prefix(stable_id().value());
     std::shared_ptr<gui_forms::detail::PropertyEditorDropDownLayer> layer = make_control<PropertyEditorDropDownLayer>(
-        StableId(prefix + ".popup.layer"));
+        StableId(prefix + ".overlay.layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     std::shared_ptr<gui_forms::CheckedListBox> list = make_control<CheckedListBox>(
-        StableId(prefix + ".popup.list"));
+        StableId(prefix + ".overlay.list"));
     (*list).set_paint_plane(PaintPlane::overlay);
     (*list).set_items(std::move(items));
     (*list).set_check_on_click(true);
-    const double popup_width = std::min(popup_width_, client.width);
-    const double popup_x = std::clamp(
-        editor.x, 0.0, std::max(0.0, client.width - popup_width));
-    (*list).set_requested_bounds({popup_x, y, popup_width, height});
+    const double overlay_width = std::min(overlay_width_, client.width);
+    const double overlay_x = std::clamp(
+        editor.x, 0.0, std::max(0.0, client.width - overlay_width));
+    (*list).set_requested_bounds({overlay_x, y, overlay_width, height});
     (*layer).add_child(list);
-    PopupToken token = (*window()).open_popup(shared_from_this(), layer);
+    OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
 
-    popup_layer_ = layer;
-    popup_list_ = list;
-    popup_token_ = std::move(token);
+    overlay_layer_ = layer;
+    overlay_list_ = list;
+    overlay_token_ = std::move(token);
     const std::weak_ptr<FlagsValueEditor> weak =
         std::static_pointer_cast<FlagsValueEditor>(shared_from_this());
-    popup_check_ = (*list).item_check_state_changed().subscribe(
+    overlay_check_ = (*list).item_check_state_changed().subscribe(
         *this,
         detail::WeakMemberCallback<
             void (FlagsValueEditor::*)(std::size_t, CheckState)>(
-                weak, &FlagsValueEditor::apply_popup_choice));
-    popup_dismissal_ = (*layer).dismissed().subscribe(
+                weak, &FlagsValueEditor::apply_overlay_choice));
+    overlay_dismissal_ = (*layer).dismissed().subscribe(
         *this,
         detail::WeakMemberCallback<void (FlagsValueEditor::*)()>(
             weak, &FlagsValueEditor::close_drop_down));
-    if (Event<>* closed = popup_token_.closed_event()) {
-        popup_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = overlay_token_.closed_event()) {
+        overlay_revocation_ = (*closed).subscribe(
             *this,
             detail::WeakMemberCallback<void (FlagsValueEditor::*)()>(
-                weak, &FlagsValueEditor::on_popup_revoked));
+                weak, &FlagsValueEditor::on_overlay_revoked));
     }
-    popup_scope_ = (*window()).begin_focus_scope(layer, list).value;
+    overlay_scope_ = (*window()).begin_focus_scope(layer, list).value;
     dropped_down_ = true;
-    synchronize_popup();
+    synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
 }
 
 void FlagsValueEditor::close_drop_down() {
-    if (!dropped_down_ && !popup_layer_) return;
-    closing_popup_ = true;
-    popup_check_.disconnect();
-    popup_dismissal_.disconnect();
-    if (window() != nullptr && popup_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{popup_scope_}));
+    if (!dropped_down_ && !overlay_layer_) return;
+    closing_overlay_ = true;
+    overlay_check_.disconnect();
+    overlay_dismissal_.disconnect();
+    if (window() != nullptr && overlay_scope_ != 0U) {
+        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
     }
-    popup_scope_ = 0U;
-    popup_token_.disconnect();
-    popup_revocation_.disconnect();
-    popup_list_.reset();
-    popup_layer_.reset();
-    popup_choice_indices_.clear();
+    overlay_scope_ = 0U;
+    overlay_token_.disconnect();
+    overlay_revocation_.disconnect();
+    overlay_list_.reset();
+    overlay_layer_.reset();
+    overlay_choice_indices_.clear();
     const bool changed = dropped_down_;
     dropped_down_ = false;
-    closing_popup_ = false;
+    closing_overlay_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
-void FlagsValueEditor::on_popup_revoked() {
-    if (closing_popup_) return;
-    popup_check_.disconnect();
-    popup_dismissal_.disconnect();
-    popup_revocation_.disconnect();
-    if (window() != nullptr && popup_scope_ != 0U) {
+void FlagsValueEditor::on_overlay_revoked() {
+    if (closing_overlay_) return;
+    overlay_check_.disconnect();
+    overlay_dismissal_.disconnect();
+    overlay_revocation_.disconnect();
+    if (window() != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*window()).end_focus_scope(
-            FocusScopeId{popup_scope_},
+            FocusScopeId{overlay_scope_},
             FocusScopeCloseReason::owner_unavailable));
     }
-    popup_scope_ = 0U;
-    popup_list_.reset();
-    popup_layer_.reset();
-    popup_choice_indices_.clear();
+    overlay_scope_ = 0U;
+    overlay_list_.reset();
+    overlay_layer_.reset();
+    overlay_choice_indices_.clear();
     const bool changed = dropped_down_;
     dropped_down_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
-void FlagsValueEditor::synchronize_popup() {
-    if (!popup_list_) return;
-    synchronizing_popup_ = true;
+void FlagsValueEditor::synchronize_overlay() {
+    if (!overlay_list_) return;
+    synchronizing_overlay_ = true;
     const std::uint64_t bits = static_cast<std::uint64_t>(value_.value);
-    for (std::size_t popup_index = 0U;
-         popup_index < popup_choice_indices_.size(); ++popup_index) {
+    for (std::size_t overlay_index = 0U;
+         overlay_index < overlay_choice_indices_.size(); ++overlay_index) {
         const std::int64_t choice =
-            descriptor_.choices[popup_choice_indices_[popup_index]].value;
+            descriptor_.choices[overlay_choice_indices_[overlay_index]].value;
         const bool checked = choice == 0
             ? value_.value == 0
             : (bits & static_cast<std::uint64_t>(choice)) ==
                   static_cast<std::uint64_t>(choice);
-        (*popup_list_).set_item_checked(popup_index, checked);
+        (*overlay_list_).set_item_checked(overlay_index, checked);
     }
-    synchronizing_popup_ = false;
+    synchronizing_overlay_ = false;
 }
 
-void FlagsValueEditor::apply_popup_choice(std::size_t popup_index,
+void FlagsValueEditor::apply_overlay_choice(std::size_t overlay_index,
                                            CheckState state) {
-    if (synchronizing_popup_ || state == CheckState::indeterminate ||
-        popup_index >= popup_choice_indices_.size()) return;
+    if (synchronizing_overlay_ || state == CheckState::indeterminate ||
+        overlay_index >= overlay_choice_indices_.size()) return;
     const PropertyEnumChoice& choice =
-        descriptor_.choices[popup_choice_indices_[popup_index]];
+        descriptor_.choices[overlay_choice_indices_[overlay_index]];
     std::uint64_t bits = static_cast<std::uint64_t>(value_.value);
     if (choice.value == 0) {
         if (state == CheckState::checked) bits = 0U;
@@ -261,16 +261,16 @@ void FlagsValueEditor::apply_popup_choice(std::size_t popup_index,
     const std::optional<BindingValue> normalized = convert_property_value(
         BindingValue{static_cast<std::int64_t>(bits)}, property);
     if (!normalized) {
-        synchronize_popup();
+        synchronize_overlay();
         return;
     }
     const PropertyEnumValue next = std::get<PropertyEnumValue>(*normalized);
     if (next == value_) {
-        synchronize_popup();
+        synchronize_overlay();
         return;
     }
     value_ = next;
-    synchronize_popup();
+    synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(value_changed_, value_);
 }
@@ -389,14 +389,14 @@ bool FlagsValueEditor::on_semantic_action(SemanticAction action,
 }
 
 void FlagsValueEditor::on_detached_from_window() noexcept {
-    popup_check_.disconnect();
-    popup_dismissal_.disconnect();
-    popup_revocation_.disconnect();
-    popup_scope_ = 0U;
-    popup_token_.disconnect();
-    popup_list_.reset();
-    popup_layer_.reset();
-    popup_choice_indices_.clear();
+    overlay_check_.disconnect();
+    overlay_dismissal_.disconnect();
+    overlay_revocation_.disconnect();
+    overlay_scope_ = 0U;
+    overlay_token_.disconnect();
+    overlay_list_.reset();
+    overlay_layer_.reset();
+    overlay_choice_indices_.clear();
     dropped_down_ = false;
     focused_ = false;
 }

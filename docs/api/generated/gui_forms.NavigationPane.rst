@@ -20,7 +20,7 @@ gui_forms::NavigationPane
    buttons, ending in a configure button. Dragging the grip up or down shows
    more or fewer large buttons. Collapsed, the pane is a narrow bar with an
    expand button, the selected page's title read from bottom to top and the
-   large buttons as icons; clicking the title opens the content in a popup
+   large buttons as icons; clicking the title opens the content in an overlay
    beside the bar. Use it for a program's top-level areas (mail, calendar,
    contacts) where one area is shown at a time.
 
@@ -30,8 +30,8 @@ gui_forms::NavigationPane
 
       **stable_id** : ``StableId``
          Identity of the control, unique within its window. The content panel is
-         created as ``<stable_id>.content``, the popup's root as
-         ``<stable_id>.popup`` and the configure menu as ``<stable_id>.menu``.
+         created as ``<stable_id>.content``, the overlay's root as
+         ``<stable_id>.overlay`` and the configure menu as ``<stable_id>.menu``.
 
    :Properties:
 
@@ -42,7 +42,7 @@ gui_forms::NavigationPane
 
       **collapsed** : ``bool``, default ``false``
          Whether the pane is the narrow bar. Collapsing closes the configure menu;
-         expanding closes the popup.
+         expanding closes the overlay.
 
       **button_count** : ``std::size_t``, default ``4``
          The number of large buttons the user chose. A count above
@@ -57,7 +57,7 @@ gui_forms::NavigationPane
          :cpp:func:`set_page_hidden <gui_forms::NavigationPane::set_page_hidden>` hides or shows one and :cpp:func:`page_hidden <gui_forms::NavigationPane::page_hidden>` asks.
 
       **expanded_width** : ``double``, default ``220``
-         The width the pane asks for while expanded, and the popup's width, from
+         The width the pane asks for while expanded, and the overlay's width, from
          80 to 1024; a width outside that range throws ``std::out_of_range``.
 
       **image_list** : ``std::shared_ptr<ImageList>``, default none
@@ -69,8 +69,8 @@ gui_forms::NavigationPane
          Whether the pane registers itself as an F6 region of its window while
          attached. A pane nested in another region is not registered.
 
-      **popup_open** : ``bool``, read-only
-         Whether the collapsed pane's popup is open.
+      **overlay_open** : ``bool``, read-only
+         Whether the collapsed pane's overlay is open.
 
       **configure_menu_open** : ``bool``, read-only
          Whether the configure menu is open.
@@ -94,8 +94,8 @@ gui_forms::NavigationPane
          Raised after any part of :cpp:func:`state <gui_forms::NavigationPane::state>` changed: collapsing or expanding, the
          button count, a page hidden or shown, or the page order.
 
-      **popup_open_changed** : ``Event<bool>``
-         Raised after the popup opened (``true``) or closed (``false``).
+      **overlay_open_changed** : ``Event<bool>``
+         Raised after the overlay opened (``true``) or closed (``false``).
 
    :Inherited:
 
@@ -117,10 +117,10 @@ gui_forms::NavigationPane
         - Shows one fewer; false when none are shown.
       * - :cpp:func:`page_hidden <gui_forms::NavigationPane::page_hidden>`
         -  
-      * - :cpp:func:`open_popup <gui_forms::NavigationPane::open_popup>`
-        - Opens the content popup of a collapsed, attached pane; false otherwise.
-      * - :cpp:func:`close_popup <gui_forms::NavigationPane::close_popup>`
-        - Closes the popup.
+      * - :cpp:func:`open_overlay <gui_forms::NavigationPane::open_overlay>`
+        - Opens the content overlay of a collapsed, attached pane; false otherwise.
+      * - :cpp:func:`close_overlay <gui_forms::NavigationPane::close_overlay>`
+        - Closes the overlay.
       * - :cpp:func:`show_configure_menu <gui_forms::NavigationPane::show_configure_menu>`
         - Opens the configure menu of an expanded, attached pane; false otherwise.
       * - :cpp:func:`close_configure_menu <gui_forms::NavigationPane::close_configure_menu>`
@@ -157,11 +157,11 @@ gui_forms::NavigationPane
    options…". Choosing a page selects it; choosing a hidden page also shows it
    again. Hidden pages appear nowhere else.
 
-   The popup is a window overlay beside the bar (on its right, unless only the
+   The overlay is a window overlay beside the bar (on its right, unless only the
    left has room), as tall as the pane and :cpp:func:`expanded_width <gui_forms::NavigationPane::expanded_width>` wide, holding the
    content panel while it is open. Focus moves to its first Tab stop and comes
    back when it closes; the bar stays usable meanwhile. A press anywhere
-   outside the pane and the popup closes it and then goes on to the control
+   outside the pane and the overlay closes it and then goes on to the control
    under the pointer (owner decision DK-27). Escape closes it when the focused
    control inside leaves the key unhandled (a text box takes Escape for
    itself); so does clicking the title again or expanding the pane.
@@ -188,8 +188,8 @@ gui_forms::NavigationPane
    ``arrow_right`` when collapsed), ``content``, ``grip_bar``, ``grip`` (the
    ``grip_dots``), ``button_area``, ``overflow_area``, ``configure_button`` and
    ``configure_glyph`` (the ``customize`` mark), ``collapsed_bar``,
-   ``collapsed_label`` (turned text), the popup's ``popup_shadow``,
-   ``popup_face``, ``popup_header``, ``popup_label`` and ``popup_content`` (in
+   ``collapsed_label`` (turned text), the overlay's ``overlay_shadow``,
+   ``overlay_face``, ``overlay_header``, ``overlay_label`` and ``overlay_content`` (in
    the pane's coordinates, present while it is open) and ``focus``. The large
    buttons are the ``nav_page`` item system (``nav_page_face``,
    ``nav_page_icon``, ``nav_page_label``) and the icons the ``nav_overflow``
@@ -241,7 +241,7 @@ gui_forms::NavigationPane
    .. cpp:function:: bool collapsed() const noexcept
 
       Whether the pane is the narrow bar. Collapsing closes the configure menu;
-      expanding closes the popup.
+      expanding closes the overlay.
 
    .. cpp:function:: void set_collapsed(bool collapsed)
 
@@ -268,7 +268,7 @@ gui_forms::NavigationPane
 
    .. cpp:function:: double expanded_width() const noexcept
 
-      The width the pane asks for while expanded, and the popup's width, from
+      The width the pane asks for while expanded, and the overlay's width, from
       80 to 1024; a width outside that range throws ``std::out_of_range``.
 
    .. cpp:function:: void set_expanded_width(double width)
@@ -294,9 +294,9 @@ gui_forms::NavigationPane
 
       Sets :cpp:func:`focus_region <gui_forms::NavigationPane::focus_region>`; see the property's description above.
 
-   .. cpp:function:: bool popup_open() const noexcept
+   .. cpp:function:: bool overlay_open() const noexcept
 
-      Whether the collapsed pane's popup is open.
+      Whether the collapsed pane's overlay is open.
 
    .. cpp:function:: bool configure_menu_open() const noexcept
 
@@ -326,9 +326,9 @@ gui_forms::NavigationPane
       Raised after any part of :cpp:func:`state <gui_forms::NavigationPane::state>` changed: collapsing or expanding, the
       button count, a page hidden or shown, or the page order.
 
-   .. cpp:function:: Event<bool>& popup_open_changed() noexcept
+   .. cpp:function:: Event<bool>& overlay_open_changed() noexcept
 
-      Raised after the popup opened (``true``) or closed (``false``).
+      Raised after the overlay opened (``true``) or closed (``false``).
 
 
    .. rubric:: Methods
@@ -355,13 +355,13 @@ gui_forms::NavigationPane
 
    .. cpp:function:: bool page_hidden(const PageId& page) const
 
-   .. cpp:function:: bool open_popup()
+   .. cpp:function:: bool open_overlay()
 
-      Opens the content popup of a collapsed, attached pane; false otherwise.
+      Opens the content overlay of a collapsed, attached pane; false otherwise.
 
-   .. cpp:function:: void close_popup() noexcept
+   .. cpp:function:: void close_overlay() noexcept
 
-      Closes the popup.
+      Closes the overlay.
 
    .. cpp:function:: bool show_configure_menu(MenuOpenMode mode = MenuOpenMode::keyboard)
 

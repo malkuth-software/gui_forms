@@ -2527,7 +2527,7 @@ void post_perform_close(NSWindow* window) {
             return;
         }
         // A failed batch needs a fresh composition, including unchanged surfaces.
-        // Reusing cached clips could cover a newly opened popup or hidden control.
+        // Reusing cached clips could cover a newly opened overlay or hidden control.
         const bool retry = !_pendingLivePresentations.empty();
         bool publicationChanged = false;
         std::vector<LiveSurfacePresentation> updates =

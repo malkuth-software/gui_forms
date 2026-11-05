@@ -48,7 +48,7 @@ const SemanticNode* default_action_node(SemanticNode&& control, SemanticAction& 
     const std::vector<SemanticNode>& roots, std::string_view stable_id);
 
 // Whether two snapshots have the same roots in the same order. An open
-// popup replaces a window's roots.
+// overlay replaces a window's roots.
 [[nodiscard]] bool same_semantic_roots(const SemanticSnapshot& left, const SemanticSnapshot& right);
 
 } // namespace gui_forms::test_support

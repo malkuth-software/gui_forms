@@ -409,7 +409,7 @@ add_library(gui_forms_core STATIC
     src/core/window/scheduler/window_scheduler.cpp
     src/core/window/engine_inputs/window_engine_inputs.cpp
     src/core/window/engine_motion/window_engine_motion.cpp
-    src/core/window/popup/popup_token.cpp
+    src/core/window/overlay/overlay_token.cpp
     src/core/window/tool_tips/tool_tip_bubble.cpp
     src/core/window/tool_tips/tool_tip_presenter.cpp
     src/core/window/tool_tips/window_tool_tips.cpp
@@ -784,7 +784,7 @@ add_library(gui_forms_controls STATIC
     src/controls/ribbon/ribbon_application_menu.cpp
     src/controls/ribbon/ribbon_file_area.cpp
     src/controls/backstage_view/backstage_view.cpp
-    src/controls/ribbon/ribbon_group_popup.cpp
+    src/controls/ribbon/ribbon_group_overlay.cpp
     src/controls/ribbon/ribbon_scaling.cpp
     src/controls/status_strip/status_strip.cpp
     src/controls/pages/page_strip/page_strip.cpp
@@ -816,8 +816,8 @@ add_library(gui_forms_controls STATIC
     src/controls/commands/gallery_command/gallery_command.cpp
     src/controls/commands/font_command/font_command.cpp
     src/controls/commands/color_command/color_command.cpp
-    src/controls/panel/anchored_popup_layer/anchored_popup_placement/anchored_popup_placement.cpp
-    src/controls/panel/anchored_popup_layer/anchored_popup_layer.cpp
+    src/controls/panel/anchored_overlay_layer/anchored_overlay_placement/anchored_overlay_placement.cpp
+    src/controls/panel/anchored_overlay_layer/anchored_overlay_layer.cpp
     src/controls/scrollable_control/container_control/container_control.cpp
     src/controls/scrollable_control/container_control/user_control/user_control.cpp
     src/controls/panel/scaled_panel/scaled_panel.cpp
@@ -840,8 +840,8 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/date_time_picker/calendar_grid/calendar_grid.cpp
     src/controls/panel/date_time_picker/date_time_value/date_time_value.cpp
     src/controls/panel/date_time_picker/date_time_format_provider/date_time_format_provider.cpp
-    src/controls/panel/date_time_picker/calendar_popup_layer/calendar_popup_layer.cpp
-    src/controls/panel/date_time_picker/calendar_popup/calendar_popup.cpp
+    src/controls/panel/date_time_picker/calendar_overlay_layer/calendar_overlay_layer.cpp
+    src/controls/panel/date_time_picker/calendar_overlay/calendar_overlay.cpp
     src/controls/panel/date_time_picker/date_time_picker.cpp
     src/controls/panel/month_calendar/month_calendar.cpp
     src/controls/drawing_surface/drawing_surface.cpp
@@ -1549,7 +1549,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/animation-laboratory.cpp
         src/controls/gallery/pages/states-and-diagnostics.cpp
         src/controls/gallery/pages/text-and-input.cpp
-        src/controls/gallery/pages/collections-and-popups.cpp
+        src/controls/gallery/pages/collections-and-overlays.cpp
         src/controls/gallery/pages/values-and-spinners.cpp
         src/controls/gallery/pages/images-and-drawing.cpp
         src/controls/gallery/pages/tabs-and-pages.cpp
@@ -1566,7 +1566,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/choices-and-sections.cpp
         src/controls/gallery/pages/value-editors.cpp
         src/controls/gallery/pages/responsive-layouts.cpp
-        src/controls/gallery/pages/anchored-popups.cpp
+        src/controls/gallery/pages/anchored-overlays.cpp
         src/controls/gallery/pages/live-surfaces.cpp
         src/controls/gallery/pages/typography-and-inspection.cpp
         src/controls/gallery/pages/semantic-feedback.cpp
@@ -1609,7 +1609,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS TypographyDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/animation-laboratory.form
         CLASS AnimationDocument NAMESPACE gui_forms::gallery::pages)
-    gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-popups.form
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/collections-and-overlays.form
         CLASS CollectionsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/images-and-drawing.form
         CLASS ImagesDocument NAMESPACE gui_forms::gallery::pages)
@@ -3363,12 +3363,12 @@ if(GUI_FORMS_BUILD_TESTS)
     add_test(NAME gui_forms_menu_controls_tests
              COMMAND gui_forms_menu_controls_tests)
 
-    add_executable(gui_forms_popup_controls_tests
-        tests/popup_controls_tests.cpp)
-    target_link_libraries(gui_forms_popup_controls_tests PRIVATE
+    add_executable(gui_forms_overlay_controls_tests
+        tests/overlay_controls_tests.cpp)
+    target_link_libraries(gui_forms_overlay_controls_tests PRIVATE
         gui_forms_controls)
-    add_test(NAME gui_forms_popup_controls_tests
-             COMMAND gui_forms_popup_controls_tests)
+    add_test(NAME gui_forms_overlay_controls_tests
+             COMMAND gui_forms_overlay_controls_tests)
 
     add_executable(gui_forms_range_controls_tests tests/range_controls_tests.cpp)
     target_link_libraries(gui_forms_range_controls_tests PRIVATE gui_forms_controls)
@@ -4023,7 +4023,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/containers-and-focus_tests.cpp
             tests/gallery_pages/animation-laboratory_tests.cpp
             tests/gallery_pages/text-and-input_tests.cpp
-            tests/gallery_pages/collections-and-popups_tests.cpp
+            tests/gallery_pages/collections-and-overlays_tests.cpp
             tests/gallery_pages/values-and-spinners_tests.cpp
             tests/gallery_pages/images-and-drawing_tests.cpp
             tests/gallery_pages/tabs-and-pages_tests.cpp
@@ -4042,7 +4042,7 @@ if(GUI_FORMS_BUILD_TESTS)
             tests/gallery_pages/choices-and-sections_tests.cpp
             tests/gallery_pages/value-editors_tests.cpp
             tests/gallery_pages/responsive-layouts_tests.cpp
-            tests/gallery_pages/anchored-popups_tests.cpp
+            tests/gallery_pages/anchored-overlays_tests.cpp
             tests/gallery_pages/live-surfaces_tests.cpp
             tests/gallery_pages/typography-and-inspection_tests.cpp
             tests/gallery_pages/semantic-feedback_tests.cpp

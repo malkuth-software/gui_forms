@@ -35,7 +35,7 @@ struct ToolTipSubject final {
 // layout; it reads the window's switches and settings, finds the thing
 // under the pointer or under focus through the controls' tooltip text and
 // their semantic virtual children, and shows that thing's text in a bubble
-// popup it owns.
+// overlay it owns.
 //
 // States (one at a time, in `state_`):
 // - Idle: nothing waits and nothing shows.
@@ -63,7 +63,7 @@ public:
     void pointer_left();
     void focus_changed(const Control::Ptr& focused);
     void key_handled();
-    // Called after the window arranged its root, before its popups: a bubble
+    // Called after the window arranged its root, before its overlays: a bubble
     // below a control follows the control.
     void root_arranged();
     void text_changed(const Control& control);
@@ -82,21 +82,21 @@ public:
     [[nodiscard]] std::string text() const;
 
 private:
-    // The bubble that shows and the popup that holds it. Closing it (its
+    // The bubble that shows and the overlay that holds it. Closing it (its
     // destructor) disconnects the closed-event subscription first, then the
-    // popup, and releases the controls last: the window detaches the popup's
+    // overlay, and releases the controls last: the window detaches the overlay's
     // tree while they still live, so no stale stable ID remains.
     class Overlay final {
     public:
         Overlay(std::shared_ptr<ToolTipLayer> layer_control, std::shared_ptr<ToolTipBubble> bubble_control,
-                PopupToken popup_token) noexcept;
+                OverlayToken overlay_token) noexcept;
         ~Overlay();
         Overlay(const Overlay&) = delete;
         Overlay& operator=(const Overlay&) = delete;
 
         std::shared_ptr<ToolTipLayer> layer;
         std::shared_ptr<ToolTipBubble> bubble;
-        PopupToken token;
+        OverlayToken token;
         SubscriptionToken closed;
     };
 
@@ -129,9 +129,9 @@ private:
 
         void operator()(FrameTime now) const;
     };
-    // The popup closed under the presenter (its owner left the window or
+    // The overlay closed under the presenter (its owner left the window or
     // was disposed).
-    struct PopupClosed final {
+    struct OverlayClosed final {
         ToolTipPresenter* presenter{};
 
         void operator()() const;
@@ -148,7 +148,7 @@ private:
     void wait(ToolTipOrigin origin, ToolTipSubject subject, FrameTime now);
     void arm(FrameTime deadline);
     void woke(FrameTime now);
-    void popup_closed();
+    void overlay_closed();
     // Opens the bubble for `subject`; leaves the presenter Idle when the
     // subject cannot show (detached, or disabled without show_when_disabled).
     // Returns the visibility event to raise, or none.

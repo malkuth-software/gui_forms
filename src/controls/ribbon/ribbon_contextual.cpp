@@ -116,7 +116,7 @@ void Ribbon::set_application_modes(std::uint32_t modes) {
     application_modes_ = modes;
     // Groups that come and go change the measured ladders.
     ++content_generation_;
-    close_group_popup();
+    close_group_overlay();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     tabs_shown_changed();
 }
@@ -132,7 +132,7 @@ void Ribbon::tabs_shown_changed() {
     }
     if (!selected_tab_) return;
     close_menus();
-    close_group_popup();
+    close_group_overlay();
     selected_tab_.reset();
     hot_ = Hit{};
     pressed_command_.reset();

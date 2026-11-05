@@ -4361,11 +4361,11 @@
         {"name": "configure_glyph", "role": "glyph", "composed_from": null, "states": ["hot", "pressed", "open", "focus_visible"]},
         {"name": "collapsed_bar", "role": "face", "composed_from": null, "states": []},
         {"name": "collapsed_label", "role": "label", "composed_from": null, "states": ["hot", "pressed", "open", "focus_visible"]},
-        {"name": "popup_shadow", "role": "shadow", "composed_from": null, "states": []},
-        {"name": "popup_face", "role": "face", "composed_from": null, "states": []},
-        {"name": "popup_header", "role": "face", "composed_from": null, "states": []},
-        {"name": "popup_label", "role": "caption", "composed_from": null, "states": []},
-        {"name": "popup_content", "role": "well", "composed_from": null, "states": []},
+        {"name": "overlay_shadow", "role": "shadow", "composed_from": null, "states": []},
+        {"name": "overlay_face", "role": "face", "composed_from": null, "states": []},
+        {"name": "overlay_header", "role": "face", "composed_from": null, "states": []},
+        {"name": "overlay_label", "role": "caption", "composed_from": null, "states": []},
+        {"name": "overlay_content", "role": "well", "composed_from": null, "states": []},
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled", "focused", "focus_visible"],
@@ -4437,7 +4437,7 @@
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
         {"name": "options_requested", "payload": "NavigationPaneOptionsRequest", "mutable_payload": false},
         {"name": "state_changed", "payload": "NavigationPaneState", "mutable_payload": false},
-        {"name": "popup_open_changed", "payload": "bool", "mutable_payload": false}
+        {"name": "overlay_open_changed", "payload": "bool", "mutable_payload": false}
       ]
     },
     {
@@ -6264,7 +6264,7 @@
         {"name": "arranged_bounds_changed", "payload": "Rect", "mutable_payload": false},
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
         {"name": "selection_changed", "payload": "std::optional<std::string>", "mutable_payload": false},
-        {"name": "popup_open_changed", "payload": "bool", "mutable_payload": false}
+        {"name": "overlay_open_changed", "payload": "bool", "mutable_payload": false}
       ]
     },
     {
@@ -6808,8 +6808,8 @@
       ]
     },
     {
-      "id": "anchored_popup_layer",
-      "type": "AnchoredPopupLayer",
+      "id": "anchored_overlay_layer",
+      "type": "AnchoredOverlayLayer",
       "kind": "control",
       "parts": [
         {"name": "region", "role": "region", "composed_from": null, "states": []},
@@ -6879,7 +6879,7 @@
         {"name": "arranged_bounds_changed", "payload": "Rect", "mutable_payload": false},
         {"name": "help_requested", "payload": "HelpRequestEvent", "mutable_payload": true},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
-        {"name": "dismiss_requested", "payload": "PopupDismissReason", "mutable_payload": false}
+        {"name": "dismiss_requested", "payload": "OverlayDismissReason", "mutable_payload": false}
       ]
     },
     {

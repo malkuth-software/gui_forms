@@ -65,9 +65,9 @@ enum class AbiHostPhase : std::uint8_t {
 
 struct ControlRecord final {
     std::shared_ptr<Control> control;
-    gui_forms::PopupToken popup_token;
+    gui_forms::OverlayToken overlay_token;
     std::vector<std::pair<std::weak_ptr<Control>, gui_forms::PaintPlane>>
-        popup_plane_overrides;
+        overlay_form_plane_overrides;
     std::thread::id ui_thread;
     std::uint32_t kind{GF_CONTROL_GENERIC};
     std::string name;
@@ -2126,60 +2126,60 @@ public:
         return GF_OK;
     }
 
-    gf_result attach_popup(gf_handle owner_handle, gf_handle popup_handle) {
+    gf_result attach_overlay(gf_handle owner_handle, gf_handle overlay_handle) {
         std::shared_ptr<ControlRecord> owner;
-        std::shared_ptr<ControlRecord> popup;
+        std::shared_ptr<ControlRecord> overlay;
         if (const gf_result result = get_control(owner_handle, owner); result != GF_OK) {
             return result;
         }
-        if (const gf_result result = get_control(popup_handle, popup); result != GF_OK) {
+        if (const gf_result result = get_control(overlay_handle, overlay); result != GF_OK) {
             return result;
         }
-        if ((*owner).ui_thread != (*popup).ui_thread) {
+        if ((*owner).ui_thread != (*overlay).ui_thread) {
             return fail(GF_ERROR_WRONG_THREAD,
-                        "popup owner and root belong to different UI threads");
+                        "overlay owner and root belong to different UI threads");
         }
-        if ((*popup).popup_token.connected()) {
+        if ((*overlay).overlay_token.connected()) {
             return fail(GF_ERROR_INVALID_ARGUMENT,
-                        "popup root is already attached to a window");
+                        "overlay root is already attached to a window");
         }
         Window* const window = (*(*owner).control).attached_window();
         if (window == nullptr) {
             return fail(GF_ERROR_INVALID_ARGUMENT,
-                        "popup owner must be attached to a running window");
+                        "overlay owner must be attached to a running window");
         }
-        (*popup).popup_plane_overrides.clear();
-        promote_nested_popup_forms(popup, (*popup).control);
+        (*overlay).overlay_form_plane_overrides.clear();
+        promote_nested_overlay_forms(overlay, (*overlay).control);
         try {
-            (*popup).popup_token = (*window).open_popup((*owner).control, (*popup).control);
+            (*overlay).overlay_token = (*window).open_overlay((*owner).control, (*overlay).control);
         } catch (...) {
             for (const std::pair<std::weak_ptr<Control>, gui_forms::PaintPlane>&
-                     plane_override : (*popup).popup_plane_overrides) {
+                     plane_override : (*overlay).overlay_form_plane_overrides) {
                 const std::weak_ptr<Control>& weak = plane_override.first;
                 const gui_forms::PaintPlane plane = plane_override.second;
                 if (const Control::Ptr control = weak.lock()) {
                     (*control).set_paint_plane(plane);
                 }
             }
-            (*popup).popup_plane_overrides.clear();
+            (*overlay).overlay_form_plane_overrides.clear();
             throw;
         }
         return GF_OK;
     }
 
-    gf_result detach_popup(gf_handle popup_handle) {
-        std::shared_ptr<ControlRecord> popup;
-        if (const gf_result result = get_control(popup_handle, popup); result != GF_OK) {
+    gf_result detach_overlay(gf_handle overlay_handle) {
+        std::shared_ptr<ControlRecord> overlay;
+        if (const gf_result result = get_control(overlay_handle, overlay); result != GF_OK) {
             return result;
         }
-        (*popup).popup_token.disconnect();
+        (*overlay).overlay_token.disconnect();
         for (const std::pair<std::weak_ptr<Control>, gui_forms::PaintPlane>&
-                 plane_override : (*popup).popup_plane_overrides) {
+                 plane_override : (*overlay).overlay_form_plane_overrides) {
             const std::weak_ptr<Control>& weak = plane_override.first;
             const gui_forms::PaintPlane plane = plane_override.second;
             if (const Control::Ptr control = weak.lock()) (*control).set_paint_plane(plane);
         }
-        (*popup).popup_plane_overrides.clear();
+        (*overlay).overlay_form_plane_overrides.clear();
         return GF_OK;
     }
 
@@ -2733,16 +2733,16 @@ private:
         }
     };
 
-    static void promote_nested_popup_forms(
-        const std::shared_ptr<ControlRecord>& popup,
+    static void promote_nested_overlay_forms(
+        const std::shared_ptr<ControlRecord>& overlay,
         const Control::Ptr& control) {
         if (std::dynamic_pointer_cast<FormControl>(control)) {
-            (*popup).popup_plane_overrides.emplace_back(
+            (*overlay).overlay_form_plane_overrides.emplace_back(
                 control, (*control).paint_plane());
             (*control).set_paint_plane(gui_forms::PaintPlane::control);
         }
         for (const Control::Ptr& child : (*control).children()) {
-            promote_nested_popup_forms(popup, child);
+            promote_nested_overlay_forms(overlay, child);
         }
     }
 

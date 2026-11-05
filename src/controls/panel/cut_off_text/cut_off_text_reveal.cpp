@@ -107,7 +107,7 @@ bool CutOffTextRevealer::reveal(const std::shared_ptr<Control>& owner, CutOffTex
         StableId(prefix + ".face"), std::move(text.text), text.font, text_bounds, text.paint);
     (*face).set_requested_bounds(face_bounds);
     (*layer).add_child(face);
-    PopupToken token = (*host).open_popup(owner, layer);
+    OverlayToken token = (*host).open_overlay(owner, layer);
     if (!token.connected()) return false;
     layer_ = std::move(layer);
     face_ = std::move(face);
