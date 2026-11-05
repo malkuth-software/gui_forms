@@ -38,6 +38,8 @@ struct SubSurfaceChannel final {
     // receives nothing.
     WindowDispatcher key_return_dispatcher{};
     std::weak_ptr<SubSurfaceKeyReturn> key_return{};
+    // The newest text input caret, in the sub-surface's coordinates.
+    std::optional<Rect> text_input_caret{};
     bool stop_requested{};
     // A dispatch or paint wake arrived since the loop last looked.
     bool signalled{};

@@ -114,6 +114,7 @@ void SubSurfaceHost::on_window_active_changed(bool) {
 
 void SubSurfaceHost::on_pointer(PointerEvent& event) {
     if (!thread_) return;
+    hold_capture_for(event);
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::pointer;
     input.pointer = event;
@@ -125,6 +126,41 @@ void SubSurfaceHost::on_pointer(PointerEvent& event) {
     if (input.pointer.action == PointerAction::enter) input.pointer.action = PointerAction::move;
     static_cast<void>((*thread_).post_input(input));
     event.handled = true;
+}
+
+void SubSurfaceHost::hold_capture_for(const PointerEvent& event) {
+    // The primary button is the window's: it captures on the press and
+    // releases before routing the release.
+    SurfaceRoot* const root = attached_surface_root();
+    if (root == nullptr || event.button == PointerButton::none || event.button == PointerButton::primary) return;
+    const std::uint8_t bit = static_cast<std::uint8_t>(1U << static_cast<std::uint8_t>(event.button));
+    const Control::Ptr captured = (*root).captured_control();
+    const bool holding = captured.get() == this;
+    if (event.action == PointerAction::down) {
+        if (holding) {
+            pressed_buttons_ = static_cast<std::uint8_t>(pressed_buttons_ | bit);
+            return;
+        }
+        // Not holding: any buttons recorded before lost their capture
+        // (revoked, or released by the window) and send no release here.
+        pressed_buttons_ = bit;
+        (*root).capture_pointer(shared_from_this(), event.pointer_id == 0U ? 1U : event.pointer_id);
+        took_capture_ = true;
+        return;
+    }
+    if (event.action != PointerAction::up) return;
+    pressed_buttons_ = static_cast<std::uint8_t>(pressed_buttons_ & static_cast<std::uint8_t>(~bit));
+    if (pressed_buttons_ != 0U) return;
+    // Only a capture this host took is released here; one the window took
+    // for a primary press is the window's to release.
+    if (holding && took_capture_) (*root).release_pointer();
+    took_capture_ = false;
+}
+
+std::optional<Rect> SubSurfaceHost::text_input_caret() const {
+    if (!thread_) return std::nullopt;
+    const std::optional<Rect> caret = (*thread_).text_input_caret();
+    return caret;
 }
 
 void SubSurfaceHost::on_key(KeyEvent& event) {
@@ -263,6 +299,8 @@ void SubSurfaceHost::stop_thread() noexcept {
     (*key_return_).revoke();
     key_return_.reset();
     keyboard_inside_ = false;
+    pressed_buttons_ = 0U;
+    took_capture_ = false;
     (*thread_).stop();
     thread_.reset();
     pixel_width_ = 0U;

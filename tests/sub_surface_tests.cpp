@@ -15,6 +15,7 @@
 #include <cstdint>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -460,13 +461,16 @@ struct InputLog final {
 };
 
 // A focusable control that logs its focus, keys and pointer presses. It
-// handles every key but Tab, which goes on to traversal.
+// handles every key but Tab, which goes on to traversal, and names a text
+// input caret at (5, 3), one unit wide and twelve high.
 class InputRecorder final : public Control {
 public:
     InputRecorder(StableId stable_id, std::string name, std::shared_ptr<InputLog> log)
         : Control(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
         set_focusable(true);
     }
+
+    [[nodiscard]] std::optional<Rect> text_input_caret() const override { return Rect{5.0, 3.0, 1.0, 12.0}; }
 
 protected:
     void on_focus_changed(bool focused) override {
@@ -564,6 +568,23 @@ public:
     return false;
 }
 
+// A focusable control that names no caret.
+class PlainStop final : public Control {
+public:
+    explicit PlainStop(StableId stable_id) : Control(std::move(stable_id)) { set_focusable(true); }
+};
+
+// Waits until the window's text input caret is `expected`.
+[[nodiscard]] bool wait_for_caret(Window& window, Rect expected) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        const std::optional<Rect> caret = window.text_input_caret();
+        if (caret && *caret == expected) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
 // Runs the window's posted work until `focused` has the window's focus.
 [[nodiscard]] bool drain_until_focused(Window& window, const Control::Ptr& focused) {
     const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
@@ -579,6 +600,20 @@ public:
 // sequences and none dropped; focus enters at the first stop; Tab moves
 // inside and, at the last stop, comes back to the parent instead of
 // wrapping; pointer positions arrive in the sub-surface's coordinates.
+// Without a caret of its own, the focused control's left edge is used.
+void caret_falls_back_to_left_edge() {
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("caret.root"));
+    std::shared_ptr<PlainStop> stop = std::make_shared<PlainStop>(StableId("caret.stop"));
+    (*stop).set_requested_bounds(Rect{10.0, 12.0, 30.0, 20.0});
+    (*root).add_child(stop);
+    Window window(root, Size{100.0, 100.0});
+    window.flush();
+    require(!window.text_input_caret(), "no caret without focus");
+    require(window.request_focus(stop), "focus the stop");
+    const std::optional<Rect> caret = window.text_input_caret();
+    require(caret && *caret == Rect{10.0, 12.0, 1.0, 20.0}, "the left edge, one unit wide");
+}
+
 void input_reaches_sub_surface_in_order() {
     std::shared_ptr<InputLog> log = std::make_shared<InputLog>();
     std::shared_ptr<LiveSurface> surface = LiveSurface::create({100U, 30U});
@@ -677,6 +712,9 @@ void host_forwards_input_and_focus() {
     require(wait_for_host_inputs(*host, 1U), "focus entry is dispatched");
     std::vector<std::string> events = events_of(*inner);
     require(!events.empty() && events.back() == "A:focus", "Tab enters at the first stop");
+    // The input method follows A's caret, published by the sub-surface and
+    // placed in the window by the host's offset.
+    require(wait_for_caret(window, Rect{25.0, 43.0, 1.0, 12.0}), "the caret is the sub-surface's, in the window");
 
     // Tab inside: B. Tab again: back to the window, which moves past the host.
     require(window.dispatch_key(key_down(PhysicalKey::tab)), "the host takes Tab");
@@ -693,6 +731,7 @@ void host_forwards_input_and_focus() {
     require(wait_for_host_inputs(*host, entered), "the second entry is dispatched");
     events = events_of(*inner);
     require(events.back() == "B:focus", "Shift+Tab enters at the last stop");
+    require(wait_for_caret(window, Rect{75.0, 43.0, 1.0, 12.0}), "the caret follows focus to B");
 
     // A press on A's part of the host, in window coordinates.
     PointerEvent press;
@@ -713,6 +752,25 @@ void host_forwards_input_and_focus() {
         require((*inner).last_pointer.x == 13.0 && (*inner).last_pointer.y == 9.0,
                 "in the sub-surface's coordinates");
     }
+
+    // A secondary press holds the window's capture for the host, so a drag
+    // that leaves the region still reaches the sub-surface; the release
+    // gives it back.
+    PointerEvent context = press;
+    context.button = PointerButton::secondary;
+    require(window.dispatch_pointer(context), "the host takes a secondary press");
+    require(window.captured_control() == host, "the host holds the capture");
+    PointerEvent outside;
+    outside.action = PointerAction::move;
+    outside.position = Point{195.0, 95.0};
+    const std::uint64_t before_drag = (*host).statistics().inputs_received;
+    static_cast<void>(window.dispatch_pointer(outside));
+    require((*host).statistics().inputs_received == before_drag + 1U, "a move outside the region still goes in");
+    PointerEvent context_up = context;
+    context_up.action = PointerAction::up;
+    context_up.position = outside.position;
+    static_cast<void>(window.dispatch_pointer(context_up));
+    require(!window.captured_control(), "the release gives the capture back");
 
     // Deactivation leaves the sub-surface's keyboard focus and activation
     // restores it, at the control that had it; letters reach that control.
@@ -742,6 +800,7 @@ int main() {
     content_failure_is_reported();
     start_stop_stress();
     host_in_window();
+    caret_falls_back_to_left_edge();
     input_reaches_sub_surface_in_order();
     host_forwards_input_and_focus();
     return 0;

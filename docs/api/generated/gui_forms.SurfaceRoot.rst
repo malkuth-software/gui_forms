@@ -399,6 +399,8 @@ gui_forms::SurfaceRoot
         - The frontmost control eligible for input at a point in window coordinates, searching open popups first, or null.
       * - :cpp:func:`request_focus <gui_forms::SurfaceRoot::request_focus>`
         - Moves keyboard focus to a control, or clears it with null.
+      * - :cpp:func:`text_input_caret <gui_forms::SurfaceRoot::text_input_caret>`
+        - The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control.
       * - :cpp:func:`append_interactions <gui_forms::SurfaceRoot::append_interactions>`
         - The interactions a window raises, by the name of their event accessor, appended in declaration order: the window events the C ABI subscribes by name (stage C, tools/abi_event_catalog.py).
       * - :cpp:func:`request_help <gui_forms::SurfaceRoot::request_help>`
@@ -1086,6 +1088,10 @@ gui_forms::SurfaceRoot
       if the control is not focusable or not eligible for input, lies outside
       the active focus scope, or validation of the control losing focus
       refused the move.
+
+   .. cpp:function:: std::optional<Rect> text_input_caret()
+
+      The box an input method places its windows by, in this root's coordinates: the focused control's Control::text_input_caret, or a one-unit-wide box at its left edge when it names none; none without an eligible focused control. Hosts read it when the input method asks. Root thread only.
 
    .. cpp:function:: static void append_interactions(std::vector<InteractionDeclaration>& interactions)
 

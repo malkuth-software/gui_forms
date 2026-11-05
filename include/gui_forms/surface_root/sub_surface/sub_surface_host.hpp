@@ -74,6 +74,8 @@ protected:
     void on_key(KeyEvent& event) override;
     void on_text_input(TextInputEvent& event) override;
     void on_focus_changed(bool focused) override;
+    // The sub-surface's published caret: its coordinates are the host's.
+    [[nodiscard]] std::optional<Rect> text_input_caret() const override;
 
 private:
     // The sub-surface's key return target for one thread. The host owns it
@@ -86,6 +88,9 @@ private:
     // goes when it enters.
     void update_keyboard_focus(SubSurfaceFocusEntry entry);
     void on_window_active_changed(bool active);
+    // Takes or releases the window's pointer capture for a forwarded press
+    // or release (pressed_buttons_).
+    void hold_capture_for(const PointerEvent& event);
     // A key the sub-surface returned (KeyReturn): continues in the window.
     void continue_returned_key(const KeyEvent& event);
     // Starts the thread when it can, and sends a configuration when the
@@ -117,6 +122,14 @@ private:
     std::shared_ptr<KeyReturn> key_return_{};
     // The sub-surface was last told it has keyboard focus.
     bool keyboard_inside_{};
+    // The non-primary pointer buttons forwarded down and not yet up, one bit
+    // per PointerButton. While any is down the host holds the window's
+    // pointer capture, so a drag that leaves the region still reaches the
+    // sub-surface (design note section 4); the window itself captures only
+    // for the primary button.
+    std::uint8_t pressed_buttons_{};
+    // The host, not the window, took the capture pressed_buttons_ holds.
+    bool took_capture_{};
     std::uint64_t returned_keys_discarded_{};
 };
 

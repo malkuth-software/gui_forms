@@ -188,6 +188,15 @@ restores the control focused before. The sub-surface is active only while
 the host has focus in an active window. `SubSurfaceStatistics` counts the
 inputs received and dispatched and the keys returned.
 
+A secondary or middle press on the host holds the window's pointer capture
+until its release, as the window already does for the primary button, so a
+drag that leaves the region still reaches the sub-surface. For an input
+method, `SurfaceRoot::text_input_caret` gives the caret box in window
+coordinates: the focused control's `Control::text_input_caret`, or a narrow
+box at its left edge. A sub-surface publishes its own caret at the end of
+each turn and the host reports it at its offset, so the input method never
+waits on the sub-surface's thread.
+
 ## Reading the counters
 
 `MetricsSnapshot` carries `paint_passes`, `controls_painted`,

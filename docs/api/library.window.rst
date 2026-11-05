@@ -1068,6 +1068,12 @@ Related types
 
       *Protected.*
 
+   .. cpp:function:: std::optional<Rect> text_input_caret() const override
+
+      *Protected.*
+
+      The sub-surface's published caret: its coordinates are the host's.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: SubSurfaceInput final
@@ -1182,6 +1188,10 @@ Related types
       What the content threw, for state failed; empty otherwise.
 
    .. cpp:function:: SubSurfaceStatistics statistics() const
+
+   .. cpp:function:: std::optional<Rect> text_input_caret() const
+
+      The sub-surface's text input caret (SurfaceRoot::text_input_caret) in its own coordinates, as its thread last published it at the end of a turn; none while nothing there has focus (design note section 4: the input method follows it without a synchronous call).
 
 
    .. rubric:: Methods

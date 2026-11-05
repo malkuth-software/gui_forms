@@ -188,6 +188,8 @@ private:
     void dispatch_inputs(SubSurface& root);
     void produce(SubSurface& root);
     void publish();
+    // Publishes the root's text input caret when it changed.
+    void publish_caret(SubSurface& root);
     void record_end(SubSurfaceState state, std::string failure) noexcept;
 
     std::shared_ptr<detail::SubSurfaceChannel> channel_;
@@ -215,6 +217,7 @@ private:
     std::optional<FrameTime> pacing_wake_{};
     // The input wait() took from the channel; empty between turns.
     std::vector<detail::SubSurfaceInputRecord> inputs_{};
+    std::optional<Rect> published_caret_{};
 };
 
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
@@ -273,6 +276,7 @@ void SubSurfaceLoop::run_tree() {
         static_cast<void>(root.poll_frame_schedule(FrameClock::now()));
         root.flush();
         produce(root);
+        publish_caret(root);
     }
     // Leaving the scope releases the tree on this thread (SubSurface's
     // destructor), before run() releases the content.
@@ -441,6 +445,14 @@ void SubSurfaceLoop::produce(SubSurface& root) {
     publish();
 }
 
+void SubSurfaceLoop::publish_caret(SubSurface& root) {
+    const std::optional<Rect> caret = root.text_input_caret();
+    if (caret == published_caret_) return;
+    published_caret_ = caret;
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    (*channel_).text_input_caret = caret;
+}
+
 void SubSurfaceLoop::publish() {
     LiveSurfaceWriteLease lease = (*surface_).try_acquire_write(true);
     if (!lease) {
@@ -581,6 +593,11 @@ std::string SubSurfaceThread::failure() const {
 SubSurfaceStatistics SubSurfaceThread::statistics() const {
     const std::lock_guard<std::mutex> lock((*channel_).mutex);
     return (*channel_).statistics;
+}
+
+std::optional<Rect> SubSurfaceThread::text_input_caret() const {
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    return (*channel_).text_input_caret;
 }
 
 } // namespace gui_forms

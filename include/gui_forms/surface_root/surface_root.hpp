@@ -592,6 +592,12 @@ public:
     [[nodiscard]] Control::Ptr hit_test(Point position);
     bool request_focus(const Control::Ptr& control);
     [[nodiscard]] Control::Ptr focused_control() const noexcept { return focused_.lock(); }
+    // The box an input method places its windows by, in this root's
+    // coordinates: the focused control's Control::text_input_caret, or a
+    // one-unit-wide box at its left edge when it names none; none without
+    // an eligible focused control. Hosts read it when the input method
+    // asks. Root thread only.
+    [[nodiscard]] std::optional<Rect> text_input_caret();
     // Raised by request_focus after focus moved, once the controls' own
     // focus notifications (on_focus_changed, focus_observed) ran; not raised
     // when focus is dropped because the focused control left the window. A

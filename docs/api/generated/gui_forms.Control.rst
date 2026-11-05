@@ -1596,6 +1596,10 @@ gui_forms::Control
       Override to react when the control gains or loses focus. It runs before
       :cpp:func:`focus_observed <gui_forms::Control::focus_observed>` is raised.
 
+   .. cpp:function:: virtual std::optional<Rect> text_input_caret() const
+
+      Where an input method places its composition and candidate windows while this control has focus: the caret's box, in local coordinates. The base returns none, and SurfaceRoot::text_input_caret then uses a one-unit-wide box at the control's left edge.
+
    .. cpp:function:: virtual void on_focus_cue_changed(bool visible)
 
       Window focus visibility is input-modality state, distinct from actual focus. Controls with bounded focus-cue presentation may retarget here.

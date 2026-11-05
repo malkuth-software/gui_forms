@@ -8,6 +8,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -240,6 +241,11 @@ public:
     // What the content threw, for state failed; empty otherwise.
     [[nodiscard]] std::string failure() const;
     [[nodiscard]] SubSurfaceStatistics statistics() const;
+    // The sub-surface's text input caret (SurfaceRoot::text_input_caret) in
+    // its own coordinates, as its thread last published it at the end of a
+    // turn; none while nothing there has focus (design note section 4: the
+    // input method follows it without a synchronous call).
+    [[nodiscard]] std::optional<Rect> text_input_caret() const;
 
 private:
     std::shared_ptr<detail::SubSurfaceChannel> channel_;
