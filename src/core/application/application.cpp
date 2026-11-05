@@ -94,6 +94,17 @@ bool valid_window_entry(const ApplicationWindow& entry) {
     const Size minimum = entry.options.minimum_size;
     if (!valid_size(initial) || !valid_size(minimum)) return false;
     if (minimum.width > initial.width || minimum.height > initial.height) return false;
+    // A popup has an owner, is neither a tool nor a floating window, and
+    // its origin is a finite desktop point in range.
+    if (entry.popup.has_value()) {
+        const DesktopLogicalPoint origin = (*entry.popup).origin;
+        const double bound = HostWindowing::maximum_desktop_coordinate;
+        const bool origin_valid = std::isfinite(origin.x) && std::isfinite(origin.y) &&
+                                  std::abs(origin.x) <= bound && std::abs(origin.y) <= bound;
+        const bool popup_valid = !entry.tool_window && entry.floating == HostWindowFloating::none &&
+                                 !entry.owner_id.empty() && origin_valid;
+        return popup_valid;
+    }
     // A floating window has an owner and is not a tool window in the host's
     // sense (HostWindowFloating).
     if (entry.floating == HostWindowFloating::none) return true;
@@ -104,6 +115,10 @@ bool valid_window_entry(const ApplicationWindow& entry) {
 bool primary_window_entry(const ApplicationWindow& entry) noexcept {
     const bool primary = entry.owner_id.empty() && !entry.tool_window;
     return primary;
+}
+
+void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept {
+    model.application_window_ = state;
 }
 
 void revoke_window_state(ApplicationWindowState& state) noexcept {
@@ -248,6 +263,8 @@ ApplicationResult Application::validate(const std::vector<ApplicationWindow>& wi
         ApplicationResult invalid{ApplicationError::invalid_argument};
         invalid.window_index = index;
         if (!detail::valid_window_entry(entry)) return invalid;
+        // A popup opens during the run only (SurfaceRoot::open_native_popup).
+        if (entry.popup.has_value()) return invalid;
         if (!(*entry.model).check_access()) {
             invalid.error = ApplicationError::wrong_thread;
             return invalid;

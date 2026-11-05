@@ -79,11 +79,11 @@ struct Desk final {
 };
 
 void test_kinds_traits_and_clamp() {
-    require(host_window_kind(false, false, HostWindowFloating::none) == HostWindowKind::primary &&
-                host_window_kind(true, false, HostWindowFloating::none) == HostWindowKind::standard &&
-                host_window_kind(true, true, HostWindowFloating::none) == HostWindowKind::tool &&
-                host_window_kind(true, false, HostWindowFloating::tool) == HostWindowKind::floating_tool &&
-                host_window_kind(true, false, HostWindowFloating::document) ==
+    require(host_window_kind(false, false, HostWindowFloating::none, false) == HostWindowKind::primary &&
+                host_window_kind(true, false, HostWindowFloating::none, false) == HostWindowKind::standard &&
+                host_window_kind(true, true, HostWindowFloating::none, false) == HostWindowKind::tool &&
+                host_window_kind(true, false, HostWindowFloating::tool, false) == HostWindowKind::floating_tool &&
+                host_window_kind(true, false, HostWindowFloating::document, false) ==
                     HostWindowKind::floating_document,
             "window kinds wrong");
     const HostWindowKindTraits tool = host_window_kind_traits(HostWindowKind::floating_tool);

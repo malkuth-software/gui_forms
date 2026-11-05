@@ -79,6 +79,8 @@ gui_forms::Window
         -  
       * - :cpp:func:`take_live_surface_presentations <gui_forms::Window::take_live_surface_presentations>`
         - Returns surfaces with a new generation or a changed placement (destination, clip or crossing overlays).
+      * - :cpp:func:`open_native_popup <gui_forms::Window::open_native_popup>`
+        - Opens ``content``, a live detached root, in a native popup window owned by this window (owner, 2026-11-04; native_popup.hpp), at ``bounds`` in this window's client area (logical units; each extent 1 to 32768), kept inside the work area of its monitor.
       * - :cpp:func:`set_scale <gui_forms::Window::set_scale>`
         -  
       * - :cpp:func:`set_live_surface_idle_wake_handler <gui_forms::Window::set_live_surface_idle_wake_handler>`
@@ -269,6 +271,10 @@ gui_forms::Window
    .. cpp:function:: std::vector<LiveSurfacePresentation> take_live_surface_presentations(bool include_unchanged = false, bool* publication_changed = nullptr)
 
       Returns surfaces with a new generation or a changed placement (destination, clip or crossing overlays). Failed native batches request unchanged generations too, with current visibility and overlay clips; callers must not retry stale placements. Optional publication_changed reports newly observed producer generations, independently of composition-only updates or hidden control sampling.
+
+   .. cpp:function:: NativePopupToken open_native_popup(const Control::Ptr& owner, const Control::Ptr& content, Rect bounds, const NativePopupOptions& options)
+
+      Opens ``content``, a live detached root, in a native popup window owned by this window (owner, 2026-11-04; native_popup.hpp), at ``bounds`` in this window's client area (logical units; each extent 1 to 32768), kept inside the work area of its monitor. Only a true root window has this capability: a sub-surface is not a Window (owner, 2026-11-05). ``owner`` is a live, visible control of this window; the popup closes when it is gone. When the run cannot open a popup window (no run, a host without popup windows, a host refusal; the token's refusal() names which) the content opens as an overlay at ``bounds`` instead, or nothing opens (NativePopupOptions::fallback). std::logic_error for an unavailable owner or content, std::invalid_argument for bounds out of range or an invalid backdrop chain, changing nothing. UI thread.
 
    .. cpp:function:: void set_scale(double scale)
 

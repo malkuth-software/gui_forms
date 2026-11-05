@@ -229,6 +229,8 @@ add_custom_command(
 
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
+    src/core/application/native_popup.cpp
+    src/core/window/native_popup/native_popup_window.cpp
     src/core/application/window_frame_drag.cpp
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
@@ -3893,6 +3895,9 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_floating_windows_tests tests/floating_windows_tests.cpp)
     target_link_libraries(gui_forms_floating_windows_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_floating_windows_tests COMMAND gui_forms_floating_windows_tests)
+    add_executable(gui_forms_native_popup_tests tests/native_popup_tests.cpp)
+    target_link_libraries(gui_forms_native_popup_tests PRIVATE gui_forms_host_headless)
+    add_test(NAME gui_forms_native_popup_tests COMMAND gui_forms_native_popup_tests)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_shared_resources_tests COMMAND gui_forms_shared_resources_tests)

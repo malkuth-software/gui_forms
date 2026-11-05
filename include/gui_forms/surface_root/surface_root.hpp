@@ -65,6 +65,12 @@ class RecordingPainter;
 class ToolTipPresenter;
 class MessageBoxHelpRoute;
 
+} // namespace detail
+
+namespace detail {
+struct ApplicationWindowState;
+void attach_application_window(SurfaceRoot& model, const std::shared_ptr<ApplicationWindowState>& state) noexcept;
+
 // What a window offers the help requests no handler of its own took
 // (Window::request_help): each HelpProvider of the window is one, offered in
 // the order the providers were created. True when it handled the request.
@@ -1779,6 +1785,12 @@ private:
     Event<const WindowBackdropGrant&> backdrop_changed_;
     // The chain in force (set_backdrop_chain); none by default.
     std::optional<BackdropChain> backdrop_chain_{};
+    // This window's state in its application run, while it is a ready
+    // window of one (detail::attach_application_window); observed, never
+    // owned. Empty for a window outside a run.
+    friend void detail::attach_application_window(SurfaceRoot& model,
+                                                  const std::shared_ptr<detail::ApplicationWindowState>& state) noexcept;
+    std::weak_ptr<detail::ApplicationWindowState> application_window_{};
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

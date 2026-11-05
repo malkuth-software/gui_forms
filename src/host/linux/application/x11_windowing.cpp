@@ -50,7 +50,7 @@ HostWindowAdmission X11Windowing::open(LinuxApplicationWindow entry,
     owner_xid = (*owner).xid;
   }
   const HostWindowKind kind =
-      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating);
+      host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, false);
   const bool floating = host_window_kind_traits(kind).floating;
   HostWindowDescription description;
   description.stable_id = entry.stable_id;

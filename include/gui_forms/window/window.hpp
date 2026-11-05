@@ -4,6 +4,10 @@
 
 namespace gui_forms {
 
+// Native popups (gui_forms/window/native_popup/native_popup.hpp).
+class NativePopupToken;
+struct NativePopupOptions;
+
 // A top-level window: a SurfaceRoot (its control tree, thread and
 // dispatcher) presented through a native host.
 class Window : public SurfaceRoot {
@@ -80,9 +84,26 @@ public:
     void set_live_surface_idle_wake_handler(std::function<void()> wake);
     void set_live_surface_idle_waiting(bool waiting);
 
+    // Opens `content`, a live detached root, in a native popup window owned
+    // by this window (owner, 2026-11-04; native_popup.hpp), at `bounds` in
+    // this window's client area (logical units; each extent 1 to 32768),
+    // kept inside the work area of its monitor. Only a true root window has
+    // this capability: a sub-surface is not a Window (owner, 2026-11-05).
+    // `owner` is a live, visible control of this window; the popup closes
+    // when it is gone. When the run cannot open a popup window (no run, a
+    // host without popup windows, a host refusal; the token's refusal()
+    // names which) the content opens as an overlay at `bounds` instead, or
+    // nothing opens (NativePopupOptions::fallback). std::logic_error for an
+    // unavailable owner or content, std::invalid_argument for bounds out of
+    // range or an invalid backdrop chain, changing nothing. UI thread.
+    [[nodiscard]] NativePopupToken open_native_popup(const Control::Ptr& owner, const Control::Ptr& content,
+                                                     Rect bounds, const NativePopupOptions& options);
+
 private:
     friend class SurfaceRoot;
     friend class HostSession;
+    // Native popups opened by this window, numbering their stable ids.
+    std::uint64_t native_popup_serial_{};
     // Called by HostSession: seeds the window's bindings with the host's
     // defaults unless they are seeded already.
     void install_host_key_map(const KeyMap& defaults);

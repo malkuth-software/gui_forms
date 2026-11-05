@@ -78,6 +78,10 @@ Related types
      - KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
    * - :cpp:class:`LiveSurfacePresentation <gui_forms::LiveSurfacePresentation>`
      - LiveSurfacePresentation is one immutable host-consumption record coupling a retained control identity and surface to stable destination geometry and an overlay-safe clip fragment.
+   * - :cpp:class:`NativePopupOptions <gui_forms::NativePopupOptions>`
+     -  
+   * - :cpp:class:`NativePopupToken <gui_forms::NativePopupToken>`
+     - Keeps one popup open (Window::open_native_popup).
    * - :cpp:class:`PaintLeaseSnapshot <gui_forms::PaintLeaseSnapshot>`
      - PaintLeaseSnapshot exposes coherent content/render/present revisions, surface epoch, lease outcomes, coalesced wakes, receipt acceptance, and mutation-during-render state without granting mutation authority.
    * - :cpp:class:`PaintReceipt <gui_forms::PaintReceipt>`
@@ -664,6 +668,67 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: NativePopupOptions final
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:member:: HostPopupFocus focus
+
+      Declared per popup; there is no global rule (owner, 2026-11-04). Default: ``{HostPopupFocus::passive}``.
+
+   .. cpp:member:: std::optional<BackdropChain> backdrop
+
+      The popup window's backdrop chain (Window::set_backdrop_chain): a blur is the system material granted to the popup window, and GUI.Forms paints only the tint. None by default.
+
+   .. cpp:member:: NativePopupFallback fallback
+
+      Default: ``{NativePopupFallback::overlay}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: NativePopupToken final
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   Keeps one popup open (Window::open_native_popup). Destroying or disconnecting the token closes the popup, as does the death of the control that opened it or the closing of its window by the host. UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: NativePopupToken() noexcept = default
+
+   .. cpp:function:: NativePopupToken(NativePopupToken&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool connected() const noexcept
+
+      Whether the popup is still open.
+
+   .. cpp:function:: NativePopupSurface surface() const noexcept
+
+   .. cpp:function:: NativePopupRefusal refusal() const noexcept
+
+      Why the native path did not open the popup; none when it did, and for an empty token.
+
+   .. cpp:function:: Window* window() const noexcept
+
+      The native popup's own window model while it is open; null for an overlay or once it has closed.
+
+   .. cpp:function:: HostWindowId id() const noexcept
+
+      The native popup window's identity in the run; invalid for an overlay or once it has closed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void disconnect() noexcept
+
+      Closes the popup: destroys its native window, or closes the overlay.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PaintLeaseSnapshot final
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>``
@@ -1196,6 +1261,42 @@ Enumerations
    .. cpp:enumerator:: explicit_close
 
    .. cpp:enumerator:: owner_unavailable
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NativePopupFallback
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: refuse
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NativePopupRefusal
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: no_run
+
+   .. cpp:enumerator:: unsupported
+
+   .. cpp:enumerator:: host_refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NativePopupSurface
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: native
+
+   .. cpp:enumerator:: overlay
 
 .. cpp:namespace:: gui_forms
 

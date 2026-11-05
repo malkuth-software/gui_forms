@@ -128,6 +128,17 @@ struct ApplicationWindowOptions final {
     std::function<void(const HostWindowFrameEvent&)> frame_changed{};
 };
 
+// A native popup window entry (owner, 2026-11-04): opened only during the
+// run, owned by `owner_id`, never a tool or floating window. Programs open
+// popups through SurfaceRoot::open_native_popup, which fills this in.
+struct ApplicationPopup final {
+    HostPopupFocus focus{HostPopupFocus::passive};
+    // The client area's origin in desktop logical units, each coordinate
+    // within HostWindowing::maximum_desktop_coordinate; the client size is
+    // ApplicationWindowOptions::initial_size.
+    DesktopLogicalPoint origin{};
+};
+
 struct ApplicationWindow final {
     std::string stable_id{};
     std::string owner_id{};
@@ -142,6 +153,8 @@ struct ApplicationWindow final {
     // does not. The policy decides when the window is on screen; show and
     // hide on its handle say whether it is wanted. See HostWindowKindTraits.
     HostWindowFloating floating{HostWindowFloating::none};
+    // A native popup window (ApplicationPopup); none for every other kind.
+    std::optional<ApplicationPopup> popup{};
 };
 
 struct ApplicationWindowOpenResult final {
