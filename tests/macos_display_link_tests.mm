@@ -4,6 +4,7 @@
 #include "../src/host/macos/application/display_link_trace.hpp"
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <memory>
@@ -27,6 +28,8 @@ struct Probe final {
     std::chrono::steady_clock::time_point start{};
     timespec cpu{};
     unsigned int phase{0};
+    // Presentation reports counted at the last active phase.
+    std::uint64_t presents_seen{0};
     bool baseline{false};
     bool producing{false};
     bool finished{false};
@@ -74,6 +77,29 @@ void begin_measurement(Probe& probe) {
     probe.start = std::chrono::steady_clock::now();
 }
 
+// The host reports each presented frame to the surface with the display
+// link's timing (threaded sub-surfaces design note sections 7 and 8), so a
+// LiveSurfacePacer on the producer's thread is phased to the display.
+void require_presentation_reports(Probe& probe, const char* const name) {
+    const gui_forms::LivePresentationRecord record = (*probe.surface).presentation_record();
+    std::printf("display-link-presented|phase=%s|presents=%llu|generation=%llu|period_us=%lld|source=%d\n",
+        name, static_cast<unsigned long long>(record.presents),
+        static_cast<unsigned long long>(record.presented_generation),
+        static_cast<long long>(std::chrono::duration_cast<std::chrono::microseconds>(
+            record.timing.refresh_period).count()),
+        static_cast<int>(record.timing.source));
+    if (record.presents <= probe.presents_seen)
+        throw std::runtime_error("presented frames were not reported to the surface");
+    probe.presents_seen = record.presents;
+    if (record.presented_generation == 0U)
+        throw std::runtime_error("no presented generation was reported");
+    if (record.timing.source != gui_forms::LiveTimingSource::display_phased)
+        throw std::runtime_error("the report did not carry the display link's timing");
+    if (record.timing.refresh_period <= gui_forms::FrameInterval::zero() ||
+        record.timing.last_vblank > gui_forms::FrameClock::now())
+        throw std::runtime_error("the reported display timing is not plausible");
+}
+
 void report(Probe& probe, const char* const name, const bool active) {
     timespec cpu{};
     if (clock_gettime(CLOCK_PROCESS_CPUTIME_ID, &cpu) != 0)
@@ -108,6 +134,7 @@ void report(Probe& probe, const char* const name, const bool active) {
         throw std::runtime_error("missing active pacing or trace overflow");
     if (!probe.baseline && !active && trace.count != 0)
         throw std::runtime_error("idle or hidden display link kept ticking");
+    if (active) require_presentation_reports(probe, name);
 }
 
 void advance(void* const address) {

@@ -4344,6 +4344,12 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_macos_display_link_overlay_tests COMMAND gui_forms_macos_display_link_tests --overlay)
         set_tests_properties(gui_forms_macos_display_link_tests gui_forms_macos_display_link_overlay_tests PROPERTIES TIMEOUT 45)
 
+        add_executable(gui_forms_macos_text_input_caret_tests tests/macos_text_input_caret_tests.mm)
+        target_compile_options(gui_forms_macos_text_input_caret_tests PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_text_input_caret_tests PRIVATE gui_forms_host_macos gui_forms_controls)
+        add_test(NAME gui_forms_macos_text_input_caret_tests COMMAND gui_forms_macos_text_input_caret_tests)
+        set_tests_properties(gui_forms_macos_text_input_caret_tests PROPERTIES TIMEOUT 15)
+
         add_executable(gui_forms_macos_idle_visibility_tests tests/macos_idle_visibility_tests.mm)
         target_compile_options(gui_forms_macos_idle_visibility_tests PRIVATE -fobjc-arc)
         target_link_libraries(gui_forms_macos_idle_visibility_tests PRIVATE
