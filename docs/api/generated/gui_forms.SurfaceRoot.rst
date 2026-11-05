@@ -114,9 +114,6 @@ gui_forms::SurfaceRoot
       **backdrop_chain_resolution** : ``std::optional<BackdropChainResolution>``, read-only
          How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
 
-      **backdrop_statistics** : ``BackdropStatistics``, read-only
-         What the window's popup tints cost so far (BackdropStatistics).
-
       **host_services** : ``HostServices*``, read-only
          The services of the attached native host, or null when none is attached.
 
@@ -632,10 +629,6 @@ gui_forms::SurfaceRoot
    .. cpp:function:: std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
 
       How the chain is carried under the grant in force: what the material gives, what is dropped and how the tint is drawn; nullopt without a chain.
-
-   .. cpp:function:: const BackdropStatistics& backdrop_statistics() const noexcept
-
-      What the window's popup tints cost so far (BackdropStatistics).
 
    .. cpp:function:: HostServices* host_services() const noexcept
 

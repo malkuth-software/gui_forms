@@ -569,18 +569,9 @@ std::optional<PaintReceipt> SurfaceRoot::paint_rectangles(
         }
         // Window-owned popup roots are composited after all application
         // content, in opening order and independently of consumer layout.
-        for (std::size_t popup_index = 0U; popup_index < popup_roots.size(); ++popup_index) {
-            const Control::Ptr& overlay = popup_roots[popup_index];
+        for (const Control::Ptr& overlay : popup_roots) {
             if (!overlay || !(*overlay).is_alive() || (*overlay).surface_root_ != this) {
                 continue;
-            }
-            // Its backdrop first, under all of its content (owner,
-            // 2026-11-05). A callback may have closed it since the roots
-            // were listed: then its attachment differs and it is skipped.
-            if (popup_index < popups_.size() && (*popups_[popup_index]).popup() == overlay) {
-                for (std::size_t rectangle = 0; rectangle < painted.size(); ++rectangle) {
-                    paint_popup_backdrop(candidate, *popups_[popup_index], painted[rectangle]);
-                }
             }
             for (std::size_t index = 0; index < paint_plane_count; ++index) {
                 const PaintPlane plane = static_cast<PaintPlane>(index);

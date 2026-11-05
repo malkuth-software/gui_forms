@@ -42,8 +42,6 @@ Related types
      - How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
    * - :cpp:class:`BackdropOperation <gui_forms::BackdropOperation>`
      -  
-   * - :cpp:class:`BackdropStatistics <gui_forms::BackdropStatistics>`
-     - What a window's in-surface popup tints have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
    * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
@@ -245,28 +243,6 @@ Related types
    .. cpp:member:: Color colour
 
       tint only (transparent black otherwise).
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: BackdropStatistics final
-
-   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
-
-   What a window's in-surface popup tints have cost (SurfaceRoot::backdrop_statistics), counted from the window's creation.
-
-   .. cpp:member:: std::uint64_t draws
-
-      Exposed rectangles tinted, and their device pixels.
-
-   .. cpp:member:: std::uint64_t drawn_pixels
-
-   .. cpp:member:: std::uint64_t occluded
-
-      Painted rectangles in which the popup's opaque content covered all of it, so nothing was drawn.
-
-   .. cpp:member:: std::uint64_t solid_fallbacks
-
-      Of the draws, those of the opaque fallback (reduced transparency or no compositor).
 
 .. cpp:namespace:: gui_forms
 
@@ -769,10 +745,6 @@ Related types
    .. cpp:member:: bool require_enabled_owner
 
       Interactive menus and editors require an enabled owner. Passive providers such as ToolTip may opt out while still requiring a live, attached, effectively visible owner. Default: ``{true}``.
-
-   .. cpp:member:: std::optional<BackdropChain> backdrop
-
-      The popup's backdrop chain (owner, 2026-11-05, as revised). A popup drawn inside its owner's surface, as every popup is today, takes only the chain's tint, composited over the owner's pixels where the popup's content is clear: GUI.Forms never blurs what lies outside a window's own surface (blur is the system material of a native window). None by default.
 
 .. cpp:namespace:: gui_forms
 

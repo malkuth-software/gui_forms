@@ -140,8 +140,8 @@ is reported in that window's own `CompositorState`, as for any window:
 | system material (blur) | `NSVisualEffectView` in the owned window or panel | DWM system backdrop on the owned window (Windows 11 22H2 and later) | none; any blur is the compositing manager's own |
 | saturation of the material | no | no | no |
 
-Popups, menus and tooltips are still drawn inside their owner's
-surface, so for now they take only a backdrop chain's tint
+Menus, drop-downs and tooltips drawn inside their owner's surface are
+overlays, the window's own pixels, and paint with the theme's materials
 ([Transparency, glass and reflections](transparency.md), "Window
 backdrops").
 

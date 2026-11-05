@@ -12,11 +12,11 @@
 // the reflections. A run through a compositor stopping and starting, with
 // the request standing, falls back and returns without error.
 //
-// Backdrop chains (owner, 2026-11-05, as revised): an in-surface popup
-// takes only its chain's tint over the owner's pixels, never where its
-// opaque content covers it, opaque under reduced transparency and absent
-// under high contrast; a window's blur is its granted material, saturate
-// is dropped and reported, and the CPU paints only the tint.
+// Backdrop chains (owner, 2026-11-05, as revised): a window's blur is its
+// granted material, saturate is dropped and reported, and the CPU paints
+// only the tint. Overlays (menus, drop-downs, tooltips: composited into
+// their owner, our own pixels) take no chain; they paint with the theme's
+// materials over the window like any content (owner, 2026-11-04).
 //
 // Run with --print to print one JSON line per state and request (the
 // headless part of the gate record): the state, the request, the grant,
@@ -363,13 +363,11 @@ void parsing() {
 
 
 // Backdrop chains (owner, 2026-11-05, as revised). GUI.Forms never blurs
-// what lies outside a window's own surface: an in-surface popup takes only
-// its chain's tint, and a window's blur is its granted system material.
-constexpr Rect popup_bounds{8.0, 8.0, 128.0, 96.0};
-constexpr std::size_t popup_column = 40U;
-constexpr std::size_t popup_row = 40U;
-constexpr std::size_t outside_column = 300U;
-constexpr std::size_t outside_row = 300U;
+// what lies outside a window's own surface: a window's blur is its granted
+// system material. An overlay is the window's own pixels and takes no chain.
+constexpr Rect overlay_bounds{8.0, 8.0, 128.0, 96.0};
+constexpr std::size_t overlay_column = 40U;
+constexpr std::size_t overlay_row = 40U;
 constexpr Color frosted_tint = Color::rgba(255, 255, 255, 64);
 
 BackdropChain frosted_chain() {
@@ -380,88 +378,30 @@ BackdropChain frosted_chain() {
     return chain;
 }
 
-// The popup: clear unless `opaque_child`, then an opaque panel covers it.
-std::shared_ptr<Panel> make_popup(bool opaque_child) {
-    std::shared_ptr<Panel> popup = make_control<Panel>(StableId("lab.backdrop.popup"));
-    (*popup).set_background(Color::rgba(0, 0, 0, 0));
-    (*popup).set_requested_bounds(popup_bounds);
-    if (opaque_child) {
-        std::shared_ptr<Panel> cover = make_control<Panel>(StableId("lab.backdrop.cover"));
-        (*cover).set_background(Color::rgba(40, 80, 120));
-        (*cover).set_requested_bounds(Rect{0.0, 0.0, popup_bounds.width, popup_bounds.height});
-        (*popup).add_child(cover);
-    }
-    return popup;
+// A clear overlay.
+std::shared_ptr<Panel> make_overlay() {
+    std::shared_ptr<Panel> overlay = make_control<Panel>(StableId("lab.backdrop.overlay"));
+    (*overlay).set_background(Color::rgba(0, 0, 0, 0));
+    (*overlay).set_requested_bounds(overlay_bounds);
+    return overlay;
 }
 
 bool same_pixel(const Pixel& left, const Pixel& right) noexcept {
     return left.red == right.red && left.green == right.green && left.blue == right.blue && left.alpha == right.alpha;
 }
 
-// One channel of `tint` composited source-over an opaque `under`.
-unsigned tinted_channel(std::uint8_t under, std::uint8_t tint, std::uint8_t alpha) noexcept {
-    const unsigned value = (static_cast<unsigned>(under) * (255U - alpha) + static_cast<unsigned>(tint) * alpha +
-                            127U) / 255U;
-    return value;
-}
-
-void clear_popup_takes_the_tint(render::SkiaRaster& raster) {
-    const std::unique_ptr<Window> window =
-        lab::make_compositor_lab(WindowBackdropRequest::preferring(WindowBackdrop::opaque), false);
+// A window's chain is the window's base only: a clear overlay over it adds
+// no second tint (owner, 2026-11-04: overlays are the window's own pixels).
+void overlay_takes_no_chain(render::SkiaRaster& raster) {
+    const std::unique_ptr<Window> window = lab::make_compositor_lab(lab::default_request(), false);
     Window& shown = *window;
     shown.set_compositor_state(make_state(StateCase::every_backdrop, 1U), true);
+    shown.set_backdrop_chain(frosted_chain());
     const Frame before = present(raster, shown);
-    const std::shared_ptr<Panel> popup = make_popup(false);
-    PopupOptions options{};
-    options.backdrop = frosted_chain();
-    PopupToken token = shown.open_popup(shown.root(), popup, options);
-    const Frame tinted = present(raster, shown);
-    const BackdropStatistics drawn = shown.backdrop_statistics();
-    require(drawn.draws > 0U && drawn.occluded == 0U && drawn.solid_fallbacks == 0U,
-            "a clear in-surface popup is tinted");
-    const Pixel under = before.at(popup_column, popup_row);
-    const Pixel over = tinted.at(popup_column, popup_row);
-    require(near(over.red, tinted_channel(under.red, 255U, 64U)) &&
-                near(over.green, tinted_channel(under.green, 255U, 64U)) &&
-                near(over.blue, tinted_channel(under.blue, 255U, 64U)) && over.alpha == 255U,
-            "an in-surface popup's backdrop is its tint over the owner's pixels, unblurred");
-    require(same_pixel(tinted.at(outside_column, outside_row), before.at(outside_column, outside_row)),
-            "outside the popup nothing changes");
-    // Reduced transparency: the tint as one opaque colour.
-    shown.set_compositor_state(make_state(StateCase::reduced_transparency, 2U), true);
-    const Frame reduced = present(raster, shown);
-    const BackdropStatistics solid = shown.backdrop_statistics();
-    const Pixel flat = reduced.at(popup_column, popup_row);
-    require(solid.solid_fallbacks > drawn.solid_fallbacks && flat.red == 255U && flat.green == 255U &&
-                flat.blue == 255U && flat.alpha == 255U,
-            "under reduced transparency the popup's backdrop is its tint, opaque");
-    // High contrast: no backdrop at all.
-    shown.set_compositor_state(make_state(StateCase::high_contrast, 3U), true);
-    static_cast<void>(present(raster, shown));
-    const BackdropStatistics none = shown.backdrop_statistics();
-    require(none.draws == solid.draws, "under high contrast there is no backdrop");
-    token.disconnect();
-}
-
-void opaque_popup_occludes(render::SkiaRaster& raster) {
-    const std::unique_ptr<Window> window =
-        lab::make_compositor_lab(WindowBackdropRequest::preferring(WindowBackdrop::opaque), false);
-    Window& shown = *window;
-    shown.set_compositor_state(make_state(StateCase::every_backdrop, 1U), true);
-    const std::shared_ptr<Panel> popup = make_popup(true);
-    PopupOptions options{};
-    options.backdrop = frosted_chain();
-    PopupToken token = shown.open_popup(shown.root(), popup, options);
-    // The first paint records the cover; until then it may not count.
-    static_cast<void>(present(raster, shown));
-    const BackdropStatistics first = shown.backdrop_statistics();
-    const Frame covered = present(raster, shown);
-    const BackdropStatistics steady = shown.backdrop_statistics();
-    require(steady.occluded > first.occluded && steady.draws == first.draws,
-            "a popup wholly covered by opaque content draws no backdrop");
-    const Pixel face = covered.at(popup_column, popup_row);
-    require(face.red == 40U && face.green == 80U && face.blue == 120U && face.alpha == 255U,
-            "the opaque content is all that shows");
+    PopupToken token = shown.open_popup(shown.root(), make_overlay(), PopupOptions{});
+    const Frame after = present(raster, shown);
+    require(same_pixel(after.at(overlay_column, overlay_row), before.at(overlay_column, overlay_row)),
+            "a clear overlay shows the window beneath it, with no tint of its own");
     token.disconnect();
 }
 
@@ -508,15 +448,6 @@ void chain_rules() {
     Window& shown = *window;
     bool refused = false;
     try {
-        PopupOptions options{};
-        options.backdrop = two_blurs;
-        static_cast<void>(shown.open_popup(shown.root(), make_popup(false), options));
-    } catch (const std::invalid_argument&) {
-        refused = true;
-    }
-    require(refused, "a popup with an invalid chain is refused");
-    refused = false;
-    try {
         shown.set_backdrop_chain(two_blurs);
     } catch (const std::invalid_argument&) {
         refused = true;
@@ -543,8 +474,7 @@ int main(int argc, char** argv) {
         render::SkiaRaster raster;
         each_state_and_request(raster);
         compositor_stops_and_starts(raster);
-        clear_popup_takes_the_tint(raster);
-        opaque_popup_occludes(raster);
+        overlay_takes_no_chain(raster);
         window_chain_resolution(raster);
     }
     std::cout << "gui_forms_compositor_lab_tests: all tests passed\n";

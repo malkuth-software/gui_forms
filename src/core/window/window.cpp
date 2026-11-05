@@ -576,9 +576,6 @@ PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
     if (!popup || (*popup).surface_root_ != nullptr || (*popup).parent() || !(*popup).is_alive()) {
         throw std::logic_error("GUI.Forms popup must be a live detached root");
     }
-    if (options.backdrop && !backdrop_chain_valid(*options.backdrop)) {
-        throw std::invalid_argument("GUI.Forms popup backdrop chain is not valid");
-    }
     // Popups are window overlays, not children in the consumer's layout
     // vocabulary. Attaching one to root_ lets a TableLayoutPanelCompat, Flow panel,
     // or docking root assign it an application cell and silently collapse the
@@ -586,7 +583,6 @@ PopupToken SurfaceRoot::open_popup(const Control::Ptr& owner,
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
     attach_subtree(popup, {});
     std::shared_ptr<gui_forms::detail::PopupAttachment> attachment = std::make_shared<detail::PopupAttachment>(*this, owner, popup);
-    (*attachment).backdrop_chain = options.backdrop;
     popups_.push_back(attachment);
     (*owner).own_revocable(attachment);
     return PopupToken(std::move(attachment));

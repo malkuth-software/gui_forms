@@ -273,7 +273,6 @@ add_library(gui_forms_core STATIC
     src/core/window/backplane/backplane_composite.cpp
     src/core/window/backdrop/window_backdrop_grant.cpp
     src/core/window/backdrop/backdrop_chain.cpp
-    src/core/window/backdrop/popup_backdrop.cpp
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp
     src/core/engine/primitives/kernel/pixel_kernel.cpp

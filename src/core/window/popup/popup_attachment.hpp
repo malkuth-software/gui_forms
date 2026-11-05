@@ -2,8 +2,6 @@
 
 #include "gui_forms/window.hpp"
 
-#include <optional>
-
 namespace gui_forms::detail {
 
 class PopupAttachment final : public Revocable {
@@ -28,10 +26,6 @@ public:
         popup_.reset();
     }
     void publish_closed() { closed_.emit(); }
-
-    // The popup's backdrop chain (PopupOptions::backdrop), read by the
-    // window's paint on the UI thread.
-    std::optional<BackdropChain> backdrop_chain{};
 
 private:
     SurfaceRoot* window_{};

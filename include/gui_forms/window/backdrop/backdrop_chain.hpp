@@ -119,18 +119,4 @@ struct BackdropChainResolution final {
                                                              const WindowBackdropGrant& grant,
                                                              bool high_contrast) noexcept;
 
-// What a window's in-surface popup tints have cost
-// (SurfaceRoot::backdrop_statistics), counted from the window's creation.
-struct BackdropStatistics final {
-    // Exposed rectangles tinted, and their device pixels.
-    std::uint64_t draws{};
-    std::uint64_t drawn_pixels{};
-    // Painted rectangles in which the popup's opaque content covered all of
-    // it, so nothing was drawn.
-    std::uint64_t occluded{};
-    // Of the draws, those of the opaque fallback (reduced transparency or
-    // no compositor).
-    std::uint64_t solid_fallbacks{};
-};
-
 } // namespace gui_forms

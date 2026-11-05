@@ -205,13 +205,6 @@ struct PopupOptions final {
     // providers such as ToolTip may opt out while still requiring a live,
     // attached, effectively visible owner.
     bool require_enabled_owner{true};
-    // The popup's backdrop chain (owner, 2026-11-05, as revised). A popup
-    // drawn inside its owner's surface, as every popup is today, takes only
-    // the chain's tint, composited over the owner's pixels where the
-    // popup's content is clear: GUI.Forms never blurs what lies outside a
-    // window's own surface (blur is the system material of a native
-    // window). None by default.
-    std::optional<BackdropChain> backdrop{};
 };
 
 struct FocusScopeId final {
@@ -504,8 +497,6 @@ public:
     // gives, what is dropped and how the tint is drawn; nullopt without a
     // chain.
     [[nodiscard]] std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept;
-    // What the window's popup tints cost so far (BackdropStatistics).
-    [[nodiscard]] const BackdropStatistics& backdrop_statistics() const noexcept { return backdrop_statistics_; }
     // Non-owning portable service seam, installed for the lifetime of a
     // HostSession. Renderer-free and headless windows may legitimately return
     // null when no host is attached.
@@ -1161,15 +1152,6 @@ private:
     // framebuffer of the region's exact extent.
     [[nodiscard]] bool replay_backplane(Rect covered, const BackplaneRegion& region, const PartRasterView& image);
     void replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter) const;
-    // An in-surface popup's backdrop (owner, 2026-11-05, as revised) in the
-    // painted rectangle `rectangle`: its chain's tint, recorded into
-    // `candidate` beneath the popup's content and composited over the
-    // owner's pixels, only where the popup's content does not cover it.
-    void paint_popup_backdrop(detail::RecordingPainter& candidate, detail::PopupAttachment& popup, Rect rectangle);
-    // Whether a current, opaque chunk in `overlay`'s subtree, in any plane,
-    // paints all of `rectangle` (find_paint_cover; `path` its scratch).
-    [[nodiscard]] bool popup_content_covers(const Control::Ptr& overlay, Rect rectangle,
-                                            std::vector<Control::Ptr>& path) const;
     struct EngineDamage final {
         std::uint64_t parts{};
         double area{};
@@ -1797,9 +1779,6 @@ private:
     Event<const WindowBackdropGrant&> backdrop_changed_;
     // The chain in force (set_backdrop_chain); none by default.
     std::optional<BackdropChain> backdrop_chain_{};
-    BackdropStatistics backdrop_statistics_{};
-    // Scratch for the popup backdrops' cover searches, reused.
-    std::vector<Control::Ptr> backdrop_cover_path_{};
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

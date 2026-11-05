@@ -71,19 +71,15 @@ application's. The window system supplies the blur.
   the window's base. No host material takes a saturation, so `saturate`
   is dropped. `Window::backdrop_chain_resolution` reports what the
   material gives, what was dropped and how the tint is drawn.
-- Popups, menus, tooltips and floating panels count as windows. Today a
-  popup is drawn inside its owner's surface, so its chain
-  (`PopupOptions::backdrop`) gives only its tint, composited over the
-  owner's pixels where the popup's content is clear: no blur and no
-  cache. A floating panel in its own native window carries a chain like
-  any window.
-- Content is opaque by default and occludes the tint: a popup whose
-  opaque content covers it entirely draws no tint at all.
+- Menus, drop-downs and tooltips are overlays: they are composited into
+  their owner's surface, so everything beneath them is the window's own
+  pixels. They take no backdrop chain and paint with the theme's
+  materials, shadows and glass like any other content. A floating panel
+  or native popup in its own window carries a chain like any window.
 
 Under reduced transparency, or without a compositor, the window is
 opaque and the tint is painted opaque; under high contrast there is no
-backdrop. `Window::backdrop_statistics` counts the popup tints drawn,
-the occluded paints and the opaque fallbacks.
+backdrop.
 
 ## Fallbacks
 
