@@ -249,7 +249,7 @@ std::shared_ptr<ScaledPanel> make_title(ProductRefs& refs) {
 
 std::shared_ptr<MenuStrip> make_tabs(ProductRefs& refs) {
     std::shared_ptr<gui_forms::MenuStrip> strip = std::make_shared<MenuStrip>(StableId("fm.ribbon.tabs"));
-    (*strip).set_accessible_name("File Manager application menu");
+    (*strip).accessible_name = "File Manager application menu";
     refs.menu_strip = strip;
     return strip;
 }
@@ -291,10 +291,10 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
                                                Size{1450.0, 40.0});
     (*panel).set_background(graphite);
     refs.nav_back = button("fm.nav.back", "←", {7, 6, 30, 28});
-    (*refs.nav_back).set_enabled(false);
+    (*refs.nav_back).enabled = false;
     (*panel).add_at(refs.nav_back, {7, 6, 30, 28});
     refs.nav_forward = button("fm.nav.forward", "→", {42, 6, 30, 28});
-    (*refs.nav_forward).set_enabled(false);
+    (*refs.nav_forward).enabled = false;
     (*panel).add_at(refs.nav_forward, {42, 6, 30, 28});
     refs.nav_up = button("fm.nav.up", "↑", {77, 6, 30, 28});
     (*panel).add_at(refs.nav_up, {77, 6, 30, 28});
@@ -323,9 +323,9 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     }
     refs.path_terminal = button("fm.path.terminal", "./", {936, 7, 35, 26},
                                 ButtonVisualStyle::flat);
-    (*refs.path_terminal).set_accessible_name("Open complete path matrix");
-    (*refs.path_terminal).set_accessible_description(
-        "Browse full fixture paths or edit a path directly");
+    (*refs.path_terminal).accessible_name = "Open complete path matrix";
+    (*refs.path_terminal).accessible_description =
+        "Browse full fixture paths or edit a path directly";
     (*refs.path_terminal).set_expanded_state(false);
     (*panel).add_at(refs.path_terminal, {936, 7, 35, 26});
     std::shared_ptr<gui_forms::TextBox> search = std::make_shared<TextBox>(StableId("fm.search.editor"));
@@ -357,7 +357,7 @@ std::shared_ptr<ObjectView> make_object_field(ProductRefs& refs) {
     (*field).set_style(house_style());
     (*field).set_font({FontRole::content, 9.5, 400, false});
     (*field).set_icon_cell_size({112.0, 91.0});
-    (*field).set_accessible_name("Projects objects");
+    (*field).accessible_name = "Projects objects";
     const std::span<const FixtureObject>& objects = FixtureCatalogue::instance().project_objects();
     std::vector<ObjectViewItem> items;
     items.reserve(objects.size());
@@ -378,7 +378,7 @@ std::shared_ptr<ObjectView> make_object_field(ProductRefs& refs) {
 std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::Panel> surface = std::make_shared<Panel>(StableId("fm.search.surface"));
     (*surface).set_background(paper);
-    (*surface).set_accessible_name("Search correspondence surface");
+    (*surface).accessible_name = "Search correspondence surface";
     std::shared_ptr<gui_forms::CorrespondenceView> results = std::make_shared<CorrespondenceView>(
         StableId("fm.search.results"));
     (*results).set_style(house_style());
@@ -386,9 +386,9 @@ std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
     (*results).set_compact_height(45.0);
     (*results).set_expanded_height(126.0);
     (*results).set_hover_intent_delay(std::chrono::milliseconds(180));
-    (*results).set_accessible_name("Search results");
-    (*results).set_accessible_description(
-        "Seven factual fixture correspondences with one pinned row and bounded virtual realization");
+    (*results).accessible_name = "Search results";
+    (*results).accessible_description =
+        "Seven factual fixture correspondences with one pinned row and bounded virtual realization";
     std::vector<CorrespondenceItem> items;
     std::string pinned;
     for (const FixtureSearchResult& fixture :
@@ -407,11 +407,11 @@ std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
     (*results).set_items(std::move(items));
     (*results).set_selected_id(pinned);
     (*results).set_pinned_id(pinned);
-    (*results).set_dock(DockStyle::fill);
+    (*results).dock = DockStyle::fill;
     (*surface).add_child(results);
     refs.search_results = results;
     refs.search_surface = surface;
-    (*surface).set_visible(false);
+    (*surface).visible = false;
     return surface;
 }
 
@@ -420,7 +420,7 @@ public:
     explicit CriteriaSurfacePanel(StableId stable_id)
         : Panel(std::move(stable_id)) {
         set_background(paper);
-        set_accessible_name("Criteria virtual folder surface");
+        accessible_name = "Criteria virtual folder surface";
     }
 
     std::shared_ptr<Label> title;
@@ -535,14 +535,14 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
         "PROJECTS   ·   VIRTUAL FOLDER   ·   TWO LIVE MODULES   ·   ONE STAGED",
         {9.0, 5.0, 900.0, 21.0},
         {FontRole::control, 9.0, 700, false, .30});
-    (*(*surface).title).set_accessible_name("Projects criteria console");
+    (*(*surface).title).accessible_name = "Projects criteria console";
     (*surface).add_child((*surface).title);
     refs.criteria_title = (*surface).title;
 
     std::shared_ptr<gui_forms::InstrumentRack> rack = make_control<InstrumentRack>(StableId("fm.criteria.console"));
-    (*rack).set_accessible_name("Projects predicate rack");
-    (*rack).set_accessible_description(
-        "Two live inexpensive modules and one staged expensive module");
+    (*rack).accessible_name = "Projects predicate rack";
+    (*rack).accessible_description =
+        "Two live inexpensive modules and one staged expensive module";
     std::vector<InstrumentModuleSpec> modules;
     for (const FixtureCriterionModule& fixture :
          FixtureCatalogue::instance().criteria_modules()) {
@@ -552,7 +552,7 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
 
     std::shared_ptr<gui_forms::TableLayoutPanelCompat> actions = make_control<TableLayoutPanelCompat>(
         StableId("fm.criteria.actions"));
-    (*actions).set_accessible_name("Predicate rack actions");
+    (*actions).accessible_name = "Predicate rack actions";
     (*actions).set_column_count(2);
     (*actions).set_row_count(3);
     (*actions).set_column_style(0, {TableSizeMode::percent, 100.0});
@@ -564,28 +564,28 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     std::shared_ptr<Label> action_title = label("fm.criteria.actions.title", "PREDICATE RACK",
                               {0, 0, 120, 20},
                               {FontRole::control, 8.0, 700, false, .35});
-    (*action_title).set_margin({6, 1, 3, 0});
-    (*action_title).set_dock(DockStyle::fill);
+    (*action_title).margin = {6, 1, 3, 0};
+    (*action_title).dock = DockStyle::fill;
     (*actions).add_child(action_title);
     (*actions).set_cell_position(*action_title, {0, 0});
     refs.criteria_add = button("fm.criteria.add", "+ module", {0, 0, 78, 27},
                                ButtonVisualStyle::standard);
-    (*refs.criteria_add).set_margin({2, 1, 2, 1});
-    (*refs.criteria_add).set_dock(DockStyle::fill);
+    (*refs.criteria_add).margin = {2, 1, 2, 1};
+    (*refs.criteria_add).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_add);
     (*actions).set_cell_position(*refs.criteria_add, {1, 0});
     refs.criteria_action_state = label(
         "fm.criteria.actions.state", "1 expensive change staged",
         {0, 0, 120, 27}, {FontRole::content, 8.0, 600, false});
-    (*refs.criteria_action_state).set_margin({6, 1, 3, 0});
-    (*refs.criteria_action_state).set_dock(DockStyle::fill);
+    (*refs.criteria_action_state).margin = {6, 1, 3, 0};
+    (*refs.criteria_action_state).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_action_state);
     (*actions).set_cell_position(*refs.criteria_action_state, {0, 1});
     refs.criteria_apply = button("fm.criteria.apply", "Apply 1", {0, 0, 78, 27},
                                  ButtonVisualStyle::accent);
     (*refs.criteria_apply).set_default_button(true);
-    (*refs.criteria_apply).set_margin({2, 1, 2, 1});
-    (*refs.criteria_apply).set_dock(DockStyle::fill);
+    (*refs.criteria_apply).margin = {2, 1, 2, 1};
+    (*refs.criteria_apply).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_apply);
     (*actions).set_cell_position(*refs.criteria_apply, {1, 1});
     refs.criteria_progress = make_control<ProgressBar>(
@@ -596,9 +596,9 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     (*refs.criteria_progress).set_overlay_style(
         ProgressBarOverlayStyle::moving_stripes);
     (*refs.criteria_progress).set_animation_enabled(false);
-    (*refs.criteria_progress).set_accessible_name("Criteria application progress");
-    (*refs.criteria_progress).set_margin({5, 0, 5, 1});
-    (*refs.criteria_progress).set_dock(DockStyle::fill);
+    (*refs.criteria_progress).accessible_name = "Criteria application progress";
+    (*refs.criteria_progress).margin = {5, 0, 5, 1};
+    (*refs.criteria_progress).dock = DockStyle::fill;
     (*actions).add_child(refs.criteria_progress);
     (*actions).set_cell_position(*refs.criteria_progress, {0, 2});
     (*actions).set_column_span(*refs.criteria_progress, 2);
@@ -613,8 +613,8 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
         "fm.criteria.results.summary",
         "31 OBJECTS   ·   FROM PROJECTS AND DESCENDANTS   ·   ONE INSPECTABLE VIRTUAL FOLDER",
         {11, 2, 900, 28}, {FontRole::content, 9.0, 600, false});
-    (*virtual_label).set_margin({11, 2, 8, 0});
-    (*virtual_label).set_dock(DockStyle::top);
+    (*virtual_label).margin = {11, 2, 8, 0};
+    (*virtual_label).dock = DockStyle::top;
     refs.criteria_results_summary = virtual_label;
     std::shared_ptr<gui_forms::ObjectView> objects = make_control<ObjectView>(StableId("fm.criteria.objects"));
     (*objects).set_items(criteria_object_items());
@@ -623,16 +623,16 @@ std::shared_ptr<CriteriaSurfacePanel> make_criteria_surface(ProductRefs& refs) {
     (*objects).set_font({FontRole::content, 9.5, 400, false});
     (*objects).set_style(house_style());
     (*objects).set_background(paper);
-    (*objects).set_accessible_name("Criteria virtual folder objects");
-    (*objects).set_margin({});
-    (*objects).set_dock(DockStyle::fill);
+    (*objects).accessible_name = "Criteria virtual folder objects";
+    (*objects).margin = Insets{};
+    (*objects).dock = DockStyle::fill;
     (*results).add_child(virtual_label);
     (*results).add_child(objects);
     (*surface).results = results;
     (*surface).add_child(results);
     refs.criteria_objects = objects;
     refs.criteria_surface = surface;
-    (*surface).set_visible(false);
+    (*surface).visible = false;
     return surface;
 }
 
@@ -660,19 +660,19 @@ std::shared_ptr<FlowLayoutPanelCompat> make_palette_surface(ProductRefs& refs) {
     };
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> surface = std::make_shared<FlowLayoutPanelCompat>(
         StableId("fm.review.palettes"));
-    (*surface).set_padding({14.0, 14.0, 14.0, 14.0});
+    (*surface).padding = {14.0, 14.0, 14.0, 14.0};
     (*surface).set_wrap_contents(true);
-    (*surface).set_visible(false);
-    (*surface).set_accessible_name("Atmosphere palette review");
+    (*surface).visible = false;
+    (*surface).accessible_name = "Atmosphere palette review";
     for (std::size_t index = 0; index < std::size(palettes); ++index) {
         const PaletteSpec& spec = palettes[index];
         std::shared_ptr<gui_forms::Card> card = std::make_shared<Card>(
             StableId(std::string("fm.palette.") + spec.id));
         (*card).set_requested_bounds({0.0, 0.0, 220.0, 142.0});
-        (*card).set_margin({7.0, 7.0, 7.0, 7.0});
+        (*card).margin = {7.0, 7.0, 7.0, 7.0};
         (*card).set_interactive(true);
         (*card).set_selected(index == 8U);
-        (*card).set_accessible_name(std::string(spec.name) + " atmosphere");
+        (*card).accessible_name = std::string(spec.name) + " atmosphere";
         CardLayout card_layout;
         card_layout.padding = {10.0, 8.0, 10.0, 8.0};
         card_layout.section_gap = 6.0;
@@ -751,8 +751,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
 
     std::shared_ptr<gui_forms::MasterDetailView> view = std::make_shared<MasterDetailView>(StableId("fm.review.dna"));
     (*view).initialize_control_tree();
-    (*view).set_visible(false);
-    (*view).set_accessible_name("Program DNA decision browser");
+    (*view).visible = false;
+    (*view).accessible_name = "Program DNA decision browser";
     MasterDetailLayout view_layout;
     view_layout.master_extent = 334.0;
     view_layout.master_minimum = 270.0;
@@ -766,7 +766,7 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
         StableId("fm.review.dna.master"));
     (*master).set_flow_direction(FlowDirection::top_down);
     (*master).set_wrap_contents(false);
-    (*master).set_padding({12.0, 12.0, 12.0, 12.0});
+    (*master).padding = {12.0, 12.0, 12.0, 12.0};
     std::shared_ptr<Label> master_title = label("fm.review.dna.master.title",
                               "PROGRAM DNA · DECISIONS", {0.0, 0.0, 296.0, 28.0},
                               {FontRole::control, 10.0, 700, false, 0.32});
@@ -776,7 +776,7 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
         std::shared_ptr<ReviewCard> card = review_card(std::string("fm.dna.") + spec.id,
                                 spec.title, spec.summary, spec.state, 130.0);
         (*card).set_requested_bounds({0.0, 0.0, 296.0, 130.0});
-        (*card).set_margin({0.0, 4.0, 0.0, 4.0});
+        (*card).margin = {0.0, 4.0, 0.0, 4.0};
         (*card).set_interactive(true);
         (*card).set_selected(index == 0U);
         (*master).add_child(card);
@@ -792,12 +792,12 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
     (*detail).set_row_style(1U, {TableSizeMode::absolute, 142.0});
     (*detail).set_row_style(2U, {TableSizeMode::absolute, 176.0});
     (*detail).set_row_style(3U, {TableSizeMode::percent, 1.0});
-    (*detail).set_padding({18.0, 16.0, 18.0, 16.0});
+    (*detail).padding = {18.0, 16.0, 18.0, 16.0};
 
     refs.dna_heading = label(
         "fm.review.dna.heading", "Retained surface pipeline",
         {}, {FontRole::control, 18.0, 700, false, 0.32});
-    (*refs.dna_heading).set_dock(DockStyle::fill);
+    (*refs.dna_heading).dock = DockStyle::fill;
     (*detail).add_child(refs.dna_heading);
     (*detail).set_cell_position(*refs.dna_heading, {0U, 0U});
 
@@ -805,8 +805,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
         "fm.review.dna.evidence", "Evidence and constraints",
         "The live surface is retained, renderer-neutral at its public boundary, deterministic under headless replay, and independently buildable without Skia or platform types. Authoring, serialization, runtime state, layout, hosting, and raster choice remain separate axes.",
         "OBSERVED + MEASURED · CORE / DISPLAY / HOST GATES", 130.0);
-    (*evidence).set_dock(DockStyle::fill);
-    (*evidence).set_margin({0.0, 5.0, 0.0, 5.0});
+    (*evidence).dock = DockStyle::fill;
+    (*evidence).margin = {0.0, 5.0, 0.0, 5.0};
     (*detail).add_child(evidence);
     (*detail).set_cell_position(*evidence, {0U, 1U});
 
@@ -814,8 +814,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
         "fm.review.dna.consequences", "Consequences",
         "Controls own durable state and semantics. Paint records commands rather than borrowing a live backend object. Themes replace relational recipes atomically. Native controls may be wrapped where policy admits them, but they do not dictate the core architecture.",
         "REVERSAL COST · MEDIUM / EXPLICIT ADAPTER SEAMS", 164.0);
-    (*consequences).set_dock(DockStyle::fill);
-    (*consequences).set_margin({0.0, 5.0, 0.0, 5.0});
+    (*consequences).dock = DockStyle::fill;
+    (*consequences).margin = {0.0, 5.0, 0.0, 5.0};
     (*detail).add_child(consequences);
     (*detail).set_cell_position(*consequences, {0U, 2U});
 
@@ -823,8 +823,8 @@ std::shared_ptr<MasterDetailView> make_dna_surface(ProductRefs& refs) {
         "fm.review.dna.verdict", "Current verdict",
         "Keep the retained native core. Continue widening behavior and visual vocabulary through public reusable controls; do not promote a prototype shortcut into the program spine.",
         "DECIDED · REVISIT ONLY THROUGH NUMBERED ADR", 148.0);
-    (*verdict).set_dock(DockStyle::fill);
-    (*verdict).set_margin({0.0, 5.0, 0.0, 5.0});
+    (*verdict).dock = DockStyle::fill;
+    (*verdict).margin = {0.0, 5.0, 0.0, 5.0};
     refs.dna_verdict_card = verdict;
     (*detail).add_child(verdict);
     (*detail).set_cell_position(*verdict, {0U, 3U});
@@ -857,16 +857,16 @@ std::shared_ptr<Panel> make_tree_pane(ProductRefs& refs) {
     (*tree).set_item_height(24.0);
     (*tree).set_font({FontRole::content, 10.5, 400, false});
     (*tree).set_style(house_style());
-    (*tree).set_accessible_name("Folders");
+    (*tree).accessible_name = "Folders";
     (*tree).set_selected_id("fm.tree.node.projects");
     refs.tree = tree;
-    (*tree).set_dock(DockStyle::fill);
+    (*tree).dock = DockStyle::fill;
     // Dock consumes reverse public z-order: add edge reservations behind the
     // Fill child so they claim their space before Fill receives the remainder.
     std::shared_ptr<Label> caption = label("fm.tree.caption", "FOLDERS   ·   HOME-ROOTED", {7, 4, 204, 27},
                          {FontRole::control, 8.5, 700, false, .28});
-    (*caption).set_margin({});
-    (*caption).set_dock(DockStyle::top);
+    (*caption).margin = Insets{};
+    (*caption).dock = DockStyle::top;
     (*pane).add_child(caption);
     (*pane).add_child(tree);
     return pane;
@@ -878,27 +878,27 @@ std::shared_ptr<Panel> make_selection_pane(ProductRefs& refs) {
     std::shared_ptr<gui_forms::Panel> caption = std::make_shared<Panel>(StableId("fm.selection.caption.material"));
     (*caption).set_background(Color::rgba(201, 212, 229));
     (*caption).set_border_style(BorderStyle::raised);
-    (*caption).set_margin({});
+    (*caption).margin = Insets{};
     (*caption).set_requested_bounds({0, 0, 288, 27});
-    (*caption).set_dock(DockStyle::top);
+    (*caption).dock = DockStyle::top;
     std::shared_ptr<Label> caption_text = label("fm.selection.caption", "SELECTION", {8,2,272,23},
                               {FontRole::control,9,700,false,.35});
-    (*caption_text).set_dock(DockStyle::fill);
-    (*caption_text).set_margin({8, 2, 38, 2});
+    (*caption_text).dock = DockStyle::fill;
+    (*caption_text).margin = {8, 2, 38, 2};
     (*caption).add_child(caption_text);
     refs.selection_collapse = button("fm.selection.collapse", "▶",
                                      {258, 2, 28, 23},
                                      ButtonVisualStyle::flat);
-    (*refs.selection_collapse).set_accessible_name("Collapse Selection pane");
-    (*refs.selection_collapse).set_accessible_description(
-        "Collapse the retained Selection inspector toward the right edge");
+    (*refs.selection_collapse).accessible_name = "Collapse Selection pane";
+    (*refs.selection_collapse).accessible_description =
+        "Collapse the retained Selection inspector toward the right edge";
     (*caption).add_child(refs.selection_collapse);
     std::shared_ptr<gui_forms::PropertyList> properties = std::make_shared<PropertyList>(
         StableId("fm.selection.properties"));
-    (*properties).set_accessible_name("Selection properties");
+    (*properties).accessible_name = "Selection properties";
     (*properties).set_label_width(76.0);
-    (*properties).set_margin({});
-    (*properties).set_dock(DockStyle::fill);
+    (*properties).margin = Insets{};
+    (*properties).dock = DockStyle::fill;
     std::shared_ptr<gui_forms::ScaledPanel> header = std::make_shared<ScaledPanel>(
         StableId("fm.selection.summary"), Size{288, 212});
     refs.selection_name = label("fm.selection.object-name", "Facade Study.png", {10,35,268,25}, {FontRole::content,12,700,false});
@@ -953,7 +953,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     (*outer).set_first_maximum(360);
     (*(*outer).first_panel()).set_background(Color::rgba(235,240,246));
     (*(*outer).first_panel()).add_child(make_tree_pane(refs));
-    (*(*(*outer).first_panel()).children().back()).set_dock(DockStyle::fill);
+    (*(*(*outer).first_panel()).children().back()).dock = DockStyle::fill;
 
     std::shared_ptr<gui_forms::SplitContainer> inner = std::make_shared<SplitContainer>(StableId("fm.workspace.content-selection"));
     (*inner).initialize_control_tree();
@@ -971,31 +971,31 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     std::shared_ptr<gui_forms::Panel> daily_content = std::make_shared<Panel>(
         StableId("fm.content.host"));
     (*daily_content).set_background(paper);
-    (*daily_content).set_dock(DockStyle::fill);
+    (*daily_content).dock = DockStyle::fill;
     std::shared_ptr<ObjectView> objects = make_object_field(refs);
-    (*objects).set_dock(DockStyle::fill);
+    (*objects).dock = DockStyle::fill;
     (*daily_content).add_child(objects);
     std::shared_ptr<CriteriaSurfacePanel> criteria = make_criteria_surface(refs);
-    (*criteria).set_dock(DockStyle::fill);
+    (*criteria).dock = DockStyle::fill;
     (*daily_content).add_child(criteria);
     (*(*inner).first_panel()).add_child(daily_content);
     std::shared_ptr<Panel> selection = make_selection_pane(refs);
-    (*selection).set_dock(DockStyle::fill);
+    (*selection).dock = DockStyle::fill;
     (*(*inner).second_panel()).add_child(selection);
-    (*inner).set_dock(DockStyle::fill);
+    (*inner).dock = DockStyle::fill;
     refs.folder_surface = inner;
     std::shared_ptr<gui_forms::Panel> surface_host = std::make_shared<Panel>(StableId("fm.surface.host"));
     (*surface_host).set_background(paper);
-    (*surface_host).set_dock(DockStyle::fill);
+    (*surface_host).dock = DockStyle::fill;
     (*surface_host).add_child(inner);
     std::shared_ptr<Panel> search = make_search_surface(refs);
-    (*search).set_dock(DockStyle::fill);
+    (*search).dock = DockStyle::fill;
     (*surface_host).add_child(search);
     std::shared_ptr<FlowLayoutPanelCompat> palettes = make_palette_surface(refs);
-    (*palettes).set_dock(DockStyle::fill);
+    (*palettes).dock = DockStyle::fill;
     (*surface_host).add_child(palettes);
     std::shared_ptr<MasterDetailView> dna = make_dna_surface(refs);
-    (*dna).set_dock(DockStyle::fill);
+    (*dna).dock = DockStyle::fill;
     (*surface_host).add_child(dna);
     refs.surface_host = surface_host;
     (*(*outer).second_panel()).add_child(surface_host);
@@ -1260,7 +1260,7 @@ private:
             const std::size_t rows = location.items.size();
             (*refs_.objects).set_top_row(std::min(location.top_row, rows - 1U));
         }
-        (*refs_.objects).set_accessible_name(location.title + " objects");
+        (*refs_.objects).accessible_name = location.title + " objects";
         (*refs_.tree).set_selected_id("fm.tree.node." + location.tree_id);
         (*refs_.title).set_text("File Manager  ·  " + location.title);
         (*refs_.search).set_placeholder_text("Search " + location.title + " and descendants");
@@ -1272,11 +1272,11 @@ private:
                 std::to_string(location.items.size()) + " objects");
         for (std::size_t slot = 0; slot < refs_.breadcrumbs.size(); ++slot) {
             const bool visible = slot < location.path.size();
-            (*refs_.breadcrumbs[slot]).set_visible(visible);
+            (*refs_.breadcrumbs[slot]).visible = visible;
             if (visible) (*refs_.breadcrumbs[slot]).set_text(location.path[slot].second);
         }
         for (std::size_t slot = 0; slot < refs_.breadcrumb_separators.size(); ++slot) {
-            (*refs_.breadcrumb_separators[slot]).set_visible(slot + 1U < location.path.size());
+            (*refs_.breadcrumb_separators[slot]).visible = slot + 1U < location.path.size();
         }
         (*back_).set_enabled(index_ > 0U);
         (*forward_).set_enabled(index_ + 1U < history_.size());
@@ -1378,9 +1378,9 @@ private:
         placement.viewport_margin = 4.0;
         layer_ = make_control<AnchoredOverlayLayer>(
             StableId("fm.path.matrix.layer"), refs_.path_terminal, placement);
-        (*layer_).set_accessible_name("Complete path matrix");
-        (*layer_).set_accessible_description(
-            "Drive-rooted current path, direct editor, completions, and five recent paths");
+        (*layer_).accessible_name = "Complete path matrix";
+        (*layer_).accessible_description =
+            "Drive-rooted current path, direct editor, completions, and five recent paths";
         (*layer_).set_content(content_);
         (*layer_).set_requested_bounds(
             {0.0, 0.0, (*window).client_size().width, (*window).client_size().height});
@@ -1396,8 +1396,8 @@ private:
         }
         focus_scope_ = (*window).begin_focus_scope(layer_, current_tail_);
         (*refs_.path_terminal).set_expanded_state(true);
-        (*refs_.path_terminal).set_accessible_description(
-            "Complete path matrix open · activate to close");
+        (*refs_.path_terminal).accessible_description =
+            "Complete path matrix open · activate to close";
         status_("Path matrix open · full current stack · five recent locations");
     }
 
@@ -1405,7 +1405,7 @@ private:
         content_ = make_control<PathMatrixContent>(StableId("fm.path.matrix"));
         (*content_).set_background(Color::rgba(229, 234, 235));
         (*content_).set_border_style(BorderStyle::raised);
-        (*content_).set_accessible_name("Complete path matrix");
+        (*content_).accessible_name = "Complete path matrix";
         (*content_).key_preview = detail::BoundMemberFunction<
             void (PathMatrixController::*)(KeyEvent&)>(
                 *this, &PathMatrixController::handle_key);
@@ -1414,8 +1414,8 @@ private:
                              {10.0, 5.0, 840.0, 34.0},
                              {FontRole::control, 12.0, 700, false, .45});
         (*heading).set_foreground(Color::rgba(247, 250, 251));
-        (*heading).set_accessible_description(
-            "Browse a full drive-rooted stack or edit the current fixture path");
+        (*heading).accessible_description =
+            "Browse a full drive-rooted stack or edit the current fixture path";
         std::shared_ptr<DrawingSurface> heading_back = material(
             "fm.path.matrix.heading.material", paint_path_matrix_heading);
         (*content_).add_at(heading_back, {0.0, 0.0, 860.0, 40.0});
@@ -1425,7 +1425,7 @@ private:
             StableId("fm.path.matrix.current"), Size{840.0, 60.0});
         (*current_).set_background(Color::rgba(251, 248, 237));
         (*current_).set_border_style(BorderStyle::sunken);
-        (*current_).set_accessible_name("Current full path");
+        (*current_).accessible_name = "Current full path";
         const FixturePath& current = FixtureCatalogue::instance().current_path_stack();
         double x = 8.0;
         const std::array<double, 5> widths{112.0, 66.0, 80.0, 62.0, 86.0};
@@ -1435,8 +1435,8 @@ private:
                                   current.segments[index],
                                   {x, 13.0, widths[index], 33.0},
                                   ButtonVisualStyle::flat);
-            (*segment).set_accessible_description(
-                "Navigate to this ancestor in the current fixture stack");
+            (*segment).accessible_description =
+                "Navigate to this ancestor in the current fixture stack";
             (*current_).add_at(segment, (*segment).requested_bounds());
             const std::string destination = index + 1U == current.segments.size()
                 ? current.id : index == 0U ? "macintosh-hd"
@@ -1457,9 +1457,9 @@ private:
         current_tail_ = button("fm.path.matrix.current.tail", "… /",
                                {x + 4.0, 13.0, 58.0, 33.0},
                                ButtonVisualStyle::flat);
-        (*current_tail_).set_accessible_name("Edit complete path");
-        (*current_tail_).set_accessible_description(
-            "Replace the current stack with a direct path editor");
+        (*current_tail_).accessible_name = "Edit complete path";
+        (*current_tail_).accessible_description =
+            "Replace the current stack with a direct path editor";
         (*current_).add_at(current_tail_, (*current_tail_).requested_bounds());
         overlay_controls_.push_back((*current_tail_).clicked().subscribe(
             *this, detail::BoundMemberFunction<
@@ -1470,10 +1470,10 @@ private:
         editor_ = make_control<TextBox>(StableId("fm.path.matrix.editor"));
         (*editor_).set_style(house_style());
         (*editor_).set_font({FontRole::content, 11.0, 500, false});
-        (*editor_).set_accessible_name("Direct fixture path");
-        (*editor_).set_accessible_description(
-            "Type a fixture path or one of the admitted HOME and PROJECTS variables");
-        (*editor_).set_visible(false);
+        (*editor_).accessible_name = "Direct fixture path";
+        (*editor_).accessible_description =
+            "Type a fixture path or one of the admitted HOME and PROJECTS variables";
+        (*editor_).visible = false;
         (*content_).add_at(editor_, {10.0, 48.0, 840.0, 33.0});
         overlay_controls_.push_back((*editor_).text_changed().subscribe(
             *this, detail::BoundMemberFunction<
@@ -1485,8 +1485,8 @@ private:
         (*completions_).set_style(house_style());
         (*completions_).set_font({FontRole::content, 10.0, 500, false});
         (*completions_).set_item_height(25.0);
-        (*completions_).set_accessible_name("Path completions");
-        (*completions_).set_visible(false);
+        (*completions_).accessible_name = "Path completions";
+        (*completions_).visible = false;
         (*content_).add_at(completions_, {10.0, 85.0, 840.0, 79.0});
         overlay_controls_.push_back((*completions_).item_activated().subscribe(
             *this, detail::BoundMemberFunction<
@@ -1496,13 +1496,13 @@ private:
         resolution_ = label("fm.path.matrix.resolution", "", {12.0, 166.0, 836.0, 25.0},
                             {FontRole::content, 9.5, 600, false});
         (*resolution_).set_text_wrapping(TextWrapping::no_wrap);
-        (*resolution_).set_visible(false);
+        (*resolution_).visible = false;
         (*content_).add_at(resolution_, (*resolution_).requested_bounds());
 
         recents_ = make_control<ScaledPanel>(StableId("fm.path.matrix.recents"),
                                              Size{840.0, 306.0});
         (*recents_).set_background(Color::rgba(243, 246, 251));
-        (*recents_).set_accessible_name("Five recent complete paths");
+        (*recents_).accessible_name = "Five recent complete paths";
         std::shared_ptr<Label> recent_heading = label("fm.path.matrix.recents.heading", "RECENT FULL STACKS",
                                     {4.0, 0.0, 832.0, 25.0},
                                     {FontRole::control, 9.0, 700, false, .35});
@@ -1514,9 +1514,9 @@ private:
             (*row).set_background(path.available ? Color::rgba(255, 255, 255)
                                                : Color::rgba(238, 238, 235));
             (*row).set_border_style(BorderStyle::line);
-            (*row).set_accessible_name(path.path);
-            (*row).set_accessible_description(path.available
-                ? "Recent fixture path" : "Recent stored path · source volume offline");
+            (*row).accessible_name = path.path;
+            (*row).accessible_description = path.available
+                ? "Recent fixture path" : "Recent stored path · source volume offline";
             double segment_x = 5.0;
             for (std::size_t index = 0; index < path.segments.size(); ++index) {
                 const double width = std::clamp(
@@ -1526,9 +1526,9 @@ private:
                     "fm.path.matrix.recent." + path.id + ".segment." +
                         std::to_string(index), path.segments[index],
                     {segment_x, 8.0, width, 31.0}, ButtonVisualStyle::flat);
-                (*segment).set_accessible_description(
+                (*segment).accessible_description =
                     path.available ? "Navigate to this recent fixture stack"
-                                   : "Navigate to stored offline fixture state");
+                                   : "Navigate to stored offline fixture state";
                 (*row).add_at(segment, (*segment).requested_bounds());
                 overlay_controls_.push_back((*segment).clicked().subscribe(
                     *this, NavigateAndCloseCallback{this, path.id}));
@@ -1553,10 +1553,10 @@ private:
     void show_editing() {
         if (!content_ || editing_) return;
         editing_ = true;
-        (*current_).set_visible(false);
-        (*editor_).set_visible(true);
-        (*completions_).set_visible(true);
-        (*resolution_).set_visible(true);
+        (*current_).visible = false;
+        (*editor_).visible = true;
+        (*completions_).visible = true;
+        (*resolution_).visible = true;
         (*content_).set_design_bounds(*recents_, {10.0, 194.0, 840.0, 222.0});
         const std::string value =
             std::string(FixtureCatalogue::instance().current_path()) + "/";
@@ -1576,10 +1576,10 @@ private:
     void show_browse() {
         if (!content_ || !editing_) return;
         editing_ = false;
-        (*current_).set_visible(true);
-        (*editor_).set_visible(false);
-        (*completions_).set_visible(false);
-        (*resolution_).set_visible(false);
+        (*current_).visible = true;
+        (*editor_).visible = false;
+        (*completions_).visible = false;
+        (*resolution_).visible = false;
         (*content_).set_design_bounds(*recents_, {10.0, 110.0, 840.0, 306.0});
         if (Window* window = (*current_tail_).attached_window()) {
             static_cast<void>((*window).request_focus(current_tail_));
@@ -1618,7 +1618,7 @@ private:
                               std::to_string(generation) + " · " +
                               std::to_string((*completions_).items().size()) +
                               " fixture matches");
-        (*resolution_).set_accessible_description((*resolution_).text());
+        (*resolution_).accessible_description = (*resolution_).text();
     }
 
     void accept_completion(std::size_t index) {
@@ -1665,8 +1665,8 @@ private:
             } else {
                 (*resolution_).set_text("Path not resolved · " + result.explanation);
                 (*resolution_).set_foreground(Color::rgba(139, 43, 47));
-                (*resolution_).set_accessible_description(
-                    "Error: " + result.explanation);
+                (*resolution_).accessible_description =
+                    "Error: " + result.explanation;
                 status_("Path rejected · " + result.explanation);
             }
             event.handled = true;
@@ -1699,8 +1699,8 @@ private:
         overlay_revocation_.disconnect();
         reset_overlay();
         (*refs_.path_terminal).set_expanded_state(false);
-        (*refs_.path_terminal).set_accessible_description(
-            "Browse full fixture paths or edit a path directly");
+        (*refs_.path_terminal).accessible_description =
+            "Browse full fixture paths or edit a path directly";
         closing_ = false;
     }
 
@@ -1810,12 +1810,12 @@ public:
             ++query_generation_;
             (*path_matrix_).dismiss();
             search_visible_ = false;
-            (*refs_.search_surface).set_visible(false);
-            (*refs_.folder_surface).set_visible(true);
-            (*refs_.criteria_surface).set_visible(false);
-            (*refs_.palette_surface).set_visible(false);
-            (*refs_.dna_surface).set_visible(false);
-            (*refs_.objects).set_visible(true);
+            (*refs_.search_surface).visible = false;
+            (*refs_.folder_surface).visible = true;
+            (*refs_.criteria_surface).visible = false;
+            (*refs_.palette_surface).visible = false;
+            (*refs_.dna_surface).visible = false;
+            (*refs_.objects).visible = true;
             (*navigation_).restore_projection();
             if (Window* window = (*refs_.shell).attached_window()) {
                 (*window).perform_layout();
@@ -1834,14 +1834,14 @@ public:
 
     [[nodiscard]] bool search_visible() const noexcept { return search_visible_; }
     [[nodiscard]] bool non_folder_surface_visible() const noexcept {
-        return search_visible_ || (*refs_.criteria_surface).visible() ||
-               (*refs_.palette_surface).visible() || (*refs_.dna_surface).visible();
+        return search_visible_ || (*refs_.criteria_surface).visible.read() ||
+               (*refs_.palette_surface).visible.read() || (*refs_.dna_surface).visible.read();
     }
     void deactivate_for_other_surface() {
         pending_query_.disconnect();
         ++query_generation_;
         search_visible_ = false;
-        (*refs_.search_surface).set_visible(false);
+        (*refs_.search_surface).visible = false;
     }
     [[nodiscard]] std::uint64_t query_generation() const noexcept {
         return query_generation_;
@@ -1955,10 +1955,10 @@ private:
         if ((*refs_.search).text() != query) (*refs_.search).set_text(query);
         applying_ = false;
         search_visible_ = true;
-        (*refs_.folder_surface).set_visible(false);
-        (*refs_.search_surface).set_visible(true);
-        (*refs_.palette_surface).set_visible(false);
-        (*refs_.dna_surface).set_visible(false);
+        (*refs_.folder_surface).visible = false;
+        (*refs_.search_surface).visible = true;
+        (*refs_.palette_surface).visible = false;
+        (*refs_.dna_surface).visible = false;
         (*refs_.title).set_text("File Manager  ·  Search");
         (*refs_.status_summary).set_text(search_status());
         (*refs_.status_authority).set_text(
@@ -2155,12 +2155,12 @@ public:
     bool show() {
         (*path_matrix_).dismiss();
         (*search_).deactivate_for_other_surface();
-        (*refs_.search_surface).set_visible(false);
-        (*refs_.folder_surface).set_visible(true);
-        (*refs_.objects).set_visible(false);
-        (*refs_.criteria_surface).set_visible(true);
-        (*refs_.palette_surface).set_visible(false);
-        (*refs_.dna_surface).set_visible(false);
+        (*refs_.search_surface).visible = false;
+        (*refs_.folder_surface).visible = true;
+        (*refs_.objects).visible = false;
+        (*refs_.criteria_surface).visible = true;
+        (*refs_.palette_surface).visible = false;
+        (*refs_.dna_surface).visible = false;
         (*refs_.title).set_text("File Manager  ·  Criteria");
         (*refs_.search).set_placeholder_text("Search this virtual folder");
         update_actions();
@@ -2186,7 +2186,7 @@ public:
     }
 
     [[nodiscard]] bool visible() const noexcept {
-        return (*refs_.criteria_surface).visible();
+        return (*refs_.criteria_surface).visible.read();
     }
 
 private:
@@ -2377,7 +2377,7 @@ private:
             std::to_string(live_count()) + " LIVE MODULES   ·   " +
             (pending_ ? std::string("APPLYING")
                       : std::to_string(staged) + " STAGED"));
-        (*refs_.criteria_apply).set_enabled(!pending_ && staged > 0U && invalid == 0U);
+        (*refs_.criteria_apply).enabled = !pending_ && staged > 0U && invalid == 0U;
         (*refs_.criteria_apply).set_text(staged == 0U ? "Applied"
             : "Apply " + std::to_string(staged));
         if (pending_) {
@@ -2727,7 +2727,7 @@ private:
         const std::shared_ptr<Control> band = source.lock();
         if (!band) return;
         (*band).set_requested_bounds({0.0, 0.0, 1450.0, height});
-        (*band).set_visible(visible);
+        (*band).visible = visible;
     }
 
     std::weak_ptr<TableLayoutPanelCompat> shell_;
@@ -2857,7 +2857,7 @@ struct RenameCommandHandler final {
 
     void operator()(const CommandInvocation&) const {
         const std::shared_ptr<TextBox> field = editor.lock();
-        if (!field || !(*field).enabled()) return;
+        if (!field || !(*field).enabled.read()) return;
         Window* window = (*field).attached_window();
         if (window && (*window).request_focus(field)) {
             (*field).select_all();
@@ -3100,14 +3100,14 @@ struct PreviewDisclosureHandler final {
     void operator()(ButtonBase&) const {
         *expanded = !*expanded;
         const std::shared_ptr<Control> control = preview.lock();
-        if (control) (*control).set_visible(*expanded);
+        if (control) (*control).visible = *expanded;
         const std::shared_ptr<PropertyList> list = property_list.lock();
         if (list) (*list).set_header_height(*expanded ? 212.0 : 34.0);
         const std::shared_ptr<Button> button = disclosure.lock();
         if (button) {
             (*button).set_text(*expanded ? "▼" : "▶");
-            (*button).set_accessible_description(
-                *expanded ? "Collapse fixture preview" : "Expand fixture preview");
+            (*button).accessible_description =
+                *expanded ? "Collapse fixture preview" : "Expand fixture preview";
         }
         status(*expanded ? "Selection preview expanded"
                          : "Selection preview collapsed");
@@ -3227,15 +3227,15 @@ public:
         const std::shared_ptr<Control> search = search_.lock();
         const std::shared_ptr<Control> criteria = criteria_.lock();
         if (!palette || !dna || !folder || !search || !criteria) return false;
-        (*folder).set_visible(false);
-        (*search).set_visible(false);
-        (*criteria).set_visible(false);
+        (*folder).visible = false;
+        (*search).visible = false;
+        (*criteria).visible = false;
         const bool palettes_selected = surface == "palettes";
-        (*palette).set_visible(palettes_selected);
-        (*dna).set_visible(!palettes_selected);
+        (*palette).visible = palettes_selected;
+        (*dna).visible = !palettes_selected;
         if (!palettes_selected) (*dna).show_master();
         const std::shared_ptr<ObjectView> objects = objects_.lock();
-        if (objects) (*objects).set_visible(false);
+        if (objects) (*objects).visible = false;
         set_label(title_, palettes_selected
             ? "File Manager  ·  Atmosphere palettes"
             : "File Manager  ·  Program DNA");
@@ -3288,7 +3288,7 @@ struct CardSelectionHandler final {
         }
         const std::shared_ptr<Label> label = summary.lock();
         if (label) {
-            (*label).set_text(std::string((*selected).accessible_name()) +
+            (*label).set_text(std::string((*selected).accessible_name.read()) +
                               " · selected for review");
         }
     }
@@ -3309,7 +3309,7 @@ struct DnaSelectionHandler final {
             const std::shared_ptr<Card> candidate = source.lock();
             if (candidate) (*candidate).set_selected(candidate == selected);
         }
-        const std::string name((*selected).accessible_name());
+        const std::string name((*selected).accessible_name.read());
         const std::shared_ptr<Label> heading_label = heading.lock();
         if (heading_label) (*heading_label).set_text(name);
         const std::shared_ptr<ReviewCard> verdict_card = verdict.lock();
@@ -3782,8 +3782,8 @@ std::unique_ptr<gui_forms::Window> make_product_window() {
     refs.status_band = bands[5];
     constexpr double band_heights[] = {40, 23, 66, 40, 657, 24};
     for (std::size_t row = 0; row < std::size(bands); ++row) {
-        (*bands[row]).set_margin({});
-        (*bands[row]).set_dock(DockStyle::fill);
+        (*bands[row]).margin = Insets{};
+        (*bands[row]).dock = DockStyle::fill;
         (*bands[row]).set_requested_bounds({0, 0, 1450, band_heights[row]});
         (*root).add_child(bands[row]);
         (*root).set_cell_position(*bands[row], {0,row});
