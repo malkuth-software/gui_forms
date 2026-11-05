@@ -137,7 +137,7 @@ struct PropertyList::Impl final {
             const std::string previous = (*row).committed_value;
             model.value = checked ? "True" : "False";
             (*row).committed_value = model.value;
-            (*editor).set_text(model.value);
+            (*editor).text = model.value;
             const PropertyValueChange change{
                 row_id, previous, model.value, true};
             (*implementation).owner.publish_change(
@@ -191,7 +191,7 @@ struct PropertyList::Impl final {
             (*choice).set_font(font);
         } else if (const std::shared_ptr<ButtonBase> button =
                        std::dynamic_pointer_cast<ButtonBase>(editor)) {
-            (*button).set_font(font);
+            (*button).font = font;
         }
     }
 
@@ -288,7 +288,7 @@ struct PropertyList::Impl final {
                         StableId(row.stable_id + ".editor"),
                         checked ? "True" : "False");
                     (*editor).set_checked(checked);
-                    (*editor).set_font({FontRole::content, 10.0, 400, false});
+                    (*editor).font = {FontRole::content, 10.0, 400, false};
                     (*editor).accessible_name = row.name;
                     (*editor).accessible_description = row.description;
                     (*editor).enabled = row.enabled;
@@ -298,7 +298,7 @@ struct PropertyList::Impl final {
                 if (row.resettable) {
                     std::shared_ptr<gui_forms::Button> reset = make_control<Button>(
                         StableId(row.stable_id + ".reset"), "Reset");
-                    (*reset).set_font({FontRole::control, 8.5, 600, false});
+                    (*reset).font = {FontRole::control, 8.5, 600, false};
                     (*reset).enabled = row.enabled && row.reset_enabled;
                     (*reset).accessible_name = "Reset " + row.name;
                     (*reset).accessible_description = "Restore " + row.name + " to its declared default";
@@ -651,7 +651,7 @@ bool PropertyList::set_value(std::string_view row_id, std::string value) {
         const bool checked = binding_value_to_bool(
             BindingValue{value}).value_or(false);
         (*check).set_checked(checked);
-        (*check).set_text(checked ? "True" : "False");
+        (*check).text = checked ? "True" : "False";
     }
     (*impl_).synchronizing = false;
     invalidate(Dirty::paint | Dirty::semantics);

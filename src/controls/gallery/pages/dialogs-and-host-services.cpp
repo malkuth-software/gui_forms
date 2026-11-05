@@ -324,7 +324,7 @@ void HostServicesPage::on_toggle_notify_icon() {
     const bool show = !(*notify_icon_).visible();
     const HostServiceStatus status = (*notify_icon_).set_visible(show);
     notify_toggle_command_.set_text(show ? "Hide tray icon" : "Show tray icon");
-    (*notify_toggle_button_).set_text(show ? "Hide tray icon" : "Show tray icon");
+    (*notify_toggle_button_).text = show ? "Hide tray icon" : "Show tray icon";
     (*status_).set_text(std::string(show ? "Tray icon shown: " : "Tray icon hidden: ") + service_result(status));
 }
 

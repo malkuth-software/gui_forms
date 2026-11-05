@@ -80,8 +80,8 @@ const ControlAnatomy& LinkLabel::anatomy() const noexcept {
 
 double LinkLabel::text_baseline() const noexcept {
     const Rect bounds = local_bounds();
-    const double baseline = std::max(font().size,
-        (bounds.height + font().size) * 0.5 - 1.0);
+    const double baseline = std::max(font.read().size,
+        (bounds.height + font.read().size) * 0.5 - 1.0);
     return baseline;
 }
 
@@ -93,8 +93,8 @@ double LinkLabel::underline_width() const {
     const Rect bounds = local_bounds();
     const std::string text = display_text();
     const ResolvedTextLayout measured = window() != nullptr
-        ? (*window()).resolve_text_layout_utf8(text, font())
-        : estimate_text_layout_utf8(text, font());
+        ? (*window()).resolve_text_layout_utf8(text, font.read())
+        : estimate_text_layout_utf8(text, font.read());
     const double width = std::min(bounds.width - 4.0, measured.logical_size.width);
     return std::max(0.0, width);
 }
@@ -105,7 +105,7 @@ void LinkLabel::publish_part_geometry(std::span<PartGeometry> geometry) const {
     const double width = underline_width();
     // The label spans one font size above the baseline; the underline is the
     // one-unit stroke two units below it.
-    const Rect label{2.0, baseline - font().size, width, font().size};
+    const Rect label{2.0, baseline - font.read().size, width, font.read().size};
     const Rect underline{2.0, baseline + 1.5, width, 1.0};
     Parts record;
     record.region = PartGeometry::from_bounds(bounds);
@@ -162,7 +162,7 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     // drawn in the link's colour as authored colour (T4-1): a disabled link
     // takes the theme's disabled ink.
     const std::string display = display_text();
-    const FontSpec text_font = font();
+    const FontSpec text_font = font.read();
     const Size measured = painter.measure_text_utf8(display, text_font);
     const double box_height = std::max(measured.height, text_font.size * 1.2);
     const double box_ascent = std::max(text_font.size, box_height * 0.82);

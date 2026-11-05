@@ -48,8 +48,8 @@ void CheckBox::unbind() noexcept { value_binding_.reset(); }
 
 CheckBox::CheckBox(StableId stable_id, std::string text)
     : ButtonBase(std::move(stable_id), std::move(text)) {
-    set_text_alignment(ContentAlignment::middle_left);
-    set_image_alignment(ContentAlignment::middle_left);
+    text_alignment = ContentAlignment::middle_left;
+    image_alignment = ContentAlignment::middle_left;
     define_bindable_property({
         {"checked", BindingValueKind::boolean, "Behavior",
          "Whether the check box is in a checked state.", BindingValue{false},

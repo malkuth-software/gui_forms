@@ -176,7 +176,7 @@ gui_forms::ImageList
       static_cast<void>((*icons).add_image("open", pixel.image));
       (*open).set_image_list(icons);
       (*open).set_image_key("open");
-      (*open).set_text_image_relation(gf::TextImageRelation::image_before_text);
+      (*open).text_image_relation = gf::TextImageRelation::image_before_text;
 
 
    .. rubric:: Construction

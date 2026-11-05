@@ -145,7 +145,7 @@ void test_moved_subtree_keeps_its_images() {
     (*button).set_requested_bounds({0.0, 0.0, 120.0, 30.0});
     (*button).set_image_list(list);
     (*button).set_image_key("save");
-    (*button).set_text_image_relation(TextImageRelation::image_before_text);
+    (*button).text_image_relation = TextImageRelation::image_before_text;
     const std::shared_ptr<PictureBox> picture = make_control<PictureBox>(StableId("move.picture"));
     (*picture).set_requested_bounds({0.0, 40.0, 32.0, 32.0});
     (*picture).set_image(raw);

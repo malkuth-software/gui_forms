@@ -187,7 +187,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         std::shared_ptr<gui_forms::Button> navigation = make_control<Button>(
             StableId(std::string(navigation_id_prefix) + std::string((*entry.page).id)),
             std::string((*entry.page).title));
-        (*navigation).set_font({FontRole::control, 12.0, 400, false, 0.24});
+        (*navigation).font = {FontRole::control, 12.0, 400, false, 0.24};
         (*navigation).set_visual_style(ButtonVisualStyle::command);
         (*navigation).set_style(page_style());
         (*navigation).set_bounds({16.0, navigation_y, 190.0, 24.0});
@@ -387,10 +387,10 @@ public:
             (*(*context).error_provider).set_error(
                 (*context).provider_error_target,
                 "Endpoint is intentionally marked invalid for provider dogfood.");
-            (*(*context).provider_error_toggle).set_text("Clear");
+            (*(*context).provider_error_toggle).text = "Clear";
         } else {
             (*(*context).error_provider).set_error((*context).provider_error_target, {});
-            (*(*context).provider_error_toggle).set_text("Restore");
+            (*(*context).provider_error_toggle).text = "Restore";
         }
     }
 
@@ -510,7 +510,7 @@ void initialize_gallery_runtime(Window& window) {
         "The overlay re-anchors when this retained target moves on UI Timer ticks.");
     for (const std::shared_ptr<gui_forms::Button>& navigation : (*context).navigation) {
         (*(*context).tooltips).set_tool_tip(
-            navigation, "Open the " + (*navigation).text() + " Gallery page.");
+            navigation, "Open the " + (*navigation).text.read() + " Gallery page.");
     }
 
     // Enhanced tooltips on the commands page's ToolStrip items: title,

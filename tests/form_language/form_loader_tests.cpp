@@ -152,7 +152,7 @@ void test_load() {
             "load: the group's children in document order");
 
     const std::shared_ptr<gui_forms::CheckBox> check = std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[2]);
-    require(check != nullptr && (*check).text() == "Save automatically" && (*check).checked() &&
+    require(check != nullptr && (*check).text.read() == "Save automatically" && (*check).checked() &&
                 (*check).tab_index.read() == 2U,
             "load: the check box's properties");
     require(std::dynamic_pointer_cast<gui_forms::Command>(loaded.objects[4]) != nullptr, "load: the command");

@@ -195,7 +195,7 @@ std::unique_ptr<Window> make_custom_chrome_lab() {
     std::shared_ptr<Button> interactive = make_control<Button>(
         StableId("custom-chrome.interactive-exclusion"), "Interactive zone");
     (*interactive).set_visual_style(ButtonVisualStyle::command);
-    (*interactive).set_font({FontRole::control, 10.0, 700, false});
+    (*interactive).font = {FontRole::control, 10.0, 700, false};
     add_at(title, interactive, {930.0, 6.0, 174.0, 28.0},
            AnchorStyles::top | AnchorStyles::right);
 

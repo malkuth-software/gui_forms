@@ -6,6 +6,7 @@
 #include "gui_forms/image_list.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/theme.hpp"
+#include "gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -18,48 +19,20 @@ namespace gui_forms {
 
 class Command;
 
-enum class ContentAlignment : std::uint8_t {
-    top_left,
-    top_center,
-    top_right,
-    middle_left,
-    middle_center,
-    middle_right,
-    bottom_left,
-    bottom_center,
-    bottom_right,
-};
-
-enum class TextImageRelation : std::uint8_t {
-    overlay,
-    image_before_text,
-    text_before_image,
-    image_above_text,
-    text_above_image,
-};
-
 enum class ChoiceIndicatorStyle : std::uint8_t {
     classic,
     modern,
     toggle,
 };
 
-class ButtonBase : public Control {
+class ButtonBase : public Control, public ButtonBaseCapabilities<ButtonBase> {
 public:
-    explicit ButtonBase(StableId stable_id, std::string text = {});
+    explicit ButtonBase(StableId stable_id, std::string initial_text = {});
     ~ButtonBase() override;
     virtual void bind(Command& command);
     void unbind_command() noexcept;
     [[nodiscard]] bool command_connected() const noexcept;
 
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    virtual void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    [[nodiscard]] double text_line_spacing() const noexcept {
-        return text_line_spacing_;
-    }
-    void set_text_line_spacing(double spacing);
     [[nodiscard]] const BasicControlStyle& style() const noexcept;
     [[nodiscard]] bool has_style_override() const noexcept {
         return style_override_.has_value();
@@ -93,26 +66,6 @@ public:
         return image_key_;
     }
     void set_image_key(std::string image_key);
-    [[nodiscard]] ContentAlignment image_alignment() const noexcept {
-        return image_alignment_;
-    }
-    void set_image_alignment(ContentAlignment alignment);
-    [[nodiscard]] ContentAlignment text_alignment() const noexcept {
-        return text_alignment_;
-    }
-    void set_text_alignment(ContentAlignment alignment);
-    [[nodiscard]] TextImageRelation text_image_relation() const noexcept {
-        return text_image_relation_;
-    }
-    void set_text_image_relation(TextImageRelation relation);
-    [[nodiscard]] double image_gap() const noexcept { return image_gap_; }
-    void set_image_gap(double gap);
-    [[nodiscard]] Insets content_padding() const noexcept {
-        return content_padding_;
-    }
-    void set_content_padding(Insets padding);
-    [[nodiscard]] bool use_mnemonic() const noexcept { return use_mnemonic_; }
-    void set_use_mnemonic(bool value);
     // Executes the same validated command path used by mnemonics, semantic
     // press, and a Window accept/cancel button. Returns false when unavailable
     // or when validation prevents the command.
@@ -123,13 +76,6 @@ public:
     [[nodiscard]] bool focused_visual() const noexcept { return focused_; }
     [[nodiscard]] bool focus_cue_visible() const noexcept;
     [[nodiscard]] bool hovered_visual() const noexcept { return hovered_; }
-    // Optional disclosure state for buttons that own an overlay or retained
-    // disclosure region. Nullopt is an ordinary push button; false/true expose
-    // collapsed/expanded semantics without conflating visual pressed state.
-    [[nodiscard]] std::optional<bool> expanded_state() const noexcept {
-        return expanded_state_;
-    }
-    void set_expanded_state(std::optional<bool> expanded);
     [[nodiscard]] Event<std::optional<bool>>& expanded_changed() noexcept {
         return expanded_changed_;
     }
@@ -193,7 +139,7 @@ protected:
     // the resolved image inside `content`.
     [[nodiscard]] ContentLayout layout_content(Rect content,
                                                std::span<const Size> line_sizes,
-                                               FontSpec font, bool selected,
+                                               FontSpec line_font, bool selected,
                                                bool command_alignment) const;
     // layout_content for `face`, measuring the display text with the
     // window's text metrics.
@@ -219,7 +165,7 @@ protected:
     // part and one label part per line through the theme's engine,
     // displaced by `offset`.
     void paint_button_content(Painter& painter, Rect bounds,
-                              std::string_view text, const ButtonContentInk& ink,
+                              std::string_view shown_text, const ButtonContentInk& ink,
                               Point offset = {}, bool selected = false,
                               bool command_alignment = false) const;
     // The colours a style override gives a themed button's face and text
@@ -257,9 +203,6 @@ private:
     [[nodiscard]] bool should_serialize_image() const noexcept;
     void on_image_list_changed(const ImageListChange& change);
 
-    std::string text_;
-    FontSpec font_{FontRole::control, 12.0, 400, false, 0.24};
-    double text_line_spacing_{1.25};
     std::optional<BasicControlStyle> style_override_;
     std::optional<ControlStateRecipes> visual_recipes_override_;
     std::optional<ConnectedControlTopology> connection_topology_;
@@ -268,11 +211,6 @@ private:
     SubscriptionToken image_list_changed_;
     std::string image_key_;
     int image_index_{-1};
-    ContentAlignment image_alignment_{ContentAlignment::middle_center};
-    ContentAlignment text_alignment_{ContentAlignment::middle_center};
-    TextImageRelation text_image_relation_{TextImageRelation::overlay};
-    double image_gap_{4.0};
-    Insets content_padding_{6.0, 4.0, 6.0, 4.0};
     Event<ButtonBase&> clicked_;
     Event<const std::string&> text_changed_;
     std::uint32_t keyboard_key_{};
@@ -281,9 +219,56 @@ private:
     bool keyboard_pressed_{};
     bool focused_{};
     bool hovered_{};
-    bool use_mnemonic_{true};
-    std::optional<bool> expanded_state_;
     Event<std::optional<bool>> expanded_changed_{};
+    // property_codemod begin ButtonBase (tools/property_families/button_base.json; generated, do not edit)
+public:
+    // ButtonBase's property table: Control's entries, then its own.
+    static constexpr std::size_t button_base_property_count = Control::control_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, button_base_property_count>& button_base_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's touch and raises the
+    // change event; an override calls the base. coerce_<property> runs last
+    // before the compare and may rewrite the incoming value.
+    virtual void on_text_changed();
+    virtual void coerce_text(std::string& incoming);
+    virtual void on_font_changed();
+    virtual void coerce_font(FontSpec& incoming);
+
+private:
+    friend struct TextCapability<ButtonBase>;
+    friend struct TextAlignmentCapability<ButtonBase>;
+    friend struct FontCapability<ButtonBase>;
+    friend struct ContentPaddingCapability<ButtonBase>;
+    friend struct TextLineSpacingCapability<ButtonBase>;
+    friend struct ImageAlignmentCapability<ButtonBase>;
+    friend struct TextImageRelationCapability<ButtonBase>;
+    friend struct ImageGapCapability<ButtonBase>;
+    friend struct ButtonUseMnemonicCapability<ButtonBase>;
+    friend struct ExpandedStateCapability<ButtonBase>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    void prepare_write(const decltype(text_alignment)& cell, ContentAlignment& incoming);
+    void written(const decltype(text_alignment)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(content_padding)& cell, Insets& incoming);
+    void written(const decltype(content_padding)& cell);
+    void prepare_write(const decltype(text_line_spacing)& cell, double& incoming);
+    void written(const decltype(text_line_spacing)& cell);
+    void prepare_write(const decltype(image_alignment)& cell, ContentAlignment& incoming);
+    void written(const decltype(image_alignment)& cell);
+    void prepare_write(const decltype(text_image_relation)& cell, TextImageRelation& incoming);
+    void written(const decltype(text_image_relation)& cell);
+    void prepare_write(const decltype(image_gap)& cell, double& incoming);
+    void written(const decltype(image_gap)& cell);
+    void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
+    void written(const decltype(use_mnemonic)& cell);
+    void prepare_write(const decltype(expanded_state)& cell, std::optional<bool>& incoming);
+    void written(const decltype(expanded_state)& cell);
+    // property_codemod end ButtonBase
 };
 
 } // namespace gui_forms

@@ -166,7 +166,7 @@ std::shared_ptr<ButtonType> segment(std::string id, std::string text,
                                     const std::shared_ptr<LabRoot>& root) {
     std::shared_ptr<ButtonType> result = make_control<ButtonType>(
         StableId(std::move(id)), std::move(text));
-    (*result).set_font({FontRole::control, 10.0, 600, false, 0.08});
+    (*result).font = {FontRole::control, 10.0, 600, false, 0.08};
     (*result).margin = Insets{};
     add_at(root, result, bounds);
     return result;

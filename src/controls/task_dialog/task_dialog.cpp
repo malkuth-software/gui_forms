@@ -374,7 +374,7 @@ void TaskDialog::set_expanded(bool expanded) {
     TaskDialogExpander& expander = *page_.expander;
     expander.expanded = expanded;
     if (expander_button_) {
-        (*expander_button_).set_text(expanded ? expander.expanded_button_text : expander.collapsed_button_text);
+        (*expander_button_).text = expanded ? expander.expanded_button_text : expander.collapsed_button_text;
     }
     if (expanded_text_) set_child_layout_collapsed(expanded_text_, !expanded);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);

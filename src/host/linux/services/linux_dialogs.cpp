@@ -95,7 +95,7 @@ struct DialogState final {
     const std::shared_ptr<Button> control =
         make_control<Button>(StableId(std::move(id)), std::move(text));
     (*control).set_bounds(bounds);
-    (*control).set_font({FontRole::control, 14, 400, false});
+    (*control).font = FontSpec{FontRole::control, 14, 400, false};
     (*root).add_child(control);
     tokens.push_back(
         (*control).clicked().subscribe(ButtonAction{this, action}));

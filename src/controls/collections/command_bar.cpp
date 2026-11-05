@@ -143,7 +143,7 @@ void CommandBar::set_items(std::vector<CommandItem> items) {
             (*(*next).entries[index]).click.disconnect();
             button.unbind_command();
             const std::string text = value.glyph.empty() ? value.label : value.glyph + " " + value.label;
-            button.set_text(text);
+            button.text = text;
             button.accessible_name = value.accessible_name.empty() ? value.label : value.accessible_name;
             button.tab_stop = index == 0U;
             button.tab_index = static_cast<std::uint32_t>(index);

@@ -260,7 +260,7 @@ void LiveSurfacesPage::on_reconfigure() {
     needs_full_frame_ = true;
     const std::string next = large_ ? "Reconfigure 160×100" : "Reconfigure 240×150";
     reconfigure_.set_text(next);
-    (*reconfigure_button_).set_text(next);
+    (*reconfigure_button_).text = next;
     refresh_status("Reconfigured · new epoch · previous frame carried until the next publish",
                    {});
 }

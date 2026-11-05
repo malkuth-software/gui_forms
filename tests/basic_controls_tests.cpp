@@ -1349,19 +1349,19 @@ void test_basic_control_layout_customization_is_bounded_and_atomic() {
 
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.content-padding"), "Run");
     const Size default_size = (*button).measure({300.0, 200.0});
-    (*button).set_content_padding({20.0, 14.0, 20.0, 14.0});
+    (*button).content_padding = {20.0, 14.0, 20.0, 14.0};
     const Size padded_size = (*button).measure({300.0, 200.0});
     require(padded_size.width > default_size.width &&
                 padded_size.height > default_size.height,
             "ButtonBase ContentPadding must participate in desired size");
     bool rejected_padding{};
     try {
-        (*button).set_content_padding({20.0, 14.0, 129.0, 14.0});
+        (*button).content_padding = {20.0, 14.0, 129.0, 14.0};
     } catch (const std::invalid_argument&) {
         rejected_padding = true;
     }
     require(rejected_padding &&
-                (*button).content_padding() == Insets{20.0, 14.0, 20.0, 14.0},
+                (*button).content_padding.read() == Insets{20.0, 14.0, 20.0, 14.0},
             "ButtonBase ContentPadding must reject invalid insets atomically");
 
     std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("panel.border-validation"));
@@ -1586,7 +1586,7 @@ void test_public_drawing_metrics_and_control_tag() {
 
 void test_button_disclosure_semantics() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("button.disclosure"), "Options");
-    (*button).set_expanded_state(false);
+    (*button).expanded_state = false;
     SemanticDescriptor collapsed = (*button).semantic_descriptor();
     require(!has_semantic_state(collapsed.states, SemanticState::expanded) &&
                 std::find(collapsed.actions.begin(), collapsed.actions.end(),
@@ -1599,7 +1599,7 @@ void test_button_disclosure_semantics() {
     require(operation_check_46, "semantic expand must route through the button's shared activation");
     const bool operation_check_47 = activations == 1U;
     require(operation_check_47, "semantic expand must route through the button's shared activation");
-    (*button).set_expanded_state(true);
+    (*button).expanded_state = true;
     const SemanticDescriptor expanded = (*button).semantic_descriptor();
     require(has_semantic_state(expanded.states, SemanticState::expanded) &&
                 std::find(expanded.actions.begin(), expanded.actions.end(),
@@ -1747,15 +1747,15 @@ void test_drop_down_button_routes_pointer_keyboard_and_semantics() {
 
 void test_bottom_disclosure_and_multiline_button_content() {
     std::shared_ptr<DropDownButton> button = make_control<DropDownButton>(StableId("ribbon.paste"), "Paste", DropDownButtonMode::split);
-    (*button).set_text("Clipboard image");
-    (*button).set_font({FontRole::control,24,400,false});
+    (*button).text = "Clipboard image";
+    (*button).font = {FontRole::control,24,400,false};
     const Size right_size = (*button).measure({500, 500});
     (*button).set_drop_down_edge(DropDownButtonEdge::bottom);
     const Size bottom_size = (*button).measure({500, 500});
     require(bottom_size.width == right_size.width - 16 && bottom_size.height == right_size.height + 16,
         "bottom disclosure must move its content reservation to the vertical axis");
-    (*button).set_font({FontRole::control,12,400,false});
-    (*button).set_text("Paste");
+    (*button).font = {FontRole::control,12,400,false};
+    (*button).text = "Paste";
     (*button).set_requested_bounds({0, 0, 64, 80});
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(button, Size{64, 80});
     Window& window = *held_window;
@@ -1768,9 +1768,9 @@ void test_bottom_disclosure_and_multiline_button_content() {
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::primary, {32, 75}}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::primary, {32, 75}}));
     require(clicks == 1 && menus == 1, "bottom split region must preserve primary and menu command ownership");
-    (*button).set_text("Edit\ncolors");
-    (*button).set_use_mnemonic(false);
-    (*button).set_text_alignment(ContentAlignment::middle_center);
+    (*button).text = "Edit\ncolors";
+    (*button).use_mnemonic = false;
+    (*button).text_alignment = ContentAlignment::middle_center;
     RecordingPainter painter{};
     (*button).on_paint(painter, {0,0,64,80});
     require(painter.texts.size() == 2 && painter.texts[0] == "Edit" && painter.texts[1] == "colors" &&
@@ -1805,8 +1805,8 @@ void test_image_list_state_density_ownership_and_button_layout() {
                                     const ImageListChange&>(changes));
     (*button).set_image_list(images);
     (*button).set_image_key("ACTION");
-    (*button).set_text_image_relation(TextImageRelation::image_before_text);
-    (*button).set_text_alignment(ContentAlignment::middle_center);
+    (*button).text_image_relation = TextImageRelation::image_before_text;
+    (*button).text_alignment = ContentAlignment::middle_center;
     window.perform_layout();
 
     RecordingPainter normal{};

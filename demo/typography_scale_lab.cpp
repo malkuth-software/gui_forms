@@ -154,7 +154,7 @@ std::unique_ptr<Window> make_typography_scale_lab() {
         std::shared_ptr<Button> choice = make_control<Button>(
             StableId("typography-scale.scale." + std::to_string(index)),
             scales[index].first);
-        (*choice).set_font({FontRole::control, 10.0, 700, false, 0.18});
+        (*choice).font = {FontRole::control, 10.0, 700, false, 0.18};
         (*root).add_child(choice);
         (*root).add_scale_button(choice);
         (*root).retain((*choice).clicked().subscribe(

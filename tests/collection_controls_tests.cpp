@@ -804,7 +804,7 @@ void test_shared_command_binding() {
     std::shared_ptr<gui_forms::Button> status = make_control<Button>(StableId("status.view"), "stale");
     CommandBinding ribbon_binding(command, ribbon);
     CommandBinding status_binding(command, status);
-    require((*ribbon).text() == "Icons  ▼" && (*status).text() == "Icons  ▼",
+    require((*ribbon).text.read() == "Icons  ▼" && (*status).text.read() == "Icons  ▼",
             "shared command must initialize every bound presentation");
     std::string trace{};
     SubscriptionToken invoked = (*command).invoked().subscribe(

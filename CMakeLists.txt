@@ -2925,6 +2925,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_property_capability_tests tests/property_capability_tests.cpp)
     target_link_libraries(gui_forms_property_capability_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_property_capability_tests COMMAND gui_forms_property_capability_tests)
+    # Written by tools/property_codemod.py tests from tools/property_families/.
+    add_executable(gui_forms_property_family_generated_tests tests/property_family_generated_tests.cpp)
+    target_link_libraries(gui_forms_property_family_generated_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_property_family_generated_tests COMMAND gui_forms_property_family_generated_tests)
 
     add_executable(gui_forms_damage_rectangles_tests tests/damage_rectangles_tests.cpp)
     target_link_libraries(gui_forms_damage_rectangles_tests PRIVATE gui_forms_controls)

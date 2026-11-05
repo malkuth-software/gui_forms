@@ -49,7 +49,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
     const double reduced_progress_phase = reduced_phase_before;
     click(window, window.find("gallery.animation.pause"));
     require(!window.next_wake().has_value() &&
-                (*pause_button).text() == "Resume motion",
+                (*pause_button).text.read() == "Resume motion",
             "pausing under reduced motion must quiesce its frame lease");
     const std::vector<Rect> paused_reduced_geometry = paint_fill_trace(easing);
     static_cast<void>(window.poll_frame_schedule(
@@ -60,7 +60,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
     require(window.next_wake().has_value() &&
                 paint_fill_trace(easing) == paused_reduced_geometry &&
                 (*animated_progress).animation_phase() == reduced_progress_phase &&
-                (*pause_button).text() == "Pause motion",
+                (*pause_button).text.read() == "Pause motion",
             "one resume action under reduced motion must restore calm animation");
     click(window, window.find("gallery.animation.reduced"));
     require(window.next_wake().has_value() &&
@@ -68,7 +68,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
             "leaving reduced motion must preserve phase while restoring full cadence");
     click(window, window.find("gallery.status.live"));
     require(!window.next_wake().has_value() && !(*pause_button).enabled.read() &&
-                (*pause_button).text() == "Motion disabled",
+                (*pause_button).text.read() == "Motion disabled",
             "global live-off must quiesce motion and disable the page command");
     click(window, window.find("gallery.animation.reduced"));
     require(!window.next_wake().has_value(),
@@ -76,7 +76,7 @@ void test_animation_laboratory(gui_forms::Window& window) {
     const std::vector<Rect> disabled_reduced_geometry = paint_fill_trace(easing);
     click(window, window.find("gallery.status.live"));
     require(window.next_wake().has_value() && (*pause_button).enabled.read() &&
-                (*pause_button).text() == "Pause motion" &&
+                (*pause_button).text.read() == "Pause motion" &&
                 paint_fill_trace(easing) == disabled_reduced_geometry,
             "one global live-on action must restore the retained reduced animation policy");
 
@@ -89,12 +89,12 @@ void test_animation_laboratory(gui_forms::Window& window) {
     for (std::size_t cycle = 0U; cycle < 8U; ++cycle) {
         click(window, window.find("gallery.animation.pause"));
         require(!window.next_wake().has_value() &&
-                    (*pause_button).text() == "Resume motion",
+                    (*pause_button).text.read() == "Resume motion",
                 "every pause cycle must quiesce and publish one coherent command");
         const std::vector<Rect> before = paint_fill_trace(easing);
         click(window, window.find("gallery.animation.pause"));
         require(window.next_wake().has_value() &&
-                    (*pause_button).text() == "Pause motion",
+                    (*pause_button).text.read() == "Pause motion",
                 "every resume cycle must replace the lease and publish one command");
         const FrameTime due = *window.next_wake();
         const FramePollResult frame = window.poll_frame_schedule(due);
@@ -106,15 +106,15 @@ void test_animation_laboratory(gui_forms::Window& window) {
     require(!window.next_wake().has_value(),
             "the repeated-toggle fixture must reach a quiescent paused state");
     click(window, window.find("gallery.status.live"));
-    require(!(*pause_button).enabled.read() && (*pause_button).text() == "Motion disabled",
+    require(!(*pause_button).enabled.read() && (*pause_button).text.read() == "Motion disabled",
             "the master gate must replace a paused command with one disabled state");
     click(window, window.find("gallery.status.live"));
     require(!window.next_wake().has_value() && (*pause_button).enabled.read() &&
-                (*pause_button).text() == "Resume motion",
+                (*pause_button).text.read() == "Resume motion",
             "the master gate must preserve the orthogonal page-local pause latch");
     click(window, window.find("gallery.animation.pause"));
     require(window.next_wake().has_value() &&
-                (*pause_button).text() == "Pause motion",
+                (*pause_button).text.read() == "Pause motion",
             "one explicit resume after a master-gate cycle must restore motion");
     click(window, window.find("gallery.animation.pause"));
     require(!window.next_wake().has_value(),

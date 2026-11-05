@@ -46,20 +46,38 @@ Related types
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`ButtonBase::States <gui_forms::ButtonBase::States>`
      -  
+   * - :cpp:class:`ButtonBaseCapabilities <gui_forms::ButtonBaseCapabilities>`
+     - Every ButtonBase capability, in the order the declaring class takes them.
+   * - :cpp:class:`ButtonUseMnemonicCapability <gui_forms::ButtonUseMnemonicCapability>`
+     - Whether an ampersand in the text marks the access key (UseMnemonic).
    * - :cpp:class:`ChoiceItem <gui_forms::ChoiceItem>`
      -  
    * - :cpp:class:`CommandItem <gui_forms::CommandItem>`
      -  
+   * - :cpp:class:`ContentPaddingCapability <gui_forms::ContentPaddingCapability>`
+     - Insets between the button frame and its image and text content (Padding of the content).
    * - :cpp:class:`DropDownButton::Parts <gui_forms::DropDownButton::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`DropDownButton::States <gui_forms::DropDownButton::States>`
      -  
+   * - :cpp:class:`ExpandedStateCapability <gui_forms::ExpandedStateCapability>`
+     - Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
+   * - :cpp:class:`ImageAlignmentCapability <gui_forms::ImageAlignmentCapability>`
+     - Where the image sits in the content area (ImageAlign).
+   * - :cpp:class:`ImageGapCapability <gui_forms::ImageGapCapability>`
+     - The space between the image and the text (between zero and 64).
    * - :cpp:class:`LinkLabel::Parts <gui_forms::LinkLabel::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`LinkLabel::States <gui_forms::LinkLabel::States>`
      -  
    * - :cpp:class:`SectionItem <gui_forms::SectionItem>`
      -  
+   * - :cpp:class:`TextAlignmentCapability <gui_forms::TextAlignmentCapability>`
+     - Where the text sits in the content area (TextAlign).
+   * - :cpp:class:`TextImageRelationCapability <gui_forms::TextImageRelationCapability>`
+     - How the text and the image are placed against each other (TextImageRelation).
+   * - :cpp:class:`TextLineSpacingCapability <gui_forms::TextLineSpacingCapability>`
+     - Line height as a multiple of the font's (between 0.75 and 3).
 
 .. cpp:namespace:: gui_forms
 
@@ -153,6 +171,79 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ButtonBaseCapabilities : public TextCapability<Declaring>, public TextAlignmentCapability<Declaring>, public FontCapability<Declaring>, public ContentPaddingCapability<Declaring>, public TextLineSpacingCapability<Declaring>, public ImageAlignmentCapability<Declaring>, public TextImageRelationCapability<Declaring>, public ImageGapCapability<Declaring>, public ButtonUseMnemonicCapability<Declaring>, public ExpandedStateCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   Every ButtonBase capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ButtonBaseCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: ContentAlignment text_alignment
+
+      Where the text sits in the content area (TextAlign).
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: Insets content_padding
+
+      Insets between the button frame and its image and text content (Padding of the content).
+
+   .. cpp:member:: double text_line_spacing
+
+      Line height as a multiple of the font's (between 0.75 and 3).
+
+   .. cpp:member:: ContentAlignment image_alignment
+
+      Where the image sits in the content area (ImageAlign).
+
+   .. cpp:member:: TextImageRelation text_image_relation
+
+      How the text and the image are placed against each other (TextImageRelation).
+
+   .. cpp:member:: double image_gap
+
+      The space between the image and the text (between zero and 64).
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ampersand in the text marks the access key (UseMnemonic).
+
+   .. cpp:member:: std::optional<bool> expanded_state
+
+      Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonUseMnemonicCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   Whether an ampersand in the text marks the access key (UseMnemonic).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonUseMnemonicCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ButtonUseMnemonicCapability<Declaring>> use_mnemonic
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ChoiceItem final
 
    ``#include <gui_forms/controls/collections/choice_group.hpp>``
@@ -186,6 +277,23 @@ Related types
    .. cpp:member:: Command* command
 
       Borrowed at set_items; subsequent access is token-guarded.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ContentPaddingCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   Insets between the button frame and its image and text content (Padding of the content).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ContentPaddingCapability& capability, Insets incoming)
+
+   .. cpp:member:: PropertyCell<Insets, ContentPaddingCapability<Declaring>> content_padding
+
+      Default: ``{Insets{6.0, 4.0, 6.0, 4.0}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -238,6 +346,55 @@ Related types
    .. cpp:member:: bool open
 
    .. cpp:member:: bool closed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ExpandedStateCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   Optional disclosure state for a button that owns a popup or a retained disclosure region: empty is an ordinary push button; false and true expose collapsed and expanded semantics without conflating the pressed visual.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ExpandedStateCapability& capability, std::optional<bool> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<bool>, ExpandedStateCapability<Declaring>> expanded_state
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ImageAlignmentCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   Where the image sits in the content area (ImageAlign).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ImageAlignmentCapability& capability, ContentAlignment incoming)
+
+   .. cpp:member:: PropertyCell<ContentAlignment, ImageAlignmentCapability<Declaring>> image_alignment
+
+      Default: ``{ContentAlignment::middle_center}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ImageGapCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   The space between the image and the text (between zero and 64).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ImageGapCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ImageGapCapability<Declaring>> image_gap
+
+      Default: ``{4.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -297,6 +454,57 @@ Related types
 
       Borrowed; a missing model uses retained local state.
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextAlignmentCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   Where the text sits in the content area (TextAlign).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextAlignmentCapability& capability, ContentAlignment incoming)
+
+   .. cpp:member:: PropertyCell<ContentAlignment, TextAlignmentCapability<Declaring>> text_alignment
+
+      Default: ``{ContentAlignment::middle_center}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextImageRelationCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   How the text and the image are placed against each other (TextImageRelation).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextImageRelationCapability& capability, TextImageRelation incoming)
+
+   .. cpp:member:: PropertyCell<TextImageRelation, TextImageRelationCapability<Declaring>> text_image_relation
+
+      Default: ``{TextImageRelation::overlay}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextLineSpacingCapability
+
+   ``#include <gui_forms/controls/button_base/button_base_capabilities/button_base_capabilities.hpp>``
+
+   Line height as a multiple of the font's (between 0.75 and 3).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextLineSpacingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, TextLineSpacingCapability<Declaring>> text_line_spacing
+
+      Default: ``{1.25}``.
+
 Enumerations
 ------------
 
@@ -330,7 +538,7 @@ Enumerations
 
 .. cpp:enum-class:: ContentAlignment
 
-   ``#include <gui_forms/controls/button_base/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base/button_content_types/button_content_types.hpp>``
 
    .. cpp:enumerator:: top_left
 
@@ -374,7 +582,7 @@ Enumerations
 
 .. cpp:enum-class:: TextImageRelation
 
-   ``#include <gui_forms/controls/button_base/button_base.hpp>``
+   ``#include <gui_forms/controls/button_base/button_content_types/button_content_types.hpp>``
 
    .. cpp:enumerator:: overlay
 
@@ -385,3 +593,14 @@ Enumerations
    .. cpp:enumerator:: image_above_text
 
    .. cpp:enumerator:: text_above_image
+
+Functions, constants and aliases
+--------------------------------
+
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/controls/button_base/button_content_types/button_content_types.hpp>``
+
+.. cpp:var:: constexpr TypeTag<ContentAlignment> content_alignment
+
+.. cpp:var:: constexpr TypeTag<TextImageRelation> text_image_relation
