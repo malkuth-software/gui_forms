@@ -36,6 +36,12 @@ Related types
      - AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active overlay/focus scopes retain first refusal.
    * - :cpp:class:`AcceleratorToken <gui_forms::AcceleratorToken>`
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
+   * - :cpp:class:`BackdropChain <gui_forms::BackdropChain>`
+     - The chain: ``length`` live operations, applied in order, in a fixed array.
+   * - :cpp:class:`BackdropChainResolution <gui_forms::BackdropChainResolution>`
+     - How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
+   * - :cpp:class:`BackdropOperation <gui_forms::BackdropOperation>`
+     -  
    * - :cpp:class:`ColourSchemeSet <gui_forms::ColourSchemeSet>`
      - The colour schemes a theme has variants for (T4 theme variants): a theme sheet declares them with ``:root { color-scheme: light dark }``, a definition built in code sets them.
    * - :cpp:class:`ControlAvailabilityChange <gui_forms::ControlAvailabilityChange>`
@@ -72,6 +78,10 @@ Related types
      - KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
    * - :cpp:class:`LiveSurfacePresentation <gui_forms::LiveSurfacePresentation>`
      - LiveSurfacePresentation is one immutable host-consumption record coupling a retained control identity and surface to stable destination geometry and an overlay-safe clip fragment.
+   * - :cpp:class:`NativePopupOptions <gui_forms::NativePopupOptions>`
+     -  
+   * - :cpp:class:`NativePopupToken <gui_forms::NativePopupToken>`
+     - Keeps one popup open (Window::open_native_popup).
    * - :cpp:class:`OverlayOptions <gui_forms::OverlayOptions>`
      - OverlayOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment.
    * - :cpp:class:`OverlayToken <gui_forms::OverlayToken>`
@@ -155,6 +165,88 @@ Related types
    .. cpp:function:: void disconnect() noexcept
 
       Idempotently removes the exact accelerator from its Window.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropChain final
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+   The chain: ``length`` live operations, applied in order, in a fixed array.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool append(const BackdropOperation& operation) noexcept
+
+      Appends ``operation``; false, changing nothing, when the chain is full.
+
+   .. cpp:member:: constexpr std::size_t maximum_operations
+
+      Default: ``8U``.
+
+   .. cpp:member:: std::array<BackdropOperation, maximum_operations> operations
+
+   .. cpp:member:: std::size_t length
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropChainResolution final
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+   How a window carries its chain under its grant (SurfaceRoot::backdrop_chain_resolution).
+
+   .. cpp:member:: bool blur_by_material
+
+      The chain's blur is the system material granted (window_material or transient_material).
+
+   .. cpp:member:: bool blur_dropped
+
+      The chain has a blur but no material was granted: it is dropped.
+
+   .. cpp:member:: bool saturate_dropped
+
+      The chain has a saturation, which no host material applies: dropped.
+
+   .. cpp:member:: Color tint
+
+      The tint GUI.Forms paints (backdrop_chain_solid), straight alpha.
+
+   .. cpp:member:: bool solid
+
+      The tint is painted opaque: the grant is opaque (reduced transparency, no compositor, or any other refusal).
+
+   .. cpp:member:: bool withdrawn
+
+      No backdrop at all: high contrast.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: BackdropOperation final
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static BackdropOperation blur(double radius) noexcept
+
+   .. cpp:function:: static BackdropOperation saturate(double factor) noexcept
+
+   .. cpp:function:: static BackdropOperation tint(Color colour) noexcept
+
+   .. cpp:member:: BackdropOperationKind kind
+
+      Default: ``{BackdropOperationKind::tint}``.
+
+   .. cpp:member:: double amount
+
+      blur: radius, 0 to backdrop_maximum_blur; saturate: factor, 0 to backdrop_maximum_saturation; unused for tint (0).
+
+   .. cpp:member:: Color colour
+
+      tint only (transparent black otherwise).
 
 .. cpp:namespace:: gui_forms
 
@@ -569,6 +661,71 @@ Related types
    .. cpp:member:: bool damage_limited
 
       True when this window last presented the surface at the same destination, clip and overlays. A host whose raster still holds that presentation may then copy only the surface's presentation region (LiveSurface::acquire_for_presentation). False means copy all of clip.
+
+   .. cpp:member:: bool paired
+
+      False when the frame is older than the content the window requires of the surface (Window::require_live_surface_content) and is presented anyway, one present tick after the window waited for it. Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: NativePopupOptions final
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:member:: HostPopupFocus focus
+
+      Declared per popup; there is no global rule (owner, 2026-11-04). Default: ``{HostPopupFocus::passive}``.
+
+   .. cpp:member:: std::optional<BackdropChain> backdrop
+
+      The popup window's backdrop chain (Window::set_backdrop_chain): a blur is the system material granted to the popup window, and GUI.Forms paints only the tint. None by default.
+
+   .. cpp:member:: NativePopupFallback fallback
+
+      Default: ``{NativePopupFallback::overlay}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: NativePopupToken final
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   Keeps one popup open (Window::open_native_popup). Destroying or disconnecting the token closes the popup, as does the death of the control that opened it or the closing of its window by the host. UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: NativePopupToken() noexcept = default
+
+   .. cpp:function:: NativePopupToken(NativePopupToken&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool connected() const noexcept
+
+      Whether the popup is still open.
+
+   .. cpp:function:: NativePopupSurface surface() const noexcept
+
+   .. cpp:function:: NativePopupRefusal refusal() const noexcept
+
+      Why the native path did not open the popup; none when it did, and for an empty token.
+
+   .. cpp:function:: Window* window() const noexcept
+
+      The native popup's own window model while it is open; null for an overlay or once it has closed.
+
+   .. cpp:function:: HostWindowId id() const noexcept
+
+      The native popup window's identity in the run; invalid for an overlay or once it has closed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: void disconnect() noexcept
+
+      Closes the popup: destroys its native window, or closes the overlay.
 
 .. cpp:namespace:: gui_forms
 
@@ -1019,6 +1176,18 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: BackdropOperationKind
+
+   ``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+   .. cpp:enumerator:: blur
+
+   .. cpp:enumerator:: saturate
+
+   .. cpp:enumerator:: tint
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: ColourScheme
 
    ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
@@ -1092,6 +1261,42 @@ Enumerations
    .. cpp:enumerator:: explicit_close
 
    .. cpp:enumerator:: owner_unavailable
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NativePopupFallback
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: refuse
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NativePopupRefusal
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: no_run
+
+   .. cpp:enumerator:: unsupported
+
+   .. cpp:enumerator:: host_refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: NativePopupSurface
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: none
+
+   .. cpp:enumerator:: native
+
+   .. cpp:enumerator:: overlay
 
 .. cpp:namespace:: gui_forms
 
@@ -1299,6 +1504,36 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_focus_scope_depth
 
    Value: ``32U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/backdrop/backdrop_chain.hpp>``
+
+.. cpp:function:: const char* backdrop_operation_name(BackdropOperationKind kind) noexcept
+
+.. cpp:function:: bool backdrop_chain_valid(const BackdropChain& chain) noexcept
+
+   Valid: at most maximum_operations live, every amount finite and within its range, a tint's amount 0, at most one blur.
+
+.. cpp:function:: Color backdrop_chain_solid(const BackdropChain& chain) noexcept
+
+   The chain's fallback: its tints composited in order over clear, as one solid colour in straight alpha; transparent black when it has none.
+
+.. cpp:function:: double backdrop_chain_blur(const BackdropChain& chain) noexcept
+
+   The largest blur radius in the chain, in logical units; 0 without one.
+
+.. cpp:function:: BackdropChainResolution resolve_backdrop_chain(const BackdropChain& chain, const WindowBackdropGrant& grant, bool high_contrast) noexcept
+
+   The chain's resolution under ``grant``, with the window's high contrast.
+
+.. cpp:var:: constexpr double backdrop_maximum_blur
+
+   The largest blur radius, in logical units, and the largest saturation factor, that a valid chain may carry. Value: ``32.0``.
+
+.. cpp:var:: constexpr double backdrop_maximum_saturation
+
+   Value: ``4.0``.
 
 .. cpp:namespace:: gui_forms
 

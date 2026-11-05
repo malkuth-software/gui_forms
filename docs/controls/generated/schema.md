@@ -2980,6 +2980,20 @@ Interactions beyond every control's: none.
 
 Interactions: none.
 
+## `sub_surface_host` (SubSurfaceHost, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `content` | content |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Properties beyond every control's: none.
+
+Interactions beyond every control's: none.
+
 ## `easing_preview` (EasingPreview, control)
 
 | Part | Role | Reuses | Own states |

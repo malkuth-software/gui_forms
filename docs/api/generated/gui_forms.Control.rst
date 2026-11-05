@@ -1920,4 +1920,4 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``22U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``23U``.
