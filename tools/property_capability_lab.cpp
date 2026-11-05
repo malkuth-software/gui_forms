@@ -113,7 +113,7 @@ public:
     explicit TableControl(StableId stable_id) : Control(std::move(stable_id)) {}
 
     // The type's table: one virtual call.
-    [[nodiscard]] virtual std::span<const PropertyEntry> property_table() const noexcept = 0;
+    [[nodiscard]] virtual std::span<const PropertyEntry> lab_property_table() const noexcept = 0;
 
     // The write's touch: the typed dirtiness and the slot's bit.
     void touch(std::uint8_t slot, Dirty dirt) {
@@ -184,7 +184,7 @@ constexpr std::array<PropertyEntry, 32> touch_button_table = make_table<32>(butt
 class TouchButton final : public TableControl, public TouchTextCapability<TouchButton, 27> {
 public:
     explicit TouchButton(StableId stable_id) : TableControl(std::move(stable_id)) {}
-    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override {
+    [[nodiscard]] std::span<const PropertyEntry> lab_property_table() const noexcept override {
         return touch_button_table;
     }
 };
@@ -358,13 +358,13 @@ void measure_table_and_gather() {
     for (std::size_t round = 0U; round < rounds; ++round) {
         Clock::time_point start = Clock::now();
         for (std::size_t index = 0U; index < set_iterations; ++index) {
-            const std::span<const PropertyEntry> table = control.property_table();
+            const std::span<const PropertyEntry> table = control.lab_property_table();
             sink += find_slot(table, (index & 1U) == 0U ? "tab_index" : "visible");
         }
         lookup = std::min(lookup, nanoseconds_since(start, set_iterations));
         start = Clock::now();
         for (std::size_t index = 0U; index < set_iterations; ++index) {
-            const std::span<const PropertyEntry> table = control.property_table();
+            const std::span<const PropertyEntry> table = control.lab_property_table();
             for (const PropertyEntry& entry : table) sink += entry.slot;
         }
         walk = std::min(walk, nanoseconds_since(start, set_iterations));

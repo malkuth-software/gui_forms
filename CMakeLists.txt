@@ -4020,6 +4020,11 @@ if(GUI_FORMS_BUILD_TESTS)
             gui_forms_gallery_model
             gui_forms_host_headless
         )
+        # The M0 measurement on the real Gallery (tools/gallery_dirty_lab.cpp);
+        # a measurement program, not a test.
+        add_executable(gui_forms_gallery_dirty_lab tools/gallery_dirty_lab.cpp)
+        target_include_directories(gui_forms_gallery_dirty_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+        target_link_libraries(gui_forms_gallery_dirty_lab PRIVATE gui_forms_gallery_model gui_forms_host_headless)
         add_test(NAME gui_forms_gallery_pages_tests
                  COMMAND gui_forms_gallery_pages_tests)
         # The test compares its control-schema export with the committed
