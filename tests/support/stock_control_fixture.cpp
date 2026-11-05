@@ -38,7 +38,7 @@ std::uint64_t StockEffectCounter::presses(std::string_view stable_id) const {
 void StockDockContent::make_panel(DockPanelCreation& creation) {
     std::shared_ptr<TextBox> field =
         make_control<TextBox>(StableId("dock-site.field." + creation.panel.value));
-    (*field).set_accessible_name("Panel field " + creation.panel.value);
+    (*field).accessible_name = "Panel field " + creation.panel.value;
     (*field).set_requested_bounds({8.0, 8.0, 150.0, 24.0});
     creation.content = field;
 }
@@ -116,7 +116,7 @@ void place_commands(FixtureBuilder& builder) {
     std::shared_ptr<Command> open = builder.command("stock.open", "&Open");
     std::shared_ptr<CommandBar> bar = builder.place(
         make_control<CommandBar>(StableId("command-bar")), 32.0);
-    (*bar).set_accessible_name("File commands");
+    (*bar).accessible_name = "File commands";
     (*bar).set_items({CommandItem{.id = 1, .label = "Save", .command = save.get()},
                       CommandItem{.id = 2, .label = "Open", .command = open.get()}});
     builder.omit("button_base", "base type; placed as Button, DropDownButton, LinkLabel, CheckBox and RadioButton");
@@ -126,46 +126,46 @@ void place_text(FixtureBuilder& builder) {
     static_cast<void>(builder.place(make_control<Label>(StableId("label"), "Ready"), 22.0));
     std::shared_ptr<TextBox> text = builder.place(
         make_control<TextBox>(StableId("text-box"), "hello"), 28.0);
-    (*text).set_accessible_name("Artwork text");
+    (*text).accessible_name = "Artwork text";
     std::shared_ptr<TokenBox> tokens = builder.place(
         make_control<TokenBox>(StableId("token-box")), 30.0);
-    (*tokens).set_accessible_name("Recipients");
+    (*tokens).accessible_name = "Recipients";
     static_cast<void>((*tokens).add_token("ada"));
     std::shared_ptr<MaskedTextBox> masked = builder.place(
         make_control<MaskedTextBox>(StableId("masked-text-box"), "00000"), 28.0);
-    (*masked).set_accessible_name("Code");
+    (*masked).accessible_name = "Code";
 }
 
 void place_display(FixtureBuilder& builder) {
     std::shared_ptr<PictureBox> picture = builder.place(
         make_control<PictureBox>(StableId("picture-box")), 40.0);
-    (*picture).set_accessible_name("Preview");
+    (*picture).accessible_name = "Preview";
     std::shared_ptr<ProgressBar> progress = builder.place(
         make_control<ProgressBar>(StableId("progress-bar")), 20.0);
-    (*progress).set_accessible_name("Export progress");
+    (*progress).accessible_name = "Export progress";
     (*progress).set_value(40);
     std::shared_ptr<Card> card = builder.place(make_control<Card>(StableId("card")), 70.0);
-    (*card).set_accessible_name("Summary card");
+    (*card).accessible_name = "Summary card";
     std::shared_ptr<ReviewCard> review = builder.place(
         make_control<ReviewCard>(StableId("review-card")), 90.0);
-    (*review).set_accessible_name("Review");
+    (*review).accessible_name = "Review";
     (*review).set_interactive(true);
 }
 
 void place_lists(FixtureBuilder& builder) {
     std::shared_ptr<ListBox> list = builder.place(make_control<ListBox>(StableId("list-box")), 80.0);
-    (*list).set_accessible_name("Colours");
+    (*list).accessible_name = "Colours";
     (*list).set_items({"Red", "Green", "Blue"});
     std::shared_ptr<CheckedListBox> checks = builder.place(
         make_control<CheckedListBox>(StableId("checked-list-box")), 80.0);
-    (*checks).set_accessible_name("Options");
+    (*checks).accessible_name = "Options";
     (*checks).set_items({"Wrap", "Spell"});
     std::shared_ptr<ComboBox> combo = builder.place(make_control<ComboBox>(StableId("combo-box")), 28.0);
-    (*combo).set_accessible_name("Size");
+    (*combo).accessible_name = "Size";
     (*combo).set_items({"Small", "Large"});
 
     std::shared_ptr<TreeView> tree = builder.place(make_control<TreeView>(StableId("tree-view")), 90.0);
-    (*tree).set_accessible_name("Folders");
+    (*tree).accessible_name = "Folders";
     TreeViewItem parent;
     parent.stable_id = "tree-view.parent";
     parent.text = "Parent";
@@ -183,7 +183,7 @@ void place_lists(FixtureBuilder& builder) {
 
     std::shared_ptr<ObjectView> objects = builder.place(
         make_control<ObjectView>(StableId("object-view")), 100.0);
-    (*objects).set_accessible_name("Objects");
+    (*objects).accessible_name = "Objects";
     (*objects).set_view_mode(ObjectViewMode::details);
     std::vector<ObjectDetailsColumn> object_columns;
     object_columns.push_back({.id = {"name"}, .label = "Name", .width = 150.0});
@@ -203,7 +203,7 @@ void place_lists(FixtureBuilder& builder) {
 
     std::shared_ptr<ListView> list_view = builder.place(
         make_control<ListView>(StableId("list-view")), 100.0);
-    (*list_view).set_accessible_name("Files");
+    (*list_view).accessible_name = "Files";
     std::vector<ListViewColumn> list_columns;
     list_columns.push_back({.stable_id = "name", .text = "Name", .width = 140.0});
     list_columns.push_back({.stable_id = "size", .text = "Size", .width = 80.0});
@@ -220,7 +220,7 @@ void place_lists(FixtureBuilder& builder) {
 
     std::shared_ptr<TreeListView> tree_list = builder.place(
         make_control<TreeListView>(StableId("tree-list-view")), 100.0);
-    (*tree_list).set_accessible_name("Sources");
+    (*tree_list).accessible_name = "Sources";
     std::vector<TreeListColumn> tree_columns;
     tree_columns.push_back({.stable_id = "name", .text = "Name", .width = 160.0});
     tree_columns.push_back({.stable_id = "kind", .text = "Kind", .width = 90.0});
@@ -243,7 +243,7 @@ void place_lists(FixtureBuilder& builder) {
 
     std::shared_ptr<CorrespondenceView> correspondence = builder.place(
         make_control<CorrespondenceView>(StableId("correspondence-view")), 100.0);
-    (*correspondence).set_accessible_name("Correspondence");
+    (*correspondence).accessible_name = "Correspondence";
     CorrespondenceItem first;
     first.stable_id = "correspondence-view.first";
     first.title = "First";
@@ -254,7 +254,7 @@ void place_lists(FixtureBuilder& builder) {
 
     std::shared_ptr<DataGridView> grid = builder.place(
         make_control<DataGridView>(StableId("data-grid-view")), 100.0);
-    (*grid).set_accessible_name("Grid");
+    (*grid).accessible_name = "Grid";
     DataGridViewColumn name_column;
     name_column.name = "name";
     name_column.header_text = "Name";
@@ -269,12 +269,12 @@ void place_lists(FixtureBuilder& builder) {
 
     std::shared_ptr<ChoiceGroup> choices = builder.place(
         make_control<ChoiceGroup>(StableId("choice-group")), 32.0);
-    (*choices).set_accessible_name("Alignment");
+    (*choices).accessible_name = "Alignment";
     (*choices).set_items({ChoiceItem{.id = 1, .label = "Left"}, ChoiceItem{.id = 2, .label = "Right"}});
 
     std::shared_ptr<BreadcrumbTrail> trail = builder.place(
         make_control<BreadcrumbTrail>(StableId("breadcrumb-trail")), 30.0);
-    (*trail).set_accessible_name("Location");
+    (*trail).accessible_name = "Location";
     BreadcrumbSegment home;
     home.stable_id = "breadcrumb-trail.home";
     home.text = "Home";
@@ -289,53 +289,53 @@ void place_values(FixtureBuilder& builder) {
     static_cast<void>(builder.place(make_control<RadioButton>(StableId("radio-button"), "Metric"), 24.0));
     std::shared_ptr<RangeControl> range = builder.place(
         make_control<RangeControl>(StableId("range-control")), 24.0);
-    (*range).set_accessible_name("Range");
+    (*range).accessible_name = "Range";
     std::shared_ptr<TrackBar> track = builder.place(make_control<TrackBar>(StableId("track-bar")), 32.0);
-    (*track).set_accessible_name("Volume");
+    (*track).accessible_name = "Volume";
     std::shared_ptr<NumericUpDown> number = builder.place(
         make_control<NumericUpDown>(StableId("numeric-up-down")), 28.0);
-    (*number).set_accessible_name("Canvas X");
+    (*number).accessible_name = "Canvas X";
     (*number).set_range(0, 200);
     std::shared_ptr<DomainUpDown> domain = builder.place(
         make_control<DomainUpDown>(StableId("domain-up-down")), 28.0);
-    (*domain).set_accessible_name("Band");
+    (*domain).accessible_name = "Band";
     (*domain).set_items({"AM", "FM", "WFM"});
     std::shared_ptr<ColorValueEditor> colour = builder.place(
         make_control<ColorValueEditor>(StableId("color-value-editor"), Color{40, 80, 160, 255}), 30.0);
-    (*colour).set_accessible_name("Tint");
+    (*colour).accessible_name = "Tint";
     std::shared_ptr<FlagsValueEditor> flags = builder.place(
         make_control<FlagsValueEditor>(
             StableId("flags-value-editor"),
             PropertyEnumDescriptor{"Edges", {{"None", 0}, {"Top", 1}, {"Left", 2}}, true},
             PropertyEnumValue{"Edges", "Top", 1}),
         30.0);
-    (*flags).set_accessible_name("Edges");
+    (*flags).accessible_name = "Edges";
     std::shared_ptr<PropertyList> properties = builder.place(
         make_control<PropertyList>(StableId("property-list")), 90.0);
-    (*properties).set_accessible_name("Selection properties");
+    (*properties).accessible_name = "Selection properties";
     (*properties).set_groups({{"property-list.identity", "IDENTITY",
                                {{"property-list.kind", "Kind", "PNG image", "The file's kind"}}}});
     std::shared_ptr<DateTimePicker> picker = builder.place(
         make_control<DateTimePicker>(StableId("date-time-picker")), 28.0);
-    (*picker).set_accessible_name("Due date");
+    (*picker).accessible_name = "Due date";
     std::shared_ptr<MonthCalendar> calendar = builder.place(
         make_control<MonthCalendar>(StableId("month-calendar")), 220.0);
-    (*calendar).set_accessible_name("Calendar");
+    (*calendar).accessible_name = "Calendar";
     std::shared_ptr<InstrumentRack> rack = builder.place(
         make_control<InstrumentRack>(StableId("instrument-rack")), 90.0);
-    (*rack).set_accessible_name("Criteria rack");
+    (*rack).accessible_name = "Criteria rack";
 }
 
 void place_property_grid(FixtureBuilder& builder, const Control::Ptr& target) {
     std::shared_ptr<PropertyGrid> grid = builder.place(
         make_control<PropertyGrid>(StableId("property-grid")), 200.0);
-    (*grid).set_accessible_name("Properties");
+    (*grid).accessible_name = "Properties";
     (*grid).set_selected_object(target);
 }
 
 void place_grouping(FixtureBuilder& builder) {
     std::shared_ptr<Panel> panel = builder.place(make_control<Panel>(StableId("panel")), 30.0);
-    (*panel).set_accessible_name("Plain panel");
+    (*panel).accessible_name = "Plain panel";
     std::shared_ptr<GroupBox> group = builder.place(
         make_control<GroupBox>(StableId("group-box"), "Output"), 50.0);
     static_cast<void>(group);
@@ -344,18 +344,18 @@ void place_grouping(FixtureBuilder& builder) {
     static_cast<void>(scaled_group);
     std::shared_ptr<MaterialPanel> material = builder.place(
         make_control<MaterialPanel>(StableId("material-panel")), 30.0);
-    (*material).set_accessible_name("Material");
+    (*material).accessible_name = "Material";
     std::shared_ptr<ExpandableSections> sections = builder.place(
         make_control<ExpandableSections>(StableId("expandable-sections")), 80.0);
-    (*sections).set_accessible_name("Sections");
+    (*sections).accessible_name = "Sections";
     std::shared_ptr<Label> section_body = make_control<Label>(StableId("expandable-sections.body"), "Body");
     (*sections).set_items({SectionItem{.id = 1, .label = "General", .content = section_body}});
     std::shared_ptr<ContainerControl> container = builder.place(
         make_control<ContainerControl>(StableId("container-control")), 30.0);
-    (*container).set_accessible_name("Container");
+    (*container).accessible_name = "Container";
     std::shared_ptr<UserControl> user = builder.place(
         make_control<UserControl>(StableId("user-control")), 30.0);
-    (*user).set_accessible_name("User control");
+    (*user).accessible_name = "User control";
 }
 
 void place_pages(FixtureBuilder& builder) {
@@ -368,7 +368,7 @@ void place_pages(FixtureBuilder& builder) {
     (*tabs).add_page(details);
 
     std::shared_ptr<PageView> view = builder.place(make_control<PageView>(StableId("page-view")), 130.0);
-    (*view).set_accessible_name("Page view");
+    (*view).accessible_name = "Page view";
     std::shared_ptr<Label> summary = make_control<Label>(StableId("page-view.summary"), "Summary body");
     PageRecord summary_record{};
     summary_record.id = PageId{"summary"};
@@ -392,11 +392,11 @@ void place_pages(FixtureBuilder& builder) {
     }
     std::shared_ptr<PageStrip> strip = builder.place(
         make_control<PageStrip>(StableId("page-strip"), pages), 30.0);
-    (*strip).set_accessible_name("Page strip");
+    (*strip).accessible_name = "Page strip";
 
     std::shared_ptr<NavigationPane> navigation = builder.place(
         make_control<NavigationPane>(StableId("navigation-pane")), 160.0);
-    (*navigation).set_accessible_name("Navigation");
+    (*navigation).accessible_name = "Navigation";
     const std::array<const char*, 2> navigation_ids{"mail", "calendar"};
     for (const char* identifier : navigation_ids) {
         PageRecord record{};
@@ -431,7 +431,7 @@ void place_docking(FixtureBuilder& builder) {
     static_cast<void>(workspace.show_panel(DockPanelId("toolbox")));
     std::shared_ptr<DockSite> site = builder.place(
         make_control<DockSite>(StableId("dock-site"), workspace), 200.0);
-    (*site).set_accessible_name("Docked workspace");
+    (*site).accessible_name = "Docked workspace";
 
     std::shared_ptr<DockNavigator> navigator = builder.place(
         make_control<DockNavigator>(StableId("dock-navigator")), 100.0);
@@ -442,32 +442,32 @@ void place_docking(FixtureBuilder& builder) {
 void place_layout(FixtureBuilder& builder) {
     std::shared_ptr<FlowLayoutPanelCompat> flow = builder.place(
         make_control<FlowLayoutPanelCompat>(StableId("flow-layout-panel-compat")), 30.0);
-    (*flow).set_accessible_name("Flow");
+    (*flow).accessible_name = "Flow";
     std::shared_ptr<TableLayoutPanelCompat> table = builder.place(
         make_control<TableLayoutPanelCompat>(StableId("table-layout-panel-compat")), 30.0);
-    (*table).set_accessible_name("Table");
+    (*table).accessible_name = "Table";
     std::shared_ptr<ResponsiveTrackPanel> tracks = builder.place(
         make_control<ResponsiveTrackPanel>(StableId("responsive-track-panel")), 30.0);
-    (*tracks).set_accessible_name("Tracks");
+    (*tracks).accessible_name = "Tracks";
     (*tracks).set_track_specs({{ResponsiveTrackSizeMode::remaining, 80.0, 120.0, 0.0, 1.0}});
     std::shared_ptr<ScaledPanel> scaled = builder.place(
         make_control<ScaledPanel>(StableId("scaled-panel"), Size{100.0, 30.0}), 30.0);
-    (*scaled).set_accessible_name("Scaled");
+    (*scaled).accessible_name = "Scaled";
     std::shared_ptr<SplitContainer> split = builder.place(
         make_control<SplitContainer>(StableId("split-container")), 60.0);
-    (*split).set_accessible_name("Split");
+    (*split).accessible_name = "Split";
     std::shared_ptr<SplitterPanel> splitter_panel = builder.place(
         make_control<SplitterPanel>(StableId("splitter-panel")), 30.0);
-    (*splitter_panel).set_accessible_name("Splitter panel");
+    (*splitter_panel).accessible_name = "Splitter panel";
     // Undocked, the splitter has no target and is an inert bar that does not
     // repaint under the pointer.
     std::shared_ptr<Splitter> splitter = builder.place(
         make_control<Splitter>(StableId("splitter")), 8.0);
-    (*splitter).set_dock(DockStyle::none);
-    (*splitter).set_accessible_name("Splitter");
+    (*splitter).dock = DockStyle::none;
+    (*splitter).accessible_name = "Splitter";
     std::shared_ptr<CommandOverflowPanel> overflow = builder.place(
         make_control<CommandOverflowPanel>(StableId("command-overflow-panel")), 30.0);
-    (*overflow).set_accessible_name("Overflow");
+    (*overflow).accessible_name = "Overflow";
     std::shared_ptr<Panel> overflow_group = make_control<Panel>(StableId("command-overflow-panel.group"));
     (*overflow_group).set_requested_bounds({0.0, 0.0, 120.0, 26.0});
     std::shared_ptr<Button> overflow_view = make_control<Button>(StableId("command-overflow-panel.view"), "View");
@@ -477,18 +477,18 @@ void place_layout(FixtureBuilder& builder) {
     (*overflow).set_group_spec(*overflow_group, {120.0, 120.0, 120.0, 1U});
     std::shared_ptr<MasterDetailView> master_detail = builder.place(
         make_control<MasterDetailView>(StableId("master-detail-view")), 60.0);
-    (*master_detail).set_accessible_name("Master detail");
+    (*master_detail).accessible_name = "Master detail";
     std::shared_ptr<ScrollableControl> scrollable = builder.place(
         make_control<ScrollableControl>(StableId("scrollable-control")), 30.0);
-    (*scrollable).set_accessible_name("Scrollable");
+    (*scrollable).accessible_name = "Scrollable";
     std::shared_ptr<ScrollBar> scroll = builder.place(make_control<ScrollBar>(StableId("scroll-bar")), 18.0);
-    (*scroll).set_accessible_name("Scroll");
+    (*scroll).accessible_name = "Scroll";
     std::shared_ptr<HScrollBar> horizontal = builder.place(
         make_control<HScrollBar>(StableId("h-scroll-bar")), 18.0);
-    (*horizontal).set_accessible_name("Horizontal");
+    (*horizontal).accessible_name = "Horizontal";
     std::shared_ptr<VScrollBar> vertical = builder.place(
         make_control<VScrollBar>(StableId("v-scroll-bar")), 80.0);
-    (*vertical).set_accessible_name("Vertical");
+    (*vertical).accessible_name = "Vertical";
 }
 
 void place_menus(FixtureBuilder& builder) {
@@ -504,14 +504,14 @@ void place_menus(FixtureBuilder& builder) {
     (*menu).set_items({file});
 
     std::shared_ptr<ToolStrip> strip = builder.place(make_control<ToolStrip>(StableId("tool-strip")), 26.0);
-    (*strip).set_accessible_name("Tools");
+    (*strip).accessible_name = "Tools";
     std::vector<ToolStripItemSpec> strip_items;
     strip_items.push_back({.stable_id = "tool-strip.save", .text = "Save", .command = save});
     (*strip).set_items(std::move(strip_items));
 
     std::shared_ptr<StatusStrip> status = builder.place(
         make_control<StatusStrip>(StableId("status-strip")), 24.0);
-    (*status).set_accessible_name("Status");
+    (*status).accessible_name = "Status";
     std::vector<ToolStripItemSpec> status_items;
     status_items.push_back({.stable_id = "status-strip.state", .text = "Ready", .command = cut});
     (*status).set_items(std::move(status_items));
@@ -523,7 +523,7 @@ void place_menus(FixtureBuilder& builder) {
     std::shared_ptr<ToolStripPanel> strip_panel = builder.place(
         make_control<ToolStripPanel>(StableId("tool-strip-panel")), 30.0);
     std::shared_ptr<ToolStrip> joined = make_control<ToolStrip>(StableId("tool-strip-panel.strip"));
-    (*joined).set_accessible_name("Joined tools");
+    (*joined).accessible_name = "Joined tools";
     std::vector<ToolStripItemSpec> joined_items;
     joined_items.push_back({.stable_id = "tool-strip-panel.strip.open", .text = "Open", .command = open});
     (*joined).set_items(std::move(joined_items));
@@ -531,7 +531,7 @@ void place_menus(FixtureBuilder& builder) {
 
     std::shared_ptr<ToolStripContainer> container = builder.place(
         make_control<ToolStripContainer>(StableId("tool-strip-container")), 60.0);
-    (*container).set_accessible_name("Frame");
+    (*container).accessible_name = "Frame";
 
     std::shared_ptr<BindingNavigator> navigator = builder.place(
         make_control<BindingNavigator>(StableId("binding-navigator")), 26.0);
@@ -558,7 +558,7 @@ void place_menus(FixtureBuilder& builder) {
 
     std::shared_ptr<RibbonGallery> gallery = builder.place(
         make_control<RibbonGallery>(StableId("ribbon-gallery")), 60.0);
-    (*gallery).set_accessible_name("Styles");
+    (*gallery).accessible_name = "Styles";
     (*gallery).set_item_size({40.0, 24.0});
     std::vector<RibbonGalleryItem> gallery_items;
     for (std::size_t index = 0U; index < 3U; ++index) {
@@ -591,7 +591,7 @@ void place_dialogs(FixtureBuilder& builder, const Control::Ptr& anchor) {
     placement.preferred_size = {160.0, 60.0};
     std::shared_ptr<AnchoredOverlayLayer> layer = builder.place(
         make_control<AnchoredOverlayLayer>(StableId("anchored-overlay-layer"), anchor, placement), 60.0);
-    (*layer).set_accessible_name("Anchored overlay");
+    (*layer).accessible_name = "Anchored overlay";
     (*layer).set_content(make_control<Label>(StableId("anchored-overlay-layer.content"), "Overlay body"));
     std::shared_ptr<FontDialog> font = builder.place(make_control<FontDialog>(StableId("font-dialog")), 300.0);
     static_cast<void>(font);
@@ -608,17 +608,17 @@ void place_dialogs(FixtureBuilder& builder, const Control::Ptr& anchor) {
 void place_drawing(FixtureBuilder& builder) {
     std::shared_ptr<DrawingSurface> drawing = builder.place(
         make_control<DrawingSurface>(StableId("drawing-surface")), 40.0);
-    (*drawing).set_accessible_name("Drawing");
+    (*drawing).accessible_name = "Drawing";
     std::shared_ptr<RasterCanvas> canvas = builder.place(
         make_control<RasterCanvas>(StableId("raster-canvas")), 40.0);
-    (*canvas).set_accessible_name("Canvas");
+    (*canvas).accessible_name = "Canvas";
     builder.omit("live_surface", "service type, not a control; it presents through a control's surface");
 }
 
 void place_diagnostics(FixtureBuilder& builder) {
     std::shared_ptr<EasingPreview> easing = builder.place(
         make_control<EasingPreview>(StableId("easing-preview")), 60.0);
-    (*easing).set_accessible_name("Easing");
+    (*easing).accessible_name = "Easing";
     // Paused, so its published value does not move between two readings.
     (*easing).set_motion_policy(MotionPolicy{.enabled = true, .paused = true});
     std::shared_ptr<MetricsView> metrics = builder.place(

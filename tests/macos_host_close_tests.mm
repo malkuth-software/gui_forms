@@ -326,7 +326,7 @@ void rearm_first_cycle(void* context) {
 
 void rearm_show_and_wake(void* context) {
     std::unique_ptr<RearmStartWork> work(static_cast<RearmStartWork*>(context));
-    (*(*work).surface).set_visible(true);
+    (*(*work).surface).visible = true;
     (*(*work).state).wake();
     post_after(80 * NSEC_PER_MSEC, work.release(), &rearm_first_cycle);
 }
@@ -570,7 +570,7 @@ int main() {
         gui_forms::StableId("host.close.root"));
     std::shared_ptr<FrameProbe> surface = gui_forms::make_control<FrameProbe>(
         gui_forms::StableId("host.close.surface"));
-    (*surface).set_visible(false);
+    (*surface).visible = false;
     (*surface).set_requested_bounds({0.0, 0.0, 320.0, 180.0});
     (*root).add_child(surface);
     std::unique_ptr<gui_forms::Window> window = std::make_unique<gui_forms::Window>(root,
