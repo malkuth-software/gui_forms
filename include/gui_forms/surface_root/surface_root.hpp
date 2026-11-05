@@ -21,6 +21,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "gui_forms/window/tool_tips/tool_tips.hpp"
+#include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 
 #include <chrono>
@@ -63,6 +64,8 @@ class OverlayAttachment;
 class AcceleratorAttachment;
 class RecordingPainter;
 class ToolTipPresenter;
+class ToolTipRoute;
+class SubSurfaceToolTipRequester;
 class MessageBoxHelpRoute;
 
 } // namespace detail
@@ -773,6 +776,22 @@ public:
     [[nodiscard]] Event<const ToolTipEvent&>& tool_tip_visibility_changed() noexcept {
         return tool_tip_visibility_changed_;
     }
+    // Asks for a tooltip about `owner`, its content as data (threaded
+    // sub-surfaces design note section 15). A window's presenter shows it
+    // at once, whatever the switches, as show_tool_tip does; a sub-surface
+    // forwards it to its parent, which decides whether and where it shows.
+    // One request is current per root: a newer one, or show_tool_tip,
+    // replaces it (answered revoked). Answers go to `answer` through this
+    // root's dispatcher (SurfaceRequestAnswer). Returns the request's ID:
+    // 1 for the first, growing by one. Throws std::invalid_argument, changing
+    // nothing, for an owner that is not a live control attached to this
+    // root, empty or invalid UTF-8 text, an anchor that is not finite, or a
+    // negative duration. Root thread.
+    std::uint64_t request_tool_tip(const Control::Ptr& owner, ToolTipRequest request,
+                                   std::weak_ptr<SurfaceRequestAnswer> answer = {});
+    // Withdraws the current request `id`, closing it where it shows; it is
+    // not answered. Any other ID changes nothing. Root thread.
+    void withdraw_tool_tip_request(std::uint64_t id);
     // Window accelerators are tried only after the focused retained route
     // declines a key, preserving editor/menu ownership of their native keys.
     // Registrations are revoked by either the token or owner disposal.
@@ -994,9 +1013,38 @@ private:
     // resuming when this window cancelled its requests meanwhile.
     friend class AnimationTimer;
     friend class detail::ToolTipPresenter;
+    friend class detail::SubSurfaceToolTipRequester;
+    // The current tooltip request (request_tool_tip): its owner, its item
+    // ID among the owner's tooltip parts ("request.<id>"), and where its
+    // answers go.
+    struct ToolTipRequestRecord final {
+        std::uint64_t id{};
+        std::weak_ptr<Control> owner{};
+        std::string item_id{};
+        std::weak_ptr<SurfaceRequestAnswer> answer{};
+    };
+    // Called by the tooltip route: posts `result` for request `id` to its
+    // answer target through this root's dispatcher, when `id` is still the
+    // current request. Declined, revoked and stale end it.
+    void answer_tool_tip_request(std::uint64_t id, SurfaceRequestResult result);
+    // Called by the presenter before it raises a visibility change: answers
+    // the current request shown or closed when the change is its item.
+    void tool_tip_request_changed(const ToolTipEvent& change);
+    // The current request is replaced or withdrawn: answers it revoked
+    // (unless withdrawn) and forgets it.
+    void end_tool_tip_request(bool answer_revoked);
     // Called by Control::set_tool_tip_text: a tooltip that shows the
     // control's text shows the new text, or closes when it is empty.
     void tool_tip_text_changed(Control& control);
+    // Called by a control whose part tooltips (Control::tool_tip_items)
+    // changed outside a layout: SubSurfaceHost when its sub-surface's
+    // requests change.
+    void tool_tip_items_changed(Control& control);
+    // Called by SubSurfaceHost for a sub-surface's program request: shows
+    // `control`'s part `item_id` with `text` below `anchor` (window
+    // coordinates), whatever the switches, as show_tool_tip does.
+    void show_requested_tool_tip(const Control::Ptr& control, std::string item_id, std::string text, Rect anchor,
+                                 std::optional<std::chrono::milliseconds> duration);
     // Called by RibbonToolTip: while covered, the plain presenter shows no
     // tooltip for `control`'s part `item_id` (empty: the control itself),
     // because the enhanced one describes it. Covers count, so two providers
@@ -1617,11 +1665,15 @@ private:
     Event<const ControlAvailabilityChange&> control_availability_changed_;
     OverlayList overlays_;
     AcceleratorList accelerators_;
-    // The window's one tooltip presenter; made with the window, shut down
-    // first in its destructor (it holds an overlay).
-    std::unique_ptr<detail::ToolTipPresenter> tool_tip_presenter_;
+    // Where this root's tooltips go (detail::ToolTipRoute): a window's one
+    // presenter, or a sub-surface's requester. Made by the derived root's
+    // constructor and shut down first in its destructor (a presenter holds an
+    // overlay); never null once that constructor finished.
+    std::unique_ptr<detail::ToolTipRoute> tool_tips_;
     ToolTipSettings tool_tip_settings_{};
     std::optional<bool> tool_tips_shown_{};
+    std::optional<ToolTipRequestRecord> tool_tip_request_{};
+    std::uint64_t next_tool_tip_request_{1};
     Event<const ToolTipEvent&> tool_tip_visibility_changed_;
     // The active panel's, active document's and main window's command
     // targets, in that order; observed, never owned.

@@ -108,12 +108,18 @@ Related types
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`SurfaceRequestAnswer <gui_forms::SurfaceRequestAnswer>`
+     - Where a request's answers go: posted through the requesting root's dispatcher and called on its thread, in the order they were given.
+   * - :cpp:class:`SurfaceRequestOutcome <gui_forms::SurfaceRequestOutcome>`
+     - An answer to one request; ``id`` is the one the request API returned.
    * - :cpp:class:`SystemColourHints <gui_forms::SystemColourHints>`
      - The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour.
    * - :cpp:class:`ThemeFallback <gui_forms::ThemeFallback>`
      - Presentation preferences are logical UI policy and remain independent from the native/device pixel scale.
    * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
      - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
+   * - :cpp:class:`ToolTipRequest <gui_forms::ToolTipRequest>`
+     - One tooltip, its content as data.
    * - :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`
      - How a window's one tooltip presenter behaves (owner, 2026-10-28).
    * - :cpp:class:`ValidationSnapshot <gui_forms::ValidationSnapshot>`
@@ -1036,6 +1042,33 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: SurfaceRequestAnswer
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   Where a request's answers go: posted through the requesting root's dispatcher and called on its thread, in the order they were given. Held weakly; a target released before an answer arrives receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void request_answered(const SurfaceRequestOutcome& outcome) = 0
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SurfaceRequestOutcome final
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   An answer to one request; ``id`` is the one the request API returned.
+
+   .. cpp:member:: std::uint64_t id
+
+   .. cpp:member:: SurfaceRequestResult result
+
+      Default: ``{SurfaceRequestResult::shown}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SystemColourHints final
 
    ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
@@ -1079,6 +1112,30 @@ Related types
    .. cpp:member:: bool shown
 
    .. cpp:member:: bool keyboard_initiated
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToolTipRequest final
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   One tooltip, its content as data.
+
+   .. cpp:member:: std::string text
+
+      Plain text, valid UTF-8, not empty.
+
+   .. cpp:member:: std::string description
+
+      The semantic description of what the tooltip is about, when it has one.
+
+   .. cpp:member:: Rect anchor
+
+      The thing the tooltip is about, in the root's coordinates; the bubble shows below it.
+
+   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+
+      How long it shows: none, the root's auto-pop delay; zero, until it is withdrawn or replaced.
 
 .. cpp:namespace:: gui_forms
 
@@ -1371,6 +1428,22 @@ Enumerations
    .. cpp:enumerator:: paint_pass
 
    .. cpp:enumerator:: posted_callback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SurfaceRequestResult
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   .. cpp:enumerator:: shown
+
+   .. cpp:enumerator:: declined
+
+   .. cpp:enumerator:: closed
+
+   .. cpp:enumerator:: revoked
+
+   .. cpp:enumerator:: stale
 
 Functions, constants and aliases
 --------------------------------

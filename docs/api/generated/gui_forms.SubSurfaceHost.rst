@@ -57,6 +57,8 @@ gui_forms::SubSurfaceHost
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`request_statistics <gui_forms::SubSurfaceHost::request_statistics>`
+        -  
       * - :cpp:func:`set_content <gui_forms::SubSurfaceHost::set_content>`
         - The content to show and whether it covers its whole region with opaque pixels (the window then copies its frames instead of blending, resize rule 2).
 
@@ -103,12 +105,18 @@ gui_forms::SubSurfaceHost
 
    .. rubric:: Methods
 
+   .. cpp:function:: const SubSurfaceRequestStatistics& request_statistics() const noexcept
+
    .. cpp:function:: void set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque)
 
       The content to show and whether it covers its whole region with opaque pixels (the window then copies its frames instead of blending, resize rule 2). A running sub-surface is stopped and joined first. Null content stops it and leaves the region empty.
 
 
    .. rubric:: Extension points
+
+   .. cpp:function:: std::vector<SemanticNode> tool_tip_items() const override
+
+      The sub-surface's open requests as tooltip parts, in window coordinates; a program request has no bounds (it is shown at once, never found under the pointer or focus).
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 

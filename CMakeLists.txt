@@ -401,6 +401,7 @@ add_library(gui_forms_core STATIC
     src/core/surface_root/surface_root.cpp
     src/core/surface_root/sub_surface/sub_surface.cpp
     src/core/surface_root/sub_surface/sub_surface_host.cpp
+    src/core/surface_root/sub_surface/sub_surface_tool_tips.cpp
     src/core/surface_root/control_table/control_table.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
@@ -412,6 +413,7 @@ add_library(gui_forms_core STATIC
     src/core/window/overlay/overlay_token.cpp
     src/core/window/tool_tips/tool_tip_bubble.cpp
     src/core/window/tool_tips/tool_tip_presenter.cpp
+    src/core/window/tool_tips/tool_tip_subjects.cpp
     src/core/window/tool_tips/window_tool_tips.cpp
     src/core/window/accelerator/accelerator_token.cpp
     src/core/control/dispatcher/control_dispatcher.cpp

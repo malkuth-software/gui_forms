@@ -434,6 +434,10 @@ gui_forms::SurfaceRoot
         - ``show_tool_tip(control)`` shows the control's tooltip at once, below it, for the auto-pop delay; ``show_tool_tip(control, duration)`` for ``duration``, where zero means until hidden.
       * - :cpp:func:`hide_tool_tip <gui_forms::SurfaceRoot::hide_tool_tip>`
         - Closes the tooltip that shows and cancels one waiting to show.
+      * - :cpp:func:`request_tool_tip <gui_forms::SurfaceRoot::request_tool_tip>`
+        - Asks for a tooltip about ``owner``, its content as data (threaded sub-surfaces design note section 15).
+      * - :cpp:func:`withdraw_tool_tip_request <gui_forms::SurfaceRoot::withdraw_tool_tip_request>`
+        - Withdraws the current request ``id``, closing it where it shows; it is not answered.
       * - :cpp:func:`register_accelerator <gui_forms::SurfaceRoot::register_accelerator>`
         - Installs a window-wide keyboard shortcut owned by a :cpp:class:`Component <gui_forms::Component>`.
       * - :cpp:func:`offer_accelerators <gui_forms::SurfaceRoot::offer_accelerators>`
@@ -1185,6 +1189,14 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void hide_tool_tip()
 
       Closes the tooltip that shows and cancels one waiting to show.
+
+   .. cpp:function:: std::uint64_t request_tool_tip(const Control::Ptr& owner, ToolTipRequest request, std::weak_ptr<SurfaceRequestAnswer> answer = {})
+
+      Asks for a tooltip about ``owner``, its content as data (threaded sub-surfaces design note section 15). A window's presenter shows it at once, whatever the switches, as show_tool_tip does; a sub-surface forwards it to its parent, which decides whether and where it shows. One request is current per root: a newer one, or show_tool_tip, replaces it (answered revoked). Answers go to ``answer`` through this root's dispatcher (SurfaceRequestAnswer). Returns the request's ID: 1 for the first, growing by one. Throws std::invalid_argument, changing nothing, for an owner that is not a live control attached to this root, empty or invalid UTF-8 text, an anchor that is not finite, or a negative duration. Root thread.
+
+   .. cpp:function:: void withdraw_tool_tip_request(std::uint64_t id)
+
+      Withdraws the current request ``id``, closing it where it shows; it is not answered. Any other ID changes nothing. Root thread.
 
    .. cpp:function:: AcceleratorToken register_accelerator(Component& owner, KeyGesture gesture, std::function<bool()> callback, AcceleratorOptions options = {})
 

@@ -1604,6 +1604,10 @@ gui_forms::Control
 
    .. cpp:function:: virtual std::vector<SemanticNode> semantic_virtual_children() const
 
+   .. cpp:function:: virtual std::vector<SemanticNode> tool_tip_items() const
+
+      The parts whose tooltips the root's tooltip route looks for, in root coordinates, read only when publishes_item_tool_tips is set: the semantic virtual children by default. A control whose tooltip parts are not semantic children (SubSurfaceHost: its sub-surface's requests) returns them here.
+
    .. cpp:function:: virtual bool on_semantic_action(SemanticAction action, std::string_view value)
 
    .. cpp:function:: virtual bool on_semantic_child_action(std::string_view stable_id, SemanticAction action, std::string_view value)

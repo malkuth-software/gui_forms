@@ -3675,6 +3675,10 @@ void Control::apply_provider_semantics(SemanticDescriptor& descriptor) const {
     }
 }
 
+std::vector<SemanticNode> Control::tool_tip_items() const {
+    return semantic_virtual_children();
+}
+
 std::vector<SemanticNode> Control::semantic_virtual_children() const {
     return {};
 }
