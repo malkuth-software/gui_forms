@@ -346,11 +346,89 @@ def git_revision(explicit: str | None) -> str:
         return "unknown"
 
 
+# The stx libraries' notices ($STX/<package>/...) come from the stx checkout the build
+# consumed (stx.lock; cmake/Stx.cmake), never from this tree, which holds no stx sources.
+STX_PREFIX: str = "$STX"
+STX_LOCK_PATH: Path = ROOT / "stx.lock"
+STX_OVERRIDE_VARIABLE: str = "FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX"
+
+
+def _is_stx_checkout(directory: Path) -> bool:
+    marker: Path = directory / "stx_zlib" / "CMakeLists.txt"
+    return marker.is_file()
+
+
+def _cached_stx_override(build_dir: Path) -> Path | None:
+    """The local stx checkout a build was configured with (CMakeCache.txt), or None."""
+    cache: Path = build_dir / "CMakeCache.txt"
+    if not cache.is_file():
+        return None
+    line: str
+    for line in cache.read_text(encoding="utf-8", errors="replace").splitlines():
+        if line.startswith(STX_OVERRIDE_VARIABLE + ":"):
+            value: str = line.split("=", 1)[1].strip()
+            if value:
+                return Path(value)
+    return None
+
+
+def stx_lock_commit() -> str:
+    """The stx commit stx.lock pins."""
+    text: str = STX_LOCK_PATH.read_text(encoding="utf-8")
+    found: re.Match[str] | None = re.search(r'^commit = "([0-9a-f]{40})"$', text, re.MULTILINE)
+    if found is None:
+        raise RuntimeError("stx.lock has no 40-character commit line")
+    commit: str = found.group(1)
+    return commit
+
+
+def stx_source_directory(build_dir: Path | None, explicit: Path | None) -> Path | None:
+    """The stx checkout whose notices a package ships, or None when there is none.
+
+    In order: `explicit` (--stx-source), the GUI_FORMS_STX_SOURCE_DIR variable,
+    then for the build directory and its toolkit/ subdirectory the local
+    checkout the build was configured with (FETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX)
+    and the checkout cmake/Stx.cmake fetched (_deps/gui_forms_stx-src). The
+    fetched checkout must be at stx.lock's commit; a named checkout is the
+    caller's choice and is not compared. A named directory that is not an stx
+    checkout raises.
+    """
+    named: list[Path] = []
+    if explicit is not None:
+        named.append(explicit)
+    if os.environ.get("GUI_FORMS_STX_SOURCE_DIR"):
+        named.append(Path(os.environ["GUI_FORMS_STX_SOURCE_DIR"]))
+    builds: list[Path] = []
+    if build_dir is not None:
+        builds = [build_dir, build_dir / "toolkit"]
+    build: Path
+    for build in builds:
+        override: Path | None = _cached_stx_override(build)
+        if override is not None:
+            named.append(override)
+    candidate: Path
+    for candidate in named:
+        if not _is_stx_checkout(candidate):
+            raise RuntimeError(f"{candidate} is not an stx checkout (no stx_zlib/CMakeLists.txt)")
+        return candidate
+    for build in builds:
+        candidate = build / "_deps" / "gui_forms_stx-src"
+        if not _is_stx_checkout(candidate):
+            continue
+        head: str = subprocess.check_output(["git", "-C", str(candidate), "rev-parse", "HEAD"], text=True).strip()
+        pinned: str = stx_lock_commit()
+        if head != pinned:
+            raise RuntimeError(f"the stx checkout {candidate} is at {head}, not stx.lock's {pinned}")
+        return candidate
+    return None
+
+
 class Packager:
     def __init__(self, manifest: Manifest, platform: str, build_dir: Path, version: str, out: Path,
                  revision: str, dry_run: bool, runtime: Path | None, runtime_dir: Path | None,
-                 installer: bool, log=print) -> None:
+                 installer: bool, log=print, stx_source: Path | None = None) -> None:
         self.manifest = manifest
+        self.stx_source = stx_source
         self.platform = platform
         self.build_dir = build_dir
         self.version = version
@@ -397,6 +475,7 @@ class Packager:
         prefix_env: dict[str, Path | None] = {
             "$GUI_FORMS_LLVM_RUNTIME": self.runtime,
             "$MSYS_PREFIX": (self.runtime_dir.parent if self.runtime_dir else None),
+            STX_PREFIX: stx_source_directory(self.build_dir, self.stx_source),
         }
         for notice in data["notices"]:
             platforms = notice.get("platforms")
@@ -921,6 +1000,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Windows: the CLANG64 bin directory (for example /clang64/bin); its prefix supplies the "
                              "licences of the statically linked runtimes ($MSYS_PREFIX in packaging/licenses.json). "
                              "No DLL is copied from it.")
+    parser.add_argument("--stx-source", type=Path, default=None,
+                        help="the stx checkout whose notices ship (default: the one the build fetched at stx.lock)")
     parser.add_argument("--no-installer", action="store_true", help="archives only; skip pkg/setup.exe/deb")
     parser.add_argument("--dry-run", action="store_true", help="print the plan; run no external tool and write nothing")
     args = parser.parse_args(argv)
@@ -941,7 +1022,7 @@ def main(argv: list[str] | None = None) -> int:
         for tool in required_tools(platform):
             print(f"  tool {tool}: {'present' if shutil.which(tool) else 'absent (only needed for a real run)'}")
     packager = Packager(manifest, platform, build_dir, args.version, out, revision, args.dry_run,
-                        runtime, args.runtime_dir, not args.no_installer)
+                        runtime, args.runtime_dir, not args.no_installer, stx_source=args.stx_source)
     records: list[dict[str, Any]] = []
     for plan in plans:
         if not plan.packages:

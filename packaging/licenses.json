@@ -1,7 +1,7 @@
 {
   "notes": [
     "Third-party notices copied into each packaged program's licenses/ directory by tools/package_programs.py.",
-    "Paths are relative to the repository root unless prefixed with $GUI_FORMS_LLVM_RUNTIME (macOS runtime prefix) or $MSYS_PREFIX (the CLANG64 tree on Windows).",
+    "Paths are relative to the repository root unless prefixed with $GUI_FORMS_LLVM_RUNTIME (macOS runtime prefix), $MSYS_PREFIX (the CLANG64 tree on Windows) or $STX (the stx checkout the build consumed, at stx.lock's commit; package_programs.py --stx-source names another).",
     "optional=true entries are skipped with a log line when the file is absent (fetched dependencies, platform runtimes); the others fail the package.",
     "Windows binaries link the LLVM runtimes (libc++, libunwind, compiler-rt), winpthreads and the MinGW-w64 CRT statically; their licences are shipped although the LLVM exception does not require it for embedded runtime code.",
     "component names the row of THIRD_PARTY_NOTICES.md that covers the file; tools/package_programs.py checks every package against that file. One entry per line, so adding or removing a component is a one-line edit here and one row there."
@@ -13,12 +13,12 @@
     {"name": "Unicode.txt", "source": "third_party/unicode/LICENSE.txt", "component": "Unicode Character Database (grapheme tables)"},
     {"name": "SheenBidi.txt", "source": "third_party/sheenbidi/LICENSE", "component": "SheenBidi"},
     {"name": "MD4C.txt", "source": "third_party/md4c/LICENSE.md", "component": "MD4C (the markdown framework's parser)"},
-    {"name": "stx_zlib.txt", "source": "stx_zlib/LICENSE", "component": "stx_zlib (the owned zlib codec)"},
-    {"name": "stx_zlib-puff.txt", "source": "stx_zlib/LICENSE-puff.txt", "component": "stx_zlib (the owned zlib codec)"},
-    {"name": "stx_zlib-zlib.txt", "source": "stx_zlib/LICENSE-zlib.txt", "component": "stx_zlib (the owned zlib codec)"},
-    {"name": "stx_png.txt", "source": "stx_png/LICENSE", "component": "stx_png (the owned PNG codec)"},
-    {"name": "stx_conv.txt", "source": "stx_conv/LICENSE", "component": "stx_conv (the owner's CONV resampler)"},
-    {"name": "stx_rtf2md.txt", "source": "stx_rtf2md/LICENSE", "component": "stx_rtf2md (the owner's RTF and markdown converter)"},
+    {"name": "stx_zlib.txt", "source": "$STX/stx_zlib/LICENSE", "component": "stx_zlib (the owned zlib codec)"},
+    {"name": "stx_zlib-puff.txt", "source": "$STX/stx_zlib/LICENSE-puff.txt", "component": "stx_zlib (the owned zlib codec)"},
+    {"name": "stx_zlib-zlib.txt", "source": "$STX/stx_zlib/LICENSE-zlib.txt", "component": "stx_zlib (the owned zlib codec)"},
+    {"name": "stx_png.txt", "source": "$STX/stx_png/LICENSE", "component": "stx_png (the owned PNG codec)"},
+    {"name": "stx_conv.txt", "source": "$STX/stx_conv/LICENSE", "component": "stx_conv (the owner's CONV resampler)"},
+    {"name": "stx_rtf2md.txt", "source": "$STX/stx_rtf2md/LICENSE", "component": "stx_rtf2md (the owner's RTF and markdown converter)"},
     {"name": "HarfBuzz.txt", "source": "third_party/harfbuzz/COPYING", "component": "HarfBuzz", "optional": true},
     {"name": "FreeType-FTL.txt", "source": "third_party/freetype/docs/FTL.TXT", "component": "FreeType", "optional": true},
     {"name": "Skia.txt", "source": "stx_skia/LICENSE-Skia", "component": "Skia (in stx_skia)"},
