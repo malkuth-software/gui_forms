@@ -313,6 +313,7 @@ void thread_produces_tagged_frames() {
     require(statistics.configurations_applied + statistics.configurations_coalesced == 21U,
             "each configuration applied or coalesced");
     require(statistics.published_content_epoch == 21U, "published epoch is the newest");
+    require(statistics.deadline_wakes >= 1U, "without a presenter the pacer releases frames at its deadline");
 
     bool refused = false;
     try {

@@ -130,7 +130,7 @@ public:
                    std::unique_ptr<SubSurfaceContent> content, std::shared_ptr<LiveSurface> surface,
                    std::shared_ptr<const Theme> theme, std::unique_ptr<PaintFramebuffer> text_measure) noexcept
         : channel_(std::move(channel)), content_(std::move(content)), surface_(std::move(surface)),
-          theme_(std::move(theme)), text_measure_(std::move(text_measure)) {}
+          theme_(std::move(theme)), text_measure_(std::move(text_measure)), pacer_(surface_) {}
 
     // The thread's entry. Owns the loop and destroys it before returning, so
     // the content, its controls and both framebuffers die on this thread.
@@ -167,6 +167,10 @@ private:
     // LiveSurface epoch).
     bool publish_whole_{};
     std::optional<FrameTime> retry_at_{};
+    // Publishes at most one frame per display frame: the next paint waits
+    // until the window showed the last one, or one and a half refreshes.
+    LiveSurfacePacer pacer_;
+    std::optional<FrameTime> pacing_wake_{};
 };
 
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
@@ -201,6 +205,10 @@ void SubSurfaceLoop::run_tree() {
     if (text_measure_) root.set_text_metrics_provider(&(*text_measure_).painter());
     root.set_dispatch_wake_handler(detail::SignalSubSurfaceChannel(channel_));
     root.set_paint_wake_handler(detail::SignalSubSurfaceChannel(channel_));
+    // The window's presentation reports wake the loop for a paced frame;
+    // disconnected when this scope ends, before the channel can go.
+    LiveSurfaceWakeConnection presented =
+        (*surface_).connect_presented_wake(detail::SignalSubSurfaceChannel(channel_));
     {
         const std::lock_guard<std::mutex> lock((*channel_).mutex);
         (*channel_).dispatcher = root.dispatcher();
@@ -228,6 +236,7 @@ void SubSurfaceLoop::run_tree() {
 bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfiguration>& configuration) {
     std::optional<FrameTime> deadline = root.next_wake();
     if (retry_at_ && (!deadline || *retry_at_ < *deadline)) deadline = retry_at_;
+    if (pacing_wake_ && (!deadline || *pacing_wake_ < *deadline)) deadline = pacing_wake_;
     std::unique_lock<std::mutex> lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
     while (!channel.stop_requested && !channel.pending && !channel.signalled) {
@@ -302,6 +311,25 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
 void SubSurfaceLoop::produce(SubSurface& root) {
     if (!configured_ || !framebuffer_) return;
     if (root.needs_frame()) {
+        const LivePacingResult pace = pacer_.plan(FrameClock::now());
+        if (pace.outcome == LivePacingOutcome::pending) {
+            // The dirt stays; a presentation report or the deadline wakes
+            // the loop for it.
+            pacing_wake_ = pace.wake_at;
+            // Only pixels already painted may go out meanwhile (a lease
+            // that failed earlier). A frame of a new LiveSurface epoch waits
+            // for its paint: published now it would carry the new content
+            // tag over the pixels the resize exposed but nobody painted.
+            if (unpublished_.empty() || publish_whole_) return;
+            publish();
+            return;
+        }
+        pacing_wake_.reset();
+        if (pace.outcome == LivePacingOutcome::deadline) {
+            const std::lock_guard<std::mutex> lock((*channel_).mutex);
+            ++(*channel_).statistics.deadline_wakes;
+            (*channel_).statistics.missed_frames += pace.missed_frames;
+        }
         const DamageRegion taken = root.take_damage();
         if (!taken.empty() && (*framebuffer_).begin(root.image_resources(), taken.bounds())) {
             const std::optional<PaintReceipt> receipt = root.paint((*framebuffer_).painter(), taken.rectangles());

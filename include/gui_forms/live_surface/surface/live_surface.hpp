@@ -46,7 +46,20 @@ public:
     [[nodiscard]] LiveSurfaceWakeConnection connect_presentation_wake(
         std::function<void()> wake);
 
+    // Presentation feedback (stage S2, design note sections 7 and 8). For
+    // the window presenter only: after a present tick that showed this
+    // surface, reports the generation of the frame shown and the display
+    // timing the tick was phased to. Wakes every pacer waiting on the
+    // surface and calls each presented wake, on the presenter's thread.
+    void notify_presented(std::uint64_t generation, LiveDisplayTiming timing) noexcept;
+    [[nodiscard]] LivePresentationRecord presentation_record() const noexcept;
+    // A wake called after each notify_presented, on the presenter's thread;
+    // like a presentation wake, it may only signal.
+    [[nodiscard]] LiveSurfaceWakeConnection connect_presented_wake(
+        std::function<void()> wake);
+
 private:
+    friend class LiveSurfacePacer;
     explicit LiveSurface(std::shared_ptr<detail::LiveSurfaceState> state) noexcept;
     std::shared_ptr<detail::LiveSurfaceState> state_;
 };

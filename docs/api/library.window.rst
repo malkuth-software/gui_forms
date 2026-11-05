@@ -1072,6 +1072,12 @@ Related types
 
       Turns of the loop: each wake by a configuration, a post, a paint wake or a due frame request. An idle sub-surface does not turn (no perpetual redraw loop).
 
+   .. cpp:member:: std::uint64_t deadline_wakes
+
+      Pacing (design note section 8): frames rendered because the window did not show the previous one within one and a half refreshes, and the refreshes those waits missed. Frames shown are in the LiveSurface's presentation record.
+
+   .. cpp:member:: std::uint64_t missed_frames
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: SubSurfaceThread final

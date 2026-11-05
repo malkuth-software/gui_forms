@@ -157,6 +157,20 @@ newest wins). Work for the sub-surface is posted through
 leaves its window the thread is stopped and joined, and the tree is released
 on its own thread.
 
+### Pacing producers
+
+A producer paces itself with a `LiveSurfacePacer`, never with a sleep loop.
+After each present tick the window's host reports, per surface, the
+generation it showed and the display timing of the tick
+(`LiveSurface::notify_presented`, a `LiveDisplayTiming`). The pacer lets a
+producer render its next frame once its last one was shown (or, if it
+published nothing, once a tick passed), and names the display time that
+frame will be shown for. If the window shows nothing for one and a half
+refreshes (a busy UI thread) the pacer releases the frame anyway and counts
+the refreshes missed, so a stalled window never stops a producer. A
+sub-surface paces every frame this way; the Windows host reports the
+compositor's vertical blank, or its 60 Hz cadence without one.
+
 ## Reading the counters
 
 `MetricsSnapshot` carries `paint_passes`, `controls_painted`,

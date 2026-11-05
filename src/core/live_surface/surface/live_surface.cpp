@@ -183,4 +183,47 @@ LiveSurfaceWakeConnection LiveSurface::connect_presentation_wake(
     return {state_, std::move(connection)};
 }
 
+void LiveSurface::notify_presented(const std::uint64_t generation, const LiveDisplayTiming timing) noexcept {
+    if (!state_) return;
+    std::vector<std::shared_ptr<detail::LiveSurfaceWake>> wakes;
+    {
+        std::scoped_lock lock((*state_).mutex);
+        LivePresentationRecord& record = (*state_).presentation_record;
+        // Generations only grow: a late report of an older frame keeps the
+        // newer one, but still counts as a tick.
+        if (generation > record.presented_generation) record.presented_generation = generation;
+        record.timing = timing;
+        ++record.presents;
+        wakes = (*state_).presented_wakes;
+    }
+    (*state_).presented.notify_all();
+    for (const std::shared_ptr<gui_forms::detail::LiveSurfaceWake>& wake : wakes) {
+        if (!wake || !(*wake).connected.load(std::memory_order_acquire) || !(*wake).callback) continue;
+        try {
+            (*wake).callback();
+        } catch (...) {
+            // The report stands when a retiring consumer's wake faults.
+        }
+    }
+}
+
+LivePresentationRecord LiveSurface::presentation_record() const noexcept {
+    if (!state_) return {};
+    std::scoped_lock lock((*state_).mutex);
+    return (*state_).presentation_record;
+}
+
+LiveSurfaceWakeConnection LiveSurface::connect_presented_wake(std::function<void()> wake) {
+    if (!state_ || !wake) return {};
+    std::shared_ptr<gui_forms::detail::LiveSurfaceWake> connection = std::make_shared<detail::LiveSurfaceWake>();
+    (*connection).callback = std::move(wake);
+    {
+        std::scoped_lock lock((*state_).mutex);
+        (*connection).sequence = (*state_).next_wake_sequence++;
+        if ((*state_).next_wake_sequence == 0U) (*state_).next_wake_sequence = 1U;
+        (*state_).presented_wakes.push_back(connection);
+    }
+    return {state_, std::move(connection)};
+}
+
 } // namespace gui_forms

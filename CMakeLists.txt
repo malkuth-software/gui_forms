@@ -323,6 +323,7 @@ add_library(gui_forms_core STATIC
     ${GUI_FORMS_BUNDLED_FONT_MANIFEST_RECORDS}
     src/core/live_surface/buffer/live_surface_buffer.cpp
     src/core/live_surface/frame/live_surface_frame.cpp
+    src/core/live_surface/pacer/live_surface_pacer.cpp
     src/core/live_surface/surface/live_surface.cpp
     src/core/live_surface/wake_connection/live_surface_wake_connection.cpp
     src/core/live_surface/write_lease/live_surface_write_lease.cpp
@@ -2941,6 +2942,9 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_delegate_event_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_delegate_event_tests COMMAND gui_forms_delegate_event_tests)
 
+    add_executable(gui_forms_live_surface_pacer_tests tests/live_surface_pacer_tests.cpp)
+    target_link_libraries(gui_forms_live_surface_pacer_tests PRIVATE gui_forms_core)
+    add_test(NAME gui_forms_live_surface_pacer_tests COMMAND gui_forms_live_surface_pacer_tests)
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)

@@ -34,6 +34,8 @@ gui_forms::LiveSurface
          and whether a write lease is active, a frame exists and the previous
          epoch's frame is being carried.
 
+      **presentation_record** : ``LivePresentationRecord``, read-only
+
    .. rubric:: Methods
 
    .. list-table::
@@ -52,6 +54,10 @@ gui_forms::LiveSurface
         - Used by the window's presenter, not by applications.
       * - :cpp:func:`connect_presentation_wake <gui_forms::LiveSurface::connect_presentation_wake>`
         - ``connect_presentation_wake(std::function<void()>)`` registers a callback that runs after every publication and every reconfiguration, on the thread that made it, once the surface's lock is released.
+      * - :cpp:func:`notify_presented <gui_forms::LiveSurface::notify_presented>`
+        - Presentation feedback (stage S2, design note sections 7 and 8).
+      * - :cpp:func:`connect_presented_wake <gui_forms::LiveSurface::connect_presented_wake>`
+        - A wake called after each notify_presented, on the presenter's thread; like a presentation wake, it may only signal.
 
    .. seealso::
 
@@ -157,6 +163,8 @@ gui_forms::LiveSurface
       and whether a write lease is active, a frame exists and the previous
       epoch's frame is being carried.
 
+   .. cpp:function:: LivePresentationRecord presentation_record() const noexcept
+
 
    .. rubric:: Methods
 
@@ -214,3 +222,11 @@ gui_forms::LiveSurface
       controls. Exceptions it throws are ignored. The returned
       :cpp:class:`LiveSurfaceWakeConnection <gui_forms::LiveSurfaceWakeConnection>` disconnects when destroyed; an empty callback
       returns an unconnected one.
+
+   .. cpp:function:: void notify_presented(std::uint64_t generation, LiveDisplayTiming timing) noexcept
+
+      Presentation feedback (stage S2, design note sections 7 and 8). For the window presenter only: after a present tick that showed this surface, reports the generation of the frame shown and the display timing the tick was phased to. Wakes every pacer waiting on the surface and calls each presented wake, on the presenter's thread.
+
+   .. cpp:function:: LiveSurfaceWakeConnection connect_presented_wake(std::function<void()> wake)
+
+      A wake called after each notify_presented, on the presenter's thread; like a presentation wake, it may only signal.

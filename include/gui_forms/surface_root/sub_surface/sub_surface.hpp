@@ -3,6 +3,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 
 #include "gui_forms/live_surface.hpp"
+#include "gui_forms/live_surface/pacer/live_surface_pacer.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 
 #include <cstdint>
@@ -96,6 +97,12 @@ struct SubSurfaceStatistics final {
     // or a due frame request. An idle sub-surface does not turn (no
     // perpetual redraw loop).
     std::uint64_t loop_turns{};
+    // Pacing (design note section 8): frames rendered because the window
+    // did not show the previous one within one and a half refreshes, and
+    // the refreshes those waits missed. Frames shown are in the
+    // LiveSurface's presentation record.
+    std::uint64_t deadline_wakes{};
+    std::uint64_t missed_frames{};
 };
 
 // A SurfaceRoot whose output is a LiveSurface and whose host is a control of
