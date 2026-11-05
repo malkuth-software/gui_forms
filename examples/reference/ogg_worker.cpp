@@ -11,7 +11,7 @@ int main(int argc, char** argv) {
     // Worker through Audio. No GUI session is needed for this linkage fixture.
     const gui_forms::Control::Ptr control = gui_forms::make_control<gui_forms::Control>(
         gui_forms::StableId("audio-worker-linkage"));
-    (*control).set_visible(true);
+    (*control).visible = true;
 #endif
     const bool cancelled = cancel_ogg_load(std::filesystem::path(argv[1]));
     if (!cancelled) return 1;
