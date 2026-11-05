@@ -103,6 +103,17 @@ gui_forms::Control
          when the parent resizes. Anchored to both left and right, the control
          stretches; anchored to neither, it keeps its centre offset.
 
+      **justify_self** : ``SelfAlignment``, default ``SelfAlignment::automatic``
+         Where the control sits along the inline axis of the region a layout
+         owner gives it: ``start``, ``center``, ``end`` or ``stretch``, as CSS
+         ``justify-self``; ``automatic`` takes the owner's default for its items.
+         The base dock and anchor layout ignores it, and so, for now, does every
+         stock panel: :cpp:class:`GridPanel <gui_forms::GridPanel>` still takes each child's alignment from its
+         own :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`.
+
+      **align_self** : ``SelfAlignment``, default ``SelfAlignment::automatic``
+         The same along the block axis, as CSS ``align-self``.
+
       **auto_size_mode** : ``AutoSizeMode``, default ``AutoSizeMode::grow_only``
          With :cpp:member:`auto_size <gui_forms::Control::auto_size>` on, whether measurement may shrink the control below
          its requested size (:cpp:enumerator:`AutoSizeMode::grow_and_shrink <gui_forms::AutoSizeMode::grow_and_shrink>`) or only grow it.
@@ -759,6 +770,19 @@ gui_forms::Control
       For an undocked control, the parent edges whose distance stays fixed
       when the parent resizes. Anchored to both left and right, the control
       stretches; anchored to neither, it keeps its centre offset.
+
+   .. cpp:member:: SelfAlignment justify_self
+
+      Where the control sits along the inline axis of the region a layout
+      owner gives it: ``start``, ``center``, ``end`` or ``stretch``, as CSS
+      ``justify-self``; ``automatic`` takes the owner's default for its items.
+      The base dock and anchor layout ignores it, and so, for now, does every
+      stock panel: :cpp:class:`GridPanel <gui_forms::GridPanel>` still takes each child's alignment from its
+      own :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`.
+
+   .. cpp:member:: SelfAlignment align_self
+
+      The same along the block axis, as CSS ``align-self``.
 
    .. cpp:member:: AutoSizeMode auto_size_mode
 
@@ -1920,4 +1944,4 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``23U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``25U``.

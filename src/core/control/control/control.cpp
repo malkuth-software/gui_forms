@@ -128,6 +128,16 @@ std::shared_ptr<const PropertyEnumDescriptor> dock_style_property_enum_impl() {
     return value;
 }
 
+std::shared_ptr<const PropertyEnumDescriptor> self_alignment_property_enum_impl() {
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+        PropertyEnumDescriptor{
+            "self_alignment",
+            {{"automatic", 0}, {"start", 1}, {"center", 2}, {"end", 3},
+             {"stretch", 4}},
+            false});
+    return value;
+}
+
 std::shared_ptr<const PropertyEnumDescriptor> anchor_styles_property_enum_impl() {
     static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
@@ -297,6 +307,21 @@ BindingValue PropertyValueTraits<DockStyle>::to_binding(DockStyle value) {
     return general;
 }
 
+PropertyType PropertyValueTraits<SelfAlignment>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, self_alignment_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<SelfAlignment>::to_binding(SelfAlignment value) {
+    const BindingValue general =
+        current_enum_property_value_impl(self_alignment_property_enum_impl(), static_cast<std::int64_t>(value));
+    return general;
+}
+
+SelfAlignment PropertyValueTraits<SelfAlignment>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<SelfAlignment>(choice.value);
+}
+
 PropertyType PropertyValueTraits<AnchorStyles>::type() {
     return PropertyType{BindingValueKind::enumeration, false, anchor_styles_property_enum_impl()};
 }
@@ -435,6 +460,11 @@ void Control::set_fore_color_property_value(const BindingValue& value) {
 std::shared_ptr<const PropertyEnumDescriptor>
 Control::dock_style_property_enum() {
     return dock_style_property_enum_impl();
+}
+
+std::shared_ptr<const PropertyEnumDescriptor>
+Control::self_alignment_property_enum() {
+    return self_alignment_property_enum_impl();
 }
 
 std::shared_ptr<const PropertyEnumDescriptor>
@@ -749,6 +779,36 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         anchor.bindable = false;
         return anchor;
     }
+    case RegisteredProperty::justify_self: {
+        PropertyDescriptor justify_self;
+        justify_self.name = "justify_self";
+        justify_self.kind = BindingValueKind::enumeration;
+        justify_self.category = "Layout";
+        justify_self.description =
+            "Inline-axis placement inside the region a layout owner gives the control.";
+        justify_self.default_value = BindingValue{PropertyEnumValue{
+            "self_alignment", "automatic", 0}};
+        justify_self.invalidation_effects = Dirty::measure | Dirty::arrange |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        justify_self.enumeration = self_alignment_property_enum();
+        justify_self.bindable = false;
+        return justify_self;
+    }
+    case RegisteredProperty::align_self: {
+        PropertyDescriptor align_self;
+        align_self.name = "align_self";
+        align_self.kind = BindingValueKind::enumeration;
+        align_self.category = "Layout";
+        align_self.description =
+            "Block-axis placement inside the region a layout owner gives the control.";
+        align_self.default_value = BindingValue{PropertyEnumValue{
+            "self_alignment", "automatic", 0}};
+        align_self.invalidation_effects = Dirty::measure | Dirty::arrange |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        align_self.enumeration = self_alignment_property_enum();
+        align_self.bindable = false;
+        return align_self;
+    }
     case RegisteredProperty::auto_size_mode: {
         PropertyDescriptor auto_size_mode;
         auto_size_mode.name = "auto_size_mode";
@@ -934,6 +994,10 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::dock>, nullptr, nullptr, nullptr, nullptr},
         {"anchor", &describe_registered<RegisteredProperty::anchor>, &read_registered<RegisteredProperty::anchor>,
          &write_registered<RegisteredProperty::anchor>, nullptr, nullptr, nullptr, nullptr},
+        {"justify_self", &describe_registered<RegisteredProperty::justify_self>, &read_registered<RegisteredProperty::justify_self>,
+         &write_registered<RegisteredProperty::justify_self>, nullptr, nullptr, nullptr, nullptr},
+        {"align_self", &describe_registered<RegisteredProperty::align_self>, &read_registered<RegisteredProperty::align_self>,
+         &write_registered<RegisteredProperty::align_self>, nullptr, nullptr, nullptr, nullptr},
         {"auto_size_mode", &describe_registered<RegisteredProperty::auto_size_mode>, &read_registered<RegisteredProperty::auto_size_mode>,
          &write_registered<RegisteredProperty::auto_size_mode>, nullptr, nullptr, nullptr, nullptr},
         {"layout_direction", &describe_registered<RegisteredProperty::layout_direction>, &read_registered<RegisteredProperty::layout_direction>,
@@ -1776,6 +1840,18 @@ void validate_insets(Insets value, const char* message) {
     return false;
 }
 
+[[nodiscard]] bool valid_self_alignment(SelfAlignment alignment) noexcept {
+    switch (alignment) {
+    case SelfAlignment::automatic:
+    case SelfAlignment::start:
+    case SelfAlignment::center:
+    case SelfAlignment::end:
+    case SelfAlignment::stretch:
+        return true;
+    }
+    return false;
+}
+
 [[nodiscard]] bool valid_anchor(AnchorStyles anchor) noexcept {
     constexpr std::uint8_t valid =
         static_cast<std::uint8_t>(AnchorStyles::top) |
@@ -2321,6 +2397,31 @@ void Control::prepare_write(const decltype(anchor)&, AnchorStyles& value) {
 void Control::written(const decltype(anchor)&) {
     recapture_anchor_reference();
     invalidate(invalidation::bounds);
+}
+
+// The self alignments change only where the parent places the control, so
+// they dirty it as margin does: its measure and arrange, which reach the
+// parent's layout.
+void Control::prepare_write(const decltype(justify_self)&, SelfAlignment& value) {
+    require_mutable();
+    if (!valid_self_alignment(value)) {
+        throw std::invalid_argument("GUI.Forms SelfAlignment value is invalid");
+    }
+}
+
+void Control::written(const decltype(justify_self)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+}
+
+void Control::prepare_write(const decltype(align_self)&, SelfAlignment& value) {
+    require_mutable();
+    if (!valid_self_alignment(value)) {
+        throw std::invalid_argument("GUI.Forms SelfAlignment value is invalid");
+    }
+}
+
+void Control::written(const decltype(align_self)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
 }
 
 void Control::prepare_write(const decltype(auto_size_mode)&, AutoSizeMode& value) {

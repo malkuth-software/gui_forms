@@ -27,6 +27,19 @@ enum class AnchorStyles : std::uint8_t {
     right = 1U << 3U,
 };
 
+// How a child sits inside the region its parent's layout gives it, on one
+// axis (CSS justify-self and align-self over start, center, end and
+// stretch). `automatic` takes the parent's own default for its items; a
+// layout that places children by other rules (dock, anchor, flow) ignores
+// the value.
+enum class SelfAlignment : std::uint8_t {
+    automatic,
+    start,
+    center,
+    end,
+    stretch,
+};
+
 enum class AutoSizeMode : std::uint8_t {
     grow_and_shrink = 0U,
     grow_only = 1U,
@@ -60,6 +73,7 @@ namespace types {
 inline constexpr TypeTag<DockStyle> dock_style{};
 inline constexpr TypeTag<AnchorStyles> anchor_styles{};
 inline constexpr TypeTag<AutoSizeMode> auto_size_mode{};
+inline constexpr TypeTag<SelfAlignment> self_alignment{};
 
 } // namespace types
 

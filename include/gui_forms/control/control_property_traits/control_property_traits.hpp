@@ -28,6 +28,13 @@ struct PropertyValueTraits<AnchorStyles> {
 };
 
 template <>
+struct PropertyValueTraits<SelfAlignment> {
+    static PropertyType type();
+    static BindingValue to_binding(SelfAlignment value);
+    static SelfAlignment from_binding(const BindingValue& value);
+};
+
+template <>
 struct PropertyValueTraits<AutoSizeMode> {
     static PropertyType type();
     static BindingValue to_binding(AutoSizeMode value);

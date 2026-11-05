@@ -42,6 +42,8 @@ Related types
      - The description assistive technology announces.
    * - :cpp:class:`AccessibleNameCapability <gui_forms::AccessibleNameCapability>`
      - The name assistive technology announces.
+   * - :cpp:class:`AlignSelfCapability <gui_forms::AlignSelfCapability>`
+     - Where the control sits across its layout region's block axis (CSS align-self).
    * - :cpp:class:`AllowDropCapability <gui_forms::AllowDropCapability>`
      - Whether the control accepts dropped data (AllowDrop).
    * - :cpp:class:`AnatomyStateSet <gui_forms::AnatomyStateSet>`
@@ -178,6 +180,8 @@ Related types
      - One kind of repeated item a control paints (owner decision 5): a list row, a tree node, a details-view column header.
    * - :cpp:class:`ItemSystemIndex <gui_forms::ItemSystemIndex>`
      - Position of an item system in its control type's declaration list.
+   * - :cpp:class:`JustifySelfCapability <gui_forms::JustifySelfCapability>`
+     - Where the control sits across its layout region's inline axis (CSS justify-self).
    * - :cpp:class:`LayoutConstraint <gui_forms::LayoutConstraint>`
      - A measure query on both axes.
    * - :cpp:class:`LayoutDiagnostic <gui_forms::LayoutDiagnostic>`
@@ -352,6 +356,23 @@ Related types
    .. cpp:function:: static void assign(AccessibleNameCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AlignSelfCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Where the control sits across its layout region's block axis (CSS align-self).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AlignSelfCapability& capability, SelfAlignment incoming)
+
+   .. cpp:member:: PropertyCell<SelfAlignment, AlignSelfCapability<Declaring>> align_self
+
+      Default: ``{SelfAlignment::automatic}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -848,7 +869,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
 
@@ -916,6 +937,14 @@ Related types
    .. cpp:member:: AnchorStyles anchor
 
       The parent edges the control keeps its distance to (Anchor).
+
+   .. cpp:member:: SelfAlignment justify_self
+
+      Where the control sits across its layout region's inline axis (CSS justify-self).
+
+   .. cpp:member:: SelfAlignment align_self
+
+      Where the control sits across its layout region's block axis (CSS align-self).
 
    .. cpp:member:: AutoSizeMode auto_size_mode
 
@@ -1830,6 +1859,23 @@ Related types
    Position of an item system in its control type's declaration list.
 
    .. cpp:member:: std::uint8_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> JustifySelfCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Where the control sits across its layout region's inline axis (CSS justify-self).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(JustifySelfCapability& capability, SelfAlignment incoming)
+
+   .. cpp:member:: PropertyCell<SelfAlignment, JustifySelfCapability<Declaring>> justify_self
+
+      Default: ``{SelfAlignment::automatic}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3122,6 +3168,22 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: SelfAlignment
+
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+
+   .. cpp:enumerator:: automatic
+
+   .. cpp:enumerator:: start
+
+   .. cpp:enumerator:: center
+
+   .. cpp:enumerator:: end
+
+   .. cpp:enumerator:: stretch
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SizeKind
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -3344,6 +3406,8 @@ Functions, constants and aliases
 .. cpp:var:: constexpr TypeTag<AnchorStyles> anchor_styles
 
 .. cpp:var:: constexpr TypeTag<AutoSizeMode> auto_size_mode
+
+.. cpp:var:: constexpr TypeTag<SelfAlignment> self_alignment
 
 .. cpp:namespace:: gui_forms::types
 

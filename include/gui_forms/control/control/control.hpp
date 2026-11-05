@@ -718,7 +718,7 @@ public:
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 23U;
+    static constexpr std::size_t control_property_count = 25U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -1163,6 +1163,8 @@ private:
     friend struct PaddingCapability<Control>;
     friend struct DockCapability<Control>;
     friend struct AnchorCapability<Control>;
+    friend struct JustifySelfCapability<Control>;
+    friend struct AlignSelfCapability<Control>;
     friend struct AutoSizeModeCapability<Control>;
     friend struct LayoutDirectionCapability<Control>;
     friend struct TabIndexCapability<Control>;
@@ -1208,6 +1210,10 @@ private:
     void written(const decltype(dock)& cell);
     void prepare_write(const decltype(anchor)& cell, AnchorStyles& value);
     void written(const decltype(anchor)& cell);
+    void prepare_write(const decltype(justify_self)& cell, SelfAlignment& value);
+    void written(const decltype(justify_self)& cell);
+    void prepare_write(const decltype(align_self)& cell, SelfAlignment& value);
+    void written(const decltype(align_self)& cell);
     void prepare_write(const decltype(auto_size_mode)& cell, AutoSizeMode& value);
     void written(const decltype(auto_size_mode)& cell);
     void prepare_write(const decltype(layout_direction)& cell, LayoutDirection& value);
@@ -1281,6 +1287,8 @@ private:
         dock_style_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         anchor_styles_property_enum();
+    [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
+        self_alignment_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         auto_size_mode_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
@@ -1468,6 +1476,8 @@ private:
         auto_scroll_offset,
         dock,
         anchor,
+        justify_self,
+        align_self,
         auto_size_mode,
         layout_direction,
         tab_index,
@@ -1538,6 +1548,14 @@ private:
                 return Control::current_enum_property_value(
                     Control::anchor_styles_property_enum(),
                     static_cast<std::int64_t>((*control).anchor.read()));
+            } else if constexpr (Property == RegisteredProperty::justify_self) {
+                return Control::current_enum_property_value(
+                    Control::self_alignment_property_enum(),
+                    static_cast<std::int64_t>((*control).justify_self.read()));
+            } else if constexpr (Property == RegisteredProperty::align_self) {
+                return Control::current_enum_property_value(
+                    Control::self_alignment_property_enum(),
+                    static_cast<std::int64_t>((*control).align_self.read()));
             } else if constexpr (
                 Property == RegisteredProperty::auto_size_mode) {
                 return Control::current_enum_property_value(
@@ -1633,6 +1651,12 @@ private:
                     std::get<PropertyEnumValue>(value).value);
             } else if constexpr (Property == RegisteredProperty::anchor) {
                 (*control).anchor = static_cast<AnchorStyles>(
+                    std::get<PropertyEnumValue>(value).value);
+            } else if constexpr (Property == RegisteredProperty::justify_self) {
+                (*control).justify_self = static_cast<SelfAlignment>(
+                    std::get<PropertyEnumValue>(value).value);
+            } else if constexpr (Property == RegisteredProperty::align_self) {
+                (*control).align_self = static_cast<SelfAlignment>(
                     std::get<PropertyEnumValue>(value).value);
             } else if constexpr (
                 Property == RegisteredProperty::auto_size_mode) {

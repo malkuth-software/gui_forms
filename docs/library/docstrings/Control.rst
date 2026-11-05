@@ -90,6 +90,15 @@ anchor : default ``AnchorStyles::top | AnchorStyles::left``
     For an undocked control, the parent edges whose distance stays fixed
     when the parent resizes. Anchored to both left and right, the control
     stretches; anchored to neither, it keeps its centre offset.
+justify_self : default ``SelfAlignment::automatic``
+    Where the control sits along the inline axis of the region a layout
+    owner gives it: `start`, `center`, `end` or `stretch`, as CSS
+    `justify-self`; `automatic` takes the owner's default for its items.
+    The base dock and anchor layout ignores it, and so, for now, does every
+    stock panel: `GridPanel` still takes each child's alignment from its
+    own `GridItemLayout`.
+align_self : default ``SelfAlignment::automatic``
+    The same along the block axis, as CSS `align-self`.
 auto_size_mode : default ``AutoSizeMode::grow_only``
     With `auto_size` on, whether measurement may shrink the control below
     its requested size (`AutoSizeMode::grow_and_shrink`) or only grow it.

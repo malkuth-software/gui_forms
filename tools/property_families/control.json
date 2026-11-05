@@ -315,6 +315,46 @@
       ]
     },
     {
+      "name": "justify_self",
+      "capability": "JustifySelf",
+      "value": "SelfAlignment",
+      "initial": "SelfAlignment::automatic",
+      "comment": "Where the control sits across its layout region's inline axis (CSS justify-self).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "align_self",
+      "capability": "AlignSelf",
+      "value": "SelfAlignment",
+      "initial": "SelfAlignment::automatic",
+      "comment": "Where the control sits across its layout region's block axis (CSS align-self).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
       "name": "auto_size_mode",
       "capability": "AutoSizeMode",
       "value": "AutoSizeMode",

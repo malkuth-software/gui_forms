@@ -585,6 +585,50 @@ void test_property_type() {
     static_assert(!total_read<decltype((*panel).tab_index), std::int32_t>, "narrowing has no tag read");
 }
 
+// justify_self and align_self (owner-approved, study 10.9 Q4 (a)): ordinary
+// Control properties over SelfAlignment, automatic by default, written by
+// cell or by name; an out-of-range value is refused and changes nothing; a
+// write dirties the attached control's measure, which reaches its parent.
+void test_self_alignment() {
+    std::shared_ptr<Panel> root = make_control<Panel>(StableId("self.root"));
+    std::shared_ptr<Panel> child = make_control<Panel>(StableId("self.child"));
+    (*root).add_child(child);
+    Window window(root, Size{120.0, 80.0});
+    window.perform_layout();
+    static_cast<void>(window.take_damage());
+    expect((*child).justify_self.read() == SelfAlignment::automatic &&
+               (*child).align_self.read() == SelfAlignment::automatic,
+           "both self alignments start automatic");
+    expect(!(*child).should_serialize_property("justify_self"), "the default does not serialize");
+
+    (*child).justify_self = SelfAlignment::center;
+    expect(window.control_table().pending((*child).surface_slot(), detail::DirtyKind::layout),
+           "a self alignment write dirties the control's layout");
+    const std::optional<BindingValue> read = (*child).property_value("justify_self");
+    expect(read && std::get<PropertyEnumValue>(*read).name == "center" &&
+               (*child).should_serialize_property("justify_self"),
+           "the write reads back by name as its choice and serializes");
+
+    const std::optional<PropertyDescriptor> descriptor = (*child).property_descriptor("align_self");
+    expect(descriptor && (*descriptor).category == "Layout" && (*descriptor).enumeration &&
+               (*(*descriptor).enumeration).type_name == "self_alignment",
+           "align_self is a Layout enumeration over self_alignment");
+    (*child).set_property_value("align_self", BindingValue{PropertyEnumValue{"self_alignment", "stretch", 4}});
+    expect((*child).align_self.read() == SelfAlignment::stretch, "a write by name reaches the cell");
+
+    bool refused = false;
+    try {
+        (*child).align_self = static_cast<SelfAlignment>(9U);
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    expect(refused && (*child).align_self.read() == SelfAlignment::stretch,
+           "an out-of-range self alignment is refused and changes nothing");
+    expect((*child).reset_property("justify_self") &&
+               (*child).justify_self.read() == SelfAlignment::automatic,
+           "reset writes automatic");
+}
+
 int main() {
     test_cell_write_and_read();
     test_table_through_the_property_api();
@@ -597,6 +641,7 @@ int main() {
     test_setters_store();
     test_hidden_is_not_painted_or_hit();
     test_property_type();
+    test_self_alignment();
     std::cout << "property capability tests passed\n";
     return EXIT_SUCCESS;
 }

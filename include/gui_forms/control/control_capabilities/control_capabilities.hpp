@@ -224,6 +224,32 @@ struct AnchorCapability {
     }
 };
 
+// Where the control sits across its layout region's inline axis (CSS justify-self).
+template <typename Declaring>
+struct JustifySelfCapability {
+    PropertyCell<SelfAlignment, JustifySelfCapability<Declaring>> justify_self{SelfAlignment::automatic};
+
+    static void assign(JustifySelfCapability& capability, SelfAlignment incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.justify_self), incoming);
+        if (!capability.justify_self.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.justify_self));
+    }
+};
+
+// Where the control sits across its layout region's block axis (CSS align-self).
+template <typename Declaring>
+struct AlignSelfCapability {
+    PropertyCell<SelfAlignment, AlignSelfCapability<Declaring>> align_self{SelfAlignment::automatic};
+
+    static void assign(AlignSelfCapability& capability, SelfAlignment incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.align_self), incoming);
+        if (!capability.align_self.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.align_self));
+    }
+};
+
 // Whether auto size may shrink the control (AutoSizeMode).
 template <typename Declaring>
 struct AutoSizeModeCapability {
@@ -345,6 +371,8 @@ struct ControlCapabilities : public NameCapability<Declaring>,
                              public PaddingCapability<Declaring>,
                              public DockCapability<Declaring>,
                              public AnchorCapability<Declaring>,
+                             public JustifySelfCapability<Declaring>,
+                             public AlignSelfCapability<Declaring>,
                              public AutoSizeModeCapability<Declaring>,
                              public LayoutDirectionCapability<Declaring>,
                              public TabIndexCapability<Declaring>,

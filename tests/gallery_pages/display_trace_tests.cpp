@@ -536,6 +536,11 @@ struct PageDigest final {
 // live control count and the specimen's RuntimeId follow); those four were
 // recorded again. M2's property capabilities moved no page.
 //
+// Control's justify_self and align_self (owner-approved) add two rows to
+// values-and-spinners' property grid (the rows below move), and
+// states-and-diagnostics' live control count follows; those two were
+// recorded again.
+//
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest
 // changes whenever a page made before it makes a control more or less.
@@ -548,10 +553,10 @@ constexpr std::array<PageDigest, 31> expected_digests{{
     {"ranges-and-progress", 0x67584febf5f4bfa9ULL},
     {"containers-and-focus", 0x19c2e8105fdc50c2ULL},
     {"animation-laboratory", 0x8b9bf5c0465fab82ULL},
-    {"states-and-diagnostics", 0xf6809839bc35ece4ULL},
+    {"states-and-diagnostics", 0xfeac8e386e2c0970ULL},
     {"text-and-input", 0x750c2338fcc2ddb7ULL},
     {"collections-and-overlays", 0x5110f0cc784f0d78ULL},
-    {"values-and-spinners", 0xde303c02e6b51f7dULL},
+    {"values-and-spinners", 0x097e47bc26908f3bULL},
     {"images-and-drawing", 0xe81d199e463d268aULL},
     {"tabs-and-pages", 0xc8cd48aa9b829b7aULL},
     {"checked-collections", 0x8f8fcb8a8a314d53ULL},
