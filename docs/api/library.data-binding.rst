@@ -38,12 +38,16 @@ Types
      - CurrencyManager is the non-owning facade over exactly one BindingSource, keeping navigation, edit, and bulk transfer vocabulary uniform.
    * - :cpp:class:`NumberFormat <gui_forms::NumberFormat>`
      -  
+   * - :cpp:class:`PropertyCell <gui_forms::PropertyCell>`
+     - A property's only storage, as the single member of its capability (property-capabilities study, section 2; owner decisions: a read is ``.type()``, a write is a touch, no implicit conversion).
    * - :cpp:class:`PropertyCollectionData <gui_forms::PropertyCollectionData>`
      - PropertyCollectionData is shared immutable item type/kind plus a bounded homogeneous value sequence.
    * - :cpp:class:`PropertyCollectionValue <gui_forms::PropertyCollectionValue>`
      - PropertyCollectionValue is a cheap immutable shared handle over a validated bounded homogeneous property sequence.
    * - :cpp:class:`PropertyDescriptor <gui_forms::PropertyDescriptor>`
      - PropertyDescriptor exposes renderer/language-neutral schema, serialization, mutability, invalidation, enum, standard-value, converter, and editor metadata without executable callbacks.
+   * - :cpp:class:`PropertyEntry <gui_forms::PropertyEntry>`
+     - One property of a control type's constant property table (property- capabilities study, section 4 and decision 5): what the run-time registry, the form loader, binding, the schema export and the C ABI read, once per type instead of a registration per instance.
    * - :cpp:class:`PropertyEnumChoice <gui_forms::PropertyEnumChoice>`
      - PropertyEnumChoice maps one canonical display/name token to a signed enum value.
    * - :cpp:class:`PropertyEnumDescriptor <gui_forms::PropertyEnumDescriptor>`
@@ -56,6 +60,8 @@ Types
      - PropertyObjectMember is one inert inspectable object member with optional schema, nullability, enum, standard-value, converter, and editor metadata.
    * - :cpp:class:`PropertyObjectValue <gui_forms::PropertyObjectValue>`
      - PropertyObjectValue is a cheap immutable shared handle over a validated recursive property object tree.
+   * - :cpp:class:`PropertyOperations <gui_forms::PropertyOperations>`
+     - Which operations a property has, for the descriptor checks.
    * - :cpp:class:`PropertyRegistration <gui_forms::PropertyRegistration>`
      - PropertyRegistration privately couples an inert descriptor to explicit getter, setter, change, reset, serialization, and origin callbacks registered by a retained Control.
 
@@ -515,6 +521,28 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: template <typename Value, typename Capability> PropertyCell final
+
+   ``#include <gui_forms/binding/property_cell/property_cell.hpp>``
+
+   A property's only storage, as the single member of its capability (property-capabilities study, section 2; owner decisions: a read is ``.type()``, a write is a touch, no implicit conversion). template <typename Declaring> struct TextCapability { PropertyCell<std::string, TextCapability<Declaring>> text; static void assign(TextCapability& capability, std::string value); }; class ButtonBase : public Control, public TextCapability<ButtonBase> {}; (*button).text = "OK"; // the write std::string label = (*button).text.type(); // the read The write calls ``Capability::assign``, which compares (an equal value does nothing: decision 3), stores through ``replace``, touches its control and raises the property's change event (decision 2). The cell is the first and only non-static member of a standard-layout capability, so the cell and its capability are pointer-interconvertible: that is the one raw address conversion, in ``capability()``, checked by ``static_assert``. The capability reaches its control with a static_cast to its declaring class. Value: the property's stored type, copyable or movable and comparable with ==. Capability: the class whose only member this cell is. The cell has no conversion operator and no ==, so a forgotten ``.type()`` does not compile, and it cannot be copied: a property is part of its control.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PropertyCell()
+
+   .. cpp:function:: explicit PropertyCell(Value initial)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const Value& type() const noexcept
+
+      The read.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PropertyCollectionData final
 
    ``#include <gui_forms/binding/value/binding_value.hpp>``
@@ -642,6 +670,46 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PropertyEntry final
+
+   ``#include <gui_forms/binding/property_table/property_table.hpp>``
+
+   One property of a control type's constant property table (property- capabilities study, section 4 and decision 5): what the run-time registry, the form loader, binding, the schema export and the C ABI read, once per type instead of a registration per instance. Every operation is a plain function taking the control; a null operation means the descriptor's default rule applies, as for a PropertyRegistration without it.
+
+   .. cpp:member:: std::string_view name
+
+      The registered (snake_case) name; equal to describe().name.
+
+   .. cpp:member:: const PropertyDescriptor& (*describe)()
+
+      The inert descriptor, built once per type and property on first use and kept for the program's life. Its own checks are Control::define_bindable_property's (property_table_descriptor).
+
+   .. cpp:member:: BindingValue (*read)(const Control& control)
+
+      The current value; null when the property is not readable.
+
+   .. cpp:member:: void (*write)(Control& control, const BindingValue& value)
+
+      Writes a value already converted to the descriptor's kind; null when the property is not writable.
+
+   .. cpp:member:: void (*reset)(Control& control)
+
+      Restores the default; null: write the descriptor's default value.
+
+   .. cpp:member:: bool (*should_serialize)(const Control& control)
+
+      Whether the value is serialized; null: compare with the default.
+
+   .. cpp:member:: PropertyValueOrigin (*origin)(const Control& control)
+
+      Where the value comes from; null: defaulted or local by the default.
+
+   .. cpp:member:: SubscriptionToken (*connect_changed)(Control& control, Component& owner, std::function<void()> changed)
+
+      Connects ``changed`` to the property's change event for ``owner``'s lifetime; null when the property raises none.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PropertyEnumChoice final
 
    ``#include <gui_forms/binding/value/binding_value.hpp>``
@@ -755,6 +823,22 @@ Types
    .. cpp:function:: const PropertyObjectData* data() const noexcept
 
       Returns the immutable backing record pointer.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PropertyOperations final
+
+   ``#include <gui_forms/binding/property_table/property_table.hpp>``
+
+   Which operations a property has, for the descriptor checks.
+
+   .. cpp:member:: bool read
+
+   .. cpp:member:: bool write
+
+   .. cpp:member:: bool reset
+
+   .. cpp:member:: bool change_event
 
 .. cpp:namespace:: gui_forms
 
@@ -974,6 +1058,22 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::uint32_t number_format_maximum_precision
 
    The largest precision a format string can state, as in .NET Framework. Value: ``99U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/binding/property_table/property_table.hpp>``
+
+.. cpp:function:: consteval bool property_names_distinct(std::span<const PropertyEntry> entries)
+
+   Whether the names of ``entries`` are distinct. Used in a static_assert next to each type's table, so a duplicate fails where it is declared, naming the table.
+
+.. cpp:function:: template <std::size_t BaseCount, std::size_t OwnCount> constexpr std::array<PropertyEntry, BaseCount + OwnCount> join_property_tables(const std::array<PropertyEntry, BaseCount>& base, const std::array<PropertyEntry, OwnCount>& own)
+
+   A declaring class's table after its base's: the base's entries first, then its own, so a type's slots are stable and gap-free.
+
+.. cpp:function:: PropertyDescriptor property_table_descriptor(PropertyDescriptor descriptor, PropertyOperations operations)
+
+   Builds and checks a table entry's descriptor with the checks of Control::define_bindable_property (a registered name, kind, effects, enumeration, standard values, a default converting to the kind, a reader when readable and a writer when writable) and derives resettable and change_notifications from ``operations``. Throws std::invalid_argument on a failed check. For an entry's describe().
 
 .. cpp:namespace:: gui_forms
 

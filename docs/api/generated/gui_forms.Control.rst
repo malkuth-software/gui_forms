@@ -1557,6 +1557,10 @@ gui_forms::Control
       Measures the control with a proposed size, where a zero dimension means
       unconstrained.
 
+   .. cpp:function:: virtual std::span<const PropertyEntry> property_table() const noexcept
+
+      The type's constant property table (property-capabilities study, decision 5): its capabilities' entries, base class first. The properties below are the instance registry's (define_bindable_property) and the table's together; a registration replaces a table entry of the same name. The default table is empty; a type with capabilities overrides it to return its static table.
+
    .. cpp:function:: virtual Size measure(Size available)
 
       Override to report the size the control wants within the available
