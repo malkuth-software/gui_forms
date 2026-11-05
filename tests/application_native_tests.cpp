@@ -453,14 +453,20 @@ void check_runtime_windows() {
     require(probe.floating_open.accepted() && probe.floating_destroy.accepted(),
             "floating document window not opened and destroyed");
 #if defined(_WIN32)
-    // Win32 opens popup windows (phase (b)); the other hosts fall back to an
-    // overlay until theirs land.
+    // Win32 opens popup windows (phase (b)); X11 falls back to an overlay
+    // until its popup windows land.
     require(probe.passive_surface == NativePopupSurface::native && probe.passive_refusal == NativePopupRefusal::none,
             "a passive popup opens a native window");
     require(probe.native_owner, "the main window is found");
     require(probe.native_checked, "the main window owns exactly one popup window");
     require(probe.native_styles, "the popup window is an undecorated, non-activating tool");
     require(probe.native_placed, "the popup sits at the owner's client origin plus its bounds");
+    require(probe.focus_surface == NativePopupSurface::native, "a focus-taking popup opens a native window");
+#elif defined(__APPLE__)
+    // AppKit opens popup windows as borderless, non-activating panels
+    // (phase (d)); their native record is not readable from this C++ test.
+    require(probe.passive_surface == NativePopupSurface::native && probe.passive_refusal == NativePopupRefusal::none,
+            "a passive popup opens a native window");
     require(probe.focus_surface == NativePopupSurface::native, "a focus-taking popup opens a native window");
 #else
     require(probe.passive_surface == NativePopupSurface::overlay &&

@@ -3866,6 +3866,32 @@ void finish_run(MacRunEnd& end) {
 }
 @end
 
+// A native popup window (HostWindowKind::popup, macos_application_run.inc):
+// a borderless, non-activating panel. A borderless window cannot become key
+// by default; a focus-taking popup (HostPopupFocus::takes_focus) may, so its
+// own keyboard input reaches it, while a passive popup never does and its
+// owner keeps the keyboard.
+@interface GUIFormsPopupPanel : NSPanel {
+    BOOL _takesFocus;
+}
+- (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus;
+@end
+
+@implementation GUIFormsPopupPanel
+- (instancetype)initWithContentRect:(NSRect)contentRect takesFocus:(BOOL)takesFocus {
+    const NSWindowStyleMask style = NSWindowStyleMaskBorderless | NSWindowStyleMaskNonactivatingPanel;
+    self = [super initWithContentRect:contentRect styleMask:style backing:NSBackingStoreBuffered defer:NO];
+    if (self != nil) _takesFocus = takesFocus;
+    return self;
+}
+- (BOOL)canBecomeKeyWindow {
+    return _takesFocus;
+}
+- (BOOL)canBecomeMainWindow {
+    return NO;
+}
+@end
+
 namespace gui_forms::host {
 
 // The macOS convention for the named keyboard commands (owner decision

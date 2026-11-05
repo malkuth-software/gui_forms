@@ -126,7 +126,17 @@ protected:
     HostServiceStatus show_impl(gui_forms::HostWindowId window) override;
     HostServiceStatus hide_impl(gui_forms::HostWindowId window) override;
 
+public:
+    // Popup windows open during the run (HostWindowKind::popup) as
+    // borderless, non-activating panels (GUIFormsPopupPanel); their alpha
+    // is the transparent backdrop the popup model requests.
+    [[nodiscard]] bool supports_popup_windows() const noexcept override { return true; }
+
 private:
+    // Releases a window whose initialization failed, before it was shown.
+    void abandon_open(gui_forms::HostWindowId id, NSWindow* nativeWindow, NSWindow* ownerWindow,
+                      GUIFormsView* view);
+
     [[nodiscard]] MacRunSlot* slot(gui_forms::HostWindowId window) noexcept;
     [[nodiscard]] MacRunSlot* slot(std::string_view stable_id) noexcept;
     void schedule_reclaim();
@@ -173,8 +183,9 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         owner_id = (*owner).id;
         ownerWindow = (*owner).window;
     }
+    const std::optional<gui_forms::HostPopupPlacement> popup = entry.popup;
     const gui_forms::HostWindowKind kind =
-        gui_forms::host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, false);
+        gui_forms::host_window_kind(owner_id.valid(), entry.tool_window, entry.floating, popup.has_value());
     const bool floating = gui_forms::host_window_kind_traits(kind).floating;
     gui_forms::HostWindowDescription description;
     description.stable_id = entry.stable_id;
@@ -202,12 +213,27 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         else style |= NSWindowStyleMaskUtilityWindow;
     }
     if (transparentFullSizeContent) style |= NSWindowStyleMaskFullSizeContentView;
-    NSWindow* nativeWindow = panel
-        ? static_cast<NSWindow*>([[NSPanel alloc] initWithContentRect:frame styleMask:style
-                                                              backing:NSBackingStoreBuffered
-                                                                defer:NO])
-        : [[NSWindow alloc] initWithContentRect:frame styleMask:style
-                                        backing:NSBackingStoreBuffered defer:NO];
+    NSWindow* nativeWindow = nil;
+    if (popup.has_value()) {
+        // A native popup (owner, 2026-11-04): undecorated, never
+        // activating the application, kept above its owner as a child
+        // window; only a focus-taking popup becomes key. Its shadow is
+        // drawn by the program in its own pixels, not by AppKit.
+        const BOOL takesFocus = (*popup).focus == gui_forms::HostPopupFocus::takes_focus ? YES : NO;
+        GUIFormsPopupPanel* popupPanel = [[GUIFormsPopupPanel alloc] initWithContentRect:frame
+                                                                              takesFocus:takesFocus];
+        [popupPanel setHidesOnDeactivate:NO];
+        [popupPanel setFloatingPanel:NO];
+        [popupPanel setBecomesKeyOnlyIfNeeded:YES];
+        [popupPanel setHasShadow:NO];
+        nativeWindow = popupPanel;
+    } else if (panel) {
+        nativeWindow = [[NSPanel alloc] initWithContentRect:frame styleMask:style
+                                                    backing:NSBackingStoreBuffered defer:NO];
+    } else {
+        nativeWindow = [[NSWindow alloc] initWithContentRect:frame styleMask:style
+                                                     backing:NSBackingStoreBuffered defer:NO];
+    }
     [nativeWindow setReleasedWhenClosed:NO];
     if (floating) {
         if (kind == gui_forms::HostWindowKind::floating_tool) {
@@ -245,8 +271,11 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         [nativeWindow setTitlebarAppearsTransparent:YES];
         [nativeWindow setTitleVisibility:NSWindowTitleHidden];
     }
-    [nativeWindow setContentMinSize:NSMakeSize(entry.options.minimum_size.width,
-                                               entry.options.minimum_size.height)];
+    // A popup's size is the program's bounds, below any window minimum.
+    const NSSize minimumSize = popup.has_value()
+        ? NSMakeSize(0.0, 0.0)
+        : NSMakeSize(entry.options.minimum_size.width, entry.options.minimum_size.height);
+    [nativeWindow setContentMinSize:minimumSize];
     [nativeWindow setContentView:[view hostContentView]];
 
     std::unique_ptr<MacRunSlot> created = std::make_unique<MacRunSlot>();
@@ -265,7 +294,20 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     // for this window's frame.
     slots_.push_back(std::move(created));
 
-    if (ownerWindow == nil) {
+    if (popup.has_value()) {
+        if (ownerWindow != nil) [ownerWindow addChildWindow:nativeWindow ordered:NSWindowAbove];
+        if (!entry.options.initially_visible) [nativeWindow orderOut:nil];
+        // Placed where the program put it, before it is shown.
+        const gui_forms::Rect content{(*popup).origin.x, (*popup).origin.y, initialSize.width,
+                                      initialSize.height};
+        if (!request_frame_impl(id, content).accepted()) {
+            abandon_open(id, nativeWindow, ownerWindow, view);
+            outcome.admission.status.error = HostServiceError::backend_failure;
+            outcome.admission.window = {};
+            outcome.failure_code = 5;
+            return outcome;
+        }
+    } else if (ownerWindow == nil) {
         [nativeWindow center];
     } else {
         [ownerWindow addChildWindow:nativeWindow ordered:NSWindowAbove];
@@ -288,13 +330,7 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     }
 
     if ([view initializeHost] == NO) {
-        [view prepareForShutdown];
-        if (ownerWindow != nil) [ownerWindow removeChildWindow:nativeWindow];
-        [nativeWindow orderOut:nil];
-        [nativeWindow setDelegate:nil];
-        [nativeWindow setContentView:nil];
-        retire(id);
-        slots_.pop_back();
+        abandon_open(id, nativeWindow, ownerWindow, view);
         outcome.admission.status.error = HostServiceError::backend_failure;
         outcome.admission.window = {};
         outcome.failure_code = 5;
@@ -325,13 +361,26 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     report_native_frame(id);
     window_created(id, entry.options.initially_visible);
     if (entry.options.initially_visible && !floating) {
-        if (primary == YES) [nativeWindow makeKeyAndOrderFront:nil];
+        const bool takesKey = primary == YES ||
+            (popup.has_value() && (*popup).focus == gui_forms::HostPopupFocus::takes_focus);
+        if (takesKey) [nativeWindow makeKeyAndOrderFront:nil];
         else [nativeWindow orderFront:nil];
     }
     if (entry.options.close_after_launch_for_testing) {
         post_perform_close(nativeWindow);
     }
     return outcome;
+}
+
+void MacApplicationRun::abandon_open(gui_forms::HostWindowId id, NSWindow* nativeWindow,
+                                     NSWindow* ownerWindow, GUIFormsView* view) {
+    [view prepareForShutdown];
+    if (ownerWindow != nil) [ownerWindow removeChildWindow:nativeWindow];
+    [nativeWindow orderOut:nil];
+    [nativeWindow setDelegate:nil];
+    [nativeWindow setContentView:nil];
+    retire(id);
+    slots_.pop_back();
 }
 
 void MacApplicationRun::report_native_frame(gui_forms::HostWindowId window) {
