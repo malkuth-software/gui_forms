@@ -195,6 +195,12 @@ enum class DiagnosticCode : std::uint16_t {
     // type without a C++ name, a stable ID that is no member name or that
     // spells another's, a reserved handler name. Nothing is generated.
     form_generation_refused = 812,
+    // A presentation property (a font today; colours follow) written in a
+    // form document: a form is ontological, and its objects' look belongs
+    // to the project theme, reached by `classes` (owner, 2026-11-04). A
+    // property marked as content (PropertyDescriptor::content_value) is
+    // not presentation and stays.
+    form_presentation_property = 813,
     // E999 is temporary: a form a later phase gives its meaning, refused
     // until then so that no interim meaning ships (PLAN.md P4: a custom
     // property with several definitions, until P12; P5: `!important`, the

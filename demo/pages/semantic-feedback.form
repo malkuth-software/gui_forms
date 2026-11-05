@@ -15,21 +15,18 @@ scaled-panel gallery.semantic-feedback.document {
 
   label gallery.semantic-feedback.heading {
     text: "SEMANTIC FEEDBACK";
-    font: content 22 700;
-    classes: "heading";
+    classes: "heading" "page-title";
     bounds: 24 18 620 34;
   }
   label gallery.semantic-feedback.lead {
     text: "One-shot application transitions become bounded, traceable host sound cues; ordinary hover, focus and selection never do.";
-    font: content 12 400;
-    classes: "muted";
+    classes: "muted" "body";
     bounds: 26 52 920 24;
   }
 
   scaled-group-box gallery.semantic.transitions {
     text: "SemanticFeedback · application transitions mapped to host cues";
-    font: control 12 700 spacing 0.24;
-    classes: "paper";
+    classes: "paper" "group-caption";
     design-size: 930 150;
     bounds: 24 92 930 150;
     command-bar gallery.semantic.commands {
@@ -38,8 +35,7 @@ scaled-panel gallery.semantic-feedback.document {
     }
     label gallery.semantic.transitions.note {
       text: "Each item borrows an application-owned Command. Arrow keys move along the toolbar's single roving tab stop; Tab leaves it. The cue for each kind is fixed by SemanticFeedback::cue_for.";
-      font: content 10 400;
-      classes: "muted";
+      classes: "muted" "note";
       text-wrapping: word;
       vertical-alignment: near;
       bounds: 22 92 886 44;
@@ -48,8 +44,7 @@ scaled-panel gallery.semantic-feedback.document {
 
   scaled-group-box gallery.semantic.policy {
     text: "Shared Command and sound policy";
-    font: control 12 700 spacing 0.24;
-    classes: "paper";
+    classes: "paper" "group-caption";
     design-size: 930 112;
     bounds: 24 262 930 112;
     button gallery.semantic.complete {
@@ -68,8 +63,7 @@ scaled-panel gallery.semantic-feedback.document {
       bounds: 480 40 160 34;
     }
     label gallery.semantic.accounting {
-      font: content 10 700;
-      classes: "heading";
+      classes: "heading" "note-strong";
       text-wrapping: word;
       vertical-alignment: near;
       bounds: 660 40 248 56;
@@ -78,14 +72,12 @@ scaled-panel gallery.semantic-feedback.document {
 
   scaled-group-box gallery.semantic.records {
     text: "Published records · bounded history";
-    font: control 12 700 spacing 0.24;
-    classes: "paper";
+    classes: "paper" "group-caption";
     design-size: 930 230;
     bounds: 24 392 930 230;
     label gallery.semantic.latest {
       text: "No transition announced yet";
-      font: content 11 600;
-      classes: "positive";
+      classes: "positive" "emphasis";
       text-wrapping: word;
       vertical-alignment: near;
       bounds: 22 40 886 30;

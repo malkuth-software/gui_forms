@@ -26,7 +26,7 @@ panel gallery.root {
     picture-box gallery.command.status-badge { bounds: 188 9 16 16; }
     label gallery.command.status {
       text: "Portable core · Host 0.4 · drop-ready";
-      font: control 12 400;
+      classes: "control-body";
       bounds: 210 5 1064 24;
     }
   }
@@ -38,7 +38,7 @@ panel gallery.root {
       bounds: 16 14 628 172;
       label gallery.intro {
         text: "Professional retained controls with deterministic native behavior.";
-        font: content 12 400;
+        classes: "body";
         bounds: 10 22 608 22;
       }
       text-box gallery.text-input {
@@ -93,8 +93,8 @@ panel gallery.root {
       }
       gallery-lifecycle-card gallery.lifecycle-card {
         bounds: 416 112 202 24;
-        label gallery.lifecycle-title { text: "COMPOSED"; font: control 10 600; }
-        label gallery.lifecycle-status { text: "Awaiting attach"; font: content 10 400; }
+        label gallery.lifecycle-title { text: "COMPOSED"; classes: "card-title"; }
+        label gallery.lifecycle-status { text: "Awaiting attach"; classes: "note"; }
       }
     }
   }
@@ -110,7 +110,7 @@ panel gallery.root {
       on-value-changed: slider_changed;
     }
     progress-bar gallery.progress { minimum: 0; maximum: 100; value: 42; bounds: 10 56 640 20; }
-    label gallery.value-label { text: "42%"; font: content 12 400; bounds: 10 82 640 22; }
+    label gallery.value-label { text: "42%"; classes: "body"; bounds: 10 82 640 22; }
   }
 
   group-box gallery.collection-group {
@@ -133,17 +133,17 @@ panel gallery.root {
     text: "Diagnostics";
     visible: false;
     bounds: 0 0 280 742;
-    label gallery.diagnostics.about { text: "GUI.Forms Gallery"; font: content 10 400; bounds: 10 22 260 52; }
-    label gallery.diagnostics.renderer { text: "renderer"; font: content 12 400; bounds: 10 80 260 20; }
-    label gallery.diagnostics.controls { text: "controls"; font: content 12 400; bounds: 10 106 260 20; }
-    label gallery.diagnostics.layout { text: "measure / arrange"; font: content 12 400; bounds: 10 132 260 20; }
-    label gallery.diagnostics.paint { text: "paint / damage"; font: content 12 400; bounds: 10 158 260 20; }
-    label gallery.diagnostics.input { text: "input / focus / activation"; font: content 12 400; bounds: 10 184 260 20; }
-    label gallery.diagnostics.flush { text: "wake / ticks / active"; font: content 12 400; bounds: 10 210 260 20; }
-    label gallery.diagnostics.present { text: "present / worst"; font: content 12 400; bounds: 10 236 260 20; }
+    label gallery.diagnostics.about { text: "GUI.Forms Gallery"; classes: "note"; bounds: 10 22 260 52; }
+    label gallery.diagnostics.renderer { text: "renderer"; classes: "body"; bounds: 10 80 260 20; }
+    label gallery.diagnostics.controls { text: "controls"; classes: "body"; bounds: 10 106 260 20; }
+    label gallery.diagnostics.layout { text: "measure / arrange"; classes: "body"; bounds: 10 132 260 20; }
+    label gallery.diagnostics.paint { text: "paint / damage"; classes: "body"; bounds: 10 158 260 20; }
+    label gallery.diagnostics.input { text: "input / focus / activation"; classes: "body"; bounds: 10 184 260 20; }
+    label gallery.diagnostics.flush { text: "wake / ticks / active"; classes: "body"; bounds: 10 210 260 20; }
+    label gallery.diagnostics.present { text: "present / worst"; classes: "body"; bounds: 10 236 260 20; }
     label gallery.diagnostics.font {
       text: "Controls: Portsmouth Rapids 1.0; Fields: Carlito body specimen.";
-      font: content 10 400;
+      classes: "note";
       bounds: 10 262 260 52;
     }
   }

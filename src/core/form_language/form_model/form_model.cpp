@@ -331,6 +331,16 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
         report(DiagnosticCode::form_property_read_only, name_token, stable_id, written, {});
         return;
     }
+    // A form is ontological: a font belongs to the project theme, reached
+    // through `classes` (owner, 2026-11-04). A content value (the font a
+    // TypographySpecimen shows) is not presentation.
+    const bool presentation = descriptor.kind == BindingValueKind::font && !descriptor.content_value;
+    if (presentation) {
+        report(DiagnosticCode::form_presentation_property, name_token, stable_id, written,
+               "set it in the project theme (font-family, font-size, font-weight, font-style, "
+               "letter-spacing) on a class the object names in `classes`");
+        return;
+    }
     if (!written_names.properties.insert(*registered).second) {
         report(DiagnosticCode::form_member_repeated, name_token, stable_id, written, {});
         return;

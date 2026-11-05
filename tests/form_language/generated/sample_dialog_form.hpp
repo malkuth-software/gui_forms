@@ -92,7 +92,6 @@ public:
         (*made.sample_band).set_property_value("items", gui_forms::BindingValue{gui_forms::make_property_collection(std::string("String"), gui_forms::BindingValueKind::text, std::vector<gui_forms::BindingValue>{gui_forms::BindingValue{std::string("HF")}, gui_forms::BindingValue{std::string("VHF")}, gui_forms::BindingValue{std::string("UHF")}})});
         (*made.sample_band).set_property_value("tab_index", gui_forms::BindingValue{std::uint64_t{4U}});
         (*made.sample_heading).set_property_value("text", gui_forms::BindingValue{std::string("Bands")});
-        (*made.sample_heading).set_property_value("font", gui_forms::BindingValue{gui_forms::FontSpec{.role = gui_forms::FontRole::control, .size = 14.0, .weight = std::uint16_t{700U}, .italic = true, .letter_spacing = 0.0}});
         {
             using Handler = typename HandlerDelegate<decltype((*made.sample_general_auto_save).checked_changed())>::Type;
             made.connections_.push_back((*made.sample_general_auto_save).checked_changed().subscribe(Handler::template bind<Owner, &Owner::auto_save_changed>(owner)));

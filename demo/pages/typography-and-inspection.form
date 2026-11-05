@@ -15,23 +15,20 @@ scaled-panel gallery.typography.document {
 
   label gallery.typography-and-inspection.heading {
     text: "TYPOGRAPHY AND INSPECTION";
-    font: content 22 700;
-    classes: "heading";
+    classes: "heading" "page-title";
     bounds: 24 18 620 34;
   }
   label gallery.typography-and-inspection.lead {
     text: "Committed text runs with their logical line box and resolved baseline, and the public visual-inspection snapshot of any retained control.";
-    font: content 12 400;
-    classes: "muted";
+    classes: "muted" "body";
     bounds: 26 52 920 24;
   }
 
   scaled-group-box gallery.typography.specimens {
     text: "TypographySpecimen · committed runs, line boxes, baselines";
-    font: control 12 700 spacing 0.24;
     design-size: 560 330;
     bounds: 24 92 560 330;
-    classes: "paper";
+    classes: "paper" "group-caption";
     typography-specimen gallery.typography.specimen.0 {
       text: "CONTROL FACE · GALLERY HEADING";
       font: control 12 700 spacing 0.24;
@@ -61,10 +58,9 @@ scaled-panel gallery.typography.document {
 
   scaled-group-box gallery.typography.policy {
     text: "Inspection target and review policy";
-    font: control 12 700 spacing 0.24;
     design-size: 560 180;
     bounds: 24 442 560 180;
-    classes: "paper";
+    classes: "paper" "group-caption";
     choice-group gallery.typography.target {
       accessible-name: "Inspection target";
       bounds: 22 40 516 34;
@@ -84,8 +80,7 @@ scaled-panel gallery.typography.document {
     }
     label gallery.typography.size.label {
       text: "Wrapped specimen size · 10–28";
-      font: content 10 700;
-      classes: "heading";
+      classes: "heading" "note-strong";
       bounds: 290 120 248 18;
     }
     track-bar gallery.typography.size {
@@ -100,10 +95,9 @@ scaled-panel gallery.typography.document {
 
   scaled-group-box gallery.typography.inspection {
     text: "VisualInspectorView · public inspection snapshot";
-    font: control 12 700 spacing 0.24;
     design-size: 350 530;
     bounds: 604 92 350 530;
-    classes: "paper";
+    classes: "paper" "group-caption";
     visual-inspector-view gallery.typography.inspector {
       target-stable-id: "gallery.typography.specimen.0";
       accessible-name: "Visual inspection of the selected specimen";
@@ -111,8 +105,7 @@ scaled-panel gallery.typography.document {
     }
     label gallery.typography.readout {
       text: "Inspecting gallery.typography.specimen.0";
-      font: content 10 400;
-      classes: "muted";
+      classes: "muted" "note";
       text-wrapping: word;
       vertical-alignment: near;
       bounds: 20 486 310 36;

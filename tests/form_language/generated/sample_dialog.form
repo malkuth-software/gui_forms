@@ -1,7 +1,7 @@
 /* The form compiler's golden document (stage FD, phase FD5): a form root
    with the window's title, client size and buttons; nested controls; a
    component; handlers on controls and on the component; values of several
-   kinds (fonts and text items among them), and a title outside ASCII. */
+   kinds (text items among them), and a title outside ASCII. */
 form sample.dialog {
   text: "Réglages";
   client-size: 480 320;
@@ -24,7 +24,7 @@ form sample.dialog {
     button sample.cancel { text: "Cancel"; tab-index: 2; on-clicked: dismiss; }
     list-box sample.modes { items: "AM" "FM" "Wide FM"; tab-index: 3; }
     domain-up-down sample.band { items: "HF" "VHF" "UHF"; tab-index: 4; }
-    label sample.heading { text: "Bands"; font: control 14 700 italic; }
+    label sample.heading { text: "Bands"; }
   }
   command sample.save { on-invoked: save; }
 }

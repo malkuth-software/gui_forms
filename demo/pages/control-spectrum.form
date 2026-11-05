@@ -15,21 +15,18 @@ scaled-panel gallery.controls.document {
 
   label gallery.controls.heading {
     text: "CONTROL SPECTRUM";
-    font: content 22 700;
-    classes: "heading";
+    classes: "heading" "page-title";
     bounds: 24 18 500 34;
   }
   label gallery.controls.lead {
     text: "Every public stock control, variant, state, and keyboard path lives here.";
-    font: content 12 400;
-    classes: "muted";
+    classes: "muted" "body";
     bounds: 26 52 760 24;
   }
 
   scaled-group-box gallery.controls.buttons {
     text: "Buttons · four public styles";
-    font: control 12 700 spacing 0.24;
-    classes: "paper";
+    classes: "paper" "group-caption";
     design-size: 930 142;
     bounds: 24 92 930 142;
     button gallery.controls.button.0 {
@@ -69,8 +66,7 @@ scaled-panel gallery.controls.document {
 
   scaled-group-box gallery.controls.checks {
     text: "Check boxes · classic, modern, toggle";
-    font: control 12 700 spacing 0.24;
-    classes: "paper";
+    classes: "paper" "group-caption";
     design-size: 450 210;
     bounds: 24 252 450 210;
     check-box gallery.controls.check.0 {
@@ -100,8 +96,7 @@ scaled-panel gallery.controls.document {
 
   scaled-group-box gallery.controls.radios {
     text: "Radio buttons · three indicator systems";
-    font: control 12 700 spacing 0.24;
-    classes: "paper";
+    classes: "paper" "group-caption";
     design-size: 460 210;
     bounds: 494 252 460 210;
     radio-button gallery.controls.radio.0 {
@@ -127,35 +122,30 @@ scaled-panel gallery.controls.document {
 
   scaled-group-box gallery.controls.typography {
     text: "Labels and typography roles";
-    font: control 12 700 spacing 0.24;
-    classes: "paper";
+    classes: "paper" "group-caption";
     design-size: 930 150;
     bounds: 24 480 930 150;
     label gallery.controls.type.title {
       text: "Portsmouth Rapids control title";
-      font: control 19 700;
-      classes: "heading";
+      classes: "heading" "control-title";
       bounds: 24 38 420 30;
     }
     label gallery.controls.type.content {
       text: "Carlito body specimen: editable and field text stays quiet, clear, and host-independent.";
-      font: content 12 400;
-      classes: "ink";
+      classes: "ink" "body";
       text-wrapping: word;
       vertical-alignment: near;
       bounds: 24 76 430 48;
     }
     label gallery.controls.type.center {
       text: "Centered label";
-      font: content 12 600;
-      classes: "accent-text";
+      classes: "accent-text" "body-emphasis";
       alignment: center;
       bounds: 24 118 250 20;
     }
     label gallery.controls.sound.title {
       text: "SEMANTIC SOUND CUES · OPTIONAL HOST";
-      font: content 11 700;
-      classes: "heading";
+      classes: "heading" "strong";
       bounds: 500 34 390 22;
     }
     check-box gallery.controls.sound.enabled {
