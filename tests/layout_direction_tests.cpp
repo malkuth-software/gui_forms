@@ -166,7 +166,7 @@ void test_flow_layout_starts_at_the_right() {
 
 void test_flow_scrolls_toward_the_left() {
     std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("direction.scroll"));
-    (*flow).set_auto_scroll(true);
+    (*flow).auto_scroll = true;
     (*flow).set_wrap_contents(false);
     (*flow).set_item_spacing({4.0, 4.0});
     (*flow).layout_direction = LayoutDirection::right_to_left;

@@ -400,7 +400,7 @@ void FlowLayoutPanelCompat::arrange(Rect final_bounds) {
     for (int pass = 0; pass < 3; ++pass) {
         Size content = layout_children(available, false);
         if (!is_alive()) return;
-        const Size extra = auto_scroll_margin();
+        const Size extra = auto_scroll_margin.read();
         content.width += extra.width;
         content.height += extra.height;
         arrange_scroll_viewport(client, content);

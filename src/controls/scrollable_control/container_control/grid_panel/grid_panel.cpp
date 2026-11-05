@@ -733,7 +733,7 @@ void GridPanel::arrange(Rect final_bounds) {
     // With auto_scroll, the bars a content overflow needs narrow the
     // viewport; lay out against it until the two settle (at most three
     // passes, as FlowLayoutPanelCompat).
-    if (auto_scroll()) {
+    if (auto_scroll.read()) {
         for (int pass = 0; pass < 3; ++pass) {
             SolveRequest request{};
             request.width = GridAvailableExtent{std::max(0.0, available.width - inset.left - inset.right),
@@ -742,7 +742,7 @@ void GridPanel::arrange(Rect final_bounds) {
                                                  GridSizingKind::definite};
             const SolveResult solved = solve(request, arranged_);
             if (!is_alive()) return;
-            const Size extra = auto_scroll_margin();
+            const Size extra = auto_scroll_margin.read();
             const Size content{
                 std::max(arranged_.content_width(), solved.used.width) + inset.left + inset.right + extra.width,
                 std::max(arranged_.content_height(), solved.used.height) + inset.top + inset.bottom + extra.height};

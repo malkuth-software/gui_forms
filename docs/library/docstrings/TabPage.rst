@@ -65,6 +65,6 @@ A page whose content scrolls when the tab control is too small for it:
        gf::make_control<gf::Label>(gf::StableId("prefs.fonts.sample"), "The quick brown fox");
    (*sample).set_requested_bounds({12.0, 12.0, 400.0, 600.0});
    (*fonts).add_child(sample);
-   (*fonts).set_auto_scroll(true);   // scroll the page, not the tab control
+   (*fonts).auto_scroll = true;   // scroll the page, not the tab control
    (*tabs).add_page(fonts);
    (*fonts).set_text("Fonts and colours");   // the tab shows the new caption

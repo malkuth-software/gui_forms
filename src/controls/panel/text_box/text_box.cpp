@@ -1016,7 +1016,7 @@ void TextBox::on_pointer(PointerEvent& event) {
     const Rect absolute = absolute_bounds();
     const double local_x = event.position.x - absolute.x;
     const double local_y = event.position.y - absolute.y;
-    if (multiline_ && auto_scroll() && (!selecting_ || event.action == PointerAction::wheel)) {
+    if (multiline_ && auto_scroll.read() && (!selecting_ || event.action == PointerAction::wheel)) {
         ensure_multiline_layout();
         Panel::on_pointer(event);
         if (event.handled || event.action == PointerAction::wheel) return;

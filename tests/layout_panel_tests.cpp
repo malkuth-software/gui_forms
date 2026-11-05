@@ -770,7 +770,7 @@ void test_compound_anchor_resize_runtime_rebase_and_validation() {
 
 void test_flow_auto_scroll_owns_viewport_and_input() {
     std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("flow.scroll"));
-    (*flow).set_auto_scroll(true);
+    (*flow).auto_scroll = true;
     (*flow).set_wrap_contents(false);
     (*flow).set_item_spacing({4.0, 4.0});
     std::vector<std::shared_ptr<Button>> items;

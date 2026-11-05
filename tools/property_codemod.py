@@ -443,6 +443,30 @@ def with_attached_comment(text, start):
     return start
 
 
+def top_level_commas(text):
+    """The number of commas outside brackets, braces and literals."""
+    depth = 0
+    commas = 0
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if character in "\"'":
+            quote = character
+            index += 1
+            while index < len(text) and text[index] != quote:
+                if text[index] == "\\":
+                    index += 1
+                index += 1
+        elif character in "([{<":
+            depth += 1
+        elif character in ")]}>":
+            depth -= 1
+        elif character == "," and depth == 0:
+            commas += 1
+        index += 1
+    return commas
+
+
 def remove_ranges(text, ranges):
     """Removes the ranges, merging overlapping ones first."""
     merged = []
@@ -547,7 +571,12 @@ def delete_members(text, config, body_open, body_close, report):
                 continue
             pattern = re.compile(r"^[ \t]*(?:virtual\s+)?void\s+%s\(" % re.escape(prop[key]), re.M)
             for match in pattern.finditer(body):
-                start, end = declaration_range(text, body_open + match.end() - 1, body_open, body_close)
+                open_index = body_open + match.end() - 1
+                close = matching(text, open_index, "(", ")")
+                if top_level_commas(text[open_index + 1:close]):
+                    # An overload with several parameters is a method, kept.
+                    continue
+                start, end = declaration_range(text, open_index, body_open, body_close)
                 ranges.append((with_attached_comment(text, start), end))
                 names.append(prop[key])
         if prop.get("field") and prop.get("storage", "cell") == "cell":
@@ -809,12 +838,15 @@ def definition_ranges(text, declaring, function_names):
     for name in function_names:
         pattern = re.compile(r"^[^\n;{}#/]*\b%s::%s\(" % (re.escape(declaring), re.escape(name)), re.M)
         for match in pattern.finditer(text):
-            brace = text.find("{", match.end())
-            semicolon = text.find(";", match.end())
-            if brace < 0 or (0 <= semicolon < brace and text[match.end():semicolon].count("(") <= text[match.end():semicolon].count(")")):
+            open_index = match.end() - 1
+            close_parameters = matching(text, open_index, "(", ")")
+            if top_level_commas(text[open_index + 1:close_parameters]):
+                continue
+            after = re.match(r"\s*(?:const\s*)?(?:noexcept\s*)?(?:override\s*)?\{", text[close_parameters + 1:])
+            if after is None:
                 # A declaration or a call, not a definition.
-                if brace < 0 or semicolon < brace:
-                    continue
+                continue
+            brace = close_parameters + after.end()
             close = matching(text, brace, "{", "}")
             end = line_end(text, close)
             ranges.append((with_attached_comment(text, match.start()), end))
@@ -952,6 +984,15 @@ class Rewriter:
                     return None
                 return text[:offset] + self.fields[name] + ".read()" + text[offset + len(name):]
             return None
+        if "too few arguments to function call" in message and self.setters:
+            # A one-argument call of a deleted setter now resolves to a kept
+            # overload with more parameters (SetAutoScrollMargin(x, y)).
+            pattern = re.compile(r"\b(%s)\(" % "|".join(map(re.escape, self.setters)))
+            candidates = list(pattern.finditer(text, line_start(text, offset), line_end(text, offset)))
+            if not candidates:
+                return None
+            name = candidates[-1].group(1)
+            return self.rewrite_call(text, candidates[-1].start(), name, SetterReplacement(self.setters[name]))
         if "ambiguous" in message and "operator '='" in message:
             line_stop = line_end(text, offset)
             pattern = re.compile(r"\b(%s)\s*=\s*\{\}" % "|".join(map(re.escape, self.members)))
@@ -998,7 +1039,7 @@ class SetterReplacement:
         self.member = member
 
     def __call__(self, arguments):
-        if not arguments:
+        if not arguments or top_level_commas(arguments):
             return None
         return f"{self.member} = {arguments}"
 

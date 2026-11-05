@@ -3199,7 +3199,7 @@ void example() {
         gf::make_control<gf::Label>(gf::StableId("viewer.page"), "A long page");
     (*page).set_requested_bounds({0.0, 0.0, 600.0, 900.0});
     (*viewer).add_child(page);
-    (*viewer).set_auto_scroll(true);
+    (*viewer).auto_scroll = true;
 
     gf::Window window(viewer, {300.0, 200.0});
     window.perform_layout();               // both bars are now visible
@@ -3227,7 +3227,7 @@ void example() {
         gf::make_control<gf::Label>(gf::StableId("viewer.page"), "A long page");
     (*page).set_requested_bounds({0.0, 0.0, 200.0, 900.0});
     (*viewer.view).add_child(page);
-    (*viewer.view).set_auto_scroll(true);
+    (*viewer.view).auto_scroll = true;
     gf::Window window(viewer.view, {300.0, 200.0});
     window.perform_layout();
 
@@ -3459,7 +3459,7 @@ void example() {
         gf::make_control<gf::Label>(gf::StableId("prefs.fonts.sample"), "The quick brown fox");
     (*sample).set_requested_bounds({12.0, 12.0, 400.0, 600.0});
     (*fonts).add_child(sample);
-    (*fonts).set_auto_scroll(true);   // scroll the page, not the tab control
+    (*fonts).auto_scroll = true;   // scroll the page, not the tab control
     (*tabs).add_page(fonts);
     (*fonts).set_text("Fonts and colours");   // the tab shows the new caption
 }

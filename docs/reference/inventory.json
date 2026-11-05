@@ -18461,6 +18461,259 @@
       "enclosing_type": null
     },
     {
+      "id": "gui_forms::AutoScrollCapability",
+      "name": "AutoScrollCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "line": 29,
+      "declaration": "template <typename Declaring> struct AutoScrollCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::AutoScrollCapability::auto_scroll|PropertyCell<bool, AutoScrollCapability<Declaring>>",
+          "name": "auto_scroll",
+          "type": "PropertyCell<bool, AutoScrollCapability<Declaring>>",
+          "namespace": "gui_forms::AutoScrollCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyCell<bool, AutoScrollCapability<Declaring>> auto_scroll{false}",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 30,
+          "page": "gui-forms-autoscrollcapability-auto-scroll-propertycell-bool-autoscrollcapability-declaring-ee062360e7.html"
+        },
+        {
+          "id": "gui_forms::AutoScrollCapability::assign|void (AutoScrollCapability<Declaring> &, bool)",
+          "name": "assign",
+          "type": "void (AutoScrollCapability<Declaring> &, bool)",
+          "namespace": "gui_forms::AutoScrollCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "AutoScrollCapability<Declaring> &",
+              "declaration": "AutoScrollCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "bool",
+              "declaration": "bool incoming"
+            }
+          ],
+          "declaration": "static void assign(AutoScrollCapability& capability, bool incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 32,
+          "page": "gui-forms-autoscrollcapability-assign-void-autoscrollcapability-declaring-bool-5ecef567fc.html"
+        }
+      ],
+      "page": "gui-forms-autoscrollcapability-77ef91fe34.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::AutoScrollMarginCapability",
+      "name": "AutoScrollMarginCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "line": 42,
+      "declaration": "template <typename Declaring> struct AutoScrollMarginCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::AutoScrollMarginCapability::auto_scroll_margin|PropertyCell<Size, AutoScrollMarginCapability<Declaring>>",
+          "name": "auto_scroll_margin",
+          "type": "PropertyCell<Size, AutoScrollMarginCapability<Declaring>>",
+          "namespace": "gui_forms::AutoScrollMarginCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyCell<Size, AutoScrollMarginCapability<Declaring>> auto_scroll_margin{}",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 43,
+          "page": "gui-forms-autoscrollmargincapability-auto-scroll-margin-propertycell-size-autoscrollmargincapability-declaring-d62886de06.html"
+        },
+        {
+          "id": "gui_forms::AutoScrollMarginCapability::assign|void (AutoScrollMarginCapability<Declaring> &, Size)",
+          "name": "assign",
+          "type": "void (AutoScrollMarginCapability<Declaring> &, Size)",
+          "namespace": "gui_forms::AutoScrollMarginCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "AutoScrollMarginCapability<Declaring> &",
+              "declaration": "AutoScrollMarginCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "Size",
+              "declaration": "Size incoming"
+            }
+          ],
+          "declaration": "static void assign(AutoScrollMarginCapability& capability, Size incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 45,
+          "page": "gui-forms-autoscrollmargincapability-assign-void-autoscrollmargincapability-declaring-size-0bfa9ffced.html"
+        }
+      ],
+      "page": "gui-forms-autoscrollmargincapability-522e74060a.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::AutoScrollMinSizeCapability",
+      "name": "AutoScrollMinSizeCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "line": 55,
+      "declaration": "template <typename Declaring> struct AutoScrollMinSizeCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::AutoScrollMinSizeCapability::auto_scroll_min_size|PropertyCell<Size, AutoScrollMinSizeCapability<Declaring>>",
+          "name": "auto_scroll_min_size",
+          "type": "PropertyCell<Size, AutoScrollMinSizeCapability<Declaring>>",
+          "namespace": "gui_forms::AutoScrollMinSizeCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyCell<Size, AutoScrollMinSizeCapability<Declaring>> auto_scroll_min_size{}",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 56,
+          "page": "gui-forms-autoscrollminsizecapability-auto-scroll-min-size-propertycell-size-autoscrollminsizecapability-decla-46d46ee2be.html"
+        },
+        {
+          "id": "gui_forms::AutoScrollMinSizeCapability::assign|void (AutoScrollMinSizeCapability<Declaring> &, Size)",
+          "name": "assign",
+          "type": "void (AutoScrollMinSizeCapability<Declaring> &, Size)",
+          "namespace": "gui_forms::AutoScrollMinSizeCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "AutoScrollMinSizeCapability<Declaring> &",
+              "declaration": "AutoScrollMinSizeCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "Size",
+              "declaration": "Size incoming"
+            }
+          ],
+          "declaration": "static void assign(AutoScrollMinSizeCapability& capability, Size incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 58,
+          "page": "gui-forms-autoscrollminsizecapability-assign-void-autoscrollminsizecapability-declaring-size-d8f22660b9.html"
+        }
+      ],
+      "page": "gui-forms-autoscrollminsizecapability-484219992c.html",
+      "enclosing_type": null
+    },
+    {
+      "id": "gui_forms::AutoScrollPositionCapability",
+      "name": "AutoScrollPositionCapability",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "line": 68,
+      "declaration": "template <typename Declaring> struct AutoScrollPositionCapability",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::AutoScrollPositionCapability::auto_scroll_position|PropertyView<Point, AutoScrollPositionCapability<Declaring>>",
+          "name": "auto_scroll_position",
+          "type": "PropertyView<Point, AutoScrollPositionCapability<Declaring>>",
+          "namespace": "gui_forms::AutoScrollPositionCapability",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "PropertyView<Point, AutoScrollPositionCapability<Declaring>> auto_scroll_position",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 69,
+          "page": "gui-forms-autoscrollpositioncapability-auto-scroll-position-propertyview-point-autoscrollpositioncapability-de-fe828227bc.html"
+        },
+        {
+          "id": "gui_forms::AutoScrollPositionCapability::assign|void (AutoScrollPositionCapability<Declaring> &, Point)",
+          "name": "assign",
+          "type": "void (AutoScrollPositionCapability<Declaring> &, Point)",
+          "namespace": "gui_forms::AutoScrollPositionCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "AutoScrollPositionCapability<Declaring> &",
+              "declaration": "AutoScrollPositionCapability& capability"
+            },
+            {
+              "name": "incoming",
+              "type": "Point",
+              "declaration": "Point incoming"
+            }
+          ],
+          "declaration": "static void assign(AutoScrollPositionCapability& capability, Point incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 71,
+          "page": "gui-forms-autoscrollpositioncapability-assign-void-autoscrollpositioncapability-declaring-point-a729e9fb38.html"
+        },
+        {
+          "id": "gui_forms::AutoScrollPositionCapability::read|Point (const AutoScrollPositionCapability<Declaring> &)",
+          "name": "read",
+          "type": "Point (const AutoScrollPositionCapability<Declaring> &)",
+          "namespace": "gui_forms::AutoScrollPositionCapability",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "capability",
+              "type": "const AutoScrollPositionCapability<Declaring> &",
+              "declaration": "const AutoScrollPositionCapability& capability"
+            }
+          ],
+          "declaration": "static Point read(const AutoScrollPositionCapability& capability)",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+          "line": 76,
+          "page": "gui-forms-autoscrollpositioncapability-read-point-const-autoscrollpositioncapability-declaring-474bf88d87.html"
+        }
+      ],
+      "page": "gui-forms-autoscrollpositioncapability-8d9a266148.html",
+      "enclosing_type": null
+    },
+    {
       "id": "gui_forms::AutoSizeCapability",
       "name": "AutoSizeCapability",
       "namespace": "gui_forms",
@@ -202710,27 +202963,6 @@
           "page": "gui-forms-richtextbox-set-font-void-fontspec-cfb066d5cf.html"
         },
         {
-          "id": "gui_forms::RichTextBox::set_auto_scroll|void (bool)",
-          "name": "set_auto_scroll",
-          "type": "void (bool)",
-          "namespace": "gui_forms::RichTextBox",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [
-            {
-              "name": "enabled",
-              "type": "bool",
-              "declaration": "bool enabled"
-            }
-          ],
-          "declaration": "void set_auto_scroll(bool enabled) override",
-          "comment": "",
-          "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 136,
-          "page": "gui-forms-richtextbox-set-auto-scroll-void-bool-0e8dd020ca.html"
-        },
-        {
           "id": "gui_forms::RichTextBox::arrange|void (Rect)",
           "name": "arrange",
           "type": "void (Rect)",
@@ -202748,7 +202980,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 137,
+          "line": 135,
           "page": "gui-forms-richtextbox-arrange-void-rect-9832f1a55d.html"
         },
         {
@@ -202763,7 +202995,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 138,
+          "line": 136,
           "page": "gui-forms-richtextbox-scroll-offset-point-const-noexcept-8125c01e10.html"
         },
         {
@@ -202778,7 +203010,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 144,
+          "line": 142,
           "page": "gui-forms-richtextbox-visual-line-count-std-size-t-77aeba36c3.html"
         },
         {
@@ -202793,7 +203025,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 146,
+          "line": 144,
           "page": "gui-forms-richtextbox-selection-textselection-const-noexcept-26ae92ccb8.html"
         },
         {
@@ -202819,7 +203051,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 148,
+          "line": 146,
           "page": "gui-forms-richtextbox-select-void-utf8offset-utf8offset-382db02c7e.html"
         },
         {
@@ -202834,7 +203066,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 149,
+          "line": 147,
           "page": "gui-forms-richtextbox-select-all-void-7b28783456.html"
         },
         {
@@ -202849,7 +203081,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 151,
+          "line": 149,
           "page": "gui-forms-richtextbox-selected-text-std-string-const-b952abd8ae.html"
         },
         {
@@ -202864,7 +203096,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 157,
+          "line": 155,
           "page": "gui-forms-richtextbox-selection-format-richtextformat-const-98b9ca6289.html"
         },
         {
@@ -202879,7 +203111,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 161,
+          "line": 159,
           "page": "gui-forms-richtextbox-toggle-bold-bool-727de12c5e.html"
         },
         {
@@ -202894,7 +203126,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 162,
+          "line": 160,
           "page": "gui-forms-richtextbox-toggle-italic-bool-500e2ed148.html"
         },
         {
@@ -202909,7 +203141,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 163,
+          "line": 161,
           "page": "gui-forms-richtextbox-toggle-code-bool-cbc455fe9b.html"
         },
         {
@@ -202930,7 +203162,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 166,
+          "line": 164,
           "page": "gui-forms-richtextbox-set-heading-level-bool-std-size-t-f4a547fcc2.html"
         },
         {
@@ -202945,7 +203177,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 170,
+          "line": 168,
           "page": "gui-forms-richtextbox-toggle-bulleted-list-bool-6d36e161d2.html"
         },
         {
@@ -202960,7 +203192,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 171,
+          "line": 169,
           "page": "gui-forms-richtextbox-toggle-numbered-list-bool-38b8abf1d5.html"
         },
         {
@@ -202975,7 +203207,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 175,
+          "line": 173,
           "page": "gui-forms-richtextbox-insert-link-bool-9b0ad1b7c5.html"
         },
         {
@@ -202990,7 +203222,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 177,
+          "line": 175,
           "page": "gui-forms-richtextbox-can-undo-bool-const-noexcept-58cbb45881.html"
         },
         {
@@ -203005,7 +203237,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 178,
+          "line": 176,
           "page": "gui-forms-richtextbox-can-redo-bool-const-noexcept-873c5d4529.html"
         },
         {
@@ -203020,7 +203252,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 179,
+          "line": 177,
           "page": "gui-forms-richtextbox-undo-bool-16e8b92596.html"
         },
         {
@@ -203035,7 +203267,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 180,
+          "line": 178,
           "page": "gui-forms-richtextbox-redo-bool-ca0cbd7536.html"
         },
         {
@@ -203050,7 +203282,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 181,
+          "line": 179,
           "page": "gui-forms-richtextbox-clear-undo-history-void-12b444b7dc.html"
         },
         {
@@ -203071,7 +203303,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 184,
+          "line": 182,
           "page": "gui-forms-richtextbox-replace-selection-bool-std-string-view-b4ee44de16.html"
         },
         {
@@ -203086,7 +203318,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 185,
+          "line": 183,
           "page": "gui-forms-richtextbox-delete-selection-bool-ebfabd182a.html"
         },
         {
@@ -203101,7 +203333,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 187,
+          "line": 185,
           "page": "gui-forms-richtextbox-copy-bool-03e3dd8181.html"
         },
         {
@@ -203116,7 +203348,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 188,
+          "line": 186,
           "page": "gui-forms-richtextbox-cut-bool-fb522566e2.html"
         },
         {
@@ -203131,7 +203363,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 189,
+          "line": 187,
           "page": "gui-forms-richtextbox-paste-bool-7ab3c0ba40.html"
         },
         {
@@ -203146,7 +203378,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 192,
+          "line": 190,
           "page": "gui-forms-richtextbox-text-changed-event-const-std-string-noexcept-f046ae9b49.html"
         },
         {
@@ -203161,7 +203393,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 194,
+          "line": 192,
           "page": "gui-forms-richtextbox-content-changed-event-noexcept-569ca7a167.html"
         },
         {
@@ -203176,7 +203408,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 195,
+          "line": 193,
           "page": "gui-forms-richtextbox-selection-changed-event-const-textselection-noexcept-c4bd4c0ae2.html"
         },
         {
@@ -203191,7 +203423,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 200,
+          "line": 198,
           "page": "gui-forms-richtextbox-link-clicked-event-const-std-string-noexcept-90eccb25d3.html"
         },
         {
@@ -203217,7 +203449,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 202,
+          "line": 200,
           "page": "gui-forms-richtextbox-on-paint-void-painter-rect-c16239ac71.html"
         },
         {
@@ -203238,7 +203470,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 203,
+          "line": 201,
           "page": "gui-forms-richtextbox-on-pointer-void-pointerevent-64c0663e27.html"
         },
         {
@@ -203259,7 +203491,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 204,
+          "line": 202,
           "page": "gui-forms-richtextbox-on-key-void-keyevent-8f810b76e2.html"
         },
         {
@@ -203280,7 +203512,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 205,
+          "line": 203,
           "page": "gui-forms-richtextbox-on-text-input-void-textinputevent-018c5274b5.html"
         },
         {
@@ -203301,7 +203533,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 206,
+          "line": 204,
           "page": "gui-forms-richtextbox-on-focus-changed-void-bool-58db6f7b4e.html"
         },
         {
@@ -203316,7 +203548,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 207,
+          "line": 205,
           "page": "gui-forms-richtextbox-semantic-descriptor-semanticdescriptor-const-af14b1ca65.html"
         },
         {
@@ -203331,7 +203563,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 209,
+          "line": 207,
           "page": "gui-forms-richtextbox-semantic-virtual-children-std-vector-semanticnode-const-a6b478b6c3.html"
         },
         {
@@ -203362,7 +203594,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 210,
+          "line": 208,
           "page": "gui-forms-richtextbox-on-semantic-child-action-bool-std-string-view-semanticaction-std-string-view-19a444012d.html"
         },
         {
@@ -203383,7 +203615,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 214,
+          "line": 212,
           "page": "gui-forms-richtextbox-on-semantic-text-layout-semantictextresult-semantictextlayout-f7c0582ef2.html"
         },
         {
@@ -203404,7 +203636,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 215,
+          "line": 213,
           "page": "gui-forms-richtextbox-on-set-semantic-text-selection-semantictextresult-semantictextselection-e3c8561785.html"
         },
         {
@@ -203430,7 +203662,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 216,
+          "line": 214,
           "page": "gui-forms-richtextbox-on-semantic-action-bool-semanticaction-std-string-view-3ec74f1c27.html"
         },
         {
@@ -203445,7 +203677,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 217,
+          "line": 215,
           "page": "gui-forms-richtextbox-anatomy-const-controlanatomy-const-noexcept-b2ee0f9818.html"
         },
         {
@@ -203460,7 +203692,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 218,
+          "line": 216,
           "page": "gui-forms-richtextbox-anatomy-states-anatomystateset-const-00072c6ba0.html"
         },
         {
@@ -203475,7 +203707,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 242,
+          "line": 240,
           "page": "gui-forms-richtextbox-parts-parts-const-3862c2419a.html"
         },
         {
@@ -203490,7 +203722,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 243,
+          "line": 241,
           "page": "gui-forms-richtextbox-states-states-const-d168098bad.html"
         },
         {
@@ -203505,7 +203737,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 268,
+          "line": 266,
           "page": "gui-forms-richtextbox-realized-item-count-std-size-t-const-b953ac7533.html"
         },
         {
@@ -203526,7 +203758,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 269,
+          "line": 267,
           "page": "gui-forms-richtextbox-realized-item-stable-id-std-string-std-size-t-const-03fc08cc85.html"
         },
         {
@@ -203547,7 +203779,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 270,
+          "line": 268,
           "page": "gui-forms-richtextbox-realized-item-anatomy-states-anatomystateset-std-size-t-const-9f9e301cde.html"
         },
         {
@@ -203562,7 +203794,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 271,
+          "line": 269,
           "page": "gui-forms-richtextbox-realized-items-std-vector-item-const-cd6ff6a3fc.html"
         },
         {
@@ -203583,7 +203815,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 274,
+          "line": 272,
           "page": "gui-forms-richtextbox-append-interactions-void-std-vector-interactiondeclaration-const-e16f20c463.html"
         },
         {
@@ -203598,8 +203830,29 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 275,
+          "line": 273,
           "page": "gui-forms-richtextbox-on-scroll-position-changed-void-860ed171b9.html"
+        },
+        {
+          "id": "gui_forms::RichTextBox::on_auto_scroll_changed|void (Point)",
+          "name": "on_auto_scroll_changed",
+          "type": "void (Point)",
+          "namespace": "gui_forms::RichTextBox",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "previous_position",
+              "type": "Point",
+              "declaration": "Point previous_position"
+            }
+          ],
+          "declaration": "void on_auto_scroll_changed(Point previous_position) override",
+          "comment": "",
+          "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
+          "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
+          "line": 276,
+          "page": "gui-forms-richtextbox-on-auto-scroll-changed-void-point-53d0606904.html"
         },
         {
           "id": "gui_forms::RichTextBox::on_detached_from_window|void () noexcept",
@@ -203613,7 +203866,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 276,
+          "line": 277,
           "page": "gui-forms-richtextbox-on-detached-from-window-void-noexcept-e0df084e24.html"
         },
         {
@@ -203628,7 +203881,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 277,
+          "line": 278,
           "page": "gui-forms-richtextbox-on-dispose-void-noexcept-ae95367b4e.html"
         },
         {
@@ -203649,7 +203902,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 278,
+          "line": 279,
           "page": "gui-forms-richtextbox-publish-part-geometry-void-std-span-partgeometry-const-ba2dbd22a5.html"
         },
         {
@@ -203675,7 +203928,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 279,
+          "line": 280,
           "page": "gui-forms-richtextbox-publish-realized-item-geometry-void-std-size-t-std-span-partgeometry-const-354e0fef92.html"
         }
       ],
@@ -203689,7 +203942,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
       "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-      "line": 260,
+      "line": 258,
       "declaration": "struct Item final",
       "comment": "",
       "access": "public",
@@ -203707,7 +203960,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 261,
+          "line": 259,
           "page": "gui-forms-richtextbox-item-index-std-size-t-e294ac0424.html"
         },
         {
@@ -203722,7 +203975,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 262,
+          "line": 260,
           "page": "gui-forms-richtextbox-item-stable-id-std-string-4adbbce34c.html"
         },
         {
@@ -203737,7 +203990,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 263,
+          "line": 261,
           "page": "gui-forms-richtextbox-item-button-richtextbarbutton-b06664cdee.html"
         },
         {
@@ -203752,7 +204005,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 264,
+          "line": 262,
           "page": "gui-forms-richtextbox-item-parts-itemparts-b348a5245f.html"
         },
         {
@@ -203767,7 +204020,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 265,
+          "line": 263,
           "page": "gui-forms-richtextbox-item-states-itemstates-01923c89d7.html"
         }
       ],
@@ -203781,7 +204034,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
       "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-      "line": 246,
+      "line": 244,
       "declaration": "struct ItemParts final",
       "comment": "",
       "access": "public",
@@ -203799,7 +204052,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 247,
+          "line": 245,
           "page": "gui-forms-richtextbox-itemparts-button-partgeometry-742b298eb5.html"
         },
         {
@@ -203814,7 +204067,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 248,
+          "line": 246,
           "page": "gui-forms-richtextbox-itemparts-button-label-partgeometry-d85753de19.html"
         },
         {
@@ -203829,7 +204082,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 249,
+          "line": 247,
           "page": "gui-forms-richtextbox-itemparts-button-glyph-partgeometry-c82c47714b.html"
         }
       ],
@@ -203843,7 +204096,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
       "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-      "line": 251,
+      "line": 249,
       "declaration": "struct ItemStates final",
       "comment": "",
       "access": "public",
@@ -203861,7 +204114,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 252,
+          "line": 250,
           "page": "gui-forms-richtextbox-itemstates-hot-bool-75771eae01.html"
         },
         {
@@ -203876,7 +204129,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 253,
+          "line": 251,
           "page": "gui-forms-richtextbox-itemstates-pressed-bool-f2de5cbe37.html"
         },
         {
@@ -203891,7 +204144,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 254,
+          "line": 252,
           "page": "gui-forms-richtextbox-itemstates-checked-bool-006f83ea84.html"
         },
         {
@@ -203906,7 +204159,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 256,
+          "line": 254,
           "page": "gui-forms-richtextbox-itemstates-indeterminate-bool-449e2c36dd.html"
         },
         {
@@ -203921,7 +204174,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 257,
+          "line": 255,
           "page": "gui-forms-richtextbox-itemstates-disabled-bool-e55af9223f.html"
         },
         {
@@ -203936,7 +204189,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 258,
+          "line": 256,
           "page": "gui-forms-richtextbox-itemstates-open-bool-99a7dc6602.html"
         }
       ],
@@ -203950,7 +204203,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
       "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-      "line": 220,
+      "line": 218,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -203968,7 +204221,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 221,
+          "line": 219,
           "page": "gui-forms-richtextbox-parts-scrollable-scrollablecontrol-parts-712232ae2f.html"
         },
         {
@@ -203983,7 +204236,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 222,
+          "line": 220,
           "page": "gui-forms-richtextbox-parts-face-partgeometry-eb91648cd6.html"
         },
         {
@@ -203998,7 +204251,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 223,
+          "line": 221,
           "page": "gui-forms-richtextbox-parts-edge-partgeometry-ed679ec867.html"
         },
         {
@@ -204013,7 +204266,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 224,
+          "line": 222,
           "page": "gui-forms-richtextbox-parts-well-partgeometry-77b28c50c0.html"
         },
         {
@@ -204028,7 +204281,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 225,
+          "line": 223,
           "page": "gui-forms-richtextbox-parts-bar-partgeometry-e25cf93445.html"
         },
         {
@@ -204043,7 +204296,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 226,
+          "line": 224,
           "page": "gui-forms-richtextbox-parts-content-partgeometry-54bb89bb6d.html"
         },
         {
@@ -204058,7 +204311,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 227,
+          "line": 225,
           "page": "gui-forms-richtextbox-parts-caret-partgeometry-6bb2c48e00.html"
         },
         {
@@ -204073,7 +204326,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 228,
+          "line": 226,
           "page": "gui-forms-richtextbox-parts-selection-partgeometry-b58929eedb.html"
         }
       ],
@@ -204087,7 +204340,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
       "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-      "line": 230,
+      "line": 228,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -204105,7 +204358,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 231,
+          "line": 229,
           "page": "gui-forms-richtextbox-states-normal-bool-cb13d68782.html"
         },
         {
@@ -204120,7 +204373,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 232,
+          "line": 230,
           "page": "gui-forms-richtextbox-states-pressed-bool-4180dfc64c.html"
         },
         {
@@ -204135,7 +204388,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 233,
+          "line": 231,
           "page": "gui-forms-richtextbox-states-captured-bool-b16845d9cf.html"
         },
         {
@@ -204150,7 +204403,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 234,
+          "line": 232,
           "page": "gui-forms-richtextbox-states-enabled-bool-b374039289.html"
         },
         {
@@ -204165,7 +204418,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 235,
+          "line": 233,
           "page": "gui-forms-richtextbox-states-disabled-bool-b79478238f.html"
         },
         {
@@ -204180,7 +204433,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 236,
+          "line": 234,
           "page": "gui-forms-richtextbox-states-focused-bool-403e4acd1c.html"
         },
         {
@@ -204195,7 +204448,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 237,
+          "line": 235,
           "page": "gui-forms-richtextbox-states-focus-visible-bool-3923d3428b.html"
         },
         {
@@ -204210,7 +204463,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 238,
+          "line": 236,
           "page": "gui-forms-richtextbox-states-read-only-bool-3e034a868f.html"
         },
         {
@@ -204225,7 +204478,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 239,
+          "line": 237,
           "page": "gui-forms-richtextbox-states-invalid-bool-a9161df50b.html"
         },
         {
@@ -204240,7 +204493,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
           "source": "include/gui_forms/controls/panel/rich_text_box/rich_text_box.hpp",
-          "line": 240,
+          "line": 238,
           "page": "gui-forms-richtextbox-states-pending-bool-e16dd9ab3b.html"
         }
       ],
@@ -208863,12 +209116,13 @@
       "kind": "class",
       "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
       "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-      "line": 13,
-      "declaration": "class ScrollableControl : public Control",
+      "line": 14,
+      "declaration": "class ScrollableControl : public Control, public ScrollableControlCapabilities<ScrollableControl>",
       "comment": "",
       "access": "public",
       "bases": [
-        "Control"
+        "Control",
+        "gui_forms::ScrollableControlCapabilities<gui_forms::ScrollableControl>"
       ],
       "members": [
         {
@@ -208883,7 +209137,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 15,
+          "line": 16,
           "page": "gui-forms-scrollablecontrol-scroll-state-auto-scrolling-const-std-uint32-t-46b631fd21.html"
         },
         {
@@ -208898,7 +209152,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 16,
+          "line": 17,
           "page": "gui-forms-scrollablecontrol-scroll-state-hscroll-visible-const-std-uint32-t-4c60930767.html"
         },
         {
@@ -208913,7 +209167,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 17,
+          "line": 18,
           "page": "gui-forms-scrollablecontrol-scroll-state-vscroll-visible-const-std-uint32-t-e94674bf3f.html"
         },
         {
@@ -208928,7 +209182,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 18,
+          "line": 19,
           "page": "gui-forms-scrollablecontrol-scroll-state-user-has-scrolled-const-std-uint32-t-fd58b4e200.html"
         },
         {
@@ -208943,7 +209197,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 19,
+          "line": 20,
           "page": "gui-forms-scrollablecontrol-scroll-state-full-drag-const-std-uint32-t-018d14cac0.html"
         },
         {
@@ -208964,23 +209218,8 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 21,
+          "line": 22,
           "page": "gui-forms-scrollablecontrol-scrollablecontrol-void-stableid-5070ed0a45.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::auto_scroll|bool () const noexcept",
-          "name": "auto_scroll",
-          "type": "bool () const noexcept",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] bool auto_scroll() const noexcept",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 23,
-          "page": "gui-forms-scrollablecontrol-auto-scroll-bool-const-noexcept-890f7c037d.html"
         },
         {
           "id": "gui_forms::ScrollableControl::layout_resize_response|ResizeAxes () const noexcept",
@@ -208996,63 +209235,6 @@
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "line": 26,
           "page": "gui-forms-scrollablecontrol-layout-resize-response-resizeaxes-const-noexcept-8a38ab3eb4.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::set_auto_scroll|void (bool)",
-          "name": "set_auto_scroll",
-          "type": "void (bool)",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [
-            {
-              "name": "enabled",
-              "type": "bool",
-              "declaration": "bool enabled"
-            }
-          ],
-          "declaration": "virtual void set_auto_scroll(bool enabled)",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 27,
-          "page": "gui-forms-scrollablecontrol-set-auto-scroll-void-bool-642719a9b8.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::auto_scroll_margin|Size () const noexcept",
-          "name": "auto_scroll_margin",
-          "type": "Size () const noexcept",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] Size auto_scroll_margin() const noexcept",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 28,
-          "page": "gui-forms-scrollablecontrol-auto-scroll-margin-size-const-noexcept-30ae381f57.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::set_auto_scroll_margin|void (Size)",
-          "name": "set_auto_scroll_margin",
-          "type": "void (Size)",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [
-            {
-              "name": "margin",
-              "type": "Size",
-              "declaration": "Size margin"
-            }
-          ],
-          "declaration": "void set_auto_scroll_margin(Size margin)",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 31,
-          "page": "gui-forms-scrollablecontrol-set-auto-scroll-margin-void-size-0f8914d76e.html"
         },
         {
           "id": "gui_forms::ScrollableControl::set_auto_scroll_margin|void (double, double)",
@@ -209077,80 +209259,8 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 32,
+          "line": 27,
           "page": "gui-forms-scrollablecontrol-set-auto-scroll-margin-void-double-double-f956358878.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::auto_scroll_min_size|Size () const noexcept",
-          "name": "auto_scroll_min_size",
-          "type": "Size () const noexcept",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] Size auto_scroll_min_size() const noexcept",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 33,
-          "page": "gui-forms-scrollablecontrol-auto-scroll-min-size-size-const-noexcept-91f72b2beb.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::set_auto_scroll_min_size|void (Size)",
-          "name": "set_auto_scroll_min_size",
-          "type": "void (Size)",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [
-            {
-              "name": "size",
-              "type": "Size",
-              "declaration": "Size size"
-            }
-          ],
-          "declaration": "void set_auto_scroll_min_size(Size size)",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 36,
-          "page": "gui-forms-scrollablecontrol-set-auto-scroll-min-size-void-size-ee3d78c2eb.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::auto_scroll_position|Point () const noexcept",
-          "name": "auto_scroll_position",
-          "type": "Point () const noexcept",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [],
-          "declaration": "[[nodiscard]] Point auto_scroll_position() const noexcept",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 37,
-          "page": "gui-forms-scrollablecontrol-auto-scroll-position-point-const-noexcept-8855d479b0.html"
-        },
-        {
-          "id": "gui_forms::ScrollableControl::set_auto_scroll_position|void (Point)",
-          "name": "set_auto_scroll_position",
-          "type": "void (Point)",
-          "namespace": "gui_forms::ScrollableControl",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [
-            {
-              "name": "position",
-              "type": "Point",
-              "declaration": "Point position"
-            }
-          ],
-          "declaration": "void set_auto_scroll_position(Point position)",
-          "comment": "",
-          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 40,
-          "page": "gui-forms-scrollablecontrol-set-auto-scroll-position-void-point-293788575c.html"
         },
         {
           "id": "gui_forms::ScrollableControl::scroll_position|Point () const noexcept",
@@ -209164,7 +209274,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 41,
+          "line": 28,
           "page": "gui-forms-scrollablecontrol-scroll-position-point-const-noexcept-22a2c8f50e.html"
         },
         {
@@ -209179,7 +209289,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 44,
+          "line": 31,
           "page": "gui-forms-scrollablecontrol-display-rectangle-rect-const-noexcept-8a56e60032.html"
         },
         {
@@ -209194,7 +209304,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 45,
+          "line": 32,
           "page": "gui-forms-scrollablecontrol-viewport-rectangle-rect-const-noexcept-f95c063b98.html"
         },
         {
@@ -209209,7 +209319,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 48,
+          "line": 35,
           "page": "gui-forms-scrollablecontrol-horizontal-scroll-const-scrollproperties-const-noexcept-b698b1f37e.html"
         },
         {
@@ -209224,7 +209334,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 51,
+          "line": 38,
           "page": "gui-forms-scrollablecontrol-horizontal-scroll-scrollproperties-noexcept-94f56c68d8.html"
         },
         {
@@ -209239,7 +209349,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 54,
+          "line": 41,
           "page": "gui-forms-scrollablecontrol-vertical-scroll-const-scrollproperties-const-noexcept-75f188ab86.html"
         },
         {
@@ -209254,7 +209364,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 57,
+          "line": 44,
           "page": "gui-forms-scrollablecontrol-vertical-scroll-scrollproperties-noexcept-32acb8adac.html"
         },
         {
@@ -209269,7 +209379,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 60,
+          "line": 47,
           "page": "gui-forms-scrollablecontrol-hscroll-bool-const-noexcept-34239ec6da.html"
         },
         {
@@ -209284,7 +209394,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 63,
+          "line": 50,
           "page": "gui-forms-scrollablecontrol-vscroll-bool-const-noexcept-98514dd261.html"
         },
         {
@@ -209305,7 +209415,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 66,
+          "line": 53,
           "page": "gui-forms-scrollablecontrol-set-hscroll-void-bool-32c1baa8e7.html"
         },
         {
@@ -209326,7 +209436,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 67,
+          "line": 54,
           "page": "gui-forms-scrollablecontrol-set-vscroll-void-bool-8afa1b6efc.html"
         },
         {
@@ -209347,7 +209457,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 68,
+          "line": 55,
           "page": "gui-forms-scrollablecontrol-get-scroll-state-bool-std-uint32-t-const-noexcept-62ded43659.html"
         },
         {
@@ -209373,7 +209483,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 69,
+          "line": 56,
           "page": "gui-forms-scrollablecontrol-set-scroll-state-void-std-uint32-t-bool-7106e4125f.html"
         },
         {
@@ -209388,7 +209498,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 70,
+          "line": 57,
           "page": "gui-forms-scrollablecontrol-scroll-event-scrollevent-noexcept-9158861dc1.html"
         },
         {
@@ -209403,7 +209513,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 71,
+          "line": 58,
           "page": "gui-forms-scrollablecontrol-last-scroll-event-std-optional-scrollevent-const-noexcept-c553b8a65d.html"
         },
         {
@@ -209418,7 +209528,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 74,
+          "line": 61,
           "page": "gui-forms-scrollablecontrol-scroll-event-revision-std-uint64-t-const-noexcept-5004b47a66.html"
         },
         {
@@ -209433,7 +209543,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 77,
+          "line": 64,
           "page": "gui-forms-scrollablecontrol-scroll-snapshot-scrollsnapshot-const-noexcept-d12fd8841c.html"
         },
         {
@@ -209464,7 +209574,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 79,
+          "line": 66,
           "page": "gui-forms-scrollablecontrol-scroll-to-bool-point-scrolleventtype-bool-fbe835b58e.html"
         },
         {
@@ -209500,7 +209610,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 82,
+          "line": 69,
           "page": "gui-forms-scrollablecontrol-scroll-by-bool-point-scrolleventtype-scrolleventtype-bool-9cc26b0b59.html"
         },
         {
@@ -209521,7 +209631,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 88,
+          "line": 75,
           "page": "gui-forms-scrollablecontrol-scroll-control-into-view-void-const-control-ptr-c014349a41.html"
         },
         {
@@ -209542,7 +209652,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 90,
+          "line": 77,
           "page": "gui-forms-scrollablecontrol-arrange-void-rect-e4e6ae7aed.html"
         },
         {
@@ -209563,7 +209673,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 91,
+          "line": 78,
           "page": "gui-forms-scrollablecontrol-on-pointer-void-pointerevent-8389a73155.html"
         },
         {
@@ -209584,7 +209694,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 92,
+          "line": 79,
           "page": "gui-forms-scrollablecontrol-on-pointer-bubble-void-pointerevent-6a8836908b.html"
         },
         {
@@ -209599,7 +209709,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 93,
+          "line": 80,
           "page": "gui-forms-scrollablecontrol-semantic-virtual-children-std-vector-semanticnode-const-dfcf1bf91e.html"
         },
         {
@@ -209630,7 +209740,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 94,
+          "line": 81,
           "page": "gui-forms-scrollablecontrol-on-semantic-child-action-bool-std-string-view-semanticaction-std-string-view-7ba9688e51.html"
         },
         {
@@ -209645,7 +209755,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 97,
+          "line": 84,
           "page": "gui-forms-scrollablecontrol-anatomy-const-controlanatomy-const-noexcept-5d1235c49c.html"
         },
         {
@@ -209660,7 +209770,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 122,
+          "line": 109,
           "page": "gui-forms-scrollablecontrol-parts-parts-const-47fd3d101f.html"
         },
         {
@@ -209675,7 +209785,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 123,
+          "line": 110,
           "page": "gui-forms-scrollablecontrol-states-states-const-fbddab5402.html"
         },
         {
@@ -209690,7 +209800,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 124,
+          "line": 111,
           "page": "gui-forms-scrollablecontrol-anatomy-states-anatomystateset-const-90845c1f13.html"
         },
         {
@@ -209711,7 +209821,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 127,
+          "line": 114,
           "page": "gui-forms-scrollablecontrol-append-interactions-void-std-vector-interactiondeclaration-const-3482b45e2e.html"
         },
         {
@@ -209726,8 +209836,29 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 130,
+          "line": 117,
           "page": "gui-forms-scrollablecontrol-on-scroll-position-changed-void-4021188aa9.html"
+        },
+        {
+          "id": "gui_forms::ScrollableControl::on_auto_scroll_changed|void (Point)",
+          "name": "on_auto_scroll_changed",
+          "type": "void (Point)",
+          "namespace": "gui_forms::ScrollableControl",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "previous_position",
+              "type": "Point",
+              "declaration": "Point previous_position"
+            }
+          ],
+          "declaration": "virtual void on_auto_scroll_changed(Point previous_position)",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "line": 122,
+          "page": "gui-forms-scrollablecontrol-on-auto-scroll-changed-void-point-e762fa0686.html"
         },
         {
           "id": "gui_forms::ScrollableControl::arrange_scroll_viewport|void (Size, Size)",
@@ -209752,7 +209883,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 133,
+          "line": 125,
           "page": "gui-forms-scrollablecontrol-arrange-scroll-viewport-void-size-size-d52dc96a29.html"
         },
         {
@@ -209773,7 +209904,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 134,
+          "line": 126,
           "page": "gui-forms-scrollablecontrol-adjust-scrollbars-void-bool-ef62178d37.html"
         },
         {
@@ -209794,7 +209925,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 135,
+          "line": 127,
           "page": "gui-forms-scrollablecontrol-scroll-to-control-point-const-control-const-c33445fcaa.html"
         },
         {
@@ -209815,7 +209946,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 136,
+          "line": 128,
           "page": "gui-forms-scrollablecontrol-set-display-rect-location-void-point-b20df3b8f2.html"
         },
         {
@@ -209841,7 +209972,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 137,
+          "line": 129,
           "page": "gui-forms-scrollablecontrol-on-paint-overlay-void-painter-rect-d39a53d8ef.html"
         },
         {
@@ -209856,7 +209987,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 138,
+          "line": 130,
           "page": "gui-forms-scrollablecontrol-child-viewport-rectangle-rect-const-noexcept-b9bf534c3c.html"
         },
         {
@@ -209877,7 +210008,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 141,
+          "line": 133,
           "page": "gui-forms-scrollablecontrol-publish-part-geometry-void-std-span-partgeometry-const-a4868ff1df.html"
         },
         {
@@ -209892,8 +210023,74 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 143,
+          "line": 135,
           "page": "gui-forms-scrollablecontrol-scrollable-parts-parts-const-fa41fb39e7.html"
+        },
+        {
+          "id": "gui_forms::ScrollableControl::scrollable_control_property_count|const std::size_t",
+          "name": "scrollable_control_property_count",
+          "type": "const std::size_t",
+          "namespace": "gui_forms::ScrollableControl",
+          "kind": "VarDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "static constexpr std::size_t scrollable_control_property_count = Control::control_property_count + 4U",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "line": 204,
+          "page": "gui-forms-scrollablecontrol-scrollable-control-property-count-const-std-size-t-f7ca6f218e.html"
+        },
+        {
+          "id": "gui_forms::ScrollableControl::scrollable_control_property_entries|const std::array<PropertyEntry, scrollable_control_property_count> &() noexcept",
+          "name": "scrollable_control_property_entries",
+          "type": "const std::array<PropertyEntry, scrollable_control_property_count> &() noexcept",
+          "namespace": "gui_forms::ScrollableControl",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] static const std::array<PropertyEntry, scrollable_control_property_count>& scrollable_control_property_entries() noexcept",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "line": 205,
+          "page": "gui-forms-scrollablecontrol-scrollable-control-property-entries-const-std-array-propertyentry-scrollable-contr-5350670f87.html"
+        },
+        {
+          "id": "gui_forms::ScrollableControl::property_table|std::span<const PropertyEntry> () const noexcept",
+          "name": "property_table",
+          "type": "std::span<const PropertyEntry> () const noexcept",
+          "namespace": "gui_forms::ScrollableControl",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "line": 206,
+          "page": "gui-forms-scrollablecontrol-property-table-std-span-const-propertyentry-const-noexcept-b61ba46d09.html"
+        },
+        {
+          "id": "gui_forms::ScrollableControl::coerce_auto_scroll|void (bool &)",
+          "name": "coerce_auto_scroll",
+          "type": "void (bool &)",
+          "namespace": "gui_forms::ScrollableControl",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "incoming",
+              "type": "bool &",
+              "declaration": "bool& incoming"
+            }
+          ],
+          "declaration": "virtual void coerce_auto_scroll(bool& incoming)",
+          "comment": "",
+          "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
+          "line": 212,
+          "page": "gui-forms-scrollablecontrol-coerce-auto-scroll-void-bool-6a8870bce1.html"
         }
       ],
       "page": "gui-forms-scrollablecontrol-dd031c05c7.html",
@@ -209906,7 +210103,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
       "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-      "line": 99,
+      "line": 86,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -209924,7 +210121,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 100,
+          "line": 87,
           "page": "gui-forms-scrollablecontrol-parts-region-partgeometry-40f21bec94.html"
         },
         {
@@ -209939,7 +210136,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 101,
+          "line": 88,
           "page": "gui-forms-scrollablecontrol-parts-viewport-partgeometry-45d64434e6.html"
         },
         {
@@ -209954,7 +210151,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 102,
+          "line": 89,
           "page": "gui-forms-scrollablecontrol-parts-horizontal-decrement-arrow-partgeometry-8923705b45.html"
         },
         {
@@ -209969,7 +210166,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 103,
+          "line": 90,
           "page": "gui-forms-scrollablecontrol-parts-horizontal-track-partgeometry-7ebfbce66f.html"
         },
         {
@@ -209984,7 +210181,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 104,
+          "line": 91,
           "page": "gui-forms-scrollablecontrol-parts-horizontal-thumb-partgeometry-29f314b591.html"
         },
         {
@@ -209999,7 +210196,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 105,
+          "line": 92,
           "page": "gui-forms-scrollablecontrol-parts-horizontal-increment-arrow-partgeometry-86425eb6ef.html"
         },
         {
@@ -210014,7 +210211,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 106,
+          "line": 93,
           "page": "gui-forms-scrollablecontrol-parts-vertical-decrement-arrow-partgeometry-b43dacb890.html"
         },
         {
@@ -210029,7 +210226,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 107,
+          "line": 94,
           "page": "gui-forms-scrollablecontrol-parts-vertical-track-partgeometry-790f8d32c7.html"
         },
         {
@@ -210044,7 +210241,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 108,
+          "line": 95,
           "page": "gui-forms-scrollablecontrol-parts-vertical-thumb-partgeometry-78ff64ce4c.html"
         },
         {
@@ -210059,7 +210256,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 109,
+          "line": 96,
           "page": "gui-forms-scrollablecontrol-parts-vertical-increment-arrow-partgeometry-096775ee4e.html"
         },
         {
@@ -210074,7 +210271,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 110,
+          "line": 97,
           "page": "gui-forms-scrollablecontrol-parts-scroll-corner-partgeometry-d05feb52a5.html"
         },
         {
@@ -210089,7 +210286,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 111,
+          "line": 98,
           "page": "gui-forms-scrollablecontrol-parts-focus-partgeometry-a452a4788e.html"
         }
       ],
@@ -210103,7 +210300,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
       "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-      "line": 113,
+      "line": 100,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -210121,7 +210318,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 114,
+          "line": 101,
           "page": "gui-forms-scrollablecontrol-states-normal-bool-721e3c330b.html"
         },
         {
@@ -210136,7 +210333,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 115,
+          "line": 102,
           "page": "gui-forms-scrollablecontrol-states-pressed-bool-e71829c3ed.html"
         },
         {
@@ -210151,7 +210348,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 116,
+          "line": 103,
           "page": "gui-forms-scrollablecontrol-states-captured-bool-037ac085f3.html"
         },
         {
@@ -210166,7 +210363,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 117,
+          "line": 104,
           "page": "gui-forms-scrollablecontrol-states-enabled-bool-0f1c753d1b.html"
         },
         {
@@ -210181,7 +210378,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 118,
+          "line": 105,
           "page": "gui-forms-scrollablecontrol-states-disabled-bool-2bf49136be.html"
         },
         {
@@ -210196,7 +210393,7 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 119,
+          "line": 106,
           "page": "gui-forms-scrollablecontrol-states-focused-bool-e039a5ab54.html"
         },
         {
@@ -210211,12 +210408,33 @@
           "comment": "",
           "header": "gui_forms/controls/scrollable_control/scrollable_control.hpp",
           "source": "include/gui_forms/controls/scrollable_control/scrollable_control.hpp",
-          "line": 120,
+          "line": 107,
           "page": "gui-forms-scrollablecontrol-states-focus-visible-bool-32a1a8a3e6.html"
         }
       ],
       "page": "gui-forms-scrollablecontrol-states-579db1b3d6.html",
       "enclosing_type": "gui_forms::ScrollableControl"
+    },
+    {
+      "id": "gui_forms::ScrollableControlCapabilities",
+      "name": "ScrollableControlCapabilities",
+      "namespace": "gui_forms",
+      "kind": "struct",
+      "header": "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "source": "include/gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp",
+      "line": 85,
+      "declaration": "template <typename Declaring> struct ScrollableControlCapabilities : public AutoScrollCapability<Declaring>, public AutoScrollMarginCapability<Declaring>, public AutoScrollMinSizeCapability<Declaring>, public AutoScrollPositionCapability<Declaring>",
+      "comment": "",
+      "access": "public",
+      "bases": [
+        "AutoScrollCapability<Declaring>",
+        "AutoScrollMarginCapability<Declaring>",
+        "AutoScrollMinSizeCapability<Declaring>",
+        "AutoScrollPositionCapability<Declaring>"
+      ],
+      "members": [],
+      "page": "gui-forms-scrollablecontrolcapabilities-f97d672089.html",
+      "enclosing_type": null
     },
     {
       "id": "gui_forms::SectionItem",
@@ -231185,27 +231403,6 @@
           "page": "gui-forms-textbox-set-multiline-void-bool-f2a5ebac5f.html"
         },
         {
-          "id": "gui_forms::TextBox::set_auto_scroll|void (bool)",
-          "name": "set_auto_scroll",
-          "type": "void (bool)",
-          "namespace": "gui_forms::TextBox",
-          "kind": "CXXMethodDecl",
-          "access": "public",
-          "parameters": [
-            {
-              "name": "enabled",
-              "type": "bool",
-              "declaration": "bool enabled"
-            }
-          ],
-          "declaration": "void set_auto_scroll(bool enabled) override",
-          "comment": "",
-          "header": "gui_forms/controls/panel/text_box/text_box.hpp",
-          "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 121,
-          "page": "gui-forms-textbox-set-auto-scroll-void-bool-28cf6a3186.html"
-        },
-        {
           "id": "gui_forms::TextBox::arrange|void (Rect)",
           "name": "arrange",
           "type": "void (Rect)",
@@ -231223,7 +231420,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 122,
+          "line": 121,
           "page": "gui-forms-textbox-arrange-void-rect-f29e6ba26b.html"
         },
         {
@@ -231238,7 +231435,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 123,
+          "line": 122,
           "page": "gui-forms-textbox-word-wrap-bool-const-noexcept-61ae1ca701.html"
         },
         {
@@ -231259,7 +231456,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 124,
+          "line": 123,
           "page": "gui-forms-textbox-set-word-wrap-void-bool-114076fbc2.html"
         },
         {
@@ -231274,7 +231471,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 125,
+          "line": 124,
           "page": "gui-forms-textbox-newline-sequence-std-string-view-const-noexcept-812ae5776f.html"
         },
         {
@@ -231295,7 +231492,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 126,
+          "line": 125,
           "page": "gui-forms-textbox-set-newline-sequence-void-std-string-1e09f0400b.html"
         },
         {
@@ -231310,7 +231507,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 127,
+          "line": 126,
           "page": "gui-forms-textbox-accepts-tab-bool-const-noexcept-24623d5c10.html"
         },
         {
@@ -231331,7 +231528,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 128,
+          "line": 127,
           "page": "gui-forms-textbox-set-accepts-tab-void-bool-653b9023d6.html"
         },
         {
@@ -231346,7 +231543,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 137,
+          "line": 136,
           "page": "gui-forms-textbox-accepts-enter-bool-const-noexcept-72c8bdb05f.html"
         },
         {
@@ -231367,7 +231564,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 138,
+          "line": 137,
           "page": "gui-forms-textbox-set-accepts-enter-void-bool-a6f8b95b22.html"
         },
         {
@@ -231382,7 +231579,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 146,
+          "line": 145,
           "page": "gui-forms-textbox-accepts-escape-bool-const-noexcept-d969226b29.html"
         },
         {
@@ -231403,7 +231600,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 147,
+          "line": 146,
           "page": "gui-forms-textbox-set-accepts-escape-void-bool-a2869a4b90.html"
         },
         {
@@ -231418,7 +231615,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 150,
+          "line": 149,
           "page": "gui-forms-textbox-maximum-multiline-bytes-const-std-size-t-adf2e99a58.html"
         },
         {
@@ -231433,7 +231630,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 151,
+          "line": 150,
           "page": "gui-forms-textbox-maximum-multiline-line-bytes-const-std-size-t-455d2aa2ff.html"
         },
         {
@@ -231454,7 +231651,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 155,
+          "line": 154,
           "page": "gui-forms-textbox-validate-multiline-text-multilinevalidation-std-string-view-65a26a6688.html"
         },
         {
@@ -231469,7 +231666,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 156,
+          "line": 155,
           "page": "gui-forms-textbox-visual-line-count-std-size-t-9777480816.html"
         },
         {
@@ -231484,7 +231681,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 157,
+          "line": 156,
           "page": "gui-forms-textbox-scroll-offset-point-const-noexcept-b05e691860.html"
         },
         {
@@ -231499,7 +231696,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 162,
+          "line": 161,
           "page": "gui-forms-textbox-maximum-length-std-size-t-const-noexcept-bd2e67bd6c.html"
         },
         {
@@ -231520,7 +231717,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 166,
+          "line": 165,
           "page": "gui-forms-textbox-set-maximum-length-void-std-size-t-523912d510.html"
         },
         {
@@ -231535,7 +231732,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 167,
+          "line": 166,
           "page": "gui-forms-textbox-password-character-char32-t-const-noexcept-5a0a7cddaf.html"
         },
         {
@@ -231556,7 +231753,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 170,
+          "line": 169,
           "page": "gui-forms-textbox-set-password-character-void-char32-t-a788786515.html"
         },
         {
@@ -231571,7 +231768,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 171,
+          "line": 170,
           "page": "gui-forms-textbox-use-system-password-character-bool-const-noexcept-225d31d05f.html"
         },
         {
@@ -231592,7 +231789,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 174,
+          "line": 173,
           "page": "gui-forms-textbox-set-use-system-password-character-void-bool-9a2c4622a7.html"
         },
         {
@@ -231607,7 +231804,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 175,
+          "line": 174,
           "page": "gui-forms-textbox-password-protected-bool-const-noexcept-677d81b6f7.html"
         },
         {
@@ -231622,7 +231819,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 179,
+          "line": 178,
           "page": "gui-forms-textbox-font-fontspec-const-noexcept-444f751e8b.html"
         },
         {
@@ -231643,7 +231840,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 180,
+          "line": 179,
           "page": "gui-forms-textbox-set-font-void-fontspec-b249db66a9.html"
         },
         {
@@ -231658,7 +231855,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 181,
+          "line": 180,
           "page": "gui-forms-textbox-selection-textselection-const-noexcept-efda06b9c6.html"
         },
         {
@@ -231684,7 +231881,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 182,
+          "line": 181,
           "page": "gui-forms-textbox-select-void-utf8offset-utf8offset-5d2cdbbea9.html"
         },
         {
@@ -231699,7 +231896,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 183,
+          "line": 182,
           "page": "gui-forms-textbox-select-all-void-a7dee6ff3c.html"
         },
         {
@@ -231714,7 +231911,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 184,
+          "line": 183,
           "page": "gui-forms-textbox-selected-text-std-string-const-d61e681817.html"
         },
         {
@@ -231729,7 +231926,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 185,
+          "line": 184,
           "page": "gui-forms-textbox-can-undo-bool-const-noexcept-9afab5529c.html"
         },
         {
@@ -231744,7 +231941,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 186,
+          "line": 185,
           "page": "gui-forms-textbox-can-redo-bool-const-noexcept-6bf5cfa06f.html"
         },
         {
@@ -231759,7 +231956,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 187,
+          "line": 186,
           "page": "gui-forms-textbox-undo-bool-b90be79f2a.html"
         },
         {
@@ -231774,7 +231971,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 188,
+          "line": 187,
           "page": "gui-forms-textbox-redo-bool-e5d1cd7053.html"
         },
         {
@@ -231789,7 +231986,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 191,
+          "line": 190,
           "page": "gui-forms-textbox-clear-undo-history-void-5349d99001.html"
         },
         {
@@ -231810,7 +232007,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 192,
+          "line": 191,
           "page": "gui-forms-textbox-replace-selection-bool-std-string-view-1dd2a94221.html"
         },
         {
@@ -231825,7 +232022,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 193,
+          "line": 192,
           "page": "gui-forms-textbox-delete-selection-bool-09e7db80e4.html"
         },
         {
@@ -231840,7 +232037,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 194,
+          "line": 193,
           "page": "gui-forms-textbox-copy-bool-644d165850.html"
         },
         {
@@ -231855,7 +232052,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 195,
+          "line": 194,
           "page": "gui-forms-textbox-cut-bool-94db1cdf5e.html"
         },
         {
@@ -231870,7 +232067,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 196,
+          "line": 195,
           "page": "gui-forms-textbox-paste-bool-b4b2bcb2c4.html"
         },
         {
@@ -231891,7 +232088,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 208,
+          "line": 207,
           "page": "gui-forms-textbox-set-edit-filter-void-delegate-textedit-noexcept-70d9e09bda.html"
         },
         {
@@ -231906,7 +232103,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 215,
+          "line": 214,
           "page": "gui-forms-textbox-auto-complete-mode-autocompletemode-const-noexcept-3a6c87ea24.html"
         },
         {
@@ -231927,7 +232124,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 218,
+          "line": 217,
           "page": "gui-forms-textbox-set-auto-complete-mode-void-autocompletemode-f3ba5a29c5.html"
         },
         {
@@ -231942,7 +232139,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 219,
+          "line": 218,
           "page": "gui-forms-textbox-auto-complete-source-autocompletesource-const-noexcept-4898bf38a8.html"
         },
         {
@@ -231963,7 +232160,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 224,
+          "line": 223,
           "page": "gui-forms-textbox-set-auto-complete-source-void-autocompletesource-00bbd41b95.html"
         },
         {
@@ -231978,7 +232175,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 228,
+          "line": 227,
           "page": "gui-forms-textbox-auto-complete-custom-source-const-std-shared-ptr-autocompletestringcollection-const-noexcept-42d19be08d.html"
         },
         {
@@ -231999,7 +232196,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 231,
+          "line": 230,
           "page": "gui-forms-textbox-set-auto-complete-custom-source-void-std-shared-ptr-autocompletestringcollection-077420a68b.html"
         },
         {
@@ -232014,7 +232211,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 232,
+          "line": 231,
           "page": "gui-forms-textbox-auto-complete-case-sensitive-bool-const-noexcept-d3cc79bd66.html"
         },
         {
@@ -232035,7 +232232,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 235,
+          "line": 234,
           "page": "gui-forms-textbox-set-auto-complete-case-sensitive-void-bool-8480aed613.html"
         },
         {
@@ -232050,7 +232247,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 239,
+          "line": 238,
           "page": "gui-forms-textbox-auto-complete-source-status-hostservicestatus-d19a9490e6.html"
         },
         {
@@ -232071,7 +232268,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 244,
+          "line": 243,
           "page": "gui-forms-textbox-set-auto-complete-anchor-void-const-control-ptr-28b890da16.html"
         },
         {
@@ -232086,7 +232283,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 248,
+          "line": 247,
           "page": "gui-forms-textbox-auto-complete-open-bool-const-noexcept-30ae361935.html"
         },
         {
@@ -232101,7 +232298,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 249,
+          "line": 248,
           "page": "gui-forms-textbox-auto-complete-suggestions-std-span-const-std-string-const-noexcept-6ae44b8e0f.html"
         },
         {
@@ -232116,7 +232313,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 250,
+          "line": 249,
           "page": "gui-forms-textbox-auto-complete-highlighted-std-optional-std-size-t-const-noexcept-309d6cf4c5.html"
         },
         {
@@ -232131,7 +232328,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 253,
+          "line": 252,
           "page": "gui-forms-textbox-close-auto-complete-void-5aef41a505.html"
         },
         {
@@ -232146,7 +232343,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 255,
+          "line": 254,
           "page": "gui-forms-textbox-text-changed-event-const-std-string-noexcept-4c61c3c5e9.html"
         },
         {
@@ -232161,7 +232358,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 258,
+          "line": 257,
           "page": "gui-forms-textbox-selection-changed-event-const-textselection-noexcept-ab9842ba23.html"
         },
         {
@@ -232176,7 +232373,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 263,
+          "line": 262,
           "page": "gui-forms-textbox-committed-event-const-std-string-noexcept-de89b53c8c.html"
         },
         {
@@ -232191,7 +232388,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 268,
+          "line": 267,
           "page": "gui-forms-textbox-cancelled-event-noexcept-1eef3ab595.html"
         },
         {
@@ -232206,7 +232403,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 271,
+          "line": 270,
           "page": "gui-forms-textbox-auto-complete-open-changed-event-bool-noexcept-a8817c530c.html"
         },
         {
@@ -232221,7 +232418,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 278,
+          "line": 277,
           "page": "gui-forms-textbox-auto-complete-accepted-event-const-std-string-noexcept-bef2c7fe4b.html"
         },
         {
@@ -232247,7 +232444,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 282,
+          "line": 281,
           "page": "gui-forms-textbox-on-paint-void-painter-rect-32b0d47ad3.html"
         },
         {
@@ -232268,7 +232465,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 283,
+          "line": 282,
           "page": "gui-forms-textbox-on-pointer-void-pointerevent-c15a8a8cb4.html"
         },
         {
@@ -232289,7 +232486,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 284,
+          "line": 283,
           "page": "gui-forms-textbox-on-key-void-keyevent-9959e4f13e.html"
         },
         {
@@ -232310,7 +232507,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 285,
+          "line": 284,
           "page": "gui-forms-textbox-on-text-input-void-textinputevent-203f933d07.html"
         },
         {
@@ -232331,7 +232528,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 286,
+          "line": 285,
           "page": "gui-forms-textbox-on-focus-changed-void-bool-6fb5991819.html"
         },
         {
@@ -232346,7 +232543,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 287,
+          "line": 286,
           "page": "gui-forms-textbox-semantic-descriptor-semanticdescriptor-const-fd2312dbee.html"
         },
         {
@@ -232367,7 +232564,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 292,
+          "line": 291,
           "page": "gui-forms-textbox-on-semantic-text-layout-semantictextresult-semantictextlayout-fdb23e0d89.html"
         },
         {
@@ -232388,7 +232585,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 293,
+          "line": 292,
           "page": "gui-forms-textbox-on-set-semantic-text-selection-semantictextresult-semantictextselection-e762127b2f.html"
         },
         {
@@ -232414,7 +232611,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 294,
+          "line": 293,
           "page": "gui-forms-textbox-on-semantic-action-bool-semanticaction-std-string-view-794cf4431d.html"
         },
         {
@@ -232429,7 +232626,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 296,
+          "line": 295,
           "page": "gui-forms-textbox-anatomy-const-controlanatomy-const-noexcept-d9f758e0f3.html"
         },
         {
@@ -232444,7 +232641,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 297,
+          "line": 296,
           "page": "gui-forms-textbox-anatomy-states-anatomystateset-const-0df8bcdfc1.html"
         },
         {
@@ -232459,7 +232656,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 320,
+          "line": 319,
           "page": "gui-forms-textbox-parts-parts-const-5d5ebdeed2.html"
         },
         {
@@ -232474,7 +232671,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 321,
+          "line": 320,
           "page": "gui-forms-textbox-states-states-const-6e5e44623a.html"
         },
         {
@@ -232495,7 +232692,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 324,
+          "line": 323,
           "page": "gui-forms-textbox-append-interactions-void-std-vector-interactiondeclaration-const-1f4ca075da.html"
         },
         {
@@ -232510,8 +232707,29 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 325,
+          "line": 324,
           "page": "gui-forms-textbox-on-scroll-position-changed-void-7ef9ec4645.html"
+        },
+        {
+          "id": "gui_forms::TextBox::on_auto_scroll_changed|void (Point)",
+          "name": "on_auto_scroll_changed",
+          "type": "void (Point)",
+          "namespace": "gui_forms::TextBox",
+          "kind": "CXXMethodDecl",
+          "access": "protected",
+          "parameters": [
+            {
+              "name": "previous_position",
+              "type": "Point",
+              "declaration": "Point previous_position"
+            }
+          ],
+          "declaration": "void on_auto_scroll_changed(Point previous_position) override",
+          "comment": "",
+          "header": "gui_forms/controls/panel/text_box/text_box.hpp",
+          "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
+          "line": 327,
+          "page": "gui-forms-textbox-on-auto-scroll-changed-void-point-0f3d822345.html"
         },
         {
           "id": "gui_forms::TextBox::on_detached_from_window|void () noexcept",
@@ -232525,7 +232743,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 326,
+          "line": 328,
           "page": "gui-forms-textbox-on-detached-from-window-void-noexcept-a687dde907.html"
         },
         {
@@ -232546,7 +232764,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 327,
+          "line": 329,
           "page": "gui-forms-textbox-publish-part-geometry-void-std-span-partgeometry-const-cf10a03de6.html"
         }
       ],
@@ -232560,7 +232778,7 @@
       "kind": "enum",
       "header": "gui_forms/controls/panel/text_box/text_box.hpp",
       "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-      "line": 152,
+      "line": 151,
       "declaration": "enum class MultilineValidation : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -232578,7 +232796,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 153,
+          "line": 152,
           "page": "gui-forms-textbox-multilinevalidation-valid-gui-forms-textbox-multilinevalidation-cd54e32887.html"
         },
         {
@@ -232593,7 +232811,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 153,
+          "line": 152,
           "page": "gui-forms-textbox-multilinevalidation-invalid-utf8-gui-forms-textbox-multilinevalidation-61dbfe4416.html"
         },
         {
@@ -232608,7 +232826,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 153,
+          "line": 152,
           "page": "gui-forms-textbox-multilinevalidation-document-too-large-gui-forms-textbox-multilinevalidation-db0b11eba9.html"
         },
         {
@@ -232623,7 +232841,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 153,
+          "line": 152,
           "page": "gui-forms-textbox-multilinevalidation-line-too-long-gui-forms-textbox-multilinevalidation-1ed3283406.html"
         }
       ],
@@ -232637,7 +232855,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/text_box/text_box.hpp",
       "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-      "line": 299,
+      "line": 298,
       "declaration": "struct Parts final",
       "comment": "",
       "access": "public",
@@ -232655,7 +232873,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 300,
+          "line": 299,
           "page": "gui-forms-textbox-parts-scrollable-scrollablecontrol-parts-6c710a8531.html"
         },
         {
@@ -232670,7 +232888,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 301,
+          "line": 300,
           "page": "gui-forms-textbox-parts-face-partgeometry-7df725a7f1.html"
         },
         {
@@ -232685,7 +232903,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 302,
+          "line": 301,
           "page": "gui-forms-textbox-parts-edge-partgeometry-9fef2d11ae.html"
         },
         {
@@ -232700,7 +232918,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 303,
+          "line": 302,
           "page": "gui-forms-textbox-parts-well-partgeometry-e0f4cb3919.html"
         },
         {
@@ -232715,7 +232933,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 304,
+          "line": 303,
           "page": "gui-forms-textbox-parts-content-partgeometry-0b34f68306.html"
         },
         {
@@ -232730,7 +232948,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 305,
+          "line": 304,
           "page": "gui-forms-textbox-parts-caret-partgeometry-d7e0b099c5.html"
         },
         {
@@ -232745,7 +232963,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 306,
+          "line": 305,
           "page": "gui-forms-textbox-parts-selection-partgeometry-8baa191aa0.html"
         }
       ],
@@ -232759,7 +232977,7 @@
       "kind": "struct",
       "header": "gui_forms/controls/panel/text_box/text_box.hpp",
       "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-      "line": 308,
+      "line": 307,
       "declaration": "struct States final",
       "comment": "",
       "access": "public",
@@ -232777,7 +232995,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 309,
+          "line": 308,
           "page": "gui-forms-textbox-states-normal-bool-3349c401a7.html"
         },
         {
@@ -232792,7 +233010,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 310,
+          "line": 309,
           "page": "gui-forms-textbox-states-pressed-bool-34dfb24a63.html"
         },
         {
@@ -232807,7 +233025,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 311,
+          "line": 310,
           "page": "gui-forms-textbox-states-captured-bool-4d75903201.html"
         },
         {
@@ -232822,7 +233040,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 312,
+          "line": 311,
           "page": "gui-forms-textbox-states-enabled-bool-4206f943ac.html"
         },
         {
@@ -232837,7 +233055,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 313,
+          "line": 312,
           "page": "gui-forms-textbox-states-disabled-bool-676393be9d.html"
         },
         {
@@ -232852,7 +233070,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 314,
+          "line": 313,
           "page": "gui-forms-textbox-states-focused-bool-32f06a8b95.html"
         },
         {
@@ -232867,7 +233085,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 315,
+          "line": 314,
           "page": "gui-forms-textbox-states-focus-visible-bool-b7de0cc393.html"
         },
         {
@@ -232882,7 +233100,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 316,
+          "line": 315,
           "page": "gui-forms-textbox-states-read-only-bool-b511c7d8a6.html"
         },
         {
@@ -232897,7 +233115,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 317,
+          "line": 316,
           "page": "gui-forms-textbox-states-invalid-bool-1ccc9f0ab3.html"
         },
         {
@@ -232912,7 +233130,7 @@
           "comment": "",
           "header": "gui_forms/controls/panel/text_box/text_box.hpp",
           "source": "include/gui_forms/controls/panel/text_box/text_box.hpp",
-          "line": 318,
+          "line": 317,
           "page": "gui-forms-textbox-states-pending-bool-72910bbcf6.html"
         }
       ],

@@ -234,7 +234,7 @@ void BlockPanel::forget_departed_children() {
 }
 
 bool BlockPanel::shares_parent_flow() const noexcept {
-    if (auto_scroll()) return false;
+    if (auto_scroll.read()) return false;
     const Control::Ptr held = parent();
     const BlockPanel* const flow = dynamic_cast<const BlockPanel*>(held.get());
     if (flow == nullptr) return false;
@@ -532,7 +532,7 @@ void BlockPanel::arrange(Rect final_bounds) {
     // With auto_scroll, the bars a content overflow needs narrow the
     // viewport; lay out against it until the two settle (at most three
     // passes, as FlowLayoutPanelCompat).
-    if (auto_scroll()) {
+    if (auto_scroll.read()) {
         for (int pass = 0; pass < 3; ++pass) {
             SolveRequest request{};
             request.width = std::max(0.0, available.width - inset.left - inset.right);
@@ -544,7 +544,7 @@ void BlockPanel::arrange(Rect final_bounds) {
             for (const BlockFlowItemResult& item : arranged_.items()) {
                 content_width = std::max(content_width, item.bounds.x + item.bounds.width);
             }
-            const Size extra = auto_scroll_margin();
+            const Size extra = auto_scroll_margin.read();
             const Size content{content_width + inset.left + inset.right + extra.width,
                                solved.content_height + inset.top + inset.bottom + extra.height};
             arrange_scroll_viewport(client, content);

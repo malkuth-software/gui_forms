@@ -4,6 +4,7 @@
 // raises the change event once (property-capabilities study, section 15.2).
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
+#include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 
 #include <cstdlib>
 #include <iostream>
@@ -109,10 +110,39 @@ void test_button_base_properties() {
     }
 }
 
+void test_scrollable_control_properties() {
+    std::shared_ptr<ScrollableControl> control = make_control<ScrollableControl>(StableId("generated.scrollablecontrol"));
+    {
+        const bool sample = !(*control).auto_scroll.read();
+        (*control).auto_scroll = sample;
+        expect((*control).auto_scroll.read() == sample, "ScrollableControl.auto_scroll: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("auto_scroll");
+        expect(by_name && *by_name == PropertyValueTraits<bool>::to_binding(sample),
+               "ScrollableControl.auto_scroll: the table reads the cell");
+    }
+    {
+        const Size sample = Size{5.0, 7.0};
+        (*control).auto_scroll_margin = sample;
+        expect((*control).auto_scroll_margin.read() == sample, "ScrollableControl.auto_scroll_margin: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("auto_scroll_margin");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ScrollableControl.auto_scroll_margin: the table reads the cell");
+    }
+    {
+        const Size sample = Size{40.0, 30.0};
+        (*control).auto_scroll_min_size = sample;
+        expect((*control).auto_scroll_min_size.read() == sample, "ScrollableControl.auto_scroll_min_size: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("auto_scroll_min_size");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ScrollableControl.auto_scroll_min_size: the table reads the cell");
+    }
+}
+
 } // namespace
 
 int main() {
     test_button_base_properties();
+    test_scrollable_control_properties();
     std::cout << "generated property tests passed\n";
     return EXIT_SUCCESS;
 }

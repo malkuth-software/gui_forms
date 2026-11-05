@@ -162,7 +162,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     constexpr double sidebar_height = 786.0;
     std::shared_ptr<gui_forms::ScrollableControl> sidebar = make_control<ScrollableControl>(
         StableId("gallery.sidebar"));
-    (*sidebar).set_auto_scroll(true);
+    (*sidebar).auto_scroll = true;
     (*root).add_at(sidebar, {0.0, 34.0, 238.0, sidebar_height});
     // First child, so it paints beneath the rows; sized to the content below.
     std::shared_ptr<gui_forms::Panel> sidebar_paper =
@@ -203,7 +203,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     // Narrower than the viewport beside the vertical bar, so no horizontal
     // scrollbar appears; the column's own background shows at the edge.
     (*sidebar_paper).set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
-    (*sidebar).set_auto_scroll_min_size({206.0, navigation_y + 8.0});
+    (*sidebar).auto_scroll_min_size = {206.0, navigation_y + 8.0};
 
     std::shared_ptr<gui_forms::ScaledPanel> content = make_control<Surface>(
         StableId("gallery.content"), Size{1042.0, 742.0});
@@ -231,7 +231,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         // its content.
         std::shared_ptr<gui_forms::ScrollableControl> viewport = make_control<ScrollableControl>(
             StableId(surface_id + ".viewport"));
-        (*viewport).set_auto_scroll(true);
+        (*viewport).auto_scroll = true;
         (*viewport).visible = index == 0U;
         (*content).add_at(viewport, {20.0, 0.0, 1022.0, 742.0});
         std::shared_ptr<gui_forms::ScaledPanel> page = make_control<Surface>(
@@ -274,7 +274,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         (*page).set_design_bounds(*body, {0.0, strip_height, 1000.0, body_height});
         (*page).set_design_size({1000.0, page_height});
         (*page).set_bounds({0.0, 0.0, 1000.0, page_height});
-        (*viewport).set_auto_scroll_min_size({1000.0, page_height});
+        (*viewport).auto_scroll_min_size = {1000.0, page_height};
         (*context).pages.push_back(viewport);
     }
 

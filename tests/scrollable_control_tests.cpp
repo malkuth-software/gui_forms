@@ -38,7 +38,7 @@ void test_control_family_and_manual_axis_contract() {
     static_assert(std::is_base_of_v<ScrollableControl, ContainerControl>);
 
     std::shared_ptr<gui_forms::Panel> panel = make_control<Panel>(StableId("scroll.manual"));
-    require(!(*panel).auto_scroll() && !(*panel).hscroll() && !(*panel).vscroll(),
+    require(!(*panel).auto_scroll.read() && !(*panel).hscroll() && !(*panel).vscroll(),
             "scrollable controls must default to an idle unscrolled viewport");
     require((*panel).horizontal_scroll().enabled() &&
                 (*panel).horizontal_scroll().minimum() == 0.0 &&
@@ -85,8 +85,8 @@ void test_auto_scroll_projection_viewport_and_resize() {
     std::shared_ptr<gui_forms::Button> child = make_control<Button>(StableId("scroll.auto.child"), "Content");
     (*child).set_requested_bounds({20.0, 10.0, 220.0, 160.0});
     (*panel).add_child(child);
-    (*panel).set_auto_scroll_margin({5.0, 7.0});
-    (*panel).set_auto_scroll(true);
+    (*panel).auto_scroll_margin = {5.0, 7.0};
+    (*panel).auto_scroll = true;
     Window window(panel, {100.0, 80.0});
     window.perform_layout();
 
@@ -100,7 +100,7 @@ void test_auto_scroll_projection_viewport_and_resize() {
     require((*panel).scroll_to({50.0, 40.0}),
             "programmatic scroll must move a visible automatic viewport");
     window.perform_layout();
-    require((*panel).auto_scroll_position() == Point{-50.0, -40.0} &&
+    require((*panel).auto_scroll_position.read() == Point{-50.0, -40.0} &&
                 (*child).requested_bounds() == authored &&
                 (*child).committed_arranged_bounds() ==
                     Rect{-30.0, -30.0, 220.0, 160.0} &&
@@ -135,7 +135,7 @@ void test_scroll_gestures_events_semantics_and_state() {
     std::shared_ptr<gui_forms::Control> content = make_control<Control>(StableId("scroll.input.content"));
     (*content).set_requested_bounds({0.0, 0.0, 40.0, 300.0});
     (*panel).add_child(content);
-    (*panel).set_auto_scroll(true);
+    (*panel).auto_scroll = true;
     Window window(panel, {100.0, 100.0});
     window.perform_layout();
 
@@ -186,10 +186,10 @@ void test_control_into_view_offset_and_minimum_extent() {
     (*target).set_requested_bounds({180.0, 120.0, 20.0, 20.0});
     (*target).set_auto_scroll_offset({3.0, 5.0});
     (*panel).add_child(target);
-    (*panel).set_auto_scroll_min_size({220.0, 180.0});
+    (*panel).auto_scroll_min_size = {220.0, 180.0};
     Window window(panel, {100.0, 80.0});
     window.perform_layout();
-    require((*panel).auto_scroll() && (*panel).hscroll() && (*panel).vscroll(),
+    require((*panel).auto_scroll.read() && (*panel).hscroll() && (*panel).vscroll(),
             "AutoScrollMinSize must enable automatic scrolling and contribute extent");
 
     (*panel).scroll_control_into_view(target);
@@ -200,12 +200,12 @@ void test_control_into_view_offset_and_minimum_extent() {
 
     bool invalid_margin{};
     try {
-        (*panel).set_auto_scroll_margin(Size{-1.0, 0.0});
+        (*panel).auto_scroll_margin = Size{-1.0, 0.0};
     } catch (const std::invalid_argument&) {
         invalid_margin = true;
     }
     (*panel).set_auto_scroll_margin(-5.0, 9.0);
-    require(invalid_margin && (*panel).auto_scroll_margin() == Size{0.0, 9.0},
+    require(invalid_margin && (*panel).auto_scroll_margin.read() == Size{0.0, 9.0},
             "property assignment must reject negative margins while the Forms helper clamps them");
 }
 

@@ -135,9 +135,6 @@ paste
     Replaces the selection with the clipboard's text, as source.
 visual_line_count
     The number of displayed lines after wrapping.
-set_auto_scroll
-    True (the default) lets the document's extent drive the inherited
-    `Panel` scroll bars.
 
 See Also
 --------

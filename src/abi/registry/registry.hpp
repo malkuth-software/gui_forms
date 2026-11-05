@@ -387,7 +387,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "auto-scroll requires a scrollable control");
         }
-        (*scrollable).set_auto_scroll(enabled != 0U);
+        (*scrollable).auto_scroll = enabled != 0U;
         return GF_OK;
     }
 
@@ -407,7 +407,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "auto-scroll margin requires a scrollable control");
         }
-        (*scrollable).set_auto_scroll_margin({margin.width, margin.height});
+        (*scrollable).auto_scroll_margin = {margin.width, margin.height};
         return GF_OK;
     }
 
@@ -427,7 +427,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "auto-scroll minimum size requires a scrollable control");
         }
-        (*scrollable).set_auto_scroll_min_size({size.width, size.height});
+        (*scrollable).auto_scroll_min_size = {size.width, size.height};
         return GF_OK;
     }
 
@@ -446,7 +446,7 @@ public:
             return fail(GF_ERROR_WRONG_HANDLE_KIND,
                         "auto-scroll position requires a scrollable control");
         }
-        (*scrollable).set_auto_scroll_position({position.x, position.y});
+        (*scrollable).auto_scroll_position = {position.x, position.y};
         return GF_OK;
     }
 
