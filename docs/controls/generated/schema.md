@@ -59,7 +59,7 @@ Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each
 | `material` | 0.2 | `region`, `face`, `actuator`, `well`, `track`, `thumb`, `chip`, `plot` | `hot`, `pressed`, `captured`, `selected`, `checked`, `current`, `open`, `active_tool`, `focus_visible`, `preselect`, `disabled`, `unavailable` | 512 | `recipe`, `shape` |
 | `overlay_shadow` | 0.2 | `shadow` | none | 512 | none |
 | `sheen` | 0.2 | `sheen` | none | 16 | `colour`, `width`, `rest` |
-| `glass` | 0.2 | `region`, `face`, `well`, `plot` | none | 48 | `blur`, `tint`, `corner`, `recipe` |
+| `glass` | 0.2 | `region`, `face`, `well`, `plot` | none | 48 | `blur`, `tint`, `corner`, `recipe`, `layers` |
 
 Bounded expressions: at most 64 operations and a stack of 16, from `constant`, `input`, `state`, `parameter`, `negate`, `add`, `subtract`, `multiply`, `divide`, `minimum`, `maximum`, `less`, `less_equal`, `greater`, `greater_equal`, `equal`, `not_equal`, `clamp`, `mix`, `smoothstep`, `choose`.
 

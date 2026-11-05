@@ -36,8 +36,19 @@ namespace gui_forms::engine_primitives {
 // colour filter (SurfaceMaterial::colour_filter) glass applies to the
 // blurred backplane before the tint: CSS `backdrop-filter` colour
 // functions, composed into one matrix in source order (coordinator,
-// 2026-10-22). Its other layers are not drawn. It reads no states, no
-// inputs and no time.
+// 2026-10-22); `layers` (the glass recipe, T4's phase 7 gap 1), `filter`
+// (the default: the colour filter alone, under the tint) or `material`:
+// with a recipe named, the material's fills (gradients included), inset
+// shadows, over glows, border, single edges and keylines are drawn over
+// the filtered backdrop in place of the tint, and the backdrop takes the
+// material's corner radius (the part's own when it sets one). Glass has no
+// outsets, so what lies past the box (outer shadows, under glows, the drop
+// shadow, the reflection) is not drawn, and the material's filter blur is
+// not applied. With `material`, glass refuses (accepts) a material that is
+// not lent or not valid, holds an image or procedural fill or an image
+// mask, or would bake past the material primitive's bound. Under reduced
+// transparency the flattened backdrop is opaque, so the material over it
+// is too. It reads no states, no inputs and no time.
 class GlassPrimitive final : public EnginePrimitive {
 public:
     [[nodiscard]] const PrimitiveDescriptor& descriptor() const noexcept override;
@@ -46,6 +57,8 @@ public:
                                                                   ControlVisualRole family) const noexcept override;
     [[nodiscard]] std::optional<std::uint32_t> backplane_margin(const PrimitiveParameterBlock& parameters,
                                                                 DeviceScale scale) const noexcept override;
+    [[nodiscard]] bool accepts(const PrimitiveParameterBlock& parameters,
+                               const PrimitiveTarget& target) const noexcept override;
 
 private:
     void derive(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target,

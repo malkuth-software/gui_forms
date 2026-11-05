@@ -237,7 +237,8 @@
           {"name": "blur", "kind": "number", "minimum": 0, "maximum": 8, "default": 6, "animated": false},
           {"name": "tint", "kind": "colour", "default": "#ffffff40", "animated": false},
           {"name": "corner", "kind": "number", "minimum": 0, "maximum": 64, "default": 0, "animated": false},
-          {"name": "recipe", "kind": "choice", "choices": ["none", "window", "panel", "card", "button", "accent_button", "command_button", "choice", "editor", "menu_item", "selection", "progress", "tool_tip", "link", "visited_link"], "default": "none", "animated": false}
+          {"name": "recipe", "kind": "choice", "choices": ["none", "window", "panel", "card", "button", "accent_button", "command_button", "choice", "editor", "menu_item", "selection", "progress", "tool_tip", "link", "visited_link"], "default": "none", "animated": false},
+          {"name": "layers", "kind": "choice", "choices": ["filter", "material"], "default": "filter", "animated": false}
         ]
       }
     ],

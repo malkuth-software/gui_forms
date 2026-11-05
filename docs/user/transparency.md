@@ -40,6 +40,22 @@ the desktop. Over a window granted `transparent`, glass over a clear
 backplane is its tint alone, partly clear; over a material it is the
 material's base, blurred and tinted, over the system's material.
 
+Glass's `recipe` names a recipe role whose material's colour filter
+(`backdrop-filter` colour functions) applies to the blurred backplane.
+With `layers: material` glass draws that material's own layers over the
+filtered backplane in place of the tint: its fills (gradients included),
+inset shadows, over glows, border, single edges and keylines, so a frosted
+pane can also carry a gradient and hairlines. The backplane is clipped to
+the material's single corner radius (or the part's own); per-corner radii
+are not matched yet. Glass draws nothing past the part's box, so the
+material's outer shadows, under glows, drop shadow and reflection are not
+drawn. Both are limitations of this step. A material with an image or procedural fill
+or an image mask, or one too costly to bake, is refused and the part is
+drawn by the built-in recipe. Under reduced transparency the backplane is
+flattened and opaque, so the recipe is drawn opaque; in high contrast the
+part takes the forced high-contrast drawing instead. The default,
+`layers: filter`, keeps the tint and applies the colour filter only.
+
 ## Reflections
 
 `reflection` (theme language: `reflection: below 6px 30%`) mirrors the
