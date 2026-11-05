@@ -698,7 +698,7 @@ void measure_today_marking() {
         std::cout << "today invalidate depth " << depth << ": paint " << paint << " ns, measure " << measure
                   << " ns\n";
     }
-    const std::array<std::size_t, 2> control_counts{1000U, 10000U};
+    const std::array<std::size_t, 3> control_counts{1000U, 10000U, 100000U};
     for (const std::size_t controls : control_counts) {
         const std::shared_ptr<Control> root = gui_forms::make_control<Control>(StableId("lab.flat"));
         std::vector<std::shared_ptr<Control>> children{};
