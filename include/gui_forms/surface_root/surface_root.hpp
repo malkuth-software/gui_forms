@@ -924,7 +924,12 @@ protected:
 private:
     friend class Window;
     friend class SubSurface;
+    friend class SubSurfaceHost;
     friend class SurfaceRoot;
+    // How the newest focus change came about, for a control that forwards
+    // focus to another tree (SubSurfaceHost): through Tab, Shift+Tab, or
+    // anything else (none).
+    enum class FocusTraversal : std::uint8_t { none, forward, backward };
     // std::logic_error naming `operation`, counted as a wrong-thread
     // rejection, off the root's thread.
     void require_root_thread(std::string_view operation);
@@ -968,6 +973,14 @@ private:
     void cover_tool_tip(RuntimeId control, std::string_view item_id, bool covered);
     // dispatch_key's routing, after the paint-lease check.
     bool route_key(KeyEvent event);
+    // What the window does with a key no control on `route` handled at the
+    // target or bubble phase: accelerators, dialog keys, Tab and F6.
+    bool finish_unhandled_key(const KeyEvent& event);
+    // A key `from` forwarded elsewhere and got back unhandled (a sub-surface's
+    // key return, design note section 4): bubbles from `from`'s parent up,
+    // then finish_unhandled_key. False, doing nothing, when `from` is no
+    // longer eligible. Root thread only.
+    bool resume_unhandled_key(const Control::Ptr& from, KeyEvent event);
     // Called by the tooltip presenter: a one-shot wake at `deadline` on the
     // UI thread, revoked by the token.
     [[nodiscard]] FrameRequestToken request_tool_tip_wake(
@@ -1497,6 +1510,15 @@ private:
     bool active_{true};
     StableIdMap stable_ids_;
     Control::WeakPtr focused_;
+    // Whether Tab past the last tab stop (or Shift+Tab before the first)
+    // wraps around. A sub-surface does not wrap: the key goes back to its
+    // parent, whose traversal moves focus past the host (design note
+    // section 4).
+    bool focus_wraps_{true};
+    // Set by move_focus around its request_focus; copied to
+    // last_focus_traversal_ when that request moves focus.
+    FocusTraversal pending_focus_traversal_{FocusTraversal::none};
+    FocusTraversal last_focus_traversal_{FocusTraversal::none};
     // One F6 region and the control that last had focus inside it. Both are
     // observed, never owned.
     struct FocusRegion final {

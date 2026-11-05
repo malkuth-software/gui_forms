@@ -30,6 +30,10 @@ SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> 
     if (!(*root_).is_alive()) {
         throw std::logic_error("GUI.Forms sub-surface root may not be disposed");
     }
+    // Inactive until keyboard focus enters from the host (enter_focus), and
+    // no wrap-around: Tab past the last stop goes back to the parent.
+    active_ = false;
+    focus_wraps_ = false;
     // No damage yet: the root has no size until the first configuration
     // (apply_size damages the whole region then).
     attach_subtree(root_, {});
@@ -58,6 +62,21 @@ void SubSurface::apply_size(Size logical_size) {
 void SubSurface::apply_scale(double scale) {
     require_root_thread("sub-surface scale");
     static_cast<void>(set_surface_scale(scale));
+}
+
+void SubSurface::enter_focus(SubSurfaceFocusEntry entry) {
+    require_root_thread("sub-surface focus");
+    set_active(true);
+    if (entry == SubSurfaceFocusEntry::restore) {
+        const Control::Ptr current = focused_.lock();
+        if (current && eligible(current)) return;
+        static_cast<void>(move_focus(true));
+        return;
+    }
+    // Traversal from no focus starts at the first or the last stop. A
+    // validation that refuses to let the current control go keeps it.
+    if (!request_focus(Control::Ptr{})) return;
+    static_cast<void>(move_focus(entry == SubSurfaceFocusEntry::first));
 }
 
 namespace {
@@ -118,6 +137,26 @@ void copy_pixel_rows(std::span<const std::byte> source, std::size_t source_row_b
     }
 }
 
+// Posted to the parent's dispatcher with one unhandled key: delivers it to
+// the key return target on the parent's thread, unless the parent released
+// the target first.
+class DeliverReturnedKey final {
+public:
+    DeliverReturnedKey(std::weak_ptr<SubSurfaceKeyReturn> target, const KeyEvent& event,
+                       std::uint64_t sequence) noexcept
+        : target_(std::move(target)), event_(event), sequence_(sequence) {}
+    void operator()() const {
+        const std::shared_ptr<SubSurfaceKeyReturn> target = target_.lock();
+        if (!target) return;
+        (*target).return_unhandled_key(event_, sequence_);
+    }
+
+private:
+    std::weak_ptr<SubSurfaceKeyReturn> target_;
+    KeyEvent event_{};
+    std::uint64_t sequence_{};
+};
+
 // How long a frame waits before trying again for a LiveSurface buffer when
 // the presenter holds every one (rare: three buffers by default).
 constexpr std::chrono::milliseconds publish_retry_interval{4};
@@ -144,6 +183,9 @@ private:
     // frame request. Returns false on a stop request.
     [[nodiscard]] bool wait(const SubSurface& root, std::optional<SubSurfaceConfiguration>& configuration);
     void apply(SubSurface& root, SubSurfaceConfiguration& configuration);
+    // Dispatches the input taken by wait(), in posting order, and returns
+    // the keys the tree left unhandled to the parent.
+    void dispatch_inputs(SubSurface& root);
     void produce(SubSurface& root);
     void publish();
     void record_end(SubSurfaceState state, std::string failure) noexcept;
@@ -171,6 +213,8 @@ private:
     // until the window showed the last one, or one and a half refreshes.
     LiveSurfacePacer pacer_;
     std::optional<FrameTime> pacing_wake_{};
+    // The input wait() took from the channel; empty between turns.
+    std::vector<detail::SubSurfaceInputRecord> inputs_{};
 };
 
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
@@ -220,6 +264,7 @@ void SubSurfaceLoop::run_tree() {
             apply(root, *configuration);
             configuration.reset();
         }
+        dispatch_inputs(root);
         const DispatchDrainResult drained = root.drain_posted_work();
         if (drained.remaining != 0U) {
             const std::lock_guard<std::mutex> lock((*channel_).mutex);
@@ -239,7 +284,7 @@ bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfig
     if (pacing_wake_ && (!deadline || *pacing_wake_ < *deadline)) deadline = pacing_wake_;
     std::unique_lock<std::mutex> lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
-    while (!channel.stop_requested && !channel.pending && !channel.signalled) {
+    while (!channel.stop_requested && !channel.pending && !channel.signalled && channel.inputs.empty()) {
         if (!deadline) {
             channel.wake.wait(lock);
             continue;
@@ -250,8 +295,58 @@ bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfig
     ++channel.statistics.loop_turns;
     configuration.swap(channel.pending);
     if (configuration) ++channel.statistics.configurations_applied;
+    inputs_.swap(channel.inputs);
     channel.signalled = false;
     return true;
+}
+
+void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
+    if (inputs_.empty()) return;
+    WindowDispatcher parent;
+    std::weak_ptr<SubSurfaceKeyReturn> target;
+    {
+        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        parent = (*channel_).key_return_dispatcher;
+        target = (*channel_).key_return;
+    }
+    const bool returns_keys = !target.expired();
+    std::uint64_t returned = 0U;
+    for (const detail::SubSurfaceInputRecord& record : inputs_) {
+        const SubSurfaceInput& input = record.input;
+        switch (input.kind) {
+        case SubSurfaceInputKind::pointer:
+            static_cast<void>(root.dispatch_pointer(input.pointer));
+            break;
+        case SubSurfaceInputKind::key: {
+            const bool handled = root.dispatch_key(input.key);
+            if (!handled && returns_keys) {
+                // Posted outside the channel's lock (lock order: the
+                // parent's dispatcher is never taken under it).
+                static_cast<void>(parent.begin_invoke(DeliverReturnedKey(target, input.key, record.sequence)));
+                ++returned;
+            }
+            break;
+        }
+        case SubSurfaceInputKind::text:
+            static_cast<void>(root.dispatch_text(input.text));
+            break;
+        case SubSurfaceInputKind::focus_enter:
+            root.enter_focus(input.focus_entry);
+            break;
+        case SubSurfaceInputKind::focus_leave:
+            root.set_active(false);
+            break;
+        default:
+            throw std::invalid_argument("GUI.Forms sub-surface input kind is not a defined value");
+        }
+    }
+    const std::uint64_t dispatched = inputs_.size();
+    const std::uint64_t last_sequence = inputs_.back().sequence;
+    inputs_.clear();
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    (*channel_).statistics.inputs_dispatched += dispatched;
+    (*channel_).statistics.last_input_sequence = last_sequence;
+    (*channel_).statistics.keys_returned += returned;
 }
 
 void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configuration) {
@@ -422,12 +517,41 @@ void SubSurfaceThread::configure(SubSurfaceConfiguration configuration) {
     }
 }
 
+std::uint64_t SubSurfaceThread::post_input(const SubSurfaceInput& input) {
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    detail::SubSurfaceChannel& channel = *channel_;
+    if (channel.stop_requested || channel.state == SubSurfaceState::failed) return 0U;
+    detail::SubSurfaceInputRecord record;
+    record.sequence = channel.next_input_sequence;
+    record.input = input;
+    channel.inputs.push_back(std::move(record));
+    ++channel.next_input_sequence;
+    ++channel.statistics.inputs_received;
+    channel.wake.notify_one();
+    const std::uint64_t sequence = channel.inputs.back().sequence;
+    return sequence;
+}
+
+void SubSurfaceThread::set_key_return(WindowDispatcher parent, std::weak_ptr<SubSurfaceKeyReturn> target) {
+    if (!target.expired() && !parent.window_alive()) {
+        throw std::invalid_argument("GUI.Forms sub-surface key return needs a live parent dispatcher");
+    }
+    // The previous dispatcher and target are released after the lock.
+    WindowDispatcher previous_parent = std::move(parent);
+    std::weak_ptr<SubSurfaceKeyReturn> previous_target = std::move(target);
+    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    std::swap((*channel_).key_return_dispatcher, previous_parent);
+    std::swap((*channel_).key_return, previous_target);
+}
+
 void SubSurfaceThread::stop() noexcept {
     std::optional<SubSurfaceConfiguration> abandoned;
+    std::vector<detail::SubSurfaceInputRecord> discarded;
     {
         const std::lock_guard<std::mutex> lock((*channel_).mutex);
         (*channel_).stop_requested = true;
         abandoned.swap((*channel_).pending);
+        discarded.swap((*channel_).inputs);
         (*channel_).wake.notify_one();
     }
     if (!thread_.joinable()) return;

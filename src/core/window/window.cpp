@@ -764,6 +764,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
     }
     if (control && eligible(control) && (*control).focusable_) {
         focused_ = control;
+        last_focus_traversal_ = pending_focus_traversal_;
         remember_region_focus(control);
         (*control).publish_change(
             static_cast<const void*>(&(*control).focus_observed_),
@@ -1393,6 +1394,11 @@ bool SurfaceRoot::move_focus(bool forward) {
     const Control::Ptr current = focused_.lock();
     const ControlList::iterator found =
         std::find(candidates.begin(), candidates.end(), current);
+    if (!focus_wraps_ && found != candidates.end()) {
+        const bool at_last = found + 1 == candidates.end();
+        const bool at_first = found == candidates.begin();
+        if ((forward && at_last) || (!forward && at_first)) return false;
+    }
     std::size_t index = 0;
     if (found == candidates.end()) {
         index = forward ? 0U : candidates.size() - 1U;
@@ -1405,7 +1411,10 @@ bool SurfaceRoot::move_focus(bool forward) {
         index = current_index == 0U ? candidates.size() - 1U
                                    : current_index - 1U;
     }
-    return request_focus(candidates[index]);
+    pending_focus_traversal_ = forward ? FocusTraversal::forward : FocusTraversal::backward;
+    const bool moved = request_focus(candidates[index]);
+    pending_focus_traversal_ = FocusTraversal::none;
+    return moved;
 }
 
 void SurfaceRoot::set_focus_regions(std::vector<Control::Ptr> regions) {
@@ -1726,23 +1735,10 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     if (event.action == KeyAction::down) {
         set_focus_cue_visible(true);
     }
-    const bool traversal_key = event.action == KeyAction::down &&
-        event.physical_key == PhysicalKey::tab;
-    // F6 and Shift+F6 cycle the focus regions; other modifiers leave F6 to
-    // the application.
-    const bool region_key = event.action == KeyAction::down &&
-        event.physical_key == PhysicalKey::f6 &&
-        (event.modifiers == Modifier::none || event.modifiers == Modifier::shift);
-    const bool forward =
-        (static_cast<std::uint8_t>(event.modifiers) &
-         static_cast<std::uint8_t>(Modifier::shift)) == 0U;
     if (focus_scopes_.empty() && dispatch_accelerator(event, true)) return true;
     Control::Ptr target = focused_.lock();
     if (!target || !eligible(target)) {
-        if (dispatch_accelerator(event, false)) return true;
-        if (dispatch_dialog_key(event)) return true;
-        if (region_key) return move_focus_region(forward);
-        return traversal_key && move_focus(forward);
+        return finish_unhandled_key(event);
     }
     const std::vector<Control::Ptr> route = route_to(target);
     event.phase = EventPhase::preview;
@@ -1776,17 +1772,46 @@ bool SurfaceRoot::route_key(KeyEvent event) {
             }
         }
     }
-    if (!event.handled && dispatch_accelerator(event, false)) {
-        return true;
+    if (event.handled) return true;
+    return finish_unhandled_key(event);
+}
+
+bool SurfaceRoot::finish_unhandled_key(const KeyEvent& event) {
+    const bool traversal_key = event.action == KeyAction::down &&
+        event.physical_key == PhysicalKey::tab;
+    // F6 and Shift+F6 cycle the focus regions; other modifiers leave F6 to
+    // the application.
+    const bool region_key = event.action == KeyAction::down &&
+        event.physical_key == PhysicalKey::f6 &&
+        (event.modifiers == Modifier::none || event.modifiers == Modifier::shift);
+    const bool forward =
+        (static_cast<std::uint8_t>(event.modifiers) &
+         static_cast<std::uint8_t>(Modifier::shift)) == 0U;
+    if (dispatch_accelerator(event, false)) return true;
+    if (dispatch_dialog_key(event)) return true;
+    if (traversal_key) return move_focus(forward);
+    if (region_key) return move_focus_region(forward);
+    return false;
+}
+
+bool SurfaceRoot::resume_unhandled_key(const Control::Ptr& from, KeyEvent event) {
+    require_root_thread("key dispatch");
+    // The key was counted as input when it first reached this root.
+    if (!from || !eligible(from)) return false;
+    const std::vector<Control::Ptr> route = route_to(from);
+    event.phase = EventPhase::bubble;
+    event.handled = false;
+    for (ControlList::const_reverse_iterator iterator = route.rbegin();
+         iterator != route.rend(); ++iterator) {
+        if (*iterator == from || !eligible(*iterator)) {
+            continue;
+        }
+        metrics_.record_callback_emitted();
+        (*(*iterator)).on_key_bubble(event);
+        if (event.handled) return true;
     }
-    if (!event.handled && dispatch_dialog_key(event)) return true;
-    if (!event.handled && traversal_key) {
-        return move_focus(forward);
-    }
-    if (!event.handled && region_key) {
-        return move_focus_region(forward);
-    }
-    return event.handled;
+    const bool handled = finish_unhandled_key(event);
+    return handled;
 }
 
 bool SurfaceRoot::dispatch_text(TextInputEvent event) {

@@ -7,8 +7,15 @@
 #include <mutex>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace gui_forms::detail {
+
+// One queued input event and the sequence post_input gave it.
+struct SubSurfaceInputRecord final {
+    std::uint64_t sequence{};
+    SubSurfaceInput input{};
+};
 
 // What a sub-surface's thread and its parent share (design note sections 2
 // and 9). Every field is read and written under `mutex`. Lock order: a
@@ -22,6 +29,15 @@ struct SubSurfaceChannel final {
     std::condition_variable wake;
     // The newest configuration not yet applied.
     std::optional<SubSurfaceConfiguration> pending{};
+    // Input not yet dispatched, in posting order. The loop swaps the whole
+    // vector with its own empty one, so both keep their capacity.
+    std::vector<SubSurfaceInputRecord> inputs{};
+    std::uint64_t next_input_sequence{1};
+    // Where unhandled keys go (SubSurfaceThread::set_key_return): the
+    // parent's dispatcher, and the target, held weakly so a released host
+    // receives nothing.
+    WindowDispatcher key_return_dispatcher{};
+    std::weak_ptr<SubSurfaceKeyReturn> key_return{};
     bool stop_requested{};
     // A dispatch or paint wake arrived since the loop last looked.
     bool signalled{};

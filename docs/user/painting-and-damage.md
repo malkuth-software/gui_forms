@@ -171,6 +171,23 @@ the refreshes missed, so a stalled window never stops a producer. A
 sub-surface paces every frame this way; the Windows host reports the
 compositor's vertical blank, or its 60 Hz cadence without one.
 
+### Sub-surface input
+
+A `SubSurfaceHost` is a tab stop. The pointer events that reach it and the
+key and text events it receives while focused are forwarded, in order and
+with growing sequence numbers, to the sub-surface's thread, which
+dispatches them to its own tree; pointer positions arrive in the
+sub-surface's coordinates. The window's accelerator pre-filter runs before
+anything is forwarded. A key the sub-surface leaves unhandled comes back to
+the window asynchronously and continues there as though the host had not
+handled it: bubble from the host's parent, accelerators, dialog keys, and
+Tab. The sub-surface's own Tab traversal does not wrap, so Tab at its last
+stop comes back and moves focus past the host; Tab onto the host enters at
+the first stop, Shift+Tab at the last, and a click or programmatic focus
+restores the control focused before. The sub-surface is active only while
+the host has focus in an active window. `SubSurfaceStatistics` counts the
+inputs received and dispatched and the keys returned.
+
 ## Reading the counters
 
 `MetricsSnapshot` carries `paint_passes`, `controls_painted`,

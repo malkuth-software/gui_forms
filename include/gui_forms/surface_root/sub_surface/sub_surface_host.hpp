@@ -19,6 +19,17 @@ namespace gui_forms {
 // the first agreed size, resize rule 5), and stops when the host leaves
 // the window: the thread releases the content and is joined. A host that
 // is attached again shows nothing until it is given content again.
+//
+// Input (design note section 4): the host is a tab stop. Pointer events that
+// reach it (the window's capture holds a pressed pointer on it), and key and
+// text events while it has keyboard focus, are forwarded in order to the
+// sub-surface's thread, which dispatches them to its own tree; the window's
+// accelerator pre-filter has already run. Keys the sub-surface leaves
+// unhandled come back asynchronously and continue in the window as if the
+// host had not handled them: bubble from the host's parent, accelerators,
+// dialog keys, and Tab, which moves focus past the host because the
+// sub-surface's own traversal does not wrap. Keyboard focus inside the
+// sub-surface follows the host's focus and the window's activation.
 class SubSurfaceHost final : public Control {
 public:
     explicit SubSurfaceHost(StableId stable_id);
@@ -43,6 +54,9 @@ public:
     [[nodiscard]] std::uint64_t content_epoch() const noexcept { return content_epoch_; }
     // The surface the sub-surface publishes into; null before it started.
     [[nodiscard]] std::shared_ptr<LiveSurface> live_surface() const noexcept { return surface_; }
+    // Keys the sub-surface returned after the host had lost keyboard focus
+    // or left its window; they are not replayed in the window.
+    [[nodiscard]] std::uint64_t returned_keys_discarded() const noexcept { return returned_keys_discarded_; }
 
     // Arranges as any control, then reconfigures the sub-surface when its
     // device size or scale changed. The window's theme and presentation
@@ -55,8 +69,25 @@ public:
 protected:
     void on_attached_to_window() override;
     void on_detaching_from_window(SurfaceRoot& former_window) noexcept override;
+    // Forward to the sub-surface while it runs and mark the event handled.
+    void on_pointer(PointerEvent& event) override;
+    void on_key(KeyEvent& event) override;
+    void on_text_input(TextInputEvent& event) override;
+    void on_focus_changed(bool focused) override;
 
 private:
+    // The sub-surface's key return target for one thread. The host owns it
+    // and revokes it when that thread stops; a key posted before then finds
+    // it revoked or released and is dropped. Parent thread only.
+    class KeyReturn;
+
+    // Tells the sub-surface whether it has keyboard focus: the host is the
+    // window's focused control in an active window. `entry` is where focus
+    // goes when it enters.
+    void update_keyboard_focus(SubSurfaceFocusEntry entry);
+    void on_window_active_changed(bool active);
+    // A key the sub-surface returned (KeyReturn): continues in the window.
+    void continue_returned_key(const KeyEvent& event);
     // Starts the thread when it can, and sends a configuration when the
     // region's device size or the window scale changed: a new content epoch,
     // a framebuffer at the new size, the pairing requirement, and a paint of
@@ -82,6 +113,11 @@ private:
     bool environment_changed_{};
     SubscriptionToken theme_subscription_{};
     SubscriptionToken presentation_subscription_{};
+    SubscriptionToken active_subscription_{};
+    std::shared_ptr<KeyReturn> key_return_{};
+    // The sub-surface was last told it has keyboard focus.
+    bool keyboard_inside_{};
+    std::uint64_t returned_keys_discarded_{};
 };
 
 } // namespace gui_forms

@@ -1,6 +1,7 @@
 // Stage S2.2: a SubSurface built, laid out and painted on its own thread,
 // publishing into a LiveSurface its SubSurfaceHost composes (threaded
-// sub-surfaces design note sections 2, 6, 7 and 9).
+// sub-surfaces design note sections 2, 6, 7 and 9), and stage S3, input
+// and focus forwarding (section 4).
 
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
@@ -15,6 +16,7 @@
 #include <memory>
 #include <mutex>
 #include <stdexcept>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -447,6 +449,292 @@ void host_in_window() {
     require((*probe).surface.expired(), "the sub-surface's tree is released");
 }
 
+// Stage S3: input and focus forwarding (design note section 4).
+
+// What the sub-surface's input controls saw, in order: written on the
+// sub-surface's thread, read by the test, under the mutex.
+struct InputLog final {
+    std::mutex mutex;
+    std::vector<std::string> events;
+    Point last_pointer{};
+};
+
+// A focusable control that logs its focus, keys and pointer presses. It
+// handles every key but Tab, which goes on to traversal.
+class InputRecorder final : public Control {
+public:
+    InputRecorder(StableId stable_id, std::string name, std::shared_ptr<InputLog> log)
+        : Control(std::move(stable_id)), name_(std::move(name)), log_(std::move(log)) {
+        set_focusable(true);
+    }
+
+protected:
+    void on_focus_changed(bool focused) override {
+        record(focused ? ":focus" : ":blur");
+    }
+    void on_key(KeyEvent& event) override {
+        if (event.physical_key == PhysicalKey::tab) return;
+        if (event.action == KeyAction::down) record(":key");
+        event.handled = true;
+    }
+    void on_pointer(PointerEvent& event) override {
+        if (event.action != PointerAction::down) return;
+        record(":down");
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        (*log_).last_pointer = point_from_window(event.position);
+        event.handled = true;
+    }
+
+private:
+    void record(const char* what) {
+        const std::lock_guard<std::mutex> lock((*log_).mutex);
+        (*log_).events.push_back(name_ + what);
+    }
+
+    std::string name_;
+    std::shared_ptr<InputLog> log_;
+};
+
+// Two input recorders side by side: "A" at (0, 0, 50, 30) and "B" at
+// (50, 0, 50, 30).
+class TwoStopsContent final : public SubSurfaceContent {
+public:
+    explicit TwoStopsContent(std::shared_ptr<InputLog> log) : log_(std::move(log)) {}
+    Control::Ptr build_root() override {
+        std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("sub.stops"));
+        std::shared_ptr<InputRecorder> first = std::make_shared<InputRecorder>(StableId("sub.a"), "A", log_);
+        std::shared_ptr<InputRecorder> second = std::make_shared<InputRecorder>(StableId("sub.b"), "B", log_);
+        (*first).set_requested_bounds(Rect{0.0, 0.0, 50.0, 30.0});
+        (*second).set_requested_bounds(Rect{50.0, 0.0, 50.0, 30.0});
+        (*root).add_child(first);
+        (*root).add_child(second);
+        return root;
+    }
+
+private:
+    std::shared_ptr<InputLog> log_;
+};
+
+// The test's key return target: collects returned keys on the test thread.
+class CollectReturnedKeys final : public SubSurfaceKeyReturn {
+public:
+    void return_unhandled_key(const KeyEvent& event, std::uint64_t sequence) override {
+        keys.push_back(event);
+        sequences.push_back(sequence);
+    }
+    std::vector<KeyEvent> keys;
+    std::vector<std::uint64_t> sequences;
+};
+
+[[nodiscard]] KeyEvent key_down(std::uint32_t key, Modifier modifiers = Modifier::none) {
+    KeyEvent event;
+    event.action = KeyAction::down;
+    event.physical_key = key;
+    event.modifiers = modifiers;
+    return event;
+}
+
+[[nodiscard]] SubSurfaceInput key_input(std::uint32_t key, Modifier modifiers = Modifier::none) {
+    SubSurfaceInput input;
+    input.kind = SubSurfaceInputKind::key;
+    input.key = key_down(key, modifiers);
+    return input;
+}
+
+[[nodiscard]] std::vector<std::string> events_of(InputLog& log) {
+    const std::lock_guard<std::mutex> lock(log.mutex);
+    return log.events;
+}
+
+[[nodiscard]] bool wait_for_inputs(const SubSurfaceThread& thread, std::uint64_t inputs) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (thread.statistics().inputs_dispatched >= inputs) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+[[nodiscard]] bool wait_for_host_inputs(const SubSurfaceHost& host, std::uint64_t inputs) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        if (host.statistics().inputs_dispatched >= inputs) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// Runs the window's posted work until `focused` has the window's focus.
+[[nodiscard]] bool drain_until_focused(Window& window, const Control::Ptr& focused) {
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while (std::chrono::steady_clock::now() < limit) {
+        static_cast<void>(window.drain_posted_work());
+        if (window.focused_control() == focused) return true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    return false;
+}
+
+// The thread alone: input is dispatched in posting order with growing
+// sequences and none dropped; focus enters at the first stop; Tab moves
+// inside and, at the last stop, comes back to the parent instead of
+// wrapping; pointer positions arrive in the sub-surface's coordinates.
+void input_reaches_sub_surface_in_order() {
+    std::shared_ptr<InputLog> log = std::make_shared<InputLog>();
+    std::shared_ptr<LiveSurface> surface = LiveSurface::create({100U, 30U});
+    require(static_cast<bool>(surface), "surface");
+    SubSurfaceThread thread(std::make_unique<TwoStopsContent>(log), surface, default_theme(), nullptr);
+    std::shared_ptr<Panel> parent_root = std::make_shared<Panel>(StableId("sub.parent"));
+    Window parent(parent_root, Size{100.0, 100.0});
+    std::shared_ptr<CollectReturnedKeys> returned = std::make_shared<CollectReturnedKeys>();
+    thread.set_key_return(parent.dispatcher(), returned);
+    require(wait_for_state(thread, SubSurfaceState::running), "thread reaches running");
+    thread.configure(configuration_of(1U, 100U, 30U));
+
+    SubSurfaceInput enter;
+    enter.kind = SubSurfaceInputKind::focus_enter;
+    enter.focus_entry = SubSurfaceFocusEntry::first;
+    require(thread.post_input(enter) == 1U, "the first input has sequence 1");
+    constexpr std::uint64_t letters = 200U;
+    for (std::uint64_t index = 0; index < letters; ++index) {
+        require(thread.post_input(key_input(PhysicalKey::a)) == index + 2U, "sequences grow by one");
+    }
+    const std::uint64_t to_b = thread.post_input(key_input(PhysicalKey::tab));
+    const std::uint64_t out = thread.post_input(key_input(PhysicalKey::tab));
+    SubSurfaceInput press;
+    press.kind = SubSurfaceInputKind::pointer;
+    press.pointer.action = PointerAction::down;
+    press.pointer.button = PointerButton::primary;
+    press.pointer.position = Point{62.0, 7.0};
+    const std::uint64_t last = thread.post_input(press);
+    require(last == letters + 4U, "every input was sequenced");
+    require(wait_for_inputs(thread, last), "every input is dispatched");
+    const SubSurfaceStatistics statistics = thread.statistics();
+    require(statistics.inputs_received == last && statistics.inputs_dispatched == last,
+            "no input is dropped");
+    require(statistics.last_input_sequence == last, "the newest dispatched is the newest posted");
+    require(statistics.keys_returned == 1U, "only the Tab past the last stop comes back");
+
+    const std::vector<std::string> events = events_of(*log);
+    require(events.size() == letters + 4U, "focus, the letters, the Tab move and the press");
+    require(events.front() == "A:focus", "focus enters at the first stop");
+    for (std::uint64_t index = 1; index <= letters; ++index) {
+        require(events[index] == "A:key", "the letters reach the focused control in order");
+    }
+    require(events[letters + 1U] == "A:blur" && events[letters + 2U] == "B:focus", "Tab moves inside");
+    require(events.back() == "B:down", "the press reaches the control under it");
+    {
+        const std::lock_guard<std::mutex> lock((*log).mutex);
+        require((*log).last_pointer.x == 12.0 && (*log).last_pointer.y == 7.0,
+                "pointer positions are in the sub-surface's coordinates");
+    }
+
+    // The returned Tab runs on the parent's thread, at its dispatcher turn.
+    require((*returned).keys.empty(), "nothing is delivered before the parent's turn");
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    while ((*returned).keys.empty() && std::chrono::steady_clock::now() < limit) {
+        static_cast<void>(parent.drain_posted_work());
+        if ((*returned).keys.empty()) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require((*returned).keys.size() == 1U, "the Tab comes back once");
+    require((*returned).keys.front().physical_key == PhysicalKey::tab, "it is the Tab");
+    require((*returned).sequences.front() == out && out == to_b + 1U, "with its own sequence");
+
+    // After stop() input is refused, not queued.
+    thread.stop();
+    require(thread.post_input(key_input(PhysicalKey::a)) == 0U, "a stopped sub-surface takes no input");
+}
+
+// The host in a window: Tab enters the sub-surface at its first stop and
+// leaves it past the last; Shift+Tab enters at the last stop; a press on
+// the host reaches the control under it in local coordinates; window
+// deactivation leaves the sub-surface's keyboard focus.
+void host_forwards_input_and_focus() {
+    std::shared_ptr<InputLog> outer = std::make_shared<InputLog>();
+    std::shared_ptr<InputLog> inner = std::make_shared<InputLog>();
+    std::shared_ptr<Panel> root = std::make_shared<Panel>(StableId("sub.root"));
+    std::shared_ptr<InputRecorder> before =
+        std::make_shared<InputRecorder>(StableId("sub.before"), "before", outer);
+    std::shared_ptr<SubSurfaceHost> host = std::make_shared<SubSurfaceHost>(StableId("sub.host"));
+    std::shared_ptr<InputRecorder> after = std::make_shared<InputRecorder>(StableId("sub.after"), "after", outer);
+    (*before).set_requested_bounds(Rect{0.0, 0.0, 20.0, 20.0});
+    (*host).set_requested_bounds(Rect{20.0, 40.0, 100.0, 30.0});
+    (*after).set_requested_bounds(Rect{130.0, 0.0, 20.0, 20.0});
+    (*host).set_content(std::make_unique<TwoStopsContent>(inner), true);
+    (*root).add_child(before);
+    (*root).add_child(host);
+    (*root).add_child(after);
+    FillRaster raster;
+    Window window(root, Size{200.0, 100.0});
+    window.set_framebuffer_painter(&raster);
+    window.flush();
+    require((*host).started(), "the host starts");
+    require(window.request_focus(before), "focus starts before the host");
+
+    // Tab onto the host: focus enters at A.
+    require(window.dispatch_key(key_down(PhysicalKey::tab)), "Tab moves onto the host");
+    require(window.focused_control() == host, "the host has the window's focus");
+    require(wait_for_host_inputs(*host, 1U), "focus entry is dispatched");
+    std::vector<std::string> events = events_of(*inner);
+    require(!events.empty() && events.back() == "A:focus", "Tab enters at the first stop");
+
+    // Tab inside: B. Tab again: back to the window, which moves past the host.
+    require(window.dispatch_key(key_down(PhysicalKey::tab)), "the host takes Tab");
+    require(window.dispatch_key(key_down(PhysicalKey::tab)), "the host takes the second Tab");
+    require(drain_until_focused(window, after), "the returned Tab leaves the sub-surface");
+    events = events_of(*inner);
+    require(events.size() >= 3U && events[events.size() - 2U] == "A:blur" && events.back() == "B:focus",
+            "the first Tab moved inside");
+
+    // Shift+Tab from after: focus enters at the last stop, B.
+    require(window.dispatch_key(key_down(PhysicalKey::tab, Modifier::shift)), "Shift+Tab onto the host");
+    require(window.focused_control() == host, "the host has the window's focus again");
+    const std::uint64_t entered = (*host).statistics().inputs_received;
+    require(wait_for_host_inputs(*host, entered), "the second entry is dispatched");
+    events = events_of(*inner);
+    require(events.back() == "B:focus", "Shift+Tab enters at the last stop");
+
+    // A press on A's part of the host, in window coordinates.
+    PointerEvent press;
+    press.action = PointerAction::down;
+    press.button = PointerButton::primary;
+    press.position = Point{20.0 + 13.0, 40.0 + 9.0};
+    require(window.dispatch_pointer(press), "the host takes the press");
+    PointerEvent release = press;
+    release.action = PointerAction::up;
+    static_cast<void>(window.dispatch_pointer(release));
+    const std::uint64_t pressed = (*host).statistics().inputs_received;
+    require(wait_for_host_inputs(*host, pressed), "the press is dispatched");
+    events = events_of(*inner);
+    require(std::find(events.begin(), events.end(), std::string("A:down")) != events.end(),
+            "the press reaches A");
+    {
+        const std::lock_guard<std::mutex> lock((*inner).mutex);
+        require((*inner).last_pointer.x == 13.0 && (*inner).last_pointer.y == 9.0,
+                "in the sub-surface's coordinates");
+    }
+
+    // Deactivation leaves the sub-surface's keyboard focus and activation
+    // restores it, at the control that had it; letters reach that control.
+    const std::uint64_t before_activation = (*host).statistics().inputs_received;
+    window.set_active(false);
+    window.set_active(true);
+    require((*host).statistics().inputs_received == before_activation + 2U,
+            "deactivation and activation each tell the sub-surface");
+    require(window.dispatch_key(key_down(PhysicalKey::a)), "the host takes a letter");
+    const std::uint64_t typed = (*host).statistics().inputs_received;
+    require(wait_for_host_inputs(*host, typed), "the letter is dispatched");
+    events = events_of(*inner);
+    require(events.back() == "A:key", "the letter reaches the restored focus");
+    const SubSurfaceStatistics statistics = (*host).statistics();
+    require(statistics.inputs_dispatched == statistics.inputs_received, "no input is dropped");
+    require(statistics.keys_returned == 1U, "one key came back");
+    require((*host).returned_keys_discarded() == 0U, "and it was used");
+    events = events_of(*outer);
+    require(std::find(events.begin(), events.end(), std::string("after:focus")) != events.end(),
+            "the window's own traversal moved on");
+}
+
 } // namespace
 
 int main() {
@@ -454,5 +742,7 @@ int main() {
     content_failure_is_reported();
     start_stop_stress();
     host_in_window();
+    input_reaches_sub_surface_in_order();
+    host_forwards_input_and_focus();
     return 0;
 }

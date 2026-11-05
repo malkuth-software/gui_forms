@@ -21,8 +21,25 @@ namespace {
 
 } // namespace
 
+class SubSurfaceHost::KeyReturn final : public SubSurfaceKeyReturn {
+public:
+    explicit KeyReturn(SubSurfaceHost& host) noexcept : host_(&host) {}
+    void return_unhandled_key(const KeyEvent& event, std::uint64_t) override {
+        if (host_ == nullptr) return;
+        (*host_).continue_returned_key(event);
+    }
+    // The host stopped this target's thread or is going away.
+    void revoke() noexcept { host_ = nullptr; }
+
+private:
+    // Observes the host that owns this object; null once revoked.
+    SubSurfaceHost* host_{};
+};
+
 SubSurfaceHost::SubSurfaceHost(StableId stable_id)
-    : Control(std::move(stable_id)) {}
+    : Control(std::move(stable_id)) {
+    set_focusable(true);
+}
 
 SubSurfaceHost::~SubSurfaceHost() {
     stop_thread();
@@ -75,6 +92,8 @@ void SubSurfaceHost::on_attached_to_window() {
         presentation_subscription_ = (*window).presentation_changed().subscribe(
             *this, Delegate<const PresentationSettings&>::bind<
                        SubSurfaceHost, &SubSurfaceHost::on_window_presentation_changed>(*this));
+        active_subscription_ = (*window).active_changed().subscribe(
+            *this, Delegate<bool>::bind<SubSurfaceHost, &SubSurfaceHost::on_window_active_changed>(*this));
     }
     configure_region();
 }
@@ -89,9 +108,89 @@ void SubSurfaceHost::on_window_presentation_changed(const PresentationSettings&)
     configure_region();
 }
 
+void SubSurfaceHost::on_window_active_changed(bool) {
+    update_keyboard_focus(SubSurfaceFocusEntry::restore);
+}
+
+void SubSurfaceHost::on_pointer(PointerEvent& event) {
+    if (!thread_) return;
+    SubSurfaceInput input;
+    input.kind = SubSurfaceInputKind::pointer;
+    input.pointer = event;
+    input.pointer.position = point_from_window(event.position);
+    input.pointer.phase = EventPhase::target;
+    input.pointer.handled = false;
+    // Entering the host is a move inside the sub-surface: its own hover
+    // starts there.
+    if (input.pointer.action == PointerAction::enter) input.pointer.action = PointerAction::move;
+    static_cast<void>((*thread_).post_input(input));
+    event.handled = true;
+}
+
+void SubSurfaceHost::on_key(KeyEvent& event) {
+    if (!thread_) return;
+    SubSurfaceInput input;
+    input.kind = SubSurfaceInputKind::key;
+    input.key = event;
+    input.key.phase = EventPhase::target;
+    input.key.handled = false;
+    static_cast<void>((*thread_).post_input(input));
+    event.handled = true;
+}
+
+void SubSurfaceHost::on_text_input(TextInputEvent& event) {
+    if (!thread_) return;
+    SubSurfaceInput input;
+    input.kind = SubSurfaceInputKind::text;
+    input.text = event;
+    input.text.handled = false;
+    static_cast<void>((*thread_).post_input(input));
+    event.handled = true;
+}
+
+void SubSurfaceHost::on_focus_changed(bool focused) {
+    Control::on_focus_changed(focused);
+    SubSurfaceFocusEntry entry = SubSurfaceFocusEntry::restore;
+    SurfaceRoot* const root = attached_surface_root();
+    if (focused && root != nullptr) {
+        if ((*root).last_focus_traversal_ == SurfaceRoot::FocusTraversal::forward) {
+            entry = SubSurfaceFocusEntry::first;
+        } else if ((*root).last_focus_traversal_ == SurfaceRoot::FocusTraversal::backward) {
+            entry = SubSurfaceFocusEntry::last;
+        }
+    }
+    update_keyboard_focus(entry);
+}
+
+void SubSurfaceHost::update_keyboard_focus(SubSurfaceFocusEntry entry) {
+    SurfaceRoot* const root = attached_surface_root();
+    bool inside = false;
+    if (thread_ && root != nullptr && (*root).active()) {
+        const Control::Ptr focused = (*root).focused_control();
+        inside = focused.get() == this;
+    }
+    if (inside == keyboard_inside_) return;
+    keyboard_inside_ = inside;
+    SubSurfaceInput input;
+    input.kind = inside ? SubSurfaceInputKind::focus_enter : SubSurfaceInputKind::focus_leave;
+    input.focus_entry = entry;
+    static_cast<void>((*thread_).post_input(input));
+}
+
+void SubSurfaceHost::continue_returned_key(const KeyEvent& event) {
+    SurfaceRoot* const root = attached_surface_root();
+    const Control::Ptr focused = root != nullptr ? (*root).focused_control() : Control::Ptr{};
+    if (focused.get() != this) {
+        ++returned_keys_discarded_;
+        return;
+    }
+    static_cast<void>((*root).resume_unhandled_key(focused, event));
+}
+
 void SubSurfaceHost::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
     theme_subscription_.disconnect();
     presentation_subscription_.disconnect();
+    active_subscription_.disconnect();
     // The window drops the LiveSurface registration with the control; the
     // thread is revoked and joined here, while the window still exists.
     stop_thread();
@@ -127,6 +226,10 @@ void SubSurfaceHost::configure_region() {
         thread_ = std::make_unique<SubSurfaceThread>(std::move(content_), surface,
                                                      (*start_resources).theme_ptr(), std::move(text_measure));
         surface_ = std::move(surface);
+        key_return_ = std::make_shared<KeyReturn>(*this);
+        (*thread_).set_key_return((*window).dispatcher(), key_return_);
+        keyboard_inside_ = false;
+        update_keyboard_focus(SubSurfaceFocusEntry::restore);
     }
     ++content_epoch_;
     SubSurfaceConfiguration configuration;
@@ -156,6 +259,10 @@ void SubSurfaceHost::configure_region() {
 
 void SubSurfaceHost::stop_thread() noexcept {
     if (!thread_) return;
+    // Keys already posted back find the target revoked.
+    (*key_return_).revoke();
+    key_return_.reset();
+    keyboard_inside_ = false;
     (*thread_).stop();
     thread_.reset();
     pixel_width_ = 0U;

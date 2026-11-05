@@ -10,6 +10,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace gui_forms {
 
@@ -65,6 +66,54 @@ struct SubSurfaceConfiguration final {
     std::unique_ptr<PaintFramebuffer> framebuffer{};
 };
 
+// Where keyboard focus goes when it enters a sub-surface (design note
+// section 4).
+enum class SubSurfaceFocusEntry : std::uint8_t {
+    // Back to the control focused when it left, or the first tab stop when
+    // there was none (a click on the host, or programmatic focus).
+    restore,
+    // The first tab stop: Tab moved focus onto the host.
+    first,
+    // The last tab stop: Shift+Tab moved focus onto the host.
+    last,
+};
+
+enum class SubSurfaceInputKind : std::uint8_t {
+    pointer,
+    key,
+    text,
+    // The host gained keyboard focus in an active window: the sub-surface
+    // becomes active and focus enters it (`focus_entry`).
+    focus_enter,
+    // The host lost keyboard focus or its window was deactivated: the
+    // sub-surface becomes inactive and keeps its focused control.
+    focus_leave,
+};
+
+// One input event forwarded from the host to the sub-surface's thread
+// (design note section 4). Only the member `kind` names is meaningful.
+// Pointer positions are in the sub-surface's logical coordinates.
+struct SubSurfaceInput final {
+    SubSurfaceInputKind kind{SubSurfaceInputKind::pointer};
+    PointerEvent pointer{};
+    KeyEvent key{};
+    TextInputEvent text{};
+    SubSurfaceFocusEntry focus_entry{SubSurfaceFocusEntry::restore};
+};
+
+// Where a sub-surface returns the key events its tree left unhandled
+// (design note section 4: the parent then runs its own bubble, accelerators,
+// dialog keys and focus traversal, which is how Tab leaves the
+// sub-surface). Called on the parent's thread only, through the parent's
+// dispatcher, in the order the keys were forwarded; `sequence` is the one
+// SubSurfaceThread::post_input returned for the key. A target the parent
+// has released receives nothing.
+class SubSurfaceKeyReturn {
+public:
+    virtual ~SubSurfaceKeyReturn() = default;
+    virtual void return_unhandled_key(const KeyEvent& event, std::uint64_t sequence) = 0;
+};
+
 // Where a sub-surface is in its life, as its parent last saw it.
 enum class SubSurfaceState : std::uint8_t {
     // The thread is building the content's tree.
@@ -103,6 +152,14 @@ struct SubSurfaceStatistics final {
     // LiveSurface's presentation record.
     std::uint64_t deadline_wakes{};
     std::uint64_t missed_frames{};
+    // Input (design note section 4): events posted, events the tree
+    // dispatched (in posting order, never dropped while running), the
+    // sequence of the newest dispatched, and the unhandled keys sent back
+    // to the parent.
+    std::uint64_t inputs_received{};
+    std::uint64_t inputs_dispatched{};
+    std::uint64_t last_input_sequence{};
+    std::uint64_t keys_returned{};
 };
 
 // A SurfaceRoot whose output is a LiveSurface and whose host is a control of
@@ -123,6 +180,10 @@ public:
     // Window::resize and Window::set_scale. Root thread only.
     void apply_size(Size logical_size);
     void apply_scale(double scale);
+    // Focus enters from the host (SubSurfaceInputKind::focus_enter): the
+    // sub-surface becomes active and focus goes where `entry` says; a
+    // sub-surface without tab stops focuses nothing. Root thread only.
+    void enter_focus(SubSurfaceFocusEntry entry);
 };
 
 // The parent's side of one sub-surface: owns its thread (owner decision 9,
@@ -155,6 +216,16 @@ public:
     // others). An epoch not above the last one sent is std::invalid_argument;
     // after stop() the configuration is released and nothing changes.
     void configure(SubSurfaceConfiguration configuration);
+    // Queues one input event for the sub-surface's tree and wakes it; the
+    // thread dispatches queued events in this order, after applying the
+    // newest configuration and before its next flush. Returns the event's
+    // sequence: 1 for the first, growing by one. After stop() or a failure
+    // the event is discarded and 0 is returned.
+    std::uint64_t post_input(const SubSurfaceInput& input);
+    // Where unhandled keys go: posted through `parent` (the dispatcher of
+    // the window that owns this object) to `target`, held weakly. Replaces
+    // any earlier target; an empty `target` returns keys to no one.
+    void set_key_return(WindowDispatcher parent, std::weak_ptr<SubSurfaceKeyReturn> target);
     // Revokes the sub-surface (it publishes no frame from now on), asks its
     // loop to stop, and joins the thread: the loop finishes its current
     // flush, releases its tree on its own thread and exits (design note

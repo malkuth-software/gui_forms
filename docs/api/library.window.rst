@@ -106,6 +106,10 @@ Related types
      - What a sub-surface shows (stage S2, threaded sub-surfaces design note section 2).
    * - :cpp:class:`SubSurfaceHost <gui_forms::SubSurfaceHost>`
      - The parent's control for one threaded sub-surface (stage S2, design note section 2): it occupies the region, owns the sub-surface's thread, sizes and reconfigures it, and composes its LiveSurface into the window.
+   * - :cpp:class:`SubSurfaceInput <gui_forms::SubSurfaceInput>`
+     - One input event forwarded from the host to the sub-surface's thread (design note section 4).
+   * - :cpp:class:`SubSurfaceKeyReturn <gui_forms::SubSurfaceKeyReturn>`
+     - Where a sub-surface returns the key events its tree left unhandled (design note section 4: the parent then runs its own bubble, accelerators, dialog keys and focus traversal, which is how Tab leaves the sub-surface).
    * - :cpp:class:`SubSurfaceStatistics <gui_forms::SubSurfaceStatistics>`
      - Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
    * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
@@ -917,6 +921,10 @@ Related types
 
    .. cpp:function:: void apply_scale(double scale)
 
+   .. cpp:function:: void enter_focus(SubSurfaceFocusEntry entry)
+
+      Focus enters from the host (SubSurfaceInputKind::focus_enter): the sub-surface becomes active and focus goes where ``entry`` says; a sub-surface without tab stops focuses nothing. Root thread only.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: SubSurfaceConfiguration final
@@ -978,7 +986,7 @@ Related types
 
    ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
 
-   The parent's control for one threaded sub-surface (stage S2, design note section 2): it occupies the region, owns the sub-surface's thread, sizes and reconfigures it, and composes its LiveSurface into the window. On the window's dirty structure it is one control; the sub-surface's frames never mark the window's tree. UI thread, like every control of its window. Life: the content starts on its own thread the first time the host is attached to a Window with a non-empty size (nothing is produced before the first agreed size, resize rule 5), and stops when the host leaves the window: the thread releases the content and is joined. A host that is attached again shows nothing until it is given content again.
+   The parent's control for one threaded sub-surface (stage S2, design note section 2): it occupies the region, owns the sub-surface's thread, sizes and reconfigures it, and composes its LiveSurface into the window. On the window's dirty structure it is one control; the sub-surface's frames never mark the window's tree. UI thread, like every control of its window. Life: the content starts on its own thread the first time the host is attached to a Window with a non-empty size (nothing is produced before the first agreed size, resize rule 5), and stops when the host leaves the window: the thread releases the content and is joined. A host that is attached again shows nothing until it is given content again. Input (design note section 4): the host is a tab stop. Pointer events that reach it (the window's capture holds a pressed pointer on it), and key and text events while it has keyboard focus, are forwarded in order to the sub-surface's thread, which dispatches them to its own tree; the window's accelerator pre-filter has already run. Keys the sub-surface leaves unhandled come back asynchronously and continue in the window as if the host had not handled them: bubble from the host's parent, accelerators, dialog keys, and Tab, which moves focus past the host because the sub-surface's own traversal does not wrap. Keyboard focus inside the sub-surface follows the host's focus and the window's activation.
 
 
    .. rubric:: Construction
@@ -1012,6 +1020,10 @@ Related types
 
       The surface the sub-surface publishes into; null before it started.
 
+   .. cpp:function:: std::uint64_t returned_keys_discarded() const noexcept
+
+      Keys the sub-surface returned after the host had lost keyboard focus or left its window; they are not replayed in the window.
+
 
    .. rubric:: Methods
 
@@ -1037,6 +1049,59 @@ Related types
    .. cpp:function:: void on_detaching_from_window(SurfaceRoot& former_window) noexcept override
 
       *Protected.*
+
+   .. cpp:function:: void on_pointer(PointerEvent& event) override
+
+      *Protected.*
+
+      Forward to the sub-surface while it runs and mark the event handled.
+
+   .. cpp:function:: void on_key(KeyEvent& event) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_text_input(TextInputEvent& event) override
+
+      *Protected.*
+
+   .. cpp:function:: void on_focus_changed(bool focused) override
+
+      *Protected.*
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SubSurfaceInput final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   One input event forwarded from the host to the sub-surface's thread (design note section 4). Only the member ``kind`` names is meaningful. Pointer positions are in the sub-surface's logical coordinates.
+
+   .. cpp:member:: SubSurfaceInputKind kind
+
+      Default: ``{SubSurfaceInputKind::pointer}``.
+
+   .. cpp:member:: PointerEvent pointer
+
+   .. cpp:member:: KeyEvent key
+
+   .. cpp:member:: TextInputEvent text
+
+   .. cpp:member:: SubSurfaceFocusEntry focus_entry
+
+      Default: ``{SubSurfaceFocusEntry::restore}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceKeyReturn
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   Where a sub-surface returns the key events its tree left unhandled (design note section 4: the parent then runs its own bubble, accelerators, dialog keys and focus traversal, which is how Tab leaves the sub-surface). Called on the parent's thread only, through the parent's dispatcher, in the order the keys were forwarded; ``sequence`` is the one SubSurfaceThread::post_input returned for the key. A target the parent has released receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void return_unhandled_key(const KeyEvent& event, std::uint64_t sequence) = 0
 
 .. cpp:namespace:: gui_forms
 
@@ -1078,6 +1143,16 @@ Related types
 
    .. cpp:member:: std::uint64_t missed_frames
 
+   .. cpp:member:: std::uint64_t inputs_received
+
+      Input (design note section 4): events posted, events the tree dispatched (in posting order, never dropped while running), the sequence of the newest dispatched, and the unhandled keys sent back to the parent.
+
+   .. cpp:member:: std::uint64_t inputs_dispatched
+
+   .. cpp:member:: std::uint64_t last_input_sequence
+
+   .. cpp:member:: std::uint64_t keys_returned
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: SubSurfaceThread final
@@ -1115,9 +1190,17 @@ Related types
 
       Hands the sub-surface a new configuration and wakes it. Only the newest unapplied one is kept (configurations_coalesced counts the others). An epoch not above the last one sent is std::invalid_argument; after stop() the configuration is released and nothing changes.
 
+   .. cpp:function:: std::uint64_t post_input(const SubSurfaceInput& input)
+
+      Queues one input event for the sub-surface's tree and wakes it; the thread dispatches queued events in this order, after applying the newest configuration and before its next flush. Returns the event's sequence: 1 for the first, growing by one. After stop() or a failure the event is discarded and 0 is returned.
+
    .. cpp:function:: void stop() noexcept
 
       Revokes the sub-surface (it publishes no frame from now on), asks its loop to stop, and joins the thread: the loop finishes its current flush, releases its tree on its own thread and exits (design note section 9). Idempotent.
+
+   .. cpp:function:: void set_key_return(WindowDispatcher parent, std::weak_ptr<SubSurfaceKeyReturn> target)
+
+      Where unhandled keys go: posted through ``parent`` (the dispatcher of the window that owns this object) to ``target``, held weakly. Replaces any earlier target; an empty ``target`` returns keys to no one.
 
 .. cpp:namespace:: gui_forms
 
@@ -1408,6 +1491,34 @@ Enumerations
    .. cpp:enumerator:: paint_pass
 
    .. cpp:enumerator:: posted_callback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SubSurfaceFocusEntry
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   .. cpp:enumerator:: restore
+
+   .. cpp:enumerator:: first
+
+   .. cpp:enumerator:: last
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SubSurfaceInputKind
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   .. cpp:enumerator:: pointer
+
+   .. cpp:enumerator:: key
+
+   .. cpp:enumerator:: text
+
+   .. cpp:enumerator:: focus_enter
+
+   .. cpp:enumerator:: focus_leave
 
 .. cpp:namespace:: gui_forms
 
