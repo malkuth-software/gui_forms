@@ -55,6 +55,7 @@ private:
     void build_task_dialog(const std::shared_ptr<Surface>& body);
     void on_show_task_dialog();
     void on_task_dialog_closed(const TaskDialogResult& result);
+    void on_native_dialogs_changed(bool native);
     void on_show_exception_dialog();
     void on_exception_dialog_closed(DialogResult result);
     void build_notify_icon(const std::shared_ptr<Surface>& body);
@@ -100,6 +101,9 @@ private:
     Command task_dialog_command_{};
     std::shared_ptr<Button> task_dialog_button_;
     std::shared_ptr<TaskDialog> task_dialog_;
+    // Opens TaskDialog and FontDialog as native popup windows (owner,
+    // 2026-11-04: opt-in) instead of overlays.
+    std::shared_ptr<CheckBox> native_dialogs_;
     Command exception_dialog_command_{};
     std::shared_ptr<Button> exception_dialog_button_;
     std::shared_ptr<ThreadExceptionDialog> exception_dialog_;
@@ -150,7 +154,11 @@ void HostServicesPage::build_task_dialog(const std::shared_ptr<Surface>& body) {
     (*group_box).add_at(exception_dialog_button_, {238.0, 40.0, 202.0, 38.0});
     (*group_box).add_at(label("gallery.host.task-dialog.note",
                               "Each reports its result in closed: a button ID, or cancel and abort.",
-                              11.0, 400, muted), {458.0, 46.0, 446.0, 24.0});
+                              11.0, 400, muted), {458.0, 36.0, 446.0, 24.0});
+    native_dialogs_ = make_control<CheckBox>(StableId("gallery.host.task-dialog.native"),
+                                             "Open the task and font dialogs as native popup windows");
+    (*group_box).add_at(native_dialogs_, {458.0, 60.0, 446.0, 26.0});
+    on((*native_dialogs_).checked_changed(), *this, &HostServicesPage::on_native_dialogs_changed);
     task_dialog_ = make_control<TaskDialog>(StableId("gallery.host.task-dialog.dialog"));
     TaskDialogPage page;
     page.caption = "Export evidence";
@@ -195,6 +203,15 @@ void HostServicesPage::on_exception_dialog_closed(DialogResult result) {
 void HostServicesPage::on_show_task_dialog() {
     if (!(*task_dialog_).show(task_dialog_button_)) return;
     (*status_).set_text("TaskDialog shown · the window behind it takes no input until it closes");
+}
+
+// The toggle takes effect at each dialog's next show().
+void HostServicesPage::on_native_dialogs_changed(bool native) {
+    const DialogSurface surface = native ? DialogSurface::native_popup : DialogSurface::overlay;
+    (*task_dialog_).set_surface(surface);
+    if (font_dialog_) (*font_dialog_).set_surface(surface);
+    (*status_).set_text(native ? "Task and font dialogs open as native popup windows where the host has them"
+                               : "Task and font dialogs open as overlays in this window");
 }
 
 void HostServicesPage::on_task_dialog_closed(const TaskDialogResult& result) {

@@ -4,6 +4,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/window/native_popup/native_popup.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -147,6 +148,16 @@ public:
     // Shows the dialog over `owner`'s window. Returns false when it is
     // already shown or `owner` is not attached to a window.
     bool show(const Control::Ptr& owner);
+    // How show() presents the panel (DialogSurface; an overlay by default).
+    // With native_popup the panel opens in a native popup window owned by
+    // the owner's window, centred over its client area, when the run can
+    // open one; the full-client layer stays in the owner's window. Takes
+    // effect at the next show().
+    [[nodiscard]] DialogSurface surface() const noexcept { return surface_; }
+    void set_surface(DialogSurface surface) noexcept { surface_ = surface; }
+    // Where the shown panel went: native while it is in a popup window,
+    // else overlay (or none when it is not shown).
+    [[nodiscard]] NativePopupSurface presented_surface() const noexcept;
     [[nodiscard]] bool shown() const noexcept { return shown_; }
     // Closes the dialog as if `button_id` had been clicked, without raising
     // button_clicked. Does nothing when it is not shown.
@@ -272,6 +283,16 @@ private:
     OverlayToken overlay_{};
     SubscriptionToken overlay_revoked_{};
     FocusScopeId scope_{};
+    // The native popup window the panel is in (DialogSurface::native_popup):
+    // its root holds the dialog, so closing detaches the dialog at once
+    // even though the window itself is released later.
+    DialogSurface surface_{DialogSurface::overlay};
+    Control::Ptr native_root_{};
+    NativePopupToken native_{};
+    SubscriptionToken native_closed_{};
+    // Moves the shown dialog from the layer into a native popup window;
+    // false (the dialog back in the layer) when the run cannot open one.
+    bool open_native(Window& host, const Control::Ptr& owner);
     bool shown_{};
     bool synchronizing_{};
     std::optional<TaskDialogResult> result_{};

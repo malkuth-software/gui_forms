@@ -57,6 +57,12 @@ gui_forms::FontDialog
       **preview_text** : ``std::string_view``, default ``"AaBbYyZz 0123"``
          The text the preview shows. Invalid UTF-8 throws ``std::invalid_argument``.
 
+      **surface** : ``DialogSurface``
+         How show() presents the dialog (DialogSurface; an overlay by default). With native_popup it opens in a native popup window owned by the owner's window, centred over its client area, when the run can open one; the transparent layer that holds the owner's input stays in the owner's window. Takes effect at the next show().
+
+      **presented_surface** : ``NativePopupSurface``, read-only
+         Where the open dialog went: native while it is in a popup window, else overlay (or none when it is not open).
+
       **is_open** : ``bool``, read-only
          Whether the dialog is open over a window.
 
@@ -205,6 +211,16 @@ gui_forms::FontDialog
    .. cpp:function:: void set_preview_text(std::string text)
 
       Sets :cpp:func:`preview_text <gui_forms::FontDialog::preview_text>`; see the property's description above.
+
+   .. cpp:function:: DialogSurface surface() const noexcept
+
+      How show() presents the dialog (DialogSurface; an overlay by default). With native_popup it opens in a native popup window owned by the owner's window, centred over its client area, when the run can open one; the transparent layer that holds the owner's input stays in the owner's window. Takes effect at the next show().
+
+   .. cpp:function:: void set_surface(DialogSurface surface) noexcept
+
+   .. cpp:function:: NativePopupSurface presented_surface() const noexcept
+
+      Where the open dialog went: native while it is in a popup window, else overlay (or none when it is not open).
 
    .. cpp:function:: bool is_open() const noexcept
 

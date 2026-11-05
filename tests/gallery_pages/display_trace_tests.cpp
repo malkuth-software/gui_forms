@@ -540,6 +540,9 @@ struct PageDigest final {
 // values-and-spinners' property grid (the rows below move), and
 // states-and-diagnostics' live control count follows; those two were
 // recorded again.
+// The dialogs page's native-popup toggle (gallery.host.task-dialog.native)
+// is one control more in the window, which states-and-diagnostics' live
+// control count follows. Recorded again: states-and-diagnostics.
 //
 // typography-and-inspection's entry is the trace with the RuntimeId the
 // specimen has when this test runs first (#1328 since L8a on main); the digest

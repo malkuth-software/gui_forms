@@ -6,6 +6,8 @@
 // cannot open one falls back to an overlay, or refuses when asked to.
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/panel/font_dialog/font_dialog.hpp"
+#include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/host.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 #include "application/headless_application.hpp"
@@ -204,6 +206,89 @@ void entries_are_validated() {
     require(refused, "an empty popup is refused");
 }
 
+// Phase (c): an owned dialog asked for a native popup puts its panel in a
+// popup window and keeps its modal layer in the owner's window; closing
+// detaches it at once, so it can be shown again in the same turn.
+struct KeepTaskResult final {
+    std::string* button{};
+    void operator()(const TaskDialogResult& result) const { *button = result.button_id; }
+};
+
+void task_dialog_opens_natively() {
+    Desk desk;
+    std::shared_ptr<TaskDialog> dialog = make_control<TaskDialog>(StableId("native.task"));
+    TaskDialogPage page;
+    page.heading = "Native";
+    page.allow_cancel = true;
+    (*dialog).set_page(std::move(page));
+    (*dialog).set_surface(DialogSurface::native_popup);
+    std::string button;
+    SubscriptionToken kept = (*dialog).closed().subscribe(KeepTaskResult{&button});
+    require((*dialog).show(desk.opener), "the dialog shows");
+    require((*dialog).presented_surface() == NativePopupSurface::native, "its panel is in a popup window");
+    require(desk.windowing().window_count() == 2U, "the popup window is open");
+    require((*desk.model).focus_scope_depth() == 1U, "the owner's window keeps the modal layer's scope");
+    (*dialog).close("ok");
+    require(button == "ok" && desk.windowing().window_count() == 1U, "closing closes the popup window");
+    require((*dialog).attached_surface_root() == nullptr && !(*dialog).parent(), "the dialog is detached at once");
+    require((*desk.model).focus_scope_depth() == 0U, "the owner's scope ends");
+    require((*dialog).show(desk.opener) && (*dialog).presented_surface() == NativePopupSurface::native,
+            "it shows again natively");
+    // The host closing the popup window cancels the dialog.
+    const std::size_t popups = desk.windowing().window_count();
+    require(popups == 2U, "the second popup window is open");
+    button.clear();
+    const std::vector<HostWindowId> ids = desk.windowing().z_order();
+    HostWindowId popup{};
+    for (std::size_t index = 0U; index < ids.size(); ++index) {
+        if (desk.windowing().kind(ids[index]) == HostWindowKind::popup) popup = ids[index];
+    }
+    require(desk.windowing().destroy_window(popup).accepted(), "the host destroys the popup window");
+    require(!(*dialog).shown() && !button.empty(), "the dialog closes as cancelled");
+    require(desk.windowing().window_count() == 1U, "no popup window is left");
+}
+
+void task_dialog_falls_back_to_an_overlay() {
+    HostCapabilities limited = host::headless_capabilities();
+    using CapabilityBits = std::underlying_type_t<HostCapability>;
+    const CapabilityBits kept = static_cast<CapabilityBits>(limited.available) &
+                                static_cast<CapabilityBits>(~static_cast<CapabilityBits>(HostCapability::runtime_windows));
+    limited.available = static_cast<HostCapability>(kept);
+    Desk desk(limited);
+    std::shared_ptr<TaskDialog> dialog = make_control<TaskDialog>(StableId("overlay.task"));
+    (*dialog).set_surface(DialogSurface::native_popup);
+    require((*dialog).show(desk.opener), "the dialog shows");
+    require((*dialog).presented_surface() == NativePopupSurface::overlay, "as an overlay without popup windows");
+    require(desk.windowing().window_count() == 1U, "no popup window opened");
+    (*dialog).close("ok");
+    require((*dialog).presented_surface() == NativePopupSurface::none, "and closes");
+}
+
+struct KeepFontResult final {
+    DialogResult* result{};
+    void operator()(const FontDialogResult& closing) const { *result = closing.result; }
+};
+
+void font_dialog_opens_natively() {
+    Desk desk;
+    std::shared_ptr<FontDialog> dialog = make_control<FontDialog>(StableId("native.font"));
+    (*dialog).set_surface(DialogSurface::native_popup);
+    DialogResult result{DialogResult::none};
+    SubscriptionToken kept = (*dialog).closed().subscribe(KeepFontResult{&result});
+    require((*dialog).show(desk.opener), "the font dialog opens");
+    require((*dialog).presented_surface() == NativePopupSurface::native, "in a popup window");
+    require(desk.windowing().window_count() == 2U, "the popup window is open");
+    (*dialog).close(DialogResult::cancel);
+    require(result == DialogResult::cancel && desk.windowing().window_count() == 1U, "closing closes it");
+    require((*dialog).attached_surface_root() == nullptr, "the font dialog is detached at once");
+    require((*dialog).show(desk.opener) && (*dialog).presented_surface() == NativePopupSurface::native,
+            "it opens again natively");
+    (*dialog).close(DialogResult::ok);
+    require(result == DialogResult::ok, "OK closes it");
+}
+
+} // namespace
+
 int main() {
     try {
         opens_a_native_window();
@@ -212,6 +297,9 @@ int main() {
         closes_with_its_opener_and_its_host();
         falls_back_without_native_popups();
         entries_are_validated();
+        task_dialog_opens_natively();
+        task_dialog_falls_back_to_an_overlay();
+        font_dialog_opens_natively();
     } catch (const std::exception& error) {
         std::cerr << "gui_forms_native_popup_tests: " << error.what() << '\n';
         return EXIT_FAILURE;
