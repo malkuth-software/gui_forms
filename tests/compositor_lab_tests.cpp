@@ -168,6 +168,10 @@ CompositorState make_state(StateCase state_case, std::uint64_t generation) {
     case StateCase::transparency_disabled: state.transparency_enabled = false; break;
     case StateCase::reduced_transparency: state.reduced_transparency = true; break;
     case StateCase::high_contrast: state.high_contrast = true; break;
+    default:
+        // A case outside the enumeration names no compositor state.
+        require(false, "make_state is given a known state case");
+        break;
     }
     return state;
 }
@@ -201,6 +205,10 @@ Expected expected_grant(StateCase state, const WindowBackdropRequest& request) {
     case StateCase::transparency_disabled: expected.reason = WindowBackdropReason::transparency_disabled; break;
     case StateCase::reduced_transparency: expected.reason = WindowBackdropReason::reduced_transparency; break;
     case StateCase::high_contrast: expected.reason = WindowBackdropReason::high_contrast; break;
+    default:
+        // A case outside the enumeration has no expected grant.
+        require(false, "expected_grant is given a known state case");
+        break;
     }
     return expected;
 }
@@ -257,6 +265,10 @@ void check_frame(const Frame& frame, const WindowBackdropGrant& grant, bool refl
     case WindowBackdrop::transient_material:
         require(near(clear.alpha, transient_material_alpha),
                 "over the transient material the clear part is its base's tint");
+        break;
+    default:
+        // A grant names one of the four backdrops; anything else is a defect.
+        require(false, "the grant names a known backdrop");
         break;
     }
     const Pixel band_reflected = frame.at(band_reflection_column, band_reflection_row);

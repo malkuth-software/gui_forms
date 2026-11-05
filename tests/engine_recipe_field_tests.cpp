@@ -88,6 +88,7 @@ const Color blue = Color::rgba(30, 60, 200);
 void test_field_names() {
     const std::vector<std::string_view> names{
         "text", "outline_style", "outline_colour", "outline_width", "outline_offset", "text_shadow",
+        "font_family", "font_size",     "font_weight",   "font_style",     "letter_spacing",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {
