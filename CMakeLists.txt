@@ -309,6 +309,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/style_reader/layout_style_reader.cpp
     src/core/layout/flex_solver/flex_solver.cpp
     src/core/layout/grid_solver/grid_solver.cpp
+    src/core/layout/grid_span/grid_span.cpp
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp

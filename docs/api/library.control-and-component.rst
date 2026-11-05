@@ -134,6 +134,8 @@ Related types
      -  
    * - :cpp:class:`GridAvailableExtent <gui_forms::GridAvailableExtent>`
      -  
+   * - :cpp:class:`GridCell <gui_forms::GridCell>`
+     - One cell of a grid, zero-based, row first (as grid-area and ``.form``'s ``cell: row column`` write it).
    * - :cpp:class:`GridContainerInput <gui_forms::GridContainerInput>`
      -  
    * - :cpp:class:`GridContainerStyle <gui_forms::GridContainerStyle>`
@@ -160,6 +162,8 @@ Related types
      - One margin as the solver reads it: a resolved length, or ``auto``.
    * - :cpp:class:`GridNamedArea <gui_forms::GridNamedArea>`
      - One named area of grid-template-areas, as zero-based half-open line ranges of the template's cells.
+   * - :cpp:class:`GridSpan <gui_forms::GridSpan>`
+     - A region of a grid that fuses ``rows`` x ``columns`` cells from its anchor, its top-left cell (top-right in a right-to-left layout, which the solver mirrors).
    * - :cpp:class:`GridTemplateAreas <gui_forms::GridTemplateAreas>`
      - grid-template-areas: its dimensions in cells and its areas in the order their first cells are written.
    * - :cpp:class:`GridTrack <gui_forms::GridTrack>`
@@ -170,6 +174,8 @@ Related types
      - A track size: one breadth (both ends equal, except that a lone ``<n>fr`` is CSS's ``minmax(auto, <n>fr)``), ``minmax(minimum, maximum)``, or ``fit-content(<length-percentage>)``, whose limit is ``fit_content_limit`` with minimum ``auto`` and maximum ``max-content``.
    * - :cpp:class:`HitTestTransparentCapability <gui_forms::HitTestTransparentCapability>`
      - Whether pointer hit testing passes through the control to what is under it.
+   * - :cpp:class:`HoldsGridSpans <gui_forms::HoldsGridSpans>`
+     - A grid container type that holds spans opts in by specializing this to true beside its declaration (GridPanel does).
    * - :cpp:class:`InteractionDeclaration <gui_forms::InteractionDeclaration>`
      - One interaction.
    * - :cpp:class:`InteractionValidation <gui_forms::InteractionValidation>`
@@ -1403,6 +1409,18 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: GridCell final
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   One cell of a grid, zero-based, row first (as grid-area and ``.form``'s ``cell: row column`` write it).
+
+   .. cpp:member:: std::uint32_t row
+
+   .. cpp:member:: std::uint32_t column
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GridContainerInput final
 
    ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
@@ -1693,6 +1711,28 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: GridSpan final
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   A region of a grid that fuses ``rows`` x ``columns`` cells from its anchor, its top-left cell (top-right in a right-to-left layout, which the solver mirrors). A span is identified by its name when it has one, and always by its anchor. A named span is a named area (grid-template-areas is another spelling of the named spans); a child placed at an anonymous span's anchor occupies the whole region.
+
+   .. cpp:member:: std::string name
+
+      Empty: anonymous.
+
+   .. cpp:member:: GridCell anchor
+
+   .. cpp:member:: std::uint32_t rows
+
+      Each at least 1; the region ends within maximum_grid_span_extent. Default: ``{1U}``.
+
+   .. cpp:member:: std::uint32_t columns
+
+      Default: ``{1U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GridTemplateAreas final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -1787,6 +1827,14 @@ Related types
    .. cpp:member:: PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename ControlType> HoldsGridSpans : std::false_type
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   A grid container type that holds spans opts in by specializing this to true beside its declaration (GridPanel does). Such a type provides the child properties ``area`` and ``cell`` and has ``GridSpanOutcome define_span(const GridSpan&)``; the form schema and the loader reach it through this declaration only.
 
 .. cpp:namespace:: gui_forms
 
@@ -2966,6 +3014,26 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: GridSpanOutcome
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   .. cpp:enumerator:: applied
+
+   .. cpp:enumerator:: extent_invalid
+
+   .. cpp:enumerator:: overlaps
+
+   .. cpp:enumerator:: name_repeated
+
+   .. cpp:enumerator:: covers_placed_child
+
+   .. cpp:enumerator:: in_use
+
+   .. cpp:enumerator:: not_found
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: InlineVerticalAlignment
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -3514,6 +3582,32 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_grid_repetitions
 
    The most repetitions one ``repeat(auto-fill | auto-fit, ...)`` generates. Value: ``10'000U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+.. cpp:function:: bool grid_span_extent_valid(const GridSpan& span) noexcept
+
+   Whether a span has at least one row and column and ends within maximum_grid_span_extent.
+
+.. cpp:function:: bool grid_cell_admitted(GridCell cell) noexcept
+
+   Whether a cell lies within maximum_grid_span_extent on both axes.
+
+.. cpp:function:: bool grid_span_contains(const GridSpan& span, GridCell cell) noexcept
+
+   Whether ``cell`` lies in ``span``'s region, and in it other than at its anchor. Valid extents only.
+
+.. cpp:function:: bool grid_span_interior(const GridSpan& span, GridCell cell) noexcept
+
+.. cpp:function:: bool grid_spans_overlap(const GridSpan& first, const GridSpan& second) noexcept
+
+   Whether two spans share a cell. Valid extents only.
+
+.. cpp:var:: constexpr std::uint32_t maximum_grid_span_extent
+
+   The line past the last cell any span or cell may use on either axis: the grid's track limit (maximum_grid_tracks). Value: ``10'000U``.
 
 .. cpp:namespace:: gui_forms
 

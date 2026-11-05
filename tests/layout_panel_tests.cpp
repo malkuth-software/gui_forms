@@ -3,12 +3,16 @@
 #include "gui_forms/window.hpp"
 
 #include <cmath>
+#include <cstdint>
 #include <cstdlib>
 #include <functional>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <thread>
+#include <variant>
+#include <vector>
 
 namespace {
 
@@ -140,6 +144,59 @@ void test_margin_padding_validation_and_retained_slots() {
             "margin and padding must reject negative or nonfinite geometry");
 }
 
+// The flow break as a child property (study sections 10 and 15.4): the
+// typed borrow and the name-keyed table read and write one value per child;
+// both refuse a control that is not a live direct child; a child that
+// leaves takes its value with it.
+void test_flow_break_child_property() {
+    std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("layout.flow.child"));
+    std::shared_ptr<Button> first = sized_button("layout.flow.child.first", 40.0, 20.0);
+    std::shared_ptr<Button> stranger = sized_button("layout.flow.child.stranger", 40.0, 20.0);
+    (*flow).add_child(first);
+
+    const std::vector<gui_forms::PropertyDescriptor> provided = (*flow).child_property_descriptors();
+    require(provided.size() == 1U && provided[0].name == "flow_break" &&
+                provided[0].kind == gui_forms::BindingValueKind::boolean,
+            "flow child table: one boolean flow_break");
+    require(!(*flow).flow_break[*first].read(), "flow break: the default before any write");
+    (*flow).set_child_property_value(*first, "flow-break", gui_forms::BindingValue{true});
+    require((*flow).flow_break[*first].read(), "flow break: a name-keyed write reaches the typed read");
+    (*flow).flow_break[*first] = false;
+    const std::optional<gui_forms::BindingValue> named = (*flow).child_property_value(*first, "flow_break");
+    require(named && std::get<bool>(*named) == false && !(*flow).should_serialize_child_property(*first, "flow_break"),
+            "flow break: a typed write reaches the name-keyed read; the default is not serialized");
+    require(!(*flow).child_property_value(*first, "column_span"), "flow break: an unprovided name has no value");
+
+    bool typed_refused = false;
+    try {
+        (*flow).flow_break[*stranger] = true;
+    } catch (const std::invalid_argument&) {
+        typed_refused = true;
+    }
+    bool named_refused = false;
+    try {
+        static_cast<void>((*flow).child_property_value(*stranger, "flow_break"));
+    } catch (const std::invalid_argument&) {
+        named_refused = true;
+    }
+    bool unknown_refused = false;
+    try {
+        (*flow).set_child_property_value(*first, "column_span", gui_forms::BindingValue{std::uint64_t{2U}});
+    } catch (const std::invalid_argument&) {
+        unknown_refused = true;
+    }
+    require(typed_refused && named_refused && unknown_refused,
+            "flow break: a stranger and an unprovided name are refused");
+
+    (*flow).flow_break[*first] = true;
+    static_cast<void>((*flow).remove_child((*first).runtime_id()));
+    (*flow).add_child(first);
+    require(!(*flow).flow_break[*first].read(), "flow break: a child that left comes back with the default");
+    (*flow).flow_break[*first] = true;
+    require((*flow).reset_child_property(*first, "flow_break") && !(*flow).flow_break[*first].read(),
+            "flow break: reset restores the default");
+}
+
 void test_flow_direction_break_visibility_and_resize() {
     std::shared_ptr<gui_forms::FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("layout.flow.policy"));
     std::shared_ptr<Button> first = sized_button("layout.flow.policy.first", 40.0, 20.0);
@@ -148,7 +205,7 @@ void test_flow_direction_break_visibility_and_resize() {
     (*flow).add_child(first);
     (*flow).add_child(second);
     (*flow).add_child(third);
-    (*flow).set_flow_break(*first, true);
+    (*flow).flow_break[*first] = true;
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(flow, Size{100.0, 100.0});
     Window& window = *held_window;
     window.perform_layout();
@@ -157,7 +214,7 @@ void test_flow_direction_break_visibility_and_resize() {
                 (*third).arranged_bounds().y == 20.0,
             "FlowBreak must terminate one row while retaining later child order");
 
-    (*flow).set_flow_break(*first, false);
+    (*flow).flow_break[*first] = false;
     (*flow).set_flow_direction(FlowDirection::right_to_left);
     window.perform_layout();
     require((*first).arranged_bounds().x == 60.0 &&
@@ -817,6 +874,7 @@ int main() {
     try {
         test_flow_auto_scroll_owns_viewport_and_input();
         test_margin_padding_validation_and_retained_slots();
+        test_flow_break_child_property();
         test_flow_direction_break_visibility_and_resize();
         test_flow_item_spacing_is_explicit_bounded_layout_state();
         test_flow_auto_size_mode_preserves_authored_extent();

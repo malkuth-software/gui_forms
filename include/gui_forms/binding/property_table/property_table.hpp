@@ -14,6 +14,7 @@
 namespace gui_forms {
 
 class Component;
+class Control;
 
 // One property of a property-owning type's constant table (property-
 // capabilities study, section 4 and decision 5): what the run-time
@@ -47,12 +48,36 @@ struct PropertyEntry final {
     SubscriptionToken (*connect_changed)(Component& owner, Component& subscriber, std::function<void()> changed);
 };
 
+// One property a container provides to its direct children (an attached
+// property, study sections 10 and 15.4): a child writes it in its own
+// `.form` block, and the container stores the value per child. The
+// operations take the container as a Component (static_cast to the
+// declaring class, as PropertyEntry's do) and the child, which must be a
+// live direct child of it. A child property has no change event and no
+// origin (Windows Forms raises no per-child event).
+struct ChildPropertyEntry final {
+    // The registered (snake_case) name; equal to describe().name.
+    std::string_view name;
+    // The inert descriptor, built once (property_table_descriptor).
+    const PropertyDescriptor& (*describe)();
+    // The child's current value; the descriptor's default when none was
+    // written.
+    BindingValue (*read)(const Component& container, const Control& child);
+    // Writes a value already converted to the descriptor's kind.
+    void (*write)(Component& container, const Control& child, const BindingValue& value);
+    // Restores the default; null: write the descriptor's default value.
+    void (*reset)(Component& container, const Control& child);
+    // Whether the value is serialized; null: compare with the default.
+    bool (*should_serialize)(const Component& container, const Control& child);
+};
+
 // Whether the names of `entries` are distinct. Used in a static_assert next
 // to each type's table, so a duplicate fails where it is declared, naming
-// the table.
-[[nodiscard]] consteval bool property_names_distinct(std::span<const PropertyEntry> entries) {
-    for (std::size_t first = 0U; first < entries.size(); ++first) {
-        for (std::size_t second = first + 1U; second < entries.size(); ++second) {
+// the table. Entry: PropertyEntry or ChildPropertyEntry.
+template <typename Entry, std::size_t Count>
+[[nodiscard]] consteval bool property_names_distinct(const std::array<Entry, Count>& entries) {
+    for (std::size_t first = 0U; first < Count; ++first) {
+        for (std::size_t second = first + 1U; second < Count; ++second) {
             if (entries[first].name == entries[second].name) return false;
         }
     }
@@ -60,11 +85,12 @@ struct PropertyEntry final {
 }
 
 // A declaring class's table after its base's: the base's entries first,
-// then its own, so a type's slots are stable and gap-free.
-template <std::size_t BaseCount, std::size_t OwnCount>
-[[nodiscard]] constexpr std::array<PropertyEntry, BaseCount + OwnCount> join_property_tables(
-    const std::array<PropertyEntry, BaseCount>& base, const std::array<PropertyEntry, OwnCount>& own) {
-    std::array<PropertyEntry, BaseCount + OwnCount> joined{};
+// then its own, so a type's slots are stable and gap-free. Entry:
+// PropertyEntry or ChildPropertyEntry.
+template <typename Entry, std::size_t BaseCount, std::size_t OwnCount>
+[[nodiscard]] constexpr std::array<Entry, BaseCount + OwnCount> join_property_tables(
+    const std::array<Entry, BaseCount>& base, const std::array<Entry, OwnCount>& own) {
+    std::array<Entry, BaseCount + OwnCount> joined{};
     for (std::size_t index = 0U; index < BaseCount; ++index) joined[index] = base[index];
     for (std::size_t index = 0U; index < OwnCount; ++index) joined[BaseCount + index] = own[index];
     return joined;
@@ -74,11 +100,12 @@ template <std::size_t BaseCount, std::size_t OwnCount>
 // base's table with each entry of `overrides` replacing the base entry of
 // the same name, in the base entry's slot. An override that names no base
 // entry throws, which fails the constant evaluation of the table that uses
-// it, so the mistake does not compile.
-template <std::size_t BaseCount, std::size_t OverrideCount>
-[[nodiscard]] constexpr std::array<PropertyEntry, BaseCount> override_property_entries(
-    const std::array<PropertyEntry, BaseCount>& base, const std::array<PropertyEntry, OverrideCount>& overrides) {
-    std::array<PropertyEntry, BaseCount> result = base;
+// it, so the mistake does not compile. Entry: PropertyEntry or
+// ChildPropertyEntry.
+template <typename Entry, std::size_t BaseCount, std::size_t OverrideCount>
+[[nodiscard]] constexpr std::array<Entry, BaseCount> override_property_entries(
+    const std::array<Entry, BaseCount>& base, const std::array<Entry, OverrideCount>& overrides) {
+    std::array<Entry, BaseCount> result = base;
     for (std::size_t replacing = 0U; replacing < OverrideCount; ++replacing) {
         bool replaced = false;
         for (std::size_t slot = 0U; slot < BaseCount; ++slot) {
@@ -130,5 +157,18 @@ bool reset_property_entry(Component& owner, const PropertyEntry& entry);
 // entry raises no change or `changed` is empty.
 [[nodiscard]] SubscriptionToken connect_property_entry(Component& owner, const PropertyEntry& entry,
                                                        Component& subscriber, std::function<void()> changed);
+
+// The same operations for one child property. Callers (Control's child
+// property API) check the container's thread and that `child` is a live
+// direct child; the entries' writes check both again through their
+// prepare hooks. The read is converted and checked against the
+// descriptor, and the written value converted to its kind, as above.
+[[nodiscard]] BindingValue read_child_property_entry(const Component& container, const Control& child,
+                                                     const ChildPropertyEntry& entry);
+void write_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry,
+                                const BindingValue& value);
+bool reset_child_property_entry(Component& container, const Control& child, const ChildPropertyEntry& entry);
+[[nodiscard]] bool child_property_entry_should_serialize(const Component& container, const Control& child,
+                                                         const ChildPropertyEntry& entry);
 
 } // namespace gui_forms

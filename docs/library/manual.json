@@ -447,8 +447,6 @@
         "set_wrap_contents": "Toggles wrapping and invalidates the retained layout result.",
         "item_spacing": "Returns explicit main-axis item and cross-axis line separation as logical dimensions.",
         "set_item_spacing": "Accepts finite zero-to-256 spacing, applies it between items and lines without trailing gaps, and invalidates layout.",
-        "set_flow_break": "Requires a direct child and records whether it terminates the current line/column after itself.",
-        "flow_break": "Returns the retained break bit for a current direct child.",
         "measure": "Packs stable child snapshots without assignment and returns the bounded flow extent when auto-sized.",
         "arrange": "Reconciles removed metadata and assigns each live child a margin-aware directional slot in final bounds.",
         "semantic_descriptor": "Projects a named flow surface as a group while leaving unnamed structural layout unexposed."

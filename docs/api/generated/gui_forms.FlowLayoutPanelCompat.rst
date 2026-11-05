@@ -7,7 +7,7 @@ gui_forms::FlowLayoutPanelCompat
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: FlowLayoutPanelCompat final : public ContainerControl
+.. cpp:class:: FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.hpp>``
 
@@ -37,6 +37,15 @@ gui_forms::FlowLayoutPanelCompat
          Identity of the panel, unique within its window.
 
    :Properties:
+
+      **flow_break** : ``bool``, child property, default ``false``
+         Whether a child ends its line, a property the panel provides to its
+         direct children and stores for each: `(*flow).flow_break[*child] =
+         true;` makes the next child start a new line even when it would fit,
+         and ``(*flow).flow_break[*child].read()`` reads it. A ``.form`` child
+         writes ``flow-break: true;``. A control that is not a live direct child
+         is refused with ``std::invalid_argument``; the value is dropped when the
+         child leaves.
 
       **flow_direction** : ``FlowDirection``, default ``FlowDirection::left_to_right``
          The main axis and the end it starts from. :cpp:enumerator:`FlowDirection::right_to_left <gui_forms::FlowDirection::right_to_left>`
@@ -80,12 +89,10 @@ gui_forms::FlowLayoutPanelCompat
       :class: autosummary longtable
       :widths: 35 65
 
-      * - :cpp:func:`flow_break <gui_forms::FlowLayoutPanelCompat::flow_break>`
-        - Whether ``child`` ends its line.
+      * - :cpp:func:`flow_child_property_entries <gui_forms::FlowLayoutPanelCompat::flow_child_property_entries>`
+        -  
       * - :cpp:func:`flex_grow <gui_forms::FlowLayoutPanelCompat::flex_grow>`
         - The grow value of ``child``, or 0 for a control that is not a direct child.
-      * - :cpp:func:`set_flow_break <gui_forms::FlowLayoutPanelCompat::set_flow_break>`
-        - ``set_flow_break(child, true)`` ends the line after ``child``, so the next child starts a new line even when it would fit.
       * - :cpp:func:`set_flex_grow <gui_forms::FlowLayoutPanelCompat::set_flex_grow>`
         - Gives ``child`` a share of the free space on its line, in proportion to its grow value among the line's children.
 
@@ -190,6 +197,16 @@ gui_forms::FlowLayoutPanelCompat
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool flow_break
+
+      Whether a child ends its line, a property the panel provides to its
+      direct children and stores for each: `(*flow).flow_break[*child] =
+      true;` makes the next child start a new line even when it would fit,
+      and ``(*flow).flow_break[*child].read()`` reads it. A ``.form`` child
+      writes ``flow-break: true;``. A control that is not a live direct child
+      is refused with ``std::invalid_argument``; the value is dropped when the
+      child leaves.
+
    .. cpp:function:: FlowDirection flow_direction() const noexcept
 
       The main axis and the end it starts from. :cpp:enumerator:`FlowDirection::right_to_left <gui_forms::FlowDirection::right_to_left>`
@@ -246,20 +263,11 @@ gui_forms::FlowLayoutPanelCompat
 
    .. rubric:: Methods
 
-   .. cpp:function:: bool flow_break(const Control& child) const
-
-      Whether ``child`` ends its line. Returns false for a control that is not a
-      direct child.
+   .. cpp:function:: static const std::array<ChildPropertyEntry, flow_child_property_count>& flow_child_property_entries() noexcept
 
    .. cpp:function:: double flex_grow(const Control& child) const
 
       The grow value of ``child``, or 0 for a control that is not a direct child.
-
-   .. cpp:function:: void set_flow_break(const Control& child, bool flow_break)
-
-      ``set_flow_break(child, true)`` ends the line after ``child``, so the next
-      child starts a new line even when it would fit. The child must be a live
-      direct child of the panel.
 
    .. cpp:function:: void set_flex_grow(const Control& child, double grow)
 
@@ -271,6 +279,8 @@ gui_forms::FlowLayoutPanelCompat
 
    .. rubric:: Extension points
 
+   .. cpp:function:: std::span<const ChildPropertyEntry> child_property_table() const noexcept override
+
    .. cpp:function:: Size measure(Size available) override
 
    .. cpp:function:: void arrange(Rect final_bounds) override
@@ -278,3 +288,11 @@ gui_forms::FlowLayoutPanelCompat
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: void child_leaving(const Control& child) noexcept override
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t flow_child_property_count
+
+      The child properties it provides: flow_break. Default: ``1U``.

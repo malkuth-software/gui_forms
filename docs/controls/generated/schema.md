@@ -2006,6 +2006,8 @@ States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focu
 
 Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
+Properties it provides to its children: `area` (text), `cell` (point).
+
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
@@ -2057,6 +2059,8 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+
+Properties it provides to its children: `flow_break` (boolean).
 
 | Interaction | Payload |
 |---|---|

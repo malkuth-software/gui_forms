@@ -200,8 +200,8 @@ void test_generated_matches_loader() {
     for (const FormProperty& property : workspace.model.properties) {
         if (property.object.value == 0U) continue;
         const std::string& stable_id = workspace.model.objects[property.object.value].stable_id;
-        const FormSchemaType& type = schema.types[workspace.model.objects[property.object.value].schema_type];
-        const std::string& name = type.properties[property.schema_property].name;
+        const std::string& name =
+            gui_forms::form_language::form_property_descriptor(schema, workspace.model, property).name;
         const Control::Ptr generated = find_control(root, stable_id);
         const Control::Ptr from_loader = find_control(loaded.root, stable_id);
         const bool same = generated != nullptr && from_loader != nullptr &&
@@ -471,6 +471,85 @@ void test_presentation_fonts() {
     require(refused, "presentation fonts: each refused at its name, pointing at the theme; content stays");
 }
 
+// A child writes what its parent provides (study section 10): the loader
+// stores it in the parent, the generator writes it through the parent, and
+// under a parent that does not provide it the model refuses it.
+void test_attached_properties() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "flow-layout-panel-compat app.root {\n"
+                                      "  button app.a { text: \"A\"; flow-break: true; }\n"
+                                      "  button app.b { text: \"B\"; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "flow.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "attached: the model builds");
+    if (!read) return;
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = gui_forms::form_language::load_form(
+        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, loaded,
+        workspace.diagnostics);
+    require(outcome == FormLoadOutcome::loaded, "attached: the document loads");
+    if (outcome != FormLoadOutcome::loaded) return;
+    const std::shared_ptr<gui_forms::FlowLayoutPanelCompat> flow =
+        std::dynamic_pointer_cast<gui_forms::FlowLayoutPanelCompat>(loaded.root);
+    const Control::Ptr first = find_control(loaded.root, "app.a");
+    const Control::Ptr second = find_control(loaded.root, "app.b");
+    require(flow != nullptr && first != nullptr && second != nullptr, "attached: every object made");
+    if (flow == nullptr || first == nullptr || second == nullptr) return;
+    require((*flow).flow_break[*first].read() && !(*flow).flow_break[*second].read(),
+            "attached: the parent stores the child's flow break");
+
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "FlowForm";
+    options.source_name = "flow.form";
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "attached: the generator writes the document");
+    require(generated.find("(*made.app_root).set_child_property_value(*made.app_a, \"flow_break\", "
+                           "gui_forms::BindingValue{true});") != std::string::npos,
+            "attached: generated through the parent, after the child is added");
+
+    const std::string_view stranger = "panel app.root {\n"
+                                      "  button app.a { flow-break: true; }\n"
+                                      "}\n";
+    require(!read_document(workspace, "stranger.form", stranger, schema), "attached: a panel provides none");
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    const bool refused = records.size() == 1U && records[0].code == DiagnosticCode::form_property_unknown &&
+                         records[0].detail.find("nor its parent's type panel") != std::string::npos;
+    if (!refused) print_diagnostics(workspace);
+    require(refused, "attached: unknown under a parent that does not provide it, naming the parent");
+}
+
+// Spans (study 10.9): generated after the objects and before any
+// placement.
+void test_spans() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "grid-panel app.root {\n"
+                                      "  button app.a { text: \"A\"; cell: 0 2; }\n"
+                                      "  span side { anchor: 0 2; rows: 2; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "grid.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "spans: the model builds");
+    if (!read) return;
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "GridForm";
+    options.source_name = "grid.form";
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "spans: the generator writes the document");
+    const std::size_t span = generated.find("if ((*made.app_root).define_span(gui_forms::GridSpan{\"side\", "
+                                            "gui_forms::GridCell{0U, 2U}, 2U, 1U}) != "
+                                            "gui_forms::GridSpanOutcome::applied) {");
+    const std::size_t placement = generated.find("(*made.app_root).set_child_property_value(*made.app_a, \"cell\"");
+    require(span != std::string::npos && placement != std::string::npos && span < placement,
+            "spans: the span is defined before the placement");
+    require(generated.find("#include \"gui_forms/layout/grid_span/grid_span.hpp\"") != std::string::npos,
+            "spans: the generated header includes the span vocabulary");
+}
+
 void test_member_names() {
     require(gui_forms::form_language::form_member_name("settings.auto-save") == "settings_auto_save",
             "member names: '.' and '-' spelled '_'");
@@ -488,6 +567,8 @@ int main() {
     test_golden();
     test_fonts_and_items();
     test_presentation_fonts();
+    test_attached_properties();
+    test_spans();
     test_page_descriptors();
     test_refusals();
     test_member_names();

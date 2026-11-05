@@ -31,6 +31,15 @@
 // - image, object and other collections: not yet expressible (E999).
 // A handler reference, `on-<interaction>: <handler>;`, names a member of
 // the owner class (owner decision FD-3): one C++ identifier.
+//
+// Spans (study 10.9): directly inside an object whose type holds spans
+// (FormSchemaType::holds_spans), `span [name] { anchor: <row> <column>;
+// rows: <n>; columns: <n>; }` declares one region of its grid. The reserved
+// type `span` is no object: its name is the span's, in the container's
+// namespace and not a stable ID, and it may be omitted (an anonymous span,
+// placed into by its anchor). `rows` and `columns` default to 1; `anchor`
+// is required. The children write `area: "<name>"` or `cell: <row>
+// <column>`, the child properties such a type provides.
 
 #include "../../theme_language/diagnostics/theme_diagnostics.hpp"
 #include "../../theme_language/source_text/theme_source_text.hpp"
@@ -40,6 +49,7 @@
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/layout/grid_span/grid_span.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -56,6 +66,10 @@ namespace gui_forms::form_language {
 // function per type, made from the templates below.
 using FormObjectCreator = Component::Ptr (*)(StableId stable_id);
 
+// Defines a span on an object of a type that holds spans, for the loader:
+// a named function per type, made from the template below.
+using FormSpanDefiner = GridSpanOutcome (*)(Component& owner, const GridSpan& span);
+
 // One type a document may name, as the run-time registry describes it.
 struct FormSchemaType final {
     // The registered name: `check_box`.
@@ -64,6 +78,14 @@ struct FormSchemaType final {
     // components do not.
     bool holds_children{};
     std::vector<PropertyDescriptor> properties{};
+    // The properties the type provides to its direct children, which each
+    // child writes in its own block (attached properties: a table cell, a
+    // flow break). No name here is also a property of every control.
+    std::vector<PropertyDescriptor> child_properties{};
+    // Whether objects of the type hold `span` blocks (HoldsGridSpans), and
+    // how the loader defines one.
+    bool holds_spans{};
+    FormSpanDefiner define_span{};
     // The interactions' registered names: `checked_changed`.
     std::vector<std::string> interactions{};
     // How the loader makes one; none for a type a document may describe
@@ -103,13 +125,25 @@ template <typename ComponentType>
     return component;
 }
 
+// The span definer of a type that holds spans.
+template <typename ControlType>
+[[nodiscard]] GridSpanOutcome define_form_span(Component& owner, const GridSpan& span) {
+    ControlType& control = static_cast<ControlType&>(owner);
+    const GridSpanOutcome outcome = control.define_span(span);
+    return outcome;
+}
+
 // A control or component type described from a fresh prototype, with its
-// creator.
+// creator (and its span definer, for a type that holds spans).
 template <typename ControlType>
 [[nodiscard]] FormSchemaType form_control_type(std::string name) {
     const std::shared_ptr<ControlType> prototype = make_control<ControlType>(StableId("prototype"));
     FormSchemaType type = describe_form_type(std::move(name), *prototype);
     type.create = &create_form_control<ControlType>;
+    if constexpr (HoldsGridSpans<ControlType>::value) {
+        type.holds_spans = true;
+        type.define_span = &define_form_span<ControlType>;
+    }
     return type;
 }
 
@@ -129,6 +163,10 @@ template <typename ComponentType>
 // the document). It has no interactions until the window's are
 // described; the loader makes no object of it (LoadedForm::window).
 inline constexpr std::string_view form_root_type_name = "form";
+
+// The reserved type of a span block, admitted only directly inside an
+// object whose type holds spans.
+inline constexpr std::string_view form_span_type_name = "span";
 
 // The reserved form type's schema, for the caller to list with the
 // registry's types.
@@ -154,13 +192,30 @@ struct FormObject final {
     theme_language::NodeIndex node{};
 };
 
+// Which type declares a written property.
+enum class FormPropertyProvider : std::uint8_t {
+    // The object's own type: FormSchemaType::properties.
+    object_type,
+    // The type of the object's parent, which provides it to its children:
+    // FormSchemaType::child_properties.
+    parent_type,
+};
+
 struct FormProperty final {
     ObjectIndex object{};
-    // The property's position in its type's FormSchemaType::properties.
+    FormPropertyProvider provider{FormPropertyProvider::object_type};
+    // The property's position in its provider's list (see provider).
     std::size_t schema_property{};
     theme_language::NodeIndex node{};
     // Of the property's kind, normalized by its descriptor.
     BindingValue value{};
+};
+
+// One span block: its container, its value and its node.
+struct FormSpan final {
+    ObjectIndex owner{};
+    GridSpan span{};
+    theme_language::NodeIndex node{};
 };
 
 struct FormHandler final {
@@ -173,9 +228,10 @@ struct FormHandler final {
 
 // Caller-owned: replaced whole by a build that succeeds, left as it was by
 // one that refuses. Objects are in document order, each before its
-// children; properties and handlers are in document order.
+// children; spans, properties and handlers are in document order.
 struct FormModel final {
     std::vector<FormObject> objects{};
+    std::vector<FormSpan> spans{};
     std::vector<FormProperty> properties{};
     std::vector<FormHandler> handlers{};
 };
@@ -186,6 +242,12 @@ enum class FormModelOutcome : std::uint8_t {
     // in document order, and `model` is unchanged.
     refused,
 };
+
+// The descriptor of a property `model` records, from its provider's list
+// in `schema`, the schema the model was built against. The reference is
+// valid while `schema` is unchanged.
+[[nodiscard]] const PropertyDescriptor& form_property_descriptor(const FormSchema& schema, const FormModel& model,
+                                                                 const FormProperty& property);
 
 // Builds the model of the document `tree` describes. `tree` must be a
 // complete parse of `source` as ThemeSheetForm::form_document, from

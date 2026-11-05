@@ -13,10 +13,13 @@
 #include "../../scrollable_anatomy.hpp"
 #include "../out_of_flow.hpp"
 
+#include "gui_forms/binding/property_table/property_table.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <unordered_set>
 #include <utility>
 
@@ -253,7 +256,134 @@ SizeValue used_maximum(const SizeValue& maximum, double control_maximum) noexcep
     return maximum;
 }
 
+static_assert(maximum_grid_span_extent == maximum_grid_tracks, "spans end within the grid's track limit");
+
 const GridItemLayout default_item_layout{};
+const GridPlacement automatic_placement{};
+
+// Whether every placement line of `lines` is automatic: the item layout
+// does not place the child.
+bool lines_automatic(const GridItemStyle& lines) noexcept {
+    return lines.column_start.kind == GridLineKind::automatic && lines.column_end.kind == GridLineKind::automatic &&
+           lines.row_start.kind == GridLineKind::automatic && lines.row_end.kind == GridLineKind::automatic;
+}
+
+const char* span_refusal_text(GridSpanOutcome outcome) noexcept {
+    switch (outcome) {
+    case GridSpanOutcome::extent_invalid:
+        return "GridPanel template areas hold an area past the grid's limit";
+    case GridSpanOutcome::overlaps:
+        return "GridPanel template areas overlap";
+    case GridSpanOutcome::name_repeated:
+        return "GridPanel template areas must be distinct named rectangles within it";
+    case GridSpanOutcome::covers_placed_child:
+        return "GridPanel template areas cover a cell a child is placed at";
+    case GridSpanOutcome::in_use:
+        return "GridPanel template areas remove an area a child is placed into";
+    case GridSpanOutcome::applied:
+    case GridSpanOutcome::not_found:
+    default:
+        // Not refusals of a template-areas list (and an unknown outcome):
+        // the general text below.
+        break;
+    }
+    return "GridPanel template areas are refused";
+}
+
+void set_area_line(GridLine& line, const std::string& area) {
+    line.kind = GridLineKind::area;
+    line.number = 0;
+    line.area = area;
+}
+
+void set_number_line(GridLine& line, GridLineKind kind, std::uint32_t number) {
+    line.kind = kind;
+    line.number = static_cast<std::int32_t>(number);
+    line.area.clear();
+}
+
+// The child properties GridPanel provides (study 10.9): two views of one
+// placement.
+const PropertyDescriptor& describe_area() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"area", BindingValueKind::text, "Layout",
+                           "The span the child is placed into by name; empty when it is not placed by area.",
+                           BindingValue{std::string{}}, invalidation::bounds},
+        PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+BindingValue read_area(const Component& container, const Control& child) {
+    const GridPanel& grid = static_cast<const GridPanel&>(container);
+    std::string value = grid.area[child].read();
+    return BindingValue{std::move(value)};
+}
+
+void write_area(Component& container, const Control& child, const BindingValue& value) {
+    GridPanel& grid = static_cast<GridPanel&>(container);
+    grid.area[child] = std::get<std::string>(value);
+}
+
+// Reset clears only a placement by area; one by cell stays.
+void reset_area(Component& container, const Control& child) {
+    GridPanel& grid = static_cast<GridPanel&>(container);
+    if (grid.placement(child).form != GridPlacement::Form::area) return;
+    grid.area[child] = std::string{};
+}
+
+// A cell has no default: {0, 0} is a placement, not the automatic one.
+const PropertyDescriptor& describe_cell() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"cell", BindingValueKind::point, "Layout",
+                           "The cell the child is placed at, row then column; a span's anchor places it into "
+                           "the span.",
+                           std::nullopt, invalidation::bounds},
+        PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+BindingValue read_cell(const Component& container, const Control& child) {
+    const GridPanel& grid = static_cast<const GridPanel&>(container);
+    const GridCell cell = grid.cell[child].read();
+    const BindingValue value = PropertyValueTraits<GridCell>::to_binding(cell);
+    return value;
+}
+
+// A coordinate of a cell's point form: a whole number in [0, maximum).
+bool cell_coordinate(double value, std::uint32_t& coordinate) noexcept {
+    if (!std::isfinite(value) || value < 0.0 || value >= static_cast<double>(maximum_grid_span_extent)) return false;
+    if (std::floor(value) != value) return false;
+    coordinate = static_cast<std::uint32_t>(value);
+    return true;
+}
+
+void write_cell(Component& container, const Control& child, const BindingValue& value) {
+    GridPanel& grid = static_cast<GridPanel&>(container);
+    const Point point = std::get<Point>(value);
+    GridCell cell{};
+    if (!cell_coordinate(point.x, cell.row) || !cell_coordinate(point.y, cell.column)) {
+        throw std::invalid_argument("GridPanel cell needs a row and a column, whole numbers from 0 to 9999");
+    }
+    grid.cell[child] = cell;
+}
+
+void reset_cell(Component& container, const Control& child) {
+    GridPanel& grid = static_cast<GridPanel&>(container);
+    if (grid.placement(child).form != GridPlacement::Form::cell) return;
+    grid.area[child] = std::string{};
+}
+
+bool area_serialized(const Component& container, const Control& child) {
+    const GridPanel& grid = static_cast<const GridPanel&>(container);
+    const bool serialized = grid.placement(child).form == GridPlacement::Form::area;
+    return serialized;
+}
+
+bool cell_serialized(const Component& container, const Control& child) {
+    const GridPanel& grid = static_cast<const GridPanel&>(container);
+    const bool serialized = grid.placement(child).form == GridPlacement::Form::cell;
+    return serialized;
+}
 
 constexpr ControlAnatomy grid_panel_anatomy{
     .control_id = "grid_panel",
@@ -265,6 +395,273 @@ constexpr ControlAnatomy grid_panel_anatomy{
 } // namespace
 
 GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
+
+const std::array<ChildPropertyEntry, GridPanel::grid_child_property_count>&
+GridPanel::grid_child_property_entries() noexcept {
+    static constexpr std::array<ChildPropertyEntry, grid_child_property_count> entries{{
+        {"area", &describe_area, &read_area, &write_area, &reset_area, &area_serialized},
+        {"cell", &describe_cell, &read_cell, &write_cell, &reset_cell, &cell_serialized},
+    }};
+    static_assert(property_names_distinct(entries), "GridPanel's child table names a property twice");
+    return entries;
+}
+
+std::span<const ChildPropertyEntry> GridPanel::child_property_table() const noexcept {
+    const std::array<ChildPropertyEntry, grid_child_property_count>& entries = grid_child_property_entries();
+    return std::span<const ChildPropertyEntry>(entries);
+}
+
+GridSpanOutcome GridPanel::check_spans(std::span<const GridSpan> candidate) const {
+    for (const GridSpan& span : candidate) {
+        if (!grid_span_extent_valid(span)) return GridSpanOutcome::extent_invalid;
+    }
+    // Pairwise: span lists are short (a table's fused regions).
+    for (std::size_t first = 0U; first < candidate.size(); ++first) {
+        for (std::size_t second = first + 1U; second < candidate.size(); ++second) {
+            const GridSpan& left = candidate[first];
+            const GridSpan& right = candidate[second];
+            if (!left.name.empty() && left.name == right.name) return GridSpanOutcome::name_repeated;
+            if (grid_spans_overlap(left, right)) return GridSpanOutcome::overlaps;
+        }
+    }
+    for (const ItemMap::value_type& entry : items_) {
+        const GridPlacement& placed = entry.second.placement;
+        if (placed.form == GridPlacement::Form::cell) {
+            for (const GridSpan& span : candidate) {
+                if (grid_span_interior(span, placed.cell)) return GridSpanOutcome::covers_placed_child;
+            }
+        }
+    }
+    for (const ItemMap::value_type& entry : items_) {
+        const GridPlacement& placed = entry.second.placement;
+        if (placed.form != GridPlacement::Form::area) continue;
+        bool named = false;
+        for (const GridSpan& span : candidate) {
+            if (span.name == placed.area) named = true;
+        }
+        if (!named) return GridSpanOutcome::in_use;
+    }
+    return GridSpanOutcome::applied;
+}
+
+void GridPanel::adopt_spans(std::vector<GridSpan> candidate) {
+    spans_ = std::move(candidate);
+    regenerate_template_areas();
+    invalidate(invalidation::bounds);
+}
+
+void GridPanel::regenerate_template_areas() {
+    GridTemplateAreas areas{};
+    std::uint32_t rows = area_extent_.row;
+    std::uint32_t columns = area_extent_.column;
+    for (const GridSpan& span : spans_) {
+        if (span.name.empty()) continue;
+        rows = std::max(rows, span.anchor.row + span.rows);
+        columns = std::max(columns, span.anchor.column + span.columns);
+        areas.areas.push_back(GridNamedArea{span.name, span.anchor.row, span.anchor.row + span.rows,
+                                            span.anchor.column, span.anchor.column + span.columns});
+    }
+    // Both zero is `none`; an extent of zero on one axis with no named
+    // span is too.
+    if (rows != 0U && columns != 0U) {
+        areas.rows = rows;
+        areas.columns = columns;
+    }
+    style_.template_areas = std::move(areas);
+}
+
+const GridSpan* GridPanel::find_span(std::string_view name) const noexcept {
+    if (name.empty()) return nullptr;
+    for (const GridSpan& span : spans_) {
+        if (span.name == name) return &span;
+    }
+    return nullptr;
+}
+
+const GridSpan* GridPanel::find_anchored_span(GridCell anchor) const noexcept {
+    for (const GridSpan& span : spans_) {
+        if (span.anchor == anchor) return &span;
+    }
+    return nullptr;
+}
+
+GridSpanOutcome GridPanel::define_span(const GridSpan& span) {
+    require_mutable();
+    std::vector<GridSpan> candidate{};
+    candidate.reserve(spans_.size() + 1U);
+    candidate.assign(spans_.begin(), spans_.end());
+    candidate.push_back(span);
+    const GridSpanOutcome outcome = check_spans(candidate);
+    if (outcome != GridSpanOutcome::applied) return outcome;
+    adopt_spans(std::move(candidate));
+    return GridSpanOutcome::applied;
+}
+
+GridSpanOutcome GridPanel::remove_span_at(std::size_t index) {
+    std::vector<GridSpan> candidate = spans_;
+    candidate.erase(candidate.begin() + static_cast<std::ptrdiff_t>(index));
+    const GridSpanOutcome outcome = check_spans(candidate);
+    if (outcome != GridSpanOutcome::applied) return outcome;
+    adopt_spans(std::move(candidate));
+    return GridSpanOutcome::applied;
+}
+
+GridSpanOutcome GridPanel::remove_span(std::string_view name) {
+    require_mutable();
+    const GridSpan* const found = find_span(name);
+    if (found == nullptr) return GridSpanOutcome::not_found;
+    const std::size_t removed = static_cast<std::size_t>(found - spans_.data());
+    const GridSpanOutcome outcome = remove_span_at(removed);
+    return outcome;
+}
+
+GridSpanOutcome GridPanel::remove_span(GridCell anchor) {
+    require_mutable();
+    const GridSpan* const found = find_anchored_span(anchor);
+    if (found == nullptr) return GridSpanOutcome::not_found;
+    const std::size_t removed = static_cast<std::size_t>(found - spans_.data());
+    const GridSpanOutcome outcome = remove_span_at(removed);
+    return outcome;
+}
+
+GridSpanOutcome GridPanel::set_spans(std::span<const GridSpan> spans) {
+    require_mutable();
+    // Copied before the check: `spans` may borrow spans_ itself.
+    std::vector<GridSpan> candidate(spans.begin(), spans.end());
+    const GridSpanOutcome outcome = check_spans(candidate);
+    if (outcome != GridSpanOutcome::applied) return outcome;
+    if (candidate == spans_) return GridSpanOutcome::applied;
+    adopt_spans(std::move(candidate));
+    return GridSpanOutcome::applied;
+}
+
+GridPlacement GridPanel::placement(const Control& child) const {
+    require_direct_child(child);
+    const GridPlacement placed = placement_for(child);
+    return placed;
+}
+
+const GridPlacement& GridPanel::placement_for(const Control& child) const noexcept {
+    const ItemMap::const_iterator found = items_.find(child.runtime_id().value);
+    if (found == items_.end()) return automatic_placement;
+    return (*found).second.placement;
+}
+
+void GridPanel::prepare_write(const ChildPropertyView<std::string, GridAreaCapability<GridPanel>>& property,
+                              const Control& child, std::string& incoming) const {
+    static_cast<void>(property);
+    require_mutable();
+    require_direct_child(child);
+    if (!incoming.empty() && find_span(incoming) == nullptr) {
+        throw std::invalid_argument("GridPanel area names no span: " + incoming);
+    }
+}
+
+void GridPanel::prepare_write(const ChildPropertyView<GridCell, GridCellCapability<GridPanel>>& property,
+                              const Control& child, GridCell& incoming) const {
+    static_cast<void>(property);
+    require_mutable();
+    require_direct_child(child);
+    if (!grid_cell_admitted(incoming)) throw std::invalid_argument("GridPanel cell lies past the grid's limit");
+    for (const GridSpan& span : spans_) {
+        if (grid_span_interior(span, incoming)) {
+            throw std::invalid_argument("GridPanel cell lies inside a span; place the child at its anchor");
+        }
+    }
+}
+
+void GridPanel::written(const Control& child) {
+    static_cast<void>(child);
+    invalidate(invalidation::bounds);
+}
+
+bool GridPanel::replace_area(const Control& child, std::string area) {
+    GridPlacement placed{};
+    if (!area.empty()) {
+        placed.form = GridPlacement::Form::area;
+        placed.area = std::move(area);
+    }
+    const bool replaced = replace_placement(child, std::move(placed));
+    return replaced;
+}
+
+bool GridPanel::replace_cell(const Control& child, GridCell cell) {
+    GridPlacement placed{};
+    placed.form = GridPlacement::Form::cell;
+    placed.cell = cell;
+    const bool replaced = replace_placement(child, std::move(placed));
+    return replaced;
+}
+
+bool GridPanel::replace_placement(const Control& child, GridPlacement placement) {
+    const std::uint64_t id = child.runtime_id().value;
+    const ItemMap::iterator found = items_.find(id);
+    const GridPlacement& current = found == items_.end() ? automatic_placement : (*found).second.placement;
+    if (current == placement) return false;
+    if (placement.form == GridPlacement::Form::automatic) {
+        // Only an area or cell placement changes here, so a record exists.
+        (*found).second.placement = std::move(placement);
+        if ((*found).second.layout == default_item_layout) items_.erase(found);
+        return true;
+    }
+    ItemRecord& record = items_[id];
+    record.placement = std::move(placement);
+    // Writing either view replaces the item layout's lines.
+    record.layout.placement = GridItemStyle{};
+    return true;
+}
+
+std::string GridPanel::stored_area(const Control& child) const {
+    require_direct_child(child);
+    const GridPlacement& placed = placement_for(child);
+    if (placed.form != GridPlacement::Form::area) return std::string{};
+    std::string area = placed.area;
+    return area;
+}
+
+GridCell GridPanel::stored_cell(const Control& child) const {
+    require_direct_child(child);
+    const GridPlacement& placed = placement_for(child);
+    if (placed.form == GridPlacement::Form::cell) return placed.cell;
+    if (placed.form != GridPlacement::Form::area) return GridCell{};
+    const GridSpan* const span = find_span(placed.area);
+    if (span == nullptr) return GridCell{};
+    return (*span).anchor;
+}
+
+void GridPanel::effective_lines(const ItemRecord& record, GridItemStyle& lines) const {
+    const GridPlacement& placed = record.placement;
+    switch (placed.form) {
+    case GridPlacement::Form::area:
+        set_area_line(lines.column_start, placed.area);
+        set_area_line(lines.column_end, placed.area);
+        set_area_line(lines.row_start, placed.area);
+        set_area_line(lines.row_end, placed.area);
+        return;
+    case GridPlacement::Form::cell: {
+        // At a span's anchor the child takes the whole region; elsewhere one
+        // cell. Grid lines are one-based.
+        const GridSpan* const span = find_anchored_span(placed.cell);
+        const std::uint32_t rows = span == nullptr ? 1U : (*span).rows;
+        const std::uint32_t columns = span == nullptr ? 1U : (*span).columns;
+        set_number_line(lines.row_start, GridLineKind::line, placed.cell.row + 1U);
+        set_number_line(lines.row_end, GridLineKind::span, rows);
+        set_number_line(lines.column_start, GridLineKind::line, placed.cell.column + 1U);
+        set_number_line(lines.column_end, GridLineKind::span, columns);
+        return;
+    }
+    case GridPlacement::Form::automatic:
+    default:
+        // Automatic, and an unknown form: the item layout's lines below.
+        break;
+    }
+    // Automatic, and the fallback: the item layout's own lines.
+    lines = record.layout.placement;
+}
+
+void GridPanel::child_leaving(const Control& child) noexcept {
+    items_.erase(child.runtime_id().value);
+}
 
 void GridPanel::set_template_columns(const GridTrackList& tracks) {
     require_mutable();
@@ -291,9 +688,18 @@ void GridPanel::set_template_areas(const GridTemplateAreas& areas) {
     if (!admitted_template_areas(areas)) {
         throw std::invalid_argument("GridPanel template areas must be distinct named rectangles within it");
     }
-    if (style_.template_areas == areas) return;
-    style_.template_areas = areas;
-    invalidate(invalidation::bounds);
+    std::vector<GridSpan> candidate{};
+    candidate.reserve(areas.areas.size());
+    for (const GridNamedArea& area : areas.areas) {
+        candidate.push_back(GridSpan{area.name, GridCell{area.row_start, area.column_start},
+                                     area.row_end - area.row_start, area.column_end - area.column_start});
+    }
+    const GridSpanOutcome outcome = check_spans(candidate);
+    if (outcome != GridSpanOutcome::applied) throw std::invalid_argument(span_refusal_text(outcome));
+    const GridCell extent{areas.rows, areas.columns};
+    if (candidate == spans_ && extent == area_extent_) return;
+    area_extent_ = extent;
+    adopt_spans(std::move(candidate));
 }
 
 void GridPanel::set_auto_flow(GridAutoFlow flow) {
@@ -395,7 +801,10 @@ void GridPanel::set_item_layout(const Control& child, const GridItemLayout& layo
     if (found != items_.end() && (*found).second.layout == layout) return;
     if (found == items_.end() && layout == default_item_layout) return;
     const bool was_positioned = record_for(child).positioning.position != PositionKind::static_position;
-    items_[id].layout = layout;
+    ItemRecord& record = items_[id];
+    record.layout = layout;
+    // Lines that place the child replace an area or cell placement.
+    if (!lines_automatic(layout.placement)) record.placement = GridPlacement{};
     invalidate(invalidation::bounds);
     // A child that becomes, or stops being, a positioned box changes the
     // containing block of absolute children below it.
@@ -471,8 +880,14 @@ void GridPanel::resolve_item_inputs() {
     inputs_.resize(count);
     for (std::size_t index = 0U; index < count; ++index) {
         Control& child = *children_[index];
-        const GridItemLayout& layout = record_for(child);
-        placements_[index] = layout.placement;
+        const ItemMap::const_iterator found = items_.find(child.runtime_id().value);
+        const bool recorded = found != items_.end();
+        const GridItemLayout& layout = recorded ? (*found).second.layout : default_item_layout;
+        if (recorded) {
+            effective_lines((*found).second, placements_[index]);
+        } else {
+            placements_[index] = default_item_layout.placement;
+        }
         GridItemInput& input = inputs_[index];
         input = GridItemInput{};
         input.placement = &placements_[index];

@@ -14,8 +14,46 @@ namespace gui_forms {
 
 using namespace container_layout_detail;
 
+namespace {
+
+const PropertyDescriptor& describe_flow_break() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"flow_break", BindingValueKind::boolean, "Layout",
+                           "Whether the flow continues on a new line after this child.", BindingValue{false},
+                           invalidation::bounds},
+        PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+BindingValue read_flow_break(const Component& container, const Control& child) {
+    const FlowLayoutPanelCompat& flow = static_cast<const FlowLayoutPanelCompat&>(container);
+    const bool value = flow.flow_break[child].read();
+    return BindingValue{value};
+}
+
+void write_flow_break(Component& container, const Control& child, const BindingValue& value) {
+    FlowLayoutPanelCompat& flow = static_cast<FlowLayoutPanelCompat&>(container);
+    flow.flow_break[child] = std::get<bool>(value);
+}
+
+} // namespace
+
 FlowLayoutPanelCompat::FlowLayoutPanelCompat(StableId stable_id)
     : ContainerControl(std::move(stable_id)) {}
+
+const std::array<ChildPropertyEntry, FlowLayoutPanelCompat::flow_child_property_count>&
+FlowLayoutPanelCompat::flow_child_property_entries() noexcept {
+    static constexpr std::array<ChildPropertyEntry, flow_child_property_count> entries{{
+        {"flow_break", &describe_flow_break, &read_flow_break, &write_flow_break, nullptr, nullptr},
+    }};
+    static_assert(property_names_distinct(entries), "FlowLayoutPanelCompat's child table names a property twice");
+    return entries;
+}
+
+std::span<const ChildPropertyEntry> FlowLayoutPanelCompat::child_property_table() const noexcept {
+    const std::array<ChildPropertyEntry, flow_child_property_count>& entries = flow_child_property_entries();
+    return std::span<const ChildPropertyEntry>(entries);
+}
 
 void FlowLayoutPanelCompat::set_flow_direction(FlowDirection direction) {
     require_mutable();
@@ -64,23 +102,44 @@ void FlowLayoutPanelCompat::set_cross_alignment(FlowCrossAlignment alignment) {
     invalidate(invalidation::bounds);
 }
 
-void FlowLayoutPanelCompat::set_flow_break(const Control& child, bool flow_break) {
+void FlowLayoutPanelCompat::prepare_write(
+    const ChildPropertyView<bool, FlowBreakCapability<FlowLayoutPanelCompat>>& property, const Control& child,
+    bool& incoming) const {
+    static_cast<void>(property);
+    static_cast<void>(incoming);
     require_mutable();
-    if (child.parent().get() != this || !child.is_alive()) {
-        throw std::invalid_argument(
-            "FlowLayoutPanelCompat flow break requires a live direct child");
-    }
-    const std::uint64_t id = child.runtime_id().value;
-    if (FlowLayoutPanelCompat::flow_break(child) == flow_break) return;
-    records_[id].flow_break = flow_break;
-    erase_default_record(id);
+    require_direct_child(child);
+}
+
+void FlowLayoutPanelCompat::written(
+    const ChildPropertyView<bool, FlowBreakCapability<FlowLayoutPanelCompat>>& property, const Control& child) {
+    static_cast<void>(property);
+    static_cast<void>(child);
     invalidate(invalidation::bounds);
 }
 
-bool FlowLayoutPanelCompat::flow_break(const Control& child) const {
-    if (child.parent().get() != this || !child.is_alive()) return false;
-    const ItemMap::const_iterator found = records_.find(child.runtime_id().value);
-    return found != records_.end() && (*found).second.flow_break;
+bool FlowLayoutPanelCompat::replace_flow_break(const Control& child, bool value) {
+    const std::uint64_t id = child.runtime_id().value;
+    if (recorded_flow_break(id) == value) return false;
+    records_[id].flow_break = value;
+    erase_default_record(id);
+    return true;
+}
+
+bool FlowLayoutPanelCompat::stored_flow_break(const Control& child) const {
+    require_direct_child(child);
+    const bool value = recorded_flow_break(child.runtime_id().value);
+    return value;
+}
+
+bool FlowLayoutPanelCompat::recorded_flow_break(std::uint64_t id) const noexcept {
+    const ItemMap::const_iterator found = records_.find(id);
+    const bool value = found != records_.end() && (*found).second.flow_break;
+    return value;
+}
+
+void FlowLayoutPanelCompat::child_leaving(const Control& child) noexcept {
+    records_.erase(child.runtime_id().value);
 }
 
 void FlowLayoutPanelCompat::erase_default_record(std::uint64_t id) {
@@ -246,7 +305,8 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
         const Size desired = preferred_child_size(child, inner);
         if (!is_alive()) return {};
         if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
-        const FlowItem item{child, desired, (*child).margin.read(), flex_grow(*child), flow_break(*child)};
+        const bool break_after = recorded_flow_break((*child).runtime_id().value);
+        const FlowItem item{child, desired, (*child).margin.read(), flex_grow(*child), break_after};
         const double item_main = horizontal
             ? horizontal_extent(item.margin) + item.desired.width
             : vertical_extent(item.margin) + item.desired.height;

@@ -743,6 +743,28 @@ public:
     [[nodiscard]] PropertyValueOrigin property_value_origin(
         std::string_view name) const;
 
+    // The properties this type provides to its direct children (attached
+    // properties: study sections 10 and 15.4), stored here per child.
+    // Empty by default; a container returns its constant child table
+    // (join_property_tables puts a base's entries first).
+    [[nodiscard]] virtual std::span<const ChildPropertyEntry> child_property_table() const noexcept;
+    // The table's descriptors, in table order.
+    [[nodiscard]] std::vector<PropertyDescriptor> child_property_descriptors() const;
+    // `child`'s value of the child property `name` (registered or kebab-case
+    // spelling); nullopt when this type provides no such property. Throws
+    // std::invalid_argument when `child` is not a live direct child.
+    [[nodiscard]] std::optional<BindingValue> child_property_value(const Control& child,
+                                                                   std::string_view name) const;
+    // Writes `child`'s value, converted to the property's kind. Throws
+    // std::invalid_argument for an unknown name, a value that does not
+    // convert or that the property refuses, or a `child` that is not a live
+    // direct child; nothing changes then.
+    void set_child_property_value(const Control& child, std::string_view name, const BindingValue& value);
+    // Restores `child`'s default; false when this type provides no such
+    // property or it has no default.
+    bool reset_child_property(const Control& child, std::string_view name);
+    [[nodiscard]] bool should_serialize_child_property(const Control& child, std::string_view name) const;
+
     [[nodiscard]] virtual Size measure(Size available);
     virtual void arrange(Rect final_bounds);
     // The measure entry layout solvers call (stage L). It answers from this
@@ -1038,6 +1060,14 @@ protected:
         publishes_item_tool_tips_ = publishes;
     }
     void require_mutable() const;
+    // Throws std::invalid_argument unless `child` is a live direct child of
+    // this control: the check every child property read and write makes.
+    void require_direct_child(const Control& child) const;
+    // Called by remove_child and by the child's disposal while `child` is
+    // still this control's child, just before it leaves: a container erases
+    // what it stores for the child (its child property values), so a child
+    // added again starts from the defaults. It may not mutate the tree.
+    virtual void child_leaving(const Control& child) noexcept;
     // Layout is allowed to invoke application-overridable measurement. Such a
     // callback may legally mutate the retained tree, so layout authors must
     // iterate a strong identity snapshot and revalidate each identity before

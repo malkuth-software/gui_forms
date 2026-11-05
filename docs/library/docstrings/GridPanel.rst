@@ -44,9 +44,34 @@ template_rows : default no tracks
     content height.
 template_areas : default none
     grid-template-areas: the template's rows and columns in cells and its
-    named rectangles. Names must be distinct and each area must lie within
-    the template; its rows and columns add explicit tracks where the
-    template lists are shorter.
+    named rectangles, which are the named spans in another spelling.
+    Setting it replaces every span, anonymous ones included, and records
+    the template's extent; reading it answers the named spans in order
+    within the larger of that extent and the spans' own. Names must be
+    distinct, each area must lie within the template, and the spans' rules
+    apply (see `define_span`). Its rows and columns add explicit tracks
+    where the template lists are shorter.
+spans : default none
+    The spans, `GridSpan` values in declaration order: each a region of
+    `rows` x `columns` cells from its `anchor` (`GridCell`, row then
+    column, zero-based), named or anonymous. The getter borrows the panel
+    until the next span edit. `set_spans(spans)` replaces every span, with
+    the rules of `define_span` and `remove_span` over the whole list, and
+    returns a `GridSpanOutcome`.
+area : child property, default ``""``
+    The named span a child is placed into: `(*grid).area[*ok] =
+    "footer";`. Reading it answers "" unless the child is placed by area;
+    writing "" makes the child's placement automatic. The name must be a
+    span's. A `.form` child writes `area: "footer";`.
+cell : child property
+    The cell a child is placed at: `(*grid).cell[*title] =
+    gf::GridCell{.row = 0U, .column = 0U};`. At a span's anchor the child
+    takes the span's whole region; a cell inside a span, other than its
+    anchor, is refused. Reading it answers the anchor of the region the
+    child occupies, for an area placement too, and {0, 0} for an automatic
+    one. It travels in bindings as a point whose x is the row; a `.form`
+    child writes `cell: 0 2;`. Writing `area` or `cell` replaces the other
+    and the item layout's placement lines.
 auto_flow : default ``GridAutoFlow::row``
     grid-auto-flow: automatic placement fills rows (`row`) or columns
     (`column`), and with `row_dense` or `column_dense` goes back to fill
@@ -100,6 +125,21 @@ layout_outcome : read-only
 
 Methods
 -------
+define_span
+    `define_span(span)` adds a `GridSpan` and returns a `GridSpanOutcome`:
+    `applied`, or the refusal, which changes nothing. A span is refused
+    with no rows or columns or ending past 10,000 (`extent_invalid`),
+    sharing a cell with another (`overlaps`), sharing a non-empty name
+    (`name_repeated`) or covering a cell a child is placed at other than
+    its anchor (`covers_placed_child`). A span may lie past the explicit
+    tracks; implicit tracks hold it.
+remove_span
+    `remove_span(name)` or `remove_span(anchor)` removes one span:
+    `not_found` when none matches, `in_use` for a named span a child is
+    placed into by area (re-place or clear those children first).
+placement
+    `placement(child)` answers a direct child's `GridPlacement`: which
+    form is in force (`automatic`, `area` or `cell`) and its value.
 set_item_layout
     `set_item_layout(child, layout)` sets a direct child's
     `GridItemLayout`: its `placement` (`GridItemStyle`'s four
@@ -109,7 +149,8 @@ set_item_layout
     maximums; and which margins are `auto`. The child must be a live
     direct child, line numbers and spans at most 10,000, sizes lengths,
     percentages of the item's grid area or `auto` (`none` for the
-    maximums).
+    maximums). Placement lines that are not all automatic replace an
+    `area` or `cell` placement.
 item_layout
     The child's item layout, or the default one for a child without its
     own record or a control that is not a direct child.
@@ -132,7 +173,9 @@ minimum or maximum is a length or `none`. Margins are the child's
 `margin`, and the default `Control` margin is 3 on every side, so set it
 to zero for flush items. Hidden children take no space.
 
-The panel keeps one item record per child, dropped when the child leaves.
+The panel keeps one item record per child, its placement included,
+dropped when the child leaves. Automatic placement does not treat a span as
+one region: like CSS Grid with named areas, it fills free cells.
 A parent assigns each child a layout slot; the child's own
 `requested_bounds` are never rewritten. The panel measures each item once
 per change, and an item stretched over fixed columns only for its height:

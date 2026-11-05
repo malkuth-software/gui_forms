@@ -46,16 +46,17 @@ cross_alignment : default ``FlowCrossAlignment::start``
     or stretched to the line's thickness minus its margins. A line is as
     thick as its thickest child; when the panel holds a single line, the line
     fills the panel's client area inside its padding.
+flow_break : child property, default ``false``
+    Whether a child ends its line, a property the panel provides to its
+    direct children and stores for each: `(*flow).flow_break[*child] =
+    true;` makes the next child start a new line even when it would fit,
+    and `(*flow).flow_break[*child].read()` reads it. A `.form` child
+    writes `flow-break: true;`. A control that is not a live direct child
+    is refused with `std::invalid_argument`; the value is dropped when the
+    child leaves.
 
 Methods
 -------
-set_flow_break
-    `set_flow_break(child, true)` ends the line after `child`, so the next
-    child starts a new line even when it would fit. The child must be a live
-    direct child of the panel.
-flow_break
-    Whether `child` ends its line. Returns false for a control that is not a
-    direct child.
 set_flex_grow
     Gives `child` a share of the free space on its line, in proportion to its
     grow value among the line's children. A value of 0, the default, keeps

@@ -1615,6 +1615,78 @@ std::vector<PropertyDescriptor> Control::property_descriptors() const {
     return result;
 }
 
+std::span<const ChildPropertyEntry> Control::child_property_table() const noexcept {
+    return {};
+}
+
+std::vector<PropertyDescriptor> Control::child_property_descriptors() const {
+    const std::span<const ChildPropertyEntry> table = child_property_table();
+    std::vector<PropertyDescriptor> descriptors{};
+    descriptors.reserve(table.size());
+    for (const ChildPropertyEntry& entry : table) descriptors.push_back(entry.describe());
+    return descriptors;
+}
+
+namespace {
+
+// The entry of `table` registered as `name` (either spelling), or null.
+[[nodiscard]] const ChildPropertyEntry* find_child_property_entry(std::span<const ChildPropertyEntry> table,
+                                                                  std::string_view name) {
+    const std::string canonical = registered_name(name);
+    for (const ChildPropertyEntry& entry : table) {
+        if (entry.name == canonical) return &entry;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void Control::require_direct_child(const Control& child) const {
+    if (!child.is_alive() || child.parent_.lock().get() != this) {
+        throw std::invalid_argument("GUI.Forms child property requires a live direct child");
+    }
+}
+
+void Control::child_leaving(const Control& child) noexcept {
+    static_cast<void>(child);
+}
+
+std::optional<BindingValue> Control::child_property_value(const Control& child, std::string_view name) const {
+    if (surface_root_) (*surface_root_).require_root_thread("child property query");
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) return std::nullopt;
+    std::optional<BindingValue> value = read_child_property_entry(*this, child, *entry);
+    return value;
+}
+
+void Control::set_child_property_value(const Control& child, std::string_view name, const BindingValue& value) {
+    require_mutable();
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) {
+        throw std::invalid_argument("GUI.Forms container provides no child property " + std::string(name));
+    }
+    write_child_property_entry(*this, child, *entry, value);
+}
+
+bool Control::reset_child_property(const Control& child, std::string_view name) {
+    require_mutable();
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) return false;
+    const bool reset = reset_child_property_entry(*this, child, *entry);
+    return reset;
+}
+
+bool Control::should_serialize_child_property(const Control& child, std::string_view name) const {
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) return false;
+    const bool serialized = child_property_entry_should_serialize(*this, child, *entry);
+    return serialized;
+}
+
 std::optional<BindingValue> Control::property_value(std::string_view name) const {
     if (!is_alive()) {
         throw std::logic_error("GUI.Forms cannot query a disposed control property");
@@ -1979,6 +2051,7 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
         return {};
     }
     Ptr removed = *found;
+    child_leaving(*removed);
     if (surface_root_) {
         (*surface_root_).detach_subtree(removed);
     }
@@ -3986,6 +4059,9 @@ void Control::on_dispose() noexcept {
     validating_.disconnect_all();
     validated_.disconnect_all();
     Ptr self = weak_from_this().lock();
+    if (std::shared_ptr<gui_forms::Control> leaving_parent = parent_.lock()) {
+        (*leaving_parent).child_leaving(*this);
+    }
     if (surface_root_ && self) {
         (*surface_root_).dispose_subtree(self);
     } else if (std::shared_ptr<gui_forms::Control> visual_parent = parent_.lock()) {

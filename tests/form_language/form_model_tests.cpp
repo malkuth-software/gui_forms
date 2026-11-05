@@ -26,6 +26,8 @@
 namespace {
 
 using gui_forms::BindingValue;
+using gui_forms::BindingValueKind;
+using gui_forms::Dirty;
 using gui_forms::PropertyDescriptor;
 using gui_forms::PropertyEnumChoice;
 using gui_forms::PropertyEnumValue;
@@ -34,6 +36,7 @@ using gui_forms::form_language::FormModel;
 using gui_forms::form_language::FormModelOutcome;
 using gui_forms::form_language::FormObject;
 using gui_forms::form_language::FormProperty;
+using gui_forms::form_language::FormPropertyProvider;
 using gui_forms::form_language::FormSchema;
 using gui_forms::form_language::FormSchemaType;
 using gui_forms::form_language::ObjectIndex;
@@ -81,7 +84,13 @@ FormSchema sample_schema() {
         if (property.name == "back_color") property.content_value = true;
     }
     schema.types.push_back(std::move(user_control_type));
-    schema.types.push_back(describe_form_type("group_box", *group_box));
+    // The group box provides a column span to its children (attached
+    // properties, study section 10).
+    FormSchemaType group_box_type = describe_form_type("group_box", *group_box);
+    group_box_type.child_properties.push_back(PropertyDescriptor{
+        "column_span", BindingValueKind::unsigned_integer, "Layout", "The columns the child spans.",
+        BindingValue{std::uint64_t{1U}}, Dirty::measure});
+    schema.types.push_back(std::move(group_box_type));
     schema.types.push_back(describe_form_type("check_box", *check_box));
     schema.types.push_back(describe_form_type("button", *button));
     schema.types.push_back(describe_form_type("command", *command));
@@ -91,6 +100,8 @@ FormSchema sample_schema() {
         if (property.name == "text") property.writable = false;
     }
     schema.types.push_back(std::move(sealed));
+    // A type that holds spans (study 10.9).
+    schema.types.push_back(gui_forms::form_language::form_control_type<gui_forms::GridPanel>("grid_panel"));
     return schema;
 }
 
@@ -302,12 +313,101 @@ void test_roots() {
     check_diagnostics(workspace, two, "roots: the second root reported");
 }
 
+// A child writes the properties its parent's type provides in its own
+// block; anywhere else they are unknown, and they repeat and refuse values
+// as the object's own do.
+void test_attached_properties() {
+    const FormSchema schema = sample_schema();
+    Workspace workspace{};
+    FormModel model{};
+    const std::string_view document = "user-control app.root {\n"
+                                      "  group-box app.group {\n"
+                                      "    check-box app.a { column-span: 2; text: \"A\"; }\n"
+                                      "  }\n"
+                                      "}\n";
+    require(build(workspace, document, schema, model) == FormModelOutcome::model_built, "attached: built");
+    const bool recorded = model.properties.size() == 2U &&
+                          model.properties[0].provider == FormPropertyProvider::parent_type &&
+                          model.properties[0].schema_property == 0U && model.properties[0].object.value == 2U &&
+                          std::get<std::uint64_t>(model.properties[0].value) == 2U &&
+                          model.properties[1].provider == FormPropertyProvider::object_type;
+    require(recorded, "attached: recorded as the parent type's, then the object's own");
+
+    const std::string_view defects = "group-box app.root {\n"                                     // 1
+                                     "  column-span: 2;\n"                                         // 2 E804
+                                     "  check-box app.a { column-span: 2; column-span: 3; }\n"    // 3 E806
+                                     "  check-box app.b { column-span: -1; }\n"                   // 4 E807
+                                     "  group-box app.c { check-box app.d { column-span: 1; } }\n" // 5
+                                     "}\n";
+    const std::array<ExpectedDiagnostic, 3> expected{{
+        {DiagnosticCode::form_property_unknown, 2U, 3U},
+        {DiagnosticCode::form_member_repeated, 3U, 37U},
+        {DiagnosticCode::form_value_invalid, 4U, 34U},
+    }};
+    require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "attached: defects refused");
+    check_diagnostics(workspace, expected, "attached: a root's, a repeated and a bad value, each located");
+
+    const std::string_view stranger = "user-control app.root {\n"
+                                      "  check-box app.a { column-span: 2; }\n"
+                                      "}\n";
+    require(build(workspace, stranger, schema, model) == FormModelOutcome::refused, "attached: wrong parent refused");
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    const bool named = !records.empty() && records.back().code == DiagnosticCode::form_property_unknown &&
+                       records.back().detail.find("nor its parent's type user_control") != std::string::npos;
+    require(named, "attached: a parent that does not provide it is named");
+}
+
+// Spans (study 10.9): `span` blocks inside a type that holds them, the
+// placements checked against them, every conflict located.
+void test_spans() {
+    const FormSchema schema = sample_schema();
+    Workspace workspace{};
+    FormModel model{};
+    const std::string_view document = "grid-panel app.root {\n"
+                                      "  span footer { anchor: 2 0; columns: 3; }\n"
+                                      "  span { anchor: 0 2; rows: 2; }\n"
+                                      "  check-box app.title { cell: 0 0; text: \"T\"; }\n"
+                                      "  check-box app.ok { area: \"footer\"; }\n"
+                                      "}\n";
+    require(build(workspace, document, schema, model) == FormModelOutcome::model_built, "spans: built");
+    const gui_forms::GridSpan footer{"footer", gui_forms::GridCell{2U, 0U}, 1U, 3U};
+    const gui_forms::GridSpan region{"", gui_forms::GridCell{0U, 2U}, 2U, 1U};
+    const bool recorded = model.spans.size() == 2U && model.spans[0].span == footer &&
+                          model.spans[1].span == region && model.spans[0].owner.value == 0U &&
+                          model.objects.size() == 3U && model.properties.size() == 3U;
+    require(recorded, "spans: recorded on their container, not as objects");
+
+    const std::string_view defects = "grid-panel app.root {\n"                        // 1
+                                     "  span footer { anchor: 2 0; columns: 3; }\n"    // 2
+                                     "  span footer { anchor: 0 0; }\n"                // 3 E806
+                                     "  span { anchor: 2 1; }\n"                       // 4 E814
+                                     "  span { rows: 2; }\n"                           // 5 E807
+                                     "  span { anchor: 0 2; sides: 1; }\n"             // 6 E804
+                                     "  check-box app.a { area: \"nowhere\"; }\n"     // 7 E814
+                                     "  check-box app.b { cell: 2 1; }\n"              // 8 E814
+                                     "  group-box app.c { span { anchor: 0 0; } }\n"   // 9 E809
+                                     "}\n";
+    const std::array<ExpectedDiagnostic, 7> expected{{
+        {DiagnosticCode::form_value_invalid, 5U, 3U},
+        {DiagnosticCode::form_property_unknown, 6U, 23U},
+        {DiagnosticCode::form_children_not_admitted, 9U, 21U},
+        {DiagnosticCode::form_member_repeated, 3U, 3U},
+        {DiagnosticCode::form_span_conflict, 4U, 3U},
+        {DiagnosticCode::form_span_conflict, 7U, 27U},
+        {DiagnosticCode::form_span_conflict, 8U, 27U},
+    }};
+    require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "spans: defects refused");
+    check_diagnostics(workspace, expected, "spans: every conflict located");
+}
+
 } // namespace
 
 int main() {
     test_valid_document();
     test_defects_reported_together();
     test_roots();
+    test_attached_properties();
+    test_spans();
     if (failures != 0) {
         std::cerr << failures << " form model checks failed\n";
         return 1;

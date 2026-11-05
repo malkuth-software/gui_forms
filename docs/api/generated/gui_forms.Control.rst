@@ -377,6 +377,9 @@ gui_forms::Control
 
       **property_descriptors** : ``std::vector<PropertyDescriptor>``, read-only
 
+      **child_property_descriptors** : ``std::vector<PropertyDescriptor>``, read-only
+         The table's descriptors, in table order.
+
       **measure_generation** : ``std::uint64_t``, read-only
          Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
@@ -546,6 +549,12 @@ gui_forms::Control
         -  
       * - :cpp:func:`property_value_origin <gui_forms::Control::property_value_origin>`
         -  
+      * - :cpp:func:`child_property_value <gui_forms::Control::child_property_value>`
+        - ``child``'s value of the child property :cpp:member:`name <gui_forms::Control::name>` (registered or kebab-case spelling); nullopt when this type provides no such property.
+      * - :cpp:func:`reset_child_property <gui_forms::Control::reset_child_property>`
+        - Restores ``child``'s default; false when this type provides no such property or it has no default.
+      * - :cpp:func:`should_serialize_child_property <gui_forms::Control::should_serialize_child_property>`
+        -  
       * - :cpp:func:`measure_for_layout <gui_forms::Control::measure_for_layout>`
         - The measure entry layout solvers call (stage L).
       * - :cpp:func:`apply_provider_semantics <gui_forms::Control::apply_provider_semantics>`
@@ -568,6 +577,8 @@ gui_forms::Control
         - ``true`` captures the pointer to this control; ``false`` releases it if this control holds it.
       * - :cpp:func:`set_property_value <gui_forms::Control::set_property_value>`
         -  
+      * - :cpp:func:`set_child_property_value <gui_forms::Control::set_child_property_value>`
+        - Writes ``child``'s value, converted to the property's kind.
 
    .. seealso::
 
@@ -1156,6 +1167,10 @@ gui_forms::Control
 
    .. cpp:function:: std::vector<PropertyDescriptor> property_descriptors() const
 
+   .. cpp:function:: std::vector<PropertyDescriptor> child_property_descriptors() const
+
+      The table's descriptors, in table order.
+
    .. cpp:function:: std::uint64_t measure_generation() const
 
       Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
@@ -1446,6 +1461,16 @@ gui_forms::Control
 
    .. cpp:function:: PropertyValueOrigin property_value_origin(std::string_view name) const
 
+   .. cpp:function:: std::optional<BindingValue> child_property_value(const Control& child, std::string_view name) const
+
+      ``child``'s value of the child property :cpp:member:`name <gui_forms::Control::name>` (registered or kebab-case spelling); nullopt when this type provides no such property. Throws std::invalid_argument when ``child`` is not a live direct child.
+
+   .. cpp:function:: bool reset_child_property(const Control& child, std::string_view name)
+
+      Restores ``child``'s default; false when this type provides no such property or it has no default.
+
+   .. cpp:function:: bool should_serialize_child_property(const Control& child, std::string_view name) const
+
    .. cpp:function:: Size measure_for_layout(const LayoutConstraint& constraint)
 
       The measure entry layout solvers call (stage L). It answers from this control's measure cache when an entry was stored under exactly this constraint since the control last became measure-dirty, and otherwise calls measure_intrinsic once and stores the answer. The cache holds four entries: one min-content width, one max-content width, and the two most recent other queries. A result with a negative or non-finite dimension is clamped to zero and counted. Throws std::invalid_argument, with the cache unchanged, when valid_layout_constraint rejects the constraint. An attached control is measured on its window's UI thread only. The window's own measure pass calls this too, so a container's later query under the same constraint is a hit.
@@ -1493,6 +1518,10 @@ gui_forms::Control
 
    .. cpp:function:: void set_property_value(std::string_view name, BindingValue value)
 
+   .. cpp:function:: void set_child_property_value(const Control& child, std::string_view name, const BindingValue& value)
+
+      Writes ``child``'s value, converted to the property's kind. Throws std::invalid_argument for an unknown name, a value that does not convert or that the property refuses, or a ``child`` that is not a live direct child; nothing changes then.
+
 
    .. rubric:: Extension points
 
@@ -1504,6 +1533,10 @@ gui_forms::Control
       unconstrained.
 
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual std::span<const ChildPropertyEntry> child_property_table() const noexcept
+
+      The properties this type provides to its direct children (attached properties: study sections 10 and 15.4), stored here per child. Empty by default; a container returns its constant child table (join_property_tables puts a base's entries first).
 
    .. cpp:function:: virtual Size measure(Size available)
 
@@ -1804,6 +1837,18 @@ gui_forms::Control
 
       Throws ``std::logic_error`` if the control is disposed or the caller is not
       on the window's UI thread. Call it first in a custom setter.
+
+   .. cpp:function:: void require_direct_child(const Control& child) const
+
+      *Protected.*
+
+      Throws std::invalid_argument unless ``child`` is a live direct child of this control: the check every child property read and write makes.
+
+   .. cpp:function:: virtual void child_leaving(const Control& child) noexcept
+
+      *Protected.*
+
+      Called by remove_child and by the child's disposal while ``child`` is still this control's child, just before it leaves: a container erases what it stores for the child (its child property values), so a child added again starts from the defaults. It may not mutate the tree.
 
    .. cpp:function:: std::vector<Ptr> snapshot_layout_children() const
 

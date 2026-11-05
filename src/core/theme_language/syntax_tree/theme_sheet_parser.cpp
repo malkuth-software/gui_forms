@@ -708,6 +708,9 @@ bool SheetParser::object_prelude_valid(TokenRange prelude) {
         return false;
     }
     const std::uint32_t after_type = type + 1U;
+    // A grid's `span` block may be anonymous (study 10.9): its prelude is
+    // the reserved type alone. The form model gives it its meaning.
+    if (after_type == prelude.end.value && token_text(type) == "span") return true;
     if (after_type == prelude.end.value || !is_trivia(tokens_[after_type].kind)) {
         const std::uint32_t at = after_type == prelude.end.value ? next_ : after_type;
         fail_at_token(DiagnosticCode::unexpected_token, at, "expected stable id");

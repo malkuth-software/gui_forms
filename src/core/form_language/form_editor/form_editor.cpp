@@ -186,24 +186,37 @@ private:
     return std::string_view(document.text).substr(begin, end - begin);
 }
 
+// Whether an object node is a `span` block (study 10.9): a region of its
+// container's grid, which is no object of the document.
+[[nodiscard]] bool span_block(const FormDocument& document, const SyntaxNode& node) {
+    const TextLayout layout(document);
+    const std::uint32_t type_token = node.content.first.value;
+    const std::size_t begin = layout.token_begin(type_token);
+    const std::size_t end = layout.token_end(type_token);
+    const bool span = std::string_view(document.text).substr(begin, end - begin) == form_span_type_name;
+    return span;
+}
+
 [[nodiscard]] std::optional<NodeIndex> find_object(const FormDocument& document, std::string_view stable_id) {
     const std::vector<SyntaxNode>& nodes = document.tree.nodes;
     for (std::uint32_t index = 1U; index < nodes.size(); ++index) {
-        if (nodes[index].kind != SyntaxNodeKind::object_rule) continue;
+        if (nodes[index].kind != SyntaxNodeKind::object_rule || span_block(document, nodes[index])) continue;
         if (object_identity(document, nodes[index]) == stable_id) return NodeIndex{index};
     }
     return std::nullopt;
 }
 
 // The object's direct children of `kind`, in order; all its direct
-// children when `kind` is none.
+// children when `kind` is none. Span blocks are not objects: they are left
+// out when `kind` is object_rule.
 [[nodiscard]] std::vector<NodeIndex> direct_children(const FormDocument& document, NodeIndex object,
                                                      std::optional<SyntaxNodeKind> kind) {
     std::vector<NodeIndex> children{};
     const std::vector<SyntaxNode>& nodes = document.tree.nodes;
     std::uint32_t child = object.value + 1U;
     while (child < nodes[object.value].subtree_end.value) {
-        if (!kind || nodes[child].kind == *kind) children.push_back(NodeIndex{child});
+        const bool span = kind && *kind == SyntaxNodeKind::object_rule && span_block(document, nodes[child]);
+        if (!kind || (nodes[child].kind == *kind && !span)) children.push_back(NodeIndex{child});
         child = nodes[child].subtree_end.value;
     }
     return children;
