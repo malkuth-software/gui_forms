@@ -136,8 +136,8 @@ void SurfaceRoot::apply_backdrop_chain(const std::optional<BackdropChain>& chain
     // backplane is baked again, and the window repaints.
     damage_backplane_readers(nullptr);
     mark_subtree_dirty(*root_, Dirty::paint);
-    for (const std::shared_ptr<gui_forms::detail::PopupAttachment>& popup : popups_) {
-        if (const Control::Ptr overlay = (*popup).popup()) mark_subtree_dirty(*overlay, Dirty::paint);
+    for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+        if (const Control::Ptr overlay_root = (*overlay).overlay()) mark_subtree_dirty(*overlay_root, Dirty::paint);
     }
 }
 

@@ -124,9 +124,9 @@ NativePopupToken Window::open_native_popup(const Control::Ptr& owner, const Cont
     if (!detached_root(content)) return token;
     (*content).set_requested_bounds(bounds);
     // The owner need only be visible, as for the native path.
-    PopupOptions overlay{};
+    OverlayOptions overlay{};
     overlay.require_enabled_owner = false;
-    token.overlay_ = open_popup(owner, content, overlay);
+    token.overlay_ = open_overlay(owner, content, overlay);
     token.surface_ = NativePopupSurface::overlay;
     return token;
 }

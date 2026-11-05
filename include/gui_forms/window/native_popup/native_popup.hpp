@@ -18,7 +18,7 @@ class NativePopupRecord;
 // window, owned by the window that opens it, with per-pixel alpha, so it
 // may extend past its owner's edges. GUI.Forms paints its shadow inside
 // that alpha surface. Overlays (menus, drop-downs and tooltips composited
-// into their owner, SurfaceRoot::open_popup) are a different mechanism and
+// into their owner, SurfaceRoot::open_overlay) are a different mechanism and
 // are unchanged. Modality stays with the caller: a dialog that wants a
 // scrim keeps drawing it in its owner, and only the panel goes native.
 
@@ -94,7 +94,7 @@ public:
 private:
     friend class Window;
     std::shared_ptr<detail::NativePopupRecord> native_{};
-    PopupToken overlay_{};
+    OverlayToken overlay_{};
     NativePopupSurface surface_{NativePopupSurface::none};
     NativePopupRefusal refusal_{NativePopupRefusal::none};
 };

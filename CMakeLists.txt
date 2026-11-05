@@ -1624,7 +1624,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
         FUNCTION gallery_theme_package NAMESPACE gui_forms::gallery
         FORMS demo/gallery.form demo/pages/typography-and-inspection.form
-            demo/pages/animation-laboratory.form demo/pages/collections-and-popups.form
+            demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
             demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form)
     target_include_directories(gui_forms_gallery_model PUBLIC

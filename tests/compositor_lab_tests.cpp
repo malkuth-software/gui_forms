@@ -398,7 +398,7 @@ void overlay_takes_no_chain(render::SkiaRaster& raster) {
     shown.set_compositor_state(make_state(StateCase::every_backdrop, 1U), true);
     shown.set_backdrop_chain(frosted_chain());
     const Frame before = present(raster, shown);
-    PopupToken token = shown.open_popup(shown.root(), make_overlay(), PopupOptions{});
+    OverlayToken token = shown.open_overlay(shown.root(), make_overlay(), OverlayOptions{});
     const Frame after = present(raster, shown);
     require(same_pixel(after.at(overlay_column, overlay_row), before.at(overlay_column, overlay_row)),
             "a clear overlay shows the window beneath it, with no tint of its own");
