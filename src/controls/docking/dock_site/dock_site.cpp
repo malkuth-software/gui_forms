@@ -1405,12 +1405,12 @@ DockSite::Hit DockSite::hit_at(Point local) const {
 void DockSite::set_hot(Hit hit) {
     if (hot_ == hit) return;
     hot_ = hit;
-    CursorKind cursor = CursorKind::arrow;
+    CursorKind shape = CursorKind::arrow;
     if (hit.zone == Zone::seam && hit.index < seams_.size()) {
-        cursor = seams_[hit.index].axis == DockAxis::horizontal ? CursorKind::resize_horizontal
-                                                                : CursorKind::resize_vertical;
+        shape = seams_[hit.index].axis == DockAxis::horizontal ? CursorKind::resize_horizontal
+                                                               : CursorKind::resize_vertical;
     }
-    cursor = cursor;
+    cursor = shape;
     invalidate(Dirty::paint);
 }
 

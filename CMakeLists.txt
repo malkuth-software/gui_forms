@@ -5127,10 +5127,15 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
             # temporary dangles: PartPaint::text twice held a temporary
             # std::string (CorrespondenceView, PropertyList) and painting read
             # freed memory. Clang reports these on by default; here they fail
-            # the build.
+            # the build. A value assigned to itself is never meant: a property
+            # forwarder whose parameter shadowed its cell
+            # (`set_visible(bool visible) { visible = visible; }`) stored
+            # nothing and the Gallery hid nothing. -Wself-assign is off by
+            # default; here it fails the build.
             if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
                 target_compile_options(${gui_forms_first_party_target} PRIVATE
-                    $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Werror=dangling-assignment-gsl -Werror=dangling-gsl>)
+                    $<$<COMPILE_LANGUAGE:CXX,OBJCXX>:-Werror=dangling-assignment-gsl -Werror=dangling-gsl
+                        -Werror=self-assign -Werror=self-assign-field>)
             endif()
         endif()
     endforeach()
