@@ -13,15 +13,13 @@ namespace gui_forms {
 // (property-capabilities study, sections 2 and 15; owner decisions: a read
 // is `.read()`, a write is a touch, no implicit conversion).
 //
-//   template <typename Declaring>
-//   struct TextCapability {
-//       PropertyCell<std::string, TextCapability<Declaring>> text;
-//       static void assign(TextCapability& capability, std::string value);
-//   };
-//   class ButtonBase : public Control, public TextCapability<ButtonBase> {};
-//
-//   (*button).text = "OK";                       // the write
-//   std::string label = (*button).text.read();   // the read
+// For example, `TextCapability<Declaring>` has the one member
+// `PropertyCell<std::string, TextCapability<Declaring>> text` and a static
+// `assign(TextCapability& capability, std::string value)`, and `ButtonBase`
+// derives from `Control` and `TextCapability<ButtonBase>`. Then
+// `(*button).text = "OK"` is the write and `(*button).text.read()` the read.
+// (The generated API pages join comment lines, so the example stays in code
+// spans: a bare `*` there opens reStructuredText emphasis.)
 //
 // The write calls `Capability::assign`, which compares (an equal value does
 // nothing: decision 3), stores through `replace`, touches its control and

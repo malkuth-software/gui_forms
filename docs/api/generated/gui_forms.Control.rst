@@ -75,11 +75,11 @@ gui_forms::Control
 
       **minimum_size** : ``Size``, default ``{0, 0}``
          The smallest size layout may give the control. A minimum larger than a
-         nonzero :cpp:func:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
+         nonzero :cpp:member:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
 
       **maximum_size** : ``Size``, default ``{0, 0}``
          The largest size layout may give the control. A zero dimension is
-         unbounded; a nonzero dimension below :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` throws
+         unbounded; a nonzero dimension below :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` throws
          ``std::invalid_argument``.
 
       **margin** : ``Insets``, default ``{3, 3, 3, 3}``
@@ -104,7 +104,7 @@ gui_forms::Control
          stretches; anchored to neither, it keeps its centre offset.
 
       **auto_size_mode** : ``AutoSizeMode``, default ``AutoSizeMode::grow_only``
-         With :cpp:func:`auto_size <gui_forms::Control::auto_size>` on, whether measurement may shrink the control below
+         With :cpp:member:`auto_size <gui_forms::Control::auto_size>` on, whether measurement may shrink the control below
          its requested size (:cpp:enumerator:`AutoSizeMode::grow_and_shrink <gui_forms::AutoSizeMode::grow_and_shrink>`) or only grow it.
 
       **layout_direction** : ``LayoutDirection``, default ``LayoutDirection::inherit``
@@ -124,7 +124,7 @@ gui_forms::Control
 
       **tab_stop** : ``bool``, default ``true``
          Whether Tab and Shift+Tab stop at the control. A focusable control with
-         :cpp:func:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
+         :cpp:member:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
          ``Window::request_focus``.
 
       **allow_drop** : ``bool``, default ``false``
@@ -170,7 +170,7 @@ gui_forms::Control
          The position and size the application asks for, relative to the parent's
          top-left corner. :cpp:func:`left <gui_forms::Control::left>`, :cpp:func:`top <gui_forms::Control::top>`, :cpp:func:`width <gui_forms::Control::width>`, :cpp:func:`height <gui_forms::Control::height>`, :cpp:func:`right <gui_forms::Control::right>` and :cpp:func:`bottom <gui_forms::Control::bottom>` read
          parts of it, and :cpp:func:`set_bounds <gui_forms::Control::set_bounds>` changes some fields only. Size is clamped
-         to :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` and :cpp:func:`maximum_size <gui_forms::Control::maximum_size>`. Negative or non-finite values throw
+         to :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` and :cpp:member:`maximum_size <gui_forms::Control::maximum_size>`. Negative or non-finite values throw
          ``std::invalid_argument``.
 
       **left** : ``double``, read-only
@@ -270,8 +270,8 @@ gui_forms::Control
 
       **layout_collapsed** : ``bool``, read-only
          Whether a parent layout has collapsed this control, for example a closed
-         section of an expandable list. It hides the control like :cpp:func:`visible <gui_forms::Control::visible>`
-         false, without changing :cpp:func:`visible <gui_forms::Control::visible>`.
+         section of an expandable list. It hides the control like :cpp:member:`visible <gui_forms::Control::visible>`
+         false, without changing :cpp:member:`visible <gui_forms::Control::visible>`.
 
       **focusable** : ``bool``, default ``false``
          Whether the control can take keyboard focus. Interactive stock controls
@@ -320,7 +320,7 @@ gui_forms::Control
          The command target this control offers its window's command routing chain while focus is on it or inside it (the focused route, owner decision DK-29; see gui_forms/commands/command_route). The control shares ownership, so a docking workspace may also name the same target as an active panel's or document's. None by default.
 
       **effective_cursor** : ``CursorKind``, read-only
-         The cursor in use: the :cpp:func:`cursor <gui_forms::Control::cursor>` of this control or of its nearest
+         The cursor in use: the :cpp:member:`cursor <gui_forms::Control::cursor>` of this control or of its nearest
          ancestor that sets one, else :cpp:enumerator:`CursorKind::arrow <gui_forms::CursorKind::arrow>`.
 
       **effectively_visible** : ``bool``, read-only
@@ -379,32 +379,32 @@ gui_forms::Control
    :Events:
 
       **name_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`name <gui_forms::Control::name>` changes, with the new name.
+         Raised after :cpp:member:`name <gui_forms::Control::name>` changes, with the new name.
 
       **visible_changed** : ``Event<bool>``
-         Raised after :cpp:func:`visible <gui_forms::Control::visible>` changes, with the new value. Hiding or showing an
+         Raised after :cpp:member:`visible <gui_forms::Control::visible>` changes, with the new value. Hiding or showing an
          ancestor does not raise it on the descendants.
 
       **enabled_changed** : ``Event<bool>``
-         Raised after :cpp:func:`enabled <gui_forms::Control::enabled>` changes, with the new value.
+         Raised after :cpp:member:`enabled <gui_forms::Control::enabled>` changes, with the new value.
 
       **auto_size_changed** : ``Event<bool>``
-         Raised after :cpp:func:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
+         Raised after :cpp:member:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
 
       **causes_validation_changed** : ``Event<bool>``
-         Raised after :cpp:func:`causes_validation <gui_forms::Control::causes_validation>` changes, with the new value.
+         Raised after :cpp:member:`causes_validation <gui_forms::Control::causes_validation>` changes, with the new value.
 
       **validating** : ``Event<ControlValidationEvent&>``
          Raised when the control is validated, usually because focus is leaving
          it. Set ``ControlValidationEvent::cancel`` to reject the change; by default
-         focus then stays where it was. Not raised when :cpp:func:`causes_validation <gui_forms::Control::causes_validation>` is
+         focus then stays where it was. Not raised when :cpp:member:`causes_validation <gui_forms::Control::causes_validation>` is
          false.
 
       **validated** : ``Event<>``
          Raised after :cpp:func:`validating <gui_forms::Control::validating>` when no handler cancelled.
 
       **tool_tip_text_changed** : ``Event<const std::string&>``
-         Raised after :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
+         Raised after :cpp:member:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
 
       **initialization_completed** : ``Event<Dirty, bool>``
          Raised at the end of the outermost :cpp:func:`end_init <gui_forms::Control::end_init>`, after the coalesced
@@ -727,12 +727,12 @@ gui_forms::Control
    .. cpp:member:: Size minimum_size
 
       The smallest size layout may give the control. A minimum larger than a
-      nonzero :cpp:func:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
+      nonzero :cpp:member:`maximum_size <gui_forms::Control::maximum_size>` throws ``std::invalid_argument``.
 
    .. cpp:member:: Size maximum_size
 
       The largest size layout may give the control. A zero dimension is
-      unbounded; a nonzero dimension below :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` throws
+      unbounded; a nonzero dimension below :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` throws
       ``std::invalid_argument``.
 
    .. cpp:member:: Insets margin
@@ -762,7 +762,7 @@ gui_forms::Control
 
    .. cpp:member:: AutoSizeMode auto_size_mode
 
-      With :cpp:func:`auto_size <gui_forms::Control::auto_size>` on, whether measurement may shrink the control below
+      With :cpp:member:`auto_size <gui_forms::Control::auto_size>` on, whether measurement may shrink the control below
       its requested size (:cpp:enumerator:`AutoSizeMode::grow_and_shrink <gui_forms::AutoSizeMode::grow_and_shrink>`) or only grow it.
 
    .. cpp:member:: LayoutDirection layout_direction
@@ -785,7 +785,7 @@ gui_forms::Control
    .. cpp:member:: bool tab_stop
 
       Whether Tab and Shift+Tab stop at the control. A focusable control with
-      :cpp:func:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
+      :cpp:member:`tab_stop <gui_forms::Control::tab_stop>` false can still be focused by clicking or by
       ``Window::request_focus``.
 
    .. cpp:member:: bool allow_drop
@@ -846,7 +846,7 @@ gui_forms::Control
       The position and size the application asks for, relative to the parent's
       top-left corner. :cpp:func:`left <gui_forms::Control::left>`, :cpp:func:`top <gui_forms::Control::top>`, :cpp:func:`width <gui_forms::Control::width>`, :cpp:func:`height <gui_forms::Control::height>`, :cpp:func:`right <gui_forms::Control::right>` and :cpp:func:`bottom <gui_forms::Control::bottom>` read
       parts of it, and :cpp:func:`set_bounds <gui_forms::Control::set_bounds>` changes some fields only. Size is clamped
-      to :cpp:func:`minimum_size <gui_forms::Control::minimum_size>` and :cpp:func:`maximum_size <gui_forms::Control::maximum_size>`. Negative or non-finite values throw
+      to :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` and :cpp:member:`maximum_size <gui_forms::Control::maximum_size>`. Negative or non-finite values throw
       ``std::invalid_argument``.
 
    .. cpp:function:: void set_requested_bounds(Rect bounds)
@@ -987,8 +987,8 @@ gui_forms::Control
    .. cpp:function:: bool layout_collapsed() const noexcept
 
       Whether a parent layout has collapsed this control, for example a closed
-      section of an expandable list. It hides the control like :cpp:func:`visible <gui_forms::Control::visible>`
-      false, without changing :cpp:func:`visible <gui_forms::Control::visible>`.
+      section of an expandable list. It hides the control like :cpp:member:`visible <gui_forms::Control::visible>`
+      false, without changing :cpp:member:`visible <gui_forms::Control::visible>`.
 
    .. cpp:function:: bool focusable() const noexcept
 
@@ -1070,7 +1070,7 @@ gui_forms::Control
 
    .. cpp:function:: CursorKind effective_cursor() const noexcept
 
-      The cursor in use: the :cpp:func:`cursor <gui_forms::Control::cursor>` of this control or of its nearest
+      The cursor in use: the :cpp:member:`cursor <gui_forms::Control::cursor>` of this control or of its nearest
       ancestor that sets one, else :cpp:enumerator:`CursorKind::arrow <gui_forms::CursorKind::arrow>`.
 
    .. cpp:function:: bool effectively_visible() const noexcept
@@ -1149,30 +1149,30 @@ gui_forms::Control
 
    .. cpp:function:: Event<const std::string&>& name_changed() noexcept
 
-      Raised after :cpp:func:`name <gui_forms::Control::name>` changes, with the new name.
+      Raised after :cpp:member:`name <gui_forms::Control::name>` changes, with the new name.
 
    .. cpp:function:: Event<bool>& visible_changed() noexcept
 
-      Raised after :cpp:func:`visible <gui_forms::Control::visible>` changes, with the new value. Hiding or showing an
+      Raised after :cpp:member:`visible <gui_forms::Control::visible>` changes, with the new value. Hiding or showing an
       ancestor does not raise it on the descendants.
 
    .. cpp:function:: Event<bool>& enabled_changed() noexcept
 
-      Raised after :cpp:func:`enabled <gui_forms::Control::enabled>` changes, with the new value.
+      Raised after :cpp:member:`enabled <gui_forms::Control::enabled>` changes, with the new value.
 
    .. cpp:function:: Event<bool>& auto_size_changed() noexcept
 
-      Raised after :cpp:func:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
+      Raised after :cpp:member:`auto_size <gui_forms::Control::auto_size>` changes, with the new value.
 
    .. cpp:function:: Event<bool>& causes_validation_changed() noexcept
 
-      Raised after :cpp:func:`causes_validation <gui_forms::Control::causes_validation>` changes, with the new value.
+      Raised after :cpp:member:`causes_validation <gui_forms::Control::causes_validation>` changes, with the new value.
 
    .. cpp:function:: Event<ControlValidationEvent&>& validating() noexcept
 
       Raised when the control is validated, usually because focus is leaving
       it. Set ``ControlValidationEvent::cancel`` to reject the change; by default
-      focus then stays where it was. Not raised when :cpp:func:`causes_validation <gui_forms::Control::causes_validation>` is
+      focus then stays where it was. Not raised when :cpp:member:`causes_validation <gui_forms::Control::causes_validation>` is
       false.
 
    .. cpp:function:: Event<>& validated() noexcept
@@ -1181,7 +1181,7 @@ gui_forms::Control
 
    .. cpp:function:: Event<const std::string&>& tool_tip_text_changed() noexcept
 
-      Raised after :cpp:func:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
+      Raised after :cpp:member:`tool_tip_text <gui_forms::Control::tool_tip_text>` changes, with the new text.
 
    .. cpp:function:: Event<Dirty, bool>& initialization_completed() noexcept
 
@@ -1484,14 +1484,14 @@ gui_forms::Control
    .. cpp:function:: virtual Size measure(Size available)
 
       Override to report the size the control wants within the available
-      size. The base version returns the requested size, or with :cpp:func:`auto_size <gui_forms::Control::auto_size>`
+      size. The base version returns the requested size, or with :cpp:member:`auto_size <gui_forms::Control::auto_size>`
       the extent of the visible children, limited to the available size and
       then clamped to the minimum and maximum sizes.
 
    .. cpp:function:: virtual void arrange(Rect final_bounds)
 
       Override to place the control and its children. The base version stores
-      the final bounds and lays out children by :cpp:func:`dock <gui_forms::Control::dock>` and :cpp:func:`anchor <gui_forms::Control::anchor>`. A layout
+      the final bounds and lays out children by :cpp:member:`dock <gui_forms::Control::dock>` and :cpp:member:`anchor <gui_forms::Control::anchor>`. A layout
       container that places its own children calls ``arrange_self`` and
       ``set_child_layout`` instead.
 
@@ -1575,8 +1575,8 @@ gui_forms::Control
    .. cpp:function:: virtual SemanticDescriptor semantic_descriptor() const
 
       Override to describe the control to assistive technology: role, name,
-      value and states. The base version reports only :cpp:func:`accessible_name <gui_forms::Control::accessible_name>` and
-      :cpp:func:`accessible_description <gui_forms::Control::accessible_description>`.
+      value and states. The base version reports only :cpp:member:`accessible_name <gui_forms::Control::accessible_name>` and
+      :cpp:member:`accessible_description <gui_forms::Control::accessible_description>`.
 
    .. cpp:function:: virtual std::vector<SemanticNode> semantic_virtual_children() const
 

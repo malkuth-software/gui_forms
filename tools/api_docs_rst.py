@@ -260,9 +260,14 @@ def indent(text: str, levels: int = 1) -> str:
 class Linker:
     """Turns single-backtick code spans into C++ domain cross-references."""
 
-    def __init__(self, types: dict[str, str], enums: dict[str, str]) -> None:
+    def __init__(self, types: dict[str, str], enums: dict[str, str],
+                 cells: frozenset[str] = frozenset()) -> None:
         self.types = types   # short name -> qualified name
         self.enums = enums
+        self.cells = cells   # the page's property cells: data members, so not :cpp:func:
+
+    def for_cells(self, cells: frozenset[str]) -> "Linker":
+        return Linker(self.types, self.enums, cells)
 
     def span(self, text: str, owner: str = "", members: frozenset[str] = frozenset()) -> str:
         if re.fullmatch(r"[A-Za-z_]\w*", text):
@@ -271,7 +276,8 @@ class Linker:
             if text in self.enums:
                 return f":cpp:enum:`{text} <{self.enums[text]}>`"
             if owner and text in members:
-                return f":cpp:func:`{text} <{owner}::{text}>`"
+                role = "member" if text in self.cells else "func"
+                return f":cpp:{role}:`{text} <{owner}::{text}>`"
         enumerator = re.fullmatch(r"([A-Za-z_]\w*)::([A-Za-z_]\w*)", text)
         if enumerator and enumerator.group(1) in self.enums:
             target = f"{self.enums[enumerator.group(1)]}::{enumerator.group(2)}"
@@ -475,8 +481,10 @@ def inherited_line(record: TypeRecord, chain: list[tuple[TypeRecord, Shape]], li
         own |= set(properties) | set(events)
         parts = []
         if properties:
+            cells = {prop.name for prop in base_shape.properties if prop.cell}
             parts.append("properties " + ", ".join(
-                f":cpp:func:`{name} <{base.qualified_name}::{name}>`" for name in properties))
+                f":cpp:{'member' if name in cells else 'func'}:`{name} <{base.qualified_name}::{name}>`"
+                for name in properties))
         if events:
             parts.append("events " + ", ".join(
                 f":cpp:func:`{name} <{base.qualified_name}::{name}>`" for name in events))
@@ -503,6 +511,7 @@ def type_page(record: TypeRecord, sources: Sources, registry_entry: dict | None,
     members = frozenset({prop.name for prop in shape.properties} | {event.name for event in shape.events} |
                         {method.name for method in shape.methods} |
                         {setter.name for prop in shape.properties for setter in prop.setters})
+    linker = linker.for_cells(frozenset(prop.name for prop in shape.properties if prop.cell))
     doc = sources.docstring
     owner = record.qualified_name
     out: list[str] = [f".. _{label}:", ""]
