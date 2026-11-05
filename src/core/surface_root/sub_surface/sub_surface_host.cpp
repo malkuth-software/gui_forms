@@ -68,10 +68,30 @@ void SubSurfaceHost::on_paint(Painter& painter, Rect) {
 
 void SubSurfaceHost::on_attached_to_window() {
     Control::on_attached_to_window();
+    Window* const window = attached_window();
+    if (window != nullptr) {
+        theme_subscription_ = (*window).theme_changed().subscribe(
+            *this, Delegate<const Theme&>::bind<SubSurfaceHost, &SubSurfaceHost::on_window_theme_changed>(*this));
+        presentation_subscription_ = (*window).presentation_changed().subscribe(
+            *this, Delegate<const PresentationSettings&>::bind<
+                       SubSurfaceHost, &SubSurfaceHost::on_window_presentation_changed>(*this));
+    }
+    configure_region();
+}
+
+void SubSurfaceHost::on_window_theme_changed(const Theme&) {
+    environment_changed_ = true;
+    configure_region();
+}
+
+void SubSurfaceHost::on_window_presentation_changed(const PresentationSettings&) {
+    environment_changed_ = true;
     configure_region();
 }
 
 void SubSurfaceHost::on_detaching_from_window(SurfaceRoot& former_window) noexcept {
+    theme_subscription_.disconnect();
+    presentation_subscription_.disconnect();
     // The window drops the LiveSurface registration with the control; the
     // thread is revoked and joined here, while the window still exists.
     stop_thread();
@@ -91,8 +111,8 @@ void SubSurfaceHost::configure_region() {
     if (pixel_width == 0U || pixel_height == 0U) return;
     // Per axis (resize rules): only a changed device size or scale
     // reconfigures; a new arrangement at the same size signals nothing.
-    const bool unchanged = thread_ && pixel_width == pixel_width_ && pixel_height == pixel_height_ &&
-                           scale == configured_scale_;
+    const bool unchanged = thread_ && !environment_changed_ && pixel_width == pixel_width_ &&
+                           pixel_height == pixel_height_ && scale == configured_scale_;
     if (unchanged) return;
     const Size logical{bounds.width, bounds.height};
     if (!thread_) {
@@ -103,8 +123,9 @@ void SubSurfaceHost::configure_region() {
         std::shared_ptr<LiveSurface> surface = LiveSurface::create(description);
         if (!surface) return;
         std::unique_ptr<PaintFramebuffer> text_measure = (*window).create_framebuffer(Size{1.0, 1.0}, scale);
-        thread_ = std::make_unique<SubSurfaceThread>(std::move(content_), surface, (*window).theme_ptr(),
-                                                     std::move(text_measure));
+        const std::shared_ptr<ApplicationResources> start_resources = (*window).resources();
+        thread_ = std::make_unique<SubSurfaceThread>(std::move(content_), surface,
+                                                     (*start_resources).theme_ptr(), std::move(text_measure));
         surface_ = std::move(surface);
     }
     ++content_epoch_;
@@ -115,7 +136,14 @@ void SubSurfaceHost::configure_region() {
     configuration.pixel_width = pixel_width;
     configuration.pixel_height = pixel_height;
     configuration.opaque = opaque_;
-    configuration.framebuffer = (*window).create_framebuffer(logical, scale);
+    // A framebuffer only for a new device size: an environment change
+    // repaints into the one the sub-surface has.
+    const bool resized = pixel_width != pixel_width_ || pixel_height != pixel_height_ || scale != configured_scale_;
+    if (resized) configuration.framebuffer = (*window).create_framebuffer(logical, scale);
+    const std::shared_ptr<ApplicationResources> resources = (*window).resources();
+    configuration.theme = (*resources).theme_ptr();
+    configuration.presentation = (*window).presentation_settings();
+    environment_changed_ = false;
     (*thread_).configure(std::move(configuration));
     pixel_width_ = pixel_width;
     pixel_height_ = pixel_height;

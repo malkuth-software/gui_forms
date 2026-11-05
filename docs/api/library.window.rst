@@ -947,6 +947,12 @@ Related types
 
       Every pixel the sub-surface publishes has alpha 255.
 
+   .. cpp:member:: std::shared_ptr<const Theme> theme
+
+      The environment (design note sections 3 and 6): the parent's application theme, an immutable snapshot shared, never mutated, across the threads (null keeps the one in force), and the parent's presentation settings (text scale, colour scheme, reduced motion and the rest), applied before the theme so the theme is shown in the new scheme.
+
+   .. cpp:member:: PresentationSettings presentation
+
    .. cpp:member:: std::unique_ptr<PaintFramebuffer> framebuffer
 
       Made by the parent on its own thread (SurfaceRoot::create_framebuffer) at the device size, and owned from then on by the sub-surface's thread, which alone uses and destroys it. Null keeps the previous framebuffer; a sub-surface without one lays out but publishes nothing.
@@ -1018,7 +1024,7 @@ Related types
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
-      Arranges as any control, then reconfigures the sub-surface when its device size or scale changed.
+      Arranges as any control, then reconfigures the sub-surface when its device size or scale changed. The window's theme and presentation settings travel with every configuration, and a change of either sends one.
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
@@ -1061,6 +1067,10 @@ Related types
    .. cpp:member:: std::uint64_t published_content_epoch
 
       The content epoch of the newest published frame.
+
+   .. cpp:member:: std::uint64_t loop_turns
+
+      Turns of the loop: each wake by a configuration, a post, a paint wake or a due frame request. An idle sub-surface does not turn (no perpetual redraw loop).
 
 .. cpp:namespace:: gui_forms
 

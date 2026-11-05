@@ -16,7 +16,7 @@
 namespace gui_forms {
 namespace {
 // Whether `window` is in `windows`.
-bool listed(const std::vector<Window*>& windows, const Window* window) noexcept {
+bool listed(const std::vector<SurfaceRoot*>& windows, const SurfaceRoot* window) noexcept {
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         if (windows[index] == window) return true;
     }
@@ -40,12 +40,12 @@ void ApplicationResources::require_access(const char* operation) const {
     throw std::logic_error(message);
 }
 
-void ApplicationResources::attach(Window& window) {
+void ApplicationResources::attach(SurfaceRoot& window) {
     require_access("window attach");
     windows_.push_back(&window);
 }
 
-void ApplicationResources::detach(Window& window) noexcept {
+void ApplicationResources::detach(SurfaceRoot& window) noexcept {
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
         if (windows_[index] != &window) continue;
         windows_.erase(windows_.begin() + static_cast<std::ptrdiff_t>(index));
@@ -67,17 +67,17 @@ void ApplicationResources::set_theme(std::shared_ptr<const Theme> theme) {
     if (theme_ == theme) return;
     std::vector<detail::InlineRestyle> restyles{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};
-    for (Window* const window : windows_) {
+    for (SurfaceRoot* const window : windows_) {
         if (!(*window).collect_inline_restyles(*theme, restyles, diagnostics)) {
             throw std::invalid_argument(detail::inline_restyle_refusal("application theme", diagnostics));
         }
     }
-    Window::commit_inline_restyles(restyles);
+    SurfaceRoot::commit_inline_restyles(restyles);
     theme_ = std::move(theme);
     program_theme_ = theme_;
     // A window's theme_changed handler may create or destroy windows; walk a
     // copy of the list and skip windows that left it meanwhile.
-    const std::vector<Window*> windows = windows_;
+    const std::vector<SurfaceRoot*> windows = windows_;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         if (listed(windows_, windows[index])) (*windows[index]).apply_theme(theme_);
     }
@@ -88,7 +88,7 @@ void ApplicationResources::set_automatic_colour_scheme(bool automatic) {
     if (automatic_colour_scheme_ == automatic) return;
     automatic_colour_scheme_ = automatic;
     // A handler of a window's change may create or destroy windows.
-    const std::vector<Window*> windows = windows_;
+    const std::vector<SurfaceRoot*> windows = windows_;
     for (std::size_t index = 0U; index < windows.size(); ++index) {
         if (listed(windows_, windows[index])) (*windows[index]).follow_host_colour_scheme(automatic);
     }

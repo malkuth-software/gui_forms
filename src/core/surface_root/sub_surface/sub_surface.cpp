@@ -33,10 +33,15 @@ SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> 
     // No damage yet: the root has no size until the first configuration
     // (apply_size damages the whole region then).
     attach_subtree(root_, {});
+    // Last: a constructor that throws never leaves itself registered. The
+    // resources are this sub-surface's own, so a theme set on them (a
+    // configuration's) reaches this root alone.
+    (*resources_).attach(*this);
 }
 
 SubSurface::~SubSurface() {
     release_tree();
+    (*resources_).detach(*this);
 }
 
 void SubSurface::apply_size(Size logical_size) {
@@ -233,6 +238,7 @@ bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfig
         if (channel.wake.wait_until(lock, *deadline) == std::cv_status::timeout) break;
     }
     if (channel.stop_requested) return false;
+    ++channel.statistics.loop_turns;
     configuration.swap(channel.pending);
     if (configuration) ++channel.statistics.configurations_applied;
     channel.signalled = false;
@@ -240,6 +246,11 @@ bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfig
 }
 
 void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configuration) {
+    root.set_presentation_settings(configuration.presentation);
+    const std::shared_ptr<ApplicationResources> resources = root.resources();
+    if (configuration.theme && configuration.theme != (*resources).theme_ptr()) {
+        (*resources).set_theme(configuration.theme);
+    }
     if (configuration.scale != root.scale()) root.apply_scale(configuration.scale);
     root.apply_size(configuration.logical_size);
     content_epoch_ = configuration.content_epoch;

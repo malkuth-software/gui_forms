@@ -45,7 +45,9 @@ public:
     [[nodiscard]] std::shared_ptr<LiveSurface> live_surface() const noexcept { return surface_; }
 
     // Arranges as any control, then reconfigures the sub-surface when its
-    // device size or scale changed.
+    // device size or scale changed. The window's theme and presentation
+    // settings travel with every configuration, and a change of either
+    // sends one.
     void arrange(Rect final_bounds) override;
     // Composes the newest frame into the region (Painter::draw_live_surface).
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -62,6 +64,10 @@ private:
     // (resize rule 3).
     void configure_region();
     void stop_thread() noexcept;
+    // The window's theme or presentation settings changed: the next
+    // configuration carries them under a new content epoch.
+    void on_window_theme_changed(const Theme& theme);
+    void on_window_presentation_changed(const PresentationSettings& settings);
 
     std::unique_ptr<SubSurfaceContent> content_{};
     std::shared_ptr<LiveSurface> surface_{};
@@ -72,6 +78,10 @@ private:
     std::uint32_t pixel_height_{};
     double configured_scale_{};
     bool opaque_{};
+    // An environment change not yet sent.
+    bool environment_changed_{};
+    SubscriptionToken theme_subscription_{};
+    SubscriptionToken presentation_subscription_{};
 };
 
 } // namespace gui_forms

@@ -20,6 +20,8 @@ class Theme;
 class ThemeCompileResult;
 class ThemeLibrary;
 class Window;
+class SurfaceRoot;
+class SubSurface;
 struct ThemeCompileOptions;
 struct ThemePackage;
 struct UserThemeFiles;
@@ -183,10 +185,13 @@ public:
 
 private:
     friend class Window;
+    friend class SubSurface;
     friend class SurfaceRoot;
     void require_access(const char* operation) const;
-    void attach(Window& window);
-    void detach(Window& window) noexcept;
+    // Every surface root showing these resources: a Window, or a
+    // SubSurface with resources of its own on its own thread.
+    void attach(SurfaceRoot& root);
+    void detach(SurfaceRoot& root) noexcept;
     // A window shows the fallback for `theme` in `scheme`: writes W403
     // to the log the first time for that theme and scheme.
     void note_theme_variant_missing(const Theme& theme, ColourScheme scheme);
@@ -216,9 +221,10 @@ private:
     // Bounded by the icons the program registers.
     std::vector<IconDeclaration> icons_{};
     std::vector<ImageId> icon_images_{};
-    // Observing: each Window attaches in its constructor and detaches in its
-    // destructor. Bounded by the windows the program creates on this thread.
-    std::vector<Window*> windows_;
+    // Observing: each Window (or SubSurface) attaches in its constructor and
+    // detaches in its destructor. Bounded by the roots the program creates
+    // on this thread.
+    std::vector<SurfaceRoot*> windows_;
 };
 
 } // namespace gui_forms

@@ -49,6 +49,14 @@ struct SubSurfaceConfiguration final {
     std::uint32_t pixel_height{};
     // Every pixel the sub-surface publishes has alpha 255.
     bool opaque{};
+    // The environment (design note sections 3 and 6): the parent's
+    // application theme, an immutable snapshot shared, never mutated, across
+    // the threads (null keeps the one in force), and the parent's
+    // presentation settings (text scale, colour scheme, reduced motion and
+    // the rest), applied before the theme so the theme is shown in the new
+    // scheme.
+    std::shared_ptr<const Theme> theme{};
+    PresentationSettings presentation{};
     // Made by the parent on its own thread (SurfaceRoot::create_framebuffer)
     // at the device size, and owned from then on by the sub-surface's
     // thread, which alone uses and destroys it. Null keeps the previous
@@ -84,6 +92,10 @@ struct SubSurfaceStatistics final {
     std::uint64_t publish_retries{};
     // The content epoch of the newest published frame.
     std::uint64_t published_content_epoch{};
+    // Turns of the loop: each wake by a configuration, a post, a paint wake
+    // or a due frame request. An idle sub-surface does not turn (no
+    // perpetual redraw loop).
+    std::uint64_t loop_turns{};
 };
 
 // A SurfaceRoot whose output is a LiveSurface and whose host is a control of

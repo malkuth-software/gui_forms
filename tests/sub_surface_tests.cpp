@@ -146,6 +146,8 @@ struct Probe final {
     std::thread::id built_on{};
     bool saw_no_window{};
     bool saw_surface_root{};
+    double text_scale{};
+    const Theme* application_theme{};
 };
 
 class SolidContent final : public SubSurfaceContent {
@@ -182,6 +184,10 @@ public:
         (*surface).set_background(color_);
         (*probe_).saw_no_window = (*surface).attached_window() == nullptr;
         (*probe_).saw_surface_root = (*surface).attached_surface_root() != nullptr;
+        if (SurfaceRoot* const root = (*surface).attached_surface_root()) {
+            (*probe_).text_scale = (*root).presentation_settings().text_scale;
+            (*probe_).application_theme = &(*root).application_theme();
+        }
     }
 
 private:
@@ -286,6 +292,11 @@ void thread_produces_tagged_frames() {
         require((*probe).saw_no_window, "a control in a sub-surface sees no window");
         require((*probe).saw_surface_root, "a control in a sub-surface sees its surface root");
     }
+
+    // Idle: with nothing posted, dirty or due, the loop does not turn.
+    const std::uint64_t turns = thread.statistics().loop_turns;
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    require(thread.statistics().loop_turns == turns, "an idle sub-surface does not turn its loop");
 
     // Newest wins: a burst of configurations ends at the last one's size and
     // epoch; none is lost from the count.
@@ -403,6 +414,31 @@ void host_in_window() {
     const LiveSurfaceFrame scaled = (*surface).acquire_latest();
     require(scaled.width() == 160U && scaled.height() == 80U, "device pixels at scale 2");
     require(frame_is(scaled, red), "the scaled frame is whole");
+
+    // The environment travels with a new epoch, without a new size: the
+    // sub-surface takes the window's presentation settings and theme.
+    PresentationSettings settings = window.presentation_settings();
+    settings.text_scale = 1.5;
+    window.set_presentation_settings(settings);
+    window.flush();
+    require((*host).content_epoch() == 4U, "presentation settings open a new content epoch");
+    const std::shared_ptr<const Theme> other = Theme::create(windows_professional_theme_definition());
+    window.set_theme(other);
+    window.flush();
+    require((*host).content_epoch() == 5U, "a theme change opens a new content epoch");
+    require(wait_for_content_tag(*surface, 5U), "the sub-surface publishes at epoch 5");
+    const DispatchOperation probed = (*host).dispatcher().begin_invoke(Recolour(probe, red));
+    static_cast<void>(probed);
+    const std::chrono::steady_clock::time_point limit = std::chrono::steady_clock::now() + wait_limit;
+    bool environment_seen = false;
+    while (!environment_seen && std::chrono::steady_clock::now() < limit) {
+        {
+            const std::lock_guard<std::mutex> lock((*probe).mutex);
+            environment_seen = (*probe).text_scale == 1.5 && (*probe).application_theme == other.get();
+        }
+        if (!environment_seen) std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    require(environment_seen, "the sub-surface shows the window's text scale and theme");
 
     static_cast<void>((*root).remove_child((*host).runtime_id()));
     require(!(*host).started(), "leaving the window stops and joins the thread");
