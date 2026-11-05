@@ -115,6 +115,16 @@ constexpr ControlAnatomy sub_surface_host_anatomy{
 
 } // namespace
 
+SemanticDescriptor SubSurfaceHost::semantic_descriptor() const {
+    SemanticDescriptor descriptor{};
+    descriptor.role = SemanticRole::pane;
+    descriptor.name = accessible_name.read().empty() ? "Sub-surface" : accessible_name.read();
+    descriptor.description = accessible_description.read();
+    descriptor.actions = {SemanticAction::focus};
+    descriptor.exposed = true;
+    return descriptor;
+}
+
 const ControlAnatomy& SubSurfaceHost::anatomy() const noexcept {
     return sub_surface_host_anatomy;
 }

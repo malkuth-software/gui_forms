@@ -67,6 +67,11 @@ public:
     // Composes the newest frame into the region (Painter::draw_live_surface).
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
+    // A pane of its own, named by the accessible name ("Sub-surface"
+    // without one), whose default action focuses it: the host is the tab
+    // stop through which focus enters the sub-surface. The sub-surface's
+    // tree publishes its nodes in its own root, not under this one.
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     // Stage T1 anatomy, as dot members (see Control::Parts). `content` is
     // the composed sub-surface frame, present once the sub-surface has a
     // LiveSurface; the sub-surface's own controls are parts of its tree,
