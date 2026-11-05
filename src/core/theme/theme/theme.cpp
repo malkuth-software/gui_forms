@@ -1707,6 +1707,31 @@ ResolvedFont Theme::resolve_font(const Control& control, FontSpec own) const noe
     return themed;
 }
 
+std::optional<BackdropChain> Theme::window_backdrop_chain(const Window& window) const noexcept {
+    const Control::Ptr root = window.root();
+    CompiledThemeRules::PartFacts facts{};
+    facts.surface = SurfaceKind::window;
+    facts.stable_id = (*root).stable_id().value();
+    facts.classes = (*root).classes();
+    facts.media = window_media_facts(window);
+    facts.user_rules = window.user_theme_rules();
+    const BackdropDeclaration* const declared = engine_.rules().resolve_backdrop(facts);
+    if (declared == nullptr || (*declared).length == 0U) return std::nullopt;
+    // The compiler and add_backdrop admitted the declaration, and the two
+    // chains share their capacity and ranges, so every operation appends.
+    static_assert(BackdropDeclaration::maximum_steps == BackdropChain::maximum_operations);
+    BackdropChain chain{};
+    for (std::size_t index = 0U; index < (*declared).length; ++index) {
+        const BackdropStep& step = (*declared).steps[index];
+        BackdropOperation operation = BackdropOperation::tint(step.colour);
+        if (step.kind == BackdropStepKind::blur) operation = BackdropOperation::blur(step.amount);
+        if (step.kind == BackdropStepKind::saturate) operation = BackdropOperation::saturate(step.amount);
+        static_cast<void>(chain.append(operation));
+    }
+    if (!backdrop_chain_valid(chain)) return std::nullopt;
+    return chain;
+}
+
 bool Theme::declares_clarity(const Control& control) const noexcept {
     CompiledThemeRules::PartFacts facts{};
     facts.control_type = control.anatomy().control_id;

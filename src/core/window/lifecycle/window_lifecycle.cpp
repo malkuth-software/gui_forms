@@ -56,6 +56,9 @@ Window::Window(Control::Ptr root, Size client_size,
     // its own. Undeclared, the window is granted `opaque` whatever it asks.
     backdrop_request_ = (*theme_).definition().window_backdrop.request;
     refresh_backdrop();
+    // The theme's `window { backdrop: ... }`, which may imply its own
+    // request (implied_backdrop_request).
+    lower_theme_backdrop_chain();
     const Rect initial_damage{0.0, 0.0, client_size_.width, client_size_.height};
     add_damage_all_planes(initial_damage);
     metrics_.record_dirty_mark(initial_damage.area());
@@ -214,6 +217,8 @@ bool SurfaceRoot::set_surface_scale(double scale) {
         return false;
     }
     scale_ = scale;
+    // A resolution media query may give the window another backdrop.
+    lower_theme_backdrop_chain();
     ++surface_epoch_;
     if (surface_epoch_ == 0U) ++surface_epoch_;
     mark_subtree_dirty(*root_, invalidation::conservative_subtree);
@@ -289,6 +294,10 @@ void SurfaceRoot::set_presentation_settings(PresentationSettings settings) {
     // variant, else GUI.Forms' own (T4 theme variants). A handler above may
     // have changed the scheme again; the scheme in force decides.
     if (scheme_switched && resources_) show_theme(scheme_theme((*resources_).theme_ptr()));
+    // The window's media changed: its rules may give another backdrop, or
+    // another colour for a role in tint(). Where a theme shown above has
+    // lowered it already, this changes nothing.
+    lower_theme_backdrop_chain();
 }
 
 const Theme& SurfaceRoot::application_theme() const noexcept {
@@ -342,6 +351,9 @@ void SurfaceRoot::show_theme(const std::shared_ptr<const Theme>& shown) {
     engine_parts_.invalidate_rasters();
     // The window's backplane material may differ (E9-B).
     damage_backplane_readers(nullptr);
+    // The new theme's window backdrop chain first: the request below is
+    // implied by it.
+    lower_theme_backdrop_chain();
     // A window following its theme's backdrop request takes the new
     // theme's, and its grant is resolved again before theme_changed is
     // raised, so handlers see the grant the theme brings.

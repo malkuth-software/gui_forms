@@ -190,6 +190,15 @@ follows the colour scheme and forced high contrast. In any other rule
 second blur, an amount out of range or a ninth operation is an error. For
 example, `window { backdrop: blur(12px) saturate(140%) tint(role(ink-on-paper) / 0.6) }`.
 
+The winning `window` rule's backdrop, matched against the window's media and
+its root control's classes and stable ID, becomes the window's backdrop chain
+(`Window::set_backdrop_chain`). It is lowered again when the window shows
+another theme, when its presentation settings (scheme, contrast, motion)
+change and when its scale changes; changing the root's classes later takes
+effect at the next of these. An application that sets its own chain keeps
+it. `popup` rules are compiled and held: they apply once native popup
+windows exist.
+
 `clip-path`, `rotate`, `transform`, text
 decoration and spacing, and layout properties (`width`, `margin`, ...) are
 warnings: geometry and layout belong to the engine and to forms.

@@ -624,7 +624,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: void set_backdrop_chain(std::optional<BackdropChain> chain)
 
-      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread.
+      The window's backdrop chain (owner, 2026-11-05; gui_forms/window/backdrop/backdrop_chain.hpp): set by the theme engine from the theme's ``backdrop:`` property, or by the application; nullopt removes it. A chain with a blur asks for the system material (implied_backdrop_request); GUI.Forms paints only the chain's tint, as the window's base. A change repaints the window. std::invalid_argument, changing nothing, for a chain backdrop_chain_valid refuses. UI thread. Until the application sets one, the window follows its theme's (Theme::window_backdrop_chain), lowered again when the theme shown, the presentation settings or the scale change; from the first call on, the application's holds.
 
    .. cpp:function:: std::optional<BackdropChainResolution> backdrop_chain_resolution() const noexcept
 

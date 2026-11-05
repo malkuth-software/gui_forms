@@ -2390,6 +2390,22 @@ CompiledThemeRules::RecipeResolution CompiledThemeRules::resolve_recipe_fields(c
     return result;
 }
 
+const BackdropDeclaration* CompiledThemeRules::resolve_backdrop(const PartFacts& facts) const noexcept {
+    // Only a surface rule holds a backdrop (add_backdrop). Rules are walked
+    // in ascending precedence, so the last match wins.
+    if (facts.surface == SurfaceKind::none) return nullptr;
+    ScopedWinners winners{};
+    resolve_scoped(facts, winners);
+    const BackdropDeclaration* winner = nullptr;
+    RuleWalk walk(*this, facts, false, &winners);
+    for (const CompiledRule* next = walk.next(); next != nullptr; next = walk.next()) {
+        const CompiledRule& rule = *next;
+        if (!rule.backdrop || !matches(rule, facts)) continue;
+        winner = &*rule.backdrop;
+    }
+    return winner;
+}
+
 void CompiledThemeRules::resolve_primitive(const PartFacts& facts, const ScopedWinners& winners,
                                            const CompiledRule& chosen, Resolution& result) const noexcept {
     result.level = chosen.level;

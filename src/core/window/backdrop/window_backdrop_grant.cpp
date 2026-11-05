@@ -111,6 +111,19 @@ void SurfaceRoot::set_backdrop_chain(std::optional<BackdropChain> chain) {
         throw std::invalid_argument(
             "GUI.Forms backdrop chain needs at most eight operations in range with at most one blur");
     }
+    application_backdrop_chain_ = true;
+    apply_backdrop_chain(chain);
+}
+
+void SurfaceRoot::lower_theme_backdrop_chain() {
+    if (application_backdrop_chain_) return;
+    const Window* const window = (*root_).attached_window();
+    if (window == nullptr) return;
+    const std::optional<BackdropChain> chain = (*theme_).window_backdrop_chain(*window);
+    apply_backdrop_chain(chain);
+}
+
+void SurfaceRoot::apply_backdrop_chain(const std::optional<BackdropChain>& chain) {
     if (chain == backdrop_chain_) return;
     backdrop_chain_ = chain;
     // A window following its theme's request follows the chain's instead

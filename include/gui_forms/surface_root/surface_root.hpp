@@ -496,7 +496,10 @@ public:
     // (implied_backdrop_request); GUI.Forms paints only the chain's tint,
     // as the window's base. A change repaints the window.
     // std::invalid_argument, changing nothing, for a chain
-    // backdrop_chain_valid refuses. UI thread.
+    // backdrop_chain_valid refuses. UI thread. Until the application sets
+    // one, the window follows its theme's (Theme::window_backdrop_chain),
+    // lowered again when the theme shown, the presentation settings or the
+    // scale change; from the first call on, the application's holds.
     void set_backdrop_chain(std::optional<BackdropChain> chain);
     [[nodiscard]] const std::optional<BackdropChain>& backdrop_chain() const noexcept { return backdrop_chain_; }
     // How the chain is carried under the grant in force: what the material
@@ -1791,6 +1794,15 @@ private:
     friend void detail::attach_application_window(SurfaceRoot& model,
                                                   const std::shared_ptr<detail::ApplicationWindowState>& state) noexcept;
     std::weak_ptr<detail::ApplicationWindowState> application_window_{};
+    // Whether backdrop_chain_ is the application's (set_backdrop_chain)
+    // rather than the theme's.
+    bool application_backdrop_chain_{};
+    // Puts `chain`, valid or none, in force: the implied request, the
+    // backplane and the repaint (set_backdrop_chain's effects).
+    void apply_backdrop_chain(const std::optional<BackdropChain>& chain);
+    // The theme's chain for this window (Theme::window_backdrop_chain), put
+    // in force unless the application set its own.
+    void lower_theme_backdrop_chain();
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

@@ -11,6 +11,7 @@
 #include "gui_forms/gui_forms.hpp"
 
 #include <cstddef>
+#include <initializer_list>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -306,6 +307,65 @@ void test_system_colour_hints() {
     }
 }
 
+BackdropChain chain_of(std::initializer_list<BackdropOperation> operations) {
+    BackdropChain chain{};
+    for (const BackdropOperation& operation : operations) static_cast<void>(chain.append(operation));
+    return chain;
+}
+
+// `window { backdrop: ... }` lowers onto the window's chain (owner decisions
+// 2026-11-05): the winning rule for the window's media and its root's
+// classes, a role tint in the scheme in force, lowered again when the scheme
+// changes; `popup` rules wait for native popup windows; an application's
+// own chain holds against the theme.
+void test_window_backdrop() {
+    const Compilation compiled =
+        compile(":root { color-scheme: light dark; ink-on-paper: #1b2733 on #f4f6fa }\n"
+                "window { backdrop: blur(12px) saturate(140%) tint(role(ink-on-paper) / 0.6) }\n"
+                "window.plain { backdrop: none }\n"
+                "popup { backdrop: tint(black) }\n"
+                "@media (prefers-color-scheme: dark) { window { backdrop: tint(#202020 / 50%) } }\n");
+    require(compiled.outcome == CompileOutcome::compiled && compiled.diagnostics.empty(),
+            "the backdrop sheet compiles cleanly");
+    const std::shared_ptr<const Theme> theme = theme_from(compiled.sheet, "backdrops");
+    const BackdropChain light = chain_of({BackdropOperation::blur(12.0), BackdropOperation::saturate(1.4),
+                                          BackdropOperation::tint(Color::rgba(0xf4, 0xf6, 0xfa, 0x99))});
+    const BackdropChain dark = chain_of({BackdropOperation::tint(Color::rgba(0x20, 0x20, 0x20, 0x80))});
+
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
+    Window window(root, Size{200.0, 100.0});
+    require(!window.backdrop_chain(), "a theme without window rules gives no chain");
+    window.set_theme(theme);
+    require(window.backdrop_chain() && *window.backdrop_chain() == light,
+            "the window rule's chain, its role tint in the light scheme");
+    set_scheme(window, ColourScheme::dark);
+    require(window.backdrop_chain() && *window.backdrop_chain() == dark, "the dark scheme's rule wins in dark");
+    set_scheme(window, ColourScheme::light);
+    require(window.backdrop_chain() && *window.backdrop_chain() == light, "and light again");
+    window.set_theme(gui_forms_theme());
+    require(!window.backdrop_chain(), "another theme without window rules removes it");
+
+    // A root with the class: `backdrop: none` wins, and no chain is set.
+    const std::shared_ptr<Panel> plain_root = make_control<Panel>(StableId("plain-root"));
+    std::vector<std::string> classes{};
+    classes.push_back("plain");
+    (*plain_root).set_classes(std::move(classes));
+    Window plain(plain_root, Size{200.0, 100.0});
+    plain.set_theme(theme);
+    require(!plain.backdrop_chain(), "backdrop: none on the root's class removes the chain");
+
+    // The application's chain holds against the scheme and the theme.
+    const BackdropChain own = chain_of({BackdropOperation::tint(Color::rgba(10, 20, 30, 40))});
+    window.set_theme(theme);
+    window.set_backdrop_chain(own);
+    set_scheme(window, ColourScheme::dark);
+    window.set_theme(gui_forms_theme());
+    require(window.backdrop_chain() && *window.backdrop_chain() == own, "the application's chain holds");
+    window.set_backdrop_chain(std::nullopt);
+    window.set_theme(theme);
+    require(!window.backdrop_chain(), "an application's removal holds too");
+}
+
 } // namespace
 
 int main() {
@@ -315,6 +375,7 @@ int main() {
     test_fallback();
     test_automatic_scheme();
     test_system_colour_hints();
+    test_window_backdrop();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

@@ -62,8 +62,10 @@ GUI.Forms never reads or blurs what lies outside a window's own surface:
 it cannot know whether the window beneath is its own or another
 application's. The window system supplies the blur.
 
-- `Window::set_backdrop_chain` sets a window's chain (the theme's
-  `backdrop:` property is to lower into it). A chain with a blur asks for
+- `Window::set_backdrop_chain` sets a window's chain. Until the
+  application sets one, the window takes its theme's: the winning
+  `window { backdrop: ... }` rule, lowered again when the theme, the
+  presentation settings or the scale change. A chain with a blur asks for
   the system material (`window_material`, falling back to `transparent`)
   unless the application made its own request: Mica or Acrylic on
   Windows, vibrancy on macOS, and whatever blur the compositor gives

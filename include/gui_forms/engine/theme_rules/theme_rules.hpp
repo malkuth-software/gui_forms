@@ -1484,6 +1484,13 @@ public:
     // rule sets a recipe field.
     [[nodiscard]] RecipeResolution resolve_recipe_fields(const PartFacts& facts) const noexcept;
 
+    // The winning backdrop of the surface `facts` name (PartFacts::surface,
+    // its root control's classes and ID): the last matching rule's, which
+    // belongs to the compiled rules or to the user theme's, or null where no
+    // matching rule declares one. `backdrop: none` wins as a chain of length
+    // 0. Linear in the number of rules.
+    [[nodiscard]] const BackdropDeclaration* resolve_backdrop(const PartFacts& facts) const noexcept;
+
     // The cascade for one part: the winning primitive declaration, then
     // each of that primitive's parameters from the winning declaration of
     // it among the matching rules that select the same primitive, else its

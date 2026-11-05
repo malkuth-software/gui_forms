@@ -529,6 +529,14 @@ void surface_rules() {
     require(amplitude_of(rules.resolve(surface)) == 0.2, "a window's facts match the window rules only");
     surface.surface = SurfaceKind::popup;
     require(rules.resolve(surface).primitive == nullptr, "a popup's facts match no window rule");
+    // The backdrop's winner: the window rule's chain for a window's facts,
+    // none for a popup's or a control's.
+    surface.surface = SurfaceKind::window;
+    const BackdropDeclaration* const won = rules.resolve_backdrop(surface);
+    require(won != nullptr && *won == chain, "a window's facts take the window rule's backdrop");
+    surface.surface = SurfaceKind::popup;
+    require(rules.resolve_backdrop(surface) == nullptr, "a popup's facts take no window backdrop");
+    require(rules.resolve_backdrop(face_of("x", none)) == nullptr, "a control's part has no backdrop");
     RuleSelector specific = window;
     specific.stable_id = "settings";
     require(rule_specificity(specific).types == 1U && rule_specificity(specific).ids == 1U,
