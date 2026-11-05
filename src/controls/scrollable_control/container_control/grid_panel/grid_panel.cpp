@@ -438,7 +438,7 @@ void GridPanel::gather_children() {
     children_.reserve(all.size());
     absolute_children_.clear();
     for (const Control::Ptr& child : all) {
-        if (!child || !is_current_layout_child(child) || !(*child).visible.type()) continue;
+        if (!child || !is_current_layout_child(child) || !(*child).visible.read()) continue;
         if (record_for(*child).positioning.position == PositionKind::absolute) {
             absolute_children_.push_back(child);
             continue;
@@ -478,13 +478,13 @@ void GridPanel::resolve_item_inputs() {
         input.placement = &placements_[index];
         input.justify_self = layout.justify_self;
         input.align_self = layout.align_self;
-        const Insets margin = child.margin.type();
+        const Insets margin = child.margin.read();
         input.margin.top = GridMargin{layout.auto_margin.top ? 0.0 : margin.top, layout.auto_margin.top};
         input.margin.right = GridMargin{layout.auto_margin.right ? 0.0 : margin.right, layout.auto_margin.right};
         input.margin.bottom = GridMargin{layout.auto_margin.bottom ? 0.0 : margin.bottom, layout.auto_margin.bottom};
         input.margin.left = GridMargin{layout.auto_margin.left ? 0.0 : margin.left, layout.auto_margin.left};
-        const Size control_minimum = child.minimum_size.type();
-        const Size control_maximum = child.maximum_size.type();
+        const Size control_minimum = child.minimum_size.read();
+        const Size control_maximum = child.maximum_size.read();
         input.width = layout.width;
         input.height = layout.height;
         input.min_width = used_minimum(layout.min_width, control_minimum.width);
@@ -512,11 +512,11 @@ void GridPanel::measure_column_contributions(const SolveRequest& request, const 
         // its area whatever its content: nothing to measure.
         if (fixed && !definite_width && stretched_width(layout, justify_items_)) continue;
 
-        const Insets margin = child.margin.type();
+        const Insets margin = child.margin.read();
         const double margins = (layout.auto_margin.left ? 0.0 : margin.left) +
                                (layout.auto_margin.right ? 0.0 : margin.right);
-        const ContentBounds bounds = content_bounds(layout.min_width, layout.max_width, child.minimum_size.type().width,
-                                                    child.maximum_size.type().width);
+        const ContentBounds bounds = content_bounds(layout.min_width, layout.max_width, child.minimum_size.read().width,
+                                                    child.maximum_size.read().width);
         double smallest = 0.0;
         double largest = 0.0;
         if (definite_width) {
@@ -556,11 +556,11 @@ void GridPanel::measure_row_contributions(const GridContainerInput& container,
         const GridItemLayout& layout = record_for(child);
         GridItemContribution& contribution = row_contributions_[index];
         contribution = GridItemContribution{};
-        const Insets margin = child.margin.type();
+        const Insets margin = child.margin.read();
         const double margins = (layout.auto_margin.top ? 0.0 : margin.top) +
                                (layout.auto_margin.bottom ? 0.0 : margin.bottom);
         const ContentBounds bounds = content_bounds(layout.min_height, layout.max_height,
-                                                    child.minimum_size.type().height, child.maximum_size.type().height);
+                                                    child.minimum_size.read().height, child.maximum_size.read().height);
         double height = 0.0;
         const bool definite_height = plain_length(layout.height);
         const double width =
@@ -594,7 +594,7 @@ void GridPanel::measure_row_contributions(const GridContainerInput& container,
 void GridPanel::publish_slots(const GridLayoutWorkspace& workspace, Size content_box) {
     const LayoutDirection direction = effective_layout_direction();
     const std::span<const GridItemResult> results = workspace.items();
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const Point offset = scroll_position();
     arranged_ids_.clear();
     arranged_ids_.reserve(children_.size());
@@ -652,7 +652,7 @@ GridPanel::SolveResult GridPanel::solve(const SolveRequest& request, GridLayoutW
 }
 
 Size GridPanel::measure_intrinsic(const LayoutConstraint& constraint) {
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const double horizontal_padding = inset.left + inset.right;
     const double vertical_padding = inset.top + inset.bottom;
     const Rect requested = requested_bounds();
@@ -667,7 +667,7 @@ Size GridPanel::measure_intrinsic(const LayoutConstraint& constraint) {
     const AvailableExtentKind width_kind = constraint.width.kind;
     if (width_kind == AvailableExtentKind::definite) {
         width = constraint.width.extent.value();
-    } else if (width_kind == AvailableExtentKind::at_most && !auto_size.type()) {
+    } else if (width_kind == AvailableExtentKind::at_most && !auto_size.read()) {
         const double available = constraint.width.extent.value();
         width = requested.width > 0.0 ? std::min(requested.width, available) : available;
     } else if (width_kind == AvailableExtentKind::min_content) {
@@ -691,7 +691,7 @@ Size GridPanel::measure_intrinsic(const LayoutConstraint& constraint) {
     const AvailableExtentKind height_kind = constraint.height.kind;
     if (height_kind == AvailableExtentKind::definite) {
         height = constraint.height.extent.value();
-    } else if (height_kind == AvailableExtentKind::at_most && !auto_size.type()) {
+    } else if (height_kind == AvailableExtentKind::at_most && !auto_size.read()) {
         const double available = constraint.height.extent.value();
         height = requested.height > 0.0 ? std::min(requested.height, available) : available;
     } else {
@@ -705,8 +705,8 @@ Size GridPanel::measure_intrinsic(const LayoutConstraint& constraint) {
             height = std::min(height, constraint.height.extent.value());
         }
     }
-    const Size minimum = minimum_size.type();
-    const Size maximum = maximum_size.type();
+    const Size minimum = minimum_size.read();
+    const Size maximum = maximum_size.read();
     width = std::min(std::max(width, minimum.width), maximum_or_unbounded(maximum.width));
     height = std::min(std::max(height, minimum.height), maximum_or_unbounded(maximum.height));
     const Size measured{width, height};
@@ -727,7 +727,7 @@ Size GridPanel::measure(Size available) {
 void GridPanel::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     forget_departed_children();
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const Size client{final_bounds.width, final_bounds.height};
     Size available = client;
     // With auto_scroll, the bars a content overflow needs narrow the
@@ -779,7 +779,7 @@ void GridPanel::place_absolute_children(Size client) {
     set_containing_block_dependencies(dependency_path_);
     registered_dependencies_ = true;
     out_of_flow::AbsoluteContainer container{};
-    container.padding = padding.type();
+    container.padding = padding.read();
     container.size = client;
     container.scroll = scroll_position();
     container.direction = effective_layout_direction();
@@ -809,8 +809,8 @@ bool GridPanel::measures_children_in_arrange() const noexcept {
 SemanticDescriptor GridPanel::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }

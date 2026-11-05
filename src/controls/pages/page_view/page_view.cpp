@@ -286,7 +286,7 @@ void PageView::reconcile_panels() {
         PagePanel& panel = static_cast<PagePanel&>(*slot.panel);
         panel.set_title(parse_mnemonic_text(record.title).display_text);
         const bool shown = selected && *selected == slot.page;
-        if ((*slot.panel).visible.type() != shown) (*slot.panel).visible = shown;
+        if ((*slot.panel).visible.read() != shown) (*slot.panel).visible = shown;
     }
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -350,7 +350,7 @@ PageView::Areas PageView::areas_for(Size surface) const {
     Areas areas{};
     // A hidden strip (a docking tool stack holding one panel hides it)
     // leaves the whole surface to the content.
-    if (!strip_ || !(*strip_).visible.type()) {
+    if (!strip_ || !(*strip_).visible.read()) {
         areas.content = {0.0, 0.0, surface.width, surface.height};
         return areas;
     }
@@ -453,9 +453,9 @@ void PageView::on_key_bubble(KeyEvent& event) {
 SemanticDescriptor PageView::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
-    descriptor.exposed = !accessible_name.type().empty();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
+    descriptor.exposed = !accessible_name.read().empty();
     return descriptor;
 }
 

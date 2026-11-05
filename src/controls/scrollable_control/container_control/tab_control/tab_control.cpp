@@ -721,7 +721,7 @@ void TabControl::select_relative(int delta) {
 // wrapping. A TabControl nested inside this one, holding the focus, takes
 // them instead.
 void TabControl::on_key_preview(KeyEvent& event) {
-    if (event.action != KeyAction::down || !enabled.type() || page_count() == 0U ||
+    if (event.action != KeyAction::down || !enabled.read() || page_count() == 0U ||
         window() == nullptr) return;
     if (nested_tab_control_has_focus()) return;
     const KeyMap& keys = effective_key_map();
@@ -763,8 +763,8 @@ void TabControl::on_focus_changed(bool focused) {
 SemanticDescriptor TabControl::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::tab_group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
     if (selected) descriptor.value = (*selected).text();
     const bool row = alignment_ == TabAlignment::top || alignment_ == TabAlignment::bottom;
@@ -788,7 +788,7 @@ std::vector<SemanticNode> TabControl::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::tab;
         node.name = (*live[index]).text();
-        node.tool_tip = (*live[index]).tool_tip_text.type();
+        node.tool_tip = (*live[index]).tool_tip_text.read();
         const Rect local = tab_parts(*live[index]).tab.bounds;
         if (!local.empty()) {
             node.bounds = {absolute.x + local.x, absolute.y + local.y,

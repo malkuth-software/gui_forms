@@ -7589,6 +7589,12 @@ Functions, constants and aliases
 
    Value: ``32U``.
 
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/types/paint_types/paint_types.hpp>``
+
+.. cpp:var:: constexpr TypeTag<CursorKind> cursor_kind
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/types/painter/painter.hpp>``

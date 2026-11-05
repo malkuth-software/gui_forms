@@ -47,7 +47,7 @@ using gui_forms::StableId;
 // to it is a pointer to the capability (pointer-interconvertible, the
 // capability being standard-layout), and the capability is a base of the
 // control (a static_cast down). Writes go through operator=, reads through
-// type(); there is no conversion operator.
+// read(); there is no conversion operator.
 template <typename Value, typename Capability>
 class PropertyCell final {
 public:
@@ -61,7 +61,7 @@ public:
         return *this;
     }
 
-    [[nodiscard]] const Value& type() const noexcept { return value_; }
+    [[nodiscard]] const Value& read() const noexcept { return value_; }
 
 private:
     friend Capability;
@@ -329,7 +329,7 @@ void measure_spellings() {
     report("set text, capability, equal value", times.equal_value, "ns");
 
     // The setter, touch and key loops all end on the same odd index.
-    const bool same = (*setter).text() == (*touch).text.type();
+    const bool same = (*setter).text() == (*touch).text.read();
     report("setter and touch values agree", same ? 1.0 : 0.0, "");
     report("sizeof SetterButton", static_cast<double>(sizeof(SetterButton)), "bytes");
     report("sizeof CapabilityButton", static_cast<double>(sizeof(CapabilityButton)), "bytes");

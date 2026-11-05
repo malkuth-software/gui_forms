@@ -112,7 +112,7 @@ void TypographyPage::on_overlay_invoked(const CommandInvocation& invocation) {
 void TypographyPage::on_overlay_state(const CommandState& state) {
     VisualInspectorOverlay& overlay = *document_.gallery_typography_inspector_overlay;
     const bool visible = state.checkable && state.checked;
-    if (overlay.visible.type() == visible) return;
+    if (overlay.visible.read() == visible) return;
     overlay.visible = visible;
     if (visible) overlay.refresh();
 }

@@ -212,7 +212,7 @@ void Label::set_text(std::string text) {
     // update a measure request needlessly invalidates every layout ancestor.
     const Rect requested = requested_bounds();
     Dirty effects = Dirty::paint | Dirty::semantics | Dirty::accessibility;
-    if (auto_size.type() || requested.width <= 0.0 || requested.height <= 0.0) {
+    if (auto_size.read() || requested.width <= 0.0 || requested.height <= 0.0) {
         effects |= Dirty::measure | Dirty::arrange;
     }
     invalidate(effects);
@@ -656,10 +656,10 @@ bool Label::hit_test_local(Point) const {
 SemanticDescriptor Label::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::static_text;
-    descriptor.name = accessible_name.type().empty()
+    descriptor.name = accessible_name.read().empty()
         ? (use_mnemonic_ ? parse_mnemonic_text(text_).display_text : text_)
-        : accessible_name.type();
-    descriptor.description = accessible_description.type();
+        : accessible_name.read();
+    descriptor.description = accessible_description.read();
     // The mnemonic moves the focus to the next control; the label publishes
     // it, as a Win32 static control does.
     if (use_mnemonic_) descriptor.access_key = mnemonic_access_key(text_);

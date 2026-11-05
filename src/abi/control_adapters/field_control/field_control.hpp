@@ -250,7 +250,7 @@ public:
         }
         if (!text_.empty()) {
             painter.draw_text_utf8({text_origin_x, baseline}, text_, font,
-                                   enabled.type() ? style.text : style.disabled_text);
+                                   enabled.read() ? style.text : style.disabled_text);
             if (focused_ && selection_end > selection_start &&
                 selection_end_x > selection_x) {
                 painter.save();
@@ -266,7 +266,7 @@ public:
             const double caret_x = text_origin_x + caret_content_x;
             painter.draw_line({caret_x, 4.0},
                               {caret_x, std::max(4.0, bounds.height - 4.0)},
-                              enabled.type() ? style.text : style.disabled_text, 1.0);
+                              enabled.read() ? style.text : style.disabled_text, 1.0);
         }
         painter.restore();
         if (kind_ == FieldControlKind::combo_box && bounds.width >= 18.0) {

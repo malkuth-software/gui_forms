@@ -777,10 +777,10 @@ bool PropertyList::replace_editor(std::string_view id, Control::Ptr editor) {
     }
     PropertyRowSpec& model = (*impl_).spec(*row);
     if (!model.enabled) (*editor).enabled = false;
-    if ((*editor).accessible_name.type().empty()) {
+    if ((*editor).accessible_name.read().empty()) {
         (*editor).accessible_name = model.name;
     }
-    if ((*editor).accessible_description.type().empty()) {
+    if ((*editor).accessible_description.read().empty()) {
         (*editor).accessible_description = model.description;
     }
 
@@ -1139,8 +1139,8 @@ void PropertyList::on_key(KeyEvent& event) {
 SemanticDescriptor PropertyList::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::property_grid;
-    descriptor.name = accessible_name.type().empty() ? "Properties" : accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read().empty() ? "Properties" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     descriptor.include_descendants = true;

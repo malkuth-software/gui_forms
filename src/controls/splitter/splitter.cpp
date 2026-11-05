@@ -50,7 +50,7 @@ void Splitter::set_min_extra(double extent) {
 
 bool Splitter::horizontal_axis() const noexcept {
     // Left and right splitters move along x; top and bottom ones along y.
-    const bool result = dock.type() == DockStyle::left || dock.type() == DockStyle::right;
+    const bool result = dock.read() == DockStyle::left || dock.read() == DockStyle::right;
     return result;
 }
 
@@ -67,13 +67,13 @@ double Splitter::extent_of(const Control& control) const noexcept {
 // does: the visible sibling docked at the same edge whose far side touches
 // the splitter's near side.
 Control::Ptr Splitter::target() const {
-    const DockStyle edge = dock.type();
+    const DockStyle edge = dock.read();
     if (edge == DockStyle::none || edge == DockStyle::fill) return nullptr;
     const Control::Ptr owner = parent();
     if (!owner) return nullptr;
     const Rect own = committed_arranged_bounds();
     for (const Control::Ptr& sibling : (*owner).children()) {
-        if (!sibling || sibling.get() == this || !(*sibling).visible.type() || (*sibling).dock.type() != edge) continue;
+        if (!sibling || sibling.get() == this || !(*sibling).visible.read() || (*sibling).dock.read() != edge) continue;
         const Rect bounds = (*sibling).committed_arranged_bounds();
         bool adjacent = false;
         switch (edge) {
@@ -104,12 +104,12 @@ Splitter::SplitLimits Splitter::limits(const Control& target) const {
         return result;
     }
     const Rect client = (*owner).client_rectangle();
-    const Insets padding = (*owner).padding.type();
+    const Insets padding = (*owner).padding.read();
     double shared = horizontal_axis() ? client.width - padding.left - padding.right
                                       : client.height - padding.top - padding.bottom;
     for (const Control::Ptr& sibling : (*owner).children()) {
-        if (!sibling || sibling.get() == &target || !(*sibling).visible.type()) continue;
-        const DockStyle edge = (*sibling).dock.type();
+        if (!sibling || sibling.get() == &target || !(*sibling).visible.read()) continue;
+        const DockStyle edge = (*sibling).dock.read();
         const bool same_axis = horizontal_axis() ? (edge == DockStyle::left || edge == DockStyle::right)
                                                  : (edge == DockStyle::top || edge == DockStyle::bottom);
         if (same_axis) shared -= extent_of(*sibling);
@@ -160,7 +160,7 @@ void Splitter::on_pointer(PointerEvent& event) {
         event.action == PointerAction::leave) {
         // A splitter with nothing to resize ignores the pointer: no resize
         // cursor and no hot face.
-        const bool hot = event.action != PointerAction::leave && enabled.type() && target() != nullptr;
+        const bool hot = event.action != PointerAction::leave && enabled.read() && target() != nullptr;
         if (hot) cursor = horizontal_axis() ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
         if (hot_ != hot) {
             hot_ = hot;
@@ -168,7 +168,7 @@ void Splitter::on_pointer(PointerEvent& event) {
         }
     }
     if (dragging_ && !has_pointer_capture() && event.action != PointerAction::up) end_drag();
-    if (event.action == PointerAction::down && event.button == PointerButton::primary && enabled.type()) {
+    if (event.action == PointerAction::down && event.button == PointerButton::primary && enabled.read()) {
         const Control::Ptr resized = target();
         if (!resized) return;
         dragging_ = true;
@@ -190,7 +190,7 @@ void Splitter::on_pointer(PointerEvent& event) {
     // A left or top target grows as the pointer moves away from it, so to
     // the right or down; a right or bottom target grows the other way.
     const double moved = axis_of(event.position) - drag_start_axis_;
-    const bool forward = dock.type() == DockStyle::left || dock.type() == DockStyle::top;
+    const bool forward = dock.read() == DockStyle::left || dock.read() == DockStyle::top;
     const double proposed = drag_start_extent_ + (forward ? moved : -moved);
     const Control::Ptr owner = parent();
     const Point pointer = owner ? (*owner).point_from_window(event.position) : event.position;
@@ -237,8 +237,8 @@ void Splitter::on_paint(Painter& painter, Rect) {
 SemanticDescriptor Splitter::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::separator;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.orientation = horizontal_axis() ? SemanticOrientation::vertical : SemanticOrientation::horizontal;
     const Control::Ptr resized = target();
     if (resized) {
@@ -257,7 +257,7 @@ SemanticDescriptor Splitter::semantic_descriptor() const {
 
 bool Splitter::on_semantic_action(SemanticAction action, std::string_view value) {
     const std::optional<double> current = split_position();
-    if (!current || !enabled.type()) return false;
+    if (!current || !enabled.read()) return false;
     if (action == SemanticAction::increment) {
         set_split_position(*current + semantic_step);
         return true;

@@ -298,9 +298,9 @@ void anatomy_and_parts() {
     const std::shared_ptr<PageView> left_view = site.stack_view(stacks[0]);
     const std::shared_ptr<PageView> right_view = site.stack_view(stacks[2]);
     const std::shared_ptr<PageView> document_view = site.stack_view(stacks[1]);
-    require(left_view && right_view && document_view && (*(*left_view).strip()).visible.type() &&
+    require(left_view && right_view && document_view && (*(*left_view).strip()).visible.read() &&
                 (*(*left_view).strip()).placement() == PageStripPlacement::bottom &&
-                !(*(*right_view).strip()).visible.type() && (*(*document_view).strip()).visible.type() &&
+                !(*(*right_view).strip()).visible.read() && (*(*document_view).strip()).visible.read() &&
                 (*(*document_view).strip()).placement() == PageStripPlacement::top,
             "tool tabs show at the bottom of a stack of two; a lone tool panel has none; documents show tabs on top");
     require(near((*right_view).parts().content.bounds.height, (*right_view).client_rectangle().height),

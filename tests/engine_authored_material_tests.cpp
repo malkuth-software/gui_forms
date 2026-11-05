@@ -473,7 +473,7 @@ public:
         part.family = family;
         part.bounds = Rect{20.0, 20.0, 40.0, 24.0};
         if (keyed) part.key = PartKey{"face", {}, {}};
-        if (!enabled.type()) part.states.insert(AnatomyState::disabled);
+        if (!enabled.read()) part.states.insert(AnatomyState::disabled);
         return part;
     }
     ControlVisualRole family{ControlVisualRole::button};

@@ -1471,65 +1471,65 @@ private:
 
         BindingValue operator()() const {
             if constexpr (Property == RegisteredProperty::name) {
-                return BindingValue{(*control).name.type()};
+                return BindingValue{(*control).name.read()};
             } else if constexpr (Property == RegisteredProperty::visible) {
-                return BindingValue{(*control).visible.type()};
+                return BindingValue{(*control).visible.read()};
             } else if constexpr (Property == RegisteredProperty::enabled) {
-                return BindingValue{(*control).enabled.type()};
+                return BindingValue{(*control).enabled.read()};
             } else if constexpr (Property == RegisteredProperty::auto_size) {
-                return BindingValue{(*control).auto_size.type()};
+                return BindingValue{(*control).auto_size.read()};
             } else if constexpr (
                 Property == RegisteredProperty::causes_validation) {
-                return BindingValue{(*control).causes_validation.type()};
+                return BindingValue{(*control).causes_validation.read()};
             } else if constexpr (Property == RegisteredProperty::bounds) {
                 return BindingValue{(*control).requested_bounds_};
             } else if constexpr (
                 Property == RegisteredProperty::minimum_size) {
-                return BindingValue{(*control).minimum_size.type()};
+                return BindingValue{(*control).minimum_size.read()};
             } else if constexpr (
                 Property == RegisteredProperty::maximum_size) {
-                return BindingValue{(*control).maximum_size.type()};
+                return BindingValue{(*control).maximum_size.read()};
             } else if constexpr (Property == RegisteredProperty::margin) {
-                return BindingValue{(*control).margin.type()};
+                return BindingValue{(*control).margin.read()};
             } else if constexpr (Property == RegisteredProperty::padding) {
-                return BindingValue{(*control).padding.type()};
+                return BindingValue{(*control).padding.read()};
             } else if constexpr (
                 Property == RegisteredProperty::auto_scroll_offset) {
                 return BindingValue{(*control).auto_scroll_offset_};
             } else if constexpr (Property == RegisteredProperty::dock) {
                 return Control::current_enum_property_value(
                     Control::dock_style_property_enum(),
-                    static_cast<std::int64_t>((*control).dock.type()));
+                    static_cast<std::int64_t>((*control).dock.read()));
             } else if constexpr (Property == RegisteredProperty::anchor) {
                 return Control::current_enum_property_value(
                     Control::anchor_styles_property_enum(),
-                    static_cast<std::int64_t>((*control).anchor.type()));
+                    static_cast<std::int64_t>((*control).anchor.read()));
             } else if constexpr (
                 Property == RegisteredProperty::auto_size_mode) {
                 return Control::current_enum_property_value(
                     Control::auto_size_mode_property_enum(),
-                    static_cast<std::int64_t>((*control).auto_size_mode.type()));
+                    static_cast<std::int64_t>((*control).auto_size_mode.read()));
             } else if constexpr (
                 Property == RegisteredProperty::layout_direction) {
                 return Control::current_enum_property_value(
                     Control::layout_direction_property_enum(),
-                    static_cast<std::int64_t>((*control).layout_direction.type()));
+                    static_cast<std::int64_t>((*control).layout_direction.read()));
             } else if constexpr (Property == RegisteredProperty::tab_index) {
                 return BindingValue{static_cast<std::uint64_t>(
-                    (*control).tab_index.type())};
+                    (*control).tab_index.read())};
             } else if constexpr (Property == RegisteredProperty::tab_stop) {
-                return BindingValue{(*control).tab_stop.type()};
+                return BindingValue{(*control).tab_stop.read()};
             } else if constexpr (Property == RegisteredProperty::allow_drop) {
-                return BindingValue{(*control).allow_drop.type()};
+                return BindingValue{(*control).allow_drop.read()};
             } else if constexpr (
                 Property == RegisteredProperty::hit_test_transparent) {
-                return BindingValue{(*control).hit_test_transparent.type()};
+                return BindingValue{(*control).hit_test_transparent.read()};
             } else if constexpr (
                 Property == RegisteredProperty::accessible_name) {
-                return BindingValue{(*control).accessible_name.type()};
+                return BindingValue{(*control).accessible_name.read()};
             } else if constexpr (
                 Property == RegisteredProperty::tool_tip_text) {
-                return BindingValue{(*control).tool_tip_text.type()};
+                return BindingValue{(*control).tool_tip_text.read()};
             } else if constexpr (Property == RegisteredProperty::cursor) {
                 return (*control).cursor_property_value();
             } else if constexpr (Property == RegisteredProperty::back_color) {
@@ -1539,7 +1539,7 @@ private:
             } else {
                 static_assert(
                     Property == RegisteredProperty::accessible_description);
-                return BindingValue{(*control).accessible_description.type()};
+                return BindingValue{(*control).accessible_description.read()};
             }
         }
     };

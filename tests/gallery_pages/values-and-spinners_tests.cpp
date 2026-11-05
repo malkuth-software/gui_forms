@@ -36,7 +36,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
               (*property_grid).editor("Bounds.X"))
         : std::shared_ptr<NumericUpDown>{};
     require(property_grid && inspected_numeric && value_editor &&
-                bounds_x_editor && (*bounds_x_editor).visible.type() &&
+                bounds_x_editor && (*bounds_x_editor).visible.read() &&
                 (*property_grid).selected_object() == inspected_numeric &&
                 (*property_grid).selected_origin("Value") ==
                     PropertyValueOrigin::local,
@@ -53,7 +53,7 @@ void test_values_and_spinners_binding(gui_forms::Window& window) {
             window.find("gallery.values.inspector-commands"));
     require(inspector_commands && (*inspector_commands).items().size() == 4U &&
                 (*inspector_commands).items()[1].command != nullptr &&
-                (*inspector_commands).item(1).enabled.type(),
+                (*inspector_commands).item(1).enabled.read(),
             "gallery inspector actions must be application Commands shown through one CommandBar");
     click(window, window.find("gallery.values.inspector-commands.item.2"));
     require(items_target && (*property_grid).selected_object() == items_target &&

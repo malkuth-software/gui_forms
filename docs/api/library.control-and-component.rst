@@ -3281,11 +3281,27 @@ Functions, constants and aliases
 
 .. cpp:function:: template <typename ControlType, typename... Arguments> std::shared_ptr<ControlType> make_control(StableId stable_id, Arguments&&... arguments)
 
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
 
 .. cpp:function:: constexpr bool has_anchor(AnchorStyles value, AnchorStyles flag) noexcept
+
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+
+.. cpp:var:: constexpr TypeTag<DockStyle> dock_style
+
+.. cpp:var:: constexpr TypeTag<AnchorStyles> anchor_styles
+
+.. cpp:var:: constexpr TypeTag<AutoSizeMode> auto_size_mode
 
 .. cpp:namespace:: gui_forms
 
@@ -3452,6 +3468,12 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double practical_unbounded_extent
 
    The extent Control::measure(Size) and get_preferred_size(Size{}) already use for "unbounded", kept finite so retained state never holds an infinity. Value: ``1.0e9``.
+
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/layout/types/layout_types.hpp>``
+
+.. cpp:var:: constexpr TypeTag<LayoutDirection> layout_direction
 
 .. cpp:namespace:: gui_forms
 

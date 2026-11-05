@@ -611,7 +611,7 @@ struct InstrumentRack::Impl final {
 
     std::vector<Slot> compute_slots(double available_width) const {
         const double s = scale();
-        const Insets inset = owner.padding.type();
+        const Insets inset = owner.padding.read();
         const double width = std::max(
             0.0, available_width - inset.left - inset.right);
         const double gap = rack_gap * s;
@@ -1060,9 +1060,9 @@ void InstrumentRack::on_key_preview(KeyEvent& event) {
 SemanticDescriptor InstrumentRack::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type().empty()
-        ? "Editing instrument rack" : accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read().empty()
+        ? "Editing instrument rack" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = std::to_string((*impl_).states.size()) + " modules";
     descriptor.states = SemanticState::enabled | SemanticState::visible;
     descriptor.exposed = true;

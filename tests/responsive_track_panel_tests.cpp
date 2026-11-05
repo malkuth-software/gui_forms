@@ -173,7 +173,7 @@ void test_focus_preservation_fallback_and_explicit_reveal() {
     fixture.window.resize({100.0, 100.0});
     fixture.window.perform_layout();
     const ResponsiveLayoutSnapshot collapsed = (*fixture.root).layout_snapshot();
-    require((*fixture.selection).visible.type() &&
+    require((*fixture.selection).visible.read() &&
                 (*fixture.selection).layout_collapsed() &&
                 !(*fixture.selection).effectively_visible() &&
                 fixture.window.focused_control() == fixture.fallback &&

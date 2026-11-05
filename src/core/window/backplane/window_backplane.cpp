@@ -140,7 +140,7 @@ bool SurfaceRoot::replay_backplane(Rect covered, const BackplaneRegion& region, 
 
 void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect clip, Painter& painter) const {
     const Control& node = *control;
-    if (!node.is_alive() || node.surface_root_ != this || !node.visible.type() || node.layout_collapsed_) return;
+    if (!node.is_alive() || node.surface_root_ != this || !node.visible.read() || node.layout_collapsed_) return;
     const Rect bounds = absolute_bounds_of(node);
     const Rect visual = visual_bounds_of(node, node.effective_visual_outsets());
     const Rect drawn = Rect::intersection(visual, clip);
@@ -168,7 +168,7 @@ void SurfaceRoot::replay_backplane_subtree(const Control::Ptr& control, Rect cli
 void SurfaceRoot::composite_backplane_subtree(const Control::Ptr& control, Rect clip, const BackplaneRegion& region,
                                          const PartRasterView& image, std::uint64_t& skipped) const {
     const Control& node = *control;
-    if (!node.is_alive() || node.surface_root_ != this || !node.visible.type() || node.layout_collapsed_) return;
+    if (!node.is_alive() || node.surface_root_ != this || !node.visible.read() || node.layout_collapsed_) return;
     const Rect bounds = absolute_bounds_of(node);
     const Rect visual = visual_bounds_of(node, node.effective_visual_outsets());
     const Rect drawn = Rect::intersection(visual, clip);

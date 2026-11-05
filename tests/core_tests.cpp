@@ -1049,7 +1049,7 @@ void test_control_identity_geometry_constraints_and_z_order() {
     SubscriptionToken changed = (*first).name_changed().subscribe(
         RecordValue<std::string>(observed_name));
     (*first).name = "primary-field";
-    require((*first).name.type() == "primary-field" &&
+    require((*first).name.read() == "primary-field" &&
                 observed_name == "primary-field" &&
                 (*first).stable_id().value() == "control.first",
             "mutable Forms Name must remain distinct from immutable retained identity");

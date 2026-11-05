@@ -230,7 +230,7 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
 
     (*split).set_first_collapsed(true);
     window.perform_layout();
-    require(!(*(*split).first_panel()).visible.type() &&
+    require(!(*(*split).first_panel()).visible.read() &&
                 window.focused_control() == (*split).splitter_control() &&
                 near((*(*split).second_panel()).arranged_bounds().width, 397.0),
             "collapsing a pane must remove it from input and transfer focus to its seam");
@@ -245,7 +245,7 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
 
     (*split).set_first_collapsed(false);
     window.perform_layout();
-    require((*(*split).first_panel()).visible.type() && near((*split).splitter_distance(), 110.0),
+    require((*(*split).first_panel()).visible.read() && near((*split).splitter_distance(), 110.0),
             "restoring a panel must recover its remembered extent");
 
     (*split).set_fixed_panel(SplitFixedPanel::second);
@@ -297,7 +297,7 @@ void test_seam_tab_pointer_keyboard_and_semantic_collapse() {
     require(window.dispatch_pointer(up) && (*split).second_collapsed(),
             "seam collapse tab activation must collapse its declared panel");
     window.perform_layout();
-    require(!(*(*split).second_panel()).visible.type() &&
+    require(!(*(*split).second_panel()).visible.read() &&
                 window.perform_semantic_action("split.seam-tab",
                                                SemanticAction::expand),
             "collapsed seam must leave the pane out of task order and expose restore");

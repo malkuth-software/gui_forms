@@ -86,8 +86,8 @@ void RackModulePanel::arrange(Rect final_bounds) {
 SemanticDescriptor RackModulePanel::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.states = SemanticState::enabled | SemanticState::visible;
     descriptor.actions = {SemanticAction::decrement,
                           SemanticAction::increment};

@@ -639,7 +639,7 @@ bool RibbonGallery::show_more() {
         more.set_drop_down_size(drop_down_columns_, drop_down_rows_);
         more.set_items(categories_, items_);
         more.set_command(command_);
-        more.accessible_name = accessible_name.type();
+        more.accessible_name = accessible_name.read();
         more_open_changed_ = more.popup_open_changed().subscribe(
             Delegate<bool>::bind<RibbonGallery, &RibbonGallery::on_more_open_changed>(*this));
     }
@@ -666,8 +666,8 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
     // The vocabulary has no grid role: a gallery is a list of items.
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::list;
-    descriptor.name = accessible_name.type().empty() ? "Gallery" : accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read().empty() ? "Gallery" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     const std::optional<std::string> selected = selected_id();
     const std::optional<std::size_t> position = selected ? position_of(*selected) : std::nullopt;
     if (position) descriptor.value = items_[order_[*position]].label;

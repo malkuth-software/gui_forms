@@ -93,7 +93,7 @@ void test_choices_and_sections(gui_forms::Window& window) {
             "unchecking the bound toggle must collapse the section through the Value");
     click(window, checklist_toggle);
     require(!(*sections).expanded(0) && !(*checklist_toggle).checked() &&
-                !(*window.find("gallery.choices.sections.checklist")).visible.type(),
+                !(*window.find("gallery.choices.sections.checklist")).visible.read(),
             "collapsing through the toggle must hide the retained section body");
 
     // The interactive Card selects on activation and reports through its footer.

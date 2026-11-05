@@ -47,7 +47,7 @@ Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
 
 std::optional<Color> Panel::face_colour() const noexcept {
     if (background_override_) return background_override_;
-    const std::optional<Color> own = back_color.type();
+    const std::optional<Color> own = back_color.read();
     if (!own) return std::nullopt;
     const Window* const attached = window();
     const bool high_contrast = attached != nullptr && (*attached).presentation_settings().high_contrast;
@@ -217,8 +217,8 @@ void Panel::on_paint(Painter& painter, Rect) {
 SemanticDescriptor Panel::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() ||
                          !descriptor.description.empty();
     return descriptor;

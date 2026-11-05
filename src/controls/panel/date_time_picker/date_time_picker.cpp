@@ -329,7 +329,7 @@ void DateTimePicker::on_activate() {
 }
 
 void DateTimePicker::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.type() || event.action != KeyAction::down) return;
+    if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
     if ((event.physical_key == PhysicalKey::f4 ||
          (event.physical_key == PhysicalKey::down &&
           includes(event.modifiers, Modifier::alt))) && !show_up_down_) {
@@ -463,8 +463,8 @@ void DateTimePicker::commit_popup_value(DateTimeValue value) {
 SemanticDescriptor DateTimePicker::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::date_picker;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = formatted_value();
     if (show_check_box_) descriptor.states |= SemanticState::checkable;
     if (show_check_box_ && checked_) descriptor.states |= SemanticState::checked;

@@ -349,7 +349,7 @@ void QuickAccessToolbar::on_focus_changed(bool focused) {
 
 SemanticDescriptor QuickAccessToolbar::semantic_descriptor() const {
     SemanticDescriptor descriptor = ToolStrip::semantic_descriptor();
-    descriptor.name = accessible_name.type().empty() ? "Quick Access Toolbar" : accessible_name.type();
+    descriptor.name = accessible_name.read().empty() ? "Quick Access Toolbar" : accessible_name.read();
     return descriptor;
 }
 

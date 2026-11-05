@@ -305,8 +305,8 @@ void RasterCanvas::on_paint(Painter& painter, Rect) {
 SemanticDescriptor RasterCanvas::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::image;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     if (bitmap_) {
         descriptor.value = std::to_string((*bitmap_).width()) + " x " +
             std::to_string((*bitmap_).height()) + " at " +

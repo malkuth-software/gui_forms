@@ -277,8 +277,8 @@ void MasterDetailView::arrange(Rect final_bounds) {
 SemanticDescriptor MasterDetailView::semantic_descriptor() const {
     SemanticDescriptor descriptor = ContainerControl::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = effective_display_mode_ ==
             MasterDetailDisplayMode::side_by_side
         ? "side-by-side"

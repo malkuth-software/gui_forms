@@ -180,7 +180,7 @@ void RibbonToolTip::set_tool_tip(const std::shared_ptr<Control>& target, RibbonT
     }
     // The target's plain tooltip can supply the title.
     if (!valid_content(content) ||
-        (content.title.empty() && !content.command && (*target).tool_tip_text.type().empty())) {
+        (content.title.empty() && !content.command && (*target).tool_tip_text.read().empty())) {
         throw std::invalid_argument(
             "GUI.Forms RibbonToolTip content needs valid UTF-8 and a title, a command or a plain tooltip");
     }
@@ -330,7 +330,7 @@ RibbonToolTipContent RibbonToolTip::resolve(const Control& target, std::string_v
 }
 
 std::string RibbonToolTip::plain_tool_tip(const Control& target, std::string_view item_id) const {
-    if (item_id.empty()) return target.tool_tip_text.type();
+    if (item_id.empty()) return target.tool_tip_text.read();
     const std::vector<SemanticNode> nodes = target.semantic_virtual_children();
     for (const SemanticNode& node : nodes) {
         if (node.stable_id == item_id) return node.tool_tip;

@@ -285,10 +285,61 @@ std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
 
 } // namespace
 
+PropertyType PropertyValueTraits<DockStyle>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, dock_style_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<DockStyle>::to_binding(DockStyle value) {
+    const BindingValue general =
+        current_enum_property_value_impl(dock_style_property_enum_impl(), static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<AnchorStyles>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, anchor_styles_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<AnchorStyles>::to_binding(AnchorStyles value) {
+    const BindingValue general = current_enum_property_value_impl(anchor_styles_property_enum_impl(),
+                                                                  static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<AutoSizeMode>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, auto_size_mode_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<AutoSizeMode>::to_binding(AutoSizeMode value) {
+    const BindingValue general = current_enum_property_value_impl(auto_size_mode_property_enum_impl(),
+                                                                  static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<LayoutDirection>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, layout_direction_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<LayoutDirection>::to_binding(LayoutDirection value) {
+    const BindingValue general = current_enum_property_value_impl(layout_direction_property_enum_impl(),
+                                                                  static_cast<std::int64_t>(value));
+    return general;
+}
+
+PropertyType PropertyValueTraits<std::optional<CursorKind>>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, cursor_kind_property_enum()};
+}
+
+BindingValue PropertyValueTraits<std::optional<CursorKind>>::to_binding(std::optional<CursorKind> value) {
+    std::int64_t encoded = 0;
+    if (value) encoded = static_cast<std::int64_t>(*value) + 1;
+    const BindingValue general = current_enum_property_value_impl(cursor_kind_property_enum(), encoded);
+    return general;
+}
+
 BindingValue Control::cursor_property_value() const {
     std::int64_t value = 0;
-    if (cursor.type()) {
-        value = static_cast<std::int64_t>(*cursor.type()) + 1;
+    if (cursor.read()) {
+        value = static_cast<std::int64_t>(*cursor.read()) + 1;
     }
     const BindingValue current = current_enum_property_value(cursor_kind_property_enum(), value);
     return current;
@@ -304,10 +355,10 @@ void Control::set_cursor_property_value(const BindingValue& value) {
 }
 
 BindingValue Control::back_color_property_value() const {
-    if (!back_color.type()) {
+    if (!back_color.read()) {
         return BindingValue{};
     }
-    return BindingValue{*back_color.type()};
+    return BindingValue{*back_color.read()};
 }
 
 void Control::set_back_color_property_value(const BindingValue& value) {
@@ -319,10 +370,10 @@ void Control::set_back_color_property_value(const BindingValue& value) {
 }
 
 BindingValue Control::fore_color_property_value() const {
-    if (!fore_color.type()) {
+    if (!fore_color.read()) {
         return BindingValue{};
     }
-    return BindingValue{*fore_color.type()};
+    return BindingValue{*fore_color.read()};
 }
 
 void Control::set_fore_color_property_value(const BindingValue& value) {
@@ -454,7 +505,7 @@ Control::Control(StableId stable_id)
     define_bindable_property({
         {"name", BindingValueKind::text, "Design",
          "Stable authoring name used by inspection and generated surfaces.",
-         BindingValue{name.type()}, Dirty::semantics | Dirty::accessibility},
+         BindingValue{name.read()}, Dirty::semantics | Dirty::accessibility},
         RegisteredPropertyGetter<RegisteredProperty::name>{this},
         RegisteredPropertySetter<RegisteredProperty::name>{this},
         RegisteredPropertyConnector<RegisteredProperty::name>{this}, {}, {}});
@@ -1074,7 +1125,7 @@ void Control::clear_authored_surface_material() {
 
 std::optional<Color> Control::ambient_back_color() const noexcept {
     for (const Control* current = this; current != nullptr;) {
-        if ((*current).back_color.type()) return (*current).back_color.type();
+        if ((*current).back_color.read()) return (*current).back_color.read();
         const std::shared_ptr<Control> parent = (*current).parent_.lock();
         current = parent.get();
     }
@@ -1083,7 +1134,7 @@ std::optional<Color> Control::ambient_back_color() const noexcept {
 
 std::optional<Color> Control::ambient_fore_color() const noexcept {
     for (const Control* current = this; current != nullptr;) {
-        if ((*current).fore_color.type()) return (*current).fore_color.type();
+        if ((*current).fore_color.read()) return (*current).fore_color.read();
         const std::shared_ptr<Control> parent = (*current).parent_.lock();
         current = parent.get();
     }
@@ -1834,13 +1885,13 @@ void Control::set_requested_bounds(Rect bounds) {
         throw std::invalid_argument(
             "GUI.Forms control bounds must be finite with nonnegative size");
     }
-    bounds.width = std::max(bounds.width, minimum_size.type().width);
-    bounds.height = std::max(bounds.height, minimum_size.type().height);
-    if (maximum_size.type().width > 0.0) {
-        bounds.width = std::min(bounds.width, maximum_size.type().width);
+    bounds.width = std::max(bounds.width, minimum_size.read().width);
+    bounds.height = std::max(bounds.height, minimum_size.read().height);
+    if (maximum_size.read().width > 0.0) {
+        bounds.width = std::min(bounds.width, maximum_size.read().width);
     }
-    if (maximum_size.type().height > 0.0) {
-        bounds.height = std::min(bounds.height, maximum_size.type().height);
+    if (maximum_size.read().height > 0.0) {
+        bounds.height = std::min(bounds.height, maximum_size.read().height);
     }
     if (requested_bounds_ == bounds) {
         return;
@@ -1920,13 +1971,13 @@ void Control::notify_positioning_changed(const Control& child) {
 }
 
 void Control::arrange_self(Rect final_bounds) noexcept {
-    final_bounds.width = std::max(final_bounds.width, minimum_size.type().width);
-    final_bounds.height = std::max(final_bounds.height, minimum_size.type().height);
-    if (maximum_size.type().width > 0.0) {
-        final_bounds.width = std::min(final_bounds.width, maximum_size.type().width);
+    final_bounds.width = std::max(final_bounds.width, minimum_size.read().width);
+    final_bounds.height = std::max(final_bounds.height, minimum_size.read().height);
+    if (maximum_size.read().width > 0.0) {
+        final_bounds.width = std::min(final_bounds.width, maximum_size.read().width);
     }
-    if (maximum_size.type().height > 0.0) {
-        final_bounds.height = std::min(final_bounds.height, maximum_size.type().height);
+    if (maximum_size.read().height > 0.0) {
+        final_bounds.height = std::min(final_bounds.height, maximum_size.read().height);
     }
     arranged_bounds_ = final_bounds;
 }
@@ -1950,7 +2001,7 @@ void Control::prepare_write(const decltype(name)&, std::string&) {
 
 void Control::written(const decltype(name)&) {
     invalidate(Dirty::semantics | Dirty::accessibility);
-    publish_change(name_changed_, name.type());
+    publish_change(name_changed_, name.read());
 }
 
 void Control::prepare_write(const decltype(visible)&, bool&) {
@@ -1958,7 +2009,7 @@ void Control::prepare_write(const decltype(visible)&, bool&) {
 }
 
 void Control::written(const decltype(visible)&) {
-    if (surface_root_ && !visible.type()) {
+    if (surface_root_ && !visible.read()) {
         (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) return;
@@ -1969,7 +2020,7 @@ void Control::written(const decltype(visible)&) {
 }
 
 void Control::on_visible_changed() {
-    publish_change(visible_changed_, visible.type());
+    publish_change(visible_changed_, visible.read());
 }
 
 void Control::prepare_write(const decltype(enabled)&, bool&) {
@@ -1977,7 +2028,7 @@ void Control::prepare_write(const decltype(enabled)&, bool&) {
 }
 
 void Control::written(const decltype(enabled)&) {
-    if (surface_root_ && !enabled.type()) {
+    if (surface_root_ && !enabled.read()) {
         (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) return;
@@ -1988,7 +2039,7 @@ void Control::written(const decltype(enabled)&) {
 }
 
 void Control::on_enabled_changed() {
-    publish_change(enabled_changed_, enabled.type());
+    publish_change(enabled_changed_, enabled.read());
 }
 
 void Control::prepare_write(const decltype(auto_size)&, bool&) {
@@ -2002,7 +2053,7 @@ void Control::written(const decltype(auto_size)&) {
 }
 
 void Control::on_auto_size_changed() {
-    publish_change(auto_size_changed_, auto_size.type());
+    publish_change(auto_size_changed_, auto_size.read());
 }
 
 void Control::prepare_write(const decltype(causes_validation)&, bool&) {
@@ -2014,7 +2065,7 @@ void Control::written(const decltype(causes_validation)&) {
 }
 
 void Control::on_causes_validation_changed() {
-    publish_change(causes_validation_changed_, causes_validation.type());
+    publish_change(causes_validation_changed_, causes_validation.read());
 }
 
 void Control::prepare_write(const decltype(tool_tip_text)&, std::string& value) {
@@ -2036,7 +2087,7 @@ void Control::written(const decltype(tool_tip_text)&) {
             if ((*child).tool_tip_presentation_ == ToolTipPresentation::field_hint) (*child).invalidate(Dirty::paint);
         }
     }
-    publish_change(tool_tip_text_changed_, tool_tip_text.type());
+    publish_change(tool_tip_text_changed_, tool_tip_text.read());
     if (surface_root_ != nullptr) (*surface_root_).tool_tip_text_changed(*this);
 }
 
@@ -2058,7 +2109,7 @@ void Control::on_cursor_changed() {}
 
 void Control::prepare_write(const decltype(back_color)&, std::optional<Color>& value) {
     require_mutable();
-    if (!value || value == back_color.type() || back_color_warned_) return;
+    if (!value || value == back_color.read() || back_color_warned_) return;
     back_color_warned_ = true;
     warn_inline_colour("back_color");
 }
@@ -2072,7 +2123,7 @@ void Control::on_back_color_changed() {}
 
 void Control::prepare_write(const decltype(fore_color)&, std::optional<Color>& value) {
     require_mutable();
-    if (!value || value == fore_color.type() || fore_color_warned_) return;
+    if (!value || value == fore_color.read() || fore_color_warned_) return;
     fore_color_warned_ = true;
     warn_inline_colour("fore_color");
 }
@@ -2086,7 +2137,7 @@ void Control::on_fore_color_changed() {}
 
 void Control::prepare_write(const decltype(minimum_size)&, Size& value) {
     require_mutable();
-    const Size maximum = maximum_size.type();
+    const Size maximum = maximum_size.read();
     if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
         (maximum.width > 0.0 && value.width > maximum.width) ||
         (maximum.height > 0.0 && value.height > maximum.height)) {
@@ -2095,7 +2146,7 @@ void Control::prepare_write(const decltype(minimum_size)&, Size& value) {
 }
 
 void Control::written(const decltype(minimum_size)&) {
-    const Size size = minimum_size.type();
+    const Size size = minimum_size.read();
     Rect next = requested_bounds_;
     next.width = std::max(next.width, size.width);
     next.height = std::max(next.height, size.height);
@@ -2108,7 +2159,7 @@ void Control::written(const decltype(minimum_size)&) {
 
 void Control::prepare_write(const decltype(maximum_size)&, Size& value) {
     require_mutable();
-    const Size minimum = minimum_size.type();
+    const Size minimum = minimum_size.read();
     if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
         (value.width > 0.0 && value.width < minimum.width) ||
         (value.height > 0.0 && value.height < minimum.height)) {
@@ -2117,7 +2168,7 @@ void Control::prepare_write(const decltype(maximum_size)&, Size& value) {
 }
 
 void Control::written(const decltype(maximum_size)&) {
-    const Size size = maximum_size.type();
+    const Size size = maximum_size.read();
     Rect next = requested_bounds_;
     if (size.width > 0.0) next.width = std::min(next.width, size.width);
     if (size.height > 0.0) next.height = std::min(next.height, size.height);
@@ -2187,7 +2238,7 @@ void Control::prepare_write(const decltype(auto_size_mode)&, AutoSizeMode& value
 }
 
 void Control::written(const decltype(auto_size_mode)&) {
-    if (!auto_size.type()) return;
+    if (!auto_size.read()) return;
     anchor_reference_.reset();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
 }
@@ -2238,7 +2289,7 @@ void Control::prepare_write(const decltype(allow_drop)&, bool&) {
 }
 
 void Control::written(const decltype(allow_drop)&) {
-    if (surface_root_ && !allow_drop.type()) {
+    if (surface_root_ && !allow_drop.read()) {
         (*surface_root_).on_eligibility_changed(shared_from_this());
     }
     if (!is_alive()) return;
@@ -2250,7 +2301,7 @@ void Control::prepare_write(const decltype(hit_test_transparent)&, bool&) {
 }
 
 void Control::written(const decltype(hit_test_transparent)&) {
-    if (surface_root_ && hit_test_transparent.type()) {
+    if (surface_root_ && hit_test_transparent.read()) {
         (*surface_root_).on_hit_test_transparency_changed(shared_from_this());
     }
     if (!is_alive()) return;
@@ -2275,14 +2326,14 @@ void Control::written(const decltype(accessible_description)&) {
 
 void Control::recapture_anchor_reference() {
     anchor_reference_.reset();
-    if (dock.type() != DockStyle::none) return;
+    if (dock.read() != DockStyle::none) return;
     const Ptr owner = parent();
     if (!owner || (*owner).surface_root_ == nullptr) return;
     const Rect& owner_bounds = (*owner).arranged_bounds_;
     const bool owner_arranged = owner_bounds.width > 0.0 || owner_bounds.height > 0.0;
     const bool arranged = arranged_bounds_.width > 0.0 || arranged_bounds_.height > 0.0;
     if (!owner_arranged || !arranged) return;
-    const Rect client = client_rect({owner_bounds.width, owner_bounds.height}, (*owner).padding.type());
+    const Rect client = client_rect({owner_bounds.width, owner_bounds.height}, (*owner).padding.read());
     anchor_reference_ = AnchorReference{arranged_bounds_, client};
 }
 
@@ -2432,11 +2483,11 @@ Control::Ptr Control::get_child_at_point(
         const Ptr& child = *current;
         if (!child || !(*child).is_alive()) continue;
         if (has_child_skip(skip, GetChildAtPointSkip::invisible) &&
-            !(*child).visible.type()) continue;
+            !(*child).visible.read()) continue;
         if (has_child_skip(skip, GetChildAtPointSkip::disabled) &&
-            !(*child).enabled.type()) continue;
+            !(*child).enabled.read()) continue;
         if (has_child_skip(skip, GetChildAtPointSkip::transparent) &&
-            (*child).hit_test_transparent.type()) continue;
+            (*child).hit_test_transparent.read()) continue;
         if ((*child).arranged_bounds_.contains(client_point)) return child;
     }
     return {};
@@ -2463,7 +2514,7 @@ Control::Ptr Control::get_next_control(const Ptr& control,
 bool Control::tab_order_less(const Ptr& left, const Ptr& right) noexcept {
     if (!left) return false;
     if (!right) return true;
-    return (*left).tab_index.type() < (*right).tab_index.type();
+    return (*left).tab_index.read() < (*right).tab_index.read();
 }
 
 void Control::collect_tab_order_controls(const Control& owner,
@@ -2513,7 +2564,7 @@ void Control::set_focusable(bool focusable) {
 
 bool Control::perform_validation(Control* destination, bool bulk) {
     require_mutable();
-    if (!causes_validation.type()) return true;
+    if (!causes_validation.read()) return true;
     ControlValidationEvent event{this, destination, bulk, false};
     validating_.emit(event);
     if (!is_alive() || event.cancel) return !event.cancel;
@@ -2611,7 +2662,7 @@ const CompiledThemeRules* Control::inline_style_rules() const noexcept {
 
 void Control::set_custom_cursor(CursorImagesPtr images, CursorKind fallback) {
     require_mutable();
-    if (cursor_images_ == images && cursor.type() == fallback) return;
+    if (cursor_images_ == images && cursor.read() == fallback) return;
     // The stock write drops the old images first (its prepare hook).
     cursor = fallback;
     cursor_images_ = std::move(images);
@@ -2622,7 +2673,7 @@ CursorImagesPtr Control::effective_cursor_images() const noexcept {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr) {
-        if ((*current).cursor.type().has_value()) return (*current).cursor_images_;
+        if ((*current).cursor.read().has_value()) return (*current).cursor_images_;
         owner = (*current).parent_.lock();
         current = owner.get();
     }
@@ -2633,7 +2684,7 @@ std::string Control::field_hint_text() const {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr && (*current).tool_tip_presentation_ == ToolTipPresentation::field_hint) {
-        if (!(*current).tool_tip_text.type().empty()) return (*current).tool_tip_text.type();
+        if (!(*current).tool_tip_text.read().empty()) return (*current).tool_tip_text.read();
         owner = (*current).parent_.lock();
         current = owner.get();
     }
@@ -2644,8 +2695,8 @@ CursorKind Control::effective_cursor() const noexcept {
     const Control* current = this;
     Ptr owner;
     while (current != nullptr) {
-        if ((*current).cursor.type().has_value()) {
-            return *(*current).cursor.type();
+        if ((*current).cursor.read().has_value()) {
+            return *(*current).cursor.read();
         }
         owner = (*current).parent_.lock();
         current = owner.get();
@@ -2654,11 +2705,11 @@ CursorKind Control::effective_cursor() const noexcept {
 }
 
 bool Control::effectively_visible() const noexcept {
-    if (!visible.type() || layout_collapsed_ || !is_alive()) {
+    if (!visible.read() || layout_collapsed_ || !is_alive()) {
         return false;
     }
     for (Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
-        if (!(*ancestor).visible.type() || (*ancestor).layout_collapsed_ ||
+        if (!(*ancestor).visible.read() || (*ancestor).layout_collapsed_ ||
             !(*ancestor).is_alive()) {
             return false;
         }
@@ -2667,11 +2718,11 @@ bool Control::effectively_visible() const noexcept {
 }
 
 bool Control::effectively_enabled() const noexcept {
-    if (!enabled.type() || !is_alive()) {
+    if (!enabled.read() || !is_alive()) {
         return false;
     }
     for (Ptr ancestor = parent(); ancestor; ancestor = (*ancestor).parent()) {
-        if (!(*ancestor).enabled.type() || !(*ancestor).is_alive()) {
+        if (!(*ancestor).enabled.read() || !(*ancestor).is_alive()) {
             return false;
         }
     }
@@ -2922,27 +2973,27 @@ Size Control::measure(Size available) {
     available = {std::max(0.0, available.width),
                  std::max(0.0, available.height)};
     Size desired{requested_bounds_.width, requested_bounds_.height};
-    if (auto_size.type()) {
-        double content_width = padding.type().left + padding.type().right;
-        double content_height = padding.type().top + padding.type().bottom;
+    if (auto_size.read()) {
+        double content_width = padding.read().left + padding.read().right;
+        double content_height = padding.read().top + padding.read().bottom;
         const std::vector<Ptr> retained = snapshot_layout_children();
         for (const Ptr& child : retained) {
-            if (!is_current_layout_child(child) || !(*child).visible.type()) continue;
+            if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
             const Size child_desired = (*child).get_preferred_size(available);
             if (!is_alive()) return {};
-            if (!is_current_layout_child(child) || !(*child).visible.type()) continue;
+            if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
             content_width = std::max(
                 content_width,
                 std::max(0.0, (*child).requested_bounds_.x) +
                     child_desired.width +
-                    (*child).margin.type().right + padding.type().right);
+                    (*child).margin.read().right + padding.read().right);
             content_height = std::max(
                 content_height,
                 std::max(0.0, (*child).requested_bounds_.y) +
                     child_desired.height +
-                    (*child).margin.type().bottom + padding.type().bottom);
+                    (*child).margin.read().bottom + padding.read().bottom);
         }
-        if (auto_size_mode.type() == AutoSizeMode::grow_only) {
+        if (auto_size_mode.read() == AutoSizeMode::grow_only) {
             content_width = std::max(content_width, requested_bounds_.width);
             content_height = std::max(content_height, requested_bounds_.height);
         }
@@ -2950,10 +3001,10 @@ Size Control::measure(Size available) {
     }
     Size result{std::min(desired.width, available.width),
                 std::min(desired.height, available.height)};
-    result.width = std::max(result.width, minimum_size.type().width);
-    result.height = std::max(result.height, minimum_size.type().height);
-    if (maximum_size.type().width > 0.0) result.width = std::min(result.width, maximum_size.type().width);
-    if (maximum_size.type().height > 0.0) result.height = std::min(result.height, maximum_size.type().height);
+    result.width = std::max(result.width, minimum_size.read().width);
+    result.height = std::max(result.height, minimum_size.read().height);
+    if (maximum_size.read().width > 0.0) result.width = std::min(result.width, maximum_size.read().width);
+    if (maximum_size.read().height > 0.0) result.height = std::min(result.height, maximum_size.read().height);
     return result;
 }
 
@@ -3039,10 +3090,10 @@ bool Control::sizes_children_from_content() const noexcept { return true; }
 bool Control::measures_children_in_arrange() const noexcept { return false; }
 
 LayoutDirection Control::effective_layout_direction() const noexcept {
-    LayoutDirection direction = layout_direction.type();
+    LayoutDirection direction = layout_direction.read();
     Ptr ancestor = parent_.lock();
     while (direction == LayoutDirection::inherit && ancestor) {
-        direction = (*ancestor).layout_direction.type();
+        direction = (*ancestor).layout_direction.read();
         ancestor = (*ancestor).parent_.lock();
     }
     if (direction == LayoutDirection::inherit) direction = LayoutDirection::left_to_right;
@@ -3058,10 +3109,10 @@ void Control::arrange(Rect final_bounds) {
 
     const Rect viewport = child_viewport_rectangle();
     const Rect client{
-        viewport.x + padding.type().left,
-        viewport.y + padding.type().top,
-        std::max(0.0, viewport.width - padding.type().left - padding.type().right),
-        std::max(0.0, viewport.height - padding.type().top - padding.type().bottom)};
+        viewport.x + padding.read().left,
+        viewport.y + padding.read().top,
+        std::max(0.0, viewport.width - padding.read().left - padding.read().right),
+        std::max(0.0, viewport.height - padding.read().top - padding.read().bottom)};
     Rect remaining = client;
     // In a right-to-left parent the dock and anchor layout is computed left
     // to right and mirrored about the viewport, padding included: dock
@@ -3073,48 +3124,48 @@ void Control::arrange(Rect final_bounds) {
     // Forms semantics while leaving index zero consistently topmost for public
     // child indexing, hit testing, BringToFront, and SendToBack.
     for (const Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible.type() ||
-            (*child).dock.type() == DockStyle::none) {
+        if (!is_current_layout_child(child) || !(*child).visible.read() ||
+            (*child).dock.read() == DockStyle::none) {
             continue;
         }
         const Size desired = (*child).measure({remaining.width, remaining.height});
         if (!is_alive()) return;
-        if (!is_current_layout_child(child) || !(*child).visible.type() ||
-            (*child).dock.type() == DockStyle::none) {
+        if (!is_current_layout_child(child) || !(*child).visible.read() ||
+            (*child).dock.read() == DockStyle::none) {
             continue;
         }
-        const double width = (*child).auto_size.type()
-            ? ((*child).auto_size_mode.type() == AutoSizeMode::grow_only
+        const double width = (*child).auto_size.read()
+            ? ((*child).auto_size_mode.read() == AutoSizeMode::grow_only
                    ? std::max((*child).requested_bounds_.width, desired.width)
                    : desired.width)
             : ((*child).requested_bounds_.width > 0.0
                    ? (*child).requested_bounds_.width : desired.width);
-        const double height = (*child).auto_size.type()
-            ? ((*child).auto_size_mode.type() == AutoSizeMode::grow_only
+        const double height = (*child).auto_size.read()
+            ? ((*child).auto_size_mode.read() == AutoSizeMode::grow_only
                    ? std::max((*child).requested_bounds_.height, desired.height)
                    : desired.height)
             : ((*child).requested_bounds_.height > 0.0
                    ? (*child).requested_bounds_.height : desired.height);
-        const Rect slot = take_dock_slot((*child).dock.type(), width, height, remaining);
+        const Rect slot = take_dock_slot((*child).dock.read(), width, height, remaining);
         (*child).anchor_reference_.reset();
         set_child_layout(child, mirrored ? mirror_horizontally(slot, viewport) : slot);
     }
 
     for (const Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible.type() ||
-            (*child).dock.type() != DockStyle::none) {
+        if (!is_current_layout_child(child) || !(*child).visible.read() ||
+            (*child).dock.read() != DockStyle::none) {
             continue;
         }
         Rect authored = (*child).requested_bounds_;
-        if ((*child).auto_size.type()) {
+        if ((*child).auto_size.read()) {
             const Size preferred = (*child).get_preferred_size(
                 {client.width, client.height});
             if (!is_alive()) return;
-            if (!is_current_layout_child(child) || !(*child).visible.type() ||
-                (*child).dock.type() != DockStyle::none) {
+            if (!is_current_layout_child(child) || !(*child).visible.read() ||
+                (*child).dock.read() != DockStyle::none) {
                 continue;
             }
-            if ((*child).auto_size_mode.type() == AutoSizeMode::grow_only) {
+            if ((*child).auto_size_mode.read() == AutoSizeMode::grow_only) {
                 authored.width = std::max(authored.width, preferred.width);
                 authored.height = std::max(authored.height, preferred.height);
             } else {
@@ -3122,7 +3173,7 @@ void Control::arrange(Rect final_bounds) {
                 authored.height = preferred.height;
             }
         }
-        if ((*child).auto_size.type()) {
+        if ((*child).auto_size.read()) {
             (*child).anchor_reference_ = AnchorReference{authored, client};
         } else if (!(*child).anchor_reference_) {
             (*child).anchor_reference_ = AnchorReference{
@@ -3130,7 +3181,7 @@ void Control::arrange(Rect final_bounds) {
         }
         const Rect anchored = anchored_bounds((*(*child).anchor_reference_).bounds,
                                               (*(*child).anchor_reference_).client, client,
-                                              (*child).anchor.type());
+                                              (*child).anchor.read());
         set_child_layout(child, mirrored ? mirror_horizontally(anchored, viewport) : anchored);
     }
 }
@@ -3168,10 +3219,10 @@ void Control::report_opaque_cover(const Painter& painter, const Rect local) cons
 }
 
 void Control::paint_back_color(Painter& painter, Rect bounds) const {
-    if (!back_color.type()) return;
+    if (!back_color.read()) return;
     const bool high_contrast = surface_root_ != nullptr && (*surface_root_).presentation_settings().high_contrast;
     if (high_contrast || application_colours_suspended()) return;
-    painter.fill_rect(bounds, *back_color.type());
+    painter.fill_rect(bounds, *back_color.read());
 }
 
 void Control::paint_authored_surface(Painter& painter, Rect bounds) const {
@@ -3288,8 +3339,8 @@ ResizeAxes Control::layout_resize_response() const noexcept {
     const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     ResizeAxes response = ResizeAxes::none;
     for (const Ptr& child : children_) {
-        if (!child || !(*child).visible.type()) continue;
-        response |= child_resize_demand((*child).dock.type(), (*child).anchor.type(), mirrored);
+        if (!child || !(*child).visible.read()) continue;
+        response |= child_resize_demand((*child).dock.read(), (*child).anchor.read(), mirrored);
         if (response == ResizeAxes::both) break;
     }
     return response;
@@ -3376,8 +3427,8 @@ void Control::notify_default(bool) {}
 
 SemanticDescriptor Control::semantic_descriptor() const {
     SemanticDescriptor descriptor;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     return descriptor;
 }
 

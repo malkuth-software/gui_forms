@@ -227,7 +227,7 @@ void test_flow_auto_size_mode_preserves_authored_extent() {
     (*flow).auto_size = true;
     (*flow).add_child(child);
 
-    require((*flow).auto_size_mode.type() == AutoSizeMode::grow_only &&
+    require((*flow).auto_size_mode.read() == AutoSizeMode::grow_only &&
                 (*flow).measure({500.0, 500.0}) == Size{176.0, 60.0},
             "GrowOnly FlowLayoutPanelCompat AutoSize must retain authored extent");
 

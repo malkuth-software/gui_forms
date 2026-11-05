@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/binding/type_tag/type_tag.hpp"
+
 #include <cstdint>
 
 namespace gui_forms {
@@ -52,5 +54,13 @@ constexpr AnchorStyles& operator|=(AnchorStyles& left,
                                         AnchorStyles flag) noexcept {
     return (value & flag) != AnchorStyles::none;
 }
+
+namespace types {
+
+inline constexpr TypeTag<DockStyle> dock_style{};
+inline constexpr TypeTag<AnchorStyles> anchor_styles{};
+inline constexpr TypeTag<AutoSizeMode> auto_size_mode{};
+
+} // namespace types
 
 } // namespace gui_forms

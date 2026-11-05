@@ -231,7 +231,7 @@ void BindingNavigator::on_source_disposed() {
 
 SemanticDescriptor BindingNavigator::semantic_descriptor() const {
     SemanticDescriptor descriptor = ToolStrip::semantic_descriptor();
-    descriptor.name = accessible_name.type().empty() ? "Binding navigator" : accessible_name.type();
+    descriptor.name = accessible_name.read().empty() ? "Binding navigator" : accessible_name.read();
     return descriptor;
 }
 

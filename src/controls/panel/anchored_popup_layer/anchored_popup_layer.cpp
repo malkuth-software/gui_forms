@@ -146,8 +146,8 @@ void AnchoredPopupLayer::on_key_preview(KeyEvent& event) {
 SemanticDescriptor AnchoredPopupLayer::semantic_descriptor() const {
     SemanticDescriptor descriptor = Panel::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty();
     return descriptor;
 }

@@ -345,7 +345,7 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
     std::size_t columns = column_count_;
     std::size_t rows = row_count_;
     for (const Control::Ptr& child : workspace.retained) {
-        if (!is_current_layout_child(child) || !(*child).visible.type()) continue;
+        if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
         const CellMetadata* metadata = std::as_const(*this).metadata_for(*child);
         if (metadata == nullptr || !(*metadata).position) {
             workspace.automatic.push_back(child);
@@ -360,7 +360,7 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
             continue;
         }
         occupy(occupied, position.column, position.row, column_span, row_span);
-        workspace.items.push_back(TableItem{child, position, column_span, row_span, Size{}, (*child).margin.type()});
+        workspace.items.push_back(TableItem{child, position, column_span, row_span, Size{}, (*child).margin.read()});
     }
 
     for (const Control::Ptr& child : workspace.automatic) {
@@ -398,7 +398,7 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
             continue;
         }
         occupy(occupied, (*position).column, (*position).row, column_span, row_span);
-        workspace.items.push_back(TableItem{child, *position, column_span, row_span, Size{}, (*child).margin.type()});
+        workspace.items.push_back(TableItem{child, *position, column_span, row_span, Size{}, (*child).margin.read()});
     }
     workspace.columns = columns;
     workspace.rows = rows;
@@ -424,7 +424,7 @@ Size TableLayoutPanelCompat::layout_children(Size available, bool assign) {
 Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& workspace) {
     const std::uint64_t pass = ++pass_;
     reconcile_metadata(pass);
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const Size inner{std::max(0.0, available.width - horizontal_extent(inset)),
                      std::max(0.0, available.height - vertical_extent(inset))};
     layout_overflowed_ = false;
@@ -460,13 +460,13 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
     workspace.column_spans.clear();
     workspace.row_spans.clear();
     for (TableItem& item : workspace.items) {
-        if (!is_current_layout_child(item.control) || !(*item.control).visible.type()) {
+        if (!is_current_layout_child(item.control) || !(*item.control).visible.read()) {
             item.control.reset();
             continue;
         }
         item.desired = preferred_child_size(item.control, inner);
         if (!is_alive()) return {};
-        if (!is_current_layout_child(item.control) || !(*item.control).visible.type()) {
+        if (!is_current_layout_child(item.control) || !(*item.control).visible.read()) {
             item.control.reset();
             continue;
         }
@@ -537,7 +537,7 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
         const double cell_x = inset.left + column_offsets[item.position.column] + item.margin.left;
         const double cell_y = inset.top + row_offsets[item.position.row] + item.margin.top;
         const Rect area{cell_x, cell_y, available_width, available_height};
-        Rect placed = place_in_cell((*item.control).dock.type(), (*item.control).anchor.type(), area, item.desired);
+        Rect placed = place_in_cell((*item.control).dock.read(), (*item.control).anchor.read(), area, item.desired);
         if (right_to_left) placed.x = available.width - placed.x - placed.width;
         set_child_layout(item.control, placed);
     }
@@ -568,7 +568,7 @@ Control::Ptr TableLayoutPanelCompat::control_from_position(std::size_t column,
                                                       std::size_t row) const {
     if (attached_window() != nullptr) static_cast<void>(arranged_bounds());
     for (const Control::Ptr& child : children()) {
-        if (!child || !(*child).is_alive() || !(*child).visible.type()) continue;
+        if (!child || !(*child).is_alive() || !(*child).visible.read()) continue;
         const ResolvedCellMap::const_iterator position =
             resolved_cells_.find((*child).runtime_id().value);
         if (position == resolved_cells_.end()) continue;
@@ -588,7 +588,7 @@ Control::Ptr TableLayoutPanelCompat::control_from_position(std::size_t column,
 Size TableLayoutPanelCompat::measure(Size available) {
     available = {std::max(0.0, available.width),
                  std::max(0.0, available.height)};
-    if (auto_size.type()) {
+    if (auto_size.read()) {
         const Size desired = layout_children(available, false);
         return {std::min(available.width, desired.width),
                 std::min(available.height, desired.height)};
@@ -610,7 +610,7 @@ void TableLayoutPanelCompat::on_paint(Painter& painter, Rect) {
         column_widths_.empty() || row_heights_.empty()) {
         return;
     }
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const double width = std::accumulate(column_widths_.begin(),
                                          column_widths_.end(), 0.0) +
         track_spacing_.width * static_cast<double>(column_widths_.size() - 1U);
@@ -649,8 +649,8 @@ void TableLayoutPanelCompat::on_paint(Painter& painter, Rect) {
 SemanticDescriptor TableLayoutPanelCompat::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }
@@ -687,7 +687,7 @@ void TableLayoutPanelCompat::publish_part_geometry(std::span<PartGeometry> geome
         !column_widths_.empty() && !row_heights_.empty()) {
         // The extent on_paint rules: every track and the spacing between
         // them, from the padding origin.
-        const Insets inset = padding.type();
+        const Insets inset = padding.read();
         const double width = std::accumulate(column_widths_.begin(),
                                              column_widths_.end(), 0.0) +
             track_spacing_.width * static_cast<double>(column_widths_.size() - 1U);

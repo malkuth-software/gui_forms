@@ -173,7 +173,7 @@ void embedded_semantics_and_anatomy() {
     }
     require(threw, "invalid preview text is refused");
     dialog.set_show_apply(false);
-    require(!(*dialog.apply_button()).visible.type(), "Apply can be hidden");
+    require(!(*dialog.apply_button()).visible.read(), "Apply can be hidden");
 }
 
 } // namespace

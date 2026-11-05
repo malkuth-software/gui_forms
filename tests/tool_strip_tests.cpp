@@ -235,7 +235,7 @@ void hosted_controls() {
     const std::shared_ptr<ProgressBar> load = (*strip).progress_bar("load");
     require(zoom && find && load && (*strip).children().size() == 3U,
             "each hosted item owns one child control of its kind");
-    require((*zoom).items().size() == 3U && (*zoom).accessible_name.type() == "Zoom" &&
+    require((*zoom).items().size() == 3U && (*zoom).accessible_name.read() == "Zoom" &&
                 (*zoom).stable_id().value() == "strip.zoom",
             "a combo box takes its choices and name from the item, and its ID from the strip and item");
     const std::vector<ToolStrip::Item> items = (*strip).realized_items();

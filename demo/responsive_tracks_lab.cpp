@@ -61,7 +61,7 @@ public:
         const std::vector<Control::Ptr> retained(children().begin(),
                                                  children().end());
         for (const Control::Ptr& child : retained) {
-            if (!child || !(*child).visible.type()) continue;
+            if (!child || !(*child).visible.read()) continue;
             set_child_layout(child, seam_at_right_
                 ? Rect{0.0, 0.0, std::max(0.0, final_bounds.width - 3.0),
                        final_bounds.height}

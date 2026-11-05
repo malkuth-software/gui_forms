@@ -30,7 +30,7 @@ namespace gui_forms {
 // on_<property>_changed() where Windows Forms has OnXChanged). The hooks
 // are private overloads on the declaring class chosen by the cell's type;
 // the declaring class befriends each capability. A read is
-// `(*control).visible.type()`.
+// `(*control).visible.read()`.
 
 // The stable authoring name (Control::Name).
 template <typename Declaring>
@@ -330,6 +330,46 @@ struct AccessibleDescriptionCapability {
         control.written(std::as_const(capability.accessible_description));
     }
 };
+
+// Control's enumerations as property values: their choice sets are
+// Control's descriptors, so the definitions live in control.cpp. The cursor
+// travels as cursor_kind with inherit (empty) at 0 and each kind at its
+// value plus one.
+template <>
+struct PropertyValueTraits<DockStyle> {
+    static PropertyType type();
+    static BindingValue to_binding(DockStyle value);
+};
+
+template <>
+struct PropertyValueTraits<AnchorStyles> {
+    static PropertyType type();
+    static BindingValue to_binding(AnchorStyles value);
+};
+
+template <>
+struct PropertyValueTraits<AutoSizeMode> {
+    static PropertyType type();
+    static BindingValue to_binding(AutoSizeMode value);
+};
+
+template <>
+struct PropertyValueTraits<LayoutDirection> {
+    static PropertyType type();
+    static BindingValue to_binding(LayoutDirection value);
+};
+
+template <>
+struct PropertyValueTraits<std::optional<CursorKind>> {
+    static PropertyType type();
+    static BindingValue to_binding(std::optional<CursorKind> value);
+};
+
+namespace types {
+
+inline constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind{};
+
+} // namespace types
 
 // Every Control capability, in the order Control lists them as bases.
 template <typename Declaring>

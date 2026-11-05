@@ -190,7 +190,7 @@ private:
     }
 
     void on_toggle_left() {
-        const bool visible = !(*left_).visible.type();
+        const bool visible = !(*left_).visible.read();
         (*left_).visible = visible;
         (*toggle_left_).set_text(visible ? "Hide left edge" : "Restore left edge");
         report(visible ? "Dock · left edge restored · fill contracted"

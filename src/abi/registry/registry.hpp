@@ -321,7 +321,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        *enabled = (*(*record).control).enabled.type() ? 1U : 0U;
+        *enabled = (*(*record).control).enabled.read() ? 1U : 0U;
         return GF_OK;
     }
 
@@ -351,7 +351,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        const std::optional<CursorKind> value = (*(*record).control).cursor.type();
+        const std::optional<CursorKind> value = (*(*record).control).cursor.read();
         *cursor_kind = value.has_value()
             ? static_cast<std::uint32_t>(*value) +
                   static_cast<std::uint32_t>(GF_CURSOR_ARROW)
@@ -2031,7 +2031,7 @@ public:
         if (const gf_result result = get_control(handle, record); result != GF_OK) {
             return result;
         }
-        *visible = (*(*record).control).visible.type() ? 1U : 0U;
+        *visible = (*(*record).control).visible.read() ? 1U : 0U;
         return GF_OK;
     }
 

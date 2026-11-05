@@ -452,7 +452,7 @@ void test_layout_direction_inheritance_and_invalidation() {
     const std::unique_ptr<Window> held_window = std::make_unique<Window>(root, Size{200.0, 100.0});
     Window& window = *held_window;
     window.perform_layout();
-    require((*grandchild).layout_direction.type() == LayoutDirection::inherit &&
+    require((*grandchild).layout_direction.read() == LayoutDirection::inherit &&
                 (*grandchild).effective_layout_direction() == LayoutDirection::left_to_right,
             "an inheriting control under a default root lays out left to right");
 
@@ -488,7 +488,7 @@ void test_layout_direction_inheritance_and_invalidation() {
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*root).layout_direction.type() == LayoutDirection::right_to_left,
+    require(rejected && (*root).layout_direction.read() == LayoutDirection::right_to_left,
             "an out-of-range direction must be refused and leave the direction unchanged");
 }
 

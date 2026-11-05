@@ -136,7 +136,7 @@ struct ToggleDisabled final {
     RefreshReadout readout;
     void operator()(ButtonBase&) const {
         if (const std::shared_ptr<SplitContainer> target = split.lock()) {
-            (*target).enabled = !(*target).enabled.type();
+            (*target).enabled = !(*target).enabled.read();
             readout.refresh();
         }
     }

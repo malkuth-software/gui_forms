@@ -252,8 +252,8 @@ bool EasingPreview::hit_test_local(Point) const { return false; }
 SemanticDescriptor EasingPreview::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::image;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     const MotionPolicy policy = effective_motion_policy();
     const double presented = policy.presentation_phase(phase_);
     descriptor.value = motion_readout(presented);

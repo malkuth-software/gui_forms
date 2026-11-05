@@ -153,7 +153,7 @@ void LinkLabel::on_paint(Painter& painter, Rect) {
     if (has_style_override() && !context.high_contrast) {
         const BasicControlStyle& colors = style();
         // A disabled link keeps the theme's disabled text (T4-1).
-        if (enabled.type()) recipe.text = visited_ ? colors.visited_link : colors.link;
+        if (enabled.read()) recipe.text = visited_ ? colors.visited_link : colors.link;
     }
     const Color foreground = recipe.text;
     const double baseline = text_baseline();

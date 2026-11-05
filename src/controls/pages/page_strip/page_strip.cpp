@@ -2076,8 +2076,8 @@ std::optional<std::size_t> PageStrip::position_of_tab_identity(std::string_view 
 SemanticDescriptor PageStrip::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::tab_group;
-    descriptor.name = accessible_name.type().empty() ? "Pages" : accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read().empty() ? "Pages" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     const std::optional<std::size_t> selected = selected_position();
     if (selected) descriptor.value = layout().tabs[*selected].label;
     descriptor.orientation = horizontal() ? SemanticOrientation::horizontal : SemanticOrientation::vertical;

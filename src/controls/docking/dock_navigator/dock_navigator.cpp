@@ -334,8 +334,8 @@ std::string DockNavigator::entry_identity(DockNavigatorList list, const DockPane
 SemanticDescriptor DockNavigator::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type().empty() ? "Active windows" : accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read().empty() ? "Active windows" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     const std::optional<DockPanelId> panel = current_panel();
     if (panel) {
         const std::vector<DockNavigatorEntry>& held = list_entries(list_);

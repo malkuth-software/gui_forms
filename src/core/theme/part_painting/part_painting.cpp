@@ -792,7 +792,7 @@ void paint_part(Painter& painter, const Control& control, const PartPaint& part)
     // set_fore_color) under the part's own: its own background fills every
     // ground, an inherited one every ground but a well.
     std::optional<Color> background = part.authored_background;
-    if (!background && !suspended) background = control.back_color.type();
+    if (!background && !suspended) background = control.back_color.read();
     if (!background && !suspended && part.role != PartRole::well) background = control.ambient_back_color();
     std::optional<Color> foreground = part.authored_foreground;
     if (!foreground && !suspended) foreground = control.ambient_fore_color();

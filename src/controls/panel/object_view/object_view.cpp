@@ -1152,9 +1152,9 @@ void ObjectView::on_pointer(PointerEvent& event) {
 
 void ObjectView::on_key(KeyEvent& event) {
     if (has_details_columns() && event.modifiers == Modifier::alt) return;
-    if (focused_ && enabled.type() && event.action == KeyAction::down &&
+    if (focused_ && enabled.read() && event.action == KeyAction::down &&
         has_details_columns() && details_key(event)) return;
-    if (!focused_ || !enabled.type() || event.action != KeyAction::down || items_.empty()) return;
+    if (!focused_ || !enabled.read() || event.action != KeyAction::down || items_.empty()) return;
     std::optional<std::size_t> current = item_index(focused_id_);
     if (!current) current = item_index(selected_id_);
     std::size_t index = current.value_or(0U);
@@ -1222,7 +1222,7 @@ void ObjectView::type_select(std::string_view text) {
 
 void ObjectView::on_text_input(TextInputEvent& event) {
     if (header_focused_ && has_details_columns()) return;
-    if (!focused_ || !enabled.type() || event.composing || event.text_utf8.empty() ||
+    if (!focused_ || !enabled.read() || event.composing || event.text_utf8.empty() ||
         !validate_utf8(event.text_utf8).valid()) return;
     type_select(event.text_utf8);
     event.handled = true;
@@ -1249,8 +1249,8 @@ SemanticDescriptor ObjectView::semantic_descriptor() const {
         descriptor.role = SemanticRole::list;
     }
     if (selection_mode_ == ObjectSelectionMode::multiple) descriptor.states |= SemanticState::multiselectable;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = selected_ids_.size() <= 1U
         ? selected_id_ : std::to_string(selected_ids_.size()) + " selected";
     descriptor.actions = {SemanticAction::focus};

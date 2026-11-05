@@ -897,7 +897,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
         // Hidden/covered generations must not cause an endless idle rearm.
         registration.observed_epoch = snapshot.epoch;
         registration.observed_generation = snapshot.published_generation;
-        if (occluded_ || !popups_.empty() || !(*control).visible.type() ||
+        if (occluded_ || !popups_.empty() || !(*control).visible.read() ||
             !(*control).effectively_visible()) {
             // Retained painting owns these pixels until the next presentation.
             registration.placed = false;
@@ -931,7 +931,7 @@ Window::take_live_surface_presentations(const bool include_unchanged,
              ancestor && valid && !clip.empty();
              ancestor = (*ancestor).parent()) {
             if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this ||
-                !(*ancestor).visible.type()) {
+                !(*ancestor).visible.read()) {
                 valid = false;
                 break;
             }

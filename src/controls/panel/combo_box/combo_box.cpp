@@ -977,7 +977,7 @@ void ComboBox::on_pointer(PointerEvent& event) {
 }
 
 void ComboBox::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.type() || event.action != KeyAction::down) return;
+    if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::escape && dropped_down_) {
         close_drop_down();
         event.handled = true;
@@ -998,7 +998,7 @@ void ComboBox::on_key(KeyEvent& event) {
 void ComboBox::on_key_preview(KeyEvent& event) {
     // The drop_down style: the editor has the focus, and this sees its keys
     // first. Keys the editor's own suggestion list needs are left to it.
-    if (!editor_ || !enabled.type() || event.action != KeyAction::down) return;
+    if (!editor_ || !enabled.read() || event.action != KeyAction::down) return;
     const std::uint32_t key = event.physical_key;
     const bool alt = includes(event.modifiers, Modifier::alt);
     if (key == PhysicalKey::f4 || (key == PhysicalKey::down && alt)) {
@@ -1037,10 +1037,10 @@ void ComboBox::on_focus_changed(bool focused) {
 SemanticDescriptor ComboBox::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::combo_box;
-    descriptor.name = accessible_name.type();
+    descriptor.name = accessible_name.read();
     descriptor.value = std::string(text());
-    descriptor.description = accessible_description.type().empty()
-        ? placeholder_ : accessible_description.type();
+    descriptor.description = accessible_description.read().empty()
+        ? placeholder_ : accessible_description.read();
     if (dropped_down_) descriptor.states |= SemanticState::expanded;
     descriptor.actions = {SemanticAction::focus,
         dropped_down_ ? SemanticAction::collapse : SemanticAction::expand};

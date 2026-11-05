@@ -465,7 +465,7 @@ void TokenBox::on_pointer(PointerEvent& event) {
 }
 
 void TokenBox::on_key_preview(KeyEvent& event) {
-    if (!editor_ || !enabled.type() || event.action != KeyAction::down) return;
+    if (!editor_ || !enabled.read() || event.action != KeyAction::down) return;
     // The editor's suggestion list has the keys while it is open.
     if ((*editor_).auto_complete_open()) return;
     const std::uint32_t key = event.physical_key;
@@ -524,8 +524,8 @@ SemanticDescriptor TokenBox::semantic_descriptor() const {
     // No semantic role names a token field: it is published as the list of
     // its tokens, with the editor as a child (an owner vocabulary decision).
     descriptor.role = SemanticRole::list;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

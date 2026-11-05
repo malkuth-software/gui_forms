@@ -99,7 +99,7 @@ private:
     void prepare_write(const CaptionCell&, std::string&) { require_mutable(); }
     void written(const CaptionCell&) {
         invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-        publish_change(caption_changed_, caption.type());
+        publish_change(caption_changed_, caption.read());
     }
     void write_echo(std::string value) {
         require_mutable();
@@ -133,7 +133,7 @@ const PropertyDescriptor& describe_refined_caption() {
 
 BindingValue read_caption(const Component& owner) {
     const ProbeControl& probe = static_cast<const ProbeControl&>(owner);
-    BindingValue value{probe.caption.type()};
+    BindingValue value{probe.caption.read()};
     return value;
 }
 
@@ -208,7 +208,7 @@ const PropertyDescriptor& describe_delay() {
 
 BindingValue read_delay(const Component& owner) {
     const ProbeComponent& probe = static_cast<const ProbeComponent&>(owner);
-    BindingValue value{probe.delay.type()};
+    BindingValue value{probe.delay.read()};
     return value;
 }
 
@@ -254,9 +254,9 @@ void test_cell_write_and_read() {
     int changes = 0;
     const SubscriptionToken token = (*probe).caption_changed_.subscribe(ChangeCounter{&changes});
     (*probe).caption = "probe";
-    expect((*probe).caption.type() == "probe" && changes == 0, "an equal write does nothing");
+    expect((*probe).caption.read() == "probe" && changes == 0, "an equal write does nothing");
     (*probe).caption = "OK";
-    expect((*probe).caption.type() == "OK" && changes == 1, "a write stores and raises the change event");
+    expect((*probe).caption.read() == "OK" && changes == 1, "a write stores and raises the change event");
     (*probe).caption = "OK";
     expect(changes == 1, "an equal write after it does nothing either");
     static_cast<void>(token);
@@ -270,12 +270,12 @@ void test_table_through_the_property_api() {
                (*descriptor).resettable,
            "the entry's descriptor is checked and derived like a registration's");
     (*probe).set_property_value("caption", BindingValue{std::string("by name")});
-    expect((*probe).caption.type() == "by name", "a write by name reaches the cell");
+    expect((*probe).caption.read() == "by name", "a write by name reaches the cell");
     const std::optional<BindingValue> read = (*probe).property_value("Caption");
     expect(read && std::get<std::string>(*read) == "by name", "a read by name reads the cell");
     expect((*probe).should_serialize_property("caption"), "a value other than the default serializes");
     expect((*probe).property_value_origin("caption") == PropertyValueOrigin::local, "it is local");
-    expect((*probe).reset_property("caption") && (*probe).caption.type() == "probe",
+    expect((*probe).reset_property("caption") && (*probe).caption.read() == "probe",
            "reset writes the default");
     expect(!(*probe).should_serialize_property("caption"), "the default does not serialize");
 
@@ -329,30 +329,30 @@ void test_wrong_thread_write() {
     other.join();
     expect(equal_refused, "an equal write from another thread throws");
     expect(different_refused, "a different write from another thread throws");
-    expect((*probe).caption.type() == "probe", "neither write stored");
+    expect((*probe).caption.read() == "probe", "neither write stored");
 }
 
 void test_view_and_component_table() {
     std::shared_ptr<ProbeControl> probe = make_control<ProbeControl>(StableId("probe.view"));
     (*probe).echo = "engine";
-    expect((*probe).echo.type() == "engine" && (*probe).echo_writes_ == 1, "a view writes and reads its owner");
+    expect((*probe).echo.read() == "engine" && (*probe).echo_writes_ == 1, "a view writes and reads its owner");
 
     ProbeComponent component{};
     const PropertyEntry* const entry = find_property_entry(component, "delay");
     expect(entry != nullptr, "a component's table entry is found");
     write_property_entry(component, *entry, BindingValue{std::int64_t{750}});
-    expect(component.delay.type() == 750 && component.delay_writes_ == 1, "a write by entry reaches the cell");
+    expect(component.delay.read() == 750 && component.delay_writes_ == 1, "a write by entry reaches the cell");
     const std::optional<BindingValue> read = read_property_entry(component, *entry);
     expect(read && std::get<std::int64_t>(*read) == 750, "a read by entry reads the cell");
     expect(property_entry_should_serialize(component, *entry), "a value other than the default serializes");
-    expect(reset_property_entry(component, *entry) && component.delay.type() == 500, "reset writes the default");
+    expect(reset_property_entry(component, *entry) && component.delay.read() == 500, "reset writes the default");
     bool refused = false;
     try {
         component.delay = -1;
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    expect(refused && component.delay.type() == 500, "the prepare hook refuses before the store");
+    expect(refused && component.delay.read() == 500, "the prepare hook refuses before the store");
 }
 
 void test_window_touch() {
@@ -399,12 +399,12 @@ void test_control_family() {
     (*probe).visible = true;
     expect((*probe).visible_calls_ == 0 && events == 0, "an equal write raises nothing");
     (*probe).visible = false;
-    expect(!(*probe).visible.type() && (*probe).visible_calls_ == 1 && events == 1,
+    expect(!(*probe).visible.read() && (*probe).visible_calls_ == 1 && events == 1,
            "a changed write runs on_visible_changed once and raises visible_changed once");
     expect((*probe).event_seen_before_override_, "the base raises the event before the override's own work");
     static_cast<void>(token);
 
-    expect((*probe).name.type() == "family.probe", "name starts as the stable id");
+    expect((*probe).name.read() == "family.probe", "name starts as the stable id");
     const std::optional<PropertyDescriptor> name = (*probe).property_descriptor("name");
     expect(name && (*name).default_value && std::get<std::string>(*(*name).default_value) == "family.probe",
            "name stays an instance registration whose default is the stable id");
@@ -418,20 +418,20 @@ void test_control_family() {
     expect(margin && !(*margin).bindable && (*margin).resettable, "structural properties stay unbindable");
 
     (*probe).set_property_value("margin", BindingValue{Insets{1.0, 2.0, 3.0, 4.0}});
-    expect((*probe).margin.type() == Insets{1.0, 2.0, 3.0, 4.0}, "a write by name reaches margin's cell");
+    expect((*probe).margin.read() == Insets{1.0, 2.0, 3.0, 4.0}, "a write by name reaches margin's cell");
     bool refused = false;
     try {
         (*probe).margin = Insets{-1.0, 0.0, 0.0, 0.0};
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    expect(refused && (*probe).margin.type() == Insets{1.0, 2.0, 3.0, 4.0}, "a refused margin changes nothing");
-    expect((*probe).reset_property("margin") && (*probe).margin.type() == Insets{3.0, 3.0, 3.0, 3.0},
+    expect(refused && (*probe).margin.read() == Insets{1.0, 2.0, 3.0, 4.0}, "a refused margin changes nothing");
+    expect((*probe).reset_property("margin") && (*probe).margin.read() == Insets{3.0, 3.0, 3.0, 3.0},
            "reset writes margin's default");
 
     (*probe).back_color = Color::rgba(10, 20, 30);
     expect((*probe).should_serialize_property("back_color"), "an own back colour serializes");
-    expect((*probe).reset_property("back_color") && !(*probe).back_color.type(), "reset clears the back colour");
+    expect((*probe).reset_property("back_color") && !(*probe).back_color.read(), "reset clears the back colour");
 }
 
 // G11: a themed Panel's face takes its own back_color (outside high
@@ -498,19 +498,19 @@ void test_setters_store() {
     (*control).accessible_name = "a";
     (*control).accessible_description = "d";
     (*control).tool_tip_text = "t";
-    expect((*control).name.type() == "renamed" && !(*control).visible.type() && !(*control).enabled.type() &&
-               (*control).auto_size.type() && !(*control).causes_validation.type() && !(*control).tab_stop.type() &&
-               (*control).allow_drop.type() && (*control).hit_test_transparent.type() &&
-               (*control).tab_index.type() == 7U && (*control).margin.type() == Insets{1.0, 1.0, 1.0, 1.0} &&
-               (*control).padding.type() == Insets{2.0, 2.0, 2.0, 2.0} &&
-               (*control).dock.type() == DockStyle::fill && (*control).anchor.type() == AnchorStyles::right &&
-               (*control).auto_size_mode.type() == AutoSizeMode::grow_and_shrink &&
-               (*control).layout_direction.type() == LayoutDirection::right_to_left &&
-               (*control).minimum_size.type() == Size{4.0, 4.0} &&
-               (*control).maximum_size.type() == Size{40.0, 40.0} &&
-               (*control).cursor.type() == CursorKind::hand && (*control).back_color.type() &&
-               (*control).fore_color.type() && (*control).accessible_name.type() == "a" &&
-               (*control).accessible_description.type() == "d" && (*control).tool_tip_text.type() == "t",
+    expect((*control).name.read() == "renamed" && !(*control).visible.read() && !(*control).enabled.read() &&
+               (*control).auto_size.read() && !(*control).causes_validation.read() && !(*control).tab_stop.read() &&
+               (*control).allow_drop.read() && (*control).hit_test_transparent.read() &&
+               (*control).tab_index.read() == 7U && (*control).margin.read() == Insets{1.0, 1.0, 1.0, 1.0} &&
+               (*control).padding.read() == Insets{2.0, 2.0, 2.0, 2.0} &&
+               (*control).dock.read() == DockStyle::fill && (*control).anchor.read() == AnchorStyles::right &&
+               (*control).auto_size_mode.read() == AutoSizeMode::grow_and_shrink &&
+               (*control).layout_direction.read() == LayoutDirection::right_to_left &&
+               (*control).minimum_size.read() == Size{4.0, 4.0} &&
+               (*control).maximum_size.read() == Size{40.0, 40.0} &&
+               (*control).cursor.read() == CursorKind::hand && (*control).back_color.read() &&
+               (*control).fore_color.read() && (*control).accessible_name.read() == "a" &&
+               (*control).accessible_description.read() == "d" && (*control).tool_tip_text.read() == "t",
            "every named setter stores its value");
 }
 
@@ -535,6 +535,56 @@ void test_hidden_is_not_painted_or_hit() {
 
 } // namespace
 
+// Study section 15: type() is the runtime type; as_type(types::x) offers
+// total conversions only and agrees with the descriptor conversion of the
+// same pair; as_type(PropertyType) returns an explicit result.
+template <typename Cell, typename Target>
+concept total_read = requires(const Cell& cell, TypeTag<Target> tag) { cell.as_type(tag); };
+
+void test_property_type() {
+    std::shared_ptr<Panel> panel = make_control<Panel>(StableId("family.typed"));
+    (*panel).tab_index = 7U;
+    const PropertyType int64_type{BindingValueKind::signed_integer, false, nullptr};
+    const PropertyType text_type{BindingValueKind::text, false, nullptr};
+    const PropertyType boolean_type{BindingValueKind::boolean, false, nullptr};
+
+    expect((*panel).tab_index.type().kind == BindingValueKind::unsigned_integer, "tab_index is unsigned");
+    const std::int64_t widened = (*panel).tab_index.as_type(types::int64);
+    const std::optional<BindingValue> described = (*panel).tab_index.as_type(int64_type);
+    expect(widened == 7 && described && std::get<std::int64_t>(*described) == widened,
+           "the int64 tag and the int64 type agree");
+
+    const std::string shown = (*panel).visible.as_type(types::string);
+    const std::optional<BindingValue> shown_described = (*panel).visible.as_type(text_type);
+    expect(shown_described && std::get<std::string>(*shown_described) == shown, "the string tag and type agree");
+
+    (*panel).tool_tip_text = std::string("not a boolean");
+    expect(!(*panel).tool_tip_text.as_type(boolean_type), "a failed conversion is an explicit empty result");
+
+    (*panel).dock = DockStyle::fill;
+    const PropertyType dock_type = (*panel).dock.type();
+    expect(dock_type.kind == BindingValueKind::enumeration && dock_type.enumeration &&
+               (*dock_type.enumeration).type_name == "dock_style",
+           "an enumeration's type carries its choice set");
+    const std::int64_t dock_number = (*panel).dock.as_type(types::int64);
+    const std::optional<BindingValue> dock_choice = (*panel).dock.as_type(dock_type);
+    expect(dock_number == 5 && dock_choice && std::get<PropertyEnumValue>(*dock_choice).name == "fill",
+           "an enumeration reads as its number and as its named choice");
+
+    expect((*panel).cursor.type().kind == BindingValueKind::enumeration && !(*panel).cursor.type().nullable,
+           "the cursor travels as cursor_kind, inherit included");
+    const BindingValue inherit = (*panel).cursor.as_type(types::binding_value);
+    expect(std::get<PropertyEnumValue>(inherit).name == "inherit", "an empty cursor reads as inherit");
+
+    expect((*panel).back_color.type().nullable, "an optional colour is nullable");
+    const BindingValue no_colour = (*panel).back_color.as_type(types::binding_value);
+    expect(std::holds_alternative<std::monostate>(no_colour), "an empty colour reads as null");
+
+    static_assert(total_read<decltype((*panel).tab_index), std::int64_t>);
+    static_assert(!total_read<decltype((*panel).name), bool>, "text to boolean can fail: no tag read");
+    static_assert(!total_read<decltype((*panel).tab_index), std::int32_t>, "narrowing has no tag read");
+}
+
 int main() {
     test_cell_write_and_read();
     test_table_through_the_property_api();
@@ -546,6 +596,7 @@ int main() {
     test_panel_back_color_when_themed();
     test_setters_store();
     test_hidden_is_not_painted_or_hit();
+    test_property_type();
     std::cout << "property capability tests passed\n";
     return EXIT_SUCCESS;
 }

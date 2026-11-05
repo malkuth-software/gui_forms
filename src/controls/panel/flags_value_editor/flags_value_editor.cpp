@@ -344,7 +344,7 @@ void FlagsValueEditor::on_pointer(PointerEvent& event) {
 }
 
 void FlagsValueEditor::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.type() || event.action != KeyAction::down) return;
+    if (!focused_ || !enabled.read() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::escape && dropped_down_) {
         close_drop_down();
         event.handled = true;
@@ -365,9 +365,9 @@ void FlagsValueEditor::on_focus_changed(bool focused) {
 SemanticDescriptor FlagsValueEditor::semantic_descriptor() const {
     SemanticDescriptor result;
     result.role = SemanticRole::combo_box;
-    result.name = accessible_name.type();
+    result.name = accessible_name.read();
     result.value = display_label(value_.name);
-    result.description = accessible_description.type();
+    result.description = accessible_description.read();
     if (dropped_down_) result.states |= SemanticState::expanded;
     result.actions = {SemanticAction::focus,
         dropped_down_ ? SemanticAction::collapse : SemanticAction::expand};

@@ -511,8 +511,8 @@ void SplitContainer::on_key_preview(KeyEvent& event) {
 SemanticDescriptor SplitContainer::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::split_pane;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = std::to_string(effective_distance_);
     descriptor.numeric_value = effective_distance_;
     const double total = axis_extent(committed_arranged_bounds());

@@ -255,7 +255,7 @@ void BlockPanel::gather_children() {
     children_.reserve(all.size());
     absolute_children_.clear();
     for (const Control::Ptr& child : all) {
-        if (!child || !is_current_layout_child(child) || !(*child).visible.type()) continue;
+        if (!child || !is_current_layout_child(child) || !(*child).visible.read()) continue;
         if (record_for(*child).positioning.position == PositionKind::absolute) {
             absolute_children_.push_back(child);
             continue;
@@ -275,7 +275,7 @@ void BlockPanel::resolve_item_inputs(const SolveRequest& request) {
         input.level = layout.level;
         input.vertical_align = layout.vertical_align;
         const bool block = layout.level == BlockFlowLevel::block;
-        const Insets margin = child.margin.type();
+        const Insets margin = child.margin.read();
         input.auto_margin_left = block && layout.auto_margin.left;
         input.auto_margin_right = block && layout.auto_margin.right;
         input.margin.top = layout.auto_margin.top ? 0.0 : margin.top;
@@ -283,8 +283,8 @@ void BlockPanel::resolve_item_inputs(const SolveRequest& request) {
         input.margin.left = layout.auto_margin.left ? 0.0 : margin.left;
         input.margin.right = layout.auto_margin.right ? 0.0 : margin.right;
         const double margins = input.margin.left + input.margin.right;
-        const Size control_minimum = child.minimum_size.type();
-        const Size control_maximum = child.maximum_size.type();
+        const Size control_minimum = child.minimum_size.read();
+        const Size control_maximum = child.maximum_size.read();
 
         const SizeBounds widths = size_bounds(layout.min_width, layout.max_width, request.width, true,
                                               control_minimum.width, control_maximum.width);
@@ -347,7 +347,7 @@ void BlockPanel::resolve_item_inputs(const SolveRequest& request) {
 void BlockPanel::publish_slots(const BlockFlowLayoutWorkspace& workspace, Size content_box) {
     const LayoutDirection direction = effective_layout_direction();
     const std::span<const BlockFlowItemResult> results = workspace.items();
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const Point offset = scroll_position();
     arranged_ids_.clear();
     arranged_ids_.reserve(children_.size());
@@ -366,7 +366,7 @@ void BlockPanel::publish_slots(const BlockFlowLayoutWorkspace& workspace, Size c
 BlockPanel::SolveResult BlockPanel::solve(const SolveRequest& request, BlockFlowLayoutWorkspace& workspace) {
     gather_children();
     SolveResult result{};
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const bool shares = shares_parent_flow();
     BlockFlowContainerInput container{};
     container.width = request.width;
@@ -414,13 +414,13 @@ double BlockPanel::intrinsic_content_width(BlockFlowIntrinsicKind kind) {
         BlockFlowItemInput& input = inputs_[index];
         input = BlockFlowItemInput{};
         input.level = layout.level;
-        const Insets margin = child.margin.type();
+        const Insets margin = child.margin.read();
         input.margin.left = layout.auto_margin.left ? 0.0 : margin.left;
         input.margin.right = layout.auto_margin.right ? 0.0 : margin.right;
         // Percentages have no basis here and read as `auto` (CSS Sizing 3,
         // 5.2.1's cyclic percentages).
         const SizeBounds widths = size_bounds(layout.min_width, layout.max_width, 0.0, false,
-                                              child.minimum_size.type().width, child.maximum_size.type().width);
+                                              child.minimum_size.read().width, child.maximum_size.read().width);
         double width = 0.0;
         if (plain_length(layout.width)) {
             width = layout.width.value.length.value();
@@ -440,21 +440,21 @@ BlockFlowSharedMargins BlockPanel::shared_margins(double width) {
     if (shared_entry_.valid && shared_entry_.width == width && shared_entry_.generation == measure_generation()) {
         return shared_entry_.margins;
     }
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     SolveRequest request{};
     request.width = std::max(0.0, width - inset.left - inset.right);
     const SolveResult solved = solve(request, workspace_);
     if (!is_alive()) return BlockFlowSharedMargins{};
     BlockFlowSharedMargins margins = solved.shared;
     const double height = solved.content_height + inset.top + inset.bottom;
-    const double bounded = std::min(std::max(height, minimum_size.type().height), maximum_or_unbounded(maximum_size.type().height));
+    const double bounded = std::min(std::max(height, minimum_size.read().height), maximum_or_unbounded(maximum_size.read().height));
     if (bounded != height) margins.trailing = CollapsedMargin{};
     shared_entry_ = SharedMarginsEntry{width, measure_generation(), margins, true};
     return margins;
 }
 
 Size BlockPanel::measure_intrinsic(const LayoutConstraint& constraint) {
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const double horizontal_padding = inset.left + inset.right;
     const double vertical_padding = inset.top + inset.bottom;
     const Rect requested = requested_bounds();
@@ -466,7 +466,7 @@ Size BlockPanel::measure_intrinsic(const LayoutConstraint& constraint) {
     const AvailableExtentKind width_kind = constraint.width.kind;
     if (width_kind == AvailableExtentKind::definite) {
         width = constraint.width.extent.value();
-    } else if (width_kind == AvailableExtentKind::at_most && !auto_size.type()) {
+    } else if (width_kind == AvailableExtentKind::at_most && !auto_size.read()) {
         const double available = constraint.width.extent.value();
         width = requested.width > 0.0 ? std::min(requested.width, available) : available;
     } else if (width_kind == AvailableExtentKind::min_content) {
@@ -482,13 +482,13 @@ Size BlockPanel::measure_intrinsic(const LayoutConstraint& constraint) {
     }
     if (!is_alive()) return {};
 
-    const Size minimum = minimum_size.type();
-    const Size maximum = maximum_size.type();
+    const Size minimum = minimum_size.read();
+    const Size maximum = maximum_size.read();
     double height = 0.0;
     const AvailableExtentKind height_kind = constraint.height.kind;
     if (height_kind == AvailableExtentKind::definite) {
         height = constraint.height.extent.value();
-    } else if (height_kind == AvailableExtentKind::at_most && !auto_size.type()) {
+    } else if (height_kind == AvailableExtentKind::at_most && !auto_size.read()) {
         const double available = constraint.height.extent.value();
         height = requested.height > 0.0 ? std::min(requested.height, available) : available;
     } else {
@@ -525,7 +525,7 @@ Size BlockPanel::measure(Size available) {
 void BlockPanel::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     forget_departed_children();
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const Size client{final_bounds.width, final_bounds.height};
     const bool percentage_basis = percentage_heights_definite();
     Size available = client;
@@ -579,7 +579,7 @@ void BlockPanel::place_absolute_children(Size client) {
     set_containing_block_dependencies(dependency_path_);
     registered_dependencies_ = true;
     out_of_flow::AbsoluteContainer container{};
-    container.padding = padding.type();
+    container.padding = padding.read();
     container.size = client;
     container.scroll = scroll_position();
     container.direction = effective_layout_direction();
@@ -609,8 +609,8 @@ bool BlockPanel::measures_children_in_arrange() const noexcept {
 SemanticDescriptor BlockPanel::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }

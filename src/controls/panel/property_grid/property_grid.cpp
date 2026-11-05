@@ -1453,7 +1453,7 @@ bool PropertyGrid::try_set_property_text(std::string_view property_name,
 bool PropertyGrid::activate_property_editor(std::string_view property_name) {
     require_mutable();
     const Control::Ptr retained = editor(property_name);
-    return retained && (*retained).is_alive() && (*retained).enabled.type() &&
+    return retained && (*retained).is_alive() && (*retained).enabled.read() &&
         (*retained).on_semantic_action(SemanticAction::press, {});
 }
 

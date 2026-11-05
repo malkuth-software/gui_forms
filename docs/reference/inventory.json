@@ -10462,7 +10462,7 @@
           "kind": "FieldDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "and runs `assign`: the declaring class's prepare hook (its first statement // is require_mutable, so a write from another thread throws even when the // value is equal; then the value's checks and, where C# lets a subclass // rewrite the value, the protected virtual coerce hook), the compare and // store, then the written hook (the touch, side effects, and the change // event through publish_change, ending in the protected virtual // on_<property>_changed() where Windows Forms has OnXChanged). The hooks // are private overloads on the declaring class chosen by the cell's type; // the declaring class befriends each capability. A read is // `(*control).visible.type()`. // The stable authoring name (Control::Name). template <typename Declaring> struct NameCapability { PropertyCell<std::string, NameCapability<Declaring>> name{}; static void assign(NameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.name), value); if (!capability.name.replace(std::move(value))) return; control.written(std::as_const(capability.name)); } }; // Whether the control takes part in presentation and input (Visible). template <typename Declaring> struct VisibleCapability { PropertyCell<bool, VisibleCapability<Declaring>> visible{true}; static void assign(VisibleCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.visible), value); if (!capability.visible.replace(std::move(value))) return; control.written(std::as_const(capability.visible)); } }; // Whether the control receives ordinary user input (Enabled). template <typename Declaring> struct EnabledCapability { PropertyCell<bool, EnabledCapability<Declaring>> enabled{true}; static void assign(EnabledCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.enabled), value); if (!capability.enabled.replace(std::move(value))) return; control.written(std::as_const(capability.enabled)); } }; // Whether measurement determines the control's size (AutoSize). template <typename Declaring> struct AutoSizeCapability { PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size{false}; static void assign(AutoSizeCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size), value); if (!capability.auto_size.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size)); } }; // Whether leaving the control starts validation (CausesValidation). template <typename Declaring> struct CausesValidationCapability { PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation{true}; static void assign(CausesValidationCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.causes_validation), value); if (!capability.causes_validation.replace(std::move(value))) return; control.written(std::as_const(capability.causes_validation)); } }; // The plain tooltip text; empty never shows. template <typename Declaring> struct ToolTipTextCapability { GUI_FORMS_LOCALIZABLE(tool_tip) PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text{}; static void assign(ToolTipTextCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tool_tip_text), value); if (!capability.tool_tip_text.replace(std::move(value))) return; control.written(std::as_const(capability.tool_tip_text)); } }; // The pointer's cursor; empty takes the parent's (Cursor). template <typename Declaring> struct CursorCapability { PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor{}; static void assign(CursorCapability& capability, std::optional<CursorKind> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.cursor), value); if (!capability.cursor.replace(std::move(value))) return; control.written(std::as_const(capability.cursor)); } }; // The own background colour; empty takes the parent's. template <typename Declaring> struct BackColorCapability { PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color{}; static void assign(BackColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.back_color), value); if (!capability.back_color.replace(std::move(value))) return; control.written(std::as_const(capability.back_color)); } }; // The own text colour; empty takes the parent's. template <typename Declaring> struct ForeColorCapability { PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color{}; static void assign(ForeColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.fore_color), value); if (!capability.fore_color.replace(std::move(value))) return; control.written(std::as_const(capability.fore_color)); } }; // The smallest size layout gives the control (MinimumSize). template <typename Declaring> struct MinimumSizeCapability { PropertyCell<Size, MinimumSizeCapability<Declaring>> minimum_size{}; static void assign(MinimumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.minimum_size), value); if (!capability.minimum_size.replace(std::move(value))) return; control.written(std::as_const(capability.minimum_size)); } }; // The largest size layout gives the control; zero is unbounded. template <typename Declaring> struct MaximumSizeCapability { PropertyCell<Size, MaximumSizeCapability<Declaring>> maximum_size{}; static void assign(MaximumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.maximum_size), value); if (!capability.maximum_size.replace(std::move(value))) return; control.written(std::as_const(capability.maximum_size)); } }; // The space kept outside the control (Margin). template <typename Declaring> struct MarginCapability { PropertyCell<Insets, MarginCapability<Declaring>> margin{Insets{3.0, 3.0, 3.0, 3.0}}; static void assign(MarginCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.margin), value); if (!capability.margin.replace(std::move(value))) return; control.written(std::as_const(capability.margin)); } }; // The space kept inside the control around its content (Padding). template <typename Declaring> struct PaddingCapability { PropertyCell<Insets, PaddingCapability<Declaring>> padding{}; static void assign(PaddingCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.padding), value); if (!capability.padding.replace(std::move(value))) return; control.written(std::as_const(capability.padding)); } }; // The parent edge the control docks to (Dock). template <typename Declaring> struct DockCapability { PropertyCell<DockStyle, DockCapability<Declaring>> dock{DockStyle::none}; static void assign(DockCapability& capability, DockStyle value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.dock), value); if (!capability.dock.replace(std::move(value))) return; control.written(std::as_const(capability.dock)); } }; // The parent edges the control keeps its distance to (Anchor). template <typename Declaring> struct AnchorCapability { PropertyCell<AnchorStyles, AnchorCapability<Declaring>> anchor{AnchorStyles::top | AnchorStyles::left}; static void assign(AnchorCapability& capability, AnchorStyles value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.anchor), value); if (!capability.anchor.replace(std::move(value))) return; control.written(std::as_const(capability.anchor)); } }; // Whether auto size may shrink the control (AutoSizeMode). template <typename Declaring> struct AutoSizeModeCapability { PropertyCell<AutoSizeMode, AutoSizeModeCapability<Declaring>> auto_size_mode{AutoSizeMode::grow_only}; static void assign(AutoSizeModeCapability& capability, AutoSizeMode value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size_mode), value); if (!capability.auto_size_mode.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size_mode)); } }; // The control's own layout direction; inherit takes the parent's (RightToLeft). template <typename Declaring> struct LayoutDirectionCapability { PropertyCell<LayoutDirection, LayoutDirectionCapability<Declaring>> layout_direction{LayoutDirection::inherit}; static void assign(LayoutDirectionCapability& capability, LayoutDirection value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.layout_direction), value); if (!capability.layout_direction.replace(std::move(value))) return; control.written(std::as_const(capability.layout_direction)); } }; // The control's place in its parent's tab order (TabIndex). template <typename Declaring> struct TabIndexCapability { PropertyCell<std::uint32_t, TabIndexCapability<Declaring>> tab_index{0U}; static void assign(TabIndexCapability& capability, std::uint32_t value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_index), value); if (!capability.tab_index.replace(std::move(value))) return; control.written(std::as_const(capability.tab_index)); } }; // Whether the Tab key stops at the control (TabStop). template <typename Declaring> struct TabStopCapability { PropertyCell<bool, TabStopCapability<Declaring>> tab_stop{true}; static void assign(TabStopCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_stop), value); if (!capability.tab_stop.replace(std::move(value))) return; control.written(std::as_const(capability.tab_stop)); } }; // Whether the control accepts dropped data (AllowDrop). template <typename Declaring> struct AllowDropCapability { PropertyCell<bool, AllowDropCapability<Declaring>> allow_drop{false}; static void assign(AllowDropCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.allow_drop), value); if (!capability.allow_drop.replace(std::move(value))) return; control.written(std::as_const(capability.allow_drop)); } }; // Whether pointer hit testing passes through the control to what is under it. template <typename Declaring> struct HitTestTransparentCapability { PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent{false}; static void assign(HitTestTransparentCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.hit_test_transparent), value); if (!capability.hit_test_transparent.replace(std::move(value))) return; control.written(std::as_const(capability.hit_test_transparent)); } }; // The name assistive technology announces. template <typename Declaring> struct AccessibleNameCapability { GUI_FORMS_LOCALIZABLE(accessible_name) PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name{}; static void assign(AccessibleNameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.accessible_name), value); if (!capability.accessible_name.replace(std::move(value))) return; control.written(std::as_const(capability.accessible_name)); } }; // The description assistive technology announces. template <typename Declaring> struct AccessibleDescriptionCapability { GUI_FORMS_LOCALIZABLE(accessible_description) PropertyCell<std::string, AccessibleDescriptionCapability<Declaring>> accessible_description{}",
+          "declaration": "and runs `assign`: the declaring class's prepare hook (its first statement // is require_mutable, so a write from another thread throws even when the // value is equal; then the value's checks and, where C# lets a subclass // rewrite the value, the protected virtual coerce hook), the compare and // store, then the written hook (the touch, side effects, and the change // event through publish_change, ending in the protected virtual // on_<property>_changed() where Windows Forms has OnXChanged). The hooks // are private overloads on the declaring class chosen by the cell's type; // the declaring class befriends each capability. A read is // `(*control).visible.read()`. // The stable authoring name (Control::Name). template <typename Declaring> struct NameCapability { PropertyCell<std::string, NameCapability<Declaring>> name{}; static void assign(NameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.name), value); if (!capability.name.replace(std::move(value))) return; control.written(std::as_const(capability.name)); } }; // Whether the control takes part in presentation and input (Visible). template <typename Declaring> struct VisibleCapability { PropertyCell<bool, VisibleCapability<Declaring>> visible{true}; static void assign(VisibleCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.visible), value); if (!capability.visible.replace(std::move(value))) return; control.written(std::as_const(capability.visible)); } }; // Whether the control receives ordinary user input (Enabled). template <typename Declaring> struct EnabledCapability { PropertyCell<bool, EnabledCapability<Declaring>> enabled{true}; static void assign(EnabledCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.enabled), value); if (!capability.enabled.replace(std::move(value))) return; control.written(std::as_const(capability.enabled)); } }; // Whether measurement determines the control's size (AutoSize). template <typename Declaring> struct AutoSizeCapability { PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size{false}; static void assign(AutoSizeCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size), value); if (!capability.auto_size.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size)); } }; // Whether leaving the control starts validation (CausesValidation). template <typename Declaring> struct CausesValidationCapability { PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation{true}; static void assign(CausesValidationCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.causes_validation), value); if (!capability.causes_validation.replace(std::move(value))) return; control.written(std::as_const(capability.causes_validation)); } }; // The plain tooltip text; empty never shows. template <typename Declaring> struct ToolTipTextCapability { GUI_FORMS_LOCALIZABLE(tool_tip) PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text{}; static void assign(ToolTipTextCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tool_tip_text), value); if (!capability.tool_tip_text.replace(std::move(value))) return; control.written(std::as_const(capability.tool_tip_text)); } }; // The pointer's cursor; empty takes the parent's (Cursor). template <typename Declaring> struct CursorCapability { PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor{}; static void assign(CursorCapability& capability, std::optional<CursorKind> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.cursor), value); if (!capability.cursor.replace(std::move(value))) return; control.written(std::as_const(capability.cursor)); } }; // The own background colour; empty takes the parent's. template <typename Declaring> struct BackColorCapability { PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color{}; static void assign(BackColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.back_color), value); if (!capability.back_color.replace(std::move(value))) return; control.written(std::as_const(capability.back_color)); } }; // The own text colour; empty takes the parent's. template <typename Declaring> struct ForeColorCapability { PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color{}; static void assign(ForeColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.fore_color), value); if (!capability.fore_color.replace(std::move(value))) return; control.written(std::as_const(capability.fore_color)); } }; // The smallest size layout gives the control (MinimumSize). template <typename Declaring> struct MinimumSizeCapability { PropertyCell<Size, MinimumSizeCapability<Declaring>> minimum_size{}; static void assign(MinimumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.minimum_size), value); if (!capability.minimum_size.replace(std::move(value))) return; control.written(std::as_const(capability.minimum_size)); } }; // The largest size layout gives the control; zero is unbounded. template <typename Declaring> struct MaximumSizeCapability { PropertyCell<Size, MaximumSizeCapability<Declaring>> maximum_size{}; static void assign(MaximumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.maximum_size), value); if (!capability.maximum_size.replace(std::move(value))) return; control.written(std::as_const(capability.maximum_size)); } }; // The space kept outside the control (Margin). template <typename Declaring> struct MarginCapability { PropertyCell<Insets, MarginCapability<Declaring>> margin{Insets{3.0, 3.0, 3.0, 3.0}}; static void assign(MarginCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.margin), value); if (!capability.margin.replace(std::move(value))) return; control.written(std::as_const(capability.margin)); } }; // The space kept inside the control around its content (Padding). template <typename Declaring> struct PaddingCapability { PropertyCell<Insets, PaddingCapability<Declaring>> padding{}; static void assign(PaddingCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.padding), value); if (!capability.padding.replace(std::move(value))) return; control.written(std::as_const(capability.padding)); } }; // The parent edge the control docks to (Dock). template <typename Declaring> struct DockCapability { PropertyCell<DockStyle, DockCapability<Declaring>> dock{DockStyle::none}; static void assign(DockCapability& capability, DockStyle value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.dock), value); if (!capability.dock.replace(std::move(value))) return; control.written(std::as_const(capability.dock)); } }; // The parent edges the control keeps its distance to (Anchor). template <typename Declaring> struct AnchorCapability { PropertyCell<AnchorStyles, AnchorCapability<Declaring>> anchor{AnchorStyles::top | AnchorStyles::left}; static void assign(AnchorCapability& capability, AnchorStyles value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.anchor), value); if (!capability.anchor.replace(std::move(value))) return; control.written(std::as_const(capability.anchor)); } }; // Whether auto size may shrink the control (AutoSizeMode). template <typename Declaring> struct AutoSizeModeCapability { PropertyCell<AutoSizeMode, AutoSizeModeCapability<Declaring>> auto_size_mode{AutoSizeMode::grow_only}; static void assign(AutoSizeModeCapability& capability, AutoSizeMode value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size_mode), value); if (!capability.auto_size_mode.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size_mode)); } }; // The control's own layout direction; inherit takes the parent's (RightToLeft). template <typename Declaring> struct LayoutDirectionCapability { PropertyCell<LayoutDirection, LayoutDirectionCapability<Declaring>> layout_direction{LayoutDirection::inherit}; static void assign(LayoutDirectionCapability& capability, LayoutDirection value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.layout_direction), value); if (!capability.layout_direction.replace(std::move(value))) return; control.written(std::as_const(capability.layout_direction)); } }; // The control's place in its parent's tab order (TabIndex). template <typename Declaring> struct TabIndexCapability { PropertyCell<std::uint32_t, TabIndexCapability<Declaring>> tab_index{0U}; static void assign(TabIndexCapability& capability, std::uint32_t value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_index), value); if (!capability.tab_index.replace(std::move(value))) return; control.written(std::as_const(capability.tab_index)); } }; // Whether the Tab key stops at the control (TabStop). template <typename Declaring> struct TabStopCapability { PropertyCell<bool, TabStopCapability<Declaring>> tab_stop{true}; static void assign(TabStopCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_stop), value); if (!capability.tab_stop.replace(std::move(value))) return; control.written(std::as_const(capability.tab_stop)); } }; // Whether the control accepts dropped data (AllowDrop). template <typename Declaring> struct AllowDropCapability { PropertyCell<bool, AllowDropCapability<Declaring>> allow_drop{false}; static void assign(AllowDropCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.allow_drop), value); if (!capability.allow_drop.replace(std::move(value))) return; control.written(std::as_const(capability.allow_drop)); } }; // Whether pointer hit testing passes through the control to what is under it. template <typename Declaring> struct HitTestTransparentCapability { PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent{false}; static void assign(HitTestTransparentCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.hit_test_transparent), value); if (!capability.hit_test_transparent.replace(std::move(value))) return; control.written(std::as_const(capability.hit_test_transparent)); } }; // The name assistive technology announces. template <typename Declaring> struct AccessibleNameCapability { GUI_FORMS_LOCALIZABLE(accessible_name) PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name{}; static void assign(AccessibleNameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.accessible_name), value); if (!capability.accessible_name.replace(std::move(value))) return; control.written(std::as_const(capability.accessible_name)); } }; // The description assistive technology announces. template <typename Declaring> struct AccessibleDescriptionCapability { GUI_FORMS_LOCALIZABLE(accessible_description) PropertyCell<std::string, AccessibleDescriptionCapability<Declaring>> accessible_description{}",
           "comment": "",
           "header": "gui_forms/control/control_capabilities/control_capabilities.hpp",
           "source": "include/gui_forms/control/control_capabilities/control_capabilities.hpp",
@@ -10520,7 +10520,7 @@
           "kind": "FieldDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "and runs `assign`: the declaring class's prepare hook (its first statement // is require_mutable, so a write from another thread throws even when the // value is equal; then the value's checks and, where C# lets a subclass // rewrite the value, the protected virtual coerce hook), the compare and // store, then the written hook (the touch, side effects, and the change // event through publish_change, ending in the protected virtual // on_<property>_changed() where Windows Forms has OnXChanged). The hooks // are private overloads on the declaring class chosen by the cell's type; // the declaring class befriends each capability. A read is // `(*control).visible.type()`. // The stable authoring name (Control::Name). template <typename Declaring> struct NameCapability { PropertyCell<std::string, NameCapability<Declaring>> name{}; static void assign(NameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.name), value); if (!capability.name.replace(std::move(value))) return; control.written(std::as_const(capability.name)); } }; // Whether the control takes part in presentation and input (Visible). template <typename Declaring> struct VisibleCapability { PropertyCell<bool, VisibleCapability<Declaring>> visible{true}; static void assign(VisibleCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.visible), value); if (!capability.visible.replace(std::move(value))) return; control.written(std::as_const(capability.visible)); } }; // Whether the control receives ordinary user input (Enabled). template <typename Declaring> struct EnabledCapability { PropertyCell<bool, EnabledCapability<Declaring>> enabled{true}; static void assign(EnabledCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.enabled), value); if (!capability.enabled.replace(std::move(value))) return; control.written(std::as_const(capability.enabled)); } }; // Whether measurement determines the control's size (AutoSize). template <typename Declaring> struct AutoSizeCapability { PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size{false}; static void assign(AutoSizeCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size), value); if (!capability.auto_size.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size)); } }; // Whether leaving the control starts validation (CausesValidation). template <typename Declaring> struct CausesValidationCapability { PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation{true}; static void assign(CausesValidationCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.causes_validation), value); if (!capability.causes_validation.replace(std::move(value))) return; control.written(std::as_const(capability.causes_validation)); } }; // The plain tooltip text; empty never shows. template <typename Declaring> struct ToolTipTextCapability { GUI_FORMS_LOCALIZABLE(tool_tip) PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text{}; static void assign(ToolTipTextCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tool_tip_text), value); if (!capability.tool_tip_text.replace(std::move(value))) return; control.written(std::as_const(capability.tool_tip_text)); } }; // The pointer's cursor; empty takes the parent's (Cursor). template <typename Declaring> struct CursorCapability { PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor{}; static void assign(CursorCapability& capability, std::optional<CursorKind> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.cursor), value); if (!capability.cursor.replace(std::move(value))) return; control.written(std::as_const(capability.cursor)); } }; // The own background colour; empty takes the parent's. template <typename Declaring> struct BackColorCapability { PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color{}; static void assign(BackColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.back_color), value); if (!capability.back_color.replace(std::move(value))) return; control.written(std::as_const(capability.back_color)); } }; // The own text colour; empty takes the parent's. template <typename Declaring> struct ForeColorCapability { PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color{}; static void assign(ForeColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.fore_color), value); if (!capability.fore_color.replace(std::move(value))) return; control.written(std::as_const(capability.fore_color)); } }; // The smallest size layout gives the control (MinimumSize). template <typename Declaring> struct MinimumSizeCapability { PropertyCell<Size, MinimumSizeCapability<Declaring>> minimum_size{}; static void assign(MinimumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.minimum_size), value); if (!capability.minimum_size.replace(std::move(value))) return; control.written(std::as_const(capability.minimum_size)); } }; // The largest size layout gives the control; zero is unbounded. template <typename Declaring> struct MaximumSizeCapability { PropertyCell<Size, MaximumSizeCapability<Declaring>> maximum_size{}; static void assign(MaximumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.maximum_size), value); if (!capability.maximum_size.replace(std::move(value))) return; control.written(std::as_const(capability.maximum_size)); } }; // The space kept outside the control (Margin). template <typename Declaring> struct MarginCapability { PropertyCell<Insets, MarginCapability<Declaring>> margin{Insets{3.0, 3.0, 3.0, 3.0}}; static void assign(MarginCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.margin), value); if (!capability.margin.replace(std::move(value))) return; control.written(std::as_const(capability.margin)); } }; // The space kept inside the control around its content (Padding). template <typename Declaring> struct PaddingCapability { PropertyCell<Insets, PaddingCapability<Declaring>> padding{}; static void assign(PaddingCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.padding), value); if (!capability.padding.replace(std::move(value))) return; control.written(std::as_const(capability.padding)); } }; // The parent edge the control docks to (Dock). template <typename Declaring> struct DockCapability { PropertyCell<DockStyle, DockCapability<Declaring>> dock{DockStyle::none}; static void assign(DockCapability& capability, DockStyle value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.dock), value); if (!capability.dock.replace(std::move(value))) return; control.written(std::as_const(capability.dock)); } }; // The parent edges the control keeps its distance to (Anchor). template <typename Declaring> struct AnchorCapability { PropertyCell<AnchorStyles, AnchorCapability<Declaring>> anchor{AnchorStyles::top | AnchorStyles::left}; static void assign(AnchorCapability& capability, AnchorStyles value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.anchor), value); if (!capability.anchor.replace(std::move(value))) return; control.written(std::as_const(capability.anchor)); } }; // Whether auto size may shrink the control (AutoSizeMode). template <typename Declaring> struct AutoSizeModeCapability { PropertyCell<AutoSizeMode, AutoSizeModeCapability<Declaring>> auto_size_mode{AutoSizeMode::grow_only}; static void assign(AutoSizeModeCapability& capability, AutoSizeMode value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size_mode), value); if (!capability.auto_size_mode.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size_mode)); } }; // The control's own layout direction; inherit takes the parent's (RightToLeft). template <typename Declaring> struct LayoutDirectionCapability { PropertyCell<LayoutDirection, LayoutDirectionCapability<Declaring>> layout_direction{LayoutDirection::inherit}; static void assign(LayoutDirectionCapability& capability, LayoutDirection value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.layout_direction), value); if (!capability.layout_direction.replace(std::move(value))) return; control.written(std::as_const(capability.layout_direction)); } }; // The control's place in its parent's tab order (TabIndex). template <typename Declaring> struct TabIndexCapability { PropertyCell<std::uint32_t, TabIndexCapability<Declaring>> tab_index{0U}; static void assign(TabIndexCapability& capability, std::uint32_t value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_index), value); if (!capability.tab_index.replace(std::move(value))) return; control.written(std::as_const(capability.tab_index)); } }; // Whether the Tab key stops at the control (TabStop). template <typename Declaring> struct TabStopCapability { PropertyCell<bool, TabStopCapability<Declaring>> tab_stop{true}; static void assign(TabStopCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_stop), value); if (!capability.tab_stop.replace(std::move(value))) return; control.written(std::as_const(capability.tab_stop)); } }; // Whether the control accepts dropped data (AllowDrop). template <typename Declaring> struct AllowDropCapability { PropertyCell<bool, AllowDropCapability<Declaring>> allow_drop{false}; static void assign(AllowDropCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.allow_drop), value); if (!capability.allow_drop.replace(std::move(value))) return; control.written(std::as_const(capability.allow_drop)); } }; // Whether pointer hit testing passes through the control to what is under it. template <typename Declaring> struct HitTestTransparentCapability { PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent{false}; static void assign(HitTestTransparentCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.hit_test_transparent), value); if (!capability.hit_test_transparent.replace(std::move(value))) return; control.written(std::as_const(capability.hit_test_transparent)); } }; // The name assistive technology announces. template <typename Declaring> struct AccessibleNameCapability { GUI_FORMS_LOCALIZABLE(accessible_name) PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name{}",
+          "declaration": "and runs `assign`: the declaring class's prepare hook (its first statement // is require_mutable, so a write from another thread throws even when the // value is equal; then the value's checks and, where C# lets a subclass // rewrite the value, the protected virtual coerce hook), the compare and // store, then the written hook (the touch, side effects, and the change // event through publish_change, ending in the protected virtual // on_<property>_changed() where Windows Forms has OnXChanged). The hooks // are private overloads on the declaring class chosen by the cell's type; // the declaring class befriends each capability. A read is // `(*control).visible.read()`. // The stable authoring name (Control::Name). template <typename Declaring> struct NameCapability { PropertyCell<std::string, NameCapability<Declaring>> name{}; static void assign(NameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.name), value); if (!capability.name.replace(std::move(value))) return; control.written(std::as_const(capability.name)); } }; // Whether the control takes part in presentation and input (Visible). template <typename Declaring> struct VisibleCapability { PropertyCell<bool, VisibleCapability<Declaring>> visible{true}; static void assign(VisibleCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.visible), value); if (!capability.visible.replace(std::move(value))) return; control.written(std::as_const(capability.visible)); } }; // Whether the control receives ordinary user input (Enabled). template <typename Declaring> struct EnabledCapability { PropertyCell<bool, EnabledCapability<Declaring>> enabled{true}; static void assign(EnabledCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.enabled), value); if (!capability.enabled.replace(std::move(value))) return; control.written(std::as_const(capability.enabled)); } }; // Whether measurement determines the control's size (AutoSize). template <typename Declaring> struct AutoSizeCapability { PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size{false}; static void assign(AutoSizeCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size), value); if (!capability.auto_size.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size)); } }; // Whether leaving the control starts validation (CausesValidation). template <typename Declaring> struct CausesValidationCapability { PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation{true}; static void assign(CausesValidationCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.causes_validation), value); if (!capability.causes_validation.replace(std::move(value))) return; control.written(std::as_const(capability.causes_validation)); } }; // The plain tooltip text; empty never shows. template <typename Declaring> struct ToolTipTextCapability { GUI_FORMS_LOCALIZABLE(tool_tip) PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text{}; static void assign(ToolTipTextCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tool_tip_text), value); if (!capability.tool_tip_text.replace(std::move(value))) return; control.written(std::as_const(capability.tool_tip_text)); } }; // The pointer's cursor; empty takes the parent's (Cursor). template <typename Declaring> struct CursorCapability { PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor{}; static void assign(CursorCapability& capability, std::optional<CursorKind> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.cursor), value); if (!capability.cursor.replace(std::move(value))) return; control.written(std::as_const(capability.cursor)); } }; // The own background colour; empty takes the parent's. template <typename Declaring> struct BackColorCapability { PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color{}; static void assign(BackColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.back_color), value); if (!capability.back_color.replace(std::move(value))) return; control.written(std::as_const(capability.back_color)); } }; // The own text colour; empty takes the parent's. template <typename Declaring> struct ForeColorCapability { PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color{}; static void assign(ForeColorCapability& capability, std::optional<Color> value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.fore_color), value); if (!capability.fore_color.replace(std::move(value))) return; control.written(std::as_const(capability.fore_color)); } }; // The smallest size layout gives the control (MinimumSize). template <typename Declaring> struct MinimumSizeCapability { PropertyCell<Size, MinimumSizeCapability<Declaring>> minimum_size{}; static void assign(MinimumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.minimum_size), value); if (!capability.minimum_size.replace(std::move(value))) return; control.written(std::as_const(capability.minimum_size)); } }; // The largest size layout gives the control; zero is unbounded. template <typename Declaring> struct MaximumSizeCapability { PropertyCell<Size, MaximumSizeCapability<Declaring>> maximum_size{}; static void assign(MaximumSizeCapability& capability, Size value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.maximum_size), value); if (!capability.maximum_size.replace(std::move(value))) return; control.written(std::as_const(capability.maximum_size)); } }; // The space kept outside the control (Margin). template <typename Declaring> struct MarginCapability { PropertyCell<Insets, MarginCapability<Declaring>> margin{Insets{3.0, 3.0, 3.0, 3.0}}; static void assign(MarginCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.margin), value); if (!capability.margin.replace(std::move(value))) return; control.written(std::as_const(capability.margin)); } }; // The space kept inside the control around its content (Padding). template <typename Declaring> struct PaddingCapability { PropertyCell<Insets, PaddingCapability<Declaring>> padding{}; static void assign(PaddingCapability& capability, Insets value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.padding), value); if (!capability.padding.replace(std::move(value))) return; control.written(std::as_const(capability.padding)); } }; // The parent edge the control docks to (Dock). template <typename Declaring> struct DockCapability { PropertyCell<DockStyle, DockCapability<Declaring>> dock{DockStyle::none}; static void assign(DockCapability& capability, DockStyle value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.dock), value); if (!capability.dock.replace(std::move(value))) return; control.written(std::as_const(capability.dock)); } }; // The parent edges the control keeps its distance to (Anchor). template <typename Declaring> struct AnchorCapability { PropertyCell<AnchorStyles, AnchorCapability<Declaring>> anchor{AnchorStyles::top | AnchorStyles::left}; static void assign(AnchorCapability& capability, AnchorStyles value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.anchor), value); if (!capability.anchor.replace(std::move(value))) return; control.written(std::as_const(capability.anchor)); } }; // Whether auto size may shrink the control (AutoSizeMode). template <typename Declaring> struct AutoSizeModeCapability { PropertyCell<AutoSizeMode, AutoSizeModeCapability<Declaring>> auto_size_mode{AutoSizeMode::grow_only}; static void assign(AutoSizeModeCapability& capability, AutoSizeMode value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size_mode), value); if (!capability.auto_size_mode.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size_mode)); } }; // The control's own layout direction; inherit takes the parent's (RightToLeft). template <typename Declaring> struct LayoutDirectionCapability { PropertyCell<LayoutDirection, LayoutDirectionCapability<Declaring>> layout_direction{LayoutDirection::inherit}; static void assign(LayoutDirectionCapability& capability, LayoutDirection value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.layout_direction), value); if (!capability.layout_direction.replace(std::move(value))) return; control.written(std::as_const(capability.layout_direction)); } }; // The control's place in its parent's tab order (TabIndex). template <typename Declaring> struct TabIndexCapability { PropertyCell<std::uint32_t, TabIndexCapability<Declaring>> tab_index{0U}; static void assign(TabIndexCapability& capability, std::uint32_t value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_index), value); if (!capability.tab_index.replace(std::move(value))) return; control.written(std::as_const(capability.tab_index)); } }; // Whether the Tab key stops at the control (TabStop). template <typename Declaring> struct TabStopCapability { PropertyCell<bool, TabStopCapability<Declaring>> tab_stop{true}; static void assign(TabStopCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.tab_stop), value); if (!capability.tab_stop.replace(std::move(value))) return; control.written(std::as_const(capability.tab_stop)); } }; // Whether the control accepts dropped data (AllowDrop). template <typename Declaring> struct AllowDropCapability { PropertyCell<bool, AllowDropCapability<Declaring>> allow_drop{false}; static void assign(AllowDropCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.allow_drop), value); if (!capability.allow_drop.replace(std::move(value))) return; control.written(std::as_const(capability.allow_drop)); } }; // Whether pointer hit testing passes through the control to what is under it. template <typename Declaring> struct HitTestTransparentCapability { PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent{false}; static void assign(HitTestTransparentCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.hit_test_transparent), value); if (!capability.hit_test_transparent.replace(std::move(value))) return; control.written(std::as_const(capability.hit_test_transparent)); } }; // The name assistive technology announces. template <typename Declaring> struct AccessibleNameCapability { GUI_FORMS_LOCALIZABLE(accessible_name) PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name{}",
           "comment": "",
           "header": "gui_forms/control/control_capabilities/control_capabilities.hpp",
           "source": "include/gui_forms/control/control_capabilities/control_capabilities.hpp",
@@ -11920,7 +11920,7 @@
       "kind": "enum",
       "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
       "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-      "line": 20,
+      "line": 22,
       "declaration": "enum class AnchorStyles : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -11938,7 +11938,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 21,
+          "line": 23,
           "page": "gui-forms-anchorstyles-none-gui-forms-anchorstyles-d75c59e7a0.html"
         },
         {
@@ -11953,7 +11953,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 22,
+          "line": 24,
           "page": "gui-forms-anchorstyles-top-gui-forms-anchorstyles-347f954012.html"
         },
         {
@@ -11968,7 +11968,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 23,
+          "line": 25,
           "page": "gui-forms-anchorstyles-bottom-gui-forms-anchorstyles-77a7063fb6.html"
         },
         {
@@ -11983,7 +11983,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 24,
+          "line": 26,
           "page": "gui-forms-anchorstyles-left-gui-forms-anchorstyles-686381b949.html"
         },
         {
@@ -11998,7 +11998,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 25,
+          "line": 27,
           "page": "gui-forms-anchorstyles-right-gui-forms-anchorstyles-94617fdd86.html"
         }
       ],
@@ -18463,7 +18463,7 @@
       "kind": "enum",
       "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
       "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-      "line": 28,
+      "line": 30,
       "declaration": "enum class AutoSizeMode : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -18481,7 +18481,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 29,
+          "line": 31,
           "page": "gui-forms-autosizemode-grow-and-shrink-gui-forms-autosizemode-6124bb9a43.html"
         },
         {
@@ -18496,7 +18496,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 30,
+          "line": 32,
           "page": "gui-forms-autosizemode-grow-only-gui-forms-autosizemode-776872344e.html"
         }
       ],
@@ -18645,7 +18645,7 @@
       "kind": "struct",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 45,
+      "line": 47,
       "declaration": "struct AvailableExtent final",
       "comment": "",
       "access": "public",
@@ -18663,7 +18663,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 46,
+          "line": 48,
           "page": "gui-forms-availableextent-kind-availableextentkind-deee44c372.html"
         },
         {
@@ -18678,7 +18678,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 47,
+          "line": 49,
           "page": "gui-forms-availableextent-extent-logicallength-cc08510505.html"
         }
       ],
@@ -18692,7 +18692,7 @@
       "kind": "enum",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 31,
+      "line": 33,
       "declaration": "enum class AvailableExtentKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -18710,7 +18710,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 33,
+          "line": 35,
           "page": "gui-forms-availableextentkind-definite-gui-forms-availableextentkind-b5129e5ec6.html"
         },
         {
@@ -18725,7 +18725,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 35,
+          "line": 37,
           "page": "gui-forms-availableextentkind-at-most-gui-forms-availableextentkind-c2b04b3fce.html"
         },
         {
@@ -18740,7 +18740,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 37,
+          "line": 39,
           "page": "gui-forms-availableextentkind-min-content-gui-forms-availableextentkind-07082b6b25.html"
         },
         {
@@ -18755,7 +18755,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 39,
+          "line": 41,
           "page": "gui-forms-availableextentkind-max-content-gui-forms-availableextentkind-9cf80f04ee.html"
         }
       ],
@@ -34776,7 +34776,7 @@
       "kind": "struct",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 11,
+      "line": 13,
       "declaration": "struct Color",
       "comment": "",
       "access": "public",
@@ -34794,7 +34794,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 12,
+          "line": 14,
           "page": "gui-forms-color-red-std-uint8-t-49587f2022.html"
         },
         {
@@ -34809,7 +34809,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 13,
+          "line": 15,
           "page": "gui-forms-color-green-std-uint8-t-827e48ebcc.html"
         },
         {
@@ -34824,7 +34824,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 14,
+          "line": 16,
           "page": "gui-forms-color-blue-std-uint8-t-7670ddfa4f.html"
         },
         {
@@ -34839,7 +34839,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 15,
+          "line": 17,
           "page": "gui-forms-color-alpha-std-uint8-t-e799dda4eb.html"
         },
         {
@@ -34875,7 +34875,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 22,
+          "line": 24,
           "page": "gui-forms-color-rgba-color-std-uint8-t-std-uint8-t-std-uint8-t-std-uint8-t-noexcept-4335990a18.html"
         }
       ],
@@ -49064,7 +49064,7 @@
       "kind": "struct",
       "header": "gui_forms/control/control_capabilities/control_capabilities.hpp",
       "source": "include/gui_forms/control/control_capabilities/control_capabilities.hpp",
-      "line": 336,
+      "line": 376,
       "declaration": "template <typename Declaring> struct ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>",
       "comment": "",
       "access": "public",
@@ -53753,7 +53753,7 @@
       "kind": "enum",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 78,
+      "line": 80,
       "declaration": "enum class CursorKind : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -53771,7 +53771,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 79,
+          "line": 81,
           "page": "gui-forms-cursorkind-arrow-gui-forms-cursorkind-fc9062e9cc.html"
         },
         {
@@ -53786,7 +53786,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 80,
+          "line": 82,
           "page": "gui-forms-cursorkind-text-gui-forms-cursorkind-de3abda684.html"
         },
         {
@@ -53801,7 +53801,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 81,
+          "line": 83,
           "page": "gui-forms-cursorkind-hand-gui-forms-cursorkind-476850ff64.html"
         },
         {
@@ -53816,7 +53816,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 82,
+          "line": 84,
           "page": "gui-forms-cursorkind-crosshair-gui-forms-cursorkind-4e4fa68b6c.html"
         },
         {
@@ -53831,7 +53831,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 83,
+          "line": 85,
           "page": "gui-forms-cursorkind-resize-horizontal-gui-forms-cursorkind-eac672e2cb.html"
         },
         {
@@ -53846,7 +53846,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 84,
+          "line": 86,
           "page": "gui-forms-cursorkind-resize-vertical-gui-forms-cursorkind-9205d2857e.html"
         },
         {
@@ -53861,7 +53861,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 85,
+          "line": 87,
           "page": "gui-forms-cursorkind-wait-gui-forms-cursorkind-f1b63152ee.html"
         },
         {
@@ -53876,7 +53876,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 86,
+          "line": 88,
           "page": "gui-forms-cursorkind-forbidden-gui-forms-cursorkind-84b93abd3f.html"
         },
         {
@@ -53891,7 +53891,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 87,
+          "line": 89,
           "page": "gui-forms-cursorkind-resize-diagonal-down-gui-forms-cursorkind-0bf3d91f40.html"
         },
         {
@@ -53906,7 +53906,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 88,
+          "line": 90,
           "page": "gui-forms-cursorkind-resize-diagonal-up-gui-forms-cursorkind-b53001fe32.html"
         }
       ],
@@ -79754,7 +79754,7 @@
       "kind": "enum",
       "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
       "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-      "line": 11,
+      "line": 13,
       "declaration": "enum class DockStyle : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -79772,7 +79772,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 12,
+          "line": 14,
           "page": "gui-forms-dockstyle-none-gui-forms-dockstyle-b9523d33a2.html"
         },
         {
@@ -79787,7 +79787,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 13,
+          "line": 15,
           "page": "gui-forms-dockstyle-top-gui-forms-dockstyle-bf5298ac37.html"
         },
         {
@@ -79802,7 +79802,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 14,
+          "line": 16,
           "page": "gui-forms-dockstyle-bottom-gui-forms-dockstyle-f61c110e4e.html"
         },
         {
@@ -79817,7 +79817,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 15,
+          "line": 17,
           "page": "gui-forms-dockstyle-left-gui-forms-dockstyle-117fb463b6.html"
         },
         {
@@ -79832,7 +79832,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 16,
+          "line": 18,
           "page": "gui-forms-dockstyle-right-gui-forms-dockstyle-707cc35fff.html"
         },
         {
@@ -79847,7 +79847,7 @@
           "comment": "",
           "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
           "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-          "line": 17,
+          "line": 19,
           "page": "gui-forms-dockstyle-fill-gui-forms-dockstyle-7fc0e0e4f7.html"
         }
       ],
@@ -100345,7 +100345,7 @@
       "kind": "enum",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 72,
+      "line": 74,
       "declaration": "enum class FontRole : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -100363,7 +100363,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 73,
+          "line": 75,
           "page": "gui-forms-fontrole-control-gui-forms-fontrole-2b8a889b39.html"
         },
         {
@@ -100378,7 +100378,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 74,
+          "line": 76,
           "page": "gui-forms-fontrole-content-gui-forms-fontrole-e0112211e6.html"
         },
         {
@@ -100393,7 +100393,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 75,
+          "line": 77,
           "page": "gui-forms-fontrole-monospace-gui-forms-fontrole-9809a8f174.html"
         }
       ],
@@ -100407,7 +100407,7 @@
       "kind": "struct",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 91,
+      "line": 99,
       "declaration": "struct FontSpec",
       "comment": "",
       "access": "public",
@@ -100425,7 +100425,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 92,
+          "line": 100,
           "page": "gui-forms-fontspec-role-fontrole-d8de4998a8.html"
         },
         {
@@ -100440,7 +100440,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 93,
+          "line": 101,
           "page": "gui-forms-fontspec-size-double-36f08d67ce.html"
         },
         {
@@ -100455,7 +100455,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 94,
+          "line": 102,
           "page": "gui-forms-fontspec-weight-std-uint16-t-76e69b2510.html"
         },
         {
@@ -100470,7 +100470,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 95,
+          "line": 103,
           "page": "gui-forms-fontspec-italic-bool-97883c98bb.html"
         },
         {
@@ -100485,7 +100485,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 99,
+          "line": 107,
           "page": "gui-forms-fontspec-letter-spacing-double-44c67ed327.html"
         }
       ],
@@ -102012,7 +102012,7 @@
       "kind": "enum",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 61,
+      "line": 63,
       "declaration": "enum class GradientSpreadMode : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -102030,7 +102030,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 62,
+          "line": 64,
           "page": "gui-forms-gradientspreadmode-pad-gui-forms-gradientspreadmode-4f327454c5.html"
         },
         {
@@ -102045,7 +102045,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 63,
+          "line": 65,
           "page": "gui-forms-gradientspreadmode-repeat-gui-forms-gradientspreadmode-10fe5453b0.html"
         },
         {
@@ -102060,7 +102060,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 64,
+          "line": 66,
           "page": "gui-forms-gradientspreadmode-reflect-gui-forms-gradientspreadmode-d53093da8c.html"
         }
       ],
@@ -102074,7 +102074,7 @@
       "kind": "struct",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 48,
+      "line": 50,
       "declaration": "struct GradientStop final",
       "comment": "",
       "access": "public",
@@ -102092,7 +102092,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 49,
+          "line": 51,
           "page": "gui-forms-gradientstop-offset-double-2204c415df.html"
         },
         {
@@ -102107,7 +102107,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 50,
+          "line": 52,
           "page": "gui-forms-gradientstop-color-color-f2e826c48c.html"
         }
       ],
@@ -116130,7 +116130,7 @@
       "kind": "struct",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 115,
+      "line": 123,
       "declaration": "struct ImageId",
       "comment": "",
       "access": "public",
@@ -116148,7 +116148,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 116,
+          "line": 124,
           "page": "gui-forms-imageid-value-std-uint64-t-abb1e5655e.html"
         }
       ],
@@ -117255,7 +117255,7 @@
       "kind": "enum",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 127,
+      "line": 135,
       "declaration": "enum class ImagePatternWrap : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -117273,7 +117273,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 128,
+          "line": 136,
           "page": "gui-forms-imagepatternwrap-tile-gui-forms-imagepatternwrap-069942c1d2.html"
         }
       ],
@@ -118594,7 +118594,7 @@
       "kind": "enum",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 131,
+      "line": 139,
       "declaration": "enum class ImageSampling : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -118612,7 +118612,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 132,
+          "line": 140,
           "page": "gui-forms-imagesampling-nearest-gui-forms-imagesampling-58a7c30e50.html"
         },
         {
@@ -118627,7 +118627,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 133,
+          "line": 141,
           "page": "gui-forms-imagesampling-linear-gui-forms-imagesampling-0f8df5a7c2.html"
         }
       ],
@@ -123123,7 +123123,7 @@
       "kind": "struct",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 57,
+      "line": 59,
       "declaration": "struct LayoutConstraint final",
       "comment": "",
       "access": "public",
@@ -123141,7 +123141,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 58,
+          "line": 60,
           "page": "gui-forms-layoutconstraint-width-availableextent-52817dbaee.html"
         },
         {
@@ -123156,7 +123156,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 59,
+          "line": 61,
           "page": "gui-forms-layoutconstraint-height-availableextent-6c434c3d5c.html"
         }
       ],
@@ -123326,7 +123326,7 @@
       "kind": "enum",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 107,
+      "line": 109,
       "declaration": "enum class LayoutDirection : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -123344,7 +123344,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 108,
+          "line": 110,
           "page": "gui-forms-layoutdirection-inherit-gui-forms-layoutdirection-0a999903c3.html"
         },
         {
@@ -123359,7 +123359,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 109,
+          "line": 111,
           "page": "gui-forms-layoutdirection-left-to-right-gui-forms-layoutdirection-4e292355c8.html"
         },
         {
@@ -123374,7 +123374,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 110,
+          "line": 112,
           "page": "gui-forms-layoutdirection-right-to-left-gui-forms-layoutdirection-0e5ba77e9b.html"
         }
       ],
@@ -131435,7 +131435,7 @@
       "kind": "class",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 13,
+      "line": 15,
       "declaration": "class LogicalLength final",
       "comment": "",
       "access": "public",
@@ -131459,7 +131459,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 15,
+          "line": 17,
           "page": "gui-forms-logicallength-logicallength-void-double-noexcept-e6ec26314a.html"
         },
         {
@@ -131474,7 +131474,7 @@
           "comment": "",
           "header": "gui_forms/layout/types/layout_types.hpp",
           "source": "include/gui_forms/layout/types/layout_types.hpp",
-          "line": 16,
+          "line": 18,
           "page": "gui-forms-logicallength-value-double-const-noexcept-5a4cc69339.html"
         }
       ],
@@ -162908,7 +162908,7 @@
       "kind": "struct",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 33,
+      "line": 35,
       "declaration": "struct PaintCornerRadii final",
       "comment": "",
       "access": "public",
@@ -162926,7 +162926,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 34,
+          "line": 36,
           "page": "gui-forms-paintcornerradii-top-left-double-a2e03aaa87.html"
         },
         {
@@ -162941,7 +162941,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 35,
+          "line": 37,
           "page": "gui-forms-paintcornerradii-top-right-double-07d68ef23e.html"
         },
         {
@@ -162956,7 +162956,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 36,
+          "line": 38,
           "page": "gui-forms-paintcornerradii-bottom-right-double-4f7edd1564.html"
         },
         {
@@ -162971,7 +162971,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 37,
+          "line": 39,
           "page": "gui-forms-paintcornerradii-bottom-left-double-32912a0975.html"
         }
       ],
@@ -177638,7 +177638,7 @@
       "kind": "class",
       "header": "gui_forms/binding/property_cell/property_cell.hpp",
       "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-      "line": 35,
+      "line": 44,
       "declaration": "template <typename Value, typename Capability> class PropertyCell final",
       "comment": "",
       "access": "public",
@@ -177656,7 +177656,7 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 37,
+          "line": 46,
           "page": "gui-forms-propertycell-propertycell-void-3208492590.html"
         },
         {
@@ -177677,7 +177677,7 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 38,
+          "line": 47,
           "page": "gui-forms-propertycell-propertycell-void-value-b488381c50.html"
         },
         {
@@ -177698,7 +177698,7 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 39,
+          "line": 48,
           "page": "gui-forms-propertycell-propertycell-void-const-propertycell-value-capability-292577cadb.html"
         },
         {
@@ -177719,7 +177719,7 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 40,
+          "line": 49,
           "page": "gui-forms-propertycell-operator-propertycell-value-capability-const-propertycell-value-capability-1b5be63a6c.html"
         },
         {
@@ -177740,23 +177740,80 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 43,
+          "line": 52,
           "page": "gui-forms-propertycell-operator-propertycell-value-capability-value-4f6ab793b6.html"
         },
         {
-          "id": "gui_forms::PropertyCell::type|const Value &() const noexcept",
-          "name": "type",
+          "id": "gui_forms::PropertyCell::read|const Value &() const noexcept",
+          "name": "read",
           "type": "const Value &() const noexcept",
           "namespace": "gui_forms::PropertyCell",
           "kind": "CXXMethodDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "[[nodiscard]] const Value& type() const noexcept",
+          "declaration": "[[nodiscard]] const Value& read() const noexcept",
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 49,
-          "page": "gui-forms-propertycell-type-const-value-const-noexcept-40b10a9146.html"
+          "line": 58,
+          "page": "gui-forms-propertycell-read-const-value-const-noexcept-01527192ec.html"
+        },
+        {
+          "id": "gui_forms::PropertyCell::type|PropertyType () const",
+          "name": "type",
+          "type": "PropertyType () const",
+          "namespace": "gui_forms::PropertyCell",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] PropertyType type() const",
+          "comment": "",
+          "header": "gui_forms/binding/property_cell/property_cell.hpp",
+          "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
+          "line": 61,
+          "page": "gui-forms-propertycell-type-propertytype-const-bff4abf08e.html"
+        },
+        {
+          "id": "gui_forms::PropertyCell::as_type|Target (TypeTag<Target>) const",
+          "name": "as_type",
+          "type": "Target (TypeTag<Target>) const",
+          "namespace": "gui_forms::PropertyCell",
+          "kind": "FunctionTemplateDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "",
+              "type": "TypeTag<Target>",
+              "declaration": "TypeTag<Target>"
+            }
+          ],
+          "declaration": "template <typename Target> requires detail::total_property_conversion<Value, Target> [[nodiscard]] Target as_type(TypeTag<Target>) const",
+          "comment": "",
+          "header": "gui_forms/binding/property_cell/property_cell.hpp",
+          "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
+          "line": 70,
+          "page": "gui-forms-propertycell-as-type-target-typetag-target-const-421e59c82c.html"
+        },
+        {
+          "id": "gui_forms::PropertyCell::as_type|std::optional<BindingValue> (const PropertyType &) const",
+          "name": "as_type",
+          "type": "std::optional<BindingValue> (const PropertyType &) const",
+          "namespace": "gui_forms::PropertyCell",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "target",
+              "type": "const PropertyType &",
+              "declaration": "const PropertyType& target"
+            }
+          ],
+          "declaration": "[[nodiscard]] std::optional<BindingValue> as_type(const PropertyType& target) const",
+          "comment": "",
+          "header": "gui_forms/binding/property_cell/property_cell.hpp",
+          "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
+          "line": 77,
+          "page": "gui-forms-propertycell-as-type-std-optional-bindingvalue-const-propertytype-const-602fa304ba.html"
         }
       ],
       "page": "gui-forms-propertycell-45b643be37.html",
@@ -183531,7 +183588,7 @@
       "kind": "class",
       "header": "gui_forms/binding/property_cell/property_cell.hpp",
       "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-      "line": 91,
+      "line": 123,
       "declaration": "template <typename Value, typename Capability> class PropertyView final",
       "comment": "",
       "access": "public",
@@ -183549,7 +183606,7 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 93,
+          "line": 125,
           "page": "gui-forms-propertyview-propertyview-void-58163bb945.html"
         },
         {
@@ -183570,7 +183627,7 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 94,
+          "line": 126,
           "page": "gui-forms-propertyview-propertyview-void-const-propertyview-value-capability-c3c9545b2d.html"
         },
         {
@@ -183591,7 +183648,7 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 95,
+          "line": 127,
           "page": "gui-forms-propertyview-operator-propertyview-value-capability-const-propertyview-value-capability-aa963b2109.html"
         },
         {
@@ -183612,23 +183669,80 @@
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 98,
+          "line": 130,
           "page": "gui-forms-propertyview-operator-propertyview-value-capability-value-2ef2f7c35f.html"
         },
         {
-          "id": "gui_forms::PropertyView::type|Value () const",
-          "name": "type",
+          "id": "gui_forms::PropertyView::read|Value () const",
+          "name": "read",
           "type": "Value () const",
           "namespace": "gui_forms::PropertyView",
           "kind": "CXXMethodDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "[[nodiscard]] Value type() const",
+          "declaration": "[[nodiscard]] Value read() const",
           "comment": "",
           "header": "gui_forms/binding/property_cell/property_cell.hpp",
           "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
-          "line": 104,
-          "page": "gui-forms-propertyview-type-value-const-b63a42aad4.html"
+          "line": 136,
+          "page": "gui-forms-propertyview-read-value-const-b5ae4b9aea.html"
+        },
+        {
+          "id": "gui_forms::PropertyView::type|PropertyType () const",
+          "name": "type",
+          "type": "PropertyType () const",
+          "namespace": "gui_forms::PropertyView",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "[[nodiscard]] PropertyType type() const",
+          "comment": "",
+          "header": "gui_forms/binding/property_cell/property_cell.hpp",
+          "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
+          "line": 143,
+          "page": "gui-forms-propertyview-type-propertytype-const-d5e065f031.html"
+        },
+        {
+          "id": "gui_forms::PropertyView::as_type|Target (TypeTag<Target>) const",
+          "name": "as_type",
+          "type": "Target (TypeTag<Target>) const",
+          "namespace": "gui_forms::PropertyView",
+          "kind": "FunctionTemplateDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "",
+              "type": "TypeTag<Target>",
+              "declaration": "TypeTag<Target>"
+            }
+          ],
+          "declaration": "template <typename Target> requires detail::total_property_conversion<Value, Target> [[nodiscard]] Target as_type(TypeTag<Target>) const",
+          "comment": "",
+          "header": "gui_forms/binding/property_cell/property_cell.hpp",
+          "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
+          "line": 150,
+          "page": "gui-forms-propertyview-as-type-target-typetag-target-const-45e4fa35a1.html"
+        },
+        {
+          "id": "gui_forms::PropertyView::as_type|std::optional<BindingValue> (const PropertyType &) const",
+          "name": "as_type",
+          "type": "std::optional<BindingValue> (const PropertyType &) const",
+          "namespace": "gui_forms::PropertyView",
+          "kind": "CXXMethodDecl",
+          "access": "public",
+          "parameters": [
+            {
+              "name": "target",
+              "type": "const PropertyType &",
+              "declaration": "const PropertyType& target"
+            }
+          ],
+          "declaration": "[[nodiscard]] std::optional<BindingValue> as_type(const PropertyType& target) const",
+          "comment": "",
+          "header": "gui_forms/binding/property_cell/property_cell.hpp",
+          "source": "include/gui_forms/binding/property_cell/property_cell.hpp",
+          "line": 156,
+          "page": "gui-forms-propertyview-as-type-std-optional-bindingvalue-const-propertytype-const-7fa7059195.html"
         }
       ],
       "page": "gui-forms-propertyview-bc97d4ee36.html",
@@ -231828,7 +231942,7 @@
       "kind": "enum",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 141,
+      "line": 149,
       "declaration": "enum class TextOrientation : std::uint8_t",
       "comment": "",
       "access": "public",
@@ -231846,7 +231960,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 142,
+          "line": 150,
           "page": "gui-forms-textorientation-horizontal-gui-forms-textorientation-41683282d4.html"
         },
         {
@@ -231861,7 +231975,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 143,
+          "line": 151,
           "page": "gui-forms-textorientation-bottom-to-top-gui-forms-textorientation-60d6360f74.html"
         },
         {
@@ -231876,7 +231990,7 @@
           "comment": "",
           "header": "gui_forms/types/paint_types/paint_types.hpp",
           "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-          "line": 144,
+          "line": 152,
           "page": "gui-forms-textorientation-top-to-bottom-gui-forms-textorientation-8b540a1cfb.html"
         }
       ],
@@ -243549,7 +243663,7 @@
           "kind": "FieldDecl",
           "access": "public",
           "parameters": [],
-          "declaration": "and runs `assign`: the declaring class's prepare hook (its first statement // is require_mutable, so a write from another thread throws even when the // value is equal; then the value's checks and, where C# lets a subclass // rewrite the value, the protected virtual coerce hook), the compare and // store, then the written hook (the touch, side effects, and the change // event through publish_change, ending in the protected virtual // on_<property>_changed() where Windows Forms has OnXChanged). The hooks // are private overloads on the declaring class chosen by the cell's type; // the declaring class befriends each capability. A read is // `(*control).visible.type()`. // The stable authoring name (Control::Name). template <typename Declaring> struct NameCapability { PropertyCell<std::string, NameCapability<Declaring>> name{}; static void assign(NameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.name), value); if (!capability.name.replace(std::move(value))) return; control.written(std::as_const(capability.name)); } }; // Whether the control takes part in presentation and input (Visible). template <typename Declaring> struct VisibleCapability { PropertyCell<bool, VisibleCapability<Declaring>> visible{true}; static void assign(VisibleCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.visible), value); if (!capability.visible.replace(std::move(value))) return; control.written(std::as_const(capability.visible)); } }; // Whether the control receives ordinary user input (Enabled). template <typename Declaring> struct EnabledCapability { PropertyCell<bool, EnabledCapability<Declaring>> enabled{true}; static void assign(EnabledCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.enabled), value); if (!capability.enabled.replace(std::move(value))) return; control.written(std::as_const(capability.enabled)); } }; // Whether measurement determines the control's size (AutoSize). template <typename Declaring> struct AutoSizeCapability { PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size{false}; static void assign(AutoSizeCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size), value); if (!capability.auto_size.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size)); } }; // Whether leaving the control starts validation (CausesValidation). template <typename Declaring> struct CausesValidationCapability { PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation{true}; static void assign(CausesValidationCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.causes_validation), value); if (!capability.causes_validation.replace(std::move(value))) return; control.written(std::as_const(capability.causes_validation)); } }; // The plain tooltip text; empty never shows. template <typename Declaring> struct ToolTipTextCapability { GUI_FORMS_LOCALIZABLE(tool_tip) PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text{}",
+          "declaration": "and runs `assign`: the declaring class's prepare hook (its first statement // is require_mutable, so a write from another thread throws even when the // value is equal; then the value's checks and, where C# lets a subclass // rewrite the value, the protected virtual coerce hook), the compare and // store, then the written hook (the touch, side effects, and the change // event through publish_change, ending in the protected virtual // on_<property>_changed() where Windows Forms has OnXChanged). The hooks // are private overloads on the declaring class chosen by the cell's type; // the declaring class befriends each capability. A read is // `(*control).visible.read()`. // The stable authoring name (Control::Name). template <typename Declaring> struct NameCapability { PropertyCell<std::string, NameCapability<Declaring>> name{}; static void assign(NameCapability& capability, std::string value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.name), value); if (!capability.name.replace(std::move(value))) return; control.written(std::as_const(capability.name)); } }; // Whether the control takes part in presentation and input (Visible). template <typename Declaring> struct VisibleCapability { PropertyCell<bool, VisibleCapability<Declaring>> visible{true}; static void assign(VisibleCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.visible), value); if (!capability.visible.replace(std::move(value))) return; control.written(std::as_const(capability.visible)); } }; // Whether the control receives ordinary user input (Enabled). template <typename Declaring> struct EnabledCapability { PropertyCell<bool, EnabledCapability<Declaring>> enabled{true}; static void assign(EnabledCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.enabled), value); if (!capability.enabled.replace(std::move(value))) return; control.written(std::as_const(capability.enabled)); } }; // Whether measurement determines the control's size (AutoSize). template <typename Declaring> struct AutoSizeCapability { PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size{false}; static void assign(AutoSizeCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.auto_size), value); if (!capability.auto_size.replace(std::move(value))) return; control.written(std::as_const(capability.auto_size)); } }; // Whether leaving the control starts validation (CausesValidation). template <typename Declaring> struct CausesValidationCapability { PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation{true}; static void assign(CausesValidationCapability& capability, bool value) { Declaring& control = static_cast<Declaring&>(capability); control.prepare_write(std::as_const(capability.causes_validation), value); if (!capability.causes_validation.replace(std::move(value))) return; control.written(std::as_const(capability.causes_validation)); } }; // The plain tooltip text; empty never shows. template <typename Declaring> struct ToolTipTextCapability { GUI_FORMS_LOCALIZABLE(tool_tip) PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text{}",
           "comment": "",
           "header": "gui_forms/control/control_capabilities/control_capabilities.hpp",
           "source": "include/gui_forms/control/control_capabilities/control_capabilities.hpp",
@@ -266630,7 +266744,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 75,
+      "line": 77,
       "page": "gui-forms-at-most-extent-availableextent-logicallength-noexcept-7e196d27c3.html"
     },
     {
@@ -267814,7 +267928,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 71,
+      "line": 73,
       "page": "gui-forms-definite-extent-availableextent-logicallength-noexcept-8a2248ed4d.html"
     },
     {
@@ -269778,7 +269892,7 @@
       "comment": "",
       "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
       "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-      "line": 51,
+      "line": 53,
       "page": "gui-forms-has-anchor-bool-anchorstyles-anchorstyles-noexcept-aea5bd6ad5.html"
     },
     {
@@ -270938,7 +271052,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 89,
+      "line": 91,
       "page": "gui-forms-layout-constraint-at-most-layoutconstraint-size-noexcept-20aad7168b.html"
     },
     {
@@ -271380,7 +271494,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 83,
+      "line": 85,
       "page": "gui-forms-max-content-extent-availableextent-noexcept-8c9cde2898.html"
     },
     {
@@ -271401,7 +271515,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 101,
+      "line": 103,
       "page": "gui-forms-measure-available-size-size-const-layoutconstraint-noexcept-430dc5632b.html"
     },
     {
@@ -271536,7 +271650,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 79,
+      "line": 81,
       "page": "gui-forms-min-content-extent-availableextent-noexcept-45760be8ce.html"
     },
     {
@@ -272183,7 +272297,7 @@
       "comment": "",
       "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
       "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-      "line": 39,
+      "line": 41,
       "page": "gui-forms-operator-anchorstyles-anchorstyles-anchorstyles-noexcept-6c2b717604.html"
     },
     {
@@ -272391,7 +272505,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 21,
+      "line": 23,
       "page": "gui-forms-operator-std-partial-ordering-const-gui-forms-logicallength-const-gui-forms-logicallength-noexcept-1824a437e8.html",
       "associated_type": "gui_forms::LogicalLength"
     },
@@ -272526,7 +272640,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 121,
+      "line": 129,
       "page": "gui-forms-operator-std-strong-ordering-const-gui-forms-imageid-const-gui-forms-imageid-noexcept-2320c80d45.html",
       "associated_type": "gui_forms::ImageId"
     },
@@ -273064,7 +273178,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 49,
+      "line": 51,
       "page": "gui-forms-operator-bool-const-gui-forms-availableextent-const-gui-forms-availableextent-noexcept-149b5e5ddc.html",
       "associated_type": "gui_forms::AvailableExtent"
     },
@@ -273388,7 +273502,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 16,
+      "line": 18,
       "page": "gui-forms-operator-bool-const-gui-forms-color-const-gui-forms-color-noexcept-4dccc2f4d8.html",
       "associated_type": "gui_forms::Color"
     },
@@ -274954,7 +275068,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 100,
+      "line": 108,
       "page": "gui-forms-operator-bool-const-gui-forms-fontspec-const-gui-forms-fontspec-noexcept-8fc3c31599.html",
       "associated_type": "gui_forms::FontSpec"
     },
@@ -275089,7 +275203,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 51,
+      "line": 53,
       "page": "gui-forms-operator-bool-const-gui-forms-gradientstop-const-gui-forms-gradientstop-noexcept-99dc10c87d.html",
       "associated_type": "gui_forms::GradientStop"
     },
@@ -275467,7 +275581,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 117,
+      "line": 125,
       "page": "gui-forms-operator-bool-const-gui-forms-imageid-const-gui-forms-imageid-noexcept-5610f0a335.html",
       "associated_type": "gui_forms::ImageId"
     },
@@ -275683,7 +275797,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 61,
+      "line": 63,
       "page": "gui-forms-operator-bool-const-gui-forms-layoutconstraint-const-gui-forms-layoutconstraint-noexcept-175cff20cd.html",
       "associated_type": "gui_forms::LayoutConstraint"
     },
@@ -275872,7 +275986,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 17,
+      "line": 19,
       "page": "gui-forms-operator-bool-const-gui-forms-logicallength-const-gui-forms-logicallength-noexcept-2e54702a7a.html",
       "associated_type": "gui_forms::LogicalLength"
     },
@@ -279085,7 +279199,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 39,
+      "line": 41,
       "page": "gui-forms-operator-bool-gui-forms-paintcornerradii-gui-forms-paintcornerradii-noexcept-5b92f8443d.html",
       "associated_type": "gui_forms::PaintCornerRadii"
     },
@@ -279274,7 +279388,7 @@
       "comment": "",
       "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
       "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-      "line": 45,
+      "line": 47,
       "page": "gui-forms-operator-anchorstyles-anchorstyles-anchorstyles-noexcept-cb07b41a44.html"
     },
     {
@@ -279430,7 +279544,7 @@
       "comment": "",
       "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
       "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
-      "line": 33,
+      "line": 35,
       "page": "gui-forms-operator-anchorstyles-anchorstyles-anchorstyles-noexcept-db229a3e9b.html"
     },
     {
@@ -283168,7 +283282,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 108,
+      "line": 116,
       "page": "gui-forms-valid-font-spec-bool-fontspec-noexcept-aa20d081c9.html"
     },
     {
@@ -283189,7 +283303,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 69,
+      "line": 71,
       "page": "gui-forms-valid-gradient-stops-bool-std-span-const-gradientstop-noexcept-8656a3b547.html"
     },
     {
@@ -283210,7 +283324,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 96,
+      "line": 98,
       "page": "gui-forms-valid-layout-constraint-bool-const-layoutconstraint-noexcept-793f312d0b.html"
     },
     {
@@ -285664,7 +285778,7 @@
       "comment": "",
       "header": "gui_forms/types/paint_types/paint_types.hpp",
       "source": "include/gui_forms/types/paint_types/paint_types.hpp",
-      "line": 67,
+      "line": 69,
       "page": "gui-forms-maximum-gradient-stops-const-std-size-t-0e8c146da1.html"
     },
     {
@@ -286909,7 +287023,7 @@
       "comment": "",
       "header": "gui_forms/layout/types/layout_types.hpp",
       "source": "include/gui_forms/layout/types/layout_types.hpp",
-      "line": 69,
+      "line": 71,
       "page": "gui-forms-practical-unbounded-extent-const-double-f0d1ce7ae0.html"
     },
     {
@@ -287168,6 +287282,36 @@
       "page": "gui-forms-translate-y-property-const-std-string-view-7cc910c230.html"
     },
     {
+      "id": "gui_forms::types::anchor_styles|const TypeTag<AnchorStyles>",
+      "name": "anchor_styles",
+      "type": "const TypeTag<AnchorStyles>",
+      "namespace": "gui_forms::types",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr TypeTag<AnchorStyles> anchor_styles{}",
+      "comment": "",
+      "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
+      "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
+      "line": 61,
+      "page": "gui-forms-types-anchor-styles-const-typetag-anchorstyles-a36d3c7eae.html"
+    },
+    {
+      "id": "gui_forms::types::auto_size_mode|const TypeTag<AutoSizeMode>",
+      "name": "auto_size_mode",
+      "type": "const TypeTag<AutoSizeMode>",
+      "namespace": "gui_forms::types",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr TypeTag<AutoSizeMode> auto_size_mode{}",
+      "comment": "",
+      "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
+      "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
+      "line": 62,
+      "page": "gui-forms-types-auto-size-mode-const-typetag-autosizemode-32a92dc937.html"
+    },
+    {
       "id": "gui_forms::types::binding_value|const TypeTag<BindingValue>",
       "name": "binding_value",
       "type": "const TypeTag<BindingValue>",
@@ -287211,6 +287355,36 @@
       "source": "include/gui_forms/binding/property_type/property_type.hpp",
       "line": 167,
       "page": "gui-forms-types-color-const-typetag-color-96c1256d0f.html"
+    },
+    {
+      "id": "gui_forms::types::cursor_kind|const TypeTag<CursorKind>",
+      "name": "cursor_kind",
+      "type": "const TypeTag<CursorKind>",
+      "namespace": "gui_forms::types",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr TypeTag<CursorKind> cursor_kind{}",
+      "comment": "",
+      "header": "gui_forms/types/paint_types/paint_types.hpp",
+      "source": "include/gui_forms/types/paint_types/paint_types.hpp",
+      "line": 95,
+      "page": "gui-forms-types-cursor-kind-const-typetag-cursorkind-0b3cbb016c.html"
+    },
+    {
+      "id": "gui_forms::types::dock_style|const TypeTag<DockStyle>",
+      "name": "dock_style",
+      "type": "const TypeTag<DockStyle>",
+      "namespace": "gui_forms::types",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr TypeTag<DockStyle> dock_style{}",
+      "comment": "",
+      "header": "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
+      "source": "include/gui_forms/control/control_layout_styles/control_layout_styles.hpp",
+      "line": 60,
+      "page": "gui-forms-types-dock-style-const-typetag-dockstyle-eb970756be.html"
     },
     {
       "id": "gui_forms::types::float32|const TypeTag<float>",
@@ -287318,6 +287492,21 @@
       "page": "gui-forms-types-int64-const-typetag-std-int64-t-596abb132b.html"
     },
     {
+      "id": "gui_forms::types::layout_direction|const TypeTag<LayoutDirection>",
+      "name": "layout_direction",
+      "type": "const TypeTag<LayoutDirection>",
+      "namespace": "gui_forms::types",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr TypeTag<LayoutDirection> layout_direction{}",
+      "comment": "",
+      "header": "gui_forms/layout/types/layout_types.hpp",
+      "source": "include/gui_forms/layout/types/layout_types.hpp",
+      "line": 117,
+      "page": "gui-forms-types-layout-direction-const-typetag-layoutdirection-8c28f1a2d2.html"
+    },
+    {
       "id": "gui_forms::types::milliseconds|const TypeTag<std::chrono::milliseconds>",
       "name": "milliseconds",
       "type": "const TypeTag<std::chrono::milliseconds>",
@@ -287346,6 +287535,21 @@
       "source": "include/gui_forms/binding/property_type/property_type.hpp",
       "line": 172,
       "page": "gui-forms-types-optional-color-const-typetag-std-optional-color-a292c1feac.html"
+    },
+    {
+      "id": "gui_forms::types::optional_cursor_kind|const TypeTag<std::optional<CursorKind>>",
+      "name": "optional_cursor_kind",
+      "type": "const TypeTag<std::optional<CursorKind>>",
+      "namespace": "gui_forms::types",
+      "kind": "VarDecl",
+      "access": "public",
+      "parameters": [],
+      "declaration": "inline constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind{}",
+      "comment": "",
+      "header": "gui_forms/control/control_capabilities/control_capabilities.hpp",
+      "source": "include/gui_forms/control/control_capabilities/control_capabilities.hpp",
+      "line": 370,
+      "page": "gui-forms-types-optional-cursor-kind-const-typetag-std-optional-cursorkind-ad0e78b5d8.html"
     },
     {
       "id": "gui_forms::types::point|const TypeTag<Point>",

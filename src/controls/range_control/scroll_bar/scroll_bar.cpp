@@ -490,8 +490,8 @@ void ScrollBar::on_detached_from_window() noexcept {
 SemanticDescriptor ScrollBar::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::scroll_bar;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     std::ostringstream value_text;
     value_text << value();
     descriptor.value = value_text.str();

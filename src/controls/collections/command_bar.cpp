@@ -44,8 +44,8 @@ void CommandBar::refresh_tab_stop() {
     int selected = -1;
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
         const std::shared_ptr<Button> button = (*(*revision).entries[index]).button;
-        if (!(*button).enabled.type() || !(*button).visible.type()) continue;
-        if (selected < 0 || (*button).tab_stop.type()) selected = static_cast<int>(index);
+        if (!(*button).enabled.read() || !(*button).visible.read()) continue;
+        if (selected < 0 || (*button).tab_stop.read()) selected = static_cast<int>(index);
         if (button == focused) { selected = static_cast<int>(index); break; }
     }
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
@@ -200,7 +200,7 @@ void CommandBar::arrange(const Rect bounds) {
 
 void CommandBar::on_key_bubble(KeyEvent& event) { on_key(event); }
 void CommandBar::on_key(KeyEvent& event) {
-    if (event.handled || event.action != KeyAction::down || !enabled.type() || !revision_) return;
+    if (event.handled || event.action != KeyAction::down || !enabled.read() || !revision_) return;
     const bool backward = event.physical_key == PhysicalKey::left || event.physical_key == PhysicalKey::up;
     const bool forward = event.physical_key == PhysicalKey::right || event.physical_key == PhysicalKey::down;
     if (!backward && !forward) return; // Tab stays with the Window focus traversal.
@@ -216,7 +216,7 @@ void CommandBar::on_key(KeyEvent& event) {
         if (backward) current = current == 0 ? count - 1 : current - 1;
         else current = current + 1 == count ? 0 : current + 1;
         const std::shared_ptr<Button> button = (*(*revision).entries[static_cast<std::size_t>(current)]).button;
-        if (!(*button).enabled.type() || !(*button).visible.type()) continue;
+        if (!(*button).enabled.read() || !(*button).visible.read()) continue;
         for (int index = 0; index < count; ++index) {
             (*(*(*revision).entries[static_cast<std::size_t>(index)]).button).tab_stop = index == current;
         }

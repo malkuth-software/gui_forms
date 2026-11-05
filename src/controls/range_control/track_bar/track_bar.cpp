@@ -441,8 +441,8 @@ void TrackBar::on_focus_changed(bool focused) {
 SemanticDescriptor TrackBar::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::slider;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     std::ostringstream value_text;
     value_text << value();
     descriptor.value = value_text.str();

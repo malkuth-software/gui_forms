@@ -1539,8 +1539,8 @@ void NavigationPane::on_menu_item_invoked(const MenuItemInvocation& invocation) 
 SemanticDescriptor NavigationPane::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type().empty() ? "Navigation pane" : accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read().empty() ? "Navigation pane" : accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

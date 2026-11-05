@@ -47,7 +47,7 @@ void DropDownList::scroll_changed(double value) {
 }
 
 void DropDownList::on_pointer(PointerEvent& event) {
-    if ((*scrollbar_).visible.type() && (*scrollbar_).absolute_bounds().contains(event.position) &&
+    if ((*scrollbar_).visible.read() && (*scrollbar_).absolute_bounds().contains(event.position) &&
         event.action != PointerAction::wheel) return;
     ListBox::on_pointer(event);
     synchronize_scroll();

@@ -394,7 +394,7 @@ void test_combo_box_scrollbar_reaches_last_item() {
     window.perform_layout();
     const std::shared_ptr<ListBox> list = std::dynamic_pointer_cast<ListBox>(window.find("scroll.combo.popup.list"));
     const std::shared_ptr<ScrollBar> bar = std::dynamic_pointer_cast<ScrollBar>(window.find("scroll.combo.popup.list.scrollbar"));
-    require(list && bar && (*bar).visible.type(), "overflow choices have a visible, operable scrollbar");
+    require(list && bar && (*bar).visible.read(), "overflow choices have a visible, operable scrollbar");
     const Rect bounds = (*list).absolute_bounds();
     require(bounds.y >= 0 && bounds.y + bounds.height <= 220, "tall popup fits a short window");
     (*bar).set_value((*bar).maximum());

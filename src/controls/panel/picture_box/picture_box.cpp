@@ -208,8 +208,8 @@ bool PictureBox::hit_test_local(Point) const {
 SemanticDescriptor PictureBox::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::image;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     const Size source = image_size();
     if (source.width > 0.0 && source.height > 0.0) {
         descriptor.value = std::to_string(static_cast<std::uint32_t>(source.width)) +

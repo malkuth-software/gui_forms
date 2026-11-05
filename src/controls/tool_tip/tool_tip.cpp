@@ -69,7 +69,7 @@ void ToolTip::set_tool_tip(const std::shared_ptr<Control>& target, std::string t
 }
 
 std::string ToolTip::tool_tip(const Control& target) const {
-    return target.tool_tip_text.type();
+    return target.tool_tip_text.read();
 }
 
 bool ToolTip::remove_tool_tip(Control& target) {

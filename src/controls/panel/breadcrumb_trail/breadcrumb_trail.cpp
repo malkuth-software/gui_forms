@@ -589,7 +589,7 @@ void BreadcrumbTrail::on_pointer(PointerEvent& event) {
 }
 
 void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
-    if (!editing_ || !tab_completion_available_ || !enabled.type() ||
+    if (!editing_ || !tab_completion_available_ || !enabled.read() ||
         event.action != KeyAction::down ||
         event.physical_key != PhysicalKey::tab) {
         return;
@@ -599,7 +599,7 @@ void BreadcrumbTrail::on_key_preview(KeyEvent& event) {
 }
 
 void BreadcrumbTrail::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.type() || editing_ ||
+    if (!focused_ || !enabled.read() || editing_ ||
         event.action != KeyAction::down || visible_items_.empty()) return;
     std::size_t active{};
     for (std::size_t index = 0U; index < visible_items_.size(); ++index) {
@@ -636,9 +636,9 @@ void BreadcrumbTrail::on_focus_changed(bool focused) {
 SemanticDescriptor BreadcrumbTrail::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
+    descriptor.name = accessible_name.read();
     descriptor.value = editor_ ? std::string((*editor_).text()) : std::string{};
-    descriptor.description = accessible_description.type();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     descriptor.include_descendants = true;

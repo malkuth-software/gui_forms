@@ -431,14 +431,14 @@ SemanticDescriptor FontDialog::semantic_descriptor() const {
     // (modal). Placed in a layout directly it is not modal.
     descriptor.role = SemanticRole::dialog;
     descriptor.modal = open_;
-    descriptor.name = accessible_name.type().empty() ? "Font" : accessible_name.type();
+    descriptor.name = accessible_name.read().empty() ? "Font" : accessible_name.read();
     const BundledFontFace& face = bundled_faces[face_index(selection_.role)];
     std::string value(face.family);
     value += selection_.weight >= 700U ? " Bold" : "";
     value += selection_.italic ? " Italic" : "";
     value += " " + std::to_string(static_cast<int>(std::lround(selection_.size)));
     descriptor.value = value;
-    descriptor.description = accessible_description.type();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus};
     descriptor.exposed = true;
     return descriptor;

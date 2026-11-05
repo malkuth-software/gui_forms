@@ -386,7 +386,7 @@ std::shared_ptr<ToolStrip> ToolStripContainer::grip_strip_at(Point window_point)
         const std::shared_ptr<ToolStripPanel>& panel = panel_on(edge);
         if (!panel || !panel_shown(edge)) continue;
         for (const std::shared_ptr<ToolStrip>& strip : (*panel).strips()) {
-            if (!(*strip).visible.type() || !(*strip).grip_visible()) continue;
+            if (!(*strip).visible.read() || !(*strip).grip_visible()) continue;
             const Rect grip = (*strip).parts().grip.bounds;
             if (grip.empty()) continue;
             const Rect placed = (*strip).absolute_bounds();
@@ -432,7 +432,7 @@ std::optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local) co
             double end = 0.0;
             bool shown = false;
             for (const std::shared_ptr<ToolStrip>& member : rows[row]) {
-                if (!(*member).visible.type()) continue;
+                if (!(*member).visible.read()) continue;
                 const Rect bounds = local_bounds_of(*member);
                 const double member_start = vertical ? bounds.x : bounds.y;
                 const double member_end = member_start + (vertical ? bounds.width : bounds.height);
@@ -452,7 +452,7 @@ std::optional<ToolStripDropTarget> ToolStripContainer::target_at(Point local) co
                 std::size_t position = 0U;
                 double between = vertical ? band.y : band.x;
                 for (const std::shared_ptr<ToolStrip>& member : rows[row]) {
-                    if (!(*member).visible.type()) {
+                    if (!(*member).visible.read()) {
                         ++position;
                         continue;
                     }
@@ -878,7 +878,7 @@ std::optional<ToolStripContainer::RowSpan> ToolStripContainer::row_span(
     const std::vector<std::shared_ptr<ToolStrip>>& row, bool vertical) const {
     std::optional<RowSpan> span{};
     for (const std::shared_ptr<ToolStrip>& member : row) {
-        if (!(*member).visible.type()) continue;
+        if (!(*member).visible.read()) continue;
         const Rect bounds = local_bounds_of(*member);
         const double start = vertical ? bounds.x : bounds.y;
         const double end = start + (vertical ? bounds.width : bounds.height);
@@ -916,7 +916,7 @@ Rect ToolStripContainer::marker_for(const ToolStripDropTarget& target) const {
     const std::vector<std::shared_ptr<ToolStrip>>& members = rows[target.row];
     double between = vertical ? band.y : band.x;
     for (std::size_t index = 0U; index < members.size() && index <= target.position; ++index) {
-        if (!(*members[index]).visible.type()) continue;
+        if (!(*members[index]).visible.read()) continue;
         const Rect bounds = local_bounds_of(*members[index]);
         const double start = vertical ? bounds.y : bounds.x;
         const double length = vertical ? bounds.height : bounds.width;
@@ -1052,7 +1052,7 @@ SemanticDescriptor ToolStripContainer::semantic_descriptor() const {
     // A layout frame: the strips and the content describe themselves.
     SemanticDescriptor descriptor = Control::semantic_descriptor();
     descriptor.role = SemanticRole::group;
-    descriptor.exposed = !accessible_name.type().empty();
+    descriptor.exposed = !accessible_name.read().empty();
     return descriptor;
 }
 

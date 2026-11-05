@@ -1546,8 +1546,8 @@ SemanticDescriptor TreeListView::semantic_descriptor() const {
     // not.
     const Layout placed = layout();
     descriptor.role = SemanticRole::tree_grid;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.row_count = placed.shown_rows;
     descriptor.column_count = column_order_.size();
     if (selected_node_) descriptor.value = nodes_[*selected_node_].text;

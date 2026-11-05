@@ -2688,8 +2688,8 @@ SemanticDescriptor ListView::semantic_descriptor() const {
         descriptor.role = SemanticRole::list;
     }
     if (multi_select_) descriptor.states |= SemanticState::multiselectable;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     if (selected_count_ == 1U && focused_index_ && selected_[*focused_index_] != 0U) {
         ListViewItem scratch;
         descriptor.value = item_at(*focused_index_, scratch).text;

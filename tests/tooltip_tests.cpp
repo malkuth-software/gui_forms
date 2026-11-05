@@ -165,7 +165,7 @@ void test_hover_delay_cancel_and_accessible_overlay() {
     tips.set_initial_delay(30ms);
     tips.set_auto_pop_delay(200ms);
     tips.set_tool_tip(fixture.button, "Opens the calibrated input selector");
-    require((*fixture.button).tool_tip_text.type() == "Opens the calibrated input selector",
+    require((*fixture.button).tool_tip_text.read() == "Opens the calibrated input selector",
             "ToolTip writes the target's own tooltip text");
     int shown = 0;
     int hidden = 0;
@@ -301,7 +301,7 @@ void test_one_presenter_for_every_provider_and_owner_disposal() {
     ToolTip second(fixture.window);
     first.set_tool_tip(fixture.button, "First provider");
     second.set_tool_tip(fixture.button, "Second provider");
-    require((*fixture.button).tool_tip_text.type() == "Second provider", "the last text set holds");
+    require((*fixture.button).tool_tip_text.read() == "Second provider", "the last text set holds");
     first.show(fixture.button, 0ms);
     second.show(fixture.button, 0ms);
     require(first.visible() && second.visible() && tool_tip_nodes(fixture.window) == 1U,
@@ -324,7 +324,7 @@ void test_mapping_removal_and_provider_disposal_are_quiescent() {
     (*tips).set_initial_delay(20ms);
     (*tips).set_tool_tip(fixture.button, "Disposable mapping");
     hover(fixture.window, {60.0, 60.0});
-    require((*tips).remove_tool_tip(*fixture.button) && (*fixture.button).tool_tip_text.type().empty(),
+    require((*tips).remove_tool_tip(*fixture.button) && (*fixture.button).tool_tip_text.read().empty(),
             "removing a mapping clears the target's text");
     hover(fixture.window, {61.0, 60.0});
     require(!fixture.window.next_wake(), "a target without text arms nothing");
@@ -340,7 +340,7 @@ void test_mapping_removal_and_provider_disposal_are_quiescent() {
             "programmatic ToolTip show must anchor to its target, not the client origin");
     (*tips).dispose();
     require(!fixture.window.next_wake() && tool_tip_nodes(fixture.window) == 0U &&
-                (*fixture.button).tool_tip_text.type().empty(),
+                (*fixture.button).tool_tip_text.read().empty(),
             "provider disposal clears its text and removes popup and scheduled work");
 }
 
@@ -463,7 +463,7 @@ void test_press_hides_and_text_changes_follow() {
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*fixture.button).tool_tip_text.type().empty(), "invalid UTF-8 is refused, changing nothing");
+    require(refused && (*fixture.button).tool_tip_text.read().empty(), "invalid UTF-8 is refused, changing nothing");
     require((*fixture.button).has_bindable_property("tool_tip_text"), "the text is a bindable property");
     bool explicit_refused = false;
     try {

@@ -205,25 +205,25 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             inspected.layout.visual_bounds = visual;
             inspected.layout.effective_clip = effective_clip;
             inspected.layout.visual_outsets = outsets;
-            inspected.layout.margin = (*control).margin.type();
-            inspected.layout.padding = (*control).padding.type();
-            inspected.layout.minimum_size = (*control).minimum_size.type();
-            inspected.layout.maximum_size = (*control).maximum_size.type();
-            inspected.layout.dock = (*control).dock.type();
-            inspected.layout.anchor = (*control).anchor.type();
-            inspected.layout.auto_size = (*control).auto_size.type();
+            inspected.layout.margin = (*control).margin.read();
+            inspected.layout.padding = (*control).padding.read();
+            inspected.layout.minimum_size = (*control).minimum_size.read();
+            inspected.layout.maximum_size = (*control).maximum_size.read();
+            inspected.layout.dock = (*control).dock.read();
+            inspected.layout.anchor = (*control).anchor.read();
+            inspected.layout.auto_size = (*control).auto_size.read();
             inspected.layout.clipped_by_ancestor =
                 effective_clip != window_visible;
             inspected.layout.fully_clipped = effective_clip.empty();
             inspected.layout.ancestor_clip_count = current.ancestor_clip_count;
             inspected.layout.transaction = (*control).layout_transaction_state();
 
-            inspected.state.visible = (*control).visible.type();
+            inspected.state.visible = (*control).visible.read();
             inspected.state.layout_collapsed =
                 (*control).layout_collapsed_;
             inspected.state.effectively_visible =
                 (*control).effectively_visible();
-            inspected.state.enabled = (*control).enabled.type();
+            inspected.state.enabled = (*control).enabled.read();
             inspected.state.effectively_enabled =
                 (*control).effectively_enabled();
             inspected.state.focusable = (*control).focusable_;
@@ -235,7 +235,7 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             inspected.state.pointer_captured =
                 captured_.lock().get() == control.get();
             inspected.state.hit_test_transparent =
-                (*control).hit_test_transparent.type();
+                (*control).hit_test_transparent.read();
             inspected.state.window_active = active_;
             inspected.state.initializing = (*control).initializing();
             inspected.state.visual_status = (*control).visual_status_;

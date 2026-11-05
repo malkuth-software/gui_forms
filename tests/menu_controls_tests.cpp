@@ -211,7 +211,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_2, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_3 = !(*delete_row).focusable();
     require(operation_check_3, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
-    const bool operation_check_4 = !(*delete_row).cursor.type();
+    const bool operation_check_4 = !(*delete_row).cursor.read();
     require(operation_check_4, "disabled menu rows must explain unavailability without a hand cursor or actionable semantics");
     const bool operation_check_5 = !has_semantic_state((*delete_node).states,
                                     SemanticState::enabled);
@@ -288,7 +288,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     require(operation_check_29, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_30 = !(*disabled_submenu_row).focusable();
     require(operation_check_30, "submenu with no actionable descendant must explain and enforce its disabled state");
-    const bool operation_check_31 = !(*disabled_submenu_row).cursor.type();
+    const bool operation_check_31 = !(*disabled_submenu_row).cursor.read();
     require(operation_check_31, "submenu with no actionable descendant must explain and enforce its disabled state");
     const bool operation_check_32 = (*disabled_submenu).description.find(
                     "No commands are currently available") !=

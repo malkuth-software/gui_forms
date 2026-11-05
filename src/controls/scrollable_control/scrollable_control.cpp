@@ -225,25 +225,25 @@ Size ScrollableControl::content_extent() {
     Size extent{
         std::max(0.0, auto_scroll_min_size_.width),
         std::max(0.0, auto_scroll_min_size_.height)};
-    const Insets own_padding = padding.type();
+    const Insets own_padding = padding.read();
     const std::vector<Control::Ptr> retained = snapshot_layout_children();
     for (const Control::Ptr& child : retained) {
-        if (!is_current_layout_child(child) || !(*child).visible.type() ||
-            (*child).dock.type() != DockStyle::none) continue;
+        if (!is_current_layout_child(child) || !(*child).visible.read() ||
+            (*child).dock.read() != DockStyle::none) continue;
         Rect bounds = (*child).requested_bounds();
-        if ((*child).auto_size.type()) {
+        if ((*child).auto_size.read()) {
             const Size preferred = (*child).get_preferred_size({0.0, 0.0});
             if (!is_alive()) return extent;
-            if (!is_current_layout_child(child) || !(*child).visible.type() ||
-                (*child).dock.type() != DockStyle::none) {
+            if (!is_current_layout_child(child) || !(*child).visible.read() ||
+                (*child).dock.read() != DockStyle::none) {
                 continue;
             }
-            bounds.width = (*child).auto_size_mode.type() == AutoSizeMode::grow_only
+            bounds.width = (*child).auto_size_mode.read() == AutoSizeMode::grow_only
                 ? std::max(bounds.width, preferred.width) : preferred.width;
-            bounds.height = (*child).auto_size_mode.type() == AutoSizeMode::grow_only
+            bounds.height = (*child).auto_size_mode.read() == AutoSizeMode::grow_only
                 ? std::max(bounds.height, preferred.height) : preferred.height;
         }
-        const Insets child_margin = (*child).margin.type();
+        const Insets child_margin = (*child).margin.read();
         extent.width = std::max(
             extent.width,
             std::max(0.0, bounds.x) + bounds.width + child_margin.right +
@@ -372,8 +372,8 @@ void ScrollableControl::arrange(Rect final_bounds) {
     // logical content toward the left moves them to the right.
     const bool mirrored = effective_layout_direction() == LayoutDirection::right_to_left;
     for (const Control::Ptr& child : children()) {
-        if (!child || !(*child).is_alive() || !(*child).visible.type() ||
-            (*child).dock.type() != DockStyle::none) continue;
+        if (!child || !(*child).is_alive() || !(*child).visible.read() ||
+            (*child).dock.read() != DockStyle::none) continue;
         // The base arrange just assigned the unscrolled slot; offset that, not
         // the committed bounds, which still carry the previous scroll offset.
         Rect bounds = (*child).pending_layout_bounds();

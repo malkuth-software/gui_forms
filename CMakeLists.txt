@@ -233,6 +233,7 @@ add_library(gui_forms_core STATIC
     src/core/application/workspace_transaction.cpp
     src/core/animation/animation_timeline/animation_timeline.cpp
     src/core/animation/animation_timer/animation_timer.cpp
+    src/core/binding/property_type/property_type.cpp
     src/core/binding/value/binding_value.cpp
     src/core/binding/property_table/property_table.cpp
     src/core/binding/number_format/number_format.cpp

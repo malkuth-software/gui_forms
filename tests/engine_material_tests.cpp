@@ -1097,7 +1097,7 @@ public:
         part.family = ControlVisualRole::button;
         part.bounds = Rect{20.0, 20.0, size.width, size.height};
         part.key = PartKey{"face", {}, {}};
-        if (!enabled.type()) part.states.insert(AnatomyState::disabled);
+        if (!enabled.read()) part.states.insert(AnatomyState::disabled);
         return part;
     }
     Size size{40.0, 24.0};

@@ -526,7 +526,7 @@ void control_colors() {
     (*parent).add_child(child);
     (*parent).back_color = ground;
     (*parent).fore_color = ink;
-    require(!(*child).back_color.type() && !(*child).fore_color.type() && (*child).ambient_back_color() == ground &&
+    require(!(*child).back_color.read() && !(*child).fore_color.read() && (*child).ambient_back_color() == ground &&
                 (*child).ambient_fore_color() == ink,
             "a control without its own colours takes its parent's");
 

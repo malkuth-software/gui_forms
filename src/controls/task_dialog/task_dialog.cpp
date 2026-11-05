@@ -797,8 +797,8 @@ SemanticDescriptor TaskDialog::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::dialog;
     descriptor.modal = shown_;
-    if (!accessible_name.type().empty()) {
-        descriptor.name = accessible_name.type();
+    if (!accessible_name.read().empty()) {
+        descriptor.name = accessible_name.read();
     } else if (!page_.caption.empty()) {
         descriptor.name = page_.caption;
     } else {

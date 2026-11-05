@@ -1,13 +1,17 @@
 #pragma once
 
+#include "gui_forms/binding/property_type/property_type.hpp"
+#include "gui_forms/binding/type_tag/type_tag.hpp"
+
+#include <optional>
 #include <type_traits>
 #include <utility>
 
 namespace gui_forms {
 
 // A property's only storage, as the single member of its capability
-// (property-capabilities study, section 2; owner decisions: a read is
-// `.type()`, a write is a touch, no implicit conversion).
+// (property-capabilities study, sections 2 and 15; owner decisions: a read
+// is `.read()`, a write is a touch, no implicit conversion).
 //
 //   template <typename Declaring>
 //   struct TextCapability {
@@ -17,7 +21,7 @@ namespace gui_forms {
 //   class ButtonBase : public Control, public TextCapability<ButtonBase> {};
 //
 //   (*button).text = "OK";                       // the write
-//   std::string label = (*button).text.type();   // the read
+//   std::string label = (*button).text.read();   // the read
 //
 // The write calls `Capability::assign`, which compares (an equal value does
 // nothing: decision 3), stores through `replace`, touches its control and
@@ -27,9 +31,14 @@ namespace gui_forms {
 // address conversion, in `capability()`, checked by `static_assert`. The
 // capability reaches its control with a static_cast to its declaring class.
 //
+// Beside the read: `type()` (the runtime PropertyType), `as_type(types::x)`
+// (a total conversion; a pair that can fail is a compile error) and
+// `as_type(PropertyType)` (any conversion, as an explicit optional result).
+// These three need a PropertyValueTraits entry for Value.
+//
 // Value: the property's stored type, copyable or movable and comparable
 // with ==. Capability: the class whose only member this cell is. The cell
-// has no conversion operator and no ==, so a forgotten `.type()` does not
+// has no conversion operator and no ==, so a forgotten `.read()` does not
 // compile, and it cannot be copied: a property is part of its control.
 template <typename Value, typename Capability>
 class PropertyCell final {
@@ -46,7 +55,30 @@ public:
     }
 
     // The read.
-    [[nodiscard]] const Value& type() const noexcept { return value_; }
+    [[nodiscard]] const Value& read() const noexcept { return value_; }
+
+    // The runtime type (PropertyValueTraits<Value>).
+    [[nodiscard]] PropertyType type() const {
+        PropertyType described = PropertyValueTraits<Value>::type();
+        return described;
+    }
+
+    // A total conversion, named by a tag: `as_type(types::string)`. A pair
+    // that can fail does not compile; use the descriptor overload.
+    template <typename Target>
+        requires detail::total_property_conversion<Value, Target>
+    [[nodiscard]] Target as_type(TypeTag<Target>) const {
+        Target converted = detail::convert_property_total<Target, Value>(value_);
+        return converted;
+    }
+
+    // A conversion to a runtime type: nullopt when the value has no form of
+    // that type (convert_to_property_type).
+    [[nodiscard]] std::optional<BindingValue> as_type(const PropertyType& target) const {
+        const BindingValue general = PropertyValueTraits<Value>::to_binding(value_);
+        std::optional<BindingValue> converted = convert_to_property_type(general, target);
+        return converted;
+    }
 
 private:
     friend Capability;
@@ -101,9 +133,31 @@ public:
     }
 
     // The read, through the owner.
-    [[nodiscard]] Value type() const {
+    [[nodiscard]] Value read() const {
         Value value = Capability::read(capability());
         return value;
+    }
+
+    // The runtime type, a total conversion and a runtime conversion, as on
+    // PropertyCell; each reads the owner once.
+    [[nodiscard]] PropertyType type() const {
+        PropertyType described = PropertyValueTraits<Value>::type();
+        return described;
+    }
+
+    template <typename Target>
+        requires detail::total_property_conversion<Value, Target>
+    [[nodiscard]] Target as_type(TypeTag<Target>) const {
+        const Value value = read();
+        Target converted = detail::convert_property_total<Target, Value>(value);
+        return converted;
+    }
+
+    [[nodiscard]] std::optional<BindingValue> as_type(const PropertyType& target) const {
+        const Value value = read();
+        const BindingValue general = PropertyValueTraits<Value>::to_binding(value);
+        std::optional<BindingValue> converted = convert_to_property_type(general, target);
+        return converted;
     }
 
 private:

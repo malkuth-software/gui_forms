@@ -243,7 +243,7 @@ void test_breadcrumb_identity_overflow_edit_and_input() {
     require(operation_check_10, "End and Enter must replace the trail presentation with its owned editor");
     const bool operation_check_11 = (*trail).editing();
     require(operation_check_11, "End and Enter must replace the trail presentation with its owned editor");
-    const bool operation_check_12 = (*(*trail).editor()).visible.type();
+    const bool operation_check_12 = (*(*trail).editor()).visible.read();
     require(operation_check_12, "End and Enter must replace the trail presentation with its owned editor");
     const bool operation_check_13 = starts == 1U;
     require(operation_check_13, "End and Enter must replace the trail presentation with its owned editor");
@@ -818,7 +818,7 @@ void test_shared_command_binding() {
     (*command).set_enabled(false);
     const bool operation_check_63 = !(*ribbon).perform_click();
     require(operation_check_63, "disabled command presentation must reject public click execution");
-    require(!(*ribbon).enabled.type() && !(*status).enabled.type() &&
+    require(!(*ribbon).enabled.read() && !(*status).enabled.read() &&
                 trace == "view.mode@ribbon.view\nview.mode@status.view\n",
             "disabled command state must synchronize and reject execution");
 
@@ -831,7 +831,7 @@ void test_shared_command_binding() {
     CommandBinding local_binding(local_command, local_button, local_options);
     (*local_command).set_enabled(false);
     (*local_command).set_enabled(true);
-    require(!(*local_button).enabled.type(),
+    require(!(*local_button).enabled.read(),
             "command bindings may preserve locally managed enabled state");
 
     const CommandBindingOptions legacy_aggregate{false, true, true};

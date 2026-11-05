@@ -220,7 +220,7 @@ Size FlowLayoutPanelCompat::layout_children(Size available, bool assign) {
 
 Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& workspace) {
     reconcile_records(++pass_);
-    const Insets inset = padding.type();
+    const Insets inset = padding.read();
     const Size inner{std::max(0.0, available.width - horizontal_extent(inset)),
                      std::max(0.0, available.height - vertical_extent(inset))};
     const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
@@ -242,11 +242,11 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
     workspace.lines.clear();
     FlowLine line{};
     for (const Control::Ptr& child : workspace.retained) {
-        if (!child || !is_current_layout_child(child) || !(*child).visible.type()) continue;
+        if (!child || !is_current_layout_child(child) || !(*child).visible.read()) continue;
         const Size desired = preferred_child_size(child, inner);
         if (!is_alive()) return {};
-        if (!is_current_layout_child(child) || !(*child).visible.type()) continue;
-        const FlowItem item{child, desired, (*child).margin.type(), flex_grow(*child), flow_break(*child)};
+        if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
+        const FlowItem item{child, desired, (*child).margin.read(), flex_grow(*child), flow_break(*child)};
         const double item_main = horizontal
             ? horizontal_extent(item.margin) + item.desired.width
             : vertical_extent(item.margin) + item.desired.height;
@@ -363,17 +363,17 @@ Size FlowLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& 
 Size FlowLayoutPanelCompat::measure(Size available) {
     available = {std::max(0.0, available.width),
                  std::max(0.0, available.height)};
-    if (auto_size.type()) {
+    if (auto_size.read()) {
         Size desired = layout_children(available, false);
-        if (auto_size_mode.type() == AutoSizeMode::grow_only) {
+        if (auto_size_mode.read() == AutoSizeMode::grow_only) {
             const Rect requested = requested_bounds();
             desired.width = std::max(desired.width, requested.width);
             desired.height = std::max(desired.height, requested.height);
         }
         Size result{std::min(available.width, desired.width),
                     std::min(available.height, desired.height)};
-        const Size minimum = minimum_size.type();
-        const Size maximum = maximum_size.type();
+        const Size minimum = minimum_size.read();
+        const Size maximum = maximum_size.read();
         result.width = std::max(result.width, minimum.width);
         result.height = std::max(result.height, minimum.height);
         if (maximum.width > 0.0) {
@@ -415,8 +415,8 @@ void FlowLayoutPanelCompat::arrange(Rect final_bounds) {
 SemanticDescriptor FlowLayoutPanelCompat::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.exposed = !descriptor.name.empty() || !descriptor.description.empty();
     return descriptor;
 }

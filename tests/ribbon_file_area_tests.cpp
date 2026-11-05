@@ -177,7 +177,7 @@ void font_control() {
     require(!(*family).selected_index() && (*size).selected_text() == "10.5" && runs == 2,
             "a value outside the lists shows that field empty; the program's change runs nothing");
     (*(*command).command()).set_enabled(false);
-    require(!(*family).enabled.type() && !(*size).enabled.type(), "a disabled command disables both fields");
+    require(!(*family).enabled.read() && !(*size).enabled.read(), "a disabled command disables both fields");
     bool threw = false;
     try {
         (*control).set_sizes({10.0, 9.0});

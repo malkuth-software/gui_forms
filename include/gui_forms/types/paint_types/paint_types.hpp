@@ -1,5 +1,7 @@
 #pragma once
 
+#include "gui_forms/binding/type_tag/type_tag.hpp"
+
 #include <cmath>
 #include <compare>
 #include <cstddef>
@@ -87,6 +89,12 @@ enum class CursorKind : std::uint8_t {
     resize_diagonal_down,
     resize_diagonal_up,
 };
+
+namespace types {
+
+inline constexpr TypeTag<CursorKind> cursor_kind{};
+
+} // namespace types
 
 struct FontSpec {
     FontRole role{FontRole::control};

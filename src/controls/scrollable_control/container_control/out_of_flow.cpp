@@ -111,9 +111,9 @@ Rect place_absolute_child(Control& child, const AbsoluteItem& item, const Contai
                           const AbsoluteContainer& container) {
     const Rect box = block.box;
     const BoxSides<AutoLengthPercentage>& inset = item.positioning.inset;
-    const Insets margin = child.margin.type();
-    const Size control_minimum = child.minimum_size.type();
-    const Size control_maximums = child.maximum_size.type();
+    const Insets margin = child.margin.read();
+    const Size control_minimum = child.minimum_size.read();
+    const Size control_maximums = child.maximum_size.read();
     const bool right_to_left = container.direction == LayoutDirection::right_to_left;
     const bool block_right_to_left = block.direction == LayoutDirection::right_to_left;
 

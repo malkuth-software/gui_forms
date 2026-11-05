@@ -934,7 +934,7 @@ void CorrespondenceView::on_pointer(PointerEvent& event) {
 }
 
 void CorrespondenceView::on_key(KeyEvent& event) {
-    if (!focused_ || !enabled.type() || event.action != KeyAction::down ||
+    if (!focused_ || !enabled.read() || event.action != KeyAction::down ||
         items_.empty()) return;
     std::size_t index = item_index(focused_id_)
         .value_or(item_index(selected_id_).value_or(0U));
@@ -1002,8 +1002,8 @@ void CorrespondenceView::on_focus_changed(bool focused) {
 SemanticDescriptor CorrespondenceView::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::list;
-    descriptor.name = accessible_name.type();
-    descriptor.description = accessible_description.type();
+    descriptor.name = accessible_name.read();
+    descriptor.description = accessible_description.read();
     descriptor.value = selected_id_;
     descriptor.numeric_value = scroll_offset_;
     descriptor.minimum_value = 0.0;

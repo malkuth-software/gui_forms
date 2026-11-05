@@ -872,13 +872,13 @@ void MonthCalendar::on_focus_changed(bool focused) {
 SemanticDescriptor MonthCalendar::semantic_descriptor() const {
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::calendar;
-    descriptor.name = accessible_name.type().empty() ? month_title_text(0U) : accessible_name.type();
+    descriptor.name = accessible_name.read().empty() ? month_title_text(0U) : accessible_name.read();
     std::string value = date_time_detail::format_date_time(selection_.start, provider_.long_date_pattern, provider_);
     if (!same_day(selection_.start, selection_.end)) {
         value += " to " + date_time_detail::format_date_time(selection_.end, provider_.long_date_pattern, provider_);
     }
     descriptor.value = value;
-    descriptor.description = accessible_description.type();
+    descriptor.description = accessible_description.read();
     descriptor.actions = {SemanticAction::focus, SemanticAction::set_value};
     descriptor.exposed = true;
     return descriptor;

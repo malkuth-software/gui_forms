@@ -123,7 +123,7 @@ AnatomyStateSet RichTextBox::realized_item_anatomy_states(std::size_t item) cons
     const RichTextFormatState state = bar_button_state(button_of(item), format);
     if (state == RichTextFormatState::on) states.insert(AnatomyState::checked);
     if (state == RichTextFormatState::mixed) states.insert(AnatomyState::indeterminate);
-    if (read_only() || !enabled.type()) states.insert(AnatomyState::disabled);
+    if (read_only() || !enabled.read()) states.insert(AnatomyState::disabled);
     if (heading_menu_open_ && button_of(item) == RichTextBarButton::heading) states.insert(AnatomyState::open);
     return states;
 }
@@ -213,7 +213,7 @@ bool RichTextBox::bar_pointer(PointerEvent& event, Point local) {
             return true;
         }
         const bool over_bar = local.y < bar_height();
-        if (over_bar && cursor.type() != CursorKind::arrow) cursor = CursorKind::arrow;
+        if (over_bar && cursor.read() != CursorKind::arrow) cursor = CursorKind::arrow;
         return over_bar;
     }
     if (event.action == PointerAction::leave) {
@@ -329,7 +329,7 @@ std::vector<SemanticNode> RichTextBox::semantic_virtual_children() const {
     const Rect absolute = absolute_bounds();
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const RichTextFormat format = selection_format();
-    const bool usable = enabled.type() && !read_only();
+    const bool usable = enabled.read() && !read_only();
     nodes.reserve(count);
     for (std::size_t index = 0U; index < count; ++index) {
         const RichTextBarButton button = button_of(index);
@@ -373,7 +373,7 @@ bool RichTextBox::on_semantic_child_action(std::string_view id, SemanticAction a
     const std::size_t count = realized_item_count();
     for (std::size_t index = 0U; index < count; ++index) {
         if (id != realized_item_stable_id(index)) continue;
-        if (!enabled.type() || read_only()) return false;
+        if (!enabled.read() || read_only()) return false;
         const RichTextBarButton button = button_of(index);
         const bool menu = button == RichTextBarButton::heading && action == SemanticAction::show_menu;
         if (action != SemanticAction::press && !menu) return false;
