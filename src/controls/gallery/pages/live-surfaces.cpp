@@ -204,7 +204,7 @@ void LiveSurfacesPage::build_sub_surface(const std::shared_ptr<Surface>& body) {
     (*body).add_at(threaded, {24.0, 642.0, 930.0, 130.0});
     std::shared_ptr<SubSurfaceHost> host =
         make_control<SubSurfaceHost>(StableId("gallery.live-surfaces.sub-surface.host"));
-    (*host).set_accessible_name("Threaded sub-surface");
+    (*host).accessible_name = "Threaded sub-surface";
     (*host).set_content(std::make_unique<SubSurfaceSample>(), true);
     (*threaded).add_at(host, {22.0, 40.0, 340.0, 82.0});
     std::shared_ptr<Label> note = label(
