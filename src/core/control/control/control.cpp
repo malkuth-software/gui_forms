@@ -338,6 +338,32 @@ BindingValue PropertyValueTraits<std::optional<CursorKind>>::to_binding(std::opt
     return general;
 }
 
+DockStyle PropertyValueTraits<DockStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<DockStyle>(choice.value);
+}
+
+AnchorStyles PropertyValueTraits<AnchorStyles>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<AnchorStyles>(choice.value);
+}
+
+AutoSizeMode PropertyValueTraits<AutoSizeMode>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<AutoSizeMode>(choice.value);
+}
+
+LayoutDirection PropertyValueTraits<LayoutDirection>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<LayoutDirection>(choice.value);
+}
+
+std::optional<CursorKind> PropertyValueTraits<std::optional<CursorKind>>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    if (choice.value == 0) return std::nullopt;
+    return static_cast<CursorKind>(choice.value - 1);
+}
+
 BindingValue Control::cursor_property_value() const {
     std::int64_t value = 0;
     if (cursor.read()) {

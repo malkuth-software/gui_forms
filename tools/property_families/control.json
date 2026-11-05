@@ -1,0 +1,488 @@
+{
+  "family": "Control",
+  "step": "M2",
+  "declaring": "Control",
+  "header": "include/gui_forms/control/control/control.hpp",
+  "source": "src/core/control/control/control.cpp",
+  "capabilities_header": "include/gui_forms/control/control_capabilities/control_capabilities.hpp",
+  "table_source": "hand",
+  "includes": [
+    "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
+    "gui_forms/control/control_property_traits/control_property_traits.hpp",
+    "gui_forms/layout/types/layout_types.hpp",
+    "gui_forms/types.hpp",
+    "gui_forms/types/cursor_image/cursor_image.hpp"
+  ],
+  "properties": [
+    {
+      "name": "name",
+      "capability": "Name",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The stable authoring name (Control::Name).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "visible",
+      "capability": "Visible",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the control takes part in presentation and input (Visible).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "enabled",
+      "capability": "Enabled",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the control receives ordinary user input (Enabled).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "auto_size",
+      "capability": "AutoSize",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether measurement determines the control's size (AutoSize).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "causes_validation",
+      "capability": "CausesValidation",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether leaving the control starts validation (CausesValidation).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "tool_tip_text",
+      "capability": "ToolTipText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The plain tooltip text; empty never shows.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "tool_tip",
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "cursor",
+      "capability": "Cursor",
+      "value": "std::optional<CursorKind>",
+      "initial": null,
+      "comment": "The pointer's cursor; empty takes the parent's (Cursor).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "back_color",
+      "capability": "BackColor",
+      "value": "std::optional<Color>",
+      "initial": null,
+      "comment": "The own background colour; empty takes the parent's.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "fore_color",
+      "capability": "ForeColor",
+      "value": "std::optional<Color>",
+      "initial": null,
+      "comment": "The own text colour; empty takes the parent's.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "minimum_size",
+      "capability": "MinimumSize",
+      "value": "Size",
+      "initial": null,
+      "comment": "The smallest size layout gives the control (MinimumSize).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "maximum_size",
+      "capability": "MaximumSize",
+      "value": "Size",
+      "initial": null,
+      "comment": "The largest size layout gives the control; zero is unbounded.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "margin",
+      "capability": "Margin",
+      "value": "Insets",
+      "initial": "Insets{3.0, 3.0, 3.0, 3.0}",
+      "comment": "The space kept outside the control (Margin).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "padding",
+      "capability": "Padding",
+      "value": "Insets",
+      "initial": null,
+      "comment": "The space kept inside the control around its content (Padding).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "dock",
+      "capability": "Dock",
+      "value": "DockStyle",
+      "initial": "DockStyle::none",
+      "comment": "The parent edge the control docks to (Dock).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "anchor",
+      "capability": "Anchor",
+      "value": "AnchorStyles",
+      "initial": "AnchorStyles::top | AnchorStyles::left",
+      "comment": "The parent edges the control keeps its distance to (Anchor).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "auto_size_mode",
+      "capability": "AutoSizeMode",
+      "value": "AutoSizeMode",
+      "initial": "AutoSizeMode::grow_only",
+      "comment": "Whether auto size may shrink the control (AutoSizeMode).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "layout_direction",
+      "capability": "LayoutDirection",
+      "value": "LayoutDirection",
+      "initial": "LayoutDirection::inherit",
+      "comment": "The control's own layout direction; inherit takes the parent's (RightToLeft).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "tab_index",
+      "capability": "TabIndex",
+      "value": "std::uint32_t",
+      "initial": "0U",
+      "comment": "The control's place in its parent's tab order (TabIndex).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "tab_stop",
+      "capability": "TabStop",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the Tab key stops at the control (TabStop).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": true,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "allow_drop",
+      "capability": "AllowDrop",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether the control accepts dropped data (AllowDrop).",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "hit_test_transparent",
+      "capability": "HitTestTransparent",
+      "value": "bool",
+      "initial": "false",
+      "comment": "Whether pointer hit testing passes through the control to what is under it.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "accessible_name",
+      "capability": "AccessibleName",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The name assistive technology announces.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "accessible_name",
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "accessible_description",
+      "capability": "AccessibleDescription",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The description assistive technology announces.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": "accessible_description",
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "bounds",
+      "reason": "an instance registration: layout writes it every arrange"
+    },
+    {
+      "name": "auto_scroll_offset",
+      "reason": "an instance registration (ScrollableControl, G9)"
+    }
+  ]
+}

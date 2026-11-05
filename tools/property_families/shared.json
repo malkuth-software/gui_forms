@@ -1,0 +1,32 @@
+{
+  "family": "Shared",
+  "step": "M3",
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The text the control shows (Text).",
+      "localizable": "text",
+      "hooks": "hand",
+      "hand": [
+        "a shared template: each declaring class writes its hooks or generates them from its own config"
+      ]
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": null,
+      "comment": "The font of the control's text (Font).",
+      "hooks": "hand",
+      "hand": [
+        "a shared template: each declaring class writes its hooks or generates them from its own config"
+      ]
+    }
+  ]
+}

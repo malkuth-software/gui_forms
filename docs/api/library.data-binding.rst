@@ -1141,6 +1141,38 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/binding/property_cell_entry/property_cell_entry.hpp>``
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Member> BindingValue read_cell_entry(const Component& owner)
+
+   The current value in its BindingValue form.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Member> void write_cell_entry(Component& owner, const BindingValue& value)
+
+   Writes a value write_property_entry has already converted to the descriptor's kind.
+
+.. cpp:function:: template <typename Declaring, typename EventPointer, EventPointer EventMember> SubscriptionToken connect_event_entry(Component& owner, Component& subscriber, std::function<void()> changed)
+
+   Connects ``changed`` to the event field ``EventMember`` of the declaring class for ``subscriber``'s lifetime.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Read> BindingValue read_member_entry(const Component& owner)
+
+   A declaring-class member function as an entry's read (``BindingValue f() const``), where the table read is not the cell's value.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Write> void write_member_entry(Component& owner, const BindingValue& value)
+
+   A declaring-class member function as an entry's write (``void f(const BindingValue&)``).
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer Reset> void reset_member_entry(Component& owner)
+
+   A declaring-class member function as an entry's reset.
+
+.. cpp:function:: template <typename Declaring, typename MemberPointer, MemberPointer ShouldSerialize> bool should_serialize_member_entry(const Component& owner)
+
+   A declaring-class member function as an entry's should_serialize.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/binding/property_table/property_table.hpp>``
 
 .. cpp:function:: consteval bool property_names_distinct(std::span<const PropertyEntry> entries)

@@ -87,7 +87,7 @@ Related types
    * - :cpp:class:`ControlAnatomy <gui_forms::ControlAnatomy>`
      - The anatomy of one control type.
    * - :cpp:class:`ControlCapabilities <gui_forms::ControlCapabilities>`
-     - Every Control capability, in the order Control lists them as bases.
+     - Every Control capability, in the order the declaring class takes them.
    * - :cpp:class:`ControlFactory <gui_forms::ControlFactory>`
      - ControlFactory maps explicit type names to construction callbacks, rejects duplicates/unknown types, and recursively creates retained trees without a bundled scripting runtime.
    * - :cpp:class:`ControlValidationEvent <gui_forms::ControlValidationEvent>`
@@ -124,6 +124,8 @@ Related types
      - One flex line, its items being order[first, first + count).
    * - :cpp:class:`FlexMargin <gui_forms::FlexMargin>`
      - One margin as the solver reads it: a resolved length, or ``auto``.
+   * - :cpp:class:`FontCapability <gui_forms::FontCapability>`
+     - The font of the control's text (Font).
    * - :cpp:class:`ForeColorCapability <gui_forms::ForeColorCapability>`
      - The own text colour; empty takes the parent's.
    * - :cpp:class:`FractionFactor <gui_forms::FractionFactor>`
@@ -230,6 +232,8 @@ Related types
      - The control's place in its parent's tab order (TabIndex).
    * - :cpp:class:`TabStopCapability <gui_forms::TabStopCapability>`
      - Whether the Tab key stops at the control (TabStop).
+   * - :cpp:class:`TextCapability <gui_forms::TextCapability>`
+     - The text the control shows (Text).
    * - :cpp:class:`ToolTipTextCapability <gui_forms::ToolTipTextCapability>`
      - The plain tooltip text; empty never shows.
    * - :cpp:class:`TrackBreadth <gui_forms::TrackBreadth>`
@@ -330,7 +334,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AccessibleDescriptionCapability& capability, std::string value)
+   .. cpp:function:: static void assign(AccessibleDescriptionCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, AccessibleDescriptionCapability<Declaring>> accessible_description
 
@@ -345,7 +349,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AccessibleNameCapability& capability, std::string value)
+   .. cpp:function:: static void assign(AccessibleNameCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name
 
@@ -360,7 +364,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AllowDropCapability& capability, bool value)
+   .. cpp:function:: static void assign(AllowDropCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, AllowDropCapability<Declaring>> allow_drop
 
@@ -425,7 +429,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AnchorCapability& capability, AnchorStyles value)
+   .. cpp:function:: static void assign(AnchorCapability& capability, AnchorStyles incoming)
 
    .. cpp:member:: PropertyCell<AnchorStyles, AnchorCapability<Declaring>> anchor
 
@@ -454,7 +458,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AutoSizeCapability& capability, bool value)
+   .. cpp:function:: static void assign(AutoSizeCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size
 
@@ -471,7 +475,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AutoSizeModeCapability& capability, AutoSizeMode value)
+   .. cpp:function:: static void assign(AutoSizeModeCapability& capability, AutoSizeMode incoming)
 
    .. cpp:member:: PropertyCell<AutoSizeMode, AutoSizeModeCapability<Declaring>> auto_size_mode
 
@@ -502,7 +506,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BackColorCapability& capability, std::optional<Color> value)
+   .. cpp:function:: static void assign(BackColorCapability& capability, std::optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color
 
@@ -713,7 +717,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(CausesValidationCapability& capability, bool value)
+   .. cpp:function:: static void assign(CausesValidationCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation
 
@@ -848,7 +852,7 @@ Related types
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
 
-   Every Control capability, in the order Control lists them as bases.
+   Every Control capability, in the order the declaring class takes them.
 
 
    .. rubric:: Properties
@@ -989,7 +993,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(CursorCapability& capability, std::optional<CursorKind> value)
+   .. cpp:function:: static void assign(CursorCapability& capability, std::optional<CursorKind> incoming)
 
    .. cpp:member:: PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor
 
@@ -1024,7 +1028,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DockCapability& capability, DockStyle value)
+   .. cpp:function:: static void assign(DockCapability& capability, DockStyle incoming)
 
    .. cpp:member:: PropertyCell<DockStyle, DockCapability<Declaring>> dock
 
@@ -1041,7 +1045,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(EnabledCapability& capability, bool value)
+   .. cpp:function:: static void assign(EnabledCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, EnabledCapability<Declaring>> enabled
 
@@ -1305,6 +1309,28 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> FontCapability
+
+   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>``
+
+   The font of the control's text (Font).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: FontCapability() = default
+
+   .. cpp:function:: explicit FontCapability(FontSpec initial)
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontCapability& capability, FontSpec incoming)
+
+   .. cpp:member:: PropertyCell<FontSpec, FontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> ForeColorCapability
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
@@ -1314,7 +1340,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ForeColorCapability& capability, std::optional<Color> value)
+   .. cpp:function:: static void assign(ForeColorCapability& capability, std::optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color
 
@@ -1727,7 +1753,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(HitTestTransparentCapability& capability, bool value)
+   .. cpp:function:: static void assign(HitTestTransparentCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent
 
@@ -1848,7 +1874,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(LayoutDirectionCapability& capability, LayoutDirection value)
+   .. cpp:function:: static void assign(LayoutDirectionCapability& capability, LayoutDirection incoming)
 
    .. cpp:member:: PropertyCell<LayoutDirection, LayoutDirectionCapability<Declaring>> layout_direction
 
@@ -1987,7 +2013,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(MarginCapability& capability, Insets value)
+   .. cpp:function:: static void assign(MarginCapability& capability, Insets incoming)
 
    .. cpp:member:: PropertyCell<Insets, MarginCapability<Declaring>> margin
 
@@ -2004,7 +2030,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(MaximumSizeCapability& capability, Size value)
+   .. cpp:function:: static void assign(MaximumSizeCapability& capability, Size incoming)
 
    .. cpp:member:: PropertyCell<Size, MaximumSizeCapability<Declaring>> maximum_size
 
@@ -2019,7 +2045,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(MinimumSizeCapability& capability, Size value)
+   .. cpp:function:: static void assign(MinimumSizeCapability& capability, Size incoming)
 
    .. cpp:member:: PropertyCell<Size, MinimumSizeCapability<Declaring>> minimum_size
 
@@ -2046,7 +2072,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(NameCapability& capability, std::string value)
+   .. cpp:function:: static void assign(NameCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, NameCapability<Declaring>> name
 
@@ -2085,7 +2111,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(PaddingCapability& capability, Insets value)
+   .. cpp:function:: static void assign(PaddingCapability& capability, Insets incoming)
 
    .. cpp:member:: PropertyCell<Insets, PaddingCapability<Declaring>> padding
 
@@ -2262,7 +2288,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TabIndexCapability& capability, std::uint32_t value)
+   .. cpp:function:: static void assign(TabIndexCapability& capability, std::uint32_t incoming)
 
    .. cpp:member:: PropertyCell<std::uint32_t, TabIndexCapability<Declaring>> tab_index
 
@@ -2279,11 +2305,33 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TabStopCapability& capability, bool value)
+   .. cpp:function:: static void assign(TabStopCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, TabStopCapability<Declaring>> tab_stop
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextCapability
+
+   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>``
+
+   The text the control shows (Text).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TextCapability() = default
+
+   .. cpp:function:: explicit TextCapability(std::string initial)
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, TextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
@@ -2296,7 +2344,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ToolTipTextCapability& capability, std::string value)
+   .. cpp:function:: static void assign(ToolTipTextCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text
 
@@ -2325,7 +2373,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(VisibleCapability& capability, bool value)
+   .. cpp:function:: static void assign(VisibleCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, VisibleCapability<Declaring>> visible
 
@@ -3281,12 +3329,6 @@ Functions, constants and aliases
 
 .. cpp:function:: template <typename ControlType, typename... Arguments> std::shared_ptr<ControlType> make_control(StableId stable_id, Arguments&&... arguments)
 
-.. cpp:namespace:: gui_forms::types
-
-``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
-
-.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
-
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
@@ -3302,6 +3344,12 @@ Functions, constants and aliases
 .. cpp:var:: constexpr TypeTag<AnchorStyles> anchor_styles
 
 .. cpp:var:: constexpr TypeTag<AutoSizeMode> auto_size_mode
+
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/control/control_property_traits/control_property_traits.hpp>``
+
+.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
 
 .. cpp:namespace:: gui_forms
 
