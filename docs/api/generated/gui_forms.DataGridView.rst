@@ -7,7 +7,7 @@ gui_forms::DataGridView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: DataGridView final : public Control
+.. cpp:class:: DataGridView final : public Control, public DataGridViewCapabilities<DataGridView>
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view.hpp>``
 
@@ -45,50 +45,15 @@ gui_forms::DataGridView
 
    :Properties:
 
-      **columns** : ``std::span<const DataGridViewColumn>``
-         The columns, in display order. :cpp:func:`set_columns <gui_forms::DataGridView::set_columns>` replaces them, :cpp:func:`add_column <gui_forms::DataGridView::add_column>`
-         appends one and :cpp:func:`remove_column_at <gui_forms::DataGridView::remove_column_at>` removes one. A column name must be
-         unique, not empty and without ``.``; its width finite and at least its
-         ``minimum_width``; and only a combo box column may have ``items``. Anything
-         else throws ``std::invalid_argument``. Replacing or removing columns ends
-         any edit and clears the selection and current cell.
-
       **auto_size_columns_mode** : ``DataGridViewAutoSizeColumnsMode``, default ``none``
          The auto size mode of columns whose own is ``not_set``.
 
-      **row_source** : ``DataGridViewRowSource``, default unbound, read-only
-         Where the rows come from: :cpp:enumerator:`DataGridViewRowSource::unbound <gui_forms::DataGridViewRowSource::unbound>`,
-         ``virtual_rows`` or ``binding_source``.
-
-      **row_count** : ``std::size_t``
-         The number of rows. :cpp:func:`set_row_count <gui_forms::DataGridView::set_row_count>` grows unbound rows with generated
-         rows or cuts them from the end; virtual rows are counted by their order
-         and bound rows by their source, so both refuse it with
-         ``std::logic_error``.
-
-      **sorted_column** : ``std::optional<std::size_t>``, default none, read-only
-         The column the last sort ordered by, while the rows keep its order.
-
-      **sort_order** : ``DataGridViewSortDirection``, default ``DataGridViewSortDirection::none``, read-only
-         That sort's direction.
+      **auto_size_rows_mode** : ``DataGridViewAutoSizeRowsMode``, default ``none``
+         How rows size their heights: to their headers, cells or both, over
+         every row or the rows shown.
 
       **clipboard_copy_mode** : ``DataGridViewClipboardCopyMode``, default ``enable_with_auto_header_text``
          Which header texts a copy includes, or ``disable``.
-
-      **clipboard_content** : ``std::optional<std::string>``, default none, read-only
-         The selection as tab-separated text, one line per row ending ``\r\n``,
-         with the header texts the copy mode includes; none when copying is
-         disabled or nothing is selected.
-
-      **virtual_row_window_source** : ``std::shared_ptr<DataGridViewRowWindowSource>``, default none
-         The :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>` window mode asks for row IDs. Taking it
-         away (null) in window mode first takes every ID from the old source and
-         goes to edit mode; rows that are not virtual refuse it with
-         ``std::logic_error``.
-
-      **row_order_mode** : ``DataGridViewRowOrderMode``, default ``DataGridViewRowOrderMode::edit``, read-only
-         How the virtual rows' order is held: ``edit`` (every ID, in a chunked
-         order index) or ``window`` (the IDs around the displayed rows).
 
       **row_order_policy** : ``DataGridViewRowOrderPolicy``, default ``DataGridViewRowOrderPolicy::automatic``
          Who chooses the mode: the grid, by the thresholds, or the program,
@@ -104,31 +69,17 @@ gui_forms::DataGridView
          displayed rows. New thresholds apply at once. Edit thresholds above
          window thresholds throw ``std::invalid_argument``.
 
-      **row_order_statistics** : ``DataGridViewRowOrderStatistics``, read-only
-         The order's work counters (:cpp:class:`DataGridViewRowOrderStatistics <gui_forms::DataGridViewRowOrderStatistics>`): reported
-         changes, index writes, slot moves, chunk-table rebuilds, whole builds,
-         window requests, IDs requested, position queries and mode switches.
-
-      **data_source** : ``std::shared_ptr<BindingSource>``
-         The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose records are the rows, or none.
-         :cpp:func:`set_data_source <gui_forms::DataGridView::set_data_source>` shows a source's records as rows, or returns to empty
-         unbound rows for none.
-
-      **allow_user_to_add_rows** : ``bool``, default ``true``
-         Whether an unbound or bound grid shows the new row after the last row.
-
-      **new_row_index** : ``std::optional<DataGridViewRowPosition>``, read-only
-         The new row's position, while it is shown.
-
       **allow_user_to_delete_rows** : ``bool``, default ``true``
          Whether Delete removes the selected rows.
 
       **show_cell_errors** : ``bool``
+         Whether cells show their error glyphs (ShowCellErrors).
 
       **show_row_errors** : ``bool``
+         Whether row headers show their error glyphs (ShowRowErrors).
 
       **show_editing_icon** : ``bool``
-         The pencil the current row's header shows while the row is dirty (Windows Forms' ShowEditingIcon); on by default.
+         Whether the current row's header shows the editing glyph (ShowEditingIcon).
 
       **default_cell_style** : ``DataGridViewCellStyle``
          The grid's cell style (:cpp:class:`DataGridViewCellStyle <gui_forms::DataGridViewCellStyle>`), last in every cell's
@@ -145,9 +96,6 @@ gui_forms::DataGridView
 
       **row_headers_default_cell_style** : ``DataGridViewCellStyle``
          The row headers' style, before the grid's.
-
-      **inherited_row_header_style** : ``DataGridViewCellStyle``, read-only
-         The style row headers draw with: the row headers', then the grid's.
 
       **enable_headers_visual_styles** : ``bool``, default ``true``
          Whether the theme draws the headers, their styles' colours unused.
@@ -188,10 +136,6 @@ gui_forms::DataGridView
       **row_height** : ``double``, default ``22``
          The height of every row without its own, from 4 to 256.
 
-      **auto_size_rows_mode** : ``DataGridViewAutoSizeRowsMode``, default ``none``
-         How rows size their heights: to their headers, cells or both, over
-         every row or the rows shown.
-
       **font** : ``FontSpec``
          The font of cell and header text.
 
@@ -207,6 +151,75 @@ gui_forms::DataGridView
 
       **allow_user_to_order_columns** : ``bool``, default ``false``
          Whether dragging a column header moves the column.
+
+      **selection_mode** : ``DataGridViewSelectionMode``, default cell_select
+         :cpp:enumerator:`DataGridViewSelectionMode::cell_select <gui_forms::DataGridViewSelectionMode::cell_select>` selects cells,
+         ``full_row_select`` whole rows. Changing it selects the current cell (or
+         row) alone.
+
+      **multi_select** : ``bool``, default ``true``
+         Whether Ctrl and Shift add to the selection.
+
+      **edit_mode** : ``DataGridViewEditMode``
+         What starts an edit (EditMode).
+
+      **columns** : ``std::span<const DataGridViewColumn>``
+         The columns, in display order. :cpp:func:`set_columns <gui_forms::DataGridView::set_columns>` replaces them, :cpp:func:`add_column <gui_forms::DataGridView::add_column>`
+         appends one and :cpp:func:`remove_column_at <gui_forms::DataGridView::remove_column_at>` removes one. A column name must be
+         unique, not empty and without ``.``; its width finite and at least its
+         ``minimum_width``; and only a combo box column may have ``items``. Anything
+         else throws ``std::invalid_argument``. Replacing or removing columns ends
+         any edit and clears the selection and current cell.
+
+      **row_source** : ``DataGridViewRowSource``, default unbound, read-only
+         Where the rows come from: :cpp:enumerator:`DataGridViewRowSource::unbound <gui_forms::DataGridViewRowSource::unbound>`,
+         ``virtual_rows`` or ``binding_source``.
+
+      **row_count** : ``std::size_t``
+         The number of rows. :cpp:func:`set_row_count <gui_forms::DataGridView::set_row_count>` grows unbound rows with generated
+         rows or cuts them from the end; virtual rows are counted by their order
+         and bound rows by their source, so both refuse it with
+         ``std::logic_error``.
+
+      **sorted_column** : ``std::optional<std::size_t>``, default none, read-only
+         The column the last sort ordered by, while the rows keep its order.
+
+      **sort_order** : ``DataGridViewSortDirection``, default ``DataGridViewSortDirection::none``, read-only
+         That sort's direction.
+
+      **clipboard_content** : ``std::optional<std::string>``, default none, read-only
+         The selection as tab-separated text, one line per row ending ``\r\n``,
+         with the header texts the copy mode includes; none when copying is
+         disabled or nothing is selected.
+
+      **virtual_row_window_source** : ``std::shared_ptr<DataGridViewRowWindowSource>``, default none
+         The :cpp:class:`DataGridViewRowWindowSource <gui_forms::DataGridViewRowWindowSource>` window mode asks for row IDs. Taking it
+         away (null) in window mode first takes every ID from the old source and
+         goes to edit mode; rows that are not virtual refuse it with
+         ``std::logic_error``.
+
+      **row_order_mode** : ``DataGridViewRowOrderMode``, default ``DataGridViewRowOrderMode::edit``, read-only
+         How the virtual rows' order is held: ``edit`` (every ID, in a chunked
+         order index) or ``window`` (the IDs around the displayed rows).
+
+      **row_order_statistics** : ``DataGridViewRowOrderStatistics``, read-only
+         The order's work counters (:cpp:class:`DataGridViewRowOrderStatistics <gui_forms::DataGridViewRowOrderStatistics>`): reported
+         changes, index writes, slot moves, chunk-table rebuilds, whole builds,
+         window requests, IDs requested, position queries and mode switches.
+
+      **data_source** : ``std::shared_ptr<BindingSource>``
+         The :cpp:class:`BindingSource <gui_forms::BindingSource>` whose records are the rows, or none.
+         :cpp:func:`set_data_source <gui_forms::DataGridView::set_data_source>` shows a source's records as rows, or returns to empty
+         unbound rows for none.
+
+      **allow_user_to_add_rows** : ``bool``, default ``true``
+         Whether an unbound or bound grid shows the new row after the last row.
+
+      **new_row_index** : ``std::optional<DataGridViewRowPosition>``, read-only
+         The new row's position, while it is shown.
+
+      **inherited_row_header_style** : ``DataGridViewCellStyle``, read-only
+         The style row headers draw with: the row headers', then the grid's.
 
       **first_displayed_row** : ``DataGridViewRowPosition``
          The position of the first row shown under the column headers.
@@ -224,14 +237,6 @@ gui_forms::DataGridView
 
       **horizontal_scroll_bar** : ``std::shared_ptr<HScrollBar>``, read-only
          The child :cpp:class:`HScrollBar <gui_forms::HScrollBar>` that scrolls by logical units.
-
-      **selection_mode** : ``DataGridViewSelectionMode``, default cell_select
-         :cpp:enumerator:`DataGridViewSelectionMode::cell_select <gui_forms::DataGridViewSelectionMode::cell_select>` selects cells,
-         ``full_row_select`` whole rows. Changing it selects the current cell (or
-         row) alone.
-
-      **multi_select** : ``bool``, default ``true``
-         Whether Ctrl and Shift add to the selection.
 
       **current_cell** : ``std::optional<DataGridViewCellAddress>``
          The cell keyboard input acts on, at its row's present position, or none.
@@ -252,8 +257,6 @@ gui_forms::DataGridView
 
       **is_current_cell_in_edit_mode** : ``bool``, read-only
          Whether a text cell is in edit or a combo box cell's choices are open.
-
-      **edit_mode** : ``DataGridViewEditMode``
 
       **is_current_cell_dirty** : ``bool``, read-only
          Whether the edit in progress holds a value the cell does not: the user changed the editor's text, or notify_current_cell_dirty said so.
@@ -461,9 +464,9 @@ gui_forms::DataGridView
       * - :cpp:func:`inherited_column_header_style <gui_forms::DataGridView::inherited_column_header_style>`
         - A column header's style: its own, the column headers', the grid's.
       * - :cpp:func:`row_height_at <gui_forms::DataGridView::row_height_at>`
-        - A row's height: its own, or :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+        - A row's height: its own, or :cpp:member:`row_height <gui_forms::DataGridView::row_height>`.
       * - :cpp:func:`reset_row_height_at <gui_forms::DataGridView::reset_row_height_at>`
-        - Returns a row to :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+        - Returns a row to :cpp:member:`row_height <gui_forms::DataGridView::row_height>`.
       * - :cpp:func:`auto_resize_row <gui_forms::DataGridView::auto_resize_row>`
         - Gives a row its preferred height once, raising :cpp:func:`row_height_changed <gui_forms::DataGridView::row_height_changed>`.
       * - :cpp:func:`auto_resize_rows <gui_forms::DataGridView::auto_resize_rows>`
@@ -483,7 +486,7 @@ gui_forms::DataGridView
       * - :cpp:func:`clear_selection <gui_forms::DataGridView::clear_selection>`
         - Deselects everything.
       * - :cpp:func:`select_all <gui_forms::DataGridView::select_all>`
-        - Selects every cell, or every row; nothing without :cpp:func:`multi_select <gui_forms::DataGridView::multi_select>`.
+        - Selects every cell, or every row; nothing without :cpp:member:`multi_select <gui_forms::DataGridView::multi_select>`.
       * - :cpp:func:`begin_edit <gui_forms::DataGridView::begin_edit>`
         - Puts the current text cell in edit, its text selected or the caret at its end, or opens the current combo box cell's choices.
       * - :cpp:func:`end_edit <gui_forms::DataGridView::end_edit>`
@@ -622,7 +625,7 @@ gui_forms::DataGridView
    cell's choices. :cpp:func:`cell_validating <gui_forms::DataGridView::cell_validating>` is raised only for an edit being committed.
 
    The grid publishes the accessibility role ``table``, with the row count and
-   the column count, and is ``multiselectable`` while :cpp:func:`multi_select <gui_forms::DataGridView::multi_select>` is on. The
+   the column count, and is ``multiselectable`` while :cpp:member:`multi_select <gui_forms::DataGridView::multi_select>` is on. The
    visible column headers are ``column_header`` children, and each visible row
    is a ``row`` holding its row header (a ``row_header`` with its row index,
    while row headers are shown; its stable ID is the grid's ID,
@@ -723,7 +726,7 @@ gui_forms::DataGridView
    ``fore_color`` draws a text, combo box or button cell's text (links keep
    their link colours, check boxes their theme's); while a cell is selected
    the selection colours stand in for them, and an unset one leaves the
-   theme's selection look. With :cpp:func:`enable_headers_visual_styles <gui_forms::DataGridView::enable_headers_visual_styles>` off, the header
+   theme's selection look. With :cpp:member:`enable_headers_visual_styles <gui_forms::DataGridView::enable_headers_visual_styles>` off, the header
    styles' colours paint the headers, their labels and glyphs.
    Raised and sunken cell and header lines draw as the theme's divider, as
    single ones do, where Windows Forms draws bevels. An edit the user did not
@@ -743,7 +746,7 @@ gui_forms::DataGridView
    selection) chooses the header texts.
 
    Columns size themselves as Windows Forms' do. A column's ``auto_size_mode``
-   (else the grid's :cpp:func:`auto_size_columns_mode <gui_forms::DataGridView::auto_size_columns_mode>`) sizes it to its cells' preferred
+   (else the grid's :cpp:member:`auto_size_columns_mode <gui_forms::DataGridView::auto_size_columns_mode>`) sizes it to its cells' preferred
    widths over every row or the rows shown, with or without its header's, to
    its header alone, or as a ``fill`` column sharing the width the others
    leave by ``fill_weight``. Automatic widths are applied when the grid lays
@@ -755,8 +758,8 @@ gui_forms::DataGridView
    Any row may have its own height (Windows Forms' DataGridViewRow.Height), of
    any row source, virtual rows included (owner decision, 2026-11-02): it stays
    with the row's ID while rows move and ends with the row. Rows without one
-   have :cpp:func:`row_height <gui_forms::DataGridView::row_height>`. The grid finds rows by offset through a Fenwick tree of
-   the heights' differences from :cpp:func:`row_height <gui_forms::DataGridView::row_height>` (:cpp:class:`DataGridViewRowHeights <gui_forms::DataGridViewRowHeights>`), so
+   have :cpp:member:`row_height <gui_forms::DataGridView::row_height>`. The grid finds rows by offset through a Fenwick tree of
+   the heights' differences from :cpp:member:`row_height <gui_forms::DataGridView::row_height>` (:cpp:class:`DataGridViewRowHeights <gui_forms::DataGridViewRowHeights>`), so
    scrolling, hit testing and painting cost a logarithmic search, not a walk
    over the rows; while no row has its own height nothing is stored. A change
    to the rows rebuilds the tree in one pass over them while any row has its
@@ -765,7 +768,7 @@ gui_forms::DataGridView
    when scrolled to the end.
 
    Rows size themselves as Windows Forms' do. With an ``all`` mode of
-   :cpp:func:`auto_size_rows_mode <gui_forms::DataGridView::auto_size_rows_mode>` every row is measured, its header's or cells'
+   :cpp:member:`auto_size_rows_mode <gui_forms::DataGridView::auto_size_rows_mode>` every row is measured, its header's or cells'
    preferred height (a wrapped text cell's lines at its column's width), after
    a change to the values, rows, columns, column widths, styles or text scale;
    virtual rows ask their provider for every cell. A ``displayed`` mode
@@ -777,7 +780,7 @@ gui_forms::DataGridView
 
    Columns have a display order apart from their indices (Windows Forms'
    DisplayIndex): :cpp:func:`set_column_display_index <gui_forms::DataGridView::set_column_display_index>` moves one, and with
-   :cpp:func:`allow_user_to_order_columns <gui_forms::DataGridView::allow_user_to_order_columns>` the user drags a header, the
+   :cpp:member:`allow_user_to_order_columns <gui_forms::DataGridView::allow_user_to_order_columns>` the user drags a header, the
    ``column_drop_indicator`` part showing where it goes; a drag is no header
    click. What the user sees and walks follows display order: the columns'
    places, the arrow keys, Tab, Home and End, range selection, the semantic
@@ -851,6 +854,159 @@ gui_forms::DataGridView
 
    .. rubric:: Properties
 
+   .. cpp:member:: DataGridViewAutoSizeColumnsMode auto_size_columns_mode
+
+      The auto size mode of columns whose own is ``not_set``.
+
+   .. cpp:member:: DataGridViewAutoSizeRowsMode auto_size_rows_mode
+
+      How rows size their heights: to their headers, cells or both, over
+      every row or the rows shown.
+
+   .. cpp:member:: DataGridViewClipboardCopyMode clipboard_copy_mode
+
+      Which header texts a copy includes, or ``disable``.
+
+   .. cpp:member:: DataGridViewRowOrderPolicy row_order_policy
+
+      Who chooses the mode: the grid, by the thresholds, or the program,
+      pinning ``edit`` or ``window``, which is switched to at once. Pinning
+      ``window`` without a window source throws ``std::logic_error``.
+
+   .. cpp:member:: DataGridViewRowOrderThresholds row_order_thresholds
+
+      The automatic policy's :cpp:class:`DataGridViewRowOrderThresholds <gui_forms::DataGridViewRowOrderThresholds>`: window mode
+      from ``window_rows`` rows (250000) or ``window_changes`` reported changes
+      in one layout pass (20000); edit mode again at most ``edit_rows`` rows
+      (100000) with at most ``edit_changes`` changes (1000) in the last pass
+      and this one; ``window_margin`` rows (64) held past each end of the
+      displayed rows. New thresholds apply at once. Edit thresholds above
+      window thresholds throw ``std::invalid_argument``.
+
+   .. cpp:member:: bool allow_user_to_delete_rows
+
+      Whether Delete removes the selected rows.
+
+   .. cpp:member:: bool show_cell_errors
+
+      Whether cells show their error glyphs (ShowCellErrors).
+
+   .. cpp:member:: bool show_row_errors
+
+      Whether row headers show their error glyphs (ShowRowErrors).
+
+   .. cpp:member:: bool show_editing_icon
+
+      Whether the current row's header shows the editing glyph (ShowEditingIcon).
+
+   .. cpp:member:: DataGridViewCellStyle default_cell_style
+
+      The grid's cell style (:cpp:class:`DataGridViewCellStyle <gui_forms::DataGridViewCellStyle>`), last in every cell's
+      inheritance chain; empty by default.
+
+   .. cpp:member:: DataGridViewCellStyle rows_default_cell_style
+
+      The style of every row's cells, before the column's.
+
+   .. cpp:member:: DataGridViewCellStyle alternating_rows_default_cell_style
+
+      The style of odd positions' cells, before the rows'.
+
+   .. cpp:member:: DataGridViewCellStyle column_headers_default_cell_style
+
+      The column headers' style, before the grid's.
+
+   .. cpp:member:: DataGridViewCellStyle row_headers_default_cell_style
+
+      The row headers' style, before the grid's.
+
+   .. cpp:member:: bool enable_headers_visual_styles
+
+      Whether the theme draws the headers, their styles' colours unused.
+
+   .. cpp:member:: std::optional<Color> grid_color
+
+      The grid lines' colour, an authored colour (owner decision T4-1).
+
+   .. cpp:member:: std::optional<Color> background_color
+
+      The colour where no cell is; the theme's ground stays under the cells.
+
+   .. cpp:member:: BorderStyle border_style
+
+      The grid's frame; ``none`` publishes no ``edge`` part.
+
+   .. cpp:member:: DataGridViewCellBorderStyle cell_border_style
+
+      Which lines the cells draw: all, vertical, horizontal or none.
+
+   .. cpp:member:: DataGridViewHeaderBorderStyle column_headers_border_style
+
+      The lines between column headers; ``none`` keeps the resize grips.
+
+   .. cpp:member:: DataGridViewHeaderBorderStyle row_headers_border_style
+
+      The lines between row headers.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      ``owner_draw`` raises :cpp:func:`draw_item_content <gui_forms::DataGridView::draw_item_content>` for each data cell.
+
+   .. cpp:member:: bool column_headers_visible
+
+      Whether the column header row shows.
+
+   .. cpp:member:: bool row_headers_visible
+
+      Whether the row header column shows.
+
+   .. cpp:member:: double column_headers_height
+
+      The height of the column header row, from 4 to 256.
+
+   .. cpp:member:: double row_headers_width
+
+      The width of the row header column, from 4 to 1024.
+
+   .. cpp:member:: double row_height
+
+      The height of every row without its own, from 4 to 256.
+
+   .. cpp:member:: FontSpec font
+
+      The font of cell and header text.
+
+   .. cpp:member:: bool read_only
+
+      Whether no cell of the grid edits, toggles or chooses.
+
+   .. cpp:member:: bool allow_user_to_resize_columns
+
+      Whether dragging a column header's divider resizes the column.
+
+   .. cpp:member:: bool allow_user_to_resize_rows
+
+      Whether dragging a row header's bottom edge (the ``row_grip`` part)
+      gives the row its own height, while rows do not size themselves.
+
+   .. cpp:member:: bool allow_user_to_order_columns
+
+      Whether dragging a column header moves the column.
+
+   .. cpp:member:: DataGridViewSelectionMode selection_mode
+
+      :cpp:enumerator:`DataGridViewSelectionMode::cell_select <gui_forms::DataGridViewSelectionMode::cell_select>` selects cells,
+      ``full_row_select`` whole rows. Changing it selects the current cell (or
+      row) alone.
+
+   .. cpp:member:: bool multi_select
+
+      Whether Ctrl and Shift add to the selection.
+
+   .. cpp:member:: DataGridViewEditMode edit_mode
+
+      What starts an edit (EditMode).
+
    .. cpp:function:: std::span<const DataGridViewColumn> columns() const noexcept
 
       The columns, in display order. :cpp:func:`set_columns <gui_forms::DataGridView::set_columns>` replaces them, :cpp:func:`add_column <gui_forms::DataGridView::add_column>`
@@ -863,14 +1019,6 @@ gui_forms::DataGridView
    .. cpp:function:: void set_columns(std::vector<DataGridViewColumn> columns)
 
       Sets :cpp:func:`columns <gui_forms::DataGridView::columns>`; see the property's description above.
-
-   .. cpp:function:: DataGridViewAutoSizeColumnsMode auto_size_columns_mode() const noexcept
-
-      The auto size mode of columns whose own is ``not_set``.
-
-   .. cpp:function:: void set_auto_size_columns_mode(DataGridViewAutoSizeColumnsMode mode)
-
-      Sets :cpp:func:`auto_size_columns_mode <gui_forms::DataGridView::auto_size_columns_mode>`; see the property's description above.
 
    .. cpp:function:: DataGridViewRowSource row_source() const noexcept
 
@@ -896,14 +1044,6 @@ gui_forms::DataGridView
 
       That sort's direction.
 
-   .. cpp:function:: DataGridViewClipboardCopyMode clipboard_copy_mode() const noexcept
-
-      Which header texts a copy includes, or ``disable``.
-
-   .. cpp:function:: void set_clipboard_copy_mode(DataGridViewClipboardCopyMode mode)
-
-      Sets :cpp:func:`clipboard_copy_mode <gui_forms::DataGridView::clipboard_copy_mode>`; see the property's description above.
-
    .. cpp:function:: std::optional<std::string> clipboard_content() const
 
       The selection as tab-separated text, one line per row ending ``\r\n``,
@@ -925,30 +1065,6 @@ gui_forms::DataGridView
 
       How the virtual rows' order is held: ``edit`` (every ID, in a chunked
       order index) or ``window`` (the IDs around the displayed rows).
-
-   .. cpp:function:: DataGridViewRowOrderPolicy row_order_policy() const noexcept
-
-      Who chooses the mode: the grid, by the thresholds, or the program,
-      pinning ``edit`` or ``window``, which is switched to at once. Pinning
-      ``window`` without a window source throws ``std::logic_error``.
-
-   .. cpp:function:: void set_row_order_policy(DataGridViewRowOrderPolicy policy)
-
-      Sets :cpp:func:`row_order_policy <gui_forms::DataGridView::row_order_policy>`; see the property's description above.
-
-   .. cpp:function:: const DataGridViewRowOrderThresholds& row_order_thresholds() const noexcept
-
-      The automatic policy's :cpp:class:`DataGridViewRowOrderThresholds <gui_forms::DataGridViewRowOrderThresholds>`: window mode
-      from ``window_rows`` rows (250000) or ``window_changes`` reported changes
-      in one layout pass (20000); edit mode again at most ``edit_rows`` rows
-      (100000) with at most ``edit_changes`` changes (1000) in the last pass
-      and this one; ``window_margin`` rows (64) held past each end of the
-      displayed rows. New thresholds apply at once. Edit thresholds above
-      window thresholds throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_row_order_thresholds(DataGridViewRowOrderThresholds thresholds)
-
-      Sets :cpp:func:`row_order_thresholds <gui_forms::DataGridView::row_order_thresholds>`; see the property's description above.
 
    .. cpp:function:: const DataGridViewRowOrderStatistics& row_order_statistics() const noexcept
 
@@ -978,226 +1094,9 @@ gui_forms::DataGridView
 
       The new row's position, while it is shown.
 
-   .. cpp:function:: bool allow_user_to_delete_rows() const noexcept
-
-      Whether Delete removes the selected rows.
-
-   .. cpp:function:: void set_allow_user_to_delete_rows(bool allow)
-
-      Sets :cpp:func:`allow_user_to_delete_rows <gui_forms::DataGridView::allow_user_to_delete_rows>`; see the property's description above.
-
-   .. cpp:function:: bool show_cell_errors() const noexcept
-
-   .. cpp:function:: void set_show_cell_errors(bool show)
-
-   .. cpp:function:: bool show_row_errors() const noexcept
-
-   .. cpp:function:: void set_show_row_errors(bool show)
-
-   .. cpp:function:: bool show_editing_icon() const noexcept
-
-      The pencil the current row's header shows while the row is dirty (Windows Forms' ShowEditingIcon); on by default.
-
-   .. cpp:function:: void set_show_editing_icon(bool show)
-
-   .. cpp:function:: const DataGridViewCellStyle& default_cell_style() const noexcept
-
-      The grid's cell style (:cpp:class:`DataGridViewCellStyle <gui_forms::DataGridViewCellStyle>`), last in every cell's
-      inheritance chain; empty by default.
-
-   .. cpp:function:: void set_default_cell_style(DataGridViewCellStyle style)
-
-      Sets :cpp:func:`default_cell_style <gui_forms::DataGridView::default_cell_style>`; see the property's description above.
-
-   .. cpp:function:: const DataGridViewCellStyle& rows_default_cell_style() const noexcept
-
-      The style of every row's cells, before the column's.
-
-   .. cpp:function:: void set_rows_default_cell_style(DataGridViewCellStyle style)
-
-      Sets :cpp:func:`rows_default_cell_style <gui_forms::DataGridView::rows_default_cell_style>`; see the property's description above.
-
-   .. cpp:function:: const DataGridViewCellStyle& alternating_rows_default_cell_style() const noexcept
-
-      The style of odd positions' cells, before the rows'.
-
-   .. cpp:function:: void set_alternating_rows_default_cell_style(DataGridViewCellStyle style)
-
-      Sets :cpp:func:`alternating_rows_default_cell_style <gui_forms::DataGridView::alternating_rows_default_cell_style>`; see the property's description above.
-
-   .. cpp:function:: const DataGridViewCellStyle& column_headers_default_cell_style() const noexcept
-
-      The column headers' style, before the grid's.
-
-   .. cpp:function:: void set_column_headers_default_cell_style(DataGridViewCellStyle style)
-
-      Sets :cpp:func:`column_headers_default_cell_style <gui_forms::DataGridView::column_headers_default_cell_style>`; see the property's description above.
-
-   .. cpp:function:: const DataGridViewCellStyle& row_headers_default_cell_style() const noexcept
-
-      The row headers' style, before the grid's.
-
-   .. cpp:function:: void set_row_headers_default_cell_style(DataGridViewCellStyle style)
-
-      Sets :cpp:func:`row_headers_default_cell_style <gui_forms::DataGridView::row_headers_default_cell_style>`; see the property's description above.
-
    .. cpp:function:: DataGridViewCellStyle inherited_row_header_style() const
 
       The style row headers draw with: the row headers', then the grid's.
-
-   .. cpp:function:: bool enable_headers_visual_styles() const noexcept
-
-      Whether the theme draws the headers, their styles' colours unused.
-
-   .. cpp:function:: void set_enable_headers_visual_styles(bool enable)
-
-      Sets :cpp:func:`enable_headers_visual_styles <gui_forms::DataGridView::enable_headers_visual_styles>`; see the property's description above.
-
-   .. cpp:function:: std::optional<Color> grid_color() const noexcept
-
-      The grid lines' colour, an authored colour (owner decision T4-1).
-
-   .. cpp:function:: void set_grid_color(std::optional<Color> color)
-
-      Sets :cpp:func:`grid_color <gui_forms::DataGridView::grid_color>`; see the property's description above.
-
-   .. cpp:function:: std::optional<Color> background_color() const noexcept
-
-      The colour where no cell is; the theme's ground stays under the cells.
-
-   .. cpp:function:: void set_background_color(std::optional<Color> color)
-
-      Sets :cpp:func:`background_color <gui_forms::DataGridView::background_color>`; see the property's description above.
-
-   .. cpp:function:: BorderStyle border_style() const noexcept
-
-      The grid's frame; ``none`` publishes no ``edge`` part.
-
-   .. cpp:function:: void set_border_style(BorderStyle style)
-
-      Sets :cpp:func:`border_style <gui_forms::DataGridView::border_style>`; see the property's description above.
-
-   .. cpp:function:: DataGridViewCellBorderStyle cell_border_style() const noexcept
-
-      Which lines the cells draw: all, vertical, horizontal or none.
-
-   .. cpp:function:: void set_cell_border_style(DataGridViewCellBorderStyle style)
-
-      Sets :cpp:func:`cell_border_style <gui_forms::DataGridView::cell_border_style>`; see the property's description above.
-
-   .. cpp:function:: DataGridViewHeaderBorderStyle column_headers_border_style() const noexcept
-
-      The lines between column headers; ``none`` keeps the resize grips.
-
-   .. cpp:function:: void set_column_headers_border_style(DataGridViewHeaderBorderStyle style)
-
-      Sets :cpp:func:`column_headers_border_style <gui_forms::DataGridView::column_headers_border_style>`; see the property's description above.
-
-   .. cpp:function:: DataGridViewHeaderBorderStyle row_headers_border_style() const noexcept
-
-      The lines between row headers.
-
-   .. cpp:function:: void set_row_headers_border_style(DataGridViewHeaderBorderStyle style)
-
-      Sets :cpp:func:`row_headers_border_style <gui_forms::DataGridView::row_headers_border_style>`; see the property's description above.
-
-   .. cpp:function:: ItemDrawMode draw_mode() const noexcept
-
-      ``owner_draw`` raises :cpp:func:`draw_item_content <gui_forms::DataGridView::draw_item_content>` for each data cell.
-
-   .. cpp:function:: void set_draw_mode(ItemDrawMode mode)
-
-      Sets :cpp:func:`draw_mode <gui_forms::DataGridView::draw_mode>`; see the property's description above.
-
-   .. cpp:function:: bool column_headers_visible() const noexcept
-
-      Whether the column header row shows.
-
-   .. cpp:function:: void set_column_headers_visible(bool visible)
-
-      Sets :cpp:func:`column_headers_visible <gui_forms::DataGridView::column_headers_visible>`; see the property's description above.
-
-   .. cpp:function:: bool row_headers_visible() const noexcept
-
-      Whether the row header column shows.
-
-   .. cpp:function:: void set_row_headers_visible(bool visible)
-
-      Sets :cpp:func:`row_headers_visible <gui_forms::DataGridView::row_headers_visible>`; see the property's description above.
-
-   .. cpp:function:: double column_headers_height() const noexcept
-
-      The height of the column header row, from 4 to 256.
-
-   .. cpp:function:: void set_column_headers_height(double height)
-
-      Sets :cpp:func:`column_headers_height <gui_forms::DataGridView::column_headers_height>`; see the property's description above.
-
-   .. cpp:function:: double row_headers_width() const noexcept
-
-      The width of the row header column, from 4 to 1024.
-
-   .. cpp:function:: void set_row_headers_width(double width)
-
-      Sets :cpp:func:`row_headers_width <gui_forms::DataGridView::row_headers_width>`; see the property's description above.
-
-   .. cpp:function:: double row_height() const noexcept
-
-      The height of every row without its own, from 4 to 256.
-
-   .. cpp:function:: void set_row_height(double height)
-
-      Sets :cpp:func:`row_height <gui_forms::DataGridView::row_height>`; see the property's description above.
-
-   .. cpp:function:: DataGridViewAutoSizeRowsMode auto_size_rows_mode() const noexcept
-
-      How rows size their heights: to their headers, cells or both, over
-      every row or the rows shown.
-
-   .. cpp:function:: void set_auto_size_rows_mode(DataGridViewAutoSizeRowsMode mode)
-
-      Sets :cpp:func:`auto_size_rows_mode <gui_forms::DataGridView::auto_size_rows_mode>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of cell and header text.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::DataGridView::font>`; see the property's description above.
-
-   .. cpp:function:: bool read_only() const noexcept
-
-      Whether no cell of the grid edits, toggles or chooses.
-
-   .. cpp:function:: void set_read_only(bool read_only)
-
-      Sets :cpp:func:`read_only <gui_forms::DataGridView::read_only>`; see the property's description above.
-
-   .. cpp:function:: bool allow_user_to_resize_columns() const noexcept
-
-      Whether dragging a column header's divider resizes the column.
-
-   .. cpp:function:: void set_allow_user_to_resize_columns(bool allow)
-
-      Sets :cpp:func:`allow_user_to_resize_columns <gui_forms::DataGridView::allow_user_to_resize_columns>`; see the property's description above.
-
-   .. cpp:function:: bool allow_user_to_resize_rows() const noexcept
-
-      Whether dragging a row header's bottom edge (the ``row_grip`` part)
-      gives the row its own height, while rows do not size themselves.
-
-   .. cpp:function:: void set_allow_user_to_resize_rows(bool allow)
-
-      Sets :cpp:func:`allow_user_to_resize_rows <gui_forms::DataGridView::allow_user_to_resize_rows>`; see the property's description above.
-
-   .. cpp:function:: bool allow_user_to_order_columns() const noexcept
-
-      Whether dragging a column header moves the column.
-
-   .. cpp:function:: void set_allow_user_to_order_columns(bool allow)
-
-      Sets :cpp:func:`allow_user_to_order_columns <gui_forms::DataGridView::allow_user_to_order_columns>`; see the property's description above.
 
    .. cpp:function:: DataGridViewRowPosition first_displayed_row() const noexcept
 
@@ -1229,24 +1128,6 @@ gui_forms::DataGridView
 
       The child :cpp:class:`HScrollBar <gui_forms::HScrollBar>` that scrolls by logical units.
 
-   .. cpp:function:: DataGridViewSelectionMode selection_mode() const noexcept
-
-      :cpp:enumerator:`DataGridViewSelectionMode::cell_select <gui_forms::DataGridViewSelectionMode::cell_select>` selects cells,
-      ``full_row_select`` whole rows. Changing it selects the current cell (or
-      row) alone.
-
-   .. cpp:function:: void set_selection_mode(DataGridViewSelectionMode mode)
-
-      Sets :cpp:func:`selection_mode <gui_forms::DataGridView::selection_mode>`; see the property's description above.
-
-   .. cpp:function:: bool multi_select() const noexcept
-
-      Whether Ctrl and Shift add to the selection.
-
-   .. cpp:function:: void set_multi_select(bool multi_select)
-
-      Sets :cpp:func:`multi_select <gui_forms::DataGridView::multi_select>`; see the property's description above.
-
    .. cpp:function:: std::optional<DataGridViewCellAddress> current_cell() const
 
       The cell keyboard input acts on, at its row's present position, or none.
@@ -1275,10 +1156,6 @@ gui_forms::DataGridView
    .. cpp:function:: bool is_current_cell_in_edit_mode() const noexcept
 
       Whether a text cell is in edit or a combo box cell's choices are open.
-
-   .. cpp:function:: DataGridViewEditMode edit_mode() const noexcept
-
-   .. cpp:function:: void set_edit_mode(DataGridViewEditMode mode)
 
    .. cpp:function:: bool is_current_cell_dirty() const noexcept
 
@@ -1614,11 +1491,11 @@ gui_forms::DataGridView
 
    .. cpp:function:: double row_height_at(DataGridViewRowPosition row) const
 
-      A row's height: its own, or :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+      A row's height: its own, or :cpp:member:`row_height <gui_forms::DataGridView::row_height>`.
 
    .. cpp:function:: void reset_row_height_at(DataGridViewRowPosition row)
 
-      Returns a row to :cpp:func:`row_height <gui_forms::DataGridView::row_height>`.
+      Returns a row to :cpp:member:`row_height <gui_forms::DataGridView::row_height>`.
 
    .. cpp:function:: void auto_resize_row(DataGridViewRowPosition row, DataGridViewAutoSizeRowMode mode = DataGridViewAutoSizeRowMode::all_cells)
 
@@ -1659,7 +1536,7 @@ gui_forms::DataGridView
 
    .. cpp:function:: void select_all()
 
-      Selects every cell, or every row; nothing without :cpp:func:`multi_select <gui_forms::DataGridView::multi_select>`.
+      Selects every cell, or every row; nothing without :cpp:member:`multi_select <gui_forms::DataGridView::multi_select>`.
 
    .. cpp:function:: bool begin_edit(bool select_all = true)
 
@@ -1711,7 +1588,7 @@ gui_forms::DataGridView
 
       Shows an ascending or descending sort glyph on a column header, or none.
 
-   .. cpp:function:: void set_column_read_only(std::size_t column, bool read_only)
+   .. cpp:function:: void set_column_read_only(std::size_t column, bool column_read_only)
 
       Makes a column's cells read-only, ending an edit in that column.
 
@@ -1801,7 +1678,7 @@ gui_forms::DataGridView
    .. cpp:function:: void set_cell_selected(DataGridViewRowPosition row, std::size_t column, bool selected)
 
       Selects or deselects a cell (its row in full-row mode). Without
-      :cpp:func:`multi_select <gui_forms::DataGridView::multi_select>`, selecting clears the rest.
+      :cpp:member:`multi_select <gui_forms::DataGridView::multi_select>`, selecting clears the rest.
 
    .. cpp:function:: void set_row_selected(DataGridViewRowPosition row, bool selected)
 
