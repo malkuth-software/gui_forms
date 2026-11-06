@@ -252,7 +252,7 @@ GF_LAYOUT_ASSERT(offsetof(gf_schema_effect, flags) == 60, "gf_schema_effect.flag
 GF_LAYOUT_ASSERT(offsetof(gf_schema_effect, state_budget) == 64, "gf_schema_effect.state_budget offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_effect, frames_per_second) == 72, "gf_schema_effect.frames_per_second offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_effect, outsets) == 80, "gf_schema_effect.outsets offset");
-GF_LAYOUT_ASSERT(sizeof(gf_schema_table) == 160, "gf_schema_table size");
+GF_LAYOUT_ASSERT(sizeof(gf_schema_table) == 184, "gf_schema_table size");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_table, struct_size) == 0, "gf_schema_table.struct_size offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_table, abi_minor) == 4, "gf_schema_table.abi_minor offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_table, vocabulary_count) == 8, "gf_schema_table.vocabulary_count offset");
@@ -274,6 +274,9 @@ GF_LAYOUT_ASSERT(offsetof(gf_schema_table, parameter_at) == 128, "gf_schema_tabl
 GF_LAYOUT_ASSERT(offsetof(gf_schema_table, parameter_choice_at) == 136, "gf_schema_table.parameter_choice_at offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_table, effect_count) == 144, "gf_schema_table.effect_count offset");
 GF_LAYOUT_ASSERT(offsetof(gf_schema_table, effect_at) == 152, "gf_schema_table.effect_at offset");
+GF_LAYOUT_ASSERT(offsetof(gf_schema_table, child_property_count) == 160, "gf_schema_table.child_property_count offset");
+GF_LAYOUT_ASSERT(offsetof(gf_schema_table, child_property_at) == 168, "gf_schema_table.child_property_at offset");
+GF_LAYOUT_ASSERT(offsetof(gf_schema_table, child_choice_at) == 176, "gf_schema_table.child_choice_at offset");
 GF_LAYOUT_ASSERT(sizeof(gf_bytes_view) == 16, "gf_bytes_view size");
 GF_LAYOUT_ASSERT(offsetof(gf_bytes_view, data) == 0, "gf_bytes_view.data offset");
 GF_LAYOUT_ASSERT(offsetof(gf_bytes_view, size) == 8, "gf_bytes_view.size offset");

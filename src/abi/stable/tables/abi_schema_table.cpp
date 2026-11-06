@@ -40,6 +40,9 @@ constexpr SlotIdentity parameter_at_slot{GF_TABLE_SCHEMA, 15U};
 constexpr SlotIdentity parameter_choice_at_slot{GF_TABLE_SCHEMA, 16U};
 constexpr SlotIdentity effect_count_slot{GF_TABLE_SCHEMA, 17U};
 constexpr SlotIdentity effect_at_slot{GF_TABLE_SCHEMA, 18U};
+constexpr SlotIdentity child_property_count_slot{GF_TABLE_SCHEMA, 19U};
+constexpr SlotIdentity child_property_at_slot{GF_TABLE_SCHEMA, 20U};
+constexpr SlotIdentity child_choice_at_slot{GF_TABLE_SCHEMA, 21U};
 
 // One schema call on the UI thread. A library that had no UI thread binds
 // the calling thread for the call and is unbound again when the call ends,
@@ -436,41 +439,99 @@ gf_status GF_CALL schema_custom_state_at(std::uint64_t type, std::uint64_t syste
     }
 }
 
+// Which of a type's property lists a property or choice call reads.
+enum class PropertyList : std::uint8_t { own, provided_to_children };
+
+const std::vector<SchemaProperty>& properties_of(const SchemaType& type, PropertyList list) noexcept {
+    switch (list) {
+    case PropertyList::own:
+        return type.properties;
+    case PropertyList::provided_to_children:
+        return type.child_properties;
+    default:
+        return type.properties;
+    }
+}
+
+gf_status read_property(std::uint64_t type, std::uint64_t property, gf_schema_property* record,
+                        PropertyList list, SlotIdentity slot) {
+    const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
+    const gf_status valid = check_record(record, slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const std::vector<SchemaProperty>& properties = properties_of(*found, list);
+    const gf_status checked = check_index(property, properties.size(), slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const SchemaProperty& held = properties[static_cast<std::size_t>(property)];
+    gf_schema_property complete{};
+    complete.struct_size = sizeof(gf_schema_property);
+    complete.kind = held.kind;
+    complete.name = view_of(held.name);
+    complete.category = view_of(held.category);
+    complete.enumeration = view_of(held.enumeration);
+    complete.choice_count = held.choices.size();
+    complete.flags = held.flags;
+    complete.serialization = held.serialization;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
+gf_status read_choice(std::uint64_t type, std::uint64_t property, std::uint64_t choice, gf_schema_choice* record,
+                      PropertyList list, SlotIdentity slot) {
+    const ShadowFrameScope shadow_frame(slot.table_id, slot.slot_index);
+    const gf_status valid = check_record(record, slot);
+    if (valid != GF_STATUS_OK) {
+        return valid;
+    }
+    SchemaCall call;
+    const Schema* built = nullptr;
+    const gf_status entered = call.enter(slot, built);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const SchemaType* found = nullptr;
+    const gf_status located = find_type_at(*built, type, slot, found);
+    if (located != GF_STATUS_OK) {
+        return located;
+    }
+    const std::vector<SchemaProperty>& properties = properties_of(*found, list);
+    const gf_status property_checked = check_index(property, properties.size(), slot);
+    if (property_checked != GF_STATUS_OK) {
+        return property_checked;
+    }
+    const SchemaProperty& held = properties[static_cast<std::size_t>(property)];
+    const gf_status checked = check_index(choice, held.choices.size(), slot);
+    if (checked != GF_STATUS_OK) {
+        return checked;
+    }
+    const SchemaChoice& value = held.choices[static_cast<std::size_t>(choice)];
+    gf_schema_choice complete{};
+    complete.struct_size = sizeof(gf_schema_choice);
+    complete.name = view_of(value.name);
+    complete.value = value.value;
+    write_record(complete, record);
+    return GF_STATUS_OK;
+}
+
 gf_status GF_CALL schema_property_at(std::uint64_t type, std::uint64_t property,
                                      gf_schema_property* record) noexcept {
     try {
-        const ShadowFrameScope shadow_frame(property_at_slot.table_id, property_at_slot.slot_index);
-        const gf_status valid = check_record(record, property_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
-        }
-        SchemaCall call;
-        const Schema* built = nullptr;
-        const gf_status entered = call.enter(property_at_slot, built);
-        if (entered != GF_STATUS_OK) {
-            return entered;
-        }
-        const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, property_at_slot, found);
-        if (located != GF_STATUS_OK) {
-            return located;
-        }
-        const gf_status checked = check_index(property, (*found).properties.size(), property_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const SchemaProperty& held = (*found).properties[static_cast<std::size_t>(property)];
-        gf_schema_property complete{};
-        complete.struct_size = sizeof(gf_schema_property);
-        complete.kind = held.kind;
-        complete.name = view_of(held.name);
-        complete.category = view_of(held.category);
-        complete.enumeration = view_of(held.enumeration);
-        complete.choice_count = held.choices.size();
-        complete.flags = held.flags;
-        complete.serialization = held.serialization;
-        write_record(complete, record);
-        return GF_STATUS_OK;
+        const gf_status status = read_property(type, property, record, PropertyList::own, property_at_slot);
+        return status;
     } catch (...) {
         return fail_with_current_exception(property_at_slot);
     }
@@ -479,40 +540,56 @@ gf_status GF_CALL schema_property_at(std::uint64_t type, std::uint64_t property,
 gf_status GF_CALL schema_choice_at(std::uint64_t type, std::uint64_t property, std::uint64_t choice,
                                    gf_schema_choice* record) noexcept {
     try {
-        const ShadowFrameScope shadow_frame(choice_at_slot.table_id, choice_at_slot.slot_index);
-        const gf_status valid = check_record(record, choice_at_slot);
-        if (valid != GF_STATUS_OK) {
-            return valid;
+        const gf_status status = read_choice(type, property, choice, record, PropertyList::own, choice_at_slot);
+        return status;
+    } catch (...) {
+        return fail_with_current_exception(choice_at_slot);
+    }
+}
+
+gf_status GF_CALL schema_child_property_count(std::uint64_t type, std::uint64_t* count) noexcept {
+    try {
+        const ShadowFrameScope shadow_frame(child_property_count_slot.table_id, child_property_count_slot.slot_index);
+        if (count == nullptr) {
+            return fail(GF_STATUS_INVALID_ARGUMENT, child_property_count_slot, "child_property_count needs an output");
         }
         SchemaCall call;
         const Schema* built = nullptr;
-        const gf_status entered = call.enter(choice_at_slot, built);
+        const gf_status entered = call.enter(child_property_count_slot, built);
         if (entered != GF_STATUS_OK) {
             return entered;
         }
         const SchemaType* found = nullptr;
-        const gf_status located = find_type_at(*built, type, choice_at_slot, found);
+        const gf_status located = find_type_at(*built, type, child_property_count_slot, found);
         if (located != GF_STATUS_OK) {
             return located;
         }
-        const gf_status property_checked = check_index(property, (*found).properties.size(), choice_at_slot);
-        if (property_checked != GF_STATUS_OK) {
-            return property_checked;
-        }
-        const SchemaProperty& held = (*found).properties[static_cast<std::size_t>(property)];
-        const gf_status checked = check_index(choice, held.choices.size(), choice_at_slot);
-        if (checked != GF_STATUS_OK) {
-            return checked;
-        }
-        const SchemaChoice& value = held.choices[static_cast<std::size_t>(choice)];
-        gf_schema_choice complete{};
-        complete.struct_size = sizeof(gf_schema_choice);
-        complete.name = view_of(value.name);
-        complete.value = value.value;
-        write_record(complete, record);
+        *count = (*found).child_properties.size();
         return GF_STATUS_OK;
     } catch (...) {
-        return fail_with_current_exception(choice_at_slot);
+        return fail_with_current_exception(child_property_count_slot);
+    }
+}
+
+gf_status GF_CALL schema_child_property_at(std::uint64_t type, std::uint64_t property,
+                                           gf_schema_property* record) noexcept {
+    try {
+        const gf_status status =
+            read_property(type, property, record, PropertyList::provided_to_children, child_property_at_slot);
+        return status;
+    } catch (...) {
+        return fail_with_current_exception(child_property_at_slot);
+    }
+}
+
+gf_status GF_CALL schema_child_choice_at(std::uint64_t type, std::uint64_t property, std::uint64_t choice,
+                                         gf_schema_choice* record) noexcept {
+    try {
+        const gf_status status =
+            read_choice(type, property, choice, record, PropertyList::provided_to_children, child_choice_at_slot);
+        return status;
+    } catch (...) {
+        return fail_with_current_exception(child_choice_at_slot);
     }
 }
 
@@ -876,6 +953,9 @@ constexpr gf_schema_table table{
     .parameter_choice_at = &schema_parameter_choice_at,
     .effect_count = &schema_effect_count,
     .effect_at = &schema_effect_at,
+    .child_property_count = &schema_child_property_count,
+    .child_property_at = &schema_child_property_at,
+    .child_choice_at = &schema_child_choice_at,
 };
 
 } // namespace

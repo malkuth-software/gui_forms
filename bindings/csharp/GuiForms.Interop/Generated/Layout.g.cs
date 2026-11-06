@@ -380,7 +380,7 @@ public static unsafe class Layout
         {
             gf_schema_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_schema_table size", sizeof(gf_schema_table), 160);
+            failures += expect(output, "gf_schema_table size", sizeof(gf_schema_table), 184);
             failures += expect(output, "gf_schema_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_schema_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_schema_table.vocabulary_count offset", (long)((byte*)&value.vocabulary_count - start), 8);
@@ -402,6 +402,9 @@ public static unsafe class Layout
             failures += expect(output, "gf_schema_table.parameter_choice_at offset", (long)((byte*)&value.parameter_choice_at - start), 136);
             failures += expect(output, "gf_schema_table.effect_count offset", (long)((byte*)&value.effect_count - start), 144);
             failures += expect(output, "gf_schema_table.effect_at offset", (long)((byte*)&value.effect_at - start), 152);
+            failures += expect(output, "gf_schema_table.child_property_count offset", (long)((byte*)&value.child_property_count - start), 160);
+            failures += expect(output, "gf_schema_table.child_property_at offset", (long)((byte*)&value.child_property_at - start), 168);
+            failures += expect(output, "gf_schema_table.child_choice_at offset", (long)((byte*)&value.child_choice_at - start), 176);
         }
         {
             gf_bytes_view value = default;

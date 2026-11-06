@@ -3319,7 +3319,7 @@
     {
       "name": "gf_schema_table",
       "kind": "table",
-      "size": 160,
+      "size": 184,
       "align": 8,
       "fields": [
         {
@@ -3769,6 +3769,78 @@
               {
                 "name": "record",
                 "type": "gf_schema_effect*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "child_property_count",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "child_property_at",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_property*"
+              }
+            ]
+          },
+          "since": "1.1"
+        },
+        {
+          "name": "child_choice_at",
+          "type": "function",
+          "offset": 176,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "type",
+                "type": "uint64_t"
+              },
+              {
+                "name": "property",
+                "type": "uint64_t"
+              },
+              {
+                "name": "choice",
+                "type": "uint64_t"
+              },
+              {
+                "name": "record",
+                "type": "gf_schema_choice*"
               }
             ]
           },
