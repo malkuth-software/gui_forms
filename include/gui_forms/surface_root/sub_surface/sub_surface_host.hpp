@@ -75,6 +75,16 @@ public:
     // Null content stops it and leaves the region empty.
     void set_content(std::unique_ptr<SubSurfaceContent> content, bool opaque);
     [[nodiscard]] bool opaque() const noexcept { return opaque_; }
+    // The parent's redraw-all (design note section 2): sends a configuration
+    // under a new content epoch carrying `update` (null for none), so that
+    // the sub-surface's first frame at that epoch shows it and the window
+    // composes no older frame once it pairs (section 6). Call it in the same
+    // turn as the chrome change it must agree with (a scroll, a column
+    // width). Returns the epoch the update rides: the new content_epoch(),
+    // or, while there is no content, no window or no device size yet, 0 and
+    // the update waits for the first configuration (a newer one replaces
+    // it). New content (set_content) discards a waiting update.
+    std::uint64_t redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update);
     // Whether the sub-surface's thread exists (started and not stopped).
     [[nodiscard]] bool started() const noexcept { return static_cast<bool>(thread_); }
     // The thread's state; stopped while there is none.
@@ -209,6 +219,9 @@ private:
     bool opaque_{};
     // An environment change not yet sent.
     bool environment_changed_{};
+    // A redraw-all not yet sent, and its update (redraw_all).
+    bool redraw_requested_{};
+    std::unique_ptr<SubSurfaceContentUpdate> pending_update_{};
     SubscriptionToken theme_subscription_{};
     SubscriptionToken presentation_subscription_{};
     SubscriptionToken active_subscription_{};

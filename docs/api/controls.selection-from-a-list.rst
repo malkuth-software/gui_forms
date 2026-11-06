@@ -148,8 +148,26 @@ Related types
      - Raised when the grid needs a cell's text (Windows Forms' CellFormatting): to paint and lay it out, for its semantic value, and as the text an edit begins with.
    * - :cpp:class:`DataGridViewCellParsingEvent <gui_forms::DataGridViewCellParsingEvent>`
      - Raised when an edited text cell stores its text (Windows Forms' CellParsing), after cell_validating and before the text converts to the column's value kind.
+   * - :cpp:class:`DataGridViewCells <gui_forms::DataGridViewCells>`
+     - The sub-surface's root: paints the newest snapshot it was given, nothing else.
+   * - :cpp:class:`DataGridViewCellsCell <gui_forms::DataGridViewCellsCell>`
+     - One visible cell, resolved.
+   * - :cpp:class:`DataGridViewCellsContent <gui_forms::DataGridViewCellsContent>`
+     - The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate.
+   * - :cpp:class:`DataGridViewCellsLineRange <gui_forms::DataGridViewCellsLineRange>`
+     - A range of DataGridViewCellsSnapshot::lines: ``count`` lines from ``first``.
+   * - :cpp:class:`DataGridViewCellsLook <gui_forms::DataGridViewCellsLook>`
+     - The grid's look, which the sub-surface's control takes over so that the theme selects and colours its parts as it does the grid's: the grid's style classes and inline style select rules (its stable ID is the control's own, DataGridViewCellsContent); its effective back and fore colours (Control::ambient_back_color, ambient_fore_color) stand for its authored ones.
+   * - :cpp:class:`DataGridViewCellsParts <gui_forms::DataGridViewCellsParts>`
+     - The parts of one cell, placed in the region's coordinates; a part the cell's kind does not show is absent (PartGeometry::present).
+   * - :cpp:class:`DataGridViewCellsSnapshot <gui_forms::DataGridViewCellsSnapshot>`
+     - What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole.
+   * - :cpp:class:`DataGridViewCellsTextRange <gui_forms::DataGridViewCellsTextRange>`
+     - A byte range of DataGridViewCellsSnapshot::text: [begin_byte, end_byte).
    * - :cpp:class:`DataGridViewCellStyle <gui_forms::DataGridViewCellStyle>`
      - A cell style (Windows Forms' DataGridViewCellStyle).
+   * - :cpp:class:`DataGridViewCellsUpdate <gui_forms::DataGridViewCellsUpdate>`
+     - One snapshot on its way to the sub-surface (SubSurfaceHost::redraw_all).
    * - :cpp:class:`DataGridViewCellValidatingEvent <gui_forms::DataGridViewCellValidatingEvent>`
      - Raised before an edited text cell commits, with the text as typed.
    * - :cpp:class:`DataGridViewCellValueProvider <gui_forms::DataGridViewCellValueProvider>`
@@ -1387,6 +1405,223 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: DataGridViewCells final : public Control
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   The sub-surface's root: paints the newest snapshot it was given, nothing else. It takes no input and is not exposed to accessibility: the grid on the UI thread keeps the cells' events, focus and semantic nodes. It reports the grid's anatomy ID ("data_grid_view"), so the theme's rules for the grid's parts select its parts too. Sub-surface thread.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit DataGridViewCells(StableId stable_id)
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const DataGridViewCellsSnapshot& snapshot() const noexcept
+
+   .. cpp:function:: bool set_snapshot(DataGridViewCellsSnapshot snapshot)
+
+      Shows :cpp:func:`snapshot <gui_forms::DataGridViewCells::snapshot>` from the next frame: repaints the region whole and takes over its look. An invalid snapshot is refused, false, and the previous one stays.
+
+   .. cpp:function:: std::uint64_t snapshots_taken() const noexcept
+
+      Snapshots shown and refused.
+
+   .. cpp:function:: std::uint64_t snapshots_refused() const noexcept
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
+
+   .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsCell final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   One visible cell, resolved. Text and lines are ranges of the snapshot's shared buffers, so a snapshot of any size makes three allocations, not one per cell.
+
+   .. cpp:member:: DataGridViewCellsParts parts
+
+   .. cpp:member:: AnatomyStateSet states
+
+      The cell's active states (its anatomy's standard and custom states), as the theme reads them; checked draws a check box's indicator.
+
+   .. cpp:member:: bool visited
+
+      A link cell whose link is visited: drawn in the visited_link family.
+
+   .. cpp:member:: bool editing_text
+
+      The grid's text editor covers this cell: its text content is not drawn (the editor, on the UI thread, shows it).
+
+   .. cpp:member:: FontSpec font
+
+      The effective font (Control::effective_font) and the text alignment of the cell's style.
+
+   .. cpp:member:: PartTextAlignment alignment
+
+      Default: ``{PartTextAlignment::start}``.
+
+   .. cpp:member:: DataGridViewCellsTextRange text
+
+      The formatted value as the cell shows it.
+
+   .. cpp:member:: DataGridViewCellsLineRange lines
+
+      Wrapped text: the lines, each a byte range of ``text`` itself, the box they take, their line height, and the content box they are cut to. No lines: the text is not wrapped.
+
+   .. cpp:member:: Rect lines_box
+
+   .. cpp:member:: double line_height
+
+   .. cpp:member:: Rect content_box
+
+   .. cpp:member:: ImageId image
+
+      An image cell's image, drawn whole at parts.image and cut to ``image_clip`` (the cell's inside).
+
+   .. cpp:member:: Rect image_clip
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DataGridViewCellsContent final : public SubSurfaceContent
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   The cell region's content: builds a DataGridViewCells, under the grid's stable ID, on the sub-surface's thread and hands it each DataGridViewCellsUpdate. Other updates are ignored. A look whose classes or inline style the control refuses throws, and the sub-surface fails.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit DataGridViewCellsContent(StableId stable_id)
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: Control::Ptr build_root() override
+
+   .. cpp:function:: void apply_update(SubSurfaceContentUpdate& update) override
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsLineRange final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   A range of DataGridViewCellsSnapshot::lines: ``count`` lines from ``first``.
+
+   .. cpp:member:: std::size_t first
+
+   .. cpp:member:: std::size_t count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsLook final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   The grid's look, which the sub-surface's control takes over so that the theme selects and colours its parts as it does the grid's: the grid's style classes and inline style select rules (its stable ID is the control's own, DataGridViewCellsContent); its effective back and fore colours (Control::ambient_back_color, ambient_fore_color) stand for its authored ones.
+
+   .. cpp:member:: std::vector<std::string> classes
+
+   .. cpp:member:: std::string inline_style
+
+   .. cpp:member:: std::optional<Color> back_color
+
+   .. cpp:member:: std::optional<Color> fore_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsParts final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   The parts of one cell, placed in the region's coordinates; a part the cell's kind does not show is absent (PartGeometry::present). They are the grid's "cell" item parts, resolved on the UI thread with the application's authored colours (PartGeometry::authored_background and authored_foreground).
+
+   .. cpp:member:: PartGeometry cell
+
+   .. cpp:member:: PartGeometry selection
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry image
+
+   .. cpp:member:: PartGeometry link
+
+      A link cell's text extent and the one-unit rule under its baseline.
+
+   .. cpp:member:: PartGeometry link_underline
+
+   .. cpp:member:: PartGeometry check_well
+
+   .. cpp:member:: PartGeometry check_indicator
+
+   .. cpp:member:: PartGeometry button_face
+
+   .. cpp:member:: PartGeometry button_label
+
+   .. cpp:member:: PartGeometry drop_down
+
+   .. cpp:member:: PartGeometry drop_down_glyph
+
+   .. cpp:member:: PartGeometry vertical_rule
+
+   .. cpp:member:: PartGeometry horizontal_rule
+
+   .. cpp:member:: PartGeometry focus
+
+   .. cpp:member:: PartGeometry error
+
+      The error glyph of a cell with error text.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsSnapshot final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   What the cell region shows in one content epoch: complete, so a newer snapshot replaces an older one whole. Coordinates are the region's (the grid's data area at the origin). Made and filled on the UI thread, then moved to the sub-surface's thread inside a DataGridViewCellsUpdate.
+
+   .. cpp:member:: DataGridViewCellsLook look
+
+   .. cpp:member:: PartGeometry well
+
+      The grid's well, placed so that only its ground lies in the region (its border is the grid's chrome), with the grid's authored background. With an authored background, the cells' own extent keeps the theme's ground (``cells_extent``; empty for none), as Windows Forms' cells keep their back colour over BackgroundColor.
+
+   .. cpp:member:: Rect cells_extent
+
+   .. cpp:member:: std::vector<DataGridViewCellsCell> cells
+
+      The visible cells, in paint order (rows, then display columns).
+
+   .. cpp:member:: std::string text
+
+      The cells' formatted text and wrapped lines, indexed by the cells.
+
+   .. cpp:member:: std::vector<DataGridViewCellsTextRange> lines
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DataGridViewCellsTextRange final
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   A byte range of DataGridViewCellsSnapshot::text: [begin_byte, end_byte).
+
+   .. cpp:member:: std::size_t begin_byte
+
+   .. cpp:member:: std::size_t end_byte
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DataGridViewCellStyle final
 
    ``#include <gui_forms/controls/data_grid_view/data_grid_view_types/data_grid_view_types.hpp>``
@@ -1414,6 +1649,21 @@ Related types
    .. cpp:member:: std::optional<Color> selection_back_color
 
    .. cpp:member:: std::optional<Color> selection_fore_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DataGridViewCellsUpdate final : public SubSurfaceContentUpdate
+
+   ``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+   One snapshot on its way to the sub-surface (SubSurfaceHost::redraw_all).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit DataGridViewCellsUpdate(DataGridViewCellsSnapshot snapshot)
+
+   .. cpp:member:: DataGridViewCellsSnapshot snapshot
 
 .. cpp:namespace:: gui_forms
 
@@ -4033,3 +4283,18 @@ Enumerations
    .. cpp:enumerator:: ascending
 
    .. cpp:enumerator:: descending
+
+Functions, constants and aliases
+--------------------------------
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/data_grid_view/data_grid_view_cells.hpp>``
+
+.. cpp:function:: bool data_grid_view_cells_snapshot_valid(const DataGridViewCellsSnapshot& snapshot) noexcept
+
+   Whether every range of ``snapshot`` lies in its buffers: each cell's text in ``text``, each cell's lines in ``lines``, and each line in its cell's text. The sub-surface checks a snapshot whole before it takes it (house style 8: validate whole buffers up front).
+
+.. cpp:function:: void paint_data_grid_view_cell(Painter& painter, const Control& owner, const DataGridViewCellsSnapshot& snapshot, const DataGridViewCellsCell& cell, Rect data)
+
+   Paints one resolved cell of ``snapshot``, its parts in the grid's order, cut to ``data`` (the region's data area), for ``owner`` (whose theme and look select the parts). It is the cell painter both sides share: the sub-surface's control and, once wired, the grid itself. The cell must be one ``data_grid_view_cells_snapshot_valid`` accepted.

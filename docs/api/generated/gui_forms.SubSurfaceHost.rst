@@ -60,6 +60,8 @@ gui_forms::SubSurfaceHost
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`redraw_all <gui_forms::SubSurfaceHost::redraw_all>`
+        - The parent's redraw-all (design note section 2): sends a configuration under a new content epoch carrying ``update`` (null for none), so that the sub-surface's first frame at that epoch shows it and the window composes no older frame once it pairs (section 6).
       * - :cpp:func:`request_statistics <gui_forms::SubSurfaceHost::request_statistics>`
         -  
       * - :cpp:func:`set_content <gui_forms::SubSurfaceHost::set_content>`
@@ -111,6 +113,10 @@ gui_forms::SubSurfaceHost
 
 
    .. rubric:: Methods
+
+   .. cpp:function:: std::uint64_t redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update)
+
+      The parent's redraw-all (design note section 2): sends a configuration under a new content epoch carrying ``update`` (null for none), so that the sub-surface's first frame at that epoch shows it and the window composes no older frame once it pairs (section 6). Call it in the same turn as the chrome change it must agree with (a scroll, a column width). Returns the epoch the update rides: the new content_epoch(), or, while there is no content, no window or no device size yet, 0 and the update waits for the first configuration (a newer one replaces it). New content (set_content) discards a waiting update.
 
    .. cpp:function:: const SubSurfaceRequestStatistics& request_statistics() const noexcept
 

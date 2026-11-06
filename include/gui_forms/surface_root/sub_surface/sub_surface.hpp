@@ -24,6 +24,20 @@ class SubSurfaceToolTipRequester;
 class SubSurfaceAlertRequester;
 }
 
+// One change of a sub-surface's content that must agree with its parent's
+// chrome in the same visible frame (design note section 2, redraw-all): made
+// on the parent's thread, carried with a configuration
+// (SubSurfaceHost::redraw_all), handed to SubSurfaceContent::apply_update on
+// the sub-surface's thread after that configuration is applied and before
+// its first frame, and destroyed there. Each update is complete, so of
+// updates sent before the sub-surface applied any only the newest is
+// applied (statistics: updates_coalesced). A content downcasts it to the
+// type it made.
+class SubSurfaceContentUpdate {
+public:
+    virtual ~SubSurfaceContentUpdate() = default;
+};
+
 // What a sub-surface shows (stage S2, threaded sub-surfaces design note
 // section 2). The parent hands one to a SubSurfaceThread, which moves it to
 // the sub-surface's thread; it is called and destroyed there, so the
@@ -41,6 +55,12 @@ public:
     // posts to that thread (the C ABI runs its posted callbacks through it).
     // The base does nothing.
     virtual void root_started(const WindowDispatcher& dispatcher);
+    // Called on the sub-surface's thread with the update a configuration
+    // carried, after the configuration is applied and before its input,
+    // posted work and flush: the frame published at that content epoch
+    // shows the update. An exception stops the sub-surface as failed. The
+    // base ignores updates.
+    virtual void apply_update(SubSurfaceContentUpdate& update);
 };
 
 // The state both sides agree on in one visible frame (design note section
@@ -74,6 +94,10 @@ struct SubSurfaceConfiguration final {
     // thread, which alone uses and destroys it. Null keeps the previous
     // framebuffer; a sub-surface without one lays out but publishes nothing.
     std::unique_ptr<PaintFramebuffer> framebuffer{};
+    // The content's update for this epoch (SubSurfaceContentUpdate), or
+    // null. A configuration that replaces an unapplied one without an
+    // update of its own takes over the replaced one's.
+    std::unique_ptr<SubSurfaceContentUpdate> update{};
 };
 
 // Where keyboard focus goes when it enters a sub-surface (design note
@@ -214,6 +238,10 @@ struct SubSurfaceStatistics final {
     // (newest wins: resize rule 3).
     std::uint64_t configurations_coalesced{};
     std::uint64_t configurations_applied{};
+    // Content updates handed to the content (apply_update), and updates
+    // replaced by a newer one before the thread applied them.
+    std::uint64_t updates_applied{};
+    std::uint64_t updates_coalesced{};
     // LiveSurface reconfigures: device-size changes (resize cost A).
     std::uint64_t surface_reconfigures{};
     std::uint64_t frames_published{};

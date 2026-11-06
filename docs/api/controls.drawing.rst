@@ -49,6 +49,8 @@ Related types
      - The state both sides agree on in one visible frame (design note section 6), sent by the parent with each content epoch.
    * - :cpp:class:`SubSurfaceContent <gui_forms::SubSurfaceContent>`
      - What a sub-surface shows (stage S2, threaded sub-surfaces design note section 2).
+   * - :cpp:class:`SubSurfaceContentUpdate <gui_forms::SubSurfaceContentUpdate>`
+     - One change of a sub-surface's content that must agree with its parent's chrome in the same visible frame (design note section 2, redraw-all): made on the parent's thread, carried with a configuration (SubSurfaceHost::redraw_all), handed to SubSurfaceContent::apply_update on the sub-surface's thread after that configuration is applied and before its first frame, and destroyed there.
    * - :cpp:class:`SubSurfaceHost::Parts <gui_forms::SubSurfaceHost::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`SubSurfaceHost::States <gui_forms::SubSurfaceHost::States>`
@@ -202,6 +204,10 @@ Related types
 
       Made by the parent on its own thread (SurfaceRoot::create_framebuffer) at the device size, and owned from then on by the sub-surface's thread, which alone uses and destroys it. Null keeps the previous framebuffer; a sub-surface without one lays out but publishes nothing.
 
+   .. cpp:member:: std::unique_ptr<SubSurfaceContentUpdate> update
+
+      The content's update for this epoch (SubSurfaceContentUpdate), or null. A configuration that replaces an unapplied one without an update of its own takes over the replaced one's.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: SubSurfaceContent
@@ -220,6 +226,18 @@ Related types
    .. cpp:function:: virtual void root_started(const WindowDispatcher& dispatcher)
 
       Called once, on the sub-surface's thread, after the sub-surface made its root of the built tree and before its loop starts: ``dispatcher`` posts to that thread (the C ABI runs its posted callbacks through it). The base does nothing.
+
+   .. cpp:function:: virtual void apply_update(SubSurfaceContentUpdate& update)
+
+      Called on the sub-surface's thread with the update a configuration carried, after the configuration is applied and before its input, posted work and flush: the frame published at that content epoch shows the update. An exception stops the sub-surface as failed. The base ignores updates.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceContentUpdate
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   One change of a sub-surface's content that must agree with its parent's chrome in the same visible frame (design note section 2, redraw-all): made on the parent's thread, carried with a configuration (SubSurfaceHost::redraw_all), handed to SubSurfaceContent::apply_update on the sub-surface's thread after that configuration is applied and before its first frame, and destroyed there. Each update is complete, so of updates sent before the sub-surface applied any only the newest is applied (statistics: updates_coalesced). A content downcasts it to the type it made.
 
 .. cpp:namespace:: gui_forms
 
@@ -408,6 +426,12 @@ Related types
       Configurations replaced by a newer one before the thread applied them (newest wins: resize rule 3).
 
    .. cpp:member:: std::uint64_t configurations_applied
+
+   .. cpp:member:: std::uint64_t updates_applied
+
+      Content updates handed to the content (apply_update), and updates replaced by a newer one before the thread applied them.
+
+   .. cpp:member:: std::uint64_t updates_coalesced
 
    .. cpp:member:: std::uint64_t surface_reconfigures
 

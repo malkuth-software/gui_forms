@@ -112,8 +112,21 @@ void SubSurfaceHost::set_content(std::unique_ptr<SubSurfaceContent> content, boo
     if (had_requests && root != nullptr) (*root).tool_tip_items_changed(*this);
     content_ = std::move(content);
     opaque_ = opaque;
+    redraw_requested_ = false;
+    pending_update_.reset();
     configure_region();
     invalidate(Dirty::paint);
+}
+
+std::uint64_t SubSurfaceHost::redraw_all(std::unique_ptr<SubSurfaceContentUpdate> update) {
+    require_mutable();
+    redraw_requested_ = true;
+    pending_update_ = std::move(update);
+    const std::uint64_t before = content_epoch_;
+    configure_region();
+    // Not sent: the update waits for the first configuration.
+    if (redraw_requested_ || content_epoch_ == before) return 0U;
+    return content_epoch_;
 }
 
 SubSurfaceState SubSurfaceHost::state() const {
@@ -556,7 +569,7 @@ void SubSurfaceHost::configure_region() {
     if (pixel_width == 0U || pixel_height == 0U) return;
     // Per axis (resize rules): only a changed device size or scale
     // reconfigures; a new arrangement at the same size signals nothing.
-    const bool unchanged = thread_ && !environment_changed_ && pixel_width == pixel_width_ &&
+    const bool unchanged = thread_ && !environment_changed_ && !redraw_requested_ && pixel_width == pixel_width_ &&
                            pixel_height == pixel_height_ && scale == configured_scale_;
     if (unchanged) return;
     const Size logical{bounds.width, bounds.height};
@@ -603,7 +616,9 @@ void SubSurfaceHost::configure_region() {
     const std::shared_ptr<ApplicationResources> resources = (*window).resources();
     configuration.theme = (*resources).theme_ptr();
     configuration.presentation = (*window).presentation_settings();
+    configuration.update = std::move(pending_update_);
     environment_changed_ = false;
+    redraw_requested_ = false;
     (*thread_).configure(std::move(configuration));
     pixel_width_ = pixel_width;
     pixel_height_ = pixel_height;

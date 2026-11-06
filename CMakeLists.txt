@@ -805,6 +805,7 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view_parts.cpp
     src/controls/data_grid_view/data_grid_view_row_heights.cpp
     src/controls/data_grid_view/data_grid_view_row_order.cpp
+    src/controls/data_grid_view/data_grid_view_cells.cpp
     src/controls/task_dialog/task_dialog.cpp
     src/controls/notify_icon/notify_icon.cpp
     src/controls/file_dialog/file_dialog_support.cpp
@@ -2977,6 +2978,10 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)
     set_tests_properties(gui_forms_sub_surface_tests PROPERTIES TIMEOUT 120)
+    add_executable(gui_forms_data_grid_view_cells_tests tests/data_grid_view_cells_tests.cpp)
+    target_link_libraries(gui_forms_data_grid_view_cells_tests PRIVATE gui_forms_controls gui_forms_host_headless)
+    add_test(NAME gui_forms_data_grid_view_cells_tests COMMAND gui_forms_data_grid_view_cells_tests)
+    set_tests_properties(gui_forms_data_grid_view_cells_tests PROPERTIES TIMEOUT 60)
     add_executable(gui_forms_live_surface_idle_wake_tests tests/live_surface_idle_wake_tests.cpp)
     target_link_libraries(gui_forms_live_surface_idle_wake_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_live_surface_idle_wake_tests COMMAND gui_forms_live_surface_idle_wake_tests)

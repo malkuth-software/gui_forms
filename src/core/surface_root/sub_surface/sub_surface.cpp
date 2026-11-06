@@ -17,6 +17,8 @@ namespace gui_forms {
 
 void SubSurfaceContent::root_started(const WindowDispatcher&) {}
 
+void SubSurfaceContent::apply_update(SubSurfaceContentUpdate&) {}
+
 SubSurface::SubSurface(Control::Ptr root, std::shared_ptr<ApplicationResources> resources)
     : SurfaceRoot(std::move(root), Size{}, std::move(resources)) {
     if (!resources_) {
@@ -308,6 +310,11 @@ void SubSurfaceLoop::run_tree() {
         const bool configured = static_cast<bool>(configuration);
         if (configured) {
             apply(root, *configuration);
+            if ((*configuration).update) {
+                (*content_).apply_update(*(*configuration).update);
+                const std::lock_guard<std::mutex> lock((*channel_).mutex);
+                ++(*channel_).statistics.updates_applied;
+            }
             configuration.reset();
         }
         dispatch_inputs(root);
@@ -476,6 +483,11 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
         surface_opaque_ = configuration.opaque;
         publish_whole_ = true;
     }
+    // Every configuration is a redraw-all (design note section 2): its first
+    // frame is painted whole, so the parent pairs each epoch it sends,
+    // whether or not the size, the theme or the content changed.
+    const Control::Ptr top = root.root();
+    if (top) (*top).invalidate(Dirty::paint);
     configured_ = true;
 }
 
@@ -601,6 +613,15 @@ void SubSurfaceThread::configure(SubSurfaceConfiguration configuration) {
         if (channel.pending) {
             ++channel.statistics.configurations_coalesced;
             replaced.swap(channel.pending);
+            // An update is complete: the newer one wins, and a configuration
+            // without one keeps the replaced one's.
+            if ((*replaced).update) {
+                if (configuration.update) {
+                    ++channel.statistics.updates_coalesced;
+                } else {
+                    configuration.update = std::move((*replaced).update);
+                }
+            }
         }
         channel.pending.emplace(std::move(configuration));
         channel.wake.notify_one();
