@@ -90,6 +90,19 @@ private:
     std::unique_ptr<State> state_;
 };
 
+// The built-in theme a program theme is compiled onto (stage T4 phase 6):
+// its recipes are the floor every rule the sheets leave unset falls back
+// to.
+// - windows_professional: the Windows-familiar theme's recipes, with no
+//   sheet of its own and no dark variant.
+// - gui_forms: GUI.Forms' own theme, `gui-forms`: its recipes, and its light
+//   sheet (gui_forms_light_sheet(), named `gui-forms/light.css` in
+//   diagnostics) placed first in the cascade, so the package's sheets
+//   override it and may read its colour roles; its dark variant is derived
+//   by rule, so the package's colours, written in light terms, darken by the
+//   same rule in a dark window.
+enum class ThemeCompileBase : std::uint8_t { windows_professional, gui_forms };
+
 // What a compilation reads besides the package.
 struct ThemeCompileOptions final {
     // The control types a selector may name (the stock ones and the
@@ -108,6 +121,11 @@ struct ThemeCompileOptions final {
     // and compile_user_theme pass the resources' (system_colour_hints)
     // where these are empty.
     SystemColourHints system_colours{};
+    // The theme the sheets compile onto; windows_professional unless the
+    // caller chooses gui_forms. With gui_forms, `controls` names the stock
+    // control types too: the light sheet's rules for a type outside it are
+    // warnings that drop them, named for `gui-forms/light.css`.
+    ThemeCompileBase base{ThemeCompileBase::windows_professional};
 };
 
 // What setting a control's inline style gave (Control::set_inline_style):

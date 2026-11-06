@@ -332,7 +332,52 @@ void test_atomic_swap() {
 
 } // namespace
 
+// The base theme (T4 phase 6): unset, a package compiles onto
+// windows-professional as before; with ThemeCompileBase::gui_forms, onto
+// GUI.Forms' own theme, its light sheet first in the cascade, and a
+// diagnostic in the package's sheet is still named for that sheet's line.
+void test_base_theme() {
+    ImageRegistry images{};
+    const ThemeLibrary library{};
+    const ThemeCompileResult plain = compile_theme_package(package("based", "#pad { outline: 3px solid }"), library,
+                                                           images, options());
+    require(plain.succeeded() && plain.diagnostics().empty(), "a package compiles onto the default base");
+    if (plain.succeeded()) {
+        const ThemeDefinition& definition = (*plain.theme()).definition();
+        require(definition.dark_variant == ThemeDarkVariant::none &&
+                    definition.compatibility.face == windows_professional_theme_definition().compatibility.face,
+                "unset, the base is windows-professional's recipes");
+    }
+    std::vector<ControlAnatomy> stock(stock_control_anatomies().begin(), stock_control_anatomies().end());
+    stock.push_back(controls[0]);
+    ThemeCompileOptions onto = options();
+    onto.controls = stock;
+    onto.base = ThemeCompileBase::gui_forms;
+    const ThemeCompileResult based =
+        compile_theme_package(package("based", "#pad { outline: 3px solid }"), library, images, onto);
+    require(based.succeeded() && based.diagnostics().empty(), "a package compiles onto gui-forms");
+    if (based.succeeded()) {
+        const ThemeDefinition& definition = (*based.theme()).definition();
+        require(definition.dark_variant == ThemeDarkVariant::derived &&
+                    definition.compatibility.face == gui_forms_theme_definition().compatibility.face &&
+                    (*based.theme()).id() == "based",
+                "with gui_forms, the base is gui-forms' recipes and dark variant, under the package's id");
+        const std::shared_ptr<Pad> pad = make_control<Pad>(StableId("pad"));
+        const ResolvedControlRecipe recipe = resolved(*based.theme(), *pad);
+        require(recipe.recipe().focus_width == 3.0, "the package's rules apply over it");
+    }
+    const ThemeCompileResult reads_role = compile_theme_package(
+        package("based", "#pad { color: role(ink-on-near-white-stock foreground) }"), library, images, onto);
+    require(reads_role.succeeded() && reads_role.diagnostics().empty(),
+            "the package reads a colour role gui-forms' light sheet defines");
+    const ThemeCompileResult refused =
+        compile_theme_package(package("based", "#pad {}\n#pad { opacity: 2 }"), library, images, onto);
+    require(!refused.succeeded() && has(refused, "E403", "based/theme.theme.css", 2U, ""),
+            "a refusal over gui-forms still names the package's sheet and line");
+}
+
 int main() {
+    test_base_theme();
     test_one_package();
     test_published_values();
     test_resources();

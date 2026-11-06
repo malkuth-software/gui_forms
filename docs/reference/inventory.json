@@ -90948,7 +90948,7 @@
               "declaration": "std::uint32_t bound"
             }
           ],
-          "declaration": "[[clang::annotate(\"gui_forms.effect_vocabulary\", fixed, per_pixel)]] #else #define GUI_FORMS_EFFECT_VOCABULARY(fixed, per_pixel) #endif namespace gui_forms { // The fixed tick every effect's time advances by: 1/60 s (owner decision // 4(a)). Ticks are counted from the engine clock, never the wall clock. inline constexpr std::uint32_t effect_ticks_per_second = 60U; // The most ticks one frame advances (owner decision 2(a)); a longer stall // skips the rest, and the skip is counted. inline constexpr std::uint32_t maximum_effect_ticks_per_frame = 4U; // The most input events one frame carries; the rest are counted, not kept. inline constexpr std::size_t maximum_effect_input_events = 8U; // The most stops an effect's gradient holds. inline constexpr std::size_t maximum_effect_gradient_stops = 6U; // The largest state any effect may declare, in bytes. inline constexpr std::size_t maximum_effect_state_bytes = 16384U; // At most Capacity passes: `count` clamped to Capacity. The only loop shape, // with std::array and EffectArray, whose bound the plugin knows. template <std::size_t Capacity> class BoundedRange final { public: class Iterator final { public: explicit constexpr Iterator(std::size_t index) noexcept : index_(index) {} [[nodiscard]] constexpr std::size_t operator*() const noexcept { return index_; } constexpr Iterator& operator++() noexcept { index_ = index_ + 1U; return *this; } friend constexpr bool operator==(const Iterator& left, const Iterator& right) noexcept { return left.index_ == right.index_; } private: std::size_t index_; }; explicit constexpr BoundedRange(std::size_t count) noexcept : count_(count < Capacity ? count : Capacity) {} [[nodiscard]] constexpr Iterator begin() const noexcept { return Iterator(0U); } [[nodiscard]] constexpr Iterator end() const noexcept { return Iterator(count_); } private: std::size_t count_; }; template <std::size_t Capacity> [[nodiscard]] constexpr BoundedRange<Capacity> bounded_range(std::size_t count) noexcept { const BoundedRange<Capacity> range(count); return range; } // A fixed-capacity array with a live count: `items` holds Capacity values, // the first `count` of them live. State an effect keeps between frames. template <typename Item, std::size_t Capacity> struct EffectArray final { static_assert(std::is_trivially_copyable_v<Item>, \"effect state must be trivially copyable\"); static constexpr std::size_t capacity = Capacity; std::array<Item, Capacity> items{}; std::uint32_t count{}; friend constexpr bool operator==(const EffectArray& left, const EffectArray& right) noexcept { return left.count == right.count && left.items == right.items; } }; // The engine's deterministic generator (owner amendment, 2026-11-02): a // counter-based hash of (seed, stream, counter), SplitMix64's finalizer // over their mix, with no host randomness and no hidden state beyond the // counter in this value. Bit-exact on every host; known-answer vectors are // in the tests. class EffectRandom final { public: constexpr EffectRandom(std::uint64_t seed, std::uint64_t stream) noexcept : seed_(seed), stream_(stream) {} // The stream setup draws from. static constexpr std::uint64_t setup_stream = 0xffffffffffffffffULL; // The hash itself: the same three inputs give the same bits. [[nodiscard]] static constexpr std::uint64_t hash(std::uint64_t seed, std::uint64_t stream, std::uint64_t counter) noexcept { std::uint64_t mixed = seed ^ (stream * 0x9e3779b97f4a7c15ULL) ^ (counter * 0xd1b54a32d192ed03ULL); mixed = mixed + 0x9e3779b97f4a7c15ULL; mixed = (mixed ^ (mixed >> 30U)) * 0xbf58476d1ce4e5b9ULL; mixed = (mixed ^ (mixed >> 27U)) * 0x94d049bb133111ebULL; mixed = mixed ^ (mixed >> 31U); return mixed; } // The next 64 bits. GUI_FORMS_EFFECT_VOCABULARY(8, 0) constexpr std::uint64_t next() noexcept { const std::uint64_t value = hash(seed_, stream_, counter_); counter_ = counter_ + 1U; return value; } // In [0, 1): the top 53 bits, exactly representable. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr double next_unit() noexcept { const std::uint64_t bits = next() >> 11U; const double unit = static_cast<double>(bits) * (1.0 / 9007199254740992.0); return unit; } // In [0, bound): the high half of a 32 \u00d7 32-bit product; 0 when bound // is 0. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr std::uint32_t next_below(std::uint32_t bound) noexcept",
+          "declaration": "[[clang::annotate(\"gui_forms.effect_vocabulary\", fixed, per_pixel)]] #else #define GUI_FORMS_EFFECT_VOCABULARY(fixed, per_pixel) #endif namespace gui_forms { // The fixed tick every effect's time advances by: 1/60 s (owner decision // 4(a)). Ticks are counted from the engine clock, never the wall clock. inline constexpr std::uint32_t effect_ticks_per_second = 60U; // The most ticks one frame advances (owner decision 2(a)); a longer stall // skips the rest, and the skip is counted. inline constexpr std::uint32_t maximum_effect_ticks_per_frame = 4U; // The most input events one frame carries; the rest are counted, not kept. inline constexpr std::size_t maximum_effect_input_events = 8U; // The most stops an effect's gradient holds. inline constexpr std::size_t maximum_effect_gradient_stops = 6U; // The largest state any effect may declare, in bytes. inline constexpr std::size_t maximum_effect_state_bytes = 16384U; // At most Capacity passes: `count` clamped to Capacity. The only loop shape, // with std::array and EffectArray, whose bound the plugin knows. template <std::size_t Capacity> class BoundedRange final { public: class Iterator final { public: explicit constexpr Iterator(std::size_t index) noexcept : index_(index) {} [[nodiscard]] constexpr std::size_t operator*() const noexcept { return index_; } constexpr Iterator& operator++() noexcept { index_ = index_ + 1U; return *this; } friend constexpr bool operator==(const Iterator& left, const Iterator& right) noexcept { return left.index_ == right.index_; } private: std::size_t index_; }; explicit constexpr BoundedRange(std::size_t count) noexcept : count_(count < Capacity ? count : Capacity) {} [[nodiscard]] constexpr Iterator begin() const noexcept { return Iterator(0U); } [[nodiscard]] constexpr Iterator end() const noexcept { return Iterator(count_); } private: std::size_t count_; }; template <std::size_t Capacity> [[nodiscard]] constexpr BoundedRange<Capacity> bounded_range(std::size_t count) noexcept { const BoundedRange<Capacity> range(count); return range; } // A fixed-capacity array with a live count: `items` holds Capacity values, // the first `count` of them live. State an effect keeps between frames. template <typename Item, std::size_t Capacity> struct EffectArray final { static_assert(std::is_trivially_copyable_v<Item>, \"effect state must be trivially copyable\"); static constexpr std::size_t capacity = Capacity; std::array<Item, Capacity> items{}; std::uint32_t count{}; friend constexpr bool operator==(const EffectArray& left, const EffectArray& right) noexcept { return left.count == right.count && left.items == right.items; } }; // The engine's deterministic generator (owner amendment, 2026-11-02): a // counter-based hash of (seed, stream, counter), SplitMix64's finalizer // over their mix, with no host randomness and no hidden state beyond the // counter in this value. Bit-exact on every host; known-answer vectors are // in the tests. class EffectRandom final { public: constexpr EffectRandom(std::uint64_t seed, std::uint64_t stream) noexcept : seed_(seed), stream_(stream) {} // The stream setup draws from. static constexpr std::uint64_t setup_stream = 0xffffffffffffffffULL; // The hash itself: the same three inputs give the same bits. [[nodiscard]] static constexpr std::uint64_t hash(std::uint64_t seed, std::uint64_t stream, std::uint64_t counter) noexcept { std::uint64_t mixed = seed ^ (stream * 0x9e3779b97f4a7c15ULL) ^ (counter * 0xd1b54a32d192ed03ULL); mixed = mixed + 0x9e3779b97f4a7c15ULL; mixed = (mixed ^ (mixed >> 30U)) * 0xbf58476d1ce4e5b9ULL; mixed = (mixed ^ (mixed >> 27U)) * 0x94d049bb133111ebULL; mixed = mixed ^ (mixed >> 31U); return mixed; } // The next 64 bits. GUI_FORMS_EFFECT_VOCABULARY(8, 0) constexpr std::uint64_t next() noexcept { const std::uint64_t value = hash(seed_, stream_, counter_); counter_ = counter_ + 1U; return value; } // In [0, 1): the top 53 bits, exactly representable. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr double next_unit() noexcept { const std::uint64_t bits = next() >> 11U; const double unit = static_cast<double>(bits) * (1.0 / 9007199254740992.0); return unit; } // In [0, bound): the high half of a 32 × 32-bit product; 0 when bound // is 0. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr std::uint32_t next_below(std::uint32_t bound) noexcept",
           "comment": "",
           "header": "gui_forms/engine/effect/effect.hpp",
           "source": "include/gui_forms/engine/effect/effect.hpp",
@@ -90974,7 +90974,7 @@
               "declaration": "double high"
             }
           ],
-          "declaration": "[[clang::annotate(\"gui_forms.effect_vocabulary\", fixed, per_pixel)]] #else #define GUI_FORMS_EFFECT_VOCABULARY(fixed, per_pixel) #endif namespace gui_forms { // The fixed tick every effect's time advances by: 1/60 s (owner decision // 4(a)). Ticks are counted from the engine clock, never the wall clock. inline constexpr std::uint32_t effect_ticks_per_second = 60U; // The most ticks one frame advances (owner decision 2(a)); a longer stall // skips the rest, and the skip is counted. inline constexpr std::uint32_t maximum_effect_ticks_per_frame = 4U; // The most input events one frame carries; the rest are counted, not kept. inline constexpr std::size_t maximum_effect_input_events = 8U; // The most stops an effect's gradient holds. inline constexpr std::size_t maximum_effect_gradient_stops = 6U; // The largest state any effect may declare, in bytes. inline constexpr std::size_t maximum_effect_state_bytes = 16384U; // At most Capacity passes: `count` clamped to Capacity. The only loop shape, // with std::array and EffectArray, whose bound the plugin knows. template <std::size_t Capacity> class BoundedRange final { public: class Iterator final { public: explicit constexpr Iterator(std::size_t index) noexcept : index_(index) {} [[nodiscard]] constexpr std::size_t operator*() const noexcept { return index_; } constexpr Iterator& operator++() noexcept { index_ = index_ + 1U; return *this; } friend constexpr bool operator==(const Iterator& left, const Iterator& right) noexcept { return left.index_ == right.index_; } private: std::size_t index_; }; explicit constexpr BoundedRange(std::size_t count) noexcept : count_(count < Capacity ? count : Capacity) {} [[nodiscard]] constexpr Iterator begin() const noexcept { return Iterator(0U); } [[nodiscard]] constexpr Iterator end() const noexcept { return Iterator(count_); } private: std::size_t count_; }; template <std::size_t Capacity> [[nodiscard]] constexpr BoundedRange<Capacity> bounded_range(std::size_t count) noexcept { const BoundedRange<Capacity> range(count); return range; } // A fixed-capacity array with a live count: `items` holds Capacity values, // the first `count` of them live. State an effect keeps between frames. template <typename Item, std::size_t Capacity> struct EffectArray final { static_assert(std::is_trivially_copyable_v<Item>, \"effect state must be trivially copyable\"); static constexpr std::size_t capacity = Capacity; std::array<Item, Capacity> items{}; std::uint32_t count{}; friend constexpr bool operator==(const EffectArray& left, const EffectArray& right) noexcept { return left.count == right.count && left.items == right.items; } }; // The engine's deterministic generator (owner amendment, 2026-11-02): a // counter-based hash of (seed, stream, counter), SplitMix64's finalizer // over their mix, with no host randomness and no hidden state beyond the // counter in this value. Bit-exact on every host; known-answer vectors are // in the tests. class EffectRandom final { public: constexpr EffectRandom(std::uint64_t seed, std::uint64_t stream) noexcept : seed_(seed), stream_(stream) {} // The stream setup draws from. static constexpr std::uint64_t setup_stream = 0xffffffffffffffffULL; // The hash itself: the same three inputs give the same bits. [[nodiscard]] static constexpr std::uint64_t hash(std::uint64_t seed, std::uint64_t stream, std::uint64_t counter) noexcept { std::uint64_t mixed = seed ^ (stream * 0x9e3779b97f4a7c15ULL) ^ (counter * 0xd1b54a32d192ed03ULL); mixed = mixed + 0x9e3779b97f4a7c15ULL; mixed = (mixed ^ (mixed >> 30U)) * 0xbf58476d1ce4e5b9ULL; mixed = (mixed ^ (mixed >> 27U)) * 0x94d049bb133111ebULL; mixed = mixed ^ (mixed >> 31U); return mixed; } // The next 64 bits. GUI_FORMS_EFFECT_VOCABULARY(8, 0) constexpr std::uint64_t next() noexcept { const std::uint64_t value = hash(seed_, stream_, counter_); counter_ = counter_ + 1U; return value; } // In [0, 1): the top 53 bits, exactly representable. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr double next_unit() noexcept { const std::uint64_t bits = next() >> 11U; const double unit = static_cast<double>(bits) * (1.0 / 9007199254740992.0); return unit; } // In [0, bound): the high half of a 32 \u00d7 32-bit product; 0 when bound // is 0. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr std::uint32_t next_below(std::uint32_t bound) noexcept { const std::uint64_t bits = next() >> 32U; const std::uint64_t scaled = bits * static_cast<std::uint64_t>(bound); const std::uint32_t value = static_cast<std::uint32_t>(scaled >> 32U); return value; } // In [low, high). GUI_FORMS_EFFECT_VOCABULARY(12, 0) constexpr double next_between(double low, double high) noexcept",
+          "declaration": "[[clang::annotate(\"gui_forms.effect_vocabulary\", fixed, per_pixel)]] #else #define GUI_FORMS_EFFECT_VOCABULARY(fixed, per_pixel) #endif namespace gui_forms { // The fixed tick every effect's time advances by: 1/60 s (owner decision // 4(a)). Ticks are counted from the engine clock, never the wall clock. inline constexpr std::uint32_t effect_ticks_per_second = 60U; // The most ticks one frame advances (owner decision 2(a)); a longer stall // skips the rest, and the skip is counted. inline constexpr std::uint32_t maximum_effect_ticks_per_frame = 4U; // The most input events one frame carries; the rest are counted, not kept. inline constexpr std::size_t maximum_effect_input_events = 8U; // The most stops an effect's gradient holds. inline constexpr std::size_t maximum_effect_gradient_stops = 6U; // The largest state any effect may declare, in bytes. inline constexpr std::size_t maximum_effect_state_bytes = 16384U; // At most Capacity passes: `count` clamped to Capacity. The only loop shape, // with std::array and EffectArray, whose bound the plugin knows. template <std::size_t Capacity> class BoundedRange final { public: class Iterator final { public: explicit constexpr Iterator(std::size_t index) noexcept : index_(index) {} [[nodiscard]] constexpr std::size_t operator*() const noexcept { return index_; } constexpr Iterator& operator++() noexcept { index_ = index_ + 1U; return *this; } friend constexpr bool operator==(const Iterator& left, const Iterator& right) noexcept { return left.index_ == right.index_; } private: std::size_t index_; }; explicit constexpr BoundedRange(std::size_t count) noexcept : count_(count < Capacity ? count : Capacity) {} [[nodiscard]] constexpr Iterator begin() const noexcept { return Iterator(0U); } [[nodiscard]] constexpr Iterator end() const noexcept { return Iterator(count_); } private: std::size_t count_; }; template <std::size_t Capacity> [[nodiscard]] constexpr BoundedRange<Capacity> bounded_range(std::size_t count) noexcept { const BoundedRange<Capacity> range(count); return range; } // A fixed-capacity array with a live count: `items` holds Capacity values, // the first `count` of them live. State an effect keeps between frames. template <typename Item, std::size_t Capacity> struct EffectArray final { static_assert(std::is_trivially_copyable_v<Item>, \"effect state must be trivially copyable\"); static constexpr std::size_t capacity = Capacity; std::array<Item, Capacity> items{}; std::uint32_t count{}; friend constexpr bool operator==(const EffectArray& left, const EffectArray& right) noexcept { return left.count == right.count && left.items == right.items; } }; // The engine's deterministic generator (owner amendment, 2026-11-02): a // counter-based hash of (seed, stream, counter), SplitMix64's finalizer // over their mix, with no host randomness and no hidden state beyond the // counter in this value. Bit-exact on every host; known-answer vectors are // in the tests. class EffectRandom final { public: constexpr EffectRandom(std::uint64_t seed, std::uint64_t stream) noexcept : seed_(seed), stream_(stream) {} // The stream setup draws from. static constexpr std::uint64_t setup_stream = 0xffffffffffffffffULL; // The hash itself: the same three inputs give the same bits. [[nodiscard]] static constexpr std::uint64_t hash(std::uint64_t seed, std::uint64_t stream, std::uint64_t counter) noexcept { std::uint64_t mixed = seed ^ (stream * 0x9e3779b97f4a7c15ULL) ^ (counter * 0xd1b54a32d192ed03ULL); mixed = mixed + 0x9e3779b97f4a7c15ULL; mixed = (mixed ^ (mixed >> 30U)) * 0xbf58476d1ce4e5b9ULL; mixed = (mixed ^ (mixed >> 27U)) * 0x94d049bb133111ebULL; mixed = mixed ^ (mixed >> 31U); return mixed; } // The next 64 bits. GUI_FORMS_EFFECT_VOCABULARY(8, 0) constexpr std::uint64_t next() noexcept { const std::uint64_t value = hash(seed_, stream_, counter_); counter_ = counter_ + 1U; return value; } // In [0, 1): the top 53 bits, exactly representable. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr double next_unit() noexcept { const std::uint64_t bits = next() >> 11U; const double unit = static_cast<double>(bits) * (1.0 / 9007199254740992.0); return unit; } // In [0, bound): the high half of a 32 × 32-bit product; 0 when bound // is 0. GUI_FORMS_EFFECT_VOCABULARY(10, 0) constexpr std::uint32_t next_below(std::uint32_t bound) noexcept { const std::uint64_t bits = next() >> 32U; const std::uint64_t scaled = bits * static_cast<std::uint64_t>(bound); const std::uint32_t value = static_cast<std::uint32_t>(scaled >> 32U); return value; } // In [low, high). GUI_FORMS_EFFECT_VOCABULARY(12, 0) constexpr double next_between(double low, double high) noexcept",
           "comment": "",
           "header": "gui_forms/engine/effect/effect.hpp",
           "source": "include/gui_forms/engine/effect/effect.hpp",
@@ -121966,7 +121966,7 @@
       "kind": "class",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 117,
+      "line": 135,
       "declaration": "class InlineStyleResult final",
       "comment": "",
       "access": "public",
@@ -121990,7 +121990,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 119,
+          "line": 137,
           "page": "gui-forms-inlinestyleresult-applied-inlinestyleresult-std-vector-themecompilediagnostic-noexcept-e4f60baefe.html"
         },
         {
@@ -122011,7 +122011,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 120,
+          "line": 138,
           "page": "gui-forms-inlinestyleresult-refused-inlinestyleresult-std-vector-themecompilediagnostic-noexcept-4aa0700e44.html"
         },
         {
@@ -122026,7 +122026,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 122,
+          "line": 140,
           "page": "gui-forms-inlinestyleresult-succeeded-bool-const-noexcept-5acfe758e7.html"
         },
         {
@@ -122041,7 +122041,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 124,
+          "line": 142,
           "page": "gui-forms-inlinestyleresult-diagnostics-std-span-const-themecompilediagnostic-const-noexcept-e7ae13c0ef.html"
         }
       ],
@@ -241900,6 +241900,53 @@
       "enclosing_type": null
     },
     {
+      "id": "gui_forms::ThemeCompileBase",
+      "name": "ThemeCompileBase",
+      "namespace": "gui_forms",
+      "kind": "enum",
+      "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+      "line": 104,
+      "declaration": "enum class ThemeCompileBase : std::uint8_t",
+      "comment": "",
+      "access": "public",
+      "bases": [],
+      "members": [
+        {
+          "id": "gui_forms::ThemeCompileBase::windows_professional|gui_forms::ThemeCompileBase",
+          "name": "windows_professional",
+          "type": "gui_forms::ThemeCompileBase",
+          "namespace": "gui_forms::ThemeCompileBase",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "windows_professional",
+          "comment": "",
+          "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "line": 104,
+          "page": "gui-forms-themecompilebase-windows-professional-gui-forms-themecompilebase-21ff93a2e2.html"
+        },
+        {
+          "id": "gui_forms::ThemeCompileBase::gui_forms|gui_forms::ThemeCompileBase",
+          "name": "gui_forms",
+          "type": "gui_forms::ThemeCompileBase",
+          "namespace": "gui_forms::ThemeCompileBase",
+          "kind": "EnumConstantDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "gui_forms",
+          "comment": "",
+          "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "line": 104,
+          "page": "gui-forms-themecompilebase-gui-forms-gui-forms-themecompilebase-b12486a98d.html"
+        }
+      ],
+      "page": "gui-forms-themecompilebase-26d047dc03.html",
+      "enclosing_type": null
+    },
+    {
       "id": "gui_forms::ThemeCompileDiagnostic",
       "name": "ThemeCompileDiagnostic",
       "namespace": "gui_forms",
@@ -242058,7 +242105,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 94,
+      "line": 107,
       "declaration": "struct ThemeCompileOptions final",
       "comment": "",
       "access": "public",
@@ -242076,7 +242123,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 98,
+          "line": 111,
           "page": "gui-forms-themecompileoptions-controls-std-span-const-controlanatomy-2f64e787f7.html"
         },
         {
@@ -242091,7 +242138,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 101,
+          "line": 114,
           "page": "gui-forms-themecompileoptions-published-values-std-span-const-std-string-2bc5304018.html"
         },
         {
@@ -242106,7 +242153,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 104,
+          "line": 117,
           "page": "gui-forms-themecompileoptions-icons-std-span-const-icondeclaration-24f8c71857.html"
         },
         {
@@ -242121,8 +242168,23 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 110,
+          "line": 123,
           "page": "gui-forms-themecompileoptions-system-colours-systemcolourhints-cc0a47c078.html"
+        },
+        {
+          "id": "gui_forms::ThemeCompileOptions::base|ThemeCompileBase",
+          "name": "base",
+          "type": "ThemeCompileBase",
+          "namespace": "gui_forms::ThemeCompileOptions",
+          "kind": "FieldDecl",
+          "access": "public",
+          "parameters": [],
+          "declaration": "ThemeCompileBase base{ThemeCompileBase::windows_professional}",
+          "comment": "",
+          "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
+          "line": 128,
+          "page": "gui-forms-themecompileoptions-base-themecompilebase-ae30ff9a99.html"
         }
       ],
       "page": "gui-forms-themecompileoptions-2677918c70.html",
@@ -242135,7 +242197,7 @@
       "kind": "class",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 140,
+      "line": 158,
       "declaration": "class ThemeCompileResult final",
       "comment": "",
       "access": "public",
@@ -242164,7 +242226,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 142,
+          "line": 160,
           "page": "gui-forms-themecompileresult-compiled-themecompileresult-std-shared-ptr-const-theme-std-vector-themecompiledia-dbb91a91f2.html"
         },
         {
@@ -242185,7 +242247,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 144,
+          "line": 162,
           "page": "gui-forms-themecompileresult-refused-themecompileresult-std-vector-themecompilediagnostic-noexcept-ad5577a3d1.html"
         },
         {
@@ -242200,7 +242262,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 146,
+          "line": 164,
           "page": "gui-forms-themecompileresult-succeeded-bool-const-noexcept-dc64be89af.html"
         },
         {
@@ -242215,7 +242277,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 148,
+          "line": 166,
           "page": "gui-forms-themecompileresult-theme-std-shared-ptr-const-theme-const-noexcept-b28ec1be1f.html"
         },
         {
@@ -242230,7 +242292,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 151,
+          "line": 169,
           "page": "gui-forms-themecompileresult-diagnostics-std-span-const-themecompilediagnostic-const-noexcept-48e6629af1.html"
         }
       ],
@@ -243576,7 +243638,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 229,
+      "line": 247,
       "declaration": "struct ThemePackageExport final",
       "comment": "",
       "access": "public",
@@ -243594,7 +243656,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 230,
+          "line": 248,
           "page": "gui-forms-themepackageexport-files-userthemefiles-f92f256624.html"
         },
         {
@@ -243609,7 +243671,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 231,
+          "line": 249,
           "page": "gui-forms-themepackageexport-omitted-std-vector-std-string-9f1fd990d7.html"
         }
       ],
@@ -257840,7 +257902,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 186,
+      "line": 204,
       "declaration": "struct UserThemeFiles final",
       "comment": "",
       "access": "public",
@@ -257858,7 +257920,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 187,
+          "line": 205,
           "page": "gui-forms-userthemefiles-name-std-string-dbfa693fc1.html"
         },
         {
@@ -257873,7 +257935,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 188,
+          "line": 206,
           "page": "gui-forms-userthemefiles-main-sheet-std-string-d7fd91251d.html"
         },
         {
@@ -257888,7 +257950,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 189,
+          "line": 207,
           "page": "gui-forms-userthemefiles-files-std-vector-themepackagefile-526c5f63d4.html"
         }
       ],
@@ -257949,7 +258011,7 @@
       "kind": "struct",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 199,
+      "line": 217,
       "declaration": "struct UserThemeHeader final",
       "comment": "",
       "access": "public",
@@ -257967,7 +258029,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 201,
+          "line": 219,
           "page": "gui-forms-userthemeheader-present-bool-fb733a9ec3.html"
         },
         {
@@ -257982,7 +258044,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 202,
+          "line": 220,
           "page": "gui-forms-userthemeheader-version-std-string-ec59198460.html"
         },
         {
@@ -257997,7 +258059,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 203,
+          "line": 221,
           "page": "gui-forms-userthemeheader-author-std-string-f1f68c20b3.html"
         },
         {
@@ -258012,7 +258074,7 @@
           "comment": "",
           "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
           "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-          "line": 204,
+          "line": 222,
           "page": "gui-forms-userthemeheader-provenance-std-string-d77b5d58cd.html"
         }
       ],
@@ -275514,7 +275576,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 239,
+      "line": 257,
       "page": "gui-forms-compile-installed-theme-themecompileresult-std-string-view-const-themelibrary-imageregistry-const-th-d3a03a2cc3.html"
     },
     {
@@ -275550,7 +275612,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 176,
+      "line": 194,
       "page": "gui-forms-compile-theme-package-themecompileresult-const-themepackage-const-themelibrary-imageregistry-const-t-46fdb037e1.html"
     },
     {
@@ -275596,7 +275658,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 220,
+      "line": 238,
       "page": "gui-forms-compile-user-theme-themecompileresult-const-userthemefiles-const-themelibrary-imageregistry-const-th-a5c8b58f12.html"
     },
     {
@@ -277319,7 +277381,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 235,
+      "line": 253,
       "page": "gui-forms-export-theme-packages-std-vector-themepackageexport-const-themelibrary-f6f22af556.html"
     },
     {
@@ -295554,7 +295616,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 196,
+      "line": 214,
       "page": "gui-forms-maximum-user-theme-bytes-const-std-size-t-808629432b.html"
     },
     {
@@ -295569,7 +295631,7 @@
       "comment": "",
       "header": "gui_forms/theme/theme_compiler/theme_compiler.hpp",
       "source": "include/gui_forms/theme/theme_compiler/theme_compiler.hpp",
-      "line": 195,
+      "line": 213,
       "page": "gui-forms-maximum-user-theme-files-const-std-size-t-5189fde48e.html"
     },
     {

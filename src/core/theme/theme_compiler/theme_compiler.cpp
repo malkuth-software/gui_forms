@@ -1,6 +1,7 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 
 #include "gui_forms/engine/primitive_registry/primitive_registry.hpp"
+#include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 
 #include "../../image/resource_pixels.hpp"
 #include "../../resources/image_registry/image_registry_access.hpp"
@@ -292,6 +293,16 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
     if (theme_language::resolve_theme_imports(root, index, order, problem) != theme_language::ThemeImportOutcome::resolved) {
         return refusal(problem);
     }
+    // GUI.Forms' own theme as the base: its light sheet as the first sheet
+    // of the cascade, a pack with no manifest entries of its own, held here
+    // for the whole compilation (`order` borrows it).
+    VerifiedThemePack base_pack{};
+    if (options.base == ThemeCompileBase::gui_forms) {
+        base_pack.manifest.name = "gui-forms";
+        base_pack.manifest.sheet.path = "light.css";
+        base_pack.sheet = std::string(gui_forms_light_sheet());
+        order.insert(order.begin(), &base_pack);
+    }
     // The published values every pack lists, each one the application
     // publishes (E606); the engine bound, the highest of the closure's.
     std::vector<std::string> published{};
@@ -370,7 +381,10 @@ ThemeCompileResult compile_closure(const VerifiedThemePack& root, const theme_la
                                                   .requires_engine = requires_engine,
                                                   .user_theme = set == ThemeRuleSet::user,
                                                   .system_colours = options.system_colours};
-    std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(windows_professional_theme_definition()));
+    // The base's recipes, some 100 KB held out of line.
+    const bool onto_gui_forms = options.base == ThemeCompileBase::gui_forms;
+    std::unique_ptr<ThemeDefinition> definition(new ThemeDefinition(
+        onto_gui_forms ? gui_forms_theme_definition() : windows_professional_theme_definition()));
     (*definition).rule_set = set;
     theme_language::ThemeCompiler compiler{};
     theme_language::ThemeDiagnosticList diagnostics{};
