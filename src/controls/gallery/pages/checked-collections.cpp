@@ -1,5 +1,10 @@
 #include "pages.hpp"
 
+#include "checked-collections_form.hpp"
+
+#include <array>
+#include <vector>
+
 namespace gui_forms::gallery::pages {
 namespace {
 
@@ -9,116 +14,89 @@ constexpr int command_check_all = 1;
 constexpr int command_clear_all = 2;
 constexpr int command_set_mixed = 3;
 
-class CheckedCollectionsPage final : public Component {
+// Owns the checked-collections page: the controls
+// demo/pages/checked-collections.form describes, and their behaviour.
+class CheckedCollectionsPage final : public gui_forms::Component {
 public:
     CheckedCollectionsPage(const std::shared_ptr<Surface>& body,
                            const std::shared_ptr<PageContext>& context) {
         static_cast<void>(context);
-        (*body).add_at(label("gallery.checked.heading", "CHECKED COLLECTIONS", 22.0,
-                             700, shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-        (*body).add_at(label("gallery.checked.lead",
-                             "Check state remains independent of selection, with cancellable pre-change events, keyboard control, and checkable virtual rows.",
-                             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
-        build_deliberate(body);
-        build_immediate(body);
-        build_commands(body);
-        build_list_view(body);
+        document_.initialize_component(*this);
+        mount_document(body);
+        build_deliberate();
+        build_immediate();
+        build_commands();
+        build_list_view();
     }
 
 private:
-    void build_deliberate(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> deliberate_group = group(
-            "gallery.checked.deliberate", "CheckedListBox · deliberate two-click policy",
-            {450.0, 400.0});
-        (*body).add_at(deliberate_group, {24.0, 92.0, 450.0, 400.0});
-        std::shared_ptr<CheckedListBox> deliberate = make_control<CheckedListBox>(
-            StableId("gallery.checked.deliberate.list"));
-        (*deliberate).accessible_name = "Deliberate feature selection";
-        (*deliberate).add_item("Renderer-neutral core", CheckState::checked);
-        (*deliberate).add_item("Window-owned resources", CheckState::checked);
-        (*deliberate).add_item("Native accessibility", CheckState::indeterminate);
-        (*deliberate).add_item("Stable semantic IDs", CheckState::checked);
-        (*deliberate).add_item("Renderer-free build", CheckState::unchecked);
-        (*deliberate).add_item("Sustained soak gate", CheckState::unchecked);
-        (*deliberate_group).add_at(deliberate, {24.0, 40.0, 400.0, 282.0});
-        on((*deliberate).item_check_state_changed(), *this,
-           &CheckedCollectionsPage::on_item_checked, 0);
-        std::shared_ptr<Label> deliberate_note = label(
-            "gallery.checked.deliberate.note",
-            "First click selects. Click the selected row again or press Space to toggle.",
-            10.0, 400, muted);
-        (*deliberate_note).set_text_wrapping(TextWrapping::word);
-        (*deliberate_note).set_vertical_alignment(VerticalAlignment::near);
-        (*deliberate_group).add_at(deliberate_note, {24.0, 332.0, 400.0, 48.0});
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        // The document's root is a declared boundary only: its children move
+        // into the shell's page body, where each is placed by its bounds in
+        // design coordinates. The copy of the child list keeps the iteration
+        // valid while the root shrinks.
+        Control& root = *document_.gallery_checked_document;
+        const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+        for (const Control::Ptr& child : children) {
+            Control::Ptr moved = root.remove_child((*child).runtime_id());
+            (*body).add_child(std::move(moved));
+        }
+        const std::array<std::shared_ptr<ScaledGroupBox>, 4> groups{
+            document_.gallery_checked_deliberate, document_.gallery_checked_immediate,
+            document_.gallery_checked_commands, document_.gallery_checked_list_view};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_style(page_style());
+        }
+        immediate_ = document_.gallery_checked_immediate_list;
+        list_view_ = document_.gallery_checked_list_view_list;
+        mark_toggle_ = document_.gallery_checked_list_view_mark;
+        status_ = document_.gallery_checked_status;
     }
 
-    void build_immediate(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> immediate_group = group(
-            "gallery.checked.immediate", "CheckedListBox · CheckOnClick + extended selection",
-            {460.0, 400.0});
-        (*body).add_at(immediate_group, {494.0, 92.0, 460.0, 400.0});
-        immediate_ = make_control<CheckedListBox>(StableId("gallery.checked.immediate.list"));
-        (*immediate_).accessible_name = "Immediate capability selection";
+    // The deliberate list's check states; the first click selects, the
+    // second toggles (the CheckedListBox default).
+    void build_deliberate() {
+        CheckedListBox& deliberate = *document_.gallery_checked_deliberate_list;
+        constexpr std::array<CheckState, 6> states{CheckState::checked,       CheckState::checked,
+                                                   CheckState::indeterminate, CheckState::checked,
+                                                   CheckState::unchecked,     CheckState::unchecked};
+        for (std::size_t index = 0U; index < states.size(); ++index) {
+            deliberate.set_item_check_state(index, states[index]);
+        }
+        on(deliberate.item_check_state_changed(), *this, &CheckedCollectionsPage::on_item_checked, 0);
+    }
+
+    void build_immediate() {
         (*immediate_).set_check_on_click(true);
-        (*immediate_).set_selection_mode(ListSelectionMode::multiple_extended);
-        (*immediate_).add_item("Pointer activation", CheckState::checked);
-        (*immediate_).add_item("Space-key toggle", CheckState::checked);
-        (*immediate_).add_item("Cancelled transition", CheckState::unchecked);
-        (*immediate_).add_item("Indeterminate state", CheckState::indeterminate);
-        (*immediate_).add_item("Mutation remapping", CheckState::checked);
-        (*immediate_).add_item("Semantic press", CheckState::unchecked);
+        constexpr std::array<CheckState, 6> states{CheckState::checked,   CheckState::checked,
+                                                   CheckState::unchecked, CheckState::indeterminate,
+                                                   CheckState::checked,   CheckState::unchecked};
+        for (std::size_t index = 0U; index < states.size(); ++index) {
+            (*immediate_).set_item_check_state(index, states[index]);
+        }
         (*immediate_).select_index(1U);
         (*immediate_).select_index(4U, true, false);
-        (*immediate_group).add_at(immediate_, {24.0, 40.0, 410.0, 282.0});
-        on((*immediate_).item_check_state_changed(), *this,
-           &CheckedCollectionsPage::on_item_checked, 1);
-        std::shared_ptr<Label> immediate_note = label(
-            "gallery.checked.immediate.note",
-            "CheckOnClick toggles immediately; Shift/Ctrl selection remains a separate model.",
-            10.0, 400, muted);
-        (*immediate_note).set_text_wrapping(TextWrapping::word);
-        (*immediate_note).set_vertical_alignment(VerticalAlignment::near);
-        (*immediate_group).add_at(immediate_note, {24.0, 332.0, 410.0, 48.0});
+        on((*immediate_).item_check_state_changed(), *this, &CheckedCollectionsPage::on_item_checked, 1);
     }
 
-    void build_commands(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> commands = group(
-            "gallery.checked.commands", "Check-state commands and ordered telemetry",
-            {930.0, 112.0});
-        (*body).add_at(commands, {24.0, 514.0, 930.0, 112.0});
-        // One CommandBar replaces the hand-rolled button row: one group
-        // notification, a single roving tab stop, and Arrow-key movement.
-        std::shared_ptr<CommandBar> bar = make_control<CommandBar>(
-            StableId("gallery.checked.command"));
-        (*bar).set_style(page_style());
-        (*bar).accessible_name = "Check-state commands";
-        (*bar).set_items({
+    void build_commands() {
+        CommandBar& bar = *document_.gallery_checked_command;
+        bar.set_style(page_style());
+        bar.set_items({
             {.id = command_check_all, .label = "Check all"},
             {.id = command_clear_all, .label = "Clear all"},
             {.id = command_set_mixed, .label = "Set mixed"},
         });
-        for (int index = 0; index < static_cast<int>((*bar).items().size()); ++index) {
-            (*bar).item(index).set_style(page_style());
+        for (int index = 0; index < static_cast<int>(bar.items().size()); ++index) {
+            bar.item(index).set_style(page_style());
         }
-        (*bar).item(0).set_visual_style(ButtonVisualStyle::accent);
-        (*commands).add_at(bar, {22.0, 42.0, 418.0, 34.0});
-        on((*bar).invoked(), *this, &CheckedCollectionsPage::on_command);
-        status_ = label("gallery.checked.status",
-                        "Ready · pre-change event precedes committed state", 10.0, 600, green);
-        (*status_).set_text_wrapping(TextWrapping::word);
-        (*status_).set_vertical_alignment(VerticalAlignment::near);
-        (*commands).add_at(status_, {470.0, 38.0, 420.0, 48.0});
+        bar.item(0).set_visual_style(ButtonVisualStyle::accent);
+        on(bar.invoked(), *this, &CheckedCollectionsPage::on_command);
     }
 
     // A details ListView with check boxes. A header click sorts through
     // the sort_items helper; the view itself never reorders.
-    void build_list_view(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> list_group = group(
-            "gallery.checked.list-view", "ListView · details, check boxes, sortable columns, by-role painted parts",
-            {930.0, 250.0});
-        (*body).add_at(list_group, {24.0, 640.0, 930.0, 250.0});
-        list_view_ = make_control<ListView>(StableId("gallery.checked.list-view.list"));
-        (*list_view_).accessible_name = "Release checklist";
+    void build_list_view() {
         (*list_view_).set_check_boxes(true);
         (*list_view_).set_full_row_select(true);
         (*list_view_).set_columns({
@@ -137,21 +115,11 @@ private:
             {.stable_id = "task.theme", .text = "Default theme", .sub_items = {"Design", "8 d", "T4"}},
             {.stable_id = "task.abi", .text = "Stable C ABI", .sub_items = {"Core", "6 d", "C"}},
         });
-        (*list_group).add_at(list_view_, {22.0, 36.0, 640.0, 196.0});
         on((*list_view_).column_click(), *this, &CheckedCollectionsPage::on_column_click);
         on((*list_view_).item_checked(), *this, &CheckedCollectionsPage::on_list_view_checked);
         (*list_view_).set_label_edit(true);
         on((*list_view_).after_label_edit(), *this, &CheckedCollectionsPage::on_list_view_renamed);
-        std::shared_ptr<Label> note = label(
-            "gallery.checked.list-view.note",
-            "Click a header to sort through the sort_items helper; drag a divider to resize. Space or a click on the box toggles a check; F2 renames the focused task.",
-            10.0, 400, muted);
-        (*note).set_text_wrapping(TextWrapping::word);
-        (*note).set_vertical_alignment(VerticalAlignment::near);
-        (*list_group).add_at(note, {686.0, 36.0, 220.0, 120.0});
-        mark_toggle_ = make_control<Button>(StableId("gallery.checked.list-view.mark"), "Show insertion mark");
         (*mark_toggle_).set_style(page_style());
-        (*list_group).add_at(mark_toggle_, {686.0, 166.0, 200.0, 30.0});
         on((*mark_toggle_).clicked(), *this, &CheckedCollectionsPage::on_mark_toggled);
     }
 
@@ -213,6 +181,7 @@ private:
         }
     }
 
+    CheckedCollectionsDocument<CheckedCollectionsPage> document_{};
     std::shared_ptr<CheckedListBox> immediate_;
     std::shared_ptr<ListView> list_view_;
     std::shared_ptr<Button> mark_toggle_;

@@ -1,0 +1,109 @@
+/* The Gallery's checked-collections page (stage FD, phase FD6.3): two
+   CheckedListBoxes (the deliberate two-click policy and CheckOnClick with
+   extended selection), a CommandBar of check-state commands with a status
+   line, and a details ListView with check boxes. gui_forms_add_form()
+   compiles this document into checked-collections_form.hpp at build time.
+
+   gallery.checked.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the items' check states and
+   initial selections, CheckOnClick, the CommandBar's items, the ListView's
+   columns, rows, check boxes and label editing, every event handler, the
+   status line's reports and the page style. */
+scaled-panel gallery.checked.document {
+  design-size: 1000 900;
+
+  label gallery.checked.heading {
+    text: "CHECKED COLLECTIONS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.checked.lead {
+    text: "Check state remains independent of selection, with cancellable pre-change events, keyboard control, and checkable virtual rows.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.checked.deliberate {
+    text: "CheckedListBox · deliberate two-click policy";
+    design-size: 450 400;
+    bounds: 24 92 450 400;
+    classes: "paper" "group-caption";
+    checked-list-box gallery.checked.deliberate.list {
+      accessible-name: "Deliberate feature selection";
+      items: "Renderer-neutral core" "Window-owned resources" "Native accessibility" "Stable semantic IDs"
+        "Renderer-free build" "Sustained soak gate";
+      bounds: 24 40 400 282;
+    }
+    label gallery.checked.deliberate.note {
+      text: "First click selects. Click the selected row again or press Space to toggle.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 24 332 400 48;
+    }
+  }
+
+  scaled-group-box gallery.checked.immediate {
+    text: "CheckedListBox · CheckOnClick + extended selection";
+    design-size: 460 400;
+    bounds: 494 92 460 400;
+    classes: "paper" "group-caption";
+    checked-list-box gallery.checked.immediate.list {
+      accessible-name: "Immediate capability selection";
+      selection-mode: multiple-extended;
+      items: "Pointer activation" "Space-key toggle" "Cancelled transition" "Indeterminate state"
+        "Mutation remapping" "Semantic press";
+      bounds: 24 40 410 282;
+    }
+    label gallery.checked.immediate.note {
+      text: "CheckOnClick toggles immediately; Shift/Ctrl selection remains a separate model.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 24 332 410 48;
+    }
+  }
+
+  scaled-group-box gallery.checked.commands {
+    text: "Check-state commands and ordered telemetry";
+    design-size: 930 112;
+    bounds: 24 514 930 112;
+    classes: "paper" "group-caption";
+    /* One CommandBar instead of a hand-rolled button row: one group
+       notification, a single roving tab stop, and Arrow-key movement. */
+    command-bar gallery.checked.command {
+      accessible-name: "Check-state commands";
+      bounds: 22 42 418 34;
+    }
+    label gallery.checked.status {
+      text: "Ready · pre-change event precedes committed state";
+      classes: "positive" "note-medium";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 470 38 420 48;
+    }
+  }
+
+  scaled-group-box gallery.checked.list-view {
+    text: "ListView · details, check boxes, sortable columns, by-role painted parts";
+    design-size: 930 250;
+    bounds: 24 640 930 250;
+    classes: "paper" "group-caption";
+    list-view gallery.checked.list-view.list {
+      accessible-name: "Release checklist";
+      bounds: 22 36 640 196;
+    }
+    label gallery.checked.list-view.note {
+      text: "Click a header to sort through the sort_items helper; drag a divider to resize. Space or a click on the box toggles a check; F2 renames the focused task.";
+      classes: "muted" "note";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 686 36 220 120;
+    }
+    button gallery.checked.list-view.mark {
+      text: "Show insertion mark";
+      bounds: 686 166 200 30;
+    }
+  }
+}

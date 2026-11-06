@@ -47,6 +47,7 @@
 .strong { font-family: content; font-size: 11px; font-weight: 700; }
 .note { font-family: content; font-size: 10px; font-weight: 400; }
 .note-emphasis { font-family: content; font-size: 10.5px; font-weight: 600; }
+.note-medium { font-family: content; font-size: 10px; font-weight: 600; }
 .note-strong { font-family: content; font-size: 10px; font-weight: 700; }
 .tag { font-family: content; font-size: 9px; font-weight: 700; }
 .group-caption { font-family: control; font-size: 12px; font-weight: 700; letter-spacing: 0.24px; }
