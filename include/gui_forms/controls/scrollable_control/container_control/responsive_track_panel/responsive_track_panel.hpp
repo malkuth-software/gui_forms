@@ -1,6 +1,9 @@
 #pragma once
 
+#include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
+
+#include <array>
 
 #include <cstddef>
 #include <cstdint>
@@ -130,15 +133,43 @@ struct ResponsiveLayoutSnapshot final {
     std::uint64_t committed_resolution_revision{};
 };
 
+// The track a track panel provides to its children (a child property,
+// study sections 10 and 15.4): the authored track index, or none for the
+// next track no child names. `(*tracks).child_track[*child] = 2U;`
+template <typename Declaring>
+struct ChildTrackCapability {
+    ChildPropertyView<std::optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track;
+
+    static void assign(ChildTrackCapability& capability, const Control& child, std::optional<std::uint32_t> value) {
+        Declaring& container = static_cast<Declaring&>(capability);
+        container.prepare_write(child, value);
+        if (!container.replace_child_track(child, value)) return;
+        container.written(child);
+    }
+
+    static std::optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child) {
+        const Declaring& container = static_cast<const Declaring&>(capability);
+        const std::optional<std::uint32_t> value = container.stored_child_track(child);
+        return value;
+    }
+};
+
 // Nest horizontal and vertical instances to form a retained grid. Each direct
 // child occupies one authored track; multiple children may intentionally share
 // a track. The panel never changes Control::visible(). Automatic collapse is a
 // separate effective-layout state and therefore leaves author visibility
 // intact while removing the subtree from paint, hit testing, focus, and
 // semantics.
-class ResponsiveTrackPanel final : public ContainerControl {
+class ResponsiveTrackPanel final : public ContainerControl,
+                                   public ChildTrackCapability<ResponsiveTrackPanel> {
 public:
     explicit ResponsiveTrackPanel(StableId stable_id);
+
+    // The child properties it provides: child_track.
+    static constexpr std::size_t track_child_property_count = 1U;
+    [[nodiscard]] static const std::array<ChildPropertyEntry, track_child_property_count>&
+    track_child_property_entries() noexcept;
+    [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
 
     [[nodiscard]] ResponsiveTrackOrientation orientation() const noexcept {
         return orientation_;
@@ -152,10 +183,6 @@ public:
     }
     void set_track_specs(std::vector<ResponsiveTrackSpec> specs);
     void set_track_spec(std::size_t track, ResponsiveTrackSpec spec);
-
-    void set_child_track(const Control& child, std::size_t track);
-    [[nodiscard]] std::optional<std::size_t> child_track(
-        const Control& child) const;
 
     // A revealed track is protected from automatic collapse until the author
     // clears the request. This is the explicit focus-reveal seam; protection
@@ -177,7 +204,21 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
+protected:
+    void child_leaving(const Control& child) noexcept override;
+
 private:
+    friend struct ChildTrackCapability<ResponsiveTrackPanel>;
+
+    // The child track's hooks: the container's thread, a live direct child
+    // and a track inside the specs before the compare; relayout after.
+    void prepare_write(const Control& child, const std::optional<std::uint32_t>& incoming) const;
+    void written(const Control& child);
+    // Stores `child`'s track (none erases it); false when it was already `value`.
+    bool replace_child_track(const Control& child, std::optional<std::uint32_t> value);
+    // `child`'s authored track; refuses a child that is not a live direct child.
+    [[nodiscard]] std::optional<std::uint32_t> stored_child_track(const Control& child) const;
+
     using ChildTrackMap = std::unordered_map<std::uint64_t, std::size_t>;
     using FocusFallbackMap =
         std::unordered_map<std::size_t, std::weak_ptr<Control>>;

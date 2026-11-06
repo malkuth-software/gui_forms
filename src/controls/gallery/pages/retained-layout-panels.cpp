@@ -104,21 +104,21 @@ private:
         (*header).set_requested_bounds({0.0, 0.0, 720.0, 26.0});
         (*header).margin = {8.0, 7.0, 8.0, 5.0};
         (*table_).add_child(header);
-        (*table_).set_cell_position(*header, {0U, 0U});
-        (*table_).set_column_span(*header, 4U);
+        (*table_).cell[*header] = GridCell{.row = 0U, .column = 0U};
+        (*table_).column_span[*header] = 4U;
 
         std::shared_ptr<Label> absolute = label("gallery.layout.table.absolute",
                                                 "Absolute · 140 px", 11.0, 600, ink);
         (*absolute).set_requested_bounds({0.0, 0.0, 112.0, 24.0});
         (*table_).add_child(absolute);
-        (*table_).set_cell_position(*absolute, {0U, 1U});
+        (*table_).cell[*absolute] = GridCell{.row = 1U, .column = 0U};
 
         std::shared_ptr<Button> automatic = make_control<Button>(
             StableId("gallery.layout.table.auto"), "Auto content");
         (*automatic).set_visual_style(ButtonVisualStyle::accent);
         (*automatic).set_requested_bounds({0.0, 0.0, 128.0, 30.0});
         (*table_).add_child(automatic);
-        (*table_).set_cell_position(*automatic, {1U, 1U});
+        (*table_).cell[*automatic] = GridCell{.row = 1U, .column = 1U};
 
         std::shared_ptr<CheckBox> percent_one = make_control<CheckBox>(
             StableId("gallery.layout.table.percent.one"), "Percent · 1 share");
@@ -126,7 +126,7 @@ private:
         (*percent_one).set_requested_bounds({0.0, 0.0, 140.0, 28.0});
         (*percent_one).bind(percent_one_);
         (*table_).add_child(percent_one);
-        (*table_).set_cell_position(*percent_one, {2U, 1U});
+        (*table_).cell[*percent_one] = GridCell{.row = 1U, .column = 2U};
 
         std::shared_ptr<TrackBar> percent_two = make_control<TrackBar>(
             StableId("gallery.layout.table.percent.two"));
@@ -135,15 +135,15 @@ private:
         (*percent_two).set_requested_bounds({0.0, 0.0, 230.0, 30.0});
         (*percent_two).bind(table_share_);
         (*table_).add_child(percent_two);
-        (*table_).set_cell_position(*percent_two, {3U, 1U});
+        (*table_).cell[*percent_two] = GridCell{.row = 1U, .column = 3U};
 
         std::shared_ptr<Label> span_note = label(
             "gallery.layout.table.span",
             "ColumnSpan = 2 · lookup covers both cells", 11.0, 600, green);
         (*span_note).set_requested_bounds({0.0, 0.0, 260.0, 28.0});
         (*table_).add_child(span_note);
-        (*table_).set_cell_position(*span_note, {0U, 2U});
-        (*table_).set_column_span(*span_note, 2U);
+        (*table_).cell[*span_note] = GridCell{.row = 2U, .column = 0U};
+        (*table_).column_span[*span_note] = 2U;
 
         std::shared_ptr<Button> auto_placed = make_control<Button>(
             StableId("gallery.layout.table.auto.placed"), "Auto-placed cell");

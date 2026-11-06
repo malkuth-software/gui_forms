@@ -67,6 +67,26 @@ records every difference here with its reason and the decision behind it.
 | Reason | Focus moves before the grid learns of it (Window::focused_control_changed), and taking it back from the window's focus change would let one control veto another's focus, which no other control may do. |
 | Decision | owner, 2026-11-02 |
 
+## TableLayoutPanelCompat
+
+### column_span / row_span (automatic children)
+
+| | |
+|---|---|
+| Windows Forms | SetColumnSpan and SetRowSpan apply to any child; a child without an explicit cell is auto-placed into the first free run of cells its span needs. |
+| GUI.Forms | A span needs an explicit cell: writing a span other than 1 to an automatically placed child is refused, and automatic placement gives each child one cell. |
+| Reason | The table holds the spans as anonymous GridSpan objects anchored at a child's cell (study 10.9 section 5); an automatic child has no anchor. Coordinator for cp20: automatic placement ignores spans. |
+| Decision | coordinator, 2026-11-05 |
+
+### column_span / row_span / cell (overlap)
+
+| | |
+|---|---|
+| Windows Forms | Spans may overlap other spans or explicitly placed children; the layout then moves the later child on (or leaves it out under FixedSize). |
+| GUI.Forms | A span that would overlap another span or cover another child's cell, and a cell inside another child's span, are refused with std::invalid_argument when written. |
+| Reason | The table's spans follow the GridSpan conflict rules (study 10.9 section 1, rules a and d), so a fused region never holds a second placed child. |
+| Decision | owner, 2026-11-05 |
+
 ## ToolStripManager
 
 ### merge_strips (MatchOnly)

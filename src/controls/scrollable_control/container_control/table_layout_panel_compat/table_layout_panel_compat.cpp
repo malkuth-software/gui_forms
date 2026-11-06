@@ -17,6 +17,99 @@ namespace gui_forms {
 namespace {
 constexpr std::size_t maximum_layout_tracks = 64U;
 
+const PropertyDescriptor& describe_cell() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"cell", BindingValueKind::point, "Layout",
+                           "The child's cell, row then column; without one it is placed automatically.",
+                           std::nullopt, invalidation::bounds},
+        PropertyOperations{true, true, true, false});
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_column_span() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"column_span", BindingValueKind::unsigned_integer, "Layout",
+                           "How many columns the child's cell spans; a span needs a cell.",
+                           BindingValue{std::uint64_t{1U}}, invalidation::bounds},
+        PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_row_span() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"row_span", BindingValueKind::unsigned_integer, "Layout",
+                           "How many rows the child's cell spans; a span needs a cell.",
+                           BindingValue{std::uint64_t{1U}}, invalidation::bounds},
+        PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+BindingValue read_cell(const Component& container, const Control& child) {
+    const TableLayoutPanelCompat& table = static_cast<const TableLayoutPanelCompat&>(container);
+    const GridCell cell = table.cell[child].read();
+    const BindingValue value = PropertyValueTraits<GridCell>::to_binding(cell);
+    return value;
+}
+
+// A coordinate of a cell's point form: a whole number of tracks below the limit.
+bool cell_coordinate(double value, std::uint32_t& coordinate) noexcept {
+    if (!std::isfinite(value) || value < 0.0 || value >= static_cast<double>(maximum_layout_tracks)) return false;
+    if (std::floor(value) != value) return false;
+    coordinate = static_cast<std::uint32_t>(value);
+    return true;
+}
+
+void write_cell(Component& container, const Control& child, const BindingValue& value) {
+    TableLayoutPanelCompat& table = static_cast<TableLayoutPanelCompat&>(container);
+    const Point point = std::get<Point>(value);
+    GridCell cell{};
+    if (!cell_coordinate(point.x, cell.row) || !cell_coordinate(point.y, cell.column)) {
+        throw std::invalid_argument("TableLayoutPanelCompat cell needs a row and a column, whole numbers from 0 to 63");
+    }
+    table.cell[child] = cell;
+}
+
+void reset_cell(Component& container, const Control& child) {
+    TableLayoutPanelCompat& table = static_cast<TableLayoutPanelCompat&>(container);
+    table.clear_cell(child);
+}
+
+bool cell_serialized(const Component& container, const Control& child) {
+    const TableLayoutPanelCompat& table = static_cast<const TableLayoutPanelCompat&>(container);
+    const bool serialized = table.has_cell(child);
+    return serialized;
+}
+
+// A span's extent: an unsigned count no larger than the track limit (the
+// setter refuses 0); a larger value cannot fit 32 bits and is refused here.
+std::uint32_t span_extent(const BindingValue& value) {
+    const std::uint64_t extent = std::get<std::uint64_t>(value);
+    if (extent > maximum_layout_tracks) throw std::out_of_range("TableLayoutPanelCompat span must be 1 through 64");
+    return static_cast<std::uint32_t>(extent);
+}
+
+BindingValue read_column_span(const Component& container, const Control& child) {
+    const TableLayoutPanelCompat& table = static_cast<const TableLayoutPanelCompat&>(container);
+    const std::uint32_t extent = table.column_span[child].read();
+    return BindingValue{std::uint64_t{extent}};
+}
+
+void write_column_span(Component& container, const Control& child, const BindingValue& value) {
+    TableLayoutPanelCompat& table = static_cast<TableLayoutPanelCompat&>(container);
+    table.column_span[child] = span_extent(value);
+}
+
+BindingValue read_row_span(const Component& container, const Control& child) {
+    const TableLayoutPanelCompat& table = static_cast<const TableLayoutPanelCompat&>(container);
+    const std::uint32_t extent = table.row_span[child].read();
+    return BindingValue{std::uint64_t{extent}};
+}
+
+void write_row_span(Component& container, const Control& child, const BindingValue& value) {
+    TableLayoutPanelCompat& table = static_cast<TableLayoutPanelCompat&>(container);
+    table.row_span[child] = span_extent(value);
+}
+
 // The occupancy bitmap's row stride and capacity (the track limit).
 constexpr std::size_t occupancy_stride = maximum_layout_tracks;
 constexpr std::size_t occupancy_capacity = maximum_layout_tracks * maximum_layout_tracks;
@@ -164,6 +257,22 @@ double TableLayoutPanelCompat::resolve_tracks(
 TableLayoutPanelCompat::TableLayoutPanelCompat(StableId stable_id)
     : ContainerControl(std::move(stable_id)) {}
 
+const std::array<ChildPropertyEntry, TableLayoutPanelCompat::table_child_property_count>&
+TableLayoutPanelCompat::table_child_property_entries() noexcept {
+    static constexpr std::array<ChildPropertyEntry, table_child_property_count> entries{{
+        {"cell", &describe_cell, &read_cell, &write_cell, &reset_cell, &cell_serialized},
+        {"column_span", &describe_column_span, &read_column_span, &write_column_span, nullptr, nullptr},
+        {"row_span", &describe_row_span, &read_row_span, &write_row_span, nullptr, nullptr},
+    }};
+    static_assert(property_names_distinct(entries), "TableLayoutPanelCompat's child table names a property twice");
+    return entries;
+}
+
+std::span<const ChildPropertyEntry> TableLayoutPanelCompat::child_property_table() const noexcept {
+    const std::array<ChildPropertyEntry, table_child_property_count>& entries = table_child_property_entries();
+    return std::span<const ChildPropertyEntry>(entries);
+}
+
 void TableLayoutPanelCompat::validate_style(TableLayoutStyle style) {
     if (!std::isfinite(style.size) || style.size < 0.0 ||
         (style.size_mode == TableSizeMode::percent && style.size <= 0.0)) {
@@ -242,99 +351,183 @@ void TableLayoutPanelCompat::set_row_style(std::size_t row, TableLayoutStyle sty
     invalidate(invalidation::bounds);
 }
 
-TableLayoutPanelCompat::CellMetadata& TableLayoutPanelCompat::metadata_for(
-    const Control& child) {
-    if (child.parent().get() != this || !child.is_alive()) {
-        throw std::invalid_argument(
-            "TableLayoutPanelCompat metadata requires a live direct child");
-    }
-    return metadata_[child.runtime_id().value];
-}
-
-const TableLayoutPanelCompat::CellMetadata* TableLayoutPanelCompat::metadata_for(
-    const Control& child) const {
-    if (child.parent().get() != this || !child.is_alive()) return nullptr;
-    const MetadataMap::const_iterator found =
-        metadata_.find(child.runtime_id().value);
-    return found == metadata_.end() ? nullptr : &(*found).second;
-}
-
-void TableLayoutPanelCompat::set_cell_position(
-    const Control& child, TableLayoutCellPosition position) {
+void TableLayoutPanelCompat::prepare_write(const Control& child) const {
     require_mutable();
-    if (position.column >= maximum_layout_tracks ||
-        position.row >= maximum_layout_tracks) {
-        throw std::out_of_range("TableLayoutPanelCompat cell position exceeds 64 tracks");
-    }
-    CellMetadata& metadata = metadata_for(child);
-    if (metadata.position == position) return;
-    metadata.position = position;
+    require_direct_child(child);
+}
+
+void TableLayoutPanelCompat::written(const Control& child) {
+    static_cast<void>(child);
     invalidate(invalidation::bounds);
 }
 
-void TableLayoutPanelCompat::clear_cell_position(const Control& child) {
-    require_mutable();
-    CellMetadata& metadata = metadata_for(child);
-    if (!metadata.position) return;
-    metadata.position.reset();
-    invalidate(invalidation::bounds);
+bool TableLayoutPanelCompat::has_cell(const Control& child) const {
+    require_direct_child(child);
+    const bool found = cells_.contains(child.runtime_id().value);
+    return found;
 }
 
-std::optional<TableLayoutCellPosition> TableLayoutPanelCompat::cell_position(
-    const Control& child) const {
+const GridSpan* TableLayoutPanelCompat::anchored_span(GridCell anchor) const noexcept {
+    for (const GridSpan& span : spans_) {
+        if (span.anchor == anchor) return &span;
+    }
+    return nullptr;
+}
+
+std::size_t TableLayoutPanelCompat::children_anchored_at(GridCell anchor) const noexcept {
+    std::size_t count = 0U;
+    for (const CellMap::value_type& entry : cells_) {
+        if (entry.second == anchor) ++count;
+    }
+    return count;
+}
+
+void TableLayoutPanelCompat::check_span(const GridSpan& candidate, const GridSpan* replaced) const {
+    if (static_cast<std::size_t>(candidate.anchor.column) + candidate.columns > maximum_layout_tracks ||
+        static_cast<std::size_t>(candidate.anchor.row) + candidate.rows > maximum_layout_tracks) {
+        throw std::out_of_range("TableLayoutPanelCompat span must end within 64 tracks");
+    }
+    for (const GridSpan& span : spans_) {
+        if (&span == replaced) continue;
+        if (grid_spans_overlap(span, candidate)) {
+            throw std::invalid_argument("TableLayoutPanelCompat spans may not overlap");
+        }
+    }
+    for (const CellMap::value_type& entry : cells_) {
+        if (grid_span_interior(candidate, entry.second)) {
+            throw std::invalid_argument("TableLayoutPanelCompat span would cover another child's cell");
+        }
+    }
+}
+
+void TableLayoutPanelCompat::store_span(GridCell anchor, const GridSpan& span) {
+    const bool single = span.rows == 1U && span.columns == 1U;
+    for (std::vector<GridSpan>::iterator stored = spans_.begin(); stored != spans_.end(); ++stored) {
+        if ((*stored).anchor != anchor) continue;
+        if (single) {
+            spans_.erase(stored);
+        } else {
+            *stored = span;
+        }
+        return;
+    }
+    if (!single) spans_.push_back(span);
+}
+
+bool TableLayoutPanelCompat::replace_cell(const Control& child, GridCell cell) {
+    if (cell.row >= maximum_layout_tracks || cell.column >= maximum_layout_tracks) {
+        throw std::out_of_range("TableLayoutPanelCompat cell exceeds 64 tracks");
+    }
+    const std::uint64_t id = child.runtime_id().value;
+    const CellMap::iterator found = cells_.find(id);
+    if (found != cells_.end() && (*found).second == cell) return false;
+    // The child's span moves with it unless another child keeps the anchor.
+    const GridSpan* carried = nullptr;
+    if (found != cells_.end() && children_anchored_at((*found).second) == 1U) {
+        carried = anchored_span((*found).second);
+    }
+    for (const GridSpan& span : spans_) {
+        if (&span != carried && grid_span_interior(span, cell)) {
+            throw std::invalid_argument("TableLayoutPanelCompat cell lies inside another child's span");
+        }
+    }
+    if (carried == nullptr) {
+        cells_[id] = cell;
+        return true;
+    }
+    GridSpan moved = *carried;
+    moved.anchor = cell;
+    const GridCell previous = (*found).second;
+    // Checked without the child's own old cell, which moves with it.
+    cells_.erase(found);
+    try {
+        check_span(moved, carried);
+    } catch (...) {
+        cells_[id] = previous;
+        throw;
+    }
+    const GridSpan single{std::string{}, previous, 1U, 1U};
+    store_span(previous, single);
+    spans_.push_back(moved);
+    cells_[id] = cell;
+    return true;
+}
+
+bool TableLayoutPanelCompat::remove_cell(const Control& child) {
+    const CellMap::iterator found = cells_.find(child.runtime_id().value);
+    if (found == cells_.end()) return false;
+    if (anchored_span((*found).second) != nullptr && children_anchored_at((*found).second) == 1U) {
+        throw std::invalid_argument("TableLayoutPanelCompat child spans; set its spans to 1 before clearing its cell");
+    }
+    cells_.erase(found);
+    return true;
+}
+
+void TableLayoutPanelCompat::clear_cell(const Control& child) {
+    prepare_write(child);
+    if (!remove_cell(child)) return;
+    written(child);
+}
+
+bool TableLayoutPanelCompat::replace_span(const Control& child, TableSpanAxis axis, std::uint32_t extent) {
+    if (extent == 0U || extent > maximum_layout_tracks) {
+        throw std::out_of_range("TableLayoutPanelCompat span must be 1 through 64");
+    }
+    const CellMap::const_iterator found = cells_.find(child.runtime_id().value);
+    if (found == cells_.end()) {
+        if (extent == 1U) return false;
+        throw std::invalid_argument("TableLayoutPanelCompat child needs a cell before it can span");
+    }
+    const GridCell anchor = (*found).second;
+    const GridSpan* existing = anchored_span(anchor);
+    GridSpan candidate = existing == nullptr ? GridSpan{std::string{}, anchor, 1U, 1U} : *existing;
+    std::uint32_t& changed = axis == TableSpanAxis::columns ? candidate.columns : candidate.rows;
+    if (changed == extent) return false;
+    changed = extent;
+    check_span(candidate, existing);
+    store_span(anchor, candidate);
+    return true;
+}
+
+GridCell TableLayoutPanelCompat::stored_cell(const Control& child) const {
+    require_direct_child(child);
+    const CellMap::const_iterator found = cells_.find(child.runtime_id().value);
+    const GridCell cell = found == cells_.end() ? GridCell{} : (*found).second;
+    return cell;
+}
+
+std::uint32_t TableLayoutPanelCompat::stored_span(const Control& child, TableSpanAxis axis) const {
+    require_direct_child(child);
+    const CellMap::const_iterator found = cells_.find(child.runtime_id().value);
+    if (found == cells_.end()) return 1U;
+    const GridSpan* span = anchored_span((*found).second);
+    if (span == nullptr) return 1U;
+    const std::uint32_t extent = axis == TableSpanAxis::columns ? (*span).columns : (*span).rows;
+    return extent;
+}
+
+std::optional<TableLayoutCellPosition> TableLayoutPanelCompat::cell_position(const Control& child) const {
     if (child.parent().get() != this || !child.is_alive()) return std::nullopt;
     if (attached_window() != nullptr) static_cast<void>(arranged_bounds());
-    const ResolvedCellMap::const_iterator resolved =
-        resolved_cells_.find(child.runtime_id().value);
+    const ResolvedCellMap::const_iterator resolved = resolved_cells_.find(child.runtime_id().value);
     if (resolved != resolved_cells_.end()) return (*resolved).second.position;
-    const CellMetadata* metadata = metadata_for(child);
-    return metadata == nullptr ? std::nullopt : (*metadata).position;
+    const CellMap::const_iterator found = cells_.find(child.runtime_id().value);
+    if (found == cells_.end()) return std::nullopt;
+    const TableLayoutCellPosition position{(*found).second.column, (*found).second.row};
+    return position;
 }
 
-void TableLayoutPanelCompat::set_column_span(const Control& child, std::size_t span) {
-    require_mutable();
-    if (span == 0U || span > maximum_layout_tracks) {
-        throw std::out_of_range("TableLayoutPanelCompat column span must be 1 through 64");
-    }
-    CellMetadata& metadata = metadata_for(child);
-    if (metadata.column_span == span) return;
-    metadata.column_span = span;
-    invalidate(invalidation::bounds);
-}
-
-std::size_t TableLayoutPanelCompat::column_span(const Control& child) const {
-    const CellMetadata* metadata = metadata_for(child);
-    return metadata == nullptr ? 1U : (*metadata).column_span;
-}
-
-void TableLayoutPanelCompat::set_row_span(const Control& child, std::size_t span) {
-    require_mutable();
-    if (span == 0U || span > maximum_layout_tracks) {
-        throw std::out_of_range("TableLayoutPanelCompat row span must be 1 through 64");
-    }
-    CellMetadata& metadata = metadata_for(child);
-    if (metadata.row_span == span) return;
-    metadata.row_span = span;
-    invalidate(invalidation::bounds);
-}
-
-std::size_t TableLayoutPanelCompat::row_span(const Control& child) const {
-    const CellMetadata* metadata = metadata_for(child);
-    return metadata == nullptr ? 1U : (*metadata).row_span;
-}
-
-void TableLayoutPanelCompat::reconcile_metadata(std::uint64_t pass) {
-    for (const Control::Ptr& child : children()) {
-        if (!child || !(*child).is_alive() || (*child).parent().get() != this) continue;
-        const MetadataMap::iterator found = metadata_.find((*child).runtime_id().value);
-        if (found != metadata_.end()) (*found).second.seen_pass = pass;
-    }
-    MetadataMap::iterator metadata = metadata_.begin();
-    while (metadata != metadata_.end()) {
-        if ((*metadata).second.seen_pass != pass) {
-            metadata = metadata_.erase(metadata);
-        } else {
-            ++metadata;
+void TableLayoutPanelCompat::child_leaving(const Control& child) noexcept {
+    const CellMap::iterator found = cells_.find(child.runtime_id().value);
+    if (found == cells_.end()) return;
+    const GridCell anchor = (*found).second;
+    cells_.erase(found);
+    // A span no child is anchored at any longer goes with its child.
+    if (children_anchored_at(anchor) != 0U) return;
+    for (std::vector<GridSpan>::iterator stored = spans_.begin(); stored != spans_.end(); ++stored) {
+        if ((*stored).anchor == anchor) {
+            spans_.erase(stored);
+            return;
         }
     }
 }
@@ -346,14 +539,15 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
     std::size_t rows = row_count_;
     for (const Control::Ptr& child : workspace.retained) {
         if (!is_current_layout_child(child) || !(*child).visible.read()) continue;
-        const CellMetadata* metadata = std::as_const(*this).metadata_for(*child);
-        if (metadata == nullptr || !(*metadata).position) {
+        const CellMap::const_iterator found = cells_.find((*child).runtime_id().value);
+        if (found == cells_.end()) {
             workspace.automatic.push_back(child);
             continue;
         }
-        const TableLayoutCellPosition position = *(*metadata).position;
-        const std::size_t column_span = (*metadata).column_span;
-        const std::size_t row_span = (*metadata).row_span;
+        const TableLayoutCellPosition position{(*found).second.column, (*found).second.row};
+        const GridSpan* span = anchored_span((*found).second);
+        const std::size_t column_span = span == nullptr ? 1U : (*span).columns;
+        const std::size_t row_span = span == nullptr ? 1U : (*span).rows;
         if (!grow_to_fit(columns, rows, position, column_span, row_span, grow_style_) ||
             !region_free(occupied, columns, rows, position.column, position.row, column_span, row_span)) {
             workspace.overflow.push_back(child);
@@ -363,17 +557,10 @@ void TableLayoutPanelCompat::place_items(Workspace& workspace) {
         workspace.items.push_back(TableItem{child, position, column_span, row_span, Size{}, (*child).margin.read()});
     }
 
+    // An automatic child takes one cell: a span needs an explicit cell.
+    const std::size_t column_span = 1U;
+    const std::size_t row_span = 1U;
     for (const Control::Ptr& child : workspace.automatic) {
-        const CellMetadata* metadata = std::as_const(*this).metadata_for(*child);
-        const std::size_t column_span = metadata == nullptr ? 1U : (*metadata).column_span;
-        const std::size_t row_span = metadata == nullptr ? 1U : (*metadata).row_span;
-        if ((column_span > columns && grow_style_ != TableLayoutGrowStyle::add_columns) ||
-            (row_span > rows && grow_style_ != TableLayoutGrowStyle::add_rows)) {
-            workspace.overflow.push_back(child);
-            continue;
-        }
-        columns = std::max(columns, column_span);
-        rows = std::max(rows, row_span);
         std::optional<TableLayoutCellPosition> position;
         while (!position) {
             for (std::size_t row = 0U; row < rows && !position; ++row) {
@@ -423,7 +610,6 @@ Size TableLayoutPanelCompat::layout_children(Size available, bool assign) {
 
 Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace& workspace) {
     const std::uint64_t pass = ++pass_;
-    reconcile_metadata(pass);
     const Insets inset = padding.read();
     const Size inner{std::max(0.0, available.width - horizontal_extent(inset)),
                      std::max(0.0, available.height - vertical_extent(inset))};
@@ -524,6 +710,8 @@ Size TableLayoutPanelCompat::layout_pass(Size available, bool assign, Workspace&
         if (!item.control || !is_current_layout_child(item.control)) continue;
         ResolvedCell& resolved = resolved_cells_[(*item.control).runtime_id().value];
         resolved.position = item.position;
+        resolved.column_span = item.column_span;
+        resolved.row_span = item.row_span;
         resolved.seen_pass = pass;
         if (!assign) continue;
         const std::size_t column_end = item.position.column + item.column_span;
@@ -572,10 +760,8 @@ Control::Ptr TableLayoutPanelCompat::control_from_position(std::size_t column,
         const ResolvedCellMap::const_iterator position =
             resolved_cells_.find((*child).runtime_id().value);
         if (position == resolved_cells_.end()) continue;
-        const CellMetadata* metadata = metadata_for(*child);
-        const std::size_t column_span = metadata == nullptr
-            ? 1U : (*metadata).column_span;
-        const std::size_t row_span = metadata == nullptr ? 1U : (*metadata).row_span;
+        const std::size_t column_span = (*position).second.column_span;
+        const std::size_t row_span = (*position).second.row_span;
         const TableLayoutCellPosition cell = (*position).second.position;
         if (column >= cell.column && column < cell.column + column_span &&
             row >= cell.row && row < cell.row + row_span) {

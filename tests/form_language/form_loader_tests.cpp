@@ -76,6 +76,8 @@ FormSchema sample_schema() {
     schema.types.push_back(gui_forms::form_language::form_root_type());
     // A type that holds spans (study 10.9).
     schema.types.push_back(form_control_type<gui_forms::GridPanel>("grid_panel"));
+    // A table: its children's spans need their cells (study 10.9 section 5).
+    schema.types.push_back(form_control_type<gui_forms::TableLayoutPanelCompat>("table_layout_panel_compat"));
     return schema;
 }
 
@@ -299,6 +301,40 @@ void test_spans() {
     require(side != nullptr && (*grid).cell[*side].read() == gui_forms::GridCell{0U, 2U}, "spans: placed by cell");
 }
 
+// A table child's cell is applied before its spans whatever their order in
+// the block (the table lists the cell first); a span without a cell is
+// refused at load.
+void test_table_placement() {
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "table-layout-panel-compat app.root {\n"
+                                      "  check-box app.header { column-span: 2; cell: 0 0; text: \"Header\"; }\n"
+                                      "  check-box app.other { }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    require(outcome == FormLoadOutcome::loaded, "table placement: loaded");
+    const std::shared_ptr<gui_forms::TableLayoutPanelCompat> table =
+        std::dynamic_pointer_cast<gui_forms::TableLayoutPanelCompat>(loaded.root);
+    require(table != nullptr && loaded.objects.size() == 3U, "table placement: the table and its two children");
+    if (table == nullptr || loaded.objects.size() != 3U) return;
+    const Control::Ptr header = std::dynamic_pointer_cast<Control>(loaded.objects[1]);
+    require(header != nullptr && (*table).has_cell(*header) && (*table).column_span[*header].read() == 2U,
+            "table placement: the cell, then the span");
+
+    const std::string_view unplaced = "table-layout-panel-compat app.root {\n"
+                                      "  check-box app.header { column-span: 2; }\n"
+                                      "}\n";
+    require(load(workspace, unplaced, schema, loaded) == FormLoadOutcome::refused,
+            "table placement: a span without a cell is refused");
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    const bool located = records.size() == 1U && records[0].code == DiagnosticCode::form_load_refused &&
+                         records[0].position.line.value == 2U && records[0].rule == "app.header";
+    if (!located) print_diagnostics(workspace);
+    require(located, "table placement: the refusal located at the span");
+}
+
 } // namespace
 
 int main() {
@@ -307,6 +343,7 @@ int main() {
     test_form_root();
     test_form_root_defects();
     test_spans();
+    test_table_placement();
     if (failures != 0) {
         std::cerr << failures << " form loader checks failed\n";
         return 1;

@@ -474,7 +474,7 @@ void place_layout(FixtureBuilder& builder) {
     (*overflow_view).set_requested_bounds({0.0, 0.0, 80.0, 24.0});
     (*overflow_group).add_child(overflow_view);
     (*overflow).add_child(overflow_group);
-    (*overflow).set_group_spec(*overflow_group, {120.0, 120.0, 120.0, 1U});
+    (*overflow).group_spec[*overflow_group] = CommandOverflowGroupSpec{120.0, 120.0, 120.0, 1U};
     std::shared_ptr<MasterDetailView> master_detail = builder.place(
         make_control<MasterDetailView>(StableId("master-detail-view")), 60.0);
     (*master_detail).accessible_name = "Master detail";

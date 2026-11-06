@@ -7,8 +7,13 @@
 #include "../../scrollable_anatomy.hpp"
 
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <cmath>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <system_error>
 #include <unordered_set>
 #include <utility>
 
@@ -36,6 +41,100 @@ constexpr double maximum_extent = 1'000'000.0;
     return value;
 }
 
+// One whitespace-separated word of `text` from `position`; empty at the end.
+std::string_view next_word(std::string_view text, std::size_t& position) noexcept {
+    while (position < text.size() && text[position] == ' ') ++position;
+    const std::size_t start = position;
+    while (position < text.size() && text[position] != ' ') ++position;
+    const std::string_view word = text.substr(start, position - start);
+    return word;
+}
+
+// A decimal number of the text form; false when `word` is not one.
+bool parse_extent(std::string_view word, double& value) noexcept {
+    if (word.empty()) return false;
+    const char* const end = word.data() + word.size();
+    const std::from_chars_result parsed = std::from_chars(word.data(), end, value);
+    const bool whole = parsed.ec == std::errc{} && parsed.ptr == end;
+    return whole;
+}
+
+// The shortest text that reads back as `value`.
+void append_number(std::string& text, double value) {
+    std::array<char, 32U> buffer{};
+    const std::to_chars_result written = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+    text.append(buffer.data(), static_cast<std::size_t>(written.ptr - buffer.data()));
+}
+
+// The group spec's text form ("176 176 176" or "176 176 176 priority 2");
+// the empty text is none. Parsing throws std::invalid_argument for text of
+// another shape; the extents' order is the panel's check, on the write.
+std::string format_command_overflow_group_spec(const std::optional<CommandOverflowGroupSpec>& spec) {
+    std::string text;
+    if (!spec) return text;
+    append_number(text, (*spec).minimum);
+    text.push_back(' ');
+    append_number(text, (*spec).preferred);
+    text.push_back(' ');
+    append_number(text, (*spec).maximum);
+    if ((*spec).collapse_priority) {
+        text.append(" priority ");
+        text.append(std::to_string(*(*spec).collapse_priority));
+    }
+    return text;
+}
+
+std::optional<CommandOverflowGroupSpec> parse_command_overflow_group_spec(std::string_view text) {
+    std::size_t position = 0U;
+    const std::string_view first = next_word(text, position);
+    if (first.empty()) return std::nullopt;
+    CommandOverflowGroupSpec spec{};
+    const std::string_view second = next_word(text, position);
+    const std::string_view third = next_word(text, position);
+    if (!parse_extent(first, spec.minimum) || !parse_extent(second, spec.preferred) ||
+        !parse_extent(third, spec.maximum)) {
+        throw std::invalid_argument("CommandOverflowPanel group spec needs three extents");
+    }
+    const std::string_view keyword = next_word(text, position);
+    if (!keyword.empty()) {
+        const std::string_view priority = next_word(text, position);
+        std::uint16_t parsed_priority{};
+        const char* const end = priority.data() + priority.size();
+        const std::from_chars_result parsed = std::from_chars(priority.data(), end, parsed_priority);
+        if (keyword != "priority" || priority.empty() || parsed.ec != std::errc{} || parsed.ptr != end) {
+            throw std::invalid_argument("CommandOverflowPanel group spec ends with priority and a number to 65535");
+        }
+        spec.collapse_priority = parsed_priority;
+    }
+    if (!next_word(text, position).empty()) {
+        throw std::invalid_argument("CommandOverflowPanel group spec has text after its priority");
+    }
+    return spec;
+}
+
+const PropertyDescriptor& describe_group_spec() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        PropertyDescriptor{"group_spec", BindingValueKind::text, "Layout",
+                           "The child's minimum, preferred and maximum extents and optional collapse priority, as "
+                           "\"176 176 176 priority 2\"; empty: a non-collapsible child at its desired width.",
+                           BindingValue{std::string{}}, invalidation::bounds},
+        PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+BindingValue read_group_spec(const Component& container, const Control& child) {
+    const CommandOverflowPanel& panel = static_cast<const CommandOverflowPanel&>(container);
+    const std::optional<CommandOverflowGroupSpec> spec = panel.group_spec[child].read();
+    BindingValue value{format_command_overflow_group_spec(spec)};
+    return value;
+}
+
+void write_group_spec(Component& container, const Control& child, const BindingValue& value) {
+    CommandOverflowPanel& panel = static_cast<CommandOverflowPanel&>(container);
+    std::optional<CommandOverflowGroupSpec> spec = parse_command_overflow_group_spec(std::get<std::string>(value));
+    panel.group_spec[child] = std::move(spec);
+}
+
 } // namespace
 
 struct CommandOverflowPanel::LayoutResult final {
@@ -45,6 +144,20 @@ struct CommandOverflowPanel::LayoutResult final {
 
 CommandOverflowPanel::CommandOverflowPanel(StableId stable_id)
     : ContainerControl(std::move(stable_id)) {}
+
+const std::array<ChildPropertyEntry, CommandOverflowPanel::overflow_child_property_count>&
+CommandOverflowPanel::overflow_child_property_entries() noexcept {
+    static constexpr std::array<ChildPropertyEntry, overflow_child_property_count> entries{{
+        {"group_spec", &describe_group_spec, &read_group_spec, &write_group_spec, nullptr, nullptr},
+    }};
+    static_assert(property_names_distinct(entries), "CommandOverflowPanel's child table names a property twice");
+    return entries;
+}
+
+std::span<const ChildPropertyEntry> CommandOverflowPanel::child_property_table() const noexcept {
+    const std::array<ChildPropertyEntry, overflow_child_property_count>& entries = overflow_child_property_entries();
+    return std::span<const ChildPropertyEntry>(entries);
+}
 
 void CommandOverflowPanel::validate_spec(
     const CommandOverflowGroupSpec& spec) {
@@ -70,51 +183,56 @@ void CommandOverflowPanel::set_group_gap(double gap) {
     invalidate(invalidation::bounds);
 }
 
-void CommandOverflowPanel::set_group_spec(
-    const Control& group, CommandOverflowGroupSpec spec) {
+void CommandOverflowPanel::prepare_write(const Control& child,
+                                         const std::optional<CommandOverflowGroupSpec>& incoming) const {
     require_mutable();
+    require_direct_child(child);
+    if (!incoming) return;
+    const CommandOverflowGroupSpec& spec = *incoming;
     validate_spec(spec);
-    if (group.parent().get() != this || !group.is_alive()) {
-        throw std::invalid_argument(
-            "CommandOverflowPanel group must be a live direct child");
-    }
     const std::shared_ptr<Control> actuator = overflow_actuator_.lock();
-    if (actuator && actuator.get() == &group) {
-        throw std::invalid_argument(
-            "CommandOverflowPanel actuator cannot also be a command group");
+    if (actuator && actuator.get() == &child) {
+        throw std::invalid_argument("CommandOverflowPanel actuator cannot also be a command group");
     }
+    const std::uint64_t id = child.runtime_id().value;
     for (const GroupSpecMap::value_type& entry : group_specs_) {
-        if (entry.first != group.runtime_id().value &&
-            spec.collapse_priority && entry.second.collapse_priority == spec.collapse_priority) {
-            throw std::invalid_argument(
-                "CommandOverflowPanel collapse priorities must be unique");
+        if (entry.first != id && spec.collapse_priority && entry.second.collapse_priority == spec.collapse_priority) {
+            throw std::invalid_argument("CommandOverflowPanel collapse priorities must be unique");
         }
     }
-    if (group_specs_.size() >= maximum_command_groups &&
-        !group_specs_.contains(group.runtime_id().value)) {
-        throw std::invalid_argument(
-            "CommandOverflowPanel group count exceeds 32");
+    if (group_specs_.size() >= maximum_command_groups && !group_specs_.contains(id)) {
+        throw std::invalid_argument("CommandOverflowPanel group count exceeds 32");
     }
-    GroupSpecMap::iterator found = group_specs_.find(group.runtime_id().value);
-    if (found != group_specs_.end() && (*found).second == spec) return;
-    group_specs_[group.runtime_id().value] = std::move(spec);
+}
+
+void CommandOverflowPanel::written(const Control& child) {
+    static_cast<void>(child);
     invalidate(invalidation::bounds);
 }
 
-std::optional<CommandOverflowGroupSpec> CommandOverflowPanel::group_spec(
-    const Control& group) const {
-    if (group.parent().get() != this || !group.is_alive()) return std::nullopt;
-    const GroupSpecMap::const_iterator found =
-        group_specs_.find(group.runtime_id().value);
-    return found == group_specs_.end() ? std::nullopt
-                                      : std::optional((*found).second);
+bool CommandOverflowPanel::replace_group_spec(const Control& child, std::optional<CommandOverflowGroupSpec> value) {
+    const std::uint64_t id = child.runtime_id().value;
+    const GroupSpecMap::iterator found = group_specs_.find(id);
+    if (!value) {
+        if (found == group_specs_.end()) return false;
+        group_specs_.erase(found);
+        return true;
+    }
+    if (found != group_specs_.end() && (*found).second == *value) return false;
+    group_specs_[id] = std::move(*value);
+    return true;
 }
 
-void CommandOverflowPanel::clear_group_spec(const Control& group) {
-    require_mutable();
-    if (group_specs_.erase(group.runtime_id().value) != 0U) {
-        invalidate(invalidation::bounds);
-    }
+std::optional<CommandOverflowGroupSpec> CommandOverflowPanel::stored_group_spec(const Control& child) const {
+    require_direct_child(child);
+    const GroupSpecMap::const_iterator found = group_specs_.find(child.runtime_id().value);
+    if (found == group_specs_.end()) return std::nullopt;
+    std::optional<CommandOverflowGroupSpec> value = (*found).second;
+    return value;
+}
+
+void CommandOverflowPanel::child_leaving(const Control& child) noexcept {
+    group_specs_.erase(child.runtime_id().value);
 }
 
 void CommandOverflowPanel::set_overflow_actuator(Control& control) {

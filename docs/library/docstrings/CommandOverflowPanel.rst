@@ -26,6 +26,22 @@ overflow_actuator
     while no group is collapsed, and shown at the right end when one is. It
     must be a live direct child without a group spec, or
     `std::invalid_argument` is thrown.
+group_spec : child property, default none
+    A direct child's sizing and collapse rule, a property the panel provides
+    to its children and stores for each: `(*shelf).group_spec[*group] =
+    CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};` gives a `minimum`,
+    `preferred` and `maximum` width (a `maximum` of 0 means unbounded) and
+    an optional `collapse_priority`. The group is given its preferred width
+    and shrinks toward its minimum before any group collapses; it never
+    grows past its preferred width. Writing `std::nullopt` removes the spec,
+    and the child then keeps its measured width and never collapses. In a
+    `.form` the value is text: the three widths, then optionally `priority`
+    and the priority, as in `group-spec: "176 176 176 priority 2";`; the
+    empty text is none. It throws `std::invalid_argument` if the extents are
+    not finite, nonnegative and ordered, if the text has another shape, if
+    the control is not a live direct child, if it is the actuator, if
+    another group already has the same priority, or if 32 groups already
+    have specs. The value is dropped when the child leaves.
 layout_snapshot
     The result of the last layout: the available width, the gap, whether
     the actuator is shown, whether the groups overflow the row even after
@@ -36,22 +52,6 @@ layout_snapshot
 
 Methods
 -------
-set_group_spec
-    `set_group_spec(group, spec)` gives a direct child its sizing and
-    collapse rule: a `minimum`, `preferred` and `maximum` width (a `maximum`
-    of 0 means unbounded) and an optional `collapse_priority`. The group is
-    given its preferred width and shrinks toward its minimum before any group
-    collapses; it never grows past its preferred width. It throws
-    `std::invalid_argument` if the extents are not finite, nonnegative and
-    ordered, if the control is not a live direct child, if it is the
-    actuator, if another group already has the same priority, or if 32
-    groups already have specs.
-group_spec
-    The spec of `group`, or no value when it has none or is not a direct
-    child.
-clear_group_spec
-    Removes the spec of `group`, which then keeps its measured width and
-    never collapses.
 clear_overflow_actuator
     Turns the actuator back into an ordinary child.
 
@@ -117,8 +117,8 @@ the Arrange group, which has the lower priority, moves into the overflow:
    (*shelf).add_child(arrange);
    (*shelf).add_child(more);
    (*shelf).set_group_gap(4.0);
-   (*shelf).set_group_spec(*selection, {176.0, 176.0, 176.0, 2U});
-   (*shelf).set_group_spec(*arrange, {306.0, 306.0, 306.0, 1U});
+   (*shelf).group_spec[*selection] = gf::CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};
+   (*shelf).group_spec[*arrange] = gf::CommandOverflowGroupSpec{306.0, 306.0, 306.0, 1U};
    (*shelf).set_overflow_actuator(*more);
 
    gf::Window window(shelf, {600.0, 66.0});

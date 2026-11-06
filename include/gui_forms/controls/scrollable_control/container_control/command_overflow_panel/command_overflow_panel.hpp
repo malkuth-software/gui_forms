@@ -1,10 +1,13 @@
 #pragma once
 
+#include "gui_forms/binding/child_property_view/child_property_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
+#include <span>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -65,20 +68,49 @@ struct CommandOverflowSnapshot final {
     }
 };
 
+// The group spec an overflow panel provides to its children (a child
+// property, study sections 10 and 15.4): a direct child's sizing and
+// collapse priority, or none for a non-collapsible child at its desired
+// width. `(*shelf).group_spec[*group] = CommandOverflowGroupSpec{176.0,
+// 176.0, 176.0, 2U};` In a `.form` it is text: the three extents, then
+// optionally `priority` and the priority, as in "176 176 176 priority 2".
+template <typename Declaring>
+struct GroupSpecCapability {
+    ChildPropertyView<std::optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec;
+
+    static void assign(GroupSpecCapability& capability, const Control& child,
+                       std::optional<CommandOverflowGroupSpec> value) {
+        Declaring& container = static_cast<Declaring&>(capability);
+        container.prepare_write(child, value);
+        if (!container.replace_group_spec(child, std::move(value))) return;
+        container.written(child);
+    }
+
+    static std::optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability,
+                                                        const Control& child) {
+        const Declaring& container = static_cast<const Declaring&>(capability);
+        std::optional<CommandOverflowGroupSpec> value = container.stored_group_spec(child);
+        return value;
+    }
+};
+
 // Horizontal retained command-group projection. It owns only layout collapse
 // and the overflow actuator's effective availability. Command authority and
 // overlay item composition remain with the consumer and can use the stable IDs
 // published by layout_snapshot().
-class CommandOverflowPanel final : public ContainerControl {
+class CommandOverflowPanel final : public ContainerControl,
+                                   public GroupSpecCapability<CommandOverflowPanel> {
 public:
     explicit CommandOverflowPanel(StableId stable_id);
 
+    // The child properties it provides: group_spec.
+    static constexpr std::size_t overflow_child_property_count = 1U;
+    [[nodiscard]] static const std::array<ChildPropertyEntry, overflow_child_property_count>&
+    overflow_child_property_entries() noexcept;
+    [[nodiscard]] std::span<const ChildPropertyEntry> child_property_table() const noexcept override;
+
     [[nodiscard]] double group_gap() const noexcept { return group_gap_; }
     void set_group_gap(double gap);
-    void set_group_spec(const Control& group, CommandOverflowGroupSpec spec);
-    [[nodiscard]] std::optional<CommandOverflowGroupSpec> group_spec(
-        const Control& group) const;
-    void clear_group_spec(const Control& group);
 
     void set_overflow_actuator(Control& control);
     void clear_overflow_actuator();
@@ -93,7 +125,22 @@ public:
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
 
+protected:
+    void child_leaving(const Control& child) noexcept override;
+
 private:
+    friend struct GroupSpecCapability<CommandOverflowPanel>;
+
+    // The group spec's hooks: the container's thread, a live direct child
+    // that is not the actuator, valid extents, a unique priority and the
+    // group limit before the compare; relayout after a change.
+    void prepare_write(const Control& child, const std::optional<CommandOverflowGroupSpec>& incoming) const;
+    void written(const Control& child);
+    // Stores `child`'s spec (none erases it); false when it was already `value`.
+    bool replace_group_spec(const Control& child, std::optional<CommandOverflowGroupSpec> value);
+    // `child`'s spec; refuses a child that is not a live direct child.
+    [[nodiscard]] std::optional<CommandOverflowGroupSpec> stored_group_spec(const Control& child) const;
+
     struct LayoutResult;
     [[nodiscard]] LayoutResult layout_groups(Size available, bool assign);
     void reconcile_metadata();

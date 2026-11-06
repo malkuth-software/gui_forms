@@ -120,7 +120,7 @@ private:
                 std::string(texts[index]), faces[index]);
             (*child).set_requested_bounds({0.0, 0.0, 120.0, 48.0});
             (*tracks_).add_child(child);
-            (*tracks_).set_child_track(*child, index);
+            (*tracks_).child_track[*child] = static_cast<std::uint32_t>(index);
         }
         std::shared_ptr<CheckBox> protect = make_control<CheckBox>(
             StableId("gallery.responsive.tracks.protect"), "Protect the inspector track");
@@ -164,9 +164,9 @@ private:
             (*shelf_).add_child(group_panel);
             // Arrange collapses first (priority 1), Selection second; Navigate
             // carries no priority and therefore never collapses.
-            if (index == 0U) (*shelf_).set_group_spec(*group_panel, {270.0, 270.0, 270.0, 2U});
-            if (index == 1U) (*shelf_).set_group_spec(*group_panel, {270.0, 270.0, 270.0, 1U});
-            if (index == 2U) (*shelf_).set_group_spec(*group_panel, {180.0, 180.0, 180.0});
+            if (index == 0U) (*shelf_).group_spec[*group_panel] = CommandOverflowGroupSpec{270.0, 270.0, 270.0, 2U};
+            if (index == 1U) (*shelf_).group_spec[*group_panel] = CommandOverflowGroupSpec{270.0, 270.0, 270.0, 1U};
+            if (index == 2U) (*shelf_).group_spec[*group_panel] = CommandOverflowGroupSpec{180.0, 180.0, 180.0};
             shelf_bars_[index] = bar;
         }
         more_ = make_control<Button>(StableId("gallery.responsive.shelf.more"), "More…");

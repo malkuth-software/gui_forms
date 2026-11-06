@@ -6,8 +6,10 @@
 
 #include "gui_forms/control.hpp"
 
+#include <algorithm>
 #include <array>
 #include <cmath>
+#include <cstddef>
 #include <span>
 #include <string_view>
 #include <unordered_set>
@@ -134,6 +136,9 @@ public:
     // The spans' conflicts, and the placements against their parent's
     // spans (study 10.9): after the walk, since they need all of it.
     void check_spans(const FormModel& scratch);
+    // Puts each object's parent-provided properties after its own, in the
+    // parent's table order (ProvidedPropertyOrder).
+    void order_provided_properties(FormModel& scratch) const;
 
 private:
     void read_object(NodeIndex node, std::optional<ObjectIndex> parent, FormModel& scratch);
@@ -217,7 +222,39 @@ bool ModelBuilder::run(FormModel& scratch) {
     read_object(NodeIndex{1U}, std::nullopt, scratch);
     check_form_root(scratch);
     check_spans(scratch);
+    order_provided_properties(scratch);
     return !defective_;
+}
+
+namespace {
+
+// Orders one object's properties: its own first, in document order, then
+// those its parent provides, in the parent's table order. A table lists a
+// value another depends on first (a table's cell before its spans), so the
+// loader and the generator apply them in an order the parent admits.
+struct ProvidedPropertyOrder final {
+    bool operator()(const FormProperty& left, const FormProperty& right) const noexcept {
+        const bool left_provided = left.provider == FormPropertyProvider::parent_type;
+        const bool right_provided = right.provider == FormPropertyProvider::parent_type;
+        if (left_provided != right_provided) return right_provided;
+        if (!left_provided) return false;
+        return left.schema_property < right.schema_property;
+    }
+};
+
+} // namespace
+
+void ModelBuilder::order_provided_properties(FormModel& scratch) const {
+    std::vector<FormProperty>& properties = scratch.properties;
+    std::size_t start = 0U;
+    while (start < properties.size()) {
+        std::size_t end = start + 1U;
+        while (end < properties.size() && properties[end].object == properties[start].object) ++end;
+        const std::vector<FormProperty>::iterator first = properties.begin() + static_cast<std::ptrdiff_t>(start);
+        const std::vector<FormProperty>::iterator last = properties.begin() + static_cast<std::ptrdiff_t>(end);
+        std::stable_sort(first, last, ProvidedPropertyOrder{});
+        start = end;
+    }
 }
 
 // A form root: one control among its children, and its button properties

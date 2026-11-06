@@ -68,33 +68,9 @@
       "reviewed": false,
       "summary": "Validates row index and finite nonnegative absolute/percent/auto track data before invalidating the solution."
     },
-    "gui_forms::TableLayoutPanelCompat::set_cell_position|void (const Control &, TableLayoutCellPosition)": {
-      "reviewed": false,
-      "summary": "Requires a direct child, validates explicit row/column coordinates, and records stable placement metadata."
-    },
-    "gui_forms::TableLayoutPanelCompat::clear_cell_position|void (const Control &)": {
-      "reviewed": false,
-      "summary": "Removes explicit placement so the direct child returns to deterministic automatic allocation."
-    },
     "gui_forms::TableLayoutPanelCompat::cell_position|std::optional<TableLayoutCellPosition> (const Control &) const": {
       "reviewed": false,
       "summary": "Returns the explicit authored cell, not the transient automatically resolved cell."
-    },
-    "gui_forms::TableLayoutPanelCompat::set_column_span|void (const Control &, std::size_t)": {
-      "reviewed": false,
-      "summary": "Requires a direct child and records a bounded positive column span."
-    },
-    "gui_forms::TableLayoutPanelCompat::column_span|std::size_t (const Control &) const": {
-      "reviewed": false,
-      "summary": "Returns the retained column span or one when no metadata exists."
-    },
-    "gui_forms::TableLayoutPanelCompat::set_row_span|void (const Control &, std::size_t)": {
-      "reviewed": false,
-      "summary": "Requires a direct child and records a bounded positive row span."
-    },
-    "gui_forms::TableLayoutPanelCompat::row_span|std::size_t (const Control &) const": {
-      "reviewed": false,
-      "summary": "Returns the retained row span or one when no metadata exists."
     },
     "gui_forms::TableLayoutPanelCompat::control_from_position|Control::Ptr (std::size_t, std::size_t) const": {
       "reviewed": false,

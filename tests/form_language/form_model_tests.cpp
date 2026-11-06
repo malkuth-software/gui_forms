@@ -326,12 +326,14 @@ void test_attached_properties() {
                                       "  }\n"
                                       "}\n";
     require(build(workspace, document, schema, model) == FormModelOutcome::model_built, "attached: built");
+    // The object's own properties come first, then those its parent
+    // provides, in the parent's table order (ProvidedPropertyOrder).
     const bool recorded = model.properties.size() == 2U &&
-                          model.properties[0].provider == FormPropertyProvider::parent_type &&
-                          model.properties[0].schema_property == 0U && model.properties[0].object.value == 2U &&
-                          std::get<std::uint64_t>(model.properties[0].value) == 2U &&
-                          model.properties[1].provider == FormPropertyProvider::object_type;
-    require(recorded, "attached: recorded as the parent type's, then the object's own");
+                          model.properties[0].provider == FormPropertyProvider::object_type &&
+                          model.properties[1].provider == FormPropertyProvider::parent_type &&
+                          model.properties[1].schema_property == 0U && model.properties[1].object.value == 2U &&
+                          std::get<std::uint64_t>(model.properties[1].value) == 2U;
+    require(recorded, "attached: recorded as the object's own, then the parent type's");
 
     const std::string_view defects = "group-box app.root {\n"                                     // 1
                                      "  column-span: 2;\n"                                         // 2 E804

@@ -100,7 +100,7 @@ void test_context_menu_command_snapshot_keyboard_nesting_and_restore() {
     std::shared_ptr<gui_forms::Button> owner = make_control<Button>(StableId("owner"), "Open context menu");
     (*owner).set_requested_bounds({20.0, 20.0, 160.0, 32.0});
     (*root).add_child(owner);
-    (*root).set_cell_position(*owner, {0U, 0U});
+    (*root).cell[*owner] = GridCell{.row = 0U, .column = 0U};
     Window window(root, {400.0, 300.0});
     const bool operation_check_1 = window.request_focus(owner);
     require(operation_check_1, "menu invoker must accept initial focus");
@@ -433,8 +433,8 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     std::shared_ptr<gui_forms::Panel> content = make_control<Panel>(StableId("menustrip.content"));
     (*root).add_child(strip);
     (*root).add_child(content);
-    (*root).set_cell_position(*strip, {0U, 0U});
-    (*root).set_cell_position(*content, {0U, 1U});
+    (*root).cell[*strip] = GridCell{.row = 0U, .column = 0U};
+    (*root).cell[*content] = GridCell{.row = 1U, .column = 0U};
 
     std::shared_ptr<gui_forms::Command> open = std::make_shared<Command>("file.open", "Open");
     std::shared_ptr<gui_forms::Command> details = std::make_shared<Command>("view.details", "Details");

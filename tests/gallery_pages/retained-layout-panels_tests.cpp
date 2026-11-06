@@ -37,9 +37,9 @@ void test_retained_layout_panels(gui_forms::Window& window) {
     // the explicit row-2 span, so they land at columns 2 and 3 of row 2.
     require(table && header && span_note && auto_placed && table_progress &&
                 (*table).column_count() == 4U && (*table).row_count() == 3U &&
-                (*table).column_span(*header) == 4U &&
-                (*table).column_span(*span_note) == 2U &&
-                (*table).column_span(*auto_placed) == 1U &&
+                (*table).column_span[*header].read() == 4U &&
+                (*table).column_span[*span_note].read() == 2U &&
+                (*table).column_span[*auto_placed].read() == 1U &&
                 (*table).cell_position(*span_note) ==
                     std::optional<TableLayoutCellPosition>({0U, 2U}) &&
                 (*table).cell_position(*auto_placed) ==

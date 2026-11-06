@@ -2089,6 +2089,8 @@ States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focu
 
 Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
 
+Properties it provides to its children: `cell` (point), `column_span` (unsigned_integer), `row_span` (unsigned_integer).
+
 | Interaction | Payload |
 |---|---|
 | `scroll` | `ScrollEvent`, by reference |
@@ -2114,6 +2116,8 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+
+Properties it provides to its children: `child_track` (unsigned_integer).
 
 | Interaction | Payload |
 |---|---|
@@ -2239,6 +2243,8 @@ Properties beyond every control's: none.
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
 Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+
+Properties it provides to its children: `group_spec` (text).
 
 | Interaction | Payload |
 |---|---|

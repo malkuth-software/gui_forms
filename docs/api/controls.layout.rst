@@ -69,6 +69,8 @@ Related types
      - One child's block flow properties (CSS's names; PLAN section 2.4).
    * - :cpp:class:`BlockFlowSharedMargins <gui_forms::BlockFlowSharedMargins>`
      - The margins a nested BlockPanel's content shares with the block flow that lays it out (CSS 2.1 8.3.1), its own margins excluded.
+   * - :cpp:class:`ChildTrackCapability <gui_forms::ChildTrackCapability>`
+     - The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names.
    * - :cpp:class:`CommandOverflowGroupResult <gui_forms::CommandOverflowGroupResult>`
      -  
    * - :cpp:class:`CommandOverflowGroupSpec <gui_forms::CommandOverflowGroupSpec>`
@@ -123,6 +125,8 @@ Related types
      - One child's grid item properties (CSS Grid's names; PLAN section 2.3).
    * - :cpp:class:`GridPlacement <gui_forms::GridPlacement>`
      - A child's placement in a grid: automatic (the item layout's lines, or auto-placed), into a span by name, or at a cell (a span's anchor places the child into that span's region).
+   * - :cpp:class:`GroupSpecCapability <gui_forms::GroupSpecCapability>`
+     - The group spec an overflow panel provides to its children (a child property, study sections 10 and 15.4): a direct child's sizing and collapse priority, or none for a non-collapsible child at its desired width.
    * - :cpp:class:`MasterDetailLayout <gui_forms::MasterDetailLayout>`
      - MasterDetailLayout defines bounded navigation width and inter-pane gap for deterministic responsive projection.
    * - :cpp:class:`MasterDetailPresentationChange <gui_forms::MasterDetailPresentationChange>`
@@ -153,12 +157,18 @@ Related types
      - A move of a Splitter by the user.
    * - :cpp:class:`SplitterPanel::Parts <gui_forms::SplitterPanel::Parts>`
      - Stage T1 anatomy, as dot members: the scrollable parts and the face.
+   * - :cpp:class:`TableCellCapability <gui_forms::TableCellCapability>`
+     - The placement a table provides to its children (Column, Row, ColumnSpan and RowSpan; child properties, study sections 10, 10.9 section 5 and 15.4).
+   * - :cpp:class:`TableColumnSpanCapability <gui_forms::TableColumnSpanCapability>`
+     -  
    * - :cpp:class:`TableLayoutCellPosition <gui_forms::TableLayoutCellPosition>`
      - TableLayoutCellPosition names a zero-based row and column for exact retained child placement.
    * - :cpp:class:`TableLayoutPanelCompat::Parts <gui_forms::TableLayoutPanelCompat::Parts>`
      - Stage T1 anatomy, as dot members: the scrollable parts and the cell grid.
    * - :cpp:class:`TableLayoutStyle <gui_forms::TableLayoutStyle>`
      - TableLayoutStyle pairs absolute, autosize, or percentage sizing policy with its validated authored value.
+   * - :cpp:class:`TableRowSpanCapability <gui_forms::TableRowSpanCapability>`
+     -  
 
 .. cpp:namespace:: gui_forms
 
@@ -221,6 +231,23 @@ Related types
    .. cpp:member:: bool open
 
       No line box or nonempty block closed the leading margins: at a zero height the panel's own top and bottom margins adjoin.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ChildTrackCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.hpp>``
+
+   The track a track panel provides to its children (a child property, study sections 10 and 15.4): the authored track index, or none for the next track no child names. ``(*tracks).child_track[*child] = 2U;``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ChildTrackCapability& capability, const Control& child, std::optional<std::uint32_t> value)
+
+   .. cpp:function:: static std::optional<std::uint32_t> read(const ChildTrackCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<std::optional<std::uint32_t>, ChildTrackCapability<Declaring>> child_track
 
 .. cpp:namespace:: gui_forms
 
@@ -771,6 +798,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> GroupSpecCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/command_overflow_panel/command_overflow_panel.hpp>``
+
+   The group spec an overflow panel provides to its children (a child property, study sections 10 and 15.4): a direct child's sizing and collapse priority, or none for a non-collapsible child at its desired width. ``(*shelf).group_spec[*group] = CommandOverflowGroupSpec{176.0, 176.0, 176.0, 2U};`` In a ``.form`` it is text: the three extents, then optionally ``priority`` and the priority, as in "176 176 176 priority 2".
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GroupSpecCapability& capability, const Control& child, std::optional<CommandOverflowGroupSpec> value)
+
+   .. cpp:function:: static std::optional<CommandOverflowGroupSpec> read(const GroupSpecCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<std::optional<CommandOverflowGroupSpec>, GroupSpecCapability<Declaring>> group_spec
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MasterDetailLayout final
 
    ``#include <gui_forms/controls/container/master_detail_view/master_detail_view.hpp>``
@@ -1118,6 +1162,38 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> TableCellCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+
+   The placement a table provides to its children (Column, Row, ColumnSpan and RowSpan; child properties, study sections 10, 10.9 section 5 and 15.4). ``cell`` is the child's explicit cell, row then column; a child without one is placed automatically. ``column_span`` and ``row_span`` size the anonymous span the table holds anchored at the child's cell, so a child needs a cell before it can span: ``(*table).cell[*header] = GridCell{.row = 0U, .column = 0U};``, then ``(*table).column_span[*header] = 4U;``.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TableCellCapability& capability, const Control& child, GridCell value)
+
+   .. cpp:function:: static GridCell read(const TableCellCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<GridCell, TableCellCapability<Declaring>> cell
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TableColumnSpanCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TableColumnSpanCapability& capability, const Control& child, std::uint32_t value)
+
+   .. cpp:function:: static std::uint32_t read(const TableColumnSpanCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<std::uint32_t, TableColumnSpanCapability<Declaring>> column_span
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TableLayoutCellPosition final
 
    ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
@@ -1153,6 +1229,21 @@ Related types
       Default: ``{TableSizeMode::auto_size}``.
 
    .. cpp:member:: double size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TableRowSpanCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TableRowSpanCapability& capability, const Control& child, std::uint32_t value)
+
+   .. cpp:function:: static std::uint32_t read(const TableRowSpanCapability& capability, const Control& child)
+
+   .. cpp:member:: ChildPropertyView<std::uint32_t, TableRowSpanCapability<Declaring>> row_span
 
 Enumerations
 ------------
@@ -1470,6 +1561,16 @@ Enumerations
    .. cpp:enumerator:: percent
 
    .. cpp:enumerator:: auto_size
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: TableSpanAxis
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/table_layout_panel_compat/table_layout_panel_compat.hpp>``
+
+   .. cpp:enumerator:: columns
+
+   .. cpp:enumerator:: rows
 
 Functions, constants and aliases
 --------------------------------
