@@ -457,12 +457,23 @@ void append_item_systems(std::string& out, std::uint64_t type, std::uint64_t cou
     out += count == 0U ? "]" : "\n      ]";
 }
 
-void append_properties(std::string& out, std::uint64_t type, std::uint64_t count) {
+// Which of a type's property lists append_properties writes: its own
+// (property_at, choice_at) or the ones it provides to its children
+// (child_property_at, child_choice_at, since 1.1).
+enum class PropertyList : std::uint8_t { own, provided_to_children };
+
+void append_properties(std::string& out, std::uint64_t type, std::uint64_t count, PropertyList list) {
+    decltype(gf_schema_table::property_at) read_property = tables.schema.property_at;
+    decltype(gf_schema_table::choice_at) read_choice = tables.schema.choice_at;
+    if (list == PropertyList::provided_to_children) {
+        read_property = tables.schema.child_property_at;
+        read_choice = tables.schema.child_choice_at;
+    }
     out += '[';
     for (std::uint64_t index = 0; index < count; ++index) {
         gf_schema_property property{};
         property.struct_size = sizeof(property);
-        require_ok(tables.schema.property_at(type, index, &property), "property_at");
+        require_ok(read_property(type, index, &property), "property_at");
         out += index == 0U ? "\n" : ",\n";
         out += "        {\"name\": ";
         append_json_string(out, text_of(property.name));
@@ -480,7 +491,7 @@ void append_properties(std::string& out, std::uint64_t type, std::uint64_t count
         for (std::uint64_t choice = 0; choice < property.choice_count; ++choice) {
             gf_schema_choice value{};
             value.struct_size = sizeof(value);
-            require_ok(tables.schema.choice_at(type, index, choice, &value), "choice_at");
+            require_ok(read_choice(type, index, choice, &value), "choice_at");
             if (choice > 0U) out += ", ";
             append_json_string(out, text_of(value.name));
         }
@@ -573,7 +584,15 @@ std::string render_schema() {
             append_item_systems(out, index, type.item_system_count);
             out += ",\n";
             append_key(out, "      ", "properties");
-            append_properties(out, index, type.property_count);
+            append_properties(out, index, type.property_count, PropertyList::own);
+            // Exported only when there are some, as the C++ export does.
+            std::uint64_t child_count = 0U;
+            require_ok(tables.schema.child_property_count(index, &child_count), "child_property_count");
+            if (child_count != 0U) {
+                out += ",\n";
+                append_key(out, "      ", "child_properties");
+                append_properties(out, index, child_count, PropertyList::provided_to_children);
+            }
         }
         out += ",\n";
         append_key(out, "      ", "interactions");

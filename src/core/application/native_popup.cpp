@@ -10,11 +10,25 @@
 
 namespace gui_forms::detail {
 
-NativePopupRecord::NativePopupRecord(ApplicationWindowHandle window, Window* model) noexcept
-    : window_(std::move(window)), model_(model) {}
+NativePopupRecord::NativePopupRecord(Window* model) noexcept : model_(model) {}
+
+void NativePopupRecord::bind(ApplicationWindowHandle window) noexcept {
+    window_ = std::move(window);
+}
+
+void NativePopupRecord::notify_closed() {
+    if (window_closed_) return;
+    window_closed_ = true;
+    closed_.emit();
+}
+
+void NativePopupClosed::operator()() const {
+    const std::shared_ptr<NativePopupRecord> alive = record.lock();
+    if (alive) (*alive).notify_closed();
+}
 
 void NativePopupRecord::disconnect() noexcept {
-    if (!window_.active()) return;
+    if (window_closed_ || !window_.active()) return;
     const ApplicationWindows windows = window_.windows();
     // A refusal (the run ended, or the window is gone already) leaves
     // nothing to close.
@@ -22,17 +36,17 @@ void NativePopupRecord::disconnect() noexcept {
 }
 
 bool NativePopupRecord::connected() const noexcept {
-    const bool open = window_.active();
+    const bool open = !window_closed_ && window_.active();
     return open;
 }
 
 Window* NativePopupRecord::model() const noexcept {
-    if (!window_.active()) return nullptr;
+    if (!connected()) return nullptr;
     return model_;
 }
 
 HostWindowId NativePopupRecord::id() const noexcept {
-    if (!window_.active()) return HostWindowId{};
+    if (!connected()) return HostWindowId{};
     const HostWindowId window = window_.id();
     return window;
 }
@@ -89,7 +103,13 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     std::unique_ptr<Window> model = std::make_unique<Window>(opening.content, size, opening.resources);
     Window* borrowed = model.get();
     (*model).set_key_bindings(opening.key_bindings);
-    if (opening.backdrop.has_value()) (*model).set_backdrop_chain(opening.backdrop);
+    // A popup's clear pixels show what lies beneath (its shadow, rounded
+    // corners): without a chain it asks for the transparent backdrop.
+    if (opening.backdrop.has_value()) {
+        (*model).set_backdrop_chain(opening.backdrop);
+    } else {
+        static_cast<void>((*model).request_backdrop(WindowBackdropRequest::preferring(WindowBackdrop::transparent)));
+    }
 
     ApplicationWindow entry{};
     entry.stable_id = (*owner).stable_id + "/popup." + std::to_string(opening.serial);
@@ -102,13 +122,16 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     // The popup's own alpha surface: its shadow and any clear part show
     // what lies beneath (owner, 2026-11-04, answer 4).
     entry.options.non_opaque = true;
-    ApplicationPopup popup{};
+    HostPopupPlacement popup{};
     popup.focus = opening.focus;
     popup.origin = DesktopLogicalPoint{placed.x, placed.y};
     entry.popup = popup;
+    // Made before the window, so the window's closed callback can reach it.
+    std::shared_ptr<NativePopupRecord> record = std::make_shared<NativePopupRecord>(borrowed);
+    entry.options.closed = NativePopupClosed{record};
     const ApplicationWindowOpenResult opened = windows.open_window(std::move(entry));
     if (!opened.status.accepted() || !opened.window.active()) return nullptr;
-    std::shared_ptr<NativePopupRecord> record = std::make_shared<NativePopupRecord>(opened.window, borrowed);
+    (*record).bind(opened.window);
     return record;
 }
 

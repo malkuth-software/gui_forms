@@ -1,0 +1,145 @@
+{
+  "family": "TreeListView",
+  "step": "B7",
+  "declaring": "TreeListView",
+  "header": "include/gui_forms/controls/panel/tree_list_view/tree_list_view.hpp",
+  "source": "src/controls/panel/tree_list_view/tree_list_view.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/tree_list_view/tree_list_view_capabilities/tree_list_view_capabilities.hpp",
+  "shared": [
+    "FontCapability"
+  ],
+  "properties": [
+    {
+      "name": "indentation",
+      "capability": "TreeListViewIndentation",
+      "value": "double",
+      "initial": "18.0",
+      "comment": "Width of one tree level, in logical units; the tree column's text starts after the indentation, the expander and the icon.",
+      "getter": "indentation",
+      "setter": "set_indentation",
+      "clear": null,
+      "field": "indentation_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < minimum_indentation || incoming > maximum_indentation) {",
+        "    throw std::invalid_argument(\"TreeListView indentation is outside the indentation bounds\");",
+        "}"
+      ],
+      "sample": "24.0"
+    },
+    {
+      "name": "image_list",
+      "capability": "TreeListViewImageList",
+      "value": "std::shared_ptr<ImageList>",
+      "initial": null,
+      "comment": "The images that the nodes' image_key values name; a list must be alive and belong to this view's Window.",
+      "getter": "image_list",
+      "setter": "set_image_list",
+      "clear": null,
+      "field": "images_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "hand",
+      "hand": [
+        "prepare_write: a live list of the own Window; written: resubscribe to the list changes"
+      ]
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 10.5, 400, false",
+      "comment": "The font of the header, the rows and the cells.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"TreeListView font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::content, 12.0, 700, false}"
+    },
+    {
+      "name": "selected_id",
+      "capability": "TreeListViewSelectedId",
+      "value": "std::optional<std::string>",
+      "initial": null,
+      "comment": "The selected node's stable ID, or none.",
+      "getter": "selected_id",
+      "setter": "set_selected_id",
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "view over selected_node_: write expands ancestors, makes it current and visible, publishes the expansions and the selection"
+      ],
+      "storage": "view"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "set_column_width",
+      "reason": "kept as a method (per-item, multi-value or structural)"
+    },
+    {
+      "name": "set_cell_text",
+      "reason": "kept as a method (per-item, multi-value or structural)"
+    },
+    {
+      "name": "set_expanded",
+      "reason": "kept as a method (per-item, multi-value or structural)"
+    },
+    {
+      "name": "set_sort",
+      "reason": "kept as a method (per-item, multi-value or structural)"
+    },
+    {
+      "name": "columns",
+      "reason": "a structural model edited in place (set_column_width, header drags, move_column); a cell would copy it on every edit and its write resets order and sort"
+    },
+    {
+      "name": "nodes",
+      "reason": "up to maximum_nodes records edited in place (set_cell_text, set_expanded); a cell would copy them on every edit"
+    },
+    {
+      "name": "top_row",
+      "reason": "scroll state clamped by layout: the read differs from the write"
+    },
+    {
+      "name": "horizontal_offset",
+      "reason": "scroll state clamped by layout: the read differs from the write"
+    }
+  ],
+  "test": {
+    "type": "TreeListView",
+    "include": "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
+  },
+  "includes": [
+    "gui_forms/image_list.hpp"
+  ]
+}

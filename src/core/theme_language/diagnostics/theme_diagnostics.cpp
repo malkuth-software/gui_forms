@@ -96,6 +96,7 @@ DiagnosticSeverity diagnostic_severity(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_load_refused:
     case DiagnosticCode::form_generation_refused:
     case DiagnosticCode::form_presentation_property:
+    case DiagnosticCode::form_span_conflict:
     case DiagnosticCode::not_yet_built:
         return DiagnosticSeverity::error;
     case DiagnosticCode::unknown_property:
@@ -197,6 +198,7 @@ std::string_view diagnostic_code_name(DiagnosticCode code) noexcept {
     case DiagnosticCode::form_load_refused: return "form_load_refused";
     case DiagnosticCode::form_generation_refused: return "form_generation_refused";
     case DiagnosticCode::form_presentation_property: return "form_presentation_property";
+    case DiagnosticCode::form_span_conflict: return "form_span_conflict";
     case DiagnosticCode::not_yet_built: return "not_yet_built";
     case DiagnosticCode::unknown_property: return "unknown_property";
     case DiagnosticCode::unknown_primitive: return "unknown_primitive";

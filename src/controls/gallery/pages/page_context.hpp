@@ -162,9 +162,9 @@ struct PageContext final {
         }
         if (motion_pause) {
             (*motion_pause).enabled = live_motion;
-            (*motion_pause).set_text(!live_motion ? "Motion disabled"
+            (*motion_pause).text = !live_motion ? "Motion disabled"
                                                    : user_paused ? "Resume motion"
-                                                                 : "Pause motion");
+                                                                 : "Pause motion";
         }
         update_motion_status();
     }

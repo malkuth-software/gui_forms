@@ -14,7 +14,8 @@ namespace gui_forms::detail {
 // A new dialog request identity, unique in the process: HostServices refuses
 // an identity already on its modal stack, a host may run other callbacks
 // (and so other dialogs) inside its modal loop, and windows may run on
-// several UI threads. Never zero.
+// several UI threads. Never zero. Defined in the core (host_services.cpp),
+// whose surface alerts share it.
 [[nodiscard]] std::uint64_t take_dialog_request_id() noexcept;
 
 // Whether the window a lifetime record observes still exists.

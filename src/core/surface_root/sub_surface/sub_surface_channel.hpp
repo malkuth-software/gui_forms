@@ -38,6 +38,14 @@ struct SubSurfaceChannel final {
     // receives nothing.
     WindowDispatcher key_return_dispatcher{};
     std::weak_ptr<SubSurfaceKeyReturn> key_return{};
+    // Where requests go (SubSurfaceThread::set_request_target), held weakly
+    // as the key return is, and the id the next request takes.
+    WindowDispatcher request_dispatcher{};
+    std::weak_ptr<SubSurfaceRequestTarget> request_target{};
+    std::uint64_t next_request_id{1};
+    // The parent's answers not yet handed to the tree, in posting order;
+    // swapped whole into the loop as the input is.
+    std::vector<SurfaceRequestOutcome> outcomes{};
     // The newest text input caret, in the sub-surface's coordinates.
     std::optional<Rect> text_input_caret{};
     bool stop_requested{};

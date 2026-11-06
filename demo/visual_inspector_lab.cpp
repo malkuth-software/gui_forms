@@ -170,7 +170,7 @@ std::unique_ptr<Window> make_visual_inspector_lab() {
     std::shared_ptr<Button> primary = make_control<Button>(
         StableId("visual-inspector.specimen-button"), "Focus, hover, and press me");
     (*primary).set_visual_style(ButtonVisualStyle::accent);
-    (*primary).set_font({FontRole::control, 12.0, 700, false, 0.12});
+    (*primary).font = {FontRole::control, 12.0, 700, false, 0.12};
     add_at(card, primary, {24.0, 138.0, 230.0, 42.0});
 
     std::shared_ptr<ClippingPanel> clipping = make_control<ClippingPanel>(

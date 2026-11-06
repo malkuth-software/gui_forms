@@ -3,6 +3,7 @@
 #include "scrolling_utilities.hpp"
 #include "scrollable_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
 #include <algorithm>
@@ -22,72 +23,7 @@ ScrollableControl::ScrollableControl(StableId stable_id)
     : Control(std::move(stable_id)),
       horizontal_scroll_(*this, ScrollOrientation::horizontal),
       vertical_scroll_(*this, ScrollOrientation::vertical) {
-    PropertyDescriptor auto_scroll;
-    auto_scroll.name = "auto_scroll";
-    auto_scroll.kind = BindingValueKind::boolean;
-    auto_scroll.category = "Layout";
-    auto_scroll.description = "Whether scroll bars appear when content exceeds the client area.";
-    auto_scroll.default_value = BindingValue{false};
-    auto_scroll.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
-    auto_scroll.bindable = false;
-    define_bindable_property({
-        std::move(auto_scroll),
-        detail::BindingNoexceptMethodGetter<ScrollableControl, bool>(*this, &ScrollableControl::auto_scroll),
-        detail::ConvertedPropertySetter<ScrollableControl, bool>(
-            *this, &ScrollableControl::set_auto_scroll, BindingValueKind::boolean,
-            "ScrollableControl.AutoScroll requires a Boolean"),
-        {}, {}, {}});
 
-    PropertyDescriptor auto_scroll_margin;
-    auto_scroll_margin.name = "auto_scroll_margin";
-    auto_scroll_margin.kind = BindingValueKind::size;
-    auto_scroll_margin.category = "Layout";
-    auto_scroll_margin.description = "Logical space kept around the content when scrolling; nonnegative.";
-    auto_scroll_margin.default_value = BindingValue{Size{}};
-    auto_scroll_margin.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
-    auto_scroll_margin.bindable = false;
-    define_bindable_property({
-        std::move(auto_scroll_margin),
-        detail::BindingNoexceptMethodGetter<ScrollableControl, Size>(*this,
-                                                                     &ScrollableControl::auto_scroll_margin),
-        detail::ConvertedPropertySetter<ScrollableControl, Size>(
-            *this, &ScrollableControl::set_auto_scroll_margin, BindingValueKind::size,
-            "ScrollableControl.AutoScrollMargin requires a size"),
-        {}, {}, {}});
-
-    PropertyDescriptor auto_scroll_min_size;
-    auto_scroll_min_size.name = "auto_scroll_min_size";
-    auto_scroll_min_size.kind = BindingValueKind::size;
-    auto_scroll_min_size.category = "Layout";
-    auto_scroll_min_size.description = "Smallest logical content size scrolling allows for; nonnegative.";
-    auto_scroll_min_size.default_value = BindingValue{Size{}};
-    auto_scroll_min_size.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
-    auto_scroll_min_size.bindable = false;
-    define_bindable_property({
-        std::move(auto_scroll_min_size),
-        detail::BindingNoexceptMethodGetter<ScrollableControl, Size>(*this,
-                                                                     &ScrollableControl::auto_scroll_min_size),
-        detail::ConvertedPropertySetter<ScrollableControl, Size>(
-            *this, &ScrollableControl::set_auto_scroll_min_size, BindingValueKind::size,
-            "ScrollableControl.AutoScrollMinSize requires a size"),
-        {}, {}, {}});
-
-    PropertyDescriptor auto_scroll_position;
-    auto_scroll_position.name = "auto_scroll_position";
-    auto_scroll_position.kind = BindingValueKind::point;
-    auto_scroll_position.category = "Layout";
-    auto_scroll_position.description = "The scrolled content's offset, negated as Windows Forms reports it.";
-    auto_scroll_position.default_value = BindingValue{Point{}};
-    auto_scroll_position.invalidation_effects = Dirty::arrange | Dirty::paint;
-    auto_scroll_position.bindable = false;
-    define_bindable_property({
-        std::move(auto_scroll_position),
-        detail::BindingNoexceptMethodGetter<ScrollableControl, Point>(*this,
-                                                                      &ScrollableControl::auto_scroll_position),
-        detail::ConvertedPropertySetter<ScrollableControl, Point>(
-            *this, &ScrollableControl::set_auto_scroll_position, BindingValueKind::point,
-            "ScrollableControl.AutoScrollPosition requires a point"),
-        {}, {}, {}});
 }
 
 void ScrollableControl::validate_size(Size size, const char* message) {
@@ -102,13 +38,20 @@ void ScrollableControl::validate_axis_value(double value,
     if (!std::isfinite(value)) throw std::invalid_argument(message);
 }
 
-void ScrollableControl::set_auto_scroll(bool enabled) {
+// The capabilities' hooks (study section 14; G9).
+
+void ScrollableControl::prepare_write(const decltype(auto_scroll)&, bool& incoming) {
     require_mutable();
-    if (auto_scroll_ == enabled) return;
+    coerce_auto_scroll(incoming);
+}
+
+// Turning auto scroll off returns the content to its origin; a moved
+// position is reported before the derived class's reaction.
+void ScrollableControl::written(const decltype(auto_scroll)&) {
     const Point previous_position = scroll_position_;
-    auto_scroll_ = enabled;
-    if (enabled) scroll_state_ |= scroll_state_auto_scrolling;
-    else {
+    if (auto_scroll.read()) {
+        scroll_state_ |= scroll_state_auto_scrolling;
+    } else {
         scroll_state_ &= ~scroll_state_auto_scrolling;
         scroll_position_ = {};
         horizontal_scroll_.value_ = horizontal_scroll_.minimum_;
@@ -117,48 +60,56 @@ void ScrollableControl::set_auto_scroll(bool enabled) {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
                Dirty::semantics | Dirty::accessibility);
     if (previous_position != scroll_position_) on_scroll_position_changed();
+    on_auto_scroll_changed(previous_position);
 }
 
-void ScrollableControl::set_auto_scroll_margin(Size margin) {
+void ScrollableControl::on_auto_scroll_changed(Point) {}
+
+void ScrollableControl::prepare_write(const decltype(auto_scroll_margin)&, Size& incoming) {
     require_mutable();
-    validate_size(margin,
-                  "AutoScrollMargin must be finite and nonnegative");
-    if (auto_scroll_margin_ == margin) return;
-    auto_scroll_margin_ = margin;
-    if (auto_scroll_) {
-        invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
-                   Dirty::semantics | Dirty::accessibility);
-    }
+    validate_size(incoming, "AutoScrollMargin must be finite and nonnegative");
+}
+
+void ScrollableControl::written(const decltype(auto_scroll_margin)&) {
+    if (!auto_scroll.read()) return;
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
+               Dirty::semantics | Dirty::accessibility);
 }
 
 void ScrollableControl::set_auto_scroll_margin(double x, double y) {
     if (!std::isfinite(x) || !std::isfinite(y)) {
         throw std::invalid_argument("AutoScrollMargin must be finite");
     }
-    set_auto_scroll_margin(Size{std::max(0.0, x), std::max(0.0, y)});
+    auto_scroll_margin = Size{std::max(0.0, x), std::max(0.0, y)};
 }
 
-void ScrollableControl::set_auto_scroll_min_size(Size size) {
+void ScrollableControl::prepare_write(const decltype(auto_scroll_min_size)&, Size& incoming) {
     require_mutable();
-    validate_size(size,
-                  "AutoScrollMinSize must be finite and nonnegative");
-    if (auto_scroll_min_size_ == size) return;
-    auto_scroll_min_size_ = size;
-    if (!auto_scroll_) {
-        auto_scroll_ = true;
-        scroll_state_ |= scroll_state_auto_scrolling;
-    }
+    validate_size(incoming, "AutoScrollMinSize must be finite and nonnegative");
+}
+
+// As Windows Forms' setter writes AutoScroll, a minimum size turns auto
+// scroll on through its own write (and its derived reaction).
+void ScrollableControl::written(const decltype(auto_scroll_min_size)&) {
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test |
                Dirty::semantics | Dirty::accessibility);
+    if (!auto_scroll.read()) auto_scroll = true;
 }
 
-void ScrollableControl::set_auto_scroll_position(Point position) {
+// auto_scroll_position is a view of the scroll position: the read negates
+// it, as Windows Forms reports it; a write scrolls to the given position,
+// clamped at zero.
+void ScrollableControl::write_view(const decltype(auto_scroll_position)&, Point incoming) {
     require_mutable();
-    if (!std::isfinite(position.x) || !std::isfinite(position.y)) {
+    if (!std::isfinite(incoming.x) || !std::isfinite(incoming.y)) {
         throw std::invalid_argument("AutoScrollPosition must be finite");
     }
-    static_cast<void>(scroll_to(
-        {std::max(0.0, position.x), std::max(0.0, position.y)}));
+    static_cast<void>(scroll_to({std::max(0.0, incoming.x), std::max(0.0, incoming.y)}));
+}
+
+Point ScrollableControl::read_view(const decltype(auto_scroll_position)&) const {
+    const Point negated{-scroll_position_.x, -scroll_position_.y};
+    return negated;
 }
 
 Rect ScrollableControl::display_rectangle() const noexcept {
@@ -174,7 +125,7 @@ Rect ScrollableControl::effective_viewport_rectangle() const noexcept {
     // Panel/ContainerControl behavior. With no scrolling requested, their
     // viewport is always the live client rectangle even when they deliberately
     // bypass ScrollableControl's child-layout pass.
-    if (!auto_scroll_ && !horizontal_scroll_.visible_ &&
+    if (!auto_scroll.read() && !horizontal_scroll_.visible_ &&
         !vertical_scroll_.visible_) {
         return client_rectangle();
     }
@@ -183,13 +134,13 @@ Rect ScrollableControl::effective_viewport_rectangle() const noexcept {
 
 void ScrollableControl::set_hscroll(bool visible) {
     require_mutable();
-    if (auto_scroll_) return;
+    if (auto_scroll.read()) return;
     horizontal_scroll_.set_visible(visible);
 }
 
 void ScrollableControl::set_vscroll(bool visible) {
     require_mutable();
-    if (auto_scroll_) return;
+    if (auto_scroll.read()) return;
     vertical_scroll_.set_visible(visible);
 }
 
@@ -205,7 +156,7 @@ void ScrollableControl::set_scroll_state(std::uint32_t bit, bool value) {
     if (bit == 0U || (bit & ~known) != 0U) {
         throw std::invalid_argument("unknown ScrollableControl state bit");
     }
-    if ((bit & scroll_state_auto_scrolling) != 0U) set_auto_scroll(value);
+    if ((bit & scroll_state_auto_scrolling) != 0U) auto_scroll = value;
     if ((bit & scroll_state_hscroll_visible) != 0U) set_hscroll(value);
     if ((bit & scroll_state_vscroll_visible) != 0U) set_vscroll(value);
     const std::uint32_t passive = bit &
@@ -215,16 +166,16 @@ void ScrollableControl::set_scroll_state(std::uint32_t bit, bool value) {
 }
 
 ScrollSnapshot ScrollableControl::scroll_snapshot() const noexcept {
-    return {auto_scroll_, scroll_position_, auto_scroll_margin_,
-            auto_scroll_min_size_, display_rectangle(),
+    return {auto_scroll.read(), scroll_position_, auto_scroll_margin.read(),
+            auto_scroll_min_size.read(), display_rectangle(),
             effective_viewport_rectangle(),
             horizontal_scroll_.snapshot(), vertical_scroll_.snapshot()};
 }
 
 Size ScrollableControl::content_extent() {
     Size extent{
-        std::max(0.0, auto_scroll_min_size_.width),
-        std::max(0.0, auto_scroll_min_size_.height)};
+        std::max(0.0, auto_scroll_min_size.read().width),
+        std::max(0.0, auto_scroll_min_size.read().height)};
     const Insets own_padding = padding.read();
     const std::vector<Control::Ptr> retained = snapshot_layout_children();
     for (const Control::Ptr& child : retained) {
@@ -247,11 +198,11 @@ Size ScrollableControl::content_extent() {
         extent.width = std::max(
             extent.width,
             std::max(0.0, bounds.x) + bounds.width + child_margin.right +
-                auto_scroll_margin_.width + own_padding.right);
+                auto_scroll_margin.read().width + own_padding.right);
         extent.height = std::max(
             extent.height,
             std::max(0.0, bounds.y) + bounds.height + child_margin.bottom +
-                auto_scroll_margin_.height + own_padding.bottom);
+                auto_scroll_margin.read().height + own_padding.bottom);
     }
     return extent;
 }
@@ -269,14 +220,14 @@ void ScrollableControl::arrange_scroll_viewport(Size client_size, Size measured_
     const bool previous_v = vertical_scroll_.visible_;
     const Point previous_position = scroll_position_;
 
-    content_extent_ = {std::max(auto_scroll_min_size_.width, measured_content.width),
-                       std::max(auto_scroll_min_size_.height, measured_content.height)};
+    content_extent_ = {std::max(auto_scroll_min_size.read().width, measured_content.width),
+                       std::max(auto_scroll_min_size.read().height, measured_content.height)};
     if (!is_alive()) return;
     const double width = std::max(0.0, client_size.width);
     const double height = std::max(0.0, client_size.height);
-    bool h = auto_scroll_ ? false : horizontal_scroll_.visible_;
-    bool v = auto_scroll_ ? false : vertical_scroll_.visible_;
-    if (auto_scroll_) {
+    bool h = auto_scroll.read() ? false : horizontal_scroll_.visible_;
+    bool v = auto_scroll.read() ? false : vertical_scroll_.visible_;
+    if (auto_scroll.read()) {
         for (int pass = 0; pass != 3; ++pass) {
             const double available_width = std::max(
                 0.0, width - (v ? scrollbar_thickness_ : 0.0));
@@ -300,7 +251,7 @@ void ScrollableControl::arrange_scroll_viewport(Size client_size, Size measured_
     content_extent_.height = std::max(content_extent_.height,
                                       viewport_rectangle_.height);
 
-    if (auto_scroll_) {
+    if (auto_scroll.read()) {
         horizontal_scroll_.set_automatic(viewport_rectangle_.width,
                                          content_extent_.width,
                                          scroll_position_.x);
@@ -365,7 +316,7 @@ void ScrollableControl::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     recompute_scroll_layout({final_bounds.width, final_bounds.height});
     if (!is_alive()) return;
-    if (auto_scroll_) adjust_scrollbars(true);
+    if (auto_scroll.read()) adjust_scrollbars(true);
     Control::arrange(final_bounds);
     if (scroll_position_ == Point{}) return;
     // Right to left, the base arrange mirrored the slots, so scrolling the
@@ -480,18 +431,18 @@ Point ScrollableControl::scroll_to_control(const Control& control) const {
         }
     }
     Point next = scroll_position_;
-    if (bounds.x - auto_scroll_margin_.width < next.x) {
-        next.x = bounds.x - auto_scroll_margin_.width;
-    } else if (bounds.right() + auto_scroll_margin_.width >
+    if (bounds.x - auto_scroll_margin.read().width < next.x) {
+        next.x = bounds.x - auto_scroll_margin.read().width;
+    } else if (bounds.right() + auto_scroll_margin.read().width >
                next.x + viewport_rectangle_.width) {
-        next.x = bounds.right() + auto_scroll_margin_.width -
+        next.x = bounds.right() + auto_scroll_margin.read().width -
                  viewport_rectangle_.width;
     }
-    if (bounds.y - auto_scroll_margin_.height < next.y) {
-        next.y = bounds.y - auto_scroll_margin_.height;
-    } else if (bounds.bottom() + auto_scroll_margin_.height >
+    if (bounds.y - auto_scroll_margin.read().height < next.y) {
+        next.y = bounds.y - auto_scroll_margin.read().height;
+    } else if (bounds.bottom() + auto_scroll_margin.read().height >
                next.y + viewport_rectangle_.height) {
-        next.y = bounds.bottom() + auto_scroll_margin_.height -
+        next.y = bounds.bottom() + auto_scroll_margin.read().height -
                  viewport_rectangle_.height;
     }
     const Point offset = control.auto_scroll_offset();
@@ -503,7 +454,7 @@ Point ScrollableControl::scroll_to_control(const Control& control) const {
 void ScrollableControl::scroll_control_into_view(
     const Control::Ptr& control) {
     require_mutable();
-    if (!control || !contains(*control) || !auto_scroll_ ||
+    if (!control || !contains(*control) || !auto_scroll.read() ||
         (!hscroll() && !vscroll()) || viewport_rectangle_.empty()) return;
     static_cast<void>(scroll_to(scroll_to_control(*control)));
     scroll_state_ &= ~scroll_state_user_has_scrolled;
@@ -882,7 +833,6 @@ bool ScrollableControl::on_semantic_child_action(
     return true;
 }
 
-
 namespace {
 
 constexpr ControlAnatomy scrollable_control_anatomy{
@@ -972,9 +922,125 @@ void ScrollableControl::append_interactions(std::vector<InteractionDeclaration>&
 }
 
 ResizeAxes ScrollableControl::layout_resize_response() const noexcept {
-    if (!auto_scroll_) return Control::layout_resize_response();
+    if (!auto_scroll.read()) return Control::layout_resize_response();
     if (children().empty()) return ResizeAxes::none;
     return ResizeAxes::both;
 }
+
+// property_codemod begin ScrollableControl (tools/property_families/scrollable_control.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor scrollable_control_auto_scroll_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "auto_scroll";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Layout";
+    descriptor.description = "Whether scroll bars appear when content exceeds the client area.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_scrollable_control_auto_scroll() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        scrollable_control_auto_scroll_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor scrollable_control_auto_scroll_margin_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "auto_scroll_margin";
+    descriptor.kind = BindingValueKind::size;
+    descriptor.category = "Layout";
+    descriptor.description = "Logical space kept around the content when scrolling; nonnegative.";
+    descriptor.default_value = BindingValue{Size{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_scrollable_control_auto_scroll_margin() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        scrollable_control_auto_scroll_margin_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor scrollable_control_auto_scroll_min_size_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "auto_scroll_min_size";
+    descriptor.kind = BindingValueKind::size;
+    descriptor.category = "Layout";
+    descriptor.description = "Smallest logical content size scrolling allows for; nonnegative.";
+    descriptor.default_value = BindingValue{Size{}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::arrange | Dirty::paint;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_scrollable_control_auto_scroll_min_size() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        scrollable_control_auto_scroll_min_size_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor scrollable_control_auto_scroll_position_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "auto_scroll_position";
+    descriptor.kind = BindingValueKind::point;
+    descriptor.category = "Layout";
+    descriptor.description = "The scrolled content's offset, negated as Windows Forms reports it.";
+    descriptor.default_value = BindingValue{Point{}};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_scrollable_control_auto_scroll_position() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        scrollable_control_auto_scroll_position_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, ScrollableControl::scrollable_control_property_count>& ScrollableControl::scrollable_control_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"auto_scroll", &describe_scrollable_control_auto_scroll,
+         &read_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll), &ScrollableControl::auto_scroll>,
+         &write_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll), &ScrollableControl::auto_scroll>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"auto_scroll_margin", &describe_scrollable_control_auto_scroll_margin,
+         &read_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_margin), &ScrollableControl::auto_scroll_margin>,
+         &write_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_margin), &ScrollableControl::auto_scroll_margin>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"auto_scroll_min_size", &describe_scrollable_control_auto_scroll_min_size,
+         &read_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_min_size), &ScrollableControl::auto_scroll_min_size>,
+         &write_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_min_size), &ScrollableControl::auto_scroll_min_size>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"auto_scroll_position", &describe_scrollable_control_auto_scroll_position,
+         &read_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_position), &ScrollableControl::auto_scroll_position>,
+         &write_cell_entry<ScrollableControl, decltype(&ScrollableControl::auto_scroll_position), &ScrollableControl::auto_scroll_position>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ScrollableControl's property table names a property twice");
+    static const std::array<PropertyEntry, scrollable_control_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ScrollableControl::property_table() const noexcept {
+    const std::array<PropertyEntry, scrollable_control_property_count>& entries = scrollable_control_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void ScrollableControl::coerce_auto_scroll(bool&) {}
+
+// property_codemod end ScrollableControl
 
 } // namespace gui_forms

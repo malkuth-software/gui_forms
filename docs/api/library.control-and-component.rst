@@ -42,6 +42,8 @@ Related types
      - The description assistive technology announces.
    * - :cpp:class:`AccessibleNameCapability <gui_forms::AccessibleNameCapability>`
      - The name assistive technology announces.
+   * - :cpp:class:`AlignSelfCapability <gui_forms::AlignSelfCapability>`
+     - Where the control sits across its layout region's block axis (CSS align-self).
    * - :cpp:class:`AllowDropCapability <gui_forms::AllowDropCapability>`
      - Whether the control accepts dropped data (AllowDrop).
    * - :cpp:class:`AnatomyStateSet <gui_forms::AnatomyStateSet>`
@@ -87,7 +89,7 @@ Related types
    * - :cpp:class:`ControlAnatomy <gui_forms::ControlAnatomy>`
      - The anatomy of one control type.
    * - :cpp:class:`ControlCapabilities <gui_forms::ControlCapabilities>`
-     - Every Control capability, in the order Control lists them as bases.
+     - Every Control capability, in the order the declaring class takes them.
    * - :cpp:class:`ControlFactory <gui_forms::ControlFactory>`
      - ControlFactory maps explicit type names to construction callbacks, rejects duplicates/unknown types, and recursively creates retained trees without a bundled scripting runtime.
    * - :cpp:class:`ControlValidationEvent <gui_forms::ControlValidationEvent>`
@@ -124,12 +126,16 @@ Related types
      - One flex line, its items being order[first, first + count).
    * - :cpp:class:`FlexMargin <gui_forms::FlexMargin>`
      - One margin as the solver reads it: a resolved length, or ``auto``.
+   * - :cpp:class:`FontCapability <gui_forms::FontCapability>`
+     - The font of the control's text (Font).
    * - :cpp:class:`ForeColorCapability <gui_forms::ForeColorCapability>`
      - The own text colour; empty takes the parent's.
    * - :cpp:class:`FractionFactor <gui_forms::FractionFactor>`
      -  
    * - :cpp:class:`GridAvailableExtent <gui_forms::GridAvailableExtent>`
      -  
+   * - :cpp:class:`GridCell <gui_forms::GridCell>`
+     - One cell of a grid, zero-based, row first (as grid-area and ``.form``'s ``cell: row column`` write it).
    * - :cpp:class:`GridContainerInput <gui_forms::GridContainerInput>`
      -  
    * - :cpp:class:`GridContainerStyle <gui_forms::GridContainerStyle>`
@@ -156,6 +162,8 @@ Related types
      - One margin as the solver reads it: a resolved length, or ``auto``.
    * - :cpp:class:`GridNamedArea <gui_forms::GridNamedArea>`
      - One named area of grid-template-areas, as zero-based half-open line ranges of the template's cells.
+   * - :cpp:class:`GridSpan <gui_forms::GridSpan>`
+     - A region of a grid that fuses ``rows`` x ``columns`` cells from its anchor, its top-left cell (top-right in a right-to-left layout, which the solver mirrors).
    * - :cpp:class:`GridTemplateAreas <gui_forms::GridTemplateAreas>`
      - grid-template-areas: its dimensions in cells and its areas in the order their first cells are written.
    * - :cpp:class:`GridTrack <gui_forms::GridTrack>`
@@ -166,6 +174,8 @@ Related types
      - A track size: one breadth (both ends equal, except that a lone ``<n>fr`` is CSS's ``minmax(auto, <n>fr)``), ``minmax(minimum, maximum)``, or ``fit-content(<length-percentage>)``, whose limit is ``fit_content_limit`` with minimum ``auto`` and maximum ``max-content``.
    * - :cpp:class:`HitTestTransparentCapability <gui_forms::HitTestTransparentCapability>`
      - Whether pointer hit testing passes through the control to what is under it.
+   * - :cpp:class:`HoldsGridSpans <gui_forms::HoldsGridSpans>`
+     - A grid container type that holds spans opts in by specializing this to true beside its declaration (GridPanel does).
    * - :cpp:class:`InteractionDeclaration <gui_forms::InteractionDeclaration>`
      - One interaction.
    * - :cpp:class:`InteractionValidation <gui_forms::InteractionValidation>`
@@ -176,6 +186,8 @@ Related types
      - One kind of repeated item a control paints (owner decision 5): a list row, a tree node, a details-view column header.
    * - :cpp:class:`ItemSystemIndex <gui_forms::ItemSystemIndex>`
      - Position of an item system in its control type's declaration list.
+   * - :cpp:class:`JustifySelfCapability <gui_forms::JustifySelfCapability>`
+     - Where the control sits across its layout region's inline axis (CSS justify-self).
    * - :cpp:class:`LayoutConstraint <gui_forms::LayoutConstraint>`
      - A measure query on both axes.
    * - :cpp:class:`LayoutDiagnostic <gui_forms::LayoutDiagnostic>`
@@ -230,6 +242,8 @@ Related types
      - The control's place in its parent's tab order (TabIndex).
    * - :cpp:class:`TabStopCapability <gui_forms::TabStopCapability>`
      - Whether the Tab key stops at the control (TabStop).
+   * - :cpp:class:`TextCapability <gui_forms::TextCapability>`
+     - The text the control shows (Text).
    * - :cpp:class:`ToolTipTextCapability <gui_forms::ToolTipTextCapability>`
      - The plain tooltip text; empty never shows.
    * - :cpp:class:`TrackBreadth <gui_forms::TrackBreadth>`
@@ -330,7 +344,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AccessibleDescriptionCapability& capability, std::string value)
+   .. cpp:function:: static void assign(AccessibleDescriptionCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, AccessibleDescriptionCapability<Declaring>> accessible_description
 
@@ -345,9 +359,26 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AccessibleNameCapability& capability, std::string value)
+   .. cpp:function:: static void assign(AccessibleNameCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, AccessibleNameCapability<Declaring>> accessible_name
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> AlignSelfCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Where the control sits across its layout region's block axis (CSS align-self).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(AlignSelfCapability& capability, SelfAlignment incoming)
+
+   .. cpp:member:: PropertyCell<SelfAlignment, AlignSelfCapability<Declaring>> align_self
+
+      Default: ``{SelfAlignment::automatic}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -360,7 +391,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AllowDropCapability& capability, bool value)
+   .. cpp:function:: static void assign(AllowDropCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, AllowDropCapability<Declaring>> allow_drop
 
@@ -425,7 +456,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AnchorCapability& capability, AnchorStyles value)
+   .. cpp:function:: static void assign(AnchorCapability& capability, AnchorStyles incoming)
 
    .. cpp:member:: PropertyCell<AnchorStyles, AnchorCapability<Declaring>> anchor
 
@@ -454,7 +485,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AutoSizeCapability& capability, bool value)
+   .. cpp:function:: static void assign(AutoSizeCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, AutoSizeCapability<Declaring>> auto_size
 
@@ -471,7 +502,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(AutoSizeModeCapability& capability, AutoSizeMode value)
+   .. cpp:function:: static void assign(AutoSizeModeCapability& capability, AutoSizeMode incoming)
 
    .. cpp:member:: PropertyCell<AutoSizeMode, AutoSizeModeCapability<Declaring>> auto_size_mode
 
@@ -502,7 +533,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(BackColorCapability& capability, std::optional<Color> value)
+   .. cpp:function:: static void assign(BackColorCapability& capability, std::optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<std::optional<Color>, BackColorCapability<Declaring>> back_color
 
@@ -713,7 +744,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(CausesValidationCapability& capability, bool value)
+   .. cpp:function:: static void assign(CausesValidationCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, CausesValidationCapability<Declaring>> causes_validation
 
@@ -844,11 +875,11 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
 
-   Every Control capability, in the order Control lists them as bases.
+   Every Control capability, in the order the declaring class takes them.
 
 
    .. rubric:: Properties
@@ -912,6 +943,14 @@ Related types
    .. cpp:member:: AnchorStyles anchor
 
       The parent edges the control keeps its distance to (Anchor).
+
+   .. cpp:member:: SelfAlignment justify_self
+
+      Where the control sits across its layout region's inline axis (CSS justify-self).
+
+   .. cpp:member:: SelfAlignment align_self
+
+      Where the control sits across its layout region's block axis (CSS align-self).
 
    .. cpp:member:: AutoSizeMode auto_size_mode
 
@@ -989,7 +1028,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(CursorCapability& capability, std::optional<CursorKind> value)
+   .. cpp:function:: static void assign(CursorCapability& capability, std::optional<CursorKind> incoming)
 
    .. cpp:member:: PropertyCell<std::optional<CursorKind>, CursorCapability<Declaring>> cursor
 
@@ -1024,7 +1063,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(DockCapability& capability, DockStyle value)
+   .. cpp:function:: static void assign(DockCapability& capability, DockStyle incoming)
 
    .. cpp:member:: PropertyCell<DockStyle, DockCapability<Declaring>> dock
 
@@ -1041,7 +1080,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(EnabledCapability& capability, bool value)
+   .. cpp:function:: static void assign(EnabledCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, EnabledCapability<Declaring>> enabled
 
@@ -1305,6 +1344,28 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> FontCapability
+
+   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>``
+
+   The font of the control's text (Font).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: FontCapability() = default
+
+   .. cpp:function:: explicit FontCapability(FontSpec initial)
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(FontCapability& capability, FontSpec incoming)
+
+   .. cpp:member:: PropertyCell<FontSpec, FontCapability<Declaring>> font
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> ForeColorCapability
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
@@ -1314,7 +1375,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ForeColorCapability& capability, std::optional<Color> value)
+   .. cpp:function:: static void assign(ForeColorCapability& capability, std::optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<std::optional<Color>, ForeColorCapability<Declaring>> fore_color
 
@@ -1345,6 +1406,18 @@ Related types
    .. cpp:member:: GridSizingKind kind
 
       Default: ``{GridSizingKind::max_content}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GridCell final
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   One cell of a grid, zero-based, row first (as grid-area and ``.form``'s ``cell: row column`` write it).
+
+   .. cpp:member:: std::uint32_t row
+
+   .. cpp:member:: std::uint32_t column
 
 .. cpp:namespace:: gui_forms
 
@@ -1638,6 +1711,28 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: GridSpan final
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   A region of a grid that fuses ``rows`` x ``columns`` cells from its anchor, its top-left cell (top-right in a right-to-left layout, which the solver mirrors). A span is identified by its name when it has one, and always by its anchor. A named span is a named area (grid-template-areas is another spelling of the named spans); a child placed at an anonymous span's anchor occupies the whole region.
+
+   .. cpp:member:: std::string name
+
+      Empty: anonymous.
+
+   .. cpp:member:: GridCell anchor
+
+   .. cpp:member:: std::uint32_t rows
+
+      Each at least 1; the region ends within maximum_grid_span_extent. Default: ``{1U}``.
+
+   .. cpp:member:: std::uint32_t columns
+
+      Default: ``{1U}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: GridTemplateAreas final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -1727,11 +1822,19 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(HitTestTransparentCapability& capability, bool value)
+   .. cpp:function:: static void assign(HitTestTransparentCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, HitTestTransparentCapability<Declaring>> hit_test_transparent
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename ControlType> HoldsGridSpans : std::false_type
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   A grid container type that holds spans opts in by specializing this to true beside its declaration (GridPanel does). Such a type provides the child properties ``area`` and ``cell`` and has ``GridSpanOutcome define_span(const GridSpan&)``; the form schema and the loader reach it through this declaration only.
 
 .. cpp:namespace:: gui_forms
 
@@ -1807,6 +1910,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> JustifySelfCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+
+   Where the control sits across its layout region's inline axis (CSS justify-self).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(JustifySelfCapability& capability, SelfAlignment incoming)
+
+   .. cpp:member:: PropertyCell<SelfAlignment, JustifySelfCapability<Declaring>> justify_self
+
+      Default: ``{SelfAlignment::automatic}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: LayoutConstraint final
 
    ``#include <gui_forms/layout/types/layout_types.hpp>``
@@ -1848,7 +1968,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(LayoutDirectionCapability& capability, LayoutDirection value)
+   .. cpp:function:: static void assign(LayoutDirectionCapability& capability, LayoutDirection incoming)
 
    .. cpp:member:: PropertyCell<LayoutDirection, LayoutDirectionCapability<Declaring>> layout_direction
 
@@ -1987,7 +2107,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(MarginCapability& capability, Insets value)
+   .. cpp:function:: static void assign(MarginCapability& capability, Insets incoming)
 
    .. cpp:member:: PropertyCell<Insets, MarginCapability<Declaring>> margin
 
@@ -2004,7 +2124,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(MaximumSizeCapability& capability, Size value)
+   .. cpp:function:: static void assign(MaximumSizeCapability& capability, Size incoming)
 
    .. cpp:member:: PropertyCell<Size, MaximumSizeCapability<Declaring>> maximum_size
 
@@ -2019,7 +2139,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(MinimumSizeCapability& capability, Size value)
+   .. cpp:function:: static void assign(MinimumSizeCapability& capability, Size incoming)
 
    .. cpp:member:: PropertyCell<Size, MinimumSizeCapability<Declaring>> minimum_size
 
@@ -2046,7 +2166,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(NameCapability& capability, std::string value)
+   .. cpp:function:: static void assign(NameCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, NameCapability<Declaring>> name
 
@@ -2085,7 +2205,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(PaddingCapability& capability, Insets value)
+   .. cpp:function:: static void assign(PaddingCapability& capability, Insets incoming)
 
    .. cpp:member:: PropertyCell<Insets, PaddingCapability<Declaring>> padding
 
@@ -2262,7 +2382,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TabIndexCapability& capability, std::uint32_t value)
+   .. cpp:function:: static void assign(TabIndexCapability& capability, std::uint32_t incoming)
 
    .. cpp:member:: PropertyCell<std::uint32_t, TabIndexCapability<Declaring>> tab_index
 
@@ -2279,11 +2399,33 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(TabStopCapability& capability, bool value)
+   .. cpp:function:: static void assign(TabStopCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, TabStopCapability<Declaring>> tab_stop
 
       Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TextCapability
+
+   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>``
+
+   The text the control shows (Text).
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: TextCapability() = default
+
+   .. cpp:function:: explicit TextCapability(std::string initial)
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, TextCapability<Declaring>> text
 
 .. cpp:namespace:: gui_forms
 
@@ -2296,7 +2438,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(ToolTipTextCapability& capability, std::string value)
+   .. cpp:function:: static void assign(ToolTipTextCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, ToolTipTextCapability<Declaring>> tool_tip_text
 
@@ -2325,7 +2467,7 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(VisibleCapability& capability, bool value)
+   .. cpp:function:: static void assign(VisibleCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, VisibleCapability<Declaring>> visible
 
@@ -2872,6 +3014,26 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: GridSpanOutcome
+
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+   .. cpp:enumerator:: applied
+
+   .. cpp:enumerator:: extent_invalid
+
+   .. cpp:enumerator:: overlaps
+
+   .. cpp:enumerator:: name_repeated
+
+   .. cpp:enumerator:: covers_placed_child
+
+   .. cpp:enumerator:: in_use
+
+   .. cpp:enumerator:: not_found
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: InlineVerticalAlignment
 
    ``#include <gui_forms/layout/style/layout_style.hpp>``
@@ -3071,6 +3233,22 @@ Enumerations
    .. cpp:enumerator:: vertical
 
    .. cpp:enumerator:: both
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SelfAlignment
+
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+
+   .. cpp:enumerator:: automatic
+
+   .. cpp:enumerator:: start
+
+   .. cpp:enumerator:: center
+
+   .. cpp:enumerator:: end
+
+   .. cpp:enumerator:: stretch
 
 .. cpp:namespace:: gui_forms
 
@@ -3281,12 +3459,6 @@ Functions, constants and aliases
 
 .. cpp:function:: template <typename ControlType, typename... Arguments> std::shared_ptr<ControlType> make_control(StableId stable_id, Arguments&&... arguments)
 
-.. cpp:namespace:: gui_forms::types
-
-``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
-
-.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
-
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
@@ -3302,6 +3474,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr TypeTag<AnchorStyles> anchor_styles
 
 .. cpp:var:: constexpr TypeTag<AutoSizeMode> auto_size_mode
+
+.. cpp:var:: constexpr TypeTag<SelfAlignment> self_alignment
+
+.. cpp:namespace:: gui_forms::types
+
+``#include <gui_forms/control/control_property_traits/control_property_traits.hpp>``
+
+.. cpp:var:: constexpr TypeTag<std::optional<CursorKind>> optional_cursor_kind
 
 .. cpp:namespace:: gui_forms
 
@@ -3402,6 +3582,32 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_grid_repetitions
 
    The most repetitions one ``repeat(auto-fill | auto-fit, ...)`` generates. Value: ``10'000U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+
+.. cpp:function:: bool grid_span_extent_valid(const GridSpan& span) noexcept
+
+   Whether a span has at least one row and column and ends within maximum_grid_span_extent.
+
+.. cpp:function:: bool grid_cell_admitted(GridCell cell) noexcept
+
+   Whether a cell lies within maximum_grid_span_extent on both axes.
+
+.. cpp:function:: bool grid_span_contains(const GridSpan& span, GridCell cell) noexcept
+
+   Whether ``cell`` lies in ``span``'s region, and in it other than at its anchor. Valid extents only.
+
+.. cpp:function:: bool grid_span_interior(const GridSpan& span, GridCell cell) noexcept
+
+.. cpp:function:: bool grid_spans_overlap(const GridSpan& first, const GridSpan& second) noexcept
+
+   Whether two spans share a cell. Valid extents only.
+
+.. cpp:var:: constexpr std::uint32_t maximum_grid_span_extent
+
+   The line past the last cell any span or cell may use on either axis: the grid's track limit (maximum_grid_tracks). Value: ``10'000U``.
 
 .. cpp:namespace:: gui_forms
 

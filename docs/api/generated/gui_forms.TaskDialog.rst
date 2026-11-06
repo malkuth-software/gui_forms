@@ -49,6 +49,12 @@ gui_forms::TaskDialog
          default button the page lacks, or progress bounds that are not finite and
          ordered throw ``std::invalid_argument``.
 
+      **surface** : ``DialogSurface``
+         How show() presents the panel (DialogSurface; an overlay by default). With native_popup the panel opens in a native popup window owned by the owner's window, centred over its client area, when the run can open one; the full-client layer stays in the owner's window. Takes effect at the next show().
+
+      **presented_surface** : ``NativePopupSurface``, read-only
+         Where the shown panel went: native while it is in a popup window, else overlay (or none when it is not shown).
+
       **shown** : ``bool``, read-only
          Whether the dialog is over its owner's window.
 
@@ -207,6 +213,16 @@ gui_forms::TaskDialog
    .. cpp:function:: void set_page(TaskDialogPage page)
 
       Sets :cpp:func:`page <gui_forms::TaskDialog::page>`; see the property's description above.
+
+   .. cpp:function:: DialogSurface surface() const noexcept
+
+      How show() presents the panel (DialogSurface; an overlay by default). With native_popup the panel opens in a native popup window owned by the owner's window, centred over its client area, when the run can open one; the full-client layer stays in the owner's window. Takes effect at the next show().
+
+   .. cpp:function:: void set_surface(DialogSurface surface) noexcept
+
+   .. cpp:function:: NativePopupSurface presented_surface() const noexcept
+
+      Where the shown panel went: native while it is in a popup window, else overlay (or none when it is not shown).
 
    .. cpp:function:: bool shown() const noexcept
 

@@ -218,7 +218,7 @@ void test_controls_read_it() {
     window.perform_layout();
     const Size after = (*button).get_preferred_size(Size{400.0, 300.0});
     require(after.height > before.height && after.width > before.width, "a button measures its themed text");
-    require((*button).text_font((*button).font()).size == 24.0 * (*button).effective_text_scale(),
+    require((*button).text_font((*button).font.read()).size == 24.0 * (*button).effective_text_scale(),
             "a button's text font");
     require((*group).text_font((*group).font()).size == 22.0 * (*group).effective_text_scale(),
             "a group box's caption font");

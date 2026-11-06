@@ -778,7 +778,7 @@ bool SurfaceRoot::request_focus(const Control::Ptr& control) {
         moved.current_id = (*current).runtime_id();
         moved.stable_id = std::string((*current).stable_id().value());
     }
-    if (tool_tip_presenter_) (*tool_tip_presenter_).focus_changed(current);
+    if (tool_tips_) (*tool_tips_).focus_changed(current);
     focused_control_changed_.emit(moved);
     return true;
 }
@@ -1623,11 +1623,11 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
                 (*next_hover).publish_change((*next_hover).pointer_observed_, enter);
             }
         }
-        if (tool_tip_presenter_) {
-            (*tool_tip_presenter_).pointer_moved(event.position, hovered_.lock(), FrameClock::now());
+        if (tool_tips_) {
+            (*tool_tips_).pointer_moved(event.position, hovered_.lock(), FrameClock::now());
         }
-    } else if (event.action == PointerAction::down && tool_tip_presenter_) {
-        (*tool_tip_presenter_).pointer_pressed();
+    } else if (event.action == PointerAction::down && tool_tips_) {
+        (*tool_tips_).pointer_pressed();
     } else if (event.action == PointerAction::leave) {
         // The pointer left the window: nothing is hovered until it returns,
         // and the control it was over is no longer hot. The leave is routed
@@ -1636,7 +1636,7 @@ bool SurfaceRoot::dispatch_pointer(PointerEvent event) {
             set_pointer_over(*previous_hover, false);
         }
         hovered_.reset();
-        if (tool_tip_presenter_) (*tool_tip_presenter_).pointer_left();
+        if (tool_tips_) (*tool_tips_).pointer_left();
     }
     Control::Ptr target = captured_.lock();
     if (!target) {
@@ -1737,7 +1737,7 @@ bool SurfaceRoot::dispatch_key(KeyEvent event) {
     const bool handled = route_key(std::move(event));
     // A key may have moved the keyboard within the focused control, or
     // shown the focus cue: the presenter looks at what focus is on again.
-    if (key_down && tool_tip_presenter_) (*tool_tip_presenter_).key_handled();
+    if (key_down && tool_tips_) (*tool_tips_).key_handled();
     return handled;
 }
 
@@ -3164,7 +3164,7 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
                 arrange_visited, arranged);
             // A tooltip below a control follows it before the overlays are
             // arranged.
-            if (tool_tip_presenter_) (*tool_tip_presenter_).root_arranged();
+            if (tool_tips_) (*tool_tips_).root_arranged();
             for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
                 if (const Control::Ptr overlay_root = (*overlay).overlay()) {
                     arrange_dirty_recursive(overlay_root, (*overlay_root).requested_bounds_,

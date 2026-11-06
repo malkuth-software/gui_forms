@@ -216,8 +216,8 @@ void install_page_fixtures(Window& window) {
                 window.find("gallery.controls.button.0"))) {
             (*button).set_image_list(std::move(icons));
             (*button).set_image_key("folder");
-            (*button).set_text_image_relation(TextImageRelation::image_before_text);
-            (*button).set_image_gap(6.0);
+            (*button).text_image_relation = TextImageRelation::image_before_text;
+            (*button).image_gap = 6.0;
         }
         // The document PageView's pinned page collapses to this icon.
         if (const std::shared_ptr<gui_forms::PageView> documents = std::dynamic_pointer_cast<PageView>(

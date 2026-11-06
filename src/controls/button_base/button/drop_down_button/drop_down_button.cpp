@@ -16,7 +16,7 @@ DropDownButton::DropDownButton(StableId stable_id, std::string text,
         mode_ != DropDownButtonMode::split) {
         throw std::invalid_argument("drop-down button mode is unknown");
     }
-    set_content_padding({6.0, 4.0, 22.0, 4.0});
+    content_padding = {6.0, 4.0, 22.0, 4.0};
 }
 
 void DropDownButton::set_drop_down_mode(const DropDownButtonMode mode) {
@@ -37,10 +37,10 @@ void DropDownButton::set_drop_down_width(const double width) {
             "drop-down button width must be finite and between 12 and 64");
     }
     if (drop_down_width_ == width) return;
-    Insets padding = content_padding();
+    Insets padding = content_padding.read();
     if (edge_ == DropDownButtonEdge::bottom) padding.bottom = std::max(0.0, padding.bottom - drop_down_width_) + width;
     else padding.right = std::max(0.0, padding.right - drop_down_width_) + width;
-    set_content_padding(padding);
+    content_padding = padding;
     drop_down_width_ = width;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
@@ -51,7 +51,7 @@ void DropDownButton::set_drop_down_edge(const DropDownButtonEdge edge) {
         throw std::invalid_argument("drop-down button edge is unknown");
     }
     if (edge_ == edge) return;
-    Insets padding = content_padding();
+    Insets padding = content_padding.read();
     if (edge_ == DropDownButtonEdge::right) {
         padding.right = std::max(0.0, padding.right - drop_down_width_);
         padding.bottom += drop_down_width_;
@@ -59,7 +59,7 @@ void DropDownButton::set_drop_down_edge(const DropDownButtonEdge edge) {
         padding.bottom = std::max(0.0, padding.bottom - drop_down_width_);
         padding.right += drop_down_width_;
     }
-    set_content_padding(padding);
+    content_padding = padding;
     edge_ = edge;
     pointer_drop_down_ = false;
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);

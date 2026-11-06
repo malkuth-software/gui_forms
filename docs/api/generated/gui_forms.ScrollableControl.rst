@@ -7,17 +7,17 @@ gui_forms::ScrollableControl
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScrollableControl : public Control
+.. cpp:class:: ScrollableControl : public Control, public ScrollableControlCapabilities<ScrollableControl>
 
    ``#include <gui_forms/controls/scrollable_control/scrollable_control.hpp>``
 
    The base class for controls whose children scroll inside a viewport.
 
    ScrollableControl gives :cpp:class:`Panel <gui_forms::Panel>`, :cpp:class:`ContainerControl <gui_forms::ContainerControl>` and the containers built
-   on them a two-axis viewport with built-in scroll bars. With :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` on,
+   on them a two-axis viewport with built-in scroll bars. With :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` on,
    the control measures its children, shows a bar on each axis where the content
    is larger than the viewport, and moves the children as the user scrolls. With
-   :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` off you drive each axis yourself through :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>` and
+   :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` off you drive each axis yourself through :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>` and
    :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`. You rarely create one directly: use a :cpp:class:`Panel <gui_forms::Panel>` for a
    scrolling surface (:cpp:class:`GroupBox <gui_forms::GroupBox>` and :cpp:class:`TabPage <gui_forms::TabPage>` inherit the same behaviour), and a
    standalone :cpp:class:`ScrollBar <gui_forms::ScrollBar>` when your own control does the scrolling.
@@ -41,14 +41,14 @@ gui_forms::ScrollableControl
       **auto_scroll_margin** : ``Size``, default ``{0.0, 0.0}``
          Extra space added beyond the right-most and bottom-most child when the
          content size is computed, and kept around a control that
-         :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. ``set_auto_scroll_margin(Size)`` rejects
+         :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. Writing it rejects
          a negative or non-finite size with ``std::invalid_argument``;
          ``set_auto_scroll_margin(x, y)`` clamps negative values to zero and rejects
          only non-finite ones.
 
       **auto_scroll_min_size** : ``Size``, default ``{0.0, 0.0}``
          A minimum content size, so the control can scroll over an area larger
-         than its children. Setting it also turns :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` on. A negative or
+         than its children. Setting it also turns :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` on. A negative or
          non-finite size throws ``std::invalid_argument``.
 
       **auto_scroll_position** : ``Point``
@@ -59,7 +59,7 @@ gui_forms::ScrollableControl
 
       **scroll_position** : ``Point``, read-only
          How far the content is scrolled, as positive offsets from the origin.
-         Change it with :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` or :cpp:func:`set_auto_scroll_position <gui_forms::ScrollableControl::set_auto_scroll_position>`.
+         Change it with :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` or a write of :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`.
 
       **viewport_rectangle** : ``Rect``, read-only
          The area in which children are painted and hit-tested: the client
@@ -83,7 +83,7 @@ gui_forms::ScrollableControl
 
       **hscroll** : ``bool``, default ``false``
          Whether the horizontal bar is visible. In manual mode the setter shows or
-         hides it; while :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` is on the setter is ignored.
+         hides it; while :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` is on the setter is ignored.
 
       **vscroll** : ``bool``, default ``false``
          Whether the vertical bar is visible; see :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`.
@@ -112,7 +112,7 @@ gui_forms::ScrollableControl
          track a large one, dragging the thumb raises
          :cpp:enumerator:`ScrollEventType::thumb_track <gui_forms::ScrollEventType::thumb_track>` on each move, and releasing the thumb
          raises :cpp:enumerator:`ScrollEventType::thumb_position <gui_forms::ScrollEventType::thumb_position>` with equal old and new values.
-         The mouse wheel, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` and :cpp:func:`set_auto_scroll_position <gui_forms::ScrollableControl::set_auto_scroll_position>`
+         The mouse wheel, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` and writes of :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`
          move the content without raising it, unless you pass ``notify = true``.
 
    :Inherited:
@@ -136,7 +136,11 @@ gui_forms::ScrollableControl
       * - :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`
         - ``scroll_by(delta, horizontal_type, vertical_type, notify)`` scrolls by an offset, with the same clamping, result and notification rules as :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`.
       * - :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`
-        - Scrolls the shortest distance that brings a descendant, plus :cpp:func:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, into the viewport, then subtracts the descendant's ``auto_scroll_offset``.
+        - Scrolls the shortest distance that brings a descendant, plus :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, into the viewport, then subtracts the descendant's ``auto_scroll_offset``.
+      * - :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`
+        -  
+      * - :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`
+        -  
       * - :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`
         - Sets or clears flags.
 
@@ -155,8 +159,8 @@ gui_forms::ScrollableControl
 
    The content size is the furthest right and bottom edge of the visible
    children that are not docked, using each child's requested bounds (or its
-   preferred size when it auto-sizes) plus its margin, :cpp:func:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>` and
-   the control's padding, and at least :cpp:func:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`. Children keep
+   preferred size when it auto-sizes) plus its margin, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>` and
+   the control's padding, and at least :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`. Children keep
    their requested bounds in content coordinates while they scroll; only their
    arranged bounds move, so repeated layouts never drift. Docked children are
    placed inside the viewport and do not scroll.
@@ -184,8 +188,8 @@ gui_forms::ScrollableControl
 
    Controls that arrange their own children, such as :cpp:class:`Card <gui_forms::Card>`,
    :cpp:class:`ExpandableSections <gui_forms::ExpandableSections>`, :cpp:class:`ScaledGroupBox <gui_forms::ScaledGroupBox>` and :cpp:class:`TabControl <gui_forms::TabControl>`, do not run this
-   viewport. Leave :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` off on them: turning it on, or setting
-   :cpp:func:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, leaves an empty viewport that hides their children.
+   viewport. Leave :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` off on them: turning it on, or setting
+   :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, leaves an empty viewport that hides their children.
    To scroll the content of a tab, scroll the :cpp:class:`TabPage <gui_forms::TabPage>`.
 
    .. rubric:: Examples
@@ -200,7 +204,7 @@ gui_forms::ScrollableControl
           gf::make_control<gf::Label>(gf::StableId("viewer.page"), "A long page");
       (*page).set_requested_bounds({0.0, 0.0, 600.0, 900.0});
       (*viewer).add_child(page);
-      (*viewer).set_auto_scroll(true);
+      (*viewer).auto_scroll = true;
 
       gf::Window window(viewer, {300.0, 200.0});
       window.perform_layout();               // both bars are now visible
@@ -230,7 +234,7 @@ gui_forms::ScrollableControl
               gf::make_control<gf::Label>(gf::StableId("viewer.page"), "A long page");
           (*page).set_requested_bounds({0.0, 0.0, 200.0, 900.0});
           (*viewer.view).add_child(page);
-          (*viewer.view).set_auto_scroll(true);
+          (*viewer.view).auto_scroll = true;
           gf::Window window(viewer.view, {300.0, 200.0});
           window.perform_layout();
 
@@ -248,7 +252,7 @@ gui_forms::ScrollableControl
 
    .. rubric:: Properties
 
-   .. cpp:function:: bool auto_scroll() const noexcept
+   .. cpp:member:: bool auto_scroll
 
       Whether the control sizes its scroll bars to its content. When on, a bar
       appears only on an axis where the content is larger than the viewport,
@@ -256,52 +260,32 @@ gui_forms::ScrollableControl
       enabled, minimum and maximum) are ignored. Turning it off scrolls back to
       the origin.
 
-   .. cpp:function:: virtual void set_auto_scroll(bool enabled)
-
-      Sets :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`; see the property's description above.
-
-   .. cpp:function:: Size auto_scroll_margin() const noexcept
+   .. cpp:member:: Size auto_scroll_margin
 
       Extra space added beyond the right-most and bottom-most child when the
       content size is computed, and kept around a control that
-      :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. ``set_auto_scroll_margin(Size)`` rejects
+      :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>` reveals. Writing it rejects
       a negative or non-finite size with ``std::invalid_argument``;
       ``set_auto_scroll_margin(x, y)`` clamps negative values to zero and rejects
       only non-finite ones.
 
-   .. cpp:function:: void set_auto_scroll_margin(Size margin)
-
-      Sets :cpp:func:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`; see the property's description above.
-
-   .. cpp:function:: void set_auto_scroll_margin(double x, double y)
-
-      Sets :cpp:func:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`; see the property's description above.
-
-   .. cpp:function:: Size auto_scroll_min_size() const noexcept
+   .. cpp:member:: Size auto_scroll_min_size
 
       A minimum content size, so the control can scroll over an area larger
-      than its children. Setting it also turns :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` on. A negative or
+      than its children. Setting it also turns :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` on. A negative or
       non-finite size throws ``std::invalid_argument``.
 
-   .. cpp:function:: void set_auto_scroll_min_size(Size size)
-
-      Sets :cpp:func:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`; see the property's description above.
-
-   .. cpp:function:: Point auto_scroll_position() const noexcept
+   .. cpp:member:: Point auto_scroll_position
 
       The position in the Windows Forms convention: the getter returns negated
       offsets (scrolled 40 pixels down reads ``{0, -40}``), while the setter
       takes positive offsets, clamps negative ones to zero and scrolls without
       raising :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`.
 
-   .. cpp:function:: void set_auto_scroll_position(Point position)
-
-      Sets :cpp:func:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`; see the property's description above.
-
    .. cpp:function:: Point scroll_position() const noexcept
 
       How far the content is scrolled, as positive offsets from the origin.
-      Change it with :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` or :cpp:func:`set_auto_scroll_position <gui_forms::ScrollableControl::set_auto_scroll_position>`.
+      Change it with :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` or a write of :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`.
 
    .. cpp:function:: Rect viewport_rectangle() const noexcept
 
@@ -329,7 +313,7 @@ gui_forms::ScrollableControl
    .. cpp:function:: bool hscroll() const noexcept
 
       Whether the horizontal bar is visible. In manual mode the setter shows or
-      hides it; while :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` is on the setter is ignored.
+      hides it; while :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` is on the setter is ignored.
 
    .. cpp:function:: void set_hscroll(bool visible)
 
@@ -372,7 +356,7 @@ gui_forms::ScrollableControl
       track a large one, dragging the thumb raises
       :cpp:enumerator:`ScrollEventType::thumb_track <gui_forms::ScrollEventType::thumb_track>` on each move, and releasing the thumb
       raises :cpp:enumerator:`ScrollEventType::thumb_position <gui_forms::ScrollEventType::thumb_position>` with equal old and new values.
-      The mouse wheel, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` and :cpp:func:`set_auto_scroll_position <gui_forms::ScrollableControl::set_auto_scroll_position>`
+      The mouse wheel, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>` and writes of :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`
       move the content without raising it, unless you pass ``notify = true``.
 
 
@@ -412,14 +396,18 @@ gui_forms::ScrollableControl
    .. cpp:function:: void scroll_control_into_view(const Control::Ptr& control)
 
       Scrolls the shortest distance that brings a descendant, plus
-      :cpp:func:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, into the viewport, then subtracts the descendant's
-      ``auto_scroll_offset``. It does nothing unless :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` is on, a bar
+      :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, into the viewport, then subtracts the descendant's
+      ``auto_scroll_offset``. It does nothing unless :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>` is on, a bar
       is visible and the control is a descendant, and it never raises :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`.
+
+   .. cpp:function:: static const std::array<PropertyEntry, scrollable_control_property_count>& scrollable_control_property_entries() noexcept
+
+   .. cpp:function:: void set_auto_scroll_margin(double x, double y)
 
    .. cpp:function:: void set_scroll_state(std::uint32_t bit, bool value)
 
       Sets or clears flags. The first three are the same as setting
-      :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>` and :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`; the last two are only stored.
+      :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>` and :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`; the last two are only stored.
       Zero or an unknown bit throws ``std::invalid_argument``.
 
 
@@ -459,6 +447,12 @@ gui_forms::ScrollableControl
       For container authors. Called after the position changes for any
       reason, including clamping during layout. It raises no event.
 
+   .. cpp:function:: virtual void on_auto_scroll_changed(Point previous_position)
+
+      *Protected.*
+
+      Runs after a changed auto_scroll write, once the scroll state is updated and a moved position reported; ``previous_position`` is the scroll position before the write (turning auto scroll off returns it to the origin). An override calls the base (study 15.3, G9).
+
    .. cpp:function:: void arrange_scroll_viewport(Size client_size, Size measured_content)
 
       *Protected.*
@@ -497,6 +491,14 @@ gui_forms::ScrollableControl
 
       The region, viewport, scroll axes and focus as currently laid out.
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void coerce_auto_scroll(bool& incoming)
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
+
    .. cpp:member:: constexpr std::uint32_t scroll_state_auto_scrolling
 
       Default: ``1U``.
@@ -516,3 +518,7 @@ gui_forms::ScrollableControl
    .. cpp:member:: constexpr std::uint32_t scroll_state_full_drag
 
       Default: ``16U``.
+
+   .. cpp:member:: constexpr std::size_t scrollable_control_property_count
+
+      ScrollableControl's property table: Control's entries, then its own. Default: ``Control::control_property_count + 4U``.

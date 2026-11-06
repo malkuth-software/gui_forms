@@ -33,8 +33,8 @@ static void check_caption(const std::string& text, double scale, std::uint16_t w
     require_text(std::abs(layout.logical_size.width - direct.width) < 0.01,
                  "Retained and direct widths differ");
     const std::shared_ptr<Button> button = make_control<Button>(StableId("caption"), text);
-    (*button).set_font(font);
-    (*button).set_use_mnemonic(false);
+    (*button).font = font;
+    (*button).use_mnemonic = false;
     BasicControlStyle style = (*button).style();
     style.text = Color::rgba(255, 0, 255);
     (*button).set_style(style);

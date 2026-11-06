@@ -1,6 +1,7 @@
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/panel/text_box/text_box.hpp"
+#include "gui_forms/window/native_popup/native_popup.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -263,7 +264,83 @@ struct RuntimeWindowsProbe final {
     bool handle_expired{};
     HostServiceStatus floating_open{};
     HostServiceStatus floating_destroy{};
+    // Native popups (phase (b)): what each declared focus opened, and on
+    // Win32 the popup window's native styles, owner and placement.
+    NativePopupSurface passive_surface{NativePopupSurface::none};
+    NativePopupRefusal passive_refusal{NativePopupRefusal::none};
+    NativePopupSurface focus_surface{NativePopupSurface::none};
+    bool passive_closed{};
+    bool native_checked{};
+    bool native_styles{};
+    bool native_owner{};
+    bool native_placed{};
 };
+#if defined(_WIN32)
+// The popup windows of this thread that `owner` owns: WS_POPUP windows.
+struct PopupWindows final {
+    HWND owner{};
+    HWND found[4]{};
+    std::size_t count{};
+};
+BOOL CALLBACK collect_popup_window(HWND window, LPARAM context) {
+    PopupWindows& popups = *reinterpret_cast<PopupWindows*>(context);
+    const LONG_PTR style = GetWindowLongPtrW(window, GWL_STYLE);
+    const bool popup = (style & WS_POPUP) != 0 && GetWindow(window, GW_OWNER) == popups.owner;
+    if (popup && popups.count < 4U) {
+        popups.found[popups.count] = window;
+        popups.count = popups.count + 1U;
+    }
+    return TRUE;
+}
+// Reads the one passive popup window's native record into the probe:
+// tool and no-activate styles without a caption, owned by `owner`, its
+// client placed at the owner's client origin plus `bounds` (device pixels).
+void check_native_popup(RuntimeWindowsProbe& state, HWND owner, Rect bounds) {
+    PopupWindows popups{};
+    popups.owner = owner;
+    EnumThreadWindows(GetCurrentThreadId(), &collect_popup_window, reinterpret_cast<LPARAM>(&popups));
+    state.native_checked = popups.count == 1U;
+    if (!state.native_checked) return;
+    const HWND popup = popups.found[0];
+    const LONG_PTR style = GetWindowLongPtrW(popup, GWL_STYLE);
+    const LONG_PTR extended = GetWindowLongPtrW(popup, GWL_EXSTYLE);
+    state.native_styles = (style & WS_CAPTION) == 0 && (extended & WS_EX_TOOLWINDOW) != 0 &&
+        (extended & WS_EX_NOACTIVATE) != 0;
+    POINT owner_origin{0, 0};
+    POINT popup_origin{0, 0};
+    const bool mapped = ClientToScreen(owner, &owner_origin) && ClientToScreen(popup, &popup_origin);
+    const double scale = static_cast<double>(GetDpiForWindow(owner)) / 96.0;
+    const double expected_x = static_cast<double>(owner_origin.x) + bounds.x * scale;
+    const double expected_y = static_cast<double>(owner_origin.y) + bounds.y * scale;
+    state.native_placed = mapped && std::fabs(static_cast<double>(popup_origin.x) - expected_x) <= 1.0 &&
+        std::fabs(static_cast<double>(popup_origin.y) - expected_y) <= 1.0;
+}
+#endif
+// Opens one passive and one focus-taking popup from the main window, and
+// closes them.
+void open_native_popups(RuntimeWindowsProbe& state, Window& window) {
+    const Control::Ptr owner = window.root();
+    const Rect bounds{24.0, 32.0, 120.0, 80.0};
+    NativePopupToken passive = window.open_native_popup(
+        owner, make_control<Control>(StableId("native.popup.passive")), bounds, NativePopupOptions{});
+    state.passive_surface = passive.surface();
+    state.passive_refusal = passive.refusal();
+#if defined(_WIN32)
+    if (passive.surface() == NativePopupSurface::native) {
+        const HWND main_window = FindWindowW(nullptr, L"GUI.Forms runtime windows fixture");
+        state.native_owner = main_window != nullptr;
+        if (state.native_owner) check_native_popup(state, main_window, bounds);
+    }
+#endif
+    passive.disconnect();
+    state.passive_closed = !passive.connected();
+    NativePopupOptions focus{};
+    focus.focus = HostPopupFocus::takes_focus;
+    NativePopupToken taking = window.open_native_popup(
+        owner, make_control<Control>(StableId("native.popup.focus")), bounds, focus);
+    state.focus_surface = taking.surface();
+    taking.disconnect();
+}
 struct FloatingReady final {
     RuntimeWindowsProbe* probe{};
     void operator()(Window&, ApplicationWindowHandle handle) const {
@@ -281,7 +358,7 @@ struct FloatingFrame final {
 };
 struct RuntimeMainReady final {
     RuntimeWindowsProbe* probe{};
-    void operator()(Window&, ApplicationWindowHandle handle) const {
+    void operator()(Window& window, ApplicationWindowHandle handle) const {
         const ApplicationWindows windows = handle.windows();
         RuntimeWindowsProbe& state = *probe;
         state.supported = windows.capabilities().supports(HostCapability::runtime_windows) &&
@@ -332,6 +409,7 @@ struct RuntimeMainReady final {
             if (floating_window.status.accepted()) {
                 state.floating_destroy = windows.destroy_window(floating_window.window);
             }
+            open_native_popups(state, window);
         }
         require(handle.request_close().accepted(), "runtime fixture close failed");
     }
@@ -374,6 +452,28 @@ void check_runtime_windows() {
     require(probe.handle_expired, "destroyed runtime window handle still active");
     require(probe.floating_open.accepted() && probe.floating_destroy.accepted(),
             "floating document window not opened and destroyed");
+#if defined(_WIN32)
+    // Win32 opens popup windows (phase (b)); X11 falls back to an overlay
+    // until its popup windows land.
+    require(probe.passive_surface == NativePopupSurface::native && probe.passive_refusal == NativePopupRefusal::none,
+            "a passive popup opens a native window");
+    require(probe.native_owner, "the main window is found");
+    require(probe.native_checked, "the main window owns exactly one popup window");
+    require(probe.native_styles, "the popup window is an undecorated, non-activating tool");
+    require(probe.native_placed, "the popup sits at the owner's client origin plus its bounds");
+    require(probe.focus_surface == NativePopupSurface::native, "a focus-taking popup opens a native window");
+#elif defined(__APPLE__)
+    // AppKit opens popup windows as borderless, non-activating panels
+    // (phase (d)); their native record is not readable from this C++ test.
+    require(probe.passive_surface == NativePopupSurface::native && probe.passive_refusal == NativePopupRefusal::none,
+            "a passive popup opens a native window");
+    require(probe.focus_surface == NativePopupSurface::native, "a focus-taking popup opens a native window");
+#else
+    require(probe.passive_surface == NativePopupSurface::overlay &&
+                probe.passive_refusal == NativePopupRefusal::unsupported,
+            "a host without popup windows falls back to an overlay");
+#endif
+    require(probe.passive_closed, "disconnecting closes the popup");
 }
 #if defined(__APPLE__)
 struct ForeignShutdown final {

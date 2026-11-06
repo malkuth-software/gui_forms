@@ -7,6 +7,8 @@
 #include "gui_forms/control.hpp"
 
 #include <array>
+#include <cmath>
+#include <span>
 #include <string_view>
 #include <unordered_set>
 #include <utility>
@@ -67,6 +69,16 @@ constexpr std::string_view handler_prefix = "on-";
     return registered;
 }
 
+// The position of the descriptor registered as `registered` in
+// `descriptors`; none if no descriptor has that name.
+[[nodiscard]] std::optional<std::size_t> descriptor_position(std::span<const PropertyDescriptor> descriptors,
+                                                             std::string_view registered) {
+    for (std::size_t candidate = 0U; candidate < descriptors.size(); ++candidate) {
+        if (descriptors[candidate].name == registered) return candidate;
+    }
+    return std::nullopt;
+}
+
 // Whether `name` is one C++ identifier: an ASCII letter or '_', then
 // letters, digits and '_'.
 [[nodiscard]] bool cpp_identifier(std::string_view name) noexcept {
@@ -119,9 +131,20 @@ public:
     // Fills `scratch`; returns whether no defect was found.
     [[nodiscard]] bool run(FormModel& scratch);
     void check_form_root(const FormModel& scratch);
+    // The spans' conflicts, and the placements against their parent's
+    // spans (study 10.9): after the walk, since they need all of it.
+    void check_spans(const FormModel& scratch);
 
 private:
     void read_object(NodeIndex node, std::optional<ObjectIndex> parent, FormModel& scratch);
+    // A `span` block of `owner`, whose type holds spans; `type_token` is
+    // its reserved type's token.
+    void read_span(NodeIndex node, ObjectIndex owner, std::uint32_t type_token, FormModel& scratch);
+    // One whole number of `value`'s token `position`, within [minimum,
+    // maximum_grid_span_extent - 1] (a cell coordinate) or [1,
+    // maximum_grid_span_extent] (an extent).
+    [[nodiscard]] std::optional<std::uint32_t> span_number(const ValueTokens& value, std::size_t position,
+                                                           std::uint32_t minimum) const;
     // `written_names` holds the registered names already written in the
     // owner's block, properties and handlers apart.
     void read_declaration(NodeIndex node, ObjectIndex owner, WrittenNames& written_names, FormModel& scratch);
@@ -193,6 +216,7 @@ bool ModelBuilder::run(FormModel& scratch) {
     if (roots > 1U) return false;
     read_object(NodeIndex{1U}, std::nullopt, scratch);
     check_form_root(scratch);
+    check_spans(scratch);
     return !defective_;
 }
 
@@ -240,6 +264,10 @@ void ModelBuilder::read_object(NodeIndex node, std::optional<ObjectIndex> parent
     }
     const std::string stable_id(range_text(identity_first, object_node.content.end.value));
     const std::string_view written_type = token_text(type_token);
+    if (parent && written_type == form_span_type_name) {
+        read_span(node, *parent, type_token, scratch);
+        return;
+    }
 
     std::optional<std::size_t> schema_type{};
     const std::optional<std::string> registered_type = registered_from_kebab(written_type);
@@ -294,6 +322,172 @@ void ModelBuilder::read_object(NodeIndex node, std::optional<ObjectIndex> parent
     }
 }
 
+void ModelBuilder::read_span(NodeIndex node, ObjectIndex owner, std::uint32_t type_token, FormModel& scratch) {
+    const SyntaxNode& span_node = tree_.nodes[node.value];
+    const std::string owner_id = scratch.objects[owner.value].stable_id;
+    const std::size_t owner_type = scratch.objects[owner.value].schema_type;
+    // An unknown owner type has been reported once.
+    if (owner_type >= schema_.types.size()) return;
+    if (!schema_.types[owner_type].holds_spans) {
+        report(DiagnosticCode::form_children_not_admitted, type_token, owner_id, form_span_type_name,
+               schema_.types[owner_type].name + " holds no spans");
+        return;
+    }
+    // The name: the prelude's tokens after the type, none for an anonymous
+    // span; lowercase letters, digits and single '-' (as a type's name).
+    std::uint32_t name_first = type_token + 1U;
+    while (name_first < span_node.content.end.value && is_trivia(tokens_[name_first].kind)) ++name_first;
+    const std::string name(range_text(name_first, span_node.content.end.value));
+    bool valid = true;
+    if (!name.empty() && !registered_from_kebab(name)) {
+        report(DiagnosticCode::form_value_invalid, name_first, owner_id, form_span_type_name,
+               "a span's name is lowercase letters, digits and single '-'");
+        valid = false;
+    }
+    GridSpan span{};
+    span.name = name;
+    bool anchored = false;
+    std::unordered_set<std::string> written{};
+    std::uint32_t child = node.value + 1U;
+    while (child < span_node.subtree_end.value) {
+        const SyntaxNode& item = tree_.nodes[child];
+        const std::uint32_t next = item.subtree_end.value;
+        child = next;
+        if (item.kind != SyntaxNodeKind::declaration) {
+            report(DiagnosticCode::form_children_not_admitted, item.tokens.first.value, owner_id,
+                   form_span_type_name, "a span holds only anchor, rows and columns");
+            valid = false;
+            continue;
+        }
+        const std::uint32_t name_token = item.tokens.first.value;
+        const std::string member(token_text(name_token));
+        if (member != "anchor" && member != "rows" && member != "columns") {
+            report(DiagnosticCode::form_property_unknown, name_token, owner_id, member, "span");
+            valid = false;
+            continue;
+        }
+        if (!written.insert(member).second) {
+            report(DiagnosticCode::form_member_repeated, name_token, owner_id, member, {});
+            valid = false;
+            continue;
+        }
+        const ValueTokens value = value_tokens(item.content);
+        const bool important = (item.flags & theme_language::syntax_flag_important) != 0U;
+        const std::uint32_t offending = value.count == 0U ? name_token : value.indices[0];
+        if (member == "anchor") {
+            const std::optional<std::uint32_t> row = value.count == 2U ? span_number(value, 0U, 0U) : std::nullopt;
+            const std::optional<std::uint32_t> column = value.count == 2U ? span_number(value, 1U, 0U) : std::nullopt;
+            if (!row || !column || important || value.overflowed) {
+                report(DiagnosticCode::form_value_invalid, offending, owner_id, member, "two cell numbers, row column");
+                valid = false;
+                continue;
+            }
+            span.anchor = GridCell{*row, *column};
+            anchored = true;
+            continue;
+        }
+        const std::optional<std::uint32_t> extent = value.count == 1U ? span_number(value, 0U, 1U) : std::nullopt;
+        if (!extent || important) {
+            report(DiagnosticCode::form_value_invalid, offending, owner_id, member, "one whole number from 1");
+            valid = false;
+            continue;
+        }
+        if (member == "rows") {
+            span.rows = *extent;
+        } else {
+            span.columns = *extent;
+        }
+    }
+    if (!anchored && valid) {
+        report(DiagnosticCode::form_value_invalid, type_token, owner_id, "anchor", "a span needs an anchor");
+        valid = false;
+    }
+    if (!valid) return;
+    FormSpan record{};
+    record.owner = owner;
+    record.span = std::move(span);
+    record.node = node;
+    scratch.spans.push_back(std::move(record));
+}
+
+std::optional<std::uint32_t> ModelBuilder::span_number(const ValueTokens& value, std::size_t position,
+                                                       std::uint32_t minimum) const {
+    const std::uint32_t index = value.indices[position];
+    if (tokens_[index].kind != TokenKind::number) return std::nullopt;
+    const ThemeNumber& number = numbers_[tokens_[index].number];
+    // A coordinate ends before the limit; an extent may reach it.
+    const double maximum = static_cast<double>(maximum_grid_span_extent) - (minimum == 0U ? 1.0 : 0.0);
+    if (!number.integer || number.value < static_cast<double>(minimum) || number.value > maximum) {
+        return std::nullopt;
+    }
+    const std::uint32_t whole = static_cast<std::uint32_t>(number.value);
+    return whole;
+}
+
+void ModelBuilder::check_spans(const FormModel& scratch) {
+    const std::vector<FormSpan>& spans = scratch.spans;
+    for (std::size_t later = 0U; later < spans.size(); ++later) {
+        const FormSpan& span = spans[later];
+        const std::string& owner_id = scratch.objects[span.owner.value].stable_id;
+        const std::uint32_t token = tree_.nodes[span.node.value].tokens.first.value;
+        if (!grid_span_extent_valid(span.span)) {
+            report(DiagnosticCode::form_span_conflict, token, owner_id, span.span.name,
+                   "it ends past the grid's limit");
+            continue;
+        }
+        for (std::size_t earlier = 0U; earlier < later; ++earlier) {
+            const FormSpan& other = spans[earlier];
+            if (!(other.owner == span.owner) || !grid_span_extent_valid(other.span)) continue;
+            if (!span.span.name.empty() && span.span.name == other.span.name) {
+                report(DiagnosticCode::form_member_repeated, token, owner_id, span.span.name, "a span's name");
+            } else if (grid_spans_overlap(span.span, other.span)) {
+                report(DiagnosticCode::form_span_conflict, token, owner_id, span.span.name,
+                       "it shares a cell with an earlier span");
+            }
+        }
+    }
+    for (const FormProperty& property : scratch.properties) {
+        if (property.provider != FormPropertyProvider::parent_type) continue;
+        const FormObject& object = scratch.objects[property.object.value];
+        const ObjectIndex parent = *object.parent;
+        if (!schema_.types[scratch.objects[parent.value].schema_type].holds_spans) continue;
+        const std::string& name = form_property_descriptor(schema_, scratch, property).name;
+        const std::uint32_t token = tree_.nodes[property.node.value].content.first.value;
+        if (name == "area") {
+            const std::string& area = std::get<std::string>(property.value);
+            if (area.empty()) continue;
+            bool named = false;
+            for (const FormSpan& span : spans) {
+                if (span.owner == parent && span.span.name == area) named = true;
+            }
+            if (!named) {
+                report(DiagnosticCode::form_span_conflict, token, object.stable_id, name,
+                       "names no span of the parent");
+            }
+            continue;
+        }
+        if (name != "cell") continue;
+        const Point point = std::get<Point>(property.value);
+        const bool whole = point.x >= 0.0 && point.y >= 0.0 && point.x < maximum_grid_span_extent &&
+                           point.y < maximum_grid_span_extent && std::floor(point.x) == point.x &&
+                           std::floor(point.y) == point.y;
+        if (!whole) {
+            report(DiagnosticCode::form_value_invalid, token, object.stable_id, name, "two cell numbers, row column");
+            continue;
+        }
+        const GridCell cell{static_cast<std::uint32_t>(point.x), static_cast<std::uint32_t>(point.y)};
+        for (const FormSpan& span : spans) {
+            if (!(span.owner == parent) || !grid_span_extent_valid(span.span)) continue;
+            if (grid_span_interior(span.span, cell)) {
+                report(DiagnosticCode::form_span_conflict, token, object.stable_id, name,
+                       "it lies inside a span; place the child at the span's anchor");
+            }
+        }
+    }
+    // A span over a cell a child is placed at is the same conflict as
+    // that cell inside the span, reported once above at the placement.
+}
+
 void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNames& written_names,
                                     FormModel& scratch) {
     const SyntaxNode& declaration = tree_.nodes[node.value];
@@ -309,21 +503,34 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     // are not checked.
     if (object.schema_type >= schema_.types.size()) return;
     const FormSchemaType& type = schema_.types[object.schema_type];
+    // A name the object's type lacks may be one its parent provides to its
+    // children (attached properties, study section 10). A root has no
+    // parent, and a parent of an unknown type provides nothing.
+    const FormSchemaType* parent_type = nullptr;
+    if (object.parent) {
+        const std::size_t parent_schema_type = scratch.objects[(*object.parent).value].schema_type;
+        if (parent_schema_type < schema_.types.size()) parent_type = &schema_.types[parent_schema_type];
+    }
     const std::optional<std::string> registered = registered_from_kebab(written);
     std::optional<std::size_t> property{};
+    FormPropertyProvider provider = FormPropertyProvider::object_type;
     if (registered) {
-        for (std::size_t candidate = 0U; candidate < type.properties.size(); ++candidate) {
-            if (type.properties[candidate].name == *registered) {
-                property = candidate;
-                break;
-            }
+        property = descriptor_position(type.properties, *registered);
+        if (!property && parent_type != nullptr) {
+            property = descriptor_position((*parent_type).child_properties, *registered);
+            provider = FormPropertyProvider::parent_type;
         }
     }
     if (!property) {
-        report(DiagnosticCode::form_property_unknown, name_token, stable_id, written, type.name);
+        const std::string detail = parent_type == nullptr
+            ? type.name
+            : "neither " + type.name + " nor its parent's type " + (*parent_type).name + " provides it";
+        report(DiagnosticCode::form_property_unknown, name_token, stable_id, written, detail);
         return;
     }
-    const PropertyDescriptor& descriptor = type.properties[*property];
+    const PropertyDescriptor& descriptor = provider == FormPropertyProvider::object_type
+        ? type.properties[*property]
+        : (*parent_type).child_properties[*property];
     if (!descriptor.writable) {
         report(DiagnosticCode::form_property_read_only, name_token, stable_id, written, {});
         return;
@@ -363,6 +570,7 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
     }
     FormProperty record{};
     record.object = owner;
+    record.provider = provider;
     record.schema_property = *property;
     record.node = node;
     record.value = *reading.value;
@@ -752,13 +960,28 @@ FormSchemaType describe_form_type(std::string name, const Component& prototype) 
     type.name = std::move(name);
     const Control* control = dynamic_cast<const Control*>(&prototype);
     type.holds_children = control != nullptr;
-    if (control != nullptr) type.properties = (*control).property_descriptors();
+    if (control != nullptr) {
+        type.properties = (*control).property_descriptors();
+        type.child_properties = (*control).child_property_descriptors();
+    }
     const std::vector<InteractionDeclaration> interactions = prototype.interactions();
     type.interactions.reserve(interactions.size());
     for (const InteractionDeclaration& interaction : interactions) {
         type.interactions.emplace_back(interaction.name);
     }
     return type;
+}
+
+const PropertyDescriptor& form_property_descriptor(const FormSchema& schema, const FormModel& model,
+                                                   const FormProperty& property) {
+    const FormObject& object = model.objects[property.object.value];
+    if (property.provider == FormPropertyProvider::object_type) {
+        return schema.types[object.schema_type].properties[property.schema_property];
+    }
+    // The model records a parent-provided property only on an object whose
+    // parent's type is known.
+    const FormObject& parent = model.objects[(*object.parent).value];
+    return schema.types[parent.schema_type].child_properties[property.schema_property];
 }
 
 FormModelOutcome build_form_model(const theme_language::ThemeSource& source,

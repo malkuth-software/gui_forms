@@ -35,8 +35,6 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
-   * - :cpp:class:`ApplicationPopup <gui_forms::ApplicationPopup>`
-     - A native popup window entry (owner, 2026-11-04): opened only during the run, owned by ``owner_id``, never a tool or floating window.
    * - :cpp:class:`ApplicationResult <gui_forms::ApplicationResult>`
      -  
    * - :cpp:class:`ApplicationWindow <gui_forms::ApplicationWindow>`
@@ -129,6 +127,8 @@ Related types
      - HostOpenFileDialogRequest declares bounded portable title/location/name/filter state and multiple-selection policy.
    * - :cpp:class:`HostPathDialogResult <gui_forms::HostPathDialogResult>`
      - HostPathDialogResult carries accepted/cancelled outcome and a bounded UTF-8 path collection constrained by request multiplicity.
+   * - :cpp:class:`HostPopupPlacement <gui_forms::HostPopupPlacement>`
+     - Where a native popup window opens and how it takes focus (owner, 2026-11-04): carried by its window entry (ApplicationWindow::popup and each adapter's native entry).
    * - :cpp:class:`HostProtocolRevision <gui_forms::HostProtocolRevision>`
      - One host protocol version and the feature it added.
    * - :cpp:class:`HostResizeEvent <gui_forms::HostResizeEvent>`
@@ -246,22 +246,6 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: ApplicationPopup final
-
-   ``#include <gui_forms/application/application.hpp>``
-
-   A native popup window entry (owner, 2026-11-04): opened only during the run, owned by ``owner_id``, never a tool or floating window. Programs open popups through SurfaceRoot::open_native_popup, which fills this in.
-
-   .. cpp:member:: HostPopupFocus focus
-
-      Default: ``{HostPopupFocus::passive}``.
-
-   .. cpp:member:: DesktopLogicalPoint origin
-
-      The client area's origin in desktop logical units, each coordinate within HostWindowing::maximum_desktop_coordinate; the client size is ApplicationWindowOptions::initial_size.
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: ApplicationResult final
 
    ``#include <gui_forms/application/application.hpp>``
@@ -303,9 +287,9 @@ Related types
 
       A floating window (stage DK decisions 1, 10 and 11): owned by the primary window (owner_id names it; tool_window stays false), no taskbar button, minimized with it, above it only, moved with it and clamped to the work area of the screen it lands on. A floating tool also hides while the application is inactive; a floating document does not. The policy decides when the window is on screen; show and hide on its handle say whether it is wanted. See HostWindowKindTraits. Default: ``{HostWindowFloating::none}``.
 
-   .. cpp:member:: std::optional<ApplicationPopup> popup
+   .. cpp:member:: std::optional<HostPopupPlacement> popup
 
-      A native popup window (ApplicationPopup); none for every other kind.
+      A native popup window (HostPopupPlacement): opened only during the run, owned by ``owner_id``, never a tool or floating window; none for every other kind.
 
 .. cpp:namespace:: gui_forms
 
@@ -1066,6 +1050,22 @@ Related types
    .. cpp:member:: std::optional<std::size_t> chosen_filter
 
       For an accepted file dialog, the request's filter selected when the user accepted, an index into its ``filters``; none when the request had no filters, the user chose a filter the host added (such as "All files"), or the host cannot tell.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostPopupPlacement final
+
+   ``#include <gui_forms/host/windowing/host_windowing.hpp>``
+
+   Where a native popup window opens and how it takes focus (owner, 2026-11-04): carried by its window entry (ApplicationWindow::popup and each adapter's native entry). Programs open popups through Window::open_native_popup, which fills this in.
+
+   .. cpp:member:: HostPopupFocus focus
+
+      Default: ``{HostPopupFocus::passive}``.
+
+   .. cpp:member:: DesktopLogicalPoint origin
+
+      The client area's origin in desktop logical units, each coordinate within HostWindowing::maximum_desktop_coordinate; the client size is the entry's initial size.
 
 .. cpp:namespace:: gui_forms
 
@@ -2183,6 +2183,10 @@ Related types
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
 
+   .. cpp:member:: std::optional<HostPopupPlacement> popup
+
+      A native popup window (ApplicationWindow::popup); none for every other kind.
+
 .. cpp:namespace:: gui_forms::host
 
 .. cpp:struct:: LinuxHostOptions final
@@ -2278,6 +2282,10 @@ Related types
    .. cpp:member:: HostWindowFloating floating
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
+
+   .. cpp:member:: std::optional<HostPopupPlacement> popup
+
+      A native popup window (ApplicationWindow::popup); none for every other kind.
 
 .. cpp:namespace:: gui_forms::host
 
@@ -2699,6 +2707,10 @@ Related types
    .. cpp:member:: HostWindowFloating floating
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
+
+   .. cpp:member:: std::optional<HostPopupPlacement> popup
+
+      A native popup window (ApplicationWindow::popup); none for every other kind.
 
 .. cpp:namespace:: gui_forms::host
 

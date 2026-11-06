@@ -53,6 +53,8 @@ struct SchemaType final {
     // component or service.
     const ControlAnatomy* anatomy = nullptr;
     std::vector<SchemaProperty> properties;
+    // The properties the type provides to its children (child_property_at).
+    std::vector<SchemaProperty> child_properties;
     std::vector<SchemaInteraction> interactions;
 };
 

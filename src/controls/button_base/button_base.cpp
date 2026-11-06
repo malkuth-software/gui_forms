@@ -10,6 +10,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -126,7 +127,6 @@ void ButtonBase::unbind_command() noexcept {
     command_connection_.reset();
 }
 
-
 namespace {
 
 // aligned_rect for a button's text block: a block taller than the content
@@ -214,52 +214,11 @@ Size combined_content_size(TextImageRelation relation, Size text, Size image, do
 }
 }
 
-ButtonBase::ButtonBase(StableId stable_id, std::string text)
-    : Control(std::move(stable_id)), text_(std::move(text)) {
+ButtonBase::ButtonBase(StableId stable_id, std::string initial_text)
+    : Control(std::move(stable_id)) {
+    text = std::move(initial_text);
     set_focusable(true);
     cursor = CursorKind::hand;
-
-    PropertyDescriptor text_alignment;
-    text_alignment.name = "text_alignment";
-    text_alignment.kind = BindingValueKind::enumeration;
-    text_alignment.category = "Appearance";
-    text_alignment.description = "Where the text sits in the content area.";
-    text_alignment.invalidation_effects = Dirty::paint | Dirty::semantics;
-    text_alignment.bindable = false;
-    text_alignment.enumeration = content_alignment_enum();
-    define_bindable_property({
-        std::move(text_alignment),
-        detail::EnumerationPropertyGetter<ButtonBase, ContentAlignment>(
-            *this, &ButtonBase::text_alignment, content_alignment_enum()),
-        detail::EnumerationPropertySetter<ButtonBase, ContentAlignment>(*this,
-                                                                        &ButtonBase::set_text_alignment),
-        {}, {}, {}});
-    define_bindable_property({
-        {"text", BindingValueKind::text, "Appearance",
-         "Text displayed by the button.", BindingValue{std::string{}},
-         invalidation::text_content},
-        detail::BindingMemberGetter<ButtonBase, std::string>(
-            *this, &ButtonBase::text_),
-        detail::ConvertedPropertySetter<ButtonBase, std::string>(
-            *this, &ButtonBase::set_text, BindingValueKind::text,
-            "ButtonBase.Text binding requires text"),
-        detail::EventChangeConnector<const std::string&>(text_changed_), {}, {}});
-
-    PropertyDescriptor font;
-    font.name = "font";
-    font.kind = BindingValueKind::font;
-    font.category = "Appearance";
-    font.description = "Font used for button measurement and painting.";
-    font.default_value = BindingValue{
-        FontSpec{FontRole::control, 12.0, 400, false, 0.24}};
-    font.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
-    font.bindable = false;
-    define_bindable_property({
-        std::move(font),
-        detail::BindingMemberGetter<ButtonBase, FontSpec>(
-            *this, &ButtonBase::font_),
-        detail::DirectPropertySetter<ButtonBase, FontSpec>(
-            *this, &ButtonBase::set_font), {}, {}, {}});
 
     PropertyDescriptor image;
     image.name = "image";
@@ -280,60 +239,10 @@ ButtonBase::ButtonBase(StableId stable_id, std::string text)
         detail::BoundMemberFunction<bool (ButtonBase::*)() const noexcept>(
             *this, &ButtonBase::should_serialize_image)});
 
-    PropertyDescriptor content_padding;
-    content_padding.name = "content_padding";
-    content_padding.kind = BindingValueKind::insets;
-    content_padding.category = "Layout";
-    content_padding.description =
-        "Insets between the button frame and its image/text content.";
-    content_padding.default_value = BindingValue{
-        Insets{6.0, 4.0, 6.0, 4.0}};
-    content_padding.invalidation_effects = Dirty::measure | Dirty::paint;
-    content_padding.bindable = false;
-    define_bindable_property({
-        std::move(content_padding),
-        detail::BindingMemberGetter<ButtonBase, Insets>(
-            *this, &ButtonBase::content_padding_),
-        detail::DirectPropertySetter<ButtonBase, Insets>(
-            *this, &ButtonBase::set_content_padding), {}, {}, {}});
 }
 
 bool ButtonBase::should_serialize_image() const noexcept {
     return image_.value != 0U || image_index_ >= 0 || !image_key_.empty();
-}
-
-void ButtonBase::set_text(std::string text) {
-    require_mutable();
-    if (text_ == text) {
-        return;
-    }
-    text_ = std::move(text);
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-    publish_change(text_changed_, text_);
-}
-
-void ButtonBase::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) {
-        throw std::invalid_argument("Button font specification is invalid");
-    }
-    set_font_from_code(true);
-    if (font_ == font) {
-        return;
-    }
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void ButtonBase::set_text_line_spacing(double spacing) {
-    require_mutable();
-    if (!std::isfinite(spacing) || spacing < 0.75 || spacing > 3.0) {
-        throw std::invalid_argument(
-            "Button text line spacing must be finite and between 0.75 and 3.0");
-    }
-    if (text_line_spacing_ == spacing) return;
-    text_line_spacing_ = spacing;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
 void ButtonBase::set_style(BasicControlStyle style) {
@@ -472,71 +381,8 @@ void ButtonBase::set_image_key(std::string image_key) {
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
-void ButtonBase::set_image_alignment(ContentAlignment alignment) {
-    require_mutable();
-    if (!valid_content_alignment(alignment)) {
-        throw std::invalid_argument("invalid Button image alignment");
-    }
-    if (image_alignment_ == alignment) return;
-    image_alignment_ = alignment;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void ButtonBase::set_text_alignment(ContentAlignment alignment) {
-    require_mutable();
-    if (!valid_content_alignment(alignment)) {
-        throw std::invalid_argument("invalid Button text alignment");
-    }
-    if (text_alignment_ == alignment) return;
-    text_alignment_ = alignment;
-    invalidate(Dirty::paint | Dirty::semantics);
-}
-
-void ButtonBase::set_text_image_relation(TextImageRelation relation) {
-    require_mutable();
-    if (!valid_text_image_relation(relation)) {
-        throw std::invalid_argument("invalid Button text/image relation");
-    }
-    if (text_image_relation_ == relation) return;
-    text_image_relation_ = relation;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void ButtonBase::set_image_gap(double gap) {
-    require_mutable();
-    if (!std::isfinite(gap) || gap < 0.0 || gap > 64.0) {
-        throw std::invalid_argument(
-            "Button image gap must be finite and between zero and 64");
-    }
-    if (image_gap_ == gap) return;
-    image_gap_ = gap;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
-void ButtonBase::set_content_padding(Insets padding) {
-    require_mutable();
-    const double values[] = {
-        padding.left, padding.top, padding.right, padding.bottom};
-    for (const double value : values) {
-        if (!std::isfinite(value) || value < 0.0 || value > 128.0) {
-            throw std::invalid_argument(
-                "Button content padding must be finite and between zero and 128");
-        }
-    }
-    if (content_padding_ == padding) return;
-    content_padding_ = padding;
-    invalidate(Dirty::measure | Dirty::paint);
-}
-
-void ButtonBase::set_use_mnemonic(bool value) {
-    require_mutable();
-    if (use_mnemonic_ == value) return;
-    use_mnemonic_ = value;
-    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
-}
-
 std::string ButtonBase::display_text() const {
-    return use_mnemonic_ ? parse_mnemonic_text(text_).display_text : text_;
+    return use_mnemonic.read() ? parse_mnemonic_text(text.read()).display_text : text.read();
 }
 
 bool ButtonBase::perform_click() {
@@ -558,24 +404,16 @@ void ButtonBase::on_attached_to_window() {
     }
 }
 
-void ButtonBase::set_expanded_state(std::optional<bool> expanded) {
-    require_mutable();
-    if (expanded_state_ == expanded) return;
-    expanded_state_ = expanded;
-    invalidate(Dirty::paint | Dirty::semantics);
-    publish_change(expanded_changed_, expanded);
-}
-
 Size ButtonBase::measure(Size available) {
     const Rect requested = requested_bounds();
-    const FontSpec font = text_font(font_);
+    const FontSpec resolved_font = text_font(font.read());
     const std::string display = display_text();
     const std::vector<std::string_view> lines = button_text_lines(display);
     double text_width = 0.0;
     for (const std::string_view line : lines) {
-        text_width = std::max(text_width, estimated_text_width(line, font));
+        text_width = std::max(text_width, estimated_text_width(line, resolved_font));
     }
-    const double text_height = static_cast<double>(lines.size()) * font.size * text_line_spacing_;
+    const double text_height = static_cast<double>(lines.size()) * resolved_font.size * text_line_spacing.read();
     Size image_size{};
     if (image_.value != 0U) {
         if (window() != nullptr) {
@@ -590,19 +428,19 @@ Size ButtonBase::measure(Size available) {
     }
     const bool has_text = text_width > 0.0;
     const bool has_image = image_size.width > 0.0 && image_size.height > 0.0;
-    const double gap = has_text && has_image ? image_gap_ : 0.0;
+    const double gap = has_text && has_image ? image_gap.read() : 0.0;
     Size content{text_width, text_height};
     if (has_image) {
-        content = combined_content_size(text_image_relation_, {text_width, text_height},
+        content = combined_content_size(text_image_relation.read(), {text_width, text_height},
                                         image_size, gap);
     }
     const double preferred_width = requested.width > 0.0
         ? requested.width
-        : content.width + content_padding_.left + content_padding_.right + 10.0;
+        : content.width + content_padding.read().left + content_padding.read().right + 10.0;
     const double preferred_height = requested.height > 0.0
         ? requested.height
-        : std::max(24.0, content.height + content_padding_.top +
-                                     content_padding_.bottom + 4.0);
+        : std::max(24.0, content.height + content_padding.read().top +
+                                     content_padding.read().bottom + 4.0);
     return {std::min(available.width, preferred_width),
             std::min(available.height, preferred_height)};
 }
@@ -654,21 +492,21 @@ ImageListResolution ButtonBase::resolved_button_image(bool selected) const noexc
 Rect ButtonBase::content_box(Rect face, bool command_alignment) const noexcept {
     const double command_leading = command_alignment ? 6.0 : 0.0;
     const Rect content{
-        face.x + content_padding_.left + command_leading,
-        face.y + content_padding_.top,
-        std::max(0.0, face.width - content_padding_.left -
-                          content_padding_.right - command_leading),
-        std::max(0.0, face.height - content_padding_.top -
-                          content_padding_.bottom)};
+        face.x + content_padding.read().left + command_leading,
+        face.y + content_padding.read().top,
+        std::max(0.0, face.width - content_padding.read().left -
+                          content_padding.read().right - command_leading),
+        std::max(0.0, face.height - content_padding.read().top -
+                          content_padding.read().bottom)};
     return content;
 }
 
 ButtonBase::ContentLayout ButtonBase::layout_content(
-    Rect content, std::span<const Size> line_sizes, FontSpec font,
+    Rect content, std::span<const Size> line_sizes, FontSpec line_font,
     bool selected, bool command_alignment) const {
     ContentLayout layout;
     double text_width = 0.0;
-    double line_height = font.size * text_line_spacing_;
+    double line_height = line_font.size * text_line_spacing.read();
     for (std::size_t index = 0; index < line_sizes.size(); ++index) {
         text_width = std::max(text_width, line_sizes[index].width);
         line_height = std::max(line_height, line_sizes[index].height);
@@ -686,13 +524,13 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
     const bool has_image = image && image_size.width > 0.0 &&
                            image_size.height > 0.0;
     const ContentAlignment group_alignment = command_alignment
-        ? ContentAlignment::middle_left : text_alignment_;
-    const double gap = has_text && has_image ? image_gap_ : 0.0;
+        ? ContentAlignment::middle_left : text_alignment.read();
+    const double gap = has_text && has_image ? image_gap.read() : 0.0;
 
-    if (has_text && has_image && text_image_relation_ != TextImageRelation::overlay) {
+    if (has_text && has_image && text_image_relation.read() != TextImageRelation::overlay) {
         const bool horizontal =
-            text_image_relation_ == TextImageRelation::image_before_text ||
-            text_image_relation_ == TextImageRelation::text_before_image;
+            text_image_relation.read() == TextImageRelation::image_before_text ||
+            text_image_relation.read() == TextImageRelation::text_before_image;
         const Size group_size = horizontal
             ? Size{image_size.width + gap + text_size.width,
                    std::max(image_size.height, text_size.height)}
@@ -701,7 +539,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
         const Rect group = aligned_text_block(content, group_size, group_alignment);
         if (horizontal) {
             const bool image_first =
-                text_image_relation_ == TextImageRelation::image_before_text;
+                text_image_relation.read() == TextImageRelation::image_before_text;
             const double image_x = image_first ? group.x
                                                : group.x + text_size.width + gap;
             const double text_x = image_first ? group.x + image_size.width + gap
@@ -714,7 +552,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                                text_size.width, text_size.height};
         } else {
             const bool image_first =
-                text_image_relation_ == TextImageRelation::image_above_text;
+                text_image_relation.read() == TextImageRelation::image_above_text;
             const double image_y = image_first ? group.y
                                                : group.y + text_size.height + gap;
             const double text_y = image_first ? group.y + image_size.height + gap
@@ -725,7 +563,7 @@ ButtonBase::ContentLayout ButtonBase::layout_content(
                                text_y, text_size.width, text_size.height};
         }
     } else {
-        if (has_image) layout.image = aligned_rect(content, image_size, image_alignment_);
+        if (has_image) layout.image = aligned_rect(content, image_size, image_alignment.read());
         if (has_text) layout.text = aligned_text_block(content, text_size, group_alignment);
     }
     return layout;
@@ -738,7 +576,7 @@ ButtonBase::ContentLayout ButtonBase::published_content_layout(
         ContentLayout empty;
         return empty;
     }
-    const FontSpec font = text_font(font_);
+    const FontSpec resolved_font = text_font(font.read());
     const std::string display = display_text();
     const std::vector<std::string_view> lines = button_text_lines(display);
     std::vector<Size> line_sizes(lines.size());
@@ -746,29 +584,29 @@ ButtonBase::ContentLayout ButtonBase::published_content_layout(
         // The host installs its raster painter as the window's text metrics,
         // so this matches what paint measures; a detached control estimates.
         const ResolvedTextLayout measured = window() != nullptr
-            ? (*window()).resolve_text_layout_utf8(lines[index], font)
-            : estimate_text_layout_utf8(lines[index], font);
+            ? (*window()).resolve_text_layout_utf8(lines[index], resolved_font)
+            : estimate_text_layout_utf8(lines[index], resolved_font);
         line_sizes[index] = measured.logical_size;
     }
     const ContentLayout layout =
-        layout_content(content, line_sizes, font, selected, command_alignment);
+        layout_content(content, line_sizes, resolved_font, selected, command_alignment);
     return layout;
 }
 
 void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
-                                      std::string_view text, const ButtonContentInk& ink,
+                                      std::string_view shown_text, const ButtonContentInk& ink,
                                       Point offset, bool selected,
                                       bool command_alignment) const {
     const Rect content = content_box(bounds, command_alignment);
     if (content.empty()) return;
-    const FontSpec font = text_font(font_);
-    const std::vector<std::string_view> lines = button_text_lines(text);
+    const FontSpec resolved_font = text_font(font.read());
+    const std::vector<std::string_view> lines = button_text_lines(shown_text);
     std::vector<Size> line_sizes(lines.size());
     for (std::size_t index = 0; index < lines.size(); ++index) {
-        line_sizes[index] = painter.measure_text_utf8(lines[index], font);
+        line_sizes[index] = painter.measure_text_utf8(lines[index], resolved_font);
     }
     const ContentLayout layout =
-        layout_content(content, line_sizes, font, selected, command_alignment);
+        layout_content(content, line_sizes, resolved_font, selected, command_alignment);
     const Rect image_rect = layout.image.value_or(Rect{});
     const Rect text_rect = layout.text.value_or(Rect{});
     const double line_height = layout.line_height;
@@ -791,28 +629,28 @@ void ButtonBase::paint_button_content(Painter& painter, Rect bounds,
         for (std::size_t index = 0; index < lines.size(); ++index) {
             const Size measured = line_sizes[index];
             double x = text_rect.x;
-            if (text_alignment_ == ContentAlignment::top_center ||
-                text_alignment_ == ContentAlignment::middle_center ||
-                text_alignment_ == ContentAlignment::bottom_center) {
+            if (text_alignment.read() == ContentAlignment::top_center ||
+                text_alignment.read() == ContentAlignment::middle_center ||
+                text_alignment.read() == ContentAlignment::bottom_center) {
                 x += (text_rect.width - measured.width) * 0.5;
-            } else if (text_alignment_ == ContentAlignment::top_right ||
-                       text_alignment_ == ContentAlignment::middle_right ||
-                       text_alignment_ == ContentAlignment::bottom_right) {
+            } else if (text_alignment.read() == ContentAlignment::top_right ||
+                       text_alignment.read() == ContentAlignment::middle_right ||
+                       text_alignment.read() == ContentAlignment::bottom_right) {
                 x += text_rect.width - measured.width;
             }
             // The label part centres its line box on its bounds, so the
             // bounds are that box, placed to keep the layout's baseline.
-            const double box_height = std::max(measured.height, font.size * 1.2);
-            const double box_ascent = std::max(font.size, box_height * 0.82);
+            const double box_height = std::max(measured.height, resolved_font.size * 1.2);
+            const double box_ascent = std::max(resolved_font.size, box_height * 0.82);
             const double baseline = text_rect.y + offset.y + static_cast<double>(index) * line_height +
-                                    std::max(font.size, line_height * 0.82);
+                                    std::max(resolved_font.size, line_height * 0.82);
             const double right = std::max(x + measured.width, text_rect.x + text_rect.width);
             PartPaint label;
             label.family = ink.family;
             label.role = PartRole::label;
             label.states = ink.states;
             label.text = lines[index];
-            label.font = font;
+            label.font = resolved_font;
             label.bounds = {x + offset.x, baseline - box_ascent, right - x, box_height};
             label.authored_foreground = ink.authored;
             paint_part(painter, *this, label);
@@ -903,8 +741,8 @@ AnatomyStateSet ButtonBase::button_anatomy_states() const {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::hot);
     }
-    if (expanded_state_.has_value()) {
-        if (*expanded_state_) {
+    if (expanded_state.read().has_value()) {
+        if (*expanded_state.read()) {
             states.insert(AnatomyState::open);
         } else {
             states.insert(AnatomyState::closed);
@@ -1114,7 +952,7 @@ void ButtonBase::on_key(KeyEvent& event) {
 }
 
 bool ButtonBase::mnemonic_matches(char32_t character) const noexcept {
-    return use_mnemonic_ && is_mnemonic(character, text_);
+    return use_mnemonic.read() && is_mnemonic(character, text.read());
 }
 
 bool ButtonBase::process_mnemonic_self(char32_t character) {
@@ -1143,16 +981,16 @@ SemanticDescriptor ButtonBase::semantic_descriptor() const {
     descriptor.role = SemanticRole::button;
     descriptor.name = accessible_name.read().empty() ? display_text() : accessible_name.read();
     descriptor.description = accessible_description.read();
-    if (use_mnemonic_) descriptor.access_key = mnemonic_access_key(text_);
+    if (use_mnemonic.read()) descriptor.access_key = mnemonic_access_key(text.read());
     descriptor.actions = {SemanticAction::focus, SemanticAction::press};
     if (visual_status() == ControlVisualStatus::pending) {
         descriptor.states |= SemanticState::busy;
     } else if (visual_status() == ControlVisualStatus::invalid) {
         descriptor.states |= SemanticState::invalid;
     }
-    if (expanded_state_) {
-        if (*expanded_state_) descriptor.states |= SemanticState::expanded;
-        descriptor.actions.push_back(*expanded_state_ ? SemanticAction::collapse
+    if (expanded_state.read()) {
+        if (*expanded_state.read()) descriptor.states |= SemanticState::expanded;
+        descriptor.actions.push_back(*expanded_state.read() ? SemanticAction::collapse
                                                       : SemanticAction::expand);
     }
     descriptor.exposed = true;
@@ -1163,9 +1001,9 @@ bool ButtonBase::on_semantic_action(SemanticAction action, std::string_view valu
     if (action == SemanticAction::press) {
         return perform_click();
     }
-    if (expanded_state_ &&
-        ((action == SemanticAction::expand && !*expanded_state_) ||
-         (action == SemanticAction::collapse && *expanded_state_))) {
+    if (expanded_state.read() &&
+        ((action == SemanticAction::expand && !*expanded_state.read()) ||
+         (action == SemanticAction::collapse && *expanded_state.read()))) {
         on_activate();
         return true;
     }
@@ -1187,5 +1025,249 @@ void ButtonBase::append_interactions(std::vector<InteractionDeclaration>& intera
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), button_base_interactions.begin(), button_base_interactions.end());
 }
+
+// property_codemod begin ButtonBase (tools/property_families/button_base.json; generated, do not edit)
+
+namespace {
+
+PropertyDescriptor button_base_text_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "Text displayed by the button.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = invalidation::text_content;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_base_text() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_base_text_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+PropertyDescriptor button_base_text_alignment_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text_alignment";
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.category = "Appearance";
+    descriptor.description = "Where the text sits in the content area.";
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.enumeration = content_alignment_enum();
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_base_text_alignment() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_base_text_alignment_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor button_base_font_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "font";
+    descriptor.kind = BindingValueKind::font;
+    descriptor.category = "Appearance";
+    descriptor.description = "Font used for button measurement and painting.";
+    descriptor.default_value = BindingValue{FontSpec{FontRole::control, 12.0, 400, false, 0.24}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_base_font() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_base_font_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor button_base_content_padding_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "content_padding";
+    descriptor.kind = BindingValueKind::insets;
+    descriptor.category = "Layout";
+    descriptor.description = "Insets between the button frame and its image/text content.";
+    descriptor.default_value = BindingValue{Insets{6.0, 4.0, 6.0, 4.0}};
+    descriptor.invalidation_effects = Dirty::measure | Dirty::paint;
+    descriptor.bindable = false;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_button_base_content_padding() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        button_base_content_padding_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+PropertyType PropertyValueTraits<ContentAlignment>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, content_alignment_enum()};
+}
+
+BindingValue PropertyValueTraits<ContentAlignment>::to_binding(ContentAlignment value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = content_alignment_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ContentAlignment PropertyValueTraits<ContentAlignment>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ContentAlignment>(choice.value);
+}
+
+const std::array<PropertyEntry, ButtonBase::button_base_property_count>& ButtonBase::button_base_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 4U> own{{
+        {"text", &describe_button_base_text,
+         &read_cell_entry<ButtonBase, decltype(&ButtonBase::text), &ButtonBase::text>,
+         &write_cell_entry<ButtonBase, decltype(&ButtonBase::text), &ButtonBase::text>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<ButtonBase, decltype(&ButtonBase::text_changed_), &ButtonBase::text_changed_>},
+        {"text_alignment", &describe_button_base_text_alignment,
+         &read_cell_entry<ButtonBase, decltype(&ButtonBase::text_alignment), &ButtonBase::text_alignment>,
+         &write_cell_entry<ButtonBase, decltype(&ButtonBase::text_alignment), &ButtonBase::text_alignment>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"font", &describe_button_base_font,
+         &read_cell_entry<ButtonBase, decltype(&ButtonBase::font), &ButtonBase::font>,
+         &write_cell_entry<ButtonBase, decltype(&ButtonBase::font), &ButtonBase::font>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"content_padding", &describe_button_base_content_padding,
+         &read_cell_entry<ButtonBase, decltype(&ButtonBase::content_padding), &ButtonBase::content_padding>,
+         &write_cell_entry<ButtonBase, decltype(&ButtonBase::content_padding), &ButtonBase::content_padding>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "ButtonBase's property table names a property twice");
+    static const std::array<PropertyEntry, button_base_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> ButtonBase::property_table() const noexcept {
+    const std::array<PropertyEntry, button_base_property_count>& entries = button_base_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
+void ButtonBase::prepare_write(const decltype(text)&, std::string& incoming) {
+    require_mutable();
+    coerce_text(incoming);
+}
+
+void ButtonBase::written(const decltype(text)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_text_changed();
+}
+
+void ButtonBase::on_text_changed() {
+    publish_change(text_changed_, text.read());
+}
+
+void ButtonBase::coerce_text(std::string&) {}
+
+void ButtonBase::prepare_write(const decltype(text_alignment)&, ContentAlignment& incoming) {
+    require_mutable();
+    if (!valid_content_alignment(incoming)) throw std::invalid_argument("invalid Button text alignment");
+}
+
+void ButtonBase::written(const decltype(text_alignment)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ButtonBase::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("Button font specification is invalid");
+    set_font_from_code(true);
+    coerce_font(incoming);
+}
+
+void ButtonBase::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+    on_font_changed();
+}
+
+void ButtonBase::on_font_changed() {}
+
+void ButtonBase::coerce_font(FontSpec&) {}
+
+void ButtonBase::prepare_write(const decltype(content_padding)&, Insets& incoming) {
+    require_mutable();
+    const double sides[] = {incoming.left, incoming.top, incoming.right, incoming.bottom};
+    for (const double side : sides) {
+        if (!std::isfinite(side) || side < 0.0 || side > 128.0) {
+            throw std::invalid_argument("Button content padding must be finite and between zero and 128");
+        }
+    }
+}
+
+void ButtonBase::written(const decltype(content_padding)&) {
+    invalidate(Dirty::measure | Dirty::paint);
+}
+
+void ButtonBase::prepare_write(const decltype(text_line_spacing)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) {
+        throw std::invalid_argument("Button text line spacing must be finite and between 0.75 and 3.0");
+    }
+}
+
+void ButtonBase::written(const decltype(text_line_spacing)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void ButtonBase::prepare_write(const decltype(image_alignment)&, ContentAlignment& incoming) {
+    require_mutable();
+    if (!valid_content_alignment(incoming)) throw std::invalid_argument("invalid Button image alignment");
+}
+
+void ButtonBase::written(const decltype(image_alignment)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void ButtonBase::prepare_write(const decltype(text_image_relation)&, TextImageRelation& incoming) {
+    require_mutable();
+    if (!valid_text_image_relation(incoming)) throw std::invalid_argument("invalid Button text/image relation");
+}
+
+void ButtonBase::written(const decltype(text_image_relation)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void ButtonBase::prepare_write(const decltype(image_gap)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 64.0) {
+        throw std::invalid_argument("Button image gap must be finite and between zero and 64");
+    }
+}
+
+void ButtonBase::written(const decltype(image_gap)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void ButtonBase::prepare_write(const decltype(use_mnemonic)&, bool&) {
+    require_mutable();
+}
+
+void ButtonBase::written(const decltype(use_mnemonic)&) {
+    invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
+}
+
+void ButtonBase::prepare_write(const decltype(expanded_state)&, std::optional<bool>&) {
+    require_mutable();
+}
+
+void ButtonBase::written(const decltype(expanded_state)&) {
+    invalidate(Dirty::paint | Dirty::semantics);
+    publish_change(expanded_changed_, expanded_state.read());
+}
+
+// property_codemod end ButtonBase
 
 } // namespace gui_forms

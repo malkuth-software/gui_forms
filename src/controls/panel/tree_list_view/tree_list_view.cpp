@@ -9,6 +9,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -567,35 +568,9 @@ void TreeListView::set_horizontal_offset(double offset) {
     sync_scroll_bars(placed);
 }
 
-std::optional<std::string_view> TreeListView::selected_id() const noexcept {
-    if (!selected_node_) return std::nullopt;
-    return std::string_view(nodes_[*selected_node_].stable_id);
-}
-
 std::optional<std::string_view> TreeListView::current_id() const noexcept {
     if (!current_node_) return std::nullopt;
     return std::string_view(nodes_[*current_node_].stable_id);
-}
-
-void TreeListView::set_selected_id(std::optional<std::string_view> node_id) {
-    require_mutable();
-    const std::optional<std::string> previous = selected_copy();
-    if (!node_id) {
-        if (!selected_node_) return;
-        selected_node_.reset();
-        publish_selection(previous);
-        return;
-    }
-    const std::size_t index = require_index(*node_id, "TreeListView selection names an unknown node");
-    std::vector<TreeListExpansionChange> changes;
-    expand_ancestors(index, changes);
-    const bool changed = selected_node_ != index;
-    selected_node_ = index;
-    current_node_ = index;
-    ensure_row_visible(row_of_node_[index]);
-    invalidate(Dirty::paint | Dirty::semantics);
-    publish_expansions(changes);
-    if (changed && is_alive()) publish_selection(previous);
 }
 
 void TreeListView::choose_row(std::size_t row) {
@@ -649,65 +624,30 @@ void TreeListView::toggle_sort(std::size_t column) {
 
 // -- appearance --------------------------------------------------------------------
 
-void TreeListView::set_indentation(double indentation) {
-    require_mutable();
-    if (!std::isfinite(indentation) || indentation < minimum_indentation || indentation > maximum_indentation) {
-        throw std::invalid_argument("TreeListView indentation is outside the indentation bounds");
-    }
-    if (indentation_ == indentation) return;
-    indentation_ = indentation;
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void TreeListView::set_image_list(std::shared_ptr<ImageList> images) {
-    require_mutable();
-    // A list must be alive and, once this view is in a window, that window's.
-    const Window* const host = window();
-    if (images && (!(*images).is_alive() || (host != nullptr && !(*images).belongs_to(*host)))) {
-        throw std::invalid_argument("TreeListView requires a live ImageList of its own Window");
-    }
-    if (images_ == images) return;
-    images_changed_.disconnect();
-    images_ = std::move(images);
-    if (images_) {
-        const Delegate<const ImageListChange&> changed =
-            Delegate<const ImageListChange&>::bind<TreeListView, &TreeListView::image_list_changed>(*this);
-        images_changed_ = (*images_).changed().subscribe(*this, changed);
-    }
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
 void TreeListView::image_list_changed(const ImageListChange&) {
     if (is_alive()) invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test);
 }
 
 void TreeListView::on_attached_to_window() {
     Control::on_attached_to_window();
-    if (images_ && !(*images_).belongs_to(*window())) {
+    const std::shared_ptr<ImageList>& images = image_list.read();
+    if (images && !(*images).belongs_to(*window())) {
         throw std::logic_error("TreeListView cannot attach to a Window other than its ImageList's");
     }
-}
-
-void TreeListView::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("TreeListView font specification is invalid");
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 // -- layout --------------------------------------------------------------------------
 
 double TreeListView::text_line_height() const {
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font.read()));
     return metrics.logical_size.height;
 }
 
 Size TreeListView::icon_size() const noexcept {
     const double scale = effective_text_scale();
     Size size{default_icon, default_icon};
-    if (images_) size = (*images_).image_size();
+    const std::shared_ptr<ImageList>& images = image_list.read();
+    if (images) size = (*images).image_size();
     const Size result{size.width * scale, size.height * scale};
     return result;
 }
@@ -726,7 +666,7 @@ TreeListView::Layout TreeListView::layout_for(Rect client) const {
                        std::max(0.0, client.height - inset * 2.0)};
     const double line = text_line_height();
     double row = std::max(minimum_row_height * scale, line + row_text_padding * scale);
-    if (images_) row = std::max(row, icon_size().height + cell_padding * scale);
+    if (image_list.read()) row = std::max(row, icon_size().height + cell_padding * scale);
     placed.row_height = row;
     double columns_width = 0.0;
     for (const TreeListColumn& column : columns_) columns_width += column.width * scale;
@@ -848,14 +788,14 @@ TreeListView::RowParts TreeListView::row_parts(const Layout& placed, std::size_t
     const Rect tree_cell{tree_header.x, bounds.y, tree_header.width, bounds.height};
     const Rect inner_clip = Rect::intersection(clip, tree_cell);
     const double middle = bounds.y + bounds.height * 0.5;
-    const double step = indentation_ * scale;
+    const double step = indentation.read() * scale;
     double x = tree_cell.x + cell_padding * scale + static_cast<double>(node.depth) * step;
     const double side = std::min(step, bounds.height);
     Rect expander{};
     if (can_expand(index)) expander = {x, std::floor(middle - side * 0.5), side, side};
     x += side + expander_gap * scale;
     Rect icon{};
-    if (images_) {
+    if (image_list.read()) {
         const Size image = icon_size();
         icon = {x, std::floor(middle - image.height * 0.5), image.width, image.height};
         x += image.width + cell_padding * scale;
@@ -1013,7 +953,7 @@ void TreeListView::paint_column(Painter& painter, const Layout& placed, std::siz
     const Rect cell = column_cell(placed, column);
     const ColumnParts parts = column_parts(placed, column, cell);
     PartPaint part;
-    part.font = text_font(font_);
+    part.font = text_font(font.read());
     part.states = column_states(column);
     // Header cells are flat at rest and show a plate when hot or pressed:
     // the menu_item family's look, as ListView's headers.
@@ -1050,7 +990,7 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
     const RowParts parts = row_parts(placed, row, bounds);
     const AnatomyStateSet states = row_states(row);
     PartPaint part;
-    part.font = text_font(font_);
+    part.font = text_font(font.read());
     part.states = states;
     // The row is the selection family's part: transparent until hot or
     // selected, with the selection's text and glyph colours.
@@ -1068,7 +1008,8 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
     if (parts.icon.present && !node.image_key.empty()) {
         const Window* const host = attached_window();
         const double density = host != nullptr ? (*host).scale() : 1.0;
-        const ImageListResolution resolved = (*images_).resolve(node.image_key, image_state(states), density);
+        const ImageList& images = *image_list.read();
+        const ImageListResolution resolved = images.resolve(node.image_key, image_state(states), density);
         if (resolved) {
             part.role = PartRole::icon;
             part.bounds = parts.icon.bounds;
@@ -1998,5 +1939,80 @@ void TreeListView::append_interactions(std::vector<InteractionDeclaration>& inte
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), tree_list_view_interactions.begin(), tree_list_view_interactions.end());
 }
+
+// The image list's hooks: a list must be alive and, once this view is in a
+// window, that window's; a new list is subscribed to for its changes.
+void TreeListView::prepare_write(const decltype(image_list)&, std::shared_ptr<ImageList>& incoming) {
+    require_mutable();
+    const Window* const host = window();
+    if (incoming && (!(*incoming).is_alive() || (host != nullptr && !(*incoming).belongs_to(*host)))) {
+        throw std::invalid_argument("TreeListView requires a live ImageList of its own Window");
+    }
+}
+
+void TreeListView::written(const decltype(image_list)&) {
+    images_changed_.disconnect();
+    const std::shared_ptr<ImageList>& images = image_list.read();
+    if (images) {
+        const Delegate<const ImageListChange&> changed =
+            Delegate<const ImageListChange&>::bind<TreeListView, &TreeListView::image_list_changed>(*this);
+        images_changed_ = (*images).changed().subscribe(*this, changed);
+    }
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// The selection's view: selects a node (expanding its ancestors and
+// scrolling it into view) or nothing, moves the current node with it, and
+// raises selection_changed. Throws std::out_of_range for an unknown node.
+void TreeListView::write_view(const decltype(selected_id)&, std::optional<std::string> incoming) {
+    require_mutable();
+    const std::optional<std::string> previous = selected_copy();
+    if (!incoming) {
+        if (!selected_node_) return;
+        selected_node_.reset();
+        publish_selection(previous);
+        return;
+    }
+    const std::size_t index = require_index(*incoming, "TreeListView selection names an unknown node");
+    std::vector<TreeListExpansionChange> changes;
+    expand_ancestors(index, changes);
+    const bool changed = selected_node_ != index;
+    selected_node_ = index;
+    current_node_ = index;
+    ensure_row_visible(row_of_node_[index]);
+    invalidate(Dirty::paint | Dirty::semantics);
+    publish_expansions(changes);
+    if (changed && is_alive()) publish_selection(previous);
+}
+
+std::optional<std::string> TreeListView::read_view(const decltype(selected_id)&) const {
+    std::optional<std::string> current = selected_copy();
+    return current;
+}
+
+// property_codemod begin TreeListView (tools/property_families/tree_list_view.json; generated, do not edit)
+
+void TreeListView::prepare_write(const decltype(indentation)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming < minimum_indentation || incoming > maximum_indentation) {
+        throw std::invalid_argument("TreeListView indentation is outside the indentation bounds");
+    }
+}
+
+void TreeListView::written(const decltype(indentation)&) {
+    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void TreeListView::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("TreeListView font specification is invalid");
+    set_font_from_code(true);
+}
+
+void TreeListView::written(const decltype(font)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// property_codemod end TreeListView
 
 } // namespace gui_forms

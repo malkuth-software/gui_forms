@@ -137,6 +137,45 @@ static void effects(gf_kit* kit) {
                   "an effect record below its size is refused");
 }
 
+/* The properties a type provides to its children (since 1.1): a grid
+ * panel's area and cell, none for a button, and the refusals. */
+static void child_properties(gf_kit* kit) {
+    uint64_t grid = 0u;
+    uint64_t button = 0u;
+    gf_kit_status(kit, (*kit).schema.find_type(gf_kit_text("grid_panel"), &grid), GF_STATUS_OK, "find grid_panel");
+    gf_kit_status(kit, (*kit).schema.find_type(gf_kit_text("button"), &button), GF_STATUS_OK,
+                  "find button for child properties");
+    uint64_t count = 0u;
+    gf_kit_status(kit, (*kit).schema.child_property_count(grid, &count), GF_STATUS_OK, "child_property_count");
+    gf_kit_check(kit, count == 2u, "a grid panel provides two properties to its children");
+    uint64_t none = 1u;
+    gf_kit_status(kit, (*kit).schema.child_property_count(button, &none), GF_STATUS_OK,
+                  "child_property_count of a button");
+    gf_kit_check(kit, none == 0u, "a button provides no properties to its children");
+    gf_kit_status(kit, (*kit).schema.child_property_count(grid, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "child_property_count needs an output");
+    gf_schema_property area;
+    memset(&area, 0, sizeof(area));
+    area.struct_size = (uint32_t)sizeof(area);
+    gf_kit_status(kit, (*kit).schema.child_property_at(grid, 0u, &area), GF_STATUS_OK, "child_property_at");
+    gf_kit_check(kit, gf_kit_view_equals(area.name, "area") && area.kind == GF_VALUE_KIND_TEXT &&
+                          (area.flags & GF_SCHEMA_PROPERTY_FLAGS_WRITABLE) != 0u && area.choice_count == 0u,
+                 "a grid panel's first child property is its writable text area");
+    gf_schema_property past;
+    memset(&past, 0, sizeof(past));
+    past.struct_size = (uint32_t)sizeof(past);
+    gf_kit_status(kit, (*kit).schema.child_property_at(grid, count, &past), GF_STATUS_INVALID_ARGUMENT,
+                  "a child property past the end is refused");
+    gf_kit_check(kit, past.name.size == 0u, "a refused child_property_at leaves its record");
+    gf_schema_choice choice;
+    memset(&choice, 0, sizeof(choice));
+    choice.struct_size = (uint32_t)sizeof(choice);
+    gf_kit_status(kit, (*kit).schema.child_choice_at(grid, 0u, 0u, &choice), GF_STATUS_INVALID_ARGUMENT,
+                  "a text child property has no choices");
+    gf_kit_status(kit, (*kit).schema.child_choice_at(grid, count, 0u, &choice), GF_STATUS_INVALID_ARGUMENT,
+                  "a choice of a child property past the end is refused");
+}
+
 /* Every type the schema lists is created by its id unless it needs another
  * object or a window, or is a service. */
 static void create_every_type(gf_kit* kit) {
@@ -216,6 +255,7 @@ static void threads(gf_kit* kit) {
 void gf_kit_schema(gf_kit* kit) {
     lookups(kit);
     effects(kit);
+    child_properties(kit);
     create_every_type(kit);
     threads(kit);
 }

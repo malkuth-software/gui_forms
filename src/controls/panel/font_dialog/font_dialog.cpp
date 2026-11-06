@@ -92,6 +92,8 @@ FontDialog::FontDialog(StableId stable_id) : Panel(std::move(stable_id)) {
 
 FontDialog::~FontDialog() {
     // Close without raising closed: there is no one left to tell.
+    native_closed_.disconnect();
+    native_token_.disconnect();
     overlay_token_.disconnect();
 }
 
@@ -322,15 +324,56 @@ bool FontDialog::show(const Control::Ptr& owner) {
         revocation_token_ = (*closed).subscribe(
             *this, Delegate<>::bind<FontDialog, &FontDialog::on_overlay_revoked>(*this));
     }
-    overlay_scope_ = host.begin_focus_scope(layer, face_list_).value;
+    if (surface_ == DialogSurface::native_popup && open_native(host, owner, centred)) {
+        // The empty layer keeps the owner's keys from its controls.
+        overlay_scope_ = host.begin_focus_scope(layer).value;
+    } else {
+        overlay_scope_ = host.begin_focus_scope(layer, face_list_).value;
+    }
     open_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
 
+bool FontDialog::open_native(Window& host, const Control::Ptr& owner, Rect bounds) {
+    const Control::Ptr self = shared_from_this();
+    static_cast<void>((*overlay_layer_).remove_child(runtime_id()));
+    native_root_ = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
+    set_requested_bounds({0.0, 0.0, bounds.width, bounds.height});
+    set_paint_plane(PaintPlane::control);
+    (*native_root_).add_child(self);
+    NativePopupOptions options{};
+    options.focus = HostPopupFocus::takes_focus;
+    options.fallback = NativePopupFallback::refuse;
+    native_token_ = host.open_native_popup(owner, native_root_, bounds, options);
+    if (native_token_.surface() != NativePopupSurface::native) {
+        static_cast<void>((*native_root_).remove_child(runtime_id()));
+        native_root_.reset();
+        set_requested_bounds(bounds);
+        set_paint_plane(PaintPlane::overlay);
+        (*overlay_layer_).add_child(self);
+        return false;
+    }
+    if (Event<>* closed = native_token_.closed_event()) {
+        native_closed_ = (*closed).subscribe(
+            *this, Delegate<>::bind<FontDialog, &FontDialog::on_overlay_revoked>(*this));
+    }
+    Window* const popup = native_token_.window();
+    if (popup != nullptr) static_cast<void>((*popup).begin_focus_scope(native_root_, face_list_));
+    return true;
+}
+
+NativePopupSurface FontDialog::presented_surface() const noexcept {
+    if (!open_) return NativePopupSurface::none;
+    if (native_root_) return NativePopupSurface::native;
+    return NativePopupSurface::overlay;
+}
+
 void FontDialog::release_overlay(FocusScopeCloseReason reason) {
     revocation_token_.disconnect();
-    Window* const host = attached_window();
+    native_closed_.disconnect();
+    // The scope is the owner's window's, where the layer is.
+    Window* const host = overlay_layer_ ? (*overlay_layer_).attached_window() : nullptr;
     if (host != nullptr && overlay_scope_ != 0U) {
         static_cast<void>((*host).end_focus_scope(FocusScopeId{overlay_scope_}, reason));
     }
@@ -338,6 +381,10 @@ void FontDialog::release_overlay(FocusScopeCloseReason reason) {
     // Keep this dialog alive past its layer: the application owns it.
     const Control::Ptr self = shared_from_this();
     if (overlay_layer_) static_cast<void>((*overlay_layer_).remove_child(runtime_id()));
+    const Control::Ptr native_root = native_root_;
+    native_root_.reset();
+    if (native_root) static_cast<void>((*native_root).remove_child(runtime_id()));
+    native_token_.disconnect();
     overlay_token_.disconnect();
     overlay_layer_.reset();
     set_paint_plane(PaintPlane::control);

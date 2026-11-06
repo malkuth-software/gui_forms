@@ -91,6 +91,10 @@ Types
 
       Selects the user theme, or none for null. Under the layered policy it must be compiled as a user theme (ThemeRuleSet::user), and every part of these windows consults its rules beside its own theme's; under replaces_program_sheet as a program theme, which becomes theme(). Anything else is std::invalid_argument, and under the refused policy std::logic_error; nothing changes then.
 
+   .. cpp:function:: std::shared_ptr<const Theme> user_theme_ptr() const noexcept
+
+      The selected user theme shared, for resources of another thread (a sub-surface's) to layer the same immutable theme.
+
    .. cpp:function:: const CompiledThemeRules* user_theme_rules() const noexcept
 
       The layered user theme's rules, or null where none is layered.

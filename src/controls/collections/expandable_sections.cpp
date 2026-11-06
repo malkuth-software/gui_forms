@@ -161,12 +161,12 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
             }
             item.content = value.content;
             CheckBox& heading = *item.heading;
-            heading.set_text(value.label);
+            heading.text = value.label;
             heading.tab_index = static_cast<std::uint32_t>(index * 2U);
             if (value.expanded != nullptr) heading.bind(*value.expanded);
             if (single_open_ && opened && heading.checked()) heading.set_checked(false);
             opened = opened || heading.checked();
-            heading.set_expanded_state(heading.checked());
+            heading.expanded_state = heading.checked();
             (*item.content).visible = heading.checked();
             if (!heading.parent()) add_child(item.heading);
             if (!(*item.content).parent()) add_child(item.content);
@@ -192,7 +192,7 @@ void ExpandableSections::on_toggled(const int id, const bool expanded) {
     for (std::size_t index = 0U; index < (*revision).entries.size(); ++index) {
         Entry& item = *(*revision).entries[index];
         if (item.id != id) continue;
-        (*item.heading).set_expanded_state(expanded);
+        (*item.heading).expanded_state = expanded;
         if (!is_alive() || revision_ != revision) return;
         (*item.content).visible = expanded;
         if (!is_alive() || revision_ != revision) return;

@@ -401,7 +401,7 @@ public unsafe struct gf_schema_effect
     public gf_logical_insets outsets;
 }
 
-/// <summary>gf_schema_table (table, 160 bytes).</summary>
+/// <summary>gf_schema_table (table, 184 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_schema_table
 {
@@ -426,6 +426,9 @@ public unsafe struct gf_schema_table
     public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_utf8_view*, gf_status> parameter_choice_at;
     public delegate* unmanaged[Cdecl]<ulong*, gf_status> effect_count;
     public delegate* unmanaged[Cdecl]<ulong, gf_schema_effect*, gf_status> effect_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong*, gf_status> child_property_count;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, gf_schema_property*, gf_status> child_property_at;
+    public delegate* unmanaged[Cdecl]<ulong, ulong, ulong, gf_schema_choice*, gf_status> child_choice_at;
 }
 
 /// <summary>gf_bytes_view (record, 16 bytes).</summary>

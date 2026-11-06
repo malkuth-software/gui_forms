@@ -72,7 +72,7 @@ private:
                 (*flow).add_child(item);
                 if (item_index == 1U) break_item = item;
             }
-            if (index == 0U && break_item) (*flow).set_flow_break(*break_item, true);
+            if (index == 0U && break_item) (*flow).flow_break[*break_item] = true;
         }
     }
 

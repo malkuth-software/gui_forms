@@ -436,7 +436,7 @@ void Ribbon::configure_hosted(const RibbonCommandSpec& command, Control& control
     }
     if (command.kind == RibbonCommandKind::check_box) {
         CheckBox& box = static_cast<CheckBox&>(control);
-        if (box.text() != command.text) box.set_text(command.text);
+        if (box.text.read() != command.text) box.text = command.text;
     }
 }
 

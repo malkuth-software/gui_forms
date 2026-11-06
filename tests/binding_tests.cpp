@@ -487,7 +487,7 @@ void test_property_metadata_defaults_reset_and_serialization() {
                 "name", "text", "tool_tip_text", "visible"},
             "bindable property enumeration must be deterministic and use the registered names");
     const std::vector<PropertyDescriptor> descriptors = (*editor).property_descriptors();
-    require(descriptors.size() == 35U &&
+    require(descriptors.size() == 37U &&
                 descriptors.front().name == "accessible_description" &&
                 descriptors.back().name == "visible",
             "property descriptor snapshots must follow deterministic canonical order");
@@ -722,10 +722,10 @@ void test_visual_property_values_drive_stock_controls() {
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("property.button"), "Run");
     (*button).set_property_value("Font", authored);
     (*button).set_property_value("Image", ImageId{7});
-    require((*button).font() == authored && (*button).image() == ImageId{7} &&
+    require((*button).font.read() == authored && (*button).image() == ImageId{7} &&
                 (*button).reset_property("Font") &&
                 (*button).reset_property("Image") &&
-                (*button).font() ==
+                (*button).font.read() ==
                     FontSpec{FontRole::control, 12.0, 400, false, 0.24} &&
                 (*button).image() == ImageId{},
             "button visual values must use the same compound default/reset center");

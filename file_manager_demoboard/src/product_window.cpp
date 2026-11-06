@@ -130,7 +130,7 @@ std::shared_ptr<Button> button(std::string id, std::string text, Rect bounds,
     std::shared_ptr<gui_forms::Button> result = std::make_shared<Button>(StableId(std::move(id)), std::move(text));
     (*result).set_requested_bounds(bounds);
     (*result).set_style(house_style());
-    (*result).set_font({FontRole::control, 10.0, 600, false, 0.18});
+    (*result).font = FontSpec{FontRole::control, 10.0, 600, false, 0.18};
     (*result).set_visual_style(visual);
     return result;
 }
@@ -308,7 +308,7 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
         if (i % 2U == 0U) {
             std::shared_ptr<Button> crumb = button("fm.path.segment." + std::to_string(i), crumbs[i],
                                 {x, 7, 74.0, 26.0}, ButtonVisualStyle::flat);
-            (*crumb).set_font({FontRole::content, 10, 600, false});
+            (*crumb).font = FontSpec{FontRole::content, 10, 600, false};
             refs.breadcrumbs.push_back(crumb);
             (*panel).add_at(crumb, (*crumb).requested_bounds());
             x += 74.0;
@@ -326,7 +326,7 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     (*refs.path_terminal).accessible_name = "Open complete path matrix";
     (*refs.path_terminal).accessible_description =
         "Browse full fixture paths or edit a path directly";
-    (*refs.path_terminal).set_expanded_state(false);
+    (*refs.path_terminal).expanded_state = false;
     (*panel).add_at(refs.path_terminal, {936, 7, 35, 26});
     std::shared_ptr<gui_forms::TextBox> search = std::make_shared<TextBox>(StableId("fm.search.editor"));
     (*search).set_requested_bounds({980, 6, 463, 28});
@@ -1273,7 +1273,7 @@ private:
         for (std::size_t slot = 0; slot < refs_.breadcrumbs.size(); ++slot) {
             const bool visible = slot < location.path.size();
             (*refs_.breadcrumbs[slot]).visible = visible;
-            if (visible) (*refs_.breadcrumbs[slot]).set_text(location.path[slot].second);
+            if (visible) (*refs_.breadcrumbs[slot]).text = location.path[slot].second;
         }
         for (std::size_t slot = 0; slot < refs_.breadcrumb_separators.size(); ++slot) {
             (*refs_.breadcrumb_separators[slot]).visible = slot + 1U < location.path.size();
@@ -1395,7 +1395,7 @@ private:
                     *this, &PathMatrixController::on_overlay_revoked));
         }
         focus_scope_ = (*window).begin_focus_scope(layer_, current_tail_);
-        (*refs_.path_terminal).set_expanded_state(true);
+        (*refs_.path_terminal).expanded_state = true;
         (*refs_.path_terminal).accessible_description =
             "Complete path matrix open · activate to close";
         status_("Path matrix open · full current stack · five recent locations");
@@ -1698,7 +1698,7 @@ private:
         overlay_token_.disconnect();
         overlay_revocation_.disconnect();
         reset_overlay();
-        (*refs_.path_terminal).set_expanded_state(false);
+        (*refs_.path_terminal).expanded_state = false;
         (*refs_.path_terminal).accessible_description =
             "Browse full fixture paths or edit a path directly";
         closing_ = false;
@@ -1716,7 +1716,7 @@ private:
         overlay_dismissal_.disconnect();
         overlay_revocation_.disconnect();
         reset_overlay();
-        (*refs_.path_terminal).set_expanded_state(false);
+        (*refs_.path_terminal).expanded_state = false;
         closing_ = false;
     }
 
@@ -2378,8 +2378,8 @@ private:
             (pending_ ? std::string("APPLYING")
                       : std::to_string(staged) + " STAGED"));
         (*refs_.criteria_apply).enabled = !pending_ && staged > 0U && invalid == 0U;
-        (*refs_.criteria_apply).set_text(staged == 0U ? "Applied"
-            : "Apply " + std::to_string(staged));
+        (*refs_.criteria_apply).text = staged == 0U ? std::string("Applied")
+            : "Apply " + std::to_string(staged);
         if (pending_) {
             (*refs_.criteria_action_state).set_text("Applying staged criteria");
         } else if (invalid > 0U) {
@@ -3105,7 +3105,7 @@ struct PreviewDisclosureHandler final {
         if (list) (*list).set_header_height(*expanded ? 212.0 : 34.0);
         const std::shared_ptr<Button> button = disclosure.lock();
         if (button) {
-            (*button).set_text(*expanded ? "▼" : "▶");
+            (*button).text = std::string(*expanded ? "▼" : "▶");
             (*button).accessible_description =
                 *expanded ? "Collapse fixture preview" : "Expand fixture preview";
         }

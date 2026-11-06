@@ -37,7 +37,7 @@ class Property:
 # register_capabilities before any shape is taken.
 CAPABILITY_CELLS: dict[str, tuple[str, str, str]] = {}
 CAPABILITY_BUNDLES: dict[str, list[str]] = {}
-CELL_FIELD = re.compile(r"^(?:GUI_FORMS_LOCALIZABLE\(\w+\)\s*)?Property(?:Cell|View)<(.*),\s*\w+Capability<\w+>>\s+(\w+)")
+CELL_FIELD = re.compile(r"^(?:GUI_FORMS_LOCALIZABLE\(\w+\)\s*)?(?:Property(?:Cell|View)|ChildPropertyView)<(.*),\s*\w+Capability<\w+>>\s+(\w+)")
 
 
 def template_name(base: str) -> str:

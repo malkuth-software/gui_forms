@@ -167,6 +167,8 @@ TaskDialog::TaskDialog(StableId stable_id) : Control(std::move(stable_id)) {
 
 TaskDialog::~TaskDialog() {
     overlay_revoked_.disconnect();
+    native_closed_.disconnect();
+    native_.disconnect();
     overlay_.disconnect();
 }
 
@@ -374,7 +376,7 @@ void TaskDialog::set_expanded(bool expanded) {
     TaskDialogExpander& expander = *page_.expander;
     expander.expanded = expanded;
     if (expander_button_) {
-        (*expander_button_).set_text(expanded ? expander.expanded_button_text : expander.collapsed_button_text);
+        (*expander_button_).text = expanded ? expander.expanded_button_text : expander.collapsed_button_text;
     }
     if (expanded_text_) set_child_layout_collapsed(expanded_text_, !expanded);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -490,9 +492,53 @@ bool TaskDialog::show(const Control::Ptr& owner) {
     if (Event<>* revoked = overlay_.closed_event()) {
         overlay_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
-    scope_ = host.begin_focus_scope(layer, button(default_button_id()));
+    if (surface_ == DialogSurface::native_popup && open_native(host, owner)) {
+        // The empty layer keeps the owner's keys from its controls.
+        scope_ = host.begin_focus_scope(layer);
+    } else {
+        scope_ = host.begin_focus_scope(layer, button(default_button_id()));
+    }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
+}
+
+bool TaskDialog::open_native(Window& host, const Control::Ptr& owner) {
+    // Measured in the layer, as the overlay would be, then centred.
+    const Size client = host.client_size();
+    const double margin = window_margin * effective_text_scale();
+    const Size available{std::max(0.0, client.width - margin * 2.0), std::max(0.0, client.height - margin * 2.0)};
+    const Size wanted = measure(available);
+    const double width = std::max(1.0, std::min(wanted.width, available.width));
+    const double height = std::max(1.0, std::min(wanted.height, client.height));
+    const Rect bounds{std::floor((client.width - width) * 0.5), std::max(0.0, std::floor((client.height - height) * 0.5)),
+                      width, height};
+    const Control::Ptr self = shared_from_this();
+    static_cast<void>((*layer_).remove_child(runtime_id()));
+    native_root_ = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
+    set_requested_bounds({0.0, 0.0, width, height});
+    (*native_root_).add_child(self);
+    NativePopupOptions options{};
+    options.focus = HostPopupFocus::takes_focus;
+    options.fallback = NativePopupFallback::refuse;
+    native_ = host.open_native_popup(owner, native_root_, bounds, options);
+    if (native_.surface() != NativePopupSurface::native) {
+        static_cast<void>((*native_root_).remove_child(runtime_id()));
+        native_root_.reset();
+        (*layer_).add_child(self);
+        return false;
+    }
+    if (Event<>* closed = native_.closed_event()) {
+        native_closed_ = (*closed).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
+    }
+    Window* const popup = native_.window();
+    if (popup != nullptr) static_cast<void>((*popup).begin_focus_scope(native_root_, button(default_button_id())));
+    return true;
+}
+
+NativePopupSurface TaskDialog::presented_surface() const noexcept {
+    if (!shown_) return NativePopupSurface::none;
+    if (native_root_) return NativePopupSurface::native;
+    return NativePopupSurface::overlay;
 }
 
 void TaskDialog::close(std::string_view button_id) {
@@ -509,13 +555,19 @@ void TaskDialog::finish(std::string button_id) {
     if (!shown_) return;
     shown_ = false;
     TaskDialogResult outcome{std::move(button_id), page_.verification_checked, checked_radio_button()};
-    Window* const host = attached_window();
+    // The scope is the owner's window's, where the layer is.
+    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
     if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
     scope_ = {};
     overlay_revoked_.disconnect();
+    native_closed_.disconnect();
     const Control::Ptr layer = layer_;
     layer_.reset();
     if (layer) static_cast<void>((*layer).remove_child(runtime_id()));
+    const Control::Ptr native_root = native_root_;
+    native_root_.reset();
+    if (native_root) static_cast<void>((*native_root).remove_child(runtime_id()));
+    native_.disconnect();
     overlay_.disconnect();
     result_ = outcome;
     closed_.emit(outcome);
@@ -525,7 +577,8 @@ void TaskDialog::on_dispose() noexcept {
     // A disposed dialog closes without raising closed.
     shown_ = false;
     overlay_revoked_.disconnect();
-    Window* const host = attached_window();
+    native_closed_.disconnect();
+    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
     if (scope_ && host != nullptr) {
         try {
             static_cast<void>((*host).end_focus_scope(scope_));
@@ -534,6 +587,8 @@ void TaskDialog::on_dispose() noexcept {
         }
     }
     scope_ = {};
+    native_.disconnect();
+    native_root_.reset();
     overlay_.disconnect();
     layer_.reset();
     child_tokens_.clear();

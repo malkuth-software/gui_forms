@@ -57,6 +57,12 @@ Related types
      - One input event forwarded from the host to the sub-surface's thread (design note section 4).
    * - :cpp:class:`SubSurfaceKeyReturn <gui_forms::SubSurfaceKeyReturn>`
      - Where a sub-surface returns the key events its tree left unhandled (design note section 4: the parent then runs its own bubble, accelerators, dialog keys and focus traversal, which is how Tab leaves the sub-surface).
+   * - :cpp:class:`SubSurfaceRequest <gui_forms::SubSurfaceRequest>`
+     - One request, posted on the sub-surface's thread and received on the parent's.
+   * - :cpp:class:`SubSurfaceRequestStatistics <gui_forms::SubSurfaceRequestStatistics>`
+     - Counters of a host's side of its sub-surface's requests (design note section 15).
+   * - :cpp:class:`SubSurfaceRequestTarget <gui_forms::SubSurfaceRequestTarget>`
+     - Where a sub-surface's requests go: called on the parent's thread only, through the parent's dispatcher, in the order the sub-surface posted.
    * - :cpp:class:`SubSurfaceStatistics <gui_forms::SubSurfaceStatistics>`
      - Counters of one sub-surface (design note section 8, rules), written by its thread and read by its parent under the channel's lock.
    * - :cpp:class:`SubSurfaceThread <gui_forms::SubSurfaceThread>`
@@ -151,6 +157,10 @@ Related types
    .. cpp:function:: void enter_focus(SubSurfaceFocusEntry entry)
 
       Focus enters from the host (SubSurfaceInputKind::focus_enter): the sub-surface becomes active and focus goes where ``entry`` says; a sub-surface without tab stops focuses nothing. Root thread only.
+
+   .. cpp:function:: void leave_focus()
+
+      Focus leaves through the host (SubSurfaceInputKind::focus_leave): the sub-surface becomes inactive, keeps its focused control and revokes its keyboard tooltip request. Root thread only.
 
 .. cpp:namespace:: gui_forms
 
@@ -274,6 +284,113 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SubSurfaceRequest final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   One request, posted on the sub-surface's thread and received on the parent's. Content travels as data. The parent answers with a SurfaceRequestOutcome carrying the request's ``id`` (declined: its policy refused it, or it has no window; closed: shown, then closed by the parent, which keeps it until revoked; revoked: the pointer or keyboard focus left the host; stale: older than the newest configuration, or than the pointer or focus leaving).
+
+   .. cpp:member:: std::uint64_t id
+
+      From the sub-surface's channel: 1 for the first, growing by one.
+
+   .. cpp:member:: SubSurfaceRequestKind kind
+
+      Default: ``{SubSurfaceRequestKind::tool_tip}``.
+
+   .. cpp:member:: std::uint64_t content_epoch
+
+      The configuration the anchor was measured in; the parent drops a request measured in an older one (the sub-surface asks again).
+
+   .. cpp:member:: std::uint64_t input_sequence
+
+      The sequence of the newest input the sub-surface had dispatched when it asked (SubSurfaceThread::post_input); 0 for none. The parent drops a pointer request older than the pointer's leaving its host, and a keyboard request older than focus leaving it.
+
+   .. cpp:member:: Rect anchor
+
+      The thing's bounds, in the sub-surface's logical coordinates.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::string description
+
+      The thing's semantic description, when it has one.
+
+   .. cpp:member:: std::string caption
+
+      An alert's caption, buttons, icon and default choice (AlertRequest; ``text`` is its message). Alerts are never stale: they carry no anchor and no input.
+
+   .. cpp:member:: HostMessageButtons buttons
+
+      Default: ``{HostMessageButtons::ok}``.
+
+   .. cpp:member:: HostMessageIcon icon
+
+      Default: ``{HostMessageIcon::none}``.
+
+   .. cpp:member:: HostDialogChoice default_choice
+
+      Default: ``{HostDialogChoice::none}``.
+
+   .. cpp:member:: SubSurfaceToolTipOrigin origin
+
+      Default: ``{SubSurfaceToolTipOrigin::pointer}``.
+
+   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+
+      For a program request (SurfaceRoot::show_tool_tip or request_tool_tip on the sub-surface): how long it shows (none: the parent's auto-pop delay; zero: until revoked).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SubSurfaceRequestStatistics final
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface_host.hpp>``
+
+   Counters of a host's side of its sub-surface's requests (design note section 15). UI thread.
+
+   .. cpp:member:: std::uint64_t received
+
+   .. cpp:member:: std::uint64_t shown
+
+      Answered shown by the window's tooltip presenter.
+
+   .. cpp:member:: std::uint64_t declined
+
+      Refused by the window's policy (its tooltips off for that origin).
+
+   .. cpp:member:: std::uint64_t stale
+
+      Dropped as out of date: measured in an older content epoch, or older than the pointer or focus leaving the host.
+
+   .. cpp:member:: std::uint64_t revoked
+
+      Revoked by the host: the pointer or keyboard focus left it.
+
+   .. cpp:member:: std::uint64_t withdrawn
+
+      Revoked by the sub-surface.
+
+   .. cpp:member:: std::uint64_t alerts
+
+      Alerts raised on the host for the sub-surface (SurfaceRoot::raise_alert).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: SubSurfaceRequestTarget
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   Where a sub-surface's requests go: called on the parent's thread only, through the parent's dispatcher, in the order the sub-surface posted. A revoke names a request posted earlier. A target the parent has released receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void receive_request(const SubSurfaceRequest& request) = 0
+
+   .. cpp:function:: virtual void receive_revoke(std::uint64_t id) = 0
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SubSurfaceStatistics final
 
    ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
@@ -322,6 +439,16 @@ Related types
 
    .. cpp:member:: std::uint64_t keys_returned
 
+   .. cpp:member:: std::uint64_t requests_posted
+
+      Requests (design note section 15): posted to the parent, revoked by the sub-surface, outcomes received, and outcomes for a request the sub-surface had already revoked (dropped).
+
+   .. cpp:member:: std::uint64_t requests_revoked
+
+   .. cpp:member:: std::uint64_t outcomes_received
+
+   .. cpp:member:: std::uint64_t outcomes_stale
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: SubSurfaceThread final
@@ -333,9 +460,9 @@ Related types
 
    .. rubric:: Construction
 
-   .. cpp:function:: SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content, std::shared_ptr<LiveSurface> surface, std::shared_ptr<const Theme> theme, std::unique_ptr<PaintFramebuffer> text_measure)
+   .. cpp:function:: SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content, std::shared_ptr<LiveSurface> surface, std::shared_ptr<const Theme> theme, std::unique_ptr<PaintFramebuffer> text_measure, std::shared_ptr<const Theme> layered_user_theme = {})
 
-      Starts the thread. It makes ApplicationResources of its own showing ``theme``, calls content.build_root(), makes a SubSurface of the root, and waits for the first configuration: it produces nothing before the first agreed size (resize rule 5). It publishes into ``surface``, reconfiguring it whenever the device size changes. ``text_measure``, if not null, is a framebuffer made by the parent whose painter measures the sub-surface's text for its whole life (any size; one pixel will do); without one, text is measured by the estimate. Null content, surface or theme is std::invalid_argument; a thread the system refuses is std::system_error.
+      Starts the thread. It makes ApplicationResources of its own showing ``theme``, calls content.build_root(), makes a SubSurface of the root, and waits for the first configuration: it produces nothing before the first agreed size (resize rule 5). It publishes into ``surface``, reconfiguring it whenever the device size changes. ``text_measure``, if not null, is a framebuffer made by the parent whose painter measures the sub-surface's text for its whole life (any size; one pixel will do); without one, text is measured by the estimate. ``layered_user_theme``, if not null, is the parent's user theme under the layered policy (ApplicationResources::user_theme_ptr), selected in the sub-surface's resources before its root exists, so its rules reach every part there as they do in the parent (design note section 14); a user theme replacing the program's arrives as ``theme`` itself. Null content, surface or theme, or a ``layered_user_theme`` not compiled as a user theme, is std::invalid_argument; a thread the system refuses is std::system_error.
 
 
    .. rubric:: Properties
@@ -367,6 +494,10 @@ Related types
 
       Queues one input event for the sub-surface's tree and wakes it; the thread dispatches queued events in this order, after applying the newest configuration and before its next flush. Returns the event's sequence: 1 for the first, growing by one. After stop() or a failure the event is discarded and 0 is returned.
 
+   .. cpp:function:: void post_request_outcome(const SurfaceRequestOutcome& outcome)
+
+      Queues the parent's answer to a request and wakes the sub-surface, which hands it to its tooltip route after its input, before its flush (an answer to request_tool_tip goes on to that request's answer target). Discarded after stop() or a failure.
+
    .. cpp:function:: void stop() noexcept
 
       Revokes the sub-surface (it publishes no frame from now on), asks its loop to stop, and joins the thread: the loop finishes its current flush, releases its tree on its own thread and exits (design note section 9). Idempotent.
@@ -374,6 +505,10 @@ Related types
    .. cpp:function:: void set_key_return(WindowDispatcher parent, std::weak_ptr<SubSurfaceKeyReturn> target)
 
       Where unhandled keys go: posted through ``parent`` (the dispatcher of the window that owns this object) to ``target``, held weakly. Replaces any earlier target; an empty ``target`` returns keys to no one.
+
+   .. cpp:function:: void set_request_target(WindowDispatcher parent, std::weak_ptr<SubSurfaceRequestTarget> target)
+
+      Where requests go (design note section 15): posted through ``parent`` to ``target``, held weakly. Replaces any earlier target; an empty one receives nothing and the sub-surface posts nothing.
 
 Enumerations
 ------------
@@ -408,6 +543,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: SubSurfaceRequestKind
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   .. cpp:enumerator:: tool_tip
+
+   .. cpp:enumerator:: alert
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: SubSurfaceState
 
    ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
@@ -419,3 +564,15 @@ Enumerations
    .. cpp:enumerator:: stopped
 
    .. cpp:enumerator:: failed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SubSurfaceToolTipOrigin
+
+   ``#include <gui_forms/surface_root/sub_surface/sub_surface.hpp>``
+
+   .. cpp:enumerator:: pointer
+
+   .. cpp:enumerator:: keyboard
+
+   .. cpp:enumerator:: program

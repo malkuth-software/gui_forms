@@ -74,6 +74,8 @@ FormSchema sample_schema() {
     const std::shared_ptr<gui_forms::Panel> panel = gui_forms::make_control<gui_forms::Panel>(gui_forms::StableId("prototype"));
     schema.types.push_back(describe_form_type("panel", *panel));
     schema.types.push_back(gui_forms::form_language::form_root_type());
+    // A type that holds spans (study 10.9).
+    schema.types.push_back(form_control_type<gui_forms::GridPanel>("grid_panel"));
     return schema;
 }
 
@@ -152,7 +154,7 @@ void test_load() {
             "load: the group's children in document order");
 
     const std::shared_ptr<gui_forms::CheckBox> check = std::dynamic_pointer_cast<gui_forms::CheckBox>(loaded.objects[2]);
-    require(check != nullptr && (*check).text() == "Save automatically" && (*check).checked() &&
+    require(check != nullptr && (*check).text.read() == "Save automatically" && (*check).checked() &&
                 (*check).tab_index.read() == 2U,
             "load: the check box's properties");
     require(std::dynamic_pointer_cast<gui_forms::Command>(loaded.objects[4]) != nullptr, "load: the command");
@@ -268,6 +270,35 @@ void test_form_root_defects() {
     require(reported, "form root defects: each located");
 }
 
+// Spans are defined before any placement, so the children's `area` and
+// `cell` find them (study 10.9).
+void test_spans() {
+    const FormSchema schema = sample_schema();
+    const std::string_view document = "grid-panel app.root {\n"
+                                      "  check-box app.ok { area: \"footer\"; }\n"
+                                      "  check-box app.side { cell: 0 2; }\n"
+                                      "  span footer { anchor: 2 0; columns: 3; }\n"
+                                      "  span { anchor: 0 2; rows: 2; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = load(workspace, document, schema, loaded);
+    print_diagnostics(workspace);
+    require(outcome == FormLoadOutcome::loaded, "spans: loaded");
+    const std::shared_ptr<gui_forms::GridPanel> grid = std::dynamic_pointer_cast<gui_forms::GridPanel>(loaded.root);
+    require(grid != nullptr && loaded.objects.size() == 3U, "spans: the grid and its two children");
+    if (grid == nullptr || loaded.objects.size() != 3U) return;
+    const std::span<const gui_forms::GridSpan> spans = (*grid).spans();
+    const bool defined = spans.size() == 2U &&
+                         spans[0] == gui_forms::GridSpan{"footer", gui_forms::GridCell{2U, 0U}, 1U, 3U} &&
+                         spans[1] == gui_forms::GridSpan{"", gui_forms::GridCell{0U, 2U}, 2U, 1U};
+    require(defined, "spans: defined in document order");
+    const Control::Ptr ok = std::dynamic_pointer_cast<Control>(loaded.objects[1]);
+    const Control::Ptr side = std::dynamic_pointer_cast<Control>(loaded.objects[2]);
+    require(ok != nullptr && (*grid).area[*ok].read() == "footer", "spans: placed by area");
+    require(side != nullptr && (*grid).cell[*side].read() == gui_forms::GridCell{0U, 2U}, "spans: placed by cell");
+}
+
 } // namespace
 
 int main() {
@@ -275,6 +306,7 @@ int main() {
     test_refusals();
     test_form_root();
     test_form_root_defects();
+    test_spans();
     if (failures != 0) {
         std::cerr << failures << " form loader checks failed\n";
         return 1;

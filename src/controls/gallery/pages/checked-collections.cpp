@@ -160,12 +160,12 @@ private:
     void on_mark_toggled(ButtonBase&) {
         if ((*list_view_).insertion_mark().has_value()) {
             (*list_view_).clear_insertion_mark();
-            (*mark_toggle_).set_text("Show insertion mark");
+            (*mark_toggle_).text = "Show insertion mark";
             (*status_).set_text("ListView insertion mark cleared");
             return;
         }
         const bool shown = (*list_view_).show_insertion_mark({.index = 2U, .after = false});
-        (*mark_toggle_).set_text(shown ? "Clear insertion mark" : "Show insertion mark");
+        (*mark_toggle_).text = shown ? "Clear insertion mark" : "Show insertion mark";
         (*status_).set_text(shown ? "ListView insertion mark before the third row · drop role"
                                   : "ListView has no third row to mark");
     }

@@ -7,7 +7,7 @@ gui_forms::TreeListView
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: TreeListView final : public Control
+.. cpp:class:: TreeListView final : public Control, public TreeListViewCapabilities<TreeListView>
 
    ``#include <gui_forms/controls/panel/tree_list_view/tree_list_view.hpp>``
 
@@ -33,6 +33,25 @@ gui_forms::TreeListView
          ``<stable_id>.horizontal-scroll-bar``.
 
    :Properties:
+
+      **indentation** : ``double``, default ``18``
+         The step of each tree level in logical units, also the width of the
+         expander's slot, from ``minimum_indentation`` to ``maximum_indentation``; a
+         write outside them throws ``std::invalid_argument``.
+
+      **image_list** : ``std::shared_ptr<ImageList>``
+         The images shown before each node's text, looked up by ``image_key``.
+         Without it no icons are shown. A write throws ``std::invalid_argument``
+         for a list that is not alive or belongs to another window.
+
+      **font** : ``FontSpec``
+         The font of node, cell and header text.
+
+      **selected_id** : ``std::optional<std::string>``
+         The selected node's ID, or none; ``selected_id.read()`` returns a copy.
+         Writing ``selected_id = "id"`` selects a node (expanding its ancestors
+         and scrolling it into view), ``selected_id = std::nullopt`` selects
+         nothing, and a write throws ``std::out_of_range`` for an unknown node.
 
       **columns** : ``std::span<const TreeListColumn>``
          The columns, column 0 first. :cpp:func:`set_columns <gui_forms::TreeListView::set_columns>` replaces them, resets the
@@ -64,12 +83,6 @@ gui_forms::TreeListView
       **horizontal_offset** : ``double``
          The sideways scroll, in logical units, clamped to the columns' width.
 
-      **selected_id** : ``std::optional<std::string_view>``
-         The selected node's ID, or none. :cpp:func:`set_selected_id <gui_forms::TreeListView::set_selected_id>` selects a node
-         (expanding its ancestors and scrolling it into view) or nothing, and
-         throws ``std::out_of_range`` for an unknown node. The returned view is
-         valid until the nodes change.
-
       **current_id** : ``std::optional<std::string_view>``, read-only
          The node with the keyboard's position and the focus cue, or none.
 
@@ -78,18 +91,6 @@ gui_forms::TreeListView
 
       **sort_order** : ``TreeListSortOrder``, default ``TreeListSortOrder::none``, read-only
          The order the siblings are shown in.
-
-      **indentation** : ``double``, default ``18``
-         The step of each tree level in logical units, also the width of the
-         expander's slot, from ``minimum_indentation`` to ``maximum_indentation``.
-
-      **image_list** : ``std::shared_ptr<ImageList>``
-         The images shown before each node's text, looked up by ``image_key``.
-         Without it no icons are shown. :cpp:func:`set_image_list <gui_forms::TreeListView::set_image_list>` throws
-         ``std::invalid_argument`` for a list of another window.
-
-      **font** : ``FontSpec``
-         The font of node, cell and header text.
 
       **parts** : ``Parts``, read-only
 
@@ -262,6 +263,29 @@ gui_forms::TreeListView
 
    .. rubric:: Properties
 
+   .. cpp:member:: double indentation
+
+      The step of each tree level in logical units, also the width of the
+      expander's slot, from ``minimum_indentation`` to ``maximum_indentation``; a
+      write outside them throws ``std::invalid_argument``.
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images shown before each node's text, looked up by ``image_key``.
+      Without it no icons are shown. A write throws ``std::invalid_argument``
+      for a list that is not alive or belongs to another window.
+
+   .. cpp:member:: FontSpec font
+
+      The font of node, cell and header text.
+
+   .. cpp:member:: std::optional<std::string> selected_id
+
+      The selected node's ID, or none; ``selected_id.read()`` returns a copy.
+      Writing ``selected_id = "id"`` selects a node (expanding its ancestors
+      and scrolling it into view), ``selected_id = std::nullopt`` selects
+      nothing, and a write throws ``std::out_of_range`` for an unknown node.
+
    .. cpp:function:: std::span<const TreeListColumn> columns() const noexcept
 
       The columns, column 0 first. :cpp:func:`set_columns <gui_forms::TreeListView::set_columns>` replaces them, resets the
@@ -314,17 +338,6 @@ gui_forms::TreeListView
 
       Sets :cpp:func:`horizontal_offset <gui_forms::TreeListView::horizontal_offset>`; see the property's description above.
 
-   .. cpp:function:: std::optional<std::string_view> selected_id() const noexcept
-
-      The selected node's ID, or none. :cpp:func:`set_selected_id <gui_forms::TreeListView::set_selected_id>` selects a node
-      (expanding its ancestors and scrolling it into view) or nothing, and
-      throws ``std::out_of_range`` for an unknown node. The returned view is
-      valid until the nodes change.
-
-   .. cpp:function:: void set_selected_id(std::optional<std::string_view> node_id)
-
-      Sets :cpp:func:`selected_id <gui_forms::TreeListView::selected_id>`; see the property's description above.
-
    .. cpp:function:: std::optional<std::string_view> current_id() const noexcept
 
       The node with the keyboard's position and the focus cue, or none.
@@ -336,33 +349,6 @@ gui_forms::TreeListView
    .. cpp:function:: TreeListSortOrder sort_order() const noexcept
 
       The order the siblings are shown in.
-
-   .. cpp:function:: double indentation() const noexcept
-
-      The step of each tree level in logical units, also the width of the
-      expander's slot, from ``minimum_indentation`` to ``maximum_indentation``.
-
-   .. cpp:function:: void set_indentation(double indentation)
-
-      Sets :cpp:func:`indentation <gui_forms::TreeListView::indentation>`; see the property's description above.
-
-   .. cpp:function:: std::shared_ptr<ImageList> image_list() const noexcept
-
-      The images shown before each node's text, looked up by ``image_key``.
-      Without it no icons are shown. :cpp:func:`set_image_list <gui_forms::TreeListView::set_image_list>` throws
-      ``std::invalid_argument`` for a list of another window.
-
-   .. cpp:function:: void set_image_list(std::shared_ptr<ImageList> images)
-
-      Sets :cpp:func:`image_list <gui_forms::TreeListView::image_list>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of node, cell and header text.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::TreeListView::font>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

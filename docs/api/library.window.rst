@@ -36,6 +36,8 @@ Related types
      - AcceleratorOptions selects ordinary post-focus arbitration or preemptive application-navigation arbitration while active overlay/focus scopes retain first refusal.
    * - :cpp:class:`AcceleratorToken <gui_forms::AcceleratorToken>`
      - AcceleratorToken is the move-only revocation handle for one Window accelerator registration whose lifetime is also bounded by its Component owner.
+   * - :cpp:class:`AlertRequest <gui_forms::AlertRequest>`
+     - One alert: a message the user acknowledges by choosing one of its buttons, its content as data.
    * - :cpp:class:`BackdropChain <gui_forms::BackdropChain>`
      - The chain: ``length`` live operations, applied in order, in a fixed array.
    * - :cpp:class:`BackdropChainResolution <gui_forms::BackdropChainResolution>`
@@ -108,12 +110,18 @@ Related types
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`SurfaceRequestAnswer <gui_forms::SurfaceRequestAnswer>`
+     - Where a request's answers go: posted through the requesting root's dispatcher and called on its thread, in the order they were given.
+   * - :cpp:class:`SurfaceRequestOutcome <gui_forms::SurfaceRequestOutcome>`
+     - An answer to one request; ``id`` is the one the request API returned.
    * - :cpp:class:`SystemColourHints <gui_forms::SystemColourHints>`
      - The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour.
    * - :cpp:class:`ThemeFallback <gui_forms::ThemeFallback>`
      - Presentation preferences are logical UI policy and remain independent from the native/device pixel scale.
    * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
      - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
+   * - :cpp:class:`ToolTipRequest <gui_forms::ToolTipRequest>`
+     - One tooltip, its content as data.
    * - :cpp:class:`ToolTipSettings <gui_forms::ToolTipSettings>`
      - How a window's one tooltip presenter behaves (owner, 2026-10-28).
    * - :cpp:class:`ValidationSnapshot <gui_forms::ValidationSnapshot>`
@@ -165,6 +173,34 @@ Related types
    .. cpp:function:: void disconnect() noexcept
 
       Idempotently removes the exact accelerator from its Window.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AlertRequest final
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   One alert: a message the user acknowledges by choosing one of its buttons, its content as data. The deciding window shows its alerts modally, one at a time, in the order they were raised.
+
+   .. cpp:member:: std::string text
+
+      The message, not empty. It and the caption are valid UTF-8 without NUL, of at most HostServices::maximum_dialog_text_bytes.
+
+   .. cpp:member:: std::string caption
+
+      The title; empty for the host's own.
+
+   .. cpp:member:: HostMessageButtons buttons
+
+      Default: ``{HostMessageButtons::ok}``.
+
+   .. cpp:member:: HostMessageIcon icon
+
+      Default: ``{HostMessageIcon::none}``.
+
+   .. cpp:member:: HostDialogChoice default_choice
+
+      The button Enter chooses, one of ``buttons``; none for the first. Default: ``{HostDialogChoice::none}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -727,6 +763,10 @@ Related types
 
       Closes the popup: destroys its native window, or closes the overlay.
 
+   .. cpp:function:: Event<>* closed_event() noexcept
+
+      Raised once, on the UI thread, when the popup closes, whatever closed it (this token, the opener's death, the host closing the window, or for an overlay its owner leaving the window). Null for an empty token. A subscriber that disconnects the token itself should unsubscribe first if it does not want to hear its own close.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: OverlayOptions final
@@ -1036,6 +1076,37 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: SurfaceRequestAnswer
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   Where a request's answers go: posted through the requesting root's dispatcher and called on its thread, in the order they were given. Held weakly; a target released before an answer arrives receives nothing.
+
+
+   .. rubric:: Extension points
+
+   .. cpp:function:: virtual void request_answered(const SurfaceRequestOutcome& outcome) = 0
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: SurfaceRequestOutcome final
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   An answer to one request; ``id`` is the one the request API returned.
+
+   .. cpp:member:: std::uint64_t id
+
+   .. cpp:member:: SurfaceRequestResult result
+
+      Default: ``{SurfaceRequestResult::shown}``.
+
+   .. cpp:member:: HostDialogChoice choice
+
+      For a closed alert, the button chosen: cancel (or ok for an OK box) when the user closed it without choosing, none when the host closed a box the user cannot dismiss (Yes/No; Abort, Retry, Ignore). Default: ``{HostDialogChoice::none}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SystemColourHints final
 
    ``#include <gui_forms/window/presentation/colour_scheme.hpp>``
@@ -1079,6 +1150,30 @@ Related types
    .. cpp:member:: bool shown
 
    .. cpp:member:: bool keyboard_initiated
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToolTipRequest final
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   One tooltip, its content as data.
+
+   .. cpp:member:: std::string text
+
+      Plain text, valid UTF-8, not empty.
+
+   .. cpp:member:: std::string description
+
+      The semantic description of what the tooltip is about, when it has one.
+
+   .. cpp:member:: Rect anchor
+
+      The thing the tooltip is about, in the root's coordinates; the bubble shows below it.
+
+   .. cpp:member:: std::optional<std::chrono::milliseconds> duration
+
+      How long it shows: none, the root's auto-pop delay; zero, until it is withdrawn or replaced.
 
 .. cpp:namespace:: gui_forms
 
@@ -1195,6 +1290,16 @@ Enumerations
    .. cpp:enumerator:: light
 
    .. cpp:enumerator:: dark
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DialogSurface
+
+   ``#include <gui_forms/window/native_popup/native_popup.hpp>``
+
+   .. cpp:enumerator:: overlay
+
+   .. cpp:enumerator:: native_popup
 
 .. cpp:namespace:: gui_forms
 
@@ -1371,6 +1476,22 @@ Enumerations
    .. cpp:enumerator:: paint_pass
 
    .. cpp:enumerator:: posted_callback
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: SurfaceRequestResult
+
+   ``#include <gui_forms/surface_root/requests/surface_requests.hpp>``
+
+   .. cpp:enumerator:: shown
+
+   .. cpp:enumerator:: declined
+
+   .. cpp:enumerator:: closed
+
+   .. cpp:enumerator:: revoked
+
+   .. cpp:enumerator:: stale
 
 Functions, constants and aliases
 --------------------------------

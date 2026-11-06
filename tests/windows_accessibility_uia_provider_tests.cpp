@@ -229,7 +229,7 @@ struct ReadDescriptions final {
 struct RenameButton final {
     Fixture* fixture{};
     std::string text;
-    void operator()() const { (*(*fixture).button).set_text(text); }
+    void operator()() const { (*(*fixture).button).text = text; }
 };
 
 struct CloseWindow final {

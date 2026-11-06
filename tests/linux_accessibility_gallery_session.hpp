@@ -390,7 +390,7 @@ private:
             std::string refusal = "error no Button with a parent has that stable identity";
             return refusal;
         }
-        const std::string text = (*button).text();
+        const std::string text = (*button).text.read();
         const std::optional<std::size_t> index = (*parent).child_index((*control).runtime_id());
         const Rect bounds = (*control).requested_bounds();
         Control::Ptr removed = (*parent).remove_child((*control).runtime_id());

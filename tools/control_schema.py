@@ -403,6 +403,8 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
     engine: object = schema.get("engine")
     findings.extend(_effect_findings(engine.get("effects") if isinstance(engine, dict) else None, schema_ids))
     by_id: dict[str, control_registry.ControlRecord] = {record.id: record for record in registry.records}
+    # A child property may not share a name with a property of every control (study section 10.2).
+    every_control: set[str] = set(_common_names(types, "properties"))
     for record in types:
         identity: str = str(record.get("id"))
         registered: control_registry.ControlRecord | None = by_id.get(identity)
@@ -414,6 +416,11 @@ def validate(schema: Mapping[str, object], registry: control_registry.Registry,
         for item in record.get("properties", []):  # type: ignore[union-attr]
             if not _SNAKE.fullmatch(str(item.get("name"))):
                 findings.append(f"{identity}: property {item.get('name')!r} is not snake_case")
+        for item in record.get("child_properties", []):  # type: ignore[union-attr]
+            if not _SNAKE.fullmatch(str(item.get("name"))):
+                findings.append(f"{identity}: child property {item.get('name')!r} is not snake_case")
+            if str(item.get("name")) in every_control:
+                findings.append(f"{identity}: child property {item.get('name')!r} is also every control's property")
         for part in record.get("parts", []):  # type: ignore[union-attr]
             if not _SNAKE.fullmatch(str(part.get("name"))):
                 findings.append(f"{identity}: part {part.get('name')!r} is not snake_case")
@@ -572,6 +579,12 @@ def render_page(schema: Mapping[str, object]) -> str:
             lines.append("Properties beyond every control's: "
                          + (", ".join(own_properties) if own_properties else "none") + ".")
             lines.append("")
+            provided: list[str] = [
+                f"{_code(str(item['name']))} ({item['kind']})"
+                for item in record.get("child_properties", [])]  # type: ignore[union-attr]
+            if provided:
+                lines.append("Properties it provides to its children: " + ", ".join(provided) + ".")
+                lines.append("")
         own_interactions: list[Mapping[str, object]] = [
             item for item in record.get("interactions", [])  # type: ignore[union-attr]
             if record.get("kind") != "control" or str(item["name"]) not in common_interactions]

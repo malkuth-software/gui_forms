@@ -140,6 +140,10 @@ SchemaType type_of(const SchemaCatalogEntry& entry) {
     for (const PropertyDescriptor& descriptor : sample.properties) {
         type.properties.push_back(property_of(descriptor));
     }
+    type.child_properties.reserve(sample.child_properties.size());
+    for (const PropertyDescriptor& descriptor : sample.child_properties) {
+        type.child_properties.push_back(property_of(descriptor));
+    }
     type.interactions.reserve(sample.interactions.size());
     for (const InteractionDeclaration& declaration : sample.interactions) {
         type.interactions.push_back(SchemaInteraction{std::string(declaration.name),

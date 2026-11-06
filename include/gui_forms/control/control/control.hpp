@@ -718,7 +718,7 @@ public:
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 23U;
+    static constexpr std::size_t control_property_count = 25U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -742,6 +742,28 @@ public:
     [[nodiscard]] bool should_serialize_property(std::string_view name) const;
     [[nodiscard]] PropertyValueOrigin property_value_origin(
         std::string_view name) const;
+
+    // The properties this type provides to its direct children (attached
+    // properties: study sections 10 and 15.4), stored here per child.
+    // Empty by default; a container returns its constant child table
+    // (join_property_tables puts a base's entries first).
+    [[nodiscard]] virtual std::span<const ChildPropertyEntry> child_property_table() const noexcept;
+    // The table's descriptors, in table order.
+    [[nodiscard]] std::vector<PropertyDescriptor> child_property_descriptors() const;
+    // `child`'s value of the child property `name` (registered or kebab-case
+    // spelling); nullopt when this type provides no such property. Throws
+    // std::invalid_argument when `child` is not a live direct child.
+    [[nodiscard]] std::optional<BindingValue> child_property_value(const Control& child,
+                                                                   std::string_view name) const;
+    // Writes `child`'s value, converted to the property's kind. Throws
+    // std::invalid_argument for an unknown name, a value that does not
+    // convert or that the property refuses, or a `child` that is not a live
+    // direct child; nothing changes then.
+    void set_child_property_value(const Control& child, std::string_view name, const BindingValue& value);
+    // Restores `child`'s default; false when this type provides no such
+    // property or it has no default.
+    bool reset_child_property(const Control& child, std::string_view name);
+    [[nodiscard]] bool should_serialize_child_property(const Control& child, std::string_view name) const;
 
     [[nodiscard]] virtual Size measure(Size available);
     virtual void arrange(Rect final_bounds);
@@ -859,6 +881,12 @@ public:
     // particular base implementation.
     void apply_provider_semantics(SemanticDescriptor& descriptor) const;
     [[nodiscard]] virtual std::vector<SemanticNode> semantic_virtual_children() const;
+    // The parts whose tooltips the root's tooltip route looks for, in root
+    // coordinates, read only when publishes_item_tool_tips is set: the
+    // semantic virtual children by default. A control whose tooltip parts
+    // are not semantic children (SubSurfaceHost: its sub-surface's requests)
+    // returns them here.
+    [[nodiscard]] virtual std::vector<SemanticNode> tool_tip_items() const;
     virtual bool on_semantic_action(SemanticAction action,
                                     std::string_view value);
     virtual bool on_semantic_child_action(std::string_view stable_id,
@@ -1032,6 +1060,14 @@ protected:
         publishes_item_tool_tips_ = publishes;
     }
     void require_mutable() const;
+    // Throws std::invalid_argument unless `child` is a live direct child of
+    // this control: the check every child property read and write makes.
+    void require_direct_child(const Control& child) const;
+    // Called by remove_child and by the child's disposal while `child` is
+    // still this control's child, just before it leaves: a container erases
+    // what it stores for the child (its child property values), so a child
+    // added again starts from the defaults. It may not mutate the tree.
+    virtual void child_leaving(const Control& child) noexcept;
     // Layout is allowed to invoke application-overridable measurement. Such a
     // callback may legally mutate the retained tree, so layout authors must
     // iterate a strong identity snapshot and revalidate each identity before
@@ -1163,6 +1199,8 @@ private:
     friend struct PaddingCapability<Control>;
     friend struct DockCapability<Control>;
     friend struct AnchorCapability<Control>;
+    friend struct JustifySelfCapability<Control>;
+    friend struct AlignSelfCapability<Control>;
     friend struct AutoSizeModeCapability<Control>;
     friend struct LayoutDirectionCapability<Control>;
     friend struct TabIndexCapability<Control>;
@@ -1208,6 +1246,10 @@ private:
     void written(const decltype(dock)& cell);
     void prepare_write(const decltype(anchor)& cell, AnchorStyles& value);
     void written(const decltype(anchor)& cell);
+    void prepare_write(const decltype(justify_self)& cell, SelfAlignment& value);
+    void written(const decltype(justify_self)& cell);
+    void prepare_write(const decltype(align_self)& cell, SelfAlignment& value);
+    void written(const decltype(align_self)& cell);
     void prepare_write(const decltype(auto_size_mode)& cell, AutoSizeMode& value);
     void written(const decltype(auto_size_mode)& cell);
     void prepare_write(const decltype(layout_direction)& cell, LayoutDirection& value);
@@ -1281,6 +1323,8 @@ private:
         dock_style_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         anchor_styles_property_enum();
+    [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
+        self_alignment_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
         auto_size_mode_property_enum();
     [[nodiscard]] static std::shared_ptr<const PropertyEnumDescriptor>
@@ -1468,6 +1512,8 @@ private:
         auto_scroll_offset,
         dock,
         anchor,
+        justify_self,
+        align_self,
         auto_size_mode,
         layout_direction,
         tab_index,
@@ -1538,6 +1584,14 @@ private:
                 return Control::current_enum_property_value(
                     Control::anchor_styles_property_enum(),
                     static_cast<std::int64_t>((*control).anchor.read()));
+            } else if constexpr (Property == RegisteredProperty::justify_self) {
+                return Control::current_enum_property_value(
+                    Control::self_alignment_property_enum(),
+                    static_cast<std::int64_t>((*control).justify_self.read()));
+            } else if constexpr (Property == RegisteredProperty::align_self) {
+                return Control::current_enum_property_value(
+                    Control::self_alignment_property_enum(),
+                    static_cast<std::int64_t>((*control).align_self.read()));
             } else if constexpr (
                 Property == RegisteredProperty::auto_size_mode) {
                 return Control::current_enum_property_value(
@@ -1633,6 +1687,12 @@ private:
                     std::get<PropertyEnumValue>(value).value);
             } else if constexpr (Property == RegisteredProperty::anchor) {
                 (*control).anchor = static_cast<AnchorStyles>(
+                    std::get<PropertyEnumValue>(value).value);
+            } else if constexpr (Property == RegisteredProperty::justify_self) {
+                (*control).justify_self = static_cast<SelfAlignment>(
+                    std::get<PropertyEnumValue>(value).value);
+            } else if constexpr (Property == RegisteredProperty::align_self) {
+                (*control).align_self = static_cast<SelfAlignment>(
                     std::get<PropertyEnumValue>(value).value);
             } else if constexpr (
                 Property == RegisteredProperty::auto_size_mode) {

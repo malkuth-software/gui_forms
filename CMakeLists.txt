@@ -309,6 +309,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/style_reader/layout_style_reader.cpp
     src/core/layout/flex_solver/flex_solver.cpp
     src/core/layout/grid_solver/grid_solver.cpp
+    src/core/layout/grid_span/grid_span.cpp
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
@@ -401,6 +402,10 @@ add_library(gui_forms_core STATIC
     src/core/surface_root/surface_root.cpp
     src/core/surface_root/sub_surface/sub_surface.cpp
     src/core/surface_root/sub_surface/sub_surface_host.cpp
+    src/core/surface_root/sub_surface/sub_surface_tool_tips.cpp
+    src/core/surface_root/sub_surface/sub_surface_alerts.cpp
+    src/core/surface_root/requests/surface_alerts.cpp
+    src/core/window/alerts/window_alerts.cpp
     src/core/surface_root/control_table/control_table.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
     src/core/window/typography/window_typography.cpp
@@ -412,6 +417,7 @@ add_library(gui_forms_core STATIC
     src/core/window/overlay/overlay_token.cpp
     src/core/window/tool_tips/tool_tip_bubble.cpp
     src/core/window/tool_tips/tool_tip_presenter.cpp
+    src/core/window/tool_tips/tool_tip_subjects.cpp
     src/core/window/tool_tips/window_tool_tips.cpp
     src/core/window/accelerator/accelerator_token.cpp
     src/core/control/dispatcher/control_dispatcher.cpp
@@ -2925,6 +2931,10 @@ if(GUI_FORMS_BUILD_TESTS)
     add_executable(gui_forms_property_capability_tests tests/property_capability_tests.cpp)
     target_link_libraries(gui_forms_property_capability_tests PRIVATE gui_forms_controls)
     add_test(NAME gui_forms_property_capability_tests COMMAND gui_forms_property_capability_tests)
+    # Written by tools/property_codemod.py tests from tools/property_families/.
+    add_executable(gui_forms_property_family_generated_tests tests/property_family_generated_tests.cpp)
+    target_link_libraries(gui_forms_property_family_generated_tests PRIVATE gui_forms_controls)
+    add_test(NAME gui_forms_property_family_generated_tests COMMAND gui_forms_property_family_generated_tests)
 
     add_executable(gui_forms_damage_rectangles_tests tests/damage_rectangles_tests.cpp)
     target_link_libraries(gui_forms_damage_rectangles_tests PRIVATE gui_forms_controls)
@@ -2964,7 +2974,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_live_surface_pacer_tests PRIVATE gui_forms_core)
     add_test(NAME gui_forms_live_surface_pacer_tests COMMAND gui_forms_live_surface_pacer_tests)
     add_executable(gui_forms_sub_surface_tests tests/sub_surface_tests.cpp)
-    target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls)
+    target_link_libraries(gui_forms_sub_surface_tests PRIVATE gui_forms_controls gui_forms_host_headless)
     add_test(NAME gui_forms_sub_surface_tests COMMAND gui_forms_sub_surface_tests)
     set_tests_properties(gui_forms_sub_surface_tests PROPERTIES TIMEOUT 120)
     add_executable(gui_forms_live_surface_idle_wake_tests tests/live_surface_idle_wake_tests.cpp)
@@ -3914,7 +3924,7 @@ if(GUI_FORMS_BUILD_TESTS)
     target_link_libraries(gui_forms_floating_windows_tests PRIVATE gui_forms_host_headless)
     add_test(NAME gui_forms_floating_windows_tests COMMAND gui_forms_floating_windows_tests)
     add_executable(gui_forms_native_popup_tests tests/native_popup_tests.cpp)
-    target_link_libraries(gui_forms_native_popup_tests PRIVATE gui_forms_host_headless)
+    target_link_libraries(gui_forms_native_popup_tests PRIVATE gui_forms_host_headless gui_forms_controls)
     add_test(NAME gui_forms_native_popup_tests COMMAND gui_forms_native_popup_tests)
     add_executable(gui_forms_shared_resources_tests tests/shared_resources_tests.cpp)
     target_link_libraries(gui_forms_shared_resources_tests PRIVATE gui_forms_controls gui_forms_host_headless)
@@ -4334,6 +4344,12 @@ if(GUI_FORMS_BUILD_TESTS)
         add_test(NAME gui_forms_macos_display_link_tests COMMAND gui_forms_macos_display_link_tests)
         add_test(NAME gui_forms_macos_display_link_overlay_tests COMMAND gui_forms_macos_display_link_tests --overlay)
         set_tests_properties(gui_forms_macos_display_link_tests gui_forms_macos_display_link_overlay_tests PROPERTIES TIMEOUT 45)
+
+        add_executable(gui_forms_macos_text_input_caret_tests tests/macos_text_input_caret_tests.mm)
+        target_compile_options(gui_forms_macos_text_input_caret_tests PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_macos_text_input_caret_tests PRIVATE gui_forms_host_macos gui_forms_controls)
+        add_test(NAME gui_forms_macos_text_input_caret_tests COMMAND gui_forms_macos_text_input_caret_tests)
+        set_tests_properties(gui_forms_macos_text_input_caret_tests PROPERTIES TIMEOUT 15)
 
         add_executable(gui_forms_macos_idle_visibility_tests tests/macos_idle_visibility_tests.mm)
         target_compile_options(gui_forms_macos_idle_visibility_tests PRIVATE -fobjc-arc)

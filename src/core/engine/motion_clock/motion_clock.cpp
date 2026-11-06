@@ -128,13 +128,13 @@ void MotionClock::repaint_parked() {
         if (!existing.parked) continue;
         const std::shared_ptr<Control> control = existing.control.lock();
         existing = AmbientRecord{};
-        if (control && (*control).attached_window() == window_) (*control).invalidate(Dirty::paint);
+        if (control && (*control).attached_surface_root() == window_) (*control).invalidate(Dirty::paint);
     }
 }
 
 bool MotionClock::control_ambient_frame(AmbientRecord& effect, FrameTime now) {
     const std::shared_ptr<Control> control = effect.control.lock();
-    if (!control || !(*control).is_alive() || (*control).attached_window() != window_) return false;
+    if (!control || !(*control).is_alive() || (*control).attached_surface_root() != window_) return false;
     const bool shown = (*control).on_ambient_frame(now);
     if (shown) (*window_).metrics().record_effect_ambient_frame();
     return shown;
@@ -163,7 +163,7 @@ void MotionClock::stop_ambient(bool repaint) {
         }
         existing.parked = true;
         const std::shared_ptr<Control> control = existing.control.lock();
-        if (repaint && control && (*control).attached_window() == window_) (*control).invalidate(Dirty::paint);
+        if (repaint && control && (*control).attached_surface_root() == window_) (*control).invalidate(Dirty::paint);
     }
     disarm_when_idle();
 }
@@ -339,7 +339,7 @@ void MotionClock::advance(FrameTime now) {
         if (record == nullptr) continue;
         MotionValue& value = *(*record).value;
         const std::shared_ptr<Control> owner = (*record).owner.lock();
-        if (!owner || !(*owner).is_alive() || (*owner).attached_window() != window_) {
+        if (!owner || !(*owner).is_alive() || (*owner).attached_surface_root() != window_) {
             release_slot(handle.slot);
             value.stop();
             continue;
@@ -376,7 +376,7 @@ void MotionClock::finish_all(MotionStepCause cause) {
         release_slot(handle.slot);
         value.stop();
         (*window_).metrics().record_motion_finished();
-        if (!owner || !(*owner).is_alive() || (*owner).attached_window() != window_) continue;
+        if (!owner || !(*owner).is_alive() || (*owner).attached_surface_root() != window_) continue;
         MotionStep step{};
         step.value = &value;
         step.previous = previous;

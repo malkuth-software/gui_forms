@@ -6,10 +6,13 @@
 
 #include <chrono>
 #include <cstdint>
+#include <limits>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <variant>
 
 namespace gui_forms {
 
@@ -28,8 +31,10 @@ struct PropertyType final {
 [[nodiscard]] std::optional<BindingValue> convert_to_property_type(const BindingValue& value,
                                                                    const PropertyType& target);
 
-// One specialization per property value type: its PropertyType (type())
-// and its BindingValue form (to_binding()). There is no primary definition,
+// One specialization per property value type: its PropertyType (type()),
+// its BindingValue form (to_binding()) and back (from_binding(), given a
+// value already converted to type(); a value outside a narrower type
+// throws std::invalid_argument). There is no primary definition,
 // so a value type without an entry still works as a cell's storage but not
 // with type() or as_type(). Enumerations' entries live beside their
 // declaring class (their choice sets are its descriptors).
@@ -40,90 +45,120 @@ template <>
 struct PropertyValueTraits<bool> {
     static PropertyType type() { return PropertyType{BindingValueKind::boolean, false, nullptr}; }
     static BindingValue to_binding(bool value) { return BindingValue{value}; }
+    static bool from_binding(const BindingValue& value) { return std::get<bool>(value); }
 };
 
 template <>
 struct PropertyValueTraits<std::int32_t> {
     static PropertyType type() { return PropertyType{BindingValueKind::signed_integer, false, nullptr}; }
     static BindingValue to_binding(std::int32_t value) { return BindingValue{std::int64_t{value}}; }
+    static std::int32_t from_binding(const BindingValue& value) {
+        const std::int64_t wide = std::get<std::int64_t>(value);
+        if (wide < std::numeric_limits<std::int32_t>::min() || wide > std::numeric_limits<std::int32_t>::max()) {
+            throw std::invalid_argument("GUI.Forms property value is outside int32");
+        }
+        return static_cast<std::int32_t>(wide);
+    }
 };
 
 template <>
 struct PropertyValueTraits<std::int64_t> {
     static PropertyType type() { return PropertyType{BindingValueKind::signed_integer, false, nullptr}; }
     static BindingValue to_binding(std::int64_t value) { return BindingValue{value}; }
+    static std::int64_t from_binding(const BindingValue& value) { return std::get<std::int64_t>(value); }
 };
 
 template <>
 struct PropertyValueTraits<std::uint32_t> {
     static PropertyType type() { return PropertyType{BindingValueKind::unsigned_integer, false, nullptr}; }
     static BindingValue to_binding(std::uint32_t value) { return BindingValue{std::uint64_t{value}}; }
+    static std::uint32_t from_binding(const BindingValue& value) {
+        const std::uint64_t wide = std::get<std::uint64_t>(value);
+        if (wide > std::numeric_limits<std::uint32_t>::max()) {
+            throw std::invalid_argument("GUI.Forms property value is outside uint32");
+        }
+        return static_cast<std::uint32_t>(wide);
+    }
 };
 
 template <>
 struct PropertyValueTraits<std::uint64_t> {
     static PropertyType type() { return PropertyType{BindingValueKind::unsigned_integer, false, nullptr}; }
     static BindingValue to_binding(std::uint64_t value) { return BindingValue{value}; }
+    static std::uint64_t from_binding(const BindingValue& value) { return std::get<std::uint64_t>(value); }
 };
 
 template <>
 struct PropertyValueTraits<float> {
     static PropertyType type() { return PropertyType{BindingValueKind::number, false, nullptr}; }
     static BindingValue to_binding(float value) { return BindingValue{static_cast<double>(value)}; }
+    static float from_binding(const BindingValue& value) {
+        const double wide = std::get<double>(value);
+        return static_cast<float>(wide);
+    }
 };
 
 template <>
 struct PropertyValueTraits<double> {
     static PropertyType type() { return PropertyType{BindingValueKind::number, false, nullptr}; }
     static BindingValue to_binding(double value) { return BindingValue{value}; }
+    static double from_binding(const BindingValue& value) { return std::get<double>(value); }
 };
 
 template <>
 struct PropertyValueTraits<std::string> {
     static PropertyType type() { return PropertyType{BindingValueKind::text, false, nullptr}; }
     static BindingValue to_binding(const std::string& value) { return BindingValue{value}; }
+    static std::string from_binding(const BindingValue& value) { return std::get<std::string>(value); }
 };
 
 template <>
 struct PropertyValueTraits<Point> {
     static PropertyType type() { return PropertyType{BindingValueKind::point, false, nullptr}; }
     static BindingValue to_binding(Point value) { return BindingValue{value}; }
+    static Point from_binding(const BindingValue& value) { return std::get<Point>(value); }
 };
 
 template <>
 struct PropertyValueTraits<Size> {
     static PropertyType type() { return PropertyType{BindingValueKind::size, false, nullptr}; }
     static BindingValue to_binding(Size value) { return BindingValue{value}; }
+    static Size from_binding(const BindingValue& value) { return std::get<Size>(value); }
 };
 
 template <>
 struct PropertyValueTraits<Rect> {
     static PropertyType type() { return PropertyType{BindingValueKind::rectangle, false, nullptr}; }
     static BindingValue to_binding(Rect value) { return BindingValue{value}; }
+    static Rect from_binding(const BindingValue& value) { return std::get<Rect>(value); }
 };
 
 template <>
 struct PropertyValueTraits<Insets> {
     static PropertyType type() { return PropertyType{BindingValueKind::insets, false, nullptr}; }
     static BindingValue to_binding(Insets value) { return BindingValue{value}; }
+    static Insets from_binding(const BindingValue& value) { return std::get<Insets>(value); }
 };
 
 template <>
 struct PropertyValueTraits<Color> {
     static PropertyType type() { return PropertyType{BindingValueKind::color, false, nullptr}; }
     static BindingValue to_binding(Color value) { return BindingValue{value}; }
+    static Color from_binding(const BindingValue& value) { return std::get<Color>(value); }
 };
 
 template <>
 struct PropertyValueTraits<FontSpec> {
     static PropertyType type() { return PropertyType{BindingValueKind::font, false, nullptr}; }
     static BindingValue to_binding(const FontSpec& value) { return BindingValue{value}; }
+    static FontSpec from_binding(const BindingValue& value) { return std::get<FontSpec>(value); }
 };
 
 template <>
 struct PropertyValueTraits<ImageId> {
     static PropertyType type() { return PropertyType{BindingValueKind::image, false, nullptr}; }
     static BindingValue to_binding(ImageId value) { return BindingValue{value}; }
+    static ImageId from_binding(const BindingValue& value) { return std::get<ImageId>(value); }
 };
 
 // Milliseconds travel as a signed count.
@@ -132,6 +167,10 @@ struct PropertyValueTraits<std::chrono::milliseconds> {
     static PropertyType type() { return PropertyType{BindingValueKind::signed_integer, false, nullptr}; }
     static BindingValue to_binding(std::chrono::milliseconds value) {
         return BindingValue{static_cast<std::int64_t>(value.count())};
+    }
+    static std::chrono::milliseconds from_binding(const BindingValue& value) {
+        const std::int64_t count = std::get<std::int64_t>(value);
+        return std::chrono::milliseconds{count};
     }
 };
 
@@ -146,6 +185,11 @@ struct PropertyValueTraits<std::optional<Value>> {
     static BindingValue to_binding(const std::optional<Value>& value) {
         if (!value) return BindingValue{};
         const BindingValue present = PropertyValueTraits<Value>::to_binding(*value);
+        return present;
+    }
+    static std::optional<Value> from_binding(const BindingValue& value) {
+        if (std::holds_alternative<std::monostate>(value)) return std::nullopt;
+        std::optional<Value> present = PropertyValueTraits<Value>::from_binding(value);
         return present;
     }
 };

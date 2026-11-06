@@ -21,7 +21,7 @@ void test_retained_layout_panels(gui_forms::Window& window) {
     const Control::Ptr third_item = window.find("gallery.layout.flow.0.item.2");
     window.perform_layout();
     require(breaking && second_item && third_item &&
-                (*breaking).flow_break(*second_item) &&
+                (*breaking).flow_break[*second_item].read() &&
                 (*third_item).arranged_bounds().y > (*second_item).arranged_bounds().y &&
                 (*third_item).requested_bounds().x == 0.0,
             "a FlowBreak must start a new flow line without rewriting authored bounds");

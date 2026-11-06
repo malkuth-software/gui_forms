@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/controls/scrollable_control/scroll_properties/scroll_properties.hpp"
+#include "gui_forms/controls/scrollable_control/scrollable_control_capabilities/scrollable_control_capabilities.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -10,7 +11,7 @@
 
 namespace gui_forms {
 
-class ScrollableControl : public Control {
+class ScrollableControl : public Control, public ScrollableControlCapabilities<ScrollableControl> {
 public:
     static constexpr std::uint32_t scroll_state_auto_scrolling = 1U;
     static constexpr std::uint32_t scroll_state_hscroll_visible = 2U;
@@ -20,24 +21,10 @@ public:
 
     explicit ScrollableControl(StableId stable_id);
 
-    [[nodiscard]] bool auto_scroll() const noexcept { return auto_scroll_; }
     // With auto scroll, a size change can show or hide a scroll bar on
     // either axis, which moves the client area every child is placed in.
     [[nodiscard]] ResizeAxes layout_resize_response() const noexcept override;
-    virtual void set_auto_scroll(bool enabled);
-    [[nodiscard]] Size auto_scroll_margin() const noexcept {
-        return auto_scroll_margin_;
-    }
-    void set_auto_scroll_margin(Size margin);
     void set_auto_scroll_margin(double x, double y);
-    [[nodiscard]] Size auto_scroll_min_size() const noexcept {
-        return auto_scroll_min_size_;
-    }
-    void set_auto_scroll_min_size(Size size);
-    [[nodiscard]] Point auto_scroll_position() const noexcept {
-        return {-scroll_position_.x, -scroll_position_.y};
-    }
-    void set_auto_scroll_position(Point position);
     [[nodiscard]] Point scroll_position() const noexcept {
         return scroll_position_;
     }
@@ -128,6 +115,11 @@ protected:
     // Called after the retained position changes, including silent API writes
     // and layout clamping. This does not publish a public Scroll event.
     virtual void on_scroll_position_changed() {}
+    // Runs after a changed auto_scroll write, once the scroll state is
+    // updated and a moved position reported; `previous_position` is the
+    // scroll position before the write (turning auto scroll off returns it
+    // to the origin). An override calls the base (study 15.3, G9).
+    virtual void on_auto_scroll_changed(Point previous_position);
     // Layout containers supply their measured content rather than authored child
     // coordinates. This keeps viewport, bars and hit-test clipping in one owner.
     void arrange_scroll_viewport(Size client_size, Size measured_content);
@@ -194,8 +186,6 @@ private:
     Event<ScrollEvent&> scroll_event_;
     std::optional<ScrollEvent> last_scroll_event_;
     std::uint64_t scroll_event_revision_{};
-    Size auto_scroll_margin_{};
-    Size auto_scroll_min_size_{};
     Size content_extent_{};
     Point scroll_position_{};
     Rect viewport_rectangle_{};
@@ -207,8 +197,35 @@ private:
     double scrollbar_thickness_{16.0};
     double scrollbar_button_extent_{16.0};
     double minimum_thumb_extent_{18.0};
-    bool auto_scroll_{};
     bool arranging_scroll_{};
+    // property_codemod begin ScrollableControl (tools/property_families/scrollable_control.json; generated, do not edit)
+public:
+    // ScrollableControl's property table: Control's entries, then its own.
+    static constexpr std::size_t scrollable_control_property_count = Control::control_property_count + 4U;
+    [[nodiscard]] static const std::array<PropertyEntry, scrollable_control_property_count>& scrollable_control_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's touch and raises the
+    // change event; an override calls the base. coerce_<property> runs last
+    // before the compare and may rewrite the incoming value.
+    virtual void coerce_auto_scroll(bool& incoming);
+
+private:
+    friend struct AutoScrollCapability<ScrollableControl>;
+    friend struct AutoScrollMarginCapability<ScrollableControl>;
+    friend struct AutoScrollMinSizeCapability<ScrollableControl>;
+    friend struct AutoScrollPositionCapability<ScrollableControl>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(auto_scroll)& cell, bool& incoming);
+    void written(const decltype(auto_scroll)& cell);
+    void prepare_write(const decltype(auto_scroll_margin)& cell, Size& incoming);
+    void written(const decltype(auto_scroll_margin)& cell);
+    void prepare_write(const decltype(auto_scroll_min_size)& cell, Size& incoming);
+    void written(const decltype(auto_scroll_min_size)& cell);
+    void write_view(const decltype(auto_scroll_position)& cell, Point incoming);
+    [[nodiscard]] Point read_view(const decltype(auto_scroll_position)& cell) const;
+    // property_codemod end ScrollableControl
 };
 
 } // namespace gui_forms

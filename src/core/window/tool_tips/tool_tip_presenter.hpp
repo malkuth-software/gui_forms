@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/window.hpp"
+#include "tool_tip_route.hpp"
+#include "tool_tip_subjects.hpp"
 
 #include <chrono>
 #include <map>
@@ -15,26 +17,11 @@ namespace gui_forms::detail {
 class ToolTipBubble;
 class ToolTipLayer;
 
-// What showed a tooltip: the pointer resting over its thing, keyboard focus
-// reaching it, or the program (Window::show_tool_tip).
-enum class ToolTipOrigin : std::uint8_t { pointer, keyboard, program };
-
-// The thing a tooltip belongs to: a control, or one authored part of it
-// (`item_id`, its semantic virtual child's stable ID). `anchor` is the
-// thing's bounds in window coordinates. An empty `text` means the thing
-// shows no tooltip; `anchor` is then the region over which nothing shows.
-struct ToolTipSubject final {
-    std::weak_ptr<Control> control{};
-    std::string item_id{};
-    std::string text{};
-    Rect anchor{};
-};
-
 // A window's one tooltip presenter (owner, 2026-10-28). The window owns it
 // and feeds it pointer motion, presses, focus changes, handled keys and
 // layout; it reads the window's switches and settings, finds the thing
 // under the pointer or under focus through the controls' tooltip text and
-// their semantic virtual children, and shows that thing's text in a bubble
+// their tooltip items (Control::tool_tip_items), and shows that thing's text in a bubble
 // overlay it owns.
 //
 // States (one at a time, in `state_`):
@@ -50,36 +37,47 @@ struct ToolTipSubject final {
 // Every entry point runs on the window's UI thread. The visibility event is
 // raised last in each operation, after the state is complete, so a handler
 // may call back in.
-class ToolTipPresenter final {
+class ToolTipPresenter final : public ToolTipRoute {
 public:
     explicit ToolTipPresenter(Window& window) noexcept;
-    ~ToolTipPresenter();
+    ~ToolTipPresenter() override;
     ToolTipPresenter(const ToolTipPresenter&) = delete;
     ToolTipPresenter& operator=(const ToolTipPresenter&) = delete;
 
     // Window input, after the window's own routing.
-    void pointer_moved(Point position, const Control::Ptr& hovered, FrameTime now);
-    void pointer_pressed();
-    void pointer_left();
-    void focus_changed(const Control::Ptr& focused);
-    void key_handled();
+    void pointer_moved(Point position, const Control::Ptr& hovered, FrameTime now) override;
+    void pointer_pressed() override;
+    void pointer_left() override;
+    void focus_changed(const Control::Ptr& focused) override;
+    void key_handled() override;
     // Called after the window arranged its root, before its overlays: a bubble
     // below a control follows the control.
-    void root_arranged();
-    void text_changed(const Control& control);
-    void settings_changed();
-    void cover(RuntimeId control, std::string_view item_id, bool covered);
+    void root_arranged() override;
+    void text_changed(const Control& control) override;
+    // A part of `control` that shows closes when it is gone, and shows its
+    // new text when that changed; a wait or a settled region over `control`
+    // is found again, as if the pointer had just come to rest where it
+    // rested (a sub-surface's request arrives after the pointer reached its
+    // host); the thing under focus is found again when `control` has focus.
+    void items_changed(const Control& control) override;
+    void settings_changed() override;
+    void cover(RuntimeId control, std::string_view item_id, bool covered) override;
 
-    void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration);
-    void hide();
+    void show_program(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) override;
+    void show_program_item(const Control::Ptr& control, std::string item_id, std::string text, Rect anchor,
+                           std::optional<std::chrono::milliseconds> duration) override;
+    void request(const Control::Ptr& owner, std::uint64_t id, std::string item_id,
+                 const ToolTipRequest& content) override;
+    void withdraw(std::string_view item_id) override;
+    void hide() override;
     // Closes the bubble without raising the visibility event and drops every
     // wake; the presenter stays Idle. The window's destructor calls it first.
-    void shutdown() noexcept;
+    void shutdown() noexcept override;
 
-    [[nodiscard]] bool visible() const noexcept;
-    [[nodiscard]] Control::Ptr target() const noexcept;
-    [[nodiscard]] std::string item_id() const;
-    [[nodiscard]] std::string text() const;
+    [[nodiscard]] bool visible() const noexcept override;
+    [[nodiscard]] Control::Ptr target() const noexcept override;
+    [[nodiscard]] std::string item_id() const override;
+    [[nodiscard]] std::string text() const override;
 
 private:
     // The bubble that shows and the overlay that holds it. Closing it (its
@@ -139,11 +137,6 @@ private:
 
     [[nodiscard]] bool hover_allowed() const noexcept;
     [[nodiscard]] bool focus_allowed() const noexcept;
-    [[nodiscard]] bool covered(const Control& control, std::string_view item_id) const;
-    [[nodiscard]] bool available(const Control& control) const noexcept;
-    [[nodiscard]] ToolTipSubject resolve_pointer(const Control::Ptr& hovered, Point position) const;
-    [[nodiscard]] ToolTipSubject resolve_focus(const Control::Ptr& focused) const;
-    [[nodiscard]] bool same_thing(const ToolTipSubject& left, const ToolTipSubject& right) const noexcept;
     [[nodiscard]] std::chrono::milliseconds show_delay(FrameTime now) const noexcept;
     void wait(ToolTipOrigin origin, ToolTipSubject subject, FrameTime now);
     void arm(FrameTime deadline);
@@ -176,8 +169,7 @@ private:
     // show), so a handled key that leaves focus on it changes nothing.
     ToolTipSubject keyboard_subject_{};
     std::uint64_t next_overlay_{1U};
-    // Covers by (control runtime ID, item ID), counted.
-    std::map<std::pair<std::uint64_t, std::string>, std::size_t> covers_{};
+    ToolTipCovers covers_{};
 };
 
 } // namespace gui_forms::detail

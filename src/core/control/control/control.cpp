@@ -128,6 +128,16 @@ std::shared_ptr<const PropertyEnumDescriptor> dock_style_property_enum_impl() {
     return value;
 }
 
+std::shared_ptr<const PropertyEnumDescriptor> self_alignment_property_enum_impl() {
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+        PropertyEnumDescriptor{
+            "self_alignment",
+            {{"automatic", 0}, {"start", 1}, {"center", 2}, {"end", 3},
+             {"stretch", 4}},
+            false});
+    return value;
+}
+
 std::shared_ptr<const PropertyEnumDescriptor> anchor_styles_property_enum_impl() {
     static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
@@ -297,6 +307,21 @@ BindingValue PropertyValueTraits<DockStyle>::to_binding(DockStyle value) {
     return general;
 }
 
+PropertyType PropertyValueTraits<SelfAlignment>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, self_alignment_property_enum_impl()};
+}
+
+BindingValue PropertyValueTraits<SelfAlignment>::to_binding(SelfAlignment value) {
+    const BindingValue general =
+        current_enum_property_value_impl(self_alignment_property_enum_impl(), static_cast<std::int64_t>(value));
+    return general;
+}
+
+SelfAlignment PropertyValueTraits<SelfAlignment>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<SelfAlignment>(choice.value);
+}
+
 PropertyType PropertyValueTraits<AnchorStyles>::type() {
     return PropertyType{BindingValueKind::enumeration, false, anchor_styles_property_enum_impl()};
 }
@@ -336,6 +361,32 @@ BindingValue PropertyValueTraits<std::optional<CursorKind>>::to_binding(std::opt
     if (value) encoded = static_cast<std::int64_t>(*value) + 1;
     const BindingValue general = current_enum_property_value_impl(cursor_kind_property_enum(), encoded);
     return general;
+}
+
+DockStyle PropertyValueTraits<DockStyle>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<DockStyle>(choice.value);
+}
+
+AnchorStyles PropertyValueTraits<AnchorStyles>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<AnchorStyles>(choice.value);
+}
+
+AutoSizeMode PropertyValueTraits<AutoSizeMode>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<AutoSizeMode>(choice.value);
+}
+
+LayoutDirection PropertyValueTraits<LayoutDirection>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<LayoutDirection>(choice.value);
+}
+
+std::optional<CursorKind> PropertyValueTraits<std::optional<CursorKind>>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    if (choice.value == 0) return std::nullopt;
+    return static_cast<CursorKind>(choice.value - 1);
 }
 
 BindingValue Control::cursor_property_value() const {
@@ -409,6 +460,11 @@ void Control::set_fore_color_property_value(const BindingValue& value) {
 std::shared_ptr<const PropertyEnumDescriptor>
 Control::dock_style_property_enum() {
     return dock_style_property_enum_impl();
+}
+
+std::shared_ptr<const PropertyEnumDescriptor>
+Control::self_alignment_property_enum() {
+    return self_alignment_property_enum_impl();
 }
 
 std::shared_ptr<const PropertyEnumDescriptor>
@@ -723,6 +779,36 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         anchor.bindable = false;
         return anchor;
     }
+    case RegisteredProperty::justify_self: {
+        PropertyDescriptor justify_self;
+        justify_self.name = "justify_self";
+        justify_self.kind = BindingValueKind::enumeration;
+        justify_self.category = "Layout";
+        justify_self.description =
+            "Inline-axis placement inside the region a layout owner gives the control.";
+        justify_self.default_value = BindingValue{PropertyEnumValue{
+            "self_alignment", "automatic", 0}};
+        justify_self.invalidation_effects = Dirty::measure | Dirty::arrange |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        justify_self.enumeration = self_alignment_property_enum();
+        justify_self.bindable = false;
+        return justify_self;
+    }
+    case RegisteredProperty::align_self: {
+        PropertyDescriptor align_self;
+        align_self.name = "align_self";
+        align_self.kind = BindingValueKind::enumeration;
+        align_self.category = "Layout";
+        align_self.description =
+            "Block-axis placement inside the region a layout owner gives the control.";
+        align_self.default_value = BindingValue{PropertyEnumValue{
+            "self_alignment", "automatic", 0}};
+        align_self.invalidation_effects = Dirty::measure | Dirty::arrange |
+            Dirty::hit_test | Dirty::semantics | Dirty::accessibility;
+        align_self.enumeration = self_alignment_property_enum();
+        align_self.bindable = false;
+        return align_self;
+    }
     case RegisteredProperty::auto_size_mode: {
         PropertyDescriptor auto_size_mode;
         auto_size_mode.name = "auto_size_mode";
@@ -908,6 +994,10 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::dock>, nullptr, nullptr, nullptr, nullptr},
         {"anchor", &describe_registered<RegisteredProperty::anchor>, &read_registered<RegisteredProperty::anchor>,
          &write_registered<RegisteredProperty::anchor>, nullptr, nullptr, nullptr, nullptr},
+        {"justify_self", &describe_registered<RegisteredProperty::justify_self>, &read_registered<RegisteredProperty::justify_self>,
+         &write_registered<RegisteredProperty::justify_self>, nullptr, nullptr, nullptr, nullptr},
+        {"align_self", &describe_registered<RegisteredProperty::align_self>, &read_registered<RegisteredProperty::align_self>,
+         &write_registered<RegisteredProperty::align_self>, nullptr, nullptr, nullptr, nullptr},
         {"auto_size_mode", &describe_registered<RegisteredProperty::auto_size_mode>, &read_registered<RegisteredProperty::auto_size_mode>,
          &write_registered<RegisteredProperty::auto_size_mode>, nullptr, nullptr, nullptr, nullptr},
         {"layout_direction", &describe_registered<RegisteredProperty::layout_direction>, &read_registered<RegisteredProperty::layout_direction>,
@@ -1525,6 +1615,78 @@ std::vector<PropertyDescriptor> Control::property_descriptors() const {
     return result;
 }
 
+std::span<const ChildPropertyEntry> Control::child_property_table() const noexcept {
+    return {};
+}
+
+std::vector<PropertyDescriptor> Control::child_property_descriptors() const {
+    const std::span<const ChildPropertyEntry> table = child_property_table();
+    std::vector<PropertyDescriptor> descriptors{};
+    descriptors.reserve(table.size());
+    for (const ChildPropertyEntry& entry : table) descriptors.push_back(entry.describe());
+    return descriptors;
+}
+
+namespace {
+
+// The entry of `table` registered as `name` (either spelling), or null.
+[[nodiscard]] const ChildPropertyEntry* find_child_property_entry(std::span<const ChildPropertyEntry> table,
+                                                                  std::string_view name) {
+    const std::string canonical = registered_name(name);
+    for (const ChildPropertyEntry& entry : table) {
+        if (entry.name == canonical) return &entry;
+    }
+    return nullptr;
+}
+
+} // namespace
+
+void Control::require_direct_child(const Control& child) const {
+    if (!child.is_alive() || child.parent_.lock().get() != this) {
+        throw std::invalid_argument("GUI.Forms child property requires a live direct child");
+    }
+}
+
+void Control::child_leaving(const Control& child) noexcept {
+    static_cast<void>(child);
+}
+
+std::optional<BindingValue> Control::child_property_value(const Control& child, std::string_view name) const {
+    if (surface_root_) (*surface_root_).require_root_thread("child property query");
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) return std::nullopt;
+    std::optional<BindingValue> value = read_child_property_entry(*this, child, *entry);
+    return value;
+}
+
+void Control::set_child_property_value(const Control& child, std::string_view name, const BindingValue& value) {
+    require_mutable();
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) {
+        throw std::invalid_argument("GUI.Forms container provides no child property " + std::string(name));
+    }
+    write_child_property_entry(*this, child, *entry, value);
+}
+
+bool Control::reset_child_property(const Control& child, std::string_view name) {
+    require_mutable();
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) return false;
+    const bool reset = reset_child_property_entry(*this, child, *entry);
+    return reset;
+}
+
+bool Control::should_serialize_child_property(const Control& child, std::string_view name) const {
+    require_direct_child(child);
+    const ChildPropertyEntry* const entry = find_child_property_entry(child_property_table(), name);
+    if (entry == nullptr) return false;
+    const bool serialized = child_property_entry_should_serialize(*this, child, *entry);
+    return serialized;
+}
+
 std::optional<BindingValue> Control::property_value(std::string_view name) const {
     if (!is_alive()) {
         throw std::logic_error("GUI.Forms cannot query a disposed control property");
@@ -1750,6 +1912,18 @@ void validate_insets(Insets value, const char* message) {
     return false;
 }
 
+[[nodiscard]] bool valid_self_alignment(SelfAlignment alignment) noexcept {
+    switch (alignment) {
+    case SelfAlignment::automatic:
+    case SelfAlignment::start:
+    case SelfAlignment::center:
+    case SelfAlignment::end:
+    case SelfAlignment::stretch:
+        return true;
+    }
+    return false;
+}
+
 [[nodiscard]] bool valid_anchor(AnchorStyles anchor) noexcept {
     constexpr std::uint8_t valid =
         static_cast<std::uint8_t>(AnchorStyles::top) |
@@ -1877,6 +2051,7 @@ Control::Ptr Control::remove_child(RuntimeId child_id) {
         return {};
     }
     Ptr removed = *found;
+    child_leaving(*removed);
     if (surface_root_) {
         (*surface_root_).detach_subtree(removed);
     }
@@ -2295,6 +2470,31 @@ void Control::prepare_write(const decltype(anchor)&, AnchorStyles& value) {
 void Control::written(const decltype(anchor)&) {
     recapture_anchor_reference();
     invalidate(invalidation::bounds);
+}
+
+// The self alignments change only where the parent places the control, so
+// they dirty it as margin does: its measure and arrange, which reach the
+// parent's layout.
+void Control::prepare_write(const decltype(justify_self)&, SelfAlignment& value) {
+    require_mutable();
+    if (!valid_self_alignment(value)) {
+        throw std::invalid_argument("GUI.Forms SelfAlignment value is invalid");
+    }
+}
+
+void Control::written(const decltype(justify_self)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
+}
+
+void Control::prepare_write(const decltype(align_self)&, SelfAlignment& value) {
+    require_mutable();
+    if (!valid_self_alignment(value)) {
+        throw std::invalid_argument("GUI.Forms SelfAlignment value is invalid");
+    }
+}
+
+void Control::written(const decltype(align_self)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::hit_test | Dirty::semantics | Dirty::accessibility);
 }
 
 void Control::prepare_write(const decltype(auto_size_mode)&, AutoSizeMode& value) {
@@ -3548,6 +3748,10 @@ void Control::apply_provider_semantics(SemanticDescriptor& descriptor) const {
     }
 }
 
+std::vector<SemanticNode> Control::tool_tip_items() const {
+    return semantic_virtual_children();
+}
+
 std::vector<SemanticNode> Control::semantic_virtual_children() const {
     return {};
 }
@@ -3855,6 +4059,9 @@ void Control::on_dispose() noexcept {
     validating_.disconnect_all();
     validated_.disconnect_all();
     Ptr self = weak_from_this().lock();
+    if (std::shared_ptr<gui_forms::Control> leaving_parent = parent_.lock()) {
+        (*leaving_parent).child_leaving(*this);
+    }
     if (surface_root_ && self) {
         (*surface_root_).dispose_subtree(self);
     } else if (std::shared_ptr<gui_forms::Control> visual_parent = parent_.lock()) {

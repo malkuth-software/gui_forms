@@ -1589,7 +1589,7 @@ Color inherited_text(const Control& control, Color fallback) {
         facts.classes = above.classes();
         facts.inline_rules = above.inline_style_rules();
         facts.states = above.anatomy_states();
-        const Window* const window = above.attached_window();
+        const SurfaceRoot* const window = above.attached_surface_root();
         if (window != nullptr) facts.media = window_media_facts(*window);
         if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
         const CompiledThemeRules::RecipeResolution fields =
@@ -1772,7 +1772,7 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
     facts.inline_rules = control.inline_style_rules();
     facts.states = states;
     facts.forced_high_contrast = forced;
-    const Window* const window = control.attached_window();
+    const SurfaceRoot* const window = control.attached_surface_root();
     if (window != nullptr) facts.media = window_media_facts(*window);
     if (window != nullptr) facts.user_rules = (*window).user_theme_rules();
     CompiledThemeRules::RecipeResolution fields = engine_.rules().resolve_recipe_fields(facts);

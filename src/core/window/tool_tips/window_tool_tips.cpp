@@ -1,19 +1,32 @@
 #include "gui_forms/window.hpp"
 
 #include "gui_forms/application.hpp"
-#include "tool_tip_presenter.hpp"
+#include "gui_forms/text.hpp"
+#include "tool_tip_route.hpp"
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 
 #include <cmath>
 #include <stdexcept>
+#include <string>
+#include <utility>
 
 namespace gui_forms {
+
+namespace {
+
+[[nodiscard]] bool finite_rect(Rect rect) noexcept {
+    const bool finite = std::isfinite(rect.x) && std::isfinite(rect.y) && std::isfinite(rect.width) &&
+                        std::isfinite(rect.height) && rect.width >= 0.0 && rect.height >= 0.0;
+    return finite;
+}
+
+} // namespace
 
 void SurfaceRoot::set_tool_tips_shown(std::optional<bool> shown) {
     require_root_thread("tooltip switch");
     if (tool_tips_shown_ == shown) return;
     tool_tips_shown_ = shown;
-    (*tool_tip_presenter_).settings_changed();
+    (*tool_tips_).settings_changed();
 }
 
 bool SurfaceRoot::tool_tips_shown() const noexcept {
@@ -36,12 +49,12 @@ void SurfaceRoot::set_tool_tip_settings(ToolTipSettings settings) {
                                   settings.show_on_focus != tool_tip_settings_.show_on_focus ||
                                   settings.show_when_disabled != tool_tip_settings_.show_when_disabled;
     tool_tip_settings_ = settings;
-    if (width_changed || switches_changed) (*tool_tip_presenter_).settings_changed();
+    if (width_changed || switches_changed) (*tool_tips_).settings_changed();
 }
 
 void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::chrono::milliseconds> duration) {
     require_root_thread("tooltip show");
-    if (!target || !(*target).is_alive() || (*target).attached_window() != this) {
+    if (!target || !(*target).is_alive() || (*target).attached_surface_root() != this) {
         throw std::invalid_argument("GUI.Forms tooltip target must be a live control attached to its Window");
     }
     if ((*target).tool_tip_text.read().empty()) {
@@ -50,38 +63,118 @@ void SurfaceRoot::show_tool_tip(const Control::Ptr& target, std::optional<std::c
     if (duration && (*duration).count() < 0) {
         throw std::invalid_argument("GUI.Forms tooltip duration may not be negative");
     }
-    (*tool_tip_presenter_).show_program(target, duration);
+    end_tool_tip_request(true);
+    (*tool_tips_).show_program(target, duration);
+}
+
+std::uint64_t SurfaceRoot::request_tool_tip(const Control::Ptr& owner, ToolTipRequest request,
+                                            std::weak_ptr<SurfaceRequestAnswer> answer) {
+    require_root_thread("tooltip request");
+    if (!owner || !(*owner).is_alive() || (*owner).attached_surface_root() != this) {
+        throw std::invalid_argument("GUI.Forms tooltip request owner must be a live control attached to its root");
+    }
+    if (request.text.empty() || !validate_utf8(request.text).valid()) {
+        throw std::invalid_argument("GUI.Forms tooltip request text must be non-empty valid UTF-8");
+    }
+    if (!finite_rect(request.anchor)) {
+        throw std::invalid_argument("GUI.Forms tooltip request anchor must be finite");
+    }
+    if (request.duration && (*request.duration).count() < 0) {
+        throw std::invalid_argument("GUI.Forms tooltip duration may not be negative");
+    }
+    end_tool_tip_request(true);
+    ToolTipRequestRecord record;
+    record.id = next_tool_tip_request_;
+    ++next_tool_tip_request_;
+    record.owner = owner;
+    record.item_id = "request." + std::to_string(record.id);
+    record.answer = std::move(answer);
+    const std::uint64_t id = record.id;
+    const std::string item_id = record.item_id;
+    tool_tip_request_ = std::move(record);
+    (*tool_tips_).request(owner, id, item_id, request);
+    return id;
+}
+
+void SurfaceRoot::withdraw_tool_tip_request(std::uint64_t id) {
+    require_root_thread("tooltip request");
+    if (!tool_tip_request_ || (*tool_tip_request_).id != id) return;
+    end_tool_tip_request(false);
+}
+
+void SurfaceRoot::end_tool_tip_request(bool answer_revoked) {
+    if (!tool_tip_request_) return;
+    const ToolTipRequestRecord ended = std::move(*tool_tip_request_);
+    tool_tip_request_.reset();
+    if (answer_revoked && !ended.answer.expired()) {
+        SurfaceRequestOutcome outcome;
+        outcome.id = ended.id;
+        outcome.result = SurfaceRequestResult::revoked;
+        deliver_request_answer(ended.answer, outcome);
+    }
+    (*tool_tips_).withdraw(ended.item_id);
+}
+
+void SurfaceRoot::answer_tool_tip_request(std::uint64_t id, SurfaceRequestResult result) {
+    if (!tool_tip_request_ || (*tool_tip_request_).id != id) return;
+    const std::weak_ptr<SurfaceRequestAnswer> answer = (*tool_tip_request_).answer;
+    const bool ends = result == SurfaceRequestResult::declined || result == SurfaceRequestResult::revoked ||
+                      result == SurfaceRequestResult::stale;
+    if (ends) tool_tip_request_.reset();
+    if (answer.expired()) return;
+    SurfaceRequestOutcome outcome;
+    outcome.id = id;
+    outcome.result = result;
+    deliver_request_answer(answer, outcome);
+}
+
+void SurfaceRoot::tool_tip_request_changed(const ToolTipEvent& change) {
+    if (!tool_tip_request_ || change.item_id != (*tool_tip_request_).item_id) return;
+    const Control::Ptr owner = (*tool_tip_request_).owner.lock();
+    if (!owner || (*owner).stable_id().value() != change.target_stable_id) return;
+    answer_tool_tip_request((*tool_tip_request_).id,
+                            change.shown ? SurfaceRequestResult::shown : SurfaceRequestResult::closed);
 }
 
 void SurfaceRoot::hide_tool_tip() {
     require_root_thread("tooltip hide");
-    (*tool_tip_presenter_).hide();
+    (*tool_tips_).hide();
 }
 
 bool SurfaceRoot::tool_tip_visible() const noexcept {
-    const bool visible = (*tool_tip_presenter_).visible();
+    const bool visible = (*tool_tips_).visible();
     return visible;
 }
 
 Control::Ptr SurfaceRoot::tool_tip_target() const noexcept {
-    const Control::Ptr target = (*tool_tip_presenter_).target();
+    const Control::Ptr target = (*tool_tips_).target();
     return target;
 }
 
 std::string SurfaceRoot::tool_tip_item_id() const {
-    return (*tool_tip_presenter_).item_id();
+    return (*tool_tips_).item_id();
 }
 
 std::string SurfaceRoot::tool_tip_text() const {
-    return (*tool_tip_presenter_).text();
+    return (*tool_tips_).text();
 }
 
 void SurfaceRoot::tool_tip_text_changed(Control& control) {
-    (*tool_tip_presenter_).text_changed(control);
+    (*tool_tips_).text_changed(control);
+}
+
+void SurfaceRoot::tool_tip_items_changed(Control& control) {
+    (*tool_tips_).items_changed(control);
+}
+
+void SurfaceRoot::show_requested_tool_tip(const Control::Ptr& control, std::string item_id, std::string text,
+                                          Rect anchor, std::optional<std::chrono::milliseconds> duration) {
+    require_root_thread("tooltip show");
+    (*tool_tips_).show_program_item(control, std::move(item_id), std::move(text), anchor, duration);
 }
 
 void SurfaceRoot::cover_tool_tip(RuntimeId control, std::string_view item_id, bool covered) {
-    (*tool_tip_presenter_).cover(control, item_id, covered);
+    (*tool_tips_).cover(control, item_id, covered);
 }
 
 FrameRequestToken SurfaceRoot::request_tool_tip_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {

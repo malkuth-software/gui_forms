@@ -220,7 +220,7 @@ public:
         arrange_self(final_bounds);
         double x = 7.0;
         for (const std::shared_ptr<Button>& button : controllers_) {
-            const double width = (*button).text().find('%') != std::string::npos
+            const double width = (*button).text.read().find('%') != std::string::npos
                 ? 54.0 : 82.0;
             set_child_layout(button, {x, 8.0, width, 27.0});
             x += width + 5.0;
@@ -345,7 +345,7 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
     std::shared_ptr<Button> primary = make_control<Button>(
         StableId("responsive.content.primary"),
         "Facade Study");
-    (*primary).set_font({FontRole::content, 10.0, 400, false});
+    (*primary).font = {FontRole::content, 10.0, 400, false};
     std::shared_ptr<LayoutDiagnosticsView> diagnostics =
         make_control<LayoutDiagnosticsView>(
             StableId("responsive.layout.diagnostics"));
@@ -407,7 +407,7 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
         std::shared_ptr<Button> button = make_control<Button>(
             StableId("responsive.preset." +
                      std::to_string(static_cast<int>(size.width))), label);
-        (*button).set_font({FontRole::control, 8.0, 700, false});
+        (*button).font = {FontRole::control, 8.0, 700, false};
         (*root).add_child(button);
         (*root).add_controller(button);
         (*root).retain((*button).clicked().subscribe(
@@ -418,7 +418,7 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
             std::to_string(static_cast<int>(scale * 100.0)) + "%";
         std::shared_ptr<Button> button = make_control<Button>(
             StableId("responsive.scale." + std::to_string(static_cast<int>(scale * 100.0))), label);
-        (*button).set_font({FontRole::control, 8.0, 700, false});
+        (*button).font = {FontRole::control, 8.0, 700, false};
         (*root).add_child(button);
         (*root).add_controller(button);
         (*root).retain((*button).clicked().subscribe(
@@ -430,7 +430,7 @@ std::unique_ptr<Window> make_responsive_tracks_lab() {
         std::shared_ptr<Button> button = make_control<Button>(
             StableId("responsive.reveal." + std::to_string(choice.second)),
             choice.first);
-        (*button).set_font({FontRole::control, 8.0, 700, false});
+        (*button).font = {FontRole::control, 8.0, 700, false};
         (*root).add_child(button);
         (*root).add_controller(button);
         (*root).retain((*button).clicked().subscribe(

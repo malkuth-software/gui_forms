@@ -188,7 +188,7 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
             const ChoiceItem& value = (*next).items[index];
             Button& button = *(*(*next).entries[index]).button;
             const std::string text = value.glyph.empty() ? value.label : value.glyph + " " + value.label;
-            button.set_text(text);
+            button.text = text;
             button.set_image(value.image);
             button.accessible_name = value.accessible_name.empty() ? value.label : value.accessible_name;
             button.tab_index = static_cast<std::uint32_t>(index);

@@ -32,7 +32,7 @@ struct SynchronizeBoundButton final {
         const std::shared_ptr<ButtonBase> retained = button.lock();
         if (!retained) return;
         if (options.synchronize_enabled) (*retained).enabled = state.enabled;
-        if (options.synchronize_text) (*retained).set_text(state.text);
+        if (options.synchronize_text) (*retained).text = state.text;
         if (options.synchronize_visibility) {
             (*retained).visible = state.visible;
         }
@@ -61,7 +61,7 @@ CommandBinding::CommandBinding(std::shared_ptr<Command> command,
 
 void CommandBinding::apply(const CommandState& state) {
     if (options_.synchronize_enabled) (*button_).enabled = state.enabled;
-    if (options_.synchronize_text) (*button_).set_text(state.text);
+    if (options_.synchronize_text) (*button_).text = state.text;
     if (options_.synchronize_visibility) (*button_).visible = state.visible;
     if (options_.synchronize_accessible_description) {
         (*button_).accessible_description = state.description;

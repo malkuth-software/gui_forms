@@ -132,11 +132,9 @@ public:
     // at its size. Throws std::invalid_argument for an invalid FontSpec.
     [[nodiscard]] FontSpec font() const noexcept { return font_; }
     void set_font(FontSpec font);
-    // The document's extent drives the inherited scrollbars (on by default).
-    void set_auto_scroll(bool enabled) override;
     void arrange(Rect final_bounds) override;
     [[nodiscard]] Point scroll_offset() const noexcept {
-        if (auto_scroll()) return scroll_position();
+        if (auto_scroll.read()) return scroll_position();
         const Point result{.x = horizontal_offset_, .y = vertical_offset_};
         return result;
     }
@@ -273,6 +271,9 @@ public:
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_scroll_position_changed() override;
+    // The document's extent drives the inherited scroll bars (on by default);
+    // turning auto scroll off keeps the document where it was.
+    void on_auto_scroll_changed(Point previous_position) override;
     void on_detached_from_window() noexcept override;
     void on_dispose() noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;

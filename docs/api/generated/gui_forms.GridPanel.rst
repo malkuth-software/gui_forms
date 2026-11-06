@@ -7,7 +7,7 @@ gui_forms::GridPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: GridPanel final : public ContainerControl
+.. cpp:class:: GridPanel final : public ContainerControl, public GridAreaCapability<GridPanel>, public GridCellCapability<GridPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/grid_panel/grid_panel.hpp>``
 
@@ -46,6 +46,30 @@ gui_forms::GridPanel
 
    :Properties:
 
+      **area** : ``std::string``, child property, default ``""``
+         The named span a child is placed into: `(*grid).area[*ok] =
+         "footer";`. Reading it answers "" unless the child is placed by area;
+         writing "" makes the child's placement automatic. The name must be a
+         span's. A ``.form`` child writes ``area: "footer";``.
+
+      **cell** : ``GridCell``, child property
+         The cell a child is placed at: `(*grid).cell[*title] =
+         gf::GridCell{.row = 0U, .column = 0U};`. At a span's anchor the child
+         takes the span's whole region; a cell inside a span, other than its
+         anchor, is refused. Reading it answers the anchor of the region the
+         child occupies, for an area placement too, and {0, 0} for an automatic
+         one. It travels in bindings as a point whose x is the row; a ``.form``
+         child writes ``cell: 0 2;``. Writing :cpp:member:`area <gui_forms::GridPanel::area>` or :cpp:member:`cell <gui_forms::GridPanel::cell>` replaces the other
+         and the item layout's placement lines.
+
+      **spans** : ``std::span<const GridSpan>``, default none
+         The spans, :cpp:class:`GridSpan <gui_forms::GridSpan>` values in declaration order: each a region of
+         ``rows`` x ``columns`` cells from its ``anchor`` (:cpp:class:`GridCell <gui_forms::GridCell>`, row then
+         column, zero-based), named or anonymous. The getter borrows the panel
+         until the next span edit. ``set_spans(spans)`` replaces every span, with
+         the rules of :cpp:func:`define_span <gui_forms::GridPanel::define_span>` and :cpp:func:`remove_span <gui_forms::GridPanel::remove_span>` over the whole list, and
+         returns a :cpp:enum:`GridSpanOutcome <gui_forms::GridSpanOutcome>`.
+
       **template_columns** : ``GridTrackList``, default no tracks
          grid-template-columns, a :cpp:class:`GridTrackList <gui_forms::GridTrackList>`: the explicit columns'
          :cpp:class:`GridTrackSize <gui_forms::GridTrackSize>` values, at most 10,000, and at most one automatic
@@ -61,9 +85,13 @@ gui_forms::GridPanel
 
       **template_areas** : ``GridTemplateAreas``, default none
          grid-template-areas: the template's rows and columns in cells and its
-         named rectangles. Names must be distinct and each area must lie within
-         the template; its rows and columns add explicit tracks where the
-         template lists are shorter.
+         named rectangles, which are the named spans in another spelling.
+         Setting it replaces every span, anonymous ones included, and records
+         the template's extent; reading it answers the named spans in order
+         within the larger of that extent and the spans' own. Names must be
+         distinct, each area must lie within the template, and the spans' rules
+         apply (see :cpp:func:`define_span <gui_forms::GridPanel::define_span>`). Its rows and columns add explicit tracks
+         where the template lists are shorter.
 
       **auto_flow** : ``GridAutoFlow``, default ``GridAutoFlow::row``
          grid-auto-flow: automatic placement fills rows (``row``) or columns
@@ -131,7 +159,7 @@ gui_forms::GridPanel
 
       From :cpp:class:`ContainerControl <gui_forms::ContainerControl>`: properties :cpp:func:`active_control <gui_forms::ContainerControl::active_control>`, :cpp:func:`auto_validate <gui_forms::ContainerControl::auto_validate>`, :cpp:func:`effective_auto_validate <gui_forms::ContainerControl::effective_auto_validate>`; events :cpp:func:`auto_validate_changed <gui_forms::ContainerControl::auto_validate_changed>`; methods :cpp:func:`clear_active_control <gui_forms::ContainerControl::clear_active_control>`, :cpp:func:`contains_descendant <gui_forms::ContainerControl::contains_descendant>`, :cpp:func:`request_active_control <gui_forms::ContainerControl::request_active_control>`, :cpp:func:`validate <gui_forms::ContainerControl::validate>`, :cpp:func:`validate_children <gui_forms::ContainerControl::validate_children>`.
 
-      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:func:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:func:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:func:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:func:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
+      From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`parts <gui_forms::ScrollableControl::parts>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -141,12 +169,20 @@ gui_forms::GridPanel
       :class: autosummary longtable
       :widths: 35 65
 
+      * - :cpp:func:`grid_child_property_entries <gui_forms::GridPanel::grid_child_property_entries>`
+        -  
+      * - :cpp:func:`define_span <gui_forms::GridPanel::define_span>`
+        - ``define_span(span)`` adds a :cpp:class:`GridSpan <gui_forms::GridSpan>` and returns a :cpp:enum:`GridSpanOutcome <gui_forms::GridSpanOutcome>`: ``applied``, or the refusal, which changes nothing.
+      * - :cpp:func:`remove_span <gui_forms::GridPanel::remove_span>`
+        - ``remove_span(name)`` or ``remove_span(anchor)`` removes one span: ``not_found`` when none matches, ``in_use`` for a named span a child is placed into by area (re-place or clear those children first).
+      * - :cpp:func:`placement <gui_forms::GridPanel::placement>`
+        - ``placement(child)`` answers a direct child's :cpp:class:`GridPlacement <gui_forms::GridPlacement>`: which form is in force (``automatic``, :cpp:member:`area <gui_forms::GridPanel::area>` or :cpp:member:`cell <gui_forms::GridPanel::cell>`) and its value.
       * - :cpp:func:`item_layout <gui_forms::GridPanel::item_layout>`
         - The child's item layout, or the default one for a child without its own record or a control that is not a direct child.
       * - :cpp:func:`item_positioning <gui_forms::GridPanel::item_positioning>`
         - The child's ``position`` and insets, without copying its whole record; static for a control that is not a live direct child.
       * - :cpp:func:`set_item_layout <gui_forms::GridPanel::set_item_layout>`
-        - ``set_item_layout(child, layout)`` sets a direct child's :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`: its ``placement`` (:cpp:class:`GridItemStyle <gui_forms::GridItemStyle>`'s four :cpp:class:`GridLine <gui_forms::GridLine>` values: ``automatic``, a line number other than zero, negative from the end, ``span`` of at least one, or a named area's edge); ``justify_self`` and ``align_self``; its ``width``, ``height``, minimums and maximums; and which margins are ``auto``.
+        - ``set_item_layout(child, layout)`` sets a direct child's :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`: its :cpp:func:`placement <gui_forms::GridPanel::placement>` (:cpp:class:`GridItemStyle <gui_forms::GridItemStyle>`'s four :cpp:class:`GridLine <gui_forms::GridLine>` values: ``automatic``, a line number other than zero, negative from the end, ``span`` of at least one, or a named area's edge); ``justify_self`` and ``align_self``; its ``width``, ``height``, minimums and maximums; and which margins are ``auto``.
 
    .. seealso::
 
@@ -171,7 +207,9 @@ gui_forms::GridPanel
    ``margin``, and the default :cpp:class:`Control <gui_forms::Control>` margin is 3 on every side, so set it
    to zero for flush items. Hidden children take no space.
 
-   The panel keeps one item record per child, dropped when the child leaves.
+   The panel keeps one item record per child, its placement included,
+   dropped when the child leaves. Automatic placement does not treat a span as
+   one region: like CSS Grid with named areas, it fills free cells.
    A parent assigns each child a layout slot; the child's own
    ``requested_bounds`` are never rewritten. The panel measures each item once
    per change, and an item stretched over fixed columns only for its height:
@@ -267,6 +305,37 @@ gui_forms::GridPanel
 
    .. rubric:: Properties
 
+   .. cpp:member:: std::string area
+
+      The named span a child is placed into: `(*grid).area[*ok] =
+      "footer";`. Reading it answers "" unless the child is placed by area;
+      writing "" makes the child's placement automatic. The name must be a
+      span's. A ``.form`` child writes ``area: "footer";``.
+
+   .. cpp:member:: GridCell cell
+
+      The cell a child is placed at: `(*grid).cell[*title] =
+      gf::GridCell{.row = 0U, .column = 0U};`. At a span's anchor the child
+      takes the span's whole region; a cell inside a span, other than its
+      anchor, is refused. Reading it answers the anchor of the region the
+      child occupies, for an area placement too, and {0, 0} for an automatic
+      one. It travels in bindings as a point whose x is the row; a ``.form``
+      child writes ``cell: 0 2;``. Writing :cpp:member:`area <gui_forms::GridPanel::area>` or :cpp:member:`cell <gui_forms::GridPanel::cell>` replaces the other
+      and the item layout's placement lines.
+
+   .. cpp:function:: std::span<const GridSpan> spans() const& noexcept
+
+      The spans, :cpp:class:`GridSpan <gui_forms::GridSpan>` values in declaration order: each a region of
+      ``rows`` x ``columns`` cells from its ``anchor`` (:cpp:class:`GridCell <gui_forms::GridCell>`, row then
+      column, zero-based), named or anonymous. The getter borrows the panel
+      until the next span edit. ``set_spans(spans)`` replaces every span, with
+      the rules of :cpp:func:`define_span <gui_forms::GridPanel::define_span>` and :cpp:func:`remove_span <gui_forms::GridPanel::remove_span>` over the whole list, and
+      returns a :cpp:enum:`GridSpanOutcome <gui_forms::GridSpanOutcome>`.
+
+   .. cpp:function:: GridSpanOutcome set_spans(std::span<const GridSpan> spans)
+
+      Sets :cpp:func:`spans <gui_forms::GridPanel::spans>`; see the property's description above.
+
    .. cpp:function:: const GridTrackList& template_columns() const& noexcept
 
       grid-template-columns, a :cpp:class:`GridTrackList <gui_forms::GridTrackList>`: the explicit columns'
@@ -293,9 +362,13 @@ gui_forms::GridPanel
    .. cpp:function:: const GridTemplateAreas& template_areas() const& noexcept
 
       grid-template-areas: the template's rows and columns in cells and its
-      named rectangles. Names must be distinct and each area must lie within
-      the template; its rows and columns add explicit tracks where the
-      template lists are shorter.
+      named rectangles, which are the named spans in another spelling.
+      Setting it replaces every span, anonymous ones included, and records
+      the template's extent; reading it answers the named spans in order
+      within the larger of that extent and the spans' own. Names must be
+      distinct, each area must lie within the template, and the spans' rules
+      apply (see :cpp:func:`define_span <gui_forms::GridPanel::define_span>`). Its rows and columns add explicit tracks
+      where the template lists are shorter.
 
    .. cpp:function:: void set_template_areas(const GridTemplateAreas& areas)
 
@@ -414,6 +487,35 @@ gui_forms::GridPanel
 
    .. rubric:: Methods
 
+   .. cpp:function:: static const std::array<ChildPropertyEntry, grid_child_property_count>& grid_child_property_entries() noexcept
+
+   .. cpp:function:: GridSpanOutcome define_span(const GridSpan& span)
+
+      ``define_span(span)`` adds a :cpp:class:`GridSpan <gui_forms::GridSpan>` and returns a :cpp:enum:`GridSpanOutcome <gui_forms::GridSpanOutcome>`:
+      ``applied``, or the refusal, which changes nothing. A span is refused
+      with no rows or columns or ending past 10,000 (``extent_invalid``),
+      sharing a cell with another (``overlaps``), sharing a non-empty name
+      (``name_repeated``) or covering a cell a child is placed at other than
+      its anchor (``covers_placed_child``). A span may lie past the explicit
+      tracks; implicit tracks hold it.
+
+   .. cpp:function:: GridSpanOutcome remove_span(std::string_view name)
+
+      ``remove_span(name)`` or ``remove_span(anchor)`` removes one span:
+      ``not_found`` when none matches, ``in_use`` for a named span a child is
+      placed into by area (re-place or clear those children first).
+
+   .. cpp:function:: GridSpanOutcome remove_span(GridCell anchor)
+
+      ``remove_span(name)`` or ``remove_span(anchor)`` removes one span:
+      ``not_found`` when none matches, ``in_use`` for a named span a child is
+      placed into by area (re-place or clear those children first).
+
+   .. cpp:function:: GridPlacement placement(const Control& child) const
+
+      ``placement(child)`` answers a direct child's :cpp:class:`GridPlacement <gui_forms::GridPlacement>`: which
+      form is in force (``automatic``, :cpp:member:`area <gui_forms::GridPanel::area>` or :cpp:member:`cell <gui_forms::GridPanel::cell>`) and its value.
+
    .. cpp:function:: GridItemLayout item_layout(const Control& child) const
 
       The child's item layout, or the default one for a child without its
@@ -426,17 +528,20 @@ gui_forms::GridPanel
    .. cpp:function:: void set_item_layout(const Control& child, const GridItemLayout& layout)
 
       ``set_item_layout(child, layout)`` sets a direct child's
-      :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`: its ``placement`` (:cpp:class:`GridItemStyle <gui_forms::GridItemStyle>`'s four
+      :cpp:class:`GridItemLayout <gui_forms::GridItemLayout>`: its :cpp:func:`placement <gui_forms::GridPanel::placement>` (:cpp:class:`GridItemStyle <gui_forms::GridItemStyle>`'s four
       :cpp:class:`GridLine <gui_forms::GridLine>` values: ``automatic``, a line number other than zero, negative
       from the end, ``span`` of at least one, or a named area's edge);
       ``justify_self`` and ``align_self``; its ``width``, ``height``, minimums and
       maximums; and which margins are ``auto``. The child must be a live
       direct child, line numbers and spans at most 10,000, sizes lengths,
       percentages of the item's grid area or ``auto`` (``none`` for the
-      maximums).
+      maximums). Placement lines that are not all automatic replace an
+      :cpp:member:`area <gui_forms::GridPanel::area>` or :cpp:member:`cell <gui_forms::GridPanel::cell>` placement.
 
 
    .. rubric:: Extension points
+
+   .. cpp:function:: std::span<const ChildPropertyEntry> child_property_table() const noexcept override
 
    .. cpp:function:: Size measure(Size available) override
 
@@ -453,3 +558,11 @@ gui_forms::GridPanel
    .. cpp:function:: Size measure_intrinsic(const LayoutConstraint& constraint) override
 
       *Protected.*
+
+   .. cpp:function:: void child_leaving(const Control& child) noexcept override
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t grid_child_property_count
+
+      The child properties it provides: area and cell. Default: ``2U``.

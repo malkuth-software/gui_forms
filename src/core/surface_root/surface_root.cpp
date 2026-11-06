@@ -1,5 +1,6 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window.hpp"
+#include "requests/alert_route.hpp"
 
 #include "../dispatcher/state/dispatcher_state.hpp"
 // The constructor destroys its built members if a later one throws, so every

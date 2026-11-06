@@ -157,6 +157,12 @@ newest wins). Work for the sub-surface is posted through
 leaves its window the thread is stopped and joined, and the tree is released
 on its own thread.
 
+A sub-surface shows the window's environment: the application theme, the
+presentation settings (with reduced motion) and a layered user theme. Its
+themed parts, motion values and ambient effects run on its own thread, and
+ambient frames tick on the display time its pacer names. An effect reading
+the backdrop samples the sub-surface's own backplane, never the window's.
+
 ### Pacing producers
 
 A producer paces itself with a `LiveSurfacePacer`, never with a sleep loop.
@@ -196,6 +202,57 @@ coordinates: the focused control's `Control::text_input_caret`, or a narrow
 box at its left edge. A sub-surface publishes its own caret at the end of
 each turn and the host reports it at its offset, so the input method never
 waits on the sub-surface's thread.
+
+### Requests: tooltips beyond a control
+
+A control that wants something shown beyond itself asks its root:
+`SurfaceRoot::request_tool_tip(owner, ToolTipRequest, answer)` carries the
+content as data (text, an optional semantic description, an anchor in the
+root's coordinates, a duration) and returns an ID; the answers
+(`SurfaceRequestOutcome`: shown, declined, closed, revoked or stale) are
+posted to the `SurfaceRequestAnswer` target through the root's dispatcher,
+and `withdraw_tool_tip_request` takes the request back. One request is
+current per root; a newer one replaces it. The control never needs to know
+which kind of root it lives in: a window's tooltip presenter shows the
+request at once, as `show_tool_tip` does, and a sub-surface forwards it to
+its parent, which decides.
+
+Alerts take the same path. `SurfaceRoot::raise_alert(owner, AlertRequest,
+answer)` carries a message, a caption, the buttons, an icon and the default
+button, and returns at once; a window shows its alerts one at a time, in the
+order raised, through the host's message dialog, and a sub-surface forwards
+each to its parent, which raises it on the host. The one answer is closed
+with the chosen button (`SurfaceRequestOutcome::choice`), declined when
+there is no host or the host refuses, or revoked when `withdraw_alert` took
+it back, or its owner left the root, before it showed.
+
+### Sub-surface tooltips
+
+A sub-surface borrows its region from its parent and never shows anything
+beyond it itself: no tooltip bubble and no native popup (native popups are
+opened from a window). Instead it asks its parent. When the thing under the
+pointer, under keyboard focus, or named by `SurfaceRoot::show_tool_tip` or
+`request_tool_tip` changes, the sub-surface's thread posts a
+`SubSurfaceRequest` (the text, the thing's semantic description, and its
+anchor in the sub-surface's coordinates) and revokes its request for the
+previous thing; it does no timing of its own. The host receives the request
+on the window's thread. It drops a request measured in an older content
+epoch, or made before the pointer or focus left the host, as stale (the
+sub-surface asks again once it has the new configuration); declines one
+whose origin the window's tooltip switches turn off; and otherwise offers it
+to the window's tooltip presenter as one of its tooltip parts
+(`Control::tool_tip_items`), anchored at the host's origin. The presenter
+applies its delays, reshow, auto-pop and placement as for any other tooltip;
+a program request shows at once. The answer goes back asynchronously to the
+sub-surface's thread, and an answer to `request_tool_tip` on to its target
+there. The host
+revokes the pointer's requests when the pointer leaves it and the keyboard's
+when its focus leaves, and drops every request when its thread stops.
+`SubSurfaceHost::request_statistics` and `SubSurfaceStatistics` count both
+sides.
+
+Overlays opened with `SurfaceRoot::open_popup` inside a sub-surface stay
+within its region.
 
 ## Reading the counters
 

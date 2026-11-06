@@ -166,7 +166,7 @@ void test_flow_layout_starts_at_the_right() {
 
 void test_flow_scrolls_toward_the_left() {
     std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("direction.scroll"));
-    (*flow).set_auto_scroll(true);
+    (*flow).auto_scroll = true;
     (*flow).set_wrap_contents(false);
     (*flow).set_item_spacing({4.0, 4.0});
     (*flow).layout_direction = LayoutDirection::right_to_left;
@@ -250,7 +250,7 @@ void test_reentrant_measure_keeps_the_outer_pass() {
     std::shared_ptr<Button> after = sized_button("direction.reentrant.flow.after", 40.0, 20.0);
     (*flow).add_child(nested);
     (*flow).add_child(after);
-    (*flow).set_flow_break(*after, true);
+    (*flow).flow_break[*after] = true;
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("direction.reentrant.root"));
     (*root).add_child(flow);
 
@@ -273,7 +273,7 @@ void test_reentrant_measure_keeps_the_outer_pass() {
     window.perform_layout();
     require((*nested).reentered && (*cell).reentered,
             "each panel must have been laid out inside its own pass");
-    require((*flow).flow_break(*after) && (*after).arranged_bounds().x == (*nested).arranged_bounds().right(),
+    require((*flow).flow_break[*after].read() && (*after).arranged_bounds().x == (*nested).arranged_bounds().right(),
             "the flow's outer pass must keep its items after a nested pass");
     require((*table).cell_position(*cell) == std::optional(TableLayoutCellPosition{0U, 0U}) &&
                 (*table).cell_position(*neighbour) == std::optional(TableLayoutCellPosition{1U, 0U}) &&

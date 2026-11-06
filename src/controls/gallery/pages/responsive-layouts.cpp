@@ -233,7 +233,7 @@ private:
         (*scroller_).accessible_name = "Column scroller specimen";
         (*scroller_).set_background(Color::rgba(238, 243, 247));
         (*scroller_).set_border_style(BorderStyle::sunken);
-        (*scroller_).set_auto_scroll(true);
+        (*scroller_).auto_scroll = true;
         (*scroll_group).add_at(scroller_, {18.0, 30.0, stage_maximum - 200.0, 48.0});
         for (std::size_t index = 0U; index < 10U; ++index) {
             std::shared_ptr<Button> column = make_control<Button>(
