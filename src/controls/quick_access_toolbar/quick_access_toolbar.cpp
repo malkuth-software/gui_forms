@@ -39,8 +39,8 @@ std::string placement_row_text(QuickAccessToolbarPlacement placement) {
 } // namespace
 
 QuickAccessToolbar::QuickAccessToolbar(StableId stable_id) : ToolStrip(std::move(stable_id)) {
-    set_grip_visible(false);
-    set_end_reserve(customize_button_width);
+    grip_visible = false;
+    end_reserve = customize_button_width;
     const std::string prefix((*this).stable_id().value());
     menu_ = std::make_unique<ContextMenu>(prefix + ".customize.menu");
     menu_invoked_ = (*menu_).item_invoked().subscribe(
@@ -331,7 +331,7 @@ void QuickAccessToolbar::on_pointer(PointerEvent& event) {
 void QuickAccessToolbar::on_key(KeyEvent& event) {
     // The arrow away from the strip opens the customize menu: the toolbar's
     // buttons have no menus of their own.
-    const std::uint32_t open_key = orientation() == Orientation::vertical ? PhysicalKey::right : PhysicalKey::down;
+    const std::uint32_t open_key = orientation.read() == Orientation::vertical ? PhysicalKey::right : PhysicalKey::down;
     if (focused_ && event.action == KeyAction::down && event.physical_key == open_key &&
         event.modifiers == Modifier::none) {
         event.handled = show_customize_menu(MenuOpenMode::keyboard);

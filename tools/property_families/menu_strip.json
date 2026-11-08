@@ -1,0 +1,117 @@
+{
+  "family": "MenuStrip",
+  "step": "M-S8",
+  "declaring": "MenuStrip",
+  "header": "include/gui_forms/controls/menu_strip/menu_strip.hpp",
+  "source": "src/controls/menu/menu_strip/menu_strip.cpp",
+  "capabilities_header": "include/gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "test": {
+    "type": "MenuStrip",
+    "include": "gui_forms/controls/menu_strip/menu_strip.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "use_mnemonic",
+      "capability": "MenuStripUseMnemonic",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).",
+      "getter": "use_mnemonic",
+      "setter": "set_use_mnemonic",
+      "field": "use_mnemonic_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "written closes an open menu before invalidating"
+      ],
+      "hooks": "hand",
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "item_padding",
+      "capability": "MenuStripItemPadding",
+      "value": "double",
+      "initial": "11.0",
+      "comment": "The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11). A value outside that range throws std::invalid_argument and changes nothing; a change closes an open menu.",
+      "sample": "16.0",
+      "getter": "item_padding",
+      "setter": "set_item_padding",
+      "field": "item_padding_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "shared FontCapability<MenuStrip>; written closes an open menu before invalidating"
+      ],
+      "hooks": "hand",
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::control, 10.5, 400, false, 0.12",
+      "comment": "The font of the top-level items. A write marks the font as set from code; an invalid specification throws std::invalid_argument; a change closes an open menu.",
+      "sample": "FontSpec{FontRole::control, 12.0, 700, false}",
+      "getter": "font",
+      "setter": "set_font",
+      "field": "font_"
+    },
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [],
+      "hooks": "generated",
+      "effects": null,
+      "name": "allow_merge",
+      "capability": "MenuStripAllowMerge",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.",
+      "getter": "allow_merge",
+      "setter": "set_allow_merge",
+      "field": "allow_merge_"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "wholesale collection replacement"
+    },
+    {
+      "name": "selected_item_id",
+      "reason": "selection state, as TabControl's selected_index, waits for the G14 decision; set_items clears it"
+    },
+    {
+      "name": "hot",
+      "reason": "run-time interaction state"
+    }
+  ]
+}

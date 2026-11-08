@@ -198,7 +198,7 @@ void status_strip() {
                     600.0 - 12.0 - 60.0,
             "a spring label pushes the items after it to the end");
     require((*status).overflow_item_ids().empty(), "a status strip never overflows");
-    (*status).set_sizing_grip(false);
+    (*status).sizing_grip_visible = false;
     require(!(*status).parts().sizing_grip.present, "the sizing grip can be hidden");
     require((*status).semantic_descriptor().role == SemanticRole::status_bar, "a status strip is a status bar");
 }

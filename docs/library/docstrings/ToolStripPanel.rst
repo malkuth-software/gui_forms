@@ -13,13 +13,13 @@ Parameters
 ----------
 stable_id
     Identity of the panel, unique within its window.
-edge : default ``ToolStripPanelEdge::top``
-    The side the panel lines.
+initial_edge : default ``ToolStripPanelEdge::top``
+    The first `edge`.
 
 Properties
 ----------
-edge
-    The side the panel lines. `set_edge` turns the joined strips to its
+edge : default ``ToolStripPanelEdge::top``
+    The side the panel lines. A write turns the joined strips to its
     orientation, and throws `std::logic_error` when a joined `StatusStrip`
     would have to turn vertical.
 strips

@@ -308,7 +308,7 @@ bool merge(Strip& source, Strip& target) {
     if (&source == &target) throw std::invalid_argument("a strip cannot merge into itself");
     StripMerge<Top> record{};
     record.source = source.shared_from_this();
-    if (!source.allow_merge() || !target.allow_merge()) return false;
+    if (!source.allow_merge.read() || !target.allow_merge.read()) return false;
     std::vector<Top> source_items = current_items(source);
     std::vector<Top> target_items = current_items(target);
     CollectionPair<Top> pair{};

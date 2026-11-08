@@ -15,7 +15,8 @@ gui_forms::StatusStrip
 
    A status strip is a :cpp:class:`ToolStrip <gui_forms::ToolStrip>` laid out for status: its items never overflow,
    labels marked ``spring`` share the width the other items leave, and a sizing
-   grip shows in its corner. Use spring labels for the message that should take
+   grip shows in its corner (ToolStrip's ``sizing_grip_visible``, on for a status
+   strip). Use spring labels for the message that should take
    the free space, and plain labels for fixed fields such as a cursor position or
    an encoding.
 
@@ -28,14 +29,11 @@ gui_forms::StatusStrip
 
    :Properties:
 
-      **sizing_grip** : ``bool``, default ``true``
-         Whether the sizing grip shows in the strip's end corner.
-
       **parts** : ``Parts``, read-only
 
    :Inherited:
 
-      From :cpp:class:`ToolStrip <gui_forms::ToolStrip>`: properties :cpp:func:`items <gui_forms::ToolStrip::items>`, :cpp:func:`grip_visible <gui_forms::ToolStrip::grip_visible>`, :cpp:func:`allow_merge <gui_forms::ToolStrip::allow_merge>`, :cpp:func:`font <gui_forms::ToolStrip::font>`, :cpp:func:`orientation <gui_forms::ToolStrip::orientation>`, :cpp:func:`drop_down_open <gui_forms::ToolStrip::drop_down_open>`, :cpp:func:`overflow_item_ids <gui_forms::ToolStrip::overflow_item_ids>`, :cpp:func:`focused_item_id <gui_forms::ToolStrip::focused_item_id>`, :cpp:func:`content_length <gui_forms::ToolStrip::content_length>`, :cpp:func:`realized_items <gui_forms::ToolStrip::realized_items>`; events :cpp:func:`item_clicked <gui_forms::ToolStrip::item_clicked>`, :cpp:func:`drop_down_item_invoked <gui_forms::ToolStrip::drop_down_item_invoked>`, :cpp:func:`item_focus_changed <gui_forms::ToolStrip::item_focus_changed>`; methods :cpp:func:`close_drop_down <gui_forms::ToolStrip::close_drop_down>`, :cpp:func:`combo_box <gui_forms::ToolStrip::combo_box>`, :cpp:func:`item_checked <gui_forms::ToolStrip::item_checked>`, :cpp:func:`item_id_at <gui_forms::ToolStrip::item_id_at>`, :cpp:func:`progress_bar <gui_forms::ToolStrip::progress_bar>`, :cpp:func:`set_item_checked <gui_forms::ToolStrip::set_item_checked>`, :cpp:func:`set_item_text <gui_forms::ToolStrip::set_item_text>`, :cpp:func:`show_drop_down <gui_forms::ToolStrip::show_drop_down>`, :cpp:func:`show_overflow <gui_forms::ToolStrip::show_overflow>`, :cpp:func:`text_box <gui_forms::ToolStrip::text_box>`.
+      From :cpp:class:`ToolStrip <gui_forms::ToolStrip>`: properties :cpp:member:`grip_visible <gui_forms::ToolStrip::grip_visible>`, :cpp:member:`allow_merge <gui_forms::ToolStrip::allow_merge>`, :cpp:member:`font <gui_forms::ToolStrip::font>`, :cpp:member:`orientation <gui_forms::ToolStrip::orientation>`, :cpp:member:`sizing_grip_visible <gui_forms::ToolStrip::sizing_grip_visible>`, :cpp:member:`end_reserve <gui_forms::ToolStrip::end_reserve>`, :cpp:func:`items <gui_forms::ToolStrip::items>`, :cpp:func:`drop_down_open <gui_forms::ToolStrip::drop_down_open>`, :cpp:func:`overflow_item_ids <gui_forms::ToolStrip::overflow_item_ids>`, :cpp:func:`focused_item_id <gui_forms::ToolStrip::focused_item_id>`, :cpp:func:`content_length <gui_forms::ToolStrip::content_length>`, :cpp:func:`realized_items <gui_forms::ToolStrip::realized_items>`; events :cpp:func:`item_clicked <gui_forms::ToolStrip::item_clicked>`, :cpp:func:`drop_down_item_invoked <gui_forms::ToolStrip::drop_down_item_invoked>`, :cpp:func:`item_focus_changed <gui_forms::ToolStrip::item_focus_changed>`; methods :cpp:func:`close_drop_down <gui_forms::ToolStrip::close_drop_down>`, :cpp:func:`combo_box <gui_forms::ToolStrip::combo_box>`, :cpp:func:`item_checked <gui_forms::ToolStrip::item_checked>`, :cpp:func:`item_id_at <gui_forms::ToolStrip::item_id_at>`, :cpp:func:`progress_bar <gui_forms::ToolStrip::progress_bar>`, :cpp:func:`set_item_checked <gui_forms::ToolStrip::set_item_checked>`, :cpp:func:`set_item_text <gui_forms::ToolStrip::set_item_text>`, :cpp:func:`show_drop_down <gui_forms::ToolStrip::show_drop_down>`, :cpp:func:`show_overflow <gui_forms::ToolStrip::show_overflow>`, :cpp:func:`text_box <gui_forms::ToolStrip::text_box>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
@@ -80,14 +78,6 @@ gui_forms::StatusStrip
 
 
    .. rubric:: Properties
-
-   .. cpp:function:: bool sizing_grip() const noexcept
-
-      Whether the sizing grip shows in the strip's end corner.
-
-   .. cpp:function:: void set_sizing_grip(bool visible)
-
-      Sets :cpp:func:`sizing_grip <gui_forms::StatusStrip::sizing_grip>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

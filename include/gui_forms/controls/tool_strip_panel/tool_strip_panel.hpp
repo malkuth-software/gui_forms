@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp"
+#include "gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -10,10 +12,6 @@
 
 namespace gui_forms {
 
-// The side of a ToolStripContainer a panel lines. It decides how the panel
-// stacks its strips and which way they run.
-enum class ToolStripPanelEdge : std::uint8_t { top, bottom, left, right };
-
 // A band that holds ToolStrips (Windows Forms' ToolStripPanel). A top or
 // bottom panel stacks horizontal strips in rows; a left or right panel
 // stacks vertical strips in columns, which this class also calls rows. A row
@@ -22,15 +20,10 @@ enum class ToolStripPanelEdge : std::uint8_t { top, bottom, left, right };
 // rest, so a strip alone fills its row. A row is as thick as its thickest
 // strip, the panel as its rows together (none without strips). The panel
 // owns joined strips as its children, in row order.
-class ToolStripPanel final : public Control {
+class ToolStripPanel final : public Control, public ToolStripPanelCapabilities<ToolStripPanel> {
 public:
-    explicit ToolStripPanel(StableId stable_id, ToolStripPanelEdge edge = ToolStripPanelEdge::top);
+    explicit ToolStripPanel(StableId stable_id, ToolStripPanelEdge initial_edge = ToolStripPanelEdge::top);
 
-    [[nodiscard]] ToolStripPanelEdge edge() const noexcept { return edge_; }
-    // Changing the edge turns the joined strips to its orientation. Throws
-    // std::invalid_argument for an invalid edge, and std::logic_error when a
-    // joined StatusStrip would have to turn vertical.
-    void set_edge(ToolStripPanelEdge edge);
     // Adds a strip in a new row after the others and turns it to the panel's
     // orientation.
     // Throws std::invalid_argument for a null strip or one that already has
@@ -79,10 +72,16 @@ private:
     // the strip before it.
     void place(std::shared_ptr<ToolStrip> strip, const std::shared_ptr<ToolStrip>& before, bool continues);
 
-    ToolStripPanelEdge edge_{ToolStripPanelEdge::top};
     // The joined strips that continue the row of the strip before them;
     // every other strip starts a row.
     std::vector<RuntimeId> continuing_{};
+    // property_codemod begin ToolStripPanel (tools/property_families/tool_strip_panel.json; generated, do not edit)
+private:
+    friend struct ToolStripPanelEdgePropertyCapability<ToolStripPanel>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(edge)& cell, ToolStripPanelEdge& incoming);
+    void written(const decltype(edge)& cell);
+    // property_codemod end ToolStripPanel
 };
 
 } // namespace gui_forms

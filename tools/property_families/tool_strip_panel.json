@@ -1,0 +1,42 @@
+{
+  "family": "ToolStripPanel",
+  "step": "M-S8",
+  "declaring": "ToolStripPanel",
+  "header": "include/gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp",
+  "source": "src/controls/tool_strip_panel/tool_strip_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp"
+  ],
+  "test": {
+    "type": "ToolStripPanel",
+    "include": "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
+  },
+  "properties": [
+    {
+      "clear": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "event": null,
+      "hand": [
+        "prepare_write refuses a vertical edge while a StatusStrip is joined; written turns the joined strips before invalidating"
+      ],
+      "hooks": "hand",
+      "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "name": "edge",
+      "capability": "ToolStripPanelEdgeProperty",
+      "value": "ToolStripPanelEdge",
+      "initial": "ToolStripPanelEdge::top",
+      "comment": "The side of the container the panel lines; changing it turns the joined strips to its orientation. An invalid edge throws std::invalid_argument, and an edge that would turn a joined StatusStrip vertical throws std::logic_error; either changes nothing.",
+      "sample": "ToolStripPanelEdge::left",
+      "getter": "edge",
+      "setter": "set_edge",
+      "field": "edge_"
+    }
+  ],
+  "not_properties": []
+}

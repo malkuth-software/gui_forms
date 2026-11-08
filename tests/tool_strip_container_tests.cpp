@@ -54,8 +54,8 @@ std::shared_ptr<ToolStrip> strip_named(std::string_view id) {
 
 void vertical_strip() {
     std::shared_ptr<ToolStrip> strip = strip_named("tools");
-    (*strip).set_orientation(Orientation::vertical);
-    require((*strip).orientation() == Orientation::vertical, "a strip turns vertical");
+    (*strip).orientation = Orientation::vertical;
+    require((*strip).orientation.read() == Orientation::vertical, "a strip turns vertical");
     const Size measured = (*strip).measure({400.0, 300.0});
     require(measured.width >= 25.0 && measured.width < 400.0 && measured.height == 300.0,
             "a vertical strip is as wide as its widest item and takes the height offered");
@@ -89,11 +89,11 @@ void vertical_strip() {
     std::shared_ptr<StatusStrip> status = make_control<StatusStrip>(StableId("status"));
     bool threw = false;
     try {
-        (*status).set_orientation(Orientation::vertical);
+        (*status).orientation = Orientation::vertical;
     } catch (const std::logic_error&) {
         threw = true;
     }
-    require(threw && (*status).orientation() == Orientation::horizontal, "a StatusStrip stays horizontal");
+    require(threw && (*status).orientation.read() == Orientation::horizontal, "a StatusStrip stays horizontal");
 }
 
 void panels() {
@@ -120,8 +120,8 @@ void panels() {
         threw = true;
     }
     require(threw, "a strip that already has a parent is refused");
-    (*panel).set_edge(ToolStripPanelEdge::left);
-    require((*first).orientation() == Orientation::vertical && (*second).orientation() == Orientation::vertical,
+    (*panel).edge = ToolStripPanelEdge::left;
+    require((*first).orientation.read() == Orientation::vertical && (*second).orientation.read() == Orientation::vertical,
             "moving the panel to the left turns its strips vertical");
     std::shared_ptr<StatusStrip> status = make_control<StatusStrip>(StableId("status"));
     threw = false;
@@ -143,7 +143,7 @@ void container() {
                 (*frame).anatomy().control_id == "tool_strip_container",
             "ToolStripContainer publishes a valid anatomy");
     require((*(*frame).top_panel()).stable_id().value() == "frame.top" &&
-                (*(*frame).left_panel()).edge() == ToolStripPanelEdge::left &&
+                (*(*frame).left_panel()).edge.read() == ToolStripPanelEdge::left &&
                 (*(*frame).content_panel()).stable_id().value() == "frame.content",
             "the container owns its four panels and its content panel");
     std::shared_ptr<ToolStrip> top = strip_named("top-tools");
@@ -164,7 +164,7 @@ void container() {
     require(parts.bottom_panel.present && parts.bottom_panel.bounds.y + parts.bottom_panel.bounds.height == 400.0,
             "the bottom panel sits on the bottom edge");
     require(parts.left_panel.present && parts.left_panel.bounds.x == 0.0 && parts.left_panel.bounds.y == 25.0 &&
-                parts.left_panel.bounds.width >= 25.0 && (*left).orientation() == Orientation::vertical,
+                parts.left_panel.bounds.width >= 25.0 && (*left).orientation.read() == Orientation::vertical,
             "the left panel holds a vertical strip between the top and bottom panels");
     require(!parts.right_panel.present, "an empty right panel takes no room");
     require(parts.content_panel.present &&
@@ -172,7 +172,7 @@ void container() {
                 parts.content_panel.bounds.y == 25.0 &&
                 parts.content_panel.bounds.width == 600.0 - parts.left_panel.bounds.width,
             "the content panel takes what the panels leave");
-    (*frame).set_top_panel_visible(false);
+    (*frame).top_panel_visible = false;
     window.perform_layout();
     parts = (*frame).parts();
     require(!parts.top_panel.present && parts.content_panel.bounds.y == 0.0 && !(*top).effectively_visible(),
@@ -229,7 +229,7 @@ void dragging() {
     window.perform_layout();
     std::vector<ToolStripMove> moves;
     SubscriptionToken token = (*frame).strip_moved().subscribe(RecordMove{&moves});
-    require((*frame).drag_threshold() == 4.0 && (*frame).drag_phase() == ToolStripDragPhase::idle,
+    require((*frame).drag_threshold.read() == 4.0 && (*frame).drag_phase() == ToolStripDragPhase::idle,
             "a container starts with no drag and the 4-unit threshold");
 
     // A press on the grip arms; the threshold starts the drag.
@@ -255,7 +255,7 @@ void dragging() {
     settle(window);
     require((*frame).drag_phase() == ToolStripDragPhase::idle && (*frame).drag_stamp().empty() &&
                 (*first).parent() == (*frame).left_panel() &&
-                (*first).orientation() == Orientation::vertical,
+                (*first).orientation.read() == Orientation::vertical,
             "a release on the left band moves the strip there and turns it vertical");
     require(moves.size() == 1U && moves[0].strip_id == "first" && moves[0].from == ToolStripPanelEdge::top &&
                 moves[0].from_row == 0U && moves[0].to == ToolStripPanelEdge::left && moves[0].to_row == 0U,
@@ -322,11 +322,11 @@ void dragging() {
             "the drop reorders the panel's strips");
     bool threw = false;
     try {
-        (*frame).set_drag_threshold(0.5);
+        (*frame).drag_threshold = 0.5;
     } catch (const std::out_of_range&) {
         threw = true;
     }
-    require(threw && (*frame).drag_threshold() == 4.0, "a threshold under 1 is refused");
+    require(threw && (*frame).drag_threshold.read() == 4.0, "a threshold under 1 is refused");
 
     bool refused = false;
     try {
@@ -345,7 +345,7 @@ void dragging() {
     pointer(window, PointerAction::move, {300.0, 6.0});
     pointer(window, PointerAction::up, {300.0, 6.0});
     require((*frame).drag_phase() == ToolStripDragPhase::idle && (*second).parent() == (*frame).top_panel() &&
-                (*second).orientation() == Orientation::horizontal && moves.size() == 4U,
+                (*second).orientation.read() == Orientation::horizontal && moves.size() == 4U,
             "under reduced motion the drop ends the drag at once");
 }
 

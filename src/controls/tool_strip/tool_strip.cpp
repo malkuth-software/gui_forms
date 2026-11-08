@@ -9,6 +9,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -101,8 +102,8 @@ ToolStrip::ToolStrip(StableId stable_id) : Control(std::move(stable_id)) {
 
 ToolStrip::ToolStrip(StableId stable_id, StatusLayout) : Control(std::move(stable_id)) {
     status_layout_ = true;
-    grip_visible_ = false;
-    sizing_grip_visible_ = true;
+    grip_visible = false;
+    sizing_grip_visible = true;
     construct();
 }
 
@@ -134,11 +135,6 @@ void ToolStrip::validate_items(const std::vector<ToolStripItemSpec>&) const {}
 
 void ToolStrip::set_items(std::vector<ToolStripItemSpec> items) {
     apply_items(std::move(items), false);
-}
-
-void ToolStrip::set_allow_merge(bool allow) {
-    require_mutable();
-    allow_merge_ = allow;
 }
 
 void ToolStrip::apply_items(std::vector<ToolStripItemSpec> items, bool merged) {
@@ -342,45 +338,23 @@ void ToolStrip::set_item_checked(std::string_view item_id, bool checked) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void ToolStrip::set_grip_visible(bool visible) {
+void ToolStrip::prepare_write(const decltype(end_reserve)&, double& incoming) {
     require_mutable();
-    if (grip_visible_ == visible) return;
-    grip_visible_ = visible;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void ToolStrip::set_sizing_grip_visible(bool visible) {
-    require_mutable();
-    if (sizing_grip_visible_ == visible) return;
-    sizing_grip_visible_ = visible;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-}
-
-void ToolStrip::set_end_reserve(double logical_width) {
-    require_mutable();
-    if (!std::isfinite(logical_width) || logical_width < 0.0 || logical_width > maximum_end_reserve) {
+    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > maximum_end_reserve) {
         throw std::invalid_argument("ToolStrip end reserve must be finite and between 0 and 64");
     }
-    if (end_reserve_ == logical_width) return;
-    close_drop_down();
-    end_reserve_ = logical_width;
-    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void ToolStrip::set_font(FontSpec font) {
-    require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("ToolStrip font specification is invalid");
-    set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
-    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+void ToolStrip::written(const decltype(end_reserve)&) {
+    close_drop_down();
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 // -- layout ------------------------------------------------------------------
 
 Size ToolStrip::measure(Size available) {
     const double scale = effective_text_scale();
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font.read()));
     const double preferred = std::max(strip_height * scale, metrics.logical_size.height + 10.0 * scale);
     if (!vertical()) {
         const Size result{.width = available.width, .height = std::min(available.height, preferred)};
@@ -400,9 +374,9 @@ double ToolStrip::content_length() const {
     const double scale = effective_text_scale();
     const bool along_height = vertical();
     double length = edge_inset * scale * 2.0;
-    if (!status_layout_ && grip_visible_) length += edge_inset * scale + grip_width * scale;
-    if (status_layout_ && sizing_grip_visible_) length += sizing_grip_size * scale;
-    if (!status_layout_) length += end_reserve_ * scale;
+    if (!status_layout_ && grip_visible.read()) length += edge_inset * scale + grip_width * scale;
+    if (status_layout_ && sizing_grip_visible.read()) length += sizing_grip_size * scale;
+    if (!status_layout_) length += end_reserve.read() * scale;
     for (const ToolStripItemSpec& item : items_) {
         if (!item_visible(item)) continue;
         double extent = item_size(item).width;
@@ -413,21 +387,23 @@ double ToolStrip::content_length() const {
 }
 
 bool ToolStrip::vertical() const noexcept {
-    const bool result = orientation_ == Orientation::vertical && !status_layout_;
+    const bool result = orientation.read() == Orientation::vertical && !status_layout_;
     return result;
 }
 
-void ToolStrip::set_orientation(Orientation orientation) {
+void ToolStrip::prepare_write(const decltype(orientation)&, Orientation& incoming) {
     require_mutable();
-    if (orientation != Orientation::horizontal && orientation != Orientation::vertical) {
+    if (incoming != Orientation::horizontal && incoming != Orientation::vertical) {
         throw std::invalid_argument("ToolStrip orientation is invalid");
     }
-    if (status_layout_ && orientation == Orientation::vertical) {
+    if (status_layout_ && incoming == Orientation::vertical) {
         throw std::logic_error("A StatusStrip is laid out horizontally");
     }
-    if (orientation_ == orientation) return;
+}
+
+// An open drop-down was placed for the old layout, so it closes.
+void ToolStrip::written(const decltype(orientation)&) {
     close_drop_down();
-    orientation_ = orientation;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -447,7 +423,7 @@ Size ToolStrip::item_size(const ToolStripItemSpec& item) const {
     if (shows_image) width += image_size * scale;
     if (shows_image && shows_text) width += image_text_gap * scale;
     if (shows_text) {
-        const ResolvedTextLayout label = resolve_text_layout_utf8(text, text_font(font_));
+        const ResolvedTextLayout label = resolve_text_layout_utf8(text, text_font(font.read()));
         width += label.logical_size.width;
     }
     if (item.kind == ToolStripItemKind::drop_down_button) width += drop_down_arrow_width * scale;
@@ -475,17 +451,17 @@ ToolStrip::Layout ToolStrip::layout_for(Rect surface) const {
     const double item_cross = std::max(0.0, cross_extent - inset * 2.0);
     double start = inset;
     double end = main_extent - inset;
-    if (!status_layout_ && grip_visible_) {
+    if (!status_layout_ && grip_visible.read()) {
         result.grip = axis_rect(along_height, inset, grip_width * scale, inset, item_cross);
         start = inset * 2.0 + grip_width * scale;
     }
-    if (status_layout_ && sizing_grip_visible_) {
+    if (status_layout_ && sizing_grip_visible.read()) {
         const double side = sizing_grip_size * scale;
         result.sizing_grip = {surface.width - side - 1.0, std::max(0.0, surface.height - side - 1.0), side, side};
         end -= side;
     }
-    if (!status_layout_ && end_reserve_ > 0.0) {
-        const double reserve = end_reserve_ * scale;
+    if (!status_layout_ && end_reserve.read() > 0.0) {
+        const double reserve = end_reserve.read() * scale;
         end -= reserve;
         result.end_reserve = axis_rect(along_height, end, reserve, inset, item_cross);
     }
@@ -611,7 +587,7 @@ ToolStrip::ItemParts ToolStrip::item_parts(std::size_t index, Rect bounds) const
         x += side + image_text_gap * scale;
     }
     if (shows_text) {
-        const ResolvedTextLayout measured = resolve_text_layout_utf8(text, text_font(font_));
+        const ResolvedTextLayout measured = resolve_text_layout_utf8(text, text_font(font.read()));
         const Rect label{x, bounds.y, measured.logical_size.width, bounds.height};
         parts.item_label = PartGeometry::from_bounds(Rect::intersection(label, content));
     }
@@ -678,7 +654,7 @@ void ToolStrip::paint_item(Painter& painter, std::size_t index, Rect bounds) con
     // unchanged while the strip paints.
     PartPaint part;
     part.family = ControlVisualRole::menu_item;
-    part.font = text_font(font_);
+    part.font = text_font(font.read());
     if (parts.item_face.present) {
         part.role = PartRole::face;
         part.bounds = parts.item_face.bounds;
@@ -1375,5 +1351,41 @@ void ToolStrip::append_interactions(std::vector<InteractionDeclaration>& interac
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), tool_strip_interactions.begin(), tool_strip_interactions.end());
 }
+
+// property_codemod begin ToolStrip (tools/property_families/tool_strip.json; generated, do not edit)
+
+void ToolStrip::prepare_write(const decltype(grip_visible)&, bool&) {
+    require_mutable();
+}
+
+void ToolStrip::written(const decltype(grip_visible)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ToolStrip::prepare_write(const decltype(allow_merge)&, bool&) {
+    require_mutable();
+}
+
+void ToolStrip::written(const decltype(allow_merge)&) {}
+
+void ToolStrip::prepare_write(const decltype(font)&, FontSpec& incoming) {
+    require_mutable();
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("ToolStrip font specification is invalid");
+    set_font_from_code(true);
+}
+
+void ToolStrip::written(const decltype(font)&) {
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void ToolStrip::prepare_write(const decltype(sizing_grip_visible)&, bool&) {
+    require_mutable();
+}
+
+void ToolStrip::written(const decltype(sizing_grip_visible)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+// property_codemod end ToolStrip
 
 } // namespace gui_forms

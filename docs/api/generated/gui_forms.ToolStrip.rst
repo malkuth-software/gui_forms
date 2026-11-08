@@ -7,7 +7,7 @@ gui_forms::ToolStrip
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ToolStrip : public Control
+.. cpp:class:: ToolStrip : public Control, public ToolStripCapabilities<ToolStrip>
 
    ``#include <gui_forms/controls/tool_strip/tool_strip.hpp>``
 
@@ -32,16 +32,6 @@ gui_forms::ToolStrip
 
    :Properties:
 
-      **items** : ``std::vector<ToolStripItemSpec>``
-         The items, in strip order. :cpp:func:`set_items <gui_forms::ToolStrip::set_items>` replaces them and throws
-         ``std::invalid_argument`` for a repeated ID or one that breaks the
-         :cpp:class:`StableId <gui_forms::StableId>` segment rule (hosted controls and overflow menu rows are named
-         after it), invalid UTF-8, a
-         menu on an item that has none, a drop-down or split button without one,
-         a menu item ID that repeats an item ID, a hosted item with a command or
-         check, choices on an item that is not a combo box, or a width outside 0
-         to 1024.
-
       **grip_visible** : ``bool``, default ``true``
          Whether the grip shows at the strip's start.
 
@@ -57,6 +47,22 @@ gui_forms::ToolStrip
          :cpp:class:`ToolStripPanel <gui_forms::ToolStripPanel>` on the left or right turns its strips vertical. A
          :cpp:class:`StatusStrip <gui_forms::StatusStrip>` stays horizontal and throws ``std::logic_error`` when set
          vertical.
+
+      **sizing_grip_visible** : ``bool``
+         Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
+
+      **end_reserve** : ``double``
+         For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
+
+      **items** : ``std::vector<ToolStripItemSpec>``
+         The items, in strip order. :cpp:func:`set_items <gui_forms::ToolStrip::set_items>` replaces them and throws
+         ``std::invalid_argument`` for a repeated ID or one that breaks the
+         :cpp:class:`StableId <gui_forms::StableId>` segment rule (hosted controls and overflow menu rows are named
+         after it), invalid UTF-8, a
+         menu on an item that has none, a drop-down or split button without one,
+         a menu item ID that repeats an item ID, a hosted item with a command or
+         check, choices on an item that is not a combo box, or a width outside 0
+         to 1024.
 
       **drop_down_open** : ``bool``, read-only
          Whether a drop-down, split or overflow menu is open.
@@ -211,6 +217,34 @@ gui_forms::ToolStrip
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool grip_visible
+
+      Whether the grip shows at the strip's start.
+
+   .. cpp:member:: bool allow_merge
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+   .. cpp:member:: FontSpec font
+
+      The font of item text.
+
+   .. cpp:member:: Orientation orientation
+
+      Horizontal strips run left to right. Vertical strips run top to bottom,
+      one item per row, and are as wide as their widest item; a
+      :cpp:class:`ToolStripPanel <gui_forms::ToolStripPanel>` on the left or right turns its strips vertical. A
+      :cpp:class:`StatusStrip <gui_forms::StatusStrip>` stays horizontal and throws ``std::logic_error`` when set
+      vertical.
+
+   .. cpp:member:: bool sizing_grip_visible
+
+      Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
+
+   .. cpp:member:: double end_reserve
+
+      For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
+
    .. cpp:function:: const std::vector<ToolStripItemSpec>& items() const noexcept
 
       The items, in strip order. :cpp:func:`set_items <gui_forms::ToolStrip::set_items>` replaces them and throws
@@ -225,40 +259,6 @@ gui_forms::ToolStrip
    .. cpp:function:: void set_items(std::vector<ToolStripItemSpec> items)
 
       Sets :cpp:func:`items <gui_forms::ToolStrip::items>`; see the property's description above.
-
-   .. cpp:function:: bool grip_visible() const noexcept
-
-      Whether the grip shows at the strip's start.
-
-   .. cpp:function:: void set_grip_visible(bool visible)
-
-      Sets :cpp:func:`grip_visible <gui_forms::ToolStrip::grip_visible>`; see the property's description above.
-
-   .. cpp:function:: bool allow_merge() const noexcept
-
-      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
-
-   .. cpp:function:: void set_allow_merge(bool allow)
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of item text.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::ToolStrip::font>`; see the property's description above.
-
-   .. cpp:function:: Orientation orientation() const noexcept
-
-      Horizontal strips run left to right. Vertical strips run top to bottom,
-      one item per row, and are as wide as their widest item; a
-      :cpp:class:`ToolStripPanel <gui_forms::ToolStripPanel>` on the left or right turns its strips vertical. A
-      :cpp:class:`StatusStrip <gui_forms::StatusStrip>` stays horizontal and throws ``std::logic_error`` when set
-      vertical.
-
-   .. cpp:function:: void set_orientation(Orientation orientation)
-
-      Sets :cpp:func:`orientation <gui_forms::ToolStrip::orientation>`; see the property's description above.
 
    .. cpp:function:: bool drop_down_open() const noexcept
 
@@ -386,20 +386,6 @@ gui_forms::ToolStrip
    .. cpp:function:: bool status_layout() const noexcept
 
       *Protected.*
-
-   .. cpp:function:: void set_sizing_grip_visible(bool visible)
-
-      *Protected.*
-
-   .. cpp:function:: bool sizing_grip_visible() const noexcept
-
-      *Protected.*
-
-   .. cpp:function:: void set_end_reserve(double logical_width)
-
-      *Protected.*
-
-      For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button). Items and the overflow button sit before it. Zero by default. Throws std::invalid_argument for a width that is negative, not finite or over 64.
 
    .. cpp:function:: virtual void validate_items(const std::vector<ToolStripItemSpec>& items) const
 

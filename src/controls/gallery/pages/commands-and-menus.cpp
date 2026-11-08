@@ -145,7 +145,7 @@ private:
 
     void build_menu_strip() {
         const std::shared_ptr<MenuStrip>& menu = document_.gallery_commands_menu;
-        (*menu).set_font({FontRole::control, 11.5, 400, false, 0.12});
+        (*menu).font = {FontRole::control, 11.5, 400, false, 0.12};
         (*menu).set_items({
             {"gallery.commands.menu.file", "&File",
              {item("file.new", new_), item("file.save", save_), separator("file.separator"),

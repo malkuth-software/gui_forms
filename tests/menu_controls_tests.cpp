@@ -427,8 +427,8 @@ void test_menu_strip_retained_switching_commands_and_semantics() {
     (*root).set_row_style(0U, {TableSizeMode::absolute, 24.0});
     (*root).set_row_style(1U, {TableSizeMode::percent, 1.0});
     std::shared_ptr<gui_forms::MenuStrip> strip = make_control<MenuStrip>(StableId("menustrip"));
-    (*strip).set_item_padding(18.0);
-    require((*strip).item_padding() == 18.0,
+    (*strip).item_padding = 18.0;
+    require((*strip).item_padding.read() == 18.0,
             "MenuStrip must retain explicit top-level item padding");
     std::shared_ptr<gui_forms::Panel> content = make_control<Panel>(StableId("menustrip.content"));
     (*root).add_child(strip);
@@ -660,7 +660,7 @@ void test_menu_mnemonics_strip_markers_and_overlay_activation() {
     const bool operation_check_76 = !overlay.is_open();
     require(operation_check_76, "an active overlay mnemonic must execute through shared command authority");
 
-    (*strip).set_use_mnemonic(false);
+    (*strip).use_mnemonic = false;
     const bool operation_check_77 = !window.dispatch_key(alt_f);
     require(operation_check_77, "UseMnemonic false must leave the ampersand literal and revoke activation");
 }
@@ -767,18 +767,18 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
         {"font.first", "First", {{"first.open", MenuItemKind::command, command}}},
         {"font.second", "Second", {{"second.open", MenuItemKind::command, command}}},
     });
-    require((*strip).font() == FontSpec{FontRole::control, 10.5, 400, false, 0.12},
+    require((*strip).font.read() == FontSpec{FontRole::control, 10.5, 400, false, 0.12},
             "menu font must retain its existing default");
     Window window(strip, {600.0, 80.0});
     window.set_text_metrics_provider(&metrics);
     window.perform_layout();
     const double old_width = (*strip).semantic_virtual_children().front().bounds.width;
     const FontSpec chosen{FontRole::content, 20.0, 800, true, 1.0};
-    (*strip).set_font(chosen);
+    (*strip).font = chosen;
     (*strip).set_selected_item_id("font.first");
     window.perform_layout();
     const std::vector<SemanticNode> nodes = (*strip).semantic_virtual_children();
-    require((*strip).font() == chosen && nodes.front().bounds.width == 127.0 &&
+    require((*strip).font.read() == chosen && nodes.front().bounds.width == 127.0 &&
                 nodes.front().bounds.width > old_width &&
                 (*strip).measure({600.0, 100.0}).height == 40.0,
             "menu measurement and semantic bounds must use the chosen font metrics");
@@ -804,17 +804,17 @@ void test_menu_font_controls_geometry_paint_and_hit_testing() {
         FontSpec malformed = chosen;
         malformed.size = size;
         bool rejected{};
-        try { (*strip).set_font(malformed); }
+        try { (*strip).font = malformed; }
         catch (const std::invalid_argument&) { rejected = true; }
-        require(rejected && (*strip).font() == chosen,
+        require(rejected && (*strip).font.read() == chosen,
                 "invalid menu font sizes must preserve the previous typography");
     }
     FontSpec malformed = chosen;
     malformed.letter_spacing = std::numeric_limits<double>::quiet_NaN();
     bool rejected{};
-    try { (*strip).set_font(malformed); }
+    try { (*strip).font = malformed; }
     catch (const std::invalid_argument&) { rejected = true; }
-    require(rejected && (*strip).font() == chosen,
+    require(rejected && (*strip).font.read() == chosen,
             "invalid menu tracking must be rejected without mutation");
 }
 

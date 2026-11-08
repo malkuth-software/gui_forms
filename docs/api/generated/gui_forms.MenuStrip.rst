@@ -7,7 +7,7 @@ gui_forms::MenuStrip
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: MenuStrip final : public Control
+.. cpp:class:: MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip>
 
    ``#include <gui_forms/controls/menu_strip/menu_strip.hpp>``
 
@@ -32,16 +32,6 @@ gui_forms::MenuStrip
 
    :Properties:
 
-      **items** : ``std::vector<MenuStripItemSpec>``
-         The top-level menus, empty by default. Each :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>` has a
-         stable ID, the text shown on the bar, its menu's :cpp:class:`MenuItemSpec <gui_forms::MenuItemSpec>` items, and
-         ``enabled`` and ``visible`` flags. :cpp:func:`set_items <gui_forms::MenuStrip::set_items>` throws ``std::invalid_argument``
-         unless every top-level item has a unique stable ID following the
-         :cpp:class:`StableId <gui_forms::StableId>` segment rule, nonempty valid UTF-8 text, and at least one menu
-         item, and each menu is a valid :cpp:class:`ContextMenu <gui_forms::ContextMenu>` item tree. Replacing the
-         items closes an open menu and clears :cpp:func:`selected_item_id <gui_forms::MenuStrip::selected_item_id>` if that item is
-         gone or hidden.
-
       **use_mnemonic** : ``bool``, default ``true``
          Whether an ``&`` in an item's text marks its mnemonic. When false, the
          ``&`` is shown literally and Alt with a letter opens nothing.
@@ -59,6 +49,16 @@ gui_forms::MenuStrip
 
       **allow_merge** : ``bool``
          Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+      **items** : ``std::vector<MenuStripItemSpec>``
+         The top-level menus, empty by default. Each :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>` has a
+         stable ID, the text shown on the bar, its menu's :cpp:class:`MenuItemSpec <gui_forms::MenuItemSpec>` items, and
+         ``enabled`` and ``visible`` flags. :cpp:func:`set_items <gui_forms::MenuStrip::set_items>` throws ``std::invalid_argument``
+         unless every top-level item has a unique stable ID following the
+         :cpp:class:`StableId <gui_forms::StableId>` segment rule, nonempty valid UTF-8 text, and at least one menu
+         item, and each menu is a valid :cpp:class:`ContextMenu <gui_forms::ContextMenu>` item tree. Replacing the
+         items closes an open menu and clears :cpp:func:`selected_item_id <gui_forms::MenuStrip::selected_item_id>` if that item is
+         gone or hidden.
 
       **active_index** : ``std::optional<std::size_t>``, default ``std::nullopt``, read-only
          The index in :cpp:func:`items <gui_forms::MenuStrip::items>` of the menu that is open, or no value.
@@ -208,6 +208,28 @@ gui_forms::MenuStrip
 
    .. rubric:: Properties
 
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ``&`` in an item's text marks its mnemonic. When false, the
+      ``&`` is shown literally and Alt with a letter opens nothing.
+
+   .. cpp:member:: double item_padding
+
+      Space on each side of an item's text, scaled with the window's text
+      scale. It must be finite and between 4 and 64. Changing it closes an
+      open menu.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the item text. The open and the selected item are drawn
+      bold, and each item is wide enough for its bold text, so items do not
+      move when their weight changes. An invalid font throws
+      ``std::invalid_argument``. Changing it closes an open menu.
+
+   .. cpp:member:: bool allow_merge
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
    .. cpp:function:: const std::vector<MenuStripItemSpec>& items() const noexcept
 
       The top-level menus, empty by default. Each :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>` has a
@@ -222,42 +244,6 @@ gui_forms::MenuStrip
    .. cpp:function:: void set_items(std::vector<MenuStripItemSpec> items)
 
       Sets :cpp:func:`items <gui_forms::MenuStrip::items>`; see the property's description above.
-
-   .. cpp:function:: bool use_mnemonic() const noexcept
-
-      Whether an ``&`` in an item's text marks its mnemonic. When false, the
-      ``&`` is shown literally and Alt with a letter opens nothing.
-
-   .. cpp:function:: void set_use_mnemonic(bool value)
-
-      Sets :cpp:func:`use_mnemonic <gui_forms::MenuStrip::use_mnemonic>`; see the property's description above.
-
-   .. cpp:function:: double item_padding() const noexcept
-
-      Space on each side of an item's text, scaled with the window's text
-      scale. It must be finite and between 4 and 64. Changing it closes an
-      open menu.
-
-   .. cpp:function:: void set_item_padding(double padding)
-
-      Sets :cpp:func:`item_padding <gui_forms::MenuStrip::item_padding>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
-
-      The font of the item text. The open and the selected item are drawn
-      bold, and each item is wide enough for its bold text, so items do not
-      move when their weight changes. An invalid font throws
-      ``std::invalid_argument``. Changing it closes an open menu.
-
-   .. cpp:function:: void set_font(FontSpec font)
-
-      Sets :cpp:func:`font <gui_forms::MenuStrip::font>`; see the property's description above.
-
-   .. cpp:function:: bool allow_merge() const noexcept
-
-      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
-
-   .. cpp:function:: void set_allow_merge(bool allow)
 
    .. cpp:function:: std::optional<std::size_t> active_index() const noexcept
 

@@ -18,6 +18,7 @@
 #include "gui_forms/controls/empty_state/empty_state.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/label/label.hpp"
+#include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
@@ -59,6 +60,9 @@
 #include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/tool_strip/tool_strip.hpp"
+#include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
+#include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
 #include "gui_forms/controls/typography_specimen/typography_specimen.hpp"
 
 #include <cstdlib>
@@ -1059,6 +1063,30 @@ void test_material_panel_properties() {
     // material: no sample for SurfaceMaterial; give the property a "sample".
 }
 
+void test_menu_strip_properties() {
+    std::shared_ptr<MenuStrip> control = make_control<MenuStrip>(StableId("generated.menustrip"));
+    {
+        const bool sample = !(*control).use_mnemonic.read();
+        (*control).use_mnemonic = sample;
+        expect((*control).use_mnemonic.read() == sample, "MenuStrip.use_mnemonic: a write stores");
+    }
+    {
+        const double sample = 16.0;
+        (*control).item_padding = sample;
+        expect((*control).item_padding.read() == sample, "MenuStrip.item_padding: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "MenuStrip.font: a write stores");
+    }
+    {
+        const bool sample = !(*control).allow_merge.read();
+        (*control).allow_merge = sample;
+        expect((*control).allow_merge.read() == sample, "MenuStrip.allow_merge: a write stores");
+    }
+}
+
 void test_metrics_view_properties() {
     std::shared_ptr<MetricsView> control = make_control<MetricsView>(StableId("generated.metricsview"));
     {
@@ -1625,6 +1653,78 @@ void test_token_box_properties() {
     }
 }
 
+void test_tool_strip_properties() {
+    std::shared_ptr<ToolStrip> control = make_control<ToolStrip>(StableId("generated.toolstrip"));
+    {
+        const bool sample = !(*control).grip_visible.read();
+        (*control).grip_visible = sample;
+        expect((*control).grip_visible.read() == sample, "ToolStrip.grip_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).allow_merge.read();
+        (*control).allow_merge = sample;
+        expect((*control).allow_merge.read() == sample, "ToolStrip.allow_merge: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "ToolStrip.font: a write stores");
+    }
+    {
+        const Orientation sample = Orientation::vertical;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "ToolStrip.orientation: a write stores");
+    }
+    {
+        const bool sample = !(*control).sizing_grip_visible.read();
+        (*control).sizing_grip_visible = sample;
+        expect((*control).sizing_grip_visible.read() == sample, "ToolStrip.sizing_grip_visible: a write stores");
+    }
+    {
+        const double sample = 24.0;
+        (*control).end_reserve = sample;
+        expect((*control).end_reserve.read() == sample, "ToolStrip.end_reserve: a write stores");
+    }
+}
+
+void test_tool_strip_container_properties() {
+    std::shared_ptr<ToolStripContainer> control = make_control<ToolStripContainer>(StableId("generated.toolstripcontainer"));
+    {
+        const bool sample = !(*control).top_panel_visible.read();
+        (*control).top_panel_visible = sample;
+        expect((*control).top_panel_visible.read() == sample, "ToolStripContainer.top_panel_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).bottom_panel_visible.read();
+        (*control).bottom_panel_visible = sample;
+        expect((*control).bottom_panel_visible.read() == sample, "ToolStripContainer.bottom_panel_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).left_panel_visible.read();
+        (*control).left_panel_visible = sample;
+        expect((*control).left_panel_visible.read() == sample, "ToolStripContainer.left_panel_visible: a write stores");
+    }
+    {
+        const bool sample = !(*control).right_panel_visible.read();
+        (*control).right_panel_visible = sample;
+        expect((*control).right_panel_visible.read() == sample, "ToolStripContainer.right_panel_visible: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).drag_threshold = sample;
+        expect((*control).drag_threshold.read() == sample, "ToolStripContainer.drag_threshold: a write stores");
+    }
+}
+
+void test_tool_strip_panel_properties() {
+    std::shared_ptr<ToolStripPanel> control = make_control<ToolStripPanel>(StableId("generated.toolstrippanel"));
+    {
+        const ToolStripPanelEdge sample = ToolStripPanelEdge::left;
+        (*control).edge = sample;
+        expect((*control).edge.read() == sample, "ToolStripPanel.edge: a write stores");
+    }
+}
+
 void test_tree_list_view_properties() {
     std::shared_ptr<TreeListView> control = make_control<TreeListView>(StableId("generated.treelistview"));
     {
@@ -1741,6 +1841,7 @@ int main() {
     test_masked_text_box_properties();
     test_master_detail_view_properties();
     test_material_panel_properties();
+    test_menu_strip_properties();
     test_metrics_view_properties();
     test_month_calendar_properties();
     test_numeric_up_down_properties();
@@ -1763,6 +1864,9 @@ int main() {
     test_text_box_properties();
     test_toggle_switch_properties();
     test_token_box_properties();
+    test_tool_strip_properties();
+    test_tool_strip_container_properties();
+    test_tool_strip_panel_properties();
     test_tree_list_view_properties();
     test_tree_view_properties();
     test_typography_specimen_properties();

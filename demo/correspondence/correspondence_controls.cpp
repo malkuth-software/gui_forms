@@ -196,7 +196,7 @@ void CorrespondenceShell::build_commands() {
 
 void CorrespondenceShell::build_menu() {
     menu_ = make_control<MenuStrip>(StableId(std::string(ids::menu)));
-    (*menu_).set_font(chrome_font);
+    (*menu_).font = chrome_font;
     (*menu_).dock = DockStyle::top;
     std::vector<MenuItemSpec> view_items;
     for (std::size_t index = 0; index < all_folders.size(); ++index) {

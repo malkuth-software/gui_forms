@@ -108,10 +108,18 @@ Related types
      -  
    * - :cpp:class:`MenuStrip::Parts <gui_forms::MenuStrip::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`MenuStripAllowMergeCapability <gui_forms::MenuStripAllowMergeCapability>`
+     - Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips).
+   * - :cpp:class:`MenuStripCapabilities <gui_forms::MenuStripCapabilities>`
+     - Every MenuStrip capability, in the order the declaring class takes them.
    * - :cpp:class:`MenuStripInvocation <gui_forms::MenuStripInvocation>`
      - MenuStripInvocation correlates a top-level menu and exact nested item identity after accepted activation.
+   * - :cpp:class:`MenuStripItemPaddingCapability <gui_forms::MenuStripItemPaddingCapability>`
+     - The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11).
    * - :cpp:class:`MenuStripItemSpec <gui_forms::MenuStripItemSpec>`
      - MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the overlay item tree for one top-level menu.
+   * - :cpp:class:`MenuStripUseMnemonicCapability <gui_forms::MenuStripUseMnemonicCapability>`
+     - Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
    * - :cpp:class:`QuickAccessToolbar::Parts <gui_forms::QuickAccessToolbar::Parts>`
      - Stage T1 anatomy, as dot members: ToolStrip's parts and the customize button.
    * - :cpp:class:`QuickAccessToolbarCommand <gui_forms::QuickAccessToolbarCommand>`
@@ -210,12 +218,32 @@ Related types
      -  
    * - :cpp:class:`ToolStrip::Parts <gui_forms::ToolStrip::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`ToolStripAllowMergeCapability <gui_forms::ToolStripAllowMergeCapability>`
+     - Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips).
+   * - :cpp:class:`ToolStripCapabilities <gui_forms::ToolStripCapabilities>`
+     - Every ToolStrip capability, in the order the declaring class takes them.
    * - :cpp:class:`ToolStripContainer::Parts <gui_forms::ToolStripContainer::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`ToolStripContainerBottomPanelVisibleCapability <gui_forms::ToolStripContainerBottomPanelVisibleCapability>`
+     - Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true).
+   * - :cpp:class:`ToolStripContainerCapabilities <gui_forms::ToolStripContainerCapabilities>`
+     - Every ToolStripContainer capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToolStripContainerDragThresholdCapability <gui_forms::ToolStripContainerDragThresholdCapability>`
+     - How far the pointer moves from a grip press before it drags (4 units; a host may set 1 to 64).
+   * - :cpp:class:`ToolStripContainerLeftPanelVisibleCapability <gui_forms::ToolStripContainerLeftPanelVisibleCapability>`
+     - Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true).
+   * - :cpp:class:`ToolStripContainerRightPanelVisibleCapability <gui_forms::ToolStripContainerRightPanelVisibleCapability>`
+     - Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true).
+   * - :cpp:class:`ToolStripContainerTopPanelVisibleCapability <gui_forms::ToolStripContainerTopPanelVisibleCapability>`
+     - Whether the top panel shows (Windows Forms' TopToolStripPanelVisible; default true).
    * - :cpp:class:`ToolStripDropDownInvocation <gui_forms::ToolStripDropDownInvocation>`
      - A choice from a drop-down or split button's menu, or from the overflow menu's copy of one.
    * - :cpp:class:`ToolStripDropTarget <gui_forms::ToolStripDropTarget>`
      - Where a dragged strip would go in the panel on ``edge``, its rows counted as they are without the dragged strip: a new row at ``row`` (0 before the first, the row count after the last), or, when ``joins_row``, the existing row ``row`` at ``position`` among its strips.
+   * - :cpp:class:`ToolStripEndReserveCapability <gui_forms::ToolStripEndReserveCapability>`
+     - For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it.
+   * - :cpp:class:`ToolStripGripVisibleCapability <gui_forms::ToolStripGripVisibleCapability>`
+     - Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).
    * - :cpp:class:`ToolStripItemClick <gui_forms::ToolStripItemClick>`
      - A click on an item, after any command it carries has executed.
    * - :cpp:class:`ToolStripItemFocus <gui_forms::ToolStripItemFocus>`
@@ -224,8 +252,16 @@ Related types
      - One item.
    * - :cpp:class:`ToolStripMove <gui_forms::ToolStripMove>`
      - A strip that changed place, raised after the move (by a drag, move_strip or move_strip_into_row): its edge, row and position in the row before, and after (rows counted in the panel as it is after the move).
+   * - :cpp:class:`ToolStripOrientationCapability <gui_forms::ToolStripOrientationCapability>`
+     - Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item.
    * - :cpp:class:`ToolStripPanel::Parts <gui_forms::ToolStripPanel::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`ToolStripPanelCapabilities <gui_forms::ToolStripPanelCapabilities>`
+     - Every ToolStripPanel capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToolStripPanelEdgePropertyCapability <gui_forms::ToolStripPanelEdgePropertyCapability>`
+     - The side of the container the panel lines; changing it turns the joined strips to its orientation.
+   * - :cpp:class:`ToolStripSizingGripVisibleCapability <gui_forms::ToolStripSizingGripVisibleCapability>`
+     - Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
 
 .. cpp:namespace:: gui_forms
 
@@ -504,6 +540,55 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> MenuStripAllowMergeCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripAllowMergeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MenuStripAllowMergeCapability<Declaring>> allow_merge
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MenuStripCapabilities : public MenuStripUseMnemonicCapability<Declaring>, public MenuStripItemPaddingCapability<Declaring>, public FontCapability<Declaring>, public MenuStripAllowMergeCapability<Declaring>
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   Every MenuStrip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: MenuStripCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
+
+   .. cpp:member:: double item_padding
+
+      The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11). A value outside that range throws std::invalid_argument and changes nothing; a change closes an open menu.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: bool allow_merge
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MenuStripInvocation final
 
    ``#include <gui_forms/controls/menu_strip/menu_strip.hpp>``
@@ -515,6 +600,23 @@ Related types
    .. cpp:member:: std::string top_level_id
 
    .. cpp:member:: MenuItemInvocation item
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MenuStripItemPaddingCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11). A value outside that range throws std::invalid_argument and changes nothing; a change closes an open menu.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripItemPaddingCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, MenuStripItemPaddingCapability<Declaring>> item_padding
+
+      Default: ``{11.0}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -543,6 +645,23 @@ Related types
       How the menu joins another menu strip when its strip merges (MergeAction, merge_strips), and its position there; none matches by text only. Default: ``{MergeAction::append}``.
 
    .. cpp:member:: std::optional<std::size_t> merge_index
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> MenuStripUseMnemonicCapability
+
+   ``#include <gui_forms/controls/menu_strip/menu_strip_capabilities/menu_strip_capabilities.hpp>``
+
+   Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(MenuStripUseMnemonicCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, MenuStripUseMnemonicCapability<Declaring>> use_mnemonic
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1412,6 +1531,63 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ToolStripAllowMergeCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripAllowMergeCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripAllowMergeCapability<Declaring>> allow_merge
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripCapabilities : public ToolStripGripVisibleCapability<Declaring>, public ToolStripAllowMergeCapability<Declaring>, public FontCapability<Declaring>, public ToolStripOrientationCapability<Declaring>, public ToolStripSizingGripVisibleCapability<Declaring>, public ToolStripEndReserveCapability<Declaring>
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Every ToolStrip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: ToolStripCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool grip_visible
+
+      Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).
+
+   .. cpp:member:: bool allow_merge
+
+      Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: Orientation orientation
+
+      Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item. A StatusStrip stays horizontal and throws std::logic_error when set vertical; an unknown orientation throws std::invalid_argument.
+
+   .. cpp:member:: bool sizing_grip_visible
+
+      Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
+
+   .. cpp:member:: double end_reserve
+
+      For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolStripContainer::Parts final
 
    ``#include <gui_forms/controls/tool_strip_container/tool_strip_container.hpp>``
@@ -1437,6 +1613,122 @@ Related types
    .. cpp:member:: PartGeometry drag_stamp_image
 
    .. cpp:member:: PartGeometry drop_marker
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerBottomPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerBottomPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerBottomPanelVisibleCapability<Declaring>> bottom_panel_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerCapabilities : public ToolStripContainerTopPanelVisibleCapability<Declaring>, public ToolStripContainerBottomPanelVisibleCapability<Declaring>, public ToolStripContainerLeftPanelVisibleCapability<Declaring>, public ToolStripContainerRightPanelVisibleCapability<Declaring>, public ToolStripContainerDragThresholdCapability<Declaring>
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Every ToolStripContainer capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: bool top_panel_visible
+
+      Whether the top panel shows (Windows Forms' TopToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool bottom_panel_visible
+
+      Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool left_panel_visible
+
+      Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: bool right_panel_visible
+
+      Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+   .. cpp:member:: double drag_threshold
+
+      How far the pointer moves from a grip press before it drags (4 units; a host may set 1 to 64). A value outside that range throws std::out_of_range and changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerDragThresholdCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   How far the pointer moves from a grip press before it drags (4 units; a host may set 1 to 64). A value outside that range throws std::out_of_range and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerDragThresholdCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ToolStripContainerDragThresholdCapability<Declaring>> drag_threshold
+
+      Default: ``{4.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerLeftPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerLeftPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerLeftPanelVisibleCapability<Declaring>> left_panel_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerRightPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerRightPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerRightPanelVisibleCapability<Declaring>> right_panel_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripContainerTopPanelVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip_container/tool_strip_container_capabilities/tool_strip_container_capabilities.hpp>``
+
+   Whether the top panel shows (Windows Forms' TopToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripContainerTopPanelVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripContainerTopPanelVisibleCapability<Declaring>> top_panel_visible
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1471,6 +1763,40 @@ Related types
    .. cpp:member:: std::size_t position
 
    .. cpp:member:: Rect marker
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripEndReserveCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripEndReserveCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, ToolStripEndReserveCapability<Declaring>> end_reserve
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripGripVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripGripVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripGripVisibleCapability<Declaring>> grip_visible
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1586,6 +1912,23 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> ToolStripOrientationCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item. A StatusStrip stays horizontal and throws std::logic_error when set vertical; an unknown orientation throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripOrientationCapability& capability, Orientation incoming)
+
+   .. cpp:member:: PropertyCell<Orientation, ToolStripOrientationCapability<Declaring>> orientation
+
+      Default: ``{Orientation::horizontal}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolStripPanel::Parts final
 
    ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp>``
@@ -1595,6 +1938,53 @@ Related types
    .. cpp:member:: PartGeometry region
 
    .. cpp:member:: PartGeometry face
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripPanelCapabilities : public ToolStripPanelEdgePropertyCapability<Declaring>
+
+   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp>``
+
+   Every ToolStripPanel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: ToolStripPanelEdge edge
+
+      The side of the container the panel lines; changing it turns the joined strips to its orientation. An invalid edge throws std::invalid_argument, and an edge that would turn a joined StatusStrip vertical throws std::logic_error; either changes nothing.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripPanelEdgePropertyCapability
+
+   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel_capabilities/tool_strip_panel_capabilities.hpp>``
+
+   The side of the container the panel lines; changing it turns the joined strips to its orientation. An invalid edge throws std::invalid_argument, and an edge that would turn a joined StatusStrip vertical throws std::logic_error; either changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripPanelEdgePropertyCapability& capability, ToolStripPanelEdge incoming)
+
+   .. cpp:member:: PropertyCell<ToolStripPanelEdge, ToolStripPanelEdgePropertyCapability<Declaring>> edge
+
+      Default: ``{ToolStripPanelEdge::top}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToolStripSizingGripVisibleCapability
+
+   ``#include <gui_forms/controls/tool_strip/tool_strip_capabilities/tool_strip_capabilities.hpp>``
+
+   Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToolStripSizingGripVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToolStripSizingGripVisibleCapability<Declaring>> sizing_grip_visible
 
 Enumerations
 ------------
@@ -1883,7 +2273,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripPanelEdge
 
-   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp>``
+   ``#include <gui_forms/controls/tool_strip_panel/tool_strip_panel_values/tool_strip_panel_values.hpp>``
 
    .. cpp:enumerator:: top
 
