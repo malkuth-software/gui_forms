@@ -20,6 +20,100 @@ namespace gui_forms::form_language {
 
 namespace {
 
+bool hexadecimal_digit(const char character) noexcept {
+    const bool decimal = character >= '0' && character <= '9';
+    const bool lower = character >= 'a' && character <= 'f';
+    const bool upper = character >= 'A' && character <= 'F';
+    return decimal || lower || upper;
+}
+
+std::uint32_t hexadecimal_value(const char character) noexcept {
+    if (character >= '0' && character <= '9') return static_cast<std::uint32_t>(character - '0');
+    if (character >= 'a' && character <= 'f') return static_cast<std::uint32_t>(character - 'a') + 10U;
+    return static_cast<std::uint32_t>(character - 'A') + 10U;
+}
+
+// Appends the UTF-8 encoding of the Unicode scalar `scalar` (no surrogate,
+// at most U+10FFFF) to `output`.
+void append_scalar_utf8(const std::uint32_t scalar, std::string& output) {
+    if (scalar < 0x80U) {
+        output.push_back(static_cast<char>(scalar));
+        return;
+    }
+    if (scalar < 0x800U) {
+        output.push_back(static_cast<char>(0xC0U | (scalar >> 6U)));
+        output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
+        return;
+    }
+    if (scalar < 0x10000U) {
+        output.push_back(static_cast<char>(0xE0U | (scalar >> 12U)));
+        output.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
+        output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
+        return;
+    }
+    output.push_back(static_cast<char>(0xF0U | (scalar >> 18U)));
+    output.push_back(static_cast<char>(0x80U | ((scalar >> 12U) & 0x3FU)));
+    output.push_back(static_cast<char>(0x80U | ((scalar >> 6U) & 0x3FU)));
+    output.push_back(static_cast<char>(0x80U | (scalar & 0x3FU)));
+}
+
+// The byte a one-character escape `\<escaped>` stands for, or NUL when
+// `escaped` begins no such escape.
+char single_escape_meaning(const char escaped) noexcept {
+    switch (escaped) {
+    case 'n': return '\n';
+    case 'r': return '\r';
+    case 't': return '\t';
+    case '"':
+    case '\'':
+    case '\\': return escaped;
+    default: return '\0';
+    }
+}
+
+// The end of the `\u{H}` escape whose 'u' is at `u`, and its scalar; `end`
+// is 0 when the escape is malformed or its scalar is refused.
+struct ScalarEscape final {
+    std::size_t end{};
+    std::uint32_t scalar{};
+};
+
+ScalarEscape read_scalar_escape(const std::string_view content, const std::size_t u) noexcept {
+    ScalarEscape escape{};
+    std::size_t index = u + 1U;
+    if (index >= content.size() || content[index] != '{') return escape;
+    ++index;
+    std::uint32_t value = 0U;
+    std::size_t digits = 0U;
+    while (index < content.size() && digits < 7U && hexadecimal_digit(content[index])) {
+        value = value * 16U + hexadecimal_value(content[index]);
+        ++index;
+        ++digits;
+    }
+    if (digits == 0U || digits > 6U || index >= content.size() || content[index] != '}') return escape;
+    const bool admitted = value != 0U && (value < 0xD800U || value > 0xDFFFU) && value <= 0x10FFFFU;
+    if (!admitted) return escape;
+    escape.end = index + 1U;
+    escape.scalar = value;
+    return escape;
+}
+
+// The refused escape that begins at the backslash `backslash`, as written:
+// the backslash and the code point after it, or through the closing brace
+// of a malformed `\u{...}` when there is one.
+std::string refused_escape_text(const std::string_view content, const std::size_t backslash) {
+    std::size_t end = backslash + 1U;
+    if (end >= content.size()) return std::string(content.substr(backslash));
+    if (content[end] == 'u') {
+        const std::size_t close = content.find('}', end);
+        end = close == std::string_view::npos ? end + 1U : close + 1U;
+        return std::string(content.substr(backslash, end - backslash));
+    }
+    ++end;
+    while (end < content.size() && (static_cast<unsigned char>(content[end]) & 0xC0U) == 0x80U) ++end;
+    return std::string(content.substr(backslash, end - backslash));
+}
+
 using theme_language::ByteOffset;
 using theme_language::DiagnosticCode;
 using theme_language::LineStartTable;
@@ -117,6 +211,8 @@ struct ValueReading final {
     std::uint32_t offending{};
     // The property's kind cannot be written yet (E999).
     bool not_expressible{};
+    // A string's refused escape, as written (E815), when that stopped it.
+    std::string refused_escape{};
 };
 
 // The members one object's block has written so far.
@@ -601,6 +697,10 @@ void ModelBuilder::read_declaration(NodeIndex node, ObjectIndex owner, WrittenNa
                "a value of this kind");
         return;
     }
+    if (!reading.value && !reading.refused_escape.empty()) {
+        report(DiagnosticCode::form_escape_invalid, reading.offending, stable_id, written, reading.refused_escape);
+        return;
+    }
     if (!reading.value) {
         report(DiagnosticCode::form_value_invalid, reading.offending, stable_id, written, {});
         return;
@@ -762,9 +862,12 @@ std::optional<BindingValue> ModelBuilder::candidate_value(const ValueTokens& val
     }
     case BindingValueKind::text: {
         if (value.count != 1U || tokens_[first].kind != TokenKind::string) return std::nullopt;
-        // The text between the quotes: the language admits no escapes.
-        const std::string_view quoted = token_text(first);
-        return BindingValue{std::string(quoted.substr(1U, quoted.size() - 2U))};
+        FormStringReading text = read_form_string(token_text(first));
+        if (!text.valid) {
+            reading.refused_escape = std::move(text.escape);
+            return std::nullopt;
+        }
+        return BindingValue{std::move(text.text)};
     }
     case BindingValueKind::point:
     case BindingValueKind::size:
@@ -904,8 +1007,13 @@ std::optional<BindingValue> ModelBuilder::text_collection_value(const ValueToken
             reading.offending = index;
             return std::nullopt;
         }
-        const std::string_view quoted = token_text(index);
-        items.emplace_back(std::string(quoted.substr(1U, quoted.size() - 2U)));
+        FormStringReading item = read_form_string(token_text(index));
+        if (!item.valid) {
+            reading.offending = index;
+            reading.refused_escape = std::move(item.escape);
+            return std::nullopt;
+        }
+        items.emplace_back(std::move(item.text));
     }
     BindingValue collection{
         make_property_collection(std::string((*model).item_type_name()), BindingValueKind::text, std::move(items))};
@@ -1007,6 +1115,76 @@ FormSchemaType describe_form_type(std::string name, const Component& prototype) 
         type.interactions.emplace_back(interaction.name);
     }
     return type;
+}
+
+FormStringReading read_form_string(const std::string_view token) {
+    FormStringReading reading{};
+    const bool quoted = token.size() >= 2U && (token.front() == '"' || token.front() == '\'') &&
+                        token.back() == token.front();
+    if (!quoted) return reading;
+    const std::string_view content = token.substr(1U, token.size() - 2U);
+    std::string text{};
+    text.reserve(content.size());
+    std::size_t index = 0U;
+    while (index < content.size()) {
+        const char character = content[index];
+        if (character != '\\') {
+            text.push_back(character);
+            ++index;
+            continue;
+        }
+        const char escaped = index + 1U < content.size() ? content[index + 1U] : '\0';
+        const char meaning = single_escape_meaning(escaped);
+        if (meaning != '\0') {
+            text.push_back(meaning);
+            index += 2U;
+            continue;
+        }
+        if (escaped == 'u') {
+            const ScalarEscape scalar = read_scalar_escape(content, index + 1U);
+            if (scalar.end != 0U) {
+                append_scalar_utf8(scalar.scalar, text);
+                index = scalar.end;
+                continue;
+            }
+        }
+        reading.escape = refused_escape_text(content, index);
+        return reading;
+    }
+    reading.text = std::move(text);
+    reading.valid = true;
+    return reading;
+}
+
+std::string quote_form_string(const std::string_view text) {
+    static constexpr std::string_view digits = "0123456789ABCDEF";
+    std::string quoted{"\""};
+    quoted.reserve(text.size() + 2U);
+    for (const char character : text) {
+        const unsigned char byte = static_cast<unsigned char>(character);
+        if (character == '"' || character == '\\') {
+            quoted.push_back('\\');
+            quoted.push_back(character);
+        } else if (character == '\n') {
+            quoted += "\\n";
+        } else if (character == '\r') {
+            quoted += "\\r";
+        } else if (character == '\t') {
+            quoted += "\\t";
+        } else if (byte < 0x20U || byte == 0x7FU) {
+            // A NUL has no escape and stays out of a document's string; the
+            // other control bytes are one or two hexadecimal digits.
+            if (byte == 0U) continue;
+            quoted += "\\u{";
+            if (byte >= 0x10U) quoted.push_back(digits[byte >> 4U]);
+            quoted.push_back(digits[byte & 0x0FU]);
+            quoted.push_back('}');
+        } else {
+            quoted.push_back(character);
+        }
+    }
+    quoted.push_back('"');
+    return quoted;
 }
 
 const PropertyDescriptor& form_property_descriptor(const FormSchema& schema, const FormModel& model,

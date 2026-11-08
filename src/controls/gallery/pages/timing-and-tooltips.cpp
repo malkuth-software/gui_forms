@@ -125,10 +125,6 @@ void TimingPage::build_timer(PageContext& context) {
 void TimingPage::build_tooltips(PageContext& context) {
     context.tooltip_disabled_target = document_.gallery_timing_tooltip_disabled;
     context.tooltip_show_disabled = document_.gallery_timing_tooltip_show_disabled;
-    (*document_.gallery_timing_tooltip_policy).set_text(
-        "Hover: 420 ms · Reshow: 90 ms · Auto-pop: 4 s\nEach control carries its own tooltip text; the window's one presenter shows it on rest and on keyboard focus, follows moving targets and closes with its owner.");
-    (*document_.gallery_timing_tooltip_proof).set_text(
-        "TRY IT\nHover each target, tab through the controls, adjust the interval, and watch the anchored moving tooltip.");
     context.provider_error_target = document_.gallery_timing_provider_field;
     context.provider_error_toggle = document_.gallery_timing_provider_toggle;
 }

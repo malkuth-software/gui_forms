@@ -550,6 +550,40 @@ void test_spans() {
             "spans: the generated header includes the span vocabulary");
 }
 
+// A string's escapes reach both paths as the characters they stand for: the
+// loader sets the decoded text, and the generator spells it as a C++
+// literal (a line feed as an octal escape, a quote escaped).
+void test_string_escapes() {
+    const FormSchema schema = gui_forms::form_compiler::registry_form_schema();
+    const std::string_view document = "panel app.root {\n"
+                                      "  label app.note { text: \"Two\\nlines \\\"quoted\\\" \\u{3A9}\"; }\n"
+                                      "}\n";
+    Workspace workspace{};
+    const bool read = read_document(workspace, "escapes.form", document, schema);
+    if (!read) print_diagnostics(workspace);
+    require(read, "escapes: the model builds");
+    if (!read) return;
+    LoadedForm loaded{};
+    const FormLoadOutcome outcome = gui_forms::form_language::load_form(
+        workspace.source, workspace.tokens, workspace.lines, workspace.tree, schema, workspace.model, loaded,
+        workspace.diagnostics);
+    require(outcome == FormLoadOutcome::loaded, "escapes: the document loads");
+    if (outcome != FormLoadOutcome::loaded) return;
+    const std::shared_ptr<gui_forms::Label> note =
+        std::dynamic_pointer_cast<gui_forms::Label>(find_control(loaded.root, "app.note"));
+    require(note != nullptr && (*note).text() == "Two\nlines \"quoted\" \xCE\xA9",
+            "escapes: the loader sets the decoded text");
+
+    FormGeneratorOptions options = sample_options();
+    options.class_name = "EscapesForm";
+    options.source_name = "escapes.form";
+    std::string generated{};
+    require(generate(workspace, schema, options, generated) == FormGenerateOutcome::generated,
+            "escapes: the generator writes the document");
+    require(generated.find("\"Two\\012lines \\\"quoted\\\" \\316\\251\"") != std::string::npos,
+            "escapes: the generated literal spells the decoded text");
+}
+
 void test_member_names() {
     require(gui_forms::form_language::form_member_name("settings.auto-save") == "settings_auto_save",
             "member names: '.' and '-' spelled '_'");
@@ -572,6 +606,7 @@ int main() {
     test_page_descriptors();
     test_refusals();
     test_member_names();
+    test_string_escapes();
     if (failures != 0) {
         std::cerr << failures << " failure(s)\n";
         return 1;

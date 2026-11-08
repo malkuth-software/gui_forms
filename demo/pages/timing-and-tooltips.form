@@ -8,7 +8,7 @@
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The page keeps in code the Commands and their
    bindings, the interval Value and the ranges, the motion panel's and
-   rule's backgrounds, the two-line texts, the hand-off of the timer and tooltip targets to the
+   rule's backgrounds, the hand-off of the timer and tooltip targets to the
    shell through PageContext, the BackgroundWorker, every event handler,
    the status lines' reports and the page style. */
 scaled-panel gallery.timing.document {
@@ -114,15 +114,14 @@ scaled-panel gallery.timing.document {
       bounds: 214 102 206 36;
     }
     label gallery.timing.tooltip.policy {
-      /* Two lines: the page sets the text, since the language has no
-         line-break escape. */
+      text: "Hover: 420 ms · Reshow: 90 ms · Auto-pop: 4 s\nEach control carries its own tooltip text; the window's one presenter shows it on rest and on keyboard focus, follows moving targets and closes with its owner.";
       classes: "muted" "note";
       text-wrapping: word;
       vertical-alignment: near;
       bounds: 22 166 574 70;
     }
     label gallery.timing.tooltip.proof {
-      /* Two lines: the page sets the text. */
+      text: "TRY IT\nHover each target, tab through the controls, adjust the interval, and watch the anchored moving tooltip.";
       classes: "heading" "strong";
       text-wrapping: word;
       vertical-alignment: near;

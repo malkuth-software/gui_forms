@@ -41,7 +41,10 @@ using gui_forms::form_language::FormSchema;
 using gui_forms::form_language::FormSchemaType;
 using gui_forms::form_language::ObjectIndex;
 using gui_forms::form_language::build_form_model;
+using gui_forms::form_language::FormStringReading;
 using gui_forms::form_language::describe_form_type;
+using gui_forms::form_language::quote_form_string;
+using gui_forms::form_language::read_form_string;
 using gui_forms::theme_language::DiagnosticCode;
 using gui_forms::theme_language::LineStartTable;
 using gui_forms::theme_language::ParseOutcome;
@@ -402,6 +405,60 @@ void test_spans() {
     check_diagnostics(workspace, expected, "spans: every conflict located");
 }
 
+// String escapes (form_model.hpp, Strings): \n, \r, \t, the quotes, the
+// backslash and \u{H} read as their characters; any other escape refuses
+// the document with E815 at the string, its detail the escape as written;
+// quote_form_string writes what read_form_string reads back.
+void test_string_escapes() {
+    const FormSchema schema = sample_schema();
+    Workspace workspace{};
+    FormModel model{};
+    const std::string_view document =
+        "user-control app.root {\n"
+        "  button app.ok { text: \"One\\ntwo\\t\\\"q\\\" \\\\ \\u{3A9}\\u{1F680}\"; }\n"
+        "  button app.single { text: 'it\\'s'; }\n"
+        "}\n";
+    require(build(workspace, document, schema, model) == FormModelOutcome::model_built, "escapes: built");
+    const FormProperty* text = find_property(model, schema, 1U, "text");
+    require(text != nullptr && std::get<std::string>((*text).value) == "One\ntwo\t\"q\" \\ \xCE\xA9\xF0\x9F\x9A\x80",
+            "escapes: every admitted escape read");
+    const FormProperty* single = find_property(model, schema, 2U, "text");
+    require(single != nullptr && std::get<std::string>((*single).value) == "it's", "escapes: a single-quoted string");
+
+    const std::string_view defects = "user-control app.root {\n"                        // 1
+                                     "  button app.a { text: \"bad \\q\"; }\n"          // 2 E815
+                                     "  button app.b { text: \"\\u{D800}\"; }\n"        // 3 E815
+                                     "  button app.c { text: \"\\u{110000}\"; }\n"      // 4 E815
+                                     "  button app.d { text: \"\\u{}\"; }\n"            // 5 E815
+                                     "  button app.e { text: \"\\x41\"; }\n"            // 6 E815
+                                     "}\n";
+    const std::array<ExpectedDiagnostic, 5> expected{{
+        {DiagnosticCode::form_escape_invalid, 2U, 24U},
+        {DiagnosticCode::form_escape_invalid, 3U, 24U},
+        {DiagnosticCode::form_escape_invalid, 4U, 24U},
+        {DiagnosticCode::form_escape_invalid, 5U, 24U},
+        {DiagnosticCode::form_escape_invalid, 6U, 24U},
+    }};
+    require(build(workspace, defects, schema, model) == FormModelOutcome::refused, "escapes: defects refused");
+    check_diagnostics(workspace, expected, "escapes: every refused escape located");
+    const std::span<const ThemeDiagnostic> records = workspace.diagnostics.records();
+    require(records.size() == 5U && records[0].detail == "\\q" && records[1].detail == "\\u{D800}" &&
+                records[3].detail == "\\u{}" && records[4].detail == "\\x",
+            "escapes: the detail is the escape as written");
+
+    const std::array<std::string_view, 6> texts{
+        "plain", "", "a \"quote\" and a \\ backslash", "two\nlines\r\n\ttabbed",
+        "\x01\x1F\x7F controls", "Graphemes: a\xCC\x81 \xCE\xA9 \xF0\x9F\x9A\x80"};
+    for (const std::string_view original : texts) {
+        const std::string quoted = quote_form_string(original);
+        const FormStringReading reading = read_form_string(quoted);
+        require(reading.valid && reading.text == original, "escapes: quote_form_string round-trips");
+    }
+    require(quote_form_string("a\nb") == "\"a\\nb\"", "escapes: a line feed is written as \\n");
+    require(quote_form_string("\x01") == "\"\\u{1}\"", "escapes: a control byte is written as \\u{H}");
+    require(!read_form_string("no quotes").valid, "escapes: a token without quotes is refused");
+}
+
 } // namespace
 
 int main() {
@@ -410,11 +467,12 @@ int main() {
     test_roots();
     test_attached_properties();
     test_spans();
+    test_string_escapes();
     if (failures != 0) {
         std::cerr << failures << " form model checks failed\n";
         return 1;
     }
-    std::cout << "form model: objects, values of every expressible kind, handlers, located defects, refusal and "
-                 "roots passed\n";
+    std::cout << "form model: objects, values of every expressible kind, handlers, located defects, refusal, "
+                 "roots and string escapes passed\n";
     return 0;
 }

@@ -14,7 +14,7 @@
 // - boolean: `true` or `false`;
 // - signed and unsigned integers: one integer number;
 // - number: one number;
-// - text: one string;
+// - text: one string (see Strings below);
 // - point and size: two numbers (x y, width height);
 // - rectangle: four numbers (x y width height);
 // - insets: one, two or four numbers in CSS order (all; vertical and
@@ -29,6 +29,17 @@
 // - collection (owner decision FD6-4): one or more strings, for a property
 //   whose default is a text collection (`items: "AM" "FM";`);
 // - image, object and other collections: not yet expressible (E999).
+//
+// Strings: a string is written between double or single quotes on one line.
+// A backslash begins an escape, and these are the only ones:
+// - `\n` a line feed, `\r` a carriage return, `\t` a tab;
+// - `\"`, `\'` and `\\` the quote or the backslash itself;
+// - `\u{H}` the Unicode scalar of one to six hexadecimal digits H, from
+//   U+0001 to U+10FFFF and no surrogate (`"Ω"` is `"\u{3A9}"`).
+// Any other escape, a backslash before a line break included, is refused
+// (E815 form_escape_invalid, its detail the escape as written).
+// quote_form_string writes a text so that reading it gives the text back.
+//
 // A handler reference, `on-<interaction>: <handler>;`, names a member of
 // the owner class (owner decision FD-3): one C++ identifier.
 //
@@ -242,6 +253,26 @@ enum class FormModelOutcome : std::uint8_t {
     // in document order, and `model` is unchanged.
     refused,
 };
+
+// What a string token spells (see Strings above): its quotes removed and
+// its escapes read. When an escape is refused, `text` is empty and
+// `escape` holds the refused escape as written.
+struct FormStringReading final {
+    std::string text{};
+    std::string escape{};
+    bool valid{};
+};
+
+// Reads the string token `token`, quotes included. A token without its two
+// quotes reads as refused, with an empty `escape`.
+[[nodiscard]] FormStringReading read_form_string(std::string_view token);
+
+// `text` as a document writes it: double-quoted, with the quote, the
+// backslash, line feed, carriage return and tab escaped, every other
+// control byte but NUL as `\u{H}`, and all other UTF-8 as itself; a NUL,
+// which no string can hold, is left out. Reading the result with
+// read_form_string gives back `text` without its NULs.
+[[nodiscard]] std::string quote_form_string(std::string_view text);
 
 // The descriptor of a property `model` records, from its provider's list
 // in `schema`, the schema the model was built against. The reference is
