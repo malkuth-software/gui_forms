@@ -2007,7 +2007,7 @@ void example() {
     Search search;
     std::shared_ptr<gf::ComboBox> value = std::dynamic_pointer_cast<gf::ComboBox>(
         (*search.rack).field_editor("search.kind", "value"));
-    if (value) (*value).set_selected_index(1U);   // kind is "Documents"
+    if (value) (*value).selected_index = std::size_t{1U};   // kind is "Documents"
 }
 }  // namespace doc_example_InstrumentRack_2
 
@@ -2757,7 +2757,7 @@ void example() {
     FileSheet file;
     std::shared_ptr<gf::ComboBox> opens =
         std::dynamic_pointer_cast<gf::ComboBox>((*file.sheet).editor("file.opens"));
-    if (opens) (*opens).set_selected_index(1U);   // opens_with is "Image Laboratory"
+    if (opens) (*opens).selected_index = std::size_t{1U};   // opens_with is "Image Laboratory"
 }
 }  // namespace doc_example_PropertyList_2
 
