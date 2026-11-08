@@ -203,11 +203,11 @@ gui_forms::TableLayoutPanelCompat
 
       std::shared_ptr<gf::TableLayoutPanelCompat> form =
           gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("form"));
-      (*form).set_column_count(2U);
-      (*form).set_row_count(2U);
+      (*form).column_count = 2U;
+      (*form).row_count = 2U;
       (*form).set_column_style(0U, {gf::TableSizeMode::auto_size, 0.0});
       (*form).set_column_style(1U, {gf::TableSizeMode::percent, 1.0});
-      (*form).set_track_spacing({8.0, 4.0});
+      (*form).track_spacing = {8.0, 4.0};
 
       std::shared_ptr<gf::Label> name_label =
           gf::make_control<gf::Label>(gf::StableId("form.name.label"), "Name:");
@@ -238,9 +238,9 @@ gui_forms::TableLayoutPanelCompat
 
       std::shared_ptr<gf::TableLayoutPanelCompat> grid =
           gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("grid"));
-      (*grid).set_column_count(2U);
-      (*grid).set_row_count(2U);
-      (*grid).set_grow_style(gf::TableLayoutGrowStyle::fixed_size);
+      (*grid).column_count = 2U;
+      (*grid).row_count = 2U;
+      (*grid).grow_style = gf::TableLayoutGrowStyle::fixed_size;
 
       std::shared_ptr<gf::Label> heading =
           gf::make_control<gf::Label>(gf::StableId("grid.heading"), "Totals");

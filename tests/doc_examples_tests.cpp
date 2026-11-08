@@ -2826,8 +2826,8 @@ void example() {
         gf::make_control<gf::RadioButton>(gf::StableId("print.landscape"), "&Landscape");
     (*orientation).add_child(portrait);
     (*orientation).add_child(landscape);
-    (*portrait).set_checked(true);
-    (*landscape).set_checked(true);   // portrait is unchecked first
+    (*portrait).checked = true;
+    (*landscape).checked = true;   // portrait is unchecked first
 }
 }  // namespace doc_example_RadioButton_1
 
@@ -2845,10 +2845,10 @@ struct PrintOptions final : gf::Component {
     bool landscape_page = false;
 
     PrintOptions() {
-        (*portrait).set_group_name("orientation");
-        (*landscape).set_group_name("orientation");
-        (*colour).set_group_name("ink");
-        (*mono).set_group_name("ink");
+        (*portrait).group_name = "orientation";
+        (*landscape).group_name = "orientation";
+        (*colour).group_name = "ink";
+        (*mono).group_name = "ink";
         (*panel).add_child(portrait);
         (*panel).add_child(landscape);
         (*panel).add_child(colour);
@@ -2860,8 +2860,8 @@ struct PrintOptions final : gf::Component {
 
 void example() {
     PrintOptions options;
-    (*options.portrait).set_checked(true);
-    (*options.colour).set_checked(true);   // another group: portrait stays checked
+    (*options.portrait).checked = true;
+    (*options.colour).checked = true;   // another group: portrait stays checked
     (*options.landscape).perform_click();  // unchecks portrait; landscape_page is true
 }
 }  // namespace doc_example_RadioButton_2
@@ -2875,7 +2875,7 @@ void example() {
         gf::make_control<gf::ProgressBar>(gf::StableId("mixer.meter"));
     (*slider).bind(volume);      // the slider shows 40
     (*meter).bind(volume);       // and so does the meter
-    (*slider).set_value(65.0);   // volume and the meter are now 65
+    (*slider).value = 65.0;   // volume and the meter are now 65
 }
 }  // namespace doc_example_RangeControl_1
 
@@ -2884,8 +2884,8 @@ void example() {
     std::shared_ptr<gf::ProgressBar> copied =
         gf::make_control<gf::ProgressBar>(gf::StableId("copy.progress"));
     (*copied).set_range(0.0, 250.0);
-    (*copied).set_value(100.0);   // normalized_value() is 0.4
-    (*copied).set_maximum(50.0);  // the value is clamped to 50
+    (*copied).value = 100.0;   // normalized_value() is 0.4
+    (*copied).maximum = 50.0;  // the value is clamped to 50
 }
 }  // namespace doc_example_RangeControl_2
 
@@ -3198,8 +3198,8 @@ void example() {
         gf::StableId("document.vertical"), gf::Orientation::vertical);
     (*bar).set_requested_bounds({0.0, 0.0, 18.0, 240.0});
     (*bar).set_range(0.0, 800.0);    // the last 200 pixels are visible at 800
-    (*bar).set_large_change(200.0);  // one page per track click, and the thumb size
-    (*bar).set_small_change(20.0);   // one line per arrow click
+    (*bar).large_change = 200.0;  // one page per track click, and the thumb size
+    (*bar).small_change = 20.0;   // one line per arrow click
 }
 }  // namespace doc_example_ScrollBar_1
 
@@ -3220,7 +3220,7 @@ void example() {
     window.request_focus(canvas.bar);
     window.dispatch_key({gf::KeyAction::down, gf::PhysicalKey::page_down});
     // scroll reported a large increment: canvas.offset is 10
-    (*canvas.bar).set_value(0.0);   // value_changed only; canvas.offset stays 10
+    (*canvas.bar).value = 0.0;   // value_changed only; canvas.offset stays 10
 }
 }  // namespace doc_example_ScrollBar_2
 
@@ -3511,11 +3511,11 @@ namespace doc_example_TableLayoutPanelCompat_1 {
 void example() {
     std::shared_ptr<gf::TableLayoutPanelCompat> form =
         gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("form"));
-    (*form).set_column_count(2U);
-    (*form).set_row_count(2U);
+    (*form).column_count = 2U;
+    (*form).row_count = 2U;
     (*form).set_column_style(0U, {gf::TableSizeMode::auto_size, 0.0});
     (*form).set_column_style(1U, {gf::TableSizeMode::percent, 1.0});
-    (*form).set_track_spacing({8.0, 4.0});
+    (*form).track_spacing = {8.0, 4.0};
 
     std::shared_ptr<gf::Label> name_label =
         gf::make_control<gf::Label>(gf::StableId("form.name.label"), "Name:");
@@ -3545,9 +3545,9 @@ namespace doc_example_TableLayoutPanelCompat_2 {
 void example() {
     std::shared_ptr<gf::TableLayoutPanelCompat> grid =
         gf::make_control<gf::TableLayoutPanelCompat>(gf::StableId("grid"));
-    (*grid).set_column_count(2U);
-    (*grid).set_row_count(2U);
-    (*grid).set_grow_style(gf::TableLayoutGrowStyle::fixed_size);
+    (*grid).column_count = 2U;
+    (*grid).row_count = 2U;
+    (*grid).grow_style = gf::TableLayoutGrowStyle::fixed_size;
 
     std::shared_ptr<gf::Label> heading =
         gf::make_control<gf::Label>(gf::StableId("grid.heading"), "Totals");
@@ -3594,7 +3594,7 @@ namespace doc_example_TextBlock_1 {
 void example() {
     std::shared_ptr<gf::FlexPanel> column =
         gf::make_control<gf::FlexPanel>(gf::StableId("article"));
-    (*column).set_flex_direction(gf::FlexDirection::column);
+    (*column).flex_direction = gf::FlexDirection::column;
     std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
         gf::StableId("article.heading"), "Export settings");
     (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
@@ -3614,7 +3614,7 @@ namespace doc_example_TextBlock_2 {
 void example() {
     std::shared_ptr<gf::FlexPanel> row =
         gf::make_control<gf::FlexPanel>(gf::StableId("rate"));
-    (*row).set_align_items(gf::LayoutAlignment::baseline);
+    (*row).align_items = gf::LayoutAlignment::baseline;
     std::shared_ptr<gf::TextBlock> caption =
         gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
     std::shared_ptr<gf::TextBlock> value =
@@ -3881,11 +3881,11 @@ namespace doc_example_TrackBar_1 {
 void example() {
     std::shared_ptr<gf::TrackBar> level =
         gf::make_control<gf::TrackBar>(gf::StableId("mixer.level"));
-    (*level).set_orientation(gf::Orientation::vertical);
+    (*level).orientation = gf::Orientation::vertical;
     (*level).set_range(-60.0, 0.0);
-    (*level).set_large_change(6.0);
-    (*level).set_tick_frequency(6.0);   // eleven ticks, one every 6 dB
-    (*level).set_value(-12.0);
+    (*level).large_change = 6.0;
+    (*level).tick_frequency = 6.0;   // eleven ticks, one every 6 dB
+    (*level).value = -12.0;
 }
 }  // namespace doc_example_TrackBar_1
 
@@ -3911,7 +3911,7 @@ struct Mixer final : gf::Component {
 void example() {
     Mixer mixer;
     (*mixer.volume).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
-    (*mixer.volume).set_value(30.0);   // level is 30, user_moves is 0
+    (*mixer.volume).value = 30.0;   // level is 30, user_moves is 0
     gf::Window window(mixer.volume, {200.0, 28.0});
     window.perform_layout();
     window.request_focus(mixer.volume);
@@ -4103,7 +4103,7 @@ void example() {
         gf::make_control<gf::VScrollBar>(gf::StableId("rows.vertical"));
     (*bar).set_requested_bounds({300.0, 0.0, 18.0, 240.0});
     (*bar).set_range(0.0, 88.0);     // the last 12 rows are visible at 88
-    (*bar).set_large_change(12.0);
+    (*bar).large_change = 12.0;
     (*bar).bind(first_row);          // the bar and first_row now follow each other
     first_row.set(40.0);             // the thumb moves to row 40
 }

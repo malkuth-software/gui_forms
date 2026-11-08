@@ -361,17 +361,17 @@ GalleryTree build_gallery_tree()
 
     // What the form language does not state yet.
     (*document.gallery_default_button).set_default_button(true);
-    (*document.gallery_checkbox_indeterminate).set_three_state(true);
+    (*document.gallery_checkbox_indeterminate).three_state = true;
     (*document.gallery_checkbox_indeterminate).check_state = CheckState::indeterminate;
-    (*document.gallery_radio_classic).set_group_name("gallery.style-mode");
-    (*document.gallery_radio_quiet).set_group_name("gallery.style-mode");
-    (*document.gallery_slider).set_small_change(1.0);
-    (*document.gallery_slider).set_large_change(10.0);
-    (*document.gallery_text_input).set_placeholder_text("Type here");
-    (*document.gallery_diagnostics_about).set_text_wrapping(TextWrapping::word);
-    (*document.gallery_diagnostics_about).set_vertical_alignment(VerticalAlignment::near);
-    (*document.gallery_diagnostics_font).set_text_wrapping(TextWrapping::word);
-    (*document.gallery_diagnostics_font).set_vertical_alignment(VerticalAlignment::near);
+    (*document.gallery_radio_classic).group_name = "gallery.style-mode";
+    (*document.gallery_radio_quiet).group_name = "gallery.style-mode";
+    (*document.gallery_slider).small_change = 1.0;
+    (*document.gallery_slider).large_change = 10.0;
+    (*document.gallery_text_input).placeholder_text = "Type here";
+    (*document.gallery_diagnostics_about).text_wrapping = TextWrapping::word;
+    (*document.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::near;
+    (*document.gallery_diagnostics_font).text_wrapping = TextWrapping::word;
+    (*document.gallery_diagnostics_font).vertical_alignment = VerticalAlignment::near;
     (*document.gallery_diagnostics).set_paint_plane(PaintPlane::overlay);
     std::vector<std::string> row_ids;
     row_ids.reserve(collection_row_ids.size());
@@ -380,7 +380,7 @@ GalleryTree build_gallery_tree()
     (*document.gallery_collection).select_index(0U);
     SurfaceMaterial backplane;
     backplane.fills = {MaterialFillLayer::solid(backplane_wash)};
-    (*document.gallery_backplane).set_material(std::move(backplane));
+    (*document.gallery_backplane).material = std::move(backplane);
     (*context).collection_drop_ = (*document.gallery_collection).dropped().subscribe(
         Delegate<const std::string&>::bind<GalleryContext, &GalleryContext::collection_dropped>(*context));
 

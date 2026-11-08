@@ -128,7 +128,7 @@ gui_forms::TextBlock
 
       std::shared_ptr<gf::FlexPanel> column =
           gf::make_control<gf::FlexPanel>(gf::StableId("article"));
-      (*column).set_flex_direction(gf::FlexDirection::column);
+      (*column).flex_direction = gf::FlexDirection::column;
       std::shared_ptr<gf::TextBlock> heading = gf::make_control<gf::TextBlock>(
           gf::StableId("article.heading"), "Export settings");
       (*heading).font = gf::FontSpec{gf::FontRole::content, 19.5, 700, false, 0.0};
@@ -148,7 +148,7 @@ gui_forms::TextBlock
 
       std::shared_ptr<gf::FlexPanel> row =
           gf::make_control<gf::FlexPanel>(gf::StableId("rate"));
-      (*row).set_align_items(gf::LayoutAlignment::baseline);
+      (*row).align_items = gf::LayoutAlignment::baseline;
       std::shared_ptr<gf::TextBlock> caption =
           gf::make_control<gf::TextBlock>(gf::StableId("rate.caption"), "Rate");
       std::shared_ptr<gf::TextBlock> value =

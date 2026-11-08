@@ -137,11 +137,11 @@ gui_forms::TrackBar
 
       std::shared_ptr<gf::TrackBar> level =
           gf::make_control<gf::TrackBar>(gf::StableId("mixer.level"));
-      (*level).set_orientation(gf::Orientation::vertical);
+      (*level).orientation = gf::Orientation::vertical;
       (*level).set_range(-60.0, 0.0);
-      (*level).set_large_change(6.0);
-      (*level).set_tick_frequency(6.0);   // eleven ticks, one every 6 dB
-      (*level).set_value(-12.0);
+      (*level).large_change = 6.0;
+      (*level).tick_frequency = 6.0;   // eleven ticks, one every 6 dB
+      (*level).value = -12.0;
 
    Tell user input apart from programmatic changes. ``scroll`` reports only what
    the user did, while ``value_changed`` follows every change:
@@ -169,7 +169,7 @@ gui_forms::TrackBar
       void example() {
           Mixer mixer;
           (*mixer.volume).set_requested_bounds({0.0, 0.0, 200.0, 28.0});
-          (*mixer.volume).set_value(30.0);   // level is 30, user_moves is 0
+          (*mixer.volume).value = 30.0;   // level is 30, user_moves is 0
           gf::Window window(mixer.volume, {200.0, 28.0});
           window.perform_layout();
           window.request_focus(mixer.volume);

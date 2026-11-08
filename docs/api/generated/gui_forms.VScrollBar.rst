@@ -62,7 +62,7 @@ gui_forms::VScrollBar
           gf::make_control<gf::VScrollBar>(gf::StableId("rows.vertical"));
       (*bar).set_requested_bounds({300.0, 0.0, 18.0, 240.0});
       (*bar).set_range(0.0, 88.0);     // the last 12 rows are visible at 88
-      (*bar).set_large_change(12.0);
+      (*bar).large_change = 12.0;
       (*bar).bind(first_row);          // the bar and first_row now follow each other
       first_row.set(40.0);             // the thumb moves to row 40
 

@@ -130,8 +130,8 @@ gui_forms::RadioButton
           gf::make_control<gf::RadioButton>(gf::StableId("print.landscape"), "&Landscape");
       (*orientation).add_child(portrait);
       (*orientation).add_child(landscape);
-      (*portrait).set_checked(true);
-      (*landscape).set_checked(true);   // portrait is unchecked first
+      (*portrait).checked = true;
+      (*landscape).checked = true;   // portrait is unchecked first
 
    Keep two groups in one panel apart with :cpp:member:`group_name <gui_forms::RadioButton::group_name>`, and react to one
    button with an owned handler:
@@ -151,10 +151,10 @@ gui_forms::RadioButton
           bool landscape_page = false;
 
           PrintOptions() {
-              (*portrait).set_group_name("orientation");
-              (*landscape).set_group_name("orientation");
-              (*colour).set_group_name("ink");
-              (*mono).set_group_name("ink");
+              (*portrait).group_name = "orientation";
+              (*landscape).group_name = "orientation";
+              (*colour).group_name = "ink";
+              (*mono).group_name = "ink";
               (*panel).add_child(portrait);
               (*panel).add_child(landscape);
               (*panel).add_child(colour);
@@ -166,8 +166,8 @@ gui_forms::RadioButton
 
       void example() {
           PrintOptions options;
-          (*options.portrait).set_checked(true);
-          (*options.colour).set_checked(true);   // another group: portrait stays checked
+          (*options.portrait).checked = true;
+          (*options.colour).checked = true;   // another group: portrait stays checked
           (*options.landscape).perform_click();  // unchecks portrait; landscape_page is true
       }
 

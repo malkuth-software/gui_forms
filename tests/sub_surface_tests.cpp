@@ -515,7 +515,7 @@ class HoldingContent final : public SubSurfaceContent {
 public:
     Control::Ptr build_root() override {
         std::shared_ptr<DrawingSurface> surface = std::make_shared<DrawingSurface>(StableId("sub.holding"));
-        (*surface).set_background(green);
+        (*surface).background = green;
         return surface;
     }
     void apply_update(SubSurfaceContentUpdate& update) override {

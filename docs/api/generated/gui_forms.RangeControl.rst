@@ -163,7 +163,7 @@ gui_forms::RangeControl
           gf::make_control<gf::ProgressBar>(gf::StableId("mixer.meter"));
       (*slider).bind(volume);      // the slider shows 40
       (*meter).bind(volume);       // and so does the meter
-      (*slider).set_value(65.0);   // volume and the meter are now 65
+      (*slider).value = 65.0;   // volume and the meter are now 65
 
    Changing the range clamps the value into it, raising :cpp:func:`range_changed <gui_forms::RangeControl::range_changed>` and then
    :cpp:func:`value_changed <gui_forms::RangeControl::value_changed>`:
@@ -173,8 +173,8 @@ gui_forms::RangeControl
       std::shared_ptr<gf::ProgressBar> copied =
           gf::make_control<gf::ProgressBar>(gf::StableId("copy.progress"));
       (*copied).set_range(0.0, 250.0);
-      (*copied).set_value(100.0);   // normalized_value() is 0.4
-      (*copied).set_maximum(50.0);  // the value is clamped to 50
+      (*copied).value = 100.0;   // normalized_value() is 0.4
+      (*copied).maximum = 50.0;  // the value is clamped to 50
 
 
    .. rubric:: Construction

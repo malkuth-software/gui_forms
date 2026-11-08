@@ -462,9 +462,9 @@ void test_load_window() {
             "load window: the accept and cancel buttons, found by ID");
     const ControlLookup check = window.control("settings.auto-save");
     const std::shared_ptr<gui_forms::CheckBox> box = std::dynamic_pointer_cast<gui_forms::CheckBox>(check.control);
-    require(box != nullptr && (*box).checked(), "load window: bound at creation");
+    require(box != nullptr && (*box).checked.read(), "load window: bound at creation");
     if (box != nullptr) {
-        (*box).set_checked(false);
+        (*box).checked = false;
         require(!auto_save.get(), "load window: two way, the control's change reaches the source");
     }
     require(window.control("").error == ControlLookupError::empty_id &&

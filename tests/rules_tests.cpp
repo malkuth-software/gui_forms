@@ -516,11 +516,11 @@ void control_events_and_control_conditions() {
     interacted.actions.push_back(action(journal, &record_c));
     require(rules.add(interacted).refusal == RuleRefusal::none, "an interaction rule is armed");
     window.set_active(false);
-    (*check).set_checked(true);
+    (*check).checked = true;
     require(journal.triggers.back() == RuleTriggerKind::interaction, "the interaction fires while the window is inactive");
     window.set_active(true);
     const std::size_t before_active = journal.entries.size();
-    (*check).set_checked(false);
+    (*check).checked = false;
     require(journal.entries.size() == before_active, "not_window_active holds it back while active");
 }
 

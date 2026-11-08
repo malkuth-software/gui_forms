@@ -55,11 +55,11 @@ void test_window() {
                 "window: a value set");
 
         gui_forms::CheckBox& check = *window.sample_general_auto_save;
-        require(check.checked(), "window: the check box takes its Value's state");
-        check.set_checked(false);
+        require(check.checked.read(), "window: the check box takes its Value's state");
+        check.checked = false;
         require(!model.auto_save_.get(), "window: two way, the check box's change reaches the model");
         model.level_.set(40.0);
-        require((*window.sample_level).value() == 40.0, "window: one way, the model's change reaches the control");
+        require((*window.sample_level).value.read() == 40.0, "window: one way, the model's change reaches the control");
         static_cast<void>((*window.sample_ok).perform_click());
         static_cast<void>((*window.sample_cancel).perform_click());
         require(model.accept_calls == 1 && model.dismiss_calls == 1, "window: the buttons run the model's commands");
@@ -100,9 +100,9 @@ void test_control() {
     require(children.size() == 2U && children[0] == (*panel).panel_flag && children[1] == (*panel).panel_go,
             "control: its children, members, in document order");
     if (children.size() != 2U) return;
-    require((*(*panel).panel_flag).checked(), "control: the check box takes the model's state");
+    require((*(*panel).panel_flag).checked.read(), "control: the check box takes the model's state");
     model.auto_save_.set(false);
-    require(!(*(*panel).panel_flag).checked(), "control: the model's change reaches the check box");
+    require(!(*(*panel).panel_flag).checked.read(), "control: the model's change reaches the check box");
     gui_forms::Window window(panel, gui_forms::Size{200.0, 100.0});
     static_cast<void>((*(*panel).panel_go).perform_click());
     require(model.accept_calls == 1, "control: the button runs the model's command");
