@@ -1645,7 +1645,11 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     gui_forms_add_form(gui_forms_gallery_model demo/gallery.form
         CLASS GalleryWindow NAMESPACE gui_forms::gallery
         OUTPUT gui_forms_forms/gallery_window.hpp
-        MODEL gui_forms::gallery::GalleryModel MODEL_HEADER gallery_model.hpp
+        MODEL gui_forms::gallery::GalleryModel MODEL_HEADER gallery_model.hpp)
+    # The Gallery's own pages, apart from the window so each control is
+    # attached once (in its page body): a document class over the model.
+    gui_forms_add_form(gui_forms_gallery_model demo/gallery_form_pages.form
+        CLASS GalleryFormPagesDocument NAMESPACE gui_forms::gallery
         TYPES
             "gallery_lifecycle_card,gui_forms::gallery::LifecycleCard,user_control,gallery_parts.hpp"
             "gallery_collection,gui_forms::gallery::CollectionList,list_box,gallery_parts.hpp"
@@ -1717,7 +1721,7 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
         FUNCTION gallery_theme_package NAMESPACE gui_forms::gallery
-        FORMS demo/gallery.form demo/pages/typography-and-inspection.form
+        FORMS demo/gallery.form demo/gallery_form_pages.form demo/pages/typography-and-inspection.form
             demo/pages/animation-laboratory.form demo/pages/collections-and-overlays.form
             demo/pages/images-and-drawing.form demo/pages/ranges-and-progress.form
             demo/pages/semantic-feedback.form demo/pages/control-spectrum.form

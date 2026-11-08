@@ -125,18 +125,20 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     root.set_background(canvas);
     root.set_tag(context);
 
-    // The form's own pages leave their declared boundary for their bodies.
+    // The Gallery's own pages leave their declared boundary for their
+    // bodies; the boundary was never attached, so each group is attached
+    // once, in its page body.
+    GalleryFormPagesDocument<GalleryModel>& own_pages = (*(*context).compiled).pages;
     const std::array<FormPage, 4> form_pages{{
-        {"basics", window.gallery_backplane, {660.0, 200.0}},
-        {"values", window.gallery_values_group, {660.0, 116.0}},
-        {"retained-rows", window.gallery_collection_group, {660.0, 144.0}},
-        {"instrument", window.gallery_instrument_group, {660.0, 150.0}},
+        {"basics", own_pages.gallery_backplane, {660.0, 200.0}},
+        {"values", own_pages.gallery_values_group, {660.0, 116.0}},
+        {"retained-rows", own_pages.gallery_collection_group, {660.0, 144.0}},
+        {"instrument", own_pages.gallery_instrument_group, {660.0, 150.0}},
     }};
-    Panel& boundary = *window.gallery_form_pages;
+    Panel& boundary = *own_pages.gallery_form_pages;
     for (const FormPage& form_page : form_pages) {
         static_cast<void>(boundary.remove_child((*form_page.control).runtime_id()));
     }
-    static_cast<void>(root.remove_child(boundary.runtime_id()));
 
     const std::vector<NavigationEntry> order = navigation_order();
 
@@ -216,7 +218,6 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         (*viewport).visible = index == 0U;
         (*viewport).set_requested_bounds({20.0, 0.0, 1022.0, 742.0});
         (*viewport).anchor = AnchorStyles::top | AnchorStyles::bottom | AnchorStyles::left | AnchorStyles::right;
-        (*content).add_child(viewport);
         std::shared_ptr<gui_forms::ScaledPanel> page = make_control<Surface>(
             StableId(surface_id), Size{1000.0, strip_height + 660.0});
         (*page).set_background(canvas);
@@ -258,6 +259,9 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         (*page).design_size = Size{1000.0, page_height};
         (*page).set_bounds({0.0, 0.0, 1000.0, page_height});
         (*viewport).auto_scroll_min_size = {1000.0, page_height};
+        // The page is built apart and attached complete, so each control
+        // attaches once (the window exists before its pages).
+        (*content).add_child(viewport);
         (*context).pages.push_back(viewport);
     }
 

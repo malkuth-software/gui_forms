@@ -138,8 +138,8 @@ void GalleryContext::synchronize(std::string_view cause)
     if (cause == "gallery.command.reset") {
         drop_status.clear();
         invalidate_subtrees(styled_controls());
-        (*gallery.gallery_checkbox_indeterminate).check_state = CheckState::indeterminate;
-        (*gallery.gallery_link).visited = false;
+        (*pages.gallery_checkbox_indeterminate).check_state = CheckState::indeterminate;
+        (*pages.gallery_link).visited = false;
     }
     // The check box, the radio buttons, the slider, the progress bar and the
     // diagnostics' visibility follow the model through their bindings.
@@ -147,18 +147,18 @@ void GalleryContext::synchronize(std::string_view cause)
     apply_relief_style(styled_controls(), style);
     // A text box binds a text only to a BindingSource field (FD-6), not to a
     // string the model keeps.
-    if ((*gallery.gallery_text_input).text.read() != state.text) {
-        (*gallery.gallery_text_input).text = state.text;
+    if ((*pages.gallery_text_input).text.read() != state.text) {
+        (*pages.gallery_text_input).text = state.text;
     }
-    (*gallery.gallery_instrument).set_value(state.instrument_value);
+    (*pages.gallery_instrument).set_value(state.instrument_value);
     const std::optional<std::size_t> row = collection_row_index(state.selected_collection_row);
-    if (row && (*gallery.gallery_collection).selected_index() != row) {
-        (*gallery.gallery_collection).select_index(*row);
+    if (row && (*pages.gallery_collection).selected_index() != row) {
+        (*pages.gallery_collection).select_index(*row);
     }
 
     (*gallery.gallery_command_status).text =
         drop_status.empty() ? "Portable core · Host 0.4 · reusable controls" : drop_status;
-    (*gallery.gallery_value_label).text = format_percent(state.progress_value);
+    (*pages.gallery_value_label).text = format_percent(state.progress_value);
     // Diagnostics are live instrumentation, not a snapshot captured when the
     // panel opens: every retained interaction is observable on the next frame.
     const MetricsSnapshot metrics = gallery.metrics_snapshot();
@@ -181,9 +181,9 @@ std::vector<Control::Ptr> GalleryContext::styled_controls() const
     std::vector<Control::Ptr> controls;
     if (window == nullptr) return controls;
     const GalleryWindow& gallery = *window;
-    controls = {gallery.gallery_command_strip,    gallery.gallery_backplane,
-                gallery.gallery_values_group,     gallery.gallery_collection_group,
-                gallery.gallery_instrument_group, gallery.gallery_diagnostics};
+    controls = {gallery.gallery_command_strip,    pages.gallery_backplane,
+                pages.gallery_values_group,     pages.gallery_collection_group,
+                pages.gallery_instrument_group, gallery.gallery_diagnostics};
     return controls;
 }
 
@@ -215,7 +215,7 @@ void GalleryContext::apply_clicked(GalleryContext& context, const RuleFiring&)
 // counts the activation and brings the rest up to date.
 void GalleryContext::precise_updates_clicked(GalleryContext& context, const RuleFiring&)
 {
-    context.model.precise_updates.set((*(*context.window).gallery_checkbox).checked.read());
+    context.model.precise_updates.set((*context.pages.gallery_checkbox).checked.read());
     context.model.note_activation();
     context.synchronize("gallery.checkbox");
 }
@@ -236,7 +236,7 @@ void GalleryContext::quiet_relief_clicked(GalleryContext& context, const RuleFir
 
 void GalleryContext::three_state_clicked(GalleryContext& context, const RuleFiring&)
 {
-    const CheckState check_state = (*(*context.window).gallery_checkbox_indeterminate).check_state.read();
+    const CheckState check_state = (*context.pages.gallery_checkbox_indeterminate).check_state.read();
     const char* state = "unchecked";
     if (check_state == CheckState::checked) {
         state = "checked";
@@ -255,7 +255,7 @@ void GalleryContext::contract_link_clicked(GalleryContext& context, const RuleFi
 
 void GalleryContext::text_changed(GalleryContext& context, const RuleFiring&)
 {
-    const std::string text((*(*context.window).gallery_text_input).text.read());
+    const std::string text((*context.pages.gallery_text_input).text.read());
     if (context.model.replace_text(text)) context.synchronize("gallery.text-input");
 }
 
@@ -270,7 +270,7 @@ void GalleryContext::collection_selection_changed(GalleryContext& context, const
 {
     // The collection selects one row at a time: its selected row is the
     // one the change made active.
-    const std::optional<std::size_t> selected = (*(*context.window).gallery_collection).selected_index();
+    const std::optional<std::size_t> selected = (*context.pages.gallery_collection).selected_index();
     if (!selected || *selected >= collection_row_ids.size()) return;
     const std::string_view row_id = collection_row_ids[*selected];
     // synchronize() selecting the model's row is no activation.
@@ -307,12 +307,12 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     GalleryWindow& gallery = gallery_window;
 
     // What the form language does not state yet.
-    (*gallery.gallery_default_button).set_default_button(true);
-    (*gallery.gallery_radio_classic).group_name = "gallery.style-mode";
-    (*gallery.gallery_radio_quiet).group_name = "gallery.style-mode";
-    (*gallery.gallery_slider).small_change = 1.0;
-    (*gallery.gallery_slider).large_change = 10.0;
-    (*gallery.gallery_text_input).placeholder_text = "Type here";
+    (*pages.gallery_default_button).set_default_button(true);
+    (*pages.gallery_radio_classic).group_name = "gallery.style-mode";
+    (*pages.gallery_radio_quiet).group_name = "gallery.style-mode";
+    (*pages.gallery_slider).small_change = 1.0;
+    (*pages.gallery_slider).large_change = 10.0;
+    (*pages.gallery_text_input).placeholder_text = "Type here";
     (*gallery.gallery_diagnostics_about).text_wrapping = TextWrapping::word;
     (*gallery.gallery_diagnostics_about).vertical_alignment = VerticalAlignment::near;
     (*gallery.gallery_diagnostics_font).text_wrapping = TextWrapping::word;
@@ -321,25 +321,25 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     std::vector<std::string> row_ids;
     row_ids.reserve(collection_row_ids.size());
     for (const std::string_view row_id : collection_row_ids) row_ids.emplace_back(row_id);
-    (*gallery.gallery_collection).set_item_stable_ids(std::move(row_ids));
-    (*gallery.gallery_collection).select_index(0U);
+    (*pages.gallery_collection).set_item_stable_ids(std::move(row_ids));
+    (*pages.gallery_collection).select_index(0U);
     SurfaceMaterial backplane;
     backplane.fills = {MaterialFillLayer::solid(backplane_wash)};
-    (*gallery.gallery_backplane).material = std::move(backplane);
-    collection_drop_ = (*gallery.gallery_collection).dropped().subscribe(
+    (*pages.gallery_backplane).material = std::move(backplane);
+    collection_drop_ = (*pages.gallery_collection).dropped().subscribe(
         Delegate<const std::string&>::bind<GalleryContext, &GalleryContext::collection_dropped>(*this));
 
     RuleSet& rules = gallery.rules();
     Button& reset = *gallery.gallery_command_reset;
     Button& diagnostics = *gallery.gallery_command_diagnostics;
-    Button& apply = *gallery.gallery_default_button;
-    CheckBox& precise = *gallery.gallery_checkbox;
-    RadioButton& classic = *gallery.gallery_radio_classic;
-    RadioButton& quiet = *gallery.gallery_radio_quiet;
-    CheckBox& three_state = *gallery.gallery_checkbox_indeterminate;
-    LinkLabel& link = *gallery.gallery_link;
-    TextBox& text_input = *gallery.gallery_text_input;
-    CollectionList& collection = *gallery.gallery_collection;
+    Button& apply = *pages.gallery_default_button;
+    CheckBox& precise = *pages.gallery_checkbox;
+    RadioButton& classic = *pages.gallery_radio_classic;
+    RadioButton& quiet = *pages.gallery_radio_quiet;
+    CheckBox& three_state = *pages.gallery_checkbox_indeterminate;
+    LinkLabel& link = *pages.gallery_link;
+    TextBox& text_input = *pages.gallery_text_input;
+    CollectionList& collection = *pages.gallery_collection;
     // ButtonBase::clicked covers the pointer and the keyboard (Space,
     // Enter, mnemonics), which Control's mouse Click does not.
     arm(rules, trigger::interaction(reset, reset.clicked()), *this, &GalleryContext::reset_clicked);

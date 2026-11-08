@@ -322,6 +322,9 @@ std::unique_ptr<Window> make_gallery()
     // The Gallery's context first: it holds the model the window's form
     // binds. The shell's page context, in the window's root Tag, owns it.
     std::shared_ptr<GalleryContext> context = std::make_shared<GalleryContext>();
+    // The Gallery's own pages, bound to the model, made before the window
+    // and outside it: the shell attaches each group once, in its page body.
+    (*context).pages.initialize_component((*context).model);
     // The window is the form (demo/gallery.form): made from its generated
     // class, it joins the current application and takes the theme the
     // program set there (create_gallery_application, FD-5). With none

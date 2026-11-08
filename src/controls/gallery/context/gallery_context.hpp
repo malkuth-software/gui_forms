@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gallery_form_pages_form.hpp"
 #include "gallery_model.hpp"
 #include "gallery_window.hpp"
 #include "gui_forms/gui_forms.hpp"
@@ -20,16 +21,20 @@ namespace gui_forms::gallery {
 // program code (FD-6 R6).
 class GalleryContext final {
 public:
-    // Declared first: the window's bindings read it.
+    // Declared first: the window's and the pages' bindings read it.
     GalleryModel model;
+    // The Gallery's own pages (demo/gallery_form_pages.form), bound to
+    // `model` by make_gallery (initialize_component); the shell moves their
+    // groups into the page bodies.
+    GalleryFormPagesDocument<GalleryModel> pages;
     // Observes the Gallery window, which owns this context through its
     // root; set by attach().
     GalleryWindow* window{};
     std::string drop_status;
 
-    // Observes `gallery_window`, completes what its form does not state and
-    // arms the Gallery's rules on it. Call once, before the shell moves the
-    // form's pages. Throws std::logic_error when a rule is refused, leaving
+    // Observes `gallery_window`, completes what the forms do not state and
+    // arms the Gallery's rules on it. Call once, after the pages are made and
+    // before the shell moves them. Throws std::logic_error when a rule is refused, leaving
     // the rules armed before it.
     void attach(GalleryWindow& gallery_window);
 
@@ -62,8 +67,8 @@ public:
     // and carries its summary, so it stays a subscription.
     void collection_dropped(const std::string& summary);
 
-    // The form's controls the relief style and a reset reach, in document
-    // order: the command strip, the four page groups and the diagnostics.
+    // The controls the relief style and a reset reach: the command strip,
+    // the four page groups and the diagnostics.
     [[nodiscard]] std::vector<Control::Ptr> styled_controls() const;
 
 private:

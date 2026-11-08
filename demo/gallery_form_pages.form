@@ -1,0 +1,112 @@
+/* The Gallery's own pages (basics, values, retained rows, instrument).
+   gui_forms_add_form compiles this document into the class template
+   GalleryFormPagesDocument<GalleryModel>: its bindings read the model's
+   Values (FD-6), so the model outlives the controls or is disposed first.
+   gallery.form-pages is a declared boundary only: the shell
+   (src/controls/gallery_pages.cpp) takes each group from it into its page
+   body before the window shows it, so each control is attached once. The
+   form names no program code (FD-6 R6): the program arms window rules on
+   the controls (GalleryContext::attach).
+
+   Application types (gallery_parts.hpp, gallery_instrument.hpp):
+   gallery-lifecycle-card (user-control), gallery-collection (list-box) and
+   gallery-instrument (user-control). */
+panel gallery.form-pages {
+
+  material-panel gallery.backplane {
+    bounds: 0 0 660 200;
+    group-box gallery.basics-group {
+      text: "Basic controls";
+      bounds: 16 14 628 172;
+      label gallery.intro {
+        text: "Professional retained controls with deterministic native behavior.";
+        classes: "body";
+        bounds: 10 22 608 22;
+      }
+      text-box gallery.text-input {
+        text: "Edit this text";
+        bounds: 10 50 250 28;
+        tab-index: 0;
+      }
+      button gallery.default-button {
+        text: "Apply";
+        bounds: 266 50 92 28;
+        tab-index: 1;
+      }
+      button gallery.disabled-button {
+        text: "Unavailable";
+        enabled: false;
+        bounds: 364 50 108 28;
+        tab-index: 2;
+      }
+      check-box gallery.checkbox {
+        text: "Enable precise updates";
+        checked: bind(precise_updates);
+        bounds: 10 84 220 24;
+        tab-index: 3;
+      }
+      radio-button gallery.radio.classic {
+        text: "Classic relief";
+        checked: bind(classic_relief);
+        bounds: 236 84 180 24;
+        tab-index: 4;
+      }
+      radio-button gallery.radio.quiet {
+        text: "Quiet relief";
+        checked: bind(quiet_relief);
+        bounds: 422 84 180 24;
+        tab-index: 5;
+      }
+      check-box gallery.checkbox.indeterminate {
+        text: "Three-state option";
+        three-state: true;
+        check-state: indeterminate;
+        bounds: 10 112 220 24;
+        tab-index: 6;
+      }
+      link-label gallery.link {
+        text: "Show control contract";
+        bounds: 240 112 170 24;
+        tab-index: 7;
+      }
+      gallery-lifecycle-card gallery.lifecycle-card {
+        bounds: 416 112 202 24;
+        label gallery.lifecycle-title { text: "COMPOSED"; classes: "card-title"; }
+        label gallery.lifecycle-status { text: "Awaiting attach"; classes: "note"; }
+      }
+    }
+  }
+
+  group-box gallery.values-group {
+    text: "Values and retained state";
+    bounds: 0 0 660 116;
+    track-bar gallery.slider {
+      minimum: 0;
+      maximum: 100;
+      value: bind(slider);
+      bounds: 10 22 640 28;
+    }
+    progress-bar gallery.progress {
+      minimum: 0;
+      maximum: 100;
+      value: bind(progress, one_way);
+      bounds: 10 56 640 20;
+    }
+    label gallery.value-label { text: "42%"; classes: "body"; bounds: 10 82 640 22; }
+  }
+
+  group-box gallery.collection-group {
+    text: "Retained collection";
+    bounds: 0 0 660 144;
+    gallery-collection gallery.collection {
+      items: "Alpha channel" "Beta channel" "Gamma channel" "Delta channel";
+      bounds: 10 22 640 112;
+    }
+  }
+
+  group-box gallery.instrument-group {
+    text: "Custom instrument";
+    bounds: 0 0 660 150;
+    gallery-instrument gallery.instrument { bounds: 10 22 640 118; }
+  }
+}
