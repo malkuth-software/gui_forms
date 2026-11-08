@@ -993,6 +993,15 @@ enum class RecipeField : std::uint8_t {
     font_weight,
     font_style,
     letter_spacing,
+    // The recipe's other text colours (T4 floor sheet, owner option 1):
+    // `muted-color`, its secondary text, and `glyph-color`, the colour of
+    // its glyphs (check marks, arrows), each drawn as text.
+    muted_text,
+    glyph,
+    // `default-outline: <width> <colour>`: the default button's second
+    // perimeter (ControlVisualRecipe::default_width and default_ring).
+    default_outline_width,
+    default_outline_colour,
     count,
 };
 
@@ -1000,8 +1009,9 @@ inline constexpr std::size_t recipe_field_count = static_cast<std::size_t>(Recip
 
 // The field's snake_case name, as diagnostics name it; empty for `count`.
 [[nodiscard]] std::string_view recipe_field_name(RecipeField field) noexcept;
-// Where the field's colour is drawn (EC4): the text colour is text and the
-// outline colour an edge; every other field none.
+// Where the field's colour is drawn (EC4): the text, muted text and glyph
+// colours are text, and the outline and default outline colours edges;
+// every other field none.
 [[nodiscard]] ColourPosition recipe_field_colour_position(RecipeField field) noexcept;
 
 // How the focus ring is drawn (CSS `outline-style`): the theme's own ring
@@ -1028,9 +1038,11 @@ inline constexpr double maximum_rule_font_weight = 900.0;
 // One recipe field's declared value. `initial` is CSS's `initial`: the
 // floor's value, and the declaration still wins over those beneath it; its
 // value members are not read. Otherwise, by field:
-// - text and outline_colour: `colour`;
+// - text, outline_colour, muted_text, glyph and default_outline_colour:
+//   `colour`;
 // - outline_style: `outline_style`;
-// - outline_width (0 to maximum_recipe_outline_width) and outline_offset
+// - outline_width and default_outline_width (0 to
+//   maximum_recipe_outline_width) and outline_offset
 //   (within ±maximum_recipe_outline_offset): `number`, in logical units;
 // - text_shadow: `shadowed`, false for none; its `shadow_offset`,
 //   `shadow_blur` (the shadows' blur-radius convention) and `colour`;

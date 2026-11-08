@@ -1056,6 +1056,7 @@ void walk_material_lengths(MaterialDeclaration& declaration, LengthWalk& walk) {
 void walk_recipe_lengths(RecipeDeclaration& declaration, LengthWalk& walk) {
     const RecipeField field = declaration.field;
     if (field == RecipeField::outline_width || field == RecipeField::outline_offset) walk.visit(declaration.number);
+    if (field == RecipeField::default_outline_width) walk.visit(declaration.number);
     if (field == RecipeField::font_size || field == RecipeField::letter_spacing) walk.visit(declaration.number);
     if (field != RecipeField::text_shadow) return;
     walk.visit(declaration.shadow_offset.x);
@@ -1772,15 +1773,19 @@ bool in_range(double value, double minimum, double maximum) noexcept {
 
 constexpr std::array<std::string_view, recipe_field_count> recipe_field_names{
     "text",        "outline_style", "outline_colour", "outline_width",  "outline_offset", "text_shadow",
-    "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing",
+    "font_family", "font_size",     "font_weight",    "font_style",     "letter_spacing", "muted_text",
+    "glyph",       "default_outline_width", "default_outline_colour",
 };
 
 } // namespace
 
 ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     switch (field) {
-    case RecipeField::text: return ColourPosition::text;
-    case RecipeField::outline_colour: return ColourPosition::edge;
+    case RecipeField::text:
+    case RecipeField::muted_text:
+    case RecipeField::glyph: return ColourPosition::text;
+    case RecipeField::outline_colour:
+    case RecipeField::default_outline_colour: return ColourPosition::edge;
     case RecipeField::outline_style:
     case RecipeField::outline_width:
     case RecipeField::outline_offset:
@@ -1790,6 +1795,7 @@ ColourPosition recipe_field_colour_position(RecipeField field) noexcept {
     case RecipeField::font_weight:
     case RecipeField::font_style:
     case RecipeField::letter_spacing:
+    case RecipeField::default_outline_width:
     case RecipeField::count:
     default: return ColourPosition::none;
     }
@@ -1804,13 +1810,17 @@ std::string_view recipe_field_name(RecipeField field) noexcept {
 bool recipe_declaration_admitted(const RecipeDeclaration& declaration) noexcept {
     switch (declaration.field) {
     case RecipeField::text:
-    case RecipeField::outline_colour: return true;
+    case RecipeField::outline_colour:
+    case RecipeField::muted_text:
+    case RecipeField::glyph:
+    case RecipeField::default_outline_colour: return true;
     case RecipeField::outline_style:
         return declaration.outline_style == RecipeOutlineStyle::ring ||
                declaration.outline_style == RecipeOutlineStyle::solid ||
                declaration.outline_style == RecipeOutlineStyle::dotted ||
                declaration.outline_style == RecipeOutlineStyle::none;
-    case RecipeField::outline_width: return in_range(declaration.number, 0.0, maximum_recipe_outline_width);
+    case RecipeField::outline_width:
+    case RecipeField::default_outline_width: return in_range(declaration.number, 0.0, maximum_recipe_outline_width);
     case RecipeField::outline_offset:
         return in_range(declaration.number, -maximum_recipe_outline_offset, maximum_recipe_outline_offset);
     case RecipeField::text_shadow: {

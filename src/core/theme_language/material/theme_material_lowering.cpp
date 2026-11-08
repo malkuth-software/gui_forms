@@ -36,7 +36,7 @@ struct NamedMaterialProperty final {
 };
 
 // Sorted by name.
-constexpr std::array<NamedMaterialProperty, 52> material_properties{{
+constexpr std::array<NamedMaterialProperty, 56> material_properties{{
     {.name = "background", .property = MaterialProperty::background},
     {.name = "background-blend-mode", .property = MaterialProperty::background_blend_mode},
     {.name = "background-color", .property = MaterialProperty::background_color},
@@ -72,6 +72,7 @@ constexpr std::array<NamedMaterialProperty, 52> material_properties{{
     {.name = "border-width", .property = MaterialProperty::border_width},
     {.name = "box-shadow", .property = MaterialProperty::box_shadow},
     {.name = "color", .property = MaterialProperty::color},
+    {.name = "default-outline", .property = MaterialProperty::default_outline},
     {.name = "filter", .property = MaterialProperty::filter},
     {.name = "font-family", .property = MaterialProperty::font_family},
     {.name = "font-size", .property = MaterialProperty::font_size},
@@ -79,8 +80,11 @@ constexpr std::array<NamedMaterialProperty, 52> material_properties{{
     {.name = "font-weight", .property = MaterialProperty::font_weight},
     {.name = "glow", .property = MaterialProperty::glow},
     {.name = "glow-placement", .property = MaterialProperty::glow_placement},
+    {.name = "glyph-color", .property = MaterialProperty::glyph_color},
+    {.name = "keylines", .property = MaterialProperty::keylines},
     {.name = "letter-spacing", .property = MaterialProperty::letter_spacing},
     {.name = "mask-image", .property = MaterialProperty::mask_image},
+    {.name = "muted-color", .property = MaterialProperty::muted_color},
     {.name = "outline", .property = MaterialProperty::outline},
     {.name = "outline-color", .property = MaterialProperty::outline_color},
     {.name = "outline-offset", .property = MaterialProperty::outline_offset},
@@ -97,7 +101,7 @@ struct RecipeLonghand final {
     RecipeField field{RecipeField::text};
 };
 
-constexpr std::array<RecipeLonghand, 11> recipe_longhands{{
+constexpr std::array<RecipeLonghand, 13> recipe_longhands{{
     {.property = MaterialProperty::color, .field = RecipeField::text},
     {.property = MaterialProperty::outline_color, .field = RecipeField::outline_colour},
     {.property = MaterialProperty::outline_offset, .field = RecipeField::outline_offset},
@@ -109,6 +113,8 @@ constexpr std::array<RecipeLonghand, 11> recipe_longhands{{
     {.property = MaterialProperty::font_style, .field = RecipeField::font_style},
     {.property = MaterialProperty::font_weight, .field = RecipeField::font_weight},
     {.property = MaterialProperty::letter_spacing, .field = RecipeField::letter_spacing},
+    {.property = MaterialProperty::muted_color, .field = RecipeField::muted_text},
+    {.property = MaterialProperty::glyph_color, .field = RecipeField::glyph},
 }};
 
 // CSS blend modes the engine does not composite (CSS_COVERAGE section 7).
@@ -373,10 +379,13 @@ private:
     bool lower_glow_placements();
     bool lower_mask();
     bool lower_reflection();
+    bool lower_keylines();
     [[nodiscard]] bool outline_style_word(std::size_t index) const noexcept;
     bool read_outline_style(std::size_t index, RecipeOutlineStyle& style);
     bool read_outline_width(std::size_t index, double& width);
     bool lower_text_colour();
+    bool lower_recipe_colour(RecipeField field);
+    bool lower_default_outline();
     bool lower_outline();
     bool lower_outline_style();
     bool lower_outline_colour();
@@ -1749,6 +1758,46 @@ bool MaterialReader::lower_glow_placements() {
     return true;
 }
 
+// `keylines`: `none`, or one to four colours in CSS's box order (top,
+// right, bottom, left; an omitted side takes the opposite one's, the left
+// the right's), each a line one unit wide one unit inside the border
+// (T4 floor sheet, owner option 1). They are drawn top, left, right,
+// bottom, so the top and bottom lines lie over the side lines' ends.
+bool MaterialReader::lower_keylines() {
+    MaterialDeclaration declaration{};
+    declaration.field = MaterialField::keylines;
+    const ComponentRange whole{0U, value_.components.size()};
+    if (count(whole) == 1U && keyword(0U, "none")) {
+        lowering_.declarations.push_back(std::move(declaration));
+        return true;
+    }
+    const std::size_t written = count(whole);
+    if (written == 0U || written > 4U) {
+        return fail(DiagnosticCode::value_syntax, start_, "one to four colours");
+    }
+    std::array<Color, 4> sides{};
+    std::size_t index = 0U;
+    for (std::size_t side = 0U; side < written; ++side) {
+        if (!read_colour(index, sides[side])) return false;
+        index = next(index);
+    }
+    // CSS's box expansion: the top's for the bottom, the right's for the
+    // left.
+    if (written < 2U) sides[1] = sides[0];
+    if (written < 3U) sides[2] = sides[0];
+    if (written < 4U) sides[3] = sides[1];
+    const std::array<MaterialEdge, 4> drawn_order{MaterialEdge::top, MaterialEdge::left, MaterialEdge::right,
+                                                  MaterialEdge::bottom};
+    const std::array<std::size_t, 4> side_of_drawn{0U, 3U, 1U, 2U};
+    declaration.keylines.reserve(drawn_order.size());
+    for (std::size_t line = 0U; line < drawn_order.size(); ++line) {
+        const MaterialKeyline keyline{drawn_order[line], sides[side_of_drawn[line]], 1.0, 1.0};
+        declaration.keylines.push_back(keyline);
+    }
+    lowering_.declarations.push_back(std::move(declaration));
+    return true;
+}
+
 // `mask-image`: none, one gradient or one image, whose alpha the engine
 // multiplies the finished part by; an image tiled at its own size (CSS's
 // initial mask size and repetition), a fixed gradient resolved now, the
@@ -2118,6 +2167,45 @@ bool MaterialReader::lower_text_colour() {
     return true;
 }
 
+// `muted-color` and `glyph-color`: one colour, the recipe's muted text or
+// glyph colour (`field`).
+bool MaterialReader::lower_recipe_colour(RecipeField field) {
+    if (value_.components.size() != 1U) {
+        return fail(DiagnosticCode::value_syntax, value_.components[next(0U)].token, "one colour");
+    }
+    RecipeDeclaration declaration = recipe_declaration(field);
+    if (!read_colour(0U, declaration.colour)) return false;
+    lowering_.recipe_fields.push_back(declaration);
+    return true;
+}
+
+// `default-outline`: a width and a colour, each at most once and in any
+// order, the default button's second perimeter; one it omits takes its
+// `initial` (the floor's value).
+bool MaterialReader::lower_default_outline() {
+    RecipeDeclaration width = recipe_declaration(RecipeField::default_outline_width);
+    RecipeDeclaration colour = recipe_declaration(RecipeField::default_outline_colour);
+    bool sized = false;
+    bool coloured = false;
+    for (std::size_t index = 0U; index < value_.components.size(); index = next(index)) {
+        const ValueComponent& component = value_.components[index];
+        if (component.kind == ValueComponentKind::number || width_word(index)) {
+            if (sized) return fail(DiagnosticCode::value_syntax, component.token, "one width");
+            sized = true;
+            if (!read_outline_width(index, width.number)) return false;
+            continue;
+        }
+        if (coloured) return fail(DiagnosticCode::value_syntax, component.token, "one colour");
+        coloured = true;
+        if (!read_colour(index, colour.colour)) return false;
+    }
+    width.initial = !sized;
+    colour.initial = !coloured;
+    lowering_.recipe_fields.push_back(width);
+    lowering_.recipe_fields.push_back(colour);
+    return true;
+}
+
 // `outline`: a colour, a style and a width, each at most once and in any
 // order; one it omits takes its `initial` (the floor's value). The offset
 // is not the shorthand's.
@@ -2432,6 +2520,10 @@ void MaterialReader::lower(MaterialProperty property) {
     case MaterialProperty::mask_image: static_cast<void>(lower_mask()); return;
     case MaterialProperty::reflection: static_cast<void>(lower_reflection()); return;
     case MaterialProperty::surface_finish: static_cast<void>(lower_finish()); return;
+    case MaterialProperty::keylines: static_cast<void>(lower_keylines()); return;
+    case MaterialProperty::muted_color: static_cast<void>(lower_recipe_colour(RecipeField::muted_text)); return;
+    case MaterialProperty::glyph_color: static_cast<void>(lower_recipe_colour(RecipeField::glyph)); return;
+    case MaterialProperty::default_outline: static_cast<void>(lower_default_outline()); return;
     case MaterialProperty::color: static_cast<void>(lower_text_colour()); return;
     case MaterialProperty::outline: static_cast<void>(lower_outline()); return;
     case MaterialProperty::outline_color: static_cast<void>(lower_outline_colour()); return;
@@ -2541,6 +2633,10 @@ void material_property_fields(MaterialProperty property, std::vector<MaterialFie
     case MaterialProperty::mask_image: fields.push_back(MaterialField::mask); return;
     case MaterialProperty::reflection: fields.push_back(MaterialField::reflection); return;
     case MaterialProperty::surface_finish: fields.push_back(MaterialField::finish); return;
+    case MaterialProperty::keylines: fields.push_back(MaterialField::keylines); return;
+    case MaterialProperty::muted_color:
+    case MaterialProperty::glyph_color:
+    case MaterialProperty::default_outline:
     case MaterialProperty::color:
     case MaterialProperty::outline:
     case MaterialProperty::outline_color:
@@ -2568,6 +2664,11 @@ RecipePropertyFields recipe_property_fields(MaterialProperty property) noexcept 
     if (property == MaterialProperty::outline) {
         result.fields = {RecipeField::outline_style, RecipeField::outline_colour, RecipeField::outline_width};
         result.count = 3U;
+        return result;
+    }
+    if (property == MaterialProperty::default_outline) {
+        result.fields = {RecipeField::default_outline_width, RecipeField::default_outline_colour};
+        result.count = 2U;
         return result;
     }
     for (const RecipeLonghand& longhand : recipe_longhands) {

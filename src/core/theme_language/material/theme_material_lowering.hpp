@@ -72,6 +72,9 @@ enum class MaterialProperty : std::uint8_t {
     mask_image,
     reflection,
     surface_finish,
+    // The four inner lines one unit inside the border (T4 floor sheet,
+    // owner option 1): `keylines: <top> <right> <bottom> <left>`.
+    keylines,
     color,
     outline,
     outline_color,
@@ -86,6 +89,10 @@ enum class MaterialProperty : std::uint8_t {
     font_style,
     font_weight,
     letter_spacing,
+    // The recipe's other colours (T4 floor sheet, owner option 1).
+    muted_color,
+    glyph_color,
+    default_outline,
 };
 
 // An image resource the theme's manifest lists, bound to the engine's image

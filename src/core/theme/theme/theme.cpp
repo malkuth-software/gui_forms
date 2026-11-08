@@ -4,6 +4,7 @@
 #include "gui_forms/window/window.hpp"
 
 #include "ancestor_facts.hpp"
+#include "floor_sheet.hpp"
 #include "forced_high_contrast.hpp"
 #include "material_layers.hpp"
 #include "theme_access.hpp"
@@ -1675,6 +1676,14 @@ Color inherited_text(const Control& control, Color fallback) {
 void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, ControlVisualRecipe& recipe) noexcept {
     const RecipeDeclaration* const text = set_recipe_field(fields, RecipeField::text);
     if (text != nullptr) recipe.text = (*text).colour;
+    const RecipeDeclaration* const muted = set_recipe_field(fields, RecipeField::muted_text);
+    if (muted != nullptr) recipe.muted_text = (*muted).colour;
+    const RecipeDeclaration* const glyph = set_recipe_field(fields, RecipeField::glyph);
+    if (glyph != nullptr) recipe.glyph = (*glyph).colour;
+    const RecipeDeclaration* const default_width = set_recipe_field(fields, RecipeField::default_outline_width);
+    if (default_width != nullptr) recipe.default_width = (*default_width).number;
+    const RecipeDeclaration* const default_colour = set_recipe_field(fields, RecipeField::default_outline_colour);
+    if (default_colour != nullptr) recipe.default_ring = (*default_colour).colour;
     const RecipeDeclaration* const style = set_recipe_field(fields, RecipeField::outline_style);
     const bool no_outline = style != nullptr && (*style).outline_style == RecipeOutlineStyle::none;
     if (style != nullptr) {
@@ -1718,6 +1727,34 @@ void apply_recipe_fields(const CompiledThemeRules::RecipeResolution& fields, Con
 }
 
 } // namespace
+
+namespace detail {
+
+void fill_family_recipes(const CompiledThemeRules& rules, ControlVisualRole role, const ControlVisualRecipe& base,
+                         ControlRoleRecipes& recipes) {
+    recipes = ControlRoleRecipes{};
+    // A unit box: the sheet's geometry does not depend on it (header).
+    const Size unit_box{1.0, 1.0};
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        for (std::size_t chosen = 0U; chosen < 2U; ++chosen) {
+            ControlVisualContext context{};
+            context.surface = static_cast<ControlSurfaceState>(index);
+            context.selected = chosen == 1U;
+            CompiledThemeRules::PartFacts facts{};
+            facts.family = control_visual_role_name(role);
+            facts.states = visual_context_states(context);
+            const CompiledThemeRules::Resolution resolution = rules.resolve(facts);
+            const CompiledThemeRules::RecipeResolution fields = rules.resolve_recipe_fields(facts);
+            ControlVisualRecipe value = base;
+            assemble_material(base.material, resolution.materials, unit_box, value.material);
+            apply_recipe_fields(fields, value);
+            ControlVisualRecipe& target = context.selected ? recipes.selected[index] : recipes.ordinary[index];
+            target = std::move(value);
+        }
+    }
+}
+
+} // namespace detail
 
 ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole role,
                                      ControlVisualContext context) const {
@@ -1856,6 +1893,9 @@ ResolvedControlRecipe Theme::resolve(const Control& control, ControlVisualRole r
         fields.fields[static_cast<std::size_t>(RecipeField::text)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::outline_colour)] = nullptr;
         fields.fields[static_cast<std::size_t>(RecipeField::text_shadow)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::muted_text)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::glyph)] = nullptr;
+        fields.fields[static_cast<std::size_t>(RecipeField::default_outline_colour)] = nullptr;
         bool any = false;
         for (const RecipeDeclaration* field : fields.fields) any = any || field != nullptr;
         fields.authored = any;

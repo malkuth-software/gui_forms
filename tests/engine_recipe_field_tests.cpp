@@ -89,6 +89,7 @@ void test_field_names() {
     const std::vector<std::string_view> names{
         "text", "outline_style", "outline_colour", "outline_width", "outline_offset", "text_shadow",
         "font_family", "font_size",     "font_weight",   "font_style",     "letter_spacing",
+        "muted_text",  "glyph",         "default_outline_width", "default_outline_colour",
     };
     require(names.size() == recipe_field_count, "every recipe field is named");
     for (std::size_t index = 0U; index < names.size(); ++index) {

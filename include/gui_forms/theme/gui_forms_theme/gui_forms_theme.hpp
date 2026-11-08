@@ -24,23 +24,35 @@ namespace gui_forms {
 // tool for selected ones, recessed wells for entry fields and choices,
 // near-white stock (#F4F4F5) for windows and panels, flat command members
 // at rest, and text colours that meet the contrast gate (4.5:1, 3:1 for
-// disabled text) on every face. Id `gui-forms`; its rules are empty.
+// disabled text) on every face. Its recipes are the floor sheet's
+// (gui_forms_floor_sheet), evaluated once on the first call (thread-safe)
+// over the C++ structure (owner option 1); a copy each call. Id
+// `gui-forms`; its rules are empty.
 [[nodiscard]] ThemeDefinition gui_forms_theme_definition();
+
+// The floor sheet's source text (`gui-forms/floor.css` in diagnostics):
+// every family's recipe in every surface state, as `:family()` rules.
+// Static storage.
+[[nodiscard]] std::string_view gui_forms_floor_sheet() noexcept;
 
 // The light sheet's source text (`gui-forms/light.css` in diagnostics):
 // the colour roles of design language §5.4 and the rules for parts the
 // engine paints. Static storage.
 [[nodiscard]] std::string_view gui_forms_light_sheet() noexcept;
 
-// The built theme and what building it measured. When the sheet is
-// refused, `theme` is the floor alone and `diagnostics` says why; the
-// stock sheet compiles with no diagnostics (tests/gui_forms_theme_tests).
+// The built theme and what building it measured. `diagnostics` holds the
+// floor sheet's, then the light sheet's. When the light sheet is refused,
+// `theme` is the floor alone; when the floor sheet is, the floor keeps
+// windows-professional's recipes. The stock sheets compile with no
+// diagnostics (tests/gui_forms_theme_tests).
 struct GuiFormsThemeBuild final {
     std::shared_ptr<const Theme> theme{};
     std::vector<ThemeCompileDiagnostic> diagnostics{};
     // The compiler's work for the sheet (ThemeCompileWork::operations), a
     // count independent of the machine.
     std::uint64_t compile_operations{};
+    // The same for the floor sheet.
+    std::uint64_t floor_compile_operations{};
     // Wall time from the floor's construction to the theme, on the first
     // call's thread: the startup cost decision T4-3 bounds.
     std::chrono::nanoseconds build_time{};

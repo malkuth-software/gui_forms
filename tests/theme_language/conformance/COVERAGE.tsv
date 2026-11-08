@@ -148,6 +148,7 @@ property.box-shadow-inset	shadows-opacity-filters
 property.clip-path	not-admitted
 property.color	transforms-text
 property.conic-gradient	fills
+property.default-outline	recipe-colours
 property.effect	effects
 property.effect-colours	effects
 property.effect-none	effects
@@ -161,12 +162,15 @@ property.font-style	fonts
 property.font-weight	fonts
 property.glow	finish-light-images-masks
 property.glow-placement	finish-light-images-masks
+property.glyph-color	recipe-colours
 property.isolation	shadows-opacity-filters
+property.keylines	recipe-colours
 property.layout	not-admitted
 property.letter-spacing	fonts
 property.linear-gradient	fills
 property.mask-image	finish-light-images-masks
 property.mix-blend-mode	shadows-opacity-filters
+property.muted-color	recipe-colours
 property.opacity	shadows-opacity-filters
 property.outline	borders
 property.outline-offset	borders

@@ -1,0 +1,5 @@
+/* forms: property.muted-color property.glyph-color property.default-outline property.keylines */
+button { muted-color: #4a545f; glyph-color: #153765; default-outline: 1px #214b81 }
+track-bar { default-outline: #19528b 2px }
+button::part(face) { keylines: #ffffffe6 #31568687 }
+track-bar::part(track) { keylines: none }

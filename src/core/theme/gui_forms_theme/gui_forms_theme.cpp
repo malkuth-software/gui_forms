@@ -2,379 +2,412 @@
 
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 
+#include "../theme/floor_sheet.hpp"
 #include "../theme_compiler/built_in_theme.hpp"
 
-#include <array>
+#include <chrono>
 #include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <utility>
+#include <vector>
 
 namespace gui_forms {
 
 namespace {
 
-// -- Plan Paint's values (src/forms/ribbon.cpp at 5e28a5e) --------------------
+// -- the floor sheet -----------------------------------------------------------------
 //
-// Each colour below is read from Plan Paint's source unless its comment
-// says otherwise; a value changed to meet the contrast gate says so.
+// The families' recipes, written in the theme language (T4 floor sheet,
+// owner option 1) and evaluated into the floor's recipes when the theme is
+// built (detail::fill_family_recipes). Each value is Plan Paint's
+// (src/forms/ribbon.cpp at 5e28a5e) unless its comment says otherwise; a
+// value changed to meet the contrast gate says so. The C++ keeps only the
+// structure (recipe_structure).
 
-constexpr std::size_t state_index(ControlSurfaceState state) noexcept {
-    return static_cast<std::size_t>(state);
+constexpr std::string_view floor_sheet = R"css(/* gui-forms: the default theme's floor (stage T4, owner option 1).
+   Each family's recipe in every surface state: :hover is hot, :active
+   pressed, :state(pending), :invalid, :disabled, :state(deactivated), and
+   :state(selected) the selected records. Evaluated once, when the theme is
+   built, into the recipes every control painting from its family's recipe
+   draws; the light sheet then styles the parts the engine paints.
+
+   Inks: #1b2733 on the near-white stock and on paper (design language
+   5.4); #153765 Plan Paint's action ink; muted #4a545f, darker than
+   windows-professional's #76808a, which fails 4.5:1 on its own plates,
+   #2c3a4e on action plates and #f4f7fc on the accent blue; disabled
+   #52637a, which keeps Plan Paint's hue (its #627997 reaches only 2.6:1
+   on its own disabled face) and meets 3:1 on every disabled face (M104).
+   The focus ring is dark ink, a non-colour cue, dotted (the structure);
+   the default button's second perimeter (M105) is Plan Paint's. */
+
+* {
+  muted-color: #4a545f;
+  outline-color: #1b2733;
+  default-outline: 1px #214b81;
 }
 
-constexpr std::size_t role_index(ControlVisualRole role) noexcept {
-    return static_cast<std::size_t>(role);
+/* Flat stock (windows, panels, cards and tooltips): one solid face with a
+   quiet line. A selected one takes the pale selection. Tooltips are
+   windows-professional's pale yellow (owner decision RB-38). */
+:family(window), :family(panel), :family(card), :family(tool-tip) {
+  color: #1b2733;
+  glyph-color: #1b2733;
+}
+:family(window) {
+  background: #f4f4f5;
+  border: 1px solid #b4bac2;
+  border-radius: 0;
+}
+:family(panel) {
+  background: #f4f4f5;
+  border: 1px solid #cdd1d6;
+  border-radius: 0;
+}
+:family(card) {
+  background: #ffffff;
+  border: 1px solid #70829c;
+  border-radius: 4px;
+}
+:family(tool-tip) {
+  background: #ffffe1;
+  border: 1px solid #686f76;
+  border-radius: 0;
+}
+:family(window):state(selected), :family(panel):state(selected), :family(card):state(selected),
+:family(tool-tip):state(selected) {
+  background: #cfe2fa;
+  border-color: #6384b2;
 }
 
-// Ink on the near-white stock and on paper (design language §5.4).
-constexpr Color stock_ink = Color::rgba(27, 39, 51);
-// Plan Paint's action ink, `action_material`'s text.
-constexpr Color action_ink = Color::rgba(21, 55, 101);
-// Muted text: darker than windows-professional's #76808A, which fails
-// 4.5:1 on its own plates (phase 1 report); it meets 4.5:1 on every face
-// below.
-constexpr Color muted_ink = Color::rgba(74, 84, 95);
-// Muted text on an action plate, whose faces run darker than the stock.
-constexpr Color action_muted_ink = Color::rgba(44, 58, 78);
-// Muted text on the accent blue.
-constexpr Color accent_muted_ink = Color::rgba(244, 247, 252);
-// Disabled text. Plan Paint's (98,121,151) reaches only 2.6:1 on its own
-// disabled face; this one keeps its hue and meets 3:1 on every disabled face
-// (the contrast gate; M104: reduced, still visible).
-constexpr Color disabled_ink = Color::rgba(82, 99, 122);
+/* Plan Paint's action plate, radius 3: a vertical gradient inside a
+   one-unit border, relieved by inner lines (light along the top and left,
+   dark along the right and bottom) and set on its hard contact shadow one
+   unit below. Pressed inverts the inner lines and drops the shadow. The
+   pending and invalid tints are windows-professional's, relieved. */
+:family(button) {
+  background: linear-gradient(to bottom, #d2e4fb, #a3c1ec);
+  border: 1px solid #6384b2;
+  border-radius: 3px;
+  keylines: #ffffffe6 #31568687 #31568687 #ffffffe6;
+  box-shadow: 0 1px 0 #294b7755;
+  color: #153765;
+  muted-color: #2c3a4e;
+  glyph-color: #153765;
+}
+:family(button):hover {
+  background: linear-gradient(to bottom, #dae9fc, #b1ccf2);
+  border-color: #355e96;
+}
+:family(button):active {
+  background: linear-gradient(to bottom, #98b5da, #b5cceb);
+  keylines: #2c568482 #ffffff9b #ffffff9b #2c568482;
+  box-shadow: none;
+}
+:family(button):state(pending) {
+  background: linear-gradient(to bottom, #fff9da, #f6e59d);
+  border-color: #ad841f;
+}
+:family(button):invalid {
+  background: linear-gradient(to bottom, #ffefef, #f7cfcf);
+  border-color: #b23636;
+}
+
+/* A command member draws no plate at rest, disabled or deactivated:
+   dividers and strip shading carry its structure (design language 12.3),
+   and hover and press bring the full plate. At rest its ink is the
+   strip's stock ink. */
+:family(command-button) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 3px;
+  keylines: none;
+  box-shadow: none;
+  color: #1b2733;
+  muted-color: #2c3a4e;
+  glyph-color: #1b2733;
+}
+:family(command-button):hover, :family(command-button):active, :family(command-button):state(pending),
+:family(command-button):invalid {
+  keylines: #ffffffe6 #31568687 #31568687 #ffffffe6;
+  box-shadow: 0 1px 0 #294b7755;
+  color: #153765;
+  glyph-color: #153765;
+}
+:family(command-button):hover {
+  background: linear-gradient(to bottom, #dae9fc, #b1ccf2);
+  border-color: #355e96;
+}
+:family(command-button):active {
+  background: linear-gradient(to bottom, #98b5da, #b5cceb);
+  border-color: #6384b2;
+  keylines: #2c568482 #ffffff9b #ffffff9b #2c568482;
+  box-shadow: none;
+}
+:family(command-button):state(pending) {
+  background: linear-gradient(to bottom, #fff9da, #f6e59d);
+  border-color: #ad841f;
+}
+:family(command-button):invalid {
+  background: linear-gradient(to bottom, #ffefef, #f7cfcf);
+  border-color: #b23636;
+}
+
+/* A disabled action is the disabled plate: no contact shadow, softer
+   lines, disabled ink. */
+:family(button):disabled, :family(command-button):disabled {
+  color: #52637a;
+  muted-color: #52637a;
+  glyph-color: #52637a;
+}
+:family(button):disabled {
+  background: linear-gradient(to bottom, #becfe4, #b5c7de);
+  border-color: #8fa6c464;
+  keylines: #ffffff64 #31568687 #31568687 #ffffff64;
+  box-shadow: none;
+}
+
+/* A selected action is Plan Paint's active tool (its gallery gold), radius
+   2, without a contact shadow. Its border is darker than Plan Paint's
+   #c49332, which reaches only 2.5:1 on the stock (the boundary gate is
+   3:1). A selected disabled action is the disabled plate. */
+:family(button):state(selected), :family(command-button):state(selected) {
+  background: linear-gradient(to bottom, #ffedba, #ffcf66);
+  border-color: #a67822;
+  border-radius: 2px;
+  keylines: #ffffffb9 #3156866e #3156866e #ffffffb9;
+  box-shadow: none;
+  color: #153765;
+  glyph-color: #153765;
+}
+:family(button):state(selected):active, :family(command-button):state(selected):active {
+  keylines: #2c568482 #ffffff9b #ffffff9b #2c568482;
+}
+:family(button):state(selected):disabled, :family(command-button):state(selected):disabled {
+  background: linear-gradient(to bottom, #becfe4, #b5c7de);
+  border-color: #8fa6c464;
+  border-radius: 3px;
+  keylines: #ffffff64 #31568687 #31568687 #ffffff64;
+  color: #52637a;
+  muted-color: #52637a;
+  glyph-color: #52637a;
+}
+
+/* The accent button: Plan Paint's File-tab blue (#528be0 to #173f88),
+   started darker (#2f69be) so that white text meets 4.5:1 on the whole
+   gradient. Selected draws as ordinary. The house ring lies inside the
+   plate, so on the accent blue it is white. */
+:family(accent-button) {
+  background: linear-gradient(to bottom, #2f69be, #173f88);
+  border: 1px solid #12336f;
+  border-radius: 3px;
+  keylines: #ffffff5a #0a1e4678 #0a1e4678 #ffffff5a;
+  box-shadow: 0 1px 0 #294b7755;
+  color: #ffffff;
+  muted-color: #f4f7fc;
+  glyph-color: #ffffff;
+  outline-color: #ffffff;
+}
+:family(accent-button):hover {
+  background: linear-gradient(to bottom, #3871c4, #1e4894);
+  border-color: #0c285c;
+}
+:family(accent-button):active {
+  background: linear-gradient(to bottom, #173f88, #285caa);
+  keylines: #0a1e4678 #ffffff5a #ffffff5a #0a1e4678;
+  box-shadow: none;
+}
+:family(accent-button):state(pending) {
+  border-color: #ad841f;
+}
+:family(accent-button):invalid {
+  border-color: #b23636;
+}
+:family(accent-button):disabled {
+  background: linear-gradient(to bottom, #becfe4, #b5c7de);
+  border-color: #8fa6c464;
+  box-shadow: none;
+  color: #52637a;
+  muted-color: #52637a;
+  glyph-color: #52637a;
+}
+
+/* A recessed well, radius 2, with an inner top shade (rendering reference
+   5: recess is the only deep depth): entry fields (editor) and choice
+   indicators. The border is Plan Paint's action border, not its gallery
+   well's #94acc8, which reaches only 2.2:1 on the stock (the boundary gate
+   is 3:1). Selected draws as ordinary. A progress bar is a recessed track;
+   selected is its fill, in the accent blue with white text. */
+:family(choice), :family(editor), :family(progress) {
+  border: 1px solid #6384b2;
+  border-radius: 2px;
+  box-shadow: inset 0 1px 2px #294b7730;
+  color: #1b2733;
+  glyph-color: #1b2733;
+}
+:family(choice), :family(progress) {
+  background: #f8fbff;
+}
+:family(editor) {
+  background: #ffffff;
+}
+:family(choice):hover, :family(editor):hover, :family(progress):hover {
+  border-color: #355e96;
+}
+:family(choice):active, :family(editor):active, :family(progress):active {
+  background: #e8f1fc;
+  border-color: #355e96;
+}
+:family(choice):state(pending), :family(editor):state(pending), :family(progress):state(pending) {
+  background: #fffae1;
+  border-color: #ad841f;
+}
+:family(choice):invalid, :family(editor):invalid, :family(progress):invalid {
+  background: #fff2f2;
+  border-color: #b23636;
+}
+:family(choice):disabled, :family(editor):disabled, :family(progress):disabled {
+  background: #f4f4f5;
+  border-color: #9aaabe;
+  box-shadow: none;
+}
+:family(progress):state(selected) {
+  background: linear-gradient(to bottom, #2f69be, #173f88);
+  border-color: #12336f;
+  box-shadow: none;
+  color: #ffffff;
+  muted-color: #f4f7fc;
+  glyph-color: #ffffff;
+}
+:family(progress):state(selected):disabled {
+  background: #f4f4f5;
+  border-color: #9aaabe;
+}
+
+/* Rows, items and menu members: clear at rest, a pale action face while
+   hot or pressed, the pale selection when selected. */
+:family(menu-item), :family(selection) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  color: #1b2733;
+  glyph-color: #1b2733;
+}
+:family(menu-item) {
+  border-radius: 2px;
+}
+:family(selection) {
+  border-radius: 0;
+}
+:family(menu-item):hover, :family(menu-item):active, :family(selection):hover, :family(selection):active {
+  background: linear-gradient(to bottom, #e4eefc, #cfe2fa);
+  border-color: #6384b2;
+}
+:family(menu-item):state(selected), :family(selection):state(selected) {
+  background: #cfe2fa;
+  border-color: #6384b2;
+}
+
+/* Links: no plate; the link colour in every enabled state (owner decision
+   W-Q5). */
+:family(link), :family(visited-link) {
+  background: #ffffff00;
+  border: 1px solid #ffffff00;
+  border-radius: 0;
+}
+:family(link) {
+  color: #19528b;
+  glyph-color: #19528b;
+}
+:family(visited-link) {
+  color: #5d4191;
+  glyph-color: #5d4191;
+}
+
+/* Disabled text on the stock, wells, rows and links. */
+:family(window):disabled, :family(panel):disabled, :family(card):disabled, :family(tool-tip):disabled,
+:family(choice):disabled, :family(editor):disabled, :family(progress):disabled, :family(menu-item):disabled,
+:family(selection):disabled, :family(link):disabled, :family(visited-link):disabled {
+  color: #52637a;
+  muted-color: #52637a;
+  glyph-color: #52637a;
+}
+)css";
+
+constexpr std::string_view floor_sheet_file = "gui-forms/floor.css";
+
 // The near-white stock (§5 of the rendering reference: "ivory" meaning
-// Windows' near-white, never a cream).
+// Windows' near-white, never a cream), paper, and the inks the
+// compatibility colours name; the floor sheet's values.
 constexpr Color stock = Color::rgba(244, 244, 245);
 constexpr Color paper = Color::rgba(255, 255, 255);
-constexpr Color clear = Color::rgba(255, 255, 255, 0);
-// The focus ring: dark ink, a non-colour cue, dotted (design language).
-constexpr Color focus_ink = Color::rgba(27, 39, 51);
-// The default button's second perimeter (M105), Plan Paint's default ring.
-constexpr Color default_perimeter = Color::rgba(33, 75, 129);
+constexpr Color stock_ink = Color::rgba(27, 39, 51);
+constexpr Color disabled_ink = Color::rgba(82, 99, 122);
 
-// One plate's colours: a vertical gradient from `top` to `bottom` inside a
-// one-unit `border`.
-struct PlateColours final {
-    Color top{};
-    Color bottom{};
-    Color border{};
-};
-
-// The inner lines of a relieved plate: `upper` along the top and left,
-// `lower` along the right and bottom, one unit inside the border.
-struct Relief final {
-    Color upper{};
-    Color lower{};
-};
-
-SurfaceMaterial plate(PlateColours colours, double radius) {
-    SurfaceMaterial result{};
-    if (colours.top == colours.bottom) {
-        result.fills = {MaterialFillLayer::solid(colours.top)};
-    } else {
-        result.fills = {MaterialFillLayer::linear({0.0, 0.0}, {0.0, 1.0}, {{0.0, colours.top}, {1.0, colours.bottom}})};
-    }
-    result.border = MaterialBorder{colours.border, 1.0};
-    result.corner_radius = radius;
-    return result;
-}
-
-void add_relief(SurfaceMaterial& material, Relief relief) {
-    material.keylines.push_back(MaterialKeyline{MaterialEdge::top, relief.upper, 1.0, 1.0});
-    material.keylines.push_back(MaterialKeyline{MaterialEdge::left, relief.upper, 1.0, 1.0});
-    material.keylines.push_back(MaterialKeyline{MaterialEdge::right, relief.lower, 1.0, 1.0});
-    material.keylines.push_back(MaterialKeyline{MaterialEdge::bottom, relief.lower, 1.0, 1.0});
-}
-
-// Plan Paint's contact shadow: one unit below, hard.
-void add_contact_shadow(SurfaceMaterial& material) {
-    MaterialShadow shadow{};
-    shadow.offset = Point{0.0, 1.0};
-    shadow.blur_radius = 0.0;
-    shadow.color = Color::rgba(41, 75, 119, 85);
-    material.shadows.push_back(shadow);
-}
-
-// A recessed well's inner top shade (rendering reference §5: recess is the
-// only deep depth).
-void add_well_shade(SurfaceMaterial& material) {
-    MaterialShadow shadow{};
-    shadow.offset = Point{0.0, 1.0};
-    shadow.blur_radius = 2.0;
-    shadow.color = Color::rgba(41, 75, 119, 48);
-    shadow.inset = true;
-    material.shadows.push_back(shadow);
-}
-
-ControlVisualRecipe recipe_of(SurfaceMaterial material, Color text) {
+// What the floor sheet cannot say: the house focus ring, one unit wide and
+// dotted (design language: the default theme's ring is dotted), and an
+// empty material for the sheet's fields to be assembled onto. Every colour
+// is the sheet's.
+ControlVisualRecipe recipe_structure() {
     ControlVisualRecipe result{};
-    result.material = std::move(material);
-    result.text = text;
-    result.muted_text = muted_ink;
-    result.glyph = text;
-    result.focus_ring = focus_ink;
+    result.material.fills.clear();
+    result.material.border.reset();
     result.focus_width = 1.0;
     result.dotted_focus = true;
-    result.default_ring = default_perimeter;
-    result.default_width = 1.0;
     return result;
 }
 
-// -- action plates ----------------------------------------------------------------
+// The floor definition and what evaluating the floor sheet found. When the
+// sheet is refused, `definition` keeps windows-professional's recipes and
+// `diagnostics` says why.
+struct FloorEvaluation final {
+    std::unique_ptr<ThemeDefinition> definition{};
+    std::vector<ThemeCompileDiagnostic> diagnostics{};
+    std::uint64_t operations{};
+};
 
-ControlVisualRecipe action_recipe(SurfaceMaterial material) {
-    ControlVisualRecipe result = recipe_of(std::move(material), action_ink);
-    result.muted_text = action_muted_ink;
-    return result;
-}
-
-// Plan Paint's `action_material` in `state`, radius 3.
-ControlVisualRecipe action_plate(ControlSurfaceState state) {
-    const Relief raised{Color::rgba(255, 255, 255, 230), Color::rgba(49, 86, 134, 135)};
-    switch (state) {
-    case ControlSurfaceState::hot: {
-        SurfaceMaterial material =
-            plate(PlateColours{Color::rgba(218, 233, 252), Color::rgba(177, 204, 242), Color::rgba(53, 94, 150)}, 3.0);
-        add_relief(material, raised);
-        add_contact_shadow(material);
-        return action_recipe(std::move(material));
-    }
-    case ControlSurfaceState::pressed: {
-        SurfaceMaterial material =
-            plate(PlateColours{Color::rgba(152, 181, 218), Color::rgba(181, 204, 235), Color::rgba(99, 132, 178)}, 3.0);
-        // Pressed inverts the inner lines and drops the contact shadow.
-        add_relief(material, Relief{Color::rgba(44, 86, 132, 130), Color::rgba(255, 255, 255, 155)});
-        return action_recipe(std::move(material));
-    }
-    case ControlSurfaceState::pending: {
-        // Not in Plan Paint: windows-professional's pending tint, relieved.
-        SurfaceMaterial material =
-            plate(PlateColours{Color::rgba(255, 249, 218), Color::rgba(246, 229, 157), Color::rgba(173, 132, 31)}, 3.0);
-        add_relief(material, raised);
-        add_contact_shadow(material);
-        return action_recipe(std::move(material));
-    }
-    case ControlSurfaceState::invalid: {
-        // Not in Plan Paint: windows-professional's invalid tint, relieved.
-        SurfaceMaterial material =
-            plate(PlateColours{Color::rgba(255, 239, 239), Color::rgba(247, 207, 207), Color::rgba(178, 54, 54)}, 3.0);
-        add_relief(material, raised);
-        add_contact_shadow(material);
-        return action_recipe(std::move(material));
-    }
-    case ControlSurfaceState::disabled: {
-        SurfaceMaterial material = plate(
-            PlateColours{Color::rgba(190, 207, 228), Color::rgba(181, 199, 222), Color::rgba(143, 166, 196, 100)}, 3.0);
-        add_relief(material, Relief{Color::rgba(255, 255, 255, 100), Color::rgba(49, 86, 134, 135)});
-        ControlVisualRecipe result = recipe_of(std::move(material), disabled_ink);
-        result.muted_text = disabled_ink;
-        return result;
-    }
-    case ControlSurfaceState::normal:
-    case ControlSurfaceState::deactivated:
-    case ControlSurfaceState::count:
-    default: break;
-    }
-    SurfaceMaterial material =
-        plate(PlateColours{Color::rgba(210, 228, 251), Color::rgba(163, 193, 236), Color::rgba(99, 132, 178)}, 3.0);
-    add_relief(material, raised);
-    add_contact_shadow(material);
-    return action_recipe(std::move(material));
-}
-
-// Plan Paint's active tool (`gallery_material`'s gold), radius 2, for a
-// selected action in `state`. Its border is darker than Plan Paint's
-// #C49332, which reaches only 2.5:1 on the stock (the boundary gate is 3:1).
-constexpr Color gold_border = Color::rgba(166, 120, 34);
-
-ControlVisualRecipe gold_plate(ControlSurfaceState state) {
-    if (state == ControlSurfaceState::disabled) return action_plate(state);
-    SurfaceMaterial material =
-        plate(PlateColours{Color::rgba(255, 237, 186), Color::rgba(255, 207, 102), gold_border}, 2.0);
-    if (state == ControlSurfaceState::pressed) {
-        add_relief(material, Relief{Color::rgba(44, 86, 132, 130), Color::rgba(255, 255, 255, 155)});
-    } else {
-        add_relief(material, Relief{Color::rgba(255, 255, 255, 185), Color::rgba(49, 86, 134, 110)});
-    }
-    return action_recipe(std::move(material));
-}
-
-// Fills `result` (caller storage: a family is some 9 KB) with action
-// plates, gold when selected. A command member (`flat_at_rest`) draws no
-// plate at rest, disabled or deactivated: dividers and strip shading carry
-// its structure (design language §12.3), and hover and press bring the
-// full plate.
-void fill_action_family(ControlRoleRecipes& result, bool flat_at_rest) {
-    result = ControlRoleRecipes{};
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        result.ordinary[index] = action_plate(state);
-        result.selected[index] = gold_plate(state);
-    }
-    if (!flat_at_rest) return;
-    const std::array<ControlSurfaceState, 3> resting{ControlSurfaceState::normal, ControlSurfaceState::disabled,
-                                                     ControlSurfaceState::deactivated};
-    for (const ControlSurfaceState state : resting) {
-        ControlVisualRecipe& value = result.ordinary[state_index(state)];
-        value.material = plate(PlateColours{clear, clear, clear}, 3.0);
-        // On the strip's stock, not the plate: stock ink.
-        value.text = state == ControlSurfaceState::disabled ? disabled_ink : stock_ink;
-        value.glyph = value.text;
-    }
-}
-
-// The accent button: Plan Paint's File-tab blue (#528BE0 to #173F88),
-// started darker (#2F69BE) so that white text meets 4.5:1 on the whole
-// gradient.
-void fill_accent_family(ControlRoleRecipes& result) {
-    fill_action_family(result, false);
-    const Relief raised{Color::rgba(255, 255, 255, 90), Color::rgba(10, 30, 70, 120)};
-    const std::array<PlateColours, control_surface_state_count> plates{
-        PlateColours{Color::rgba(47, 105, 190), Color::rgba(23, 63, 136), Color::rgba(18, 51, 111)},
-        PlateColours{Color::rgba(56, 113, 196), Color::rgba(30, 72, 148), Color::rgba(12, 40, 92)},
-        PlateColours{Color::rgba(23, 63, 136), Color::rgba(40, 92, 170), Color::rgba(18, 51, 111)},
-        PlateColours{Color::rgba(47, 105, 190), Color::rgba(23, 63, 136), Color::rgba(173, 132, 31)},
-        PlateColours{Color::rgba(47, 105, 190), Color::rgba(23, 63, 136), Color::rgba(178, 54, 54)},
-        PlateColours{Color::rgba(190, 207, 228), Color::rgba(181, 199, 222), Color::rgba(143, 166, 196, 100)},
-        PlateColours{Color::rgba(47, 105, 190), Color::rgba(23, 63, 136), Color::rgba(18, 51, 111)}};
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        SurfaceMaterial material = plate(plates[index], 3.0);
-        const bool disabled = state == ControlSurfaceState::disabled;
-        if (state == ControlSurfaceState::pressed) {
-            add_relief(material, Relief{raised.lower, raised.upper});
-        } else {
-            add_relief(material, raised);
+FloorEvaluation evaluate_floor() {
+    FloorEvaluation result{};
+    // Every family is restyled; windows-professional's definition supplies
+    // the structure tokens, accent ramp and overlay shadow. Some 100 KB of
+    // recipes: built on the heap, not the stack (fill_professional_role's
+    // note in theme.cpp).
+    result.definition = std::make_unique<ThemeDefinition>(windows_professional_theme_definition());
+    ThemeDefinition& definition = *result.definition;
+    definition.id = "gui-forms";
+    definition.compatibility.face = stock;
+    definition.compatibility.face_light = Color::rgba(250, 250, 251);
+    definition.compatibility.paper = paper;
+    definition.compatibility.border = Color::rgba(148, 172, 200);
+    definition.compatibility.dark_border = Color::rgba(73, 108, 159);
+    definition.compatibility.text = stock_ink;
+    definition.compatibility.disabled_text = disabled_ink;
+    definition.compatibility.accent = Color::rgba(47, 105, 190);
+    definition.compatibility.accent_light = Color::rgba(207, 226, 250);
+    // The sheet is compiled onto windows-professional's floor, whose
+    // recipes it never reads: only its rules are evaluated.
+    detail::BuiltInThemeCompilation compiled =
+        detail::compile_built_in_theme(definition, floor_sheet_file, floor_sheet, stock_control_anatomies());
+    result.diagnostics = std::move(compiled.diagnostics);
+    result.operations = compiled.operations;
+    if (compiled.theme != nullptr) {
+        const CompiledThemeRules& rules = (*compiled.theme).engine().rules();
+        const ControlVisualRecipe structure = recipe_structure();
+        for (std::size_t index = 0U; index < control_visual_role_count; ++index) {
+            const ControlVisualRole role = static_cast<ControlVisualRole>(index);
+            detail::fill_family_recipes(rules, role, structure, definition.roles[index]);
         }
-        if (state != ControlSurfaceState::pressed && !disabled) add_contact_shadow(material);
-        ControlVisualRecipe value = recipe_of(std::move(material), disabled ? disabled_ink : paper);
-        value.muted_text = disabled ? disabled_ink : accent_muted_ink;
-        // The house ring lies inside the plate, so on the accent blue it is
-        // white.
-        value.focus_ring = paper;
-        result.ordinary[index] = value;
-        result.selected[index] = std::move(value);
     }
+    // The dark variant, derived by rule (T4 phase 5; design language 5.8).
+    definition.dark_variant = ThemeDarkVariant::derived;
+    definition.colour_schemes = ColourSchemeSet{.light = true, .dark = true};
+    return result;
 }
 
-// -- wells, stock and lists ------------------------------------------------------
-
-// A recessed well: entry fields (`editor`) and choice indicators. The
-// border is Plan Paint's action border, not its gallery well's #94ACC8,
-// which reaches only 2.2:1 on the stock (the boundary gate is 3:1).
-void fill_well_family(ControlRoleRecipes& result, Color face) {
-    result = ControlRoleRecipes{};
-    const std::array<Color, control_surface_state_count> borders{
-        Color::rgba(99, 132, 178), Color::rgba(53, 94, 150),  Color::rgba(53, 94, 150), Color::rgba(173, 132, 31),
-        Color::rgba(178, 54, 54),  Color::rgba(154, 170, 190), Color::rgba(99, 132, 178)};
-    const std::array<Color, control_surface_state_count> faces{
-        face, face, Color::rgba(232, 241, 252), Color::rgba(255, 250, 225), Color::rgba(255, 242, 242), stock, face};
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        const bool disabled = state == ControlSurfaceState::disabled;
-        SurfaceMaterial material = plate(PlateColours{faces[index], faces[index], borders[index]}, 2.0);
-        if (!disabled) add_well_shade(material);
-        ControlVisualRecipe value = recipe_of(std::move(material), disabled ? disabled_ink : stock_ink);
-        if (disabled) value.muted_text = disabled_ink;
-        result.ordinary[index] = value;
-        result.selected[index] = std::move(value);
-    }
-}
-
-// Flat stock (windows, panels): one solid face with a quiet line. A
-// selected panel takes the pale selection.
-void fill_stock_family(ControlRoleRecipes& result, Color face, Color line, double radius) {
-    result = ControlRoleRecipes{};
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        const bool disabled = state == ControlSurfaceState::disabled;
-        ControlVisualRecipe value =
-            recipe_of(plate(PlateColours{face, face, line}, radius), disabled ? disabled_ink : stock_ink);
-        if (disabled) value.muted_text = disabled_ink;
-        result.ordinary[index] = value;
-        value.material = plate(PlateColours{Color::rgba(207, 226, 250), Color::rgba(207, 226, 250),
-                                            Color::rgba(99, 132, 178)},
-                               radius);
-        result.selected[index] = std::move(value);
-    }
-}
-
-// Rows, items and menu members: clear at rest, a pale action face while
-// hot or pressed, the pale selection when selected.
-void fill_item_family(ControlRoleRecipes& result, double radius) {
-    result = ControlRoleRecipes{};
-    const Color hot_top = Color::rgba(228, 238, 252);
-    const Color hot_bottom = Color::rgba(207, 226, 250);
-    const Color line = Color::rgba(99, 132, 178);
-    const Color selected = Color::rgba(207, 226, 250);
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        const bool disabled = state == ControlSurfaceState::disabled;
-        const bool lit = state == ControlSurfaceState::hot || state == ControlSurfaceState::pressed;
-        const PlateColours face = lit ? PlateColours{hot_top, hot_bottom, line} : PlateColours{clear, clear, clear};
-        ControlVisualRecipe value = recipe_of(plate(face, radius), disabled ? disabled_ink : stock_ink);
-        if (disabled) value.muted_text = disabled_ink;
-        result.ordinary[index] = value;
-        const PlateColours chosen = state == ControlSurfaceState::pressed
-                                        ? PlateColours{hot_bottom, hot_bottom, line}
-                                        : PlateColours{selected, selected, line};
-        value.material = plate(chosen, radius);
-        result.selected[index] = std::move(value);
-    }
-}
-
-// A progress bar: a recessed track; selected is the bar's fill, in the
-// accent blue with white text.
-void fill_progress_family(ControlRoleRecipes& result) {
-    fill_well_family(result, Color::rgba(248, 251, 255));
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        if (state == ControlSurfaceState::disabled) continue;
-        ControlVisualRecipe& value = result.selected[index];
-        value.material =
-            plate(PlateColours{Color::rgba(47, 105, 190), Color::rgba(23, 63, 136), Color::rgba(18, 51, 111)}, 2.0);
-        value.text = paper;
-        value.glyph = paper;
-        value.muted_text = accent_muted_ink;
-    }
-}
-
-// Tooltips: windows-professional's pale yellow plate (owner decision RB-38)
-// with this theme's text colours.
-void fill_tool_tip_family(ControlRoleRecipes& result) {
-    fill_stock_family(result, Color::rgba(255, 255, 225), Color::rgba(104, 111, 118), 0.0);
-}
-
-// Badges (T4, W-4): the accent blue chip with white text in every state
-// but disabled, which takes the disabled accent plate; a badge takes no
-// input, so it has no hot or pressed look. The control rounds the chip to a
-// pill (PartPaint::corner_radius).
-void fill_badge_family(ControlRoleRecipes& result) {
-    result = ControlRoleRecipes{};
-    const Color accent = Color::rgba(47, 105, 190);
-    const Color greyed = Color::rgba(190, 207, 228);
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        const bool disabled = state == ControlSurfaceState::disabled;
-        const Color face = disabled ? greyed : accent;
-        ControlVisualRecipe value = recipe_of(plate(PlateColours{face, face, face}, 0.0), disabled ? disabled_ink : paper);
-        value.muted_text = disabled ? disabled_ink : accent_muted_ink;
-        result.ordinary[index] = value;
-        result.selected[index] = std::move(value);
-    }
-}
-
-// Links: no plate; the link colour in every enabled state (owner decision
-// W-Q5), disabled text when disabled.
-void fill_link_family(ControlRoleRecipes& result, Color text) {
-    result = ControlRoleRecipes{};
-    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
-        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
-        const bool disabled = state == ControlSurfaceState::disabled;
-        ControlVisualRecipe value = recipe_of(plate(PlateColours{clear, clear, clear}, 0.0), disabled ? disabled_ink : text);
-        if (disabled) value.muted_text = disabled_ink;
-        result.ordinary[index] = value;
-        result.selected[index] = std::move(value);
-    }
+const FloorEvaluation& floor_evaluation() {
+    // Evaluated once, on the first call's thread; C++ makes the
+    // initialization thread-safe, and it is never changed afterwards.
+    static const FloorEvaluation evaluation = evaluate_floor();
+    return evaluation;
 }
 
 // -- the light sheet ----------------------------------------------------------------
@@ -465,14 +498,14 @@ constexpr std::string_view light_sheet_file = "gui-forms/light.css";
 GuiFormsThemeBuild build_gui_forms_theme() {
     const std::chrono::steady_clock::time_point start = std::chrono::steady_clock::now();
     GuiFormsThemeBuild result{};
-    // The floor is some 100 KB of recipes: built on the heap, not the
-    // stack (fill_professional_role's note in theme.cpp).
-    const std::unique_ptr<ThemeDefinition> floor = std::make_unique<ThemeDefinition>(gui_forms_theme_definition());
+    const FloorEvaluation& floor = floor_evaluation();
+    result.diagnostics = floor.diagnostics;
+    result.floor_compile_operations = floor.operations;
     detail::BuiltInThemeCompilation compiled =
-        detail::compile_built_in_theme(*floor, light_sheet_file, light_sheet, stock_control_anatomies());
-    result.diagnostics = std::move(compiled.diagnostics);
+        detail::compile_built_in_theme(*floor.definition, light_sheet_file, light_sheet, stock_control_anatomies());
+    result.diagnostics.insert(result.diagnostics.end(), compiled.diagnostics.begin(), compiled.diagnostics.end());
     result.compile_operations = compiled.operations;
-    result.theme = compiled.theme != nullptr ? std::move(compiled.theme) : Theme::create(*floor);
+    result.theme = compiled.theme != nullptr ? std::move(compiled.theme) : Theme::create(*floor.definition);
     const std::chrono::steady_clock::time_point end = std::chrono::steady_clock::now();
     result.build_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
     return result;
@@ -481,40 +514,11 @@ GuiFormsThemeBuild build_gui_forms_theme() {
 } // namespace
 
 ThemeDefinition gui_forms_theme_definition() {
-    // Every family is restyled; windows-professional's definition supplies
-    // the structure tokens, accent ramp and overlay shadow.
-    ThemeDefinition result = windows_professional_theme_definition();
-    result.id = "gui-forms";
-    result.compatibility.face = stock;
-    result.compatibility.face_light = Color::rgba(250, 250, 251);
-    result.compatibility.paper = paper;
-    result.compatibility.border = Color::rgba(148, 172, 200);
-    result.compatibility.dark_border = Color::rgba(73, 108, 159);
-    result.compatibility.text = stock_ink;
-    result.compatibility.disabled_text = disabled_ink;
-    result.compatibility.accent = Color::rgba(47, 105, 190);
-    result.compatibility.accent_light = Color::rgba(207, 226, 250);
-    fill_stock_family(result.roles[role_index(ControlVisualRole::window)], stock, Color::rgba(180, 186, 194), 0.0);
-    fill_stock_family(result.roles[role_index(ControlVisualRole::panel)], stock, Color::rgba(205, 209, 214), 0.0);
-    fill_stock_family(result.roles[role_index(ControlVisualRole::card)], paper, Color::rgba(112, 130, 156), 4.0);
-    fill_action_family(result.roles[role_index(ControlVisualRole::button)], false);
-    fill_accent_family(result.roles[role_index(ControlVisualRole::accent_button)]);
-    fill_action_family(result.roles[role_index(ControlVisualRole::command_button)], true);
-    fill_well_family(result.roles[role_index(ControlVisualRole::choice)], Color::rgba(248, 251, 255));
-    fill_well_family(result.roles[role_index(ControlVisualRole::editor)], paper);
-    fill_item_family(result.roles[role_index(ControlVisualRole::menu_item)], 2.0);
-    fill_item_family(result.roles[role_index(ControlVisualRole::selection)], 0.0);
-    fill_progress_family(result.roles[role_index(ControlVisualRole::progress)]);
-    fill_tool_tip_family(result.roles[role_index(ControlVisualRole::tool_tip)]);
-    fill_link_family(result.roles[role_index(ControlVisualRole::link)], result.compatibility.link);
-    fill_link_family(result.roles[role_index(ControlVisualRole::visited_link)], result.compatibility.visited_link);
-    fill_stock_family(result.roles[role_index(ControlVisualRole::notice)], paper, Color::rgba(112, 130, 156), 2.0);
-    fill_badge_family(result.roles[role_index(ControlVisualRole::badge)]);
-    // The dark variant, derived by rule (T4 phase 5; design language 5.8).
-    result.dark_variant = ThemeDarkVariant::derived;
-    result.colour_schemes = ColourSchemeSet{.light = true, .dark = true};
+    ThemeDefinition result = *floor_evaluation().definition;
     return result;
 }
+
+std::string_view gui_forms_floor_sheet() noexcept { return floor_sheet; }
 
 std::string_view gui_forms_light_sheet() noexcept { return light_sheet; }
 
