@@ -23,6 +23,12 @@ migration of a declaring class's properties onto capabilities:
     python3 -B tools/property_codemod.py audit CONFIG...
         Lists parameters and locals named after a property (the rule: no
         parameter shares a property's name) in the family's sources.
+    python3 -B tools/property_codemod.py selftest
+        Runs the header field deletion over
+        tools/property_codemod_fixtures/field_initializers.hpp (initializers
+        holding `;`, quotes and nested braces) and compares the result with
+        field_initializers.expected.hpp; then checks that generation refuses
+        a header whose migrated field survives.
     python3 -B tools/property_codemod.py tests [CONFIG...]
         Writes tests/property_family_generated_tests.cpp from every config
         with a "test" block: per property, a write stores, an equal write
@@ -467,6 +473,93 @@ def top_level_commas(text):
     return commas
 
 
+def statement_end(text, index, limit):
+    """The index of the `;` ending the statement at index: outside
+    brackets, braces, string and character literals and comments."""
+    while index < limit:
+        character = text[index]
+        if character in "\"'":
+            quote = character
+            index += 1
+            while index < limit and text[index] != quote:
+                if text[index] == "\\":
+                    index += 1
+                index += 1
+        elif text.startswith("//", index):
+            index = text.find("\n", index)
+            if index < 0:
+                break
+        elif text.startswith("/*", index):
+            index = text.find("*/", index) + 1
+        elif character == "(":
+            index = matching(text, index, "(", ")")
+        elif character == "[":
+            index = matching(text, index, "[", "]")
+        elif character == "{":
+            index = matching(text, index, "{", "}")
+        elif character == ";":
+            return index
+        index += 1
+    raise ValueError("statement without an end at %d" % index)
+
+
+FIELD_HEAD = r"^[ \t]*(?!return\b)[\w:<>,\*&][\w:<>, \t\*&]*?\b%s\s*(?=[{=;])"
+
+
+def field_declarations(text, field, body_open, body_close):
+    """(start, end) of each declaration of the data member `field` in the
+    class body, whole lines: its type and name at a line's start, then a
+    brace or `=` initializer (any content: literals, nested braces, `;`
+    inside quotes) or none, then the `;` and the rest of its line."""
+    pattern = re.compile(FIELD_HEAD % re.escape(field), re.M)
+    found = []
+    for match in pattern.finditer(text, body_open + 1, body_close):
+        end = statement_end(text, match.end(), body_close)
+        found.append((match.start(), line_end(text, end)))
+    return found
+
+
+def strip_comments(text):
+    """text with comments and string and character literals blanked."""
+    out = []
+    index = 0
+    while index < len(text):
+        character = text[index]
+        if character in "\"'":
+            quote = character
+            out.append(" ")
+            index += 1
+            while index < len(text) and text[index] != quote:
+                if text[index] == "\\":
+                    index += 1
+                index += 1
+            out.append(" ")
+            index += 1
+        elif text.startswith("//", index):
+            newline = text.find("\n", index)
+            index = len(text) if newline < 0 else newline
+        elif text.startswith("/*", index):
+            close = text.find("*/", index)
+            index = len(text) if close < 0 else close + 2
+        else:
+            out.append(character)
+            index += 1
+    return "".join(out)
+
+
+def remaining_fields(text, config):
+    """The migrated fields still named in the declaring class's body after
+    generation: each would be stale storage beside its cell."""
+    head, body_open, body_close = class_body(text, config["declaring"])
+    body = strip_comments(text[body_open + 1:body_close])
+    left = []
+    for prop in config["properties"]:
+        field = prop.get("field")
+        if field and prop.get("storage", "cell") == "cell" and re.search(r"\b%s\b" % re.escape(field), body):
+            left.append(field)
+    return left
+
+
 def remove_ranges(text, ranges):
     """Removes the ranges, merging overlapping ones first."""
     merged = []
@@ -580,10 +673,8 @@ def delete_members(text, config, body_open, body_close, report):
                 ranges.append((with_attached_comment(text, start), end))
                 names.append(prop[key])
         if prop.get("field") and prop.get("storage", "cell") == "cell":
-            pattern = re.compile(r"^[ \t]*(?!return\b)[\w:<>,\*&][\w:<>, \t\*&]*?\b%s\s*(?:\{[^;]*\}|=[^;]*)?;[^\n]*\n"
-                                 % re.escape(prop["field"]), re.M)
-            for match in pattern.finditer(body):
-                ranges.append((body_open + match.start(), body_open + match.end()))
+            for start, end in field_declarations(text, prop["field"], body_open, body_close):
+                ranges.append((start, end))
                 names.append(prop["field"])
         report.append(f"{prop['name']}: deleted {', '.join(names) if names else 'nothing'} in the header")
     return ranges
@@ -606,6 +697,10 @@ def generate_header(config, report):
         head, body_open, body_close = class_body(text, config["declaring"])
     ranges = delete_members(text, config, body_open, body_close, report)
     text = remove_ranges(text, ranges)
+    left = remaining_fields(text, config)
+    if left:
+        raise ValueError("%s: migrated fields still in class %s: %s"
+                         % (config["header"], config["declaring"], ", ".join(left)))
     head, body_open, body_close = class_body(text, config["declaring"])
     text = replace_block(text, config["family"], header_block(config), line_start(text, body_close))
     path.write_bytes(collapse_blank_lines(text).encode("utf-8"))
@@ -1243,6 +1338,33 @@ def command_tests(arguments):
     return 0
 
 
+FIXTURES = pathlib.Path(__file__).resolve().parent / "property_codemod_fixtures"
+FIXTURE_FIELDS = ("delimiters_", "separator_", "terminator_", "groups_", "escaped_", "plain_")
+
+
+def command_selftest(arguments):
+    source = (FIXTURES / "field_initializers.hpp").read_text(encoding="utf-8")
+    expected = (FIXTURES / "field_initializers.expected.hpp").read_text(encoding="utf-8")
+    config = {"declaring": "Fixture", "header": "field_initializers.hpp",
+              "properties": [{"name": field.rstrip("_"), "field": field} for field in FIXTURE_FIELDS]}
+    failures = []
+    head, body_open, body_close = class_body(source, "Fixture")
+    report = []
+    ranges = delete_members(source, config, body_open, body_close, report)
+    result = collapse_blank_lines(remove_ranges(source, ranges))
+    if result != expected:
+        failures.append("field deletion differs from field_initializers.expected.hpp:\n" + result)
+    if remaining_fields(result, config):
+        failures.append("remaining_fields reports a deleted field")
+    if remaining_fields(source, config) != list(FIXTURE_FIELDS):
+        failures.append("remaining_fields misses a surviving field")
+    for line in failures:
+        print("FAIL " + line)
+    if not failures:
+        print("selftest: ok")
+    return 1 if failures else 0
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1258,11 +1380,12 @@ def main():
     rewrite.add_argument("configs", nargs="+")
     audit = commands.add_parser("audit")
     audit.add_argument("configs", nargs="+")
+    selftest = commands.add_parser("selftest")
     tests = commands.add_parser("tests")
     tests.add_argument("configs", nargs="*")
     arguments = parser.parse_args()
     handlers = {"check": command_check, "generate": command_generate, "rewrite": command_rewrite,
-                "audit": command_audit, "tests": command_tests}
+                "audit": command_audit, "tests": command_tests, "selftest": command_selftest}
     return handlers[arguments.command](arguments)
 
 
