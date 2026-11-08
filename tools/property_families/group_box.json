@@ -1,0 +1,107 @@
+{
+  "family": "GroupBox",
+  "step": "B2",
+  "declaring": "GroupBox",
+  "header": "include/gui_forms/controls/panel/group_box/group_box.hpp",
+  "source": "src/controls/panel/group_box/group_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp",
+  "base": "Panel",
+  "shared": [
+    "TextCapability",
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The caption shown in the group's frame (Text); an ampersand marks the access key while use_mnemonic is on.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": null,
+      "on_changed": true,
+      "coerce": true,
+      "localizable": "text",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "Caption shown in the group's frame.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "sample": "std::string{\"&Options\"}"
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::control, 12.0, 600, false, 0.24",
+      "comment": "The caption's font (Font).",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "coerce": true,
+      "localizable": null,
+      "table": {
+        "kind": "font",
+        "category": "Appearance",
+        "description": "Font used for the caption.",
+        "default": "BindingValue{FontSpec{FontRole::control, 12.0, 600, false, 0.24}}",
+        "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"GroupBox font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::control, 14.0, 700, false, 0.24}"
+    },
+    {
+      "name": "use_mnemonic",
+      "capability": "GroupBoxUseMnemonic",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.",
+      "getter": "use_mnemonic",
+      "setter": "set_use_mnemonic",
+      "clear": null,
+      "field": "use_mnemonic_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
+      "hooks": "generated"
+    }
+  ],
+  "not_properties": [],
+  "test": {
+    "type": "GroupBox",
+    "include": "gui_forms/controls/panel/group_box/group_box.hpp"
+  }
+}

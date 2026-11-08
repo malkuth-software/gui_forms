@@ -269,7 +269,7 @@ public:
                 (*label).set_text(value);
             } else if (const std::shared_ptr<gui_forms::GroupBox> group =
                            std::dynamic_pointer_cast<gui_forms::GroupBox>((*record).control)) {
-                (*group).set_text(value);
+                (*group).text = value;
             } else if (const std::shared_ptr<gui_forms::abi::detail::FieldControl> field =
                            std::dynamic_pointer_cast<FieldControl>((*record).control)) {
                 (*field).set_text(value);

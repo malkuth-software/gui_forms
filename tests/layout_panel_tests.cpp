@@ -687,7 +687,7 @@ void test_scaled_panel_and_group_are_public_layout_controls() {
     bool invalid_size_rejected = false;
     bool foreign_child_rejected = false;
     try {
-        (*root).set_design_size({0.0, 100.0});
+        (*root).design_size = Size{0.0, 100.0};
     } catch (const std::invalid_argument&) {
         invalid_size_rejected = true;
     }

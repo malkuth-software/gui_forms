@@ -7,7 +7,7 @@ gui_forms::ScaledPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScaledPanel : public Panel
+.. cpp:class:: ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel>
 
    ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel.hpp>``
 
@@ -29,7 +29,7 @@ gui_forms::ScaledPanel
       **stable_id** : ``StableId``
          Identity of the panel, unique within its window.
 
-      **design_size** : ``Size``, default ``{1.0, 1.0}``
+      **initial_design_size** : ``Size``, default ``{1.0, 1.0}``
          The width and height of the design space, by default 1 by 1. Both must
          be finite and positive, or the constructor throws
          ``std::invalid_argument``.
@@ -58,6 +58,8 @@ gui_forms::ScaledPanel
         - ``add_at(child, design_bounds)`` adds ``child`` to the panel and gives it a rectangle in design coordinates.
       * - :cpp:func:`design_bounds <gui_forms::ScaledPanel::design_bounds>`
         - The design rectangle of ``child``, or no value if it has none.
+      * - :cpp:func:`scaled_panel_property_entries <gui_forms::ScaledPanel::scaled_panel_property_entries>`
+        -  
       * - :cpp:func:`set_design_bounds <gui_forms::ScaledPanel::set_design_bounds>`
         - Moves or resizes an existing child in design coordinates.
 
@@ -112,19 +114,15 @@ gui_forms::ScaledPanel
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit ScaledPanel(StableId stable_id, Size design_size = {1.0, 1.0})
+   .. cpp:function:: explicit ScaledPanel(StableId stable_id, Size initial_design_size = {1.0, 1.0})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: Size design_size() const noexcept
+   .. cpp:member:: Size design_size
 
       The width and height of the design space. Both must be finite and
       positive, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_design_size(Size size)
-
-      Sets :cpp:func:`design_size <gui_forms::ScaledPanel::design_size>`; see the property's description above.
 
 
    .. rubric:: Methods
@@ -142,6 +140,8 @@ gui_forms::ScaledPanel
       The design rectangle of ``child``, or no value if it has none. The
       rectangles of removed children are discarded at the next layout.
 
+   .. cpp:function:: static const std::array<PropertyEntry, scaled_panel_property_count>& scaled_panel_property_entries() noexcept
+
    .. cpp:function:: void set_design_bounds(const Control& child, Rect design_bounds)
 
       Moves or resizes an existing child in design coordinates. Invalid bounds
@@ -155,3 +155,9 @@ gui_forms::ScaledPanel
    .. cpp:function:: void arrange(Rect final_bounds) override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t scaled_panel_property_count
+
+      ScaledPanel's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.

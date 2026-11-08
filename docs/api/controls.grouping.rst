@@ -70,6 +70,10 @@ Related types
      - CardLayout defines validated logical padding, section gaps, and footer/header allocation used by Card measurement and arrangement.
    * - :cpp:class:`GroupBox::Parts <gui_forms::GroupBox::Parts>`
      - Stage T1 anatomy, as dot members: a face, the frame and the caption.
+   * - :cpp:class:`GroupBoxCapabilities <gui_forms::GroupBoxCapabilities>`
+     - Every GroupBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`GroupBoxUseMnemonicCapability <gui_forms::GroupBoxUseMnemonicCapability>`
+     - Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
    * - :cpp:class:`NavigationPane::Item <gui_forms::NavigationPane::Item>`
      -  
    * - :cpp:class:`NavigationPane::ItemStates <gui_forms::NavigationPane::ItemStates>`
@@ -120,6 +124,10 @@ Related types
      - Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.
    * - :cpp:class:`PanelCapabilities <gui_forms::PanelCapabilities>`
      - Every Panel capability, in the order the declaring class takes them.
+   * - :cpp:class:`ScaledGroupBoxCapabilities <gui_forms::ScaledGroupBoxCapabilities>`
+     - Every ScaledGroupBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`ScaledGroupBoxDesignSizeCapability <gui_forms::ScaledGroupBoxDesignSizeCapability>`
+     - The coordinate space the children's design bounds are written in; it scales to the arranged size.
    * - :cpp:class:`TabControl::Item <gui_forms::TabControl::Item>`
      -  
    * - :cpp:class:`TabControl::ItemParts <gui_forms::TabControl::ItemParts>`
@@ -219,6 +227,51 @@ Related types
    .. cpp:member:: PartGeometry edge
 
    .. cpp:member:: PartGeometry caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GroupBoxCapabilities : public TextCapability<Declaring>, public FontCapability<Declaring>, public GroupBoxUseMnemonicCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp>``
+
+   Every GroupBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: GroupBoxCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: bool use_mnemonic
+
+      Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> GroupBoxUseMnemonicCapability
+
+   ``#include <gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp>``
+
+   Whether an ampersand in the caption marks the access key (UseMnemonic); the access key moves the focus to the group's first focusable child.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(GroupBoxUseMnemonicCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, GroupBoxUseMnemonicCapability<Declaring>> use_mnemonic
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -698,6 +751,38 @@ Related types
    .. cpp:member:: ControlVisualRole visual_role
 
       The recipe family the panel paints with: window, panel or card.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScaledGroupBoxCapabilities : public ScaledGroupBoxDesignSizeCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp>``
+
+   Every ScaledGroupBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Size design_size
+
+      The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScaledGroupBoxDesignSizeCapability
+
+   ``#include <gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box_capabilities/scaled_group_box_capabilities.hpp>``
+
+   The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScaledGroupBoxDesignSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, ScaledGroupBoxDesignSizeCapability<Declaring>> design_size
+
+      Default: ``{Size{1.0, 1.0}}``.
 
 .. cpp:namespace:: gui_forms
 

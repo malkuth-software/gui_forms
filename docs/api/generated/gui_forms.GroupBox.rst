@@ -7,7 +7,7 @@ gui_forms::GroupBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: GroupBox : public Panel
+.. cpp:class:: GroupBox : public Panel, public GroupBoxCapabilities<GroupBox>
 
    ``#include <gui_forms/controls/panel/group_box/group_box.hpp>``
 
@@ -26,7 +26,7 @@ gui_forms::GroupBox
       **stable_id** : ``StableId``
          Identity of the group box, unique within its window.
 
-      **text** : ``std::string``, default ``{}``
+      **initial_text** : ``std::string``, default ``{}``
          The caption. ``&`` marks the next character as the mnemonic, so
          ``"&Mode"`` responds to Alt+M; write ``&&`` for a literal ampersand.
 
@@ -42,7 +42,7 @@ gui_forms::GroupBox
          ``std::invalid_argument``.
 
       **use_mnemonic** : ``bool``, default ``true``
-         Whether ``&`` in :cpp:func:`text <gui_forms::GroupBox::text>` marks a mnemonic. When false the caption is drawn
+         Whether ``&`` in :cpp:member:`text <gui_forms::GroupBox::text>` marks a mnemonic. When false the caption is drawn
          exactly as written and Alt+key does nothing.
 
       **parts** : ``Parts``, read-only
@@ -54,6 +54,15 @@ gui_forms::GroupBox
       From :cpp:class:`ScrollableControl <gui_forms::ScrollableControl>`: properties :cpp:member:`auto_scroll <gui_forms::ScrollableControl::auto_scroll>`, :cpp:member:`auto_scroll_margin <gui_forms::ScrollableControl::auto_scroll_margin>`, :cpp:member:`auto_scroll_min_size <gui_forms::ScrollableControl::auto_scroll_min_size>`, :cpp:member:`auto_scroll_position <gui_forms::ScrollableControl::auto_scroll_position>`, :cpp:func:`scroll_position <gui_forms::ScrollableControl::scroll_position>`, :cpp:func:`viewport_rectangle <gui_forms::ScrollableControl::viewport_rectangle>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`, :cpp:func:`hscroll <gui_forms::ScrollableControl::hscroll>`, :cpp:func:`vscroll <gui_forms::ScrollableControl::vscroll>`, :cpp:func:`last_scroll_event <gui_forms::ScrollableControl::last_scroll_event>`, :cpp:func:`scroll_event_revision <gui_forms::ScrollableControl::scroll_event_revision>`, :cpp:func:`scroll_snapshot <gui_forms::ScrollableControl::scroll_snapshot>`, :cpp:func:`states <gui_forms::ScrollableControl::states>`; events :cpp:func:`scroll <gui_forms::ScrollableControl::scroll>`; methods :cpp:func:`get_scroll_state <gui_forms::ScrollableControl::get_scroll_state>`, :cpp:func:`horizontal_scroll <gui_forms::ScrollableControl::horizontal_scroll>`, :cpp:func:`scroll_by <gui_forms::ScrollableControl::scroll_by>`, :cpp:func:`scroll_control_into_view <gui_forms::ScrollableControl::scroll_control_into_view>`, :cpp:func:`scroll_to <gui_forms::ScrollableControl::scroll_to>`, :cpp:func:`scrollable_control_property_entries <gui_forms::ScrollableControl::scrollable_control_property_entries>`, :cpp:func:`set_auto_scroll_margin <gui_forms::ScrollableControl::set_auto_scroll_margin>`, :cpp:func:`set_scroll_state <gui_forms::ScrollableControl::set_scroll_state>`, :cpp:func:`vertical_scroll <gui_forms::ScrollableControl::vertical_scroll>`.
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
+
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`group_box_property_entries <gui_forms::GroupBox::group_box_property_entries>`
+        -  
 
    .. seealso::
 
@@ -130,40 +139,33 @@ gui_forms::GroupBox
 
    .. rubric:: Construction
 
-   .. cpp:function:: explicit GroupBox(StableId stable_id, std::string text = {})
+   .. cpp:function:: explicit GroupBox(StableId stable_id, std::string initial_text = {})
 
 
    .. rubric:: Properties
 
-   .. cpp:function:: const std::string& text() const noexcept
+   .. cpp:member:: std::string text
 
       The caption drawn over the top edge of the frame, and the accessible
       name unless you set one. Setting it repaints the caption.
 
-   .. cpp:function:: void set_text(std::string text)
-
-      Sets :cpp:func:`text <gui_forms::GroupBox::text>`; see the property's description above.
-
-   .. cpp:function:: FontSpec font() const noexcept
+   .. cpp:member:: FontSpec font
 
       The caption font: the control face at 12 logical pixels, semibold, with
       0.24 pixels of letter spacing. An invalid :cpp:class:`FontSpec <gui_forms::FontSpec>` throws
       ``std::invalid_argument``.
 
-   .. cpp:function:: void set_font(FontSpec font)
+   .. cpp:member:: bool use_mnemonic
 
-      Sets :cpp:func:`font <gui_forms::GroupBox::font>`; see the property's description above.
-
-   .. cpp:function:: bool use_mnemonic() const noexcept
-
-      Whether ``&`` in :cpp:func:`text <gui_forms::GroupBox::text>` marks a mnemonic. When false the caption is drawn
+      Whether ``&`` in :cpp:member:`text <gui_forms::GroupBox::text>` marks a mnemonic. When false the caption is drawn
       exactly as written and Alt+key does nothing.
 
-   .. cpp:function:: void set_use_mnemonic(bool value)
-
-      Sets :cpp:func:`use_mnemonic <gui_forms::GroupBox::use_mnemonic>`; see the property's description above.
-
    .. cpp:function:: Parts parts() const
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, group_box_property_count>& group_box_property_entries() noexcept
 
 
    .. rubric:: Extension points
@@ -192,3 +194,27 @@ gui_forms::GroupBox
       *Protected.*
 
       The background block behind the caption; its width follows the estimated caption width, as paint has always used.
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:function:: virtual void on_text_changed()
+
+      *Protected.*
+
+      on_<property>_changed runs after a changed write's touch and raises the change event; an override calls the base. coerce_<property> runs last before the compare and may rewrite the incoming value.
+
+   .. cpp:function:: virtual void coerce_text(std::string& incoming)
+
+      *Protected.*
+
+   .. cpp:function:: virtual void on_font_changed()
+
+      *Protected.*
+
+   .. cpp:function:: virtual void coerce_font(FontSpec& incoming)
+
+      *Protected.*
+
+   .. cpp:member:: constexpr std::size_t group_box_property_count
+
+      GroupBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 2U``.

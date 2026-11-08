@@ -220,7 +220,7 @@ void test_controls_read_it() {
     require(after.height > before.height && after.width > before.width, "a button measures its themed text");
     require((*button).text_font((*button).font.read()).size == 24.0 * (*button).effective_text_scale(),
             "a button's text font");
-    require((*group).text_font((*group).font()).size == 22.0 * (*group).effective_text_scale(),
+    require((*group).text_font((*group).font.read()).size == 22.0 * (*group).effective_text_scale(),
             "a group box's caption font");
     require((*box).text_font((*box).font()).size == 21.0 * (*box).effective_text_scale(), "a text box's font");
 }

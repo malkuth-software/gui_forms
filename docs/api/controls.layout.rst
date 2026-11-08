@@ -139,6 +139,10 @@ Related types
      -  
    * - :cpp:class:`ResponsiveTrackSpec <gui_forms::ResponsiveTrackSpec>`
      - A zero maximum is unbounded, matching Control::maximum_size.
+   * - :cpp:class:`ScaledPanelCapabilities <gui_forms::ScaledPanelCapabilities>`
+     - Every ScaledPanel capability, in the order the declaring class takes them.
+   * - :cpp:class:`ScaledPanelDesignSizeCapability <gui_forms::ScaledPanelDesignSizeCapability>`
+     - The coordinate space the children's design bounds are written in; it scales to the arranged size.
    * - :cpp:class:`SplitChangeEvent <gui_forms::SplitChangeEvent>`
      - SplitChangeEvent reports old/new splitter distance and whether the change originated from pointer interaction.
    * - :cpp:class:`SplitContainer::Parts <gui_forms::SplitContainer::Parts>`
@@ -969,6 +973,38 @@ Related types
    .. cpp:member:: bool hidden
 
    .. cpp:member:: std::optional<std::uint16_t> collapse_priority
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScaledPanelCapabilities : public ScaledPanelDesignSizeCapability<Declaring>
+
+   ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel_capabilities/scaled_panel_capabilities.hpp>``
+
+   Every ScaledPanel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Size design_size
+
+      The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScaledPanelDesignSizeCapability
+
+   ``#include <gui_forms/controls/panel/scaled_panel/scaled_panel_capabilities/scaled_panel_capabilities.hpp>``
+
+   The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScaledPanelDesignSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, ScaledPanelDesignSizeCapability<Declaring>> design_size
+
+      Default: ``{Size{1.0, 1.0}}``.
 
 .. cpp:namespace:: gui_forms
 

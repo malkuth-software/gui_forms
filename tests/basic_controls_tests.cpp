@@ -1,4 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
+#include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "support/theme_definition_heap.hpp"
 #include "gui_forms/diagnostic_controls.hpp"
@@ -224,6 +226,26 @@ private:
     Rect& damage_;
 };
 
+// A GroupBox subclass using the protected hooks of the text capability
+// (P-8): coerce_text upper-cases the incoming caption before the compare,
+// and on_text_changed counts each changed write after the touch.
+class UpperCaseGroupBox final : public GroupBox {
+public:
+    using GroupBox::GroupBox;
+    int text_changes{};
+
+protected:
+    void coerce_text(std::string& incoming) override {
+        for (char& byte : incoming) {
+            if (byte >= 'a' && byte <= 'z') byte = static_cast<char>(byte - 'a' + 'A');
+        }
+    }
+    void on_text_changed() override {
+        GroupBox::on_text_changed();
+        ++text_changes;
+    }
+};
+
 void attempt_label_mutation(const std::shared_ptr<Label>& label,
                             bool& rejected) noexcept {
     try {
@@ -259,10 +281,10 @@ void test_public_controls_render_with_role_policy() {
     (*group).set_requested_bounds({10.0, 10.0, 340.0, 160.0});
     // The caption is the group's `text` property (Windows Forms' GroupBox.Text).
     (*group).set_property_value("text", BindingValue{std::string("Shared controls")});
-    require((*group).text() == "Shared controls", "GroupBox text is a property");
+    require((*group).text.read() == "Shared controls", "GroupBox text is a property");
     require(std::get<std::string>(*(*group).property_value("text")) == "Shared controls",
             "GroupBox text reads back as a property");
-    (*group).set_text("Reusable controls");
+    (*group).text = "Reusable controls";
     std::shared_ptr<gui_forms::Label> label = make_control<Label>(StableId("controls.label"), "Field content");
     (*label).set_requested_bounds({12.0, 24.0, 140.0, 24.0});
     std::shared_ptr<gui_forms::Button> button = make_control<Button>(StableId("controls.button"), "Apply");
@@ -1879,9 +1901,53 @@ void test_image_list_state_density_ownership_and_button_layout() {
 
 } // namespace
 
+void test_group_box_capability_hooks() {
+    std::shared_ptr<UpperCaseGroupBox> group = make_control<UpperCaseGroupBox>(StableId("hooks.group"), "Mode");
+    require((*group).text.read() == "Mode" && (*group).text_changes == 0,
+            "construction stores the caption through GroupBox's own hooks");
+    (*group).text = "options";
+    require((*group).text.read() == "OPTIONS" && (*group).text_changes == 1,
+            "coerce_text rewrites the caption and on_text_changed runs once");
+    (*group).text = "Options";
+    require((*group).text_changes == 1, "a write coerced to the stored caption changes nothing");
+    (*group).set_property_value("text", BindingValue{std::string("table")});
+    require((*group).text.read() == "TABLE" && (*group).text_changes == 2, "a table write runs the same hooks");
+
+    (*group).use_mnemonic = false;
+    require(!(*group).use_mnemonic.read() && (*group).semantic_descriptor().access_key.empty(),
+            "without use_mnemonic the caption names no access key");
+    const FontSpec initial_font{FontRole::control, 12.0, 600, false, 0.24};
+    bool refused = false;
+    try {
+        (*group).font = FontSpec{FontRole::control, 0.0, 600, false};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*group).font.read() == initial_font, "an invalid caption font is refused");
+
+    std::shared_ptr<ScaledGroupBox> scaled =
+        make_control<ScaledGroupBox>(StableId("hooks.scaled"), "Pad", Size{200.0, 100.0});
+    require((*scaled).design_size.read() == Size{200.0, 100.0}, "the constructor's design size is stored");
+    refused = false;
+    try {
+        (*scaled).design_size = Size{-1.0, 100.0};
+    } catch (const std::invalid_argument&) {
+        refused = true;
+    }
+    require(refused && (*scaled).design_size.read() == Size{200.0, 100.0}, "a negative design size is refused");
+    bool constructor_refused = false;
+    try {
+        static_cast<void>(make_control<ScaledPanel>(StableId("hooks.panel"), Size{0.0, 1.0}));
+    } catch (const std::invalid_argument&) {
+        constructor_refused = true;
+    }
+    require(constructor_refused, "a constructor's empty design size is refused");
+}
+
 int main() {
     try {
         test_public_controls_render_with_role_policy();
+        test_group_box_capability_hooks();
         test_button_pointer_and_keyboard_activation();
         test_button_focus_cue_tracks_input_modality();
         test_button_authored_state_recipes_are_owned_and_retained();

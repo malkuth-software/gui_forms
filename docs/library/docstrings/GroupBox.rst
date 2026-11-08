@@ -10,7 +10,7 @@ Parameters
 ----------
 stable_id
     Identity of the group box, unique within its window.
-text
+initial_text
     The caption. `&` marks the next character as the mnemonic, so
     ``"&Mode"`` responds to Alt+M; write `&&` for a literal ampersand.
 

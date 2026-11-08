@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/controls/panel/group_box/group_box_capabilities/group_box_capabilities.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 
@@ -8,16 +9,9 @@
 
 namespace gui_forms {
 
-class GroupBox : public Panel {
+class GroupBox : public Panel, public GroupBoxCapabilities<GroupBox> {
 public:
-    explicit GroupBox(StableId stable_id, std::string text = {});
-
-    [[nodiscard]] const std::string& text() const noexcept { return text_; }
-    void set_text(GUI_FORMS_LOCALIZABLE(text) std::string text);
-    [[nodiscard]] FontSpec font() const noexcept { return font_; }
-    void set_font(FontSpec font);
-    [[nodiscard]] bool use_mnemonic() const noexcept { return use_mnemonic_; }
-    void set_use_mnemonic(bool value);
+    explicit GroupBox(StableId stable_id, std::string initial_text = {});
 
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
@@ -42,9 +36,34 @@ private:
     [[nodiscard]] bool mnemonic_matches(
         char32_t character) const noexcept override;
     bool process_mnemonic_self(char32_t character) override;
-    std::string text_;
-    FontSpec font_{FontRole::control, 12.0, 600, false, 0.24};
-    bool use_mnemonic_{true};
+    // property_codemod begin GroupBox (tools/property_families/group_box.json; generated, do not edit)
+public:
+    // GroupBox's property table: Panel's entries, then its own.
+    static constexpr std::size_t group_box_property_count = Panel::panel_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, group_box_property_count>& group_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
+protected:
+    // on_<property>_changed runs after a changed write's touch and raises the
+    // change event; an override calls the base. coerce_<property> runs last
+    // before the compare and may rewrite the incoming value.
+    virtual void on_text_changed();
+    virtual void coerce_text(std::string& incoming);
+    virtual void on_font_changed();
+    virtual void coerce_font(FontSpec& incoming);
+
+private:
+    friend struct TextCapability<GroupBox>;
+    friend struct FontCapability<GroupBox>;
+    friend struct GroupBoxUseMnemonicCapability<GroupBox>;
+    // The capabilities' hooks, chosen by the cell's type (study section 14).
+    void prepare_write(const decltype(text)& cell, std::string& incoming);
+    void written(const decltype(text)& cell);
+    void prepare_write(const decltype(font)& cell, FontSpec& incoming);
+    void written(const decltype(font)& cell);
+    void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
+    void written(const decltype(use_mnemonic)& cell);
+    // property_codemod end GroupBox
 };
 
 } // namespace gui_forms

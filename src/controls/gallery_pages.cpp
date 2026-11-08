@@ -270,9 +270,9 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
             body_height = std::max(body_height, placed.y + placed.height + 16.0);
         }
         const double page_height = strip_height + body_height;
-        (*body).set_design_size({1000.0, body_height});
+        (*body).design_size = Size{1000.0, body_height};
         (*page).set_design_bounds(*body, {0.0, strip_height, 1000.0, body_height});
-        (*page).set_design_size({1000.0, page_height});
+        (*page).design_size = Size{1000.0, page_height};
         (*page).set_bounds({0.0, 0.0, 1000.0, page_height});
         (*viewport).auto_scroll_min_size = {1000.0, page_height};
         (*context).pages.push_back(viewport);

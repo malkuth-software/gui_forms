@@ -5,9 +5,12 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/button_base/button/button.hpp"
 #include "gui_forms/controls/data_grid_view/data_grid_view.hpp"
+#include "gui_forms/controls/panel/group_box/group_box.hpp"
+#include "gui_forms/controls/panel/group_box/scaled_group_box/scaled_group_box.hpp"
 #include "gui_forms/controls/panel/list_view/list_view.hpp"
 #include "gui_forms/controls/panel/month_calendar/month_calendar.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
+#include "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
@@ -300,6 +303,31 @@ void test_data_grid_view_properties() {
     }
 }
 
+void test_group_box_properties() {
+    std::shared_ptr<GroupBox> control = make_control<GroupBox>(StableId("generated.groupbox"));
+    {
+        const std::string sample = std::string{"&Options"};
+        (*control).text = sample;
+        expect((*control).text.read() == sample, "GroupBox.text: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("text");
+        expect(by_name && *by_name == PropertyValueTraits<std::string>::to_binding(sample),
+               "GroupBox.text: the table reads the cell");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 14.0, 700, false, 0.24};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "GroupBox.font: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("font");
+        expect(by_name && *by_name == PropertyValueTraits<FontSpec>::to_binding(sample),
+               "GroupBox.font: the table reads the cell");
+    }
+    {
+        const bool sample = !(*control).use_mnemonic.read();
+        (*control).use_mnemonic = sample;
+        expect((*control).use_mnemonic.read() == sample, "GroupBox.use_mnemonic: a write stores");
+    }
+}
+
 void test_list_view_properties() {
     std::shared_ptr<ListView> control = make_control<ListView>(StableId("generated.listview"));
     {
@@ -418,6 +446,30 @@ void test_panel_properties() {
     }
 }
 
+void test_scaled_group_box_properties() {
+    std::shared_ptr<ScaledGroupBox> control = make_control<ScaledGroupBox>(StableId("generated.scaledgroupbox"));
+    {
+        const Size sample = Size{640.0, 480.0};
+        (*control).design_size = sample;
+        expect((*control).design_size.read() == sample, "ScaledGroupBox.design_size: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("design_size");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ScaledGroupBox.design_size: the table reads the cell");
+    }
+}
+
+void test_scaled_panel_properties() {
+    std::shared_ptr<ScaledPanel> control = make_control<ScaledPanel>(StableId("generated.scaledpanel"));
+    {
+        const Size sample = Size{640.0, 480.0};
+        (*control).design_size = sample;
+        expect((*control).design_size.read() == sample, "ScaledPanel.design_size: a write stores");
+        const std::optional<BindingValue> by_name = (*control).property_value("design_size");
+        expect(by_name && *by_name == PropertyValueTraits<Size>::to_binding(sample),
+               "ScaledPanel.design_size: the table reads the cell");
+    }
+}
+
 void test_scrollable_control_properties() {
     std::shared_ptr<ScrollableControl> control = make_control<ScrollableControl>(StableId("generated.scrollablecontrol"));
     {
@@ -480,9 +532,12 @@ void test_tree_list_view_properties() {
 int main() {
     test_button_base_properties();
     test_data_grid_view_properties();
+    test_group_box_properties();
     test_list_view_properties();
     test_month_calendar_properties();
     test_panel_properties();
+    test_scaled_group_box_properties();
+    test_scaled_panel_properties();
     test_scrollable_control_properties();
     test_token_box_properties();
     test_tree_list_view_properties();

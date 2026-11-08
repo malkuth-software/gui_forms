@@ -117,7 +117,7 @@ void exercise(Controls& controls, Window& window, bool never, int mode) {
     label.set_text("Built at " + std::to_string(mode));
 
     set_from_template(label);
-    set_from_template(*controls.group);
+    (*controls.group).text = "Group caption";
 
     MenuItemSpec open_item("file.open", MenuItemKind::command, {}, "Open");
     ToolStripItemSpec save{.stable_id = "tool.save", .text = "Save"};
@@ -172,6 +172,7 @@ const std::vector<Expected>& expected_records() {
         {"items", "Extra", exercise_name, self, 1U},
         {"text", "Helper caption", exercise_name, self, 1U},
         {"text", "From a template", "localizable_dogfood::set_from_template", self, 1U},
+        {"text", "Group caption", exercise_name, self, 1U},
         {"text", "Open", exercise_name, self, 1U},
         {"text", "Save", exercise_name, self, 1U},
         {"text", "Save as", exercise_name, self, 1U},

@@ -1,0 +1,59 @@
+{
+  "family": "ScaledPanel",
+  "step": "B2",
+  "declaring": "ScaledPanel",
+  "header": "include/gui_forms/controls/panel/scaled_panel/scaled_panel.hpp",
+  "source": "src/controls/panel/scaled_panel/scaled_panel.cpp",
+  "capabilities_header": "include/gui_forms/controls/panel/scaled_panel/scaled_panel_capabilities/scaled_panel_capabilities.hpp",
+  "base": "Panel",
+  "shared": [],
+  "includes": [
+    "gui_forms/types.hpp"
+  ],
+  "properties": [
+    {
+      "name": "design_size",
+      "capability": "ScaledPanelDesignSize",
+      "value": "Size",
+      "initial": "Size{1.0, 1.0}",
+      "comment": "The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.",
+      "getter": "design_size",
+      "setter": "set_design_size",
+      "clear": null,
+      "field": "design_size_",
+      "event": null,
+      "on_changed": false,
+      "coerce": false,
+      "localizable": null,
+      "table": {
+        "kind": "size",
+        "category": "Layout",
+        "description": "The coordinate space the children's design bounds are written in; it scales to the arranged size.",
+        "default": "BindingValue{Size{1.0, 1.0}}",
+        "effects": "Dirty::layout",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "prepare": [
+        "scaled_layout_detail::validate_design_size(incoming);"
+      ],
+      "sample": "Size{640.0, 480.0}"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "design_bounds(child) / set_design_bounds(child, bounds)",
+      "reason": "a per-child value (a child property later, study 10.7)"
+    }
+  ],
+  "test": {
+    "type": "ScaledPanel",
+    "include": "gui_forms/controls/panel/scaled_panel/scaled_panel.hpp"
+  }
+}

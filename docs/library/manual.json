@@ -28,12 +28,6 @@
       "summary": "GroupBox is a titled Panel specialization with validated typography, mnemonic focus routing, caption-aware border painting, and group semantics.",
       "methods": {
         "GroupBox": "Constructs a Panel with authored caption text and the control-caption font policy.",
-        "text": "Returns the authored caption including any mnemonic marker.",
-        "set_text": "Commits caption text and invalidates measurement, painting, and semantics only for a real change.",
-        "font": "Returns the explicit caption FontSpec.",
-        "set_font": "Validates and commits the caption font, then invalidates size, paint, and semantics.",
-        "use_mnemonic": "Reports whether ampersand mnemonic parsing and focus routing are enabled.",
-        "set_use_mnemonic": "Toggles caption mnemonic interpretation and invalidates affected retained phases.",
         "on_paint": "Paints the Panel material and a caption-aware border gap before recording the caption text.",
         "semantic_descriptor": "Projects the group role and uses the displayed caption as the accessible name when no explicit name exists."
       }
@@ -407,8 +401,6 @@
       "summary": "ScaledPanel maps caller-authored design-space child rectangles into current content bounds, retaining slot identity independently of child order and reconciling removed children safely.",
       "methods": {
         "ScaledPanel": "Constructs a Panel with a validated positive design-space extent.",
-        "design_size": "Returns the width and height that define authored design coordinates.",
-        "set_design_size": "Validates finite positive dimensions and invalidates arrangement when the design coordinate system changes.",
         "add_at": "Validates an unparented child and finite nonnegative design rectangle, adds it, and records its stable-id slot atomically.",
         "set_design_bounds": "Requires an existing direct child, validates its design rectangle, and updates the stable slot.",
         "design_bounds": "Returns the authored design-space rectangle for a current child, if assigned.",
@@ -422,8 +414,6 @@
       "summary": "ScaledGroupBox combines GroupBox caption/mnemonic semantics with stable design-space child slots and proportional retained arrangement.",
       "methods": {
         "ScaledGroupBox": "Constructs a titled GroupBox with a validated positive design coordinate system.",
-        "design_size": "Returns the width and height that define authored design coordinates.",
-        "set_design_size": "Validates finite positive dimensions and invalidates arrangement when the design coordinate system changes.",
         "add_at": "Validates an unparented child and finite nonnegative design rectangle, adds it, and records its stable-id slot atomically.",
         "set_design_bounds": "Requires an existing direct child, validates its design rectangle, and updates the stable slot.",
         "design_bounds": "Returns the authored design-space rectangle for a current child, if assigned.",

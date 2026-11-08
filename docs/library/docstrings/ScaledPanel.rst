@@ -13,7 +13,7 @@ Parameters
 ----------
 stable_id
     Identity of the panel, unique within its window.
-design_size
+initial_design_size
     The width and height of the design space, by default 1 by 1. Both must
     be finite and positive, or the constructor throws
     `std::invalid_argument`.
