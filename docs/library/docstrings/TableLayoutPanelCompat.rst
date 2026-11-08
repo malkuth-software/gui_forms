@@ -47,11 +47,15 @@ track_spacing : default ``{0.0, 0.0}``
     but not outside the outer tracks. Each value must be finite and between
     0 and 256.
 column_styles
-    The size mode and size of each authored column, one per column. Set them
-    with `set_column_style`.
+    The size mode and size of each authored column, one per column. Set one
+    with `set_column_style`, or all with `set_column_styles`, which makes the
+    column count the number of styles (1 through 64, `std::out_of_range`)
+    and checks every style first. In a `.form` it is the `column-styles` text
+    collection, one item per column:
+    `column-styles: "absolute 140" "auto" "percent 1";`.
 row_styles
-    The size mode and size of each authored row. Set them with
-    `set_row_style`.
+    The size mode and size of each authored row, set with `set_row_style` or
+    `set_row_styles` as the columns are (`row-styles` in a `.form`).
 column_widths
     The column widths resolved by the last layout, including any columns the
     table added. Empty before the first layout.

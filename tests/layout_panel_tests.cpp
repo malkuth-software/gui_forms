@@ -967,12 +967,64 @@ void test_table_child_properties() {
     require((*table).spans().empty(), "table: a leaving child's cell and span go with it");
 }
 
+// A text collection value of `items`, as a .form writes one.
+gui_forms::BindingValue text_items(std::vector<gui_forms::BindingValue> items) {
+    return gui_forms::BindingValue{gui_forms::make_property_collection("String", gui_forms::BindingValueKind::text,
+                                                                       std::move(items))};
+}
+
+// The text items of a collection value.
+std::vector<std::string> items_of(const gui_forms::BindingValue& value) {
+    std::vector<std::string> items{};
+    const gui_forms::PropertyCollectionValue& collection = std::get<gui_forms::PropertyCollectionValue>(value);
+    for (const gui_forms::BindingValue& item : gui_forms::property_collection_items(collection)) {
+        items.push_back(std::get<std::string>(item));
+    }
+    return items;
+}
+
+void test_panel_settings_as_properties() {
+    std::shared_ptr<TableLayoutPanelCompat> table =
+        make_control<TableLayoutPanelCompat>(StableId("layout.table.settings"));
+    (*table).set_property_value("column-styles", text_items({gui_forms::BindingValue{std::string{"absolute 140"}},
+                                                             gui_forms::BindingValue{std::string{"auto"}},
+                                                             gui_forms::BindingValue{std::string{"percent 1.5"}}}));
+    require((*table).column_count() == 3U && (*table).column_styles()[0] == TableLayoutStyle{TableSizeMode::absolute, 140.0} &&
+                (*table).column_styles()[2] == TableLayoutStyle{TableSizeMode::percent, 1.5},
+            "table settings: the column styles set the count and each style");
+    const std::optional<gui_forms::BindingValue> styles = (*table).property_value("column_styles");
+    require(styles && items_of(*styles) == std::vector<std::string>{"absolute 140", "auto", "percent 1.5"},
+            "table settings: the styles read back as their text");
+    (*table).set_property_value("row_count", gui_forms::BindingValue{std::uint64_t{2U}});
+    (*table).set_property_value("grow_style", gui_forms::BindingValue{std::int64_t{0}});
+    (*table).set_property_value("track_spacing", gui_forms::BindingValue{gui_forms::Size{4.0, 2.0}});
+    require((*table).row_count() == 2U && (*table).grow_style() == TableLayoutGrowStyle::fixed_size &&
+                (*table).track_spacing() == gui_forms::Size{4.0, 2.0},
+            "table settings: count, grow style and spacing by name");
+    bool malformed_refused = false;
+    try {
+        (*table).set_property_value("row_styles", text_items({gui_forms::BindingValue{std::string{"percent"}}}));
+    } catch (const std::invalid_argument&) {
+        malformed_refused = true;
+    }
+    require(malformed_refused && (*table).row_count() == 2U, "table settings: a malformed style is refused");
+
+    std::shared_ptr<FlowLayoutPanelCompat> flow = make_control<FlowLayoutPanelCompat>(StableId("layout.flow.settings"));
+    (*flow).set_property_value("flow-direction", gui_forms::BindingValue{std::int64_t{2}});
+    (*flow).set_property_value("wrap-contents", gui_forms::BindingValue{false});
+    (*flow).set_property_value("cross_alignment", gui_forms::BindingValue{std::int64_t{3}});
+    require((*flow).flow_direction() == FlowDirection::top_down && !(*flow).wrap_contents() &&
+                (*flow).cross_alignment() == FlowCrossAlignment::stretch,
+            "flow settings: direction, wrapping and alignment by name");
+}
+
 int main() {
     try {
         test_flow_auto_scroll_owns_viewport_and_input();
         test_margin_padding_validation_and_retained_slots();
         test_flow_break_child_property();
         test_table_child_properties();
+        test_panel_settings_as_properties();
         test_flow_direction_break_visibility_and_resize();
         test_flow_item_spacing_is_explicit_bounded_layout_state();
         test_flow_auto_size_mode_preserves_authored_extent();

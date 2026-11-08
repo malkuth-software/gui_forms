@@ -2058,7 +2058,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `cross_alignment` (enumeration), `flow_direction` (enumeration), `item_spacing` (size), `main_alignment` (enumeration), `wrap_contents` (boolean).
 
 Properties it provides to its children: `flow_break` (boolean).
 
@@ -2087,7 +2087,7 @@ Properties it provides to its children: `flow_break` (boolean).
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `cell_border_style` (enumeration), `column_count` (unsigned_integer), `column_styles` (collection), `grow_style` (enumeration), `row_count` (unsigned_integer), `row_styles` (collection), `track_spacing` (size).
 
 Properties it provides to its children: `cell` (point), `column_span` (unsigned_integer), `row_span` (unsigned_integer).
 
@@ -2115,7 +2115,7 @@ Properties it provides to its children: `cell` (point), `column_span` (unsigned_
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `orientation` (enumeration), `track_gap` (number), `track_specs` (collection).
 
 Properties it provides to its children: `child_track` (unsigned_integer).
 
@@ -2242,7 +2242,7 @@ Properties beyond every control's: none.
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point).
+Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `group_gap` (number).
 
 Properties it provides to its children: `group_spec` (text).
 

@@ -2,19 +2,132 @@
 #include "gui_forms/window.hpp"
 
 #include "../container_layout_utilities.hpp"
+#include "../text_collection_property.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "../../../../core/types/restrict/restrict.hpp"
 
 #include <algorithm>
+#include <array>
+#include <charconv>
 #include <cmath>
 #include <limits>
 #include <numeric>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <system_error>
 #include <utility>
 #include <variant>
 
 namespace gui_forms {
 namespace {
+
+std::shared_ptr<const PropertyEnumDescriptor> orientation_enum() {
+    static const std::shared_ptr<const PropertyEnumDescriptor> value =
+        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+            "responsive_track_orientation", {{"horizontal", 0}, {"vertical", 1}}, false});
+    return value;
+}
+
+void append_number(std::string& text, double value) {
+    std::array<char, 32U> buffer{};
+    const std::to_chars_result written = std::to_chars(buffer.data(), buffer.data() + buffer.size(), value);
+    text.append(buffer.data(), static_cast<std::size_t>(written.ptr - buffer.data()));
+}
+
+// A number word of a spec's text; false when `word` is not one.
+bool number_word(std::string_view word, double& value) noexcept {
+    const char* const end = word.data() + word.size();
+    const std::from_chars_result parsed = std::from_chars(word.data(), end, value);
+    const bool whole = !word.empty() && parsed.ec == std::errc{} && parsed.ptr == end;
+    return whole;
+}
+
+const char* mode_word(ResponsiveTrackSizeMode mode) noexcept {
+    switch (mode) {
+    case ResponsiveTrackSizeMode::fixed:
+        return "fixed";
+    case ResponsiveTrackSizeMode::content:
+        return "content";
+    case ResponsiveTrackSizeMode::remaining:
+        return "remaining";
+    default:
+        // validate_specs admits only the enumerators; content is the
+        // spec's default mode, so a read never fails.
+        return "content";
+    }
+}
+
+// One spec's text: the mode and three extents, then the weight when it is
+// not 1, "hidden", and the priority when there is one.
+std::string spec_text(const ResponsiveTrackSpec& spec) {
+    std::string text{mode_word(spec.size_mode)};
+    text.push_back(' ');
+    append_number(text, spec.minimum);
+    text.push_back(' ');
+    append_number(text, spec.preferred);
+    text.push_back(' ');
+    append_number(text, spec.maximum);
+    if (spec.remaining_weight != 1.0) {
+        text.append(" weight ");
+        append_number(text, spec.remaining_weight);
+    }
+    if (spec.hidden) text.append(" hidden");
+    if (spec.collapse_priority) {
+        text.append(" priority ");
+        text.append(std::to_string(*spec.collapse_priority));
+    }
+    return text;
+}
+
+// One spec read from its text; throws std::invalid_argument for another
+// shape. The values' ranges are validate_specs'.
+ResponsiveTrackSpec spec_from_text(std::string_view item) {
+    const std::vector<std::string_view> words = text_collection_property::words_of(item);
+    ResponsiveTrackSpec spec{};
+    bool valid = words.size() >= 4U;
+    if (valid) {
+        if (words[0] == "fixed") {
+            spec.size_mode = ResponsiveTrackSizeMode::fixed;
+        } else if (words[0] == "content") {
+            spec.size_mode = ResponsiveTrackSizeMode::content;
+        } else if (words[0] == "remaining") {
+            spec.size_mode = ResponsiveTrackSizeMode::remaining;
+        } else {
+            valid = false;
+        }
+    }
+    valid = valid && number_word(words[1], spec.minimum) && number_word(words[2], spec.preferred) &&
+            number_word(words[3], spec.maximum);
+    std::size_t index = 4U;
+    while (valid && index < words.size()) {
+        if (words[index] == "hidden") {
+            spec.hidden = true;
+            ++index;
+        } else if (words[index] == "weight" && index + 1U < words.size()) {
+            valid = number_word(words[index + 1U], spec.remaining_weight);
+            index += 2U;
+        } else if (words[index] == "priority" && index + 1U < words.size()) {
+            std::uint16_t priority{};
+            const std::string_view word = words[index + 1U];
+            const char* const end = word.data() + word.size();
+            const std::from_chars_result parsed = std::from_chars(word.data(), end, priority);
+            valid = parsed.ec == std::errc{} && parsed.ptr == end;
+            spec.collapse_priority = priority;
+            index += 2U;
+        } else {
+            valid = false;
+        }
+    }
+    if (!valid) {
+        throw std::invalid_argument(
+            "ResponsiveTrackPanel track spec is \"<fixed|content|remaining> <minimum> <preferred> <maximum>\" "
+            "with optional \"weight <w>\", \"hidden\" and \"priority <n>\"");
+    }
+    return spec;
+}
 
 // The child track's descriptor before validation: nullable, so its default
 // (none) is of its kind.
@@ -368,7 +481,60 @@ ResponsiveTrackResolution resolve_responsive_tracks(
 using namespace container_layout_detail;
 
 ResponsiveTrackPanel::ResponsiveTrackPanel(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {}
+    : ContainerControl(std::move(stable_id)) {
+    register_panel_properties();
+}
+
+void ResponsiveTrackPanel::register_panel_properties() {
+    PropertyDescriptor orientation{"orientation", BindingValueKind::enumeration, "Layout",
+                                   "The axis the tracks run along: horizontal or vertical.",
+                                   BindingValue{std::int64_t{0}}, invalidation::bounds};
+    orientation.bindable = false;
+    orientation.enumeration = orientation_enum();
+    define_bindable_property({std::move(orientation),
+                              detail::EnumerationPropertyGetter<ResponsiveTrackPanel, ResponsiveTrackOrientation>(
+                                  *this, &ResponsiveTrackPanel::orientation, orientation_enum()),
+                              detail::EnumerationPropertySetter<ResponsiveTrackPanel, ResponsiveTrackOrientation>(
+                                  *this, &ResponsiveTrackPanel::set_orientation),
+                              {}, {}, {}});
+    PropertyDescriptor gap{"track_gap", BindingValueKind::number, "Layout", "The space between neighbouring tracks.",
+                           BindingValue{0.0}, invalidation::bounds};
+    gap.bindable = false;
+    define_bindable_property({std::move(gap),
+                              detail::BindingNoexceptMethodGetter<ResponsiveTrackPanel, double>(
+                                  *this, &ResponsiveTrackPanel::track_gap),
+                              detail::DirectPropertySetter<ResponsiveTrackPanel, double>(
+                                  *this, &ResponsiveTrackPanel::set_track_gap),
+                              {}, {}, {}});
+    const std::array<std::string, 1U> single{spec_text(ResponsiveTrackSpec{})};
+    PropertyDescriptor specs{"track_specs", BindingValueKind::collection, "Layout",
+                             "One item per track: \"<fixed|content|remaining> <minimum> <preferred> <maximum>\", "
+                             "optionally followed by \"weight <w>\", \"hidden\" and \"priority <n>\".",
+                             text_collection_property::value_of(single), invalidation::bounds};
+    specs.bindable = false;
+    define_bindable_property({std::move(specs),
+                              detail::BoundMemberFunction<BindingValue (ResponsiveTrackPanel::*)() const>(
+                                  *this, &ResponsiveTrackPanel::track_specs_property),
+                              detail::BoundMemberFunction<void (ResponsiveTrackPanel::*)(const BindingValue&)>(
+                                  *this, &ResponsiveTrackPanel::set_track_specs_property),
+                              {}, {}, {}});
+}
+
+BindingValue ResponsiveTrackPanel::track_specs_property() const {
+    std::vector<std::string> items{};
+    items.reserve(track_specs_.size());
+    for (const ResponsiveTrackSpec& spec : track_specs_) items.push_back(spec_text(spec));
+    BindingValue value = text_collection_property::value_of(items);
+    return value;
+}
+
+void ResponsiveTrackPanel::set_track_specs_property(const BindingValue& value) {
+    const std::vector<std::string> items = text_collection_property::items_of(value, "ResponsiveTrackPanel.track_specs");
+    std::vector<ResponsiveTrackSpec> specs{};
+    specs.reserve(items.size());
+    for (const std::string& item : items) specs.push_back(spec_from_text(item));
+    set_track_specs(std::move(specs));
+}
 
 void ResponsiveTrackPanel::validate_specs(
     std::span<const ResponsiveTrackSpec> specs) {

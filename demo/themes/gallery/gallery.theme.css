@@ -35,6 +35,7 @@
 .page-title { font-family: content; font-size: 22px; font-weight: 700; }
 .body { font-family: content; font-size: 12px; font-weight: 400; }
 .body-emphasis { font-family: content; font-size: 12px; font-weight: 600; }
+.body-strong { font-family: content; font-size: 12px; font-weight: 700; }
 .emphasis { font-family: content; font-size: 11px; font-weight: 600; }
 .strong { font-family: content; font-size: 11px; font-weight: 700; }
 .note { font-family: content; font-size: 10px; font-weight: 400; }

@@ -4,6 +4,7 @@
 #include "gui_forms/window.hpp"
 
 #include "../container_layout_utilities.hpp"
+#include "gui_forms/detail/property_binding_adapters.hpp"
 #include "../../scrollable_anatomy.hpp"
 
 #include <algorithm>
@@ -143,7 +144,22 @@ struct CommandOverflowPanel::LayoutResult final {
 };
 
 CommandOverflowPanel::CommandOverflowPanel(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {}
+    : ContainerControl(std::move(stable_id)) {
+    register_panel_properties();
+}
+
+void CommandOverflowPanel::register_panel_properties() {
+    PropertyDescriptor gap{"group_gap", BindingValueKind::number, "Layout",
+                           "The space between neighbouring groups and before the actuator, 0 through 256.",
+                           BindingValue{0.0}, invalidation::bounds};
+    gap.bindable = false;
+    define_bindable_property({std::move(gap),
+                              detail::BindingNoexceptMethodGetter<CommandOverflowPanel, double>(
+                                  *this, &CommandOverflowPanel::group_gap),
+                              detail::DirectPropertySetter<CommandOverflowPanel, double>(
+                                  *this, &CommandOverflowPanel::set_group_gap),
+                              {}, {}, {}});
+}
 
 const std::array<ChildPropertyEntry, CommandOverflowPanel::overflow_child_property_count>&
 CommandOverflowPanel::overflow_child_property_entries() noexcept {

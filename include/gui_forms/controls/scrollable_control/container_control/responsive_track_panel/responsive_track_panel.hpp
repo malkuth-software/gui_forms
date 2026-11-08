@@ -210,6 +210,14 @@ protected:
 private:
     friend struct ChildTrackCapability<ResponsiveTrackPanel>;
 
+    // The panel settings as form properties (study 10, section 6); the
+    // track specs as a text collection, one "<mode> <minimum> <preferred>
+    // <maximum>" item per track, optionally followed by "weight <w>",
+    // "hidden" and "priority <n>".
+    void register_panel_properties();
+    [[nodiscard]] BindingValue track_specs_property() const;
+    void set_track_specs_property(const BindingValue& value);
+
     // The child track's hooks: the container's thread, a live direct child
     // and a track inside the specs before the compare; relayout after.
     void prepare_write(const Control& child, const std::optional<std::uint32_t>& incoming) const;

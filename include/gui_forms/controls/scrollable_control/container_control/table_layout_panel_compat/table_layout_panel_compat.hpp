@@ -170,6 +170,12 @@ public:
     }
     void set_column_style(std::size_t column, TableLayoutStyle style);
     void set_row_style(std::size_t row, TableLayoutStyle style);
+    // Replaces every column's style; the count becomes the number of
+    // styles (1 through 64, std::out_of_range). Each style is validated
+    // before anything changes (std::invalid_argument).
+    void set_column_styles(std::span<const TableLayoutStyle> styles);
+    // The same for the rows.
+    void set_row_styles(std::span<const TableLayoutStyle> styles);
 
     // The cell a child occupies after layout: its explicit cell, or the one
     // automatic placement found; none when it overflowed or is not a live
@@ -313,6 +319,18 @@ private:
                                                std::span<const TrackDemand> spans, double available,
                                                std::span<double> actual) noexcept;
     static void validate_style(TableLayoutStyle style);
+    // The panel settings as form properties (study 10, section 6); the
+    // counts as unsigned integers, the styles as text collections of
+    // "absolute 140", "percent 1" or "auto".
+    void register_panel_properties();
+    [[nodiscard]] BindingValue column_count_property() const;
+    void set_column_count_property(const BindingValue& value);
+    [[nodiscard]] BindingValue row_count_property() const;
+    void set_row_count_property(const BindingValue& value);
+    [[nodiscard]] BindingValue column_styles_property() const;
+    void set_column_styles_property(const BindingValue& value);
+    [[nodiscard]] BindingValue row_styles_property() const;
+    void set_row_styles_property(const BindingValue& value);
 
     CellMap cells_;
     std::vector<GridSpan> spans_;

@@ -1,0 +1,271 @@
+/* The Gallery's retained-layout-panels page (stage FD, phase FD6.3; study
+   10): four FlowLayoutPanelCompat directions and one mixed-track
+   TableLayoutPanelCompat, written with the containers' own settings
+   (flow-direction, column-styles, row-styles, cell-border-style) and the
+   properties they provide to their children (flow-break, cell,
+   column-span). gui_forms_add_form() compiles this document into
+   retained-layout-panels_form.hpp at build time.
+
+   gallery.layout.document is a declared boundary only: the page moves its
+   children into the shell's page body (a 1000 x 660 design surface). The
+   page keeps in code the shared Value<double> the slider and the progress
+   bar bind, the check box's Value<bool>, the note that reports them and
+   the page style. The Gallery theme styles the classes. */
+scaled-panel gallery.layout.document {
+  design-size: 1000 660;
+
+  label gallery.layout.heading {
+    text: "RETAINED LAYOUT PANELS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.layout.lead {
+    text: "Preferred bounds remain authored data while flow and table containers assign independent retained slots.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.layout.flow.group {
+    text: "FlowLayoutPanelCompat · four directions · wrap · physical margins · FlowBreak";
+    design-size: 930 218;
+    bounds: 24 92 930 218;
+    classes: "paper" "group-caption";
+    scaled-group-box gallery.layout.flow.card.0 {
+      text: "Left to right + break";
+      design-size: 210 156;
+      bounds: 18 40 210 156;
+      classes: "paper" "group-caption";
+      flow-layout-panel-compat gallery.layout.flow.0 {
+        accessible-name: "Left to right + break flow layout";
+        flow-direction: left-to-right;
+        padding: 5;
+        bounds: 6 26 198 122;
+        button gallery.layout.flow.0.item.0 {
+          text: "A";
+          visual-style: command;
+          bounds: 0 0 48 26;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.0.item.1 {
+          text: "B";
+          visual-style: standard;
+          bounds: 0 0 58 26;
+          margin: 2 3;
+          flow-break: true;
+        }
+        button gallery.layout.flow.0.item.2 {
+          text: "C";
+          visual-style: command;
+          bounds: 0 0 48 26;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.0.item.3 {
+          text: "D";
+          visual-style: standard;
+          bounds: 0 0 58 26;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.0.item.4 {
+          text: "E";
+          visual-style: command;
+          bounds: 0 0 48 26;
+          margin: 2 3;
+        }
+      }
+    }
+    scaled-group-box gallery.layout.flow.card.1 {
+      text: "Right to left";
+      design-size: 210 156;
+      bounds: 242 40 210 156;
+      classes: "paper" "group-caption";
+      flow-layout-panel-compat gallery.layout.flow.1 {
+        accessible-name: "Right to left flow layout";
+        flow-direction: right-to-left;
+        padding: 5;
+        bounds: 6 26 198 122;
+        button gallery.layout.flow.1.item.0 {
+          text: "A";
+          visual-style: command;
+          bounds: 0 0 48 26;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.1.item.1 {
+          text: "B";
+          visual-style: standard;
+          bounds: 0 0 58 26;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.1.item.2 {
+          text: "C";
+          visual-style: command;
+          bounds: 0 0 48 26;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.1.item.3 {
+          text: "D";
+          visual-style: standard;
+          bounds: 0 0 58 26;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.1.item.4 {
+          text: "E";
+          visual-style: command;
+          bounds: 0 0 48 26;
+          margin: 2 3;
+        }
+      }
+    }
+    scaled-group-box gallery.layout.flow.card.2 {
+      text: "Top down";
+      design-size: 210 156;
+      bounds: 466 40 210 156;
+      classes: "paper" "group-caption";
+      flow-layout-panel-compat gallery.layout.flow.2 {
+        accessible-name: "Top down flow layout";
+        flow-direction: top-down;
+        padding: 5;
+        bounds: 6 26 198 122;
+        button gallery.layout.flow.2.item.0 {
+          text: "A";
+          visual-style: command;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.2.item.1 {
+          text: "B";
+          visual-style: standard;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.2.item.2 {
+          text: "C";
+          visual-style: command;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.2.item.3 {
+          text: "D";
+          visual-style: standard;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.2.item.4 {
+          text: "E";
+          visual-style: command;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+      }
+    }
+    scaled-group-box gallery.layout.flow.card.3 {
+      text: "Bottom up";
+      design-size: 210 156;
+      bounds: 690 40 210 156;
+      classes: "paper" "group-caption";
+      flow-layout-panel-compat gallery.layout.flow.3 {
+        accessible-name: "Bottom up flow layout";
+        flow-direction: bottom-up;
+        padding: 5;
+        bounds: 6 26 198 122;
+        button gallery.layout.flow.3.item.0 {
+          text: "A";
+          visual-style: command;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.3.item.1 {
+          text: "B";
+          visual-style: standard;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.3.item.2 {
+          text: "C";
+          visual-style: command;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.3.item.3 {
+          text: "D";
+          visual-style: standard;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+        button gallery.layout.flow.3.item.4 {
+          text: "E";
+          visual-style: command;
+          bounds: 0 0 52 19;
+          margin: 2 3;
+        }
+      }
+    }
+  }
+
+  scaled-group-box gallery.layout.table.group {
+    text: "TableLayoutPanelCompat · absolute + auto + weighted percent tracks · spans + automatic placement";
+    design-size: 930 292;
+    bounds: 24 330 930 292;
+    classes: "paper" "group-caption";
+    table-layout-panel-compat gallery.layout.table {
+      accessible-name: "Mixed-track table layout specimen";
+      padding: 6;
+      column-styles: "absolute 140" "auto" "percent 1" "percent 2";
+      row-styles: "absolute 42" "auto" "percent 1";
+      cell-border-style: inset;
+      bounds: 18 38 894 218;
+      label gallery.layout.table.header {
+        text: "AUTHORED PREFERRED SIZE  →  RETAINED CELL SLOT  →  COMMITTED BOUNDS";
+        classes: "heading" "body-strong";
+        bounds: 0 0 720 26;
+        margin: 7 8 5 8;
+        cell: 0 0;
+        column-span: 4;
+      }
+      label gallery.layout.table.absolute {
+        text: "Absolute · 140 px";
+        classes: "ink" "emphasis";
+        bounds: 0 0 112 24;
+        cell: 1 0;
+      }
+      button gallery.layout.table.auto {
+        text: "Auto content";
+        visual-style: accent;
+        bounds: 0 0 128 30;
+        cell: 1 1;
+      }
+      check-box gallery.layout.table.percent.one {
+        text: "Percent · 1 share";
+        indicator-style: modern;
+        bounds: 0 0 140 28;
+        cell: 1 2;
+      }
+      track-bar gallery.layout.table.percent.two {
+        accessible-name: "Percent two-share cell slider";
+        visual-style: filled;
+        bounds: 0 0 230 30;
+        cell: 1 3;
+      }
+      label gallery.layout.table.span {
+        text: "ColumnSpan = 2 · lookup covers both cells";
+        classes: "positive" "emphasis";
+        bounds: 0 0 260 28;
+        cell: 2 0;
+        column-span: 2;
+      }
+      button gallery.layout.table.auto.placed {
+        text: "Auto-placed cell";
+        visual-style: command;
+        bounds: 0 0 136 30;
+      }
+      progress-bar gallery.layout.table.progress {
+        bounds: 0 0 230 24;
+      }
+    }
+  }
+
+  label gallery.layout.note {
+    text: "Resize proof is framework-owned: authored bounds never become the parent-assigned slot.";
+    classes: "positive" "emphasis";
+    bounds: 26 624 800 22;
+  }
+}

@@ -131,6 +131,9 @@ protected:
 private:
     friend struct GroupSpecCapability<CommandOverflowPanel>;
 
+    // The panel settings as form properties (study 10, section 6).
+    void register_panel_properties();
+
     // The group spec's hooks: the container's thread, a live direct child
     // that is not the actuator, valid extents, a unique priority and the
     // group limit before the compare; relayout after a change.

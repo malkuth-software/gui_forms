@@ -103,6 +103,9 @@ protected:
 private:
     friend struct FlowBreakCapability<FlowLayoutPanelCompat>;
 
+    // The panel settings as form properties (study 10, section 6).
+    void register_panel_properties();
+
     // The flow break's hooks: the container's thread and a live direct
     // child before the compare; the container's relayout after a change.
     void prepare_write(const ChildPropertyView<bool, FlowBreakCapability<FlowLayoutPanelCompat>>& property,

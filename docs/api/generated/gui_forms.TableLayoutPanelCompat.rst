@@ -96,13 +96,17 @@ gui_forms::TableLayoutPanelCompat
          but not outside the outer tracks. Each value must be finite and between
          0 and 256.
 
-      **column_styles** : ``std::span<const TableLayoutStyle>``, read-only
-         The size mode and size of each authored column, one per column. Set them
-         with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`.
+      **column_styles** : ``std::span<const TableLayoutStyle>``
+         The size mode and size of each authored column, one per column. Set one
+         with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, or all with :cpp:func:`set_column_styles <gui_forms::TableLayoutPanelCompat::set_column_styles>`, which makes the
+         column count the number of styles (1 through 64, ``std::out_of_range``)
+         and checks every style first. In a ``.form`` it is the ``column-styles`` text
+         collection, one item per column:
+         ``column-styles: "absolute 140" "auto" "percent 1";``.
 
-      **row_styles** : ``std::span<const TableLayoutStyle>``, read-only
-         The size mode and size of each authored row. Set them with
-         :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>`.
+      **row_styles** : ``std::span<const TableLayoutStyle>``
+         The size mode and size of each authored row, set with :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>` or
+         :cpp:func:`set_row_styles <gui_forms::TableLayoutPanelCompat::set_row_styles>` as the columns are (``row-styles`` in a ``.form``).
 
       **column_widths** : ``std::span<const double>``, read-only
          The column widths resolved by the last layout, including any columns the
@@ -354,13 +358,25 @@ gui_forms::TableLayoutPanelCompat
 
    .. cpp:function:: std::span<const TableLayoutStyle> column_styles() const noexcept
 
-      The size mode and size of each authored column, one per column. Set them
-      with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`.
+      The size mode and size of each authored column, one per column. Set one
+      with :cpp:func:`set_column_style <gui_forms::TableLayoutPanelCompat::set_column_style>`, or all with :cpp:func:`set_column_styles <gui_forms::TableLayoutPanelCompat::set_column_styles>`, which makes the
+      column count the number of styles (1 through 64, ``std::out_of_range``)
+      and checks every style first. In a ``.form`` it is the ``column-styles`` text
+      collection, one item per column:
+      ``column-styles: "absolute 140" "auto" "percent 1";``.
+
+   .. cpp:function:: void set_column_styles(std::span<const TableLayoutStyle> styles)
+
+      Sets :cpp:func:`column_styles <gui_forms::TableLayoutPanelCompat::column_styles>`; see the property's description above.
 
    .. cpp:function:: std::span<const TableLayoutStyle> row_styles() const noexcept
 
-      The size mode and size of each authored row. Set them with
-      :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>`.
+      The size mode and size of each authored row, set with :cpp:func:`set_row_style <gui_forms::TableLayoutPanelCompat::set_row_style>` or
+      :cpp:func:`set_row_styles <gui_forms::TableLayoutPanelCompat::set_row_styles>` as the columns are (``row-styles`` in a ``.form``).
+
+   .. cpp:function:: void set_row_styles(std::span<const TableLayoutStyle> styles)
+
+      Sets :cpp:func:`row_styles <gui_forms::TableLayoutPanelCompat::row_styles>`; see the property's description above.
 
    .. cpp:function:: std::span<const double> column_widths() const noexcept
 
