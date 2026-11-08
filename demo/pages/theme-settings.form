@@ -1,0 +1,179 @@
+/* The Gallery's theme-settings page: the running Gallery's theme, switched
+   live among the stock themes and the familiar ones, its colour scheme
+   (light, dark where the theme has a dark variant, high contrast), and
+   where the change applies: every window sharing the resources, this
+   window alone (Part K's window theme override) or one preview subtree (a
+   control's theme override). gui_forms_add_form() compiles this document
+   into theme-settings_form.hpp at build time.
+
+   gallery.theme-settings.document is a declared boundary only: the page
+   moves its children into the shell's page body (a 1000 x 660 design
+   surface). Behaviour stays in the page (src/controls/gallery/pages/
+   theme-settings.cpp): building and applying each theme, the scheme
+   overrides and the Command and Value the document binds (FD-6). */
+scaled-panel gallery.theme-settings.document {
+  design-size: 1000 660;
+
+  label gallery.theme-settings.heading {
+    text: "THEME SETTINGS";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.theme-settings.lead {
+    text: "Switch the running Gallery's theme and colour scheme, for every window, this window alone, or one preview.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.theme-settings.themes-group {
+    text: "Theme";
+    classes: "paper" "group-caption";
+    design-size: 300 360;
+    bounds: 24 92 300 360;
+    list-box gallery.theme-settings.themes {
+      accessible-name: "Themes";
+      items: "gui-forms" "windows-professional" "classic" "modern-flat" "xp-style" "windows7-style" "macos-style";
+      bounds: 16 36 268 200;
+    }
+    label gallery.theme-settings.themes.note {
+      text: "gui-forms and windows-professional carry the Gallery's own sheet; the familiar themes show their own look alone.";
+      classes: "muted" "body";
+      bounds: 16 246 268 70;
+    }
+    button gallery.theme-settings.restore {
+      text: "Restore the Gallery theme";
+      visual-style: command;
+      bounds: 16 318 268 32;
+      command: bind(restore_);
+    }
+  }
+
+  scaled-group-box gallery.theme-settings.scheme-group {
+    text: "Colour scheme";
+    classes: "paper" "group-caption";
+    design-size: 300 190;
+    bounds: 344 92 300 190;
+    radio-button gallery.theme-settings.scheme.light {
+      text: "Light";
+      indicator-style: modern;
+      group-name: "gallery-theme-scheme";
+      checked: true;
+      bounds: 16 38 260 26;
+    }
+    radio-button gallery.theme-settings.scheme.dark {
+      text: "Dark (where the theme has it)";
+      indicator-style: modern;
+      group-name: "gallery-theme-scheme";
+      bounds: 16 72 260 26;
+    }
+    radio-button gallery.theme-settings.scheme.high-contrast {
+      text: "High contrast";
+      indicator-style: modern;
+      group-name: "gallery-theme-scheme";
+      bounds: 16 106 260 26;
+    }
+    check-box gallery.theme-settings.follow-host {
+      text: "Follow the host's light or dark preference";
+      indicator-style: toggle;
+      bounds: 16 146 270 26;
+      checked: bind(follow_host_);
+    }
+  }
+
+  scaled-group-box gallery.theme-settings.scope-group {
+    text: "Applies to";
+    classes: "paper" "group-caption";
+    design-size: 310 190;
+    bounds: 664 92 310 190;
+    radio-button gallery.theme-settings.scope.every-window {
+      text: "Every window (the resources' theme)";
+      indicator-style: modern;
+      group-name: "gallery-theme-scope";
+      checked: true;
+      bounds: 16 38 280 26;
+    }
+    radio-button gallery.theme-settings.scope.this-window {
+      text: "This window only (window override)";
+      indicator-style: modern;
+      group-name: "gallery-theme-scope";
+      bounds: 16 72 280 26;
+    }
+    radio-button gallery.theme-settings.scope.preview {
+      text: "The preview only (control override)";
+      indicator-style: modern;
+      group-name: "gallery-theme-scope";
+      bounds: 16 106 280 26;
+    }
+    label gallery.theme-settings.scope.note {
+      text: "A window override keeps this window's theme when the resources' theme changes.";
+      classes: "muted" "body";
+      bounds: 16 140 280 40;
+    }
+  }
+
+  scaled-group-box gallery.theme-settings.preview {
+    text: "Preview";
+    classes: "paper" "group-caption";
+    design-size: 630 170;
+    bounds: 344 300 630 170;
+    button gallery.theme-settings.preview.button {
+      text: "Button";
+      bounds: 16 40 120 32;
+    }
+    button gallery.theme-settings.preview.default {
+      text: "Default";
+      visual-style: accent;
+      bounds: 148 40 120 32;
+    }
+    check-box gallery.theme-settings.preview.check {
+      text: "Check box";
+      bounds: 284 42 150 26;
+    }
+    radio-button gallery.theme-settings.preview.radio {
+      text: "Radio button";
+      group-name: "gallery-theme-preview";
+      checked: true;
+      bounds: 444 42 170 26;
+    }
+    text-box gallery.theme-settings.preview.text {
+      text: "Editable text";
+      bounds: 16 88 252 30;
+    }
+    combo-box gallery.theme-settings.preview.choice {
+      items: "First choice" "Second choice" "Third choice";
+      bounds: 284 88 200 30;
+    }
+    label gallery.theme-settings.preview.caption {
+      text: "Every stock control here takes the theme the scope selects.";
+      classes: "muted" "body";
+      bounds: 16 130 598 24;
+    }
+  }
+
+  scaled-group-box gallery.theme-settings.state-group {
+    text: "In effect";
+    classes: "paper" "group-caption";
+    design-size: 950 150;
+    bounds: 24 490 950 150;
+    label gallery.theme-settings.state.resources {
+      text: "Resources' theme: the Gallery theme";
+      classes: "body";
+      bounds: 16 36 918 22;
+    }
+    label gallery.theme-settings.state.window {
+      text: "This window: follows the resources";
+      classes: "body";
+      bounds: 16 64 918 22;
+    }
+    label gallery.theme-settings.state.preview {
+      text: "Preview: follows the window";
+      classes: "body";
+      bounds: 16 92 918 22;
+    }
+    label gallery.theme-settings.state.scheme {
+      text: "Scheme: light";
+      classes: "body";
+      bounds: 16 120 918 22;
+    }
+  }
+}
