@@ -132,6 +132,7 @@ Fixture make_fixture() {
     value.probe = make_control<KeyProbe>(StableId("root.probe"));
     value.ok = make_control<Button>(StableId("root.ok"), "OK");
     value.cancel = make_control<Button>(StableId("root.cancel"), "Cancel");
+    (*value.probe).set_focusable(true);
     (*value.probe).set_requested_bounds({0.0, 0.0, 100.0, 40.0});
     (*value.ok).set_requested_bounds({0.0, 50.0, 100.0, 30.0});
     (*value.cancel).set_requested_bounds({120.0, 50.0, 100.0, 30.0});

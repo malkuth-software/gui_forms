@@ -157,6 +157,10 @@ void test_release_elsewhere_and_other_buttons() {
     Fixture fixture;
     Log log;
     const Subscriptions subscriptions(*fixture.probe, log, "probe");
+    // The pointer arrives first, as a host reports it, so the wander below
+    // stays within a control already entered.
+    fixture.pointer(PointerAction::move, PointerButton::none, {20.0, 20.0});
+    log.clear();
     fixture.pointer(PointerAction::down, PointerButton::primary, {20.0, 20.0});
     fixture.pointer(PointerAction::move, PointerButton::none, {60.0, 30.0});
     fixture.pointer(PointerAction::up, PointerButton::primary, {60.0, 30.0});

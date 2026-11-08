@@ -42,6 +42,8 @@ public:
     // Whether the hover timer is wanted, and when it is due.
     [[nodiscard]] bool hover_pending() const noexcept;
     [[nodiscard]] FrameTime hover_deadline() const noexcept { return hover_deadline_; }
+    // The control the pending hover is for, or null.
+    [[nodiscard]] Control::Ptr hover_control() const noexcept { return hover_control_.lock(); }
     // The control MouseHover is due on at `now` (null when none), marked
     // raised. `native` takes the host's report instead of the deadline.
     [[nodiscard]] Control::Ptr take_hover(FrameTime now, bool native) noexcept;

@@ -157,8 +157,8 @@ void headless_host_map() {
             "the headless host reports the PC convention from protocol 8");
     const std::string json = capabilities.to_json();
     require(json.find("\"key_map\":{\"close_document\":[{\"key\":61,\"modifiers\":2}]") != std::string::npos &&
-                json.find("\"context_menu\":[{\"key\":67,\"modifiers\":1},{\"key\":101,\"modifiers\":0}]") !=
-                    std::string::npos,
+                json.find("\"next_tab\":[{\"key\":78,\"modifiers\":2}]") != std::string::npos &&
+                json.find("\"context_menu\"") == std::string::npos,
             "the capability report lists each command's chords");
 
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("root"));
@@ -276,7 +276,9 @@ void application_key_map() {
     std::shared_ptr<Panel> second_root = make_control<Panel>(StableId("second"));
     Window first(first_root, {100.0, 100.0});
     Window second(second_root, {100.0, 100.0});
-    require(first.key_bindings() != second.key_bindings(), "windows made alone have sets of their own");
+    // A window made alone holds no table until one is needed (Part K's lazy
+    // tables); sharing makes it, and each window makes its own.
+    require(first.share_key_bindings() != second.share_key_bindings(), "windows made alone have sets of their own");
     second.set_key_bindings(first.key_bindings());
     second.rebind_key_command(KeyCommand::next_tab, {{PhysicalKey::right, Modifier::alt}, {}});
     require(first.key_map().matches(KeyCommand::next_tab, key(PhysicalKey::right, Modifier::alt)),

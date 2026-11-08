@@ -102,6 +102,9 @@ private:
     friend class RuleSet;
     explicit RuleToken(std::weak_ptr<detail::RuleEntry> entry) noexcept : entry_(std::move(entry)) {}
     std::weak_ptr<detail::RuleEntry> entry_{};
+    // Set when this token's revoke() ended the rule: the rule set then frees
+    // the entry, so the expired observer alone would read stale.
+    bool revoked_{};
 };
 
 // add()'s explicit result: the token of the armed rule, or the refusal (and

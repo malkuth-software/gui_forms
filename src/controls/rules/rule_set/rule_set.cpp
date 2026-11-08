@@ -396,6 +396,7 @@ void RuleToken::revoke() noexcept {
     const std::shared_ptr<detail::RuleEntry> entry = entry_.lock();
     if (!entry || (*entry).state != RuleTokenState::armed) return;
     RuleSet& rules = *(*entry).rules;
+    revoked_ = true;
     rules.disarm(*entry, RuleTokenState::revoked);
 }
 
@@ -406,6 +407,7 @@ RuleTokenState RuleToken::state() const noexcept {
     const std::weak_ptr<detail::RuleEntry> none{};
     const bool from_rule = entry_.owner_before(none) || none.owner_before(entry_);
     if (!from_rule) return RuleTokenState::empty;
+    if (revoked_) return RuleTokenState::revoked;
     const std::shared_ptr<detail::RuleEntry> entry = entry_.lock();
     if (!entry) return RuleTokenState::stale;
     return (*entry).state;

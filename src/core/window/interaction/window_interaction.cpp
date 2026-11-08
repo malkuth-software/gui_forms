@@ -50,8 +50,16 @@ FrameTime SurfaceRoot::input_now() const noexcept {
 }
 
 void SurfaceRoot::sync_hover_wake() {
-    const bool wanted = interaction_ && !presentation_settings_.pointer.native_hover &&
-                        (*interaction_).hover_pending();
+    // A wake only where MouseHover has a listener: the control's mouse
+    // events, made by their first subscription (a mouse_hover rule
+    // subscribes too), so resting over a control nobody listens to arms
+    // nothing.
+    bool listened = false;
+    if (interaction_ && (*interaction_).hover_pending()) {
+        const Control::Ptr control = (*interaction_).hover_control();
+        listened = control && (*control).mouse_events_;
+    }
+    const bool wanted = listened && !presentation_settings_.pointer.native_hover;
     if (!wanted) {
         hover_wake_.disconnect();
         return;
