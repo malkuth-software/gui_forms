@@ -453,7 +453,26 @@ ControlVisualRecipe recipe(Color top, Color bottom, Color border, Color text,
 // slots are not reused (sanitizer builds), close to a Windows thread's 1 MB
 // stack.
 void fill_professional_role(ControlRoleRecipes& result, Color top, Color bottom,
-                            Color border, Color text, double radius = 3.0) {
+                            Color border, Color text, double radius = 3.0);
+
+// A badge (T4, W-4): an accent chip with white text in every state but
+// disabled, which greys it; a badge takes no input, so hot, pressed and the
+// validity states look as normal. Its corners are rounded to a pill by the
+// control (PartPaint::corner_radius).
+void fill_badge_role(ControlRoleRecipes& result) {
+    fill_professional_role(result, Color::rgba(38, 114, 185), Color::rgba(38, 114, 185),
+                           Color::rgba(38, 114, 185), Color::rgba(255, 255, 255), 0.0);
+    const ControlVisualRecipe resting = result.ordinary[static_cast<std::size_t>(ControlSurfaceState::normal)];
+    const ControlVisualRecipe greyed = result.ordinary[static_cast<std::size_t>(ControlSurfaceState::disabled)];
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        const bool disabled = index == static_cast<std::size_t>(ControlSurfaceState::disabled);
+        result.ordinary[index] = disabled ? greyed : resting;
+        result.selected[index] = result.ordinary[index];
+    }
+}
+
+void fill_professional_role(ControlRoleRecipes& result, Color top, Color bottom,
+                            Color border, Color text, double radius) {
     // Every record starts from its default; the high-contrast records stay
     // so (they are derived when the theme is made).
     result = ControlRoleRecipes{};
@@ -1511,6 +1530,8 @@ std::string_view control_visual_role_name(ControlVisualRole role) noexcept {
     case ControlVisualRole::tool_tip: return "tool_tip";
     case ControlVisualRole::link: return "link";
     case ControlVisualRole::visited_link: return "visited_link";
+    case ControlVisualRole::notice: return "notice";
+    case ControlVisualRole::badge: return "badge";
     case ControlVisualRole::count: return {};
     }
     return {};
@@ -1899,6 +1920,14 @@ ThemeDefinition windows_professional_theme_definition() {
                    result.compatibility.link, result.compatibility.disabled_text);
     fill_link_role(result.roles[static_cast<std::size_t>(ControlVisualRole::visited_link)],
                    result.compatibility.visited_link, result.compatibility.disabled_text);
+    // Notices (T4, W-4): a white plate with a quiet line; the severity
+    // keyline is the control's (InfoBanner, Toast). A notice takes no input
+    // of its own, so its hot and pressed recipes are never reached.
+    fill_professional_role(result.roles[static_cast<std::size_t>(ControlVisualRole::notice)],
+        Color::rgba(255, 255, 255),
+                          Color::rgba(250, 251, 252),
+                          Color::rgba(151, 166, 179), ink, 2.0);
+    fill_badge_role(result.roles[static_cast<std::size_t>(ControlVisualRole::badge)]);
     result.overlay_shadow = provisional_overlay_shadow();
     result.high_contrast_overlay_shadow.clear();
     return result;

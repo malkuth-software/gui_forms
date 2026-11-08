@@ -67,6 +67,14 @@ enum class PartMark : std::uint8_t {
     pencil,
     asterisk,
     error,
+    // W-4 (T4's answer to D8): SearchField's magnifier, and the severity
+    // marks of InfoBanner and Toast beside `error`: an information `i`, a
+    // warning triangle and a success check, each in a one-unit ring or
+    // outline. Provisional drawings in glyph ink; their look is T4's.
+    search,
+    information,
+    warning,
+    success,
     count,
 };
 

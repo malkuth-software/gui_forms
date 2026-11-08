@@ -235,7 +235,7 @@ gui_forms::NotifyIcon
 
    .. rubric:: Methods
 
-   .. cpp:function:: HostServiceStatus show_balloon_tip(std::string title, std::string text, HostTrayNotificationIcon icon = HostTrayNotificationIcon::none, std::chrono::milliseconds timeout = std::chrono::milliseconds(0))
+   .. cpp:function:: HostServiceStatus show_balloon_tip(std::string title, std::string message, HostTrayNotificationIcon symbol = HostTrayNotificationIcon::none, std::chrono::milliseconds timeout = std::chrono::milliseconds(0))
 
       Shows notification text from the icon: a title of at most 63 bytes, text
       of at most 255 bytes, an optional information, warning or error icon and

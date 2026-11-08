@@ -344,6 +344,25 @@ void fill_tool_tip_family(ControlRoleRecipes& result) {
     fill_stock_family(result, Color::rgba(255, 255, 225), Color::rgba(104, 111, 118), 0.0);
 }
 
+// Badges (T4, W-4): the accent blue chip with white text in every state
+// but disabled, which takes the disabled accent plate; a badge takes no
+// input, so it has no hot or pressed look. The control rounds the chip to a
+// pill (PartPaint::corner_radius).
+void fill_badge_family(ControlRoleRecipes& result) {
+    result = ControlRoleRecipes{};
+    const Color accent = Color::rgba(47, 105, 190);
+    const Color greyed = Color::rgba(190, 207, 228);
+    for (std::size_t index = 0U; index < control_surface_state_count; ++index) {
+        const ControlSurfaceState state = static_cast<ControlSurfaceState>(index);
+        const bool disabled = state == ControlSurfaceState::disabled;
+        const Color face = disabled ? greyed : accent;
+        ControlVisualRecipe value = recipe_of(plate(PlateColours{face, face, face}, 0.0), disabled ? disabled_ink : paper);
+        value.muted_text = disabled ? disabled_ink : accent_muted_ink;
+        result.ordinary[index] = value;
+        result.selected[index] = std::move(value);
+    }
+}
+
 // Links: no plate; the link colour in every enabled state (owner decision
 // W-Q5), disabled text when disabled.
 void fill_link_family(ControlRoleRecipes& result, Color text) {
@@ -489,6 +508,8 @@ ThemeDefinition gui_forms_theme_definition() {
     fill_tool_tip_family(result.roles[role_index(ControlVisualRole::tool_tip)]);
     fill_link_family(result.roles[role_index(ControlVisualRole::link)], result.compatibility.link);
     fill_link_family(result.roles[role_index(ControlVisualRole::visited_link)], result.compatibility.visited_link);
+    fill_stock_family(result.roles[role_index(ControlVisualRole::notice)], paper, Color::rgba(112, 130, 156), 2.0);
+    fill_badge_family(result.roles[role_index(ControlVisualRole::badge)]);
     // The dark variant, derived by rule (T4 phase 5; design language 5.8).
     result.dark_variant = ThemeDarkVariant::derived;
     result.colour_schemes = ColourSchemeSet{.light = true, .dark = true};

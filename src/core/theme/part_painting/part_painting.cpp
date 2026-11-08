@@ -524,6 +524,65 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
         painter.fill_rect({bar_x, square.y + side * 0.68, 1.5, 1.5}, ink);
         return;
     }
+    case PartMark::search: {
+        // A one-unit ring over the upper left two thirds of the square and a
+        // one-and-a-half-unit handle from it to the lower right corner.
+        const Rect square = square_in(box);
+        const double side = square.width;
+        if (side < 5.0) return;
+        const double lens = side * 0.66;
+        const Rect ring{square.x + 0.5, square.y + 0.5, lens - 1.0, lens - 1.0};
+        painter.stroke_rounded_rect(ring, (lens - 1.0) * 0.5, ink, 1.0);
+        const Point heel{square.x + lens * 0.85, square.y + lens * 0.85};
+        const Point end{square.x + side - 0.5, square.y + side - 0.5};
+        painter.draw_line(heel, end, ink, 1.5);
+        return;
+    }
+    case PartMark::information: {
+        // A one-unit ring holding an `i`: a dot over a bar (error's
+        // exclamation mark upside down).
+        const Rect square = square_in(box);
+        const double side = square.width;
+        if (side < 5.0) return;
+        const Rect ring{square.x + 0.5, square.y + 0.5, side - 1.0, side - 1.0};
+        painter.stroke_rounded_rect(ring, (side - 1.0) * 0.5, ink, 1.0);
+        const double bar_x = std::floor(square.x + side * 0.5 - 0.5);
+        painter.fill_rect({bar_x, square.y + side * 0.22, 1.5, 1.5}, ink);
+        painter.fill_rect({bar_x, square.y + side * 0.40, 1.5, side * 0.38}, ink);
+        return;
+    }
+    case PartMark::warning: {
+        // A one-unit triangle, apex up, holding an exclamation mark.
+        const Rect square = square_in(box);
+        const double side = square.width;
+        if (side < 5.0) return;
+        const Point apex{square.x + side * 0.5, square.y + 0.5};
+        const Point left{square.x + 0.5, square.y + side - 0.5};
+        const Point right{square.x + side - 0.5, square.y + side - 0.5};
+        painter.draw_line(apex, left, ink, 1.0);
+        painter.draw_line(left, right, ink, 1.0);
+        painter.draw_line(right, apex, ink, 1.0);
+        const double bar_x = std::floor(square.x + side * 0.5 - 0.5);
+        painter.fill_rect({bar_x, square.y + side * 0.36, 1.5, side * 0.32}, ink);
+        painter.fill_rect({bar_x, square.y + side * 0.76, 1.5, 1.5}, ink);
+        return;
+    }
+    case PartMark::success: {
+        // A one-unit ring holding the house check (see `check`), scaled into
+        // the ring's middle half.
+        const Rect square = square_in(box);
+        const double side = square.width;
+        if (side < 5.0) return;
+        const Rect ring{square.x + 0.5, square.y + 0.5, side - 1.0, side - 1.0};
+        painter.stroke_rounded_rect(ring, (side - 1.0) * 0.5, ink, 1.0);
+        const Rect inner{square.x + side * 0.25, square.y + side * 0.3, side * 0.5, side * 0.4};
+        const Point start{inner.x + inner.width * (1.0 / 12.0), inner.y + inner.height * (5.0 / 9.0)};
+        const Point corner{inner.x + inner.width * (4.0 / 12.0), inner.y + inner.height * (8.0 / 9.0)};
+        const Point end{inner.x + inner.width * (11.0 / 12.0), inner.y + inner.height * (1.0 / 9.0)};
+        painter.draw_line(start, corner, ink, 1.5);
+        painter.draw_line(corner, end, ink, 1.5);
+        return;
+    }
     case PartMark::underline: {
         // A one-unit rule whose lower edge is the box's bottom edge.
         const double y = box.y + box.height - 0.5;
@@ -695,6 +754,10 @@ std::string_view part_mark_name(PartMark mark) noexcept {
     case PartMark::pencil: return "pencil";
     case PartMark::asterisk: return "asterisk";
     case PartMark::error: return "error";
+    case PartMark::search: return "search";
+    case PartMark::information: return "information";
+    case PartMark::warning: return "warning";
+    case PartMark::success: return "success";
     case PartMark::count: return {};
     }
     return {};

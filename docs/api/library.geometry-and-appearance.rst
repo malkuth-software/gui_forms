@@ -5444,6 +5444,10 @@ Enumerations
 
    .. cpp:enumerator:: visited_link
 
+   .. cpp:enumerator:: notice
+
+   .. cpp:enumerator:: badge
+
    .. cpp:enumerator:: count
 
 .. cpp:namespace:: gui_forms
@@ -6195,6 +6199,14 @@ Enumerations
    .. cpp:enumerator:: asterisk
 
    .. cpp:enumerator:: error
+
+   .. cpp:enumerator:: search
+
+   .. cpp:enumerator:: information
+
+   .. cpp:enumerator:: warning
+
+   .. cpp:enumerator:: success
 
    .. cpp:enumerator:: count
 

@@ -40,10 +40,10 @@ namespace {
 // The recipe roles in ControlVisualRole's order, then `family`: the recipe
 // of the part's own family (PartPaint::family, T3 EC1), so that a theme's
 // material fields on any part keep that part's recipe as their floor.
-constexpr std::array<std::string_view, 15> recipe_names{
+constexpr std::array<std::string_view, 17> recipe_names{
     "window", "panel", "card", "button", "accent_button", "command_button", "choice", "editor",
-    "menu_item", "selection", "progress", "tool_tip", "link", "visited_link", "family"};
-constexpr double family_recipe = 14.0;
+    "menu_item", "selection", "progress", "tool_tip", "link", "visited_link", "notice", "badge", "family"};
+constexpr double family_recipe = 16.0;
 static_assert(recipe_names.size() == static_cast<std::size_t>(ControlVisualRole::count) + 1U,
               "one choice per recipe role, then the family's");
 

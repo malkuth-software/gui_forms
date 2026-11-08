@@ -48,10 +48,15 @@ struct BasicControlStyle final {
 // design language 12.9) is the face and edge of plain and enhanced
 // tooltips, beside `card` and `menu_item`. `link` and `visited_link` (owner
 // decision W-Q5) are a hyperlink's text, chosen by the link's visited flag;
-// hover keeps the normal link colour, and a link draws no plate.
+// hover keeps the normal link colour, and a link draws no plate. `notice`
+// (T4, W-4) is the face of an InfoBanner or a Toast; its severity is the
+// control's own custom state, exactly one of information, warning, success
+// and error, and its keyline takes the severity's colour. `badge` (T4, W-4)
+// is a Badge's count or dot chip, which has normal and disabled looks only.
 enum class ControlVisualRole : std::uint8_t {
     window, panel, card, button, accent_button, command_button, choice,
-    editor, menu_item, selection, progress, tool_tip, link, visited_link, count,
+    editor, menu_item, selection, progress, tool_tip, link, visited_link,
+    notice, badge, count,
 };
 enum class ControlSurfaceState : std::uint8_t {
     normal, hot, pressed, pending, invalid, disabled, deactivated, count,

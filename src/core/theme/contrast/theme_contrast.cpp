@@ -186,7 +186,8 @@ bool gates_boundary(ControlVisualRole family, ControlSurfaceState state, bool se
     case ControlVisualRole::choice:
     case ControlVisualRole::editor:
     case ControlVisualRole::card:
-    case ControlVisualRole::tool_tip: return true;
+    case ControlVisualRole::tool_tip:
+    case ControlVisualRole::notice: return true;
     // A row or item is flat until it is selected, hot or pressed.
     case ControlVisualRole::selection: return selected || lit;
     case ControlVisualRole::command_button:
@@ -197,6 +198,9 @@ bool gates_boundary(ControlVisualRole family, ControlSurfaceState state, bool se
     case ControlVisualRole::progress:
     case ControlVisualRole::link:
     case ControlVisualRole::visited_link:
+    // A badge's chip is carried by its label against the chip, not by an
+    // edge against the surroundings.
+    case ControlVisualRole::badge:
     case ControlVisualRole::count: return false;
     }
     return false;
@@ -219,6 +223,8 @@ bool gates_focus(ControlVisualRole family, ControlSurfaceState state) noexcept {
     case ControlVisualRole::selection:
     case ControlVisualRole::progress:
     case ControlVisualRole::tool_tip:
+    case ControlVisualRole::notice:
+    case ControlVisualRole::badge:
     case ControlVisualRole::count: return false;
     }
     return false;
