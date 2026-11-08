@@ -12,6 +12,7 @@
 #include "gui_forms/controls/badge/badge.hpp"
 #include "gui_forms/controls/info_banner/info_banner.hpp"
 #include "gui_forms/controls/empty_state/empty_state.hpp"
+#include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/controls/panel/group_box/group_box.hpp"
 #include "gui_forms/controls/panel/panel.hpp"
 #include "gui_forms/controls/panel/picture_box/picture_box.hpp"

@@ -162,6 +162,17 @@
       "doc": "api/generated/gui_forms.EmptyState.rst"
     },
     {
+      "id": "toast",
+      "type": "Toast",
+      "header": "gui_forms/controls/toast/toast.hpp",
+      "category": "Information display",
+      "purpose": "Brief notice above the bottom of a window: a severity mark, a message, an optional action and a close mark, shown by Window::show_toast for a while; a live region to assistive technology.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "notices-and-badges",
+      "doc": "api/generated/gui_forms.Toast.rst"
+    },
+    {
       "id": "picture_box",
       "type": "PictureBox",
       "header": "gui_forms/controls/panel/picture_box/picture_box.hpp",

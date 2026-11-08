@@ -120,6 +120,8 @@ Related types
      - The host's system colours, as hints a theme may read with ``env(system-accent, <fallback>)`` and ``env(system-highlight, <fallback>)`` (T4 theme variants, owner 2026-11-04): the accent colour and the text selection colour.
    * - :cpp:class:`ThemeFallback <gui_forms::ThemeFallback>`
      - Presentation preferences are logical UI policy and remain independent from the native/device pixel scale.
+   * - :cpp:class:`ToastDismissal <gui_forms::ToastDismissal>`
+     - A window's toast closed: ``id`` is the one show_toast returned.
    * - :cpp:class:`ToolTipEvent <gui_forms::ToolTipEvent>`
      - ToolTipEvent is the immutable publication payload for a tooltip visibility transition.
    * - :cpp:class:`ToolTipRequest <gui_forms::ToolTipRequest>`
@@ -1166,6 +1168,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ToastDismissal final
+
+   ``#include <gui_forms/window/toasts/toasts.hpp>``
+
+   A window's toast closed: ``id`` is the one show_toast returned.
+
+   .. cpp:member:: std::uint64_t id
+
+   .. cpp:member:: ToastDismissReason reason
+
+      Default: ``{ToastDismissReason::hidden}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ToolTipEvent final
 
    ``#include <gui_forms/window/tool_tips/tool_tips.hpp>``
@@ -1524,6 +1540,24 @@ Enumerations
 
    .. cpp:enumerator:: stale
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: ToastDismissReason
+
+   ``#include <gui_forms/window/toasts/toasts.hpp>``
+
+   .. cpp:enumerator:: timed_out
+
+   .. cpp:enumerator:: closed
+
+   .. cpp:enumerator:: action
+
+   .. cpp:enumerator:: replaced
+
+   .. cpp:enumerator:: hidden
+
+   .. cpp:enumerator:: owner_gone
+
 Functions, constants and aliases
 --------------------------------
 
@@ -1720,3 +1754,11 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::uint32_t paint_contract_version
 
    The presentation availability record (stage DP; notes:planning/ PAINT_PIPELINE_AVAILABILITY.md, M11h-P4 / M12-P4). The baseline contract (coherent latest-state presentation: mutation may outpace rendering and rendering may outpace presentation, with no unbounded queue and no incomplete frame visible) is reported as a version, never as a capability: a host that cannot meet it fails attachment. Only optional extensions are reported as available or not, and only truthfully. Version 2 (2026-10-13) adds damage-preserving partial present to the contract: the host presents the bounded rectangle set it paints, not their union. Value: ``2U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/window/toasts/toasts.hpp>``
+
+.. cpp:var:: constexpr std::chrono::milliseconds default_toast_duration
+
+   How long a toast stays unless the call says otherwise. Value: ``{5000}``.

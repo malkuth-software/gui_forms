@@ -1,6 +1,11 @@
 #pragma once
 
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/window/toasts/toasts.hpp"
+
+#include <chrono>
+#include <cstdint>
+#include <memory>
 
 namespace gui_forms {
 
@@ -113,6 +118,38 @@ public:
     // The application this window joined, or null (none was current, or it
     // was destroyed first).
     [[nodiscard]] Application* application() const noexcept { return application_; }
+    // Toasts (W-4; coordinator ruling: one presenter per window, on the
+    // tooltip presenter's pattern, so that both move to lightweight Splash
+    // windows in Part S). Only a true root window shows toasts, as only it
+    // opens native popups.
+    //
+    // show_toast places `content`, a live control subtree with no parent
+    // and in no window (the stock content is Toast), in an overlay owned by
+    // `owner` (passive, as a tooltip: a disabled owner may show one),
+    // centred above the bottom of the client area at the size it
+    // measures, for `duration` (zero: until dismissed or hidden). A toast
+    // that shows is replaced (dismissed `replaced`). The content takes no
+    // focus from the window. When the toast closes, the content leaves the
+    // overlay, detached again, so the caller may show it again. Returns the
+    // toast's ID: 1 for the first, growing by one. std::invalid_argument for
+    // an owner that is not a live, visible control of this window, null or
+    // disposed content, content with a parent or in a window, or a negative
+    // duration, changing nothing. UI thread.
+    std::uint64_t show_toast(const Control::Ptr& owner, const Control::Ptr& content,
+                             std::chrono::milliseconds duration = default_toast_duration);
+    // Closes the toast that shows when `content` is its content, for
+    // `reason` (the content's own close mark or action); false, changing
+    // nothing, otherwise. UI thread.
+    bool dismiss_toast(const Control& content, ToastDismissReason reason);
+    // Closes the toast that shows (dismissed `hidden`). UI thread.
+    void hide_toast();
+    [[nodiscard]] bool toast_visible() const noexcept;
+    // The content of the toast that shows, or null.
+    [[nodiscard]] Control::Ptr toast_content() const noexcept;
+    // The ID of the toast that shows, or 0.
+    [[nodiscard]] std::uint64_t toast_id() const noexcept;
+    // Raised after a toast closed, last in the operation that closed it.
+    [[nodiscard]] Event<const ToastDismissal&>& toast_dismissed() noexcept { return toast_dismissed_; }
 
 private:
     friend class SurfaceRoot;
@@ -125,6 +162,13 @@ private:
     Application* application_{};
     Window* previous_in_application_{};
     Window* next_in_application_{};
+    // Raises toast_dismissed.
+    friend class detail::ToastPresenter;
+    void raise_toast_dismissed(const ToastDismissal& dismissal);
+    // The window's one toast presenter; made by the constructor and shut
+    // down first in the destructor (it holds an overlay and a wake).
+    std::unique_ptr<detail::ToastPresenter> toasts_;
+    Event<const ToastDismissal&> toast_dismissed_{};
     // Native popups opened by this window, numbering their stable ids.
     std::uint64_t native_popup_serial_{};
     // Called by HostSession: seeds the window's bindings with the host's

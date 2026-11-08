@@ -720,11 +720,11 @@ void test_group_box_properties() {
 void test_info_banner_properties() {
     std::shared_ptr<InfoBanner> control = make_control<InfoBanner>(StableId("generated.infobanner"));
     {
-        const InfoBannerSeverity sample = InfoBannerSeverity::warning;
+        const NoticeSeverity sample = NoticeSeverity::warning;
         (*control).severity = sample;
         expect((*control).severity.read() == sample, "InfoBanner.severity: a write stores");
         const std::optional<BindingValue> by_name = (*control).property_value("severity");
-        expect(by_name && *by_name == PropertyValueTraits<InfoBannerSeverity>::to_binding(sample),
+        expect(by_name && *by_name == PropertyValueTraits<NoticeSeverity>::to_binding(sample),
                "InfoBanner.severity: the table reads the cell");
     }
     {

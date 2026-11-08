@@ -8,14 +8,14 @@
   "base": "Control",
   "shared": [],
   "includes": [
-    "gui_forms/controls/info_banner/info_banner_values/info_banner_values.hpp"
+    "gui_forms/controls/info_banner/notice_values/notice_values.hpp"
   ],
   "properties": [
     {
       "name": "severity",
       "capability": "InfoBannerSeverity",
-      "value": "InfoBannerSeverity",
-      "initial": "InfoBannerSeverity::information",
+      "value": "NoticeSeverity",
+      "initial": "NoticeSeverity::information",
       "comment": "How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.",
       "getter": "severity",
       "setter": "set_severity",
@@ -29,19 +29,19 @@
         "kind": "enumeration",
         "category": "Appearance",
         "description": "How much the message matters.",
-        "default": "BindingValue{PropertyEnumValue{\"info_banner_severity\", \"information\", 0}}",
+        "default": "BindingValue{PropertyEnumValue{\"notice_severity\", \"information\", 0}}",
         "effects": "Dirty::paint | Dirty::semantics",
         "subtree": false,
         "bindable": false,
         "browsable": true,
         "nullable": false,
-        "enumeration": "info_banner_severity_enum()",
+        "enumeration": "notice_severity_enum()",
         "reset": null,
         "registry": false
       },
       "hooks": "generated",
       "hand": [],
-      "sample": "InfoBannerSeverity::warning"
+      "sample": "NoticeSeverity::warning"
     },
     {
       "name": "title",

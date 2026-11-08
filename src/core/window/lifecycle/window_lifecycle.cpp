@@ -9,6 +9,7 @@
 #include "../overlay/overlay_attachment.hpp"
 #include "../alerts/window_alerts.hpp"
 #include "../tool_tips/tool_tip_presenter.hpp"
+#include "../toasts/toast_presenter.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -83,6 +84,7 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
     presenting_window_ = this;
     if (application != nullptr) application_tool_tips_shown_ = (*application).tool_tips_shown_;
     tool_tips_ = std::make_unique<detail::ToolTipPresenter>(*this);
+    toasts_ = std::make_unique<detail::ToastPresenter>(*this);
     alerts_ = std::make_unique<detail::WindowAlerts>(*this);
     initialize_cursor_identity();
     (*lifetime_).window = this;
@@ -127,6 +129,8 @@ Window::~Window() {
     // The tooltip presenter goes first: it holds an overlay and a wake, and
     // raises nothing while it shuts down.
     if (tool_tips_) (*tool_tips_).shutdown();
+    // The toast presenter likewise holds an overlay and a wake.
+    if (toasts_) (*toasts_).shutdown();
     // Waiting alerts go unshown; one showing returns to nothing.
     if (alerts_) (*alerts_).shutdown();
     invalidate_cursor_interaction(CursorError::closing);
@@ -190,6 +194,7 @@ void SurfaceRoot::shutdown_dispatcher() noexcept {
 void Window::resize(Size client_size) {
     require_root_thread("window resize");
     if (!resize_surface(client_size)) return;
+    if (toasts_) (*toasts_).client_resized();
     invalidate_cursor_interaction(CursorError::stale_metrics);
 }
 

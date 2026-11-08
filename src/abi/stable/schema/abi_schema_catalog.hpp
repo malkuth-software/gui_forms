@@ -116,6 +116,7 @@
 #include "gui_forms/controls/status_strip/status_strip.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
@@ -131,7 +132,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 120> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 121> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>},
@@ -146,6 +147,7 @@ inline constexpr std::array<SchemaCatalogEntry, 120> schema_catalog{{
     {"badge", "Badge", &describe_type<Badge>, &create_type<Badge>, &is_exact_type<Badge>},
     {"info_banner", "InfoBanner", &describe_type<InfoBanner>, &create_type<InfoBanner>, &is_exact_type<InfoBanner>},
     {"empty_state", "EmptyState", &describe_type<EmptyState>, &create_type<EmptyState>, &is_exact_type<EmptyState>},
+    {"toast", "Toast", &describe_type<Toast>, &create_type<Toast>, &is_exact_type<Toast>},
     {"picture_box", "PictureBox", &describe_type<PictureBox>, &create_type<PictureBox>, &is_exact_type<PictureBox>},
     {"progress_bar", "ProgressBar", &describe_type<ProgressBar>, &create_type<ProgressBar>, &is_exact_type<ProgressBar>},
     {"sweep_scope", "SweepScope", &describe_type<SweepScope>, &create_type<SweepScope>, &is_exact_type<SweepScope>},

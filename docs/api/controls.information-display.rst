@@ -21,6 +21,8 @@ Labels, images, progress and review cards.
      - A message strip across a form or a page, such as "Changes saved" or "Connection lost; retrying".
    * - :cpp:class:`EmptyState <gui_forms::EmptyState>`
      - What a list, a page or a search shows when it has nothing to show, such as "No messages" in an empty mailbox.
+   * - :cpp:class:`Toast <gui_forms::Toast>`
+     - A brief notice shown for a while above the bottom of a window, such as "Message archived." with an Undo button after a deletion.
    * - :cpp:class:`PictureBox <gui_forms::PictureBox>`
      - A box that displays one image from its window's image registry.
    * - :cpp:class:`ProgressBar <gui_forms::ProgressBar>`
@@ -38,6 +40,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.Badge
    generated/gui_forms.InfoBanner
    generated/gui_forms.EmptyState
+   generated/gui_forms.Toast
    generated/gui_forms.PictureBox
    generated/gui_forms.ProgressBar
    generated/gui_forms.SweepScope
@@ -128,6 +131,10 @@ Related types
      -  
    * - :cpp:class:`TextBlock::Parts <gui_forms::TextBlock::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts); its states are Control's.
+   * - :cpp:class:`Toast::Parts <gui_forms::Toast::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ToastContent <gui_forms::ToastContent>`
+     - What a Toast says, fixed when it is made: its message, the text of its action button (empty for none), its severity and whether it shows a close mark.
    * - :cpp:class:`WovenStripe <gui_forms::WovenStripe>`
      - One woven stripe: warp (along the bar) or weft (across it), where it lies, how wide, which colour and the fraction at which it weaves in.
 
@@ -359,7 +366,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: InfoBannerSeverity severity
+   .. cpp:member:: NoticeSeverity severity
 
       How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.
 
@@ -418,11 +425,11 @@ Related types
 
    .. rubric:: Methods
 
-   .. cpp:function:: static void assign(InfoBannerSeverityCapability& capability, InfoBannerSeverity incoming)
+   .. cpp:function:: static void assign(InfoBannerSeverityCapability& capability, NoticeSeverity incoming)
 
-   .. cpp:member:: PropertyCell<InfoBannerSeverity, InfoBannerSeverityCapability<Declaring>> severity
+   .. cpp:member:: PropertyCell<NoticeSeverity, InfoBannerSeverityCapability<Declaring>> severity
 
-      Default: ``{InfoBannerSeverity::information}``.
+      Default: ``{NoticeSeverity::information}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -859,6 +866,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: Toast::Parts final
+
+   ``#include <gui_forms/controls/toast/toast.hpp>``
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``face`` is the notice surface, ``icon`` the severity mark, ``label`` the message, ``actuator`` the action button's slot (absent without one) and ``close`` the close mark (absent unless closable; hot and pressed as the pointer is). The icon and the close mark take the glyph role.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry face
+
+   .. cpp:member:: PartGeometry icon
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry close
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ToastContent final
+
+   ``#include <gui_forms/controls/toast/toast.hpp>``
+
+   What a Toast says, fixed when it is made: its message, the text of its action button (empty for none), its severity and whether it shows a close mark.
+
+   .. cpp:member:: std::string message
+
+   .. cpp:member:: std::string action_text
+
+   .. cpp:member:: NoticeSeverity severity
+
+      Default: ``{NoticeSeverity::information}``.
+
+   .. cpp:member:: bool closable
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: WovenStripe final
 
    ``#include <gui_forms/controls/range_control/progress_bar/progress_bar_effects.hpp>``
@@ -902,9 +949,9 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:enum-class:: InfoBannerSeverity
+.. cpp:enum-class:: NoticeSeverity
 
-   ``#include <gui_forms/controls/info_banner/info_banner_values/info_banner_values.hpp>``
+   ``#include <gui_forms/controls/info_banner/notice_values/notice_values.hpp>``
 
    .. cpp:enumerator:: information
 

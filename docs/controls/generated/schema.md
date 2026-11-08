@@ -409,6 +409,25 @@ Properties beyond every control's: `description` (text), `image` (image), `title
 
 Interactions beyond every control's: none.
 
+## `toast` (Toast, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `face` | face |  |  |
+| `icon` | glyph |  |  |
+| `label` | label |  |  |
+| `actuator` | actuator | `button` |  |
+| `close` | glyph |  | hot, pressed |
+
+States: `normal`, `enabled`, `disabled`. Application-defined: `information`, `warning`, `success`, `error`.
+
+Properties beyond every control's: none.
+
+| Interaction | Payload |
+|---|---|
+| `action_invoked` | none |
+
 ## `picture_box` (PictureBox, control)
 
 | Part | Role | Reuses | Own states |

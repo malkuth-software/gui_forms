@@ -14,7 +14,7 @@ stable_id
 
 Properties
 ----------
-severity : default ``InfoBannerSeverity::information``
+severity : default ``NoticeSeverity::information``
     How much the message matters: information, warning, success or error.
     It chooses the icon and the keyline's colour, and is the banner's one
     custom state.
@@ -66,7 +66,7 @@ A warning with a retry action:
 .. code-block:: cpp
 
    std::shared_ptr<gf::InfoBanner> offline = gf::make_control<gf::InfoBanner>(gf::StableId("sync.offline"));
-   (*offline).severity = gf::InfoBannerSeverity::warning;
+   (*offline).severity = gf::NoticeSeverity::warning;
    (*offline).title = "Offline";
    (*offline).message = "Changes will sync when the connection returns.";
    gf::Control::Ptr previous = (*offline).set_action(gf::make_control<gf::Button>(gf::StableId("sync.retry"), "Retry"));

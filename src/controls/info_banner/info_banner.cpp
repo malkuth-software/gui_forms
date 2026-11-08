@@ -17,12 +17,12 @@
 namespace gui_forms {
 namespace {
 
-// The InfoBannerSeverity enumeration, numbered as declared. Static storage;
+// The NoticeSeverity enumeration, numbered as declared. Static storage;
 // any thread may read it.
-std::shared_ptr<const PropertyEnumDescriptor> info_banner_severity_enum() {
+std::shared_ptr<const PropertyEnumDescriptor> notice_severity_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "info_banner_severity",
+            "notice_severity",
             {{"information", 0}, {"warning", 1}, {"success", 2}, {"error", 3}},
             false});
     return value;
@@ -42,23 +42,23 @@ constexpr double line_gap = 2.0;
 // The severity's keyline and icon colour until T4's floor gives the status
 // colours roles: mid-tone, so that each reads on a light face and a dark
 // one. Provisional.
-Color severity_color(InfoBannerSeverity severity) noexcept {
+Color severity_color(NoticeSeverity severity) noexcept {
     switch (severity) {
-    case InfoBannerSeverity::information: return Color::rgba(38, 114, 185);
-    case InfoBannerSeverity::warning: return Color::rgba(196, 132, 0);
-    case InfoBannerSeverity::success: return Color::rgba(46, 139, 87);
-    case InfoBannerSeverity::error: return Color::rgba(196, 43, 28);
+    case NoticeSeverity::information: return Color::rgba(38, 114, 185);
+    case NoticeSeverity::warning: return Color::rgba(196, 132, 0);
+    case NoticeSeverity::success: return Color::rgba(46, 139, 87);
+    case NoticeSeverity::error: return Color::rgba(196, 43, 28);
     default: break;
     }
     return Color::rgba(38, 114, 185);
 }
 
-PartMark severity_mark(InfoBannerSeverity severity) noexcept {
+PartMark severity_mark(NoticeSeverity severity) noexcept {
     switch (severity) {
-    case InfoBannerSeverity::information: return PartMark::information;
-    case InfoBannerSeverity::warning: return PartMark::warning;
-    case InfoBannerSeverity::success: return PartMark::success;
-    case InfoBannerSeverity::error: return PartMark::error;
+    case NoticeSeverity::information: return PartMark::information;
+    case NoticeSeverity::warning: return PartMark::warning;
+    case NoticeSeverity::success: return PartMark::success;
+    case NoticeSeverity::error: return PartMark::error;
     default: break;
     }
     return PartMark::information;
@@ -93,7 +93,7 @@ constexpr std::array<AnatomyState, 5> info_banner_states{
     AnatomyState::focus_visible,
 };
 
-// One custom state per severity, in InfoBannerSeverity's order, so a
+// One custom state per severity, in NoticeSeverity's order, so a
 // severity's number is its state's index (`:family(notice):state(error)`).
 constexpr std::array<CustomStateDeclaration, 4> info_banner_custom_states{{
     {.name = "information"},
@@ -253,7 +253,7 @@ void InfoBanner::on_paint(Painter& painter, Rect) {
     const Rect client = client_rectangle();
     const Placement placed = placement(Size{client.width, client.height});
     const AnatomyStateSet states = anatomy_states();
-    const InfoBannerSeverity level = severity.read();
+    const NoticeSeverity level = severity.read();
     const Color tone = severity_color(level);
     PartPaint face{.role = PartRole::face, .bounds = placed.face, .states = states, .family = ControlVisualRole::notice};
     paint_part(painter, *this, face);
@@ -412,10 +412,10 @@ PropertyDescriptor info_banner_severity_descriptor() {
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Appearance";
     descriptor.description = "How much the message matters.";
-    descriptor.default_value = BindingValue{PropertyEnumValue{"info_banner_severity", "information", 0}};
+    descriptor.default_value = BindingValue{PropertyEnumValue{"notice_severity", "information", 0}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.bindable = false;
-    descriptor.enumeration = info_banner_severity_enum();
+    descriptor.enumeration = notice_severity_enum();
     return descriptor;
 }
 
@@ -479,23 +479,23 @@ const PropertyDescriptor& describe_info_banner_closable() {
 
 } // namespace
 
-PropertyType PropertyValueTraits<InfoBannerSeverity>::type() {
-    return PropertyType{BindingValueKind::enumeration, false, info_banner_severity_enum()};
+PropertyType PropertyValueTraits<NoticeSeverity>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, notice_severity_enum()};
 }
 
-BindingValue PropertyValueTraits<InfoBannerSeverity>::to_binding(InfoBannerSeverity value) {
+BindingValue PropertyValueTraits<NoticeSeverity>::to_binding(NoticeSeverity value) {
     PropertyDescriptor descriptor;
     descriptor.kind = BindingValueKind::enumeration;
-    descriptor.enumeration = info_banner_severity_enum();
+    descriptor.enumeration = notice_severity_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
     if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
     return *converted;
 }
 
-InfoBannerSeverity PropertyValueTraits<InfoBannerSeverity>::from_binding(const BindingValue& value) {
+NoticeSeverity PropertyValueTraits<NoticeSeverity>::from_binding(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
-    return static_cast<InfoBannerSeverity>(choice.value);
+    return static_cast<NoticeSeverity>(choice.value);
 }
 
 const std::array<PropertyEntry, InfoBanner::info_banner_property_count>& InfoBanner::info_banner_property_entries() noexcept {
@@ -532,7 +532,7 @@ std::span<const PropertyEntry> InfoBanner::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void InfoBanner::prepare_write(const decltype(severity)&, InfoBannerSeverity&) {
+void InfoBanner::prepare_write(const decltype(severity)&, NoticeSeverity&) {
     require_mutable();
 }
 

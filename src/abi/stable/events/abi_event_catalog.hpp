@@ -102,6 +102,7 @@
 #include "gui_forms/controls/splitter/splitter.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
@@ -2579,6 +2580,15 @@ inline void append_field(EventFields& fields, std::string_view name, const Windo
 }
 
 // One connector per (declaring type, interaction).
+inline SubscriptionToken connect_toast_action_invoked(Component& source, const EventSink& sink) {
+    Toast* typed = dynamic_cast<Toast*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).action_invoked(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_card_activated(Component& source, const EventSink& sink) {
     Card* typed = dynamic_cast<Card*>(&source);
     if (typed == nullptr) {
@@ -5047,7 +5057,8 @@ inline SubscriptionToken connect_control_visible_changed(Component& source, cons
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 271> event_connectors{{
+inline constexpr std::array<EventConnector, 272> event_connectors{{
+    {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
     {"activation_changed", "DockWorkspace", &connect_dock_workspace_activation_changed},

@@ -2,7 +2,7 @@
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
-#include "gui_forms/controls/info_banner/info_banner_values/info_banner_values.hpp"
+#include "gui_forms/controls/info_banner/notice_values/notice_values.hpp"
 #include "gui_forms/controls/info_banner/info_banner_capabilities/info_banner_capabilities.hpp"
 
 #include <array>
@@ -121,7 +121,7 @@ private:
     friend struct InfoBannerMessageCapability<InfoBanner>;
     friend struct InfoBannerClosableCapability<InfoBanner>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
-    void prepare_write(const decltype(severity)& cell, InfoBannerSeverity& incoming);
+    void prepare_write(const decltype(severity)& cell, NoticeSeverity& incoming);
     void written(const decltype(severity)& cell);
     void prepare_write(const decltype(title)& cell, std::string& incoming);
     void written(const decltype(title)& cell);

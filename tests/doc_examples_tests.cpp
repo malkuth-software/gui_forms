@@ -1971,7 +1971,7 @@ void example() {
 namespace doc_example_InfoBanner_1 {
 void example() {
     std::shared_ptr<gf::InfoBanner> offline = gf::make_control<gf::InfoBanner>(gf::StableId("sync.offline"));
-    (*offline).severity = gf::InfoBannerSeverity::warning;
+    (*offline).severity = gf::NoticeSeverity::warning;
     (*offline).title = "Offline";
     (*offline).message = "Changes will sync when the connection returns.";
     gf::Control::Ptr previous = (*offline).set_action(gf::make_control<gf::Button>(gf::StableId("sync.retry"), "Retry"));
@@ -3739,6 +3739,22 @@ void example() {
 }
 }  // namespace doc_example_Timer_2
 
+namespace doc_example_Toast_1 {
+void example() {
+    std::shared_ptr<gf::Panel> root = gf::make_control<gf::Panel>(gf::StableId("mail"));
+    std::shared_ptr<gf::Button> archive = gf::make_control<gf::Button>(gf::StableId("mail.archive"), "Archive");
+    (*root).add_child(archive);
+    gf::Window window(root, gf::Size{640.0, 480.0});
+    gf::ToastContent content{};
+    content.message = "Message archived.";
+    content.action_text = "Undo";
+    content.severity = gf::NoticeSeverity::success;
+    std::shared_ptr<gf::Toast> toast = gf::make_control<gf::Toast>(gf::StableId("mail.archived"), std::move(content));
+    std::uint64_t id = window.show_toast(archive, toast);
+    // id is 1; the toast closes after five seconds unless dismissed sooner
+}
+}  // namespace doc_example_Toast_1
+
 namespace doc_example_TokenBox_1 {
 void example() {
     std::shared_ptr<gf::TokenBox> recipients =
@@ -4484,6 +4500,7 @@ int main() {
     failures += run("ThreadExceptionDialog example 1", &doc_example_ThreadExceptionDialog_1::example);
     failures += run("Timer example 1", &doc_example_Timer_1::example);
     failures += run("Timer example 2", &doc_example_Timer_2::example);
+    failures += run("Toast example 1", &doc_example_Toast_1::example);
     failures += run("TokenBox example 1", &doc_example_TokenBox_1::example);
     failures += run("ToolStrip example 1", &doc_example_ToolStrip_1::example);
     failures += run("ToolStripContainer example 1", &doc_example_ToolStripContainer_1::example);

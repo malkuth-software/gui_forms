@@ -116,6 +116,7 @@
 #include "gui_forms/controls/status_strip/status_strip.hpp"
 #include "gui_forms/controls/task_dialog/task_dialog.hpp"
 #include "gui_forms/controls/text_block/text_block.hpp"
+#include "gui_forms/controls/toast/toast.hpp"
 #include "gui_forms/controls/tool_strip/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container/tool_strip_container.hpp"
 #include "gui_forms/controls/tool_strip_panel/tool_strip_panel.hpp"
@@ -131,7 +132,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 120> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 121> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base/button_base.hpp", &add_catalog_type<ButtonBase>},
     {"button", "Button", "gui_forms/controls/button_base/button/button.hpp", &add_catalog_type<Button>},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/button_base/button/drop_down_button/drop_down_button.hpp", &add_catalog_type<DropDownButton>},
@@ -146,6 +147,7 @@ inline constexpr std::array<FormCatalogEntry, 120> form_catalog{{
     {"badge", "Badge", "gui_forms/controls/badge/badge.hpp", &add_catalog_type<Badge>},
     {"info_banner", "InfoBanner", "gui_forms/controls/info_banner/info_banner.hpp", &add_catalog_type<InfoBanner>},
     {"empty_state", "EmptyState", "gui_forms/controls/empty_state/empty_state.hpp", &add_catalog_type<EmptyState>},
+    {"toast", "Toast", "gui_forms/controls/toast/toast.hpp", &add_catalog_type<Toast>},
     {"picture_box", "PictureBox", "gui_forms/controls/panel/picture_box/picture_box.hpp", &add_catalog_type<PictureBox>},
     {"progress_bar", "ProgressBar", "gui_forms/controls/range_control/progress_bar/progress_bar.hpp", &add_catalog_type<ProgressBar>},
     {"sweep_scope", "SweepScope", "gui_forms/controls/instruments/sweep_scope/sweep_scope.hpp", &add_catalog_type<SweepScope>},

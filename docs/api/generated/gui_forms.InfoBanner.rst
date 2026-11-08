@@ -28,7 +28,7 @@ gui_forms::InfoBanner
 
    :Properties:
 
-      **severity** : ``InfoBannerSeverity``, default ``InfoBannerSeverity::information``
+      **severity** : ``NoticeSeverity``, default ``NoticeSeverity::information``
          How much the message matters: information, warning, success or error.
          It chooses the icon and the keyline's colour, and is the banner's one
          custom state.
@@ -97,7 +97,7 @@ gui_forms::InfoBanner
    .. code-block:: cpp
 
       std::shared_ptr<gf::InfoBanner> offline = gf::make_control<gf::InfoBanner>(gf::StableId("sync.offline"));
-      (*offline).severity = gf::InfoBannerSeverity::warning;
+      (*offline).severity = gf::NoticeSeverity::warning;
       (*offline).title = "Offline";
       (*offline).message = "Changes will sync when the connection returns.";
       gf::Control::Ptr previous = (*offline).set_action(gf::make_control<gf::Button>(gf::StableId("sync.retry"), "Retry"));
@@ -111,7 +111,7 @@ gui_forms::InfoBanner
 
    .. rubric:: Properties
 
-   .. cpp:member:: InfoBannerSeverity severity
+   .. cpp:member:: NoticeSeverity severity
 
       How much the message matters: information, warning, success or error.
       It chooses the icon and the keyline's colour, and is the banner's one

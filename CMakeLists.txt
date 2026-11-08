@@ -420,6 +420,8 @@ add_library(gui_forms_core STATIC
     src/core/window/overlay/overlay_token.cpp
     src/core/window/tool_tips/tool_tip_bubble.cpp
     src/core/window/tool_tips/tool_tip_presenter.cpp
+    src/core/window/toasts/toast_presenter.cpp
+    src/core/window/toasts/window_toasts.cpp
     src/core/window/tool_tips/tool_tip_subjects.cpp
     src/core/window/tool_tips/window_tool_tips.cpp
     src/core/window/accelerator/accelerator_token.cpp
@@ -759,6 +761,7 @@ add_library(gui_forms_controls STATIC
     src/controls/badge/badge.cpp
     src/controls/info_banner/info_banner.cpp
     src/controls/empty_state/empty_state.cpp
+    src/controls/toast/toast.cpp
     src/controls/button_base/button_base.cpp
     src/controls/button_base/button/button.cpp
     src/controls/button_base/button/drop_down_button/drop_down_button.cpp

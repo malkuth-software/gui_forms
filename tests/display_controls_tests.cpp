@@ -1,5 +1,5 @@
-// W-4 controls: Badge, InfoBanner, EmptyState and the segmented
-// ChoiceGroup presentation. Each test covers the control's behaviour, its refusals, its
+// W-4 controls: Badge, InfoBanner, EmptyState, the segmented ChoiceGroup
+// presentation, and Toast with its window presenter. Each test covers the control's behaviour, its refusals, its
 // semantics, its published parts and states, and the capability cases: a
 // write stores, an equal write does nothing, and a write from another
 // thread is refused before anything is compared or stored.
@@ -7,6 +7,7 @@
 #include "gui_forms/gui_forms.hpp"
 #include "gui_forms/controls/collections/choice_group.hpp"
 
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -17,6 +18,7 @@
 #include <string>
 #include <string_view>
 #include <thread>
+#include <vector>
 
 namespace {
 using namespace gui_forms;
@@ -129,7 +131,7 @@ struct OtherThreadTitle final {
 
 void test_info_banner_properties_and_states() {
     std::shared_ptr<InfoBanner> banner = make_control<InfoBanner>(StableId("display.banner"));
-    require((*banner).severity.read() == InfoBannerSeverity::information && (*banner).closable.read(),
+    require((*banner).severity.read() == NoticeSeverity::information && (*banner).closable.read(),
             "a banner starts as closable information");
     require((*banner).focusable(), "a closable banner takes focus");
     const ControlAnatomy& anatomy = (*banner).anatomy();
@@ -142,7 +144,7 @@ void test_info_banner_properties_and_states() {
     require(states.contains(*information) && !states.contains(*warning) && !states.contains(*success) &&
                 !states.contains(*error),
             "information is the one severity state at first");
-    (*banner).severity = InfoBannerSeverity::error;
+    (*banner).severity = NoticeSeverity::error;
     states = (*banner).anatomy_states();
     require(states.contains(*error) && !states.contains(*information), "a new severity replaces the old state");
 
@@ -171,10 +173,10 @@ void test_info_banner_properties_and_states() {
             "the close action is refused while the banner is not closable");
 
     const std::optional<BindingValue> by_name = (*banner).property_value("severity");
-    require(by_name && *by_name == BindingValue{PropertyEnumValue{"info_banner_severity", "error", 3}},
+    require(by_name && *by_name == BindingValue{PropertyEnumValue{"notice_severity", "error", 3}},
             "the table reads the severity cell");
-    (*banner).set_property_value("severity", BindingValue{PropertyEnumValue{"info_banner_severity", "success", 2}});
-    require((*banner).severity.read() == InfoBannerSeverity::success, "the table writes the severity cell");
+    (*banner).set_property_value("severity", BindingValue{PropertyEnumValue{"notice_severity", "success", 2}});
+    require((*banner).severity.read() == NoticeSeverity::success, "the table writes the severity cell");
 }
 
 void test_info_banner_closing() {
@@ -397,6 +399,236 @@ void test_segmented_choice_group() {
             "back to buttons, the items fill the group again and the selection is kept");
 }
 
+
+// Records each toast dismissal with the toast that showed when it was
+// raised, so that a test can check the event comes last.
+struct DismissalRecorder final {
+    Window* window{};
+    std::vector<ToastDismissal> seen{};
+    std::vector<std::uint64_t> showing_when_raised{};
+    void on_dismissed(const ToastDismissal& dismissal) {
+        seen.push_back(dismissal);
+        showing_when_raised.push_back((*window).toast_id());
+    }
+};
+
+struct ActionRecorder final {
+    int invoked{};
+    void on_invoked() { ++invoked; }
+};
+
+std::shared_ptr<Toast> make_toast(const char* id, const char* action_text, bool closable) {
+    ToastContent content{};
+    content.message = "Message archived.";
+    content.action_text = action_text;
+    content.severity = NoticeSeverity::warning;
+    content.closable = closable;
+    std::shared_ptr<Toast> toast = make_control<Toast>(StableId(id), std::move(content));
+    return toast;
+}
+
+void test_toast_content_and_semantics() {
+    bool empty_refused = false;
+    try {
+        static_cast<void>(make_control<Toast>(StableId("display.toast.empty"), ToastContent{}));
+    } catch (const std::invalid_argument&) {
+        empty_refused = true;
+    }
+    require(empty_refused, "a toast without a message is refused");
+    bool invalid_refused = false;
+    try {
+        ToastContent invalid{};
+        invalid.message = "Bad \xff byte";
+        static_cast<void>(make_control<Toast>(StableId("display.toast.invalid"), std::move(invalid)));
+    } catch (const std::invalid_argument&) {
+        invalid_refused = true;
+    }
+    require(invalid_refused, "a message that is not UTF-8 is refused");
+
+    const std::shared_ptr<Toast> plain = make_toast("display.toast.plain", "", false);
+    require(!(*plain).action() && (*plain).children().empty(), "a toast without action text has no button");
+    const SemanticDescriptor plain_semantics = (*plain).semantic_descriptor();
+    require(plain_semantics.role == SemanticRole::live_region && plain_semantics.name == "Message archived." &&
+                plain_semantics.actions.empty(),
+            "a toast is a live region named by its message, without close when not closable");
+    require(!(*plain).on_semantic_action(SemanticAction::close, std::string_view{}),
+            "close does nothing on a toast that cannot be closed");
+
+    const std::shared_ptr<Toast> full = make_toast("display.toast.full", "Undo", true);
+    const std::shared_ptr<Button> undo = std::dynamic_pointer_cast<Button>((*full).action());
+    require(undo && (*undo).parent() == full && (*undo).stable_id().value() == "display.toast.full.action",
+            "the action text makes a button inside the toast");
+    require((*full).semantic_descriptor().actions.size() == 1U, "a closable toast offers the close action");
+    require((*full).anatomy_states().contains(CustomStateIndex{static_cast<std::uint8_t>(NoticeSeverity::warning)}),
+            "the severity is the toast's custom state");
+    require(!(*full).close(), "closing a toast in no window does nothing");
+    const Size natural = (*full).measure(Size{1000.0, 1000.0});
+    const Size narrow = (*make_toast("display.toast.narrow", "", false)).measure(Size{1000.0, 1000.0});
+    require(natural.width > narrow.width && natural.height > 0.0, "the action and close mark widen the toast");
+}
+
+void test_window_toasts() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.toasts.root"));
+    const std::shared_ptr<Button> owner = make_control<Button>(StableId("display.toasts.owner"), "Archive");
+    (*owner).set_requested_bounds(Rect{10.0, 10.0, 120.0, 30.0});
+    (*root).add_child(owner);
+    Window window(root, Size{600.0, 400.0});
+    window.perform_layout();
+    DismissalRecorder recorder;
+    recorder.window = &window;
+    on(window.toast_dismissed(), recorder, &DismissalRecorder::on_dismissed);
+    require(!window.toast_visible() && window.toast_id() == 0U && !window.toast_content(), "no toast shows at first");
+
+    const std::shared_ptr<Toast> first = make_toast("display.toasts.first", "Undo", true);
+    const std::uint64_t first_id = window.show_toast(owner, first, std::chrono::milliseconds{0});
+    window.perform_layout();
+    require(first_id == 1U && window.toast_visible() && window.toast_content() == first,
+            "the first toast shows with ID 1");
+    require(!window.next_wake().has_value(), "a toast without a duration arms no wake");
+    const Rect placed = (*first).committed_arranged_bounds();
+    require(placed.width > 0.0 && placed.y + placed.height == 400.0 - 16.0 &&
+                placed.x == std::floor((600.0 - placed.width) * 0.5),
+            "the toast is centred 16 units above the bottom of the client area");
+    require(window.focused_control() != first && window.focused_control() != (*first).action(),
+            "showing a toast takes no focus");
+
+    window.resize(Size{800.0, 300.0});
+    window.perform_layout();
+    const Rect moved = (*first).committed_arranged_bounds();
+    require(moved.y + moved.height == 300.0 - 16.0 && moved.x == std::floor((800.0 - moved.width) * 0.5),
+            "a resized window places its toast again");
+
+    const std::shared_ptr<Toast> second = make_toast("display.toasts.second", "", true);
+    const std::uint64_t second_id = window.show_toast(owner, second, std::chrono::milliseconds{0});
+    require(second_id == 2U && window.toast_content() == second && !(*first).parent() &&
+                (*first).attached_surface_root() == nullptr,
+            "a new toast replaces the one that shows, which leaves detached");
+    require(recorder.seen.size() == 1U && recorder.seen[0].id == 1U &&
+                recorder.seen[0].reason == ToastDismissReason::replaced && recorder.showing_when_raised[0] == 2U,
+            "the replaced dismissal is raised after the new toast shows");
+    require(!(*first).close(), "a toast that no longer shows does nothing when closed");
+
+    require((*second).on_semantic_action(SemanticAction::close, std::string_view{}) && !window.toast_visible(),
+            "the close action dismisses the toast");
+    require(recorder.seen.size() == 2U && recorder.seen[1].reason == ToastDismissReason::closed &&
+                recorder.showing_when_raised[1] == 0U,
+            "closing raises closed once nothing shows");
+
+    // The detached first toast may be shown again; its action dismisses it.
+    ActionRecorder actions;
+    on((*first).action_invoked(), actions, &ActionRecorder::on_invoked);
+    const std::uint64_t third_id = window.show_toast(owner, first, std::chrono::milliseconds{0});
+    window.perform_layout();
+    const std::shared_ptr<Button> undo = std::dynamic_pointer_cast<Button>((*first).action());
+    require(third_id == 3U && undo && (*undo).perform_click(), "a detached toast shows again and its action clicks");
+    require(actions.invoked == 1 && !window.toast_visible() && recorder.seen.size() == 3U &&
+                recorder.seen[2].reason == ToastDismissReason::action,
+            "the action raises action_invoked, then dismisses the toast");
+
+    const std::shared_ptr<Toast> marked = make_toast("display.toasts.marked", "", true);
+    static_cast<void>(window.show_toast(owner, marked, std::chrono::milliseconds{0}));
+    window.perform_layout();
+    const Toast::Parts parts = (*marked).parts();
+    require(parts.face.present && parts.icon.present && parts.label.present && parts.close.present &&
+                !parts.actuator.present,
+            "the toast publishes its face, mark, message and close mark, and no action slot");
+    const Point mark{parts.close.bounds.x + parts.close.bounds.width * 0.5,
+                     parts.close.bounds.y + parts.close.bounds.height * 0.5};
+    PointerEvent press{};
+    press.action = PointerAction::down;
+    press.button = PointerButton::primary;
+    press.position = mark;
+    (*marked).on_pointer(press);
+    require(press.handled && window.toast_visible(), "pressing the close mark does not close yet");
+    PointerEvent release = press;
+    release.action = PointerAction::up;
+    release.handled = false;
+    (*marked).on_pointer(release);
+    require(release.handled && !window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::closed,
+            "releasing over the close mark dismisses the toast");
+
+    const std::shared_ptr<Toast> timed = make_toast("display.toasts.timed", "", true);
+    static_cast<void>(window.show_toast(owner, timed, std::chrono::milliseconds{50}));
+    const std::optional<FrameTime> wake = window.next_wake();
+    require(wake.has_value(), "a toast with a duration arms a wake");
+    static_cast<void>(window.poll_frame_schedule(*wake));
+    require(!window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::timed_out &&
+                !window.next_wake().has_value(),
+            "the wake closes the toast when its duration runs out");
+
+    const std::shared_ptr<Toast> hidden = make_toast("display.toasts.hidden", "", true);
+    static_cast<void>(window.show_toast(owner, hidden));
+    window.hide_toast();
+    require(!window.toast_visible() && recorder.seen.back().reason == ToastDismissReason::hidden &&
+                !window.next_wake().has_value(),
+            "hide_toast closes the toast and drops its wake");
+    const std::size_t before_idle_hide = recorder.seen.size();
+    window.hide_toast();
+    require(recorder.seen.size() == before_idle_hide, "hiding with nothing showing raises nothing");
+
+    const std::shared_ptr<Toast> orphaned = make_toast("display.toasts.orphaned", "", true);
+    static_cast<void>(window.show_toast(owner, orphaned, std::chrono::milliseconds{0}));
+    (*owner).enabled = false;
+    require(window.toast_visible(), "a toast is passive: disabling its owner keeps it");
+    const Control::Ptr removed = (*root).remove_child((*owner).runtime_id());
+    require(removed == owner && !window.toast_visible() && !(*orphaned).parent() &&
+                recorder.seen.back().reason == ToastDismissReason::owner_gone,
+            "an owner leaving the window closes its toast");
+}
+
+// Each refusal is std::invalid_argument and changes nothing.
+void test_window_toast_refusals() {
+    const std::shared_ptr<Panel> root = make_control<Panel>(StableId("display.toast-refusals.root"));
+    const std::shared_ptr<Button> owner = make_control<Button>(StableId("display.toast-refusals.owner"), "Owner");
+    (*root).add_child(owner);
+    Window window(root, Size{400.0, 300.0});
+    window.perform_layout();
+    const std::shared_ptr<Toast> showing = make_toast("display.toast-refusals.showing", "", true);
+    static_cast<void>(window.show_toast(owner, showing, std::chrono::milliseconds{0}));
+
+    int refused = 0;
+    const std::shared_ptr<Button> stranger = make_control<Button>(StableId("display.toast-refusals.stranger"), "No");
+    const std::shared_ptr<Toast> fresh = make_toast("display.toast-refusals.fresh", "", true);
+    try {
+        static_cast<void>(window.show_toast(nullptr, fresh));
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    try {
+        static_cast<void>(window.show_toast(stranger, fresh));
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    try {
+        static_cast<void>(window.show_toast(owner, nullptr));
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    try {
+        static_cast<void>(window.show_toast(owner, showing));
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    const std::shared_ptr<Panel> holder = make_control<Panel>(StableId("display.toast-refusals.holder"));
+    const std::shared_ptr<Toast> held = make_toast("display.toast-refusals.held", "", true);
+    (*holder).add_child(held);
+    try {
+        static_cast<void>(window.show_toast(owner, held));
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    try {
+        static_cast<void>(window.show_toast(owner, fresh, std::chrono::milliseconds{-1}));
+    } catch (const std::invalid_argument&) {
+        ++refused;
+    }
+    require(refused == 6, "every invalid show_toast is refused");
+    require(window.toast_content() == showing && window.toast_id() == 1U && !(*fresh).parent(),
+            "a refused show_toast leaves the showing toast in place");
+    require(!window.dismiss_toast(*fresh, ToastDismissReason::closed) && window.toast_visible(),
+            "dismissing content that does not show changes nothing");
+}
+
 } // namespace
 
 int main() {
@@ -407,6 +639,9 @@ int main() {
     test_info_banner_actuator_action_and_threads();
     test_empty_state();
     test_segmented_choice_group();
+    test_toast_content_and_semantics();
+    test_window_toasts();
+    test_window_toast_refusals();
     std::cout << "display control tests passed\n";
     return EXIT_SUCCESS;
 }

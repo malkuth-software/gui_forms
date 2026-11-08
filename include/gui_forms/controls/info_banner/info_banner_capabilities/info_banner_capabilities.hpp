@@ -2,7 +2,7 @@
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
-#include "gui_forms/controls/info_banner/info_banner_values/info_banner_values.hpp"
+#include "gui_forms/controls/info_banner/notice_values/notice_values.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -28,9 +28,9 @@ namespace gui_forms {
 // How much the message matters: information, warning, success or error. It chooses the icon, the keyline's colour and the banner's one custom state.
 template <typename Declaring>
 struct InfoBannerSeverityCapability {
-    PropertyCell<InfoBannerSeverity, InfoBannerSeverityCapability<Declaring>> severity{InfoBannerSeverity::information};
+    PropertyCell<NoticeSeverity, InfoBannerSeverityCapability<Declaring>> severity{NoticeSeverity::information};
 
-    static void assign(InfoBannerSeverityCapability& capability, InfoBannerSeverity incoming) {
+    static void assign(InfoBannerSeverityCapability& capability, NoticeSeverity incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
         control.prepare_write(std::as_const(capability.severity), incoming);
         if (!capability.severity.replace(std::move(incoming))) return;
@@ -77,12 +77,12 @@ struct InfoBannerClosableCapability {
     }
 };
 
-// InfoBannerSeverity as a property value; defined beside InfoBanner's table.
+// NoticeSeverity as a property value; defined beside InfoBanner's table.
 template <>
-struct PropertyValueTraits<InfoBannerSeverity> {
+struct PropertyValueTraits<NoticeSeverity> {
     static PropertyType type();
-    static BindingValue to_binding(InfoBannerSeverity value);
-    static InfoBannerSeverity from_binding(const BindingValue& value);
+    static BindingValue to_binding(NoticeSeverity value);
+    static NoticeSeverity from_binding(const BindingValue& value);
 };
 
 // Every InfoBanner capability, in the order the declaring class takes them.

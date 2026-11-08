@@ -66,6 +66,7 @@ class AcceleratorAttachment;
 class RecordingPainter;
 class ToolTipPresenter;
 class ToolTipRoute;
+class ToastPresenter;
 class SubSurfaceToolTipRequester;
 class AlertRoute;
 class WindowAlerts;
@@ -1060,6 +1061,8 @@ private:
     // resuming when this window cancelled its requests meanwhile.
     friend class AnimationTimer;
     friend class detail::ToolTipPresenter;
+    // Uses request_tool_tip_wake for a toast's duration.
+    friend class detail::ToastPresenter;
     friend class detail::SubSurfaceToolTipRequester;
     friend class detail::WindowAlerts;
     friend class detail::SubSurfaceAlertRequester;
@@ -1113,8 +1116,8 @@ private:
     // then finish_unhandled_key. False, doing nothing, when `from` is no
     // longer eligible. Root thread only.
     bool resume_unhandled_key(const Control::Ptr& from, KeyEvent event);
-    // Called by the tooltip presenter: a one-shot wake at `deadline` on the
-    // UI thread, revoked by the token.
+    // Called by the tooltip and toast presenters: a one-shot wake at
+    // `deadline` on the UI thread, revoked by the token.
     [[nodiscard]] FrameRequestToken request_tool_tip_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
     friend class BackgroundWorker;

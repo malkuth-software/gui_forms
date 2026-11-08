@@ -8,7 +8,7 @@
    surface), where each is placed by its bounds in design coordinates.
    Behaviour stays in the page (src/controls/gallery/pages/
    notices-and-badges.cpp): the banners' and the empty state's action
-   buttons, the Command that shows closed banners again, and the page
+   buttons, the Commands that show a toast and closed banners again, and the page
    style. */
 scaled-panel gallery.notices-and-badges.document {
   design-size: 1000 660;
@@ -45,7 +45,7 @@ scaled-panel gallery.notices-and-badges.document {
       severity: success;
       title: "Saved";
       message: "Your changes are saved.";
-      bounds: 22 168 886 56;
+      bounds: 22 168 700 56;
     }
     info-banner gallery.notices.error {
       severity: error;
@@ -53,6 +53,11 @@ scaled-panel gallery.notices-and-badges.document {
       message: "The destination folder is read-only. This banner cannot be closed.";
       closable: false;
       bounds: 22 232 700 56;
+    }
+    button gallery.notices.show-toast {
+      text: "Show a toast";
+      visual-style: command;
+      bounds: 738 180 170 32;
     }
     button gallery.notices.reopen {
       text: "Show closed banners";

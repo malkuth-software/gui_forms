@@ -4,8 +4,8 @@ namespace gallery_pages_tests {
 
 // The notices-and-badges page (W-4): the four banners and their severities,
 // the actions the page installs, the badges' counts and dot, the empty
-// state, live-region semantics, and the Command that shows closed banners
-// again.
+// state, live-region semantics, the Command that shows closed banners
+// again, and the toast button.
 void test_notices_and_badges(gui_forms::Window& window) {
     select_page(window, "notices-and-badges");
     require(window.find("gallery.notices-and-badges.heading") != nullptr,
@@ -19,10 +19,10 @@ void test_notices_and_badges(gui_forms::Window& window) {
     const std::shared_ptr<InfoBanner> error =
         std::dynamic_pointer_cast<InfoBanner>(window.find("gallery.notices.error"));
     require(information && warning && success && error, "the page shows four banners");
-    require((*information).severity.read() == InfoBannerSeverity::information &&
-                (*warning).severity.read() == InfoBannerSeverity::warning &&
-                (*success).severity.read() == InfoBannerSeverity::success &&
-                (*error).severity.read() == InfoBannerSeverity::error,
+    require((*information).severity.read() == NoticeSeverity::information &&
+                (*warning).severity.read() == NoticeSeverity::warning &&
+                (*success).severity.read() == NoticeSeverity::success &&
+                (*error).severity.read() == NoticeSeverity::error,
             "each banner shows its own severity");
     require(!(*error).closable.read() && (*information).closable.read(),
             "the error banner cannot be closed and the others can");
@@ -54,6 +54,15 @@ void test_notices_and_badges(gui_forms::Window& window) {
     click(window, window.find("gallery.notices.reopen"));
     window.perform_layout();
     require((*information).visible.read(), "the reopen Command shows the closed banner again");
+
+    click(window, window.find("gallery.notices.show-toast"));
+    window.perform_layout();
+    const std::shared_ptr<Toast> toast = std::dynamic_pointer_cast<Toast>(window.toast_content());
+    require(window.toast_visible() && toast && (*toast).content().action_text == "Undo" &&
+                (*toast).content().severity == NoticeSeverity::success,
+            "the toast button shows a success toast with an undo action");
+    window.hide_toast();
+    require(!window.toast_visible() && !(*toast).parent(), "hiding the toast detaches its content");
 }
 
 }  // namespace gallery_pages_tests
