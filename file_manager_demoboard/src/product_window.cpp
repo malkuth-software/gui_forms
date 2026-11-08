@@ -1238,7 +1238,7 @@ private:
         location.items.assign((*refs_.objects).items().begin(), (*refs_.objects).items().end());
         location.selected_ids.assign((*refs_.objects).selected_ids().begin(),
                                      (*refs_.objects).selected_ids().end());
-        location.primary_id = std::string((*refs_.objects).selected_id());
+        location.primary_id = std::string((*refs_.objects).selected_id.read());
         location.top_row = (*refs_.objects).top_row();
     }
 
@@ -1261,7 +1261,7 @@ private:
             (*refs_.objects).set_top_row(std::min(location.top_row, rows - 1U));
         }
         (*refs_.objects).accessible_name = location.title + " objects";
-        (*refs_.tree).set_selected_id("fm.tree.node." + location.tree_id);
+        (*refs_.tree).selected_id = "fm.tree.node." + location.tree_id;
         (*refs_.title).text = "File Manager  ·  " + location.title;
         (*refs_.search).placeholder_text = "Search " + location.title + " and descendants";
         (*refs_.status_authority).text = "Local navigation · " + location.id +
@@ -1614,11 +1614,11 @@ private:
         (*completions_).items = std::move(values);
         (*completions_).set_item_stable_ids(std::move(ids));
         if (!(*completions_).items.read().empty()) (*completions_).select_index(0U);
-        (*resolution_).set_text("Completion generation " +
+        (*resolution_).text = "Completion generation " +
                               std::to_string(generation) + " · " +
                               std::to_string((*completions_).items.read().size()) +
-                              " fixture matches");
-        (*resolution_).accessible_description = (*resolution_).text();
+                              " fixture matches";
+        (*resolution_).accessible_description = (*resolution_).text.read();
     }
 
     void accept_completion(std::size_t index) {
@@ -1663,7 +1663,7 @@ private:
                 status_(result.explanation + " · " + result.expanded_path);
                 navigate_and_close(result.destination_id);
             } else {
-                (*resolution_).set_text("Path not resolved · " + result.explanation);
+                (*resolution_).text = "Path not resolved · " + result.explanation;
                 (*resolution_).fore_color = Color::rgba(139, 43, 47);
                 (*resolution_).accessible_description =
                     "Error: " + result.explanation;
@@ -1993,7 +1993,7 @@ private:
                 }
             }
             if (object_exists) {
-                (*refs_.objects).set_selected_id(stable_object);
+                (*refs_.objects).selected_id = stable_object;
             }
         }
         status_(select_object ? "Opened search result · " + (*fixture).name
@@ -2333,7 +2333,7 @@ private:
         }
         const std::size_t limit = enabled_cheap >= 2U ? 31U
                                 : enabled_cheap == 1U ? 18U : 7U;
-        const std::string selected((*refs_.criteria_objects).selected_id());
+        const std::string selected((*refs_.criteria_objects).selected_id.read());
         (*refs_.criteria_objects).set_items(criteria_object_items(limit));
         bool survives = false;
         for (const ObjectViewItem& item : (*refs_.criteria_objects).items()) {
@@ -2342,10 +2342,9 @@ private:
                 break;
             }
         }
-        if (survives) (*refs_.criteria_objects).set_selected_id(selected);
+        if (survives) (*refs_.criteria_objects).selected_id = selected;
         else if (!(*refs_.criteria_objects).items().empty()) {
-            (*refs_.criteria_objects).set_selected_id(
-                (*refs_.criteria_objects).items().front().stable_id);
+            (*refs_.criteria_objects).selected_id = (*refs_.criteria_objects).items().front().stable_id;
         }
         ++generation_;
         update_status();
@@ -2434,7 +2433,7 @@ private:
 
     void project_selection() {
         if (!visible()) return;
-        const std::string selected((*refs_.criteria_objects).selected_id());
+        const std::string selected((*refs_.criteria_objects).selected_id.read());
         constexpr std::string_view prefix = "fm.object.";
         const std::string_view fixture_id = selected.starts_with(prefix)
             ? std::string_view(selected).substr(prefix.size())
@@ -2536,7 +2535,7 @@ private:
             static_cast<void>((*refs_.criteria_rack).set_module_state(
                 module.stable_id, module.state, module.status_text));
         }
-        const std::string selected((*refs_.criteria_objects).selected_id());
+        const std::string selected((*refs_.criteria_objects).selected_id.read());
         (*refs_.criteria_objects).set_items(criteria_object_items(5U));
         bool selection_survives = false;
         for (const ObjectViewItem& item : (*refs_.criteria_objects).items()) {
@@ -2546,10 +2545,9 @@ private:
             }
         }
         if (selection_survives) {
-            (*refs_.criteria_objects).set_selected_id(selected);
+            (*refs_.criteria_objects).selected_id = selected;
         } else if (!(*refs_.criteria_objects).items().empty()) {
-            (*refs_.criteria_objects).set_selected_id(
-                (*refs_.criteria_objects).items().front().stable_id);
+            (*refs_.criteria_objects).selected_id = (*refs_.criteria_objects).items().front().stable_id;
         }
         ++generation_;
         (*refs_.criteria_progress).set_animation_enabled(false);

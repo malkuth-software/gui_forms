@@ -1026,7 +1026,7 @@ int main() {
                 (*objects).items().size() == 15U &&
                 (*objects).selected_id.read() == "fm.object.session-new-folder-1" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.selection.object-name"))).text() == "New Folder",
+                    (*product).find("fm.selection.object-name"))).text.read() == "New Folder",
             "background New folder must create and project a session-only fixture");
 
     secondary_click(*product,
@@ -1052,12 +1052,12 @@ int main() {
     require((*tree).on_semantic_child_action(
                 "fm.tree.node.reference", gui_forms::SemanticAction::select, {}) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find("reference") !=
+                    (*product).find("fm.status.authority"))).text.read().find("reference") !=
                     std::string::npos,
             "tree selection did not publish deterministic fixture navigation state");
     require((*objects).items().size() == 3U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text() ==
+                    (*product).find("fm.title.text"))).text.read() ==
                     "File Manager  ·  Reference" &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.nav.back"))).enabled.read() &&
@@ -1070,7 +1070,7 @@ int main() {
                                        gui_forms::Modifier::alt}) &&
                 (*objects).items().size() == 14U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().ends_with("Projects") &&
+                    (*product).find("fm.title.text"))).text.read().ends_with("Projects") &&
                 (*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.nav.forward"))).enabled.read(),
             "Alt+Left did not restore the exact retained Projects history entry");
@@ -1079,7 +1079,7 @@ int main() {
                                    gui_forms::Modifier::alt}) &&
                 (*objects).items().size() == 3U &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().ends_with("Reference"),
+                    (*product).find("fm.title.text"))).text.read().ends_with("Reference"),
             "Alt+Right did not restore the forward location entry");
     require((*product).dispatch_key({gui_forms::KeyAction::down,
                                    gui_forms::PhysicalKey::up,
@@ -1087,7 +1087,7 @@ int main() {
                 (*objects).items().size() == 3U &&
                 (*objects).items().front().name == "Projects" &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.title.text"))).text().ends_with("Work") &&
+                    (*product).find("fm.title.text"))).text.read().ends_with("Work") &&
                 !(*std::dynamic_pointer_cast<gui_forms::Button>(
                     (*product).find("fm.nav.forward"))).enabled.read(),
             "Alt+Up did not navigate to the parent and clear the forward branch");
@@ -1100,7 +1100,7 @@ int main() {
                 (*product).dispatch_key({gui_forms::KeyAction::down,
                                        gui_forms::PhysicalKey::enter}) &&
                 (*std::dynamic_pointer_cast<gui_forms::Label>(
-                    (*product).find("fm.status.authority"))).text().find(
+                    (*product).find("fm.status.authority"))).text.read().find(
                     "Native GUI.Forms dogfood") != std::string::npos,
             "application menu semantic path did not execute its shared command");
 
