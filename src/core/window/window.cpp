@@ -582,7 +582,7 @@ OverlayToken SurfaceRoot::open_overlay(const Control::Ptr& owner,
     // overlay. Keep it as a separate retained root while still registering the
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
     attach_subtree(overlay, {});
-    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = std::make_shared<detail::OverlayAttachment>(*this, owner, overlay);
+    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = std::make_shared<detail::OverlayAttachment>(*this, owner, overlay, !options.require_enabled_owner);
     overlays_.push_back(attachment);
     (*owner).own_revocable(attachment);
     return OverlayToken(std::move(attachment));
@@ -620,10 +620,11 @@ void SurfaceRoot::close_overlay(detail::OverlayAttachment& overlay) noexcept {
     }
 }
 
-void SurfaceRoot::close_overlays_for_subtree(const Control::Ptr& control) noexcept {
+void SurfaceRoot::close_overlays_for_subtree(const Control::Ptr& control, PassiveOverlays passive) noexcept {
     std::vector<std::shared_ptr<detail::OverlayAttachment>> closing;
     for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
-        if (contains_control(control, (*overlay).owner())) {
+        const bool kept = passive == PassiveOverlays::keep && (*overlay).passive();
+        if (!kept && contains_control(control, (*overlay).owner())) {
             closing.push_back(overlay);
         }
     }
@@ -2257,7 +2258,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
 void SurfaceRoot::detach_subtree(const Control::Ptr& control) {
     require_root_thread("visual-tree detachment");
     clear_dialog_targets_for_subtree(control);
-    close_overlays_for_subtree(control);
+    close_overlays_for_subtree(control, PassiveOverlays::close);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
     if ((*control).surface_root_ != this) {
@@ -2410,7 +2411,14 @@ void SurfaceRoot::revoke_focus_scopes_for_subtree(
 
 void SurfaceRoot::on_eligibility_changed(const Control::Ptr& control) {
     require_root_thread("eligibility mutation");
-    close_overlays_for_subtree(control);
+    close_overlays_for_subtree(control, PassiveOverlays::close);
+    close_focus_scopes_for_subtree(control);
+    revoke_interaction_for_subtree(control, true);
+}
+
+void SurfaceRoot::on_enabled_withdrawn(const Control::Ptr& control) {
+    require_root_thread("eligibility mutation");
+    close_overlays_for_subtree(control, PassiveOverlays::keep);
     close_focus_scopes_for_subtree(control);
     revoke_interaction_for_subtree(control, true);
 }

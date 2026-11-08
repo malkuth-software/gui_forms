@@ -2292,7 +2292,7 @@ void Control::prepare_write(const decltype(enabled)&, bool&) {
 
 void Control::written(const decltype(enabled)&) {
     if (surface_root_ && !enabled.read()) {
-        (*surface_root_).on_eligibility_changed(shared_from_this());
+        (*surface_root_).on_enabled_withdrawn(shared_from_this());
     }
     if (!is_alive()) return;
     invalidate_declared(invalidation::enabled);

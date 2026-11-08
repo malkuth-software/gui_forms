@@ -1376,7 +1376,11 @@ private:
         FocusScopeId scope, FocusScopeCloseReason reason,
         const Control::Ptr& notification_owner);
     void revoke_focus_scopes_for_subtree(const Control::Ptr& control) noexcept;
-    void close_overlays_for_subtree(const Control::Ptr& control) noexcept;
+    // Whether closing a subtree's overlays keeps the passive ones (opened
+    // without an enabled owner): a disabled owner keeps them, a hidden or
+    // detached one does not.
+    enum class PassiveOverlays : std::uint8_t { close, keep };
+    void close_overlays_for_subtree(const Control::Ptr& control, PassiveOverlays passive) noexcept;
     void close_overlay(detail::OverlayAttachment& overlay) noexcept;
     void close_accelerator(detail::AcceleratorAttachment& accelerator) noexcept;
     [[nodiscard]] bool dispatch_accelerator(const KeyEvent& event,
@@ -1412,6 +1416,9 @@ private:
     // pointer left the window, or the control left the interaction.
     void forget_hover() noexcept;
     void on_eligibility_changed(const Control::Ptr& control);
+    // As on_eligibility_changed, for a control just disabled: its passive
+    // overlays stay open.
+    void on_enabled_withdrawn(const Control::Ptr& control);
     void on_hit_test_transparency_changed(const Control::Ptr& control);
     void publish_control_availability(Control& control);
     void register_subtree(const Control::Ptr& control);
