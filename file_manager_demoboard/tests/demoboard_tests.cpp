@@ -898,14 +898,14 @@ int main() {
                 (*property_list).header_content() ==
                     (*product).find("fm.selection.summary"),
             "preview disclosure must restore the same retained header subtree");
-    (*selection_split).set_splitter_distance(0.0);
+    (*selection_split).splitter_distance = 0.0;
     (*product).perform_layout();
     require((*(*selection_split).second_panel()).arranged_bounds().width <= 420.01 &&
                 std::abs((*property_list).committed_arranged_bounds().width -
                          (*(*selection_split).second_panel()).arranged_bounds().width) <
                     0.01,
             "widening Selection must stop at its useful content extent and fill it");
-    (*selection_split).set_splitter_distance(935.0);
+    (*selection_split).splitter_distance = 935.0;
     (*product).perform_layout();
     const double inspector_extent =
         (*(*selection_split).second_panel()).arranged_bounds().width;

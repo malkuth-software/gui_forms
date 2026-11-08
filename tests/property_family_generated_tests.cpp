@@ -43,6 +43,7 @@
 #include "gui_forms/controls/panel/token_box/token_box.hpp"
 #include "gui_forms/controls/panel/tree_list_view/tree_list_view.hpp"
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
@@ -1228,6 +1229,65 @@ void test_search_field_properties() {
     }
 }
 
+void test_split_container_properties() {
+    std::shared_ptr<SplitContainer> control = make_control<SplitContainer>(StableId("generated.splitcontainer"));
+    {
+        const Orientation sample = Orientation::horizontal;
+        (*control).orientation = sample;
+        expect((*control).orientation.read() == sample, "SplitContainer.orientation: a write stores");
+    }
+    {
+        const SplitSeamGeometry sample = SplitSeamGeometry{6.0, SplitSeamThicknessPolicy::logical, 2.0, 2.0, 10.0};
+        (*control).splitter_geometry = sample;
+        expect((*control).splitter_geometry.read() == sample, "SplitContainer.splitter_geometry: a write stores");
+    }
+    {
+        const double sample = 40.0;
+        (*control).first_minimum = sample;
+        expect((*control).first_minimum.read() == sample, "SplitContainer.first_minimum: a write stores");
+    }
+    {
+        const double sample = 40.0;
+        (*control).second_minimum = sample;
+        expect((*control).second_minimum.read() == sample, "SplitContainer.second_minimum: a write stores");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{400.0};
+        (*control).first_maximum = sample;
+        expect((*control).first_maximum.read() == sample, "SplitContainer.first_maximum: a write stores");
+    }
+    {
+        const std::optional<double> sample = std::optional<double>{400.0};
+        (*control).second_maximum = sample;
+        expect((*control).second_maximum.read() == sample, "SplitContainer.second_maximum: a write stores");
+    }
+    {
+        const bool sample = !(*control).splitter_fixed.read();
+        (*control).splitter_fixed = sample;
+        expect((*control).splitter_fixed.read() == sample, "SplitContainer.splitter_fixed: a write stores");
+    }
+    {
+        const SplitFixedPanel sample = SplitFixedPanel::second;
+        (*control).fixed_panel = sample;
+        expect((*control).fixed_panel.read() == sample, "SplitContainer.fixed_panel: a write stores");
+    }
+    {
+        const SplitFixedPanel sample = SplitFixedPanel::first;
+        (*control).collapse_panel = sample;
+        expect((*control).collapse_panel.read() == sample, "SplitContainer.collapse_panel: a write stores");
+    }
+    {
+        const double sample = 300.0;
+        (*control).automatic_collapse_threshold = sample;
+        expect((*control).automatic_collapse_threshold.read() == sample, "SplitContainer.automatic_collapse_threshold: a write stores");
+    }
+    {
+        const double sample = 8.0;
+        (*control).keyboard_increment = sample;
+        expect((*control).keyboard_increment.read() == sample, "SplitContainer.keyboard_increment: a write stores");
+    }
+}
+
 void test_splitter_properties() {
     std::shared_ptr<Splitter> control = make_control<Splitter>(StableId("generated.splitter"));
     {
@@ -1529,6 +1589,7 @@ int main() {
     test_scaled_panel_properties();
     test_scrollable_control_properties();
     test_search_field_properties();
+    test_split_container_properties();
     test_splitter_properties();
     test_text_block_properties();
     test_text_box_properties();

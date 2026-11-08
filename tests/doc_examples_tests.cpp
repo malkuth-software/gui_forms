@@ -3317,9 +3317,9 @@ namespace doc_example_SplitContainer_1 {
 void example() {
     std::shared_ptr<gf::SplitContainer> split =
         gf::make_control<gf::SplitContainer>(gf::StableId("mail"));
-    (*split).set_first_minimum(80.0);
-    (*split).set_second_minimum(120.0);
-    (*split).set_splitter_distance(140.0);
+    (*split).first_minimum = 80.0;
+    (*split).second_minimum = 120.0;
+    (*split).splitter_distance = 140.0;
 
     std::shared_ptr<gf::Panel> folders =
         gf::make_control<gf::Panel>(gf::StableId("mail.folders"));
@@ -3337,7 +3337,7 @@ void example() {
     // The first panel is 140 wide. The second starts after the 3-pixel seam,
     // at x = 143, and is 357 wide.
 
-    (*split).set_splitter_distance(490.0);
+    (*split).splitter_distance = 490.0;
     window.perform_layout();
     // The second panel's minimum holds the distance at 377.
 }
@@ -3351,8 +3351,8 @@ struct Editor final : gf::Component {
     double inspector_start = 0.0;
 
     Editor() {
-        (*split).set_fixed_panel(gf::SplitFixedPanel::second);
-        (*split).set_collapse_panel(gf::SplitFixedPanel::second);
+        (*split).fixed_panel = gf::SplitFixedPanel::second;
+        (*split).collapse_panel = gf::SplitFixedPanel::second;
         gf::on((*split).splitter_changed(), *this, &Editor::on_split);
     }
     void on_split(const gf::SplitChangeEvent& change) {

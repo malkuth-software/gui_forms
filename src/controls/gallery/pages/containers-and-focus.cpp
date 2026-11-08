@@ -36,9 +36,9 @@ private:
     // content pane's explanation and actions.
     void build_split() {
         SplitContainer& split = *document_.gallery_containers_split;
-        split.set_splitter_distance(310.0);
-        split.set_first_minimum(180.0);
-        split.set_second_minimum(280.0);
+        split.splitter_distance = 310.0;
+        split.first_minimum = 180.0;
+        split.second_minimum = 280.0;
         const std::shared_ptr<SplitterPanel> first = split.first_panel();
         const std::shared_ptr<SplitterPanel> second = split.second_panel();
         (*first).set_background(Color::rgba(225, 235, 243));

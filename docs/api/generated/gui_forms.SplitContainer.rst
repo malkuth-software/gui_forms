@@ -7,7 +7,7 @@ gui_forms::SplitContainer
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: SplitContainer final : public ContainerControl
+.. cpp:class:: SplitContainer final : public ContainerControl, public SplitContainerCapabilities<SplitContainer>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
 
@@ -34,16 +34,6 @@ gui_forms::SplitContainer
 
    :Properties:
 
-      **first_panel** : ``std::shared_ptr<SplitterPanel>``, read-only
-         The left or top panel. Add the first pane's content to it.
-
-      **second_panel** : ``std::shared_ptr<SplitterPanel>``, read-only
-         The right or bottom panel.
-
-      **splitter_control** : ``Control::Ptr``, read-only
-         The seam control. It is focusable, receives the pointer and keyboard
-         input that resizes the panels, and draws the grip and collapse tab.
-
       **orientation** : ``Orientation``, default ``Orientation::vertical``
          :cpp:enumerator:`Orientation::vertical <gui_forms::Orientation::vertical>` puts a vertical seam between a left and a right
          panel; :cpp:enumerator:`Orientation::horizontal <gui_forms::Orientation::horizontal>` puts a horizontal seam between a top and
@@ -52,7 +42,7 @@ gui_forms::SplitContainer
       **splitter_distance** : ``double``
          The width, or height, of the first panel: the distance from the left or
          top edge to the seam, in logical pixels. Until a distance is set, each
-         layout centers the seam, unless :cpp:func:`fixed_panel <gui_forms::SplitContainer::fixed_panel>` is ``second``. A set distance
+         layout centers the seam, unless :cpp:member:`fixed_panel <gui_forms::SplitContainer::fixed_panel>` is ``second``. A set distance
          is kept within the panels' minimums and maximums at every layout; when a
          layout has to clamp it, the clamped value becomes the distance, so the
          seam does not move back when the container grows again. It must be
@@ -61,11 +51,11 @@ gui_forms::SplitContainer
       **splitter_width** : ``double``, default ``3.0``
          The visible thickness of the seam, which neither panel covers. It must be
          finite and positive. Setting it also keeps the pointer target at least
-         :cpp:func:`splitter_hit_width <gui_forms::SplitContainer::splitter_hit_width>` thick, split evenly on both sides of the seam.
+         :cpp:member:`splitter_hit_width <gui_forms::SplitContainer::splitter_hit_width>` thick, split evenly on both sides of the seam.
 
       **splitter_hit_width** : ``double``, default ``9.0``
          The thickness of the seam's pointer target, never less than
-         :cpp:func:`splitter_width <gui_forms::SplitContainer::splitter_width>`. It must be finite and positive.
+         :cpp:member:`splitter_width <gui_forms::SplitContainer::splitter_width>`. It must be finite and positive.
 
       **splitter_geometry** : ``SplitSeamGeometry``, default ``SplitSeamGeometry{}``
          The full seam geometry: the visible thickness, the hit extents before and
@@ -84,23 +74,61 @@ gui_forms::SplitContainer
          presses or leaves it. Zero switches instantly. Values below zero or above
          1000 ms throw ``std::invalid_argument``.
 
-      **splitter_seam_snapshot** : ``SplitSeamSnapshot``, read-only
-         The seam as last laid out: its state, its visible, hit and collapse-tab
-         bounds, the display scale and the progress of its transition.
-
       **first_minimum** : ``double``, default ``25.0``
          The smallest extent the first panel is given while the space allows. It
-         must be finite, nonnegative and not above :cpp:func:`first_maximum <gui_forms::SplitContainer::first_maximum>`.
+         must be finite, nonnegative and not above :cpp:member:`first_maximum <gui_forms::SplitContainer::first_maximum>`.
 
       **second_minimum** : ``double``, default ``25.0``
          The smallest extent of the second panel, with the same rules.
 
       **first_maximum** : ``std::optional<double>``, default ``std::nullopt``
          The largest extent of the first panel, or no limit. It may not be below
-         :cpp:func:`first_minimum <gui_forms::SplitContainer::first_minimum>`.
+         :cpp:member:`first_minimum <gui_forms::SplitContainer::first_minimum>`.
 
       **second_maximum** : ``std::optional<double>``, default ``std::nullopt``
          The largest extent of the second panel, or no limit.
+
+      **splitter_fixed** : ``bool``, default ``false``
+         Whether the user is prevented from resizing the panels with the pointer,
+         the keyboard or accessibility actions. The collapse tab keeps working.
+
+      **fixed_panel** : ``SplitFixedPanel``, default ``SplitFixedPanel::none``
+         Which panel keeps its extent when the container is resized.
+         :cpp:enumerator:`SplitFixedPanel::second <gui_forms::SplitFixedPanel::second>` keeps the second panel's extent and moves the
+         seam. Otherwise the seam keeps its distance once one has been set, so the
+         first panel keeps its extent.
+
+      **collapse_panel** : ``SplitFixedPanel``, default ``SplitFixedPanel::none``
+         The panel that the seam's collapse tab, Enter, Space and the
+         accessibility expand and collapse actions toggle. With ``none`` the seam
+         has no collapse action.
+
+      **automatic_collapse_threshold** : ``double``, default ``0.0``
+         When positive, :cpp:member:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` collapses by itself while the container's
+         width (or height, for a horizontal split) is below this value, and comes
+         back when the container grows to the threshold again. Only a panel that
+         collapsed automatically comes back; if the user restores it while the
+         container is still small, it stays open until the container next grows
+         past the threshold. Setting the threshold to 0 restores an automatically
+         collapsed panel. It must be finite and nonnegative.
+
+      **keyboard_increment** : ``double``, default ``4.0``
+         How far one arrow key press moves the seam; Shift multiplies it by ten.
+         It must be finite and positive.
+
+      **first_panel** : ``std::shared_ptr<SplitterPanel>``, read-only
+         The left or top panel. Add the first pane's content to it.
+
+      **second_panel** : ``std::shared_ptr<SplitterPanel>``, read-only
+         The right or bottom panel.
+
+      **splitter_control** : ``Control::Ptr``, read-only
+         The seam control. It is focusable, receives the pointer and keyboard
+         input that resizes the panels, and draws the grip and collapse tab.
+
+      **splitter_seam_snapshot** : ``SplitSeamSnapshot``, read-only
+         The seam as last laid out: its state, its visible, hit and collapse-tab
+         bounds, the display scale and the progress of its transition.
 
       **first_collapsed** : ``bool``, default ``false``
          Whether the first panel is collapsed. Collapsing hides the panel, gives
@@ -121,34 +149,6 @@ gui_forms::SplitContainer
       **second_collapse_origin** : ``SplitCollapseOrigin``, default ``SplitCollapseOrigin::none``, read-only
          Who collapsed the second panel.
 
-      **splitter_fixed** : ``bool``, default ``false``
-         Whether the user is prevented from resizing the panels with the pointer,
-         the keyboard or accessibility actions. The collapse tab keeps working.
-
-      **fixed_panel** : ``SplitFixedPanel``, default ``SplitFixedPanel::none``
-         Which panel keeps its extent when the container is resized.
-         :cpp:enumerator:`SplitFixedPanel::second <gui_forms::SplitFixedPanel::second>` keeps the second panel's extent and moves the
-         seam. Otherwise the seam keeps its distance once one has been set, so the
-         first panel keeps its extent.
-
-      **collapse_panel** : ``SplitFixedPanel``, default ``SplitFixedPanel::none``
-         The panel that the seam's collapse tab, Enter, Space and the
-         accessibility expand and collapse actions toggle. With ``none`` the seam
-         has no collapse action.
-
-      **automatic_collapse_threshold** : ``double``, default ``0.0``
-         When positive, :cpp:func:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` collapses by itself while the container's
-         width (or height, for a horizontal split) is below this value, and comes
-         back when the container grows to the threshold again. Only a panel that
-         collapsed automatically comes back; if the user restores it while the
-         container is still small, it stays open until the container next grows
-         past the threshold. Setting the threshold to 0 restores an automatically
-         collapsed panel. It must be finite and nonnegative.
-
-      **keyboard_increment** : ``double``, default ``4.0``
-         How far one arrow key press moves the seam; Shift multiplies it by ten.
-         It must be finite and positive.
-
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -156,9 +156,9 @@ gui_forms::SplitContainer
    :Events:
 
       **splitter_changed** : ``Event<const SplitChangeEvent&>``
-         Raised after :cpp:func:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` changes, with the old and new distance
+         Raised after :cpp:member:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` changes, with the old and new distance
          and the reason: :cpp:enumerator:`SplitChangeReason::programmatic <gui_forms::SplitChangeReason::programmatic>` for
-         :cpp:func:`set_splitter_distance <gui_forms::SplitContainer::set_splitter_distance>`, ``pointer`` for each step of a drag and its
+         a :cpp:member:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` write, ``pointer`` for each step of a drag and its
          release, ``keyboard`` for arrow keys, ``semantic`` for accessibility actions,
          ``cancel`` when Escape ends a drag and restores the starting distance, and
          ``container_resize`` when a layout pass moves the seam: to center it at
@@ -206,15 +206,15 @@ gui_forms::SplitContainer
    focuses the seam and captures the pointer, and the panels follow the pointer
    until release. While the seam has focus, Left and Right (for a vertical
    seam) or Up and Down (for a horizontal seam) move it by
-   :cpp:func:`keyboard_increment <gui_forms::SplitContainer::keyboard_increment>`, Escape during a drag cancels it, and, when
-   :cpp:func:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` is set, Enter and Space toggle that panel, as does pressing
+   :cpp:member:`keyboard_increment <gui_forms::SplitContainer::keyboard_increment>`, Escape during a drag cancels it, and, when
+   :cpp:member:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` is set, Enter and Space toggle that panel, as does pressing
    and releasing the collapse tab. Dragging, the arrow keys and the
-   accessibility value actions do nothing while :cpp:func:`splitter_fixed <gui_forms::SplitContainer::splitter_fixed>` is true or a
+   accessibility value actions do nothing while :cpp:member:`splitter_fixed <gui_forms::SplitContainer::splitter_fixed>` is true or a
    panel is collapsed.
 
-   The distance is limited to keep the first panel between :cpp:func:`first_minimum <gui_forms::SplitContainer::first_minimum>` and
-   :cpp:func:`first_maximum <gui_forms::SplitContainer::first_maximum>` and the second between :cpp:func:`second_minimum <gui_forms::SplitContainer::second_minimum>` and
-   :cpp:func:`second_maximum <gui_forms::SplitContainer::second_maximum>`. When the container is too small for both minimums, the
+   The distance is limited to keep the first panel between :cpp:member:`first_minimum <gui_forms::SplitContainer::first_minimum>` and
+   :cpp:member:`first_maximum <gui_forms::SplitContainer::first_maximum>` and the second between :cpp:member:`second_minimum <gui_forms::SplitContainer::second_minimum>` and
+   :cpp:member:`second_maximum <gui_forms::SplitContainer::second_maximum>`. When the container is too small for both minimums, the
    space is divided in proportion to them. Maximums that cannot both be met
    divide it in proportion to the maximums, or in half when only one is set.
 
@@ -225,7 +225,7 @@ gui_forms::SplitContainer
    The container publishes the accessibility role ``split_pane``, always exposed,
    with the distance as its value and the allowed range as its minimum and
    maximum. It offers focus, and increment, decrement and set-value actions
-   while resizing is allowed. With a :cpp:func:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` it also offers expand or
+   while resizing is allowed. With a :cpp:member:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` it also offers expand or
    collapse and reports the expanded state, and its description is replaced by
    a sentence that says whether the pane is collapsed.
 
@@ -242,9 +242,9 @@ gui_forms::SplitContainer
 
       std::shared_ptr<gf::SplitContainer> split =
           gf::make_control<gf::SplitContainer>(gf::StableId("mail"));
-      (*split).set_first_minimum(80.0);
-      (*split).set_second_minimum(120.0);
-      (*split).set_splitter_distance(140.0);
+      (*split).first_minimum = 80.0;
+      (*split).second_minimum = 120.0;
+      (*split).splitter_distance = 140.0;
 
       std::shared_ptr<gf::Panel> folders =
           gf::make_control<gf::Panel>(gf::StableId("mail.folders"));
@@ -262,7 +262,7 @@ gui_forms::SplitContainer
       // The first panel is 140 wide. The second starts after the 3-pixel seam,
       // at x = 143, and is 357 wide.
 
-      (*split).set_splitter_distance(490.0);
+      (*split).splitter_distance = 490.0;
       window.perform_layout();
       // The second panel's minimum holds the distance at 377.
 
@@ -278,8 +278,8 @@ gui_forms::SplitContainer
           double inspector_start = 0.0;
 
           Editor() {
-              (*split).set_fixed_panel(gf::SplitFixedPanel::second);
-              (*split).set_collapse_panel(gf::SplitFixedPanel::second);
+              (*split).fixed_panel = gf::SplitFixedPanel::second;
+              (*split).collapse_panel = gf::SplitFixedPanel::second;
               gf::on((*split).splitter_changed(), *this, &Editor::on_split);
           }
           void on_split(const gf::SplitChangeEvent& change) {
@@ -305,6 +305,103 @@ gui_forms::SplitContainer
 
    .. rubric:: Properties
 
+   .. cpp:member:: Orientation orientation
+
+      :cpp:enumerator:`Orientation::vertical <gui_forms::Orientation::vertical>` puts a vertical seam between a left and a right
+      panel; :cpp:enumerator:`Orientation::horizontal <gui_forms::Orientation::horizontal>` puts a horizontal seam between a top and
+      a bottom panel.
+
+   .. cpp:member:: double splitter_distance
+
+      The width, or height, of the first panel: the distance from the left or
+      top edge to the seam, in logical pixels. Until a distance is set, each
+      layout centers the seam, unless :cpp:member:`fixed_panel <gui_forms::SplitContainer::fixed_panel>` is ``second``. A set distance
+      is kept within the panels' minimums and maximums at every layout; when a
+      layout has to clamp it, the clamped value becomes the distance, so the
+      seam does not move back when the container grows again. It must be
+      finite and nonnegative, or ``std::invalid_argument`` is thrown.
+
+   .. cpp:member:: double splitter_width
+
+      The visible thickness of the seam, which neither panel covers. It must be
+      finite and positive. Setting it also keeps the pointer target at least
+      :cpp:member:`splitter_hit_width <gui_forms::SplitContainer::splitter_hit_width>` thick, split evenly on both sides of the seam.
+
+   .. cpp:member:: double splitter_hit_width
+
+      The thickness of the seam's pointer target, never less than
+      :cpp:member:`splitter_width <gui_forms::SplitContainer::splitter_width>`. It must be finite and positive.
+
+   .. cpp:member:: SplitSeamGeometry splitter_geometry
+
+      The full seam geometry: the visible thickness, the hit extents before and
+      after it, the minimum hit target, and the thickness policy.
+      :cpp:enumerator:`SplitSeamThicknessPolicy::device_pixel_hairline <gui_forms::SplitSeamThicknessPolicy::device_pixel_hairline>` draws the seam as one
+      physical pixel at any display scale and snaps it to the device grid,
+      while the hit target stays in logical pixels. The geometry is validated
+      as a whole: the visible thickness must be above 0 and at most 64, each hit
+      extent between 0 and 128, the minimum target above 0 and at most 256,
+      and the hit extents, plus the visible thickness for the logical policy,
+      must add up to at least the minimum target. Otherwise
+      ``std::invalid_argument`` is thrown and nothing changes.
+
+   .. cpp:member:: FrameInterval splitter_transition_duration
+
+      How long the grip takes to grow or shrink when the pointer approaches,
+      presses or leaves it. Zero switches instantly. Values below zero or above
+      1000 ms throw ``std::invalid_argument``.
+
+   .. cpp:member:: double first_minimum
+
+      The smallest extent the first panel is given while the space allows. It
+      must be finite, nonnegative and not above :cpp:member:`first_maximum <gui_forms::SplitContainer::first_maximum>`.
+
+   .. cpp:member:: double second_minimum
+
+      The smallest extent of the second panel, with the same rules.
+
+   .. cpp:member:: std::optional<double> first_maximum
+
+      The largest extent of the first panel, or no limit. It may not be below
+      :cpp:member:`first_minimum <gui_forms::SplitContainer::first_minimum>`.
+
+   .. cpp:member:: std::optional<double> second_maximum
+
+      The largest extent of the second panel, or no limit.
+
+   .. cpp:member:: bool splitter_fixed
+
+      Whether the user is prevented from resizing the panels with the pointer,
+      the keyboard or accessibility actions. The collapse tab keeps working.
+
+   .. cpp:member:: SplitFixedPanel fixed_panel
+
+      Which panel keeps its extent when the container is resized.
+      :cpp:enumerator:`SplitFixedPanel::second <gui_forms::SplitFixedPanel::second>` keeps the second panel's extent and moves the
+      seam. Otherwise the seam keeps its distance once one has been set, so the
+      first panel keeps its extent.
+
+   .. cpp:member:: SplitFixedPanel collapse_panel
+
+      The panel that the seam's collapse tab, Enter, Space and the
+      accessibility expand and collapse actions toggle. With ``none`` the seam
+      has no collapse action.
+
+   .. cpp:member:: double automatic_collapse_threshold
+
+      When positive, :cpp:member:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` collapses by itself while the container's
+      width (or height, for a horizontal split) is below this value, and comes
+      back when the container grows to the threshold again. Only a panel that
+      collapsed automatically comes back; if the user restores it while the
+      container is still small, it stays open until the container next grows
+      past the threshold. Setting the threshold to 0 restores an automatically
+      collapsed panel. It must be finite and nonnegative.
+
+   .. cpp:member:: double keyboard_increment
+
+      How far one arrow key press moves the seam; Shift multiplies it by ten.
+      It must be finite and positive.
+
    .. cpp:function:: std::shared_ptr<SplitterPanel> first_panel() const noexcept
 
       The left or top panel. Add the first pane's content to it.
@@ -318,114 +415,10 @@ gui_forms::SplitContainer
       The seam control. It is focusable, receives the pointer and keyboard
       input that resizes the panels, and draws the grip and collapse tab.
 
-   .. cpp:function:: Orientation orientation() const noexcept
-
-      :cpp:enumerator:`Orientation::vertical <gui_forms::Orientation::vertical>` puts a vertical seam between a left and a right
-      panel; :cpp:enumerator:`Orientation::horizontal <gui_forms::Orientation::horizontal>` puts a horizontal seam between a top and
-      a bottom panel.
-
-   .. cpp:function:: void set_orientation(Orientation orientation)
-
-      Sets :cpp:func:`orientation <gui_forms::SplitContainer::orientation>`; see the property's description above.
-
-   .. cpp:function:: double splitter_distance() const noexcept
-
-      The width, or height, of the first panel: the distance from the left or
-      top edge to the seam, in logical pixels. Until a distance is set, each
-      layout centers the seam, unless :cpp:func:`fixed_panel <gui_forms::SplitContainer::fixed_panel>` is ``second``. A set distance
-      is kept within the panels' minimums and maximums at every layout; when a
-      layout has to clamp it, the clamped value becomes the distance, so the
-      seam does not move back when the container grows again. It must be
-      finite and nonnegative, or ``std::invalid_argument`` is thrown.
-
-   .. cpp:function:: void set_splitter_distance(double distance)
-
-      Sets :cpp:func:`splitter_distance <gui_forms::SplitContainer::splitter_distance>`; see the property's description above.
-
-   .. cpp:function:: double splitter_width() const noexcept
-
-      The visible thickness of the seam, which neither panel covers. It must be
-      finite and positive. Setting it also keeps the pointer target at least
-      :cpp:func:`splitter_hit_width <gui_forms::SplitContainer::splitter_hit_width>` thick, split evenly on both sides of the seam.
-
-   .. cpp:function:: void set_splitter_width(double width)
-
-      Sets :cpp:func:`splitter_width <gui_forms::SplitContainer::splitter_width>`; see the property's description above.
-
-   .. cpp:function:: double splitter_hit_width() const noexcept
-
-      The thickness of the seam's pointer target, never less than
-      :cpp:func:`splitter_width <gui_forms::SplitContainer::splitter_width>`. It must be finite and positive.
-
-   .. cpp:function:: void set_splitter_hit_width(double width)
-
-      Sets :cpp:func:`splitter_hit_width <gui_forms::SplitContainer::splitter_hit_width>`; see the property's description above.
-
-   .. cpp:function:: const SplitSeamGeometry& splitter_geometry() const noexcept
-
-      The full seam geometry: the visible thickness, the hit extents before and
-      after it, the minimum hit target, and the thickness policy.
-      :cpp:enumerator:`SplitSeamThicknessPolicy::device_pixel_hairline <gui_forms::SplitSeamThicknessPolicy::device_pixel_hairline>` draws the seam as one
-      physical pixel at any display scale and snaps it to the device grid,
-      while the hit target stays in logical pixels. The geometry is validated
-      as a whole: the visible thickness must be above 0 and at most 64, each hit
-      extent between 0 and 128, the minimum target above 0 and at most 256,
-      and the hit extents, plus the visible thickness for the logical policy,
-      must add up to at least the minimum target. Otherwise
-      ``std::invalid_argument`` is thrown and nothing changes.
-
-   .. cpp:function:: void set_splitter_geometry(SplitSeamGeometry geometry)
-
-      Sets :cpp:func:`splitter_geometry <gui_forms::SplitContainer::splitter_geometry>`; see the property's description above.
-
-   .. cpp:function:: FrameInterval splitter_transition_duration() const noexcept
-
-      How long the grip takes to grow or shrink when the pointer approaches,
-      presses or leaves it. Zero switches instantly. Values below zero or above
-      1000 ms throw ``std::invalid_argument``.
-
-   .. cpp:function:: void set_splitter_transition_duration(FrameInterval duration)
-
-      Sets :cpp:func:`splitter_transition_duration <gui_forms::SplitContainer::splitter_transition_duration>`; see the property's description above.
-
    .. cpp:function:: SplitSeamSnapshot splitter_seam_snapshot() const noexcept
 
       The seam as last laid out: its state, its visible, hit and collapse-tab
       bounds, the display scale and the progress of its transition.
-
-   .. cpp:function:: double first_minimum() const noexcept
-
-      The smallest extent the first panel is given while the space allows. It
-      must be finite, nonnegative and not above :cpp:func:`first_maximum <gui_forms::SplitContainer::first_maximum>`.
-
-   .. cpp:function:: void set_first_minimum(double extent)
-
-      Sets :cpp:func:`first_minimum <gui_forms::SplitContainer::first_minimum>`; see the property's description above.
-
-   .. cpp:function:: double second_minimum() const noexcept
-
-      The smallest extent of the second panel, with the same rules.
-
-   .. cpp:function:: void set_second_minimum(double extent)
-
-      Sets :cpp:func:`second_minimum <gui_forms::SplitContainer::second_minimum>`; see the property's description above.
-
-   .. cpp:function:: std::optional<double> first_maximum() const noexcept
-
-      The largest extent of the first panel, or no limit. It may not be below
-      :cpp:func:`first_minimum <gui_forms::SplitContainer::first_minimum>`.
-
-   .. cpp:function:: void set_first_maximum(std::optional<double> extent)
-
-      Sets :cpp:func:`first_maximum <gui_forms::SplitContainer::first_maximum>`; see the property's description above.
-
-   .. cpp:function:: std::optional<double> second_maximum() const noexcept
-
-      The largest extent of the second panel, or no limit.
-
-   .. cpp:function:: void set_second_maximum(std::optional<double> extent)
-
-      Sets :cpp:func:`second_maximum <gui_forms::SplitContainer::second_maximum>`; see the property's description above.
 
    .. cpp:function:: bool first_collapsed() const noexcept
 
@@ -458,59 +451,6 @@ gui_forms::SplitContainer
 
       Who collapsed the second panel.
 
-   .. cpp:function:: bool splitter_fixed() const noexcept
-
-      Whether the user is prevented from resizing the panels with the pointer,
-      the keyboard or accessibility actions. The collapse tab keeps working.
-
-   .. cpp:function:: void set_splitter_fixed(bool fixed)
-
-      Sets :cpp:func:`splitter_fixed <gui_forms::SplitContainer::splitter_fixed>`; see the property's description above.
-
-   .. cpp:function:: SplitFixedPanel fixed_panel() const noexcept
-
-      Which panel keeps its extent when the container is resized.
-      :cpp:enumerator:`SplitFixedPanel::second <gui_forms::SplitFixedPanel::second>` keeps the second panel's extent and moves the
-      seam. Otherwise the seam keeps its distance once one has been set, so the
-      first panel keeps its extent.
-
-   .. cpp:function:: void set_fixed_panel(SplitFixedPanel panel)
-
-      Sets :cpp:func:`fixed_panel <gui_forms::SplitContainer::fixed_panel>`; see the property's description above.
-
-   .. cpp:function:: SplitFixedPanel collapse_panel() const noexcept
-
-      The panel that the seam's collapse tab, Enter, Space and the
-      accessibility expand and collapse actions toggle. With ``none`` the seam
-      has no collapse action.
-
-   .. cpp:function:: void set_collapse_panel(SplitFixedPanel panel)
-
-      Sets :cpp:func:`collapse_panel <gui_forms::SplitContainer::collapse_panel>`; see the property's description above.
-
-   .. cpp:function:: double automatic_collapse_threshold() const noexcept
-
-      When positive, :cpp:func:`collapse_panel <gui_forms::SplitContainer::collapse_panel>` collapses by itself while the container's
-      width (or height, for a horizontal split) is below this value, and comes
-      back when the container grows to the threshold again. Only a panel that
-      collapsed automatically comes back; if the user restores it while the
-      container is still small, it stays open until the container next grows
-      past the threshold. Setting the threshold to 0 restores an automatically
-      collapsed panel. It must be finite and nonnegative.
-
-   .. cpp:function:: void set_automatic_collapse_threshold(double extent)
-
-      Sets :cpp:func:`automatic_collapse_threshold <gui_forms::SplitContainer::automatic_collapse_threshold>`; see the property's description above.
-
-   .. cpp:function:: double keyboard_increment() const noexcept
-
-      How far one arrow key press moves the seam; Shift multiplies it by ten.
-      It must be finite and positive.
-
-   .. cpp:function:: void set_keyboard_increment(double increment)
-
-      Sets :cpp:func:`keyboard_increment <gui_forms::SplitContainer::keyboard_increment>`; see the property's description above.
-
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -520,9 +460,9 @@ gui_forms::SplitContainer
 
    .. cpp:function:: Event<const SplitChangeEvent&>& splitter_changed() noexcept
 
-      Raised after :cpp:func:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` changes, with the old and new distance
+      Raised after :cpp:member:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` changes, with the old and new distance
       and the reason: :cpp:enumerator:`SplitChangeReason::programmatic <gui_forms::SplitChangeReason::programmatic>` for
-      :cpp:func:`set_splitter_distance <gui_forms::SplitContainer::set_splitter_distance>`, ``pointer`` for each step of a drag and its
+      a :cpp:member:`splitter_distance <gui_forms::SplitContainer::splitter_distance>` write, ``pointer`` for each step of a drag and its
       release, ``keyboard`` for arrow keys, ``semantic`` for accessibility actions,
       ``cancel`` when Escape ends a drag and restores the starting distance, and
       ``container_resize`` when a layout pass moves the seam: to center it at

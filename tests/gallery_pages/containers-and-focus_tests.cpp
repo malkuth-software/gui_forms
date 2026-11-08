@@ -30,9 +30,9 @@ void test_containers_and_focus(gui_forms::Window& window) {
     click(window, window.find("gallery.containers.focus"));
     require(split && window.focused_control() == (*split).splitter_control(),
             "gallery focus command must route focus to the public splitter control");
-    const double distance_before = (*split).splitter_distance();
+    const double distance_before = (*split).splitter_distance.read();
     require(window.dispatch_key({KeyAction::down, PhysicalKey::right}) &&
-                (*split).splitter_distance() > distance_before,
+                (*split).splitter_distance.read() > distance_before,
             "a focused splitter must move its seam from keyboard input");
     click(window, collapse);
     require((*split).first_collapsed() &&

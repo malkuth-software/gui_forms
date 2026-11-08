@@ -237,7 +237,7 @@ void test_compositions_follow_structural_theme_tokens_until_overridden() {
     Window window(view, {900.0, 400.0});
     window.perform_layout();
     window.perform_layout();
-    require((*(*view).split_container()).splitter_distance() == 310.0,
+    require((*(*view).split_container()).splitter_distance.read() == 310.0,
             "structural navigation extent must reach genuine splitter geometry");
 
     MasterDetailLayout explicit_master = themed_master;

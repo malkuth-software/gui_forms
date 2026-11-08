@@ -100,7 +100,7 @@ void test_named_specimens_and_atomic_rejection() {
     std::shared_ptr<SplitContainer> disabled = find_split(*window, "seam-proximity.disabled");
     std::shared_ptr<SplitContainer> collapsed = find_split(*window, "seam-proximity.collapsed");
     require(vertical && physical && horizontal && disabled && collapsed &&
-                (*horizontal).orientation() == Orientation::horizontal &&
+                (*horizontal).orientation.read() == Orientation::horizontal &&
                 (*disabled).splitter_seam_snapshot().state ==
                     SplitSeamState::disabled &&
                 (*collapsed).splitter_seam_snapshot().state ==
@@ -166,7 +166,7 @@ void test_trace_scale_state_input_and_inspection() {
     PointerEvent down = near_pointer;
     down.action = PointerAction::down;
     down.button = PointerButton::primary;
-    const double start = (*hairline).splitter_distance();
+    const double start = (*hairline).splitter_distance.read();
     require((*window).dispatch_pointer(down) &&
                 (*window).captured_control() == (*hairline).splitter_control() &&
                 (*hairline).splitter_seam_snapshot().state ==
@@ -179,15 +179,15 @@ void test_trace_scale_state_input_and_inspection() {
     static_cast<void>((*window).dispatch_pointer(move));
     require((*window).dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 !(*window).captured_control() &&
-                near((*hairline).splitter_distance(), start),
+                near((*hairline).splitter_distance.read(), start),
             "Escape must cancel and restore a live laboratory drag");
 
     require((*window).perform_semantic_action(
                 "seam-proximity.hairline", SemanticAction::increment) &&
-                (*hairline).splitter_distance() > start &&
+                (*hairline).splitter_distance.read() > start &&
                 (*window).perform_semantic_action(
                     "seam-proximity.hairline", SemanticAction::set_value,
-                    "180") && near((*hairline).splitter_distance(), 180.0),
+                    "180") && near((*hairline).splitter_distance.read(), 180.0),
             "lab seam must publish adjustable semantic value actions");
     require((*window).perform_semantic_action(
                 "seam-proximity.text-scale", SemanticAction::press) &&

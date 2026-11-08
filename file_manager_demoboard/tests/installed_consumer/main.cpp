@@ -122,8 +122,8 @@ int main() {
             gui_forms::StableId("installed.split"));
     (*split).initialize_control_tree();
     (*split).set_requested_bounds({8, 184, 304, 150});
-    (*split).set_splitter_distance(190);
-    (*split).set_collapse_panel(gui_forms::SplitFixedPanel::second);
+    (*split).splitter_distance = 190;
+    (*split).collapse_panel = gui_forms::SplitFixedPanel::second;
     (*root).add_child(split);
     std::shared_ptr<gui_forms::CorrespondenceView> correspondence =
         std::make_shared<gui_forms::CorrespondenceView>(
@@ -205,7 +205,7 @@ int main() {
         "installed.properties.name", "Installed validation") &&
         (*properties).set_value("installed.properties.name", "Renamed fixture") &&
         (*properties).value("installed.properties.name") == "Renamed fixture";
-    const double remembered_split = (*split).splitter_distance();
+    const double remembered_split = (*split).splitter_distance.read();
     const bool collapsed = window.perform_semantic_action(
         "installed.split", gui_forms::SemanticAction::collapse);
     window.perform_layout();
@@ -225,7 +225,7 @@ int main() {
         (*objects).selected_ids().size() == 2U && menu_visible && strip_open &&
         accelerated && accelerator.connected() && accelerator_invocations == 1U &&
         property_edit && collapsed && restored && !(*split).second_collapsed() &&
-        (*split).splitter_distance() == remembered_split &&
+        (*split).splitter_distance.read() == remembered_split &&
         overlay_resolved &&
         (*correspondence).items().size() == 2U &&
         (*correspondence).children().empty() &&

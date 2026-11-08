@@ -2,6 +2,7 @@
 #include "splitter_grip.hpp"
 #include "gui_forms/window.hpp"
 #include "../../scrollable_anatomy.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <vector>
 #include <array>
@@ -76,50 +77,66 @@ void SplitContainer::initialize_control_tree() {
     tree_initialized_ = true;
 }
 
-void SplitContainer::set_orientation(Orientation orientation) {
+void SplitContainer::prepare_write(const decltype(orientation)&, Orientation&) {
     require_mutable();
-    if (orientation_ == orientation) return;
-    orientation_ = orientation;
+}
+
+// A new orientation measures along the other axis, so the remembered extents
+// no longer apply and the cursor turns.
+void SplitContainer::written(const decltype(orientation)&) {
     previous_axis_extent_ = 0.0;
     previous_second_extent_ = 0.0;
     update_splitter_cursor();
     invalidate(invalidation::bounds);
 }
 
-void SplitContainer::set_splitter_distance(double distance) {
-    require_finite_nonnegative(distance,
+// The write is the requested distance (set_distance keeps it and applies the
+// panel limits); the read is the effective distance.
+void SplitContainer::write_view(const decltype(splitter_distance)&, double incoming) {
+    require_finite_nonnegative(incoming,
                                "splitter distance must be finite and nonnegative");
-    set_distance(distance, SplitChangeReason::programmatic);
+    set_distance(incoming, SplitChangeReason::programmatic);
 }
 
-void SplitContainer::set_splitter_width(double width) {
+double SplitContainer::read_view(const decltype(splitter_distance)&) const {
+    return effective_distance_;
+}
+
+// The width and hit width are shorthands: each derives a geometry with the
+// extra hit extent split evenly and writes splitter_geometry.
+void SplitContainer::write_view(const decltype(splitter_width)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(width) || width <= 0.0) {
+    if (!std::isfinite(incoming) || incoming <= 0.0) {
         throw std::invalid_argument("splitter width must be finite and positive");
     }
-    if (splitter_width_ == width) return;
-    SplitSeamGeometry next = splitter_geometry_;
-    const double target = std::max(splitter_hit_width_, width);
-    next.visible_thickness = width;
+    if (splitter_width_ == incoming) return;
+    SplitSeamGeometry next = splitter_geometry.read();
+    const double target = std::max(splitter_hit_width_, incoming);
+    next.visible_thickness = incoming;
     next.minimum_hit_target = target;
     const double extra = next.thickness_policy ==
             SplitSeamThicknessPolicy::logical
-        ? std::max(0.0, target - width)
+        ? std::max(0.0, target - incoming)
         : target;
     next.hit_before = extra * 0.5;
     next.hit_after = extra - next.hit_before;
-    set_splitter_geometry(next);
+    splitter_geometry = next;
 }
 
-void SplitContainer::set_splitter_hit_width(double width) {
+double SplitContainer::read_view(const decltype(splitter_width)&) const {
+    return splitter_width_;
+}
+
+void SplitContainer::write_view(const decltype(splitter_hit_width)&, double incoming) {
     require_mutable();
-    if (!std::isfinite(width) || width <= 0.0) {
+    if (!std::isfinite(incoming) || incoming <= 0.0) {
         throw std::invalid_argument(
             "splitter hit width must be finite and positive");
     }
-    const double target = std::max(width, splitter_geometry_.visible_thickness);
+    const SplitSeamGeometry& current = splitter_geometry.read();
+    const double target = std::max(incoming, current.visible_thickness);
     if (splitter_hit_width_ == target) return;
-    SplitSeamGeometry next = splitter_geometry_;
+    SplitSeamGeometry next = current;
     next.minimum_hit_target = target;
     const double extra = next.thickness_policy ==
             SplitSeamThicknessPolicy::logical
@@ -127,14 +144,22 @@ void SplitContainer::set_splitter_hit_width(double width) {
         : target;
     next.hit_before = extra * 0.5;
     next.hit_after = extra - next.hit_before;
-    set_splitter_geometry(next);
+    splitter_geometry = next;
 }
 
-void SplitContainer::set_splitter_geometry(SplitSeamGeometry geometry) {
+double SplitContainer::read_view(const decltype(splitter_hit_width)&) const {
+    return splitter_hit_width_;
+}
+
+// The whole geometry is validated before any of it is published.
+void SplitContainer::prepare_write(const decltype(splitter_geometry)&,
+                                   SplitSeamGeometry& incoming) {
     require_mutable();
-    validate_splitter_geometry(geometry);
-    if (splitter_geometry_ == geometry) return;
-    splitter_geometry_ = geometry;
+    validate_splitter_geometry(incoming);
+}
+
+void SplitContainer::written(const decltype(splitter_geometry)&) {
+    const SplitSeamGeometry& geometry = splitter_geometry.read();
     splitter_width_ = geometry.visible_thickness;
     splitter_hit_width_ = geometry.minimum_hit_target;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
@@ -145,8 +170,8 @@ SplitSeamSnapshot SplitContainer::splitter_seam_snapshot() const noexcept {
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;
     const double visible = effective_splitter_width();
     SplitSeamSnapshot result;
-    result.orientation = orientation_;
-    result.geometry = splitter_geometry_;
+    result.orientation = orientation.read();
+    result.geometry = splitter_geometry.read();
     const SplitterGrip& grip = static_cast<const SplitterGrip&>(*splitter_);
     result.state = grip.seam_state();
     result.hit_bounds = (*splitter_).committed_arranged_bounds();
@@ -158,7 +183,7 @@ SplitSeamSnapshot SplitContainer::splitter_seam_snapshot() const noexcept {
             grip.transition_duration()).count();
     result.transition_progress = grip.transition_progress();
     result.transition_active = grip.transition_active();
-    if (orientation_ == Orientation::vertical) {
+    if (orientation.read() == Orientation::vertical) {
         result.visible_bounds = {effective_distance_, 0.0, visible,
                                  committed_arranged_bounds().height};
     } else {
@@ -168,69 +193,16 @@ SplitSeamSnapshot SplitContainer::splitter_seam_snapshot() const noexcept {
     return result;
 }
 
-FrameInterval SplitContainer::splitter_transition_duration() const noexcept {
+// The grip holds the transition duration.
+FrameInterval SplitContainer::read_view(
+    const decltype(splitter_transition_duration)&) const {
     return static_cast<const SplitterGrip&>(*splitter_).transition_duration();
 }
 
-void SplitContainer::set_splitter_transition_duration(FrameInterval duration) {
+void SplitContainer::write_view(const decltype(splitter_transition_duration)&,
+                                FrameInterval incoming) {
     require_mutable();
-    static_cast<SplitterGrip&>(*splitter_).set_transition_duration(duration);
-}
-
-void SplitContainer::set_first_minimum(double extent) {
-    require_mutable();
-    require_finite_nonnegative(extent,
-                               "first panel minimum must be finite and nonnegative");
-    if (first_maximum_ && extent > *first_maximum_) {
-        throw std::invalid_argument(
-            "first panel minimum may not exceed its maximum");
-    }
-    if (first_minimum_ == extent) return;
-    first_minimum_ = extent;
-    invalidate(invalidation::bounds);
-}
-
-void SplitContainer::set_second_minimum(double extent) {
-    require_mutable();
-    require_finite_nonnegative(extent,
-                               "second panel minimum must be finite and nonnegative");
-    if (second_maximum_ && extent > *second_maximum_) {
-        throw std::invalid_argument(
-            "second panel minimum may not exceed its maximum");
-    }
-    if (second_minimum_ == extent) return;
-    second_minimum_ = extent;
-    invalidate(invalidation::bounds);
-}
-
-void SplitContainer::set_first_maximum(std::optional<double> extent) {
-    require_mutable();
-    if (extent) {
-        require_finite_nonnegative(*extent,
-                                   "first panel maximum must be finite and nonnegative");
-        if (*extent < first_minimum_) {
-            throw std::invalid_argument(
-                "first panel maximum may not be below its minimum");
-        }
-    }
-    if (first_maximum_ == extent) return;
-    first_maximum_ = extent;
-    invalidate(invalidation::bounds);
-}
-
-void SplitContainer::set_second_maximum(std::optional<double> extent) {
-    require_mutable();
-    if (extent) {
-        require_finite_nonnegative(*extent,
-                                   "second panel maximum must be finite and nonnegative");
-        if (*extent < second_minimum_) {
-            throw std::invalid_argument(
-                "second panel maximum may not be below its minimum");
-        }
-    }
-    if (second_maximum_ == extent) return;
-    second_maximum_ = extent;
-    invalidate(invalidation::bounds);
+    static_cast<SplitterGrip&>(*splitter_).set_transition_duration(incoming);
 }
 
 void SplitContainer::set_first_collapsed(bool collapsed,
@@ -253,12 +225,12 @@ void SplitContainer::set_first_collapsed(bool collapsed,
     if (!collapsed && previous_origin == SplitCollapseOrigin::automatic_accommodation &&
         origin == SplitCollapseOrigin::user &&
         axis_extent(committed_arranged_bounds()) <
-            automatic_collapse_threshold_) {
+            automatic_collapse_threshold.read()) {
         automatic_collapse_suppressed_ = true;
     }
     (*first_panel_).visible = !collapsed;
     static_cast<SplitterGrip&>(*splitter_).set_collapse_appearance(
-        collapse_panel_, collapse_target_is_collapsed());
+        collapse_panel.read(), collapse_target_is_collapsed());
     const double total = axis_extent(committed_arranged_bounds());
     effective_distance_ = collapsed ? 0.0
                                     : constrained_distance(requested_distance_, total);
@@ -288,12 +260,12 @@ void SplitContainer::set_second_collapsed(bool collapsed,
     if (!collapsed && previous_origin == SplitCollapseOrigin::automatic_accommodation &&
         origin == SplitCollapseOrigin::user &&
         axis_extent(committed_arranged_bounds()) <
-            automatic_collapse_threshold_) {
+            automatic_collapse_threshold.read()) {
         automatic_collapse_suppressed_ = true;
     }
     (*second_panel_).visible = !collapsed;
     static_cast<SplitterGrip&>(*splitter_).set_collapse_appearance(
-        collapse_panel_, collapse_target_is_collapsed());
+        collapse_panel.read(), collapse_target_is_collapsed());
     const double total = axis_extent(committed_arranged_bounds());
     effective_distance_ = collapsed
         ? std::max(0.0, total - effective_splitter_width())
@@ -304,59 +276,40 @@ void SplitContainer::set_second_collapsed(bool collapsed,
     publish_change(splitter_changed_, change);
 }
 
-void SplitContainer::set_splitter_fixed(bool fixed) {
+void SplitContainer::prepare_write(const decltype(collapse_panel)&, SplitFixedPanel&) {
     require_mutable();
-    if (splitter_fixed_ == fixed) return;
-    splitter_fixed_ = fixed;
-    invalidate(Dirty::semantics | Dirty::accessibility);
 }
 
-void SplitContainer::set_fixed_panel(SplitFixedPanel panel) {
-    require_mutable();
-    if (fixed_panel_ == panel) return;
-    fixed_panel_ = panel;
-    invalidate(Dirty::semantics | Dirty::accessibility);
-}
-
-void SplitContainer::set_collapse_panel(SplitFixedPanel panel) {
-    require_mutable();
-    if (collapse_panel_ == panel) return;
-    collapse_panel_ = panel;
+// A new collapse target starts unsuppressed and redraws the grip's tab.
+void SplitContainer::written(const decltype(collapse_panel)&) {
     automatic_collapse_suppressed_ = false;
     static_cast<SplitterGrip&>(*splitter_).set_collapse_appearance(
-        collapse_panel_, collapse_target_is_collapsed());
+        collapse_panel.read(), collapse_target_is_collapsed());
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics |
                Dirty::accessibility);
 }
 
-void SplitContainer::set_automatic_collapse_threshold(double extent) {
+void SplitContainer::prepare_write(const decltype(automatic_collapse_threshold)&,
+                                   double& incoming) {
     require_mutable();
     require_finite_nonnegative(
-        extent, "automatic collapse threshold must be finite and nonnegative");
-    if (automatic_collapse_threshold_ == extent) return;
-    automatic_collapse_threshold_ = extent;
+        incoming, "automatic collapse threshold must be finite and nonnegative");
+}
+
+void SplitContainer::written(const decltype(automatic_collapse_threshold)&) {
     automatic_collapse_suppressed_ = false;
-    if (extent == 0.0 && collapse_target_origin() ==
-                             SplitCollapseOrigin::automatic_accommodation) {
+    if (automatic_collapse_threshold.read() == 0.0 &&
+        collapse_target_origin() == SplitCollapseOrigin::automatic_accommodation) {
         // With no collapse target there is nothing to restore.
-        if (collapse_panel_ == SplitFixedPanel::first) {
+        if (collapse_panel.read() == SplitFixedPanel::first) {
             set_first_collapsed(false,
                                 SplitCollapseOrigin::automatic_accommodation);
-        } else if (collapse_panel_ == SplitFixedPanel::second) {
+        } else if (collapse_panel.read() == SplitFixedPanel::second) {
             set_second_collapsed(false,
                                  SplitCollapseOrigin::automatic_accommodation);
         }
     }
     invalidate(invalidation::bounds);
-}
-
-void SplitContainer::set_keyboard_increment(double increment) {
-    require_mutable();
-    if (!std::isfinite(increment) || increment <= 0.0) {
-        throw std::invalid_argument(
-            "splitter keyboard increment must be finite and positive");
-    }
-    keyboard_increment_ = increment;
 }
 
 Size SplitContainer::measure(Size available) {
@@ -376,24 +329,24 @@ void SplitContainer::arrange(Rect final_bounds) {
     double desired = requested_distance_ < 0.0 ? available * 0.5
                                                : requested_distance_;
     if (previous_axis_extent_ > 0.0 && total != previous_axis_extent_ &&
-        fixed_panel_ == SplitFixedPanel::second && !second_collapsed_) {
+        fixed_panel.read() == SplitFixedPanel::second && !second_collapsed_) {
         desired = std::max(0.0, available - previous_second_extent_);
     }
     const double old = effective_distance_;
     effective_distance_ = constrained_distance(desired, total);
-    if (requested_distance_ >= 0.0 || fixed_panel_ == SplitFixedPanel::second) {
+    if (requested_distance_ >= 0.0 || fixed_panel.read() == SplitFixedPanel::second) {
         requested_distance_ = effective_distance_;
     }
     const double second_extent = std::max(0.0, available - effective_distance_);
     const double hit_width = std::min(
-        total, splitter_geometry_.hit_before + visible_width +
-                   splitter_geometry_.hit_after);
+        total, splitter_geometry.read().hit_before + visible_width +
+                   splitter_geometry.read().hit_after);
     const double hit_origin = std::clamp(
-        effective_distance_ - splitter_geometry_.hit_before, 0.0,
+        effective_distance_ - splitter_geometry.read().hit_before, 0.0,
         std::max(0.0, total - hit_width));
     static_cast<SplitterGrip&>(*splitter_).set_visible_geometry(
         effective_distance_ - hit_origin, visible_width);
-    if (orientation_ == Orientation::vertical) {
+    if (orientation.read() == Orientation::vertical) {
         set_child_layout(first_panel_,
             {0.0, 0.0, effective_distance_, final_bounds.height});
         set_child_layout(second_panel_,
@@ -425,7 +378,7 @@ void SplitContainer::on_pointer_preview(PointerEvent& event) {
         event.action != PointerAction::up) {
         cancel_splitter_interaction(false);
     }
-    const bool on_collapse_tab = collapse_panel_ != SplitFixedPanel::none &&
+    const bool on_collapse_tab = collapse_panel.read() != SplitFixedPanel::none &&
                                  collapse_tab_bounds().contains(event.position);
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary && on_collapse_tab) {
@@ -449,7 +402,7 @@ void SplitContainer::on_pointer_preview(PointerEvent& event) {
         event.handled = true;
         return;
     }
-    if (splitter_fixed_ || first_collapsed_ || second_collapsed_) return;
+    if (splitter_fixed.read() || first_collapsed_ || second_collapsed_) return;
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary &&
         (*splitter_).absolute_bounds().contains(event.position)) {
@@ -482,22 +435,22 @@ void SplitContainer::on_key_preview(KeyEvent& event) {
         event.handled = true;
         return;
     }
-    if (collapse_panel_ != SplitFixedPanel::none &&
+    if (collapse_panel.read() != SplitFixedPanel::none &&
         (event.physical_key == PhysicalKey::enter ||
          event.physical_key == PhysicalKey::space)) {
         toggle_collapse_target(SplitCollapseOrigin::user);
         event.handled = true;
         return;
     }
-    if (splitter_fixed_ || first_collapsed_ || second_collapsed_) return;
+    if (splitter_fixed.read() || first_collapsed_ || second_collapsed_) return;
     double delta{};
-    if (orientation_ == Orientation::vertical) {
-        if (event.physical_key == PhysicalKey::left) delta = -keyboard_increment_;
-        else if (event.physical_key == PhysicalKey::right) delta = keyboard_increment_;
+    if (orientation.read() == Orientation::vertical) {
+        if (event.physical_key == PhysicalKey::left) delta = -keyboard_increment.read();
+        else if (event.physical_key == PhysicalKey::right) delta = keyboard_increment.read();
         else return;
     } else {
-        if (event.physical_key == PhysicalKey::up) delta = -keyboard_increment_;
-        else if (event.physical_key == PhysicalKey::down) delta = keyboard_increment_;
+        if (event.physical_key == PhysicalKey::up) delta = -keyboard_increment.read();
+        else if (event.physical_key == PhysicalKey::down) delta = keyboard_increment.read();
         else return;
     }
     if ((static_cast<std::uint8_t>(event.modifiers) &
@@ -519,12 +472,12 @@ SemanticDescriptor SplitContainer::semantic_descriptor() const {
     descriptor.minimum_value = constrained_distance(0.0, total);
     descriptor.maximum_value = constrained_distance(total, total);
     descriptor.actions = {SemanticAction::focus};
-    if (!splitter_fixed_ && !first_collapsed_ && !second_collapsed_) {
+    if (!splitter_fixed.read() && !first_collapsed_ && !second_collapsed_) {
         descriptor.actions.push_back(SemanticAction::decrement);
         descriptor.actions.push_back(SemanticAction::increment);
         descriptor.actions.push_back(SemanticAction::set_value);
     }
-    if (collapse_panel_ != SplitFixedPanel::none) {
+    if (collapse_panel.read() != SplitFixedPanel::none) {
         const bool collapsed = collapse_target_is_collapsed();
         descriptor.description = collapsed
             ? "Split pane collapsed; activate to restore its remembered extent"
@@ -544,26 +497,26 @@ bool SplitContainer::on_semantic_action(SemanticAction action,
         return (*window()).request_focus(splitter_);
     }
     if (action == SemanticAction::expand &&
-        collapse_panel_ != SplitFixedPanel::none &&
+        collapse_panel.read() != SplitFixedPanel::none &&
         collapse_target_is_collapsed()) {
         toggle_collapse_target(SplitCollapseOrigin::user);
         return true;
     }
     if (action == SemanticAction::collapse &&
-        collapse_panel_ != SplitFixedPanel::none &&
+        collapse_panel.read() != SplitFixedPanel::none &&
         !collapse_target_is_collapsed()) {
         toggle_collapse_target(SplitCollapseOrigin::user);
         return true;
     }
-    if (!splitter_fixed_ && !first_collapsed_ && !second_collapsed_) {
+    if (!splitter_fixed.read() && !first_collapsed_ && !second_collapsed_) {
         if (action == SemanticAction::increment) {
-            set_distance(effective_distance_ + keyboard_increment_,
+            set_distance(effective_distance_ + keyboard_increment.read(),
                          SplitChangeReason::semantic);
             return true;
         }
         if (action == SemanticAction::decrement) {
             set_distance(std::max(0.0,
-                                  effective_distance_ - keyboard_increment_),
+                                  effective_distance_ - keyboard_increment.read()),
                          SplitChangeReason::semantic);
             return true;
         }
@@ -600,19 +553,19 @@ void SplitContainer::on_detached_from_window() noexcept {
 }
 
 double SplitContainer::axis_extent(Rect bounds) const noexcept {
-    return orientation_ == Orientation::vertical ? bounds.width : bounds.height;
+    return orientation.read() == Orientation::vertical ? bounds.width : bounds.height;
 }
 
 double SplitContainer::pointer_axis(Point point) const noexcept {
     const Rect absolute = absolute_bounds();
-    return orientation_ == Orientation::vertical ? point.x - absolute.x
+    return orientation.read() == Orientation::vertical ? point.x - absolute.x
                                                   : point.y - absolute.y;
 }
 
 double SplitContainer::effective_splitter_width() const noexcept {
-    if (splitter_geometry_.thickness_policy ==
+    if (splitter_geometry.read().thickness_policy ==
         SplitSeamThicknessPolicy::logical) {
-        return splitter_geometry_.visible_thickness;
+        return splitter_geometry.read().visible_thickness;
     }
     const double scale = window() != nullptr ? (*window()).scale() : 1.0;
     return 1.0 / std::max(scale, std::numeric_limits<double>::epsilon());
@@ -625,30 +578,30 @@ double SplitContainer::constrained_distance(double requested,
     if (first_collapsed_) return 0.0;
     if (second_collapsed_) return available;
     if (!std::isfinite(requested) || requested < 0.0) requested = available * 0.5;
-    double lower = std::min(first_minimum_, available);
-    double upper = std::max(0.0, available - second_minimum_);
+    double lower = std::min(first_minimum.read(), available);
+    double upper = std::max(0.0, available - second_minimum.read());
     if (lower > upper) {
-        const double requested_minimum = first_minimum_ + second_minimum_;
+        const double requested_minimum = first_minimum.read() + second_minimum.read();
         const double compromise = requested_minimum > 0.0
-            ? available * first_minimum_ / requested_minimum
+            ? available * first_minimum.read() / requested_minimum
             : available * 0.5;
         lower = upper = compromise;
     }
-    if (first_maximum_) upper = std::min(upper, *first_maximum_);
-    if (second_maximum_) {
-        lower = std::max(lower, std::max(0.0, available - *second_maximum_));
+    if (first_maximum.read()) upper = std::min(upper, *first_maximum.read());
+    if (second_maximum.read()) {
+        lower = std::max(lower, std::max(0.0, available - *second_maximum.read()));
     }
     if (lower > upper) {
         double compromise = available * 0.5;
-        if (first_maximum_ && second_maximum_ &&
-            *first_maximum_ + *second_maximum_ > 0.0) {
-            compromise = available * *first_maximum_ /
-                         (*first_maximum_ + *second_maximum_);
+        if (first_maximum.read() && second_maximum.read() &&
+            *first_maximum.read() + *second_maximum.read() > 0.0) {
+            compromise = available * *first_maximum.read() /
+                         (*first_maximum.read() + *second_maximum.read());
         }
         lower = upper = std::clamp(compromise, 0.0, available);
     }
     double resolved = std::clamp(requested, lower, upper);
-    if (splitter_geometry_.thickness_policy ==
+    if (splitter_geometry.read().thickness_policy ==
         SplitSeamThicknessPolicy::device_pixel_hairline) {
         const double scale = window() != nullptr ? (*window()).scale() : 1.0;
         const double snapped = std::round(resolved * scale) / scale;
@@ -674,19 +627,19 @@ Rect SplitContainer::collapse_tab_bounds() const noexcept {
 }
 
 bool SplitContainer::collapse_target_is_collapsed() const noexcept {
-    if (collapse_panel_ == SplitFixedPanel::first) return first_collapsed_;
-    if (collapse_panel_ == SplitFixedPanel::second) return second_collapsed_;
+    if (collapse_panel.read() == SplitFixedPanel::first) return first_collapsed_;
+    if (collapse_panel.read() == SplitFixedPanel::second) return second_collapsed_;
     return false;
 }
 
 SplitCollapseOrigin SplitContainer::collapse_target_origin() const noexcept {
-    if (collapse_panel_ == SplitFixedPanel::first) return first_collapse_origin_;
-    if (collapse_panel_ == SplitFixedPanel::second) return second_collapse_origin_;
+    if (collapse_panel.read() == SplitFixedPanel::first) return first_collapse_origin_;
+    if (collapse_panel.read() == SplitFixedPanel::second) return second_collapse_origin_;
     return SplitCollapseOrigin::none;
 }
 
 void SplitContainer::toggle_collapse_target(SplitCollapseOrigin origin) {
-    switch (collapse_panel_) {
+    switch (collapse_panel.read()) {
     case SplitFixedPanel::first:
         set_first_collapsed(!first_collapsed_, origin);
         return;
@@ -702,14 +655,14 @@ void SplitContainer::toggle_collapse_target(SplitCollapseOrigin origin) {
 }
 
 void SplitContainer::reconcile_automatic_collapse(double total_extent) {
-    if (collapse_panel_ == SplitFixedPanel::none ||
-        automatic_collapse_threshold_ <= 0.0) return;
-    const bool constrained = total_extent < automatic_collapse_threshold_;
+    if (collapse_panel.read() == SplitFixedPanel::none ||
+        automatic_collapse_threshold.read() <= 0.0) return;
+    const bool constrained = total_extent < automatic_collapse_threshold.read();
     if (!constrained) {
         automatic_collapse_suppressed_ = false;
         if (collapse_target_origin() ==
             SplitCollapseOrigin::automatic_accommodation) {
-            if (collapse_panel_ == SplitFixedPanel::first) {
+            if (collapse_panel.read() == SplitFixedPanel::first) {
                 set_first_collapsed(
                     false, SplitCollapseOrigin::automatic_accommodation);
             } else {
@@ -720,7 +673,7 @@ void SplitContainer::reconcile_automatic_collapse(double total_extent) {
         return;
     }
     if (!automatic_collapse_suppressed_ && !collapse_target_is_collapsed()) {
-        if (collapse_panel_ == SplitFixedPanel::first) {
+        if (collapse_panel.read() == SplitFixedPanel::first) {
             set_first_collapsed(true,
                 SplitCollapseOrigin::automatic_accommodation);
         } else {
@@ -779,11 +732,10 @@ void SplitContainer::transfer_focus_from(
 
 void SplitContainer::update_splitter_cursor() {
     SplitterGrip& splitter = static_cast<SplitterGrip&>(*splitter_);
-    splitter.set_orientation(orientation_);
-    splitter.set_visible_geometry(splitter_geometry_.hit_before,
+    splitter.set_orientation(orientation.read());
+    splitter.set_visible_geometry(splitter_geometry.read().hit_before,
                                   effective_splitter_width());
 }
-
 
 namespace {
 
@@ -911,5 +863,88 @@ void SplitContainer::append_interactions(std::vector<InteractionDeclaration>& in
     ContainerControl::append_interactions(interactions);
     interactions.insert(interactions.end(), split_container_interactions.begin(), split_container_interactions.end());
 }
+
+// property_codemod begin SplitContainer (tools/property_families/split_container.json; generated, do not edit)
+
+void SplitContainer::prepare_write(const decltype(first_minimum)&, double& incoming) {
+    require_mutable();
+    require_finite_nonnegative(incoming, "first panel minimum must be finite and nonnegative");
+    const std::optional<double>& maximum = first_maximum.read();
+    if (maximum && incoming > *maximum) {
+        throw std::invalid_argument("first panel minimum may not exceed its maximum");
+    }
+}
+
+void SplitContainer::written(const decltype(first_minimum)&) {
+    invalidate(invalidation::bounds);
+}
+
+void SplitContainer::prepare_write(const decltype(second_minimum)&, double& incoming) {
+    require_mutable();
+    require_finite_nonnegative(incoming, "second panel minimum must be finite and nonnegative");
+    const std::optional<double>& maximum = second_maximum.read();
+    if (maximum && incoming > *maximum) {
+        throw std::invalid_argument("second panel minimum may not exceed its maximum");
+    }
+}
+
+void SplitContainer::written(const decltype(second_minimum)&) {
+    invalidate(invalidation::bounds);
+}
+
+void SplitContainer::prepare_write(const decltype(first_maximum)&, std::optional<double>& incoming) {
+    require_mutable();
+    if (incoming) {
+        require_finite_nonnegative(*incoming, "first panel maximum must be finite and nonnegative");
+        if (*incoming < first_minimum.read()) {
+            throw std::invalid_argument("first panel maximum may not be below its minimum");
+        }
+    }
+}
+
+void SplitContainer::written(const decltype(first_maximum)&) {
+    invalidate(invalidation::bounds);
+}
+
+void SplitContainer::prepare_write(const decltype(second_maximum)&, std::optional<double>& incoming) {
+    require_mutable();
+    if (incoming) {
+        require_finite_nonnegative(*incoming, "second panel maximum must be finite and nonnegative");
+        if (*incoming < second_minimum.read()) {
+            throw std::invalid_argument("second panel maximum may not be below its minimum");
+        }
+    }
+}
+
+void SplitContainer::written(const decltype(second_maximum)&) {
+    invalidate(invalidation::bounds);
+}
+
+void SplitContainer::prepare_write(const decltype(splitter_fixed)&, bool&) {
+    require_mutable();
+}
+
+void SplitContainer::written(const decltype(splitter_fixed)&) {
+    invalidate(Dirty::semantics | Dirty::accessibility);
+}
+
+void SplitContainer::prepare_write(const decltype(fixed_panel)&, SplitFixedPanel&) {
+    require_mutable();
+}
+
+void SplitContainer::written(const decltype(fixed_panel)&) {
+    invalidate(Dirty::semantics | Dirty::accessibility);
+}
+
+void SplitContainer::prepare_write(const decltype(keyboard_increment)&, double& incoming) {
+    require_mutable();
+    if (!std::isfinite(incoming) || incoming <= 0.0) {
+        throw std::invalid_argument("splitter keyboard increment must be finite and positive");
+    }
+}
+
+void SplitContainer::written(const decltype(keyboard_increment)&) {}
+
+// property_codemod end SplitContainer
 
 } // namespace gui_forms

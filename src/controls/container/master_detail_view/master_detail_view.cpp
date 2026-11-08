@@ -121,14 +121,14 @@ Control::Ptr MasterDetailView::set_detail(Control::Ptr control) {
 
 void MasterDetailView::configure_split() {
     const MasterDetailLayout layout = effective_master_detail_layout();
-    (*split_).set_orientation(layout.orientation);
-    (*split_).set_splitter_width(layout.splitter_width);
-    (*split_).set_splitter_hit_width(layout.splitter_hit_width);
-    (*split_).set_first_minimum(layout.master_minimum);
-    (*split_).set_second_minimum(layout.detail_minimum);
-    (*split_).set_splitter_fixed(!layout.resizable);
-    (*split_).set_fixed_panel(SplitFixedPanel::first);
-    (*split_).set_splitter_distance(layout.master_extent);
+    (*split_).orientation = layout.orientation;
+    (*split_).splitter_width = layout.splitter_width;
+    (*split_).splitter_hit_width = layout.splitter_hit_width;
+    (*split_).first_minimum = layout.master_minimum;
+    (*split_).second_minimum = layout.detail_minimum;
+    (*split_).splitter_fixed = !layout.resizable;
+    (*split_).fixed_panel = SplitFixedPanel::first;
+    (*split_).splitter_distance = layout.master_extent;
 }
 
 MasterDetailLayout MasterDetailView::effective_master_detail_layout() const noexcept {

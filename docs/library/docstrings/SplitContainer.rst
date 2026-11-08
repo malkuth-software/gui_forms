@@ -117,7 +117,7 @@ Events
 splitter_changed
     Raised after `splitter_distance` changes, with the old and new distance
     and the reason: `SplitChangeReason::programmatic` for
-    `set_splitter_distance`, `pointer` for each step of a drag and its
+    a `splitter_distance` write, `pointer` for each step of a drag and its
     release, `keyboard` for arrow keys, `semantic` for accessibility actions,
     `cancel` when Escape ends a drag and restores the starting distance, and
     `container_resize` when a layout pass moves the seam: to center it at
@@ -185,9 +185,9 @@ A folder pane beside a message pane, with minimum widths for both:
 
    std::shared_ptr<gf::SplitContainer> split =
        gf::make_control<gf::SplitContainer>(gf::StableId("mail"));
-   (*split).set_first_minimum(80.0);
-   (*split).set_second_minimum(120.0);
-   (*split).set_splitter_distance(140.0);
+   (*split).first_minimum = 80.0;
+   (*split).second_minimum = 120.0;
+   (*split).splitter_distance = 140.0;
 
    std::shared_ptr<gf::Panel> folders =
        gf::make_control<gf::Panel>(gf::StableId("mail.folders"));
@@ -205,7 +205,7 @@ A folder pane beside a message pane, with minimum widths for both:
    // The first panel is 140 wide. The second starts after the 3-pixel seam,
    // at x = 143, and is 357 wide.
 
-   (*split).set_splitter_distance(490.0);
+   (*split).splitter_distance = 490.0;
    window.perform_layout();
    // The second panel's minimum holds the distance at 377.
 
@@ -221,8 +221,8 @@ and can be collapsed from the seam. The owner hears every change:
        double inspector_start = 0.0;
 
        Editor() {
-           (*split).set_fixed_panel(gf::SplitFixedPanel::second);
-           (*split).set_collapse_panel(gf::SplitFixedPanel::second);
+           (*split).fixed_panel = gf::SplitFixedPanel::second;
+           (*split).collapse_panel = gf::SplitFixedPanel::second;
            gf::on((*split).splitter_changed(), *this, &Editor::on_split);
        }
        void on_split(const gf::SplitChangeEvent& change) {

@@ -104,7 +104,7 @@ public:
 
     void operator()() const {
         try {
-            split_.set_splitter_distance(90.0);
+            split_.splitter_distance = 90.0;
         } catch (const std::logic_error&) {
             rejected_ = true;
         }
@@ -117,11 +117,11 @@ private:
 
 void test_stable_tree_and_constrained_geometry() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.shell"));
-    (*split).set_splitter_width(3.0);
-    (*split).set_splitter_hit_width(9.0);
-    (*split).set_first_minimum(80.0);
-    (*split).set_second_minimum(120.0);
-    (*split).set_splitter_distance(140.0);
+    (*split).splitter_width = 3.0;
+    (*split).splitter_hit_width = 9.0;
+    (*split).first_minimum = 80.0;
+    (*split).second_minimum = 120.0;
+    (*split).splitter_distance = 140.0;
     Window window(split, {500.0, 240.0});
     window.perform_layout();
 
@@ -137,24 +137,24 @@ void test_stable_tree_and_constrained_geometry() {
     require(near((*(*split).splitter_control()).arranged_bounds().width, 9.0),
             "splitter hit geometry must be wider than its three-pixel paint geometry");
 
-    (*split).set_splitter_distance(490.0);
+    (*split).splitter_distance = 490.0;
     window.perform_layout();
-    require(near((*split).splitter_distance(), 377.0),
+    require(near((*split).splitter_distance.read(), 377.0),
             "second-panel minimum must clamp an excessive splitter distance");
 
-    (*split).set_first_minimum(400.0);
-    (*split).set_second_minimum(400.0);
+    (*split).first_minimum = 400.0;
+    (*split).second_minimum = 400.0;
     window.resize({203.0, 100.0});
     window.perform_layout();
-    require(near((*split).splitter_distance(), 100.0) &&
+    require(near((*split).splitter_distance.read(), 100.0) &&
                 near((*(*split).second_panel()).arranged_bounds().width, 100.0),
             "impossible minimums must resolve by a deterministic proportional compromise");
 }
 
 void test_live_pointer_and_keyboard_resize() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.input"));
-    (*split).set_splitter_distance(120.0);
-    (*split).set_keyboard_increment(4.0);
+    (*split).splitter_distance = 120.0;
+    (*split).keyboard_increment = 4.0;
     Window window(split, {400.0, 180.0});
     window.perform_layout();
 
@@ -176,7 +176,7 @@ void test_live_pointer_and_keyboard_resize() {
     move.action = PointerAction::move;
     move.button = PointerButton::none;
     move.position = {181.0, 70.0};
-    require(window.dispatch_pointer(move) && near((*split).splitter_distance(), 180.0),
+    require(window.dispatch_pointer(move) && near((*split).splitter_distance.read(), 180.0),
             "splitter must update continuously during pointer movement");
     window.perform_layout();
     require(near((*(*split).first_panel()).arranged_bounds().width, 180.0) &&
@@ -197,13 +197,13 @@ void test_live_pointer_and_keyboard_resize() {
     right.action = KeyAction::down;
     right.physical_key = PhysicalKey::right;
     right.modifiers = Modifier::shift;
-    require(window.dispatch_key(right) && near((*split).splitter_distance(), 220.0) &&
+    require(window.dispatch_key(right) && near((*split).splitter_distance.read(), 220.0) &&
                 keyboard_changes == 1,
             "Shift+Arrow must apply the declared larger keyboard increment");
 
-    (*split).set_splitter_fixed(true);
-    const double fixed = (*split).splitter_distance();
-    require(!window.dispatch_key(right) && near((*split).splitter_distance(), fixed),
+    (*split).splitter_fixed = true;
+    const double fixed = (*split).splitter_distance.read();
+    require(!window.dispatch_key(right) && near((*split).splitter_distance.read(), fixed),
             "fixed splitters must reject keyboard mutation");
 }
 
@@ -220,7 +220,7 @@ void test_pane_surface_background() {
 
 void test_collapse_focus_restore_and_fixed_panel_resize() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.collapse"));
-    (*split).set_splitter_distance(110.0);
+    (*split).splitter_distance = 110.0;
     std::shared_ptr<gui_forms::Button> field = make_control<Button>(StableId("split.collapse.field"), "Field");
     (*field).set_requested_bounds({8.0, 8.0, 80.0, 24.0});
     (*(*split).first_panel()).add_child(field);
@@ -245,10 +245,10 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
 
     (*split).set_first_collapsed(false);
     window.perform_layout();
-    require((*(*split).first_panel()).visible.read() && near((*split).splitter_distance(), 110.0),
+    require((*(*split).first_panel()).visible.read() && near((*split).splitter_distance.read(), 110.0),
             "restoring a panel must recover its remembered extent");
 
-    (*split).set_fixed_panel(SplitFixedPanel::second);
+    (*split).fixed_panel = SplitFixedPanel::second;
     const double second_extent = (*(*split).second_panel()).arranged_bounds().width;
     window.resize({520.0, 180.0});
     window.perform_layout();
@@ -258,8 +258,8 @@ void test_collapse_focus_restore_and_fixed_panel_resize() {
 
 void test_horizontal_orientation_and_thread_guard() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.horizontal"));
-    (*split).set_orientation(Orientation::horizontal);
-    (*split).set_splitter_distance(70.0);
+    (*split).orientation = Orientation::horizontal;
+    (*split).splitter_distance = 70.0;
     Window window(split, {260.0, 200.0});
     window.perform_layout();
     require(near((*(*split).first_panel()).arranged_bounds().height, 70.0) &&
@@ -276,8 +276,8 @@ void test_horizontal_orientation_and_thread_guard() {
 
 void test_seam_tab_pointer_keyboard_and_semantic_collapse() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.seam-tab"));
-    (*split).set_splitter_distance(270.0);
-    (*split).set_collapse_panel(SplitFixedPanel::second);
+    (*split).splitter_distance = 270.0;
+    (*split).collapse_panel = SplitFixedPanel::second;
     (*split).accessible_name = "Inspector split";
     Window window(split, {400.0, 180.0});
     window.perform_layout();
@@ -306,7 +306,7 @@ void test_seam_tab_pointer_keyboard_and_semantic_collapse() {
                 near((*(*split).second_panel()).arranged_bounds().width, remembered),
             "semantic restore must recover the remembered pane extent");
 
-    (*split).set_splitter_fixed(true);
+    (*split).splitter_fixed = true;
     require(window.request_focus((*split).splitter_control()) &&
                 window.dispatch_key({KeyAction::down, PhysicalKey::enter}) &&
                 (*split).second_collapsed(),
@@ -318,13 +318,13 @@ void test_seam_tab_pointer_keyboard_and_semantic_collapse() {
 
 void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
     std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("split.grip.visual"));
-    (*split).set_splitter_width(3.0);
-    (*split).set_splitter_hit_width(9.0);
-    (*split).set_splitter_distance(120.0);
-    (*split).set_collapse_panel(SplitFixedPanel::second);
+    (*split).splitter_width = 3.0;
+    (*split).splitter_hit_width = 9.0;
+    (*split).splitter_distance = 120.0;
+    (*split).collapse_panel = SplitFixedPanel::second;
     Window window(split, {400.0, 180.0});
     window.perform_layout();
-    (*split).set_splitter_transition_duration(0ms);
+    (*split).splitter_transition_duration = 0ms;
     const Control::Ptr grip = (*split).splitter_control();
     const Rect seam = (*grip).absolute_bounds();
     const Insets outsets = (*grip).visual_outsets();
@@ -382,11 +382,11 @@ void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
 
     std::shared_ptr<SplitContainer> horizontal = make_control<SplitContainer>(
         StableId("split.grip.horizontal"));
-    (*horizontal).set_orientation(Orientation::horizontal);
-    (*horizontal).set_splitter_width(3.0);
-    (*horizontal).set_splitter_hit_width(9.0);
-    (*horizontal).set_splitter_distance(50.0);
-    (*horizontal).set_collapse_panel(SplitFixedPanel::first);
+    (*horizontal).orientation = Orientation::horizontal;
+    (*horizontal).splitter_width = 3.0;
+    (*horizontal).splitter_hit_width = 9.0;
+    (*horizontal).splitter_distance = 50.0;
+    (*horizontal).collapse_panel = SplitFixedPanel::first;
     Window horizontal_window(horizontal, {180.0, 120.0});
     horizontal_window.perform_layout();
     const Control::Ptr horizontal_grip = (*horizontal).splitter_control();
@@ -405,9 +405,9 @@ void test_seam_grip_rest_proximity_focus_press_and_orientation_paint() {
 
 void test_automatic_accommodation_and_user_override() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.accommodation"));
-    (*split).set_splitter_distance(250.0);
-    (*split).set_collapse_panel(SplitFixedPanel::second);
-    (*split).set_automatic_collapse_threshold(360.0);
+    (*split).splitter_distance = 250.0;
+    (*split).collapse_panel = SplitFixedPanel::second;
+    (*split).automatic_collapse_threshold = 360.0;
     Window window(split, {400.0, 160.0});
     window.perform_layout();
     require(!(*split).second_collapsed(),
@@ -451,20 +451,20 @@ void test_automatic_accommodation_and_user_override() {
 
 void test_content_aware_maximum_extents() {
     std::shared_ptr<gui_forms::SplitContainer> right_bounded = make_control<SplitContainer>(StableId("split.max.right"));
-    (*right_bounded).set_second_maximum(180.0);
-    (*right_bounded).set_splitter_distance(100.0);
+    (*right_bounded).second_maximum = 180.0;
+    (*right_bounded).splitter_distance = 100.0;
     Window right_window(right_bounded, {600.0, 160.0});
     right_window.perform_layout();
     require(near((*(*right_bounded).second_panel()).arranged_bounds().width, 180.0),
             "second maximum must stop a pane consuming space its content cannot use");
-    (*right_bounded).set_splitter_distance(0.0);
+    (*right_bounded).splitter_distance = 0.0;
     right_window.perform_layout();
     require(near((*(*right_bounded).second_panel()).arranged_bounds().width, 180.0),
             "programmatic and pointer distances must share maximum constraints");
 
     std::shared_ptr<gui_forms::SplitContainer> left_bounded = make_control<SplitContainer>(StableId("split.max.left"));
-    (*left_bounded).set_first_maximum(200.0);
-    (*left_bounded).set_splitter_distance(500.0);
+    (*left_bounded).first_maximum = 200.0;
+    (*left_bounded).splitter_distance = 500.0;
     Window left_window(left_bounded, {600.0, 160.0});
     left_window.perform_layout();
     require(near((*(*left_bounded).first_panel()).arranged_bounds().width, 200.0),
@@ -472,7 +472,7 @@ void test_content_aware_maximum_extents() {
 
     bool invalid_rejected{};
     try {
-        (*left_bounded).set_first_maximum(10.0);
+        (*left_bounded).first_maximum = 10.0;
     } catch (const std::invalid_argument&) {
         invalid_rejected = true;
     }
@@ -489,8 +489,8 @@ void test_physical_hairline_asymmetric_hit_geometry_and_atomic_rejection() {
     geometry.hit_before = 5.0;
     geometry.hit_after = 7.0;
     geometry.minimum_hit_target = 12.0;
-    (*split).set_splitter_geometry(geometry);
-    (*split).set_splitter_distance(100.0);
+    (*split).splitter_geometry = geometry;
+    (*split).splitter_distance = 100.0;
     Window window(split, {300.0, 160.0});
     window.perform_layout();
 
@@ -516,7 +516,7 @@ void test_physical_hairline_asymmetric_hit_geometry_and_atomic_rejection() {
                 window.hit_test({107.49, 10.0}) == (*split).splitter_control(),
             "both neighboring pane edges must deterministically resolve to the overlaid seam without a dead crack");
 
-    (*split).set_splitter_distance(100.26);
+    (*split).splitter_distance = 100.26;
     window.perform_layout();
     const SplitSeamSnapshot snapped = (*split).splitter_seam_snapshot();
     require(near(snapped.visible_bounds.x, 100.5) &&
@@ -524,7 +524,7 @@ void test_physical_hairline_asymmetric_hit_geometry_and_atomic_rejection() {
                      std::round(snapped.visible_bounds.x *
                                 snapped.device_scale)),
             "physical hairline origin must snap deterministically to the device grid");
-    (*split).set_splitter_distance(100.0);
+    (*split).splitter_distance = 100.0;
     window.perform_layout();
 
     GripRecordingPainter painter;
@@ -535,27 +535,27 @@ void test_physical_hairline_asymmetric_hit_geometry_and_atomic_rejection() {
                 near(painter.fills.front().width, 0.5) && painter.lines == 0U,
             "physical hairline paint must commit one half-logical fill at two-times scale without wider relief strokes");
 
-    const SplitSeamGeometry before = (*split).splitter_geometry();
+    const SplitSeamGeometry before = (*split).splitter_geometry.read();
     SplitSeamGeometry invalid = before;
     invalid.hit_before = SplitSeamGeometry::maximum_hit_extension + 1.0;
     bool rejected{};
     try {
-        (*split).set_splitter_geometry(invalid);
+        (*split).splitter_geometry = invalid;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*split).splitter_geometry() == before,
+    require(rejected && (*split).splitter_geometry.read() == before,
             "over-budget seam geometry must be rejected atomically without partially publishing its fields");
 
     invalid = before;
     invalid.minimum_hit_target = 40.0;
     rejected = false;
     try {
-        (*split).set_splitter_geometry(invalid);
+        (*split).splitter_geometry = invalid;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*split).splitter_geometry() == before,
+    require(rejected && (*split).splitter_geometry.read() == before,
             "a hit geometry below its declared accessibility target must be rejected atomically");
 }
 
@@ -563,8 +563,8 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     std::shared_ptr<Panel> host = make_control<Panel>(StableId("split.proximity.host"));
     std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("split.proximity"));
     (*split).set_requested_bounds({0.0, 0.0, 360.0, 180.0});
-    (*split).set_splitter_distance(140.0);
-    (*split).set_collapse_panel(SplitFixedPanel::second);
+    (*split).splitter_distance = 140.0;
+    (*split).collapse_panel = SplitFixedPanel::second;
     std::shared_ptr<Button> field = make_control<Button>(StableId("split.proximity.field"),
                                                          "Selection keeper");
     (*field).set_requested_bounds({12.0, 12.0, 110.0, 24.0});
@@ -597,7 +597,7 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     PointerEvent down = near_event;
     down.action = PointerAction::down;
     down.button = PointerButton::primary;
-    const double original = (*split).splitter_distance();
+    const double original = (*split).splitter_distance.read();
     require(window.dispatch_pointer(down) &&
                 (*split).splitter_seam_snapshot().state ==
                     SplitSeamState::dragging &&
@@ -608,11 +608,11 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     move.button = PointerButton::none;
     move.position.x += 30.0;
     require(window.dispatch_pointer(move) &&
-                (*split).splitter_distance() > original,
+                (*split).splitter_distance.read() > original,
             "captured seam drag must update its semantic value live");
     require(window.dispatch_key({KeyAction::down, PhysicalKey::escape}) &&
                 !window.captured_control() &&
-                near((*split).splitter_distance(), original),
+                near((*split).splitter_distance.read(), original),
             "Escape must cancel a live seam drag, release capture, and restore its starting value");
 
     static_cast<void>(window.dispatch_pointer(down));
@@ -634,17 +634,17 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
     (*split).set_second_collapsed(false, SplitCollapseOrigin::user);
     window.perform_layout();
 
-    const double before_semantic = (*split).splitter_distance();
+    const double before_semantic = (*split).splitter_distance.read();
     const SemanticDescriptor semantics = (*split).semantic_descriptor();
     require(semantics.numeric_value == before_semantic &&
                 semantics.minimum_value.has_value() &&
                 semantics.maximum_value.has_value() &&
                 window.perform_semantic_action(
                     "split.proximity", SemanticAction::increment) &&
-                (*split).splitter_distance() > before_semantic &&
+                (*split).splitter_distance.read() > before_semantic &&
                 window.perform_semantic_action(
                     "split.proximity", SemanticAction::set_value, "170") &&
-                near((*split).splitter_distance(), 170.0),
+                near((*split).splitter_distance.read(), 170.0),
             "adjustable seam semantics must expose range value plus shared increment and set-value actions");
 
     const Rect detached_hit = (*(*split).splitter_control()).absolute_bounds();
@@ -664,8 +664,8 @@ void test_proximity_states_cancel_disable_detach_and_semantics() {
 
 void test_bounded_seam_interpolation_and_reduced_motion() {
     std::shared_ptr<SplitContainer> split = make_control<SplitContainer>(StableId("split.transition"));
-    (*split).set_splitter_distance(140.0);
-    (*split).set_collapse_panel(SplitFixedPanel::second);
+    (*split).splitter_distance = 140.0;
+    (*split).collapse_panel = SplitFixedPanel::second;
     Window window(split, {360.0, 180.0});
     window.perform_layout();
 
@@ -732,17 +732,17 @@ void test_bounded_seam_interpolation_and_reduced_motion() {
                 !window.next_wake().has_value(),
             "reduced motion must replace interpolation with an immediate exact state change");
 
-    (*split).set_splitter_transition_duration(0ms);
-    require((*split).splitter_transition_duration() == 0ms,
+    (*split).splitter_transition_duration = 0ms;
+    require((*split).splitter_transition_duration.read() == 0ms,
             "consumers must be able to explicitly select immediate seam presentation");
-    const FrameInterval before = (*split).splitter_transition_duration();
+    const FrameInterval before = (*split).splitter_transition_duration.read();
     bool rejected{};
     try {
-        (*split).set_splitter_transition_duration(1001ms);
+        (*split).splitter_transition_duration = 1001ms;
     } catch (const std::invalid_argument&) {
         rejected = true;
     }
-    require(rejected && (*split).splitter_transition_duration() == before,
+    require(rejected && (*split).splitter_transition_duration.read() == before,
             "over-budget seam duration must be rejected atomically");
 }
 

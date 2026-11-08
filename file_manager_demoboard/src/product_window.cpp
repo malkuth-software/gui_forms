@@ -943,14 +943,14 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     std::shared_ptr<gui_forms::SplitContainer> outer = std::make_shared<SplitContainer>(StableId("fm.workspace"));
     refs.workspace_split = outer;
     (*outer).initialize_control_tree();
-    (*outer).set_splitter_width(3);
-    (*outer).set_splitter_hit_width(12);
-    (*outer).set_splitter_distance(218);
-    (*outer).set_collapse_panel(SplitFixedPanel::first);
-    (*outer).set_automatic_collapse_threshold(700);
-    (*outer).set_first_minimum(120);
-    (*outer).set_second_minimum(320);
-    (*outer).set_first_maximum(360);
+    (*outer).splitter_width = 3;
+    (*outer).splitter_hit_width = 12;
+    (*outer).splitter_distance = 218;
+    (*outer).collapse_panel = SplitFixedPanel::first;
+    (*outer).automatic_collapse_threshold = 700;
+    (*outer).first_minimum = 120;
+    (*outer).second_minimum = 320;
+    (*outer).first_maximum = 360;
     (*(*outer).first_panel()).set_background(Color::rgba(235,240,246));
     (*(*outer).first_panel()).add_child(make_tree_pane(refs));
     (*(*(*outer).first_panel()).children().back()).dock = DockStyle::fill;
@@ -958,15 +958,15 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     std::shared_ptr<gui_forms::SplitContainer> inner = std::make_shared<SplitContainer>(StableId("fm.workspace.content-selection"));
     (*inner).initialize_control_tree();
     refs.selection_split = inner;
-    (*inner).set_splitter_width(3);
-    (*inner).set_splitter_hit_width(12);
-    (*inner).set_fixed_panel(SplitFixedPanel::second);
-    (*inner).set_splitter_distance(935);
-    (*inner).set_collapse_panel(SplitFixedPanel::second);
-    (*inner).set_automatic_collapse_threshold(900);
-    (*inner).set_first_minimum(260);
-    (*inner).set_second_minimum(288);
-    (*inner).set_second_maximum(420);
+    (*inner).splitter_width = 3;
+    (*inner).splitter_hit_width = 12;
+    (*inner).fixed_panel = SplitFixedPanel::second;
+    (*inner).splitter_distance = 935;
+    (*inner).collapse_panel = SplitFixedPanel::second;
+    (*inner).automatic_collapse_threshold = 900;
+    (*inner).first_minimum = 260;
+    (*inner).second_minimum = 288;
+    (*inner).second_maximum = 420;
     (*(*inner).first_panel()).set_background(paper);
     std::shared_ptr<gui_forms::Panel> daily_content = std::make_shared<Panel>(
         StableId("fm.content.host"));
@@ -2713,9 +2713,9 @@ public:
         set_band(navigation_, 40.0 * text_scale, true);
         set_band(status_, 24.0 * text_scale, show_status);
         const std::shared_ptr<SplitContainer> workspace = workspace_split_.lock();
-        if (workspace) (*workspace).set_automatic_collapse_threshold(700.0 * text_scale);
+        if (workspace) (*workspace).automatic_collapse_threshold = 700.0 * text_scale;
         const std::shared_ptr<SplitContainer> selection = selection_split_.lock();
-        if (selection) (*selection).set_automatic_collapse_threshold(900.0 * text_scale);
+        if (selection) (*selection).automatic_collapse_threshold = 900.0 * text_scale;
     }
 
 private:

@@ -292,10 +292,10 @@ void CorrespondenceShell::build_command_row() {
 
 void CorrespondenceShell::build_panes() {
     split_ = make_control<SplitContainer>(StableId(std::string(ids::split)));
-    (*split_).set_orientation(Orientation::vertical);
-    (*split_).set_splitter_distance(200.0);
-    (*split_).set_first_minimum(140.0);
-    (*split_).set_second_minimum(320.0);
+    (*split_).orientation = Orientation::vertical;
+    (*split_).splitter_distance = 200.0;
+    (*split_).first_minimum = 140.0;
+    (*split_).second_minimum = 320.0;
     (*split_).dock = DockStyle::fill;
     add_child(split_);
     (*(*split_).first_panel()).set_background(navigation);
@@ -314,12 +314,12 @@ void CorrespondenceShell::build_panes() {
     on((*folders_).selection_changed(), *this, &CorrespondenceShell::on_folder_selected);
 
     content_split_ = make_control<SplitContainer>(StableId(std::string(ids::content_split)));
-    (*content_split_).set_orientation(Orientation::horizontal);
-    (*content_split_).set_splitter_distance(290.0);
+    (*content_split_).orientation = Orientation::horizontal;
+    (*content_split_).splitter_distance = 290.0;
     // At the 600x420 minimum the list yields to the reading pane: its header
     // block takes about 90 logical pixels, so 180 keeps the body readable.
-    (*content_split_).set_first_minimum(100.0);
-    (*content_split_).set_second_minimum(180.0);
+    (*content_split_).first_minimum = 100.0;
+    (*content_split_).second_minimum = 180.0;
     (*content_split_).dock = DockStyle::fill;
     (*(*split_).second_panel()).add_child(content_split_);
     (*(*content_split_).first_panel()).set_background(paper);

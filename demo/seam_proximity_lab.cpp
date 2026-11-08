@@ -67,13 +67,13 @@ std::shared_ptr<SplitContainer> make_split(
     double distance, SplitFixedPanel collapse_panel = SplitFixedPanel::none) {
     std::shared_ptr<SplitContainer> split =
         make_control<SplitContainer>(StableId(std::move(id)));
-    (*split).set_orientation(orientation);
-    (*split).set_splitter_geometry(geometry);
-    (*split).set_splitter_distance(distance);
-    (*split).set_first_minimum(54.0);
-    (*split).set_second_minimum(54.0);
-    (*split).set_keyboard_increment(4.0);
-    (*split).set_collapse_panel(collapse_panel);
+    (*split).orientation = orientation;
+    (*split).splitter_geometry = geometry;
+    (*split).splitter_distance = distance;
+    (*split).first_minimum = 54.0;
+    (*split).second_minimum = 54.0;
+    (*split).keyboard_increment = 4.0;
+    (*split).collapse_panel = collapse_panel;
     (*split).accessible_name = "Adjustable physical pane seam";
     (*(*split).first_panel()).set_background(paper);
     (*(*split).second_panel()).set_background(cool_well);
@@ -200,13 +200,13 @@ SplitSeamGeometry physical_hairline_geometry() {
 bool invalid_geometry_is_rejected() {
     std::shared_ptr<SplitContainer> split =
         make_control<SplitContainer>(StableId("seam.invalid.probe"));
-    const SplitSeamGeometry before = (*split).splitter_geometry();
+    const SplitSeamGeometry before = (*split).splitter_geometry.read();
     SplitSeamGeometry invalid = before;
     invalid.hit_after = SplitSeamGeometry::maximum_hit_extension + 1.0;
     try {
-        (*split).set_splitter_geometry(invalid);
+        (*split).splitter_geometry = invalid;
     } catch (const std::invalid_argument&) {
-        return (*split).splitter_geometry() == before;
+        return (*split).splitter_geometry.read() == before;
     }
     return false;
 }

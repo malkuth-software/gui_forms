@@ -149,6 +149,38 @@ Related types
      - Stage T1 anatomy, as dot members.
    * - :cpp:class:`SplitContainer::States <gui_forms::SplitContainer::States>`
      -  
+   * - :cpp:class:`SplitContainerAutomaticCollapseThresholdCapability <gui_forms::SplitContainerAutomaticCollapseThresholdCapability>`
+     - Consumer-authored content threshold.
+   * - :cpp:class:`SplitContainerCapabilities <gui_forms::SplitContainerCapabilities>`
+     - Every SplitContainer capability, in the order the declaring class takes them.
+   * - :cpp:class:`SplitContainerCollapsePanelCapability <gui_forms::SplitContainerCollapsePanelCapability>`
+     - Optional seam-tab authority.
+   * - :cpp:class:`SplitContainerFirstMaximumCapability <gui_forms::SplitContainerFirstMaximumCapability>`
+     - The greatest extent of the first panel, or none for no limit.
+   * - :cpp:class:`SplitContainerFirstMinimumCapability <gui_forms::SplitContainerFirstMinimumCapability>`
+     - The least extent of the first panel (Windows Forms' Panel1MinSize, default 25).
+   * - :cpp:class:`SplitContainerFixedPanelCapability <gui_forms::SplitContainerFixedPanelCapability>`
+     - The panel that keeps its extent when the container resizes (Windows Forms' FixedPanel); none shares the change.
+   * - :cpp:class:`SplitContainerKeyboardIncrementCapability <gui_forms::SplitContainerKeyboardIncrementCapability>`
+     - How far an arrow key moves the focused splitter (Windows Forms' SplitterIncrement, default 4).
+   * - :cpp:class:`SplitContainerOrientationCapability <gui_forms::SplitContainerOrientationCapability>`
+     - Which way the panels are laid out (Windows Forms' Orientation): vertical puts the splitter between a left and a right panel, horizontal between a top and a bottom one.
+   * - :cpp:class:`SplitContainerSecondMaximumCapability <gui_forms::SplitContainerSecondMaximumCapability>`
+     - The greatest extent of the second panel, or none for no limit.
+   * - :cpp:class:`SplitContainerSecondMinimumCapability <gui_forms::SplitContainerSecondMinimumCapability>`
+     - The least extent of the second panel (Windows Forms' Panel2MinSize, default 25).
+   * - :cpp:class:`SplitContainerSplitterDistanceCapability <gui_forms::SplitContainerSplitterDistanceCapability>`
+     - The first panel's extent along the orientation (Windows Forms' SplitterDistance).
+   * - :cpp:class:`SplitContainerSplitterFixedCapability <gui_forms::SplitContainerSplitterFixedCapability>`
+     - Whether the user may not move the splitter (Windows Forms' IsSplitterFixed).
+   * - :cpp:class:`SplitContainerSplitterGeometryCapability <gui_forms::SplitContainerSplitterGeometryCapability>`
+     - The seam's visible thickness, thickness policy and hit extents.
+   * - :cpp:class:`SplitContainerSplitterHitWidthCapability <gui_forms::SplitContainerSplitterHitWidthCapability>`
+     - The least pointer target across the splitter, never below the visible thickness; shorthand for splitter_geometry's minimum_hit_target with the extra extent split evenly.
+   * - :cpp:class:`SplitContainerSplitterTransitionDurationCapability <gui_forms::SplitContainerSplitterTransitionDurationCapability>`
+     - How long the seam's hot and pressed appearance takes to change; held by the splitter grip.
+   * - :cpp:class:`SplitContainerSplitterWidthCapability <gui_forms::SplitContainerSplitterWidthCapability>`
+     - The splitter's visible thickness (Windows Forms' SplitterWidth), shorthand for splitter_geometry's visible_thickness that keeps the hit target centred.
    * - :cpp:class:`SplitSeamGeometry <gui_forms::SplitSeamGeometry>`
      -  
    * - :cpp:class:`SplitSeamSnapshot <gui_forms::SplitSeamSnapshot>`
@@ -1016,7 +1048,7 @@ Related types
 
 .. cpp:struct:: SplitChangeEvent final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
 
    SplitChangeEvent reports old/new splitter distance and whether the change originated from pointer interaction.
 
@@ -1074,9 +1106,325 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: template <typename Declaring> SplitContainerAutomaticCollapseThresholdCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   Consumer-authored content threshold. Crossing below it automatically collapses collapse_panel; crossing back restores only an automatically collapsed pane. A user restore below the threshold is honored until the composition next crosses above it. Zero turns it off and restores an automatically collapsed pane. A negative or non-finite value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerAutomaticCollapseThresholdCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, SplitContainerAutomaticCollapseThresholdCapability<Declaring>> automatic_collapse_threshold
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerCapabilities : public SplitContainerOrientationCapability<Declaring>, public SplitContainerSplitterDistanceCapability<Declaring>, public SplitContainerSplitterWidthCapability<Declaring>, public SplitContainerSplitterHitWidthCapability<Declaring>, public SplitContainerSplitterGeometryCapability<Declaring>, public SplitContainerSplitterTransitionDurationCapability<Declaring>, public SplitContainerFirstMinimumCapability<Declaring>, public SplitContainerSecondMinimumCapability<Declaring>, public SplitContainerFirstMaximumCapability<Declaring>, public SplitContainerSecondMaximumCapability<Declaring>, public SplitContainerSplitterFixedCapability<Declaring>, public SplitContainerFixedPanelCapability<Declaring>, public SplitContainerCollapsePanelCapability<Declaring>, public SplitContainerAutomaticCollapseThresholdCapability<Declaring>, public SplitContainerKeyboardIncrementCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   Every SplitContainer capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Orientation orientation
+
+      Which way the panels are laid out (Windows Forms' Orientation): vertical puts the splitter between a left and a right panel, horizontal between a top and a bottom one. A change re-derives the panel extents and the splitter cursor.
+
+   .. cpp:member:: double splitter_distance
+
+      The first panel's extent along the orientation (Windows Forms' SplitterDistance). A read returns the effective distance after the panel limits; a write is the requested distance, kept and re-applied as the container resizes, and raises splitter_changed with SplitChangeReason::programmatic. A negative or non-finite value throws std::invalid_argument.
+
+   .. cpp:member:: double splitter_width
+
+      The splitter's visible thickness (Windows Forms' SplitterWidth), shorthand for splitter_geometry's visible_thickness that keeps the hit target centred. A zero, negative or non-finite value throws std::invalid_argument.
+
+   .. cpp:member:: double splitter_hit_width
+
+      The least pointer target across the splitter, never below the visible thickness; shorthand for splitter_geometry's minimum_hit_target with the extra extent split evenly. A zero, negative or non-finite value throws std::invalid_argument.
+
+   .. cpp:member:: SplitSeamGeometry splitter_geometry
+
+      The seam's visible thickness, thickness policy and hit extents. The whole geometry is validated before any of it is published (std::invalid_argument for an invalid one); this is the form to use for asymmetric hit extents or a physical hairline, and splitter_width and splitter_hit_width are shorthands for it.
+
+   .. cpp:member:: FrameInterval splitter_transition_duration
+
+      How long the seam's hot and pressed appearance takes to change; held by the splitter grip.
+
+   .. cpp:member:: double first_minimum
+
+      The least extent of the first panel (Windows Forms' Panel1MinSize, default 25). A negative, non-finite or above-maximum value throws std::invalid_argument and changes nothing.
+
+   .. cpp:member:: double second_minimum
+
+      The least extent of the second panel (Windows Forms' Panel2MinSize, default 25). Refused as first_minimum is.
+
+   .. cpp:member:: std::optional<double> first_maximum
+
+      The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.
+
+   .. cpp:member:: std::optional<double> second_maximum
+
+      The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.
+
+   .. cpp:member:: bool splitter_fixed
+
+      Whether the user may not move the splitter (Windows Forms' IsSplitterFixed). Programmatic distances still apply.
+
+   .. cpp:member:: SplitFixedPanel fixed_panel
+
+      The panel that keeps its extent when the container resizes (Windows Forms' FixedPanel); none shares the change.
+
+   .. cpp:member:: SplitFixedPanel collapse_panel
+
+      Optional seam-tab authority. Unlike fixed_panel, this identifies the pane toggled by a compact splitter tab and may remain operable while ordinary splitter resizing is fixed.
+
+   .. cpp:member:: double automatic_collapse_threshold
+
+      Consumer-authored content threshold. Crossing below it automatically collapses collapse_panel; crossing back restores only an automatically collapsed pane. A user restore below the threshold is honored until the composition next crosses above it. Zero turns it off and restores an automatically collapsed pane. A negative or non-finite value throws std::invalid_argument.
+
+   .. cpp:member:: double keyboard_increment
+
+      How far an arrow key moves the focused splitter (Windows Forms' SplitterIncrement, default 4). A zero, negative or non-finite value throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerCollapsePanelCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   Optional seam-tab authority. Unlike fixed_panel, this identifies the pane toggled by a compact splitter tab and may remain operable while ordinary splitter resizing is fixed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerCollapsePanelCapability& capability, SplitFixedPanel incoming)
+
+   .. cpp:member:: PropertyCell<SplitFixedPanel, SplitContainerCollapsePanelCapability<Declaring>> collapse_panel
+
+      Default: ``{SplitFixedPanel::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerFirstMaximumCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The greatest extent of the first panel, or none for no limit. A negative, non-finite or below-minimum value throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerFirstMaximumCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, SplitContainerFirstMaximumCapability<Declaring>> first_maximum
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerFirstMinimumCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The least extent of the first panel (Windows Forms' Panel1MinSize, default 25). A negative, non-finite or above-maximum value throws std::invalid_argument and changes nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerFirstMinimumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, SplitContainerFirstMinimumCapability<Declaring>> first_minimum
+
+      Default: ``{25.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerFixedPanelCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The panel that keeps its extent when the container resizes (Windows Forms' FixedPanel); none shares the change.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerFixedPanelCapability& capability, SplitFixedPanel incoming)
+
+   .. cpp:member:: PropertyCell<SplitFixedPanel, SplitContainerFixedPanelCapability<Declaring>> fixed_panel
+
+      Default: ``{SplitFixedPanel::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerKeyboardIncrementCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   How far an arrow key moves the focused splitter (Windows Forms' SplitterIncrement, default 4). A zero, negative or non-finite value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerKeyboardIncrementCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, SplitContainerKeyboardIncrementCapability<Declaring>> keyboard_increment
+
+      Default: ``{4.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerOrientationCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   Which way the panels are laid out (Windows Forms' Orientation): vertical puts the splitter between a left and a right panel, horizontal between a top and a bottom one. A change re-derives the panel extents and the splitter cursor.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerOrientationCapability& capability, Orientation incoming)
+
+   .. cpp:member:: PropertyCell<Orientation, SplitContainerOrientationCapability<Declaring>> orientation
+
+      Default: ``{Orientation::vertical}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSecondMaximumCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The greatest extent of the second panel, or none for no limit. Refused as first_maximum is.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSecondMaximumCapability& capability, std::optional<double> incoming)
+
+   .. cpp:member:: PropertyCell<std::optional<double>, SplitContainerSecondMaximumCapability<Declaring>> second_maximum
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSecondMinimumCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The least extent of the second panel (Windows Forms' Panel2MinSize, default 25). Refused as first_minimum is.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSecondMinimumCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, SplitContainerSecondMinimumCapability<Declaring>> second_minimum
+
+      Default: ``{25.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSplitterDistanceCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The first panel's extent along the orientation (Windows Forms' SplitterDistance). A read returns the effective distance after the panel limits; a write is the requested distance, kept and re-applied as the container resizes, and raises splitter_changed with SplitChangeReason::programmatic. A negative or non-finite value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSplitterDistanceCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const SplitContainerSplitterDistanceCapability& capability)
+
+   .. cpp:member:: PropertyView<double, SplitContainerSplitterDistanceCapability<Declaring>> splitter_distance
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSplitterFixedCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   Whether the user may not move the splitter (Windows Forms' IsSplitterFixed). Programmatic distances still apply.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSplitterFixedCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, SplitContainerSplitterFixedCapability<Declaring>> splitter_fixed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSplitterGeometryCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The seam's visible thickness, thickness policy and hit extents. The whole geometry is validated before any of it is published (std::invalid_argument for an invalid one); this is the form to use for asymmetric hit extents or a physical hairline, and splitter_width and splitter_hit_width are shorthands for it.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSplitterGeometryCapability& capability, SplitSeamGeometry incoming)
+
+   .. cpp:member:: PropertyCell<SplitSeamGeometry, SplitContainerSplitterGeometryCapability<Declaring>> splitter_geometry
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSplitterHitWidthCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The least pointer target across the splitter, never below the visible thickness; shorthand for splitter_geometry's minimum_hit_target with the extra extent split evenly. A zero, negative or non-finite value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSplitterHitWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const SplitContainerSplitterHitWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, SplitContainerSplitterHitWidthCapability<Declaring>> splitter_hit_width
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSplitterTransitionDurationCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   How long the seam's hot and pressed appearance takes to change; held by the splitter grip.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSplitterTransitionDurationCapability& capability, FrameInterval incoming)
+
+   .. cpp:function:: static FrameInterval read(const SplitContainerSplitterTransitionDurationCapability& capability)
+
+   .. cpp:member:: PropertyView<FrameInterval, SplitContainerSplitterTransitionDurationCapability<Declaring>> splitter_transition_duration
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitContainerSplitterWidthCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_capabilities/split_container_capabilities.hpp>``
+
+   The splitter's visible thickness (Windows Forms' SplitterWidth), shorthand for splitter_geometry's visible_thickness that keeps the hit target centred. A zero, negative or non-finite value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitContainerSplitterWidthCapability& capability, double incoming)
+
+   .. cpp:function:: static double read(const SplitContainerSplitterWidthCapability& capability)
+
+   .. cpp:member:: PropertyView<double, SplitContainerSplitterWidthCapability<Declaring>> splitter_width
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SplitSeamGeometry final
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
 
    .. cpp:member:: constexpr double maximum_visible_thickness
 
@@ -1547,7 +1895,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitChangeReason
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
 
    .. cpp:enumerator:: programmatic
 
@@ -1567,7 +1915,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitCollapseOrigin
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1581,7 +1929,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitFixedPanel
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1593,7 +1941,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitSeamState
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
 
    .. cpp:enumerator:: idle
 
@@ -1613,7 +1961,7 @@ Enumerations
 
 .. cpp:enum-class:: SplitSeamThicknessPolicy
 
-   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp>``
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/split_container_values/split_container_values.hpp>``
 
    .. cpp:enumerator:: logical
 
