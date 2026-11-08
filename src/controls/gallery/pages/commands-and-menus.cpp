@@ -1,5 +1,7 @@
 #include "pages.hpp"
 
+#include "commands-and-menus_form.hpp"
+
 namespace gui_forms::gallery::pages {
 namespace {
 
@@ -30,7 +32,8 @@ constexpr int bar_save = 2;
 constexpr int bar_delete = 3;
 constexpr int bar_wrap = 4;
 
-// One fixture document with a modified flag and a word-wrap flag. Every
+// The page demo/pages/commands-and-menus.form describes: one fixture
+// document with a modified flag and a word-wrap flag. Every
 // surface on the page (MenuStrip, CommandBar, ContextMenu, DropDownButton
 // menus, a plain Button, a CheckBox and Ctrl+S) converges on the same
 // application-owned Commands, so enabled and checked state is authored once.
@@ -42,32 +45,39 @@ public:
           run_menu_("gallery.commands.run.menu"),
           context_menu_("gallery.commands.context") {
         static_cast<void>(context);
-        (*body).add_at(label("gallery.commands-and-menus.heading", "COMMANDS AND MENUS", 22.0,
-                             700, shell_blue_dark), {24.0, 18.0, 620.0, 34.0});
-        (*body).add_at(label("gallery.commands-and-menus.lead",
-                             "One Command per action: the menu bar, command bar, context menu, drop-down menus, a button, a check box and Ctrl+S all invoke the same retained authority.",
-                             12.0, 400, muted), {26.0, 52.0, 920.0, 24.0});
+        document_.initialize_component(*this);
+        mount_document(body);
         build_commands();
-        build_menu_strip(body);
-        build_command_row(body);
-        build_shared_state(body);
-        build_context_menu(body);
-        build_strips(body);
-        build_container(body);
-        build_ribbon(body);
-        build_gallery(body);
-        build_scaling_ribbons(body);
-        build_file_area(body);
-        status_ = label("gallery.commands.status",
-                        "Ready · toggle \"Document modified\" to enable Save on every surface",
-                        11.0, 600, green);
-        (*body).add_at(status_, {24.0, 600.0, 930.0, 26.0});
+        build_menu_strip();
+        build_command_row();
+        build_shared_state();
+        build_context_menu();
+        build_strips();
+        build_container();
+        build_ribbon();
+        build_gallery();
+        build_scaling_ribbons();
+        build_file_area();
         on(dirty_.changed(), *this, &CommandsAndMenusPage::on_dirty_changed);
         on(wrap_.changed(), *this, &CommandsAndMenusPage::on_wrap_changed);
         on_dirty_changed(dirty_.get());
     }
 
 private:
+    void mount_document(const std::shared_ptr<Surface>& body) {
+        mount_form_children(*document_.gallery_commands_document, *body);
+        const std::array<std::shared_ptr<ScaledGroupBox>, 9> groups{
+            document_.gallery_commands_row,          document_.gallery_commands_state,
+            document_.gallery_commands_context_group, document_.gallery_commands_strips,
+            document_.gallery_commands_container,    document_.gallery_commands_ribbon,
+            document_.gallery_commands_gallery,      document_.gallery_commands_ribbon_scaling,
+            document_.gallery_commands_ribbon_file_area};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_style(page_style());
+        }
+        status_ = document_.gallery_commands_status;
+    }
+
     [[nodiscard]] static std::shared_ptr<Command> make_command(
         const std::string_view id, const std::string_view text,
         const std::string_view description, const std::string_view shortcut = {}) {
@@ -133,10 +143,9 @@ private:
         on((*about_).invoked(), *this, &CommandsAndMenusPage::on_about);
     }
 
-    void build_menu_strip(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<MenuStrip> menu = make_control<MenuStrip>(StableId("gallery.commands.menu"));
+    void build_menu_strip() {
+        const std::shared_ptr<MenuStrip>& menu = document_.gallery_commands_menu;
         (*menu).set_font({FontRole::control, 11.5, 400, false, 0.12});
-        (*menu).accessible_name = "Document menu";
         (*menu).set_items({
             {"gallery.commands.menu.file", "&File",
              {item("file.new", new_), item("file.save", save_), separator("file.separator"),
@@ -150,18 +159,12 @@ private:
               item("view.details", details_, MenuItemKind::radio)}},
             {"gallery.commands.menu.help", "&Help", {item("help.about", about_)}},
         });
-        (*body).add_at(menu, {24.0, 88.0, 930.0, 28.0});
         on((*menu).item_invoked(), *this, &CommandsAndMenusPage::on_menu_invoked);
     }
 
-    void build_command_row(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> row = group(
-            "gallery.commands.row", "CommandBar · DropDownButton (menu and split modes)",
-            {930.0, 116.0});
-        (*body).add_at(row, {24.0, 128.0, 930.0, 116.0});
-        std::shared_ptr<CommandBar> bar = make_control<CommandBar>(StableId("gallery.commands.bar"));
+    void build_command_row() {
+        const std::shared_ptr<CommandBar>& bar = document_.gallery_commands_bar;
         (*bar).set_style(page_style());
-        (*bar).accessible_name = "Document commands";
         (*bar).set_items({
             {.id = bar_new, .label = "New", .accessible_name = "New document",
              .shortcut = KeyGesture{PhysicalKey::n, Modifier::control}, .command = new_.get()},
@@ -177,80 +180,40 @@ private:
             button.set_style(page_style());
             button.set_visual_style(ButtonVisualStyle::command);
         }
-        (*row).add_at(bar, {22.0, 36.0, 520.0, 36.0});
         on((*bar).invoked(), *this, &CommandsAndMenusPage::on_bar_invoked);
 
-        export_ = make_control<DropDownButton>(StableId("gallery.commands.export"), "Export");
+        export_ = document_.gallery_commands_export;
         (*export_).set_style(page_style());
-        (*export_).accessible_name = "Export document";
-        (*row).add_at(export_, {566.0, 36.0, 150.0, 36.0});
         on((*export_).drop_down_requested(), *this, &CommandsAndMenusPage::on_export_requested);
         on((*export_).drop_down_close_requested(), *this, &CommandsAndMenusPage::on_export_close);
         export_menu_.set_items(export_items("export"));
         on(export_menu_.open_changed(), *this, &CommandsAndMenusPage::on_export_menu_open);
 
-        run_button_ = make_control<DropDownButton>(StableId("gallery.commands.run"), "Run",
-                                                   DropDownButtonMode::split);
+        run_button_ = document_.gallery_commands_run;
+        (*run_button_).set_drop_down_mode(DropDownButtonMode::split);
         (*run_button_).set_style(page_style());
-        (*run_button_).accessible_name = "Run document";
         (*run_button_).bind(*run_); // Primary region: the ordinary Click path.
-        (*row).add_at(run_button_, {732.0, 36.0, 170.0, 36.0});
         on((*run_button_).drop_down_requested(), *this, &CommandsAndMenusPage::on_run_requested);
         on((*run_button_).drop_down_close_requested(), *this, &CommandsAndMenusPage::on_run_close);
         run_menu_.set_items({item("run.verbose", run_options_[0]), item("run.watch", run_options_[1])});
         on(run_menu_.open_changed(), *this, &CommandsAndMenusPage::on_run_menu_open);
-
-        (*row).add_at(label("gallery.commands.row.note",
-                            "Ctrl+N and Ctrl+S are CommandBar shortcuts · Arrow keys rove the bar · Alt+Down opens a focused drop-down · the split button keeps a primary click region",
-                            10.0, 400, muted), {22.0, 80.0, 890.0, 20.0});
     }
 
-    void build_shared_state(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> state = group(
-            "gallery.commands.state", "Command · one authority, projected everywhere",
-            {450.0, 336.0});
-        (*body).add_at(state, {24.0, 256.0, 450.0, 336.0});
-        std::shared_ptr<CheckBox> modified = make_control<CheckBox>(
-            StableId("gallery.commands.modified"), "Document modified (enables Save)");
-        (*modified).set_indicator_style(ChoiceIndicatorStyle::modern);
-        (*modified).bind(dirty_);
-        (*state).add_at(modified, {22.0, 36.0, 400.0, 26.0});
-        std::shared_ptr<Button> save = make_control<Button>(
-            StableId("gallery.commands.save.button"), "Save");
-        (*save).set_visual_style(ButtonVisualStyle::accent);
-        (*save).set_style(page_style());
-        (*save).bind(*save_);
-        (*state).add_at(save, {22.0, 74.0, 150.0, 34.0});
-        std::shared_ptr<Button> remove = make_control<Button>(
-            StableId("gallery.commands.delete.button"), "Delete");
-        (*remove).set_style(page_style());
-        (*remove).bind(*delete_);
-        (*state).add_at(remove, {186.0, 74.0, 150.0, 34.0});
-        std::shared_ptr<CheckBox> wrap = make_control<CheckBox>(
-            StableId("gallery.commands.wrap.check"), "Word wrap");
-        (*wrap).set_indicator_style(ChoiceIndicatorStyle::toggle);
-        (*wrap).bind(wrap_);
-        (*state).add_at(wrap, {22.0, 120.0, 300.0, 26.0});
-        saves_label_ = label("gallery.commands.saves", "Saves: 0", 11.0, 600, shell_blue_dark);
-        (*state).add_at(saves_label_, {22.0, 156.0, 400.0, 22.0});
-        std::shared_ptr<Label> note = label(
-            "gallery.commands.state.note",
-            "Save is one Command: the bar item, File > Save, the context-menu row, this button and Ctrl+S invoke it, and its enabled state follows the modified flag. Delete is disabled with an availability reason. Word wrap is a Value bound to the check box and projected onto the check Command, so the bar item, the View menu and the context menu stay in step.",
-            10.0, 400, muted);
-        (*note).set_text_wrapping(TextWrapping::word);
-        (*note).set_vertical_alignment(VerticalAlignment::near);
-        (*state).add_at(note, {22.0, 186.0, 400.0, 136.0});
+    void build_shared_state() {
+        (*document_.gallery_commands_modified).bind(dirty_);
+        Button& save = *document_.gallery_commands_save_button;
+        save.set_style(page_style());
+        save.bind(*save_);
+        Button& remove = *document_.gallery_commands_delete_button;
+        remove.set_style(page_style());
+        remove.bind(*delete_);
+        (*document_.gallery_commands_wrap_check).bind(wrap_);
+        saves_label_ = document_.gallery_commands_saves;
     }
 
-    void build_context_menu(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> context_group = group(
-            "gallery.commands.context-group", "ContextMenu · stable rows over bound Commands",
-            {460.0, 336.0});
-        (*body).add_at(context_group, {494.0, 256.0, 460.0, 336.0});
-        context_button_ = make_control<Button>(
-            StableId("gallery.commands.context.open"), "Open context menu");
+    void build_context_menu() {
+        context_button_ = document_.gallery_commands_context_open;
         (*context_button_).set_style(page_style());
-        (*context_group).add_at(context_button_, {22.0, 36.0, 240.0, 34.0});
         on((*context_button_).clicked(), *this, &CommandsAndMenusPage::on_context_requested);
         context_menu_.set_items({
             item("save", save_), item("delete", delete_), separator("separator.edit"),
@@ -260,13 +223,6 @@ private:
         });
         on(context_menu_.item_invoked(), *this, &CommandsAndMenusPage::on_context_invoked);
         on(context_menu_.open_changed(), *this, &CommandsAndMenusPage::on_context_open);
-        std::shared_ptr<Label> note = label(
-            "gallery.commands.context.note",
-            "Rows are temporary overlay presentations over stable MenuItemSpec identities. Arrow keys and Enter invoke; Escape and click-away revoke the overlay and restore the invoker's focus. Command state (enabled, checked, destructive, availability reason) is snapshotted as the menu opens.",
-            10.0, 400, muted);
-        (*note).set_text_wrapping(TextWrapping::word);
-        (*note).set_vertical_alignment(VerticalAlignment::near);
-        (*context_group).add_at(note, {22.0, 84.0, 410.0, 120.0});
     }
 
     // A QuickAccessToolbar over the same Commands, narrow enough that its
@@ -274,13 +230,8 @@ private:
     // enough that its last buttons overflow; and a StatusStrip with a spring
     // label and a hosted progress bar. The Gallery shell attaches enhanced
     // tooltips to some of the ToolStrip's items once the Window exists.
-    void build_strips(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> strips = group(
-            "gallery.commands.strips", "QuickAccessToolbar · ToolStrip · StatusStrip · by-role painted items",
-            {930.0, 170.0});
-        (*body).add_at(strips, {24.0, 636.0, 930.0, 170.0});
-        std::shared_ptr<QuickAccessToolbar> quick_access =
-            make_control<QuickAccessToolbar>(StableId("gallery.commands.quick-access"));
+    void build_strips() {
+        const std::shared_ptr<QuickAccessToolbar>& quick_access = document_.gallery_commands_quick_access;
         (*quick_access).set_commands({
             {.command = save_},
             {.command = new_},
@@ -288,15 +239,10 @@ private:
             {.command = wrap_command_},
             {.command = about_},
         });
-        (*strips).add_at(quick_access, {22.0, 36.0, 250.0, 27.0});
-        quick_access_note_ = label("gallery.commands.quick-access.note",
-                                   "The customize button lists each command with a check · placement: above the ribbon",
-                                   10.0, 400, muted);
-        (*strips).add_at(quick_access_note_, {290.0, 40.0, 610.0, 20.0});
+        quick_access_note_ = document_.gallery_commands_quick_access_note;
         on((*quick_access).placement_changed(), *this, &CommandsAndMenusPage::on_quick_access_placement);
         on((*quick_access).customized(), *this, &CommandsAndMenusPage::on_quick_access_customized);
-        std::shared_ptr<ToolStrip> tool = make_control<ToolStrip>(StableId("gallery.commands.tool-strip"));
-        (*tool).accessible_name = "Document tools";
+        const std::shared_ptr<ToolStrip>& tool = document_.gallery_commands_tool_strip;
         std::vector<ToolStripItemSpec> tools;
         tools.push_back({.stable_id = "strip.new", .command = new_});
         tools.push_back({.stable_id = "strip.save", .command = save_});
@@ -313,9 +259,7 @@ private:
                                        item("strip.run.watch", run_options_[1])}});
         tools.push_back({.stable_id = "strip.about", .command = about_});
         (*tool).set_items(std::move(tools));
-        (*strips).add_at(tool, {22.0, 74.0, 430.0, 27.0});
-        std::shared_ptr<StatusStrip> status = make_control<StatusStrip>(StableId("gallery.commands.status-strip"));
-        (*status).accessible_name = "Document status";
+        const std::shared_ptr<StatusStrip>& status = document_.gallery_commands_status_strip;
         (*status).set_items({
             {.stable_id = "status.state", .kind = ToolStripItemKind::label, .text = "Ready", .spring = true},
             {.stable_id = "status.separator", .kind = ToolStripItemKind::separator},
@@ -324,17 +268,12 @@ private:
             {.stable_id = "status.progress", .kind = ToolStripItemKind::progress_bar, .text = "Indexing"},
         });
         (*(*status).progress_bar("status.progress")).set_value(60.0);
-        (*strips).add_at(status, {22.0, 122.0, 880.0, 24.0});
     }
 
     // A RibbonGallery in the ribbon form, a drop-down gallery under a button,
     // and the gallery value command they share, standalone (the scaling
     // specimens below host the same command's galleries in a Ribbon).
-    void build_gallery(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> gallery_group = group(
-            "gallery.commands.gallery", "RibbonGallery · value command, live preview, more button, drop-down form",
-            {930.0, 150.0});
-        (*body).add_at(gallery_group, {24.0, 1240.0, 930.0, 150.0});
+    void build_gallery() {
         const std::shared_ptr<Command> styles = std::make_shared<Command>("gallery.commands.styles", "Styles");
         styles_ = std::make_shared<GalleryCommand>(styles);
         std::vector<RibbonGalleryCategory> categories{{"headings", "Headings"}, {"body", "Body text"},
@@ -346,8 +285,7 @@ private:
         for (const char* name : heading_names) items.push_back({style_id(name), name, {}, "headings"});
         for (const char* name : body_names) items.push_back({style_id(name), name, {}, "body"});
         for (const char* name : quote_names) items.push_back({style_id(name), name, {}, "quotes"});
-        std::shared_ptr<RibbonGallery> in_ribbon = make_control<RibbonGallery>(StableId("gallery.commands.styles"));
-        (*in_ribbon).accessible_name = "Styles";
+        const std::shared_ptr<RibbonGallery>& in_ribbon = document_.gallery_commands_styles;
         (*in_ribbon).set_item_size({72.0, 24.0});
         (*in_ribbon).set_show_labels(true);
         (*in_ribbon).set_visible_rows(2U);
@@ -356,9 +294,7 @@ private:
         (*in_ribbon).set_drop_down_size(4U, 4U);
         (*in_ribbon).set_items(categories, items);
         (*in_ribbon).set_command(styles_);
-        (*gallery_group).add_at(in_ribbon, {22.0, 36.0, 312.0, 84.0});
-        gallery_button_ = make_control<Button>(StableId("gallery.commands.styles.button"), "Styles");
-        (*gallery_group).add_at(gallery_button_, {354.0, 40.0, 110.0, 32.0});
+        gallery_button_ = document_.gallery_commands_styles_button;
         drop_down_gallery_ = make_control<RibbonGallery>(StableId("gallery.commands.styles.drop-down"),
                                                         RibbonGalleryForm::drop_down);
         (*drop_down_gallery_).accessible_name = "Styles";
@@ -367,9 +303,7 @@ private:
         (*drop_down_gallery_).set_drop_down_size(3U, 5U);
         (*drop_down_gallery_).set_items(std::move(categories), std::move(items));
         (*drop_down_gallery_).set_command(styles_);
-        gallery_status_ = label("gallery.commands.gallery.status", "Hover an item for 300 ms to preview it",
-                                11.0, 400, muted);
-        (*gallery_group).add_at(gallery_status_, {484.0, 44.0, 420.0, 24.0});
+        gallery_status_ = document_.gallery_commands_gallery_status;
         on((*gallery_button_).clicked(), *this, &CommandsAndMenusPage::on_styles_button);
         on((*styles_).preview_requested(), *this, &CommandsAndMenusPage::on_style_preview);
         on((*styles_).preview_cancelled(), *this, &CommandsAndMenusPage::on_style_cancel);
@@ -436,20 +370,12 @@ private:
     // cycle, the gallery giving up columns, collapsed groups as buttons that
     // open the group in an overlay); the narrower is below its narrowest entry
     // and scrolls by whole groups.
-    void build_scaling_ribbons(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> scaling_group = group(
-            "gallery.commands.ribbon-scaling", "Ribbon · phase 2b: the same tab at 560 and 300 units wide",
-            {930.0, 160.0});
-        (*body).add_at(scaling_group, {24.0, 1402.0, 930.0, 160.0});
-        std::shared_ptr<Ribbon> wide = make_control<Ribbon>(StableId("gallery.commands.ribbon-scaling.wide"));
-        (*wide).accessible_name = "Ribbon at 560 units";
-        (*wide).set_tabs(scaling_tabs("scaling.wide", scaling_gallery("gallery.commands.ribbon-scaling.styles-wide")));
-        (*scaling_group).add_at(wide, {22.0, 36.0, 560.0, 112.0});
-        std::shared_ptr<Ribbon> narrow = make_control<Ribbon>(StableId("gallery.commands.ribbon-scaling.narrow"));
-        (*narrow).accessible_name = "Ribbon at 300 units";
-        (*narrow).set_tabs(
+    void build_scaling_ribbons() {
+        Ribbon& wide = *document_.gallery_commands_ribbon_scaling_wide;
+        wide.set_tabs(scaling_tabs("scaling.wide", scaling_gallery("gallery.commands.ribbon-scaling.styles-wide")));
+        Ribbon& narrow = *document_.gallery_commands_ribbon_scaling_narrow;
+        narrow.set_tabs(
             scaling_tabs("scaling.narrow", scaling_gallery("gallery.commands.ribbon-scaling.styles-narrow")));
-        (*scaling_group).add_at(narrow, {602.0, 36.0, 300.0, 112.0});
     }
 
     // The ribbon's file area and specialized controls (stage RB, phase 6): a
@@ -457,12 +383,7 @@ private:
     // RibbonColorPicker bound to value commands, whose File tab opens
     // Backstage, and a second BackstageView shown in place so that its
     // column and pages can be seen without opening it.
-    void build_file_area(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> file_group = group(
-            "gallery.commands.ribbon-file-area",
-            "Ribbon · phase 6: font control, colour picker, Backstage (File) and a Backstage in place",
-            {930.0, 230.0});
-        (*body).add_at(file_group, {24.0, 1574.0, 930.0, 230.0});
+    void build_file_area() {
         font_command_ = std::make_shared<FontCommand>(
             make_command("gallery.commands.font", "Font", "Choose the document's font"));
         (*font_command_).set_value({"Portsmouth Rapids", 11.0});
@@ -476,8 +397,7 @@ private:
             make_control<RibbonColorPicker>(StableId("gallery.commands.ribbon-file-area.colour"));
         (*colour).set_text("Font &colour");
         (*colour).set_command(color_command_);
-        std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("gallery.commands.ribbon-file-area.bar"));
-        (*ribbon).accessible_name = "Ribbon with a file area";
+        const std::shared_ptr<Ribbon>& ribbon = document_.gallery_commands_ribbon_file_area_bar;
         RibbonTabSpec home{.stable_id = "file-area.home", .text = "&Home"};
         RibbonGroupSpec font_group{.stable_id = "file-area.font", .caption = "Font", .dialog_launcher = true};
         font_group.commands.push_back({.stable_id = "file-area.font-control", .kind = RibbonCommandKind::font_control,
@@ -491,27 +411,27 @@ private:
         home.groups.push_back(std::move(font_group));
         home.groups.push_back(std::move(document));
         (*ribbon).set_tabs({std::move(home)});
-        (*ribbon).set_backstage(make_backstage("gallery.commands.ribbon-file-area.backstage"));
-        (*file_group).add_at(ribbon, {22.0, 36.0, 430.0, 112.0});
-        std::shared_ptr<BackstageView> shown = make_backstage("gallery.commands.ribbon-file-area.backstage-in-place");
-        (*shown).accessible_name = "Backstage in place";
-        (*file_group).add_at(shown, {472.0, 36.0, 430.0, 180.0});
+        std::shared_ptr<BackstageView> backstage =
+            make_control<BackstageView>(StableId("gallery.commands.ribbon-file-area.backstage"));
+        fill_backstage(*backstage);
+        (*ribbon).set_backstage(backstage);
+        fill_backstage(*document_.gallery_commands_ribbon_file_area_backstage_in_place);
     }
 
     // A Backstage column: Save and Save As as fast commands, Info and Recent
-    // as topics with their pages, and About as a definitive command.
-    [[nodiscard]] std::shared_ptr<BackstageView> make_backstage(const std::string& id) const {
-        std::shared_ptr<BackstageView> view = make_control<BackstageView>(StableId(id));
+    // as topics with their pages, and About as a definitive command. Its
+    // items' IDs extend the view's own.
+    void fill_backstage(BackstageView& view) const {
+        const std::string id(view.stable_id().value());
         std::shared_ptr<Label> info = label(id + ".info", "Fixture document · 2 pages · not saved", 11.0, 400, muted);
         std::shared_ptr<Label> recent = label(id + ".recent", "Report.txt\nNotes.txt", 11.0, 400, muted);
-        (*view).set_items({{.stable_id = id + ".save", .command = save_},
+        view.set_items({{.stable_id = id + ".save", .command = save_},
                            {.stable_id = id + ".new", .command = new_},
                            {.stable_id = id + ".info-topic", .kind = BackstageItemKind::topic, .text = "&Info",
                             .page = info},
                            {.stable_id = id + ".recent-topic", .kind = BackstageItemKind::topic, .text = "&Recent",
                             .page = recent},
                            {.stable_id = id + ".about", .command = about_, .definitive = true}});
-        return view;
     }
 
     void on_styles_button(ButtonBase&) {
@@ -536,14 +456,8 @@ private:
 
     // A ToolStripContainer: a strip in the top panel, a vertical strip in
     // the left panel and a status strip in the bottom panel around content.
-    void build_container(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> frame_group = group(
-            "gallery.commands.container", "ToolStripContainer · top, left and bottom panels around content",
-            {930.0, 230.0});
-        (*body).add_at(frame_group, {24.0, 818.0, 930.0, 230.0});
-        std::shared_ptr<ToolStripContainer> frame =
-            make_control<ToolStripContainer>(StableId("gallery.commands.container.frame"));
-        (*frame).accessible_name = "Drawing frame";
+    void build_container() {
+        const std::shared_ptr<ToolStripContainer>& frame = document_.gallery_commands_container_frame;
         std::shared_ptr<ToolStrip> top = make_control<ToolStrip>(StableId("gallery.commands.container.top-strip"));
         (*top).accessible_name = "File tools";
         (*top).set_items({
@@ -573,7 +487,6 @@ private:
                                                400, muted);
         (*content).dock = DockStyle::fill;
         (*(*frame).content_panel()).add_child(content);
-        (*frame_group).add_at(frame, {22.0, 36.0, 880.0, 176.0});
     }
 
     // A Ribbon over the same Commands (stage RB, phases 1 and 5): Home with a
@@ -581,12 +494,8 @@ private:
     // hosted controls; the File tab's application menu; and a contextual
     // Picture Tools set (Format), made available so that its tint shows on
     // the tab and, when selected, on the plane.
-    void build_ribbon(const std::shared_ptr<Surface>& body) {
-        std::shared_ptr<LayoutGroup> ribbon_group = group(
-            "gallery.commands.ribbon", "Ribbon · phases 1 and 5: tabs, groups, launchers, hosted controls, a contextual set", {930.0, 160.0});
-        (*body).add_at(ribbon_group, {24.0, 1068.0, 930.0, 160.0});
-        std::shared_ptr<Ribbon> ribbon = make_control<Ribbon>(StableId("gallery.commands.ribbon.bar"));
-        (*ribbon).accessible_name = "Document ribbon";
+    void build_ribbon() {
+        const std::shared_ptr<Ribbon>& ribbon = document_.gallery_commands_ribbon_bar;
         std::vector<RibbonTabSpec> tabs;
         RibbonTabSpec home{.stable_id = "ribbon.home", .text = "&Home"};
         RibbonGroupSpec document{.stable_id = "ribbon.document", .caption = "Document", .dialog_launcher = true};
@@ -635,7 +544,6 @@ private:
         (*ribbon).set_application_menu({item("ribbon.file.new", new_), item("ribbon.file.save", save_),
                                         separator("ribbon.file.separator"), item("ribbon.file.about", about_)});
         on((*ribbon).dialog_launcher_clicked(), *this, &CommandsAndMenusPage::on_ribbon_launcher);
-        (*ribbon_group).add_at(ribbon, {22.0, 36.0, 880.0, 112.0});
     }
 
     void on_ribbon_launcher(const RibbonDialogLaunch& launch) {
@@ -787,6 +695,9 @@ private:
     Value<bool> dirty_{false};
     Value<bool> wrap_{false};
     unsigned saves_{};
+    // Declared after the Commands and Values its surfaces bind, so it is
+    // released first.
+    CommandsDocument<CommandsAndMenusPage> document_{};
 };
 
 } // namespace

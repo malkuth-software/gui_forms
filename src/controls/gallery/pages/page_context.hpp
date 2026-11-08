@@ -12,6 +12,8 @@
 #include <cmath>
 #include <cstdio>
 #include <memory>
+#include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
@@ -216,6 +218,34 @@ inline std::shared_ptr<LayoutGroup> group(std::string id, std::string title,
     (*control).set_style(page_style());
     (*control).set_font({FontRole::control, 12.0, 700, false, 0.24});
     return control;
+}
+
+// Moves the children of a form document's root, a declared boundary only,
+// into the shell's page body in document order; each keeps its authored
+// bounds as its design slot there. The copy of the child list keeps the
+// iteration valid while the root shrinks. The root is left empty.
+inline void mount_form_children(Control& root, Surface& body) {
+    const std::vector<Control::Ptr> children(root.children().begin(), root.children().end());
+    for (const Control::Ptr& child : children) {
+        Control::Ptr moved = root.remove_child((*child).runtime_id());
+        body.add_child(std::move(moved));
+    }
+}
+
+// Adds `child`, a control a form document cannot make (it needs a
+// constructor argument such as a workspace or a page set), to `group` at
+// `design_bounds`, and moves it in front of `successor`, a child of the
+// group, so that the page keeps the child order (and so the paint, dock
+// and tab order) of the page it replaces. Throws std::logic_error when
+// `successor` is not the group's child, leaving `child` added last.
+inline void insert_before(ScaledGroupBox& group, Control::Ptr child, Rect design_bounds,
+                          const Control& successor) {
+    const RuntimeId id = (*child).runtime_id();
+    group.add_at(std::move(child), design_bounds);
+    const std::optional<std::size_t> index = group.child_index(successor.runtime_id());
+    if (!index || !group.set_child_index(id, *index)) {
+        throw std::logic_error("insert_before: the successor is not the group's child");
+    }
 }
 
 inline DateTimeFormatProvider french_date_provider() {

@@ -1,44 +1,46 @@
 #include "pages.hpp"
 
+#include "containers-and-focus_form.hpp"
+
 namespace gui_forms::gallery::pages {
 
-// Owner of the Containers and Focus page: one SplitContainer whose seam is
-// dragged, keyed and collapsed, a base ContainerControl with descendant focus
-// authority, a UserControl whose one-shot Loaded lifecycle is observed, and a
-// small docked workspace (DockWorkspace, DockSite, DockNavigator).
+// Owner of the Containers and Focus page that
+// demo/pages/containers-and-focus.form describes: one SplitContainer whose
+// seam is dragged, keyed and collapsed, a base ContainerControl with
+// descendant focus authority, a UserControl whose one-shot Loaded lifecycle
+// is observed, and a small docked workspace (DockWorkspace, DockSite,
+// DockNavigator). The split container makes its own panels, so their
+// content is made here; so is the DockSite, which needs its workspace.
 // Every handler is a named member connected with gui_forms::on; the owner
 // lives in the Gallery's ComponentContainer for exactly the Gallery lifetime.
 class ContainersPage final : public gui_forms::Component {
 public:
-    ContainersPage(const std::shared_ptr<Surface>& page,
+    ContainersPage(const std::shared_ptr<Surface>& body,
                    const std::shared_ptr<PageContext>& context) {
         static_cast<void>(context);
-        (*page).add_at(label("gallery.containers.heading", "CONTAINERS AND FOCUS",
-                             22.0, 700, shell_blue_dark),
-                       {24.0, 18.0, 500.0, 34.0});
-        (*page).add_at(label("gallery.containers.lead",
-                             "Real retained composition: split allocation, wide hit target, collapse, focus transfer, nested scope.",
-                             12.0, 400, muted),
-                       {26.0, 52.0, 900.0, 24.0});
-        build_split(page);
-        build_base_container(page);
-        build_user_control(page);
-        build_docking(page);
+        document_.initialize_component(*this);
+        mount_form_children(*document_.gallery_containers_document, *body);
+        (*document_.gallery_containers_docking_group).set_style(page_style());
+        (*document_.gallery_containers_base_face).set_background(Color::rgba(232, 239, 245));
+        (*document_.gallery_containers_user_face).set_background(Color::rgba(238, 244, 236));
+        build_split();
+        build_docking(*document_.gallery_containers_docking_group);
         on((*collapse_).clicked(), *this, &ContainersPage::on_collapse);
         on((*focus_splitter_).clicked(), *this, &ContainersPage::on_focus_splitter);
-        on((*base_focus_).clicked(), *this, &ContainersPage::on_focus_descendant);
-        on((*user_control_).loaded(), *this, &ContainersPage::on_user_loaded);
+        on((*document_.gallery_containers_base_focus).clicked(), *this, &ContainersPage::on_focus_descendant);
+        on((*document_.gallery_containers_user).loaded(), *this, &ContainersPage::on_user_loaded);
     }
 
 private:
-    void build_split(const std::shared_ptr<Surface>& page) {
-        split_ = make_control<SplitContainer>(StableId("gallery.containers.split"));
-        (*split_).set_splitter_distance(310.0);
-        (*split_).set_first_minimum(180.0);
-        (*split_).set_second_minimum(280.0);
-        (*page).add_at(split_, {24.0, 100.0, 930.0, 430.0});
-        const std::shared_ptr<SplitterPanel> first = (*split_).first_panel();
-        const std::shared_ptr<SplitterPanel> second = (*split_).second_panel();
+    // The split container's own panels: the navigation pane's items and the
+    // content pane's explanation and actions.
+    void build_split() {
+        SplitContainer& split = *document_.gallery_containers_split;
+        split.set_splitter_distance(310.0);
+        split.set_first_minimum(180.0);
+        split.set_second_minimum(280.0);
+        const std::shared_ptr<SplitterPanel> first = split.first_panel();
+        const std::shared_ptr<SplitterPanel> second = split.second_panel();
         (*first).set_background(Color::rgba(225, 235, 243));
         (*second).set_background(paper);
 
@@ -82,64 +84,13 @@ private:
         (*second).add_child(focus_splitter_);
     }
 
-    void build_base_container(const std::shared_ptr<Surface>& page) {
-        base_container_ = make_control<ContainerControl>(
-            StableId("gallery.containers.base"));
-        (*base_container_).accessible_name = "Base ContainerControl specimen";
-        (*page).add_at(base_container_, {24.0, 548.0, 450.0, 82.0});
-        std::shared_ptr<Panel> face = make_control<Panel>(
-            StableId("gallery.containers.base.face"));
-        (*face).set_background(Color::rgba(232, 239, 245));
-        (*face).border_style = BorderStyle::line;
-        (*face).dock = DockStyle::fill;
-        (*base_container_).add_child(face);
-        std::shared_ptr<Label> copy = label(
-            "gallery.containers.base.copy",
-            "ContainerControl · active descendant + retained child composition",
-            11.0, 600, shell_blue_dark);
-        (*copy).set_requested_bounds({14.0, 12.0, 390.0, 24.0});
-        (*face).add_child(copy);
-        base_focus_ = make_control<Button>(
-            StableId("gallery.containers.base.focus"), "Focus descendant");
-        (*base_focus_).set_requested_bounds({14.0, 42.0, 150.0, 28.0});
-        (*face).add_child(base_focus_);
-    }
-
-    void build_user_control(const std::shared_ptr<Surface>& page) {
-        user_control_ = make_control<UserControl>(
-            StableId("gallery.containers.user"));
-        (*user_control_).accessible_name = "UserControl lifecycle specimen";
-        (*page).add_at(user_control_, {488.0, 548.0, 466.0, 82.0});
-        std::shared_ptr<Panel> face = make_control<Panel>(
-            StableId("gallery.containers.user.face"));
-        (*face).set_background(Color::rgba(238, 244, 236));
-        (*face).border_style = BorderStyle::line;
-        (*face).dock = DockStyle::fill;
-        (*user_control_).add_child(face);
-        user_status_ = label("gallery.containers.user.status",
-                             "UserControl · awaiting one-shot Loaded lifecycle",
-                             11.0, 600, green);
-        (*user_status_).set_requested_bounds({14.0, 12.0, 420.0, 24.0});
-        (*face).add_child(user_status_);
-        std::shared_ptr<Button> action = make_control<Button>(
-            StableId("gallery.containers.user.action"), "Reusable child action");
-        (*action).set_visual_style(ButtonVisualStyle::command);
-        (*action).set_requested_bounds({14.0, 42.0, 178.0, 28.0});
-        (*face).add_child(action);
-    }
-
     // A docked workspace: Toolbox and Classes tabbed on the left, Properties
     // on the right, Output auto-hidden on the bottom edge, two documents in
     // the document area. Panel
     // controls are made by the page's factory the first time each panel is
     // shown; the status line follows the two activation tracks. Beside it, a
     // navigator on its own shows the Ctrl+Tab switcher's two lists.
-    void build_docking(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> docking = group(
-            "gallery.containers.docking.group",
-            "DockSite · seams, captions, F6 regions, Ctrl+Tab navigator, auto-hide, collapse by priority",
-            {930.0, 400.0});
-        (*page).add_at(docking, {24.0, 652.0, 930.0, 400.0});
+    void build_docking(ScaledGroupBox& docking) {
         workspace_ = std::make_unique<DockWorkspace>("gallery.containers.workspace");
         const Delegate<DockPanelCreation&> factory =
             Delegate<DockPanelCreation&>::bind<ContainersPage, &ContainersPage::make_panel>(*this);
@@ -186,19 +137,17 @@ private:
         static_cast<void>((*workspace_).apply(pinned));
         dock_site_ = make_control<DockSite>(StableId("gallery.containers.dock"), *workspace_);
         (*dock_site_).accessible_name = "Docked workspace specimen";
-        (*docking).add_at(dock_site_, {20.0, 36.0, 600.0, 344.0});
-        dock_status_ = label("gallery.containers.docking.status", "Active: none", 11.0, 600, green);
-        (*docking).add_at(dock_status_, {640.0, 36.0, 270.0, 44.0});
+        insert_before(docking, dock_site_, {20.0, 36.0, 600.0, 344.0},
+                      *document_.gallery_containers_docking_status);
         on((*workspace_).activation_changed(), *this, &ContainersPage::on_activation);
-        navigator_ = make_control<DockNavigator>(StableId("gallery.containers.navigator"));
+        DockNavigator& navigator = *document_.gallery_containers_navigator;
         std::vector<DockNavigatorEntry> tools{{DockPanelId("output"), "Output"},
                                               {DockPanelId("properties"), "Properties"},
                                               {DockPanelId("toolbox"), "Toolbox"}};
         std::vector<DockNavigatorEntry> files{{DockPanelId("program.cs"), "Program.cs"},
                                               {DockPanelId("form.cs"), "Form.cs"}};
-        (*navigator_).set_entries(std::move(tools), std::move(files));
-        static_cast<void>((*navigator_).step(1));
-        (*docking).add_at(navigator_, {640.0, 96.0, 270.0, 120.0});
+        navigator.set_entries(std::move(tools), std::move(files));
+        static_cast<void>(navigator.step(1));
     }
 
     // The page's factory: a panel's control, made the first time it shows.
@@ -225,44 +174,38 @@ private:
         text += " · document: ";
         const std::optional<DockPanelId>& document = (*workspace_).active_document();
         text += document ? (*workspace_).panel_title(*document) : std::string("none");
-        (*dock_status_).set_text(text);
+        (*document_.gallery_containers_docking_status).set_text(text);
     }
 
     // Input-only: the user clicked. The collapse state itself lives in the
     // public SplitContainer, so the button text follows the container.
     void on_collapse() {
-        const bool next = !(*split_).first_collapsed();
-        (*split_).set_first_collapsed(next);
+        const bool next = !(*document_.gallery_containers_split).first_collapsed();
+        (*document_.gallery_containers_split).set_first_collapsed(next);
         (*collapse_).text = next ? "Restore navigation" : "Collapse navigation";
     }
 
     void on_focus_splitter() {
         static_cast<void>(
-            (*split_).request_active_control((*split_).splitter_control()));
+            (*document_.gallery_containers_split).request_active_control((*document_.gallery_containers_split).splitter_control()));
     }
 
     void on_focus_descendant() {
-        static_cast<void>((*base_container_).request_active_control(base_focus_));
+        static_cast<void>((*document_.gallery_containers_base).request_active_control(document_.gallery_containers_base_focus));
     }
 
     void on_user_loaded() {
-        (*user_status_).set_text(
+        (*document_.gallery_containers_user_status).set_text(
             "UserControl · Loaded fired once · attachment committed");
     }
 
-    std::shared_ptr<SplitContainer> split_;
     std::shared_ptr<Button> collapse_;
     std::shared_ptr<Button> focus_splitter_;
-    std::shared_ptr<ContainerControl> base_container_;
-    std::shared_ptr<Button> base_focus_;
-    std::shared_ptr<UserControl> user_control_;
-    std::shared_ptr<Label> user_status_;
     // Destroying the workspace unbinds the site, so the control tree may
     // outlive the page owner.
     std::unique_ptr<DockWorkspace> workspace_;
     std::shared_ptr<DockSite> dock_site_;
-    std::shared_ptr<Label> dock_status_;
-    std::shared_ptr<DockNavigator> navigator_;
+    ContainersDocument<ContainersPage> document_{};
 };
 
 void add_containers(const std::shared_ptr<Surface>& page,

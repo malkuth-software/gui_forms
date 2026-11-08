@@ -1,0 +1,177 @@
+/* The Gallery's dock-and-anchor page (stage FD, phase FD-4): a padded dock
+   canvas whose children dock in child order (Left, Top A, Top B, Right,
+   Bottom, Fill), a compound-anchor canvas whose parent slot the page
+   rebases at run time, and the Windows Forms Splitter docked after the pane
+   it resizes. gui_forms_add_form() compiles this document into
+   dock-and-anchor_form.hpp at build time.
+
+   gallery.dock.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the canvases' and panes'
+   faces, the splitter's minimum sizes, every event handler, the status
+   line's reports and the page style. */
+scaled-panel gallery.dock.document {
+  design-size: 1000 860;
+
+  label gallery.dock.heading {
+    text: "DOCK AND ANCHOR";
+    classes: "heading" "page-title";
+    bounds: 24 18 620 34;
+  }
+  label gallery.dock.lead {
+    text: "Base Control layout owns z-ordered docking, padded client consumption, compound edge anchors, and runtime rebasing.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.dock.group {
+    text: "Dock · Left + Top + Top + Right + Bottom + Fill · z-order commands";
+    design-size: 930 260;
+    bounds: 24 92 930 260;
+    classes: "paper" "group-caption";
+    panel gallery.dock.canvas {
+      accessible-name: "Dock layout specimen";
+      border-style: sunken;
+      padding: 8;
+      bounds: 18 38 610 190;
+      button gallery.dock.left {
+        text: "Left";
+        visual-style: standard;
+        bounds: 0 0 82 30;
+        dock: left;
+      }
+      button gallery.dock.top.first {
+        text: "Top A · first edge";
+        visual-style: command;
+        bounds: 0 0 100 25;
+        dock: top;
+      }
+      button gallery.dock.top.second {
+        text: "Top B · z-order";
+        visual-style: command;
+        bounds: 0 0 100 25;
+        dock: top;
+      }
+      button gallery.dock.right {
+        text: "Right";
+        visual-style: standard;
+        bounds: 0 0 76 30;
+        dock: right;
+      }
+      button gallery.dock.bottom {
+        text: "Bottom · 26 px";
+        visual-style: standard;
+        bounds: 0 0 100 26;
+        dock: bottom;
+      }
+      button gallery.dock.fill {
+        text: "Fill · remaining client";
+        visual-style: accent;
+        bounds: 0 0 80 30;
+        dock: fill;
+      }
+    }
+    button gallery.dock.toggle-left {
+      text: "Hide left edge";
+      visual-style: accent;
+      bounds: 652 52 236 34;
+    }
+    button gallery.dock.swap-top {
+      text: "Move Top B behind Top A";
+      bounds: 652 98 236 34;
+    }
+    label gallery.dock.note {
+      text: "Hidden docked controls consume zero extent. SetChildIndex changes edge order without rewriting preferred bounds.";
+      classes: "positive" "emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 652 148 238 70;
+    }
+  }
+
+  scaled-group-box gallery.anchor.group {
+    text: "Anchor · fixed · stretch · centered · bottom-right · live parent resize";
+    design-size: 930 250;
+    bounds: 24 374 930 250;
+    classes: "paper" "group-caption";
+    panel gallery.anchor.canvas {
+      accessible-name: "Compound anchor specimen";
+      border-style: line;
+      padding: 8;
+      bounds: 18 38 600 170;
+      button gallery.anchor.fixed {
+        text: "Left + Top";
+        bounds: 18 16 126 28;
+      }
+      button gallery.anchor.stretch {
+        text: "Left + Right · stretches";
+        visual-style: accent;
+        bounds: 18 56 280 28;
+        anchor: top left right;
+      }
+      button gallery.anchor.centered {
+        text: "No edges · centered";
+        bounds: 190 106 152 28;
+        anchor: none;
+      }
+      button gallery.anchor.bottom-right {
+        text: "Right + Bottom";
+        visual-style: command;
+        bounds: 424 126 142 28;
+        anchor: bottom right;
+      }
+    }
+    button gallery.anchor.resize {
+      text: "Expand specimen";
+      visual-style: accent;
+      bounds: 758 54 150 34;
+    }
+    label gallery.anchor.note {
+      text: "Runtime size and Anchor changes rebase from committed geometry. Authored bounds remain queryable and unchanged.";
+      classes: "positive" "emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 758 104 150 104;
+    }
+  }
+
+  scaled-group-box gallery.splitter.group {
+    text: "Splitter · docked after a pane · MinSize and MinExtra · live resize";
+    design-size: 930 190;
+    bounds: 24 646 930 190;
+    classes: "paper" "group-caption";
+    panel gallery.splitter.canvas {
+      accessible-name: "Splitter specimen";
+      border-style: line;
+      bounds: 18 38 610 130;
+      panel gallery.splitter.folders {
+        bounds: 0 0 160 0;
+        dock: left;
+        label gallery.splitter.folders.title {
+          text: "Folders";
+          classes: "heading" "strong";
+          bounds: 8 8 120 20;
+        }
+      }
+      splitter gallery.splitter {
+        accessible-name: "Folders and files splitter";
+        bounds: 0 0 4 0;
+      }
+      panel gallery.splitter.files {
+        dock: fill;
+        label gallery.splitter.files.title {
+          text: "Files";
+          classes: "heading" "strong";
+          bounds: 8 8 120 20;
+        }
+      }
+    }
+    label gallery.splitter.note {
+      text: "The bar resizes the docked control before it. New code uses SplitContainer; Splitter keeps Windows Forms forms working.";
+      classes: "positive" "emphasis";
+      text-wrapping: word;
+      vertical-alignment: near;
+      bounds: 652 52 238 100;
+    }
+  }
+}

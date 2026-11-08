@@ -1,31 +1,39 @@
 #include "pages.hpp"
 
+#include "tabs-and-pages_form.hpp"
+
 namespace gui_forms::gallery::pages {
 
-// Owner of the Tabs and Retained Pages page: one interactive TabControl whose
+// Owner of the Tabs and Retained Pages page that
+// demo/pages/tabs-and-pages.form describes: one interactive TabControl whose
 // selection state event drives the status line, plus a matrix of alignment
-// and appearance variants. The Activity page's toggle binds a Value<bool>
-// that the owner observes instead of the control.
+// and appearance variants, a PageStrip, PageViews and a NavigationPane. The
+// Activity page's toggle binds a Value<bool> that the owner observes
+// instead of the control. The page makes the tab pages, the page records
+// and their content, and the two controls a document cannot make alone.
 class TabsPage final : public gui_forms::Component {
 public:
-    TabsPage(const std::shared_ptr<Surface>& page,
+    TabsPage(const std::shared_ptr<Surface>& body,
              const std::shared_ptr<PageContext>& context) {
         static_cast<void>(context);
-        (*page).add_at(label("gallery.tabs.heading", "TABS AND RETAINED PAGES", 22.0,
-                             700, shell_blue_dark),
-                       {24.0, 18.0, 680.0, 34.0});
-        (*page).add_at(label("gallery.tabs.lead",
-                             "Owned page identity, selection events, focus restoration, keyboard traversal, four alignments, and three appearances.",
-                             12.0, 400, muted),
-                       {26.0, 52.0, 920.0, 24.0});
-        build_primary(page);
-        build_variants(page);
-        build_strip(page);
-        build_view(page);
-        build_documents(page);
-        build_side_strips(page);
-        build_navigation(page);
-        on((*primary_).selected_index_changed(), *this, &TabsPage::on_primary_selected);
+        document_.initialize_component(*this);
+        mount_form_children(*document_.gallery_tabs_document, *body);
+        const std::array<std::shared_ptr<ScaledGroupBox>, 7> groups{
+            document_.gallery_tabs_primary_group, document_.gallery_tabs_variants,
+            document_.gallery_tabs_strip_group,   document_.gallery_tabs_view_group,
+            document_.gallery_tabs_documents_group, document_.gallery_tabs_side_group,
+            document_.gallery_tabs_navigation_group};
+        for (const std::shared_ptr<ScaledGroupBox>& group : groups) {
+            (*group).set_style(page_style());
+        }
+        build_primary();
+        build_variants();
+        build_strip();
+        build_view();
+        build_documents();
+        build_side_strips();
+        build_navigation();
+        on((*document_.gallery_tabs_primary).selected_index_changed(), *this, &TabsPage::on_primary_selected);
         on(activity_visible_.changed(), *this, &TabsPage::on_activity_visible_changed);
         on((*strip_).page_invoked(), *this, &TabsPage::on_strip_invoked);
     }
@@ -47,16 +55,10 @@ private:
         "Hidden pages leave paint, hit testing, focus traversal, and accessibility.",
         "Removal and direct disposal reconcile the surviving selected page."};
 
-    void build_primary(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> primary_group = group(
-            "gallery.tabs.primary.group", "TabControl · interactive retained pages",
-            {930.0, 280.0});
-        (*page).add_at(primary_group, {24.0, 92.0, 930.0, 280.0});
-        primary_ = make_control<TabControl>(StableId("gallery.tabs.primary"));
-        (*primary_).set_style(page_style());
-        (*primary_).accessible_name = "Primary workspace tabs";
-        (*primary_).set_item_size({150.0, 30.0});
-        (*primary_group).add_at(primary_, {20.0, 36.0, 890.0, 220.0});
+    void build_primary() {
+        TabControl& primary = *document_.gallery_tabs_primary;
+        primary.set_style(page_style());
+        primary.set_item_size({150.0, 30.0});
         for (std::size_t index = 0U; index < primary_names.size(); ++index) {
             std::shared_ptr<TabPage> tab_page = make_control<TabPage>(
                 StableId("gallery.tabs.primary." + std::string(primary_ids[index])),
@@ -78,13 +80,9 @@ private:
             // holds the images.
             if (index == 0U) (*tab_page).set_image_key("folder");
             if (index == 2U) (*tab_page).set_image_index(0);
-            (*primary_).add_page(tab_page);
+            primary.add_page(tab_page);
         }
-        (*primary_).set_selected_index(1U);
-        status_ = label("gallery.tabs.status",
-                        "Activity selected · hidden pages are fully quiescent",
-                        11.0, 600, green);
-        (*primary_group).add_at(status_, {620.0, 7.0, 286.0, 24.0});
+        primary.set_selected_index(1U);
     }
 
     // One ordinary control per retained page, proving hidden pages keep
@@ -123,10 +121,13 @@ private:
         return value;
     }
 
-    void build_variants(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> variants = group(
-            "gallery.tabs.variants", "Alignment and appearance matrix", {930.0, 230.0});
-        (*page).add_at(variants, {24.0, 394.0, 930.0, 230.0});
+    // The captions, the controls and their accessible names are the
+    // document's; the alignment, appearance, item size and pages are made
+    // here.
+    void build_variants() {
+        const std::array<std::shared_ptr<TabControl>, 3> variants{
+            document_.gallery_tabs_variant_0, document_.gallery_tabs_variant_1,
+            document_.gallery_tabs_variant_2};
         constexpr std::array<std::tuple<TabAlignment, TabAppearance, std::string_view>, 3>
             variants_spec{{
                 {TabAlignment::bottom, TabAppearance::buttons, "Bottom · buttons"},
@@ -134,20 +135,11 @@ private:
                 {TabAlignment::right, TabAppearance::normal, "Right · normal"},
             }};
         for (std::size_t index = 0U; index < variants_spec.size(); ++index) {
-            const double x = 20.0 + static_cast<double>(index) * 303.0;
-            std::shared_ptr<Label> caption = label(
-                "gallery.tabs.variant.caption." + std::to_string(index),
-                std::string(std::get<2>(variants_spec[index])), 10.0, 700,
-                shell_blue_dark);
-            (*variants).add_at(caption, {x, 34.0, 280.0, 22.0});
-            std::shared_ptr<TabControl> tabs = make_control<TabControl>(
-                StableId("gallery.tabs.variant." + std::to_string(index)));
-            (*tabs).accessible_name = std::string(std::get<2>(variants_spec[index])) + " tabs";
-            (*tabs).set_style(page_style());
-            (*tabs).set_alignment(std::get<0>(variants_spec[index]));
-            (*tabs).set_appearance(std::get<1>(variants_spec[index]));
-            (*tabs).set_item_size(index == 0U ? Size{86.0, 28.0} : Size{82.0, 28.0});
-            (*variants).add_at(tabs, {x, 60.0, 280.0, 148.0});
+            TabControl& tabs = *variants[index];
+            tabs.set_style(page_style());
+            tabs.set_alignment(std::get<0>(variants_spec[index]));
+            tabs.set_appearance(std::get<1>(variants_spec[index]));
+            tabs.set_item_size(index == 0U ? Size{86.0, 28.0} : Size{82.0, 28.0});
             for (std::size_t page_index = 0U; page_index < 3U; ++page_index) {
                 std::shared_ptr<TabPage> tab_page = make_control<TabPage>(
                     StableId("gallery.tabs.variant." + std::to_string(index) +
@@ -160,19 +152,15 @@ private:
                     muted);
                 (*content).set_requested_bounds({12.0, 14.0, 150.0, 24.0});
                 (*tab_page).add_child(content);
-                (*tabs).add_page(tab_page);
+                tabs.add_page(tab_page);
             }
-            (*tabs).set_selected_index(index % 3U);
+            tabs.set_selected_index(index % 3U);
         }
     }
 
     // A PageStrip over a set the page owns: more content-sized tabs than
     // fit, so the scroll and list buttons show.
-    void build_strip(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> strip_group = group(
-            "gallery.tabs.strip.group", "PageStrip · content-sized tabs, scroll and list overflow",
-            {930.0, 100.0});
-        (*page).add_at(strip_group, {24.0, 646.0, 930.0, 100.0});
+    void build_strip() {
         for (std::size_t index = 0U; index < strip_titles.size(); ++index) {
             PageRecord record{};
             record.id = PageId{"strip." + std::to_string(index)};
@@ -181,25 +169,18 @@ private:
         }
         strip_ = make_control<PageStrip>(StableId("gallery.tabs.strip"), strip_pages_);
         (*strip_).accessible_name = "Section tabs";
-        (*strip_group).add_at(strip_, {20.0, 40.0, 620.0, 28.0});
-        strip_status_ = label("gallery.tabs.strip.status", "Strip · Overview selected", 11.0, 600, green);
-        (*strip_group).add_at(strip_status_, {660.0, 42.0, 250.0, 24.0});
+        insert_before(*document_.gallery_tabs_strip_group, strip_, {20.0, 40.0, 620.0, 28.0},
+                      *document_.gallery_tabs_strip_status);
     }
 
     // A PageView beside the TabControl: the same retained pages in the strip
     // preset, two of them created only when first selected.
-    void build_view(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> view_group = group(
-            "gallery.tabs.view.group", "PageView · strip preset, focus memory and late content",
-            {930.0, 250.0});
-        (*page).add_at(view_group, {24.0, 766.0, 930.0, 250.0});
-        view_ = make_control<PageView>(StableId("gallery.tabs.view"));
-        (*view_group).add_at(view_, {20.0, 36.0, 600.0, 196.0});
-        on((*view_).content_requested(), *this, &TabsPage::on_view_content_requested);
+    void build_view() {
+        on((*document_.gallery_tabs_view).content_requested(), *this, &TabsPage::on_view_content_requested);
         std::shared_ptr<Label> summary = label(
             "gallery.tabs.view.summary", "Ctrl+PageDown and Ctrl+Tab move between pages from inside one.",
             11.0, 400, ink);
-        static_cast<void>((*view_).add_page(view_record("summary", "&Summary"), summary));
+        static_cast<void>((*document_.gallery_tabs_view).add_page(view_record("summary", "&Summary"), summary));
         std::shared_ptr<Panel> details = make_control<Panel>(StableId("gallery.tabs.view.details"));
         std::shared_ptr<TextBox> name = make_control<TextBox>(StableId("gallery.tabs.view.details.name"));
         (*name).accessible_name = "Name";
@@ -209,12 +190,9 @@ private:
         (*notes).accessible_name = "Notes";
         (*notes).set_requested_bounds({16.0, 52.0, 240.0, 26.0});
         (*details).add_child(notes);
-        static_cast<void>((*view_).add_page(view_record("details", "&Details"), details));
-        static_cast<void>((*view_).add_page(view_record("report", "&Report"), Control::Ptr{}));
-        static_cast<void>((*view_).add_page(view_record("log", "&Log"), Control::Ptr{}));
-        view_status_ = label("gallery.tabs.view.status", "Report and Log are created on first selection",
-                             11.0, 600, green);
-        (*view_group).add_at(view_status_, {640.0, 40.0, 270.0, 44.0});
+        static_cast<void>((*document_.gallery_tabs_view).add_page(view_record("details", "&Details"), details));
+        static_cast<void>((*document_.gallery_tabs_view).add_page(view_record("report", "&Report"), Control::Ptr{}));
+        static_cast<void>((*document_.gallery_tabs_view).add_page(view_record("log", "&Log"), Control::Ptr{}));
     }
 
     // A PageView in the document preset: closable documents with close
@@ -222,12 +200,7 @@ private:
     // modified, shrinking and then overflowing into the count-and-arrow
     // list. The demo gives the strip an image list so the pinned page
     // collapses to its icon; without one it keeps its label.
-    void build_documents(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> documents_group = group(
-            "gallery.tabs.documents.group",
-            "PageView · document preset: close, modified, pinned, shrink then list, drag to reorder",
-            {930.0, 200.0});
-        (*page).add_at(documents_group, {24.0, 1036.0, 930.0, 200.0});
+    void build_documents() {
         PageViewOptions options{};
         options.preset = PageViewPreset::document;
         options.pinning_enabled = true;
@@ -236,7 +209,6 @@ private:
         PageItemWidths widths{};
         widths.minimum = 80.0;
         (*(*documents_).strip()).set_item_widths(widths);
-        (*documents_group).add_at(documents_, {20.0, 36.0, 600.0, 146.0});
         for (std::size_t index = 0U; index < document_titles.size(); ++index) {
             PageRecord record{};
             record.id = PageId{"doc." + std::to_string(index)};
@@ -251,9 +223,8 @@ private:
             static_cast<void>((*documents_).add_page(record, body));
         }
         static_cast<void>((*documents_).pages().select(PageId{"doc.1"}, PageSelectionCause::programmatic));
-        documents_status_ = label("gallery.tabs.documents.status", "Close a document to see its cause",
-                                  11.0, 600, green);
-        (*documents_group).add_at(documents_status_, {640.0, 40.0, 270.0, 44.0});
+        insert_before(*document_.gallery_tabs_documents_group, documents_, {20.0, 36.0, 600.0, 146.0},
+                      *document_.gallery_tabs_documents_status);
         on((*(*documents_).strip()).page_close_requested(), *this, &TabsPage::on_document_close_requested);
         on((*(*documents_).strip()).page_context_menu_requested(), *this, &TabsPage::on_document_context_menu);
         on((*(*documents_).strip()).page_double_clicked(), *this, &TabsPage::on_document_double_clicked);
@@ -262,11 +233,11 @@ private:
     // The document strip shows no menu of its own: the page reports the
     // request (a docking workspace shows its position menu here).
     void on_document_context_menu(PageContextMenuRequest& request) {
-        (*documents_status_).set_text("Context menu asked for " + document_title(request.page));
+        (*document_.gallery_tabs_documents_status).set_text("Context menu asked for " + document_title(request.page));
     }
 
     void on_document_double_clicked(const PageDoubleClick& event) {
-        (*documents_status_).set_text("Double-clicked " + document_title(event.page) + " (docking floats it)");
+        (*document_.gallery_tabs_documents_status).set_text("Double-clicked " + document_title(event.page) + " (docking floats it)");
     }
 
     [[nodiscard]] std::string document_title(const PageId& page) const {
@@ -279,17 +250,15 @@ private:
     // Two PageViews with side strips (owner decision DK-42): on the left
     // edge the labels read from bottom to top, on the right edge from top to
     // bottom; Up and Down move between the tabs.
-    void build_side_strips(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> side_group = group(
-            "gallery.tabs.side.group", "PageView · side strips with turned labels", {930.0, 340.0});
-        (*page).add_at(side_group, {24.0, 1256.0, 930.0, 340.0});
+    void build_side_strips() {
+        const std::array<std::shared_ptr<PageView>, 2> views{document_.gallery_tabs_side_left,
+                                                             document_.gallery_tabs_side_right};
         const std::array<PageStripPlacement, 2> edges{PageStripPlacement::left, PageStripPlacement::right};
         const std::array<std::string_view, 2> names{"left", "right"};
         for (std::size_t edge = 0U; edge < edges.size(); ++edge) {
             const std::string prefix = "gallery.tabs.side." + std::string(names[edge]);
-            std::shared_ptr<PageView> view = make_control<PageView>(StableId(prefix));
-            (*(*view).strip()).set_placement(edges[edge]);
-            (*view).accessible_name = std::string(names[edge]) + " side pages";
+            PageView& view = *views[edge];
+            (*view.strip()).set_placement(edges[edge]);
             for (std::size_t index = 0U; index < side_titles.size(); ++index) {
                 PageRecord record{};
                 record.id = PageId{std::string(names[edge]) + "." + std::to_string(index)};
@@ -297,10 +266,8 @@ private:
                 std::shared_ptr<Label> body = label(
                     prefix + ".body." + std::to_string(index),
                     std::string(side_titles[index]) + " · " + std::string(names[edge]) + " edge", 11.0, 400, ink);
-                static_cast<void>((*view).add_page(record, body));
+                static_cast<void>(view.add_page(record, body));
             }
-            (*side_group).add_at(view, {20.0 + 450.0 * static_cast<double>(edge), 36.0, 430.0, 286.0});
-            side_views_[edge] = view;
         }
     }
 
@@ -314,7 +281,7 @@ private:
         if (request.cause == PageCloseCause::middle_button) cause = "middle click";
         if (request.cause == PageCloseCause::keyboard) cause = "Ctrl+F4";
         if (request.cause == PageCloseCause::semantic) cause = "accessibility";
-        (*documents_status_).set_text("Closed " + title + " · " + std::string(cause));
+        (*document_.gallery_tabs_documents_status).set_text("Closed " + title + " · " + std::string(cause));
     }
 
     [[nodiscard]] static PageRecord view_record(std::string_view id, std::string_view title) {
@@ -330,23 +297,16 @@ private:
         std::shared_ptr<Label> made = label(
             "gallery.tabs.view.made." + request.page.value,
             "Created when " + request.page.value + " was first selected.", 11.0, 400, ink);
-        static_cast<void>((*view_).set_page_content(request.page, made));
-        (*view_status_).set_text("Created " + request.page.value + " on its first selection");
+        static_cast<void>((*document_.gallery_tabs_view).set_page_content(request.page, made));
+        (*document_.gallery_tabs_view_status).set_text("Created " + request.page.value + " on its first selection");
     }
 
     // A NavigationPane: six pages with content, four large buttons, the
     // overflow icons and the configure menu; collapsing it shows the bar and
     // the overlay. Its state is shown as the program would save it.
-    void build_navigation(const std::shared_ptr<Surface>& page) {
-        std::shared_ptr<LayoutGroup> navigation_group = group(
-            "gallery.tabs.navigation.group", "NavigationPane · grip, overflow strip, configure menu and collapse",
-            {930.0, 380.0});
-        (*page).add_at(navigation_group, {24.0, 1616.0, 930.0, 380.0});
-        navigation_ = make_control<NavigationPane>(StableId("gallery.tabs.navigation"));
-        (*navigation_).accessible_name = "Gallery navigation";
-        (*navigation_group).add_at(navigation_, {20.0, 36.0, 240.0, 324.0});
-        (*navigation_).set_expanded_width(240.0);
-        PageSet& pages = (*navigation_).pages();
+    void build_navigation() {
+        (*document_.gallery_tabs_navigation).set_expanded_width(240.0);
+        PageSet& pages = (*document_.gallery_tabs_navigation).pages();
         constexpr std::array<std::string_view, 6> ids{"mail", "calendar", "contacts", "tasks", "notes", "folders"};
         constexpr std::array<std::string_view, 6> titles{"Mail", "Calendar", "Contacts", "Tasks", "Notes", "Folders"};
         for (std::size_t index = 0U; index < ids.size(); ++index) {
@@ -360,42 +320,39 @@ private:
             std::unique_ptr<PageContent> held = std::make_unique<PageControlContent>(content);
             static_cast<void>(pages.set_content(record.id, held));
         }
-        static_cast<void>((*navigation_).set_page_hidden(PageId{"notes"}, true));
-        navigation_status_ = label("gallery.tabs.navigation.status",
-                                   "Drag the grip or use the configure menu; Notes is hidden", 11.0, 600, green);
-        (*navigation_group).add_at(navigation_status_, {290.0, 40.0, 620.0, 44.0});
-        on((*navigation_).state_changed(), *this, &TabsPage::on_navigation_state);
-        on((*navigation_).options_requested(), *this, &TabsPage::on_navigation_options);
+        static_cast<void>((*document_.gallery_tabs_navigation).set_page_hidden(PageId{"notes"}, true));
+        on((*document_.gallery_tabs_navigation).state_changed(), *this, &TabsPage::on_navigation_state);
+        on((*document_.gallery_tabs_navigation).options_requested(), *this, &TabsPage::on_navigation_options);
     }
 
     void on_navigation_state(const NavigationPaneState& state) {
         std::string text = state.collapsed ? "Collapsed" : "Expanded";
         text += " · " + std::to_string(state.button_count) + " large buttons · " +
                 std::to_string(state.hidden_pages.size()) + " hidden";
-        (*navigation_status_).set_text(text);
+        (*document_.gallery_tabs_navigation_status).set_text(text);
     }
 
     void on_navigation_options(const NavigationPaneOptionsRequest&) {
-        (*navigation_status_).set_text("Options requested · the program shows its own dialog");
+        (*document_.gallery_tabs_navigation_status).set_text("Options requested · the program shows its own dialog");
     }
 
     void on_strip_invoked(const PageInvocation& invocation) {
         const std::optional<PagePosition> found = strip_pages_.find(invocation.page);
         if (!found) return;
-        (*strip_status_).set_text("Strip · " + strip_pages_.record_at(*found).title + " selected");
+        (*document_.gallery_tabs_strip_status).set_text("Strip · " + strip_pages_.record_at(*found).title + " selected");
     }
 
     // State event: fires for pointer, keyboard, semantic and programmatic
     // selection alike, so the status line never needs a second route.
     void on_primary_selected(const TabSelectionChange&) {
-        const std::shared_ptr<TabPage> selected = (*primary_).selected_tab();
+        const std::shared_ptr<TabPage> selected = (*document_.gallery_tabs_primary).selected_tab();
         if (!selected) return;
-        (*status_).set_text((*selected).text() +
+        (*document_.gallery_tabs_status).set_text((*selected).text() +
                             " selected · focus and semantics reconciled");
     }
 
     void on_activity_visible_changed(const bool visible) {
-        (*status_).set_text(visible
+        (*document_.gallery_tabs_status).set_text(visible
             ? "Activity · keep visible on · bound Value<bool> changed"
             : "Activity · keep visible off · bound Value<bool> changed");
     }
@@ -410,20 +367,13 @@ private:
         "Overview", "Activity", "Security", "Diagnostics", "Network", "Storage", "Accounts",
         "Notifications", "Display", "Sound", "Keyboard", "Accessibility", "Updates", "About"};
 
-    std::shared_ptr<TabControl> primary_;
-    std::shared_ptr<Label> status_;
     // Declared before the strip that borrows it.
     PageSet strip_pages_{};
     std::shared_ptr<PageStrip> strip_;
-    std::shared_ptr<Label> strip_status_;
-    std::shared_ptr<PageView> view_;
-    std::shared_ptr<Label> view_status_;
     std::shared_ptr<PageView> documents_;
-    std::shared_ptr<Label> documents_status_;
-    std::array<std::shared_ptr<PageView>, 2> side_views_{};
-    std::shared_ptr<NavigationPane> navigation_;
-    std::shared_ptr<Label> navigation_status_;
     Value<bool> activity_visible_{true};
+    // Declared after the Value its toggle binds, so it is released first.
+    TabsDocument<TabsPage> document_{};
 };
 
 void add_tabs_and_pages(const std::shared_ptr<Surface>& page,

@@ -1,0 +1,148 @@
+/* The Gallery's tabs-and-pages page (stage FD, phase FD-4): an interactive
+   TabControl, a matrix of alignment and appearance variants, a PageStrip
+   over a page-owned set, PageViews in the strip and document presets and
+   with side strips, and a NavigationPane. gui_forms_add_form() compiles
+   this document into tabs-and-pages_form.hpp at build time.
+
+   gallery.tabs.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The page keeps in code the tab pages and their
+   content, the page records and late content, the tab controls' sizes,
+   alignments and appearances, the two controls a document cannot make
+   alone (the PageStrip over the page's set and the document-preset
+   PageView, each placed ahead of its status line), every event handler
+   and the page style. */
+scaled-panel gallery.tabs.document {
+  design-size: 1000 2020;
+
+  label gallery.tabs.heading {
+    text: "TABS AND RETAINED PAGES";
+    classes: "heading" "page-title";
+    bounds: 24 18 680 34;
+  }
+  label gallery.tabs.lead {
+    text: "Owned page identity, selection events, focus restoration, keyboard traversal, four alignments, and three appearances.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.tabs.primary.group {
+    text: "TabControl · interactive retained pages";
+    design-size: 930 280;
+    bounds: 24 92 930 280;
+    classes: "paper" "group-caption";
+    tab-control gallery.tabs.primary {
+      accessible-name: "Primary workspace tabs";
+      bounds: 20 36 890 220;
+    }
+    label gallery.tabs.status {
+      text: "Activity selected · hidden pages are fully quiescent";
+      classes: "positive" "emphasis";
+      bounds: 620 7 286 24;
+    }
+  }
+
+  scaled-group-box gallery.tabs.variants {
+    text: "Alignment and appearance matrix";
+    design-size: 930 230;
+    bounds: 24 394 930 230;
+    classes: "paper" "group-caption";
+    label gallery.tabs.variant.caption.0 {
+      text: "Bottom · buttons";
+      classes: "heading" "note-strong";
+      bounds: 20 34 280 22;
+    }
+    tab-control gallery.tabs.variant.0 {
+      accessible-name: "Bottom · buttons tabs";
+      bounds: 20 60 280 148;
+    }
+    label gallery.tabs.variant.caption.1 {
+      text: "Left · flat";
+      classes: "heading" "note-strong";
+      bounds: 323 34 280 22;
+    }
+    tab-control gallery.tabs.variant.1 {
+      accessible-name: "Left · flat tabs";
+      bounds: 323 60 280 148;
+    }
+    label gallery.tabs.variant.caption.2 {
+      text: "Right · normal";
+      classes: "heading" "note-strong";
+      bounds: 626 34 280 22;
+    }
+    tab-control gallery.tabs.variant.2 {
+      accessible-name: "Right · normal tabs";
+      bounds: 626 60 280 148;
+    }
+  }
+
+  scaled-group-box gallery.tabs.strip.group {
+    text: "PageStrip · content-sized tabs, scroll and list overflow";
+    design-size: 930 100;
+    bounds: 24 646 930 100;
+    classes: "paper" "group-caption";
+    label gallery.tabs.strip.status {
+      text: "Strip · Overview selected";
+      classes: "positive" "emphasis";
+      bounds: 660 42 250 24;
+    }
+  }
+
+  scaled-group-box gallery.tabs.view.group {
+    text: "PageView · strip preset, focus memory and late content";
+    design-size: 930 250;
+    bounds: 24 766 930 250;
+    classes: "paper" "group-caption";
+    page-view gallery.tabs.view {
+      bounds: 20 36 600 196;
+    }
+    label gallery.tabs.view.status {
+      text: "Report and Log are created on first selection";
+      classes: "positive" "emphasis";
+      bounds: 640 40 270 44;
+    }
+  }
+
+  scaled-group-box gallery.tabs.documents.group {
+    text: "PageView · document preset: close, modified, pinned, shrink then list, drag to reorder";
+    design-size: 930 200;
+    bounds: 24 1036 930 200;
+    classes: "paper" "group-caption";
+    label gallery.tabs.documents.status {
+      text: "Close a document to see its cause";
+      classes: "positive" "emphasis";
+      bounds: 640 40 270 44;
+    }
+  }
+
+  scaled-group-box gallery.tabs.side.group {
+    text: "PageView · side strips with turned labels";
+    design-size: 930 340;
+    bounds: 24 1256 930 340;
+    classes: "paper" "group-caption";
+    page-view gallery.tabs.side.left {
+      accessible-name: "left side pages";
+      bounds: 20 36 430 286;
+    }
+    page-view gallery.tabs.side.right {
+      accessible-name: "right side pages";
+      bounds: 470 36 430 286;
+    }
+  }
+
+  scaled-group-box gallery.tabs.navigation.group {
+    text: "NavigationPane · grip, overflow strip, configure menu and collapse";
+    design-size: 930 380;
+    bounds: 24 1616 930 380;
+    classes: "paper" "group-caption";
+    navigation-pane gallery.tabs.navigation {
+      accessible-name: "Gallery navigation";
+      bounds: 20 36 240 324;
+    }
+    label gallery.tabs.navigation.status {
+      text: "Drag the grip or use the configure menu; Notes is hidden";
+      classes: "positive" "emphasis";
+      bounds: 290 40 620 44;
+    }
+  }
+}

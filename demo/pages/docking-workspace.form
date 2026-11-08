@@ -1,0 +1,86 @@
+/* The Gallery's docking-workspace page (stage FD, phase FD-4; stage DK
+   phase D8): one DockWorkspace shown by a DockSite beside the controls
+   that drive its program-facing operations (closing prompts, Close All
+   Documents, saved and named layouts). gui_forms_add_form() compiles this
+   document into docking-workspace_form.hpp at build time.
+
+   gallery.docking.document is a declared boundary only: the page moves its
+   children into the shell's page body, where each is placed by its bounds
+   in design coordinates. The DockSite needs its workspace to be made, so
+   the page makes it and places it first in the group; the page also keeps
+   the workspace, its panels' factory, every event handler and the page
+   style in code. */
+scaled-panel gallery.docking.document {
+  design-size: 1000 670;
+
+  label gallery.docking.heading {
+    text: "DOCKING WORKSPACE";
+    classes: "heading" "page-title";
+    bounds: 24 18 500 34;
+  }
+  label gallery.docking.lead {
+    text: "Tool panels and documents in one DockWorkspace: seams, tabs, pins, the position menu, closing prompts and saved layouts.";
+    classes: "muted" "body";
+    bounds: 26 52 920 24;
+  }
+
+  scaled-group-box gallery.docking.group {
+    text: "DockSite · DockWorkspace · DockNavigator";
+    design-size: 930 560;
+    bounds: 24 88 930 560;
+    classes: "paper" "group-caption";
+    check-box gallery.docking.keep {
+      text: "Keep documents when asked";
+      bounds: 670 36 240 24;
+    }
+    check-box gallery.docking.combined {
+      text: "Ask once for all";
+      bounds: 670 64 240 24;
+    }
+    button gallery.docking.close-all {
+      text: "Close all documents";
+      bounds: 670 96 240 28;
+    }
+    button gallery.docking.reopen {
+      text: "Reopen documents";
+      bounds: 670 130 240 28;
+    }
+    button gallery.docking.save {
+      text: "Save layout";
+      bounds: 670 176 116 28;
+    }
+    button gallery.docking.restore {
+      text: "Restore";
+      enabled: false;
+      bounds: 794 176 116 28;
+    }
+    text-box gallery.docking.name {
+      text: "Wide";
+      accessible-name: "Layout name";
+      placeholder-text: "Layout name";
+      bounds: 670 222 140 26;
+    }
+    button gallery.docking.save-named {
+      text: "Save as";
+      bounds: 818 222 92 26;
+    }
+    list-box gallery.docking.named {
+      accessible-name: "Named layouts";
+      bounds: 670 254 240 96;
+    }
+    button gallery.docking.apply-named {
+      text: "Apply named layout";
+      bounds: 670 356 240 28;
+    }
+    label gallery.docking.status {
+      text: "Active: none";
+      classes: "positive" "emphasis";
+      bounds: 670 396 240 40;
+    }
+    label gallery.docking.closing {
+      text: "No document asked about yet";
+      classes: "muted" "small";
+      bounds: 670 440 240 40;
+    }
+  }
+}

@@ -1654,6 +1654,20 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         CLASS ResponsiveLayoutsDocument NAMESPACE gui_forms::gallery::pages)
     gui_forms_add_form(gui_forms_gallery_model demo/pages/css-layout-panels.form
         CLASS CssLayoutDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/dock-and-anchor.form
+        CLASS DockAnchorDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/docking-workspace.form
+        CLASS DockingWorkspaceDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/containers-and-focus.form
+        CLASS ContainersDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/tabs-and-pages.form
+        CLASS TabsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/anchored-overlays.form
+        CLASS AnchoredOverlaysDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/commands-and-menus.form
+        CLASS CommandsDocument NAMESPACE gui_forms::gallery::pages)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/live-surfaces.form
+        CLASS LiveSurfacesDocument NAMESPACE gui_forms::gallery::pages)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery
@@ -1668,7 +1682,11 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
             demo/pages/tree-and-object-views.form demo/pages/text-and-input.form
             demo/pages/states-and-diagnostics.form demo/pages/timing-and-tooltips.form
             demo/pages/dates-and-calendar.form demo/pages/values-and-spinners.form
-            demo/pages/value-editors.form demo/pages/dialogs-and-host-services.form)
+            demo/pages/value-editors.form demo/pages/dialogs-and-host-services.form
+            demo/pages/dock-and-anchor.form demo/pages/docking-workspace.form
+            demo/pages/containers-and-focus.form demo/pages/tabs-and-pages.form
+            demo/pages/anchored-overlays.form demo/pages/commands-and-menus.form
+            demo/pages/live-surfaces.form)
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms>)
     # The Gallery is compiled with the localizable-literal plugin: its own
