@@ -12,9 +12,11 @@ with the toolkit's ordinary options (tools/toolkit_configure.py) and
 ``-fsanitize=thread``, builds only the programs the ``c_abi``-labelled tests
 read, and runs them with every report fatal:
 
-    python3 tools/abi_tsan.py [--jobs N] [--tests PATTERN]
+    python3 tools/abi_tsan.py [--jobs N] [--tests PATTERN] [--skip-labels PATTERN]
 
-``--tests`` narrows the run further with a ctest -R pattern. Programs that
+``--tests`` narrows the run further with a ctest -R pattern, and
+``--skip-labels`` leaves out tests whose labels match (ctest -LE), as
+tools/ci_build.py does: launched-app tests run plain only. Programs that
 cannot host ThreadSanitizer are left out: the C# test (the .NET host is not
 instrumented, and TSan's runtime must be loaded at process start) and the
 MSVC test (Windows only). Suppressions live in tools/sanitizer/tsan.supp,
@@ -75,6 +77,7 @@ def main() -> int:
     parser: argparse.ArgumentParser = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     parser.add_argument('--jobs', type=int, default=4)
     parser.add_argument('--tests', default='', help='narrow the c_abi set with this ctest -R pattern')
+    parser.add_argument('--skip-labels', default='', help='leave out tests with labels matching this ctest -LE pattern')
     args: argparse.Namespace = parser.parse_args()
     hosts: dict[str, str] = {'Darwin': 'macos', 'Linux': 'linux'}
     system: str = platform.system()
@@ -101,9 +104,9 @@ def main() -> int:
     require_instrumented(tree)
 
     selection: list[str] = ['-L', '^' + LABEL + '$', '-E', EXCLUDED]
-    if args.tests:
-        selection.extend(ctest_selection(args.tests, ''))
-    listing: dict = test_listing(tree, args.tests, '')
+    if args.tests or args.skip_labels:
+        selection.extend(ctest_selection(args.tests, args.skip_labels))
+    listing: dict = test_listing(tree, args.tests, args.skip_labels)
     kept: list[dict] = []
     test: dict
     for test in listing['tests']:
