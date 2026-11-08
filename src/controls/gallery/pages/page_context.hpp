@@ -125,7 +125,9 @@ struct PageContext final {
     std::size_t selected_page{};
     // Registry-driven shell state: page ids and titles in navigation order,
     // the index of the page whose UI Timer runs while shown, and the
-    // compiled-DML context so page selection is observable in GalleryModel.
+    // Gallery's context (its model and window) so page selection is
+    // observable in GalleryModel. The shell's root Tag owns this context,
+    // and this context owns the Gallery's.
     std::vector<std::string_view> page_ids;
     std::vector<std::string_view> page_titles;
     std::size_t timing_page{static_cast<std::size_t>(-1)};
@@ -169,6 +171,27 @@ struct PageContext final {
                                                                  : "Pause motion";
         }
         update_motion_status();
+    }
+
+    // The shell's rule actions (build_gallery_shell arms them on the
+    // window's rules). A navigation row's click shows its page.
+    static void navigation_clicked(PageContext& context, const RuleFiring& firing) {
+        for (std::size_t index = 0; index < context.navigation.size(); ++index) {
+            const Control* const row = context.navigation[index].get();
+            if (row == firing.control) {
+                context.select_page(index);
+                return;
+            }
+        }
+    }
+
+    // The model's live-motion switch changed (gallery.status.live writes it
+    // through its binding).
+    static void live_motion_changed(PageContext& context, const RuleFiring& firing) {
+        static_cast<void>(firing);
+        if (!context.compiled) return;
+        context.live_motion = (*context.compiled).model.live_motion.get();
+        context.apply_motion_policy();
     }
 
     void select_page(std::size_t index) {

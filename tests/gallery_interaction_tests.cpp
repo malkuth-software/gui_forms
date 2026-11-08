@@ -13,7 +13,7 @@
 
 namespace {
 
-// The stable IDs demo/gallery.form declares below gallery.root.
+// The stable IDs of demo/gallery.form's command strip, own pages and diagnostics.
 constexpr std::array<std::string_view, 37> gallery_form_ids{
     "gallery.command-strip", "gallery.command.reset", "gallery.command.diagnostics",
     "gallery.command.status-badge", "gallery.command.status", "gallery.backplane",

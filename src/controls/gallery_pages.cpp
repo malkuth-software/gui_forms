@@ -58,47 +58,44 @@ std::string page_control_line(const CatalogEntry& entry) {
            " · WinForms: " + std::string(entry.winforms);
 }
 
-// Fills one page body: the form document's pages mount their group; the
-// pages migrated from the Complete Showcase keep their builders unchanged.
+// One of the window form's own pages: its group, moved into the page body
+// at its design size.
+struct FormPage final {
+    std::string_view page{};
+    Control::Ptr control;
+    Size size{};
+};
+
+// Fills one page body: a form page mounts its group; the other pages run
+// their builder from the page list.
 void populate_page_body(std::string_view page_id,
                         const std::shared_ptr<Surface>& body,
                         const std::shared_ptr<PageContext>& context,
-                        const GalleryTree& compiled) {
-    for (const GalleryMount& mount : compiled.mounts) {
-        if (!mount.page.empty() && mount.page == page_id) {
-            (*body).add_at(mount.control, {0.0, 0.0, mount.size.width, mount.size.height});
+                        const std::array<FormPage, 4>& form_pages) {
+    for (const FormPage& form_page : form_pages) {
+        if (form_page.page == page_id) {
+            (*body).add_at(form_page.control, {0.0, 0.0, form_page.size.width, form_page.size.height});
             return;
         }
     }
-    if (page_id == "control-spectrum") add_control_spectrum(body, context);
-    else if (page_id == "ranges-and-progress") add_ranges(body, context);
-    else if (page_id == "containers-and-focus") add_containers(body, context);
-    else if (page_id == "animation-laboratory") add_animation(body, context);
-    else if (page_id == "states-and-diagnostics") add_states(body, context);
-    else if (page_id == "text-and-input") add_text_input(body, context);
-    else if (page_id == "collections-and-overlays") add_collections(body, context);
-    else if (page_id == "values-and-spinners") add_values(body, context);
-    else if (page_id == "images-and-drawing") add_images_and_drawing(body, context);
-    else if (page_id == "tabs-and-pages") add_tabs_and_pages(body, context);
-    else if (page_id == "checked-collections") add_checked_collections(body, context);
-    else if (page_id == "timing-and-tooltips") add_timing_and_tooltips(body, context);
-    else if (page_id == "dates-and-calendar") add_dates_and_calendar(body, context);
-    else if (page_id == "dialogs-and-host-services") add_dialogs_and_host_services(body, context);
-    else if (page_id == "retained-layout-panels") add_layout_panels(body, context);
-    else if (page_id == "css-layout-panels") add_css_layout_panels(body, context);
-    else if (page_id == "dock-and-anchor") add_dock_and_anchor(body, context);
-    else if (page_id == "docking-workspace") add_docking_workspace(body, context);
-    else if (page_id == "commands-and-menus") add_commands_and_menus(body, context);
-    else if (page_id == "tree-and-object-views") add_tree_and_object_views(body, context);
-    else if (page_id == "choices-and-sections") add_choices_and_sections(body, context);
-    else if (page_id == "value-editors") add_value_editors(body, context);
-    else if (page_id == "responsive-layouts") add_responsive_layouts(body, context);
-    else if (page_id == "anchored-overlays") add_anchored_overlays(body, context);
-    else if (page_id == "live-surfaces") add_live_surfaces(body, context);
-    else if (page_id == "typography-and-inspection") add_typography_and_inspection(body, context);
-    else if (page_id == "semantic-feedback") add_semantic_feedback(body, context);
-    else if (page_id == "notices-and-badges") add_notices_and_badges(body, context);
-    else throw std::logic_error("Gallery page has neither a form-document mount nor a builder");
+    for (const PageBuilderEntry& builder : page_builders) {
+        if (builder.id == page_id) {
+            builder.build(body, context);
+            return;
+        }
+    }
+    throw std::logic_error("Gallery page has neither a form page nor a builder");
+}
+
+// Arms `rule_action` on `trigger` in `rules`; a refusal is a defect of the
+// shell's own wiring.
+void arm(RuleSet& rules, const RuleTrigger& trigger, PageContext& context,
+         void (*rule_action)(PageContext&, const RuleFiring&)) {
+    const RuleAddResult added = on(rules, trigger, context, rule_action);
+    if (added.refusal != RuleRefusal::none) {
+        throw std::logic_error("a Gallery shell rule was refused: " +
+                               std::string(rule_refusal_name(added.refusal)));
+    }
 }
 
 // The one place the retained page context is recovered from the root Tag.
@@ -112,76 +109,45 @@ std::shared_ptr<PageContext> retained_page_context(const Window& window) {
     return *retained;
 }
 
-// The shell's own handlers: navigation rows and the live-motion toggle. It
-// borrows the page context weakly; the context's ComponentContainer owns it.
-class ShellActions final : public Component {
-public:
-    explicit ShellActions(std::weak_ptr<PageContext> context) noexcept
-        : context_(std::move(context)) {}
-
-    void navigate(const int index) {
-        if (const std::shared_ptr<PageContext> context = context_.lock()) {
-            (*context).select_page(static_cast<std::size_t>(index));
-        }
-    }
-
-    void live_motion(const bool enabled) {
-        const std::shared_ptr<PageContext> context = context_.lock();
-        if (!context) return;
-        (*context).live_motion = enabled;
-        (*context).apply_motion_policy();
-    }
-
-private:
-    std::weak_ptr<PageContext> context_;
-};
-
 } // namespace
 
-GalleryShell build_gallery_shell(const GalleryTree& compiled) {
+void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> compiled) {
     std::shared_ptr<PageContext> context = std::make_shared<PageContext>();
-    (*context).compiled = compiled.context;
-    // Pages capture the status line while they are built, so it exists first;
-    // the status strip adopts it below.
-    (*context).status = label("gallery.status.text", "", 11.0, 600, shell_blue_dark);
-    // The shell is laid out as a Windows Forms window is (owner, 2026-11-08):
-    // the command strip docked top, the navigation docked left down to the
-    // bottom edge, the status strip docked bottom beside it, the diagnostics
-    // docked right while shown, and the page area filling the rest. Nothing
-    // scales with the window, so a resize moves or resizes only the docked
-    // parts it reaches and repaints only what changed (resize R-8). The
-    // bounds below are the default window's (gallery_default_size), against
-    // which the anchored children keep their distances.
-    std::shared_ptr<gui_forms::Panel> root = make_control<Panel>(StableId("gallery.shell"));
-    (*root).set_requested_bounds({0.0, 0.0, gallery_default_size.width, gallery_default_size.height});
-    (*root).set_background(canvas);
-    (*root).set_tag(context);
+    (*context).compiled = std::move(compiled);
+    // Pages capture the status line while they are built; the form made it.
+    (*context).status = window.gallery_status_text;
+    (*(*context).status).font = FontSpec{FontRole::content, 11.0, 600, false};
+    (*(*context).status).fore_color = shell_blue_dark;
+    // The form lays the shell out (demo/gallery.form): nothing scales with
+    // the window, so a resize moves or resizes only the docked parts it
+    // reaches and repaints only what changed (resize R-8).
+    Panel& root = *window.gallery_shell;
+    root.set_background(canvas);
+    root.set_tag(context);
 
-    // The form document's command strip: Reset, Diagnostics toggle, status badge.
-    if (const Control::Ptr strip = compiled.mount("gallery.command-strip")) {
-        (*strip).set_requested_bounds({0.0, 0.0, gallery_default_size.width, 34.0});
-        (*strip).dock = DockStyle::top;
-        (*root).add_child(strip);
+    // The form's own pages leave their declared boundary for their bodies.
+    const std::array<FormPage, 4> form_pages{{
+        {"basics", window.gallery_backplane, {660.0, 200.0}},
+        {"values", window.gallery_values_group, {660.0, 116.0}},
+        {"retained-rows", window.gallery_collection_group, {660.0, 144.0}},
+        {"instrument", window.gallery_instrument_group, {660.0, 150.0}},
+    }};
+    Panel& boundary = *window.gallery_form_pages;
+    for (const FormPage& form_page : form_pages) {
+        static_cast<void>(boundary.remove_child((*form_page.control).runtime_id()));
     }
+    static_cast<void>(root.remove_child(boundary.runtime_id()));
 
     const std::vector<NavigationEntry> order = navigation_order();
 
-    // The navigation lists every registry page, more than fit in one column,
-    // so the sidebar scrolls; select_page keeps the chosen row in view. It
-    // runs down to the window's bottom edge, beside the status strip (sweep
-    // defect D20: it stopped at the strip's top, leaving a blank block).
+    // select_page keeps the chosen row in view. The sidebar runs down to the
+    // window's bottom edge, beside the status strip (sweep defect D20).
     constexpr double sidebar_height = 786.0;
-    std::shared_ptr<gui_forms::ScrollableControl> sidebar = make_control<ScrollableControl>(
-        StableId("gallery.sidebar"));
-    (*sidebar).auto_scroll = true;
-    (*sidebar).set_requested_bounds({0.0, 34.0, 238.0, sidebar_height});
-    (*sidebar).dock = DockStyle::left;
-    (*root).add_child(sidebar);
-    // First child, so it paints beneath the rows; sized to the content below.
-    std::shared_ptr<gui_forms::Panel> sidebar_paper =
-        make_control<Panel>(StableId("gallery.sidebar.paper"));
-    (*sidebar_paper).set_background(Color::rgba(220, 229, 237));
-    (*sidebar).add_child(sidebar_paper);
+    ScrollableControl& sidebar = *window.gallery_sidebar;
+    // The paper is the sidebar's first child, so it paints beneath the rows;
+    // sized to the content below.
+    Panel& sidebar_paper = *window.gallery_sidebar_paper;
+    sidebar_paper.set_background(Color::rgba(220, 229, 237));
     double navigation_y = 8.0;
     std::string_view current_group;
     std::size_t group_index = 0;
@@ -193,7 +159,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
                 std::string(entry.group), 10.0, 700, shell_blue_dark);
             (*heading).font = FontSpec{FontRole::control, 10.0, 700, false, 0.24};
             (*heading).set_bounds({18.0, navigation_y, 180.0, 16.0});
-            (*sidebar).add_child(heading);
+            sidebar.add_child(heading);
             navigation_y += 18.0;
             ++group_index;
         }
@@ -204,7 +170,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         (*navigation).visual_style = ButtonVisualStyle::command;
         (*navigation).set_style(page_style());
         (*navigation).set_bounds({16.0, navigation_y, 190.0, 24.0});
-        (*sidebar).add_child(navigation);
+        sidebar.add_child(navigation);
         navigation_y += 24.0;
         (*context).navigation.push_back(navigation);
         (*context).page_ids.push_back((*entry.page).id);
@@ -215,48 +181,15 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
     }
     // Narrower than the viewport beside the vertical bar, so no horizontal
     // scrollbar appears; the column's own background shows at the edge.
-    (*sidebar_paper).set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
-    (*sidebar).auto_scroll_min_size = {206.0, navigation_y + 8.0};
+    sidebar_paper.set_bounds({0.0, 0.0, 206.0, std::max(sidebar_height, navigation_y + 8.0)});
+    sidebar.auto_scroll_min_size = {206.0, navigation_y + 8.0};
 
-    // The status strip, docked bottom beside the navigation: added before the
-    // page area, so it claims its edge first.
-    std::shared_ptr<gui_forms::Panel> status_surface = make_control<Panel>(StableId("gallery.status"));
-    (*status_surface).set_requested_bounds({238.0, 776.0, 1042.0, 44.0});
-    (*status_surface).dock = DockStyle::bottom;
-    (*status_surface).set_background(Color::rgba(225, 232, 238));
-    (*root).add_child(status_surface);
-    std::shared_ptr<gui_forms::Panel> status_rule =
-        make_control<Panel>(StableId("gallery.status.rule"));
-    static_cast<void>((*status_rule).add_class("rule-line"));
-    (*status_rule).set_requested_bounds({0.0, 0.0, 1042.0, 1.0});
-    (*status_rule).dock = DockStyle::top;
-    (*status_surface).add_child(status_rule);
-    (*(*context).status).set_requested_bounds({18.0, 10.0, 800.0, 24.0});
-    (*(*context).status).anchor = AnchorStyles::top | AnchorStyles::left | AnchorStyles::right;
-    (*status_surface).add_child((*context).status);
-    std::shared_ptr<gui_forms::CheckBox> live = make_control<CheckBox>(
-        StableId("gallery.status.live"), "Live animation");
-    (*live).checked = true;
-    (*live).indicator_style = ChoiceIndicatorStyle::toggle;
-    (*live).set_requested_bounds({846.0, 8.0, 180.0, 28.0});
-    (*live).anchor = AnchorStyles::top | AnchorStyles::right;
-    (*status_surface).add_child(live);
+    (*window.gallery_status).set_background(Color::rgba(225, 232, 238));
 
-    // The form document's diagnostics, docked right while shown (hidden until
-    // the command toggles it); added before the page area, which it narrows.
-    if (const Control::Ptr diagnostics = compiled.mount("gallery.diagnostics")) {
-        (*diagnostics).set_requested_bounds({1000.0, 34.0, 280.0, 742.0});
-        (*diagnostics).dock = DockStyle::right;
-        (*root).add_child(diagnostics);
-    }
-
-    // The page area fills the rest; each page's viewport is anchored to all
-    // four edges, keeping its 20-unit left margin.
-    std::shared_ptr<gui_forms::Panel> content = make_control<Panel>(StableId("gallery.content"));
-    (*content).set_requested_bounds({238.0, 34.0, 1042.0, 742.0});
-    (*content).dock = DockStyle::fill;
+    // The page area: each page's viewport is anchored to all four edges,
+    // keeping its 20-unit left margin.
+    const std::shared_ptr<gui_forms::Panel> content = window.gallery_content;
     (*content).set_background(canvas);
-    (*root).add_child(content);
     for (std::size_t index = 0; index < order.size(); ++index) {
         const GalleryPageSpec& spec = *order[index].page;
         const std::string surface_id =
@@ -310,7 +243,7 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
             Size{1000.0, 660.0});
         (*body).set_background(canvas);
         (*page).add_at(body, {0.0, strip_height, 1000.0, 660.0});
-        populate_page_body(spec.id, body, context, compiled);
+        populate_page_body(spec.id, body, context, form_pages);
         // The body is as tall as its content (at least 660): content placed
         // below 660 was cut off with no way to reach it (sweep defect D3).
         double body_height = 660.0;
@@ -328,17 +261,16 @@ GalleryShell build_gallery_shell(const GalleryTree& compiled) {
         (*context).pages.push_back(viewport);
     }
 
-
-    const std::shared_ptr<ShellActions> actions = std::make_shared<ShellActions>(context);
-    for (std::size_t index = 0; index < (*context).navigation.size(); ++index) {
-        on((*(*context).navigation[index]).clicked(), *actions, &ShellActions::navigate,
-           static_cast<int>(index));
+    RuleSet& rules = window.rules();
+    for (const std::shared_ptr<Button>& navigation : (*context).navigation) {
+        Button& row = *navigation;
+        arm(rules, trigger::interaction(row, row.clicked()), *context, &PageContext::navigation_clicked);
     }
-    on((*live).checked_changed(), *actions, &ShellActions::live_motion);
-    (*context).components.add(actions);
+    arm(rules, trigger::value_changed((*(*context).compiled).model.live_motion), *context,
+        &PageContext::live_motion_changed);
+    (*context).live_motion = (*(*context).compiled).model.live_motion.get();
     (*context).apply_motion_policy();
     (*context).select_page(0U);
-    return {root};
 }
 
 bool select_gallery_page(Window& window, std::string_view page_id) {

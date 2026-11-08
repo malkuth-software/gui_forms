@@ -1628,15 +1628,18 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
-    # The Gallery's own controls (FD6.2): demo/gallery.form, compiled into
-    # gallery_form.hpp; gallery_context.hpp includes it, so its directory is
-    # public.
+    # The Gallery's window (stage B): demo/gallery.form, compiled into
+    # gallery_window.hpp, the GalleryWindow class bound to its GalleryModel
+    # (demo/gallery_model.hpp); gallery_context.hpp includes it, so its
+    # directory is public.
     if(NOT GUI_FORMS_BUILD_FORM_COMPILER)
-        message(FATAL_ERROR "The Gallery needs the form compiler: its own controls are "
+        message(FATAL_ERROR "The Gallery needs the form compiler: its window is "
                             "demo/gallery.form (set GUI_FORMS_BUILD_FORM_COMPILER=ON)")
     endif()
     gui_forms_add_form(gui_forms_gallery_model demo/gallery.form
-        CLASS GalleryDocument NAMESPACE gui_forms::gallery
+        CLASS GalleryWindow NAMESPACE gui_forms::gallery
+        OUTPUT gui_forms_forms/gallery_window.hpp
+        MODEL gui_forms::gallery::GalleryModel MODEL_HEADER gallery_model.hpp
         TYPES
             "gallery_lifecycle_card,gui_forms::gallery::LifecycleCard,user_control,gallery_parts.hpp"
             "gallery_collection,gui_forms::gallery::CollectionList,list_box,gallery_parts.hpp"

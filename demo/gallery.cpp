@@ -319,24 +319,31 @@ std::unique_ptr<Application> create_gallery_application()
 
 std::unique_ptr<Window> make_gallery()
 {
-    GalleryTree tree = build_gallery_tree();
-    GalleryShell shell = build_gallery_shell(tree);
-    std::unique_ptr<gui_forms::Window> window =
-        std::make_unique<Window>(std::move(shell.root), gallery_default_size);
+    // The Gallery's context first: it holds the model the window's form
+    // binds. The shell's page context, in the window's root Tag, owns it.
+    std::shared_ptr<GalleryContext> context = std::make_shared<GalleryContext>();
+    // The window is the form (demo/gallery.form): made from its generated
+    // class, it joins the current application and takes the theme the
+    // program set there (create_gallery_application, FD-5). With none
+    // (tests), it compiles the Gallery theme into its own resources.
+    std::unique_ptr<GalleryWindow> window = std::make_unique<GalleryWindow>((*context).model);
     if ((*window).application() == nullptr) select_gallery_theme(*window);
-    (*tree.context).attach(*window);
-    (*tree.context).synchronize("gallery.initial");
+    (*context).attach(*window);
+    GalleryContext& gallery = *context;
+    build_gallery_shell(*window, std::move(context));
+    gallery.synchronize("gallery.initial");
     const ImageLoadResult status_badge =
         (*window).load_png(std::as_bytes(std::span{assets::validated_status_png}));
     if (!status_badge) {
         throw std::logic_error("compiled Gallery PNG failed core validation");
     }
-    (*(*tree.context).document.gallery_command_status_badge).image = status_badge.image;
+    (*(*window).gallery_command_status_badge).image = status_badge.image;
     (*window).perform_layout();
     initialize_gallery_runtime(*window);
     install_page_fixtures(*window);
     (*window).perform_layout();
-    return window;
+    std::unique_ptr<Window> made = std::move(window);
+    return made;
 }
 
 }  // namespace gui_forms::gallery

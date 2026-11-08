@@ -144,9 +144,12 @@ void SemanticFeedbackPage::on_clear() {
 void SemanticFeedbackPage::on_sound_changed(const bool enabled) {
     Window* const window = (*latest_).attached_window();
     if (window == nullptr) return;
-    PresentationSettings settings = (*window).presentation_settings();
-    settings.sound_enabled = enabled;
-    (*window).set_presentation_settings(settings);
+    // A per-window override (Part K): the application's settings still
+    // reach the window's other fields.
+    PresentationOverrides overrides{};
+    if (const PresentationOverrides* const current = (*window).presentation_overrides()) overrides = *current;
+    overrides.sound_enabled = enabled;
+    (*window).set_presentation_overrides(overrides);
 }
 
 void SemanticFeedbackPage::on_emitted(const SemanticFeedbackRecord& record) {
