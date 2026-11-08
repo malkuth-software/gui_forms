@@ -313,7 +313,7 @@ void anatomy_and_parts() {
     const Rect seam = items[0].parts.tab_seam.bounds;
     const Rect tab = items[0].parts.tab.bounds;
     require(near(seam.y + seam.height, tab.y + tab.height), "a top strip's seam lies on the tab's lower edge");
-    (*strip).set_placement(PageStripPlacement::bottom);
+    (*strip).placement = PageStripPlacement::bottom;
     const PageStrip::Item moved = (*strip).realized_items()[0];
     require(near(moved.parts.tab_seam.bounds.y, moved.parts.tab.bounds.y) && near(moved.parts.tab.bounds.y, 0.0),
             "a bottom strip's tabs touch its top edge, the seam with them");
@@ -330,10 +330,10 @@ void fixed_geometry_table() {
     PageSet pages{};
     add_pages(pages, 6U);
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).item_sizing = PageItemSizing::fixed;
     PageItemWidths widths{};
     widths.fixed = 100.0;
-    (*strip).set_item_widths(widths);
+    (*strip).item_widths = widths;
     Window window(strip, {640.0, 26.0});
     // Six tabs of 100 after a 2-unit inset at each end; overflow adds three
     // 16-unit buttons, so `width - 4 - 48` is the tab area.
@@ -387,8 +387,8 @@ void content_and_fill_geometry() {
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
     Window window(strip, {1600.0, 26.0});
     window.perform_layout();
-    const PageItemWidths widths = (*strip).item_widths();
-    const FontSpec font = (*strip).effective_font((*strip).font());
+    const PageItemWidths widths = (*strip).item_widths.read();
+    const FontSpec font = (*strip).effective_font((*strip).font.read());
     std::vector<PageStrip::Item> items = (*strip).realized_items();
     require(items.size() == 4U && !(*strip).overflowing(), "a wide strip shows every content-sized tab");
     for (std::size_t index = 0; index < items.size(); ++index) {
@@ -400,7 +400,7 @@ void content_and_fill_geometry() {
     require(near(items[0].parts.tab.bounds.width, widths.minimum), "a one-letter tab takes the minimum width");
     require(near(items[2].parts.tab.bounds.width, widths.maximum), "a long title is held to the maximum width");
 
-    (*strip).set_item_sizing(PageItemSizing::fill);
+    (*strip).item_sizing = PageItemSizing::fill;
     // A 400-unit strip shares 396 units: 99 each, within 40 and 240.
     const std::vector<double> fill_widths{400.0, 900.0, 1600.0};
     for (const double width : fill_widths) {
@@ -421,11 +421,11 @@ void content_and_fill_geometry() {
         PageItemWidths inverted{};
         inverted.minimum = 300.0;
         inverted.maximum = 100.0;
-        (*strip).set_item_widths(inverted);
+        (*strip).item_widths = inverted;
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && near((*strip).item_widths().minimum, widths.minimum),
+    require(refused && near((*strip).item_widths.read().minimum, widths.minimum),
             "a minimum above the maximum is refused and the old widths stay");
 }
 
@@ -433,10 +433,10 @@ void selected_tab_always_visible() {
     PageSet pages{};
     add_pages(pages, 40U);
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).item_sizing = PageItemSizing::fixed;
     PageItemWidths widths{};
     widths.fixed = 60.0;
-    (*strip).set_item_widths(widths);
+    (*strip).item_widths = widths;
     Window window(strip, {300.0, 26.0});
     const std::vector<std::string_view> chosen{"p30", "p0", "p39", "p17"};
     for (const std::string_view id : chosen) {
@@ -520,7 +520,7 @@ void keyboard_traces() {
     cancelling = false;
 
     // Manual activation: arrows move the keyboard only; Space selects.
-    (*strip).set_activation(PageStripActivation::manual);
+    (*strip).activation = PageStripActivation::manual;
     trace.events.clear();
     require(window.dispatch_key(key(PhysicalKey::left)) && window.dispatch_key(key(PhysicalKey::left)),
             "Left is handled under manual activation");
@@ -567,7 +567,7 @@ void mnemonics() {
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const SemanticNode* const general = find_node(snapshot.roots, "strip.tab.m0");
     require(general != nullptr && (*general).name == "General", "a tab's name drops the mnemonic marker");
-    (*strip).set_mnemonics_enabled(false);
+    (*strip).mnemonics_enabled = false;
     require(window.request_focus(other), "focus moves away");
     static_cast<void>(window.dispatch_key(key(PhysicalKey::g, Modifier::alt)));
     require(selected_id(pages) == "m2", "with mnemonics off a marker selects nothing");
@@ -580,7 +580,7 @@ void pointer_and_list() {
     PageSet pages{};
     add_pages(pages, 12U);
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).item_sizing = PageItemSizing::fixed;
     // Twelve tabs of 120: a 500-unit strip shows three before its buttons.
     Window window(strip, {500.0, 26.0});
     window.perform_layout();
@@ -639,7 +639,7 @@ void semantics() {
     add_pages(pages, 10U);
     require(pages.set_closable(PageId{"p1"}, true) == PageEditStatus::applied, "p1 is closable");
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).item_sizing = PageItemSizing::fixed;
     (*strip).accessible_name = "Sections";
     Window window(strip, {400.0, 26.0});
     window.perform_layout();
@@ -710,11 +710,11 @@ void release_and_refusals() {
     std::shared_ptr<PageStrip> bound = make_control<PageStrip>(StableId("bound"), pages);
     bool refused = false;
     try {
-        (*bound).set_placement(static_cast<PageStripPlacement>(9));
+        (*bound).placement = static_cast<PageStripPlacement>(9);
     } catch (const std::invalid_argument&) {
         refused = true;
     }
-    require(refused && (*bound).placement() == PageStripPlacement::top, "an invalid placement is refused");
+    require(refused && (*bound).placement.read() == PageStripPlacement::top, "an invalid placement is refused");
     require(!(*bound).overflowing() && (*bound).realized_items().empty() && !(*bound).select_relative(1,
                 PageSelectionCause::programmatic),
             "an empty set shows nothing and selects nothing");
@@ -724,10 +724,10 @@ std::size_t paint_allocations(std::size_t page_count) {
     PageSet pages{};
     add_pages(pages, page_count);
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).item_sizing = PageItemSizing::fixed;
     PageItemWidths widths{};
     widths.fixed = 20.0;
-    (*strip).set_item_widths(widths);
+    (*strip).item_widths = widths;
     Window window(strip, {2000.0, 26.0});
     window.perform_layout();
     select(pages, "p1");

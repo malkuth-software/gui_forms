@@ -150,7 +150,7 @@ void anatomy_and_layout() {
     require(content.y >= parts.content.bounds.y && content.height > 0.0 &&
                 content.y + content.height <= parts.content.bounds.y + parts.content.bounds.height,
             "the selected page's control fills the content area");
-    (*(*view).strip()).set_placement(PageStripPlacement::bottom);
+    (*(*view).strip()).placement = PageStripPlacement::bottom;
     window.perform_layout();
     const PageView::Parts below = (*view).parts();
     require(below.content.bounds.y == 0.0 && below.strip.bounds.y == below.content.bounds.height,

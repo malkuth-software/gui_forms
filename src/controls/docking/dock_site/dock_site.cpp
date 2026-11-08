@@ -331,12 +331,12 @@ void DockSite::realize() {
         slot.view = make_control<StackView>(StableId(stack_identity(stack)), *this, node.kind);
         PageView& view = *slot.view;
         PageStrip& strip = *view.strip();
-        strip.set_mnemonics_enabled(false);
-        if (node.kind == DockNodeKind::tool_stack) strip.set_placement(PageStripPlacement::bottom);
+        strip.mnemonics_enabled = false;
+        if (node.kind == DockNodeKind::tool_stack) strip.placement = PageStripPlacement::bottom;
         // Documents reorder by dragging along their strip (owner decision
         // DK-39) and tear off when the pointer leaves it; a tool tab's drag
         // is the docking drag at once (phase D3).
-        if (node.kind == DockNodeKind::document_stack) strip.set_reorder_enabled(true);
+        if (node.kind == DockNodeKind::document_stack) strip.reorder_enabled = true;
         // The workspace's navigator takes Ctrl+Tab (owner decision DK-30).
         view.set_ctrl_tab(PageViewCtrlTab::pass);
         on(view.pages().selected_page_changed(), *this, &DockSite::on_view_selection, stack);

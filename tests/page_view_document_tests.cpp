@@ -193,15 +193,15 @@ void preset_and_anatomy() {
     require((*view).preset() == PageViewPreset::document &&
                 (*view).close_policy() == PageViewClosePolicy::remove_when_unhandled,
             "the document preset starts by removing unhandled closes");
-    require(strip.close_buttons() == PageCloseButtons::selected_and_hot &&
-                strip.overflow() == PageStripOverflow::shrink_then_list && !strip.mnemonics_enabled(),
+    require(strip.close_buttons.read() == PageCloseButtons::selected_and_hot &&
+                strip.overflow.read() == PageStripOverflow::shrink_then_list && !strip.mnemonics_enabled.read(),
             "the document preset shows close buttons, shrinks then lists, and has no mnemonics");
     require((*view).pages().options().fallback == PageSelectionFallback::most_recent &&
                 (*view).pages().options().pinning_enabled,
             "the document preset selects the most recent page after a close; pinning is opted into");
     std::shared_ptr<PageView> plain = make_control<PageView>(StableId("plain"));
     require((*plain).preset() == PageViewPreset::strip &&
-                (*(*plain).strip()).close_buttons() == PageCloseButtons::none &&
+                (*(*plain).strip()).close_buttons.read() == PageCloseButtons::none &&
                 (*plain).pages().options().fallback == PageSelectionFallback::neighbour,
             "the strip preset is unchanged");
     const ControlAnatomy& anatomy = strip.anatomy();
@@ -232,7 +232,7 @@ void close_slot_and_modified_dot() {
                 pages.insert(record("p2", "Same title", false), PagePlacement::end_of_group()) == PageEditStatus::applied,
             "the fixture's pages are inserted");
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_close_buttons(PageCloseButtons::selected_and_hot);
+    (*strip).close_buttons = PageCloseButtons::selected_and_hot;
     Window window(strip, {600.0, 26.0});
     window.perform_layout();
     const PageStrip::Item first = item_of(*strip, "p0");
@@ -416,7 +416,7 @@ void pinned_tabs() {
     const std::span<const std::byte, 70U> png = std::as_bytes(std::span{one_pixel_png});
     require((*images).add_png("doc", png, 1.0).image.value != 0U, "the fixture's image is added");
     PageStrip& strip = *(*view).strip();
-    strip.set_image_list(images);
+    strip.image_list = images;
     PageSet& pages = (*view).pages();
     select(pages, "d2");
     window.perform_layout();
@@ -489,12 +489,12 @@ void shrink_then_overflow() {
                 "the fixture's pages are inserted");
     }
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_overflow(PageStripOverflow::shrink_then_list);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).overflow = PageStripOverflow::shrink_then_list;
+    (*strip).item_sizing = PageItemSizing::fixed;
     PageItemWidths widths{};
     widths.minimum = 60.0;
     widths.fixed = 120.0;
-    (*strip).set_item_widths(widths);
+    (*strip).item_widths = widths;
     Window window(strip, {724.0, 26.0});
     // Six tabs of 120 after a 2-unit inset at each end: they fit at 724,
     // shrink to an equal share down to 60 at 364, and overflow below it.

@@ -191,7 +191,7 @@ void DockSite::on_tab_drag(DockNodeId stack, PageDragStart& start) {
     StackSlot* const slot = slot_for(stack);
     if (slot == nullptr || !(*slot).view) return;
     const std::shared_ptr<PageStrip>& strip = (*(*slot).view).strip();
-    if (!strip || (*strip).reorder_enabled()) return;
+    if (!strip || (*strip).reorder_enabled.read()) return;
     const DockNode* const node = (*workspace_).layout().find_node(stack);
     if (node == nullptr) return;
     const Rect absolute = absolute_bounds();

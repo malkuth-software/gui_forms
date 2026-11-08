@@ -208,7 +208,7 @@ private:
         (*documents_).accessible_name = "Open documents";
         PageItemWidths widths{};
         widths.minimum = 80.0;
-        (*(*documents_).strip()).set_item_widths(widths);
+        (*(*documents_).strip()).item_widths = widths;
         for (std::size_t index = 0U; index < document_titles.size(); ++index) {
             PageRecord record{};
             record.id = PageId{"doc." + std::to_string(index)};
@@ -258,7 +258,7 @@ private:
         for (std::size_t edge = 0U; edge < edges.size(); ++edge) {
             const std::string prefix = "gallery.tabs.side." + std::string(names[edge]);
             PageView& view = *views[edge];
-            (*view.strip()).set_placement(edges[edge]);
+            (*view.strip()).placement = edges[edge];
             for (std::size_t index = 0U; index < side_titles.size(); ++index) {
                 PageRecord record{};
                 record.id = PageId{std::string(names[edge]) + "." + std::to_string(index)};

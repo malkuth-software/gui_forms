@@ -186,11 +186,11 @@ void DockSite::ensure_side_strip(DockSide edge) {
         std::string(stable_id().value()) + ".side." + std::string(edge_names[edge_index(edge)]);
     entry.strip = make_control<PageStrip>(StableId(identity), *entry.pages);
     PageStrip& strip = *entry.strip;
-    strip.set_placement(placement_for(edge));
+    strip.placement = placement_for(edge);
     // The arrows move along the tabs; Enter or Space opens the flyout.
-    strip.set_activation(PageStripActivation::manual);
-    strip.set_mnemonics_enabled(false);
-    strip.set_close_buttons(PageCloseButtons::none);
+    strip.activation = PageStripActivation::manual;
+    strip.mnemonics_enabled = false;
+    strip.close_buttons = PageCloseButtons::none;
     strip.accessible_name = "Auto-hidden panels";
     on(strip.page_invoked(), *this, &DockSite::on_side_tab_invoked, edge);
     add_child(entry.strip);

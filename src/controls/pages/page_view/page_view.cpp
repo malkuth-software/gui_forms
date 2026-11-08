@@ -120,10 +120,10 @@ void PageView::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     strip_ = make_control<PageViewStrip>(StableId(prefix + ".strip"), pages_);
     if (preset_ == PageViewPreset::document) {
-        (*strip_).set_close_buttons(PageCloseButtons::selected_and_hot);
-        (*strip_).set_overflow(PageStripOverflow::shrink_then_list);
-        (*strip_).set_mnemonics_enabled(false);
-        (*strip_).set_reorder_enabled(true);
+        (*strip_).close_buttons = PageCloseButtons::selected_and_hot;
+        (*strip_).overflow = PageStripOverflow::shrink_then_list;
+        (*strip_).mnemonics_enabled = false;
+        (*strip_).reorder_enabled = true;
     }
     add_child(strip_);
 }
@@ -355,7 +355,7 @@ PageView::Areas PageView::areas_for(Size surface) const {
         return areas;
     }
     const Size wanted = (*strip_).measure(surface);
-    const PageStripPlacement placement = (*strip_).placement();
+    const PageStripPlacement placement = (*strip_).placement.read();
     if (placement == PageStripPlacement::left || placement == PageStripPlacement::right) {
         const double width = std::min(surface.width, wanted.width);
         const double remaining = std::max(0.0, surface.width - width);

@@ -20,6 +20,7 @@
 #include "gui_forms/controls/label/label.hpp"
 #include "gui_forms/controls/menu_strip/menu_strip.hpp"
 #include "gui_forms/controls/metrics_view/metrics_view.hpp"
+#include "gui_forms/controls/pages/page_strip/page_strip.hpp"
 #include "gui_forms/controls/panel/anchored_overlay_layer/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/panel/breadcrumb_trail/breadcrumb_trail.hpp"
 #include "gui_forms/controls/panel/card/card.hpp"
@@ -1224,6 +1225,62 @@ void test_object_view_properties() {
     // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
 }
 
+void test_page_strip_properties() {
+    PageSet pages{};
+    std::shared_ptr<PageStrip> control = make_control<PageStrip>(StableId("generated.pagestrip"), pages);
+    {
+        const PageStripPlacement sample = PageStripPlacement::left;
+        (*control).placement = sample;
+        expect((*control).placement.read() == sample, "PageStrip.placement: a write stores");
+    }
+    {
+        const PageItemSizing sample = PageItemSizing::fixed;
+        (*control).item_sizing = sample;
+        expect((*control).item_sizing.read() == sample, "PageStrip.item_sizing: a write stores");
+    }
+    {
+        const PageItemWidths sample = PageItemWidths{60.0, 200.0, 100.0};
+        (*control).item_widths = sample;
+        expect((*control).item_widths.read() == sample, "PageStrip.item_widths: a write stores");
+    }
+    {
+        const PageStripActivation sample = PageStripActivation::manual;
+        (*control).activation = sample;
+        expect((*control).activation.read() == sample, "PageStrip.activation: a write stores");
+    }
+    {
+        const PageStripOverflow sample = PageStripOverflow::shrink_then_list;
+        (*control).overflow = sample;
+        expect((*control).overflow.read() == sample, "PageStrip.overflow: a write stores");
+    }
+    {
+        const PageCloseButtons sample = PageCloseButtons::all;
+        (*control).close_buttons = sample;
+        expect((*control).close_buttons.read() == sample, "PageStrip.close_buttons: a write stores");
+    }
+    {
+        const bool sample = !(*control).mnemonics_enabled.read();
+        (*control).mnemonics_enabled = sample;
+        expect((*control).mnemonics_enabled.read() == sample, "PageStrip.mnemonics_enabled: a write stores");
+    }
+    {
+        const bool sample = !(*control).reorder_enabled.read();
+        (*control).reorder_enabled = sample;
+        expect((*control).reorder_enabled.read() == sample, "PageStrip.reorder_enabled: a write stores");
+    }
+    {
+        const FontSpec sample = FontSpec{FontRole::control, 12.0, 700, false};
+        (*control).font = sample;
+        expect((*control).font.read() == sample, "PageStrip.font: a write stores");
+    }
+    // image_list: no sample for std::shared_ptr<ImageList>; give the property a "sample".
+    {
+        const ItemDrawMode sample = ItemDrawMode::owner_draw;
+        (*control).draw_mode = sample;
+        expect((*control).draw_mode.read() == sample, "PageStrip.draw_mode: a write stores");
+    }
+}
+
 void test_panel_properties() {
     std::shared_ptr<Panel> control = make_control<Panel>(StableId("generated.panel"));
     {
@@ -1846,6 +1903,7 @@ int main() {
     test_month_calendar_properties();
     test_numeric_up_down_properties();
     test_object_view_properties();
+    test_page_strip_properties();
     test_panel_properties();
     test_picture_box_properties();
     test_property_grid_properties();

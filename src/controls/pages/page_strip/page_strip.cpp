@@ -4,6 +4,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <algorithm>
 #include <array>
@@ -131,123 +132,126 @@ void PageStrip::bump_settings() {
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void PageStrip::set_placement(PageStripPlacement placement) {
+// Each layout setting bumps the settings revision, thawing frozen widths.
+void PageStrip::prepare_write(const decltype(placement)&, PageStripPlacement& incoming) {
     require_mutable();
-    if (placement != PageStripPlacement::top && placement != PageStripPlacement::bottom &&
-        placement != PageStripPlacement::left && placement != PageStripPlacement::right) {
+    if (incoming != PageStripPlacement::top && incoming != PageStripPlacement::bottom &&
+        incoming != PageStripPlacement::left && incoming != PageStripPlacement::right) {
         throw std::invalid_argument("PageStrip placement is invalid");
     }
-    if (placement_ == placement) return;
-    placement_ = placement;
+}
+
+void PageStrip::written(const decltype(placement)&) {
     bump_settings();
 }
 
-void PageStrip::set_item_sizing(PageItemSizing sizing) {
+void PageStrip::prepare_write(const decltype(item_sizing)&, PageItemSizing& incoming) {
     require_mutable();
-    if (sizing != PageItemSizing::content && sizing != PageItemSizing::fixed && sizing != PageItemSizing::fill) {
+    if (incoming != PageItemSizing::content && incoming != PageItemSizing::fixed && incoming != PageItemSizing::fill) {
         throw std::invalid_argument("PageStrip item sizing is invalid");
     }
-    if (item_sizing_ == sizing) return;
-    item_sizing_ = sizing;
+}
+
+void PageStrip::written(const decltype(item_sizing)&) {
     bump_settings();
 }
 
-void PageStrip::set_item_widths(PageItemWidths widths) {
+void PageStrip::prepare_write(const decltype(item_widths)&, PageItemWidths& incoming) {
     require_mutable();
-    if (!valid_widths(widths)) {
+    if (!valid_widths(incoming)) {
         throw std::invalid_argument(
             "PageStrip widths need 0 < minimum <= maximum <= 1024 and 0 < fixed <= 1024");
     }
-    item_widths_ = widths;
+}
+
+void PageStrip::written(const decltype(item_widths)&) {
     bump_settings();
 }
 
-void PageStrip::set_activation(PageStripActivation activation) {
+void PageStrip::prepare_write(const decltype(activation)&, PageStripActivation& incoming) {
     require_mutable();
-    if (activation != PageStripActivation::automatic && activation != PageStripActivation::manual) {
+    if (incoming != PageStripActivation::automatic && incoming != PageStripActivation::manual) {
         throw std::invalid_argument("PageStrip activation is invalid");
     }
-    if (activation_ == activation) return;
-    activation_ = activation;
+}
+
+void PageStrip::written(const decltype(activation)&) {
     // Under automatic activation the keyboard is always on the selection.
-    if (activation_ == PageStripActivation::automatic && focused_ && pages_ != nullptr) {
+    if (activation.read() == PageStripActivation::automatic && focused_ && pages_ != nullptr) {
         keyboard_page_ = (*pages_).selected_page();
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void PageStrip::set_overflow(PageStripOverflow overflow) {
+void PageStrip::prepare_write(const decltype(overflow)&, PageStripOverflow& incoming) {
     require_mutable();
-    if (overflow != PageStripOverflow::scroll && overflow != PageStripOverflow::shrink_then_list) {
+    if (incoming != PageStripOverflow::scroll && incoming != PageStripOverflow::shrink_then_list) {
         throw std::invalid_argument("PageStrip overflow is invalid");
     }
-    if (overflow_ == overflow) return;
-    overflow_ = overflow;
+}
+
+void PageStrip::written(const decltype(overflow)&) {
     first_visible_ = 0U;
     close_page_list();
     bump_settings();
 }
 
-void PageStrip::set_close_buttons(PageCloseButtons buttons) {
+void PageStrip::prepare_write(const decltype(close_buttons)&, PageCloseButtons& incoming) {
     require_mutable();
-    if (buttons != PageCloseButtons::none && buttons != PageCloseButtons::selected_and_hot &&
-        buttons != PageCloseButtons::all) {
+    if (incoming != PageCloseButtons::none && incoming != PageCloseButtons::selected_and_hot &&
+        incoming != PageCloseButtons::all) {
         throw std::invalid_argument("PageStrip close buttons are invalid");
     }
-    if (close_buttons_ == buttons) return;
-    close_buttons_ = buttons;
+}
+
+void PageStrip::written(const decltype(close_buttons)&) {
     bump_settings();
 }
 
-void PageStrip::set_reorder_enabled(bool enabled) {
+void PageStrip::prepare_write(const decltype(reorder_enabled)&, bool&) {
     require_mutable();
-    if (reorder_enabled_ == enabled) return;
-    reorder_enabled_ = enabled;
-    if (!enabled) static_cast<void>(cancel_drag());
 }
 
-void PageStrip::set_mnemonics_enabled(bool enabled) {
+void PageStrip::written(const decltype(reorder_enabled)&) {
+    if (!reorder_enabled.read()) static_cast<void>(cancel_drag());
+}
+
+void PageStrip::prepare_write(const decltype(mnemonics_enabled)&, bool&) {
     require_mutable();
-    if (mnemonics_enabled_ == enabled) return;
-    mnemonics_enabled_ = enabled;
+}
+
+void PageStrip::written(const decltype(mnemonics_enabled)&) {
     bump_settings();
 }
 
-void PageStrip::set_font(FontSpec font) {
+void PageStrip::prepare_write(const decltype(font)&, FontSpec& incoming) {
     require_mutable();
-    if (!valid_font_spec(font)) throw std::invalid_argument("PageStrip font specification is invalid");
+    if (!valid_font_spec(incoming)) throw std::invalid_argument("PageStrip font specification is invalid");
     set_font_from_code(true);
-    if (font_ == font) return;
-    font_ = font;
+}
+
+void PageStrip::written(const decltype(font)&) {
     widths_frozen_ = false;
     frozen_widths_.clear();
     ++settings_revision_;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
-void PageStrip::set_draw_mode(ItemDrawMode mode) {
+void PageStrip::prepare_write(const decltype(image_list)&, std::shared_ptr<ImageList>& incoming) {
     require_mutable();
-    if (mode != ItemDrawMode::normal && mode != ItemDrawMode::owner_draw) {
-        throw std::invalid_argument("PageStrip draw mode is invalid");
-    }
-    if (draw_mode_ == mode) return;
-    draw_mode_ = mode;
-    invalidate(Dirty::paint);
-}
-
-void PageStrip::set_image_list(std::shared_ptr<ImageList> image_list) {
-    require_mutable();
-    if (image_list && !(*image_list).is_alive()) {
+    if (incoming && !(*incoming).is_alive()) {
         throw std::invalid_argument("PageStrip requires a live ImageList");
     }
-    if (image_list && window() != nullptr && !(*image_list).belongs_to(*window())) {
+    if (incoming && window() != nullptr && !(*incoming).belongs_to(*window())) {
         throw std::invalid_argument("PageStrip and ImageList must belong to one Window");
     }
-    if (image_list_ == image_list) return;
+}
+
+// The change subscription follows the list.
+void PageStrip::written(const decltype(image_list)&) {
     image_list_token_.disconnect();
-    image_list_ = std::move(image_list);
-    if (image_list_) {
-        image_list_token_ = (*image_list_).changed().subscribe(
+    if (image_list.read()) {
+        image_list_token_ = (*image_list.read()).changed().subscribe(
             *this, Delegate<const ImageListChange&>::bind<PageStrip, &PageStrip::on_image_list_changed>(*this));
     }
     bump_settings();
@@ -259,7 +263,7 @@ void PageStrip::on_image_list_changed(const ImageListChange&) {
 
 void PageStrip::on_attached_to_window() {
     Control::on_attached_to_window();
-    if (image_list_ && !(*image_list_).belongs_to(*window())) {
+    if (image_list.read() && !(*image_list.read()).belongs_to(*window())) {
         throw std::logic_error("PageStrip cannot attach to a different ImageList Window");
     }
 }
@@ -285,7 +289,7 @@ void PageStrip::on_pages_changed(const PageSetChange& change) {
 
 void PageStrip::on_selection_changed(const PageSelectionChange& change) {
     if (pages_ == nullptr) return;
-    if (focused_ && activation_ == PageStripActivation::automatic) keyboard_page_ = change.new_page;
+    if (focused_ && activation.read() == PageStripActivation::automatic) keyboard_page_ = change.new_page;
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -295,7 +299,7 @@ void PageStrip::on_selection_changed(const PageSelectionChange& change) {
 // height of a top strip is the tab width of a side strip.
 Size PageStrip::measure(Size available) {
     const double scale = effective_text_scale();
-    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font_));
+    const ResolvedTextLayout metrics = resolve_text_layout_utf8("Mg", text_font(font.read()));
     const double preferred = std::max(strip_height * scale, metrics.logical_size.height + 10.0 * scale);
     if (!horizontal()) {
         const Size side{.width = std::min(available.width, preferred), .height = available.height};
@@ -318,7 +322,7 @@ void PageStrip::arrange(Rect final_bounds) {
 }
 
 bool PageStrip::horizontal() const noexcept {
-    const bool result = placement_ == PageStripPlacement::top || placement_ == PageStripPlacement::bottom;
+    const bool result = placement.read() == PageStripPlacement::top || placement.read() == PageStripPlacement::bottom;
     return result;
 }
 
@@ -339,8 +343,8 @@ double PageStrip::main_start(Rect bounds) const noexcept {
 
 // The reading direction of a tab's label (owner decision DK-42).
 TextOrientation PageStrip::label_orientation() const noexcept {
-    if (placement_ == PageStripPlacement::left) return TextOrientation::bottom_to_top;
-    if (placement_ == PageStripPlacement::right) return TextOrientation::top_to_bottom;
+    if (placement.read() == PageStripPlacement::left) return TextOrientation::bottom_to_top;
+    if (placement.read() == PageStripPlacement::right) return TextOrientation::top_to_bottom;
     return TextOrientation::horizontal;
 }
 
@@ -377,24 +381,24 @@ const PageStrip::Layout& PageStrip::layout() const {
 // smaller to show and keeps its label.
 void PageStrip::measure_tabs() const {
     const double scale = effective_text_scale();
-    const FontSpec font = text_font(font_);
-    const bool images = image_list_ && (*image_list_).is_alive();
-    const double minimum = item_widths_.minimum * scale;
-    const double maximum = item_widths_.maximum * scale;
-    const double fixed = item_widths_.fixed * scale;
+    const FontSpec label_font = text_font(font.read());
+    const bool images = image_list.read() && (*image_list.read()).is_alive();
+    const double minimum = item_widths.read().minimum * scale;
+    const double maximum = item_widths.read().maximum * scale;
+    const double fixed = item_widths.read().fixed * scale;
     const double padding = tab_padding * scale;
     const double slot = (slot_gap + slot_size) * scale;
-    const bool close_reserved = close_buttons_ != PageCloseButtons::none;
+    const bool close_reserved = close_buttons.read() != PageCloseButtons::none;
     const std::size_t count = layout_.tabs.size();
     for (std::size_t position = 0; position < count; ++position) {
         const PageRecord& record = (*pages_).record_at(PagePosition{position});
         TabSlot& tab = layout_.tabs[position];
-        if (mnemonics_enabled_) {
+        if (mnemonics_enabled.read()) {
             tab.label = parse_mnemonic_text(record.title).display_text;
         } else {
             tab.label = record.title;
         }
-        tab.has_icon = images && !record.image_key.empty() && (*image_list_).contains_key(record.image_key);
+        tab.has_icon = images && !record.image_key.empty() && (*image_list.read()).contains_key(record.image_key);
         tab.pinned = record.pinned;
         tab.reserves_slot = record.pinned || record.modified || (close_reserved && record.closable);
         tab.collapsed = record.pinned && tab.has_icon && position != layout_.key.expanded;
@@ -403,11 +407,11 @@ void PageStrip::measure_tabs() const {
         double natural = fixed;
         if (tab.collapsed) {
             natural = padding * 2.0 + image_size * scale;
-        } else if (item_sizing_ != PageItemSizing::fixed) {
+        } else if (item_sizing.read() != PageItemSizing::fixed) {
             double content = padding * 2.0;
             if (tab.has_icon) content += image_size * scale;
             if (tab.has_icon && !tab.label.empty()) content += image_text_gap * scale;
-            if (!tab.label.empty()) content += resolve_text_layout_utf8(tab.label, font).logical_size.width;
+            if (!tab.label.empty()) content += resolve_text_layout_utf8(tab.label, label_font).logical_size.width;
             if (tab.reserves_slot) content += slot;
             natural = std::clamp(content, minimum, maximum);
         }
@@ -452,15 +456,15 @@ std::size_t PageStrip::first_showing(std::size_t target, double area) const {
 Rect PageStrip::band_rect(double start, double length) const {
     const double gap = away_gap * layout_.key.scale;
     const double thickness = std::max(0.0, cross_extent() - gap);
-    if (placement_ == PageStripPlacement::left) {
+    if (placement.read() == PageStripPlacement::left) {
         const Rect band{gap, start, thickness, length};
         return band;
     }
-    if (placement_ == PageStripPlacement::right) {
+    if (placement.read() == PageStripPlacement::right) {
         const Rect band{0.0, start, thickness, length};
         return band;
     }
-    const double top = placement_ == PageStripPlacement::top ? gap : 0.0;
+    const double top = placement.read() == PageStripPlacement::top ? gap : 0.0;
     const Rect band{start, top, length, thickness};
     return band;
 }
@@ -471,11 +475,11 @@ Rect PageStrip::band_rect(double start, double length) const {
 // `cross_length` run across it.
 Rect PageStrip::along_tab(Rect tab, double offset, double length, double cross_offset,
                           double cross_length) const noexcept {
-    if (placement_ == PageStripPlacement::left) {
+    if (placement.read() == PageStripPlacement::left) {
         const Rect turned{tab.x + cross_offset, tab.y + tab.height - offset - length, cross_length, length};
         return turned;
     }
-    if (placement_ == PageStripPlacement::right) {
+    if (placement.read() == PageStripPlacement::right) {
         const Rect turned{tab.x + tab.width - cross_offset - cross_length, tab.y + offset, cross_length, length};
         return turned;
     }
@@ -588,7 +592,7 @@ void PageStrip::layout_scroll(bool scroll_only) const {
     layout_.last_first = first_showing(count - 1U, area);
     std::size_t first = std::min(first_visible_, layout_.last_first);
     std::optional<std::size_t> target = layout_.selected;
-    if (focused_ && activation_ == PageStripActivation::manual) target = keyboard_position();
+    if (focused_ && activation.read() == PageStripActivation::manual) target = keyboard_position();
     if (!scroll_only && target) {
         if (*target < first) {
             first = *target;
@@ -623,7 +627,7 @@ void PageStrip::layout_shrink() const {
     for (std::size_t position = pinned; position < count; ++position) {
         natural_total += layout_.tabs[position].width;
     }
-    const double minimum = item_widths_.minimum * scale;
+    const double minimum = item_widths.read().minimum * scale;
     layout_.front_end = count;
     bool fits = natural_total <= ordinary_area;
     if (!fits && !widths_frozen_) {
@@ -643,9 +647,9 @@ void PageStrip::layout_shrink() const {
     // Overflow: the list button at the strip's end, sized for the largest
     // count it can show so it does not move as the count changes.
     layout_.overflow = true;
-    const FontSpec font = text_font(font_);
+    const FontSpec label_font = text_font(font.read());
     const std::string widest = std::to_string(count - pinned);
-    const double count_width = resolve_text_layout_utf8(widest, font).logical_size.width;
+    const double count_width = resolve_text_layout_utf8(widest, label_font).logical_size.width;
     const double list_width = (list_padding * 2.0 + count_glyph_gap + glyph_size) * scale + count_width;
     const double end = main_extent() - inset;
     const double button_start = end - list_width;
@@ -665,7 +669,7 @@ void PageStrip::layout_shrink() const {
         ++front;
     }
     std::optional<std::size_t> target = layout_.selected;
-    if (focused_ && activation_ == PageStripActivation::manual) target = keyboard_position();
+    if (focused_ && activation.read() == PageStripActivation::manual) target = keyboard_position();
     std::optional<std::size_t> extra{};
     if (target && *target >= front) {
         const double least = widths_frozen_ ? layout_.tabs[*target].width
@@ -725,7 +729,7 @@ void PageStrip::compute_layout(const LayoutKey& key) const {
         return;
     }
     measure_tabs();
-    if (item_sizing_ == PageItemSizing::fill) {
+    if (item_sizing.read() == PageItemSizing::fill) {
         const double scale = key.scale;
         const double available = std::max(0.0, main_extent() - edge_inset * scale * 2.0);
         double collapsed = 0.0;
@@ -739,7 +743,7 @@ void PageStrip::compute_layout(const LayoutKey& key) const {
         }
         if (open > 0U) {
             const double share = std::max(0.0, available - collapsed) / static_cast<double>(open);
-            const double width = std::clamp(share, item_widths_.minimum * scale, item_widths_.maximum * scale);
+            const double width = std::clamp(share, item_widths.read().minimum * scale, item_widths.read().maximum * scale);
             for (TabSlot& tab : layout_.tabs) {
                 if (tab.collapsed) continue;
                 tab.width = width;
@@ -748,7 +752,7 @@ void PageStrip::compute_layout(const LayoutKey& key) const {
         }
     }
     apply_frozen_widths();
-    if (overflow_ == PageStripOverflow::shrink_then_list) {
+    if (overflow.read() == PageStripOverflow::shrink_then_list) {
         first_visible_ = 0U;
         layout_shrink();
     } else {
@@ -774,8 +778,8 @@ PageStrip::SlotContent PageStrip::slot_content(std::size_t position, bool hot) c
     }
     const bool selected = placed.selected && *placed.selected == position;
     bool close_shown = false;
-    if (record.closable && close_buttons_ == PageCloseButtons::all) close_shown = true;
-    if (record.closable && close_buttons_ == PageCloseButtons::selected_and_hot) close_shown = hot || selected;
+    if (record.closable && close_buttons.read() == PageCloseButtons::all) close_shown = true;
+    if (record.closable && close_buttons.read() == PageCloseButtons::selected_and_hot) close_shown = hot || selected;
     if (close_shown && hot) return SlotContent::close;
     if (record.modified) return SlotContent::modified;
     if (close_shown) return SlotContent::close;
@@ -849,11 +853,11 @@ PageStrip::ItemParts PageStrip::tab_parts_as(std::size_t position, bool hot) con
     if (placed.selected && *placed.selected == position) {
         const double thickness = seam_thickness * scale;
         Rect seam{bounds.x, bounds.y + bounds.height - thickness, bounds.width, thickness};
-        if (placement_ == PageStripPlacement::bottom) seam = {bounds.x, bounds.y, bounds.width, thickness};
-        if (placement_ == PageStripPlacement::left) {
+        if (placement.read() == PageStripPlacement::bottom) seam = {bounds.x, bounds.y, bounds.width, thickness};
+        if (placement.read() == PageStripPlacement::left) {
             seam = {bounds.x + bounds.width - thickness, bounds.y, thickness, bounds.height};
         }
-        if (placement_ == PageStripPlacement::right) seam = {bounds.x, bounds.y, thickness, bounds.height};
+        if (placement.read() == PageStripPlacement::right) seam = {bounds.x, bounds.y, thickness, bounds.height};
         parts.tab_seam = PartGeometry::from_bounds(seam);
     }
     const double inset = focus_inset * scale;
@@ -990,14 +994,14 @@ AnatomyStateSet PageStrip::slot_states(Zone zone, std::size_t position) const {
 
 bool PageStrip::can_scroll_backward() const {
     const Layout& placed = layout();
-    const bool result = overflow_ == PageStripOverflow::scroll && placed.overflow && placed.first_visible > 0U;
+    const bool result = overflow.read() == PageStripOverflow::scroll && placed.overflow && placed.first_visible > 0U;
     return result;
 }
 
 bool PageStrip::can_scroll_forward() const {
     const Layout& placed = layout();
     const bool result =
-        overflow_ == PageStripOverflow::scroll && placed.overflow && placed.first_visible < placed.last_first;
+        overflow.read() == PageStripOverflow::scroll && placed.overflow && placed.first_visible < placed.last_first;
     return result;
 }
 
@@ -1020,7 +1024,7 @@ AnatomyStateSet PageStrip::button_states(Zone zone) const {
 void PageStrip::on_paint(Painter& painter, Rect) {
     const Layout& placed = layout();
     PartPaint part{};
-    part.font = text_font(font_);
+    part.font = text_font(font.read());
     part.family = ControlVisualRole::panel;
     part.role = PartRole::face;
     part.bounds = placed.rail;
@@ -1118,7 +1122,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
     part.key = PartKey{"tab", paint_stable_id_, {}};
     paint_part(painter, *this, part);
     bool default_content = true;
-    if (draw_mode_ == ItemDrawMode::owner_draw && (parts.tab_icon.present || parts.tab_label.present)) {
+    if (draw_mode.read() == ItemDrawMode::owner_draw && (parts.tab_icon.present || parts.tab_label.present)) {
         Rect content = parts.tab_label.bounds;
         if (parts.tab_icon.present) {
             content = parts.tab_label.present ? Rect::united(parts.tab_icon.bounds, parts.tab_label.bounds)
@@ -1145,7 +1149,7 @@ bool PageStrip::paint_tab(Painter& painter, PartPaint& part, std::size_t positio
         const PageRecord& record = (*pages_).record_at(PagePosition{position});
         const ImageVisualState state = states.contains(AnatomyState::selected) ? ImageVisualState::selected
                                                                                 : ImageVisualState::normal;
-        const ImageListResolution resolved = (*image_list_).resolve(record.image_key, state, scale);
+        const ImageListResolution resolved = (*image_list.read()).resolve(record.image_key, state, scale);
         part.role = PartRole::icon;
         part.bounds = parts.tab_icon.bounds;
         part.key = PartKey{"tab_icon", paint_stable_id_, {}};
@@ -1289,7 +1293,7 @@ bool PageStrip::choose_from_list(std::size_t position) {
     const Layout& placed = layout();
     const std::size_t pinned = (*pages_).pinned_count();
     const bool hidden = placed.tabs[position].bounds.empty();
-    const bool relocate = overflow_ == PageStripOverflow::shrink_then_list && hidden && position >= pinned;
+    const bool relocate = overflow.read() == PageStripOverflow::shrink_then_list && hidden && position >= pinned;
     const PageId page = (*pages_).record_at(PagePosition{position}).id;
     if (!relocate) {
         const bool chosen = choose(position, PageSelectionCause::pointer);
@@ -1321,7 +1325,7 @@ bool PageStrip::choose_from_list(std::size_t position) {
 
 void PageStrip::reveal(std::size_t position) {
     const Layout& placed = layout();
-    if (overflow_ != PageStripOverflow::scroll) return;
+    if (overflow.read() != PageStripOverflow::scroll) return;
     if (!placed.overflow || position >= placed.tabs.size()) return;
     const std::size_t end = placed.first_visible + placed.visible.size();
     if (position >= placed.first_visible && position < end) return;
@@ -1463,7 +1467,7 @@ double PageStrip::local_main(Point window_point) const {
 bool PageStrip::slidable(std::size_t position) const {
     const Layout& placed = layout();
     if (position >= placed.tabs.size() || placed.tabs[position].bounds.empty()) return false;
-    const bool shrinking = overflow_ == PageStripOverflow::shrink_then_list && placed.overflow;
+    const bool shrinking = overflow.read() == PageStripOverflow::shrink_then_list && placed.overflow;
     const bool result = !shrinking || position < placed.front_end;
     return result;
 }
@@ -1518,7 +1522,7 @@ void PageStrip::on_drag_move(Point window_point) {
             return;
         }
         const std::optional<PagePosition> found = (*pages_).find(drag_.page);
-        if (!reorder_enabled_ || !found || !slidable((*found).value)) {
+        if (!reorder_enabled.read() || !found || !slidable((*found).value)) {
             drag_ = {};
             return;
         }
@@ -1605,7 +1609,7 @@ std::optional<PagePosition> PageStrip::insertion_position_at(Point window_point)
     const Layout& placed = layout();
     const double along = local_main(window_point);
     const std::size_t pinned = (*pages_).pinned_count();
-    const bool shrinking = overflow_ == PageStripOverflow::shrink_then_list && placed.overflow;
+    const bool shrinking = overflow.read() == PageStripOverflow::shrink_then_list && placed.overflow;
     std::size_t gap = 0U;
     for (const std::size_t position : placed.visible) {
         if (shrinking && position >= placed.front_end) continue;
@@ -1628,7 +1632,7 @@ Rect PageStrip::insertion_mark_bounds() const {
     const Layout& placed = layout();
     const std::size_t gap = (*insertion_gap_).value;
     const double thickness = insertion_thickness * placed.key.scale;
-    const bool shrinking = overflow_ == PageStripOverflow::shrink_then_list && placed.overflow;
+    const bool shrinking = overflow.read() == PageStripOverflow::shrink_then_list && placed.overflow;
     for (const std::size_t position : placed.visible) {
         if (shrinking && position >= placed.front_end) continue;
         const Rect bounds = placed.tabs[position].bounds;
@@ -1684,11 +1688,11 @@ Point PageStrip::keyboard_menu_anchor(std::size_t position) {
     if (target.empty()) target = placed.rail;
     const Rect absolute = absolute_bounds();
     Point anchor{absolute.x + target.x, absolute.y + target.y + target.height};
-    if (placement_ == PageStripPlacement::bottom) anchor = {absolute.x + target.x, absolute.y + target.y};
-    if (placement_ == PageStripPlacement::left) {
+    if (placement.read() == PageStripPlacement::bottom) anchor = {absolute.x + target.x, absolute.y + target.y};
+    if (placement.read() == PageStripPlacement::left) {
         anchor = {absolute.x + target.x + target.width, absolute.y + target.y + target.height};
     }
-    if (placement_ == PageStripPlacement::right) anchor = {absolute.x + target.x, absolute.y + target.y};
+    if (placement.read() == PageStripPlacement::right) anchor = {absolute.x + target.x, absolute.y + target.y};
     return anchor;
 }
 
@@ -1738,7 +1742,7 @@ void PageStrip::thaw_widths() {
 // The keyboard moves to `position`: under automatic activation that selects
 // it; under manual activation only the keyboard's page moves.
 void PageStrip::move_keyboard(std::size_t position) {
-    if (activation_ == PageStripActivation::automatic) {
+    if (activation.read() == PageStripActivation::automatic) {
         static_cast<void>(choose(position, PageSelectionCause::keyboard));
         return;
     }
@@ -1824,7 +1828,7 @@ void PageStrip::on_pointer(PointerEvent& event) {
     if (event.action == PointerAction::wheel) {
         // The wheel scrolls an overflowing strip (owner decision DK-37):
         // turned up or left towards the start.
-        if (overflow_ != PageStripOverflow::scroll || !layout().overflow) return;
+        if (overflow.read() != PageStripOverflow::scroll || !layout().overflow) return;
         if (event.wheel_delta.y == 0.0 && event.wheel_delta.x == 0.0) return;
         // A vertical turn decides when there is one; else a turn to the
         // right scrolls towards the end and to the left towards the start.
@@ -1943,7 +1947,7 @@ void PageStrip::on_focus_changed(bool focused) {
 // -- mnemonics -----------------------------------------------------------------
 
 bool PageStrip::mnemonic_matches(char32_t character) const noexcept {
-    if (!mnemonics_enabled_ || pages_ == nullptr) return false;
+    if (!mnemonics_enabled.read() || pages_ == nullptr) return false;
     const std::size_t count = (*pages_).count();
     for (std::size_t position = 0; position < count; ++position) {
         if (is_mnemonic(character, (*pages_).record_at(PagePosition{position}).title)) return true;
@@ -1953,7 +1957,7 @@ bool PageStrip::mnemonic_matches(char32_t character) const noexcept {
 
 // A mnemonic selects its page and focuses the strip on its tab.
 bool PageStrip::process_mnemonic_self(char32_t character) {
-    if (!mnemonics_enabled_ || pages_ == nullptr) return false;
+    if (!mnemonics_enabled.read() || pages_ == nullptr) return false;
     const std::size_t count = (*pages_).count();
     for (std::size_t position = 0; position < count; ++position) {
         if (!is_mnemonic(character, (*pages_).record_at(PagePosition{position}).title)) continue;
@@ -1978,7 +1982,7 @@ void PageStrip::prepare_list_commands() {
     for (std::size_t position = 0; position < count; ++position) {
         const PageRecord& record = (*pages_).record_at(PagePosition{position});
         Command& command = *list_commands_[position];
-        command.set_text(mnemonics_enabled_ ? record.title : literal_menu_text(record.title));
+        command.set_text(mnemonics_enabled.read() ? record.title : literal_menu_text(record.title));
         command.set_checked(selected && *selected == position);
         command.set_enabled(true);
     }
@@ -2013,8 +2017,8 @@ bool PageStrip::show_page_list(MenuOpenMode mode) {
     // Right-aligned below the list button (beside it on a side strip, on the
     // content's side); the overlay layer keeps it on screen.
     Point anchor{std::max(absolute.x, right - (*list_).preferred_width()), absolute.y + button.y + button.height};
-    if (placement_ == PageStripPlacement::left) anchor = {right, absolute.y + button.y};
-    if (placement_ == PageStripPlacement::right) {
+    if (placement.read() == PageStripPlacement::left) anchor = {right, absolute.y + button.y};
+    if (placement.read() == PageStripPlacement::right) {
         anchor = {absolute.x + button.x - (*list_).preferred_width(), absolute.y + button.y};
     }
     (*list_).show(shared_from_this(), anchor, mode);
@@ -2110,7 +2114,7 @@ std::vector<SemanticNode> PageStrip::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::tab;
         node.name = placed.tabs[position].label;
-        if (mnemonics_enabled_) node.access_key = mnemonic_access_key(record.title);
+        if (mnemonics_enabled.read()) node.access_key = mnemonic_access_key(record.title);
         if (record.pinned) node.description = "pinned";
         if (record.pinned && record.modified) node.description += ", ";
         if (record.modified) node.description += "modified";
@@ -2132,7 +2136,7 @@ std::vector<SemanticNode> PageStrip::semantic_virtual_children() const {
     }
     if (!placed.overflow) return nodes;
     const std::string strip_id(stable_id().value());
-    if (overflow_ == PageStripOverflow::scroll) {
+    if (overflow.read() == PageStripOverflow::scroll) {
         const std::array<Rect, 2> scroll_bounds{placed.scroll_back, placed.scroll_forward};
         const std::array<const char*, 2> scroll_ids{".scroll-back", ".scroll-forward"};
         const std::array<const char*, 2> scroll_names{"Scroll tabs back", "Scroll tabs forward"};
@@ -2155,7 +2159,7 @@ std::vector<SemanticNode> PageStrip::semantic_virtual_children() const {
     list.runtime_id = virtual_semantic_runtime_id(list.stable_id);
     list.role = SemanticRole::menu_button;
     list.name = "All pages";
-    if (overflow_ == PageStripOverflow::shrink_then_list) list.description = placed.list_count_text + " hidden";
+    if (overflow.read() == PageStripOverflow::shrink_then_list) list.description = placed.list_count_text + " hidden";
     list.has_popup = true;
     list.bounds = to_window(absolute, placed.list_button);
     list.states = SemanticState::visible;
@@ -2190,7 +2194,7 @@ bool PageStrip::on_semantic_child_action(std::string_view id, SemanticAction act
     if (action == SemanticAction::focus) {
         if (window() != nullptr) static_cast<void>((*window()).request_focus(keep));
         if (!is_alive() || pages_ == nullptr || !focused_) return false;
-        if (activation_ == PageStripActivation::automatic) {
+        if (activation.read() == PageStripActivation::automatic) {
             static_cast<void>(choose(*position, PageSelectionCause::semantic));
         } else {
             move_keyboard(*position);
@@ -2403,5 +2407,20 @@ void PageStrip::append_interactions(std::vector<InteractionDeclaration>& interac
     Control::append_interactions(interactions);
     interactions.insert(interactions.end(), page_strip_interactions.begin(), page_strip_interactions.end());
 }
+
+// property_codemod begin PageStrip (tools/property_families/page_strip.json; generated, do not edit)
+
+void PageStrip::prepare_write(const decltype(draw_mode)&, ItemDrawMode& incoming) {
+    require_mutable();
+    if (incoming != ItemDrawMode::normal && incoming != ItemDrawMode::owner_draw) {
+        throw std::invalid_argument("PageStrip draw mode is invalid");
+    }
+}
+
+void PageStrip::written(const decltype(draw_mode)&) {
+    invalidate(Dirty::paint);
+}
+
+// property_codemod end PageStrip
 
 } // namespace gui_forms

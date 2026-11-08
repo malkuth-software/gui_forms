@@ -134,6 +134,28 @@ Related types
      -  
    * - :cpp:class:`PageStrip::Parts <gui_forms::PageStrip::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
+   * - :cpp:class:`PageStripActivationPropertyCapability <gui_forms::PageStripActivationPropertyCapability>`
+     - Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual).
+   * - :cpp:class:`PageStripCapabilities <gui_forms::PageStripCapabilities>`
+     - Every PageStrip capability, in the order the declaring class takes them.
+   * - :cpp:class:`PageStripCloseButtonsCapability <gui_forms::PageStripCloseButtonsCapability>`
+     - Which closable tabs show their close button; see PageCloseButtons.
+   * - :cpp:class:`PageStripDrawModeCapability <gui_forms::PageStripDrawModeCapability>`
+     - Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role.
+   * - :cpp:class:`PageStripImageListCapability <gui_forms::PageStripImageListCapability>`
+     - The images a page's ``image_key`` names, or null.
+   * - :cpp:class:`PageStripItemSizingCapability <gui_forms::PageStripItemSizingCapability>`
+     - How wide each tab is (default content); see PageItemSizing.
+   * - :cpp:class:`PageStripItemWidthsCapability <gui_forms::PageStripItemWidthsCapability>`
+     - The tab widths the sizing uses.
+   * - :cpp:class:`PageStripMnemonicsEnabledCapability <gui_forms::PageStripMnemonicsEnabledCapability>`
+     - Whether ``&`` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38).
+   * - :cpp:class:`PageStripOverflowPropertyCapability <gui_forms::PageStripOverflowPropertyCapability>`
+     - What the strip does when its tabs do not fit (default scroll); see PageStripOverflow.
+   * - :cpp:class:`PageStripPlacementPropertyCapability <gui_forms::PageStripPlacementPropertyCapability>`
+     - The edge of its content the strip sits on (default top); see PageStripPlacement.
+   * - :cpp:class:`PageStripReorderEnabledCapability <gui_forms::PageStripReorderEnabledCapability>`
+     - Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on.
    * - :cpp:class:`PageView::Parts <gui_forms::PageView::Parts>`
      - Stage T1 anatomy, as dot members; its states are Control's.
    * - :cpp:class:`PageViewOptions <gui_forms::PageViewOptions>`
@@ -706,7 +728,7 @@ Related types
 
 .. cpp:struct:: PageItemWidths final
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    Tab widths in logical units at text scale 1. 0 < minimum <= maximum <= ``maximum_width``, and 0 < fixed <= ``maximum_width``.
 
@@ -853,6 +875,230 @@ Related types
       The gap bar a claimant shows while dropping a page into the strip.
 
    .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripActivationPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual). An invalid value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripActivationPropertyCapability& capability, PageStripActivation incoming)
+
+   .. cpp:member:: PropertyCell<PageStripActivation, PageStripActivationPropertyCapability<Declaring>> activation
+
+      Default: ``{PageStripActivation::automatic}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripCapabilities : public PageStripPlacementPropertyCapability<Declaring>, public PageStripItemSizingCapability<Declaring>, public PageStripItemWidthsCapability<Declaring>, public PageStripActivationPropertyCapability<Declaring>, public PageStripOverflowPropertyCapability<Declaring>, public PageStripCloseButtonsCapability<Declaring>, public PageStripMnemonicsEnabledCapability<Declaring>, public PageStripReorderEnabledCapability<Declaring>, public FontCapability<Declaring>, public PageStripImageListCapability<Declaring>, public PageStripDrawModeCapability<Declaring>
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Every PageStrip capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PageStripCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: PageStripPlacement placement
+
+      The edge of its content the strip sits on (default top); see PageStripPlacement. An invalid placement throws std::invalid_argument.
+
+   .. cpp:member:: PageItemSizing item_sizing
+
+      How wide each tab is (default content); see PageItemSizing. An invalid sizing throws std::invalid_argument.
+
+   .. cpp:member:: PageItemWidths item_widths
+
+      The tab widths the sizing uses. Widths outside the bounds stated on PageItemWidths throw std::invalid_argument, leaving the old widths.
+
+   .. cpp:member:: PageStripActivation activation
+
+      Whether moving the keyboard between tabs selects (automatic, the default) or only moves the focus (manual). An invalid value throws std::invalid_argument.
+
+   .. cpp:member:: PageStripOverflow overflow
+
+      What the strip does when its tabs do not fit (default scroll); see PageStripOverflow. An invalid value throws std::invalid_argument.
+
+   .. cpp:member:: PageCloseButtons close_buttons
+
+      Which closable tabs show their close button; see PageCloseButtons. An invalid value throws std::invalid_argument.
+
+   .. cpp:member:: bool mnemonics_enabled
+
+      Whether ``&`` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38). When off, a title is shown as written.
+
+   .. cpp:member:: bool reorder_enabled
+
+      Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on. Turning it off cancels a drag under way.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+   .. cpp:member:: std::shared_ptr<ImageList> image_list
+
+      The images a page's ``image_key`` names, or null. A disposed list or one belonging to another window throws std::invalid_argument.
+
+   .. cpp:member:: ItemDrawMode draw_mode
+
+      Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role. An unknown mode throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripCloseButtonsCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Which closable tabs show their close button; see PageCloseButtons. An invalid value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripCloseButtonsCapability& capability, PageCloseButtons incoming)
+
+   .. cpp:member:: PropertyCell<PageCloseButtons, PageStripCloseButtonsCapability<Declaring>> close_buttons
+
+      Default: ``{PageCloseButtons::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripDrawModeCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Content-only owner drawing (owner decision W-Q6; TabControl's OwnerDrawFixed with DrawItem): in owner_draw the strip raises draw_item_content for each painted tab's content; the plate, close button, pin, modified mark and focus cue stay painted by role. An unknown mode throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripDrawModeCapability& capability, ItemDrawMode incoming)
+
+   .. cpp:member:: PropertyCell<ItemDrawMode, PageStripDrawModeCapability<Declaring>> draw_mode
+
+      Default: ``{ItemDrawMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripImageListCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   The images a page's ``image_key`` names, or null. A disposed list or one belonging to another window throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripImageListCapability& capability, std::shared_ptr<ImageList> incoming)
+
+   .. cpp:member:: PropertyCell<std::shared_ptr<ImageList>, PageStripImageListCapability<Declaring>> image_list
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripItemSizingCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   How wide each tab is (default content); see PageItemSizing. An invalid sizing throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripItemSizingCapability& capability, PageItemSizing incoming)
+
+   .. cpp:member:: PropertyCell<PageItemSizing, PageStripItemSizingCapability<Declaring>> item_sizing
+
+      Default: ``{PageItemSizing::content}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripItemWidthsCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   The tab widths the sizing uses. Widths outside the bounds stated on PageItemWidths throw std::invalid_argument, leaving the old widths.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripItemWidthsCapability& capability, PageItemWidths incoming)
+
+   .. cpp:member:: PropertyCell<PageItemWidths, PageStripItemWidthsCapability<Declaring>> item_widths
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripMnemonicsEnabledCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Whether ``&`` in a title marks a mnemonic that selects the page (on for strips; the document preset turns it off, DK-38). When off, a title is shown as written.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripMnemonicsEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PageStripMnemonicsEnabledCapability<Declaring>> mnemonics_enabled
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripOverflowPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   What the strip does when its tabs do not fit (default scroll); see PageStripOverflow. An invalid value throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripOverflowPropertyCapability& capability, PageStripOverflow incoming)
+
+   .. cpp:member:: PropertyCell<PageStripOverflow, PageStripOverflowPropertyCapability<Declaring>> overflow
+
+      Default: ``{PageStripOverflow::scroll}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripPlacementPropertyCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   The edge of its content the strip sits on (default top); see PageStripPlacement. An invalid placement throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripPlacementPropertyCapability& capability, PageStripPlacement incoming)
+
+   .. cpp:member:: PropertyCell<PageStripPlacement, PageStripPlacementPropertyCapability<Declaring>> placement
+
+      Default: ``{PageStripPlacement::top}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PageStripReorderEnabledCapability
+
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_capabilities/page_strip_capabilities.hpp>``
+
+   Whether an unclaimed drag reorders tabs live (owner decision DK-39): off by default, the strip preset; PageView's document preset turns it on. Turning it off cancels a drag under way.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PageStripReorderEnabledCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PageStripReorderEnabledCapability<Declaring>> reorder_enabled
 
 .. cpp:namespace:: gui_forms
 
@@ -1149,7 +1395,7 @@ Enumerations
 
 .. cpp:enum-class:: PageCloseButtons
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: none
 
@@ -1185,7 +1431,7 @@ Enumerations
 
 .. cpp:enum-class:: PageItemSizing
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: content
 
@@ -1211,7 +1457,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripActivation
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: automatic
 
@@ -1221,7 +1467,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripOverflow
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: scroll
 
@@ -1231,7 +1477,7 @@ Enumerations
 
 .. cpp:enum-class:: PageStripPlacement
 
-   ``#include <gui_forms/controls/pages/page_strip/page_strip.hpp>``
+   ``#include <gui_forms/controls/pages/page_strip/page_strip_values/page_strip_values.hpp>``
 
    .. cpp:enumerator:: top
 

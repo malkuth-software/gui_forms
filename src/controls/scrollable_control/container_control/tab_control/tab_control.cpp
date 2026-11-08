@@ -106,7 +106,7 @@ void TabControl::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     strip_ = make_control<TabControlStrip>(StableId(prefix + ".strip"), tab_set_);
     // Captions are shown as written: `&` has no mnemonic meaning here.
-    (*strip_).set_mnemonics_enabled(false);
+    (*strip_).mnemonics_enabled = false;
     configure_strip();
     invoked_token_ = (*strip_).page_invoked().subscribe(
         *this, Delegate<const PageInvocation&>::bind<TabControl, &TabControl::on_strip_invoked>(*this));
@@ -116,14 +116,14 @@ void TabControl::initialize_control_tree() {
 }
 
 ItemDrawMode TabControl::draw_mode() const noexcept {
-    const ItemDrawMode mode = strip_ ? (*strip_).draw_mode() : ItemDrawMode::normal;
+    const ItemDrawMode mode = strip_ ? (*strip_).draw_mode.read() : ItemDrawMode::normal;
     return mode;
 }
 
 void TabControl::set_draw_mode(ItemDrawMode mode) {
     require_mutable();
     if (!strip_) throw std::logic_error("TabControl has no tab strip yet");
-    (*strip_).set_draw_mode(mode);
+    (*strip_).draw_mode = mode;
 }
 
 void TabControl::on_strip_draw_item_content(ItemContentPaint& item) {
@@ -416,7 +416,7 @@ void TabControl::set_style(BasicControlStyle style) {
 void TabControl::set_image_list(std::shared_ptr<ImageList> image_list) {
     require_mutable();
     if (image_list_ == image_list) return;
-    if (strip_) (*strip_).set_image_list(image_list);
+    if (strip_) (*strip_).image_list = image_list;
     image_list_token_.disconnect();
     image_list_ = std::move(image_list);
     if (image_list_) {
@@ -456,11 +456,11 @@ void TabControl::configure_strip() {
     if (size_mode_ == TabSizeMode::fill_to_right) sizing = PageItemSizing::fill;
     if (size_mode_ == TabSizeMode::fixed) sizing = PageItemSizing::fixed;
     const bool row = alignment_ == TabAlignment::top || alignment_ == TabAlignment::bottom;
-    PageItemWidths widths = (*strip_).item_widths();
+    PageItemWidths widths = (*strip_).item_widths.read();
     widths.fixed = row ? item_size_.width : item_size_.height;
-    (*strip_).set_placement(placement);
-    (*strip_).set_item_sizing(sizing);
-    (*strip_).set_item_widths(widths);
+    (*strip_).placement = placement;
+    (*strip_).item_sizing = sizing;
+    (*strip_).item_widths = widths;
 }
 
 // The band the strip occupies: `item_size`'s height across a top or bottom

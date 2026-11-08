@@ -92,12 +92,12 @@ struct TakeClose final {
 // A strip of fixed 80-unit tabs on `placement`, in a 26 by `length` window.
 std::shared_ptr<PageStrip> side_strip(PageSet& pages, PageStripPlacement placement) {
     std::shared_ptr<PageStrip> strip = make_control<PageStrip>(StableId("strip"), pages);
-    (*strip).set_placement(placement);
-    (*strip).set_item_sizing(PageItemSizing::fixed);
+    (*strip).placement = placement;
+    (*strip).item_sizing = PageItemSizing::fixed;
     PageItemWidths widths{};
     widths.fixed = 80.0;
-    (*strip).set_item_widths(widths);
-    (*strip).set_close_buttons(PageCloseButtons::selected_and_hot);
+    (*strip).item_widths = widths;
+    (*strip).close_buttons = PageCloseButtons::selected_and_hot;
     return strip;
 }
 
@@ -277,7 +277,7 @@ void page_view_side_areas() {
         record.id = PageId{"only"};
         record.title = "Only";
         require((*view).add_page(record, body) == PageEditStatus::applied, "a page is added");
-        (*(*view).strip()).set_placement(edge);
+        (*(*view).strip()).placement = edge;
         Window window(view, {400.0, 200.0});
         window.perform_layout();
         const PageView::Parts parts = (*view).parts();

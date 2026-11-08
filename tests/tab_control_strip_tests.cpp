@@ -271,7 +271,7 @@ void sizing_modes() {
     require(near(side.x + side.width, 90.0) && side.height > side.width,
             "on the left the tabs stack down a column item_size wide, as long as their turned captions");
     const PageStrip* const strip = dynamic_cast<const PageStrip*>(window.find("tabs.strip").get());
-    require(strip != nullptr && (*strip).placement() == PageStripPlacement::left,
+    require(strip != nullptr && (*strip).placement.read() == PageStripPlacement::left,
             "the strip sits on the control's alignment edge");
 }
 

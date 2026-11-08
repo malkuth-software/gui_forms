@@ -2572,7 +2572,7 @@ void example() {
     }
     std::shared_ptr<gf::PageStrip> strip =
         gf::make_control<gf::PageStrip>(gf::StableId("settings.tabs"), pages);
-    (*strip).set_activation(gf::PageStripActivation::manual);
+    (*strip).activation = gf::PageStripActivation::manual;
     static_cast<void>((*strip).select_relative(1, gf::PageSelectionCause::programmatic));
     // pages.selected_page() is now "settings.1", titled "&Advanced".
 }

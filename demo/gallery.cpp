@@ -225,7 +225,7 @@ void install_page_fixtures(Window& window) {
             std::shared_ptr<gui_forms::ImageList> document_icons =
                 std::make_shared<ImageList>(window, Size{16.0, 16.0});
             (*document_icons).add_image("folder", icon_normal.image);
-            (*(*documents).strip()).set_image_list(std::move(document_icons));
+            (*(*documents).strip()).image_list = std::move(document_icons);
         }
         // The primary TabControl's first and third tabs show this icon.
         if (const std::shared_ptr<gui_forms::TabControl> tabs = std::dynamic_pointer_cast<TabControl>(
