@@ -1742,6 +1742,10 @@ gui_forms::Control
 
       A context menu was asked for on this control (ContextMenuRequest), before the control's ContextMenuRequested subscribers. A control that shows its own menu sets ``request.handled``, which also stops the request reaching its ancestors. The base does nothing.
 
+   .. cpp:function:: virtual bool clicks_primary_button_only() const noexcept
+
+      Whether Click, MouseClick, DoubleClick and MouseDoubleClick are raised for the primary button only. The base answers false: as in WinForms, a release of any button over the control it pressed is a click. ButtonBase answers true.
+
    .. cpp:function:: virtual const ControlAnatomy& anatomy() const noexcept
 
       Anatomy (stage T1). A control type opts in by overriding anatomy(), publish_part_geometry() and anatomy_states() together; the defaults publish base_control_anatomy(). The anatomy describes the type, never the instance: it is the same record for every object of the type.

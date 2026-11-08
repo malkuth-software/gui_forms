@@ -485,6 +485,10 @@ gui_forms::ButtonBase
 
    .. cpp:function:: void on_key(KeyEvent& event) override
 
+   .. cpp:function:: bool clicks_primary_button_only() const noexcept override
+
+      As in WinForms, a button clicks for the primary button only.
+
    .. cpp:function:: void on_focus_changed(bool focused) override
 
    .. cpp:function:: void on_activate() override

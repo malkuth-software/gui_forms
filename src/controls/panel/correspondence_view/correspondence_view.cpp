@@ -914,23 +914,49 @@ void CorrespondenceView::on_pointer(PointerEvent& event) {
         const std::optional<std::size_t> released = index_at(event.position);
         if (released && pressed_index_ == released) {
             const CorrespondenceItem& item = items_[*released];
-            if (pressed_button_ == PointerButton::secondary) {
-                context_requested_.emit({item.stable_id, event.position});
-            } else if (pressed_click_count_ >= 2U) {
+            // The secondary release asks for no menu itself: the host's
+            // context request does (on_context_menu_requested).
+            if (pressed_button_ == PointerButton::primary && pressed_click_count_ >= 2U) {
                 emit_item_activated(item.stable_id);
-            } else {
+            } else if (pressed_button_ == PointerButton::primary) {
                 pinned_id = item.stable_id == pinned_id_ ? std::string{} : item.stable_id;
             }
         } else if (!released && !pressed_index_) {
             selected_id = std::string{};
-            if (pressed_button_ == PointerButton::secondary && is_alive()) {
-                context_requested_.emit({{}, event.position});
-            }
         }
         pressed_index_.reset();
         pressed_button_ = PointerButton::none;
         event.handled = true;
     }
+}
+
+// A context request comes from the host (Windows' WM_CONTEXTMENU, macOS's
+// menuForEvent: and show-menu action, the Linux desktop's convention). A
+// pointer request selects the item under the pointer (a macOS Control-click
+// delivers no press) and asks for its menu; over no item it clears the
+// selection and asks with no target. A keyboard request asks for the
+// focused item's menu, as the semantic Show Menu action does.
+void CorrespondenceView::on_context_menu_requested(ContextMenuRequest& request) {
+    if (request.origin == ContextRequestOrigin::keyboard) {
+        // A copy: the action may replace the focused identity.
+        const std::string focused = focused_id_;
+        if (focused.empty()) return;
+        request.handled = on_semantic_child_action(focused, SemanticAction::show_menu, {});
+        return;
+    }
+    request.handled = true;
+    const std::optional<std::size_t> index = index_at(request.window_position);
+    if (!index) {
+        set_selected_id({});
+        if (is_alive()) context_requested_.emit({{}, request.window_position});
+        return;
+    }
+    // A copy: the selection handler may replace the items.
+    const std::string target = items_[*index].stable_id;
+    set_selected_id(target);
+    const std::optional<std::size_t> selected = item_index(target);
+    if (selected) focus_index(*selected, CorrespondenceExpansionReason::keyboard_focus);
+    if (is_alive()) context_requested_.emit({target, request.window_position});
 }
 
 void CorrespondenceView::on_key(KeyEvent& event) {

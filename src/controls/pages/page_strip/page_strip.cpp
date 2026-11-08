@@ -110,7 +110,6 @@ void PageStrip::release_page_set() noexcept {
     pages_ = nullptr;
     keyboard_page_.reset();
     middle_pressed_.reset();
-    secondary_pressed_.reset();
     drag_ = {};
     insertion_gap_.reset();
     hot_ = {};
@@ -274,7 +273,6 @@ void PageStrip::on_pages_changed(const PageSetChange& change) {
     if (pages_ == nullptr) return;
     if (keyboard_page_ && !(*pages_).find(*keyboard_page_)) keyboard_page_ = (*pages_).selected_page();
     if (middle_pressed_ && !(*pages_).find(*middle_pressed_)) middle_pressed_.reset();
-    if (secondary_pressed_ && !(*pages_).find(*secondary_pressed_)) secondary_pressed_.reset();
     const bool hot_stale = hot_.zone != Zone::none && hot_.position >= (*pages_).count();
     if (hot_stale || change.membership || change.order) hot_ = {};
     if (change.membership || change.order) {
@@ -1696,24 +1694,11 @@ Point PageStrip::keyboard_menu_anchor(std::size_t position) {
     return anchor;
 }
 
-// A secondary press on a tab, released over the same tab, asks for its
-// context menu at the pointer; it selects nothing.
+// The secondary button on a tab is taken and does nothing more: its context
+// menu comes from the host's context request (on_context_menu_requested),
+// which selects nothing.
 void PageStrip::on_secondary_button(PointerEvent& event, Hit hit) {
-    const bool on_tab = is_tab_zone(hit.zone);
-    if (event.action == PointerAction::down) {
-        secondary_pressed_.reset();
-        if (!on_tab || pages_ == nullptr) return;
-        secondary_pressed_ = (*pages_).record_at(PagePosition{hit.position}).id;
-        event.handled = true;
-        return;
-    }
-    if (event.action != PointerAction::up) return;
-    const std::optional<PageId> pressed = secondary_pressed_;
-    secondary_pressed_.reset();
-    if (!pressed || !on_tab || pages_ == nullptr) return;
-    if ((*pages_).record_at(PagePosition{hit.position}).id != *pressed) return;
-    event.handled = true;
-    request_context_menu(hit.position, event.position, PageContextMenuCause::pointer);
+    if (is_tab_zone(hit.zone) && pages_ != nullptr) event.handled = true;
 }
 
 // Keeps every ordinary tab's current width until the pointer leaves the
@@ -1886,15 +1871,21 @@ void PageStrip::on_pointer(PointerEvent& event) {
     }
 }
 
-// A keyboard context request (the host's: Windows' Shift+F10 and Menu key,
-// the Linux desktop's, macOS's show-menu action) asks for the keyboard's
-// tab's context menu. A pointer request is left to the strip's own
-// secondary-button handling.
+// A context request comes from the host (Windows' WM_CONTEXTMENU, macOS's
+// menuForEvent: and show-menu action, the Linux desktop's convention). A
+// pointer request over a tab asks for that tab's menu at the pointer; a
+// keyboard request asks for the keyboard's tab's menu at its corner by the
+// content. Neither selects anything.
 void PageStrip::on_context_menu_requested(ContextMenuRequest& request) {
-    if (request.origin != ContextRequestOrigin::keyboard || !focused_ || pages_ == nullptr ||
-        (*pages_).count() == 0U) {
+    if (pages_ == nullptr || (*pages_).count() == 0U) return;
+    if (request.origin == ContextRequestOrigin::pointer) {
+        const Hit hit = hit_at(request.window_position);
+        if (!is_tab_zone(hit.zone)) return;
+        request.handled = true;
+        request_context_menu(hit.position, request.window_position, PageContextMenuCause::pointer);
         return;
     }
+    if (!focused_) return;
     const std::size_t current = keyboard_position().value_or(0U);
     const Point anchor = keyboard_menu_anchor(current);
     request_context_menu(current, anchor, PageContextMenuCause::keyboard);

@@ -139,8 +139,9 @@ gui_forms::CorrespondenceView
          ``.activate`` button do nothing for a disabled record.
 
       **context_requested** : ``Event<const ObjectContextRequest&>``
-         Raised on the release of a secondary click on a record, on a secondary
-         click on the background, and on a semantic ``show_menu``. It carries an
+         Raised on the host's context request (a pointer request names the
+         record under the pointer, a keyboard request the focused record) and on
+         a semantic ``show_menu``. It carries an
          :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>` with the record ID, empty for the background,
          and the position to open a menu at, in window coordinates despite its
          name ``screen_position``. A background click clears the selection first.
@@ -183,7 +184,7 @@ gui_forms::CorrespondenceView
    focuses the view, selects the row and gives it the focus. Releasing a
    single primary click on the same row toggles its pin; releasing a
    double-click raises :cpp:func:`item_activated <gui_forms::CorrespondenceView::item_activated>` instead, after the first click of the
-   pair has toggled the pin. Releasing a secondary click raises
+   pair has toggled the pin. The host's context request raises
    :cpp:func:`context_requested <gui_forms::CorrespondenceView::context_requested>`. A click on the background clears the selection.
 
    With focus, Up and Down move the focus and the selection to the previous or
@@ -398,8 +399,9 @@ gui_forms::CorrespondenceView
 
    .. cpp:function:: Event<const ObjectContextRequest&>& context_requested() noexcept
 
-      Raised on the release of a secondary click on a record, on a secondary
-      click on the background, and on a semantic ``show_menu``. It carries an
+      Raised on the host's context request (a pointer request names the
+      record under the pointer, a keyboard request the focused record) and on
+      a semantic ``show_menu``. It carries an
       :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>` with the record ID, empty for the background,
       and the position to open a menu at, in window coordinates despite its
       name ``screen_position``. A background click clears the selection first.
@@ -433,6 +435,8 @@ gui_forms::CorrespondenceView
    .. cpp:function:: void on_key(KeyEvent& event) override
 
       Handles the keyboard input described under Notes. The window calls it.
+
+   .. cpp:function:: void on_context_menu_requested(ContextMenuRequest& request) override
 
    .. cpp:function:: void on_focus_changed(bool focused) override
 

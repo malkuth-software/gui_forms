@@ -183,10 +183,10 @@ gui_forms::PageStrip
          press; it never reorders.
 
       **page_context_menu_requested** : ``Event<PageContextMenuRequest&>``
-         Raised when a secondary click is released over the tab it pressed (at
-         the pointer, selecting nothing) or Shift+F10 or the context-menu key is
-         pressed on the keyboard's tab (at the tab's corner on the content's side
-         where reading starts).
+         Raised on the host's context request: a pointer request over a tab asks
+         for that tab's menu (at the pointer, selecting nothing), and a keyboard
+         request for the keyboard's tab's (at the tab's corner on the content's
+         side where reading starts).
          The strip shows no menu of its own; a handler that shows one sets
          ``handled``.
 
@@ -529,10 +529,10 @@ gui_forms::PageStrip
 
    .. cpp:function:: Event<PageContextMenuRequest&>& page_context_menu_requested() noexcept
 
-      Raised when a secondary click is released over the tab it pressed (at
-      the pointer, selecting nothing) or Shift+F10 or the context-menu key is
-      pressed on the keyboard's tab (at the tab's corner on the content's side
-      where reading starts).
+      Raised on the host's context request: a pointer request over a tab asks
+      for that tab's menu (at the pointer, selecting nothing), and a keyboard
+      request for the keyboard's tab's (at the tab's corner on the content's
+      side where reading starts).
       The strip shows no menu of its own; a handler that shows one sets
       ``handled``.
 

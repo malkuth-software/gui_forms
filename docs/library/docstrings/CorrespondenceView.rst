@@ -103,8 +103,9 @@ item_activated
     of its ``.activate`` button. It carries the record ID. Enter and the
     ``.activate`` button do nothing for a disabled record.
 context_requested
-    Raised on the release of a secondary click on a record, on a secondary
-    click on the background, and on a semantic `show_menu`. It carries an
+    Raised on the host's context request (a pointer request names the
+    record under the pointer, a keyboard request the focused record) and on
+    a semantic `show_menu`. It carries an
     `ObjectContextRequest` with the record ID, empty for the background,
     and the position to open a menu at, in window coordinates despite its
     name `screen_position`. A background click clears the selection first.
@@ -153,7 +154,7 @@ collapses that hover expansion. A primary or secondary press on a row
 focuses the view, selects the row and gives it the focus. Releasing a
 single primary click on the same row toggles its pin; releasing a
 double-click raises `item_activated` instead, after the first click of the
-pair has toggled the pin. Releasing a secondary click raises
+pair has toggled the pin. The host's context request raises
 `context_requested`. A click on the background clears the selection.
 
 With focus, Up and Down move the focus and the selection to the previous or

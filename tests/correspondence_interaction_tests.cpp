@@ -105,6 +105,12 @@ void click_at(gui_forms::Window& window, gui_forms::Point point, std::string_vie
            "pointer down must be handled");
     expect(window.dispatch_pointer({gui_forms::PointerAction::up, button, point}),
            "pointer up must be handled");
+    // A secondary click is followed by the host's context request, as
+    // Windows' WM_CONTEXTMENU follows the release.
+    if (button == gui_forms::PointerButton::secondary) {
+        expect(window.dispatch_context_request(gui_forms::ContextRequestOrigin::pointer, point),
+               "the pointer context request must be handled");
+    }
 }
 
 void click(gui_forms::Window& window, std::string_view stable_id)

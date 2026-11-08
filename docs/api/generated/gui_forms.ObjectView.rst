@@ -21,7 +21,7 @@ gui_forms::ObjectView
    are divided into cells under a header that the user clicks to sort and drags
    to resize. The user selects one or several items with the pointer and
    keyboard, activates an item by double-clicking it or pressing Enter, and
-   asks for a context menu with the secondary button. Only the items in view
+   asks for a context menu the platform's way (the host's context request). Only the items in view
    are painted and published, and no child control is created per item. Use a
    :cpp:class:`TreeView <gui_forms::TreeView>` for a hierarchy, a :cpp:class:`ListBox <gui_forms::ListBox>` for plain text rows, and a
    :cpp:class:`CorrespondenceView <gui_forms::CorrespondenceView>` for records that expand to show more detail.
@@ -162,12 +162,15 @@ gui_forms::ObjectView
          press. It carries the item ID. Disabled items are not activated.
 
       **context_requested** : ``Event<const ObjectContextRequest&>``
-         Raised on the release of a secondary click on an item, on a secondary
-         click on the background, and on a semantic ``show_menu``. It carries an
+         Raised on the host's context request (Windows' right-button release,
+         Shift+F10 or Menu key; macOS's right press, Control-click or show-menu
+         action; the Linux desktop's right press, Menu key or Shift+F10) and on
+         a semantic ``show_menu``: a pointer request names the item under the
+         pointer, a keyboard request the focused item. It carries an
          :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>` with the item ID, empty for the background, and
          the position to open a menu at, in window coordinates despite its name
-         ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A secondary press on an
-         unselected item selects it first; a background click clears the
+         ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A request on an
+         unselected item selects it first; one on the background clears the
          selection first.
 
    :Inherited:
@@ -488,12 +491,15 @@ gui_forms::ObjectView
 
    .. cpp:function:: Event<const ObjectContextRequest&>& context_requested() noexcept
 
-      Raised on the release of a secondary click on an item, on a secondary
-      click on the background, and on a semantic ``show_menu``. It carries an
+      Raised on the host's context request (Windows' right-button release,
+      Shift+F10 or Menu key; macOS's right press, Control-click or show-menu
+      action; the Linux desktop's right press, Menu key or Shift+F10) and on
+      a semantic ``show_menu``: a pointer request names the item under the
+      pointer, a keyboard request the focused item. It carries an
       :cpp:class:`ObjectContextRequest <gui_forms::ObjectContextRequest>` with the item ID, empty for the background, and
       the position to open a menu at, in window coordinates despite its name
-      ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A secondary press on an
-      unselected item selects it first; a background click clears the
+      ``screen_position``; pass it to :cpp:class:`ContextMenu <gui_forms::ContextMenu>`. A request on an
+      unselected item selects it first; one on the background clears the
       selection first.
 
 
@@ -565,6 +571,8 @@ gui_forms::ObjectView
    .. cpp:function:: void on_key(KeyEvent& event) override
 
       Handles the keyboard input described under Notes. The window calls it.
+
+   .. cpp:function:: void on_context_menu_requested(ContextMenuRequest& request) override
 
    .. cpp:function:: void on_text_input(TextInputEvent& event) override
 

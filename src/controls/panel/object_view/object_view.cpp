@@ -1101,9 +1101,9 @@ void ObjectView::on_pointer(PointerEvent& event) {
     } else if (event.action == PointerAction::up) {
         const std::optional<std::size_t> index = index_at(event.position);
         if (index && pressed_index_ == index && event.button == pressed_button_) {
-            if (pressed_button_ == PointerButton::secondary) {
-                context_requested_.emit({items_[*index].stable_id, event.position});
-            } else if (pressed_button_ == PointerButton::primary &&
+            // The secondary release asks for no menu itself: the host's
+            // context request does (on_context_menu_requested).
+            if (pressed_button_ == PointerButton::primary &&
                        pressed_click_count_ >= 2U && items_[*index].enabled &&
                        is_alive()) {
                 // A copy: a handler may replace the items, which frees the
@@ -1112,12 +1112,6 @@ void ObjectView::on_pointer(PointerEvent& event) {
                 item_activated_.emit(activated_id);
             }
             event.handled = true;
-        } else if (!index && !pressed_index_ &&
-                   event.button == PointerButton::secondary &&
-                   pressed_button_ == PointerButton::secondary && is_alive()) {
-            clear_selection();
-            context_requested_.emit({{}, event.position});
-            event.handled = true;
         }
         if (event.button == pressed_button_ && pressed_button_ != PointerButton::none) {
             event.handled = true;
@@ -1125,6 +1119,38 @@ void ObjectView::on_pointer(PointerEvent& event) {
         pressed_index_.reset();
         pressed_button_ = PointerButton::none;
     }
+}
+
+// A context request comes from the host (Windows' WM_CONTEXTMENU, macOS's
+// menuForEvent: and show-menu action, the Linux desktop's convention). A
+// pointer request asks for the menu of the item under the pointer, which it
+// selects first unless it is already selected (a macOS Control-click
+// delivers no press); over no item it clears the selection and asks with no
+// target. A keyboard request asks for the focused item's menu, as the
+// semantic Show Menu action does.
+void ObjectView::on_context_menu_requested(ContextMenuRequest& request) {
+    if (request.origin == ContextRequestOrigin::keyboard) {
+        // A copy: the action may replace the focused identity.
+        const std::string focused = focused_id_;
+        if (focused.empty()) return;
+        request.handled = on_semantic_child_action(focused, SemanticAction::show_menu, {});
+        return;
+    }
+    request.handled = true;
+    const std::optional<std::size_t> index = index_at(request.window_position);
+    if (!index) {
+        clear_selection();
+        if (is_alive()) context_requested_.emit({{}, request.window_position});
+        return;
+    }
+    // A copy: a selection handler may replace the items.
+    const std::string target = items_[*index].stable_id;
+    if (!is_selected(target)) {
+        select_index(*index, false);
+    } else {
+        focus_index(*index);
+    }
+    if (is_alive()) context_requested_.emit({target, request.window_position});
 }
 
 void ObjectView::on_key(KeyEvent& event) {

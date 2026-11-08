@@ -149,6 +149,10 @@ void secondary_click(gui_forms::Window& window, gui_forms::Point point) {
                 window.dispatch_pointer({gui_forms::PointerAction::up,
                                          gui_forms::PointerButton::secondary, point}),
             "secondary click must be handled by the object collection");
+    // The host's context request follows the release, as Windows'
+    // WM_CONTEXTMENU does.
+    require(window.dispatch_context_request(gui_forms::ContextRequestOrigin::pointer, point),
+            "the pointer context request must be handled by the object collection");
 }
 
 struct CountSmokeClose final {

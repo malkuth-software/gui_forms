@@ -394,12 +394,12 @@ void context_menu_and_double_click() {
     const Point second{152.0, 13.0};
     static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::secondary, second}));
     static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, second}));
+    require(menus.empty(), "a secondary click alone asks nothing: the host's context request does");
+    require(window.dispatch_context_request(ContextRequestOrigin::pointer, second),
+            "a pointer context request over a tab is taken");
     require(menus.size() == 1U && menus[0].page.value == "p1" && menus[0].cause == PageContextMenuCause::pointer &&
                 menus[0].anchor == second && (*pages.selected_page()).value == "p0",
-            "a secondary click asks once for its tab's menu, at the pointer, selecting nothing");
-    static_cast<void>(window.dispatch_pointer({PointerAction::down, PointerButton::secondary, second}));
-    static_cast<void>(window.dispatch_pointer({PointerAction::up, PointerButton::secondary, {252.0, 13.0}}));
-    require(menus.size() == 1U, "a secondary press and release on different tabs ask nothing");
+            "a pointer context request asks once for its tab's menu, at the pointer, selecting nothing");
     require(window.request_focus(strip), "the strip takes focus");
     require(window.dispatch_context_request(ContextRequestOrigin::keyboard, Point{}),
             "a keyboard context request is taken");

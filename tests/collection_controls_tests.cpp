@@ -669,6 +669,12 @@ void pointer_click(Window& window, Point point, PointerButton button,
     require(operation_check_51, "collection pointer click must be retained and handled");
     const bool operation_check_52 = window.dispatch_pointer(up);
     require(operation_check_52, "collection pointer click must be retained and handled");
+    // A secondary click is followed by the host's context request, as
+    // Windows' WM_CONTEXTMENU follows the release.
+    if (button == PointerButton::secondary) {
+        const bool requested = window.dispatch_context_request(ContextRequestOrigin::pointer, point);
+        require(requested, "the collection must take the pointer context request");
+    }
 }
 
 void require_selection(const ObjectView& view,
@@ -1071,6 +1077,7 @@ void test_correspondence_background_pointer_contract() {
     require(operation_check_87, "secondary correspondence background click must clear selection and emit one exact empty-target context request");
     const bool operation_check_88 = window.dispatch_pointer(
                     {PointerAction::up, PointerButton::secondary, background});
+    static_cast<void>(window.dispatch_context_request(ContextRequestOrigin::pointer, background));
     require(operation_check_88, "secondary correspondence background click must clear selection and emit one exact empty-target context request");
     const bool operation_check_89 = (*records).selected_id.read().empty();
     require(operation_check_89, "secondary correspondence background click must clear selection and emit one exact empty-target context request");

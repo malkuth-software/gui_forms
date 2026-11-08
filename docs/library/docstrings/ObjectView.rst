@@ -8,7 +8,7 @@ name, secondary text, a description and a glyph or image. In
 are divided into cells under a header that the user clicks to sort and drags
 to resize. The user selects one or several items with the pointer and
 keyboard, activates an item by double-clicking it or pressing Enter, and
-asks for a context menu with the secondary button. Only the items in view
+asks for a context menu the platform's way (the host's context request). Only the items in view
 are painted and published, and no child control is created per item. Use a
 `TreeView` for a hierarchy, a `ListBox` for plain text rows, and a
 `CorrespondenceView` for records that expand to show more detail.
@@ -121,12 +121,15 @@ item_activated
     double-click on it, on Enter for the focused item, or on a semantic
     press. It carries the item ID. Disabled items are not activated.
 context_requested
-    Raised on the release of a secondary click on an item, on a secondary
-    click on the background, and on a semantic `show_menu`. It carries an
+    Raised on the host's context request (Windows' right-button release,
+    Shift+F10 or Menu key; macOS's right press, Control-click or show-menu
+    action; the Linux desktop's right press, Menu key or Shift+F10) and on
+    a semantic `show_menu`: a pointer request names the item under the
+    pointer, a keyboard request the focused item. It carries an
     `ObjectContextRequest` with the item ID, empty for the background, and
     the position to open a menu at, in window coordinates despite its name
-    `screen_position`; pass it to `ContextMenu`. A secondary press on an
-    unselected item selects it first; a background click clears the
+    `screen_position`; pass it to `ContextMenu`. A request on an
+    unselected item selects it first; one on the background clears the
     selection first.
 
 Methods

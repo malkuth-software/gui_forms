@@ -597,8 +597,6 @@ private:
     Hit pressed_{};
     // The page a middle press went down on, for a close on its release.
     std::optional<PageId> middle_pressed_{};
-    // The page a secondary press went down on, for its context menu.
-    std::optional<PageId> secondary_pressed_{};
     DragState drag_{};
     std::optional<PagePosition> insertion_gap_{};
     bool focused_{};
