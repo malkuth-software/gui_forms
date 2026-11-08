@@ -54,7 +54,7 @@ public:
 
 private:
     // The document binds the Commands and the interval Value (FD-6).
-    template <typename> friend class LiveSurfacesDocument;
+    template <typename> friend class gui_forms::gallery::pages::LiveSurfacesDocument;
 
     static constexpr std::uint32_t band_count = 8U;
 
@@ -135,13 +135,13 @@ void LiveSurfacesPage::build_presenter() {
 // The page's Commands, which the document's producer buttons bind (the
 // track bar binds the interval Value there too).
 void LiveSurfacesPage::build_producer() {
-    start_.text = "Start producer";
+    start_.set_text("Start producer");
     start_.set_description("Start the page Timer; each tick publishes one band");
-    stop_.text = "Stop producer";
+    stop_.set_text("Stop producer");
     stop_.set_description("Stop the page Timer; zero idle wakeups");
-    publish_once_.text = "Publish one frame";
+    publish_once_.set_text("Publish one frame");
     publish_once_.set_description("Write and publish a single frame now");
-    reconfigure_.text = "Reconfigure 240×150";
+    reconfigure_.set_text("Reconfigure 240×150");
     reconfigure_.set_description("Replace the buffer pool at another size");
 }
 
@@ -188,7 +188,7 @@ void LiveSurfacesPage::on_reconfigure() {
     }
     needs_full_frame_ = true;
     const std::string next = large_ ? "Reconfigure 160×100" : "Reconfigure 240×150";
-    reconfigure_.text = next;
+    reconfigure_.set_text(next);
     (*reconfigure_button_).text = next;
     refresh_status("Reconfigured · new epoch · previous frame carried until the next publish",
                    {});

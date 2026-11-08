@@ -29,7 +29,7 @@ void test_live_surfaces(gui_forms::Window& window) {
     // the Value's 120 ms.
     const std::shared_ptr<gui_forms::TrackBar> interval =
         std::dynamic_pointer_cast<TrackBar>(window.find("gallery.live-surfaces.interval"));
-    require(interval != nullptr && (*interval).value() == 120.0,
+    require(interval != nullptr && (*interval).value.read() == 120.0,
             "the interval track bar must start at its bound Value");
     // The threaded sub-surface: a public control with its own anatomy.
     const std::shared_ptr<gui_forms::SubSurfaceHost> host = std::dynamic_pointer_cast<SubSurfaceHost>(

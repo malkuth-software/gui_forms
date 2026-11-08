@@ -109,7 +109,7 @@ void StatesPage::mount_document(const std::shared_ptr<Surface>& body) {
 // The retained-runtime card (a MetricsView): its title and colours.
 void StatesPage::build_diagnostics() {
     DiagnosticsCard& diagnostics = *document_.gallery_states_diagnostics;
-    diagnostics.set_title("RETAINED RUNTIME");
+    diagnostics.title = std::string("RETAINED RUNTIME");
     BasicControlStyle diagnostics_style = page_style();
     diagnostics_style.text = Color::rgba(28, 39, 50);
     diagnostics_style.face = Color::rgba(175, 203, 221);

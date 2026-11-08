@@ -32,7 +32,7 @@ public:
 
 private:
     // The document binds the option Values (FD-6).
-    template <typename> friend class AnchoredOverlaysDocument;
+    template <typename> friend class gui_forms::gallery::pages::AnchoredOverlaysDocument;
 
     // The overlay's content is the document's last child: it leaves the
     // root before the rest move into the page body, and the layer takes it.
@@ -117,7 +117,7 @@ private:
 
     void on_dismiss_requested(const OverlayDismissReason reason) {
         close_overlay();
-        (*document_.gallery_overlays_status).set_text(reason == OverlayDismissReason::click_away
+        (*document_.gallery_overlays_status).text = std::string(reason == OverlayDismissReason::click_away
                                 ? "Dismissed by click-away · the press did not fall through to the page"
                                 : "Dismissed by Escape · intercepted before the focused field";
     }

@@ -65,7 +65,7 @@ public:
 
 private:
     // The document binds dirty_ and wrap_ (FD-6).
-    template <typename> friend class CommandsDocument;
+    template <typename> friend class gui_forms::gallery::pages::CommandsDocument;
 
     void mount_document(const std::shared_ptr<Surface>& body) {
         mount_form_children(*document_.gallery_commands_document, *body);
@@ -118,11 +118,11 @@ private:
         (*delete_).set_destructive(true);
         (*delete_).set_availability_reason("Fixture documents are read-only");
         wrap_command_ = make_command("gallery.commands.wrap", "Word wrap", "Wrap long lines");
-        (*wrap_command_).checked = false;
+        (*wrap_command_).set_checked(false);
         icons_ = make_command("gallery.commands.view.icons", "Icons", "Show documents as icons");
         details_ = make_command("gallery.commands.view.details", "Details", "Show documents as rows");
-        (*icons_).checked = true;
-        (*details_).checked = false;
+        (*icons_).set_checked(true);
+        (*details_).set_checked(false);
         run_ = make_command("gallery.commands.run", "Run", "Run the fixture document");
         about_ = make_command("gallery.commands.about", "About commands", "Explain this page");
         for (std::size_t index = 0; index < export_names_.size(); ++index) {
@@ -389,7 +389,7 @@ private:
     void build_file_area() {
         font_command_ = std::make_shared<FontCommand>(
             make_command("gallery.commands.font", "Font", "Choose the document's font"));
-        (*font_command_).value = {"Portsmouth Rapids", 11.0};
+        (*font_command_).set_value({"Portsmouth Rapids", 11.0});
         color_command_ = std::make_shared<ColorCommand>(
             make_command("gallery.commands.colour", "Font colour", "Colour the selected text"));
         std::shared_ptr<RibbonFontControl> font =
@@ -561,7 +561,7 @@ private:
     }
 
     void on_wrap_changed(const bool wrap) {
-        (*wrap_command_).checked = wrap;
+        (*wrap_command_).set_checked(wrap);
         (*status_).text = std::string("Word wrap ") + (wrap ? "on" : "off") +
                             " · Value projected onto the check Command";
     }
@@ -587,8 +587,8 @@ private:
     }
 
     void on_view_mode(const int mode, const CommandInvocation& invocation) {
-        (*icons_).checked = mode == 0;
-        (*details_).checked = mode == 1;
+        (*icons_).set_checked(mode == 0);
+        (*details_).set_checked(mode == 1);
         (*status_).text = std::string("View ") + (mode == 0 ? "icons" : "details") +
                             " · radio Commands checked from " + invocation.source_id;
     }

@@ -134,7 +134,7 @@ private:
             if (index != 0U) text += ", ";
             text += (*workspace_).panel_title(closing.documents[index]);
         }
-        closing.cancel = (*document_.gallery_docking_keep).checked();
+        closing.cancel = (*document_.gallery_docking_keep).checked.read();
         text += closing.cancel ? ": kept" : ": closing";
         (*document_.gallery_docking_closing).text = text;
     }

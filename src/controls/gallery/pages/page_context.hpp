@@ -158,7 +158,7 @@ struct PageContext final {
 
     void apply_motion_policy() {
         const MotionPolicy policy = motion_policy();
-        if (easing) (*easing).set_motion_policy(policy);
+        if (easing) (*easing).motion_policy = policy;
         for (const std::shared_ptr<gui_forms::ProgressBar>& progress : animated_progress) {
             (*progress).set_motion_policy(policy);
         }

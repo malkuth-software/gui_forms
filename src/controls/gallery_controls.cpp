@@ -172,7 +172,7 @@ void GalleryContext::synchronize(std::string_view cause)
     }
     (*document.gallery_slider).value = state.slider_value;
     (*document.gallery_progress).value = state.progress_value;
-    (*document.gallery_instrument).value = state.instrument_value;
+    (*document.gallery_instrument).set_value(state.instrument_value);
     const std::optional<std::size_t> row = collection_row_index(state.selected_collection_row);
     if (row && (*document.gallery_collection).selected_index() != row) {
         (*document.gallery_collection).select_index(*row);

@@ -82,7 +82,7 @@ private:
             if (index == 2U) (*tab_page).image_index = 0;
             primary.add_page(tab_page);
         }
-        primary.selected_index = 1U;
+        primary.set_selected_index(1U);
     }
 
     // One ordinary control per retained page, proving hidden pages keep
@@ -154,7 +154,7 @@ private:
                 (*tab_page).add_child(content);
                 tabs.add_page(tab_page);
             }
-            tabs.selected_index = index % 3U;
+            tabs.set_selected_index(index % 3U);
         }
     }
 
@@ -352,7 +352,7 @@ private:
     }
 
     void on_activity_visible_changed(const bool visible) {
-        (*document_.gallery_tabs_status).set_text(visible
+        (*document_.gallery_tabs_status).text = std::string(visible
             ? "Activity · keep visible on · bound Value<bool> changed"
             : "Activity · keep visible off · bound Value<bool> changed";
     }
