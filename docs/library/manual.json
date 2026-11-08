@@ -490,8 +490,6 @@
       "summary": "SplitterPanel is the allocated scroll-capable pane surface owned by SplitContainer, with explicit retained background painting so movement never exposes an invisible allocation.",
       "methods": {
         "SplitterPanel": "Constructs a transparent ContainerControl pane whose allocation is owned by SplitContainer.",
-        "background": "Returns the explicit pane fill color.",
-        "set_background": "Commits a real color change and invalidates pane painting.",
         "on_paint": "Records the pane background from committed local bounds before descendant content paints."
       }
     },

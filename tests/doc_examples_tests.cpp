@@ -3395,7 +3395,7 @@ void example() {
     std::shared_ptr<gf::SplitContainer> split =
         gf::make_control<gf::SplitContainer>(gf::StableId("library"));
     std::shared_ptr<gf::SplitterPanel> sources = (*split).first_panel();
-    (*sources).set_background(gf::Color::rgba(225, 235, 243));
+    (*sources).background = gf::Color::rgba(225, 235, 243);
 
     std::shared_ptr<gf::Panel> content =
         gf::make_control<gf::Panel>(gf::StableId("library.sources"));

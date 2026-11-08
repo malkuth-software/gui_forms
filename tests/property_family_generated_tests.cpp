@@ -45,6 +45,7 @@
 #include "gui_forms/controls/panel/tree_view/tree_view.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/container_control.hpp"
 #include "gui_forms/controls/scrollable_control/container_control/split_container/split_container.hpp"
+#include "gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp"
 #include "gui_forms/controls/scrollable_control/scrollable_control.hpp"
 #include "gui_forms/controls/search_field/search_field.hpp"
 #include "gui_forms/controls/splitter/splitter.hpp"
@@ -1318,6 +1319,15 @@ void test_splitter_properties() {
     }
 }
 
+void test_splitter_panel_properties() {
+    std::shared_ptr<SplitterPanel> control = make_control<SplitterPanel>(StableId("generated.splitterpanel"));
+    {
+        const Color sample = Color::rgba(225, 235, 243);
+        (*control).background = sample;
+        expect((*control).background.read() == sample, "SplitterPanel.background: a write stores");
+    }
+}
+
 void test_text_block_properties() {
     std::shared_ptr<TextBlock> control = make_control<TextBlock>(StableId("generated.textblock"));
     {
@@ -1608,6 +1618,7 @@ int main() {
     test_search_field_properties();
     test_split_container_properties();
     test_splitter_properties();
+    test_splitter_panel_properties();
     test_text_block_properties();
     test_text_box_properties();
     test_toggle_switch_properties();

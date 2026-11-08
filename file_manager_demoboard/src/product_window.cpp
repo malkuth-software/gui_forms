@@ -951,7 +951,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     (*outer).first_minimum = 120;
     (*outer).second_minimum = 320;
     (*outer).first_maximum = 360;
-    (*(*outer).first_panel()).set_background(Color::rgba(235,240,246));
+    (*(*outer).first_panel()).background = Color::rgba(235,240,246);
     (*(*outer).first_panel()).add_child(make_tree_pane(refs));
     (*(*(*outer).first_panel()).children().back()).dock = DockStyle::fill;
 
@@ -967,7 +967,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     (*inner).first_minimum = 260;
     (*inner).second_minimum = 288;
     (*inner).second_maximum = 420;
-    (*(*inner).first_panel()).set_background(paper);
+    (*(*inner).first_panel()).background = paper;
     std::shared_ptr<gui_forms::Panel> daily_content = std::make_shared<Panel>(
         StableId("fm.content.host"));
     (*daily_content).set_background(paper);

@@ -211,10 +211,10 @@ void test_pane_surface_background() {
     std::shared_ptr<gui_forms::SplitContainer> split = make_control<SplitContainer>(StableId("split.surface"));
     const Color first = Color::rgba(225, 235, 243);
     const Color second = Color::rgba(250, 250, 250);
-    (*(*split).first_panel()).set_background(first);
-    (*(*split).second_panel()).set_background(second);
-    require((*(*split).first_panel()).background() == first &&
-                (*(*split).second_panel()).background() == second,
+    (*(*split).first_panel()).background = first;
+    (*(*split).second_panel()).background = second;
+    require((*(*split).first_panel()).background.read() == first &&
+                (*(*split).second_panel()).background.read() == second,
             "splitter panels must own their allocation-filling surface color");
 }
 

@@ -7,7 +7,7 @@ gui_forms::SplitterPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: SplitterPanel final : public ContainerControl
+.. cpp:class:: SplitterPanel final : public ContainerControl, public SplitterPanelCapabilities<SplitterPanel>
 
    ``#include <gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel.hpp>``
 
@@ -73,7 +73,7 @@ gui_forms::SplitterPanel
       std::shared_ptr<gf::SplitContainer> split =
           gf::make_control<gf::SplitContainer>(gf::StableId("library"));
       std::shared_ptr<gf::SplitterPanel> sources = (*split).first_panel();
-      (*sources).set_background(gf::Color::rgba(225, 235, 243));
+      (*sources).background = gf::Color::rgba(225, 235, 243);
 
       std::shared_ptr<gf::Panel> content =
           gf::make_control<gf::Panel>(gf::StableId("library.sources"));
@@ -88,16 +88,12 @@ gui_forms::SplitterPanel
 
    .. rubric:: Properties
 
-   .. cpp:function:: Color background() const noexcept
+   .. cpp:member:: Color background
 
       The color that fills the pane. The default is fully transparent, so
       nothing is drawn and whatever lies behind the container shows through.
       Because the fill follows the pane's current bounds, the colored area
       tracks the seam while the user drags it. Changing it only repaints.
-
-   .. cpp:function:: void set_background(Color color)
-
-      Sets :cpp:func:`background <gui_forms::SplitterPanel::background>`; see the property's description above.
 
    .. cpp:function:: Parts parts() const
 

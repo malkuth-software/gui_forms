@@ -75,8 +75,8 @@ std::shared_ptr<SplitContainer> make_split(
     (*split).keyboard_increment = 4.0;
     (*split).collapse_panel = collapse_panel;
     (*split).accessible_name = "Adjustable physical pane seam";
-    (*(*split).first_panel()).set_background(paper);
-    (*(*split).second_panel()).set_background(cool_well);
+    (*(*split).first_panel()).background = paper;
+    (*(*split).second_panel()).background = cool_well;
     return split;
 }
 

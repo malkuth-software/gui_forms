@@ -199,6 +199,10 @@ Related types
      - A move of a Splitter by the user.
    * - :cpp:class:`SplitterPanel::Parts <gui_forms::SplitterPanel::Parts>`
      - Stage T1 anatomy, as dot members: the scrollable parts and the face.
+   * - :cpp:class:`SplitterPanelBackgroundCapability <gui_forms::SplitterPanelBackgroundCapability>`
+     - The pane's flat background, painted from its committed bounds so the allocation stays visible while the splitter moves (default transparent: nothing is painted and the face part is absent).
+   * - :cpp:class:`SplitterPanelCapabilities <gui_forms::SplitterPanelCapabilities>`
+     - Every SplitterPanel capability, in the order the declaring class takes them.
    * - :cpp:class:`TableCellCapability <gui_forms::TableCellCapability>`
      - The placement a table provides to its children (Column, Row, ColumnSpan and RowSpan; child properties, study sections 10, 10.9 section 5 and 15.4).
    * - :cpp:class:`TableColumnSpanCapability <gui_forms::TableColumnSpanCapability>`
@@ -1602,6 +1606,38 @@ Related types
    .. cpp:member:: ScrollableControl::Parts scrollable
 
    .. cpp:member:: PartGeometry face
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitterPanelBackgroundCapability
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel_capabilities/splitter_panel_capabilities.hpp>``
+
+   The pane's flat background, painted from its committed bounds so the allocation stays visible while the splitter moves (default transparent: nothing is painted and the face part is absent).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(SplitterPanelBackgroundCapability& capability, Color incoming)
+
+   .. cpp:member:: PropertyCell<Color, SplitterPanelBackgroundCapability<Declaring>> background
+
+      Default: ``{Color::rgba(0, 0, 0, 0)}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> SplitterPanelCapabilities : public SplitterPanelBackgroundCapability<Declaring>
+
+   ``#include <gui_forms/controls/scrollable_control/container_control/split_container/splitter_panel/splitter_panel_capabilities/splitter_panel_capabilities.hpp>``
+
+   Every SplitterPanel capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: Color background
+
+      The pane's flat background, painted from its committed bounds so the allocation stays visible while the splitter moves (default transparent: nothing is painted and the face part is absent).
 
 .. cpp:namespace:: gui_forms
 

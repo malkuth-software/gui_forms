@@ -21,8 +21,8 @@ public:
         document_.initialize_component(*this);
         mount_form_children(*document_.gallery_containers_document, *body);
         (*document_.gallery_containers_docking_group).set_style(page_style());
-        (*document_.gallery_containers_base_face).set_background(Color::rgba(232, 239, 245));
-        (*document_.gallery_containers_user_face).set_background(Color::rgba(238, 244, 236));
+        (*document_.gallery_containers_base_face).background = Color::rgba(232, 239, 245);
+        (*document_.gallery_containers_user_face).background = Color::rgba(238, 244, 236);
         build_split();
         build_docking(*document_.gallery_containers_docking_group);
         on((*collapse_).clicked(), *this, &ContainersPage::on_collapse);
@@ -41,8 +41,8 @@ private:
         split.second_minimum = 280.0;
         const std::shared_ptr<SplitterPanel> first = split.first_panel();
         const std::shared_ptr<SplitterPanel> second = split.second_panel();
-        (*first).set_background(Color::rgba(225, 235, 243));
-        (*second).set_background(paper);
+        (*first).background = Color::rgba(225, 235, 243);
+        (*second).background = paper;
 
         std::shared_ptr<Label> first_title = label(
             "gallery.containers.first.title", "NAVIGATION PANE", 13.0, 700,

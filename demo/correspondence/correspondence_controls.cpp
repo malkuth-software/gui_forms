@@ -298,8 +298,8 @@ void CorrespondenceShell::build_panes() {
     (*split_).second_minimum = 320.0;
     (*split_).dock = DockStyle::fill;
     add_child(split_);
-    (*(*split_).first_panel()).set_background(navigation);
-    (*(*split_).second_panel()).set_background(canvas);
+    (*(*split_).first_panel()).background = navigation;
+    (*(*split_).second_panel()).background = canvas;
 
     folders_ = make_control<TreeView>(StableId(std::string(ids::folders)));
     (*folders_).show_expanders = false;
@@ -322,8 +322,8 @@ void CorrespondenceShell::build_panes() {
     (*content_split_).second_minimum = 180.0;
     (*content_split_).dock = DockStyle::fill;
     (*(*split_).second_panel()).add_child(content_split_);
-    (*(*content_split_).first_panel()).set_background(paper);
-    (*(*content_split_).second_panel()).set_background(paper);
+    (*(*content_split_).first_panel()).background = paper;
+    (*(*content_split_).second_panel()).background = paper;
 
     messages_ = make_control<CorrespondenceView>(StableId(std::string(ids::messages)));
     (*messages_).font = list_font;
