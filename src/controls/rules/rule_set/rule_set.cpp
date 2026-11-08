@@ -72,6 +72,15 @@ public:
         : rules_(&rules), kind_(trigger.kind), control_(trigger.control), command_(trigger.command),
           source_(trigger.source) {}
 
+    // Whether this tap carries `kind` on `control`, for the window's mouse
+    // route (RuleSet::offer_mouse).
+    [[nodiscard]] bool serves_raised(RuleTriggerKind kind, const Control& control) const noexcept {
+        if (kind != kind_ || source_ || command_ != nullptr) return false;
+        const Control::Ptr held = control_.lock();
+        const bool same = held.get() == &control;
+        return same;
+    }
+
     [[nodiscard]] bool serves(const RuleTrigger& trigger) const noexcept {
         if (trigger.kind != kind_) return false;
         if (source_ || trigger.source) {
@@ -105,11 +114,6 @@ public:
 
     void fire_plain() {
         RuleFiring firing{};
-        offer(firing);
-    }
-    void fire_mouse(const MouseEventArgs& arguments) {
-        RuleFiring firing{};
-        firing.mouse = &arguments;
         offer(firing);
     }
     void fire_context(ContextMenuRequest& request) {
@@ -148,23 +152,15 @@ private:
     // focus_observed). A kind outside them connects nothing.
     void connect_control_event(Control& control) {
         switch (kind_) {
+        // The events raise_mouse_events raises reach the rules through the
+        // window's mouse route before any subscriber (offer_mouse), so their
+        // taps subscribe to nothing.
         case RuleTriggerKind::mouse_down:
-            subscription_ = control.mouse_down().subscribe(mouse_delegate());
-            return;
         case RuleTriggerKind::mouse_up:
-            subscription_ = control.mouse_up().subscribe(mouse_delegate());
-            return;
-        case RuleTriggerKind::mouse_click:
-            subscription_ = control.mouse_click().subscribe(mouse_delegate());
-            return;
-        case RuleTriggerKind::mouse_double_click:
-            subscription_ = control.mouse_double_click().subscribe(mouse_delegate());
-            return;
         case RuleTriggerKind::click:
-            subscription_ = control.click().subscribe(plain_delegate());
-            return;
+        case RuleTriggerKind::mouse_click:
         case RuleTriggerKind::double_click:
-            subscription_ = control.double_click().subscribe(plain_delegate());
+        case RuleTriggerKind::mouse_double_click:
             return;
         case RuleTriggerKind::mouse_enter:
             subscription_ = control.mouse_enter().subscribe(plain_delegate());
@@ -195,11 +191,6 @@ private:
         }
     }
 
-    [[nodiscard]] Delegate<const MouseEventArgs&> mouse_delegate() noexcept {
-        const Delegate<const MouseEventArgs&> forward =
-            Delegate<const MouseEventArgs&>::bind<RuleTap, &RuleTap::fire_mouse>(*this);
-        return forward;
-    }
     [[nodiscard]] Delegate<> plain_delegate() noexcept {
         const Delegate<> forward = Delegate<>::bind<RuleTap, &RuleTap::fire_plain>(*this);
         return forward;
@@ -590,6 +581,23 @@ bool RuleSet::offer_key(KeyEvent& event) {
     firing.key = &event;
     const bool consumed = offer(nullptr, firing);
     if (consumed) event.handled = true;
+    return consumed;
+}
+
+bool RuleSet::offer_mouse(RuleTriggerKind kind, Control& control, const MouseEventArgs* arguments) {
+    if (armed_ == 0U) return false;
+    detail::RuleTap* found = nullptr;
+    for (const std::unique_ptr<detail::RuleTap>& tap : taps_) {
+        if ((*tap).users == 0U || !(*tap).serves_raised(kind, control)) continue;
+        found = tap.get();
+        break;
+    }
+    if (found == nullptr) return false;
+    RuleFiring firing{};
+    firing.mouse = arguments;
+    // The tap stays put for the firing: taps are held by address and dropped
+    // only by compact(), which waits for the evaluation offer() opens.
+    const bool consumed = (*found).offer(firing);
     return consumed;
 }
 

@@ -1785,7 +1785,11 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
     args.window_position = event.position;
     args.wheel_delta = event.wheel_delta;
     args.modifiers = event.modifiers;
+    // The window's rules see MouseDown, MouseUp and the clicks before the
+    // control's subscribers (the owner's Q-C5); a rule that consumes one
+    // keeps it from them, and a consumed Click also from on_activate.
     if (press) {
+        if (offer_mouse_rules(detail::MouseRuleEvent::mouse_down, *target, &args)) return;
         if ((*target).mouse_events_) (*(*target).mouse_events_).down.emit(args);
         return;
     }
@@ -1823,20 +1827,38 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
         const bool double_clicked = args.clicks >= 2U && control.has_style(ControlStyles::standard_click) &&
                                     control.has_style(ControlStyles::standard_double_click);
         const bool single_clicked = !double_clicked && control.has_style(ControlStyles::standard_click);
-        if (double_clicked && control.mouse_events_) {
-            (*control.mouse_events_).double_click.emit();
+        if (double_clicked) {
+            const bool double_click_consumed = offer_mouse_rules(detail::MouseRuleEvent::double_click, control, nullptr);
             if ((*lifetime).window != presenting) return;
-            if (eligible(pressed_for_release)) (*control.mouse_events_).mouse_double_click.emit(args);
-            if ((*lifetime).window != presenting) return;
-        }
-        if (single_clicked) {
-            if (control.mouse_events_) {
-                (*control.mouse_events_).click.emit();
-                if ((*lifetime).window != presenting) return;
-                if (eligible(pressed_for_release)) (*control.mouse_events_).mouse_click.emit(args);
+            if (!double_click_consumed && control.mouse_events_) {
+                (*control.mouse_events_).double_click.emit();
                 if ((*lifetime).window != presenting) return;
             }
-            if (primary && eligible(pressed_for_release)) {
+            if (eligible(pressed_for_release)) {
+                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_double_click, control, &args);
+                if ((*lifetime).window != presenting) return;
+                if (!consumed && control.mouse_events_) {
+                    (*control.mouse_events_).mouse_double_click.emit(args);
+                    if ((*lifetime).window != presenting) return;
+                }
+            }
+        }
+        if (single_clicked) {
+            const bool click_consumed = offer_mouse_rules(detail::MouseRuleEvent::click, control, nullptr);
+            if ((*lifetime).window != presenting) return;
+            if (!click_consumed && control.mouse_events_) {
+                (*control.mouse_events_).click.emit();
+                if ((*lifetime).window != presenting) return;
+            }
+            if (eligible(pressed_for_release)) {
+                const bool consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_click, control, &args);
+                if ((*lifetime).window != presenting) return;
+                if (!consumed && control.mouse_events_) {
+                    (*control.mouse_events_).mouse_click.emit(args);
+                    if ((*lifetime).window != presenting) return;
+                }
+            }
+            if (!click_consumed && primary && eligible(pressed_for_release)) {
                 metrics_.record_callback_emitted();
                 metrics_.record_activation();
                 control.on_activate();
@@ -1845,11 +1867,24 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
         }
     }
     if ((*lifetime).window != presenting) return;
-    if ((*target).mouse_events_ && eligible(target)) (*(*target).mouse_events_).up.emit(args);
+    if (eligible(target)) {
+        const bool up_consumed = offer_mouse_rules(detail::MouseRuleEvent::mouse_up, *target, &args);
+        if ((*lifetime).window != presenting) return;
+        if (!up_consumed && (*target).mouse_events_) (*(*target).mouse_events_).up.emit(args);
+    }
     if ((*lifetime).window != presenting) return;
     const Control::Ptr lost_capture = deferred_capture_changed_.lock();
     deferred_capture_changed_.reset();
     if (lost_capture && (*lost_capture).mouse_events_) (*(*lost_capture).mouse_events_).capture_changed.emit();
+}
+
+bool SurfaceRoot::offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments) {
+    if (offer_mouse_rules_ == nullptr) return false;
+    // Held for the offer: a rule's action may close and destroy this window,
+    // which must not end the rule set while it evaluates.
+    const std::shared_ptr<RuleSet> rules = rules_;
+    const bool consumed = offer_mouse_rules_(*rules, event, control, arguments);
+    return consumed;
 }
 
 bool SurfaceRoot::dispatch_key(KeyEvent event) {
@@ -1872,6 +1907,18 @@ bool SurfaceRoot::route_key(KeyEvent event) {
     metrics_.record_input();
     if (event.action == KeyAction::down) {
         set_focus_cue_visible(true);
+    }
+    // The window's key rules run before the control route (the owner's
+    // Q-C5); a consuming rule ends the key. The set is held for the offer:
+    // a rule's action may close and destroy this window.
+    if (offer_key_rules_ != nullptr) {
+        const std::shared_ptr<RuleSet> rules = rules_;
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        const bool consumed = offer_key_rules_(*rules, event);
+        if (consumed) return true;
+        // A closed window routes the key no further.
+        if ((*lifetime).window != presenting) return false;
     }
     if (focus_scopes_.empty() && dispatch_accelerator(event, true)) return true;
     Control::Ptr target = focused_.lock();

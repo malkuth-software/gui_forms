@@ -17,11 +17,15 @@
 // Where rules sit in the input order (Q-C5). Key rules see a key before the
 // control route (WinForms' ProcessCmdKey position): before the preemptive
 // accelerators, the focused control's preview, the control and the key
-// commands; a consuming key rule ends the key there. Control-event rules
-// run when the control raises the event, as a subscriber connected when the
-// first rule on that control's event was added; a consuming
-// context_menu_requested rule also marks the request handled, so it does not
-// reach the control's ancestors.
+// commands; a consuming key rule ends the key there. Rules on MouseDown,
+// MouseUp, Click, MouseClick, DoubleClick and MouseDoubleClick see the event
+// before the control's subscribers (SurfaceRoot::raise_mouse_events offers
+// it through offer_mouse); a consuming one keeps the event from them, and a
+// consumed Click also from on_activate (a button's clicked). The other
+// control-event rules run when the control raises the event, as a
+// subscriber connected when the first rule on that control's event was
+// added; a consuming context_menu_requested rule also marks the request
+// handled, so it does not reach the control's ancestors.
 //
 // Lifetime. The window owns its rules. A rule naming a component (rule.hpp)
 // is disarmed when that component is disposed or destroyed, and its token
@@ -143,6 +147,12 @@ public:
     // the key rules and marks it handled when one consumed it. Returns
     // whether one did.
     bool offer_key(KeyEvent& event);
+    // The window's mouse route, before the control's subscribers: offers
+    // `kind` (mouse_down, mouse_up, click, mouse_click, double_click or
+    // mouse_double_click) on `control` to the rules for it. `arguments` is
+    // null for click and double_click. Returns whether a rule consumed it,
+    // in which case the caller raises the event to no subscriber.
+    bool offer_mouse(RuleTriggerKind kind, Control& control, const MouseEventArgs* arguments);
 
 private:
     friend class detail::RuleAnchor;

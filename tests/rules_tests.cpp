@@ -30,6 +30,11 @@ struct Journal final {
     std::int64_t last_value{};
     bool last_had_state{};
     bool last_had_key{};
+    // The control's own subscribers' calls, and how many had run when the
+    // last ordering rule fired (mouse_rules_run_before_subscribers).
+    std::uint32_t subscriber_calls{};
+    std::uint32_t subscriber_calls_at_fire{};
+    std::uint32_t activations{};
 };
 
 void note(Journal& journal, const char* name, const RuleFiring& firing) {
@@ -44,6 +49,19 @@ void note(Journal& journal, const char* name, const RuleFiring& firing) {
 void record_a(Journal& journal, const RuleFiring& firing) { note(journal, "a", firing); }
 void record_b(Journal& journal, const RuleFiring& firing) { note(journal, "b", firing); }
 void record_c(Journal& journal, const RuleFiring& firing) { note(journal, "c", firing); }
+
+void record_order(Journal& journal, const RuleFiring& firing) {
+    journal.subscriber_calls_at_fire = journal.subscriber_calls;
+    note(journal, "order", firing);
+}
+
+// The control's own subscribers, beside the rules.
+struct Subscribers final {
+    Journal* journal{};
+    void plain() { ++(*journal).subscriber_calls; }
+    void mouse(const MouseEventArgs&) { ++(*journal).subscriber_calls; }
+    void activated(ButtonBase&) { ++(*journal).activations; }
+};
 
 void throw_now(Journal& journal, const RuleFiring& firing) {
     note(journal, "throw", firing);
@@ -556,6 +574,61 @@ void reentrancy_and_failures() {
     require(journal.entries.back() == "c", "and fires them");
 }
 
+// Q-C5: the window's rules see MouseDown, MouseUp and the clicks before the
+// control's subscribers, and a consuming rule keeps the event from them (a
+// consumed Click also from the button's activation).
+void mouse_rules_run_before_subscribers() {
+    Fixture fixture = make_fixture();
+    Window window(fixture.root, {300.0, 120.0});
+    window.perform_layout();
+    RuleSet& rules = window.rules();
+    Journal journal;
+    Subscribers subscribers{};
+    subscribers.journal = &journal;
+    Button& ok = *fixture.ok;
+    const SubscriptionToken down_subscription =
+        ok.mouse_down().subscribe(Delegate<const MouseEventArgs&>::bind<Subscribers, &Subscribers::mouse>(subscribers));
+    const SubscriptionToken up_subscription =
+        ok.mouse_up().subscribe(Delegate<const MouseEventArgs&>::bind<Subscribers, &Subscribers::mouse>(subscribers));
+    const SubscriptionToken click_subscription =
+        ok.click().subscribe(Delegate<>::bind<Subscribers, &Subscribers::plain>(subscribers));
+    const SubscriptionToken activation_subscription =
+        ok.clicked().subscribe(Delegate<ButtonBase&>::bind<Subscribers, &Subscribers::activated>(subscribers));
+
+    // A rule added after the subscribers still runs first.
+    require(on(rules, trigger::mouse_down(ok), journal, &record_order).refusal == RuleRefusal::none,
+            "an ordering mouse_down rule is armed");
+    click_at(window, {50.0, 65.0});
+    require(journal.entries.size() == 1U && journal.subscriber_calls_at_fire == 0U,
+            "the mouse_down rule fires before the control's MouseDown subscribers");
+    require(journal.subscriber_calls == 3U && journal.activations == 1U,
+            "a rule that does not consume leaves MouseDown, Click, MouseUp and the activation to the control");
+
+    // A consuming Click rule: no Click subscriber and no activation; MouseUp
+    // is its own event and still reaches its subscriber.
+    Rule swallow{};
+    swallow.trigger = trigger::click(ok);
+    swallow.actions.push_back(action(journal, &record_a));
+    swallow.consume = true;
+    require(rules.add(swallow).refusal == RuleRefusal::none, "a consuming click rule is armed");
+    click_at(window, {50.0, 65.0});
+    require(journal.entries.back() == "a" && journal.triggers.back() == RuleTriggerKind::click,
+            "the consuming click rule fires");
+    require(journal.subscriber_calls == 5U && journal.activations == 1U,
+            "a consumed Click reaches neither its subscribers nor the activation; MouseDown and MouseUp do");
+
+    // A consuming MouseUp rule keeps MouseUp from its subscriber.
+    Rule up{};
+    up.trigger = trigger::mouse_up(ok);
+    up.actions.push_back(action(journal, &record_b));
+    up.consume = true;
+    require(rules.add(up).refusal == RuleRefusal::none, "a consuming mouse_up rule is armed");
+    click_at(window, {50.0, 65.0});
+    require(journal.triggers.back() == RuleTriggerKind::mouse_up && journal.subscriber_calls == 6U,
+            "a consumed MouseUp reaches no subscriber");
+    require(rules.statistics().consumed == 3U, "each consumption is counted (Click twice, MouseUp once)");
+}
+
 } // namespace
 
 int main() {
@@ -565,6 +638,7 @@ int main() {
     stale_revoked_and_dropped_tokens();
     builtins_and_model_conditions();
     control_events_and_control_conditions();
+    mouse_rules_run_before_subscribers();
     reentrancy_and_failures();
     std::cout << "rules tests passed\n";
     return 0;

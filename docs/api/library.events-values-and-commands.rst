@@ -436,6 +436,10 @@ Related types
 
       The window's key route, before the control route: offers ``event`` to the key rules and marks it handled when one consumed it. Returns whether one did.
 
+   .. cpp:function:: bool offer_mouse(RuleTriggerKind kind, Control& control, const MouseEventArgs* arguments)
+
+      The window's mouse route, before the control's subscribers: offers ``kind`` (mouse_down, mouse_up, click, mouse_click, double_click or mouse_double_click) on ``control`` to the rules for it. ``arguments`` is null for click and double_click. Returns whether a rule consumed it, in which case the caller raises the event to no subscriber.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: RuleSetStatistics final

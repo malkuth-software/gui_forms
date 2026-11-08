@@ -77,6 +77,19 @@ class MessageBoxHelpRoute;
 class InteractionState;
 struct InteractionHoverWake;
 
+// The WinForms mouse events raise_mouse_events offers the window's rules
+// before raising them (SurfaceRoot::offer_mouse_rules_). The rules library
+// maps them to its trigger kinds; events raised elsewhere as well (capture,
+// hover, the context menu) reach the rules through their subscriptions.
+enum class MouseRuleEvent : std::uint8_t {
+    mouse_down = 0,
+    mouse_up = 1,
+    click = 2,
+    mouse_click = 3,
+    double_click = 4,
+    mouse_double_click = 5,
+};
+
 } // namespace detail
 
 namespace detail {
@@ -1176,6 +1189,11 @@ private:
     // target (Control's mouse_down and the rest), in WinForms' order.
     void raise_mouse_events(const PointerEvent& event, const Control::Ptr& target,
                             const Control::Ptr& pressed_for_release);
+    // Offers one of those events on `control` to the window's rules before
+    // its subscribers (the owner's Q-C5: rules run before the control
+    // route). `arguments` is null for Click and DoubleClick. Returns whether
+    // a rule consumed it; false without rules.
+    bool offer_mouse_rules(detail::MouseRuleEvent event, Control& control, const MouseEventArgs* arguments);
     friend struct detail::InteractionHoverWake;
     friend class BackgroundWorker;
     friend class ToolTip;
@@ -2047,9 +2065,13 @@ private:
     // rules library (gui_forms_controls), whose deleter the pointer carries,
     // so the core never names RuleSet's members. offer_key_rules_ is the key
     // route's entry into them, set with them: route_key calls it first, and
-    // a true result (a consuming rule) ends the key. Null without rules.
+    // a true result (a consuming rule) ends the key. offer_mouse_rules_ is
+    // raise_mouse_events' entry (offer_mouse_rules), with the same result.
+    // Both null without rules.
     std::shared_ptr<RuleSet> rules_{};
     bool (*offer_key_rules_)(RuleSet& rules, KeyEvent& event){};
+    bool (*offer_mouse_rules_)(RuleSet& rules, detail::MouseRuleEvent event, Control& control,
+                               const MouseEventArgs* arguments){};
 };
 
 } // namespace gui_forms
