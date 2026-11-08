@@ -230,6 +230,12 @@ enum class SemanticTextUnit : std::uint8_t {
 // - `text_selection` and `multiline`: a text node's selection and caret
 //   (absent for protected content) and whether its text runs over several
 //   lines.
+//
+// `announces_on_appearance` (owner ruling, 2026-11-08: a toast is a polite
+// live region): a live region whose name is spoken when its node first
+// appears, not only when its name changes later (semantic_announcement_due).
+// A live region present from the start (a dock site's announcements, a
+// banner) leaves it false, so a page that shows one announces nothing.
 struct SemanticDescriptor final {
     SemanticRole role{SemanticRole::generic};
     std::string name;
@@ -254,6 +260,7 @@ struct SemanticDescriptor final {
     std::optional<double> large_step;
     std::optional<SemanticTextSelection> text_selection;
     bool multiline{};
+    bool announces_on_appearance{};
     SemanticState states{SemanticState::none};
     std::vector<SemanticAction> actions;
     bool exposed{};
@@ -286,6 +293,7 @@ struct SemanticNode final {
     std::optional<double> large_step;
     std::optional<SemanticTextSelection> text_selection;
     bool multiline{};
+    bool announces_on_appearance{};
     // The thing's plain tooltip text (owner, 2026-10-28): a control's
     // Control::tool_tip_text, or an authored part's, such as a strip item's
     // or a tab header's. Data items never carry one. Empty for none.
@@ -326,6 +334,17 @@ void fill_semantic_text_boundaries(const SemanticTextLayout& layout, std::string
 [[nodiscard]] const char* semantic_state_name(SemanticState state) noexcept;
 // The node fields the vocabulary admits, by name, for the schema export.
 [[nodiscard]] std::span<const char* const> semantic_field_names() noexcept;
+
+// Whether a host asks assistive technology to speak `current`'s name now, at
+// polite priority (DK-51; the toast, owner ruling 2026-11-08). `current` is a
+// node the host is publishing and `previous` the same node (same control,
+// same virtual child) at the host's last publication, or null when the node
+// is new. Due when `current` is a live region with a non-empty name and
+// either `previous` had another name, or the node is new and announces on
+// appearance. Every host decides through this one rule: UI Automation raises
+// the live-region event, AppKit posts an announcement request, AT-SPI emits
+// object:announcement; the text spoken is `current.name`.
+[[nodiscard]] bool semantic_announcement_due(const SemanticNode* previous, const SemanticNode& current) noexcept;
 
 // The runtime ID of a virtual semantic child (a tab, an item, a caption
 // button: a SemanticNode with no control of its own), from its stable ID: a

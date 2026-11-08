@@ -263,6 +263,7 @@ void append_semantic_nodes(const Control::Ptr& control,
     node.large_step = descriptor.large_step;
     node.text_selection = descriptor.text_selection;
     node.multiline = descriptor.multiline;
+    node.announces_on_appearance = descriptor.announces_on_appearance;
     node.tool_tip = (*control).tool_tip_text.read();
     node.bounds = (*control).absolute_bounds();
     if (!current_semantic_identity(control, expected_parent, owner)) return;

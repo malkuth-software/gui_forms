@@ -639,6 +639,8 @@ struct LinuxAccessibility::Impl {
         NodeData& value = data(object);
         const StateBits old_states = created ? StateBits{0} : state_bits(value.node);
         const std::string old_value = value.node.value, old_name = value.node.name;
+        const SemanticNode* const published = created ? nullptr : &value.node;
+        const bool announce = semantic_announcement_due(published, node);
         const std::optional<SemanticTextSelection> old_selection = value.node.text_selection;
         std::vector<AtkObject*> previous = std::move(value.children);
         value.children.clear();
@@ -653,9 +655,10 @@ struct LinuxAccessibility::Impl {
         value.parent = parent; value.index = index;
         data(parent).children.push_back(object);
         if (!created && old_name != node.name) { g_object_notify(G_OBJECT(object), "accessible-name"); }
-        if (!created && node.role == SemanticRole::live_region && old_name != node.name && !node.name.empty()) {
-            announce_live_region(object, node.name);
-        }
+        // The rule every host shares (semantic_announcement_due): a known
+        // live region announces a new name, a new one (a toast) only when it
+        // announces on appearance.
+        if (announce) announce_live_region(object, node.name);
         if (!created && old_value != node.value) { g_object_notify(G_OBJECT(object), "accessible-value"); }
         const StateBits new_states = state_bits(value.node);
         if (!created && old_states != new_states) {

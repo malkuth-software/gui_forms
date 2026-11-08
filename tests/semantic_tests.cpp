@@ -555,6 +555,7 @@ public:
         descriptor.large_step = 10.0;
         descriptor.text_selection = SemanticTextSelection{Utf8Offset(1U), Utf8Offset(3U)};
         descriptor.multiline = true;
+        descriptor.announces_on_appearance = true;
         descriptor.states = SemanticState::checkable | SemanticState::multiselectable;
         descriptor.exposed = true;
         return descriptor;
@@ -569,8 +570,9 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
                 std::string_view(semantic_state_name(SemanticState::multiselectable)) == "multiselectable",
             "the new roles and states have their names");
     const std::span<const char* const> fields = semantic_field_names();
-    require(fields.size() == 17U && std::string_view(fields[5]) == "level" &&
-                std::string_view(fields[15]) == "multiline" && std::string_view(fields[16]) == "tool_tip",
+    require(fields.size() == 18U && std::string_view(fields[5]) == "level" &&
+                std::string_view(fields[15]) == "multiline" && std::string_view(fields[16]) == "tool_tip" &&
+                std::string_view(fields[17]) == "announces_on_appearance",
             "the field list names the admitted fields in order");
     std::shared_ptr<Panel> root = make_control<Panel>(StableId("stage-a.root"));
     std::shared_ptr<StageAFields> item = make_control<StageAFields>(StableId("stage-a.item"));
@@ -584,15 +586,43 @@ void test_stage_a_vocabulary_reaches_the_snapshot() {
                 (*node).column_count == 5U && (*node).access_key == "F" && (*node).small_step == 1.0 &&
                 (*node).large_step == 10.0 && (*node).text_selection &&
                 (*(*node).text_selection).anchor == Utf8Offset(1U) && (*(*node).text_selection).caret == Utf8Offset(3U) &&
-                (*node).multiline && has_semantic_state((*node).states, SemanticState::checkable) &&
+                (*node).multiline && (*node).announces_on_appearance &&
+                has_semantic_state((*node).states, SemanticState::checkable) &&
                 has_semantic_state((*node).states, SemanticState::multiselectable),
             "every stage A field reaches the node");
     const std::string json = snapshot.to_json();
     require(json.find("\"role\":\"tree_item\"") != std::string::npos &&
                 json.find("\"level\":3,\"modal\":true,\"row_index\":4,\"column_index\":2,\"row_count\":10,"
                           "\"column_count\":5,\"access_key\":\"F\",\"small_step\":1,\"large_step\":10,"
-                          "\"text_selection\":{\"anchor\":1,\"caret\":3},\"multiline\":true") != std::string::npos,
+                          "\"text_selection\":{\"anchor\":1,\"caret\":3},\"multiline\":true") != std::string::npos &&
+                json.find("\"announces_on_appearance\":true") != std::string::npos,
             "the snapshot's JSON carries every stage A field");
+}
+
+// The announcement rule every host shares (semantic_announcement_due): a
+// known live region announces a new, non-empty name; a new one only when it
+// announces on appearance (a toast); nothing else announces.
+void test_announcement_rule() {
+    SemanticNode region;
+    region.role = SemanticRole::live_region;
+    region.name = "Message archived.";
+    require(!semantic_announcement_due(nullptr, region), "a new live region announces nothing by default");
+    region.announces_on_appearance = true;
+    require(semantic_announcement_due(nullptr, region), "a new live region that announces on appearance is spoken");
+    SemanticNode same = region;
+    require(!semantic_announcement_due(&same, region), "an unchanged name is not spoken again");
+    SemanticNode renamed = region;
+    renamed.name = "Message restored.";
+    renamed.announces_on_appearance = false;
+    require(semantic_announcement_due(&region, renamed), "a known live region speaks its new name");
+    SemanticNode emptied = region;
+    emptied.name.clear();
+    require(!semantic_announcement_due(&region, emptied) && !semantic_announcement_due(nullptr, emptied),
+            "an empty name is never spoken");
+    SemanticNode label = region;
+    label.role = SemanticRole::static_text;
+    require(!semantic_announcement_due(nullptr, label) && !semantic_announcement_due(&region, label),
+            "only a live region announces");
 }
 
 // A node of a given role, exposed.
@@ -932,6 +962,7 @@ int main() {
         test_semantic_focus_reaches_composites();
         test_hidden_focus_is_published_on_the_composite();
         test_stage_a_vocabulary_reaches_the_snapshot();
+        test_announcement_rule();
         test_meter_role_reaches_the_snapshot();
         test_specialised_roles();
         test_search_field_is_one_node();

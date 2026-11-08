@@ -1327,14 +1327,14 @@ static bool contains_live_region(const SemanticNode& node) {
 }
 
 // A live region whose name changed to a new, non-empty announcement posts
-// it (a new element announces nothing, as on the other hosts).
+// it (semantic_announcement_due, the rule every host shares; a new element
+// announces only when it announces on appearance, reconcile_accessibility_element).
 // A text node whose value or selection changed posts it, as AppKit's text
 // views do.
 - (void)updateWithNode:(const SemanticNode&)node
                  owner:(GUIFormsView*)owner
                 parent:(id)parent {
-    const bool announce = node.role == SemanticRole::live_region && !node.name.empty() &&
-                          node.name != _node.name;
+    const bool announce = gui_forms::semantic_announcement_due(&_node, node);
     const bool text = publishes_text_ranges(node) && publishes_text_ranges(_node);
     const bool value_changed = text && node.value != _node.value;
     const bool selection_changed = text && node.text_selection != _node.text_selection;
@@ -1791,6 +1791,9 @@ static GUIFormsAccessibilityElement* reconcile_accessibility_element(
                                                               parent:parent
                                                              control:control
                                                         virtualChild:child_identity];
+        // A new live region that announces on appearance (a toast) is
+        // spoken as it appears.
+        if (gui_forms::semantic_announcement_due(nullptr, node)) announce_live_region(owner, node.name);
     } else {
         [element updateWithNode:node owner:owner parent:parent];
     }

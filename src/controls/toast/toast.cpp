@@ -286,6 +286,10 @@ SemanticDescriptor Toast::semantic_descriptor() const {
     descriptor.name = accessible_name.read().empty() ? content_.message : accessible_name.read();
     descriptor.description = accessible_description.read();
     if (content_.closable) descriptor.actions = {SemanticAction::close};
+    // A polite live region spoken as it appears (owner ruling, 2026-11-08):
+    // UI Automation's live-region event, AppKit's announcement request and
+    // AT-SPI's object:announcement (semantic_announcement_due).
+    descriptor.announces_on_appearance = true;
     descriptor.exposed = true;
     return descriptor;
 }

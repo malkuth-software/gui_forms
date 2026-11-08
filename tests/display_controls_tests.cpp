@@ -482,6 +482,8 @@ void test_toast_content_and_semantics() {
     require(plain_semantics.role == SemanticRole::live_region && plain_semantics.name == "Message archived." &&
                 plain_semantics.actions.empty(),
             "a toast is a live region named by its message, without close when not closable");
+    require(plain_semantics.exposed && plain_semantics.announces_on_appearance,
+            "a toast publishes its node and announces its message as it appears");
     require(!(*plain).on_semantic_action(SemanticAction::close, std::string_view{}),
             "close does nothing on a toast that cannot be closed");
 

@@ -31,4 +31,11 @@ bool is_virtual_semantic_runtime_id(std::uint64_t runtime_id) noexcept {
     return virtual_id;
 }
 
+bool semantic_announcement_due(const SemanticNode* previous, const SemanticNode& current) noexcept {
+    if (current.role != SemanticRole::live_region || current.name.empty()) return false;
+    if (previous == nullptr) return current.announces_on_appearance;
+    const bool renamed = (*previous).name != current.name;
+    return renamed;
+}
+
 } // namespace gui_forms

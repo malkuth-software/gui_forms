@@ -1328,6 +1328,15 @@ void collect_published(const SemanticLocation& at, std::vector<PublishedNode>& n
 
 // Raises one property-changed event for `id` when `before` and `after`
 // differ. `before` and `after` are VARIANTs the call clears.
+// Raises the live-region event on the node `id`, whose name a reader then
+// speaks at the polite LiveSetting the node publishes.
+void raise_live_region_changed(const std::shared_ptr<SemanticSource>& source, SemanticElementId id) noexcept {
+    IRawElementProviderSimple* element = make_automation_element(source, id);
+    if (element == nullptr) return;
+    UiaRaiseAutomationEvent(element, UIA_LiveRegionChangedEventId);
+    (*element).Release();
+}
+
 void raise_property_change(const std::shared_ptr<SemanticSource>& source, SemanticElementId id,
                            PROPERTYID property, VARIANT& before, VARIANT& after) noexcept {
     IRawElementProviderSimple* element = make_automation_element(source, id);
@@ -1394,16 +1403,10 @@ void raise_node_changes(const std::shared_ptr<SemanticSource>& source, SemanticE
             VariantClear(&old_value);
             VariantClear(&new_value);
         }
-        // A live region's name is its latest announcement (DK-51): a
-        // reader speaks it on the live-region event.
-        if (after.role == SemanticRole::live_region && !after.name.empty()) {
-            IRawElementProviderSimple* element = make_automation_element(source, id);
-            if (element != nullptr) {
-                UiaRaiseAutomationEvent(element, UIA_LiveRegionChangedEventId);
-                (*element).Release();
-            }
-        }
     }
+    // A live region's name is its latest announcement (DK-51): a reader
+    // speaks it on the live-region event.
+    if (semantic_announcement_due(&before, after)) raise_live_region_changed(source, id);
     const bool enabled_before = has_semantic_state(before.states, SemanticState::enabled);
     const bool enabled_after = has_semantic_state(after.states, SemanticState::enabled);
     if (enabled_before != enabled_after) {
@@ -1456,6 +1459,11 @@ void raise_automation_events(const std::shared_ptr<SemanticSource>& source,
             const bool both = found != before.end() && (*found).id == entry.id;
             if (both && entry.id != SemanticElementId{}) {
                 raise_node_changes(source, entry.id, *(*found).node, *entry.node);
+            }
+            // A new node that announces on appearance (a toast) is spoken
+            // as it appears.
+            if (!both && entry.id != SemanticElementId{} && semantic_announcement_due(nullptr, *entry.node)) {
+                raise_live_region_changed(source, entry.id);
             }
             const bool focused = has_semantic_state((*entry.node).states, SemanticState::focused);
             if (focused && (!had_focus || focus_before != entry.id)) {
